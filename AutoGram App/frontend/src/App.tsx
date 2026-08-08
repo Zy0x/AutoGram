@@ -5,6 +5,7 @@ import { SplashScreen } from './components/layout/SplashScreen';
 import { ApiSetupScreen } from './pages/ApiSetupScreen';
 import { SessionLauncher } from './pages/SessionLauncher';
 import { ForwarderWorkspace } from './pages/ForwarderWorkspace';
+import { Settings } from './pages/Settings';
 
 import { isMediaStudioAvailable } from './lib/tauri/capabilities';
 import { bootstrapSecureCredentials } from './lib/tauri/secureCredentials';
@@ -45,7 +46,7 @@ function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [apiChecked, setApiChecked] = useState(false);
   const [apiValid, setApiValid] = useState(true);
-  const [appMode, setAppMode] = useState<'launcher' | 'drives' | 'forwarder'>(() => {
+  const [appMode, setAppMode] = useState<'launcher' | 'drives' | 'forwarder' | 'settings'>(() => {
     return (localStorage.getItem('autogram_app_mode') as any) || 'launcher';
   });
   const [currentSession, setCurrentSession] = useState<string>(() => {
@@ -134,7 +135,19 @@ function App() {
           setAppMode('drives');
         }}
         onOpenSettings={() => {
-          setAppMode('drives');
+          setAppMode('settings');
+          localStorage.setItem('autogram_app_mode', 'settings');
+        }}
+      />
+    );
+  }
+
+  if (appMode === 'settings') {
+    return (
+      <Settings
+        onBackToLauncher={() => {
+          setAppMode('launcher');
+          localStorage.setItem('autogram_app_mode', 'launcher');
         }}
       />
     );
@@ -151,7 +164,8 @@ function App() {
           localStorage.setItem('autogram_app_mode', 'launcher');
         }}
         onOpenSettings={() => {
-          setAppMode('drives');
+          setAppMode('settings');
+          localStorage.setItem('autogram_app_mode', 'settings');
         }}
       />
     );
@@ -162,7 +176,7 @@ function App() {
     <div className="app-layout app-layout-drive-focus">
       <div className="app-content app-content-drive" id="app-content">
         <ErrorBoundary
-          fallbackTitle={t('nav.error_title', 'Terjadi Kesalahan pada Halaman Ini')}
+          fallbackTitle={t('nav.error_title')}
           onReset={() => {
             setAppMode('launcher');
             localStorage.setItem('autogram_app_mode', 'launcher');
@@ -173,7 +187,7 @@ function App() {
               fallback={
                 <main className="main-content main-content-fill td-page">
                   <div className="td-boot-fallback" role="status">
-                    Memuat Drives…
+                    {t('ui.generated.memuat_drives_780fc8f')}
                   </div>
                 </main>
               }

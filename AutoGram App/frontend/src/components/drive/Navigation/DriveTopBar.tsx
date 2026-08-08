@@ -256,7 +256,7 @@ export function DriveTopBar({
 
   /** Selection tools sit beside search bar on row 2 — zero layout shift. */
   const selectionToolbar = (
-    <div className="td-selection-strip is-beside-search" role="toolbar" aria-label="Aksi seleksi">
+    <div className="td-selection-strip is-beside-search" role="toolbar" aria-label={t('ui.generated.aksi_seleksi_e8c5093')}>
       <div className="td-selection-strip-left">
         <span className="td-selection-count" title={t("speedtest.topbar_selected_count_tooltip", { count: selectedCount })}>
           <MousePointerClick size={14} strokeWidth={2} aria-hidden />
@@ -281,7 +281,7 @@ export function DriveTopBar({
           title={t("speedtest.topbar_deselect_all_tooltip")}
         >
           <SquareX size={15} strokeWidth={2} aria-hidden />
-          <span className="td-chip-label">{t('speedtest.topbar_cancel', 'Batal')}</span>
+          <span className="td-chip-label">{t('speedtest.topbar_cancel')}</span>
         </button>
         {onInvertSelection && (
           <button
@@ -363,7 +363,7 @@ export function DriveTopBar({
               {isPinned ? <PinOff size={16} /> : <Pin size={16} />}
             </button>
           )}
-          <nav className="td-breadcrumbs" aria-label="Breadcrumb">
+          <nav className="td-breadcrumbs" aria-label={t('ui.generated.breadcrumb_c766e66')}>
             {breadcrumbSegs && breadcrumbSegs.length > 0 ? (
               (() => {
                 let displaySegs = breadcrumbSegs;
@@ -428,7 +428,7 @@ export function DriveTopBar({
               })()
             ) : (
               <>
-                <span className="td-crumb-muted">Start</span>
+                <span className="td-crumb-muted">{t('ui.generated.start_952f375')}</span>
                 <span className="td-crumb-sep">/</span>
                 <span className="td-crumb-current" title={folderName}>
                   {folderName}
@@ -499,12 +499,12 @@ export function DriveTopBar({
 
         <div className="td-topbar-actions">
 
-          <div className="td-view-toggle" role="group" aria-label="View mode">
+          <div className="td-view-toggle" role="group" aria-label={t('speedtest.topbar_view_mode_aria')}>
             <button
               type="button"
               className={`td-icon-btn ${viewMode === 'grid' ? 'active' : ''}`}
               onClick={() => onViewMode('grid')}
-              title="Grid"
+              title={t('speedtest.topbar_view_grid_title')}
             >
               <LayoutGrid size={16} />
             </button>
@@ -512,21 +512,21 @@ export function DriveTopBar({
               type="button"
               className={`td-icon-btn ${viewMode === 'list' ? 'active' : ''}`}
               onClick={() => onViewMode('list')}
-              title="List"
+              title={t('speedtest.topbar_view_list_title')}
             >
               <List size={16} />
             </button>
           </div>
 
           {viewMode === 'grid' && (
-            <div className="td-zoom-controls" role="group" aria-label="Zoom grid">
+            <div className="td-zoom-controls" role="group" aria-label={t('speedtest.topbar_zoom_grid_aria')}>
               <button
                 type="button"
                 className="td-icon-btn"
                 disabled={!canZoomOut}
                 onClick={() => onGridZoom((gridZoom - 1) as DriveGridZoom)}
                 title={t("speedtest.topbar_zoom_out")}
-                aria-label="Zoom out"
+                aria-label={t('speedtest.topbar_zoom_out_aria')}
               >
                 <ZoomOut size={16} />
               </button>
@@ -544,7 +544,7 @@ export function DriveTopBar({
                 disabled={!canZoomIn}
                 onClick={() => onGridZoom((gridZoom + 1) as DriveGridZoom)}
                 title={t("speedtest.topbar_zoom_in")}
-                aria-label="Zoom in"
+                aria-label={t('speedtest.topbar_zoom_in_aria')}
               >
                 <ZoomIn size={16} />
               </button>
@@ -558,7 +558,7 @@ export function DriveTopBar({
             onClick={onRefresh}
             disabled={loading}
             title={t("speedtest.topbar_refresh_all")}
-            aria-label="Refresh"
+            aria-label={t('speedtest.sidebar_btn_refresh')}
           >
             <RefreshCw size={16} className={loading ? 'spin' : undefined} />
           </button>
@@ -569,8 +569,8 @@ export function DriveTopBar({
               className={`td-icon-btn ${toolsActive ? 'active' : ''}`}
               onClick={onOpenTools || onOpenTransferSettings}
               disabled={!!actionsDisabled}
-              title="Drive Tools & Settings"
-              aria-label="Drive Tools & Settings"
+              title={t('speedtest.tools_title')}
+              aria-label={t('speedtest.tools_title')}
             >
               <SlidersHorizontal size={16} />
             </button>
@@ -590,9 +590,9 @@ export function DriveTopBar({
                     ? `Transfer Manager — ${transferBadgeCount} gagal`
                     : transferBadgeKind === 'done'
                       ? `Transfer Manager — ${transferBadgeCount} selesai`
-                      : t('speedtest.topbar_open_transfer_manager', 'Buka Transfer Manager')
+                      : t('speedtest.topbar_open_transfer_manager')
               }
-              aria-label="Transfer Manager"
+              aria-label={t('speedtest.topbar_tm_aria')}
             >
               <ListTodo size={16} />
               {transferBadgeCount > 0 && transferBadgeKind !== 'none' && (
@@ -659,7 +659,7 @@ export function DriveTopBar({
         <div className="td-topbar-row td-topbar-row-topics" role="group" aria-label={t("speedtest.label_topic")}>
           <span className="td-topics-label">
             <MessagesSquare size={14} />
-            {t('speedtest.label_topic', 'Topik')}
+            {t('speedtest.label_topic')}
           </span>
           <div className="td-topic-pills">
             <button
@@ -668,7 +668,7 @@ export function DriveTopBar({
               onClick={() => onTopicFilter?.(null)}
               title={t('speedtest.show_group_media')}
             >
-              {t('speedtest.all_media_pill', 'Semua media')}
+              {t('speedtest.all_media_pill')}
             </button>
             {topicsLoading && topics.length === 0 && (
               <span className="td-topics-loading">{t("speedtest.loading_topics")}</span>
@@ -743,7 +743,7 @@ export function DriveTopBar({
                   onClick={() => onViewPerspective('telegram')}
                   title={t("speedtest.perspective_telegram")}
                 >
-                  {t("speedtest.perspective_telegram_short", "Telegram")}
+                  {t("speedtest.perspective_telegram_short")}
                 </button>
                 <button
                   type="button"
@@ -751,7 +751,7 @@ export function DriveTopBar({
                   onClick={() => onViewPerspective('drive')}
                   title={t("speedtest.perspective_drive")}
                 >
-                  {t("speedtest.perspective_drive_short", "Drive")}
+                  {t("speedtest.perspective_drive_short")}
                 </button>
               </div>
             </div>
@@ -759,26 +759,26 @@ export function DriveTopBar({
 
           <div className="td-tool-group" role="group" aria-labelledby="td-label-filter">
             <span id="td-label-filter" className="td-tool-label" title={t("speedtest.topbar_filter_media_type")}>
-              {t("speedtest.topbar_label_filter", "Filter")}
+              {t("speedtest.topbar_label_filter")}
             </span>
             <div className="td-filter-pills">
               {(
                 viewPerspective === 'telegram'
                   ? [
-                      ['all', t("speedtest.filter_all", "Semua"), t("speedtest.filter_all_tip", "Semua media")],
-                      ['media', t("speedtest.tab_telegram_media", "Media"), t("speedtest.tab_telegram_media")],
-                      ['files', t("speedtest.tab_telegram_files", "Berkas"), t("speedtest.tab_telegram_files")],
-                      ['links', t("speedtest.tab_telegram_links", "Tautan"), t("speedtest.tab_telegram_links")],
-                      ['gifs', t("speedtest.tab_telegram_gifs", "GIF"), t("speedtest.tab_telegram_gifs")],
-                      ['audio', t("speedtest.tab_telegram_audio", "Audio"), t("speedtest.tab_telegram_audio")],
+                      ['all', t("speedtest.filter_all"), t("speedtest.filter_all_tip")],
+                      ['media', t("speedtest.tab_telegram_media"), t("speedtest.tab_telegram_media")],
+                      ['files', t("speedtest.tab_telegram_files"), t("speedtest.tab_telegram_files")],
+                      ['links', t("speedtest.tab_telegram_links"), t("speedtest.tab_telegram_links")],
+                      ['gifs', t("speedtest.tab_telegram_gifs"), t("speedtest.tab_telegram_gifs")],
+                      ['audio', t("speedtest.tab_telegram_audio"), t("speedtest.tab_telegram_audio")],
                     ]
                   : [
-                      ['all', t("speedtest.filter_all", "Semua"), t("speedtest.filter_all_tip", "Semua media")],
-                      ['images', t("speedtest.tab_drive_images", "Gambar"), t("speedtest.tab_drive_images")],
-                      ['videos', t("speedtest.tab_drive_videos", "Video"), t("speedtest.tab_drive_videos")],
-                      ['audio', t("speedtest.tab_drive_audio", "Audio"), t("speedtest.tab_drive_audio")],
-                      ['documents', t("speedtest.tab_drive_documents", "Dokumen"), t("speedtest.tab_drive_documents")],
-                      ['archives', t("speedtest.tab_drive_archives", "Arsip"), t("speedtest.tab_drive_archives")],
+                      ['all', t("speedtest.filter_all"), t("speedtest.filter_all_tip")],
+                      ['images', t("speedtest.tab_drive_images"), t("speedtest.tab_drive_images")],
+                      ['videos', t("speedtest.tab_drive_videos"), t("speedtest.tab_drive_videos")],
+                      ['audio', t("speedtest.tab_drive_audio"), t("speedtest.tab_drive_audio")],
+                      ['documents', t("speedtest.tab_drive_documents"), t("speedtest.tab_drive_documents")],
+                      ['archives', t("speedtest.tab_drive_archives"), t("speedtest.tab_drive_archives")],
                     ]
               ).map(([id, label, tip]) => (
                 <button
@@ -787,7 +787,7 @@ export function DriveTopBar({
                   className={`td-pill ${mediaFilter === id ? 'active' : ''}`}
                   onClick={() => onMediaFilter(id as DriveMediaFilter)}
                   title={tip}
-                  aria-label={`${t("speedtest.topbar_label_filter", "Filter")}: ${tip}`}
+                  aria-label={`${t("speedtest.topbar_label_filter")}: ${tip}`}
                   aria-pressed={mediaFilter === id}
                 >
                   <span className="td-pill-label">{label}</span>
@@ -798,14 +798,14 @@ export function DriveTopBar({
 
           <div className="td-tool-group" title={t("speedtest.topbar_sort_order")}>
             <span className="td-tool-label" id="td-label-sort" title={t("speedtest.topbar_sort_order")}>
-              {t("speedtest.topbar_label_sort", "Urutkan")}
+              {t("speedtest.topbar_label_sort")}
             </span>
             <div className="td-sort-group">
               <ArrowUpDown size={14} className="td-sort-ico" aria-hidden />
               <MediaSelect
                 value={sortMode}
                 onChange={(value) => onSortMode(value as DriveSortMode)}
-                ariaLabel={t("speedtest.topbar_sort_media_aria", "Urutkan media")}
+                ariaLabel={t("speedtest.topbar_sort_media_aria")}
                 compact
                 className="td-sort"
                 options={DRIVE_SORT_OPTIONS.map((opt: any) => ({
@@ -824,7 +824,7 @@ export function DriveTopBar({
             title={t("speedtest.topbar_thumb_quality")}
           >
             <span id="td-label-thumb" className="td-tool-label" title={t("speedtest.topbar_preview_quality")}>
-              {t("speedtest.topbar_label_thumb", "Thumb")}
+              {t("speedtest.topbar_label_thumb")}
             </span>
             <div className="td-thumb-quality-pills">
               {DRIVE_THUMB_QUALITY_OPTIONS.map((opt: any) => {
@@ -919,7 +919,7 @@ export function DriveTopBar({
                   }}
                 >
                   <Edit2 size={14} />
-                  <span>Ubah Nama</span>
+                  <span>{t('ui.generated.ubah_nama_8657409')}</span>
                 </button>
               )}
               {onDeleteTopic && (

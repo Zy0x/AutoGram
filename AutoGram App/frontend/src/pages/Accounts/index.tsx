@@ -63,7 +63,7 @@ const CustomCountrySelect = ({ value, onChange, options, iconComponent: Icon }: 
         setIsOpen(!isOpen);
       }}
     >
-      {Icon && <Icon country={value} label="Country" />}
+      {Icon && <Icon country={value} label={t('ui.generated.country_d523ebb')} />}
       <div className="PhoneInputCountrySelectArrow" style={{ marginLeft: '4px', borderStyle: 'solid', borderWidth: '4px 4px 0 4px', borderColor: 'var(--text-muted) transparent transparent transparent' }} />
       
       {isOpen && createPortal(
@@ -315,7 +315,7 @@ export function Accounts() {
       if (!apiId || !apiHash) {
         setErrorMsg(
           t('accounts.error_api_required') ||
-            'API ID / Hash belum terisi. Buka Settings untuk menyimpan credentials — session file tetap aman di disk.'
+            t('ui.generated.api_id_hash_belum_terisi_buka_settings_untuk_men_d015fa3')
         );
         return;
       }
@@ -394,7 +394,7 @@ export function Accounts() {
       const msg = String((e as Error)?.message || e);
       if (/requires desktop|requires tauri/i.test(msg)) {
         setErrorMsg(
-          'Daftar session butuh aplikasi desktop AutoGram. Buka lewat Tauri (bukan browser saja).'
+          t('ui.generated.daftar_session_butuh_aplikasi_desktop_autogram_b_f2e6f20')
         );
       } else {
         console.error(e);
@@ -783,11 +783,11 @@ export function Accounts() {
           <div className="card-header card-header-spread">
             <div className="title-with-icon">
               <Users size={20} color="var(--primary)" aria-hidden />
-              <h3 style={{ margin: 0 }}>{t('accounts.saved_sessions', 'Daftar Sesi Tersimpan')}</h3>
+              <h3 style={{ margin: 0 }}>{t('accounts.saved_sessions')}</h3>
             </div>
             <div className="page-header-actions">
                 <button type="button" className="btn btn-primary" onClick={openWizard}>
-                  <Plus size={16} /> {t('accounts.btn_add', 'Tambah Sesi')}
+                  <Plus size={16} /> {t('accounts.btn_add')}
                 </button>
             </div>
           </div>
@@ -862,7 +862,7 @@ export function Accounts() {
                                   border: '2px solid var(--bg-primary, #0f172a)',
                                   zIndex: 2,
                                 }}
-                                title="Akun Telegram Premium Terverifikasi"
+                                title={t('ui.generated.akun_telegram_premium_terverifikasi_45d82a2')}
                               >
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="#ffffff">
                                   <path d="M12 1.5l3.09 6.26L22 8.77l-5 4.87 1.18 6.88L12 17.27l-6.18 3.25L7 13.64l-5-4.87 6.91-1.01L12 1.5z"/>
@@ -946,7 +946,7 @@ export function Accounts() {
                         setAliasInput(sessionAliases[s.name] || s.userFullName || '');
                       }}
                       className="btn btn-secondary btn-icon"
-                      title={t('accounts.edit_alias_title', 'Ubah Alias Sesi')}
+                      title={t('accounts.edit_alias_title')}
                       style={{ padding: '6px 8px' }}
                     >
                       <Pencil size={16} />
@@ -999,10 +999,10 @@ export function Accounts() {
               )}
               <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
                 {step === 1
-                  ? t('accounts.step_connect', 'Hubungkan Sesi Telegram')
+                  ? t('accounts.step_connect')
                   : step === 2
-                    ? t('accounts.step_verify', 'Verifikasi Kode (OTP)')
-                    : t('accounts.step_2fa', 'Verifikasi Dua Langkah (2FA)')}
+                    ? t('accounts.step_verify')
+                    : t('accounts.step_2fa')}
               </h3>
             </div>
             
@@ -1037,7 +1037,7 @@ export function Accounts() {
                         transition: 'all 0.2s',
                       }}
                     >
-                      <QrCode size={16} /> {t('accounts.tab_qr', 'Scan QR Code')}
+                      <QrCode size={16} /> {t('accounts.tab_qr')}
                     </button>
                     <button
                       type="button"
@@ -1059,7 +1059,7 @@ export function Accounts() {
                         transition: 'all 0.2s',
                       }}
                     >
-                      <Phone size={16} /> {t('accounts.tab_phone', 'Nomor Telepon & OTP')}
+                      <Phone size={16} /> {t('accounts.tab_phone')}
                     </button>
                   </div>
 
@@ -1070,38 +1070,38 @@ export function Accounts() {
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', gap: '12px', width: '100%' }}>
                             <RefreshCcw className="spin" size={32} color="var(--primary)" />
                             <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                              {t('accounts.qr_generating', 'Membuat QR Code Login Telegram...')}
+                              {t('accounts.qr_generating')}
                             </span>
                           </div>
                         ) : (
                           <button className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => handleStartQrLogin(true)}>
-                            <RefreshCcw size={18} /> {t('accounts.btn_reload_qr', 'Reload QR Code')}
+                            <RefreshCcw size={18} /> {t('accounts.btn_reload_qr')}
                           </button>
                         )
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', width: '100%' }}>
                           <div style={{ background: '#ffffff', padding: '12px', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                            <img src={qrDataUrl} alt="Telegram Login QR Code" style={{ width: '200px', height: '200px', display: 'block' }} />
+                            <img src={qrDataUrl} alt={t('ui.generated.telegram_login_qr_code_3f083b9')} style={{ width: '200px', height: '200px', display: 'block' }} />
                             {qrExpiresIn > 0 ? (
                               <span style={{ fontSize: '0.75rem', color: '#333', fontWeight: '600', marginTop: '6px' }}>
                                 {t('accounts.valid_for', { seconds: qrExpiresIn })}
                               </span>
                             ) : (
                               <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: '600', marginTop: '6px' }}>
-                                {t('accounts.status_expired', 'Kedaluwarsa')}
+                                {t('accounts.status_expired')}
                               </span>
                             )}
                           </div>
 
                           {qrExpiresIn === 0 && (
                             <button className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => handleStartQrLogin(true)}>
-                              <RefreshCcw size={18} /> {t('accounts.btn_reload_qr', 'Reload QR Code')}
+                              <RefreshCcw size={18} /> {t('accounts.btn_reload_qr')}
                             </button>
                           )}
 
                           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px 16px', fontSize: '0.85rem', color: 'var(--text-muted)', width: '100%' }}>
                             <div style={{ fontWeight: '600', color: 'var(--text-main)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <Smartphone size={16} color="var(--primary)" /> {t('accounts.qr_instructions_title', 'Langkah-langkah scan di HP:')}
+                              <Smartphone size={16} color="var(--primary)" /> {t('accounts.qr_instructions_title')}
                             </div>
                             <ol style={{ margin: 0, paddingLeft: '20px', lineHeight: '1.5' }}>
                               <li>{t('accounts.qr_step_1')}</li>
@@ -1112,7 +1112,7 @@ export function Accounts() {
                           </div>
 
                           <div className="field-hint" role="status" style={{ textAlign: 'center' }}>
-                            {t('accounts.qr_auto_refresh_hint', 'QR diperbarui otomatis saat kedaluwarsa. AutoGram sedang menunggu konfirmasi Telegram.')}
+                            {t('accounts.qr_auto_refresh_hint')}
                           </div>
                         </div>
                       )}
@@ -1127,7 +1127,7 @@ export function Accounts() {
                           <PhoneInput
                             id="phone-input"
                             countrySelectComponent={CustomCountrySelect}
-                            placeholder="62878xxxx"
+                            placeholder={t('accounts.ph_phone_short')}
                             value={phone}
                             onChange={setPhone}
                             onKeyDown={(e: any) => { 
@@ -1194,11 +1194,11 @@ export function Accounts() {
 
       <ConfirmModal
         isOpen={Boolean(deleteTargetSession)}
-        title={t('accounts.delete_session_title', 'Konfirmasi Hapus Sesi')}
+        title={t('accounts.delete_session_title')}
         description={t('accounts.delete_confirm', { name: deleteTargetSession || '' })}
         variant="danger"
-        confirmText={t('common.delete', 'Hapus')}
-        cancelText={t('common.cancel', 'Batal')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         onConfirm={executeDeleteSession}
         onCancel={() => setDeleteTargetSession(null)}
       />
@@ -1206,16 +1206,16 @@ export function Accounts() {
       {renameTarget && (
         <div className="modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px' }}>
           <div className="glass-panel" style={{ width: '100%', maxWidth: '420px', padding: '24px', borderRadius: '12px', background: 'var(--bg-secondary, #1a1b23)', border: '1px solid var(--border)', boxShadow: '0 20px 50px rgba(0,0,0,0.6)' }}>
-            <h3 style={{ margin: '0 0 8px', fontSize: '1.1rem' }}>{t('accounts.rename_modal_title', 'Ubah Alias / Nama Sesi')}</h3>
+            <h3 style={{ margin: '0 0 8px', fontSize: '1.1rem' }}>{t('accounts.rename_modal_title')}</h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 16px', lineHeight: 1.45 }}>
-              {t('accounts.rename_modal_desc', 'Setel alias kustom untuk sesi ini agar mudah dikenali di AutoGram.')}
+              {t('accounts.rename_modal_desc')}
             </p>
             <div className="input-group" style={{ marginBottom: '20px' }}>
-              <label className="input-label">{t('accounts.custom_alias_label', 'Alias Kustom Sesi')}</label>
+              <label className="input-label">{t('accounts.custom_alias_label')}</label>
               <input
                 type="text"
                 className="input-field"
-                placeholder={t('accounts.custom_alias_ph', 'Misal: Akun Kerja Utama')}
+                placeholder={t('accounts.custom_alias_ph')}
                 value={aliasInput}
                 onChange={(e) => setAliasInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -1226,10 +1226,10 @@ export function Accounts() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               <button type="button" className="btn btn-secondary" onClick={() => setRenameTarget(null)}>
-                {t('accounts.cancel', 'Batal')}
+                {t('accounts.cancel')}
               </button>
               <button type="button" className="btn btn-primary" onClick={handleSaveAlias}>
-                {t('accounts.save', 'Simpan Alias')}
+                {t('accounts.save')}
               </button>
             </div>
           </div>

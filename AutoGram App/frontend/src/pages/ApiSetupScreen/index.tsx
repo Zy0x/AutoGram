@@ -33,15 +33,14 @@ export function ApiSetupScreen({ onComplete }: ApiSetupScreenProps) {
     if (!trimmedId || !trimmedHash) {
       setError(
         t(
-          'nav.api_setup_error_empty',
-          'API ID dan API Hash wajib diisi sebelum melanjutkan.'
+          'nav.api_setup_error_empty'
         )
       );
       return;
     }
 
     if (!/^\d+$/.test(trimmedId)) {
-      setError('API ID harus berupa karakter angka (contoh: 1234567).');
+      setError(t('ui.generated.api_id_harus_berupa_karakter_angka_contoh_123456_2ca721a'));
       return;
     }
 
@@ -50,7 +49,7 @@ export function ApiSetupScreen({ onComplete }: ApiSetupScreenProps) {
       await setApiCredentials(trimmedId, trimmedHash);
       onComplete();
     } catch (err: any) {
-      setError(err?.message || 'Gagal menyimpan API Credentials. Silakan coba lagi.');
+      setError(err?.message || t('ui.generated.gagal_menyimpan_api_credentials_silakan_coba_lag_4907244'));
     } finally {
       setSaving(false);
     }
@@ -116,12 +115,11 @@ export function ApiSetupScreen({ onComplete }: ApiSetupScreenProps) {
           </div>
 
           <h2 style={{ fontSize: '1.6rem', fontWeight: 800, margin: '0 0 8px 0', letterSpacing: '-0.02em' }}>
-            {t('nav.api_setup_title', 'Setup API Telegram AutoGram')}
+            {t('nav.api_setup_title')}
           </h2>
           <p style={{ fontSize: '0.88rem', color: '#94a3b8', margin: 0, lineHeight: 1.5 }}>
             {t(
-              'nav.api_setup_subtitle',
-              'Masukkan API ID dan API Hash akun Telegram Anda untuk mengaktifkan koneksi Grammers & MTProto.'
+              'nav.api_setup_subtitle'
             )}
           </p>
         </div>
@@ -140,12 +138,12 @@ export function ApiSetupScreen({ onComplete }: ApiSetupScreenProps) {
         >
           <strong style={{ color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontSize: '0.85rem' }}>
             <ShieldCheck size={16} />
-            {t('nav.api_setup_guide_title', 'Cara Memperoleh API Credentials:')}
+            {t('nav.api_setup_guide_title')}
           </strong>
           <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <li>{t('nav.api_setup_step1', '1. Buka my.telegram.org di browser dan masuk dengan nomor telepon Telegram Anda.')}</li>
-            <li>{t('nav.api_setup_step2', "2. Pilih menu 'API development tools'.")}</li>
-            <li>{t('nav.api_setup_step3', "3. Buat aplikasi baru (misal: 'AutoGram') untuk memperoleh App api_id dan api_hash.")}</li>
+            <li>{t('nav.api_setup_step1')}</li>
+            <li>{t('nav.api_setup_step2')}</li>
+            <li>{t('nav.api_setup_step3')}</li>
           </ul>
 
           <button
@@ -167,7 +165,7 @@ export function ApiSetupScreen({ onComplete }: ApiSetupScreenProps) {
               transition: 'all 0.15s ease',
             }}
           >
-            <span>Buka my.telegram.org</span>
+            <span>{t('ui.generated.buka_my_telegram_org_ba7df45')}</span>
             <ExternalLink size={13} />
           </button>
         </div>
@@ -196,13 +194,13 @@ export function ApiSetupScreen({ onComplete }: ApiSetupScreenProps) {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '6px' }}>
-              {t('nav.api_id_label', 'API ID Telegram')} <span style={{ color: '#ef4444' }}>*</span>
+              {t('nav.api_id_label')} <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <input
               type="text"
               value={apiId}
               onChange={(e) => setApiId(e.target.value)}
-              placeholder="Contoh: 1234567"
+              placeholder={t('ui.generated.contoh_1234567_25ccc85')}
               required
               style={{
                 width: '100%',
@@ -220,14 +218,14 @@ export function ApiSetupScreen({ onComplete }: ApiSetupScreenProps) {
 
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '6px' }}>
-              {t('nav.api_hash_label', 'API Hash Telegram')} <span style={{ color: '#ef4444' }}>*</span>
+              {t('nav.api_hash_label')} <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <div style={{ position: 'relative' }}>
               <input
                 type={showHash ? 'text' : 'password'}
                 value={apiHash}
                 onChange={(e) => setApiHash(e.target.value)}
-                placeholder="Contoh: 0123456789abcdef0123456789abcdef"
+                placeholder={t('ui.generated.contoh_0123456789abcdef0123456789abcdef_ece8eb0')}
                 required
                 style={{
                   width: '100%',
@@ -281,13 +279,13 @@ export function ApiSetupScreen({ onComplete }: ApiSetupScreenProps) {
               transition: 'all 0.18s ease',
             }}
           >
-            <span>{t('nav.api_setup_submit', 'Simpan & Lanjutkan')}</span>
+            <span>{t('nav.api_setup_submit')}</span>
             <ArrowRight size={18} />
           </button>
         </form>
 
         <p style={{ margin: 0, fontSize: '0.74rem', color: '#64748b', textAlign: 'center' }}>
-          Credentials Anda disimpan secara terenkripsi aman di perangkat lokal via Tauri Encrypted Store.
+          {t('ui.generated.credentials_anda_disimpan_secara_terenkripsi_ama_b24611b')}
         </p>
       </div>
     </div>

@@ -1443,7 +1443,7 @@ export function DriveSidebar({
     <aside
       ref={sidebarRef as React.RefObject<HTMLElement>}
       className={`td-sidebar ${collapsed ? 'is-collapsed' : ''} ${drawerOpen ? 'is-drawer-open' : ''} ${anyDragLive ? 'media-dnd' : ''}`}
-      aria-label="Drive locations"
+      aria-label={t('ui.generated.drive_locations_e6fade5')}
       data-collapsed={collapsed ? 'true' : 'false'}
     >
       {/* Expand/collapse first (top) — users expect this control at the top of the rail */}
@@ -1466,8 +1466,8 @@ export function DriveSidebar({
             )}
           </div>
           <div className="td-sidebar-brand-text">
-            <strong>Drive</strong>
-            <span>Telegram · [TD]</span>
+            <strong>{t('speedtest.perspective_drive_short')}</strong>
+            <span>{t('ui.generated.telegram_td_905c09e')}</span>
           </div>
         </button>
 
@@ -1484,7 +1484,7 @@ export function DriveSidebar({
             <ArrowLeft size={18} />
             <span className="td-rail-btn-label">
               <Rocket size={14} />
-              AutoGram
+              {t('nav.title')}
             </span>
           </button>
         )}
@@ -1531,14 +1531,14 @@ export function DriveSidebar({
                   marginLeft: '4px',
                 }}
               >
-                {t('accounts.btn_relog', 'Login Ulang')}
+                {t('accounts.btn_relog')}
               </button>
             )}
           </span>
         </div>
       </div>
 
-      <div className="td-rail-actions td-rail-toolbar" role="toolbar" aria-label="Aksi Drive">
+      <div className="td-rail-actions td-rail-toolbar" role="toolbar" aria-label={t('ui.generated.aksi_drive_47b8b0c')}>
         <button
           type="button"
           className="td-rail-btn td-rail-tool"
@@ -1548,7 +1548,7 @@ export function DriveSidebar({
           disabled={busy}
         >
           {busy ? <Loader2 size={16} className="spin" aria-hidden /> : <RefreshCw size={16} aria-hidden />}
-          <span className="td-rail-btn-label">Muat</span>
+          <span className="td-rail-btn-label">{t('speedtest.label_load')}</span>
         </button>
         <button
           type="button"
@@ -1578,7 +1578,7 @@ export function DriveSidebar({
         >
           <FolderPlus size={16} aria-hidden />
           <span className="td-rail-btn-label">
-            {createIsSubfolder ? '+ Folder' : '+ Drive'}
+            {createIsSubfolder ? t('ui.generated.folder_0d9a3d4') : t('ui.generated.drive_29ede6d')}
           </span>
         </button>
       </div>
@@ -1594,7 +1594,7 @@ export function DriveSidebar({
       {/* DnD hint only in status bar (SpeedTest) — avoid dark slab in sidebar */}
       {folderDragLive && !dragLive && (
         <p className="td-dnd-hint td-only-expanded">
-          Lepas di <strong>Drive atau folder lain</strong> untuk memindahkan · Esc batal
+          {t('ui.generated.lepas_di_4ee781a')} <strong>{t('ui.generated.drive_atau_folder_lain_df18d2b')}</strong> {t('ui.generated.untuk_memindahkan_esc_batal_ff0f8f2')}
         </p>
       )}
 
@@ -1656,15 +1656,15 @@ export function DriveSidebar({
               folderRows.length,
               chatRows.length,
             ].reduce((a, b) => a + b, 0)}{' '}
-            lokasi
+            {t('ui.generated.lokasi_9c8096b')}
             {chatsHasMore && chatRows.length === 0
-              ? ' · muat chat lain jika belum muncul'
+              ? t('ui.generated.muat_chat_lain_jika_belum_muncul_38ef29f')
               : ''}
           </p>
         )}
         {/* Shortcuts moved to input title tooltips — strip was visual noise */}
         <div className="td-shortcuts-hint td-only-expanded" style={{ display: 'none' }}>
-          Ctrl+K lokasi · Ctrl+F file · Ctrl+A pilih · Esc
+          {t('ui.generated.ctrl_k_lokasi_ctrl_f_file_ctrl_a_pilih_esc_398cbc6')}
         </div>
 
         {showSaved &&
@@ -1697,7 +1697,7 @@ export function DriveSidebar({
                   <PeerAvatar
                     peerId={0}
                     creds={creds}
-                    title="Saved Messages"
+                    title={t('speedtest.saved_messages')}
                     fallback={<Home size={16} />}
                   />
                 </span>
@@ -1711,7 +1711,7 @@ export function DriveSidebar({
           <div className="td-recents td-pins td-only-expanded" data-pins="1">
             <div className="td-recents-label">
               <Pin size={12} aria-hidden />
-              Disematkan
+              {t('ui.generated.disematkan_57b7b13')}
             </div>
             <div className="td-recents-list">
               {pins.slice(0, 8).map((r: any) => {
@@ -1865,19 +1865,19 @@ export function DriveSidebar({
               className={`td-section-chevron ${foldersExpanded ? 'is-open' : ''}`}
               aria-hidden
             />
-            <span className="td-section-toggle-label">Drives [TD]</span>
+            <span className="td-section-toggle-label">{t('ui.generated.drives_td_d85c6ed')}</span>
             <span className="td-chat-count" title={t("speedtest.sidebar_td_count")}>
               {hasLocationQuery ? `${folderRows.length}/${folders.length}` : folders.length}
             </span>
           </button>
           {foldersExpanded && folders.length === 0 && !loadingFolders && !hasLocationQuery && (
             <p className="td-sidebar-hint td-only-expanded">
-              <strong>Drive</strong> = root (penanda <code>[TD]</code>). Buka Drive lalu{' '}
-              <strong>+ Folder</strong>; folder bisa berisi folder lagi. Chat di bawah.
+              <strong>{t('speedtest.perspective_drive_short')}</strong> {t('ui.generated.root_penanda_7790d14')} <code>{t('ui.generated.td_1294383')}</code>{t('ui.generated.buka_drive_lalu_d92c640')}{' '}
+              <strong>{t('ui.generated.folder_0d9a3d4')}</strong>{t('ui.generated.folder_bisa_berisi_folder_lagi_chat_di_bawah_bba5941')}
             </p>
           )}
           {foldersExpanded && hasLocationQuery && folderRows.length === 0 && folders.length > 0 && (
-            <p className="td-sidebar-hint td-only-expanded">Tidak ada Drive/folder cocok.</p>
+            <p className="td-sidebar-hint td-only-expanded">{t('speedtest.sidebar_drives_empty')}</p>
           )}
           {foldersExpanded &&
             folderTreeRows.map(({ folder: f, depth, hasChildren }) => {
@@ -1972,12 +1972,12 @@ export function DriveSidebar({
                   {/* Badges only on roots / orphan — nested keeps full name visible */}
                   {itemKind === 'drive' && !f.is_orphan && depth === 0 && (
                     <span className="td-badge-drive td-only-expanded" title={t("speedtest.sidebar_drive_root")}>
-                      Drive
+                      {t('speedtest.perspective_drive_short')}
                     </span>
                   )}
                   {f.is_orphan && (
                     <span className="td-folder-orphan-badge td-only-expanded" title={t("speedtest.sidebar_orphan_parent")}>
-                      Yatim
+                      {t('ui.generated.yatim_fbb507d')}
                     </span>
                   )}
                 </DropRow>
@@ -2114,9 +2114,9 @@ export function DriveSidebar({
           <p className="td-sidebar-hint td-only-expanded">
             {hasLocationQuery
               ? chatsHasMore
-                ? 'Belum ketemu di chat yang sudah termuat — scroll/muat daftar…'
-                : 'Tidak ada chat yang cocok.'
-              : 'Tidak ada chat. Refresh atau cek session.'}
+                ? t('ui.generated.belum_ketemu_di_chat_yang_sudah_termuat_scroll_m_ba5501e')
+                : t('ui.generated.tidak_ada_chat_yang_cocok_bed4d35')
+              : t('ui.generated.tidak_ada_chat_refresh_atau_cek_session_fb2e1de')}
           </p>
         )}
         {chatsExpanded && chatRows.length === 0 && loadingChats && (
@@ -2139,7 +2139,7 @@ export function DriveSidebar({
             ref={chatListRef}
             className={`td-chat-virtual ${collapsed ? 'is-rail' : ''}`}
             role="list"
-            aria-label="Daftar chat"
+            aria-label={t('ui.generated.daftar_chat_71a8e93')}
           >
             <div
               className="td-chat-virtual-inner"
@@ -2206,7 +2206,7 @@ export function DriveSidebar({
                           className="td-badge-forum td-only-expanded"
                           title={t('speedtest.group_with_topics')}
                         >
-                          Topik
+                          {t('speedtest.label_topic')}
                         </span>
                       )}
                     </DropRow>
@@ -2271,7 +2271,7 @@ export function DriveSidebar({
         {creds && isDriveSessionCircuitTripped(creds) ? (
           <div className="flex flex-col gap-2 p-2 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 rounded-lg">
             <p className="text-xs text-red-600 dark:text-red-400 font-medium break-words leading-relaxed">
-              {getDriveSessionError(creds) || 'Drive gagal terhubung.'}
+              {getDriveSessionError(creds) || t('ui.generated.drive_gagal_terhubung_8e7dd9a')}
             </p>
             <button
               type="button"
@@ -2281,7 +2281,7 @@ export function DriveSidebar({
               }}
             >
               <RefreshCw className="w-3 h-3 animate-pulse" />
-              Coba Lagi
+              {t('speedtest.btn_retry')}
             </button>
           </div>
         ) : (

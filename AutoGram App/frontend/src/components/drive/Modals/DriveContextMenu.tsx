@@ -118,11 +118,11 @@ export function DriveContextMenu({
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
-  const resolvedCreateFolderLabel = createFolderLabel || t('speedtest.ctx_menu_default_create_drive', 'Buat Drive [TD]');
-  const resolvedCreateSubfolderLabel = createSubfolderLabel || t('speedtest.ctx_menu_default_create_subfolder', 'Buat folder di…');
-  const resolvedRenameFolderLabel = renameFolderLabel || t('speedtest.ctx_menu_default_rename', 'Ganti nama…');
-  const resolvedReparentFolderLabel = reparentFolderLabel || t('speedtest.ctx_menu_default_reparent', 'Pindah ke Drive/Folder…');
-  const resolvedDeleteFolderLabel = deleteFolderLabel || t('speedtest.ctx_menu_default_delete', 'Hapus [TD]…');
+  const resolvedCreateFolderLabel = createFolderLabel || t('speedtest.ctx_menu_default_create_drive');
+  const resolvedCreateSubfolderLabel = createSubfolderLabel || t('speedtest.ctx_menu_default_create_subfolder');
+  const resolvedRenameFolderLabel = renameFolderLabel || t('speedtest.ctx_menu_default_rename');
+  const resolvedReparentFolderLabel = reparentFolderLabel || t('speedtest.ctx_menu_default_reparent');
+  const resolvedDeleteFolderLabel = deleteFolderLabel || t('speedtest.ctx_menu_default_delete');
 
   useLayoutEffect(() => {
     const el = ref.current;
@@ -181,10 +181,10 @@ export function DriveContextMenu({
 
   const aria =
     isFile
-      ? t('speedtest.ctx_menu_aria_file', 'Menu file')
+      ? t('speedtest.ctx_menu_aria_file')
       : isLocation
-      ? t('speedtest.ctx_menu_aria_location', 'Menu lokasi sidebar')
-      : t('speedtest.ctx_menu_aria_canvas', 'Menu lokasi Drive');
+      ? t('speedtest.ctx_menu_aria_location')
+      : t('speedtest.ctx_menu_aria_canvas');
 
   const node = (
     <>
@@ -211,7 +211,7 @@ export function DriveContextMenu({
             </div>
             {onPreview && (
               <button type="button" role="menuitem" onClick={() => run(onPreview)}>
-                <Eye size={14} /> {t('speedtest.ctx_menu_preview', 'Pratinjau')}
+                <Eye size={14} /> {t('speedtest.ctx_menu_preview')}
               </button>
             )}
             {/* Telegram Message Link Options */}
@@ -233,7 +233,7 @@ export function DriveContextMenu({
                         })
                       }
                     >
-                      <ExternalLink size={14} /> {t('speedtest.ctx_menu_open_tg', 'Buka pesan di Telegram')}
+                      <ExternalLink size={14} /> {t('speedtest.ctx_menu_open_tg')}
                     </button>
                     <button
                       type="button"
@@ -248,7 +248,7 @@ export function DriveContextMenu({
                         })
                       }
                     >
-                      <Copy size={14} /> {t('speedtest.ctx_menu_copy_tg', 'Salin tautan Telegram')}
+                      <Copy size={14} /> {t('speedtest.ctx_menu_copy_tg')}
                     </button>
                   </>
                 );
@@ -260,50 +260,50 @@ export function DriveContextMenu({
                   disabled
                   className="drive-context-disabled"
                   style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                  title={t('speedtest.ctx_menu_tg_link_unavailable', 'Tautan pesan tidak tersedia untuk jenis chat ini')}
+                  title={t('speedtest.ctx_menu_tg_link_unavailable')}
                 >
-                  <MessageSquare size={14} /> {t('speedtest.ctx_menu_tg_link_unavailable', 'Tautan pesan tidak tersedia untuk jenis chat ini')}
+                  <MessageSquare size={14} /> {t('speedtest.ctx_menu_tg_link_unavailable')}
                 </button>
               );
             })()}
             {isDesktop() && onOpenSystem && (
               <button type="button" role="menuitem" onClick={() => run(onOpenSystem)}>
-                <ExternalLink size={14} /> {t('speedtest.ctx_menu_open', 'Buka')}
+                <ExternalLink size={14} /> {t('speedtest.ctx_menu_open')}
               </button>
             )}
             {isDesktop() && onOpenWith && (
               <button type="button" role="menuitem" onClick={() => run(onOpenWith)}>
-                <AppWindow size={14} /> {t('speedtest.ctx_menu_open_with', 'Buka dengan…')}
+                <AppWindow size={14} /> {t('speedtest.ctx_menu_open_with')}
               </button>
             )}
             {isDesktop() && onReveal && (
               <button type="button" role="menuitem" onClick={() => run(onReveal)}>
-                <FolderOpen size={14} /> {t('speedtest.ctx_menu_reveal', 'Tampilkan di folder')}
+                <FolderOpen size={14} /> {t('speedtest.ctx_menu_reveal')}
               </button>
             )}
             {onDownload && (
               <button type="button" role="menuitem" onClick={() => run(onDownload)}>
-                <Download size={14} /> {t('speedtest.ctx_menu_download', 'Unduh')}
+                <Download size={14} /> {t('speedtest.ctx_menu_download')}
               </button>
             )}
             {onCopyId && (
               <button type="button" role="menuitem" onClick={() => run(onCopyId)}>
-                <Copy size={14} /> {t('speedtest.ctx_menu_copy_id', 'Salin ID')}
+                <Copy size={14} /> {t('speedtest.ctx_menu_copy_id')}
               </button>
             )}
             {onRename && (
               <button type="button" role="menuitem" onClick={() => run(onRename)}>
-                <Pencil size={14} /> {t('speedtest.ctx_menu_rename', 'Ganti nama')}
+                <Pencil size={14} /> {t('speedtest.ctx_menu_rename')}
               </button>
             )}
             {onMove && (
               <button type="button" role="menuitem" onClick={() => run(onMove)}>
-                <FolderInput size={14} /> {t('speedtest.ctx_menu_move', 'Pindah ke…')}
+                <FolderInput size={14} /> {t('speedtest.ctx_menu_move')}
               </button>
             )}
             {onDelete && (
               <button type="button" role="menuitem" className="danger" onClick={() => run(onDelete)}>
-                <Trash2 size={14} /> {t('speedtest.ctx_menu_delete', 'Hapus')}
+                <Trash2 size={14} /> {t('speedtest.ctx_menu_delete')}
               </button>
             )}
           </>
@@ -319,12 +319,12 @@ export function DriveContextMenu({
             </div>
             {onOpenLocation && (
               <button type="button" role="menuitem" onClick={() => run(onOpenLocation)}>
-                <FolderOpen size={14} /> {t('speedtest.ctx_menu_open', 'Buka')}
+                <FolderOpen size={14} /> {t('speedtest.ctx_menu_open')}
               </button>
             )}
             {target.locationKind === 'drive' && onCreateSubfolder && (
               <button type="button" role="menuitem" onClick={() => run(onCreateSubfolder)}>
-                <FolderTree size={14} /> {t('speedtest.ctx_menu_create_subfolder', 'Buat folder di sini')}
+                <FolderTree size={14} /> {t('speedtest.ctx_menu_create_subfolder')}
               </button>
             )}
             {target.locationKind === 'drive' && onRenameFolder && (
@@ -339,7 +339,7 @@ export function DriveContextMenu({
             )}
             {target.locationKind !== 'saved' && onCopyId && target.id != null && (
               <button type="button" role="menuitem" onClick={() => run(onCopyId)}>
-                <Copy size={14} /> {t('speedtest.ctx_menu_copy_id', 'Salin ID')}
+                <Copy size={14} /> {t('speedtest.ctx_menu_copy_id')}
               </button>
             )}
             {target.locationKind === 'drive' && onDeleteFolder && (
@@ -355,17 +355,17 @@ export function DriveContextMenu({
           </>
         ) : (
           <>
-            <div className="drive-context-title" title={locationLabel || t('speedtest.ctx_menu_this_location', 'Lokasi ini')}>
-              {locationLabel || t('speedtest.ctx_menu_this_location', 'Lokasi ini')}
+            <div className="drive-context-title" title={locationLabel || t('speedtest.ctx_menu_this_location')}>
+              {locationLabel || t('speedtest.ctx_menu_this_location')}
             </div>
             {onRefresh && (
               <button type="button" role="menuitem" onClick={() => run(onRefresh)}>
-                <RefreshCw size={14} /> {t('speedtest.ctx_menu_refresh', 'Muat ulang')}
+                <RefreshCw size={14} /> {t('speedtest.ctx_menu_refresh')}
               </button>
             )}
             {onUpload && (
               <button type="button" role="menuitem" onClick={() => run(onUpload)}>
-                <Upload size={14} /> {t('speedtest.ctx_menu_upload', 'Unggah file…')}
+                <Upload size={14} /> {t('speedtest.ctx_menu_upload')}
               </button>
             )}
             {onCreateFolder && (
@@ -380,7 +380,7 @@ export function DriveContextMenu({
             )}
             {onSelectAll && (
               <button type="button" role="menuitem" onClick={() => run(onSelectAll)}>
-                <CheckSquare size={14} /> {t('speedtest.ctx_menu_select_all', 'Pilih semua')}
+                <CheckSquare size={14} /> {t('speedtest.ctx_menu_select_all')}
               </button>
             )}
             {selectedCount > 0 && onClearSelection && (

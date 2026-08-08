@@ -3,5 +3,9 @@
   "connected": "Connected to Telegram MTProto",
   "connecting": "Connecting...",
   "offline": "Offline / Disconnected",
-  "syncing": "Syncing media library..."
+  "syncing": "Syncing media library...",
+  "subtitle": "Monitor AutoGram connection and data synchronization.",
+  "dev_title": "Cloud Sync Is in Development",
+  "dev_desc": "Cross-device synchronization is not available in this offline desktop release yet.",
+  "coming_soon_btn": "Coming Soon"
 }

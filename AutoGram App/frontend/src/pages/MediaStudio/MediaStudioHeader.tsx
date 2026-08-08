@@ -32,7 +32,7 @@ export const MediaStudioHeader: React.FC<MediaStudioHeaderProps> = ({
         </div>
         <div>
           <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
-            Drive Studio
+            {t('ui.generated.drive_studio_2291ebb')}
           </h2>
           <div className="flex items-center gap-1.5 text-xs text-slate-400">
             <span>{t('speedtest.active_session_label')}</span>

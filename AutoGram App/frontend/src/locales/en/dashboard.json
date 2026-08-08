@@ -95,5 +95,9 @@
     "network_error": "Failed to connect to network or Telegram server.",
     "checksum_mismatch": "File integrity verification failed (MD5 mismatch). Re-upload will be attempted automatically."
   },
-  "parallel_grammers_desc": "Forwarder & Drives share the same MTProto connection safely."
+  "parallel_grammers_desc": "Forwarder & Drives share the same MTProto connection safely.",
+  "tooltip_caption_rule": "Modify or remove text captions from media messages.",
+  "tooltip_disable_dup": "Choose what to do when a message already exists at the destination.",
+  "tooltip_throttle": "Add a delay between messages to reduce the risk of Telegram spam limits.",
+  "tooltip_fallback": "If forwarding restrictions block Fast Forward, switch to Clean Copy automatically."
 }

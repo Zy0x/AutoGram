@@ -348,7 +348,7 @@ export function DriveToolsPanel({
                 onChange={(e) => {
                   setToolsSearchQuery(e.target.value);
                 }}
-                placeholder={t('speedtest.search_placeholder_short', 'Cari pengaturan…')}
+                placeholder={t('speedtest.search_placeholder_short')}
                 className="td-header-search-input"
               />
               {toolsSearchQuery.trim() !== '' && (
@@ -356,7 +356,7 @@ export function DriveToolsPanel({
                   type="button"
                   className="td-header-search-clear"
                   onClick={() => setToolsSearchQuery('')}
-                  title="Bersihkan Pencarian"
+                  title={t('ui.generated.bersihkan_pencarian_d1836c9')}
                 >
                   <X size={12} />
                 </button>
@@ -366,12 +366,12 @@ export function DriveToolsPanel({
               {toolsSearchQuery.trim() !== '' && (
                 <div className="td-search-popover-dropdown">
                   <div className="td-popover-head">
-                    <span>Hasil Pencarian ({searchResults.length})</span>
+                    <span>{t('ui.generated.hasil_pencarian_4d6cedf')}{searchResults.length})</span>
                     <button
                       type="button"
                       className="td-popover-close-btn"
                       onClick={() => setToolsSearchQuery('')}
-                      title="Tutup Hasil"
+                      title={t('ui.generated.tutup_hasil_d1570bb')}
                     >
                       <X size={13} />
                     </button>
@@ -400,7 +400,7 @@ export function DriveToolsPanel({
                     ) : (
                       <div className="td-popover-empty">
                         <Search size={18} style={{ color: '#64748b' }} />
-                        <span>Tidak ada pengaturan yang cocok dengan "{toolsSearchQuery}"</span>
+                        <span>{t('ui.generated.tidak_ada_pengaturan_yang_cocok_dengan_14f47c1')}{toolsSearchQuery}"</span>
                       </div>
                     )}
                   </div>
@@ -589,11 +589,11 @@ export function DriveToolsPanel({
                 </p>
                 <div className="td-tools-tokens">
                   <span className="td-tools-token-label">{t('speedtest.token_label')}</span>
-                  <code className="td-token-badge">{'{n}'}</code>
-                  <code className="td-token-badge">{'{n:3}'}</code>
-                  <code className="td-token-badge">{'{name}'}</code>
-                  <code className="td-token-badge">{'{ext}'}</code>
-                  <code className="td-token-badge">{'{full}'}</code>
+                  <code className="td-token-badge">{t('ui.generated.n_411c9b4')}</code>
+                  <code className="td-token-badge">{t('ui.generated.n_3_7e709a0')}</code>
+                  <code className="td-token-badge">{t('ui.generated.name_18f628e')}</code>
+                  <code className="td-token-badge">{t('ui.generated.ext_ce4bc50')}</code>
+                  <code className="td-token-badge">{t('ui.generated.full_357f43c')}</code>
                 </div>
               </div>
 
@@ -1200,21 +1200,21 @@ function DupTab({
           {/* KEY METRICS */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Grup Duplikat</span>
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('ui.generated.grup_duplikat_77084e6')}</span>
               <strong style={{ fontSize: '1.15rem', color: '#38bdf8', fontWeight: 800 }}>{filteredGroups.length}</strong>
             </div>
 
             <div style={{ width: '1px', height: '24px', background: 'rgba(255, 255, 255, 0.1)' }} />
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Salinan Dihapus</span>
-              <strong style={{ fontSize: '1.15rem', color: '#f87171', fontWeight: 800 }}>{idsToDelete.length} Berkas</strong>
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('ui.generated.salinan_dihapus_37a5689')}</span>
+              <strong style={{ fontSize: '1.15rem', color: '#f87171', fontWeight: 800 }}>{idsToDelete.length} {t('speedtest.tab_telegram_files')}</strong>
             </div>
 
             <div style={{ width: '1px', height: '24px', background: 'rgba(255, 255, 255, 0.1)' }} />
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Potensi Hemat</span>
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('ui.generated.potensi_hemat_3815aa7')}</span>
               <strong style={{ fontSize: '1.15rem', color: '#4ade80', fontWeight: 800 }}>~{formatDriveBytes(selectedWaste || wasteTotal)}</strong>
             </div>
           </div>
@@ -1268,7 +1268,7 @@ function DupTab({
                 }}
               >
                 <Loader2 size={14} className="spin" />
-                <span>Hentikan Pemindaian ({scanProgressPct}%)</span>
+                <span>{t('ui.generated.hentikan_pemindaian_71f8669')}{scanProgressPct}%)</span>
               </button>
             )}
           </div>
@@ -1278,7 +1278,7 @@ function DupTab({
         {isScanning && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '2px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#38bdf8', fontWeight: 600 }}>
-              <span>Memindai index Telegram ({loadedCount.toLocaleString('id-ID')} / {targetTotal.toLocaleString('id-ID')})...</span>
+              <span>{t('ui.generated.memindai_index_telegram_d6c165c')}{loadedCount.toLocaleString('id-ID')} / {targetTotal.toLocaleString('id-ID')})...</span>
               <span>{scanProgressPct}%</span>
             </div>
             <div style={{ width: '100%', height: '5px', borderRadius: '3px', background: 'rgba(15, 23, 42, 0.8)', overflow: 'hidden' }}>
@@ -1312,10 +1312,10 @@ function DupTab({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <AlertTriangle size={14} style={{ color: '#ef4444' }} />
-              <span><strong>⚠️ Telegram FloodWait:</strong> Memuat otomatis saat limit selesai...</span>
+              <span><strong>{t('ui.generated.telegram_floodwait_8ca960d')}</strong> {t('ui.generated.memuat_otomatis_saat_limit_selesai_265c76b')}</span>
             </div>
             <div style={{ background: '#ef4444', color: '#ffffff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 800 }}>
-              {floodWaitSeconds}s
+              {floodWaitSeconds}{t('ui.generated.s_a0f1490')}
             </div>
           </div>
         )}
@@ -1339,7 +1339,7 @@ function DupTab({
             }}
           >
             <Settings2 size={13} style={{ color: '#38bdf8' }} />
-            <span>Pengaturan Modus Deteksi (Level 1-4)</span>
+            <span>{t('ui.generated.pengaturan_modus_deteksi_level_1_4_b3f0a32')}</span>
             {showModeSettings ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
 
@@ -1470,7 +1470,7 @@ function DupTab({
               cursor: 'pointer',
             }}
           >
-            <Check size={12} /> Seleksi Cerdas
+            <Check size={12} /> {t('ui.generated.seleksi_cerdas_44602fb')}
           </button>
           <button
             type="button"
@@ -1491,14 +1491,14 @@ function DupTab({
               cursor: 'pointer',
             }}
           >
-            Batal Semua
+            {t('ui.generated.batal_semua_92252e2')}
           </button>
 
           <div style={{ position: 'relative', width: '160px' }}>
             <Search size={12} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
             <input
               type="text"
-              placeholder="Cari duplikat..."
+              placeholder={t('ui.generated.cari_duplikat_233adbe')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
@@ -1555,10 +1555,10 @@ function DupTab({
             <ShieldCheck size={26} style={{ color: '#4ade80' }} />
           </div>
           <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 800, color: '#f8fafc' }}>
-            Semua Berkas Rapi &amp; Bebas Duplikat
+            {t('ui.generated.semua_berkas_rapi_bebas_duplikat_2e94024')}
           </h4>
           <p style={{ margin: 0, fontSize: '0.82rem', color: '#94a3b8', maxWidth: '420px', lineHeight: 1.5 }}>
-            Tidak ditemukan salinan ganda pada lokasi <strong style={{ color: '#cbd5e1' }}>{locationLabel}</strong> ({loadedCount.toLocaleString('id-ID')} berkas). Ruang penyimpanan Anda dalam kondisi optimal.
+            {t('ui.generated.tidak_ditemukan_salinan_ganda_pada_lokasi_7495108')} <strong style={{ color: '#cbd5e1' }}>{locationLabel}</strong> ({loadedCount.toLocaleString('id-ID')} {t('ui.generated.berkas_ruang_penyimpanan_anda_dalam_kondisi_opti_47cb8d6')}
           </p>
         </div>
       )}
@@ -1586,7 +1586,7 @@ function DupTab({
                       onClick={() => markGroupExtras(g)}
                       title={t('speedtest.keep_one_check_rest')}
                     >
-                      Pilih 1
+                      {t('ui.generated.pilih_1_e8f7262')}
                     </button>
                     <button
                       type="button"
@@ -1595,7 +1595,7 @@ function DupTab({
                       onClick={() => clearGroupMarks(g)}
                       title={t('speedtest.keep_all_in_group')}
                     >
-                      Simpan Semua
+                      {t('ui.generated.simpan_semua_79d5ddf')}
                     </button>
                   </span>
                 </div>
@@ -1712,7 +1712,7 @@ function DupTab({
           }}
         >
           <ShieldCheck size={13} />
-          <span>Dipertahankan: <strong>{keepCount.toLocaleString('id-ID')}</strong> berkas</span>
+          <span>{t('ui.generated.dipertahankan_51538c0')} <strong>{keepCount.toLocaleString('id-ID')}</strong> {t('ui.generated.berkas_02d2747')}</span>
         </div>
 
         <button
@@ -1741,7 +1741,7 @@ function DupTab({
           }}
         >
           <Trash2 size={15} style={{ color: idsToDelete.length ? '#ffffff' : '#64748b' }} />
-          <span>Hapus {idsToDelete.length.toLocaleString('id-ID')} Berkas Duplikat Terpilih (~{formatDriveBytes(selectedWaste)})</span>
+          <span>{t('speedtest.preview_delete_btn')} {idsToDelete.length.toLocaleString('id-ID')} {t('ui.generated.berkas_duplikat_terpilih_548987c')}{formatDriveBytes(selectedWaste)})</span>
         </button>
       </div>
     </div>

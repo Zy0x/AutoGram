@@ -287,7 +287,7 @@ export function JobRuntime({
       <header className="glass-panel runtime-header">
         <div className="runtime-header-main">
           <button type="button" className="btn btn-secondary" onClick={onBack} style={{ marginBottom: '12px', background: 'rgba(255,255,255,0.05)', border: 'none' }}>
-            <ArrowLeft size={16} /> Back to Jobs
+            <ArrowLeft size={16} /> {t('ui.generated.back_to_jobs_734ed88')}
           </button>
           <h2 className="runtime-title">
             {job.job_name || `Migration #${job.id}`}
@@ -304,7 +304,7 @@ export function JobRuntime({
             </span>
             <span className="runtime-meta-stats">
               <span>
-                Mode:{' '}
+                {t('ui.generated.mode_fbb6d6f')}{' '}
                 <strong style={{ color: fallbackTriggered ? 'var(--warning)' : 'var(--text-main)' }}>
                   {fallbackTriggered
                     ? `${job.transfer_mode || 'Fast Forward'} → Clean Copy`
@@ -315,24 +315,24 @@ export function JobRuntime({
                     title={fallbackReason || 'Fell back due to forward restriction'}
                     style={{ marginLeft: 6, fontSize: '0.75rem', color: 'var(--warning)' }}
                   >
-                    (fallback)
+                    {t('ui.generated.fallback_464e3ea')}
                   </span>
                 )}
               </span>
               <span style={{ opacity: 0.3 }}>|</span>
-              <span>Progress: <strong style={{ color: 'var(--text-main)' }}>{job.processed_messages?.toLocaleString()}/{job.total_messages?.toLocaleString()}</strong></span>
+              <span>{t('ui.generated.progress_04866c7')} <strong style={{ color: 'var(--text-main)' }}>{job.processed_messages?.toLocaleString()}/{job.total_messages?.toLocaleString()}</strong></span>
               <span style={{ opacity: 0.3 }}>|</span>
-              <span>OK: <strong style={{ color: 'var(--success)' }}>{successCount}</strong></span>
+              <span>{t('ui.generated.ok_3cb459c')} <strong style={{ color: 'var(--success)' }}>{successCount}</strong></span>
               <span style={{ opacity: 0.3 }}>|</span>
-              <span>Skip: <strong>{skippedCount}</strong></span>
+              <span>{t('ui.generated.skip_71a19db')} <strong>{skippedCount}</strong></span>
               <span style={{ opacity: 0.3 }}>|</span>
-              <span>Failed: <strong style={{ color: failedCount > 0 ? 'var(--danger)' : 'var(--success)' }}>{failedCount}</strong></span>
+              <span>{t('ui.generated.failed_f14f2be')} <strong style={{ color: failedCount > 0 ? 'var(--danger)' : 'var(--success)' }}>{failedCount}</strong></span>
               {isRunning && (
                 <>
                   <span style={{ opacity: 0.3 }}>|</span>
-                  <span>Speed: <strong>{speed}</strong>/s</span>
+                  <span>{t('ui.generated.speed_063a835')} <strong>{speed}</strong>/s</span>
                   <span style={{ opacity: 0.3 }}>|</span>
-                  <span>ETA: <strong>{eta}</strong></span>
+                  <span>{t('ui.generated.eta_200af13')} <strong>{eta}</strong></span>
                 </>
               )}
             </span>
@@ -344,7 +344,7 @@ export function JobRuntime({
             <div className="primary-actions">
               {statusClass === 'running' && (
                 <button type="button" className="btn btn-secondary btn-warning-soft" onClick={() => pauseJob(job.id)} title={t("jobs.jobs_pause_exec")}>
-                  <Pause size={18} /> Pause
+                  <Pause size={18} /> {t('ui.generated.pause_781961b')}
                 </button>
               )}
               {/* PAUSED → Resume = execute-job (lanjut checkpoint / skip verified) */}
@@ -355,7 +355,7 @@ export function JobRuntime({
                   onClick={() => startJob(job, false, false)}
                   title={t('jobs.resume_from_checkpoint')}
                 >
-                  <Play size={18} /> Resume
+                  <Play size={18} /> {t('ui.generated.resume_b3bd0b5')}
                 </button>
               )}
               {(statusClass === 'paused' && (statusUpper === 'READY' || statusUpper === 'STARTING' || !job.status)) && (
@@ -365,7 +365,7 @@ export function JobRuntime({
                   onClick={() => startJob(job, false, false)}
                   title={t("jobs.jobs_resume_exec")}
                 >
-                  <Play size={18} /> Run
+                  <Play size={18} /> {t('ui.generated.run_b1b3926')}
                 </button>
               )}
               {/* FAILED → retry-execution RESUME (hanya yang gagal) */}
@@ -376,7 +376,7 @@ export function JobRuntime({
                   onClick={() => startJob(job, true, false, 'RESUME')}
                   title={`Retry failed messages (retry-execution)${failedCount > 0 ? ` — ${failedCount} failed` : ''}`}
                 >
-                  <RefreshCw size={18} /> Retry Failed {failedCount > 0 && `(${failedCount})`}
+                  <RefreshCw size={18} /> {t('ui.generated.retry_failed_a3303b3')} {failedCount > 0 && `(${failedCount})`}
                 </button>
               )}
             </div>
@@ -389,27 +389,27 @@ export function JobRuntime({
                   onClick={() => setShowRerunModal(true)}
                   title={t("jobs.jobs_rerun_modes_title")}
                 >
-                  <Play size={18} /> Re-run
+                  <Play size={18} /> {t('ui.generated.re_run_a7c77b2')}
                 </button>
               )}
             </div>
             {statusClass === 'completed' && (
               <div className="danger-actions">
                 <button type="button" className="btn btn-secondary btn-danger-soft" onClick={() => setShowFreshStartModal(true)}>
-                  <Trash2 size={18} /> Fresh Start
+                  <Trash2 size={18} /> {t('ui.generated.fresh_start_937b5b3')}
                 </button>
               </div>
             )}
           </div>
           <div className="runtime-secondary-actions">
             <button type="button" className="btn-tertiary" onClick={() => setShowDetailsModal(true)} title={t("jobs.jobs_view_config")}>
-              <Info size={14} /> Config Details
+              <Info size={14} /> {t('ui.generated.config_details_4ee4945')}
             </button>
             <button type="button" className="btn-tertiary" onClick={() => onEditJob(job)} title={t("jobs.jobs_edit_config")}>
-              <Edit3 size={14} /> Edit Config
+              <Edit3 size={14} /> {t('jobs.btn_edit')}
             </button>
             <button type="button" className="btn-tertiary" onClick={handleExportLogs} title={t("jobs.jobs_export_audit")}>
-              <Download size={14} /> Export Logs
+              <Download size={14} /> {t('ui.generated.export_logs_fa7cce2')}
             </button>
           </div>
         </div>
@@ -455,17 +455,17 @@ export function JobRuntime({
               <div style={{ padding: '8px', background: 'rgba(99, 102, 246, 0.15)', borderRadius: '10px', color: 'var(--primary)', flexShrink: 0 }}>
                 <Play size={18} />
               </div>
-              Overall Progress
+              {t('ui.generated.overall_progress_366110e')}
             </span>
             <div className="runtime-progress-counts">
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--success)' }}>
-                <CheckCircle size={14} /> {successCount} Success
+                <CheckCircle size={14} /> {successCount} {t('ui.generated.success_42a8f65')}
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--warning)' }}>
-                <Info size={14} /> {skippedCount} Skipped
+                <Info size={14} /> {skippedCount} {t('ui.generated.skipped_5a000ad')}
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--danger)' }}>
-                <AlertCircle size={14} /> {failedCount} Failed
+                <AlertCircle size={14} /> {failedCount} {t('jobs.status_failed')}
               </span>
             </div>
           </div>
@@ -479,10 +479,10 @@ export function JobRuntime({
             {statusClass === 'running' && (
               <div className="runtime-progress-counts" style={{ color: 'var(--text-muted)' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Zap size={14} color="var(--warning)" /> {speed} msg/s
+                  <Zap size={14} color="var(--warning)" /> {speed} {t('ui.generated.msg_s_d39acaa')}
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Clock size={14} color="var(--primary)" /> ETA: {eta}
+                  <Clock size={14} color="var(--primary)" /> {t('ui.generated.eta_200af13')} {eta}
                 </span>
               </div>
             )}
@@ -501,7 +501,7 @@ export function JobRuntime({
           <div style={{ padding: '8px', background: 'rgba(139, 92, 246, 0.15)', borderRadius: '10px', color: 'var(--accent)', display: 'flex', flexShrink: 0 }}>
             <Terminal size={18} />
           </div>
-          <span style={{ fontSize: 'var(--fs-lg)', fontWeight: 600 }}>Execution Logs</span>
+          <span style={{ fontSize: 'var(--fs-lg)', fontWeight: 600 }}>{t('ui.generated.execution_logs_e116b87')}</span>
         </h3>
 
         <div className="runtime-logs-body">
@@ -585,7 +585,7 @@ export function JobRuntime({
                             <span style={{ paddingTop: '3px', flexShrink: 0 }}><AlertCircle size={14} /></span>
                             <span className="log-text">
                                 <details className="log-details" style={{ cursor: 'pointer' }}>
-                                    <summary style={{ outline: 'none' }}>[STDERR] {summaryText}</summary>
+                                    <summary style={{ outline: 'none' }}>{t('ui.generated.stderr_2588fa7')} {summaryText}</summary>
                                     <pre style={{ margin: '8px 0 0 0', padding: '12px', background: 'rgba(0,0,0,0.3)', borderRadius: '4px', fontSize: '0.85rem', overflowX: 'auto', color: 'var(--danger)', whiteSpace: 'pre-wrap' }}>
                                         {detailText}
                                     </pre>
@@ -606,7 +606,7 @@ export function JobRuntime({
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', opacity: 0.5, gap: '16px' }}>
               <Terminal size={48} style={{ opacity: 0.2 }} />
-              <p style={{ margin: 0 }}>{isFetchingLogs ? "Fetching historical logs..." : "No logs available for this session"}</p>
+              <p style={{ margin: 0 }}>{isFetchingLogs ? t('ui.generated.fetching_historical_logs_07084f3') : t('ui.generated.no_logs_available_for_this_session_9863905')}</p>
             </div>
           )}
         </div>

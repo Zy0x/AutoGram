@@ -3,5 +3,9 @@
   "connected": "Terhubung ke Telegram MTProto",
   "connecting": "Menghubungkan...",
   "offline": "Offline / Terputus",
-  "syncing": "Menyingkronkan media..."
+  "syncing": "Menyingkronkan media...",
+  "subtitle": "Pantau koneksi dan sinkronisasi data AutoGram.",
+  "dev_title": "Sinkronisasi Cloud Sedang Dikembangkan",
+  "dev_desc": "Sinkronisasi lintas perangkat belum tersedia pada versi desktop offline ini.",
+  "coming_soon_btn": "Segera Hadir"
 }

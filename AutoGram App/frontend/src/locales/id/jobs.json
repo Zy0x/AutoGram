@@ -47,5 +47,21 @@
   "ph_max": "Max",
   "ph_caption_template": "Ketik templat caption khusus Anda di sini...\n\nContoh:\n*PEMBERITAHUAN PENTING*\n{caption}\n\n[Baca Selengkapnya](https://example.com)",
   "delete_confirm_title": "Konfirmasi Hapus Tugas",
-  "delete_confirm_desc": "Apakah Anda yakin ingin menghapus tugas ini beserta riwayat eksekusinya?"
+  "delete_confirm_desc": "Apakah Anda yakin ingin menghapus tugas ini beserta riwayat eksekusinya?",
+  "no_limit": "Tanpa batas",
+  "select_source_placeholder": "Pilih channel atau grup sumber",
+  "select_target_placeholder": "Pilih Drive, channel, atau grup tujuan",
+  "job_editor_features": "Mempertahankan media group dan urutan pesan asli",
+  "job_editor_custom": "Mendukung caption khusus dan pemeriksaan duplikat empat tingkat",
+  "size_filter": "Filter Ukuran",
+  "media_filter": "Filter Jenis Media",
+  "date_filter": "Filter Tanggal",
+  "fresh_start_cannot_resume": "Checkpoint lama tidak dapat dilanjutkan",
+  "fresh_start_dont_care": "Anda tidak memerlukan pemetaan atau reply chain dari eksekusi lama",
+  "rerun_incomplete": "Lanjutkan pesan yang belum selesai atau gagal",
+  "resume_from_checkpoint": "Lanjutkan dari checkpoint terakhir",
+  "pause_execution": "Jeda eksekusi tugas",
+  "cancel_btn": "Batal",
+  "fresh_start_success": "Tugas berhasil dimulai ulang dari awal.",
+  "fresh_start_fail": "Gagal memulai ulang tugas dari awal."
 }

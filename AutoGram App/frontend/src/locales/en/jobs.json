@@ -47,5 +47,21 @@
   "ph_max": "Max",
   "ph_caption_template": "Type your custom caption template here...\n\nExample:\n*IMPORTANT NOTICE*\n{caption}\n\n[Read More](https://example.com)",
   "delete_confirm_title": "Confirm Delete Job",
-  "delete_confirm_desc": "Are you sure you want to delete this job and its execution history?"
+  "delete_confirm_desc": "Are you sure you want to delete this job and its execution history?",
+  "no_limit": "No limit",
+  "select_source_placeholder": "Select a source channel or group",
+  "select_target_placeholder": "Select a destination Drive, channel, or group",
+  "job_editor_features": "Preserves media groups and original message order",
+  "job_editor_custom": "Supports custom captions and four-level duplicate checks",
+  "size_filter": "Size Filter",
+  "media_filter": "Media Type Filter",
+  "date_filter": "Date Filter",
+  "fresh_start_cannot_resume": "Old checkpoints can no longer be resumed",
+  "fresh_start_dont_care": "You do not need mappings or reply chains from the previous execution",
+  "rerun_incomplete": "Continue incomplete or failed messages",
+  "resume_from_checkpoint": "Resume from the latest checkpoint",
+  "pause_execution": "Pause job execution",
+  "cancel_btn": "Cancel",
+  "fresh_start_success": "The job was restarted from the beginning.",
+  "fresh_start_fail": "Failed to restart the job from the beginning."
 }

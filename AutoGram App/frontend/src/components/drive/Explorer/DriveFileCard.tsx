@@ -468,7 +468,7 @@ function DriveFileCardInner({
             {thumbLoading && canThumb ? (
               <div className="td-thumb-loading">
                 <Loader2 size={22} className="spin" />
-                <span>{isVideo ? t('speedtest.loading_video', 'Memuat Video…') : t('speedtest.loading_short', 'Memuat…')}</span>
+                <span>{isVideo ? t('speedtest.loading_video') : t('speedtest.loading_short')}</span>
               </div>
             ) : (
               <div className="td-thumb-placeholder">
@@ -486,7 +486,7 @@ function DriveFileCardInner({
             onToggleSelection?.();
           }}
           onPointerDown={(e) => e.stopPropagation()}
-          aria-label={selected ? t('speedtest.deselect', 'Batal pilih') : t('speedtest.select', 'Pilih')}
+          aria-label={selected ? t('speedtest.deselect') : t('speedtest.select')}
         >
           {selected && <Check size={10} strokeWidth={3} />}
         </button>
@@ -520,7 +520,7 @@ function DriveFileCardInner({
             <button
               type="button"
               className="td-file-act"
-              title={t('speedtest.topbar_preview', 'Preview')}
+              title={t('speedtest.topbar_preview')}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
@@ -534,7 +534,7 @@ function DriveFileCardInner({
             <button
               type="button"
               className="td-file-act ok"
-              title={t('speedtest.download_tab', 'Download')}
+              title={t('speedtest.download_tab')}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
@@ -548,7 +548,7 @@ function DriveFileCardInner({
             <button
               type="button"
               className="td-file-act danger"
-              title={t('speedtest.btn_delete', 'Hapus')}
+              title={t('speedtest.btn_delete')}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();

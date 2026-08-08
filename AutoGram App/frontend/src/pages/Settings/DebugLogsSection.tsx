@@ -81,7 +81,7 @@ export const DebugSection = memo(function DebugSection() {
           <span className="dbg-switch-track">
             <span className="dbg-switch-knob" />
           </span>
-          <span className="dbg-switch-label">{debugOn ? 'ON' : 'OFF'}</span>
+          <span className="dbg-switch-label">{debugOn ? t('ui.generated.on_387d7a5') : t('ui.generated.off_ad50489')}</span>
         </button>
       </div>
 
@@ -103,17 +103,17 @@ export const DebugSection = memo(function DebugSection() {
       {debugOn && (
         <div className="dbg-body">
           <div className="dbg-paths">
-            <div className="dbg-path-chip" title="Flag file yang dibaca worker">
+            <div className="dbg-path-chip" title={t('ui.generated.flag_file_yang_dibaca_worker_88bd055')}>
               <FileText size={13} />
               <div className="dbg-path-text">
-                <span className="dbg-path-label">Flag</span>
-                <code>temp/autogram_debug.txt</code>
+                <span className="dbg-path-label">{t('ui.generated.flag_a774409')}</span>
+                <code>{t('ui.generated.temp_autogram_debug_txt_9549f28')}</code>
               </div>
             </div>
-            <div className="dbg-path-chip" title="File log di disk">
+            <div className="dbg-path-chip" title={t('ui.generated.file_log_di_disk_056afac')}>
               <Terminal size={13} />
               <div className="dbg-path-text">
-                <span className="dbg-path-label">Log file</span>
+                <span className="dbg-path-label">{t('ui.generated.log_file_60c1e62')}</span>
                 <code>{debugLogFileHint()}</code>
               </div>
             </div>
@@ -123,7 +123,7 @@ export const DebugSection = memo(function DebugSection() {
             <div className="dbg-console-bar">
               <span className="dbg-console-title">
                 <span className="dbg-live-dot" />
-                Live buffer
+                {t('ui.generated.live_buffer_912a5de')}
                 <span className="dbg-console-count">{logSnap.length}</span>
               </span>
               <div className="dbg-console-actions">
@@ -159,7 +159,7 @@ export const DebugSection = memo(function DebugSection() {
                 </button>
               </div>
             </div>
-            <pre className="dbg-console-pre" aria-label="Debug log buffer">
+            <pre className="dbg-console-pre" aria-label={t('ui.generated.debug_log_buffer_e62c5bd')}>
               {logSnap.length
                 ? logSnap.slice(-48).join('\n')
                 : t('settings.debug_empty_buffer')}

@@ -13,6 +13,7 @@ import {
   Edit2,
 } from 'lucide-react';
 import { DriveFile, DriveFolder, DriveViewMode, formatDriveBytes } from '../../lib/telegram/driveTypes';
+import { useTranslation } from 'react-i18next';
 
 type MediaStudioGridProps = {
   folders: DriveFolder[];
@@ -43,6 +44,7 @@ export const MediaStudioGrid: React.FC<MediaStudioGridProps> = ({
   onDownloadFile,
   isDragOver,
 }) => {
+  const { t } = useTranslation();
   const getFileIcon = (file: DriveFile) => {
     const mime = (file.mime_type || '').toLowerCase();
     const name = file.name.toLowerCase();
@@ -78,9 +80,9 @@ export const MediaStudioGrid: React.FC<MediaStudioGridProps> = ({
         <div className="w-20 h-20 mb-4 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 shadow-xl">
           <HardDrive className="w-10 h-10 text-indigo-400/80" />
         </div>
-        <h3 className="text-base font-semibold text-slate-200 mb-1">No Media Files Found</h3>
+        <h3 className="text-base font-semibold text-slate-200 mb-1">{t('ui.generated.no_media_files_found_7ddaa3b')}</h3>
         <p className="text-xs text-slate-400 max-w-sm">
-          This Drive location is empty. Drag & drop files here to upload or select a different folder.
+          {t('ui.generated.this_drive_location_is_empty_drag_drop_files_her_2ae585b')}
         </p>
       </div>
     );
@@ -91,7 +93,7 @@ export const MediaStudioGrid: React.FC<MediaStudioGridProps> = ({
       {isDragOver && (
         <div className="absolute inset-0 z-40 bg-indigo-950/70 backdrop-blur-sm border-2 border-dashed border-indigo-500 rounded-2xl flex flex-col items-center justify-center text-indigo-300 animate-fadeIn pointer-events-none">
           <HardDrive className="w-16 h-16 animate-bounce mb-3" />
-          <span className="text-base font-semibold">Drop files here to upload to Telegram Drive</span>
+          <span className="text-base font-semibold">{t('speedtest.drop_to_upload')}</span>
         </div>
       )}
 
@@ -112,7 +114,7 @@ export const MediaStudioGrid: React.FC<MediaStudioGridProps> = ({
                 <h4 className="font-semibold text-xs text-slate-200 truncate" title={f.name}>
                   {f.name}
                 </h4>
-                <span className="text-[10px] text-slate-400 font-mono">Folder</span>
+                <span className="text-[10px] text-slate-400 font-mono">{t('speedtest.folder_label')}</span>
               </div>
             </div>
           ))}
@@ -167,10 +169,10 @@ export const MediaStudioGrid: React.FC<MediaStudioGridProps> = ({
             <thead>
               <tr className="border-b border-slate-800 text-[11px] font-semibold text-slate-400 uppercase tracking-wider bg-slate-950/50">
                 <th className="py-3 px-4 w-10 text-center">#</th>
-                <th className="py-3 px-4">Name</th>
-                <th className="py-3 px-4 w-32">Size</th>
-                <th className="py-3 px-4 w-36">Type</th>
-                <th className="py-3 px-4 w-28 text-right">Actions</th>
+                <th className="py-3 px-4">{t('speedtest.col_name')}</th>
+                <th className="py-3 px-4 w-32">{t('speedtest.media_size')}</th>
+                <th className="py-3 px-4 w-36">{t('settings.proxy_type_label')}</th>
+                <th className="py-3 px-4 w-28 text-right">{t('automation.col_actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 text-xs">
@@ -185,7 +187,7 @@ export const MediaStudioGrid: React.FC<MediaStudioGridProps> = ({
                   </td>
                   <td className="py-2.5 px-4 font-medium text-slate-200 truncate max-w-xs">{f.name}</td>
                   <td className="py-2.5 px-4 font-mono text-slate-400">—</td>
-                  <td className="py-2.5 px-4 text-slate-400">Folder</td>
+                  <td className="py-2.5 px-4 text-slate-400">{t('speedtest.folder_label')}</td>
                   <td className="py-2.5 px-4 text-right" />
                 </tr>
               ))}
@@ -211,7 +213,7 @@ export const MediaStudioGrid: React.FC<MediaStudioGridProps> = ({
                     </td>
                     <td className="py-2.5 px-4 font-medium truncate max-w-xs">{file.name}</td>
                     <td className="py-2.5 px-4 font-mono text-slate-400">{formatDriveBytes(file.size)}</td>
-                    <td className="py-2.5 px-4 text-slate-400 truncate max-w-[100px]">{file.mime_type || 'File'}</td>
+                    <td className="py-2.5 px-4 text-slate-400 truncate max-w-[100px]">{file.mime_type || t('ui.generated.file_2c3cafa')}</td>
                     <td className="py-2.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
@@ -220,7 +222,7 @@ export const MediaStudioGrid: React.FC<MediaStudioGridProps> = ({
                             onDownloadFile(file);
                           }}
                           className="p-1 text-slate-400 hover:text-slate-200 rounded"
-                          title="Download"
+                          title={t('speedtest.label_download')}
                         >
                           <Download className="w-3.5 h-3.5" />
                         </button>
@@ -230,7 +232,7 @@ export const MediaStudioGrid: React.FC<MediaStudioGridProps> = ({
                             onRenameFile(file);
                           }}
                           className="p-1 text-slate-400 hover:text-slate-200 rounded"
-                          title="Rename"
+                          title={t('speedtest.ctx_menu_rename')}
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
@@ -240,7 +242,7 @@ export const MediaStudioGrid: React.FC<MediaStudioGridProps> = ({
                             onDeleteFile(file);
                           }}
                           className="p-1 text-slate-400 hover:text-red-400 rounded"
-                          title="Delete"
+                          title={t('speedtest.preview_delete_btn')}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

@@ -1,0 +1,9 @@
+{
+  "flood_wait": "Telegram is rate limiting requests. Try again in {{time}}.",
+  "code_expired": "The verification code has expired. Request a new code.",
+  "invalid_api_id": "The API ID or API Hash is invalid.",
+  "timeout": "The Telegram connection timed out. Check your network and try again.",
+  "db_locked": "The session database is in use. Close other AutoGram processes and try again.",
+  "invalid_otp": "The OTP code is invalid.",
+  "invalid_password": "The two-step verification password is invalid."
+}

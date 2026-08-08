@@ -24,14 +24,14 @@ export const DataBackupSection: React.FC<DataBackupSectionProps> = ({
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
       <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-3">
         <Trash2 size={18} className="text-amber-400" />
-        Manajemen Cache &amp; Pembersihan Storage
+        {t('ui.generated.manajemen_cache_pembersihan_storage_bee9cc4')}
       </h3>
 
       <div className="flex items-center justify-between bg-slate-950 p-4 rounded-xl border border-slate-800">
         <div>
           <h4 className="font-semibold text-xs text-slate-200">{t('settings.local_media_cache_label')}</h4>
           <p className="text-[11px] text-slate-400 mt-0.5">
-            Total ruang disk terpakai: <strong className="text-indigo-400 font-mono">{formatDriveBytes(cacheSizeBytes)}</strong>
+            {t('settings.disk_usage')} <strong className="text-indigo-400 font-mono">{formatDriveBytes(cacheSizeBytes)}</strong>
           </p>
         </div>
 
@@ -51,7 +51,7 @@ export const DataBackupSection: React.FC<DataBackupSectionProps> = ({
             onClick={onClearAllCaches}
             className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-xs font-semibold text-white rounded-lg transition-all flex items-center gap-1.5"
           >
-            <Trash2 size={14} /> Bersihkan Cache
+            <Trash2 size={14} /> {t('settings.clear_cache')}
           </button>
         </div>
       </div>

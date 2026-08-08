@@ -30,7 +30,7 @@ export function Statistics() {
 
       if (isDesktopWorkerUnavailable(result)) {
         setStatusKind('info');
-        setStatusMsg('Statistik live hanya di aplikasi desktop. Angka di bawah mungkin kosong di browser.');
+        setStatusMsg(t('ui.generated.statistik_live_hanya_di_aplikasi_desktop_angka_d_5fb1fce'));
         return;
       }
 
@@ -71,8 +71,8 @@ export function Statistics() {
       }
 
       setStatusKind('ok');
-      setStatusMsg('CSV diekspor ke worker/migration_report.csv');
-      alert('CSV Report exported to worker/migration_report.csv successfully!');
+      setStatusMsg(t('ui.generated.csv_diekspor_ke_worker_migration_report_csv_ec9a325'));
+      alert(t('ui.generated.csv_report_exported_to_worker_migration_report_c_1d50852'));
     } catch (err) {
       console.error('Failed to export report', err);
       setStatusKind('error');
@@ -99,16 +99,16 @@ export function Statistics() {
         <div style={{ minWidth: 0 }}>
           <h2 className="title">{t('statistics.title')}</h2>
           <p className="subtitle" style={{ marginBottom: 0 }}>
-            Overall migration analytics and storage health.
-            {!isDesktop() ? ' (Desktop app for live data)' : ''}
+            {t('ui.generated.overall_migration_analytics_and_storage_health_31faaee')}
+            {!isDesktop() ? t('ui.generated.desktop_app_for_live_data_98a1cb9') : ''}
           </p>
         </div>
         <div className="page-header-actions">
           <button type="button" className="btn btn-secondary" onClick={exportReport}>
-            <HardDrive size={18} /> Export CSV
+            <HardDrive size={18} /> {t('ui.generated.export_csv_5755f9a')}
           </button>
           <button type="button" className="btn btn-secondary" onClick={fetchStats} disabled={isLoading}>
-            <RefreshCw size={18} className={isLoading ? 'spin' : ''} /> Refresh
+            <RefreshCw size={18} className={isLoading ? 'spin' : ''} /> {t('speedtest.sidebar_btn_refresh')}
           </button>
         </div>
       </header>
@@ -173,7 +173,7 @@ export function Statistics() {
         <div className="storage-banner-body">
           <h3 style={{ fontSize: 'var(--fs-lg)', marginBottom: '8px' }}>{t('statistics.total_storage')}</h3>
           <p style={{ color: 'var(--text-muted)', marginBottom: '8px' }}>
-            Amount of data migrated through the platform
+            {t('ui.generated.amount_of_data_migrated_through_the_platform_afa584a')}
           </p>
           <div className="stat-card-value accent">{formatBytes(stats.total_bytes)}</div>
         </div>

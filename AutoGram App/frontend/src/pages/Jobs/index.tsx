@@ -112,7 +112,7 @@ export function Jobs() {
     rerunMode?: string
   ) => {
     if (runningRef.current.has(job.id) || activeCommands[job.id]) {
-      alert('This job is already running.');
+      alert(t('ui.generated.this_job_is_already_running_8f6bd7d'));
       return;
     }
 
@@ -444,7 +444,7 @@ export function Jobs() {
       fetchJobs();
     } catch (err) {
       console.error('Failed to delete job', err);
-      alert('Failed to delete job');
+      alert(t('ui.generated.failed_to_delete_job_72b4d90'));
     }
   };
 
@@ -508,11 +508,11 @@ export function Jobs() {
         a.download = 'jobs_export.json';
         a.click();
         URL.revokeObjectURL(url);
-        alert('Jobs exported (jobs_export.json downloaded).');
+        alert(t('ui.generated.jobs_exported_jobs_export_json_downloaded_df37fd3'));
         return;
       }
       await runDaemonOnce(['--action', 'export-jobs']);
-      alert('Jobs exported successfully to worker directory!');
+      alert(t('ui.generated.jobs_exported_successfully_to_worker_directory_09e8cc9'));
     } catch (err) {
       console.error('Failed to export jobs', err);
       alert(`Export gagal: ${err}`);
@@ -520,7 +520,7 @@ export function Jobs() {
   };
 
   const importJobs = async () => {
-    if (!confirm('Import jobs from JSON?')) return;
+    if (!confirm(t('ui.generated.import_jobs_from_json_d87f13c'))) return;
     try {
       if (detectTauriRuntime()) {
         const input = document.createElement('input');
@@ -539,7 +539,7 @@ export function Jobs() {
       }
       await runDaemonOnce(['--action', 'import-jobs']);
       fetchJobs();
-      alert('Jobs imported successfully!');
+      alert(t('ui.generated.jobs_imported_successfully_3f2da19'));
     } catch (err) {
       console.error('Failed to import jobs', err);
       alert(`Import gagal: ${err}`);
@@ -618,11 +618,11 @@ export function Jobs() {
 
       <ConfirmModal
         isOpen={deleteTargetJobId !== null}
-        title={t('jobs.delete_confirm_title', 'Konfirmasi Hapus Tugas')}
-        description={t('jobs.delete_confirm_desc', 'Apakah Anda yakin ingin menghapus tugas ini beserta riwayat eksekusinya?')}
+        title={t('jobs.delete_confirm_title')}
+        description={t('jobs.delete_confirm_desc')}
         variant="danger"
-        confirmText={t('common.delete', 'Hapus')}
-        cancelText={t('common.cancel', 'Batal')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         onConfirm={executeDeleteJob}
         onCancel={() => setDeleteTargetJobId(null)}
       />

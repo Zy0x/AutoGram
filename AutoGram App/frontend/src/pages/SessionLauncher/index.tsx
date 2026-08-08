@@ -155,10 +155,10 @@ export function SessionLauncher({
           </div>
           <div>
             <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc' }}>
-              AutoGram Launcher
+              {t('nav.launcher_brand')}
             </h2>
             <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500 }}>
-              Grammers Engine v2.1.2 · Desktop Hub
+              {t('nav.launcher_engine')}
             </span>
           </div>
         </div>
@@ -183,7 +183,7 @@ export function SessionLauncher({
             }}
           >
             <Plus size={15} />
-            <span>{t('nav.add_session', 'Tambah Session')}</span>
+            <span>{t('nav.add_session')}</span>
           </button>
 
           <button
@@ -201,7 +201,8 @@ export function SessionLauncher({
               color: '#94a3b8',
               cursor: 'pointer',
             }}
-            title="Pengaturan"
+            title={t('nav.general_settings')}
+            aria-label={t('nav.general_settings')}
           >
             <Settings size={17} />
           </button>
@@ -212,10 +213,10 @@ export function SessionLauncher({
       <main style={{ flex: 1, maxWidth: '1120px', width: '100%', margin: '0 auto', padding: '40px 24px 60px', boxSizing: 'border-box' }}>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <h1 style={{ fontSize: '2.1rem', fontWeight: 800, margin: '0 0 10px 0', letterSpacing: '-0.02em' }}>
-            {t('nav.launcher_title', 'Landing Launcher Session')}
+            {t('nav.launcher_title')}
           </h1>
           <p style={{ fontSize: '0.92rem', color: '#94a3b8', margin: 0, maxWidth: '620px', marginInline: 'auto', lineHeight: 1.5 }}>
-            {t('nav.launcher_subtitle', 'Pilih session Telegram dan tentukan mode workspace utama yang ingin Anda buka.')}
+            {t('nav.launcher_subtitle')}
           </p>
         </div>
 
@@ -267,7 +268,7 @@ export function SessionLauncher({
                       }}
                     />
                     <span style={{ fontSize: '0.78rem', color: '#4ade80', fontWeight: 600 }}>
-                      15 ms · Connection Strong
+                      {t('nav.connection_strong', { latency: 15 })}
                     </span>
                   </div>
 
@@ -289,7 +290,7 @@ export function SessionLauncher({
                     }}
                   >
                     <Star size={12} fill={isDefault ? '#38bdf8' : 'none'} />
-                    {isDefault ? t('nav.default_badge', 'Default') : t('nav.set_as_default', 'Atur Default')}
+                    {isDefault ? t('nav.default_badge') : t('nav.set_as_default')}
                   </button>
                 </div>
 
@@ -301,11 +302,11 @@ export function SessionLauncher({
                         setPreviewPhoto({
                           url: avatarUrl,
                           title: displayName,
-                          subtitle: `Session ID: ${sess.name}`,
+                          subtitle: t('nav.session_id_value', { session: sess.name }),
                         });
                       }
                     }}
-                    title={showAvatar ? 'Klik untuk melihat foto profil besar' : undefined}
+                    title={showAvatar ? t('nav.view_profile_photo') : undefined}
                     style={{
                       width: '52px',
                       height: '52px',
@@ -385,12 +386,12 @@ export function SessionLauncher({
                             fontWeight: 700,
                           }}
                         >
-                          PREMIUM
+                          {t('ui.generated.premium_71c7725')}
                         </span>
                       )}
                     </div>
                     <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                      Session ID: {sess.name} {(sess as any).datacenterId ? `· DC${(sess as any).datacenterId}` : ''}
+                      {t('nav.session_id_value', { session: sess.name })} {(sess as any).datacenterId ? `· DC${(sess as any).datacenterId}` : ''}
                     </span>
                   </div>
                 </div>
@@ -431,9 +432,9 @@ export function SessionLauncher({
                     <Folder size={22} style={{ color: '#38bdf8' }} />
                     <div>
                       <strong style={{ display: 'block', fontSize: '0.92rem', color: '#f8fafc' }}>
-                        {t('nav.open_drives', 'Buka Drives')}
+                        {t('nav.open_drives')}
                       </strong>
-                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Cloud File Manager</span>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{t('nav.drives_workspace_desc')}</span>
                     </div>
                   </button>
 
@@ -469,9 +470,9 @@ export function SessionLauncher({
                     <ArrowRightLeft size={22} style={{ color: '#818cf8' }} />
                     <div>
                       <strong style={{ display: 'block', fontSize: '0.92rem', color: '#f8fafc' }}>
-                        {t('nav.open_forwarder', 'Buka Forwarder')}
+                        {t('nav.open_forwarder')}
                       </strong>
-                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Chat Migration Suite</span>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{t('nav.forwarder_workspace_desc')}</span>
                     </div>
                   </button>
                 </div>
@@ -532,7 +533,7 @@ export function SessionLauncher({
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
-              title="Tutup Preview (Esc)"
+              title={t('nav.close_preview')}
             >
               <X size={18} />
             </button>
@@ -581,8 +582,8 @@ export function SessionLauncher({
           justifyContent: 'space-between',
         }}
       >
-        <span>AutoGram v2.1.2 · High Performance Telegram Engine</span>
-        <span>Rust MTProto Core · SQLite Local Sync</span>
+        <span>{t('nav.launcher_footer_engine')}</span>
+        <span>{t('nav.launcher_footer_storage')}</span>
       </footer>
     </div>
   );

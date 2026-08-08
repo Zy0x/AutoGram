@@ -303,7 +303,7 @@ export function DriveTransferManager({
     <div
       className={`tm-panel ${session.active ? 'active' : ''} ${isUpload ? 'up' : 'down'}`}
       role="dialog"
-      aria-label="Transfer Manager"
+      aria-label={t('speedtest.topbar_tm_aria')}
       aria-live="polite"
       onMouseDown={(e) => e.stopPropagation()}
     >
@@ -330,7 +330,7 @@ export function DriveTransferManager({
                       : counts.skipped > 0
                         ? t("speedtest.tm_status_done_skipped", { count: counts.skipped })
                         : counts.done
-                          ? 'Selesai'
+                          ? t('jobs.status_completed')
                           : t("speedtest.tm_status_ready")}
             </span>
           </div>
@@ -341,7 +341,7 @@ export function DriveTransferManager({
             className="tm-icon-btn"
             onClick={onToggleMinimize}
             title={t("speedtest.tm_minimize")}
-            aria-label="Minimize"
+            aria-label={t('ui.generated.minimize_1c5b768')}
           >
             <Minimize2 size={15} />
           </button>
@@ -352,7 +352,7 @@ export function DriveTransferManager({
               onToggleMinimize();
             }}
             title={t('speedtest.minimize_panel')}
-            aria-label="Sembunyikan"
+            aria-label={t('speedtest.show_less')}
           >
             <X size={15} />
           </button>
@@ -363,8 +363,7 @@ export function DriveTransferManager({
         <div className="tm-empty">
           <p>{t("speedtest.tm_empty_title")}</p>
           <p className="tm-hint">
-            Mulai unduh atau unggah — progress akan tampil di sini. Panel tidak hilang saat
-            klik di luar area drive.
+            {t('ui.generated.mulai_unduh_atau_unggah_progress_akan_tampil_di__51dedb7')}
           </p>
         </div>
       ) : (
@@ -375,41 +374,41 @@ export function DriveTransferManager({
               <span className="tm-summary-stats">
                 {counts.total > 0 && (
                   <span>
-                    {counts.done}/{counts.total} commit
+                    {counts.done}/{counts.total} {t('ui.generated.commit_4015b57')}
                     {counts.skipped > 0 && (
                       <span className="tm-skip-badge" title={t("speedtest.tm_skipped_hint")}>
-                        &nbsp;·&nbsp;{counts.skipped} dilewati
+                        &nbsp;·&nbsp;{counts.skipped} {t('ui.generated.dilewati_4a805bc')}
                       </span>
                     )}
                     {(session as any).reuploadedCount > 0 && (
                       <span className="tm-reupload-badge" title={t("speedtest.tm_reupload_hint")}>
-                        &nbsp;·&nbsp;<RotateCcw size={11} style={{display:'inline',verticalAlign:'middle'}} />&nbsp;{(session as any).reuploadedCount} re-upload
+                        &nbsp;·&nbsp;<RotateCcw size={11} style={{display:'inline',verticalAlign:'middle'}} />&nbsp;{(session as any).reuploadedCount} {t('ui.generated.re_upload_74ad44c')}
                       </span>
                     )}
                     {counts.needsVerification > 0 && (
                       <span className="tm-skip-badge" title={t("speedtest.tm_verify_hint")}>
-                        &nbsp;·&nbsp;{counts.needsVerification} perlu verifikasi
+                        &nbsp;·&nbsp;{counts.needsVerification} {t('ui.generated.perlu_verifikasi_101c413')}
                       </span>
                     )}
                   </span>
                 )}
                 {liveStageProgress?.fps != null && (
-                  <span>{liveStageProgress.fps.toFixed(0)} FPS</span>
+                  <span>{liveStageProgress.fps.toFixed(0)} {t('ui.generated.fps_fce204a')}</span>
                 )}
                 {encodeItem && !liveStageProgress?.fps && !!encodeItem.fps && (
-                  <span>{encodeItem.fps.toFixed(0)} FPS</span>
+                  <span>{encodeItem.fps.toFixed(0)} {t('ui.generated.fps_fce204a')}</span>
                 )}
                 {encodeItem && !!encodeItem.encodeSpeed && (
-                  <span>{encodeItem.encodeSpeed.toFixed(2)}× realtime</span>
+                  <span>{encodeItem.encodeSpeed.toFixed(2)}{t('ui.generated.realtime_5408b2c')}</span>
                 )}
                 {realTimeSpeedStr && (
                   <span>{realTimeSpeedStr}</span>
                 )}
                 {session.peak_mb_s > 0 && session.active && (
-                  <span className="tm-muted">puncak {session.peak_mb_s.toFixed(2)} MB/s</span>
+                  <span className="tm-muted">{t('ui.generated.puncak_62737da')} {session.peak_mb_s.toFixed(2)} {t('ui.generated.mb_s_44acadb')}</span>
                 )}
                 {realTimeEtaStr && (
-                  <span>ETA {realTimeEtaStr}</span>
+                  <span>{t('ui.generated.eta_3044d4f')} {realTimeEtaStr}</span>
                 )}
               </span>
             </div>
@@ -431,7 +430,7 @@ export function DriveTransferManager({
               </div>
             ) : encodeItem?.estimatedOutputBytes ? (
               <div className="tm-bytes">
-                Perkiraan output {formatDriveBytes(encodeItem.estimatedOutputBytes)}
+                {t('ui.generated.perkiraan_output_5002fa3')} {formatDriveBytes(encodeItem.estimatedOutputBytes)}
               </div>
             ) : (session.transferred > 0 || session.total > 0) && (
               <div className="tm-bytes">
@@ -454,18 +453,18 @@ export function DriveTransferManager({
             )}
             {(session as any).scanPhase === 'done' && (session as any).scanStats && (
               <div className="tm-scan-done">
-                ✓ Scan: {(session as any).scanStats.totalScanned} pesan · {(session as any).scanStats.dbCachedLoaded} cache · {(session as any).scanStats.newFromTg} Telegram
+                {t('ui.generated.scan_8194d17')} {(session as any).scanStats.totalScanned} {t('ui.generated.pesan_1a37732')} {(session as any).scanStats.dbCachedLoaded} {t('ui.generated.cache_655107f')} {(session as any).scanStats.newFromTg} {t('speedtest.perspective_telegram_short')}
               </div>
             )}
             {session.active && remainingAfterActive > 0 && (
               <p className="tm-hint">
-                Pause menahan file berikutnya (file yang sedang jalan tetap diselesaikan).
+                {t('ui.generated.pause_menahan_file_berikutnya_file_yang_sedang_j_9a25631')}
               </p>
             )}
             {session.active && session.items.length <= 1 && !session.paused && (
               <p className="tm-hint">
-                File tunggal tidak bisa dijeda di tengah jalan (batas Telegram). Gunakan{' '}
-                <strong>Stop</strong> untuk membatalkan.
+                {t('ui.generated.file_tunggal_tidak_bisa_dijeda_di_tengah_jalan_b_94c23ed')}{' '}
+                <strong>{t('ui.generated.stop_9e25347')}</strong> {t('ui.generated.untuk_membatalkan_ebbd9b2')}
               </p>
             )}
           </div>
@@ -474,7 +473,7 @@ export function DriveTransferManager({
             <div className="tm-controls">
               {canResume ? (
                 <button type="button" className="tm-btn primary" onClick={onResume}>
-                  <Play size={14} /> Resume
+                  <Play size={14} /> {t('ui.generated.resume_b3bd0b5')}
                 </button>
               ) : pauseUseful && remainingAfterActive > 0 ? (
                 <button
@@ -484,11 +483,11 @@ export function DriveTransferManager({
                   disabled={!canPause || !onPause}
                   title={pauseTitle}
                 >
-                  <Pause size={14} /> Pause
+                  <Pause size={14} /> {t('ui.generated.pause_781961b')}
                 </button>
               ) : null}
               <button type="button" className="tm-btn danger" onClick={onStop} disabled={!onStop}>
-                <Square size={13} /> Stop
+                <Square size={13} /> {t('ui.generated.stop_9e25347')}
               </button>
               <button
                 type="button"
@@ -497,7 +496,7 @@ export function DriveTransferManager({
                 title={t("speedtest.tm_minimize")}
               >
                 <Maximize2 size={13} style={{ transform: 'scaleX(-1)' }} />
-                Sembunyikan
+                {t('speedtest.show_less')}
               </button>
             </div>
           )}
@@ -510,7 +509,7 @@ export function DriveTransferManager({
                 onClick={onToggleMinimize}
                 title={t('speedtest.minimize_corner_tooltip')}
               >
-                <Minimize2 size={13} /> Sembunyikan
+                <Minimize2 size={13} /> {t('speedtest.show_less')}
               </button>
               {downloadFolderPath && onOpenDownloadFolder && (
                 <button
@@ -519,7 +518,7 @@ export function DriveTransferManager({
                   onClick={onOpenDownloadFolder}
                   title={downloadFolderPath}
                 >
-                  <FolderOpen size={13} /> Buka folder
+                  <FolderOpen size={13} /> {t('speedtest.zip_open_folder')}
                 </button>
               )}
               {canRetryFailed && onRetryFailed && counts.failed > 0 && (
@@ -529,12 +528,12 @@ export function DriveTransferManager({
                   onClick={onRetryFailed}
                   title={t('speedtest.retry_failed_files')}
                 >
-                  <RotateCcw size={13} /> Retry gagal ({counts.failed})
+                  <RotateCcw size={13} /> {t('ui.generated.retry_gagal_24b252c')}{counts.failed})
                 </button>
               )}
               {hasFinished && onClearDone && (
                 <button type="button" className="tm-btn ghost" onClick={onClearDone}>
-                  Clear selesai
+                  {t('ui.generated.clear_selesai_9193a9c')}
                 </button>
               )}
               {onDismiss && (
@@ -544,13 +543,13 @@ export function DriveTransferManager({
                   onClick={onDismiss}
                   title={t('speedtest.clear_transfer_history')}
                 >
-                  Tutup riwayat
+                  {t('ui.generated.tutup_riwayat_1b533f7')}
                 </button>
               )}
             </div>
           )}
 
-          <ul className="tm-list" aria-label="Daftar file transfer">
+          <ul className="tm-list" aria-label={t('ui.generated.daftar_file_transfer_0308efc')}>
             {session.items.map((it: any) => (
               <li key={it.id} className={`tm-row status-${it.status}`}>
                 <StatusIcon status={it.status} />
@@ -574,23 +573,23 @@ export function DriveTransferManager({
                         aria-label={`Dilewati: ${it.note || 'duplikat'}`}
                       >
                         <SkipForward size={9} />
-                        Dilewati
+                        {t('ui.generated.dilewati_4a88a03')}
                       </span>
                     )}
                     {it.status === 'failed' && (
-                      <span className="tm-err-text">{it.error || 'Gagal'}</span>
+                      <span className="tm-err-text">{it.error || t('ui.generated.gagal_224bc6b')}</span>
                     )}
-                    {it.status === 'cancelled' && <span>Dibatalkan</span>}
-                    {it.status === 'uploaded' && <span>Media terdaftar</span>}
-                    {it.status === 'waiting_commit' && <span>Menunggu urutan commit</span>}
-                    {it.status === 'committing' && <span>Mengirim pesan…</span>}
+                    {it.status === 'cancelled' && <span>{t('ui.generated.dibatalkan_1ed2b47')}</span>}
+                    {it.status === 'uploaded' && <span>{t('ui.generated.media_terdaftar_d5fe3dc')}</span>}
+                    {it.status === 'waiting_commit' && <span>{t('ui.generated.menunggu_urutan_commit_c65f549')}</span>}
+                    {it.status === 'committing' && <span>{t('ui.generated.mengirim_pesan_3bb2873')}</span>}
                     {it.status === 'needs_verification' && (
-                      <span className="tm-err-text">Perlu verifikasi — tidak diunggah ulang</span>
+                      <span className="tm-err-text">{t('ui.generated.perlu_verifikasi_tidak_diunggah_ulang_c7ea45a')}</span>
                     )}
-                    {it.status === 'queued' && <span>Antre</span>}
-                    {it.status === 'paused' && <span>Dijeda</span>}
+                    {it.status === 'queued' && <span>{t('ui.generated.antre_c004b83')}</span>}
+                    {it.status === 'paused' && <span>{t('jobs.status_paused')}</span>}
                     {it.status === 'preparing' && (
-                      <span>{it.phase === 'reencode' ? 'Re-encode' : 'Menyiapkan…'}</span>
+                      <span>{it.phase === 'reencode' ? t('speedtest.preflight_transform_reencode') : t('ui.generated.menyiapkan_36dd6d6')}</span>
                     )}
                     {(it.status === 'active' || it.status === 'preparing' || it.status === 'uploaded' || it.status === 'waiting_commit' || it.status === 'committing') && (
                       <>
@@ -600,9 +599,9 @@ export function DriveTransferManager({
                             {encoderLabel(it)}
                           </span>
                         )}
-                        {it.phase === 'reencode' && !!it.fps && <span>{it.fps.toFixed(0)} FPS</span>}
+                        {it.phase === 'reencode' && !!it.fps && <span>{it.fps.toFixed(0)} {t('ui.generated.fps_fce204a')}</span>}
                         {it.phase === 'reencode' && !!it.encodeSpeed && (
-                          <span>{it.encodeSpeed.toFixed(2)}×</span>
+                          <span>{it.encodeSpeed.toFixed(2)}{t('ui.generated.text_67fba2f')}</span>
                         )}
                         {it.phase === 'reencode' && !!it.estimatedOutputBytes && (
                           <span>≈ {formatDriveBytes(it.estimatedOutputBytes)}</span>
@@ -647,7 +646,7 @@ export function DriveTransferManager({
         {showLogs && (
           <div className="tm-debug-body">
             <div className="tm-debug-actions">
-              <span className="tm-debug-hint" title="worker/temp/transfer_debug.txt">
+              <span className="tm-debug-hint" title={t('ui.generated.worker_temp_transfer_debug_txt_58b8a85')}>
                 File: worker/temp/transfer_debug.txt
               </span>
               <button
@@ -660,19 +659,19 @@ export function DriveTransferManager({
                     session.banner ||
                     '(log kosong — aktifkan Debug Mode di Settings untuk log penuh)';
                   void copyTextWithFallback(text).then((ok: any) => {
-                    setCopyMsg(ok ? 'Tersalin' : 'Gagal salin — pilih teks manual');
+                    setCopyMsg(ok ? t('speedtest.zip_btn_copied') : t('ui.generated.gagal_salin_pilih_teks_manual_ea572ad'));
                     window.setTimeout(() => setCopyMsg(null), 2000);
                   });
                 }}
                 title={t('speedtest.copy_log_clipboard')}
               >
-                <Copy size={12} /> {copyMsg || 'Salin'}
+                <Copy size={12} /> {copyMsg || t('ui.generated.salin_276d054')}
               </button>
             </div>
-            <pre className="tm-debug-pre" aria-label="Transfer debug log">
+            <pre className="tm-debug-pre" aria-label={t('ui.generated.transfer_debug_log_9d4658a')}>
               {debugLogs.length
                 ? debugLogs.join('\n')
-                : 'Belum ada log di panel. Aktifkan Debug Mode di Settings, atau unggah/unduh lagi. Cari FALLBACK / PROGRESS.'}
+                : t('ui.generated.belum_ada_log_di_panel_aktifkan_debug_mode_di_se_742b245')}
             </pre>
           </div>
         )}

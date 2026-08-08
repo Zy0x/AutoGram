@@ -121,7 +121,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
           onClick={onReset}
           className="text-[11px] font-semibold text-slate-400 hover:text-slate-100 ml-1 px-2 py-1 hover:bg-slate-800 rounded-md"
         >
-          Reset
+          {t('speedtest.label_rotate_reset')}
         </button>
       </div>
     </div>

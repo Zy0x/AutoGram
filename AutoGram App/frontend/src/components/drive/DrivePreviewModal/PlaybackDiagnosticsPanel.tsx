@@ -70,7 +70,7 @@ export const PlaybackDiagnosticsPanel: React.FC<PlaybackDiagnosticsPanelProps> =
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', color: '#38bdf8' }}>
           <Activity size={14} />
-          <span>{t('speedtest.diag_title', 'GPU Playback Diagnostics')}</span>
+          <span>{t('speedtest.diag_title')}</span>
         </div>
         {onClose && (
           <button
@@ -91,35 +91,35 @@ export const PlaybackDiagnosticsPanel: React.FC<PlaybackDiagnosticsPanelProps> =
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Zap size={13} style={{ color: '#10b981' }} />
-          <span style={{ color: '#94a3b8' }}>Backend:</span>
+          <span style={{ color: '#94a3b8' }}>{t('ui.generated.backend_07b02e6')}</span>
           <span style={{ color: '#34d399', fontWeight: 'bold' }}>{telemetry.activeBackend}</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Film size={13} style={{ color: '#38bdf8' }} />
-          <span style={{ color: '#94a3b8' }}>GPU:</span>
+          <span style={{ color: '#94a3b8' }}>{t('ui.generated.gpu_021a8fa')}</span>
           <span style={{ color: '#f1f5f9' }}>{telemetry.gpuAdapterName}</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <ShieldCheck size={13} style={{ color: telemetry.zeroCopyActive ? '#10b981' : '#f59e0b' }} />
-          <span style={{ color: '#94a3b8' }}>Zero-Copy DXGI:</span>
+          <span style={{ color: '#94a3b8' }}>{t('ui.generated.zero_copy_dxgi_799e548')}</span>
           <span style={{ color: telemetry.zeroCopyActive ? '#34d399' : '#f59e0b', fontWeight: 'bold' }}>
-            {telemetry.zeroCopyActive ? 'ACTIVE (Direct Texture)' : 'DISABLED (CPU Copy)'}
+            {telemetry.zeroCopyActive ? t('ui.generated.active_direct_texture_f52b40a') : t('ui.generated.disabled_cpu_copy_672dacf')}
           </span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Cpu size={13} style={{ color: '#a78bfa' }} />
-          <span style={{ color: '#94a3b8' }}>Profile:</span>
+          <span style={{ color: '#94a3b8' }}>{t('ui.generated.profile_17d487b')}</span>
           <span style={{ color: '#cbd5e1' }}>{telemetry.decoderProfile}</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <HardDrive size={13} style={{ color: '#f472b6' }} />
-          <span style={{ color: '#94a3b8' }}>VRAM / Cache:</span>
+          <span style={{ color: '#94a3b8' }}>{t('ui.generated.vram_cache_a7b7bf6')}</span>
           <span style={{ color: '#cbd5e1' }}>
-            {telemetry.vramUsedMb}MB / {telemetry.vramCapMb}MB ({telemetry.seekCacheHitPct}% Hit)
+            {telemetry.vramUsedMb}{t('ui.generated.mb_b5f91dc')} {telemetry.vramCapMb}{t('ui.generated.mb_ce3ebe6')}{telemetry.seekCacheHitPct}{t('ui.generated.hit_5a2336e')}
           </span>
         </div>
 
@@ -135,15 +135,15 @@ export const PlaybackDiagnosticsPanel: React.FC<PlaybackDiagnosticsPanelProps> =
           }}
         >
           <div>
-            <div style={{ color: '#64748b', fontSize: '10px' }}>RENDER FPS</div>
+            <div style={{ color: '#64748b', fontSize: '10px' }}>{t('ui.generated.render_fps_61ba33b')}</div>
             <div style={{ color: '#38bdf8', fontSize: '15px', fontWeight: 'bold' }}>
               {telemetry.renderedFps} <span style={{ fontSize: '10px', color: '#94a3b8' }}>/ {telemetry.sourceFps}</span>
             </div>
           </div>
           <div>
-            <div style={{ color: '#64748b', fontSize: '10px' }}>DROPPED / DRIFT</div>
+            <div style={{ color: '#64748b', fontSize: '10px' }}>{t('ui.generated.dropped_drift_f6c3111')}</div>
             <div style={{ color: telemetry.droppedFrames > 0 ? '#ef4444' : '#10b981', fontSize: '15px', fontWeight: 'bold' }}>
-              {telemetry.droppedFrames} <span style={{ fontSize: '10px', color: '#94a3b8' }}>({telemetry.avDriftMs}ms)</span>
+              {telemetry.droppedFrames} <span style={{ fontSize: '10px', color: '#94a3b8' }}>({telemetry.avDriftMs}{t('ui.generated.ms_bd868a4')}</span>
             </div>
           </div>
         </div>

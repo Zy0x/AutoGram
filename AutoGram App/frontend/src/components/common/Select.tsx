@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 
 interface SelectOption {
   value: string;
@@ -17,6 +18,7 @@ interface SelectProps {
 }
 
 export function Select({ options, value, onChange, placeholder, disabled }: SelectProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -90,7 +92,7 @@ export function Select({ options, value, onChange, placeholder, disabled }: Sele
           }}
           title={selectedOption ? selectedOption.label : (placeholder || 'Select...')}
         >
-          {selectedOption ? selectedOption.label : (placeholder || 'Select...')}
+          {selectedOption ? selectedOption.label : (placeholder || t('ui.generated.select_b92e64f'))}
         </span>
         <ChevronDown size={18} style={{ transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }} />
       </div>
@@ -115,7 +117,7 @@ export function Select({ options, value, onChange, placeholder, disabled }: Sele
         }}>
           {options.length === 0 ? (
             <div style={{ padding: '12px 14px', color: 'var(--text-muted)' }}>
-              {placeholder || 'No options'}
+              {placeholder || t('ui.generated.no_options_0f12645')}
             </div>
           ) : (
             options.map(opt => (

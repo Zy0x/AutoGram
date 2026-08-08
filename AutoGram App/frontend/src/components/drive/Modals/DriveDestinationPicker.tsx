@@ -205,13 +205,13 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
               state.detail && <p>{state.detail}</p>
             )}
           </div>
-          <button type="button" className="td-confirm-close" onClick={onClose} aria-label="Tutup">
+          <button type="button" className="td-confirm-close" onClick={onClose} aria-label={t('speedtest.preview_close_btn')}>
             <X size={18} />
           </button>
         </header>
 
         {topicSubView ? (
-          <ul className="td-dest-list" role="listbox" aria-label="Daftar topik forum">
+          <ul className="td-dest-list" role="listbox" aria-label={t('ui.generated.daftar_topik_forum_18bc840')}>
             <li>
               <button
                 type="button"
@@ -260,7 +260,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t('speedtest.ph_search_chat_folder')}
-                aria-label="Cari tujuan"
+                aria-label={t('ui.generated.cari_tujuan_7e335b8')}
                 onKeyDown={(e) => {
                   if (e.key === 'ArrowDown') {
                     e.preventDefault();
@@ -276,9 +276,9 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
               />
             </div>
 
-            <ul className="td-dest-list" role="listbox" aria-label="Daftar tujuan">
+            <ul className="td-dest-list" role="listbox" aria-label={t('ui.generated.daftar_tujuan_2d87835')}>
               {filtered.length === 0 && (
-                <li className="td-dest-empty">Tidak ada yang cocok</li>
+                <li className="td-dest-empty">{t('speedtest.no_match_found')}</li>
               )}
               {filtered.map((c, i) => {
                 const active = i === selectedIdx;
@@ -317,7 +317,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
 
         <footer className="td-confirm-foot">
           <button type="button" className="td-confirm-btn ghost" onClick={onClose}>
-            Batal
+            {t('accounts.cancel')}
           </button>
           <button
             type="button"
@@ -326,7 +326,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
             disabled={!filtered.length && !topicSubView}
           >
             <FolderInput size={15} />
-            Pilih tujuan
+            {t('ui.generated.pilih_tujuan_d019ea0')}
           </button>
         </footer>
       </div>

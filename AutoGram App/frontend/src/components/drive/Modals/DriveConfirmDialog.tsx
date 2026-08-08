@@ -225,35 +225,35 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
             <h2 id="td-confirm-title">{title}</h2>
             <p>{lead}</p>
           </div>
-          <button type="button" className="td-confirm-close" onClick={onClose} aria-label="Tutup">
+          <button type="button" className="td-confirm-close" onClick={onClose} aria-label={t('speedtest.preview_close_btn')}>
             <X size={18} />
           </button>
         </header>
 
         {showList.length > 0 && (
-          <ul className="td-confirm-list" aria-label="Daftar file">
+          <ul className="td-confirm-list" aria-label={t('ui.generated.daftar_file_11edb0f')}>
             {showList.map((name, i) => (
               <li key={`${name}-${i}`} title={name}>
                 {name}
               </li>
             ))}
-            {more > 0 && <li className="td-confirm-more">+{more} file lainnya</li>}
+            {more > 0 && <li className="td-confirm-more">+{more} {t('ui.generated.file_lainnya_f9b61e0')}</li>}
           </ul>
         )}
 
         {hasChildFolders && (
           <div className="td-confirm-children-info">
             <p className="td-confirm-children-lead">
-              {isDriveItem ? 'Isi Drive yang ikut terhapus:' : 'Isi folder yang ikut terhapus:'}
+              {isDriveItem ? t('ui.generated.isi_drive_yang_ikut_terhapus_ed43fcc') : t('ui.generated.isi_folder_yang_ikut_terhapus_3dfc205')}
             </p>
-            <ul className="td-confirm-list" aria-label="Folder di dalam">
+            <ul className="td-confirm-list" aria-label={t('ui.generated.folder_di_dalam_4bb56dc')}>
               {childNames.map((name, i) => (
                 <li key={`child-${name}-${i}`} title={name}>
                   {name}
                 </li>
               ))}
               {childMore > 0 && (
-                <li className="td-confirm-more">+{childMore} folder lainnya</li>
+                <li className="td-confirm-more">+{childMore} {t('ui.generated.folder_lainnya_564acbb')}</li>
               )}
             </ul>
           </div>
@@ -261,22 +261,22 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
 
         {isMove && !isFolderReparent && (
           <div className="td-confirm-move-opts">
-            <div className="td-confirm-mode" role="group" aria-label="Mode kirim">
+            <div className="td-confirm-mode" role="group" aria-label={t('ui.generated.mode_kirim_6d02800')}>
               <button
                 type="button"
                 className={`td-confirm-mode-btn ${moveMode === 'move' ? 'active' : ''}`}
                 onClick={() => setMoveMode('move')}
               >
-                <FolderInput size={14} /> Pindah
-                <span className="td-confirm-mode-hint">hapus sumber</span>
+                <FolderInput size={14} /> {t('speedtest.topbar_move')}
+                <span className="td-confirm-mode-hint">{t('speedtest.action_delete_source')}</span>
               </button>
               <button
                 type="button"
                 className={`td-confirm-mode-btn ${moveMode === 'copy' ? 'active' : ''}`}
                 onClick={() => setMoveMode('copy')}
               >
-                <Copy size={14} /> Salin
-                <span className="td-confirm-mode-hint">sumber tetap</span>
+                <Copy size={14} /> {t('settings.debug_copy_logs')}
+                <span className="td-confirm-mode-hint">{t('speedtest.action_keep_source')}</span>
               </button>
             </div>
 
@@ -307,7 +307,7 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
                 )}
                 {!state.isTopicLoading && !topics.length && (
                   <span className="td-confirm-topic-empty">
-                    Daftar topik kosong — kirim ke general chat.
+                    {t('ui.generated.daftar_topik_kosong_kirim_ke_general_chat_5e58443')}
                   </span>
                 )}
               </label>
@@ -322,7 +322,7 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
 
         <footer className="td-confirm-foot">
           <button type="button" className="td-confirm-btn ghost" onClick={onClose}>
-            Batal
+            {t('accounts.cancel')}
           </button>
           <button
             ref={confirmRef}
@@ -332,25 +332,25 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
           >
             {isDelete ? (
               <>
-                <Trash2 size={15} /> Hapus
+                <Trash2 size={15} /> {t('speedtest.preview_delete_btn')}
               </>
             ) : isFolderReparent ? (
               <>
-                <FolderInput size={15} /> Pindahkan
+                <FolderInput size={15} /> {t('ui.generated.pindahkan_34ea0c0')}
               </>
             ) : isMove ? (
               moveMode === 'copy' ? (
                 <>
-                  <Copy size={15} /> Salin ke chat
+                  <Copy size={15} /> {t('ui.generated.salin_ke_chat_f92194a')}
                 </>
               ) : (
                 <>
-                  <FolderInput size={15} /> Pindahkan
+                  <FolderInput size={15} /> {t('ui.generated.pindahkan_34ea0c0')}
                 </>
               )
             ) : (
               <>
-                <Download size={15} /> Lanjut unduh
+                <Download size={15} /> {t('ui.generated.lanjut_unduh_a8ff5db')}
               </>
             )}
           </button>

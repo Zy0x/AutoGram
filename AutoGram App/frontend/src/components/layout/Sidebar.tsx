@@ -26,13 +26,13 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   const visibleItems = NAV_ITEMS.filter((item) => !item.desktopOnly || showMediaStudio);
 
   return (
-    <aside className="app-sidebar" aria-label="Main navigation">
+    <aside className="app-sidebar" aria-label={t('ui.generated.main_navigation_efd197f')}>
       <div className="sidebar-brand">
         <div className="sidebar-brand-icon">
           <Rocket size={22} color="white" aria-hidden />
         </div>
         <div className="sidebar-brand-text">
-          <h1>AutoGram</h1>
+          <h1>{t('nav.title')}</h1>
           <p>{t('nav.subtitle')}</p>
         </div>
       </div>

@@ -95,5 +95,9 @@
     "network_error": "Gagal terhubung ke jaringan atau server Telegram.",
     "checksum_mismatch": "Integritas file gagal diverifikasi (MD5 mismatch). Re-upload akan dicoba otomatis."
   },
-  "parallel_grammers_desc": "Forwarder & Drives berbagi koneksi MTProto yang sama secara aman."
+  "parallel_grammers_desc": "Forwarder & Drives berbagi koneksi MTProto yang sama secara aman.",
+  "tooltip_caption_rule": "Ubah atau hapus teks caption pada pesan media.",
+  "tooltip_disable_dup": "Tentukan tindakan saat pesan sudah ada di tujuan.",
+  "tooltip_throttle": "Tambahkan jeda antarpesan untuk mengurangi risiko pembatasan spam Telegram.",
+  "tooltip_fallback": "Jika Fast Forward diblokir oleh pembatasan penerusan, otomatis beralih ke Clean Copy."
 }

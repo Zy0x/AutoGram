@@ -104,7 +104,7 @@ export function TransferPreflightDialog({ report, onConfirm, onCancel, onBackToS
         <footer className="td-xfer-settings-foot">
           {onBackToSettings && (
             <button type="button" className="td-chip-btn" onClick={onBackToSettings}>
-              {t('speedtest.tools_tab_settings') || 'Pengaturan'}
+              {t('speedtest.tools_tab_settings') || t('ui.generated.pengaturan_3fcdc1c')}
             </button>
           )}
           <button type="button" className="td-chip-btn" onClick={onCancel}>{t('speedtest.topbar_cancel')}</button>

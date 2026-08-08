@@ -386,8 +386,8 @@ type ZipErrorBoundaryState = {
   error: string | null;
 };
 
-class ZipErrorBoundary extends Component<ZipErrorBoundaryProps, ZipErrorBoundaryState> {
-  constructor(props: ZipErrorBoundaryProps) {
+class ZipErrorBoundaryInner extends Component<ZipErrorBoundaryProps & { translate: (key: string) => string }, ZipErrorBoundaryState> {
+  constructor(props: ZipErrorBoundaryProps & { translate: (key: string) => string }) {
     super(props);
     this.state = { hasError: false, error: null };
   }
@@ -395,7 +395,7 @@ class ZipErrorBoundary extends Component<ZipErrorBoundaryProps, ZipErrorBoundary
   static getDerivedStateFromError(error: unknown): ZipErrorBoundaryState {
     return {
       hasError: true,
-      error: String((error as any)?.message || error || 'Gagal merender ZIP Browser'),
+      error: String((error as any)?.message || error || ''),
     };
   }
 
@@ -404,14 +404,15 @@ class ZipErrorBoundary extends Component<ZipErrorBoundaryProps, ZipErrorBoundary
   }
 
   render() {
+    const t = this.props.translate;
     if (this.state.hasError) {
       return (
         <div className="drive-zip-browser is-error" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center' }}>
           <p style={{ fontWeight: 600, fontSize: '1rem', color: '#f87171', marginBottom: 12 }}>
-            Terjadi kesalahan visual saat memuat ZIP Workbench
+            {t('ui.generated.terjadi_kesalahan_visual_saat_memuat_zip_workben_e6692ae')}
           </p>
           <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: 16, maxWidth: 420 }}>
-            {this.state.error}
+            {this.state.error || t('ui.generated.terjadi_kesalahan_visual_saat_memuat_zip_workben_e6692ae')}
           </p>
           <div style={{ display: 'flex', gap: 10 }}>
             <button
@@ -419,7 +420,7 @@ class ZipErrorBoundary extends Component<ZipErrorBoundaryProps, ZipErrorBoundary
               className="td-btn-primary"
               onClick={() => this.setState({ hasError: false, error: null })}
             >
-              Coba Ulang
+              {t('ui.generated.coba_ulang_8ac3ad2')}
             </button>
             {this.props.onClose && (
               <button
@@ -427,7 +428,7 @@ class ZipErrorBoundary extends Component<ZipErrorBoundaryProps, ZipErrorBoundary
                 className="td-btn-secondary"
                 onClick={this.props.onClose}
               >
-                Tutup Modal
+                {t('ui.generated.tutup_modal_0c4ecfa')}
               </button>
             )}
           </div>
@@ -436,6 +437,11 @@ class ZipErrorBoundary extends Component<ZipErrorBoundaryProps, ZipErrorBoundary
     }
     return this.props.children;
   }
+}
+
+function ZipErrorBoundary(props: ZipErrorBoundaryProps) {
+  const { t } = useTranslation();
+  return <ZipErrorBoundaryInner {...props} translate={t} />;
 }
 
 export function DrivePreviewModal({
@@ -1227,12 +1233,12 @@ export function DrivePreviewModal({
         setBufferPct(100);
       }
       if (res.streaming && !cachedHit && !isCompleteDoc) {
-        setPlayerHint(res.message || 'Streaming…');
+        setPlayerHint(res.message || t('ui.generated.streaming_a37cc13'));
       }
       setLoading(false);
       setSwitchingQuality(false);
       if (!usable && !res.too_large) {
-        setError(res.message || 'Pratinjau kosong — coba Muat ulang atau Download.');
+        setError(res.message || t('ui.generated.pratinjau_kosong_coba_muat_ulang_atau_download_2c042d6'));
       } else {
         setError(null);
       }
@@ -1309,7 +1315,7 @@ export function DrivePreviewModal({
         setStreamId(null);
         setBufferPct(0);
         setStreamDone(false);
-        setPlayerHint(isVideoDriveFile(file) ? 'Menyiapkan stream…' : 'Memuat…');
+        setPlayerHint(isVideoDriveFile(file) ? t('ui.generated.menyiapkan_stream_7c5244e') : t('ui.generated.memuat_4f4aea6'));
         setSeekWarn(null);
         setPoster(gridThumb);
         // Keep spinner only when we have no poster at all
@@ -1371,8 +1377,8 @@ export function DrivePreviewModal({
           );
           setError(
             disconnected
-              ? 'Koneksi Telegram putus saat memuat pratinjau. Klik Coba lagi — Drive akan menyambung ulang.'
-              : raw || 'Gagal memuat pratinjau'
+              ? t('ui.generated.koneksi_telegram_putus_saat_memuat_pratinjau_kli_caf3236')
+              : raw || t('ui.generated.gagal_memuat_pratinjau_a59ec1e')
           );
           setLoading(false);
         }
@@ -1632,7 +1638,7 @@ export function DrivePreviewModal({
                     setStreamUrl(null);
                     setStreamId(null);
                     setHasVideoFrame(false);
-                    setPlayerHint('Memuat ulang stream…');
+                    setPlayerHint(t('ui.generated.memuat_ulang_stream_a5f379e'));
                     window.setTimeout(() => {
                       if (mountGenRef.current !== activeMountGen) return;
                       loadPreviewRef.current(quality, { soft: false, force: true });
@@ -1651,13 +1657,13 @@ export function DrivePreviewModal({
               const MAX_SOFT_RETRIES = 3;
               if (softRetryCountRef.current > MAX_SOFT_RETRIES) {
                 setPlayerHint(null);
-                setError('Stream tidak dapat dilanjutkan — klik Muat Ulang untuk mencoba lagi.');
+                setError(t('ui.generated.stream_tidak_dapat_dilanjutkan_klik_muat_ulang_u_8af0b55'));
                 return; // stop retrying in this poll tick
               }
 
               if (!softReloadInFlightRef.current) {
                 softReloadInFlightRef.current = true;
-                setPlayerHint('Melanjutkan unduhan stream…');
+                setPlayerHint(t('ui.generated.melanjutkan_unduhan_stream_4da4182'));
                 softReloadTimerRef.current = window.setTimeout(() => {
                   softReloadInFlightRef.current = false;
                   softReloadTimerRef.current = null;
@@ -1666,16 +1672,16 @@ export function DrivePreviewModal({
                   loadPreviewRef.current(quality, { soft: false, force: true });
                 }, 600);
               } else {
-                setPlayerHint('Melanjutkan stream…');
+                setPlayerHint(t('ui.generated.melanjutkan_stream_f68fabd'));
               }
             } else {
-              setPlayerHint('Melanjutkan stream…');
+              setPlayerHint(t('ui.generated.melanjutkan_stream_f68fabd'));
             }
           }
         } else {
           streamMissingHitsRef.current = 0;
         }
-        if (st.status === 'error') setHint(st.error || 'Stream error');
+        if (st.status === 'error') setHint(st.error || t('ui.generated.stream_error_c5437ba'));
 
         // Instant Playback Start: Start video as soon as stream server and moov metadata are ready
         const now = Date.now();
@@ -1753,7 +1759,7 @@ export function DrivePreviewModal({
           filled > prefix + 64 * 1024 &&
           !seekWarnRef.current
         ) {
-          setPlayerHint('Menyiapkan metadata…');
+          setPlayerHint(t('ui.generated.menyiapkan_metadata_62ab71e'));
         } else if (st.moov_ready === false && prefix > 0 && !browserHasData) {
           setPlayerHint((h) => h || 'Menyiapkan metadata…');
         } else if (st.moov_ready) {
@@ -1792,7 +1798,7 @@ export function DrivePreviewModal({
       const notStarted = (!v || (v.readyState < 2 && v.currentTime < 0.1)) && !hasVideoFrame;
       if (notStarted) {
         setError(
-          'Video tidak dapat diputar — stream gagal memuat setelah 30 detik. Klik Muat Ulang untuk mencoba kembali.'
+          t('ui.generated.video_tidak_dapat_diputar_stream_gagal_memuat_se_3698c2d')
         );
         setPlayerHint(null);
       }
@@ -1841,11 +1847,11 @@ export function DrivePreviewModal({
     const v = videoRef.current;
     const sid = streamIdRef.current;
     if (!v || !streamUrl || !sid) return;
-    const t = v.currentTime;
-    if (!Number.isFinite(t) || t < 0.05) return;
+    const seekTime = v.currentTime;
+    if (!Number.isFinite(seekTime) || seekTime < 0.05) return;
 
     // Already buffered in the browser — nothing to do
-    if (timeInBuffered(v, t, 1.25)) {
+    if (timeInBuffered(v, seekTime, 1.25)) {
       userSeekPendingRef.current = false;
       return;
     }
@@ -1859,9 +1865,9 @@ export function DrivePreviewModal({
     const dur = Number.isFinite(v.duration) && v.duration > 0 ? v.duration : 0;
     const c = credsRef.current;
     if (!c) return;
-    const target = t;
+    const target = seekTime;
 
-    flashSeekWarn('Memuat titik seek…');
+    flashSeekWarn(t('ui.generated.memuat_titik_seek_1717090'));
     void (async () => {
       try {
         await driveStreamSeek(c, sid, {
@@ -2342,7 +2348,7 @@ export function DrivePreviewModal({
         }
         if (!cancelled) {
           setError(
-            'Gagal memuat teks. Klik Coba lagi untuk mengunduh ulang dari Telegram.'
+            t('ui.generated.gagal_memuat_teks_klik_coba_lagi_untuk_mengunduh_be0e11f')
           );
           setLoading(false);
         }
@@ -2351,7 +2357,7 @@ export function DrivePreviewModal({
           const msg = String(e?.message || e || 'Gagal membaca teks');
           setError(
             /failed to fetch/i.test(msg)
-              ? 'Gagal memuat teks (stream putus). Klik Coba lagi.'
+              ? t('ui.generated.gagal_memuat_teks_stream_putus_klik_coba_lagi_9973c53')
               : msg
           );
           setLoading(false);
@@ -2488,14 +2494,14 @@ export function DrivePreviewModal({
     openCancelledRef.current = false;
     setOpeningSystem(true);
     setError(null);
-    setOpenProgressMsg('Menyiapkan…');
+    setOpenProgressMsg(t('ui.generated.menyiapkan_36dd6d6'));
     try {
       await openDriveFileInSystem(creds, file, folderId, path, (p) => {
         if (openCancelledRef.current) return;
         setOpenProgressMsg(p.message);
       });
       if (openCancelledRef.current) return;
-      setOpenProgressMsg('Dibuka di aplikasi default');
+      setOpenProgressMsg(t('ui.generated.dibuka_di_aplikasi_default_e6ccddb'));
       window.setTimeout(() => {
         if (!openCancelledRef.current) setOpenProgressMsg(null);
       }, 2500);
@@ -2514,14 +2520,14 @@ export function DrivePreviewModal({
     openCancelledRef.current = false;
     setOpeningSystem(true);
     setError(null);
-    setOpenProgressMsg('Menyiapkan Buka dengan…');
+    setOpenProgressMsg(t('ui.generated.menyiapkan_buka_dengan_4ae1927'));
     try {
       await openDriveFileWithApp(creds, file, folderId, path, (p) => {
         if (openCancelledRef.current) return;
         setOpenProgressMsg(p.message);
       });
       if (openCancelledRef.current) return;
-      setOpenProgressMsg('Dialog Windows dibuka — pilih aplikasi · tutup dialog untuk kembali');
+      setOpenProgressMsg(t('ui.generated.dialog_windows_dibuka_pilih_aplikasi_tutup_dialo_bcf0ba6'));
       window.setTimeout(() => {
         if (!openCancelledRef.current) setOpenProgressMsg(null);
       }, 5000);
@@ -2544,7 +2550,7 @@ export function DrivePreviewModal({
     const frame = pdfFrameRef.current;
     if (frame?.contentWindow && pdfSrc) {
       try {
-        setOpenProgressMsg('Membuka dialog cetak… · Batal di dialog Windows untuk kembali');
+        setOpenProgressMsg(t('ui.generated.membuka_dialog_cetak_batal_di_dialog_windows_unt_26ba2df'));
         frame.contentWindow.focus();
         frame.contentWindow.print();
         window.setTimeout(() => {
@@ -2558,19 +2564,19 @@ export function DrivePreviewModal({
 
     // 2) Ensure file on disk then open with default app (user prints from there)
     if (!creds || !isDesktop()) {
-      setError('Cetak PDF hanya di aplikasi desktop setelah pratinjau siap.');
+      setError(t('ui.generated.cetak_pdf_hanya_di_aplikasi_desktop_setelah_prat_4e7de43'));
       return;
     }
     if (openingSystem) return;
     setOpeningSystem(true);
-    setOpenProgressMsg('Menyiapkan PDF untuk cetak…');
+    setOpenProgressMsg(t('ui.generated.menyiapkan_pdf_untuk_cetak_389c982'));
     try {
       const local = await ensureLocalDocument(creds, file, folderId, path, (p) => {
         if (openCancelledRef.current) return;
         setOpenProgressMsg(`${p.message} · klik Batal untuk kembali`);
       });
       if (openCancelledRef.current) return;
-      setOpenProgressMsg('Membuka PDF — gunakan Cetak di aplikasi, lalu tutup untuk kembali');
+      setOpenProgressMsg(t('ui.generated.membuka_pdf_gunakan_cetak_di_aplikasi_lalu_tutup_3bd85ab'));
       await openInSystem(local, (p) => {
         if (openCancelledRef.current) return;
         setOpenProgressMsg(p.message);
@@ -3109,11 +3115,11 @@ export function DrivePreviewModal({
   const togglePip = async () => {
     const v = videoRef.current;
     if (!v) {
-      flashSeekWarn('Video belum siap untuk Picture-in-Picture.');
+      flashSeekWarn(t('ui.generated.video_belum_siap_untuk_picture_in_picture_a748269'));
       return;
     }
     if (v.readyState < 1) {
-      flashSeekWarn('Metadata video belum dimuat. Tunggu sebentar…');
+      flashSeekWarn(t('ui.generated.metadata_video_belum_dimuat_tunggu_sebentar_acdc83e'));
       return;
     }
     try {
@@ -3122,7 +3128,7 @@ export function DrivePreviewModal({
       } else if (document.pictureInPictureEnabled) {
         await v.requestPictureInPicture();
       } else {
-        flashSeekWarn('Picture-in-Picture tidak didukung di lingkungan ini.');
+        flashSeekWarn(t('ui.generated.picture_in_picture_tidak_didukung_di_lingkungan__6535e3d'));
       }
     } catch (e: any) {
       flashSeekWarn(String(e?.message || e || 'Gagal membuka PiP'));
@@ -3152,7 +3158,7 @@ export function DrivePreviewModal({
         ref={shellRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Preview"
+        aria-label={t('speedtest.tooltip_preview')}
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
@@ -3179,7 +3185,7 @@ export function DrivePreviewModal({
                   previewErrorDetail ? `err: ${previewErrorDetail}` : '',
                 ].filter(Boolean).join(' · ')}>
                   {isHeaderFrozen ? (
-                    <span className="text-amber-400/90 font-medium">Klik Card A atau Card B untuk mengaktifkan toolbar</span>
+                    <span className="text-amber-400/90 font-medium">{t('ui.generated.klik_card_a_atau_card_b_untuk_mengaktifkan_toolb_63e2364')}</span>
                   ) : (
                     <>
                       {formatDriveBytes(isSplitCompareMode && activeSlotFile ? activeSlotFile.size : (previewByteSize || file.size))}
@@ -3187,8 +3193,8 @@ export function DrivePreviewModal({
                       {durationLabel ? ` · ${durationLabel}` : ''}
                       {isVideo ? (file.as_document ? ` · ${t('speedtest.doc_file_badge')}` : ` · ${t('speedtest.video_media_badge')}`) : kindLabel ? ` · ${kindLabel}` : ''}
                       {isVideo && activeQuality ? ` · ${activeQuality.label}` : ''}
-                      {fromCache && !loading ? ' · cache' : ''}
-                      {previewState === 'degraded' ? ' · Degraded' : ''}
+                      {fromCache && !loading ? t('ui.generated.cache_00cdf64') : ''}
+                      {previewState === 'degraded' ? t('ui.generated.degraded_e96e6b7') : ''}
                     </>
                   )}
                 </span>
@@ -3198,7 +3204,7 @@ export function DrivePreviewModal({
                 <div
                   className="drive-preview-nav"
                   role="toolbar"
-                  aria-label="Navigasi preview"
+                  aria-label={t('speedtest.nav_aria')}
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -3222,7 +3228,7 @@ export function DrivePreviewModal({
                         onPrev?.();
                       }
                     }}
-                    aria-label="Previous"
+                    aria-label={t('speedtest.prev_aria')}
                     title={
                       duplicateContext
                         ? t('speedtest.preview_prev_group')
@@ -3254,7 +3260,7 @@ export function DrivePreviewModal({
                         onNext?.();
                       }
                     }}
-                    aria-label="Next"
+                    aria-label={t('speedtest.next_aria')}
                     title={
                       duplicateContext
                         ? t('speedtest.preview_next_group')
@@ -3275,7 +3281,7 @@ export function DrivePreviewModal({
                     }}
                     disabled={saving}
                     title={t('speedtest.download_tooltip')}
-                    aria-label="Download"
+                    aria-label={t('speedtest.label_download')}
                   >
                     {saving ? <Loader2 size={16} className="spin" /> : <Download size={16} />}
                   </button>
@@ -3291,7 +3297,7 @@ export function DrivePreviewModal({
                         }}
                         disabled={openingSystem || !creds}
                         title={t('speedtest.open_default_tooltip')}
-                        aria-label="Buka"
+                        aria-label={t('speedtest.label_open')}
                       >
                         {openingSystem ? <Loader2 size={16} className="spin" /> : <ExternalLink size={16} />}
                       </button>
@@ -3304,7 +3310,7 @@ export function DrivePreviewModal({
                         }}
                         disabled={openingSystem || !creds}
                         title={t('speedtest.open_with_tooltip')}
-                        aria-label="Buka dengan"
+                        aria-label={t('ui.generated.buka_dengan_bd8b04b')}
                       >
                         <AppWindow size={16} />
                       </button>
@@ -3319,7 +3325,7 @@ export function DrivePreviewModal({
                       void toggleFullscreen();
                     }}
                     title={isFullscreen ? t('speedtest.preview_fullscreen_exit') : t('speedtest.preview_fullscreen_enter')}
-                    aria-label="Fullscreen"
+                    aria-label={t('speedtest.fullscreen')}
                   >
                     {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
                   </button>
@@ -3333,7 +3339,7 @@ export function DrivePreviewModal({
                   e.stopPropagation();
                   onClose();
                 }}
-                aria-label="Close"
+                aria-label={t('speedtest.preview_close_btn')}
                 title={t("speedtest.close_esc_tooltip")}
               >
                 <X size={18} />
@@ -3359,7 +3365,7 @@ export function DrivePreviewModal({
                 type="button"
                 className="drive-open-progress-cancel is-quiet"
                 title={t('speedtest.close_status_strip')}
-                aria-label="Tutup status"
+                aria-label={t('ui.generated.tutup_status_de404c7')}
                 onClick={dismissOpenProgress}
               >
                 <X size={14} />
@@ -3383,7 +3389,7 @@ export function DrivePreviewModal({
         >
           <div className="drive-preview-tools">
             {(isImage || isVideo) && (
-              <div className="drive-tool-group" role="group" aria-label="Zoom">
+              <div className="drive-tool-group" role="group" aria-label={t('speedtest.zoom_label')}>
                 <span className="drive-tool-group-label">{t("speedtest.label_zoom")}</span>
                 <button
                   type="button"
@@ -3419,7 +3425,7 @@ export function DrivePreviewModal({
             )}
 
             {(isImage || isVideo) && (
-              <div className="drive-tool-group" role="group" aria-label="Putar">
+              <div className="drive-tool-group" role="group" aria-label={t('speedtest.label_rotate')}>
                 <span className="drive-tool-group-label">{t("speedtest.label_rotate")}</span>
                 <button
                   type="button"
@@ -3509,7 +3515,7 @@ export function DrivePreviewModal({
             )}
 
             {(isVideo || isAudio) && (
-              <div className="drive-tool-group" role="group" aria-label="Pemutaran media">
+              <div className="drive-tool-group" role="group" aria-label={t('ui.generated.pemutaran_media_a5ffb68')}>
                 <span className="drive-tool-group-label">{isVideo ? t('speedtest.label_video') : t('speedtest.label_audio')}</span>
                 {isVideo && (
                   <div className="drive-quality-wrap">
@@ -3531,7 +3537,7 @@ export function DrivePreviewModal({
                       disabled={isHeaderFrozen || switchingQuality}
                       aria-expanded={qualityOpen}
                       aria-haspopup="menu"
-                      aria-label="Resolusi video"
+                      aria-label={t('ui.generated.resolusi_video_c723455')}
                     >
                       {switchingQuality ? (
                         <Loader2 size={15} className="spin" />
@@ -3539,7 +3545,7 @@ export function DrivePreviewModal({
                         <Settings2 size={14} />
                       )}
                       <span className="drive-tool-btn-label">
-                        {activeResolution?.label || activeQuality?.label || 'Otomatis'}
+                        {activeResolution?.label || activeQuality?.label || t('ui.generated.otomatis_33a0b23')}
                       </span>
                     </button>
                   </div>
@@ -3609,7 +3615,7 @@ export function DrivePreviewModal({
               </div>
             )}
 
-            <div className="drive-tool-group" role="group" aria-label="Lainnya">
+            <div className="drive-tool-group" role="group" aria-label={t('speedtest.cat_other')}>
               <span className="drive-tool-group-label">{t("speedtest.label_other")}</span>
               {isSplitCompareMode && (
                 <>
@@ -3622,7 +3628,7 @@ export function DrivePreviewModal({
                     }}
                     disabled={isHeaderFrozen || saving}
                     title={t('speedtest.download_tooltip')}
-                    aria-label="Download"
+                    aria-label={t('speedtest.label_download')}
                   >
                     {saving ? <Loader2 size={15} className="spin" /> : <Download size={15} />}
                     <span className="drive-tool-btn-label">{t("speedtest.label_download")}</span>
@@ -3636,7 +3642,7 @@ export function DrivePreviewModal({
                     }}
                     disabled={isHeaderFrozen}
                     title={isFullscreen ? t('speedtest.preview_fullscreen_exit') : t('speedtest.preview_fullscreen_enter')}
-                    aria-label="Fullscreen"
+                    aria-label={t('speedtest.fullscreen')}
                   >
                     {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
                     <span className="drive-tool-btn-label">{t("speedtest.label_fullscreen")}</span>
@@ -3697,7 +3703,7 @@ export function DrivePreviewModal({
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="drive-quality-menu-title">Resolusi</div>
+              <div className="drive-quality-menu-title">{t('ui.generated.resolusi_19165bf')}</div>
               {resolutionOptions.map((opt) => {
                 const selected = opt.id === quality || (!quality && !!opt.recommended);
                 const sizeHint = formatQualitySize(opt.size);
@@ -3720,11 +3726,11 @@ export function DrivePreviewModal({
                       <strong>
                         {opt.label}
                         {opt.recommended ? (
-                          <span className="drive-quality-tag">disarankan</span>
+                          <span className="drive-quality-tag">{t('ui.generated.disarankan_7ed48a4')}</span>
                         ) : opt.native ? (
-                          <span className="drive-quality-tag">Telegram</span>
+                          <span className="drive-quality-tag">{t('speedtest.perspective_telegram_short')}</span>
                         ) : opt.transcode ? (
-                          <span className="drive-quality-tag muted">lokal</span>
+                          <span className="drive-quality-tag muted">{t('ui.generated.lokal_5a1f6ac')}</span>
                         ) : null}
                       </strong>
                       <span className="drive-muted">
@@ -3736,7 +3742,7 @@ export function DrivePreviewModal({
                 );
               })}
               <p className="drive-quality-note">
-                Otomatis/Asli = stream Telegram. 720p–360p = konversi lokal bila sumber lebih tinggi.
+                {t('ui.generated.otomatis_asli_stream_telegram_720p_360p_konversi_3a941d3')}
               </p>
             </div>,
             document.body
@@ -3760,7 +3766,7 @@ export function DrivePreviewModal({
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="drive-quality-menu-title">Kecepatan putar</div>
+              <div className="drive-quality-menu-title">{t('ui.generated.kecepatan_putar_9d70f8f')}</div>
               {RATES.map((r) => (
                 <button
                   key={r}
@@ -3775,9 +3781,9 @@ export function DrivePreviewModal({
                     {playbackRate === r ? <Check size={14} /> : null}
                   </span>
                   <span className="drive-quality-item-body">
-                    <strong>{r}x</strong>
+                    <strong>{r}{t('ui.generated.x_11f6ad8')}</strong>
                     <span className="drive-muted">
-                      {r === 1 ? 'Normal' : r < 1 ? 'Lebih lambat' : 'Lebih cepat'}
+                      {r === 1 ? t('speedtest.scan_normal') : r < 1 ? t('ui.generated.lebih_lambat_6f64282') : t('ui.generated.lebih_cepat_b1bce0d')}
                     </span>
                   </span>
                 </button>
@@ -3857,7 +3863,7 @@ export function DrivePreviewModal({
                       >
                         <div className="drive-preview-split-badge" style={{ flexShrink: 0 }}>
                           <div className="drive-preview-badge-left">
-                            <span className="drive-dup-badge-a">A</span>
+                            <span className="drive-dup-badge-a">{t('ui.generated.a_6dcd4ce')}</span>
                             <span className="drive-preview-card-title" title={fileA?.name}>{nameA}</span>
                           </div>
                           <div className="drive-preview-badge-right">
@@ -3967,7 +3973,7 @@ export function DrivePreviewModal({
                                   title={t('speedtest.preview_keep_only_active_short')}
                                 >
                                   <Check size={14} />
-                                  <span>Simpan</span>
+                                  <span>{t('speedtest.preview_radio_save')}</span>
                                 </button>
                                 <button
                                   type="button"
@@ -3979,7 +3985,7 @@ export function DrivePreviewModal({
                                   title={t('speedtest.preview_mark_delete')}
                                 >
                                   <Trash2 size={14} />
-                                  <span>Hapus</span>
+                                  <span>{t('speedtest.preview_delete_btn')}</span>
                                 </button>
                               </div>
                             </div>
@@ -4028,7 +4034,7 @@ export function DrivePreviewModal({
                       >
                         <div className="drive-preview-split-badge" style={{ flexShrink: 0 }}>
                           <div className="drive-preview-badge-left">
-                            <span className="drive-dup-badge-b">B</span>
+                            <span className="drive-dup-badge-b">{t('ui.generated.b_ae4f281')}</span>
                             <span className="drive-preview-card-title" title={fileB?.name}>{nameB}</span>
                           </div>
                           <div className="drive-preview-badge-right">
@@ -4138,7 +4144,7 @@ export function DrivePreviewModal({
                                   title={t('speedtest.preview_keep_only_active_short')}
                                 >
                                   <Check size={14} />
-                                  <span>Simpan</span>
+                                  <span>{t('speedtest.preview_radio_save')}</span>
                                 </button>
                                 <button
                                   type="button"
@@ -4150,7 +4156,7 @@ export function DrivePreviewModal({
                                   title={t('speedtest.preview_mark_delete')}
                                 >
                                   <Trash2 size={14} />
-                                  <span>Hapus</span>
+                                  <span>{t('speedtest.preview_delete_btn')}</span>
                                 </button>
                               </div>
                             </div>
@@ -4165,7 +4171,7 @@ export function DrivePreviewModal({
                 <aside className="drive-preview-dup-sidebar" style={{ width: '280px', minWidth: '280px', maxWidth: '280px', flexShrink: 0, height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#161b22', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '12px', boxSizing: 'border-box', overflow: 'hidden' }}>
                   <div className="drive-preview-dup-sidebar-head" style={{ flexShrink: 0, paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                     <span className="text-xs font-bold text-slate-200">
-                      Files in this group ({currentDupGroup.files.length})
+                      {t('ui.generated.files_in_this_group_305989c')}{currentDupGroup.files.length})
                     </span>
                   </div>
 
@@ -4186,8 +4192,8 @@ export function DrivePreviewModal({
                         >
                           {/* 2:3 ASPECT RATIO THUMBNAIL BOX */}
                           <div className="drive-dup-sidebar-thumb-box-23">
-                            {isA && <span className="drive-dup-sidebar-badge-a">A</span>}
-                            {isB && <span className="drive-dup-sidebar-badge-b">B</span>}
+                            {isA && <span className="drive-dup-sidebar-badge-a">{t('ui.generated.a_6dcd4ce')}</span>}
+                            {isB && <span className="drive-dup-sidebar-badge-b">{t('ui.generated.b_ae4f281')}</span>}
                             {isImageDriveFile(f) && cardThumb ? (
                               <img src={cardThumb} alt={f.name} className="drive-dup-sidebar-thumb-23" />
                             ) : (
@@ -4208,7 +4214,7 @@ export function DrivePreviewModal({
                                 e.stopPropagation();
                                 handleKeepFile(f.id);
                               }}
-                              title="Simpan (Keep)"
+                              title={t('ui.generated.simpan_keep_341be1a')}
                             >
                               <Check size={13} />
                             </button>
@@ -4219,7 +4225,7 @@ export function DrivePreviewModal({
                                 e.stopPropagation();
                                 duplicateContext.onToggleMark(f.id);
                               }}
-                              title="Hapus (Delete)"
+                              title={t('ui.generated.hapus_delete_f8c0d08')}
                             >
                               <X size={13} />
                             </button>
@@ -4246,11 +4252,11 @@ export function DrivePreviewModal({
                         }}
                       >
                         <ChevronLeft size={13} />
-                        <span>Prev</span>
+                        <span>{t('ui.generated.prev_e96fea5')}</span>
                       </button>
 
                       <span className="drive-dup-nav-counter" style={{ fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
-                        {duplicateContext.currentGroupIndex + 1} of {duplicateContext.activeFilteredGroups.length}
+                        {duplicateContext.currentGroupIndex + 1} {t('ui.generated.of_de04fa0')} {duplicateContext.activeFilteredGroups.length}
                       </span>
 
                       <button
@@ -4266,7 +4272,7 @@ export function DrivePreviewModal({
                           }
                         }}
                       >
-                        <span>Next</span>
+                        <span>{t('speedtest.next_aria')}</span>
                         <ChevronRight size={13} />
                       </button>
                     </div>
@@ -4298,7 +4304,7 @@ export function DrivePreviewModal({
               <p>{error}</p>
               {floodCountdown !== null && floodCountdown > 0 && (
                 <p className="drive-muted" style={{ fontSize: '0.85rem', marginTop: 4, color: '#eab308' }}>
-                  ⏳ Mencoba lagi otomatis dalam <strong>{floodCountdown}</strong> detik…
+                  {t('ui.generated.mencoba_lagi_otomatis_dalam_b15179d')} <strong>{floodCountdown}</strong> {t('ui.generated.detik_6219b0e')}
                 </p>
               )}
               <button
@@ -4326,7 +4332,7 @@ export function DrivePreviewModal({
                 }}
               >
                 <RefreshCw size={14} className={floodCountdown !== null ? 'spin' : ''} />
-                {floodCountdown !== null ? 'Coba lagi sekarang' : 'Coba lagi'}
+                {floodCountdown !== null ? t('ui.generated.coba_lagi_sekarang_8b1f257') : t('speedtest.zip_retry')}
               </button>
               {isDesktop() && (
                 <button
@@ -4335,11 +4341,11 @@ export function DrivePreviewModal({
                   onClick={handleOpenSystem}
                   disabled={openingSystem || !creds}
                 >
-                  <ExternalLink size={14} /> Buka di aplikasi
+                  <ExternalLink size={14} /> {t('ui.generated.buka_di_aplikasi_b2ac39b')}
                 </button>
               )}
               <button type="button" className="td-btn-primary" onClick={handleDownload} disabled={saving}>
-                <Download size={14} /> Download saja
+                <Download size={14} /> {t('ui.generated.download_saja_d76a915')}
               </button>
             </div>
           )}
@@ -4358,7 +4364,7 @@ export function DrivePreviewModal({
                 <div className="drive-preview-media drive-preview-skeleton-img is-blank" />
               )}
               <div className="drive-preview-loading-chip">
-                <Loader2 size={14} className="spin" /> Memuat…
+                <Loader2 size={14} className="spin" /> {t('speedtest.label_loading')}
               </div>
             </div>
           )}
@@ -4402,10 +4408,10 @@ export function DrivePreviewModal({
                   whiteSpace: 'nowrap',
                 }}
               >
-                Pratinjau Kualitas Rendah
+                {t('ui.generated.pratinjau_kualitas_rendah_67bd0d9')}
               </span>
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                File asli belum berhasil diunduh. Menampilkan {previewSource ? previewSource.replace(/_/g, ' ') : 'thumbnail fallback'}.
+                {t('ui.generated.file_asli_belum_berhasil_diunduh_menampilkan_603eabe')} {previewSource ? previewSource.replace(/_/g, ' ') : t('ui.generated.thumbnail_fallback_2d60b41')}.
               </span>
               <button
                 type="button"
@@ -4431,7 +4437,7 @@ export function DrivePreviewModal({
                   loadPreview('auto', { force: true });
                 }}
               >
-                <RefreshCw size={13} /> Muat Ulang File Asli
+                <RefreshCw size={13} /> {t('ui.generated.muat_ulang_file_asli_6a1c26d')}
               </button>
             </div>
           )}
@@ -4474,13 +4480,13 @@ export function DrivePreviewModal({
                 }}
                 onError={() => {
                   if (!tryNextSrc()) {
-                    setError('Gagal menampilkan gambar. Coba Download atau buka ulang.');
+                    setError(t('ui.generated.gagal_menampilkan_gambar_coba_download_atau_buka_824c3ec'));
                   }
                 }}
               />
               {loading && (
                 <div className="drive-preview-loading-chip">
-                  <Loader2 size={14} className="spin" /> Memuat full…
+                  <Loader2 size={14} className="spin" /> {t('ui.generated.memuat_full_651e1dd')}
                 </div>
               )}
             </div>
@@ -4710,7 +4716,7 @@ export function DrivePreviewModal({
                 }}
                 onWaiting={() => {
                   if (streamUrl && !streamDone && !seekWarn) {
-                    setPlayerHint('Buffering…');
+                    setPlayerHint(t('ui.generated.buffering_014b2d2'));
                   }
                 }}
                 onPlay={() => {
@@ -4753,7 +4759,7 @@ export function DrivePreviewModal({
                 }}
                 onStalled={() => {
                   if (streamUrl && !streamDone && !seekWarn) {
-                    setPlayerHint('Menunggu data…');
+                    setPlayerHint(t('ui.generated.menunggu_data_a54699d'));
                     // Stalled with data available — re-kick playback
                     const v = videoRef.current;
                     if (v && v.paused && v.readyState >= 2 && !userExplicitlyPausedRef.current) {
@@ -4776,10 +4782,10 @@ export function DrivePreviewModal({
                     // as soon as the stream server has data for currentTime.
                     if (mediaErr.code === 2) {
                       if (v) {
-                        const t = v.currentTime || 0;
-                        if (t > 0.25) resumeAtRef.current = t;
+                        const playbackTime = v.currentTime || 0;
+                        if (playbackTime > 0.25) resumeAtRef.current = playbackTime;
                       }
-                      setPlayerHint('Buffering… menunggu data stream');
+                      setPlayerHint(t('ui.generated.buffering_menunggu_data_stream_ad15ce8'));
                       return;
                     }
 
@@ -4794,8 +4800,8 @@ export function DrivePreviewModal({
                       !softReloadInFlightRef.current
                     ) {
                       softReloadInFlightRef.current = true;
-                      setPlayerHint('Buffering… menyambung putar');
-                      const t = v.currentTime || 0;
+                      setPlayerHint(t('ui.generated.buffering_menyambung_putar_67ddccf'));
+                      const playbackTime = v.currentTime || 0;
                       const sticky = streamUrl;
                       if (softReloadTimerRef.current != null) {
                         window.clearTimeout(softReloadTimerRef.current);
@@ -4810,10 +4816,10 @@ export function DrivePreviewModal({
                             vv.removeAttribute('src');
                             vv.load();
                             vv.src = sticky;
-                            if (t > 0.25) {
+                            if (playbackTime > 0.25) {
                               ignoreSeekEventsRef.current += 1;
                               // Defer currentTime until element has loaded enough
-                              window.setTimeout(() => { try { vv.currentTime = t; } catch { /**/ } }, 200);
+                              window.setTimeout(() => { try { vv.currentTime = playbackTime; } catch { /**/ } }, 200);
                             }
                           }
                           void vv.play().then(() => {
@@ -4827,7 +4833,7 @@ export function DrivePreviewModal({
                       return;
                     }
                     // Exhausted retries — just hint, never hard-reload
-                    setPlayerHint('Mengisi buffer… tekan Play jika ingin mulai lebih awal');
+                    setPlayerHint(t('ui.generated.mengisi_buffer_tekan_play_jika_ingin_mulai_lebih_639deaa'));
                     return;
                   }
 
@@ -4842,14 +4848,14 @@ export function DrivePreviewModal({
                     liveStreamIdRef.current = null;
                     setStreamUrl(null);
                     setStreamId(null);
-                    setPlayerHint('Menyambung stream…');
+                    setPlayerHint(t('ui.generated.menyambung_stream_f32ac6d'));
                     window.setTimeout(() => {
                       loadPreview(quality, { soft: false, force: true });
                     }, 800);
                     return;
                   }
                   if (!loading) {
-                    setError('Gagal memutar media. Coba kualitas lain atau Download.');
+                    setError(t('ui.generated.gagal_memutar_media_coba_kualitas_lain_atau_down_58accbf'));
                   }
                 }}
               />
@@ -4875,7 +4881,7 @@ export function DrivePreviewModal({
               )}
               {loading && (
                 <div className="drive-preview-loading-chip">
-                  <Loader2 size={14} className="spin" /> Stream…
+                  <Loader2 size={14} className="spin" /> {t('ui.generated.stream_55796d7')}
                 </div>
               )}
               {quality === 'preview' && (
@@ -4897,7 +4903,7 @@ export function DrivePreviewModal({
                   border: '1px solid rgba(255,255,255,0.15)',
                 }}>
                   <span style={{ fontSize: '13px', fontWeight: 500 }}>
-                    Pratinjau 30 Detik (Hemat Kuota)
+                    {t('ui.generated.pratinjau_30_detik_hemat_kuota_174009f')}
                   </span>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
@@ -4921,7 +4927,7 @@ export function DrivePreviewModal({
                       onMouseOver={(e) => (e.currentTarget.style.background = '#1d4ed8')}
                       onMouseOut={(e) => (e.currentTarget.style.background = '#2563eb')}
                     >
-                      Transcode Penuh
+                      {t('ui.generated.transcode_penuh_4571d15')}
                     </button>
                     <button
                       type="button"
@@ -4943,7 +4949,7 @@ export function DrivePreviewModal({
                       onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.25)')}
                       onMouseOut={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.15)')}
                     >
-                      Buka File Asli
+                      {t('ui.generated.buka_file_asli_56891f0')}
                     </button>
                   </div>
                 </div>
@@ -5113,7 +5119,7 @@ export function DrivePreviewModal({
                         aria-label={`Kecepatan putar: ${playbackRate}x`}
                       >
                         <Gauge size={16} />
-                        <span style={{ fontSize: '12px', fontWeight: 600, marginLeft: '3px' }}>{playbackRate}x</span>
+                        <span style={{ fontSize: '12px', fontWeight: 600, marginLeft: '3px' }}>{playbackRate}{t('ui.generated.x_11f6ad8')}</span>
                       </button>
                     </div>
 
@@ -5168,15 +5174,7 @@ export function DrivePreviewModal({
                 boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
               }}
             >
-              <style>{`
-                @keyframes spin {
-                  from { transform: rotate(0deg); }
-                  to { transform: rotate(360deg); }
-                }
-                .drive-audio-disk-container.is-playing {
-                  animation: spin 12s linear infinite;
-                }
-              `}</style>
+              <style>{t('ui.generated.keyframes_spin_from_transform_rotate_0deg_to_tra_51d586c')}</style>
               
               {/* Rotating Cover / Vinyl disk */}
               <div
@@ -5318,7 +5316,7 @@ export function DrivePreviewModal({
                 }}
                 onWaiting={() => {
                   if (streamUrl && !streamDone && !seekWarn) {
-                    setPlayerHint('Buffering…');
+                    setPlayerHint(t('ui.generated.buffering_014b2d2'));
                   }
                 }}
                 onPlay={() => {
@@ -5342,7 +5340,7 @@ export function DrivePreviewModal({
                 }}
                 onStalled={() => {
                   if (streamUrl && !streamDone && !seekWarn) {
-                    setPlayerHint('Menunggu data…');
+                    setPlayerHint(t('ui.generated.menunggu_data_a54699d'));
                     const v = videoRef.current;
                     if (v && v.paused && v.readyState >= 2) {
                       void v.play().catch(() => undefined);
@@ -5355,7 +5353,7 @@ export function DrivePreviewModal({
                     return; // MEDIA_ERR_ABORTED is not a failure
                   }
                   if (streamUrl && !streamDone) {
-                    setPlayerHint('Buffering… menunggu data stream');
+                    setPlayerHint(t('ui.generated.buffering_menunggu_data_stream_ad15ce8'));
                     return;
                   }
                   if (tryNextSrc()) return;
@@ -5367,14 +5365,14 @@ export function DrivePreviewModal({
                     liveStreamIdRef.current = null;
                     setStreamUrl(null);
                     setStreamId(null);
-                    setPlayerHint('Menyambung stream…');
+                    setPlayerHint(t('ui.generated.menyambung_stream_f32ac6d'));
                     window.setTimeout(() => {
                       loadPreview(quality, { soft: false, force: true });
                     }, 800);
                     return;
                   }
                   if (!loading) {
-                    setError('Gagal memutar audio. Coba Download.');
+                    setError(t('ui.generated.gagal_memutar_audio_coba_download_441f95e'));
                   }
                 }}
               />
@@ -5416,9 +5414,9 @@ export function DrivePreviewModal({
           {isPdf && !pdfSrc && loading && (
             <div className="drive-empty">
               <Loader2 size={32} className="spin" />
-              <p>Mengunduh PDF lengkap…</p>
+              <p>{t('ui.generated.mengunduh_pdf_lengkap_27e7842')}</p>
               {bufferPct > 0 && (
-                <p className="field-hint">Buffer {bufferPct}%</p>
+                <p className="field-hint">{t('ui.generated.buffer_2be5f64')} {bufferPct}%</p>
               )}
             </div>
           )}
@@ -5427,9 +5425,9 @@ export function DrivePreviewModal({
               <FileText size={40} className="td-type-ico doc" />
               <p>
                 {tooLarge
-                  ? hint || 'PDF terlalu besar untuk pratinjau.'
+                  ? hint || t('ui.generated.pdf_terlalu_besar_untuk_pratinjau_0949b5e')
                   : error ||
-                    'PDF belum siap. Coba lagi atau buka di aplikasi sistem.'}
+                    t('ui.generated.pdf_belum_siap_coba_lagi_atau_buka_di_aplikasi_s_c0f25ca')}
               </p>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
                 <button
@@ -5443,15 +5441,15 @@ export function DrivePreviewModal({
                     loadPreview(quality, { force: true });
                   }}
                 >
-                  <RefreshCw size={14} /> Coba lagi
+                  <RefreshCw size={14} /> {t('speedtest.zip_retry')}
                 </button>
                 {isDesktop() && (
                   <button type="button" className="td-btn-primary" onClick={handleOpenSystem} disabled={openingSystem || !creds}>
-                    <ExternalLink size={14} /> Buka
+                    <ExternalLink size={14} /> {t('speedtest.label_open')}
                   </button>
                 )}
                 <button type="button" className="td-btn-primary" onClick={handleDownload} disabled={saving}>
-                  <Download size={14} /> Download
+                  <Download size={14} /> {t('speedtest.label_download')}
                 </button>
               </div>
             </div>
@@ -5466,7 +5464,7 @@ export function DrivePreviewModal({
           {isText && textBody == null && !loading && !error && (
             <div className="drive-empty">
               <FileText size={40} className="td-type-ico doc" />
-              <p>Teks belum termuat. Coba lagi.</p>
+              <p>{t('ui.generated.teks_belum_termuat_coba_lagi_0e11184')}</p>
               <button
                 type="button"
                 className="td-btn-primary"
@@ -5477,7 +5475,7 @@ export function DrivePreviewModal({
                   loadPreview(quality, { force: true });
                 }}
               >
-                <RefreshCw size={14} /> Coba lagi
+                <RefreshCw size={14} /> {t('speedtest.zip_retry')}
               </button>
             </div>
           )}
@@ -5510,10 +5508,10 @@ export function DrivePreviewModal({
                 <div className="drive-zip-browser is-loading" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
                   <Loader2 size={36} className="spin" style={{ color: '#ffae00', marginBottom: 12 }} />
                   <p style={{ fontWeight: 600, fontSize: '0.95rem', color: '#f8fafc' }}>
-                    Menyiapkan sesi Telegram & membaca indeks ZIP…
+                    {t('ui.generated.menyiapkan_sesi_telegram_membaca_indeks_zip_3acae63')}
                   </p>
                   <span className="drive-zip-hint" style={{ marginTop: 8, color: '#94a3b8' }}>
-                    Kredensial sesi Telegram sedang dimuat.
+                    {t('ui.generated.kredensial_sesi_telegram_sedang_dimuat_c59430a')}
                   </span>
                 </div>
               )}
@@ -5544,11 +5542,11 @@ export function DrivePreviewModal({
               )}
               <p>
                 {isOfficeDriveFile(file)
-                  ? 'Office document — buka dengan aplikasi Windows (Word/Excel/…).'
+                  ? t('ui.generated.office_document_buka_dengan_aplikasi_windows_wor_4752289')
                   : hint ||
                     (tooLarge
-                      ? 'File besar — gunakan Download atau Buka di aplikasi.'
-                      : 'Pratinjau penuh tidak tersedia di app. Buka dengan aplikasi sistem.')}
+                      ? t('ui.generated.file_besar_gunakan_download_atau_buka_di_aplikas_a379897')
+                      : t('ui.generated.pratinjau_penuh_tidak_tersedia_di_app_buka_denga_c9dd2b5'))}
               </p>
               {(poster || gridThumb) && (
                 <img
@@ -5566,7 +5564,7 @@ export function DrivePreviewModal({
                       onClick={handleOpenSystem}
                       disabled={openingSystem || !creds}
                     >
-                      <ExternalLink size={14} /> Buka
+                      <ExternalLink size={14} /> {t('speedtest.label_open')}
                     </button>
                     <button
                       type="button"
@@ -5574,7 +5572,7 @@ export function DrivePreviewModal({
                       onClick={handleOpenWith}
                       disabled={openingSystem || !creds}
                     >
-                      <AppWindow size={14} /> Buka dengan…
+                      <AppWindow size={14} /> {t('speedtest.ctx_menu_open_with')}
                     </button>
                   </>
                 )}
@@ -5587,10 +5585,10 @@ export function DrivePreviewModal({
                     loadPreview(quality, { force: true });
                   }}
                 >
-                  <RefreshCw size={14} /> Coba lagi
+                  <RefreshCw size={14} /> {t('speedtest.zip_retry')}
                 </button>
                 <button type="button" className="td-btn-primary" onClick={handleDownload} disabled={saving}>
-                  <Download size={14} /> Download file
+                  <Download size={14} /> {t('ui.generated.download_file_774025d')}
                 </button>
               </div>
             </div>
@@ -5617,7 +5615,7 @@ export function DrivePreviewModal({
                 </button>
               </div>
               <div>
-                <strong>Nama</strong> {displayName}
+                <strong>{t('speedtest.col_name')}</strong> {displayName}
               </div>
               {file.original_name && file.original_name !== displayName && (
                 <div title={file.original_name}>
@@ -5626,7 +5624,7 @@ export function DrivePreviewModal({
               )}
               {mediaWidth && mediaHeight && (
                 <div>
-                  <strong>{t("speedtest.dimensions_label")}</strong> {mediaWidth} × {mediaHeight} px
+                  <strong>{t("speedtest.dimensions_label")}</strong> {mediaWidth} {t('ui.generated.text_67fba2f')} {mediaHeight} {t('ui.generated.px_07a65dd')}
                 </div>
               )}
               <div>
@@ -5672,13 +5670,13 @@ export function DrivePreviewModal({
                 <div>
                   <strong>{t("speedtest.zoom_label")}</strong> {Math.round(zoom * 100)}%
                   {rotation ? ` · putar ${rotation}°` : ''}
-                  {flipH ? ' · cermin' : ''}
-                  {flipV ? ' · balik' : ''}
+                  {flipH ? t('ui.generated.cermin_9f43e5b') : ''}
+                  {flipV ? t('ui.generated.balik_3fa8ae7') : ''}
                 </div>
               )}
               {streamUrl && (
                 <div>
-                  <strong>{t("speedtest.mode_label")}</strong> progressive stream
+                  <strong>{t("speedtest.mode_label")}</strong> {t('ui.generated.progressive_stream_427e9c1')}
                 </div>
               )}
               {path && (

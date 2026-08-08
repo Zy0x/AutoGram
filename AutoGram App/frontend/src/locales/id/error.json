@@ -1,0 +1,9 @@
+{
+  "flood_wait": "Telegram membatasi permintaan. Coba lagi dalam {{time}}.",
+  "code_expired": "Kode verifikasi telah kedaluwarsa. Minta kode baru.",
+  "invalid_api_id": "API ID atau API Hash tidak valid.",
+  "timeout": "Koneksi ke Telegram habis waktu. Periksa jaringan lalu coba lagi.",
+  "db_locked": "Database sesi sedang digunakan. Tutup proses AutoGram lain lalu coba lagi.",
+  "invalid_otp": "Kode OTP tidak valid.",
+  "invalid_password": "Kata sandi verifikasi dua langkah tidak valid."
+}

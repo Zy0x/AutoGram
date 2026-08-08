@@ -2,6 +2,7 @@ import React from 'react';
 import { FileText, ExternalLink, Download, RefreshCw } from 'lucide-react';
 import { VSCodeCodeViewer } from '../../common/VSCodeCodeViewer';
 import { isDesktop } from '../../../lib/tauri/platform';
+import { useTranslation } from 'react-i18next';
 
 export interface DocumentViewerProps {
   isText?: boolean;
@@ -34,6 +35,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
   openingSystem,
   saving,
 }) => {
+  const { t } = useTranslation();
   if (isText && textBody != null) {
     return (
       <div className="w-full h-full bg-slate-950 overflow-hidden">
@@ -65,8 +67,8 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
         <p className="text-xs text-slate-400 max-w-md mt-1">
           {hint ||
             (tooLarge
-              ? 'File besar — gunakan Download atau Buka di aplikasi.'
-              : 'Pratinjau penuh tidak tersedia di app. Buka dengan aplikasi sistem.')}
+              ? t('ui.generated.file_besar_gunakan_download_atau_buka_di_aplikas_a379897')
+              : t('ui.generated.pratinjau_penuh_tidak_tersedia_di_app_buka_denga_c9dd2b5'))}
         </p>
       </div>
 
@@ -78,7 +80,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
             onClick={onOpenSystem}
             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-1.5"
           >
-            <ExternalLink size={14} /> Buka di Sistem
+            <ExternalLink size={14} /> {t('ui.generated.buka_di_sistem_e955444')}
           </button>
         )}
 
@@ -88,7 +90,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
           onClick={onDownload}
           className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 rounded-xl transition-all flex items-center gap-1.5"
         >
-          <Download size={14} /> Unduh File
+          <Download size={14} /> {t('ui.generated.unduh_file_a79402d')}
         </button>
 
         <button
@@ -96,7 +98,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
           onClick={onRetry}
           className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 rounded-xl transition-all flex items-center gap-1.5"
         >
-          <RefreshCw size={14} /> Coba Lagi
+          <RefreshCw size={14} /> {t('speedtest.btn_retry')}
         </button>
       </div>
     </div>

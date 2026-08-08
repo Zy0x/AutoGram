@@ -47,7 +47,7 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({
               dupMode === 'hash' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            SHA256 Hash
+            {t('ui.generated.sha256_hash_310d0e3')}
           </button>
           <button
             type="button"
@@ -106,7 +106,7 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({
                           {driveFileDisplayName(file)}
                         </span>
                       </div>
-                      <span className="text-[10px] font-mono text-slate-500 ml-2">ID #{file.id}</span>
+                      <span className="text-[10px] font-mono text-slate-500 ml-2">{t('ui.generated.id_8cbdfad')}{file.id}</span>
                     </label>
                   ))}
                 </div>

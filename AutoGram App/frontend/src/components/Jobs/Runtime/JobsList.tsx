@@ -48,24 +48,23 @@ export function JobsList({
     <div className="jobs-workspace">
       <header className="page-toolbar">
         <div className="page-toolbar-title">
-          <h1 className="title-gradient">Forwarder</h1>
+          <h1 className="title-gradient">{t('nav.forwarder')}</h1>
           <p>
-            Migrasi chat: Forward cepat atau Clean Copy (re-upload + dedupe 4 level + resume).
-            Bisa jalan paralel dengan Drives pada session yang sama.
+            {t('ui.generated.migrasi_chat_forward_cepat_atau_clean_copy_re_up_f71ad9d')}
           </p>
         </div>
         <div className="page-toolbar-actions">
           <button type="button" className="btn btn-secondary" onClick={importJobs} title={t("jobs.jobs_import_title")}>
-            <Download size={16} /> <span>Import</span>
+            <Download size={16} /> <span>{t('ui.generated.import_d6fbc9d')}</span>
           </button>
           <button type="button" className="btn btn-secondary" onClick={exportJobs} title={t("jobs.jobs_export_title")}>
-            <Upload size={16} /> <span>Export</span>
+            <Upload size={16} /> <span>{t('ui.generated.export_f3e4fad')}</span>
           </button>
-          <button type="button" className="btn btn-secondary" onClick={fetchJobs} disabled={isLoading} title="Refresh">
+          <button type="button" className="btn btn-secondary" onClick={fetchJobs} disabled={isLoading} title={t('speedtest.sidebar_btn_refresh')}>
             <RefreshCw size={16} className={isLoading ? 'spin' : ''} />
           </button>
           <button type="button" className="btn btn-primary" onClick={onNewJob}>
-            <Plus size={18} /> New Job
+            <Plus size={18} /> {t('ui.generated.new_job_2430811')}
           </button>
         </div>
       </header>
@@ -75,13 +74,12 @@ export function JobsList({
           <div className="empty-state-icon">
             <Terminal size={40} />
           </div>
-          <h2>Belum ada job Forwarder</h2>
+          <h2>{t('ui.generated.belum_ada_job_forwarder_dcdf0fa')}</h2>
           <p>
-            Buat job sumber → tujuan: pilih mode Forward atau Clean Copy, lalu jalankan.
-            Pastikan akun sudah aktif di Accounts.
+            {t('ui.generated.buat_job_sumber_tujuan_pilih_mode_forward_atau_c_c8cb623')}
           </p>
           <button type="button" className="btn btn-primary" onClick={onNewJob}>
-            <Plus size={18} /> Buat Job Pertama
+            <Plus size={18} /> {t('ui.generated.buat_job_pertama_2f43957')}
           </button>
         </div>
       ) : (
@@ -225,17 +223,17 @@ export function JobsList({
 
                 <div className="job-tags">
                   <span className="job-tag">
-                    Profile: <strong>{job.profile_name}</strong>
+                    {t('ui.generated.profile_17d487b')} <strong>{job.profile_name}</strong>
                   </span>
                   <span className="job-tag">
-                    Mode: <strong>{job.transfer_mode}</strong>
+                    {t('ui.generated.mode_fbb6d6f')} <strong>{job.transfer_mode}</strong>
                   </span>
                 </div>
 
                 <div className="job-progress-block">
                   <div className="job-progress-meta">
                     <span>
-                      {processed} / {total || '?'} messages
+                      {processed} / {total || '?'} {t('ui.generated.messages_17f3467')}
                     </span>
                     <span className={`job-progress-pct status-text-${statusClass}`}>{percentLabel}</span>
                   </div>

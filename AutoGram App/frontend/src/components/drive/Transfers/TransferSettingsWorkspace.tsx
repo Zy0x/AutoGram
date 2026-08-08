@@ -948,19 +948,19 @@ export function TransferSettingsWorkspace({
 
   const activePresetName = useMemo(() => {
     const found = SYSTEM_TRANSFER_PRESETS.find((p) => p.id === activePresetId);
-    return found ? found.name : t('speedtest.preset_custom', 'Kustom');
+    return found ? found.name : t('speedtest.preset_custom');
   }, [activePresetId, t]);
 
   // Sub-Menu Categories List (Displays ALL categories directly)
   const subMenuCategories: { id: SubMenuCategory; label: string; desc: string; icon: any }[] = [
-    { id: 'upload', label: t('speedtest.tab_upload', 'Upload'), desc: 'Format pengiriman, caption global, penjadwalan & performa paralel unggah', icon: Upload },
-    { id: 'download', label: t('speedtest.tab_download', 'Download'), desc: 'Paralelisme unduh, kebijakan konflik nama file, resume & notifikasi', icon: Download },
-    { id: 'encoding', label: t('speedtest.tab_encoding', 'Performance & Encoding Video'), desc: 'Mode optimasi performa perangkat, encoder GPU/CPU & kompresi video', icon: Film },
-    { id: 'albums', label: t('speedtest.tab_albums', 'Pengelompokan Album'), desc: 'Grouping foto/video menjadi album Telegram & penanganan dokumen', icon: FolderTree },
-    { id: 'duplicates', label: t('speedtest.tab_duplicates', 'Penanganan Duplikat'), desc: 'Pencegahan file duplikat & verifikasi 4-level', icon: CopyCheck },
-    { id: 'limits_recovery', label: t('speedtest.tab_limits_recovery', 'Penanganan Berkas Besar'), desc: 'Opsi pemotongan berkas (>2GB/4GB) & pengalihan akun Premium', icon: HardDriveUpload },
-    { id: 'network', label: t('speedtest.tab_network', 'Proxy & Network'), desc: 'SOCKS5/HTTP/MTProto routing, akselerasi timeout & pengoptimalan VPN', icon: Network },
-    { id: 'advanced', label: t('speedtest.tab_advanced', 'Pengaturan Lanjutan'), desc: 'Sinkronisasi tampilan, retry teknis & ekspor/impor konfigurasi', icon: SlidersHorizontal },
+    { id: 'upload', label: t('speedtest.tab_upload'), desc: 'Format pengiriman, caption global, penjadwalan & performa paralel unggah', icon: Upload },
+    { id: 'download', label: t('speedtest.tab_download'), desc: 'Paralelisme unduh, kebijakan konflik nama file, resume & notifikasi', icon: Download },
+    { id: 'encoding', label: t('speedtest.tab_encoding'), desc: 'Mode optimasi performa perangkat, encoder GPU/CPU & kompresi video', icon: Film },
+    { id: 'albums', label: t('speedtest.tab_albums'), desc: 'Grouping foto/video menjadi album Telegram & penanganan dokumen', icon: FolderTree },
+    { id: 'duplicates', label: t('speedtest.tab_duplicates'), desc: 'Pencegahan file duplikat & verifikasi 4-level', icon: CopyCheck },
+    { id: 'limits_recovery', label: t('speedtest.tab_limits_recovery'), desc: 'Opsi pemotongan berkas (>2GB/4GB) & pengalihan akun Premium', icon: HardDriveUpload },
+    { id: 'network', label: t('speedtest.tab_network'), desc: 'SOCKS5/HTTP/MTProto routing, akselerasi timeout & pengoptimalan VPN', icon: Network },
+    { id: 'advanced', label: t('speedtest.tab_advanced'), desc: 'Sinkronisasi tampilan, retry teknis & ekspor/impor konfigurasi', icon: SlidersHorizontal },
   ];
 
   return (
@@ -975,19 +975,19 @@ export function TransferSettingsWorkspace({
               onClick={() => setActiveTab('menu')}
             >
               <ArrowLeft size={16} />
-              <span>{t('speedtest.back_to_settings', 'Kembali')}</span>
+              <span>{t('speedtest.back_to_settings')}</span>
             </button>
           )}
 
           <div>
             <h3>
               {activeTab === 'menu'
-                ? t('speedtest.transfer_settings_title', 'Transfer Settings')
-                : subMenuCategories.find((c) => c.id === activeTab)?.label || 'Detail Pengaturan'}
+                ? t('speedtest.transfer_settings_title')
+                : subMenuCategories.find((c) => c.id === activeTab)?.label || t('ui.generated.detail_pengaturan_416949e')}
             </h3>
             <p>
               {activeTab === 'menu'
-                ? t('speedtest.transfer_settings_subtitle', 'Konfigurasi unggah, unduh, dan pengodean media')
+                ? t('speedtest.transfer_settings_subtitle')
                 : subMenuCategories.find((c) => c.id === activeTab)?.desc}
             </p>
           </div>
@@ -997,7 +997,7 @@ export function TransferSettingsWorkspace({
           {isDirty && (
             <span className="td-dirty-badge">
               <span className="td-dirty-dot" />
-              {t('speedtest.unsaved_changes', 'Perubahan belum disimpan')}
+              {t('speedtest.unsaved_changes')}
             </span>
           )}
 
@@ -1010,14 +1010,14 @@ export function TransferSettingsWorkspace({
                 type="text"
                 value={settingsQuery}
                 onChange={(e) => setSettingsQuery(e.target.value)}
-                placeholder={t('speedtest.search_placeholder_short', 'Cari pengaturan…')}
+                placeholder={t('speedtest.search_placeholder_short')}
               />
               {settingsQuery.trim() !== '' && (
                 <button
                   type="button"
                   className="td-header-search-clear"
                   onClick={() => setSettingsQuery('')}
-                  title="Bersihkan pencarian"
+                  title={t('speedtest.zip_clear_search')}
                 >
                   <X size={12} />
                 </button>
@@ -1026,12 +1026,12 @@ export function TransferSettingsWorkspace({
               {settingsQuery.trim() !== '' && (
                 <div className="td-search-popover-dropdown">
                   <div className="td-popover-head">
-                    <span>Hasil Pencarian ({searchResults.length})</span>
+                    <span>{t('ui.generated.hasil_pencarian_4d6cedf')}{searchResults.length})</span>
                     <button
                       type="button"
                       className="td-popover-close-btn"
                       onClick={() => setSettingsQuery('')}
-                      title="Tutup Hasil"
+                      title={t('ui.generated.tutup_hasil_d1570bb')}
                     >
                       <X size={13} />
                     </button>
@@ -1061,7 +1061,7 @@ export function TransferSettingsWorkspace({
                     ) : (
                       <div className="td-popover-empty">
                         <Search size={18} style={{ color: '#64748b' }} />
-                        <span>Tidak ada pengaturan yang cocok dengan "{settingsQuery}"</span>
+                        <span>{t('ui.generated.tidak_ada_pengaturan_yang_cocok_dengan_14f47c1')}{settingsQuery}"</span>
                       </div>
                     )}
                   </div>
@@ -1084,10 +1084,10 @@ export function TransferSettingsWorkspace({
                 <Sparkles size={16} className="td-preset-sparkle" />
                 <div className="td-preset-summary-info">
                   <span className="td-preset-label-text">
-                    {t('speedtest.active_preset_label', 'Preset aktif')}: <strong>{activePresetName}</strong>
+                    {t('speedtest.active_preset_label')}: <strong>{activePresetName}</strong>
                   </span>
                   <span className="td-preset-details-text">
-                    • GPU {currentEncoderMode.toUpperCase()} • {draft.uploadConcurrency} Paralel Unggah • {draft.duplicatePolicy === 'SKIP' ? 'Lewati Duplikat' : 'Unggah Ulang'}
+                    {t('ui.generated.gpu_d113891')} {currentEncoderMode.toUpperCase()} • {draft.uploadConcurrency} {t('ui.generated.paralel_unggah_eb8a36f')} {draft.duplicatePolicy === 'SKIP' ? t('ui.generated.lewati_duplikat_7fe07e8') : t('ui.generated.unggah_ulang_d32b3c4')}
                   </span>
                 </div>
               </div>
@@ -1098,7 +1098,7 @@ export function TransferSettingsWorkspace({
                   className="td-chip-btn td-chip-primary"
                   onClick={() => setShowPresetDrawer(true)}
                 >
-                  <Sparkles size={13} /> {t('speedtest.preset_and_profiles_btn', 'Preset & Profil')}
+                  <Sparkles size={13} /> {t('speedtest.preset_and_profiles_btn')}
                 </button>
               </div>
             </section>
@@ -1147,7 +1147,7 @@ export function TransferSettingsWorkspace({
               <div className="td-summary-warning-box" style={{ marginTop: '16px' }}>
                 <AlertTriangle size={18} />
                 <div>
-                  <strong>{t('speedtest.warning_label', 'Peringatan Konfigurasi')}</strong>
+                  <strong>{t('speedtest.warning_label')}</strong>
                   <p>{validation.warnings[0].message}</p>
                 </div>
               </div>
@@ -1191,17 +1191,17 @@ export function TransferSettingsWorkspace({
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
-                    1. Pengaturan Unggahan (Upload)
+                    {t('ui.generated.1_pengaturan_unggahan_upload_550bb37')}
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
-                    Atur paralelisme slots unggah & pilih format pengiriman media
+                    {t('ui.generated.atur_paralelisme_slots_unggah_pilih_format_pengi_e1ea5d9')}
                   </p>
                 </div>
               </div>
 
               {/* SUB-SECTION 1.1: PARALEL UNGGAH */}
               <div className="td-settings-subcard">
-                <label className="td-field-label">Jumlah Unggahan Paralel (Upload Slots)</label>
+                <label className="td-field-label">{t('ui.generated.jumlah_unggahan_paralel_upload_slots_9227f37')}</label>
                 <div className="td-slider-row-box">
                   <input
                     type="range"
@@ -1212,7 +1212,7 @@ export function TransferSettingsWorkspace({
                     onChange={(e) => patch({ uploadConcurrency: Number(e.target.value) })}
                   />
                   <div className="td-slider-value-bar">
-                    <span className="td-slider-val">{draft.uploadConcurrency} Berkas</span>
+                    <span className="td-slider-val">{draft.uploadConcurrency} {t('speedtest.tab_telegram_files')}</span>
                     <span className="td-concurrency-badge">
                       {draft.uploadConcurrency <= 2 && '🐢 Stabil'}
                       {draft.uploadConcurrency >= 3 && draft.uploadConcurrency <= 6 && '⚡ Seimbang (Rekomendasi)'}
@@ -1224,7 +1224,7 @@ export function TransferSettingsWorkspace({
 
               {/* SUB-SECTION 1.2: FORMAT PENGIRIMAN MEDIA */}
               <div className="td-settings-subcard" style={{ marginTop: '16px' }}>
-                <label className="td-field-label">Format Pengiriman Media</label>
+                <label className="td-field-label">{t('ui.generated.format_pengiriman_media_9178a1d')}</label>
                 <div className="td-radio-tiles-grid">
                   <label className={`td-radio-tile ${currentDeliveryFormat === 'auto' ? 'is-selected' : ''}`}>
                     <input
@@ -1236,8 +1236,8 @@ export function TransferSettingsWorkspace({
                       onChange={() => patch(applyDeliveryFormatMode(draft, 'auto'))}
                     />
                     <div>
-                      <strong>Otomatis (Direkomendasikan)</strong>
-                      <p>Telegram secara cerdas menentukan format terbaik per berkas.</p>
+                      <strong>{t('ui.generated.otomatis_direkomendasikan_a36bb34')}</strong>
+                      <p>{t('ui.generated.telegram_secara_cerdas_menentukan_format_terbaik_f04cce6')}</p>
                     </div>
                   </label>
 
@@ -1251,8 +1251,8 @@ export function TransferSettingsWorkspace({
                       onChange={() => patch(applyDeliveryFormatMode(draft, 'telegram'))}
                     />
                     <div>
-                      <strong>Media Native Telegram</strong>
-                      <p>Kirim sebagai foto / video yang dapat diputar langsung di chat.</p>
+                      <strong>{t('ui.generated.media_native_telegram_ae34844')}</strong>
+                      <p>{t('ui.generated.kirim_sebagai_foto_video_yang_dapat_diputar_lang_0b95f36')}</p>
                     </div>
                   </label>
 
@@ -1266,8 +1266,8 @@ export function TransferSettingsWorkspace({
                       onChange={() => patch(applyDeliveryFormatMode(draft, 'document'))}
                     />
                     <div>
-                      <strong>Dokumen Asli (Uncompressed)</strong>
-                      <p>Kirim berkas mentah tanpa pemrosesan pratinjau media.</p>
+                      <strong>{t('ui.generated.dokumen_asli_uncompressed_e76e3a5')}</strong>
+                      <p>{t('ui.generated.kirim_berkas_mentah_tanpa_pemrosesan_pratinjau_m_432dcb8')}</p>
                     </div>
                   </label>
                 </div>
@@ -1307,16 +1307,16 @@ export function TransferSettingsWorkspace({
                   </div>
                   <div>
                     <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
-                      2. Caption Global & Telegram Caption Studio
+                      {t('ui.generated.2_caption_global_telegram_caption_studio_9288052')}
                     </h4>
                     <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
-                      Format caption kaya dengan dukungan resmi Telegram MarkdownV2 & HTML
+                      {t('ui.generated.format_caption_kaya_dengan_dukungan_resmi_telegr_f16850e')}
                     </p>
                   </div>
                 </div>
 
                 {/* SINGLE SLEEK COMPACT MASTER TOGGLE SWITCH */}
-                <label className="td-caption-toggle-switch" title="Aktifkan/Matikan Caption Global">
+                <label className="td-caption-toggle-switch" title={t('ui.generated.aktifkan_matikan_caption_global_b916eac')}>
                   <input
                     type="checkbox"
                     checked={draft.enableGlobalCaption ?? false}
@@ -1325,7 +1325,7 @@ export function TransferSettingsWorkspace({
                   />
                   <span className="td-toggle-slider" />
                   <span className="td-toggle-text">
-                    {draft.enableGlobalCaption ? 'Aktif' : 'Nonaktif'}
+                    {draft.enableGlobalCaption ? t('nav.status_active') : t('accounts.inactive')}
                   </span>
                 </label>
               </div>
@@ -1334,7 +1334,7 @@ export function TransferSettingsWorkspace({
                 /* OFF STATE: CLEAN SLEEK 1-LINE HINT BAR */
                 <div className="td-caption-off-hint">
                   <MessageSquare size={16} style={{ color: '#94a3b8', flexShrink: 0 }} />
-                  <span>Caption global nonaktif. Seluruh berkas media akan diunggah tanpa lampiran teks caption.</span>
+                  <span>{t('ui.generated.caption_global_nonaktif_seluruh_berkas_media_aka_9c469b6')}</span>
                 </div>
               ) : (
                 /* ON STATE: TELEGRAM CAPTION STUDIO WORKSPACE */
@@ -1347,14 +1347,14 @@ export function TransferSettingsWorkspace({
                         className={`td-studio-tab-btn ${captionTab === 'editor' ? 'active' : ''}`}
                         onClick={() => setCaptionTab('editor')}
                       >
-                        ✏️ Visual Editor Studio
+                        {t('ui.generated.visual_editor_studio_e30e5cb')}
                       </button>
                       <button
                         type="button"
                         className={`td-studio-tab-btn ${captionTab === 'preview' ? 'active' : ''}`}
                         onClick={() => setCaptionTab('preview')}
                       >
-                        👁️ Preview Telegram
+                        {t('ui.generated.preview_telegram_b2908af')}
                       </button>
                     </div>
                   </div>
@@ -1370,30 +1370,30 @@ export function TransferSettingsWorkspace({
                               type="button"
                               className="td-ribbon-tool small-label"
                               onClick={() => execCaptionFormatting('undo')}
-                              title="Urungkan Perubahan (Undo - Ctrl+Z)"
+                              title={t('ui.generated.urungkan_perubahan_undo_ctrl_z_91a3bb2')}
                             >
                               <Undo size={15} />
-                              <span>Undo</span>
+                              <span>{t('ui.generated.undo_39fc721')}</span>
                             </button>
                             <button
                               type="button"
                               className="td-ribbon-tool small-label"
                               onClick={() => execCaptionFormatting('redo')}
-                              title="Ulangi Perubahan (Redo - Ctrl+Y)"
+                              title={t('ui.generated.ulangi_perubahan_redo_ctrl_y_97b4e38')}
                             >
                               <Redo size={15} />
-                              <span>Redo</span>
+                              <span>{t('ui.generated.redo_471b94d')}</span>
                             </button>
                             <button
                               type="button"
                               className="td-ribbon-tool small-label"
                               onClick={copyCaptionOutput}
-                              title="Salin Output Text"
+                              title={t('ui.generated.salin_output_text_923d2a5')}
                             >
                               <Copy size={15} />
-                              <span>Salin</span>
+                              <span>{t('settings.debug_copy_logs')}</span>
                             </button>
-                            <div className="td-ribbon-group-title">CLIPBOARD & RIWAYAT</div>
+                            <div className="td-ribbon-group-title">{t('ui.generated.clipboard_riwayat_a7ca77c')}</div>
                           </div>
 
                           {/* GROUP 2: FORMAT TEKS */}
@@ -1402,57 +1402,57 @@ export function TransferSettingsWorkspace({
                               type="button"
                               className="td-ribbon-tool small-label"
                               onClick={() => execCaptionFormatting('bold')}
-                              title="Tebal (*bold*)"
+                              title={t('ui.generated.tebal_bold_5fc4707')}
                             >
-                              <b>B</b>
-                              <span>Tebal</span>
+                              <b>{t('ui.generated.b_ae4f281')}</b>
+                              <span>{t('ui.generated.tebal_0ad31d3')}</span>
                             </button>
                             <button
                               type="button"
                               className="td-ribbon-tool small-label"
                               onClick={() => execCaptionFormatting('italic')}
-                              title="Miring (_italic_)"
+                              title={t('ui.generated.miring_italic_1004d6d')}
                             >
-                              <i>I</i>
-                              <span>Miring</span>
+                              <i>{t('ui.generated.i_ca73ab6')}</i>
+                              <span>{t('ui.generated.miring_fab1614')}</span>
                             </button>
                             <button
                               type="button"
                               className="td-ribbon-tool small-label"
                               onClick={() => execCaptionFormatting('underline')}
-                              title="Garis Bawah (__underline__)"
+                              title={t('ui.generated.garis_bawah_underline_fb19c77')}
                             >
-                              <u>U</u>
-                              <span>Garis Bawah</span>
+                              <u>{t('ui.generated.u_b2c7c0c')}</u>
+                              <span>{t('ui.generated.garis_bawah_83126c3')}</span>
                             </button>
                             <button
                               type="button"
                               className="td-ribbon-tool small-label"
                               onClick={() => execCaptionFormatting('strike')}
-                              title="Coret (~strikethrough~)"
+                              title={t('ui.generated.coret_strikethrough_ce5f6b3')}
                             >
-                              <s>S</s>
-                              <span>Coret</span>
+                              <s>{t('ui.generated.s_02aa629')}</s>
+                              <span>{t('ui.generated.coret_39a5112')}</span>
                             </button>
                             <button
                               type="button"
                               className="td-ribbon-tool small-label"
                               onClick={() => execCaptionFormatting('spoiler')}
-                              title="Spoiler (||spoiler||)"
+                              title={t('ui.generated.spoiler_spoiler_6fae38e')}
                             >
                               <span style={{ letterSpacing: '-1px' }}>▩</span>
-                              <span>Spoiler</span>
+                              <span>{t('ui.generated.spoiler_875786e')}</span>
                             </button>
                             <button
                               type="button"
                               className="td-ribbon-tool small-label"
                               onClick={() => execCaptionFormatting('removeFormat')}
-                              title="Hapus Format"
+                              title={t('ui.generated.hapus_format_c2bd6be')}
                             >
-                              <span style={{ fontSize: '11px', fontWeight: 800 }}>Tx</span>
-                              <span>Hapus Format</span>
+                              <span style={{ fontSize: '11px', fontWeight: 800 }}>{t('ui.generated.tx_766e40f')}</span>
+                              <span>{t('ui.generated.hapus_format_c2bd6be')}</span>
                             </button>
-                            <div className="td-ribbon-group-title">FORMAT TEKS</div>
+                            <div className="td-ribbon-group-title">{t('ui.generated.format_teks_d5de901')}</div>
                           </div>
 
                           {/* GROUP 3: KUTIPAN & KODE */}
@@ -1461,39 +1461,39 @@ export function TransferSettingsWorkspace({
                               type="button"
                               className="td-ribbon-tool small-label"
                               onClick={() => execCaptionFormatting('quote')}
-                              title="Kutipan Teks (> Quote)"
+                              title={t('ui.generated.kutipan_teks_quote_15f4ae1')}
                             >
                               <span style={{ fontSize: '15px' }}>❝</span>
-                              <span>Kutipan</span>
+                              <span>{t('ui.generated.kutipan_31ac832')}</span>
                             </button>
                             <button
                               type="button"
                               className="td-ribbon-tool small-label"
                               onClick={() => execCaptionFormatting('expandable')}
-                              title="Kutipan Dapat Diperluas (> Expandable||)"
+                              title={t('ui.generated.kutipan_dapat_diperluas_expandable_15775ac')}
                             >
                               <span style={{ fontSize: '15px' }}>❞+</span>
-                              <span>Expand</span>
+                              <span>{t('ui.generated.expand_9869e50')}</span>
                             </button>
                             <button
                               type="button"
                               className="td-ribbon-tool small-label"
                               onClick={() => execCaptionFormatting('code')}
-                              title="Kode Inline (`code`)"
+                              title={t('ui.generated.kode_inline_code_2f8ebb2')}
                             >
                               <Code size={15} />
-                              <span>Code</span>
+                              <span>{t('ui.generated.code_adac693')}</span>
                             </button>
                             <button
                               type="button"
                               className="td-ribbon-tool small-label"
                               onClick={() => execCaptionFormatting('pre')}
-                              title="Blok Kode (```code```)"
+                              title={t('ui.generated.blok_kode_code_d4c45f9')}
                             >
                               <span style={{ fontSize: '12px', fontWeight: 800 }}>{`{ }`}</span>
-                              <span>Block</span>
+                              <span>{t('ui.generated.block_82dd2cd')}</span>
                             </button>
-                            <div className="td-ribbon-group-title">KUTIPAN & KODE</div>
+                            <div className="td-ribbon-group-title">{t('ui.generated.kutipan_kode_00b3af8')}</div>
                           </div>
 
                           {/* GROUP 4: TAUTAN & DAFTAR */}
@@ -1502,39 +1502,39 @@ export function TransferSettingsWorkspace({
                               type="button"
                               className="td-ribbon-tool small-label"
                               onClick={() => execCaptionFormatting('link')}
-                              title="Sisipkan Link Tautan ([Label](URL))"
+                              title={t('ui.generated.sisipkan_link_tautan_label_url_445690c')}
                             >
                               <Link size={15} />
-                              <span>Tautan</span>
+                              <span>{t('speedtest.tab_telegram_links')}</span>
                             </button>
                             <button
                               type="button"
                               className="td-ribbon-tool small-label"
                               onClick={() => execCaptionFormatting('mention')}
-                              title="Mention Pengguna ([User](tg://user?id=X))"
+                              title={t('ui.generated.mention_pengguna_user_tg_user_id_x_5b8ac13')}
                             >
                               <AtSign size={15} />
-                              <span>Mention</span>
+                              <span>{t('ui.generated.mention_5125802')}</span>
                             </button>
                             <button
                               type="button"
                               className="td-ribbon-tool small-label"
                               onClick={() => execCaptionFormatting('bullet')}
-                              title="Daftar Bullet (•)"
+                              title={t('ui.generated.daftar_bullet_b0e264a')}
                             >
                               <List size={15} />
-                              <span>Bullet</span>
+                              <span>{t('ui.generated.bullet_b98da0c')}</span>
                             </button>
                             <button
                               type="button"
                               className="td-ribbon-tool small-label"
                               onClick={() => execCaptionFormatting('numbered')}
-                              title="Daftar Bernomor (1.)"
+                              title={t('ui.generated.daftar_bernomor_1_04d27b3')}
                             >
                               <ListOrdered size={15} />
-                              <span>Nomor</span>
+                              <span>{t('ui.generated.nomor_8d33471')}</span>
                             </button>
-                            <div className="td-ribbon-group-title">TAUTAN & DAFTAR</div>
+                            <div className="td-ribbon-group-title">{t('ui.generated.tautan_daftar_e0c7b2e')}</div>
                           </div>
                         </div>
                       </div>
@@ -1547,14 +1547,14 @@ export function TransferSettingsWorkspace({
                             className={`td-mode-tab ${editorMode === 'visual' ? 'active' : ''}`}
                             onClick={() => setEditorMode('visual')}
                           >
-                            📄 Document Editor (Hanging Indents)
+                            {t('ui.generated.document_editor_hanging_indents_0091478')}
                           </button>
                           <button
                             type="button"
                             className={`td-mode-tab ${editorMode === 'raw' ? 'active' : ''}`}
                             onClick={() => setEditorMode('raw')}
                           >
-                            &lt;/&gt; Raw Code Syntax
+                            {t('ui.generated.raw_code_syntax_81426a7')}
                           </button>
                         </div>
                       </div>
@@ -1577,7 +1577,7 @@ export function TransferSettingsWorkspace({
                             rows={5}
                             value={draft.globalCaption || ''}
                             disabled={!!transferActive}
-                            placeholder="Tulis caption Telegram di sini… Gunakan toolbar di atas untuk format bold, italic, link, spoiler, dll."
+                            placeholder={t('ui.generated.tulis_caption_telegram_di_sini_gunakan_toolbar_d_755cdcf')}
                             onKeyDown={handleCaptionKeyDown}
                             onChange={(e) => patch({ globalCaption: e.target.value })}
                           />
@@ -1587,7 +1587,7 @@ export function TransferSettingsWorkspace({
                       {/* STATUS BAR (BADGES ON LEFT, CHAR COUNT ON RIGHT) */}
                       <div className="td-caption-statusbar">
                         <div className="td-status-left">
-                          <span className="td-status-pill">{draft.captionParseMode || 'MarkdownV2'}</span>
+                          <span className="td-status-pill">{draft.captionParseMode || t('ui.generated.markdownv2_b563e42')}</span>
                           <span className="td-status-pill">
                             {getCaptionPositionBadgeLabel(getEffectiveCaptionPosition(draft))}
                           </span>
@@ -1603,37 +1603,37 @@ export function TransferSettingsWorkspace({
                       <div className="td-caption-delivery-panel">
                         <div className="td-delivery-panel-title">
                           <Send size={15} />
-                          <span>Pengaturan pengiriman caption</span>
+                          <span>{t('ui.generated.pengaturan_pengiriman_caption_47f9269')}</span>
                         </div>
                         <div className="td-mode-grid td-mode-grid-3">
                           <label>
-                            Format Output
+                            {t('ui.generated.format_output_126976b')}
                             <select
                               value={draft.captionParseMode || 'MarkdownV2'}
                               disabled={!!transferActive}
                               onChange={(e) => patch({ captionParseMode: e.target.value as any })}
                             >
-                              <option value="MarkdownV2">MarkdownV2 (Telegram Official)</option>
-                              <option value="HTML">HTML (Telegram HTML)</option>
-                              <option value="Plain">Teks Biasa (Plain Text)</option>
+                              <option value="MarkdownV2">{t('ui.generated.markdownv2_telegram_official_bfabe8a')}</option>
+                              <option value="HTML">{t('ui.generated.html_telegram_html_00b37d3')}</option>
+                              <option value="Plain">{t('ui.generated.teks_biasa_plain_text_bcf0495')}</option>
                             </select>
                           </label>
 
                           <label>
-                            Perilaku Teks Panjang
+                            {t('ui.generated.perilaku_teks_panjang_eec1c91')}
                             <select
                               value={draft.captionOverflowPolicy || 'truncate_with_warning'}
                               disabled={!!transferActive}
                               onChange={(e) => patch({ captionOverflowPolicy: e.target.value as any })}
                             >
-                              <option value="truncate_with_warning">Potong dengan Peringatan</option>
-                              <option value="fail">Batalkan Pengiriman (Reject)</option>
-                              <option value="split">Bagi Pesan Lanjutan (Split)</option>
+                              <option value="truncate_with_warning">{t('ui.generated.potong_dengan_peringatan_f09940d')}</option>
+                              <option value="fail">{t('ui.generated.batalkan_pengiriman_reject_5a3d693')}</option>
+                              <option value="split">{t('ui.generated.bagi_pesan_lanjutan_split_657e81a')}</option>
                             </select>
                           </label>
 
                           <label>
-                            Posisi Teks / Caption
+                            {t('ui.generated.posisi_teks_caption_1a72892')}
                             <select
                               value={getEffectiveCaptionPosition(draft)}
                               disabled={!!transferActive}
@@ -1645,11 +1645,11 @@ export function TransferSettingsWorkspace({
                                 });
                               }}
                             >
-                              <option value="on_media">Caption pada media</option>
-                              <option value="on_media_above">Caption di ATAS media</option>
-                              <option value="before_media">Pesan sebelum media</option>
-                              <option value="after_media">Pesan setelah media</option>
-                              <option value="none">Tanpa caption</option>
+                              <option value="on_media">{t('ui.generated.caption_pada_media_e9f1adc')}</option>
+                              <option value="on_media_above">{t('ui.generated.caption_di_atas_media_7b5138c')}</option>
+                              <option value="before_media">{t('ui.generated.pesan_sebelum_media_b3c3e3b')}</option>
+                              <option value="after_media">{t('ui.generated.pesan_setelah_media_800a6cd')}</option>
+                              <option value="none">{t('ui.generated.tanpa_caption_7232696')}</option>
                             </select>
                           </label>
                         </div>
@@ -1662,14 +1662,14 @@ export function TransferSettingsWorkspace({
                         {/* PHONE MOCKUP */}
                         <div className="td-phone-frame">
                           <div className="td-phone-head">
-                            <div className="td-phone-avatar">TG</div>
+                            <div className="td-phone-avatar">{t('ui.generated.tg_02af935')}</div>
                             <div>
-                              <strong>Telegram Media Bot</strong>
-                              <small>bot • online</small>
+                              <strong>{t('ui.generated.telegram_media_bot_8ad2370')}</strong>
+                              <small>{t('ui.generated.bot_online_3ed93ac')}</small>
                             </div>
                           </div>
                           <div className="td-phone-chat">
-                            <div className="td-chat-date">Hari ini</div>
+                            <div className="td-chat-date">{t('ui.generated.hari_ini_2c6ad14')}</div>
                             <div className="td-chat-bubble">
                               {/* IF CAPTION ABOVE */}
                               {draft.captionAbove && (
@@ -1680,8 +1680,8 @@ export function TransferSettingsWorkspace({
                               )}
 
                               <div className="td-preview-media">
-                                <span>Pratinjau Media (Photo / Video)</span>
-                                <span className="td-media-tag">Album Media</span>
+                                <span>{t('ui.generated.pratinjau_media_photo_video_f1117ee')}</span>
+                                <span className="td-media-tag">{t('ui.generated.album_media_5831167')}</span>
                               </div>
 
                               {/* IF CAPTION BELOW */}
@@ -1700,27 +1700,27 @@ export function TransferSettingsWorkspace({
                         {/* RAW TELEGRAM PARSED OUTPUT CARD */}
                         <div className="td-raw-output-card">
                           <div className="td-output-head">
-                            <strong>Raw Output Syntax ({draft.captionParseMode || 'MarkdownV2'})</strong>
+                            <strong>{t('ui.generated.raw_output_syntax_ee1cd96')}{draft.captionParseMode || t('ui.generated.markdownv2_b563e42')})</strong>
                             <button
                               type="button"
                               className="td-mini-btn primary"
                               onClick={copyCaptionOutput}
                             >
                               <Copy size={13} />
-                              Salin Output
+                              {t('ui.generated.salin_output_8ba65b3')}
                             </button>
                           </div>
                           <pre className="td-raw-output-code">
-                            {draft.globalCaption || '(Caption kosong)'}
+                            {draft.globalCaption || t('ui.generated.caption_kosong_7ae074e')}
                           </pre>
                           <div className="td-output-notice">
                             {[...(draft.globalCaption || '')].length > 1024 ? (
                               <span style={{ color: '#ef4444', fontWeight: 700 }}>
-                                ⚠️ Caption melebihi 1.024 karakter! {draft.captionOverflowPolicy === 'fail' ? 'Pengiriman akan diblokir.' : draft.captionOverflowPolicy === 'split' ? 'Akan dibagi menjadi pesan teks lanjutan.' : 'Akan dipotong otomatis.'}
+                                {t('ui.generated.caption_melebihi_1_024_karakter_a247041')} {draft.captionOverflowPolicy === 'fail' ? t('ui.generated.pengiriman_akan_diblokir_3f131ea') : draft.captionOverflowPolicy === 'split' ? t('ui.generated.akan_dibagi_menjadi_pesan_teks_lanjutan_b77440c') : t('ui.generated.akan_dipotong_otomatis_15d30b6')}
                               </span>
                             ) : (
                               <span style={{ color: '#10b981' }}>
-                                ✓ Caption valid & siap dikirim melalui Telegram API.
+                                {t('ui.generated.caption_valid_siap_dikirim_melalui_telegram_api_96be30b')}
                               </span>
                             )}
                           </div>
@@ -1767,10 +1767,10 @@ export function TransferSettingsWorkspace({
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
-                    3. Mode & Efek Pengiriman (Silent & Spoiler)
+                    {t('ui.generated.3_mode_efek_pengiriman_silent_spoiler_4b1812a')}
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
-                    Kontrol suara notifikasi penerima dan efek buram media
+                    {t('ui.generated.kontrol_suara_notifikasi_penerima_dan_efek_buram_34b7c9e')}
                   </p>
                 </div>
               </div>
@@ -1779,8 +1779,8 @@ export function TransferSettingsWorkspace({
                 <div className="td-switches-list">
                   <label className="td-switch-row">
                     <div>
-                      <strong>{t('speedtest.send_silent', 'Kirim Tanpa Suara (Silent Send)')}</strong>
-                      <p>{t('speedtest.send_silent_desc', 'Penerima tidak menerima suara notifikasi')}</p>
+                      <strong>{t('speedtest.send_silent')}</strong>
+                      <p>{t('speedtest.send_silent_desc')}</p>
                     </div>
                     <input
                       type="checkbox"
@@ -1792,8 +1792,8 @@ export function TransferSettingsWorkspace({
 
                   <label className="td-switch-row">
                     <div>
-                      <strong>{t('speedtest.send_spoiler', 'Efek Spoiler')}</strong>
-                      <p>{t('speedtest.send_spoiler_desc', 'Tutup media dengan efek buram spoiler')}</p>
+                      <strong>{t('speedtest.send_spoiler')}</strong>
+                      <p>{t('speedtest.send_spoiler_desc')}</p>
                     </div>
                     <input
                       type="checkbox"
@@ -1839,17 +1839,17 @@ export function TransferSettingsWorkspace({
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
-                    1. {t('speedtest.tab_download_title', 'Pengaturan Unduhan (Download)')}
+                    1. {t('speedtest.tab_download_title')}
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
-                    {t('speedtest.tab_download_desc', 'Atur paralelisme unduhan, kebijakan konflik nama berkas & keandalan resume')}
+                    {t('speedtest.tab_download_desc')}
                   </p>
                 </div>
               </div>
 
               {/* SUB-SECTION: PARALEL UNDUHAN */}
               <div className="td-settings-subcard">
-                <label className="td-field-label">Jumlah Unduhan Paralel (Download Slots)</label>
+                <label className="td-field-label">{t('ui.generated.jumlah_unduhan_paralel_download_slots_53a87b8')}</label>
                 <div className="td-slider-row-box">
                   <input
                     type="range"
@@ -1860,7 +1860,7 @@ export function TransferSettingsWorkspace({
                     onChange={(e) => patch({ downloadConcurrency: Number(e.target.value) })}
                   />
                   <div className="td-slider-value-bar">
-                    <span className="td-slider-val">{draft.downloadConcurrency} Berkas</span>
+                    <span className="td-slider-val">{draft.downloadConcurrency} {t('speedtest.tab_telegram_files')}</span>
                     <span className="td-concurrency-badge">
                       {draft.downloadConcurrency <= 2 && '🐢 Stabil'}
                       {draft.downloadConcurrency >= 3 && draft.downloadConcurrency <= 6 && '⚡ Seimbang (Rekomendasi)'}
@@ -1872,24 +1872,24 @@ export function TransferSettingsWorkspace({
 
               {/* SUB-SECTION: KONFLIK FILE & KEANDALAN */}
               <div className="td-settings-subcard" style={{ marginTop: '16px' }}>
-                <label className="td-field-label">Kebijakan Konflik Nama Berkas Di Komputer</label>
+                <label className="td-field-label">{t('ui.generated.kebijakan_konflik_nama_berkas_di_komputer_cccc51f')}</label>
                 <select
                   value={draft.downloadConflictPolicy || 'ask'}
                   disabled={!!transferActive}
                   onChange={(e) => patch({ downloadConflictPolicy: e.target.value as any })}
                   style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '10px', background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.12)', color: '#f8fafc' }}
                 >
-                  <option value="ask">Tanyakan sebelum mengunduh</option>
-                  <option value="rename">Ganti nama otomatis (tambah angka)</option>
-                  <option value="overwrite">Timpa berkas yang ada</option>
-                  <option value="skip">Lewati berkas</option>
+                  <option value="ask">{t('ui.generated.tanyakan_sebelum_mengunduh_3820b14')}</option>
+                  <option value="rename">{t('ui.generated.ganti_nama_otomatis_tambah_angka_a0d1700')}</option>
+                  <option value="overwrite">{t('ui.generated.timpa_berkas_yang_ada_9047d33')}</option>
+                  <option value="skip">{t('ui.generated.lewati_berkas_99bd0e6')}</option>
                 </select>
 
                 <div className="td-switches-list" style={{ marginTop: '16px' }}>
                   <label className="td-switch-row">
                     <div>
-                      <strong>Lanjutkan Unduhan Parsial (Resume)</strong>
-                      <p>Lanjutkan unduhan yang terputus tanpa mulai dari awal.</p>
+                      <strong>{t('ui.generated.lanjutkan_unduhan_parsial_resume_bf66f33')}</strong>
+                      <p>{t('ui.generated.lanjutkan_unduhan_yang_terputus_tanpa_mulai_dari_bc66c48')}</p>
                     </div>
                     <input
                       type="checkbox"
@@ -1901,8 +1901,8 @@ export function TransferSettingsWorkspace({
 
                   <label className="td-switch-row">
                     <div>
-                      <strong>Notifikasi Setelah Unduhan Selesai</strong>
-                      <p>Tampilkan pemberitahuan banner saat batch unduhan rampung.</p>
+                      <strong>{t('ui.generated.notifikasi_setelah_unduhan_selesai_1e18950')}</strong>
+                      <p>{t('ui.generated.tampilkan_pemberitahuan_banner_saat_batch_unduha_2eb7249')}</p>
                     </div>
                     <input
                       type="checkbox"
@@ -1934,14 +1934,14 @@ export function TransferSettingsWorkspace({
                   </div>
                   <div>
                     <div className="td-master-title-flex">
-                      <h3>2. Mesin Pengodean & Transcoding Video (GPU & CPU Transcoder Engine)</h3>
+                      <h3>{t('ui.generated.2_mesin_pengodean_transcoding_video_gpu_cpu_tran_c0e0d0e')}</h3>
                       <span className="td-uploader-tag">
                         <Upload size={12} />
-                        Upload Engine Only
+                        {t('ui.generated.upload_engine_only_2369298')}
                       </span>
                     </div>
                     <p className="td-master-desc">
-                      Pengaturan mesin pengodean video ini <strong>khusus memproses kompresi & konversi berkas saat pengunggahan</strong> ke Telegram. Pengaturan ini <em>tidak memengaruhi</em> pemutaran (playback) atau pratinjau lokal media.
+                      {t('ui.generated.pengaturan_mesin_pengodean_video_ini_bb7810f')} <strong>{t('ui.generated.khusus_memproses_kompresi_konversi_berkas_saat_p_b386d61')}</strong> {t('ui.generated.ke_telegram_pengaturan_ini_c6e5108')} <em>{t('ui.generated.tidak_memengaruhi_b2368ba')}</em> {t('ui.generated.pemutaran_playback_atau_pratinjau_lokal_media_0edd5c9')}
                     </p>
                   </div>
                 </div>
@@ -1952,8 +1952,8 @@ export function TransferSettingsWorkspace({
                 <div className="td-card-head">
                   <Film size={18} />
                   <div>
-                    <h4>{t('speedtest.encoder_mode_title', 'Mode Encoding Video')}</h4>
-                    <p>{t('speedtest.encoder_mode_desc', 'Pilih bagaimana sistem memproses berkas video sebelum diunggah')}</p>
+                    <h4>{t('speedtest.encoder_mode_title')}</h4>
+                    <p>{t('speedtest.encoder_mode_desc')}</p>
                   </div>
                 </div>
 
@@ -1971,9 +1971,9 @@ export function TransferSettingsWorkspace({
                     <div>
                       <div className="td-tile-head">
                         <Zap size={16} className="td-tile-icon is-auto" />
-                        <strong>Otomatis (GPU Adaptif)</strong>
+                        <strong>{t('speedtest.playback_auto_title')}</strong>
                       </div>
-                      <p>Sistem mendeteksi GPU secara otomatis. Jika gagal, fallback ke CPU.</p>
+                      <p>{t('ui.generated.sistem_mendeteksi_gpu_secara_otomatis_jika_gagal_afc9537')}</p>
                     </div>
                   </label>
 
@@ -1996,9 +1996,9 @@ export function TransferSettingsWorkspace({
                     <div>
                       <div className="td-tile-head">
                         <Film size={16} className="td-tile-icon is-gpu" />
-                        <strong>Akselerasi GPU Hardware</strong>
+                        <strong>{t('ui.generated.akselerasi_gpu_hardware_76da0bf')}</strong>
                       </div>
-                      <p>Gunakan chip GPU khusus (NVIDIA NVENC, AMD AMF, Intel QSV).</p>
+                      <p>{t('ui.generated.gunakan_chip_gpu_khusus_nvidia_nvenc_amd_amf_int_7c08c13')}</p>
                     </div>
                   </label>
 
@@ -2015,13 +2015,13 @@ export function TransferSettingsWorkspace({
                     <div style={{ flex: 1 }}>
                       <div className="td-tile-head">
                         <Cpu size={16} className="td-tile-icon is-cpu" />
-                        <strong>Software CPU Encoding</strong>
+                        <strong>{t('ui.generated.software_cpu_encoding_6796da9')}</strong>
                       </div>
-                      <p>Kompresi menggunakan prosessor CPU. Sangat presisi namun memakan beban CPU.</p>
+                      <p>{t('ui.generated.kompresi_menggunakan_prosessor_cpu_sangat_presis_23def45')}</p>
                       {currentEncoderMode === 'software' && (
                         <div className="td-tile-cpu-badge">
                           <span className="td-cpu-dot" />
-                          <span><strong>CPU:</strong> {hardwareCapabilities?.cpu?.processor_name || `Prosessor Sistem (${navigator.hardwareConcurrency || 8} Threads)`}</span>
+                          <span><strong>{t('ui.generated.cpu_81c4c3f')}</strong> {hardwareCapabilities?.cpu?.processor_name || `Prosessor Sistem (${navigator.hardwareConcurrency || 8} Threads)`}</span>
                         </div>
                       )}
                     </div>
@@ -2040,9 +2040,9 @@ export function TransferSettingsWorkspace({
                     <div>
                       <div className="td-tile-head">
                         <Sliders size={16} className="td-tile-icon is-disable" />
-                        <strong>Matikan Re-encode</strong>
+                        <strong>{t('ui.generated.matikan_re_encode_a0b64dd')}</strong>
                       </div>
-                      <p>Kirim video tanpa kompresi ulang. Format non-native dikirim sebagai dokumen.</p>
+                      <p>{t('ui.generated.kirim_video_tanpa_kompresi_ulang_format_non_nati_25f8548')}</p>
                     </div>
                   </label>
                 </div>
@@ -2050,7 +2050,7 @@ export function TransferSettingsWorkspace({
                 {/* HARDWARE DEVICE SELECTOR (SHOWS CONDITIONALLY) */}
                 {currentEncoderMode === 'hardware' && (
                   <div className="td-conditional-box">
-                    <label className="td-field-label">Pilih Perangkat GPU Fisik</label>
+                    <label className="td-field-label">{t('ui.generated.pilih_perangkat_gpu_fisik_6e93d3c')}</label>
                     <MediaSelect
                       value={draft.reencodeHardware}
                       disabled={!!transferActive}
@@ -2068,7 +2068,7 @@ export function TransferSettingsWorkspace({
                     <Cpu size={18} style={{ color: '#38bdf8', flexShrink: 0 }} />
                     <div>
                       <div className="td-cpu-title">
-                        <strong>Prosesor CPU Aktif:</strong>
+                        <strong>{t('ui.generated.prosesor_cpu_aktif_58e1ed6')}</strong>
                         <span className="td-cpu-name">
                           {hardwareCapabilities?.cpu?.processor_name || `Prosessor Sistem (${navigator.hardwareConcurrency || 8} Threads)`}
                         </span>
@@ -2088,11 +2088,11 @@ export function TransferSettingsWorkspace({
                     <ShieldAlert size={18} className="td-warning-icon" />
                     <div>
                       <div className="td-warning-head">
-                        <strong>Mode Passthrough (Re-encode Dinonaktifkan)</strong>
-                        <span className="td-warning-badge">Original Uncompressed</span>
+                        <strong>{t('ui.generated.mode_passthrough_re_encode_dinonaktifkan_0efd863')}</strong>
+                        <span className="td-warning-badge">{t('ui.generated.original_uncompressed_bbac47b')}</span>
                       </div>
                       <p className="td-warning-body">
-                        Video tidak akan dikompresi ulang. Berkas format non-native (seperti <code>.mkv</code>, <code>.avi</code>, <code>.flv</code>) akan dikirimkan secara utuh sebagai berkas dokumen murni tanpa pratinjau media.
+                        {t('ui.generated.video_tidak_akan_dikompresi_ulang_berkas_format__614305a')} <code>.mkv</code>, <code>.avi</code>, <code>.flv</code>{t('ui.generated.akan_dikirimkan_secara_utuh_sebagai_berkas_dokum_9521d58')}
                       </p>
                     </div>
                   </div>
@@ -2104,36 +2104,36 @@ export function TransferSettingsWorkspace({
                 <div className="td-card-head">
                   <SlidersHorizontal size={18} />
                   <div>
-                    <h4>Pengaturan Teknis Encoder Lanjutan</h4>
-                    <p>Konfigurasi beban kerja prosesor dan jumlah thread encoding parallel</p>
+                    <h4>{t('ui.generated.pengaturan_teknis_encoder_lanjutan_fe4b216')}</h4>
+                    <p>{t('ui.generated.konfigurasi_beban_kerja_prosesor_dan_jumlah_thre_3924794')}</p>
                   </div>
                 </div>
 
                 <div className="td-form-row-grid">
                   <div className="td-field-group">
-                    <label className="td-field-label">Jumlah Encoder Paralel</label>
+                    <label className="td-field-label">{t('ui.generated.jumlah_encoder_paralel_1df6b4e')}</label>
                     <select
                       value={draft.encoderMaxParallel || 1}
                       disabled={!!transferActive}
                       onChange={(e) => patch({ encoderMaxParallel: Number(e.target.value) })}
                     >
-                      <option value={1}>1 Proses (Stabil)</option>
-                      <option value={2}>2 Proses Parallel</option>
-                      <option value={3}>3 Proses Parallel</option>
-                      <option value={4}>4 Proses Parallel (Max GPU)</option>
+                      <option value={1}>{t('ui.generated.1_proses_stabil_bee7b71')}</option>
+                      <option value={2}>{t('ui.generated.2_proses_parallel_9b25c47')}</option>
+                      <option value={3}>{t('ui.generated.3_proses_parallel_d6b725d')}</option>
+                      <option value={4}>{t('ui.generated.4_proses_parallel_max_gpu_29ddcd2')}</option>
                     </select>
                   </div>
 
                   <div className="td-field-group">
-                    <label className="td-field-label">Resource Profile</label>
+                    <label className="td-field-label">{t('ui.generated.resource_profile_efe8abb')}</label>
                     <select
                       value={draft.encoderResourceProfile || 'balanced'}
                       disabled={!!transferActive}
                       onChange={(e) => patch({ encoderResourceProfile: e.target.value as any })}
                     >
-                      <option value="eco">Hemat Daya (Eco)</option>
-                      <option value="balanced">Seimbang (Recommended)</option>
-                      <option value="performance">Performa Maksimal</option>
+                      <option value="eco">{t('ui.generated.hemat_daya_eco_b94e982')}</option>
+                      <option value="balanced">{t('ui.generated.seimbang_recommended_0e149f1')}</option>
+                      <option value="performance">{t('ui.generated.performa_maksimal_3d6c941')}</option>
                     </select>
                   </div>
                 </div>
@@ -2149,14 +2149,14 @@ export function TransferSettingsWorkspace({
                   </div>
                   <div>
                     <div className="td-master-title-flex">
-                      <h3>3. Akselerasi Pratinjau & Pemutaran Lokal (Local Media Playback Engine)</h3>
+                      <h3>{t('ui.generated.3_akselerasi_pratinjau_pemutaran_lokal_local_med_a286d55')}</h3>
                       <span className="td-playback-tag">
                         <Play size={12} />
-                        {t('speedtest.playback_engine_tag', 'Local Playback & Preview Engine')}
+                        {t('speedtest.playback_engine_tag')}
                       </span>
                     </div>
                     <p className="td-playback-desc">
-                      {t('speedtest.playback_engine_desc', 'Pengaturan mesin ini khusus memproses akselerasi dekoder GPU/CPU untuk pemutaran video, frame seeking 60FPS, dan pemuatan pratinjau instan di AutoGram Explorer & Media Studio. Pengaturan ini tidak memengaruhi kompresi atau format berkas yang diunggah ke Telegram.')}
+                      {t('speedtest.playback_engine_desc')}
                     </p>
                   </div>
                 </div>
@@ -2167,8 +2167,8 @@ export function TransferSettingsWorkspace({
                 <div className="td-card-head">
                   <Tv size={20} style={{ color: '#10b981' }} />
                   <div>
-                    <h4>{t('speedtest.playback_unified_title', 'Mesin Akselerasi Pemutaran Video (Local Playback Engine)')}</h4>
-                    <p>{t('speedtest.playback_unified_desc', 'Pengaturan mesin ini khusus mengontrol akselerasi GPU, kelancaran FPS, dan pemuatan pratinjau instan di AutoGram.')}</p>
+                    <h4>{t('speedtest.playback_unified_title')}</h4>
+                    <p>{t('speedtest.playback_unified_desc')}</p>
                   </div>
                 </div>
 
@@ -2187,9 +2187,9 @@ export function TransferSettingsWorkspace({
                     <div>
                       <div className="td-tile-head">
                         <Zap size={16} className="td-tile-icon is-auto" />
-                        <strong>{t('speedtest.playback_auto_title', 'Otomatis (GPU Adaptif)')}</strong>
+                        <strong>{t('speedtest.playback_auto_title')}</strong>
                       </div>
-                      <p>{t('speedtest.playback_auto_desc', 'Rekomendasi terbaik. Sistem mendeteksi GPU otomatis untuk pemutaran instan tanpa lag.')}</p>
+                      <p>{t('speedtest.playback_auto_desc')}</p>
                     </div>
                   </label>
 
@@ -2206,9 +2206,9 @@ export function TransferSettingsWorkspace({
                     <div>
                       <div className="td-tile-head">
                         <Film size={16} className="td-tile-icon is-gpu" />
-                        <strong>{t('speedtest.playback_gpu_title', 'Paksa GPU Hardware')}</strong>
+                        <strong>{t('speedtest.playback_gpu_title')}</strong>
                       </div>
-                      <p>{t('speedtest.playback_gpu_desc', 'Performa maksimal untuk video 4K, HDR & 120 FPS+ tanpa fallback CPU.')}</p>
+                      <p>{t('speedtest.playback_gpu_desc')}</p>
                     </div>
                   </label>
 
@@ -2225,13 +2225,13 @@ export function TransferSettingsWorkspace({
                     <div style={{ flex: 1 }}>
                       <div className="td-tile-head">
                         <Cpu size={16} className="td-tile-icon is-cpu" />
-                        <strong>{t('speedtest.playback_cpu_title', 'Software (CPU)')}</strong>
+                        <strong>{t('speedtest.playback_cpu_title')}</strong>
                       </div>
-                      <p>{t('speedtest.playback_cpu_desc', 'Gunakan prosesor CPU bawaan sistem jika GPU bermasalah.')}</p>
+                      <p>{t('speedtest.playback_cpu_desc')}</p>
                       {draft.playbackHwDecoding === 'software' && (
                         <div className="td-tile-cpu-badge">
                           <span className="td-cpu-dot" />
-                          <span><strong>CPU:</strong> {hardwareCapabilities?.cpu?.processor_name || `Prosessor Sistem (${navigator.hardwareConcurrency || 8} Threads)`}</span>
+                          <span><strong>{t('ui.generated.cpu_81c4c3f')}</strong> {hardwareCapabilities?.cpu?.processor_name || `Prosessor Sistem (${navigator.hardwareConcurrency || 8} Threads)`}</span>
                         </div>
                       )}
                     </div>
@@ -2241,28 +2241,28 @@ export function TransferSettingsWorkspace({
                 {/* 2. TWO PRIMARY PERFORMANCE DROPDOWNS */}
                 <div className="td-form-row-grid" style={{ marginTop: '16px' }}>
                   <div className="td-field-group">
-                    <label className="td-field-label">{t('speedtest.playback_fps_label', 'Kelancaran Framerate (FPS)')}</label>
+                    <label className="td-field-label">{t('speedtest.playback_fps_label')}</label>
                     <select
                       value={draft.playbackFpsMode || 'adaptive'}
                       disabled={!!transferActive}
                       onChange={(e) => patch({ playbackFpsMode: e.target.value as any })}
                     >
-                      <option value="adaptive">{t('speedtest.playback_fps_mode_adaptive', 'Adaptive (Otomatis Sync PTS, Source FPS & Monitor Refresh)')}</option>
-                      <option value="follow_source">{t('speedtest.playback_fps_mode_source', 'Follow Source (Framerate Asli Video)')}</option>
-                      <option value="follow_display">{t('speedtest.playback_fps_mode_display', 'Follow Display (Monitor 120Hz/144Hz/240Hz+)')}</option>
-                      <option value="manual_cap">{t('speedtest.playback_fps_mode_manual', 'Manual Cap (Batas Manual 30/60/120 FPS)')}</option>
+                      <option value="adaptive">{t('speedtest.playback_fps_mode_adaptive')}</option>
+                      <option value="follow_source">{t('speedtest.playback_fps_mode_source')}</option>
+                      <option value="follow_display">{t('speedtest.playback_fps_mode_display')}</option>
+                      <option value="manual_cap">{t('speedtest.playback_fps_mode_manual')}</option>
                     </select>
                   </div>
 
                   <div className="td-field-group">
-                    <label className="td-field-label">{t('speedtest.playback_zerocopy_label', 'Transfer Memori Zero-Copy DXGI')}</label>
+                    <label className="td-field-label">{t('speedtest.playback_zerocopy_label')}</label>
                     <select
                       value={draft.playbackZeroCopy !== false ? 'enabled' : 'disabled'}
                       disabled={!!transferActive || draft.playbackHwDecoding === 'software'}
                       onChange={(e) => patch({ playbackZeroCopy: e.target.value === 'enabled' })}
                     >
-                      <option value="enabled">{t('speedtest.playback_zerocopy_on', 'Aktif (Langsung di VRAM GPU - Tanpa Salin CPU)')}</option>
-                      <option value="disabled">{t('speedtest.playback_zerocopy_off', 'Nonaktif (Mode Kompatibilitas)')}</option>
+                      <option value="enabled">{t('speedtest.playback_zerocopy_on')}</option>
+                      <option value="disabled">{t('speedtest.playback_zerocopy_off')}</option>
                     </select>
                   </div>
                 </div>
@@ -2271,35 +2271,35 @@ export function TransferSettingsWorkspace({
                 <details style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px' }}>
                   <summary style={{ cursor: 'pointer', color: '#38bdf8', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Activity size={16} />
-                    {t('speedtest.playback_advanced_toggle', 'Tampilkan Pengaturan Lanjutan API GPU & Telemetri Diagnostik')}
+                    {t('speedtest.playback_advanced_toggle')}
                   </summary>
 
                   <div style={{ marginTop: '16px' }}>
                     <div className="td-form-row-grid">
                       <div className="td-field-group">
-                        <label className="td-field-label">{t('speedtest.playback_backend_label', 'Target Hardware API Spesifik')}</label>
+                        <label className="td-field-label">{t('speedtest.playback_backend_label')}</label>
                         <select
                           value={draft.playbackHwDecoding === 'software' ? 'software' : (draft.playbackBackendChoice || 'auto')}
                           disabled={!!transferActive || draft.playbackHwDecoding === 'software'}
                           onChange={(e) => patch({ playbackBackendChoice: e.target.value as any })}
                         >
-                          <option value="auto">{t('speedtest.playback_backend_auto', 'Auto API (Sistem Memilih D3D11VA / NVDEC Terbaik)')}</option>
-                          <option value="d3d11va">{t('speedtest.playback_backend_d3d11va', 'Direct3D11 Video Acceleration (D3D11VA)')}</option>
-                          <option value="d3d12va">{t('speedtest.playback_backend_d3d12va', 'Direct3D12 Video Acceleration (D3D12VA)')}</option>
-                          <option value="nvdec">{t('speedtest.playback_backend_nvdec', 'NVIDIA NVDEC Hardware Decoder')}</option>
-                          <option value="vulkan">{t('speedtest.playback_backend_vulkan', 'Vulkan Video Decode API')}</option>
+                          <option value="auto">{t('speedtest.playback_backend_auto')}</option>
+                          <option value="d3d11va">{t('speedtest.playback_backend_d3d11va')}</option>
+                          <option value="d3d12va">{t('speedtest.playback_backend_d3d12va')}</option>
+                          <option value="nvdec">{t('speedtest.playback_backend_nvdec')}</option>
+                          <option value="vulkan">{t('speedtest.playback_backend_vulkan')}</option>
                         </select>
                       </div>
 
                       <div className="td-field-group">
-                        <label className="td-field-label">{t('speedtest.playback_diag_label', 'Panel Telemetri Diagnostik Overlay')}</label>
+                        <label className="td-field-label">{t('speedtest.playback_diag_label')}</label>
                         <select
                           value={draft.playbackShowDiagnostics ? 'enabled' : 'disabled'}
                           disabled={!!transferActive}
                           onChange={(e) => patch({ playbackShowDiagnostics: e.target.value === 'enabled' })}
                         >
-                          <option value="disabled">{t('speedtest.playback_diag_off', 'Sembunyikan Panel Diagnostik')}</option>
-                          <option value="enabled">{t('speedtest.playback_diag_on', 'Tampilkan Statistik GPU Real-Time di Pemutar')}</option>
+                          <option value="disabled">{t('speedtest.playback_diag_off')}</option>
+                          <option value="enabled">{t('speedtest.playback_diag_on')}</option>
                         </select>
                       </div>
                     </div>
@@ -2341,18 +2341,18 @@ export function TransferSettingsWorkspace({
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
-                    1. {t('speedtest.album_orchestration_title', 'Pengelompokan Media Album')}
+                    1. {t('speedtest.album_orchestration_title')}
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
-                    {t('speedtest.album_orchestration_desc', 'Kirim foto dan video dalam satu album grup Telegram')}
+                    {t('speedtest.album_orchestration_desc')}
                   </p>
                 </div>
               </div>
 
               <label className="td-switch-row">
                 <div>
-                  <strong>{t('speedtest.send_as_album', 'Kirim Media Sebagai Album')}</strong>
-                  <p>{t('speedtest.send_as_album_desc', 'Gabungkan beberapa foto/video menjadi album tunggal')}</p>
+                  <strong>{t('speedtest.send_as_album')}</strong>
+                  <p>{t('speedtest.send_as_album_desc')}</p>
                 </div>
                 <input
                   type="checkbox"
@@ -2366,7 +2366,7 @@ export function TransferSettingsWorkspace({
               {draft.groupAsAlbum && (
                 <div className="td-conditional-box">
                   <div className="td-field-group">
-                    <label className="td-field-label">Ukuran Kelompok Album (Maximum Media Items)</label>
+                    <label className="td-field-label">{t('ui.generated.ukuran_kelompok_album_maximum_media_items_5bb502d')}</label>
                     <div className="td-slider-row-box">
                       <input
                         type="range"
@@ -2377,7 +2377,7 @@ export function TransferSettingsWorkspace({
                         onChange={(e) => patch({ albumGroupSize: Number(e.target.value) })}
                       />
                       <div className="td-slider-value-bar">
-                        <span className="td-slider-val">{draft.albumGroupSize || 10} Media / Album</span>
+                        <span className="td-slider-val">{draft.albumGroupSize || 10} {t('ui.generated.media_album_214c464')}</span>
                         <span className="td-concurrency-badge">
                           {(draft.albumGroupSize || 10) === 10 && '⚡ Standard Maksimal Telegram (10 Media)'}
                           {(draft.albumGroupSize || 10) >= 5 && (draft.albumGroupSize || 10) <= 9 && '📦 Kelompok Sedang'}
@@ -2390,8 +2390,8 @@ export function TransferSettingsWorkspace({
                   <div className="td-switches-list" style={{ marginTop: '16px' }}>
                     <label className="td-switch-row">
                       <div>
-                        <strong>Pisahkan Dokumen Dari Album</strong>
-                        <p>Kirim berkas dokumen secara terpisah di luar grup media album.</p>
+                        <strong>{t('ui.generated.pisahkan_dokumen_dari_album_1bd3539')}</strong>
+                        <p>{t('ui.generated.kirim_berkas_dokumen_secara_terpisah_di_luar_gru_92cbf17')}</p>
                       </div>
                       <input
                         type="checkbox"
@@ -2403,8 +2403,8 @@ export function TransferSettingsWorkspace({
 
                     <label className="td-switch-row">
                       <div>
-                        <strong>Kelompokkan Berkas Audio & Musik (Audio Playlist)</strong>
-                        <p>Gabungkan beberapa berkas MP3/FLAC menjadi satu paket Playlist Musik Telegram.</p>
+                        <strong>{t('ui.generated.kelompokkan_berkas_audio_musik_audio_playlist_8adcc13')}</strong>
+                        <p>{t('ui.generated.gabungkan_beberapa_berkas_mp3_flac_menjadi_satu__a219840')}</p>
                       </div>
                       <input
                         type="checkbox"
@@ -2416,8 +2416,8 @@ export function TransferSettingsWorkspace({
 
                     <label className="td-switch-row">
                       <div>
-                        <strong>Kelompokkan Berkas Dokumen Mentah (Document Album)</strong>
-                        <p>Gabungkan berkas dokumen mentah non-media (ZIP, PDF, APK) ke dalam satu grup berkas.</p>
+                        <strong>{t('ui.generated.kelompokkan_berkas_dokumen_mentah_document_album_0c09d9d')}</strong>
+                        <p>{t('ui.generated.gabungkan_berkas_dokumen_mentah_non_media_zip_pd_5cf68c3')}</p>
                       </div>
                       <input
                         type="checkbox"
@@ -2429,8 +2429,8 @@ export function TransferSettingsWorkspace({
 
                     <label className="td-switch-row">
                       <div>
-                        <strong>Hindari Album Satu Item</strong>
-                        <p>Jika tersisa 1 item, kirim sebagai pesan tunggal tanpa frame album.</p>
+                        <strong>{t('ui.generated.hindari_album_satu_item_1d27987')}</strong>
+                        <p>{t('ui.generated.jika_tersisa_1_item_kirim_sebagai_pesan_tunggal__1ed9e2d')}</p>
                       </div>
                       <input
                         type="checkbox"
@@ -2441,15 +2441,15 @@ export function TransferSettingsWorkspace({
                     </label>
 
                     <div className="td-field-group" style={{ marginTop: '16px' }}>
-                      <label className="td-field-label">Strategi Penanganan Gagal Item Album</label>
+                      <label className="td-field-label">{t('ui.generated.strategi_penanganan_gagal_item_album_c19fb1f')}</label>
                       <select
                         value={draft.albumFailurePolicy || 'send_failed_separately'}
                         disabled={!!transferActive}
                         onChange={(e) => patch({ albumFailurePolicy: e.target.value as any })}
                       >
-                        <option value="send_failed_separately">Best Effort — Kirim Item Berhasil sebagai Album, Ulangi Item Gagal Terpisah (Recommended ⭐)</option>
-                        <option value="atomic_strict">Strict (Atomik) — Batal Kirim Album & Ulangi Paket</option>
-                        <option value="send_remaining">Fallback Individual — Konversi Item Tersisa Menjadi Pesan Tunggal</option>
+                        <option value="send_failed_separately">{t('ui.generated.best_effort_kirim_item_berhasil_sebagai_album_ul_c6a176a')}</option>
+                        <option value="atomic_strict">{t('ui.generated.strict_atomik_batal_kirim_album_ulangi_paket_1beec2e')}</option>
+                        <option value="send_remaining">{t('ui.generated.fallback_individual_konversi_item_tersisa_menjad_e4ccb1a')}</option>
                       </select>
                     </div>
                   </div>
@@ -2490,10 +2490,10 @@ export function TransferSettingsWorkspace({
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
-                    1. {t('speedtest.duplicate_title', 'Penanganan Duplikat (Duplicate Engine)')}
+                    1. {t('speedtest.duplicate_title')}
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
-                    {t('speedtest.duplicate_desc', 'Atur kebijakan deteksi dan pencegahan pengunggahan berkas ganda di AutoGram.')}
+                    {t('speedtest.duplicate_desc')}
                   </p>
                 </div>
               </div>
@@ -2512,9 +2512,9 @@ export function TransferSettingsWorkspace({
                   <div>
                     <div className="td-tile-head">
                       <Zap size={16} className="td-tile-icon is-auto" />
-                      <strong>{t('speedtest.dup_skip_title', 'Lewati Duplikat (Rekomendasi Utama)')}</strong>
+                      <strong>{t('speedtest.dup_skip_title')}</strong>
                     </div>
-                    <p>{t('speedtest.dup_skip_desc', 'Otomatis melewati berkas yang sudah ada di riwayat database untuk menghemat waktu & kuota.')}</p>
+                    <p>{t('speedtest.dup_skip_desc')}</p>
                   </div>
                 </label>
 
@@ -2530,9 +2530,9 @@ export function TransferSettingsWorkspace({
                   <div>
                     <div className="td-tile-head">
                       <Sliders size={16} className="td-tile-icon is-disable" />
-                      <strong>{t('speedtest.dup_force_title', 'Tetap Unggah Ulang (Paksa Re-upload)')}</strong>
+                      <strong>{t('speedtest.dup_force_title')}</strong>
                     </div>
-                    <p>{t('speedtest.dup_force_desc', 'Selalu mengunggah berkas baru tanpa mengecek riwayat duplikasi database.')}</p>
+                    <p>{t('speedtest.dup_force_desc')}</p>
                   </div>
                 </label>
               </div>
@@ -2540,27 +2540,27 @@ export function TransferSettingsWorkspace({
               {/* 2. PRIMARY PRESCAN & GUARDRAIL DROPDOWNS */}
               <div className="td-form-row-grid" style={{ marginTop: '20px' }}>
                 <div className="td-field-group">
-                  <label className="td-field-label">{t('speedtest.dup_scan_mode_label', 'Kedalaman Pemindaian Prescan')}</label>
+                  <label className="td-field-label">{t('speedtest.dup_scan_mode_label')}</label>
                   <select
                     value={draft.scanMode || 'smart'}
                     disabled={!!transferActive}
                     onChange={(e) => patch({ scanMode: e.target.value as any })}
                   >
-                    <option value="smart">Smart (Prescan Cerdas Cache & Indeks Local) [Recommended]</option>
-                    <option value="normal">Normal (Pemindaian Standar Riwayat Messaging)</option>
-                    <option value="forensic">Forensic (Inspeksi Mendalam Hingga Berkas Terlama)</option>
+                    <option value="smart">{t('ui.generated.smart_prescan_cerdas_cache_indeks_local_recommen_72f8d2f')}</option>
+                    <option value="normal">{t('ui.generated.normal_pemindaian_standar_riwayat_messaging_54a6a63')}</option>
+                    <option value="forensic">{t('ui.generated.forensic_inspeksi_mendalam_hingga_berkas_terlama_62fd45e')}</option>
                   </select>
                 </div>
 
                 <div className="td-field-group">
-                  <label className="td-field-label">{t('speedtest.dup_guardrail_label', 'Proteksi Re-Upload Berkas Terhapus')}</label>
+                  <label className="td-field-label">{t('speedtest.dup_guardrail_label')}</label>
                   <select
                     value={draft.guardrailEnabled !== false ? 'enabled' : 'disabled'}
                     disabled={!!transferActive}
                     onChange={(e) => patch({ guardrailEnabled: e.target.value === 'enabled' })}
                   >
-                    <option value="enabled">Aktif (Peringatan Guardrail 7 Hari)</option>
-                    <option value="disabled">Nonaktif (Tanpa Peringatan Konfirmasi)</option>
+                    <option value="enabled">{t('ui.generated.aktif_peringatan_guardrail_7_hari_00946e0')}</option>
+                    <option value="disabled">{t('ui.generated.nonaktif_tanpa_peringatan_konfirmasi_59a487e')}</option>
                   </select>
                 </div>
               </div>
@@ -2569,48 +2569,48 @@ export function TransferSettingsWorkspace({
               <details style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px' }}>
                 <summary style={{ cursor: 'pointer', color: '#38bdf8', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <ShieldAlert size={16} style={{ color: '#10b981' }} />
-                  {t('speedtest.dup_advanced_toggle', 'Tampilkan Detail Metode Verifikasi 4-Level Engine')}
+                  {t('speedtest.dup_advanced_toggle')}
                 </summary>
 
                 <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
                   {/* LEVEL 1 */}
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Level 1</span>
-                      <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>Active</span>
+                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('ui.generated.level_1_f25d3c5')}</span>
+                      <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{t('nav.status_active')}</span>
                     </div>
-                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>Telegram Message ID</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>Pencocokan ID Pesan Telegram terenkripsi dalam database SQLite lokal.</p>
+                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('ui.generated.telegram_message_id_98a774f')}</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('ui.generated.pencocokan_id_pesan_telegram_terenkripsi_dalam_d_2331b50')}</p>
                   </div>
 
                   {/* LEVEL 2 */}
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Level 2</span>
-                      <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>Active</span>
+                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('ui.generated.level_2_ea5c494')}</span>
+                      <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{t('nav.status_active')}</span>
                     </div>
-                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>Telegram Unique File ID</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>Verifikasi atribut file_unique_id resmi dari server Telegram API.</p>
+                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('ui.generated.telegram_unique_file_id_3ab029f')}</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('ui.generated.verifikasi_atribut_file_unique_id_resmi_dari_ser_08170d0')}</p>
                   </div>
 
                   {/* LEVEL 3 */}
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Level 3</span>
-                      <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>Active</span>
+                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('ui.generated.level_3_ce0aa4e')}</span>
+                      <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{t('nav.status_active')}</span>
                     </div>
-                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>SHA-256 Checksum Hash</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>Verifikasi integritas biner berkas secara bit-per-bit tanpa salah baca.</p>
+                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('ui.generated.sha_256_checksum_hash_d4073c0')}</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('ui.generated.verifikasi_integritas_biner_berkas_secara_bit_pe_c9aea1b')}</p>
                   </div>
 
                   {/* LEVEL 4 */}
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Level 4</span>
-                      <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>Active</span>
+                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('ui.generated.level_4_0f2b7bb')}</span>
+                      <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{t('nav.status_active')}</span>
                     </div>
-                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>Filename + Exact Byte Size</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>Pencocokan presisi nama berkas & ukuran byte fisik berkas.</p>
+                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('ui.generated.filename_exact_byte_size_dd74cc3')}</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('ui.generated.pencocokan_presisi_nama_berkas_ukuran_byte_fisik_1f94c9c')}</p>
                   </div>
                 </div>
               </details>
@@ -2649,10 +2649,10 @@ export function TransferSettingsWorkspace({
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
-                    1. {t('speedtest.oversize_title', 'Penanganan Berkas Besar (Oversize Files Handling)')}
+                    1. {t('speedtest.oversize_title')}
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
-                    {t('speedtest.oversize_desc', 'Tindakan otomatis sistem saat mengunggah berkas yang melebihi batas Telegram (2 GB biasa / 4 GB Premium).')}
+                    {t('speedtest.oversize_desc')}
                   </p>
                 </div>
               </div>
@@ -2672,9 +2672,9 @@ export function TransferSettingsWorkspace({
                   <div>
                     <div className="td-tile-head">
                       <Zap size={16} className="td-tile-icon is-auto" />
-                      <strong>{t('speedtest.oversize_auto_title', 'Auto-Adaptive Smart Engine (Rekomendasi Utama)')}</strong>
+                      <strong>{t('speedtest.oversize_auto_title')}</strong>
                     </div>
-                    <p>{t('speedtest.oversize_auto_desc', 'Satu mode cerdas untuk semua kasus. Otomatis Fit-to-Limit untuk video, Split untuk ISO/ZIP, dan Routing Akun Premium jika tersedia.')}</p>
+                    <p>{t('speedtest.oversize_auto_desc')}</p>
                   </div>
                 </label>
 
@@ -2691,9 +2691,9 @@ export function TransferSettingsWorkspace({
                   <div>
                     <div className="td-tile-head">
                       <Sliders size={16} className="td-tile-icon is-disable" />
-                      <strong>{t('speedtest.oversize_manual_title', 'Manual & Strategi Khusus')}</strong>
+                      <strong>{t('speedtest.oversize_manual_title')}</strong>
                     </div>
-                    <p>{t('speedtest.oversize_manual_desc', 'Tentukan tindakan manual secara spesifik (Selalu Split, Fit-to-Limit saja, Akun Premium saja, atau Skip).')}</p>
+                    <p>{t('speedtest.oversize_manual_desc')}</p>
                   </div>
                 </label>
               </div>
@@ -2702,7 +2702,7 @@ export function TransferSettingsWorkspace({
               {draft.oversizeAction !== 'auto_adaptive' && (
                 <div style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px' }}>
                   <h5 style={{ color: '#f8fafc', fontSize: '13px', fontWeight: 600, marginBottom: '12px' }}>
-                    {t('speedtest.oversize_manual_heading', 'Pilih Tindakan Manual Berkas Oversize:')}
+                    {t('speedtest.oversize_manual_heading')}
                   </h5>
 
                   <div className="td-encoder-4x-grid">
@@ -2719,9 +2719,9 @@ export function TransferSettingsWorkspace({
                       <div>
                         <div className="td-tile-head">
                           <Zap size={16} className="td-tile-icon is-auto" />
-                          <strong>{t('speedtest.oversize_fit_title', 'Fit-to-Limit Saja')}</strong>
+                          <strong>{t('speedtest.oversize_fit_title')}</strong>
                         </div>
-                        <p>{t('speedtest.oversize_fit_desc', 'Khusus Video: Kompres bitrate video secara otomatis agar ukurannya muat di bawah batas akun (2 GB untuk Gratis / 4 GB untuk Premium) tanpa di-split.')}</p>
+                        <p>{t('speedtest.oversize_fit_desc')}</p>
                       </div>
                     </label>
 
@@ -2738,9 +2738,9 @@ export function TransferSettingsWorkspace({
                       <div>
                         <div className="td-tile-head">
                           <Sliders size={16} className="td-tile-icon is-auto" />
-                          <strong>{t('speedtest.oversize_split_title', 'Pecah Berkas Saja (Split Parts)')}</strong>
+                          <strong>{t('speedtest.oversize_split_title')}</strong>
                         </div>
-                        <p>{t('speedtest.oversize_split_desc_new', 'Potong berkas berukuran besar (>2 GB / >4 GB) menjadi beberapa bagian volume aman (<1.95 GB / <3.9 GB) beserta berkas pemulihan (manifest).')}</p>
+                        <p>{t('speedtest.oversize_split_desc_new')}</p>
                       </div>
                     </label>
 
@@ -2757,9 +2757,9 @@ export function TransferSettingsWorkspace({
                       <div>
                         <div className="td-tile-head">
                           <Film size={16} className="td-tile-icon is-gpu" />
-                          <strong>{t('speedtest.oversize_pool_title', 'Pool Akun Premium (4 GB)')}</strong>
+                          <strong>{t('speedtest.oversize_pool_title')}</strong>
                         </div>
-                        <p>{t('speedtest.oversize_pool_desc', 'Alihkan pengunggahan berkas besar (>2 GB hingga 4 GB) secara otomatis ke sesi akun Telegram Premium yang aktif.')}</p>
+                        <p>{t('speedtest.oversize_pool_desc')}</p>
                       </div>
                     </label>
 
@@ -2776,9 +2776,9 @@ export function TransferSettingsWorkspace({
                       <div>
                         <div className="td-tile-head">
                           <Sliders size={16} className="td-tile-icon is-disable" />
-                          <strong>{t('speedtest.oversize_skip_title', 'Lewati Saja (Skip)')}</strong>
+                          <strong>{t('speedtest.oversize_skip_title')}</strong>
                         </div>
-                        <p>{t('speedtest.oversize_skip_desc_new', 'Abaikan dan lewati pengunggahan berkas yang melebihi batas limit sesi tanpa melakukan kompresi atau split (disertai catatan audit).')}</p>
+                        <p>{t('speedtest.oversize_skip_desc_new')}</p>
                       </div>
                     </label>
                   </div>
@@ -2791,10 +2791,10 @@ export function TransferSettingsWorkspace({
                   <div className="td-field-group" style={{ marginBottom: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                       <label className="td-field-label" style={{ margin: 0 }}>
-                        {t('speedtest.oversize_pool_label', 'Pool Sesi Akun Telegram Premium (Auto-Detected)')}
+                        {t('speedtest.oversize_pool_label')}
                       </label>
                       <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 600 }}>
-                        💎 Hanya Akun Berlangganan Telegram Premium (Limit 4 GB)
+                        {t('ui.generated.hanya_akun_berlangganan_telegram_premium_limit_4_be2f015')}
                       </span>
                     </div>
 
@@ -2841,11 +2841,11 @@ export function TransferSettingsWorkspace({
                                     cursor: 'not-allowed',
                                     opacity: 0.7,
                                   }}
-                                  title="Sesi ini bermasalah atau expired. Tidak dapat digunakan untuk transfer."
+                                  title={t('ui.generated.sesi_ini_bermasalah_atau_expired_tidak_dapat_dig_bf5427d')}
                                 >
                                   <span>🔴</span>
                                   <strong style={{ color: '#fca5a5' }}>{cleanLabel}</strong>
-                                  <span style={{ color: '#ef4444', fontSize: '10px', fontWeight: 600 }}>[Bermasalah]</span>
+                                  <span style={{ color: '#ef4444', fontSize: '10px', fontWeight: 600 }}>{t('ui.generated.bermasalah_20b37d7')}</span>
                                 </div>
                               );
                             }
@@ -2868,12 +2868,12 @@ export function TransferSettingsWorkspace({
                                     cursor: 'not-allowed',
                                     opacity: 0.65,
                                   }}
-                                  title="Akun Standar gratis hanya mendukung batas 2 GB. Hanya akun Telegram Premium terverifikasi yang dapat dimasukkan ke Pool 4 GB."
+                                  title={t('ui.generated.akun_standar_gratis_hanya_mendukung_batas_2_gb_h_f0cf918')}
                                 >
                                   <span>⚪</span>
                                   <span>{cleanLabel}</span>
                                   <span style={{ fontSize: '9px', background: 'rgba(255,255,255,0.05)', color: '#64748b', padding: '1px 5px', borderRadius: '4px', marginLeft: '4px' }}>
-                                    Standar 2GB (Non-Premium)
+                                    {t('ui.generated.standar_2gb_non_premium_806fe3e')}
                                   </span>
                                 </div>
                               );
@@ -2909,14 +2909,14 @@ export function TransferSettingsWorkspace({
                                   {cleanLabel}
                                 </strong>
                                 <span style={{ fontSize: '10px', background: 'rgba(56,189,248,0.15)', color: '#38bdf8', padding: '1px 6px', borderRadius: '4px', marginLeft: '4px' }}>
-                                  Premium 4GB
+                                  {t('ui.generated.premium_4gb_9f5be98')}
                                 </span>
                               </button>
                             );
                           })
                         ) : (
                           <div style={{ fontSize: '12px', color: '#94a3b8', padding: '4px 0' }}>
-                            💡 Belum ada sesi terdeteksi secara otomatis. Silakan pilih atau ketik nama file sesi di bawah ini:
+                            {t('ui.generated.belum_ada_sesi_terdeteksi_secara_otomatis_silaka_1adac26')}
                           </div>
                         )}
                       </div>
@@ -2926,7 +2926,7 @@ export function TransferSettingsWorkspace({
                         type="text"
                         value={draft.alternateAccountPool || ''}
                         disabled={!!transferActive}
-                        placeholder="Atau ketik nama sesi tambahan dipisah koma (contoh: main_account, premium_user)"
+                        placeholder={t('ui.generated.atau_ketik_nama_sesi_tambahan_dipisah_koma_conto_bd5a6e4')}
                         onChange={(e) => patch({ alternateAccountPool: e.target.value })}
                         style={{ fontSize: '12px', padding: '8px 10px', width: '100%' }}
                       />
@@ -2955,10 +2955,10 @@ export function TransferSettingsWorkspace({
                           >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, marginBottom: '4px' }}>
                               <AlertTriangle size={15} color="#f59e0b" />
-                              <span>Sistem Informasi: Tidak Ada Akun Premium Aktif Saat Ini</span>
+                              <span>{t('ui.generated.sistem_informasi_tidak_ada_akun_premium_aktif_sa_d22e47d')}</span>
                             </div>
                             <p style={{ margin: 0, color: '#cbd5e1', fontSize: '11px' }}>
-                              Seluruh sesi terhubung adalah <strong>Akun Standar (Limit 2 GB)</strong>. Jika terdapat berkas berukuran &gt; 2 GB, pengunggahan utuh 4 GB tidak dapat dilakukan lewat pool ini. Sistem akan otomatis beralih ke skenario cadangan <strong>Pecah Berkas (Split Parts &lt; 2 GB)</strong> atau <strong>Fit-to-Limit (Video Bitrate Compress)</strong> agar transfer tetap berhasil tanpa error limit Telegram.
+                              {t('ui.generated.seluruh_sesi_terhubung_adalah_20bd1da')} <strong>{t('ui.generated.akun_standar_limit_2_gb_be2ff4a')}</strong>. Jika terdapat berkas berukuran &gt; 2 GB, pengunggahan utuh 4 GB tidak dapat dilakukan lewat pool ini. Sistem akan otomatis beralih ke skenario cadangan <strong>{t('ui.generated.pecah_berkas_split_parts_2_gb_ed7053d')}</strong> {t('ui.generated.atau_a713ae9')} <strong>{t('ui.generated.fit_to_limit_video_bitrate_compress_da6fbd4')}</strong> {t('ui.generated.agar_transfer_tetap_berhasil_tanpa_error_limit_t_ede2eb0')}
                             </p>
                           </div>
                         );
@@ -2968,23 +2968,23 @@ export function TransferSettingsWorkspace({
 
                   <div className="td-form-row-grid">
                     <div className="td-field-group">
-                      <label className="td-field-label">{t('speedtest.oversize_strategy_label', 'Strategi Berkas Album Oversize')}</label>
+                      <label className="td-field-label">{t('speedtest.oversize_strategy_label')}</label>
                       <select
                         value={draft.albumAlternateStrategy || 'cancel_group'}
                         disabled={!!transferActive}
                         onChange={(e) => patch({ albumAlternateStrategy: e.target.value as any })}
                       >
-                        <option value="cancel_group">Batal Kirim Album Oversize (Rekomendasi Aman)</option>
-                        <option value="separate_item">Pisahkan Berkas Oversize Keluar dari Album</option>
-                        <option value="move_whole_group">Pindahkan Seluruh Album ke Akun Premium</option>
+                        <option value="cancel_group">{t('ui.generated.batal_kirim_album_oversize_rekomendasi_aman_8d16b45')}</option>
+                        <option value="separate_item">{t('ui.generated.pisahkan_berkas_oversize_keluar_dari_album_41e0701')}</option>
+                        <option value="move_whole_group">{t('ui.generated.pindahkan_seluruh_album_ke_akun_premium_b8f3bb2')}</option>
                       </select>
                     </div>
                   </div>
 
                   <label className="td-switch-row" style={{ marginTop: '16px' }}>
                     <div>
-                      <strong>{t('speedtest.oversize_approved_toggle', 'Izinkan Pengalihan Identitas Akun Alternatif Otomatis')}</strong>
-                      <p>{t('speedtest.oversize_approved_desc', 'Izinkan sistem mengalihkan identitas sesi pengunggah ke pool akun Telegram Premium tanpa konfirmasi manual.')}</p>
+                      <strong>{t('speedtest.oversize_approved_toggle')}</strong>
+                      <p>{t('speedtest.oversize_approved_desc')}</p>
                     </div>
                     <input
                       type="checkbox"
@@ -3031,10 +3031,10 @@ export function TransferSettingsWorkspace({
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
-                    1. Sinkronisasi & Perilaku Sesi
+                    {t('ui.generated.1_sinkronisasi_perilaku_sesi_18b0462')}
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
-                    Konfigurasi pembaruan tampilan otomatis dan retry teknis koneksi MTProto.
+                    {t('ui.generated.konfigurasi_pembaruan_tampilan_otomatis_dan_retr_1b4ee7d')}
                   </p>
                 </div>
               </div>
@@ -3042,8 +3042,8 @@ export function TransferSettingsWorkspace({
               <div className="td-switches-list">
                 <label className="td-switch-row">
                   <div>
-                    <strong>Sinkronisasi Tampilan Setelah Upload</strong>
-                    <p>Otomatis memperbarui daftar file Obrolan Telegram setelah unggahan selesai.</p>
+                    <strong>{t('ui.generated.sinkronisasi_tampilan_setelah_upload_c71a159')}</strong>
+                    <p>{t('ui.generated.otomatis_memperbarui_daftar_file_obrolan_telegra_cd476e0')}</p>
                   </div>
                   <input
                     type="checkbox"
@@ -3055,8 +3055,8 @@ export function TransferSettingsWorkspace({
 
                 <label className="td-switch-row">
                   <div>
-                    <strong>Auto-Retry Jaringan Saat Connection Timeout</strong>
-                    <p>Otomatis mencoba kembali (hingga 3x) jika koneksi MTProto terputus mendadak saat pengunggahan/pengunduhan.</p>
+                    <strong>{t('ui.generated.auto_retry_jaringan_saat_connection_timeout_fc83e89')}</strong>
+                    <p>{t('ui.generated.otomatis_mencoba_kembali_hingga_3x_jika_koneksi__349891c')}</p>
                   </div>
                   <input
                     type="checkbox"
@@ -3068,8 +3068,8 @@ export function TransferSettingsWorkspace({
 
                 <label className="td-switch-row">
                   <div>
-                    <strong>Smart Rate Control & Penanganan FloodWait</strong>
-                    <p>Deteksi otomatis FloodWaitError dari API Telegram dan lakukan pause/resume otomatis secara aman.</p>
+                    <strong>{t('ui.generated.smart_rate_control_penanganan_floodwait_6bd3236')}</strong>
+                    <p>{t('ui.generated.deteksi_otomatis_floodwaiterror_dari_api_telegra_baa76cc')}</p>
                   </div>
                   <input
                     type="checkbox"
@@ -3110,10 +3110,10 @@ export function TransferSettingsWorkspace({
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
-                    2. Pemeliharaan Cache & Penyimpanan
+                    {t('ui.generated.2_pemeliharaan_cache_penyimpanan_190e56f')}
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
-                    Bersihkan memori sementara dan file cache lokal untuk menjaga aplikasi tetap cepat & responsif.
+                    {t('ui.generated.bersihkan_memori_sementara_dan_file_cache_lokal__1ab953f')}
                   </p>
                 </div>
               </div>
@@ -3121,8 +3121,8 @@ export function TransferSettingsWorkspace({
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
                 <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                   <div>
-                    <strong style={{ fontSize: '13px', color: '#f8fafc', display: 'block', marginBottom: '4px' }}>Cache Avatar & Foto Profil</strong>
-                    <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>Hapus seluruh cache foto profil lokal dari memori jika avatar tidak tampil atau bermasalah.</p>
+                    <strong style={{ fontSize: '13px', color: '#f8fafc', display: 'block', marginBottom: '4px' }}>{t('ui.generated.cache_avatar_foto_profil_fd75268')}</strong>
+                    <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>{t('ui.generated.hapus_seluruh_cache_foto_profil_lokal_dari_memor_6b0ce9a')}</p>
                   </div>
                   <button
                     type="button"
@@ -3134,14 +3134,14 @@ export function TransferSettingsWorkspace({
                     style={{ marginTop: '14px', alignSelf: 'flex-start', background: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '6px 12px', fontSize: '12px' }}
                   >
                     <RotateCcw size={14} />
-                    <span>Bersihkan Cache Avatar</span>
+                    <span>{t('ui.generated.bersihkan_cache_avatar_b8c07e0')}</span>
                   </button>
                 </div>
 
                 <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                   <div>
-                    <strong style={{ fontSize: '13px', color: '#f8fafc', display: 'block', marginBottom: '4px' }}>File Temporary & Chunk Split</strong>
-                    <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>Hapus berkas sementara (.tmp dan part volume split) yang belum dibersihkan dari disk lokal.</p>
+                    <strong style={{ fontSize: '13px', color: '#f8fafc', display: 'block', marginBottom: '4px' }}>{t('ui.generated.file_temporary_chunk_split_794ad52')}</strong>
+                    <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>{t('ui.generated.hapus_berkas_sementara_tmp_dan_part_volume_split_63d7fed')}</p>
                   </div>
                   <button
                     type="button"
@@ -3152,7 +3152,7 @@ export function TransferSettingsWorkspace({
                     style={{ marginTop: '14px', alignSelf: 'flex-start', background: 'rgba(245, 158, 11, 0.15)', color: '#fcd34d', border: '1px solid rgba(245, 158, 11, 0.3)', padding: '6px 12px', fontSize: '12px' }}
                   >
                     <Trash2 size={14} />
-                    <span>Bersihkan File Temporary</span>
+                    <span>{t('ui.generated.bersihkan_file_temporary_c6cb410')}</span>
                   </button>
                 </div>
               </div>
@@ -3187,10 +3187,10 @@ export function TransferSettingsWorkspace({
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
-                    3. Ekspor & Impor Konfigurasi (Backup & Restore)
+                    {t('ui.generated.3_ekspor_impor_konfigurasi_backup_restore_e4087b9')}
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
-                    Cadangkan seluruh profil pengaturan transfer ke file JSON atau pulihkan dari cadangan sebelumnya.
+                    {t('ui.generated.cadangkan_seluruh_profil_pengaturan_transfer_ke__be6f6c5')}
                   </p>
                 </div>
               </div>
@@ -3212,7 +3212,7 @@ export function TransferSettingsWorkspace({
                   style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', padding: '8px 16px', fontSize: '12px' }}
                 >
                   <Download size={15} />
-                  <span>Ekspor Konfigurasi (.json)</span>
+                  <span>{t('ui.generated.ekspor_konfigurasi_json_51d3bc2')}</span>
                 </button>
 
                 <label
@@ -3220,7 +3220,7 @@ export function TransferSettingsWorkspace({
                   style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.3)', padding: '8px 16px', fontSize: '12px', cursor: 'pointer' }}
                 >
                   <Upload size={15} />
-                  <span>Impor Konfigurasi (.json)</span>
+                  <span>{t('ui.generated.impor_konfigurasi_json_7a2ac70')}</span>
                   <input
                     type="file"
                     accept=".json"
@@ -3277,10 +3277,10 @@ export function TransferSettingsWorkspace({
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
-                    4. Diagnostik & Log Sistem
+                    {t('ui.generated.4_diagnostik_log_sistem_13e7eee')}
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
-                    Opsi pelacakan detail transaksi teknis untuk pemeliharaan dan audit internal.
+                    {t('ui.generated.opsi_pelacakan_detail_transaksi_teknis_untuk_pem_07becf1')}
                   </p>
                 </div>
               </div>
@@ -3288,8 +3288,8 @@ export function TransferSettingsWorkspace({
               <div className="td-switches-list">
                 <label className="td-switch-row">
                   <div>
-                    <strong>Mode Debug Logging (Verbose Logs)</strong>
-                    <p>Tampilkan log teknis detail dari aktivitas MTProto Grammers dan pencatatan transaksi transfer ke konsol.</p>
+                    <strong>{t('ui.generated.mode_debug_logging_verbose_logs_b4e437d')}</strong>
+                    <p>{t('ui.generated.tampilkan_log_teknis_detail_dari_aktivitas_mtpro_30943cd')}</p>
                   </div>
                   <input
                     type="checkbox"
@@ -3306,8 +3306,8 @@ export function TransferSettingsWorkspace({
               <div className="td-card-head">
                 <RotateCcw size={18} style={{ color: '#f87171' }} />
                 <div>
-                  <h4 style={{ color: '#f87171' }}>Reset Total Seluruh Pengaturan System</h4>
-                  <p>Kembalikan seluruh parameter konfigurasi transfer, upload, download, encoding, dan network ke nilai default pabrik.</p>
+                  <h4 style={{ color: '#f87171' }}>{t('ui.generated.reset_total_seluruh_pengaturan_system_4daa4d2')}</h4>
+                  <p>{t('ui.generated.kembalikan_seluruh_parameter_konfigurasi_transfe_0b5e4d6')}</p>
                 </div>
               </div>
 
@@ -3320,7 +3320,7 @@ export function TransferSettingsWorkspace({
                   style={{ padding: '10px 20px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                 >
                   <RotateCcw size={15} />
-                  <span>Reset Total (Semua Pengaturan System)</span>
+                  <span>{t('ui.generated.reset_total_semua_pengaturan_system_268e487')}</span>
                 </button>
               </div>
             </div>
@@ -3334,7 +3334,7 @@ export function TransferSettingsWorkspace({
               <div className="td-drawer-head">
                 <div className="td-drawer-head-left">
                   <Sparkles size={18} className="td-preset-sparkle" />
-                  <h4>{t('speedtest.transfer_profiles_title', 'Preset & Profil Konfigurasi')}</h4>
+                  <h4>{t('speedtest.transfer_profiles_title')}</h4>
                 </div>
                 <button
                   type="button"
@@ -3347,7 +3347,7 @@ export function TransferSettingsWorkspace({
 
               <div className="td-drawer-body">
                 {/* 3 PRESET CARDS */}
-                <h5 className="td-drawer-section-title">Pilih Preset Siap Pakai</h5>
+                <h5 className="td-drawer-section-title">{t('ui.generated.pilih_preset_siap_pakai_1e9d594')}</h5>
                 <div className="td-hero-presets-grid">
                   {SYSTEM_TRANSFER_PRESETS.map((preset) => {
                     const isSelected = activePresetId === preset.id;
@@ -3371,7 +3371,7 @@ export function TransferSettingsWorkspace({
                 </div>
 
                 {/* USER PROFILES PERSISTENCE MANAGER */}
-                <h5 className="td-drawer-section-title" style={{ marginTop: '22px' }}>Manajemen Profil Tersimpan</h5>
+                <h5 className="td-drawer-section-title" style={{ marginTop: '22px' }}>{t('ui.generated.manajemen_profil_tersimpan_31a53ba')}</h5>
                 <div className="td-profile-mgr-card">
                   <div className="td-profile-row">
                     {/* CUSTOM GLASSMORPHIC PROFILE SELECTOR */}
@@ -3387,8 +3387,8 @@ export function TransferSettingsWorkspace({
                           <Bookmark size={15} className="td-trigger-icon" />
                           <span className="td-trigger-text">
                             {selectedProfileId
-                              ? profiles.find((p) => p.id === selectedProfileId)?.name || 'Profil Kustom'
-                              : t('speedtest.transfer_profiles_new', '+ Buat Profil Baru')}
+                              ? profiles.find((p) => p.id === selectedProfileId)?.name || t('ui.generated.profil_kustom_bade686')
+                              : t('speedtest.transfer_profiles_new')}
                           </span>
                         </div>
                         <ChevronDown size={14} className={`td-trigger-chevron ${isDropdownOpen ? 'is-open' : ''}`} />
@@ -3408,7 +3408,7 @@ export function TransferSettingsWorkspace({
                               }}
                             >
                               <Plus size={14} className="td-opt-icon" />
-                              <span>{t('speedtest.transfer_profiles_new', '+ Buat Profil Baru')}</span>
+                              <span>{t('speedtest.transfer_profiles_new')}</span>
                             </div>
 
                             <div className="td-select-divider" />
@@ -3433,7 +3433,7 @@ export function TransferSettingsWorkspace({
                                   );
                                 })
                               ) : (
-                                <div className="td-select-empty">Belum ada profil tersimpan</div>
+                                <div className="td-select-empty">{t('ui.generated.belum_ada_profil_tersimpan_1f0da59')}</div>
                               )}
                             </div>
                           </div>
@@ -3448,7 +3448,7 @@ export function TransferSettingsWorkspace({
                         maxLength={80}
                         disabled={!!transferActive}
                         onChange={(e) => setProfileName(e.target.value)}
-                        placeholder={t('speedtest.transfer_profiles_name', 'Nama Profil')}
+                        placeholder={t('speedtest.transfer_profiles_name')}
                         className="td-modern-profile-input"
                       />
                     </div>
@@ -3464,7 +3464,7 @@ export function TransferSettingsWorkspace({
                       }}
                       disabled={!!transferActive || !profileName.trim()}
                     >
-                      <Save size={14} /> {selectedProfileId ? 'Update Profil' : 'Simpan Profil Baru'}
+                      <Save size={14} /> {selectedProfileId ? t('ui.generated.update_profil_9912b6e') : t('ui.generated.simpan_profil_baru_aa5b30a')}
                     </button>
                     {selectedProfileId && (
                       <button
@@ -3476,7 +3476,7 @@ export function TransferSettingsWorkspace({
                         }}
                         disabled={!!transferActive}
                       >
-                        <Trash2 size={14} /> {t('speedtest.transfer_profiles_delete', 'Hapus Profil')}
+                        <Trash2 size={14} /> {t('speedtest.transfer_profiles_delete')}
                       </button>
                     )}
                   </div>
@@ -3503,7 +3503,7 @@ export function TransferSettingsWorkspace({
               className="td-chip-btn"
               onClick={() => setShowTabResetConfirm(true)}
               disabled={!!transferActive}
-              title="Kembalikan pengaturan pada bagian ini ke default"
+              title={t('ui.generated.kembalikan_pengaturan_pada_bagian_ini_ke_default_2ce753b')}
               style={{
                 borderColor: 'rgba(56, 189, 248, 0.35)',
                 color: '#38bdf8',
@@ -3511,13 +3511,13 @@ export function TransferSettingsWorkspace({
               }}
             >
               <RotateCcw size={13} />
-              <span>Reset {subMenuCategories.find((c) => c.id === activeTab)?.label || 'Pengaturan'} Saja</span>
+              <span>{t('speedtest.label_rotate_reset')} {subMenuCategories.find((c) => c.id === activeTab)?.label || t('ui.generated.pengaturan_3fcdc1c')} {t('ui.generated.saja_ad2a6e7')}</span>
             </button>
           )}
 
           {onClose && (
             <button type="button" className="td-chip-btn td-chip-primary" onClick={onClose}>
-              {t('speedtest.topbar_close', 'Selesai')}
+              {t('speedtest.topbar_close')}
             </button>
           )}
         </div>
@@ -3528,10 +3528,10 @@ export function TransferSettingsWorkspace({
         <div className="td-xfer-confirm-overlay" role="presentation" onClick={() => setShowTabResetConfirm(false)}>
           <div className="td-xfer-confirm-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <AlertTriangle size={26} className="td-confirm-icon" style={{ color: '#f87171' }} />
-            <h4>Reset Pengaturan Sub-menu Ini?</h4>
+            <h4>{t('ui.generated.reset_pengaturan_sub_menu_ini_81897b1')}</h4>
             <p>
-              Apakah Anda yakin ingin mengembalikan seluruh konfigurasi pada bagian{' '}
-              <strong>{subMenuCategories.find((c) => c.id === activeTab)?.label || 'Sub-menu'}</strong> ke default pabrik?
+              {t('ui.generated.apakah_anda_yakin_ingin_mengembalikan_seluruh_ko_6e227a4')}{' '}
+              <strong>{subMenuCategories.find((c) => c.id === activeTab)?.label || t('ui.generated.sub_menu_db25b1c')}</strong> {t('ui.generated.ke_default_pabrik_d9354c3')}
             </p>
             <div className="td-confirm-actions">
               <button
@@ -3545,7 +3545,7 @@ export function TransferSettingsWorkspace({
                   fontWeight: 600,
                 }}
               >
-                {t('speedtest.topbar_cancel', 'Batal')}
+                {t('speedtest.topbar_cancel')}
               </button>
               <button
                 type="button"
@@ -3563,7 +3563,7 @@ export function TransferSettingsWorkspace({
                   boxShadow: '0 4px 14px rgba(239, 68, 68, 0.35)',
                 }}
               >
-                Ya, Reset Pengaturan Ini
+                {t('ui.generated.ya_reset_pengaturan_ini_70ef71e')}
               </button>
             </div>
           </div>
@@ -3575,8 +3575,8 @@ export function TransferSettingsWorkspace({
         <div className="td-xfer-confirm-overlay" role="presentation" onClick={() => setShowResetConfirm(false)}>
           <div className="td-xfer-confirm-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <AlertTriangle size={26} className="td-confirm-icon" style={{ color: '#ef4444' }} />
-            <h4>Reset Total Semua Pengaturan System?</h4>
-            <p>Seluruh draf pengaturan transfer pada semua sub-menu akan dikembalikan ke nilai default pabrik.</p>
+            <h4>{t('ui.generated.reset_total_semua_pengaturan_system_d650e3b')}</h4>
+            <p>{t('ui.generated.seluruh_draf_pengaturan_transfer_pada_semua_sub__5a01241')}</p>
             <div className="td-confirm-actions">
               <button
                 type="button"
@@ -3589,7 +3589,7 @@ export function TransferSettingsWorkspace({
                   fontWeight: 600,
                 }}
               >
-                {t('speedtest.topbar_cancel', 'Batal')}
+                {t('speedtest.topbar_cancel')}
               </button>
               <button
                 type="button"
@@ -3606,7 +3606,7 @@ export function TransferSettingsWorkspace({
                   boxShadow: '0 4px 14px rgba(239, 68, 68, 0.35)',
                 }}
               >
-                {t('speedtest.btn_reset_default', 'Ya, Reset Total Default')}
+                {t('speedtest.btn_reset_default')}
               </button>
             </div>
           </div>
@@ -3618,18 +3618,18 @@ export function TransferSettingsWorkspace({
         <div className="td-xfer-confirm-overlay" role="presentation">
           <div className="td-xfer-confirm-modal" role="dialog" aria-modal="true">
             <AlertTriangle size={24} className="td-confirm-icon" />
-            <h4>{t('speedtest.unsaved_profile_title', 'Buang Perubahan Saat Ini?')}</h4>
-            <p>{t('speedtest.unsaved_profile_desc', 'Anda memiliki perubahan draf yang belum disimpan. Memuat profil akan membuang perubahan ini.')}</p>
+            <h4>{t('speedtest.unsaved_profile_title')}</h4>
+            <p>{t('speedtest.unsaved_profile_desc')}</p>
             <div className="td-confirm-actions">
               <button type="button" className="td-chip-btn" onClick={() => setPendingProfileLoad(null)}>
-                {t('speedtest.keep_editing', 'Batal')}
+                {t('speedtest.keep_editing')}
               </button>
               <button
                 type="button"
                 className="td-chip-btn td-chip-danger"
                 onClick={() => executeLoadProfile(pendingProfileLoad)}
               >
-                {t('speedtest.discard_changes', 'Buang & Muat Profil')}
+                {t('speedtest.discard_changes')}
               </button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import i18n from 'i18next';
 import { createPortal } from 'react-dom';
 import { X, Settings, Database, Filter, Sliders, Shield } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface JobDetailsModalProps {
   job: any;
@@ -9,6 +10,7 @@ interface JobDetailsModalProps {
 }
 
 export function JobDetailsModal({ job, fallbackTriggered, onClose }: JobDetailsModalProps) {
+  const { t } = useTranslation();
   let config: any = {};
   try {
     if (typeof job.config_json === 'string') {
@@ -35,9 +37,9 @@ export function JobDetailsModal({ job, fallbackTriggered, onClose }: JobDetailsM
         <div className="modal-header">
           <h3 style={{ margin: 0, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flexWrap: 'wrap' }}>
             <Settings size={20} color="var(--primary)" style={{ flexShrink: 0 }} />
-            Job Configuration Details
+            {t('ui.generated.job_configuration_details_332db71')}
           </h3>
-          <button type="button" onClick={onClose} className="btn-tertiary" aria-label="Close">
+          <button type="button" onClick={onClose} className="btn-tertiary" aria-label={t('speedtest.preview_close_btn')}>
             <X size={20} />
           </button>
         </div>
@@ -45,47 +47,47 @@ export function JobDetailsModal({ job, fallbackTriggered, onClose }: JobDetailsM
         <div className="modal-body" style={{ padding: 'clamp(1rem, 3vw, 1.5rem)' }}>
           <div style={{ marginBottom: '24px' }}>
             <h4 style={{ color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 12px 0' }}>
-              <Database size={16} /> General Info
+              <Database size={16} /> {t('ui.generated.general_info_a1fd58a')}
             </h4>
             <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <DetailItem label="Job ID" value={job.id} />
-              <DetailItem label="Job Name" value={job.job_name} />
-              <DetailItem label="Profile / Session" value={job.profile_name || config.session} />
-              <DetailItem label="Mode" value={
+              <DetailItem label={t('ui.generated.job_id_7707976')} value={job.id} />
+              <DetailItem label={t('jobs.col_job_name')} value={job.job_name} />
+              <DetailItem label={t('ui.generated.profile_session_0adb384')} value={job.profile_name || config.session} />
+              <DetailItem label={t('speedtest.mode_label')} value={
                 fallbackTriggered 
                   ? <span style={{ color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '4px' }} title={i18n.t("jobs.chat_restrictions_fallback")}><Shield size={14} /> {i18n.t("jobs.fallback_clean_copy_label")}</span>
                   : (job.transfer_mode || config.mode)
               } />
-              <DetailItem label="Created At" value={job.created_at} />
+              <DetailItem label={t('ui.generated.created_at_5db1542')} value={job.created_at} />
             </div>
           </div>
 
           <div style={{ marginBottom: '24px' }}>
             <h4 style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 12px 0' }}>
-              <Sliders size={16} /> Transfer Settings
+              <Sliders size={16} /> {t('speedtest.tools_tab_settings')}
             </h4>
             <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <DetailItem label="Fetch Direction" value={config.fetchDirection || config.fetch_direction || 'Newest First'} />
-              <DetailItem label="Limit" value={config.limit === 0 ? 'Unlimited' : config.limit} />
-              <DetailItem label="Duplicate Action" value={config.dupAction || config.duplicate_action || 'Skip'} />
-              <DetailItem label="Delay Range (Seconds)" value={`${config.delayMin || config.delay_min || 2} - ${config.delayMax || config.delay_max || 5}`} />
-              <DetailItem label="Album Handling" value={config.albumHandling || config.album_handling || 'Follow Source'} />
-              <DetailItem label="Auto Fallback" value={config.autoFallback !== false ? 'Enabled' : 'Disabled'} />
+              <DetailItem label={t('ui.generated.fetch_direction_d73cc40')} value={config.fetchDirection || config.fetch_direction || 'Newest First'} />
+              <DetailItem label={t('ui.generated.limit_24d948e')} value={config.limit === 0 ? 'Unlimited' : config.limit} />
+              <DetailItem label={t('dashboard.dup_action')} value={config.dupAction || config.duplicate_action || 'Skip'} />
+              <DetailItem label={t('ui.generated.delay_range_seconds_00f40fd')} value={`${config.delayMin || config.delay_min || 2} - ${config.delayMax || config.delay_max || 5}`} />
+              <DetailItem label={t('ui.generated.album_handling_e2d8792')} value={config.albumHandling || config.album_handling || 'Follow Source'} />
+              <DetailItem label={t('ui.generated.auto_fallback_c567b5f')} value={config.autoFallback !== false ? 'Enabled' : 'Disabled'} />
             </div>
           </div>
 
           <div style={{ marginBottom: '24px' }}>
             <h4 style={{ color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 12px 0' }}>
-              <Filter size={16} /> Filters & Rules
+              <Filter size={16} /> {t('ui.generated.filters_rules_58de166')}
             </h4>
             <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <DetailItem label="Media Type" value={config.media || config.media_filter || 'All'} />
-              <DetailItem label="Min Size (MB)" value={config.size_min || config.size_min_mb || 0} />
-              <DetailItem label="Max Size (MB)" value={config.size_max || config.size_max_mb || 'Unlimited'} />
-              <DetailItem label="Caption Rule" value={config.captionRule || config.caption_rule || 'Keep Original'} />
-              {config.customCaption && <DetailItem label="Custom Caption" value={config.customCaption} />}
-              {(config.startDate || config.start_date) && <DetailItem label="Start Date" value={config.startDate || config.start_date} />}
-              {(config.endDate || config.end_date) && <DetailItem label="End Date" value={config.endDate || config.end_date} />}
+              <DetailItem label={t('ui.generated.media_type_622a2e5')} value={config.media || config.media_filter || 'All'} />
+              <DetailItem label={t('ui.generated.min_size_mb_ccccdd4')} value={config.size_min || config.size_min_mb || 0} />
+              <DetailItem label={t('ui.generated.max_size_mb_07368aa')} value={config.size_max || config.size_max_mb || 'Unlimited'} />
+              <DetailItem label={t('dashboard.caption_rule')} value={config.captionRule || config.caption_rule || 'Keep Original'} />
+              {config.customCaption && <DetailItem label={t('ui.generated.custom_caption_33ceba4')} value={config.customCaption} />}
+              {(config.startDate || config.start_date) && <DetailItem label={t('dashboard.start_date')} value={config.startDate || config.start_date} />}
+              {(config.endDate || config.end_date) && <DetailItem label={t('dashboard.end_date')} value={config.endDate || config.end_date} />}
             </div>
           </div>
           

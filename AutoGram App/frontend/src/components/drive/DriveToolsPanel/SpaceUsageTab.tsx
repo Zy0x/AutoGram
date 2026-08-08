@@ -36,26 +36,26 @@ export const SpaceUsageTab: React.FC<SpaceUsageTabProps> = ({
           </div>
           <div>
             <h4 className="font-semibold text-sm text-slate-100">{locationLabel}</h4>
-            <p className="text-xs text-slate-400">{totalCount.toLocaleString('id-ID')} total file terindeks</p>
+            <p className="text-xs text-slate-400">{totalCount.toLocaleString('id-ID')} {t('ui.generated.total_file_terindeks_87b2973')}</p>
           </div>
         </div>
         <div className="text-right font-mono">
           <span className="text-base font-bold text-indigo-400">{formatDriveBytes(totalBytes)}</span>
-          <p className="text-[10px] text-slate-500">Kapasitas terpakai</p>
+          <p className="text-[10px] text-slate-500">{t('speedtest.used_capacity')}</p>
         </div>
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
         <h4 className="font-semibold text-xs text-slate-300 flex items-center gap-2">
-          <PieChart size={14} className="text-indigo-400" /> Rincian Penggunaan Berdasarkan Jenis Media
+          <PieChart size={14} className="text-indigo-400" /> {t('ui.generated.rincian_penggunaan_berdasarkan_jenis_media_e669d41')}
         </h4>
 
         <div className="h-3 w-full bg-slate-950 rounded-full overflow-hidden flex">
-          <div style={{ width: `${calcPct(videoBytes)}%` }} className="bg-indigo-500" title="Video" />
-          <div style={{ width: `${calcPct(imageBytes)}%` }} className="bg-emerald-500" title="Gambar" />
-          <div style={{ width: `${calcPct(audioBytes)}%` }} className="bg-amber-500" title="Audio" />
-          <div style={{ width: `${calcPct(archiveBytes)}%` }} className="bg-purple-500" title="Arsip" />
-          <div style={{ width: `${calcPct(otherBytes)}%` }} className="bg-slate-600" title="Lainnya" />
+          <div style={{ width: `${calcPct(videoBytes)}%` }} className="bg-indigo-500" title={t('speedtest.tab_drive_videos')} />
+          <div style={{ width: `${calcPct(imageBytes)}%` }} className="bg-emerald-500" title={t('speedtest.tab_drive_images')} />
+          <div style={{ width: `${calcPct(audioBytes)}%` }} className="bg-amber-500" title={t('dashboard.filter_audio')} />
+          <div style={{ width: `${calcPct(archiveBytes)}%` }} className="bg-purple-500" title={t('speedtest.tab_drive_archives')} />
+          <div style={{ width: `${calcPct(otherBytes)}%` }} className="bg-slate-600" title={t('speedtest.cat_other')} />
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 text-xs">

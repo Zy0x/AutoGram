@@ -26,17 +26,17 @@ export const AccountSessionSection: React.FC<AccountSessionSectionProps> = ({
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
       <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-3">
         <ShieldCheck size={18} className="text-emerald-400" />
-        Kredensial API Telegram (API ID &amp; API Hash)
+        {t('ui.generated.kredensial_api_telegram_api_id_api_hash_a9eae53')}
       </h3>
 
       <p className="text-xs text-slate-400">
-        API ID dan API Hash digunakan oleh Grammers (Rust MTProto) untuk mengotentikasi koneksi langsung ke server Telegram.
+        {t('ui.generated.api_id_dan_api_hash_digunakan_oleh_grammers_rust_d74bf8e')}
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-semibold text-slate-300 mb-1">
-            API ID Telegram
+            {t('nav.api_id_label')}
           </label>
           <input
             type="text"
@@ -49,7 +49,7 @@ export const AccountSessionSection: React.FC<AccountSessionSectionProps> = ({
 
         <div>
           <label className="block text-xs font-semibold text-slate-300 mb-1">
-            API Hash Telegram
+            {t('nav.api_hash_label')}
           </label>
           <input
             type="password"
@@ -80,7 +80,7 @@ export const AccountSessionSection: React.FC<AccountSessionSectionProps> = ({
           onClick={onSaveCredentials}
           className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2"
         >
-          {isSaving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />} Simpan Kredensial
+          {isSaving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />} {t('settings.save_credentials')}
         </button>
       </div>
     </div>

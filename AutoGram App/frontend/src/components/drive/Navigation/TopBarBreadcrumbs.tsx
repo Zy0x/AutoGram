@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronRight, Home, Folder, MessageSquare, Hash } from 'lucide-react';
 import type { DriveFolder } from '../../../lib/telegram/driveTypes';
+import { useTranslation } from 'react-i18next';
 
 export interface TopBarBreadcrumbsProps {
   locationKind: 'drive' | 'saved' | 'chat';
@@ -19,6 +20,7 @@ export const TopBarBreadcrumbs: React.FC<TopBarBreadcrumbsProps> = ({
   topicId,
   topicTitle,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-1.5 overflow-x-auto text-xs select-none no-scrollbar">
       <button
@@ -28,15 +30,15 @@ export const TopBarBreadcrumbs: React.FC<TopBarBreadcrumbsProps> = ({
       >
         {locationKind === 'saved' ? (
           <>
-            <Home size={14} className="text-amber-400" /> Saved Messages
+            <Home size={14} className="text-amber-400" /> {t('speedtest.saved_messages')}
           </>
         ) : locationKind === 'chat' ? (
           <>
-            <MessageSquare size={14} className="text-emerald-400" /> Chat Telegram
+            <MessageSquare size={14} className="text-emerald-400" /> {t('speedtest.zip_dest_chat')}
           </>
         ) : (
           <>
-            <Folder size={14} className="text-indigo-400" /> Drive Root
+            <Folder size={14} className="text-indigo-400" /> {t('speedtest.drive_root')}
           </>
         )}
       </button>

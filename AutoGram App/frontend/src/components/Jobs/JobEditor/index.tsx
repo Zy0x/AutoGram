@@ -253,7 +253,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
   const fetchDialogs = async (target: 'source'|'dest', folderId?: number) => {
     const session = selectedSession;
     if (!session) {
-      alert(t('dashboard.no_active_session') || 'No active sessions available');
+      alert(t('dashboard.no_active_session') || t('ui.generated.no_active_sessions_available_b9ed3c8'));
       return;
     }
 
@@ -279,7 +279,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
       if (!apiId || !apiHash) {
         alert(
           t('accounts.error_api_required') ||
-            'API ID/Hash belum terisi. Buka Settings dan simpan credentials dulu.'
+            t('ui.generated.api_id_hash_belum_terisi_buka_settings_dan_simpa_9ccf412')
         );
         setIsModalOpen(false);
         setIsLoadingDialogs(false);
@@ -352,7 +352,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
       if (!apiId || !apiHash) {
         alert(
           t('accounts.error_api_required') ||
-            'API ID/Hash belum terisi. Buka Settings dan simpan credentials dulu.'
+            t('ui.generated.api_id_hash_belum_terisi_buka_settings_dan_simpa_9ccf412')
         );
         setIsLoadingDialogs(false);
         return;
@@ -513,15 +513,15 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
 
   const startMigration = async (isDryRun = false) => {
     if (!jobName.trim()) {
-        alert("Please enter a Job Name");
+        alert(t('ui.generated.please_enter_a_job_name_546057a'));
         return;
     }
     if (!sourceValue || !destValue) {
-        alert("Source and Destination are required! Please check Step 1.");
+        alert(t('ui.generated.source_and_destination_are_required_please_check_667f1b4'));
         return;
     }
     if (!selectedSession) {
-        alert("Session is required! Please select an account in Step 1.");
+        alert(t('ui.generated.session_is_required_please_select_an_account_in__7710420'));
         return;
     }
 
@@ -595,13 +595,13 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
           <div style={{ minWidth: 0, flex: '1 1 12rem' }}>
             <h2 className="title title-with-icon" style={{ margin: '0 0 4px 0' }}>
               {initialJob ? (
-                  <><Settings size={24}/> Edit Job</>
+                  <><Settings size={24}/> {t('ui.generated.edit_job_725f1c9')}</>
               ) : (
-                  <><Plus size={24}/> Create New Job</>
+                  <><Plus size={24}/> {t('nav.tab_new_job')}</>
               )}
             </h2>
             <p className="subtitle" style={{ margin: 0 }}>
-              {initialJob ? "Update configuration for this migration job." : "Configure and run a new migration job."}
+              {initialJob ? t('ui.generated.update_configuration_for_this_migration_job_088bfed') : t('ui.generated.configure_and_run_a_new_migration_job_1f894d7')}
             </p>
           </div>
           <div className="job-editor-tools">
@@ -655,13 +655,13 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                       disabled={!newJobProfileName.trim() || (!jobName.trim() && !sourceValue.trim() && !destValue.trim())}
                       title={(!jobName.trim() && !sourceValue.trim() && !destValue.trim()) ? t("jobs.fill_config_fields") : t("jobs.save_config_profile")}
                     >
-                      <Save size={16} /> Save
+                      <Save size={16} /> {t('speedtest.btn_save')}
                     </button>
                   </div>
                 </>
               )}
             </div>
-            <button type="button" className="btn btn-secondary" onClick={onCancel}><X size={18} /> Cancel</button>
+            <button type="button" className="btn btn-secondary" onClick={onCancel}><X size={18} /> {t('accounts.cancel')}</button>
           </div>
         </div>
         
@@ -670,7 +670,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
             <div key={step} className="stepper-item">
               <div className={`stepper-bar ${step <= currentStep ? 'active' : 'inactive'}`}></div>
               <span className={`stepper-text ${step === currentStep ? 'active' : 'inactive'}`}>
-                {step === 1 ? 'Identity' : step === 2 ? 'Filters' : step === 3 ? 'Rules' : 'Review'}
+                {step === 1 ? t('ui.generated.identity_7e5a975') : step === 2 ? t('ui.generated.filters_96e5782') : step === 3 ? t('ui.generated.rules_bb11a8e') : t('ui.generated.review_e29a79f')}
               </span>
             </div>
           ))}
@@ -681,16 +681,16 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
         {/* STEP 1: IDENTITY */}
         <div style={{ display: currentStep >= 1 ? 'block' : 'none', flex: currentStep === 1 ? 1 : 'none', animation: 'fadeIn 0.3s ease-in-out' }}>
           <div className="card glass-panel" style={{ marginBottom: '24px' }}>
-            <h3 className="section-title" style={{ marginBottom: '24px' }}>Job Identity</h3>
+            <h3 className="section-title" style={{ marginBottom: '24px' }}>{t('ui.generated.job_identity_8e1be1d')}</h3>
             
-            <label className="input-label" style={{ marginBottom: '8px', display: 'block' }}>Job Name <span style={{color: 'var(--danger)'}}>*</span></label>
+            <label className="input-label" style={{ marginBottom: '8px', display: 'block' }}>{t('jobs.col_job_name')} <span style={{color: 'var(--danger)'}}>*</span></label>
             <input type="text" className="input-field" placeholder={t("jobs.ph_job_name_example")} value={jobName} onChange={e => {setJobName(e.target.value); setErrors({...errors, jobName: ''});}} style={{ width: '100%', border: errors.jobName ? '1px solid var(--danger)' : undefined }} />
             {errors.jobName && <span style={{color: 'var(--danger)', fontSize: '0.85rem', marginTop: '4px', display: 'block'}}>{errors.jobName}</span>}
             <div style={{marginBottom: '24px'}}></div>
             
             <div className="grid-2-cols" style={{ gap: '24px', marginBottom: '24px' }}>
               <div className="input-group">
-                <label className="input-label">Select Session <span style={{color: 'var(--danger)'}}>*</span></label>
+                <label className="input-label">{t('ui.generated.select_session_033e135')} <span style={{color: 'var(--danger)'}}>*</span></label>
                 <Select 
                   options={[
                     {value: '', label: '-- Select Active Session --'},
@@ -704,16 +704,16 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                   }}
                 />
                 {errors.selectedSession && <span className="error-text">{errors.selectedSession}</span>}
-                {sessions.length === 0 && <span className="warning-text" style={{marginTop: '4px', display: 'block', fontSize: '0.8rem'}}>No active sessions found. Add one in Auth page.</span>}
+                {sessions.length === 0 && <span className="warning-text" style={{marginTop: '4px', display: 'block', fontSize: '0.8rem'}}>{t('ui.generated.no_active_sessions_found_add_one_in_auth_page_092e936')}</span>}
               </div>
             </div>
 
             <div className="grid-2-cols" style={{ gap: '24px' }}>
               <div className="input-group">
                 <label className="input-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Source (From) <span style={{color: 'var(--danger)'}}>*</span></span>
+                  <span>{t('ui.generated.source_from_72bb312')} <span style={{color: 'var(--danger)'}}>*</span></span>
                   <button type="button" className="btn-search" onClick={(e) => { e.preventDefault(); setModalTarget('source'); fetchDialogs('source'); }}>
-                    <Search size={14} style={{marginRight: '6px'}}/> Browse
+                    <Search size={14} style={{marginRight: '6px'}}/> {t('ui.generated.browse_2f3b5c5')}
                   </button>
                 </label>
                 <div style={{ position: 'relative', display: 'flex', width: '100%' }}>
@@ -730,14 +730,14 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
               </div>
               <div className="input-group">
                 <label className="input-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Destination (To) <span style={{color: 'var(--danger)'}}>*</span></span>
+                  <span>{t('ui.generated.destination_to_2778fe5')} <span style={{color: 'var(--danger)'}}>*</span></span>
                   <button type="button" className="btn-search" onClick={(e) => { e.preventDefault(); setModalTarget('dest'); fetchDialogs('dest'); }}>
-                    <Search size={14} style={{marginRight: '6px'}}/> Browse
+                    <Search size={14} style={{marginRight: '6px'}}/> {t('ui.generated.browse_2f3b5c5')}
                   </button>
                 </label>
                 <div style={{ position: 'relative', display: 'flex', width: '100%' }}>
                   <FolderGit2 className="input-icon" size={18} />
-                  <input type="text" className="input-field with-icon" style={{ flex: 1, border: errors.destValue ? '1px solid var(--danger)' : undefined }} value={destValue} onChange={(e) => {setDestValue(e.target.value); setDestName(""); setErrors({...errors, destValue: ''});}} placeholder="Channel/Group ID or Username" />
+                  <input type="text" className="input-field with-icon" style={{ flex: 1, border: errors.destValue ? '1px solid var(--danger)' : undefined }} value={destValue} onChange={(e) => {setDestValue(e.target.value); setDestName(""); setErrors({...errors, destValue: ''});}} placeholder={t('jobs.ph_chat_id_or_username')} />
                 </div>
                 {destName && !errors.destValue && (
                   <div style={{ marginTop: '8px', display: 'inline-flex', alignItems: 'center', background: 'rgba(255, 174, 0, 0.1)', padding: '4px 12px', borderRadius: '12px', color: 'var(--primary)', fontSize: '0.85rem', fontWeight: 600 }}>
@@ -754,26 +754,26 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
         {/* STEP 2: FILTERS */}
         <div ref={step2Ref} style={{ display: currentStep >= 2 ? 'block' : 'none', flex: currentStep === 2 ? 1 : 'none', animation: 'fadeIn 0.3s ease-in-out' }}>
           <div className="card glass-panel" style={{ marginBottom: '1.5rem' }}>
-            <h3 className="section-title" style={{ marginBottom: '24px' }}>Data Filters & Mode</h3>
+            <h3 className="section-title" style={{ marginBottom: '24px' }}>{t('ui.generated.data_filters_mode_c05c474')}</h3>
             
             <div style={{ marginBottom: '32px' }}>
               <label className="input-label" style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
-                Transfer Mode
+                {t('dashboard.transfer_mode')}
                 <InfoTooltip content="Pilih mode eksekusi engine. Berpengaruh pada kecepatan dan jejak migrasi." />
               </label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div onClick={() => setMode('Fast Forward')} style={{ padding: '16px', borderRadius: '12px', border: mode === 'Fast Forward' ? '2px solid var(--primary)' : '1px solid var(--border)', background: mode === 'Fast Forward' ? 'rgba(255, 174, 0, 0.05)' : 'transparent', cursor: 'pointer', transition: 'all 0.2s ease' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                     <input type="radio" checked={mode === 'Fast Forward'} readOnly style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }} />
-                    <span style={{ fontWeight: 600, fontSize: '1.05rem', color: mode === 'Fast Forward' ? 'var(--primary)' : 'inherit' }}>⚡ Fast Forward — Maximum Speed</span>
+                    <span style={{ fontWeight: 600, fontSize: '1.05rem', color: mode === 'Fast Forward' ? 'var(--primary)' : 'inherit' }}>{t('ui.generated.fast_forward_maximum_speed_bbca04c')}</span>
                   </div>
                   <div style={{ paddingLeft: '30px', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
                     <ul style={{ margin: 0, paddingLeft: '20px', listStyleType: 'square' }}>
-                      <li>Native Telegram forward (tercepat) + batch album</li>
-                      <li>Caption &amp; album utuh; reply hanya jika pesan terkait ikut di-forward</li>
+                      <li>{t('ui.generated.native_telegram_forward_tercepat_batch_album_737201c')}</li>
+                      <li>{t('ui.generated.caption_album_utuh_reply_hanya_jika_pesan_terkai_c36afb8')}</li>
                       <li>{t('jobs.job_editor_features')}</li>
-                      <li><strong>Kelemahan:</strong> jejak &quot;Forwarded from…&quot; selalu ada (API)</li>
-                      <li><strong>Cocok untuk:</strong> backup pribadi / arsip cepat; channel restricted → Auto-Fallback ke Clean Copy</li>
+                      <li><strong>{t('ui.generated.kelemahan_2acb1a1')}</strong> {t('ui.generated.jejak_forwarded_from_selalu_ada_api_bc6ef9b')}</li>
+                      <li><strong>{t('ui.generated.cocok_untuk_da3ef08')}</strong> {t('ui.generated.backup_pribadi_arsip_cepat_channel_restricted_au_f320830')}</li>
                     </ul>
                   </div>
                 </div>
@@ -781,13 +781,13 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                 <div onClick={() => setMode('Clean Copy')} style={{ padding: '16px', borderRadius: '12px', border: mode === 'Clean Copy' ? '2px solid var(--primary)' : '1px solid var(--border)', background: mode === 'Clean Copy' ? 'rgba(255, 174, 0, 0.05)' : 'transparent', cursor: 'pointer', transition: 'all 0.2s ease' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                     <input type="radio" checked={mode === 'Clean Copy'} readOnly style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }} />
-                    <span style={{ fontWeight: 600, fontSize: '1.05rem', color: mode === 'Clean Copy' ? 'var(--primary)' : 'inherit' }}>🚀 / 🛡️ Clean Copy</span>
+                    <span style={{ fontWeight: 600, fontSize: '1.05rem', color: mode === 'Clean Copy' ? 'var(--primary)' : 'inherit' }}>{t('ui.generated.clean_copy_4241b91')}</span>
                   </div>
                   <div style={{ paddingLeft: '30px', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
                     <ul style={{ margin: 0, paddingLeft: '20px', listStyleType: 'square' }}>
-                      <li>Tanpa jejak "Forwarded from..." (Stealth)</li>
+                      <li>{t('ui.generated.tanpa_jejak_forwarded_from_stealth_964ada6')}</li>
                       <li>{t('jobs.job_editor_custom')}</li>
-                      <li>Lebih lambat dari Fast Forward</li>
+                      <li>{t('ui.generated.lebih_lambat_dari_fast_forward_4d874d0')}</li>
                     </ul>
                   </div>
 
@@ -796,15 +796,15 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                       <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', padding: '12px', borderRadius: '8px', border: cleanCopySubMode === 'Speed' ? '1px solid var(--primary)' : '1px solid var(--border)', background: cleanCopySubMode === 'Speed' ? 'rgba(255, 174, 0, 0.05)' : 'transparent' }} onClick={(e) => { e.stopPropagation(); setCleanCopySubMode('Speed'); }}>
                         <input type="radio" checked={cleanCopySubMode === 'Speed'} readOnly style={{ accentColor: 'var(--primary)' }} />
                         <div>
-                          <strong style={{ color: cleanCopySubMode === 'Speed' ? 'var(--primary)' : 'inherit' }}>🚀 Speed (Batch & Reuse ID)</strong>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Lebih cepat. Upload batch album & File ID Reuse.</div>
+                          <strong style={{ color: cleanCopySubMode === 'Speed' ? 'var(--primary)' : 'inherit' }}>{t('ui.generated.speed_batch_reuse_id_b865c8d')}</strong>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('ui.generated.lebih_cepat_upload_batch_album_file_id_reuse_2550e24')}</div>
                         </div>
                       </label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', padding: '12px', borderRadius: '8px', border: cleanCopySubMode === 'Safe' ? '1px solid var(--primary)' : '1px solid var(--border)', background: cleanCopySubMode === 'Safe' ? 'rgba(255, 174, 0, 0.05)' : 'transparent' }} onClick={(e) => { e.stopPropagation(); setCleanCopySubMode('Safe'); }}>
                         <input type="radio" checked={cleanCopySubMode === 'Safe'} readOnly style={{ accentColor: 'var(--primary)' }} />
                         <div>
-                          <strong style={{ color: cleanCopySubMode === 'Safe' ? 'var(--primary)' : 'inherit' }}>🛡️ Safe (Sequential Output)</strong>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Integritas & stabilitas tinggi. Custom Caption penuh.</div>
+                          <strong style={{ color: cleanCopySubMode === 'Safe' ? 'var(--primary)' : 'inherit' }}>{t('ui.generated.safe_sequential_output_d07923e')}</strong>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('ui.generated.integritas_stabilitas_tinggi_custom_caption_penu_fb76583')}</div>
                         </div>
                       </label>
                     </div>
@@ -818,7 +818,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
               {mode === 'Clean Copy' && (
                 <div className="input-group">
                   <label className="input-label" style={{ display: 'flex', alignItems: 'center' }}>
-                    Quality Mode (Enterprise)
+                    {t('ui.generated.quality_mode_enterprise_ccaea79')}
                     <InfoTooltip content="SMART: Auto-selects based on file type. ORIGINAL: Byte-for-byte exact. HIGH_QUALITY: Best native output." />
                   </label>
                   <Select 
@@ -837,7 +837,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                 <>
                   <div className="input-group">
                     <label className="input-label" style={{ display: 'flex', alignItems: 'center' }}>
-                      Hardware Re-encode (GPU)
+                      {t('speedtest.hardware_reencode')}
                       <InfoTooltip content="Pilih akselerasi GPU (NVENC/AMF/QSV) untuk kecepatan re-encode maksimal." />
                     </label>
                     <Select 
@@ -854,7 +854,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                   </div>
                   <div className="input-group">
                     <label className="input-label" style={{ display: 'flex', alignItems: 'center' }}>
-                      Mode Re-encode
+                      {t('speedtest.reencode_mode')}
                       <InfoTooltip content="Pilih profil untuk kecepatan proses re-encode (Handbrake-style)." />
                     </label>
                     <Select 
@@ -872,7 +872,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
 
               <div className="input-group">
                 <label className="input-label" style={{ display: 'flex', alignItems: 'center' }}>
-                  Fetch Direction
+                  {t('ui.generated.fetch_direction_d73cc40')}
                   <InfoTooltip content="Pilih apakah pesan akan disalin dari yang Terbaru atau dari yang Terlama." />
                 </label>
                 <Select 
@@ -890,7 +890,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                     <input type="checkbox" checked={enableLimit} onChange={e => setEnableLimit(e.target.checked)} />
                     <span className="toggle-slider"></span>
                   </label>
-                  <span>Media Limit</span>
+                  <span>{t('ui.generated.media_limit_d54fc2c')}</span>
                   <InfoTooltip content="Membatasi jumlah maksimal media yang akan ditransfer dalam satu sesi eksekusi. Gunakan angka 0 untuk transfer tanpa batas (Unlimited)." />
                 </div>
                 <input type="number" value={limit} onChange={(e) => setLimit(e.target.value === '' ? '' : Number(e.target.value))} className="input-field" placeholder={t("jobs.ph_zero_unlimited")} style={{ width: '100%', opacity: enableLimit ? 1 : 0.5 }} disabled={!enableLimit} />
@@ -937,7 +937,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
               
               <div className="input-group">
                 <label className="input-label" style={{ display: 'flex', alignItems: 'center', marginBottom: '14px' }}>
-                  Album / Grouped Media
+                  {t('ui.generated.album_grouped_media_eec1496')}
                   <InfoTooltip content="Choose how to handle grouped media/albums." />
                 </label>
                 <Select 
@@ -950,7 +950,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                   onChange={(v: any) => setAlbumHandling(v)}
                   disabled={mode === 'Fast Forward'}
                 />
-                {mode === 'Fast Forward' && <span style={{fontSize: '0.8rem', color: 'var(--text-muted)'}}>* Fast Forward always preserves albums natively.</span>}
+                {mode === 'Fast Forward' && <span style={{fontSize: '0.8rem', color: 'var(--text-muted)'}}>{t('ui.generated.fast_forward_always_preserves_albums_natively_0f9a81a')}</span>}
               </div>
 
               <div className="input-group col-span-full">
@@ -964,11 +964,11 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>Start Date</label>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>{t('dashboard.start_date')}</label>
                     <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="input-field" style={{ width: '100%', opacity: enableDateFilter ? 1 : 0.5 }} disabled={!enableDateFilter} />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>End Date</label>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>{t('dashboard.end_date')}</label>
                     <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="input-field" style={{ width: '100%', opacity: enableDateFilter ? 1 : 0.5 }} disabled={!enableDateFilter} />
                   </div>
                 </div>
@@ -980,7 +980,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
         {/* STEP 3: RULES */}
         <div ref={step3Ref} style={{ display: currentStep >= 3 ? 'block' : 'none', flex: currentStep === 3 ? 1 : 'none', animation: 'fadeIn 0.3s ease-in-out' }}>
           <div className="card glass-panel" style={{ marginBottom: '1.5rem' }}>
-            <h3 className="section-title" style={{ marginBottom: '24px' }}>Rules & Behaviors</h3>
+            <h3 className="section-title" style={{ marginBottom: '24px' }}>{t('ui.generated.rules_behaviors_d55d1de')}</h3>
             
             <div className="grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <div className="input-group">
@@ -989,10 +989,10 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                     <input type="checkbox" checked={enableCaptionRule} onChange={e => setEnableCaptionRule(e.target.checked)} disabled={mode === 'Fast Forward'} />
                     <span className="toggle-slider"></span>
                   </label>
-                  <span style={{ opacity: mode === 'Fast Forward' ? 0.5 : 1 }}>Caption Rule</span>
+                  <span style={{ opacity: mode === 'Fast Forward' ? 0.5 : 1 }}>{t('dashboard.caption_rule')}</span>
                   <InfoTooltip content={t('dashboard.tooltip_caption_rule') || 'Modify or remove text captions from media messages.'} />
                 </div>
-                {mode === 'Fast Forward' && <span style={{fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px', display: 'block'}}>* Not supported in Fast Forward mode.</span>}
+                {mode === 'Fast Forward' && <span style={{fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px', display: 'block'}}>{t('ui.generated.not_supported_in_fast_forward_mode_dfecae6')}</span>}
                 <Select 
                   options={[{value: 'remove', label: 'Remove'}, {value: 'strip_links', label: 'Strip Links'}, {value: 'custom', label: 'Custom'}]}
                   value={captionRule}
@@ -1006,7 +1006,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                     style={{ width: '100%', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px' }}
                   >
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '85%', color: customCaption ? 'var(--text-main)' : 'var(--text-muted)' }}>
-                      {customCaption ? customCaption : 'Set Custom Template...'}
+                      {customCaption ? customCaption : t('ui.generated.set_custom_template_fbc0514')}
                     </span>
                     <span style={{ fontSize: '1.1rem', color: 'var(--text-muted)' }}>✎</span>
                   </button>
@@ -1019,7 +1019,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                     <input type="checkbox" checked={enableDupAction} onChange={e => setEnableDupAction(e.target.checked)} />
                     <span className="toggle-slider"></span>
                   </label>
-                  <span>Duplicate Action</span>
+                  <span>{t('dashboard.dup_action')}</span>
                   <InfoTooltip content={t('dashboard.tooltip_disable_dup') || 'Decide what to do if a message already exists in the destination.'} />
                 </div>
                 <Select 
@@ -1040,7 +1040,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                     <input type="checkbox" className="warning-toggle" checked={enableThrottle} onChange={e => setEnableThrottle(e.target.checked)} />
                     <span className="toggle-slider"></span>
                   </label>
-                  <span className="warning-text">Enable Throttle</span>
+                  <span className="warning-text">{t('ui.generated.enable_throttle_9e9cf78')}</span>
                   <InfoTooltip content={t('dashboard.tooltip_throttle') || 'Add a delay between messages to prevent being banned by Telegram for spam.'} />
                 </div>
                 {enableThrottle && (
@@ -1048,7 +1048,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                     <input type="number" value={delayMin} onChange={(e) => setDelayMin(e.target.value === '' ? '' : Number(e.target.value))} className="input-field" style={{ width: '70px', padding: '6px' }} />
                     <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>-</span>
                     <input type="number" value={delayMax} onChange={(e) => setDelayMax(e.target.value === '' ? '' : Number(e.target.value))} className="input-field" style={{ width: '70px', padding: '6px' }} />
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>s</span>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t('ui.generated.s_a0f1490')}</span>
                   </div>
                 )}
               </div>
@@ -1059,13 +1059,13 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                     <input type="checkbox" className="danger-toggle" checked={autoFallback} onChange={(e) => setAutoFallback(e.target.checked)} />
                     <span className="toggle-slider"></span>
                   </label>
-                  <span className="danger-text">Auto-Fallback</span>
+                  <span className="danger-text">{t('ui.generated.auto_fallback_f183b06')}</span>
                   <InfoTooltip content={t('dashboard.tooltip_fallback') || 'Jika Fast Forward diblokir (noforwards / restricted), otomatis beralih ke Clean Copy (Enterprise).'} />
                 </div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>
                   {mode === 'Fast Forward'
-                    ? 'Jika forward diblokir Telegram, job beralih ke Clean Copy (Enterprise). Matikan untuk gagal tegas.'
-                    : 'Hanya relevan untuk Fast Forward. Clean Copy tidak memerlukan fallback mode.'}
+                    ? t('ui.generated.jika_forward_diblokir_telegram_job_beralih_ke_cl_c1e4fb7')
+                    : t('ui.generated.hanya_relevan_untuk_fast_forward_clean_copy_tida_d6003aa')}
                 </p>
               </div>
 
@@ -1075,10 +1075,10 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                     <input type="checkbox" checked={hideTrace} onChange={e => setHideTrace(e.target.checked)} disabled={mode === 'Fast Forward'} />
                     <span className="toggle-slider"></span>
                   </label>
-                  <span style={{ opacity: mode === 'Fast Forward' ? 0.5 : 1 }}>Hide "Forwarded from" trace</span>
+                  <span style={{ opacity: mode === 'Fast Forward' ? 0.5 : 1 }}>{t('ui.generated.hide_forwarded_from_trace_8e32d0a')}</span>
                   <InfoTooltip content="Removes the 'Forwarded from' tag when messages are forwarded." />
                 </div>
-                {mode === 'Fast Forward' && <span style={{fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px', display: 'block'}}>* Fast Forward API inherently leaves a forward trace. Use Clean Copy to hide it.</span>}
+                {mode === 'Fast Forward' && <span style={{fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px', display: 'block'}}>{t('ui.generated.fast_forward_api_inherently_leaves_a_forward_tra_d4b362a')}</span>}
               </div>
 
             </div>
@@ -1088,24 +1088,24 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
         {/* STEP 4: REVIEW */}
         <div ref={step4Ref} style={{ display: currentStep >= 4 ? 'block' : 'none', flex: currentStep === 4 ? 1 : 'none', animation: 'fadeIn 0.3s ease-in-out' }}>
           <div className="card glass-panel" style={{ marginBottom: '1.5rem' }}>
-            <h3 className="section-title" style={{ marginBottom: '24px' }}>Review & Execute</h3>
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '24px' }}>Please review your configuration before starting the background process.</p>
+            <h3 className="section-title" style={{ marginBottom: '24px' }}>{t('ui.generated.review_execute_5ef91ba')}</h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '24px' }}>{t('ui.generated.please_review_your_configuration_before_starting_000b4d4')}</p>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               
               {/* Identity Section */}
               <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid var(--border)', padding: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: 'var(--primary)' }}>
-                  <User size={18} /> <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-main)' }}>Job Identity</h4>
+                  <User size={18} /> <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-main)' }}>{t('ui.generated.job_identity_8e1be1d')}</h4>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                   <div>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', display: 'block', marginBottom: '4px' }}>Job Name</span>
-                    <div style={{ fontWeight: 600, fontSize: '1.05rem', color: 'var(--text-main)' }}>{jobName || <span style={{ color: 'var(--danger)', fontStyle: 'italic' }}>Missing</span>}</div>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', display: 'block', marginBottom: '4px' }}>{t('jobs.col_job_name')}</span>
+                    <div style={{ fontWeight: 600, fontSize: '1.05rem', color: 'var(--text-main)' }}>{jobName || <span style={{ color: 'var(--danger)', fontStyle: 'italic' }}>{t('ui.generated.missing_92185dc')}</span>}</div>
                   </div>
                   <div>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', display: 'block', marginBottom: '4px' }}>Session / Account</span>
-                    <div style={{ fontWeight: 600, fontSize: '1.05rem', color: 'var(--text-main)' }}>{selectedSession || <span style={{ color: 'var(--danger)', fontStyle: 'italic' }}>Missing</span>}</div>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', display: 'block', marginBottom: '4px' }}>{t('ui.generated.session_account_5bfeb4b')}</span>
+                    <div style={{ fontWeight: 600, fontSize: '1.05rem', color: 'var(--text-main)' }}>{selectedSession || <span style={{ color: 'var(--danger)', fontStyle: 'italic' }}>{t('ui.generated.missing_92185dc')}</span>}</div>
                   </div>
                 </div>
               </div>
@@ -1113,9 +1113,9 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
               {/* Routing Section */}
               <div style={{ display: 'flex', gap: '16px', alignItems: 'stretch' }}>
                 <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid var(--border)', padding: '20px', display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', display: 'block', marginBottom: '8px' }}>Source (From)</span>
-                  <div style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--text-main)', marginBottom: '4px' }}>{sourceName || (sourceValue ? 'Custom Source' : <span style={{ color: 'var(--danger)', fontStyle: 'italic' }}>Missing Source</span>)}</div>
-                  <div style={{ fontFamily: 'monospace', color: 'var(--primary)', fontSize: '0.9rem', background: 'rgba(0,0,0,0.2)', padding: '4px 8px', borderRadius: '4px', alignSelf: 'flex-start' }}>{sourceValue || 'No ID'}</div>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', display: 'block', marginBottom: '8px' }}>{t('ui.generated.source_from_72bb312')}</span>
+                  <div style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--text-main)', marginBottom: '4px' }}>{sourceName || (sourceValue ? t('ui.generated.custom_source_a841c98') : <span style={{ color: 'var(--danger)', fontStyle: 'italic' }}>{t('ui.generated.missing_source_5abce09')}</span>)}</div>
+                  <div style={{ fontFamily: 'monospace', color: 'var(--primary)', fontSize: '0.9rem', background: 'rgba(0,0,0,0.2)', padding: '4px 8px', borderRadius: '4px', alignSelf: 'flex-start' }}>{sourceValue || t('ui.generated.no_id_3882321')}</div>
                 </div>
                 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', opacity: 0.8 }}>
@@ -1123,44 +1123,44 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                 </div>
                 
                 <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid var(--border)', padding: '20px', display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', display: 'block', marginBottom: '8px' }}>Destination (To)</span>
-                  <div style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--text-main)', marginBottom: '4px' }}>{destName || (destValue ? 'Custom Destination' : <span style={{ color: 'var(--danger)', fontStyle: 'italic' }}>Missing Destination</span>)}</div>
-                  <div style={{ fontFamily: 'monospace', color: 'var(--primary)', fontSize: '0.9rem', background: 'rgba(0,0,0,0.2)', padding: '4px 8px', borderRadius: '4px', alignSelf: 'flex-start' }}>{destValue || 'No ID'}</div>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', display: 'block', marginBottom: '8px' }}>{t('ui.generated.destination_to_2778fe5')}</span>
+                  <div style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--text-main)', marginBottom: '4px' }}>{destName || (destValue ? t('ui.generated.custom_destination_42b661e') : <span style={{ color: 'var(--danger)', fontStyle: 'italic' }}>{t('ui.generated.missing_destination_b9fbf32')}</span>)}</div>
+                  <div style={{ fontFamily: 'monospace', color: 'var(--primary)', fontSize: '0.9rem', background: 'rgba(0,0,0,0.2)', padding: '4px 8px', borderRadius: '4px', alignSelf: 'flex-start' }}>{destValue || t('ui.generated.no_id_3882321')}</div>
                 </div>
               </div>
 
               {/* Filters & Rules Section */}
               <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid var(--border)', padding: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: 'var(--primary)' }}>
-                  <Settings size={18} /> <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-main)' }}>Configuration Details</h4>
+                  <Settings size={18} /> <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-main)' }}>{t('ui.generated.configuration_details_317e190')}</h4>
                 </div>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', padding: '12px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
                   
                   <div>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Mode</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>{t('speedtest.mode_label')}</span>
                     <div style={{ fontWeight: 500, color: 'var(--text-main)' }}>{mode}</div>
                   </div>
                   <div>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Message Limit</span>
-                    <div style={{ fontWeight: 500, color: 'var(--text-main)' }}>{enableLimit ? limit : 'Unlimited'}</div>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>{t('dashboard.msg_limit')}</span>
+                    <div style={{ fontWeight: 500, color: 'var(--text-main)' }}>{enableLimit ? limit : t('ui.generated.unlimited_b8bef37')}</div>
                   </div>
                   <div>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Fetch Direction</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>{t('ui.generated.fetch_direction_d73cc40')}</span>
                     <div style={{ fontWeight: 500, color: 'var(--text-main)' }}>{fetchDirection}</div>
                   </div>
 
                   <div>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Caption Rule</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>{t('dashboard.caption_rule')}</span>
                     <div style={{ fontWeight: 500, color: 'var(--text-main)' }}>{captionRule}</div>
                   </div>
                   <div>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Duplicate Action</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>{t('dashboard.dup_action')}</span>
                     <div style={{ fontWeight: 500, color: 'var(--text-main)' }}>{dupAction}</div>
                   </div>
                   <div>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Anti-Flood (Throttle)</span>
-                    <div style={{ fontWeight: 500, color: 'var(--text-main)' }}>{enableThrottle ? `${delayMin}s - ${delayMax}s Delay` : 'Disabled'}</div>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>{t('ui.generated.anti_flood_throttle_b642d38')}</span>
+                    <div style={{ fontWeight: 500, color: 'var(--text-main)' }}>{enableThrottle ? `${delayMin}s - ${delayMax}s Delay` : t('settings.debug_status_inactive')}</div>
                   </div>
 
                 </div>
@@ -1175,23 +1175,23 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
       {/* NAVIGATION BOTTOM */}
       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0 24px 0', borderTop: '1px solid var(--border)', flexShrink: 0, marginTop: 'auto', background: 'var(--bg-main)', zIndex: 10 }}>
         <button className="btn btn-secondary" onClick={handleBack} disabled={currentStep === 1} style={{ opacity: currentStep === 1 ? 0.5 : 1 }}>
-          Back
+          {t('speedtest.back_to_settings')}
         </button>
         
         {currentStep < 4 ? (
           <button className="btn btn-primary" onClick={handleNext} style={{ padding: '0 32px' }}>
-            Next Step
+            {t('ui.generated.next_step_574f02b')}
           </button>
         ) : (
           <div style={{ display: 'flex', gap: '12px' }}>
             <button className="btn btn-secondary" onClick={() => startMigration(true)} style={{ padding: '0 24px', color: 'var(--primary)', borderColor: 'var(--primary)', background: 'rgba(88, 101, 242, 0.05)' }}>
-              Dry Run
+              {t('ui.generated.dry_run_9dbf2fc')}
             </button>
             <button className="btn btn-primary" onClick={() => startMigration(false)} style={{ padding: '0 32px', background: 'var(--primary)' }}>
               {initialJob ? (
-                  <><Save size={18} style={{ marginRight: '8px' }} /> Save Changes</>
+                  <><Save size={18} style={{ marginRight: '8px' }} /> {t('ui.generated.save_changes_fa2984b')}</>
               ) : (
-                  <><Play size={18} style={{ marginRight: '8px' }} /> Start Job</>
+                  <><Play size={18} style={{ marginRight: '8px' }} /> {t('ui.generated.start_job_fbd7e08')}</>
               )}
             </button>
           </div>
@@ -1250,7 +1250,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                       }
                     >
                       <Hash size={18} color="var(--primary)" />
-                      <div>{t('dashboard.general_topic') || 'General'}</div>
+                      <div>{t('dashboard.general_topic') || t('ui.generated.general_9239ee2')}</div>
                     </div>
                     {topics.map((tp) => (
                       <div
@@ -1301,7 +1301,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                               }}
                             >
                               {folder.emoticon && <span>{folder.emoticon}</span>}
-                              <span>{folder.title === 'Semua Chat' ? (t('dashboard.all_chats') || 'Semua Chat') : folder.title}</span>
+                              <span>{folder.title === t('ui.generated.semua_chat_a316d41') ? (t('dashboard.all_chats') || t('ui.generated.semua_chat_a316d41')) : folder.title}</span>
                             </div>
                           );
                         })}
@@ -1445,7 +1445,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                                 {d.name}
                               </div>
                               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                ID: {d.id}
+                                {t('ui.generated.id_d789a1e')} {d.id}
                               </div>
                             </div>
                             <span

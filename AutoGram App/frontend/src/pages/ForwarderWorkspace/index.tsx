@@ -72,10 +72,10 @@ export function ForwarderWorkspace({
               fontSize: '0.85rem',
               transition: 'all 0.15s ease',
             }}
-            title={t('nav.switch_session', 'Ganti Session / Hub')}
+            title={t('nav.switch_session')}
           >
             <Zap size={16} />
-            <span>{activeSession || 'Session Utama'}</span>
+            <span>{activeSession || t('ui.generated.session_utama_6c6254e')}</span>
             <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>▾</span>
           </button>
 
@@ -83,7 +83,7 @@ export function ForwarderWorkspace({
 
           <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <ArrowRightLeft size={18} style={{ color: '#818cf8' }} />
-            <span>Forwarder Suite</span>
+            <span>{t('ui.generated.forwarder_suite_35718a2')}</span>
           </span>
         </div>
 
@@ -105,7 +105,7 @@ export function ForwarderWorkspace({
               color: '#94a3b8',
               cursor: 'pointer',
             }}
-            title="Pengaturan Forwarder"
+            title={t('nav.tab_forwarder_settings')}
           >
             <SlidersHorizontal size={17} />
           </button>
@@ -142,7 +142,7 @@ export function ForwarderWorkspace({
           }}
         >
           <Play size={14} />
-          <span>{t('nav.tab_jobs_active', 'Job Aktif & Runtime')}</span>
+          <span>{t('nav.tab_jobs_active')}</span>
         </button>
 
         <button
@@ -163,7 +163,7 @@ export function ForwarderWorkspace({
           }}
         >
           <Plus size={14} />
-          <span>{t('nav.tab_new_job', 'Buat Job Baru')}</span>
+          <span>{t('nav.tab_new_job')}</span>
         </button>
 
         <button
@@ -184,7 +184,7 @@ export function ForwarderWorkspace({
           }}
         >
           <History size={14} />
-          <span>{t('nav.tab_history', 'Riwayat & Log')}</span>
+          <span>{t('nav.tab_history')}</span>
         </button>
       </div>
 

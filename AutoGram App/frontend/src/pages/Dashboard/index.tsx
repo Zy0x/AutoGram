@@ -26,7 +26,7 @@ export function Dashboard({ onNavigate }: Props) {
       <header className="page-header">
         <h2 className="title title-with-icon">
           <Rocket size={24} color="var(--primary)" aria-hidden />
-          AutoGram
+          {t('nav.title')}
         </h2>
         <p className="subtitle">
           {t('dashboard.subtitle')}
@@ -39,8 +39,7 @@ export function Dashboard({ onNavigate }: Props) {
           <div className="status-hero-body">
             <h3>{t('dashboard.browser_mode')}</h3>
             <p>
-              UI pratinjau saja. Forwarder, Drives, dan Accounts penuh membutuhkan aplikasi desktop
-              AutoGram (Tauri).
+              {t('ui.generated.ui_pratinjau_saja_forwarder_drives_dan_accounts__d1b62df')}
             </p>
           </div>
         </div>
@@ -127,23 +126,23 @@ export function Dashboard({ onNavigate }: Props) {
       <section className="dash-safety glass-panel card" aria-label={t("dashboard.parallel_safety")}>
         <h3 className="dash-section-title title-with-icon">
           <ShieldCheck size={18} color="var(--primary)" aria-hidden />
-          Kerja paralel aman
+          {t('ui.generated.kerja_paralel_aman_33e2522')}
         </h3>
         <div className="dash-safety-grid">
           <div>
             <Zap size={16} aria-hidden /> <strong>{t('dashboard.pool_info')}</strong>
-            <p>{t('dashboard.parallel_grammers_desc') || "Forwarder & Drives share the same MTProto connection."}</p>
+            <p>{t('dashboard.parallel_grammers_desc') || t('ui.generated.forwarder_drives_share_the_same_mtproto_connecti_2556304')}</p>
           </div>
           <div>
-            <ShieldCheck size={16} aria-hidden /> <strong>Session guard</strong>
+            <ShieldCheck size={16} aria-hidden /> <strong>{t('ui.generated.session_guard_2255e6c')}</strong>
             <p>
-              Migration / transfer / studio memakai lease <em>shared</em>. Operasi exclusive (login
+              {t('ui.generated.migration_transfer_studio_memakai_lease_14135b5')} <em>{t('ui.generated.shared_d18aac9')}</em>. Operasi exclusive (login
               hapus session) menunggu giliran.
             </p>
           </div>
           <div>
-            <HardDrive size={16} aria-hidden /> <strong>Ganti akun di Drives</strong>
-            <p>UI di-wipe + gen guard agar data akun lama tidak bocor ke akun baru.</p>
+            <HardDrive size={16} aria-hidden /> <strong>{t('ui.generated.ganti_akun_di_drives_db3a141')}</strong>
+            <p>{t('ui.generated.ui_di_wipe_gen_guard_agar_data_akun_lama_tidak_b_2bddb11')}</p>
           </div>
         </div>
       </section>

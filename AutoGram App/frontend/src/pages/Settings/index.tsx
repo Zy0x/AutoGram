@@ -11,6 +11,7 @@ import {
   Wifi,
   Loader2,
   Sliders,
+  ArrowLeft,
 } from 'lucide-react';
 
 import { detectTauriRuntime } from '../../lib/tauri/platform';
@@ -48,7 +49,11 @@ import { PerfSection } from './PerfSection';
 import { DebugSection } from './DebugLogsSection';
 import { CACHE_LIMIT_STEPS, CACHE_LIMIT_LABELS } from './settingsUtils';
 
-export function Settings() {
+interface SettingsProps {
+  onBackToLauncher?: () => void;
+}
+
+export function Settings({ onBackToLauncher }: SettingsProps) {
   const { t, i18n } = useTranslation();
   const [apiId, setApiId] = useState("");
   const [apiHash, setApiHash] = useState("");
@@ -146,7 +151,7 @@ export function Settings() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const formattedSize = cacheSize !== null ? formatBytes(cacheSize) : 'Belum dihitung';
+  const formattedSize = cacheSize !== null ? formatBytes(cacheSize) : t('settings.cache_not_calculated');
 
   const calculateCacheSize = async () => {
     setIsCalculating(true);
@@ -341,8 +346,8 @@ export function Settings() {
       const ok = await networkApplyAll(netCfg);
       setNetMsg(
         ok
-          ? 'Network settings saved. Restart Drive session / reconnect so Telethon picks up proxy.'
-          : 'Failed to save network settings.'
+          ? t('settings.network_saved_reconnect')
+          : t('settings.network_save_failed')
       );
     } finally {
       setNetBusy(false);
@@ -368,14 +373,14 @@ export function Settings() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    setSaveStatus("idle");
+    setSaveStatus('idle');
     try {
       await setApiCredentials(apiId, apiHash);
-      setSaveStatus("success");
-      setTimeout(() => setSaveStatus("idle"), 3000);
+      setSaveStatus('success');
+      setTimeout(() => setSaveStatus('idle'), 3000);
     } catch (err) {
       console.error(err);
-      setSaveStatus("error");
+      setSaveStatus('error');
     } finally {
       setIsSaving(false);
     }
@@ -388,8 +393,18 @@ export function Settings() {
   return (
     <main className="main-content page-stack">
       <header className="page-header">
-        <h2 className="title">{t('settings.title')}</h2>
-        <p className="subtitle">{t('settings.subtitle')}</p>
+        <div>
+          <h2 className="title">{t('settings.title')}</h2>
+          <p className="subtitle">{t('settings.subtitle')}</p>
+        </div>
+        {onBackToLauncher && (
+          <div className="page-header-actions">
+            <button type="button" className="btn btn-secondary" onClick={onBackToLauncher}>
+              <ArrowLeft size={17} />
+              {t('nav.back_to_launcher')}
+            </button>
+          </div>
+        )}
       </header>
 
       <div className="grid-layout">
@@ -411,8 +426,8 @@ export function Settings() {
               value={i18n.language} 
               onChange={(e) => changeLanguage(e.target.value)}
             >
-              <option value="en">English (US)</option>
-              <option value="id">Bahasa Indonesia</option>
+              <option value="en">{t('settings.language_english')}</option>
+              <option value="id">{t('settings.language_indonesian')}</option>
             </select>
           </div>
         </div>
@@ -435,7 +450,7 @@ export function Settings() {
             <div className="page-stack" style={{ gap: '1.25rem' }}>
               <div className="input-group" style={{ marginBottom: 0 }}>
                 <label className="input-label title-with-icon">
-                  <Key size={14} /> API ID
+                  <Key size={14} /> {t('settings.api_id_label')}
                 </label>
                 <input 
                   type="text" 
@@ -448,7 +463,7 @@ export function Settings() {
               
               <div className="input-group" style={{ marginBottom: 0 }}>
                 <label className="input-label title-with-icon">
-                  <Key size={14} /> API Hash
+                  <Key size={14} /> {t('settings.api_hash_label')}
                 </label>
                 <input 
                   type="password" 
@@ -496,15 +511,14 @@ export function Settings() {
             </p>
             <div className="page-stack" style={{ gap: '0.75rem' }}>
               <p className="field-hint" style={{ margin: 0 }}>
-                Aktif:{' '}
+                {t('settings.backend_active_label')}{' '}
                 <strong style={{ color: 'var(--primary)' }}>
                   {tgBackend?.activeLabel || tgBackend?.active || '…'}
                 </strong>
-                {tgBackend?.grammersCompiled ? ' · Grammers compiled' : ''}
+                {tgBackend?.grammersCompiled ? t('ui.generated.grammers_compiled_57780b8') : ''}
               </p>
               <p className="field-hint" style={{ margin: 0 }}>
-                Account, perpindahan session, preview dokumen, dan progressive video dikunci ke
-                Grammers + Rust agar hanya ada satu sumber koneksi dan satu pemilik session.
+                {t('settings.backend_ownership_desc')}
               </p>
               {tgBackend?.notes?.length ? (
                 <ul className="field-hint" style={{ margin: 0, paddingLeft: '1.1rem', lineHeight: 1.45 }}>
@@ -545,7 +559,7 @@ export function Settings() {
               {netCfg.proxy.enabled && (
                 <>
                   <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Type</label>
+                    <label className="input-label">{t('settings.proxy_type_label')}</label>
                     <select
                       className="input-field"
                       value={netCfg.proxy.proxyType}
@@ -556,14 +570,14 @@ export function Settings() {
                         })
                       }
                     >
-                      <option value="socks5">SOCKS5</option>
-                      <option value="http">HTTP</option>
-                      <option value="https">HTTPS</option>
-                      <option value="mtproto">MTProto (Telegram)</option>
+                      <option value="socks5">{t('settings.proxy_type_socks5')}</option>
+                      <option value="http">{t('settings.proxy_type_http')}</option>
+                      <option value="https">{t('settings.proxy_type_https')}</option>
+                      <option value="mtproto">{t('settings.proxy_type_mtproto')}</option>
                     </select>
                   </div>
                   <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Host</label>
+                    <label className="input-label">{t('settings.proxy_host_label')}</label>
                     <input
                       className="input-field"
                       value={netCfg.proxy.host}
@@ -577,7 +591,7 @@ export function Settings() {
                     />
                   </div>
                   <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Port</label>
+                    <label className="input-label">{t('settings.proxy_port_label')}</label>
                     <input
                       className="input-field"
                       type="number"
@@ -594,7 +608,7 @@ export function Settings() {
                     />
                   </div>
                   <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Username</label>
+                    <label className="input-label">{t('settings.proxy_username_label')}</label>
                     <input
                       className="input-field"
                       value={netCfg.proxy.username}
@@ -607,7 +621,7 @@ export function Settings() {
                     />
                   </div>
                   <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Password</label>
+                    <label className="input-label">{t('settings.proxy_password_label')}</label>
                     <input
                       className="input-field"
                       type="password"
@@ -622,7 +636,7 @@ export function Settings() {
                   </div>
                   {netCfg.proxy.proxyType === 'mtproto' && (
                     <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">MTProto secret (hex)</label>
+                      <label className="input-label">{t('settings.proxy_secret_label')}</label>
                       <input
                         className="input-field"
                         value={netCfg.proxy.secret || ''}
@@ -632,7 +646,7 @@ export function Settings() {
                             proxy: { ...netCfg.proxy, secret: e.target.value },
                           })
                         }
-                        placeholder="dd… or ee…"
+                        placeholder={t('settings.proxy_secret_placeholder')}
                       />
                     </div>
                   )}
@@ -678,9 +692,9 @@ export function Settings() {
               {netMsg && <p className="field-hint">{netMsg}</p>}
               {proxyStatus && (
                 <p className="field-hint">
-                  Proxy TCP:{' '}
+                  {t('settings.proxy_tcp_label')}{' '}
                   <strong style={{ color: proxyStatus.reachable ? 'var(--success)' : 'var(--danger)' }}>
-                    {proxyStatus.reachable ? 'OK' : 'Failed'}
+                    {proxyStatus.reachable ? t('ui.generated.ok_9ce3bd4') : t('jobs.status_failed')}
                   </strong>
                   {proxyStatus.latencyMs >= 0 ? ` · ${proxyStatus.latencyMs} ms` : ''} · {proxyStatus.detail}
                 </p>
@@ -692,7 +706,7 @@ export function Settings() {
               )}
               {vpnHint != null && vpnHint && (
                 <p className="field-hint">
-                  Hint: Telegram DC slow/unreachable — consider enabling VPN Optimizer or Proxy.
+                  {t('settings.proxy_unreachable_hint')}
                 </p>
               )}
             </div>
@@ -723,7 +737,7 @@ export function Settings() {
             }}>
               <div>
                 <span className="input-label" style={{ margin: 0, fontSize: '0.9rem' }}>{t('settings.cache_detected_size')}</span>
-                <p className="field-hint" style={{ margin: 0, marginTop: '2px', fontSize: '0.75rem' }}>IndexedDB + LocalStorage + Disk Cache Backend</p>
+                <p className="field-hint" style={{ margin: 0, marginTop: '2px', fontSize: '0.75rem' }}>{t('settings.cache_storage_sources')}</p>
               </div>
               <div style={{ textAlign: 'right', marginLeft: 'auto' }}>
                 <strong style={{ fontSize: '1.1rem', color: 'var(--primary)' }}>
@@ -750,7 +764,7 @@ export function Settings() {
                   </span>
                 </div>
                 <strong style={{ fontSize: '0.95rem', color: cacheLimitMB === 0 ? 'var(--text-muted)' : 'var(--primary)' }}>
-                  {cacheLimitMB === 0 ? 'Unlimited' : formatBytes(cacheLimitMB * 1024 * 1024)}
+                  {cacheLimitMB === 0 ? t('ui.generated.unlimited_b8bef37') : formatBytes(cacheLimitMB * 1024 * 1024)}
                 </strong>
               </div>
 
@@ -902,23 +916,23 @@ export function Settings() {
               </button>
               {clearStatus === 'success' && (
                 <span className="status-msg success" style={{ display: 'block', marginTop: '0.5rem' }}>
-                  ✓ Cache berhasil dibersihkan! Navigasi Anda akan dimuat ulang dari awal.
+                  {t('settings.cache_clear_success')}
                 </span>
               )}
               {clearStatus === 'error' && (
                 <span className="status-msg error" style={{ display: 'block', marginTop: '0.5rem' }}>
-                  Gagal membersihkan cache disk.
+                  {t('settings.cache_clear_error')}
                 </span>
               )}
 
               {dbClearStatus === 'success' && (
                 <span className="status-msg success" style={{ display: 'block', marginTop: '0.5rem' }}>
-                  ✓ Database transfer berhasil dikosongkan! Riwayat transfer kini bersih seperti baru.
+                  {t('settings.database_clear_success')}
                 </span>
               )}
               {dbClearStatus === 'error' && (
                 <span className="status-msg error" style={{ display: 'block', marginTop: '0.5rem' }}>
-                  Gagal mengosongkan database transfer. Periksa log konsol untuk detailnya.
+                  {t('settings.database_clear_error')}
                 </span>
               )}
             </div>
@@ -932,7 +946,7 @@ export function Settings() {
         description={t('settings.confirm_clear_cache_msg')}
         variant="warning"
         confirmText={t('settings.clear_cache')}
-        cancelText="Batal"
+        cancelText={t('common.cancel')}
         isLoading={isClearing}
         onConfirm={executeClearCache}
         onCancel={() => setIsConfirmClearCacheOpen(false)}
@@ -944,7 +958,7 @@ export function Settings() {
         description={t('settings.confirm_clear_db_msg')}
         variant="danger"
         confirmText={t('settings.clear_db_btn')}
-        cancelText="Batal"
+        cancelText={t('common.cancel')}
         isLoading={isClearingDb}
         onConfirm={executeClearDatabase}
         onCancel={() => setIsConfirmClearDbOpen(false)}

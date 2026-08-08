@@ -68,7 +68,7 @@ export function DriveInputDialog({ state, onClose }: Props) {
   const submit = () => {
     const v = value.trim();
     if (!v) {
-      setError(String(t('speedtest.err_name_empty', 'Nama tidak boleh kosong')));
+      setError(String(t('speedtest.err_name_empty')));
       return;
     }
     if (state.defaultValue != null && v === state.defaultValue.trim()) {
@@ -146,7 +146,7 @@ export function DriveInputDialog({ state, onClose }: Props) {
 
         <footer className="td-confirm-foot">
           <button type="button" className="td-confirm-btn ghost" onClick={onClose}>
-            {t("speedtest.topbar_cancel", "Batal")}
+            {t("speedtest.topbar_cancel")}
           </button>
           <button
             type="button"
@@ -155,7 +155,7 @@ export function DriveInputDialog({ state, onClose }: Props) {
             disabled={!canSubmit}
           >
             <Icon size={15} strokeWidth={2.25} />
-            <span>{state.confirmLabel || t("speedtest.btn_save", "Simpan")}</span>
+            <span>{state.confirmLabel || t("speedtest.btn_save")}</span>
           </button>
         </footer>
       </div>

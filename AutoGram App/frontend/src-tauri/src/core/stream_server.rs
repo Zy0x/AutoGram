@@ -582,72 +582,26 @@ fn handle_register(mut request: Request) {
     }
 }
 
-/// BUG-1 FIX: Attempt to recover a stream session from an orphaned .partial
-/// file in the preview cache when the in-memory / disk registry entry is gone.
-/// Pattern: stream_id like "g42794-945520-59436" → preview/{sid}.partial
+/// An orphan `.partial` file cannot be recovered safely. Progressive files are
+/// preallocated to their final logical length, so metadata alone cannot
+/// distinguish a complete file from sparse holes. Without registry byte ranges,
+/// fail closed and let the frontend request a fresh stream.
 fn try_recover_partial(sid: &str) -> Option<StreamEntry> {
-    let registry_dir = REGISTRY_DIR.get()?;
-    // preview cache sits one level above the registry dir (e.g. …/cache/registry → …/cache/preview)
-    let preview_dir = registry_dir
-        .parent()
-        .unwrap_or(registry_dir)
-        .join("preview");
-    let partial_path = preview_dir.join(format!("{sid}.partial"));
-    if !partial_path.is_file() {
-        return None;
-    }
-    let size = fs::metadata(&partial_path).ok()?.len();
-    if size == 0 {
-        return None;
-    }
-    // Infer mime from stream_id label portion ("ag_zip_upload_…sound_document…mp4" → video/mp4)
-    let mime = if sid.to_ascii_lowercase().ends_with("mp4") {
-        "video/mp4"
-    } else {
-        "application/octet-stream"
-    }
-    .to_string();
-    let entry = StreamEntry {
-        stream_id: sid.to_string(),
-        path: partial_path.to_string_lossy().into_owned(),
-        total_size: size,
-        mime,
-        label: format!("{sid}.partial"),
-        done: false,
-        ranges: vec![(0, size)], // treat all downloaded bytes as contiguous
-        cancelled: false,
-        error: None,
-        paused: false,
-        updated_at_ms: now_ms(),
-        moov_ready_cached: false, // will be detected on first upsert
-        moov_tail_fetching: false,
-    };
-    let entry = upsert_entry(entry);
-    log::info!("[stream_server] auto-recovered session '{sid}' from .partial ({size}B)");
-    Some(entry)
+    let _ = sid;
+    None
 }
 
 fn handle_stream(request: Request, sid: &str) {
     let mut entry = match get_entry(sid) {
         Some(e) if !e.cancelled => e,
-        Some(e) if e.cancelled => {
-            let p = PathBuf::from(&e.path);
-            if p.is_file() && fs::metadata(&p).map(|m| m.len()).unwrap_or(0) > 0 {
-                e
-            } else {
-                match try_recover_partial(sid) {
-                    Some(recovered) => recovered,
-                    None => {
-                        let mut res = Response::from_string("Stream cancelled")
-                            .with_status_code(StatusCode(410));
-                        for h in cors_headers() {
-                            res.add_header(h);
-                        }
-                        let _ = request.respond(res);
-                        return;
-                    }
-                }
+        Some(_e) if _e.cancelled => {
+            let mut res =
+                Response::from_string("Stream cancelled").with_status_code(StatusCode(410));
+            for h in cors_headers() {
+                res.add_header(h);
             }
+            let _ = request.respond(res);
+            return;
         }
         _ => {
             match try_recover_partial(sid) {

@@ -45,33 +45,30 @@ export const PerfSection = memo(function PerfSection() {
     {
       id: 'low',
       icon: '🍃',
-      title: t('settings.perf_tier_low_title', 'Saver Mode'),
+      title: t('settings.perf_tier_low_title'),
       desc: t(
-        'settings.perf_tier_low_desc',
-        'Saves RAM & CPU usage. Small thumbnail batching (20 items per request).'
+        'settings.perf_tier_low_desc'
       ),
-      metric: t('settings.perf_metric_low', '20 Batch · Low RAM'),
+      metric: t('settings.perf_metric_low'),
     },
     {
       id: 'mid',
       icon: '⚡',
-      title: t('settings.perf_tier_mid_title', 'Standard Mode'),
+      title: t('settings.perf_tier_mid_title'),
       badge: 'DEFAULT',
       desc: t(
-        'settings.perf_tier_mid_desc',
-        'Ideal balance of MTProto transfer speed & visual smoothness (48 batch).'
+        'settings.perf_tier_mid_desc'
       ),
-      metric: t('settings.perf_metric_mid', '48 Batch · Balanced'),
+      metric: t('settings.perf_metric_mid'),
     },
     {
       id: 'high',
       icon: '🚀',
-      title: t('settings.perf_tier_high_title', 'Turbo Mode'),
+      title: t('settings.perf_tier_high_title'),
       desc: t(
-        'settings.perf_tier_high_desc',
-        'Maximum throughput for fast devices & networks (96 batch, 6 parallel streams).'
+        'settings.perf_tier_high_desc'
       ),
-      metric: t('settings.perf_metric_high', '96 Batch · 6x Parallel Stream'),
+      metric: t('settings.perf_metric_high'),
     },
   ];
 
@@ -112,13 +109,12 @@ export const PerfSection = memo(function PerfSection() {
             letterSpacing: '-0.01em',
           }}
         >
-          {t('settings.perf_section_1_title', '1. Device Performance Optimization')}
+          {t('settings.perf_section_1_title')}
         </h3>
       </div>
       <p style={{ margin: '0 0 18px 0', fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.5 }}>
         {t(
-          'settings.perf_subtitle',
-          'Configure acceleration levels for downloading, thumbnail loading, and card list rendering smoothness.'
+          'settings.perf_subtitle'
         )}
       </p>
 
@@ -235,7 +231,7 @@ export const PerfSection = memo(function PerfSection() {
                         }}
                       >
                         <Sparkles size={11} />
-                        <span>{t('settings.perf_recommended_badge', 'Recommended For Your Device')}</span>
+                        <span>{t('settings.perf_recommended_badge')}</span>
                       </span>
                     )}
                   </div>
@@ -286,15 +282,15 @@ export const PerfSection = memo(function PerfSection() {
         }}
       >
         <Cpu size={15} style={{ color: '#00aeef' }} />
-        <span>{t('settings.perf_status_active', 'Active Status:')}</span>
+        <span>{t('settings.perf_status_active')}</span>
         <strong style={{ color: '#00aeef' }}>
           {tier === 'low'
-            ? t('settings.perf_tier_low_title', 'Saver Mode')
+            ? t('settings.perf_tier_low_title')
             : tier === 'high'
-            ? t('settings.perf_tier_high_title', 'Turbo Mode')
-            : t('settings.perf_tier_mid_title', 'Standard Mode')}
+            ? t('settings.perf_tier_high_title')
+            : t('settings.perf_tier_mid_title')}
         </strong>
-        <span>· {t('settings.perf_engine_rust', 'Rust MTProto Engine')}</span>
+        <span>· {t('settings.perf_engine_rust')}</span>
       </div>
     </div>
   );

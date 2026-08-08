@@ -28,7 +28,7 @@ export const SessionRelogModal: React.FC<SessionRelogModalProps> = ({
 
   const handleAutoImport = async () => {
     setLoading(true);
-    setStatusMsg(t('accounts.relog_in_progress', 'Memproses impor sesi...'));
+    setStatusMsg(t('accounts.relog_in_progress'));
     setIsError(false);
 
     try {
@@ -46,7 +46,7 @@ export const SessionRelogModal: React.FC<SessionRelogModalProps> = ({
     } catch (e: any) {
       console.warn('Session auto-import failed:', e);
       setIsError(true);
-      setStatusMsg(t('accounts.relog_import_failed', 'Gagal mengimpor sesi. Silakan login ulang via menu Akun.'));
+      setStatusMsg(t('accounts.relog_import_failed'));
     } finally {
       setLoading(false);
     }
@@ -104,7 +104,7 @@ export const SessionRelogModal: React.FC<SessionRelogModalProps> = ({
             padding: '4px',
             borderRadius: '50%',
           }}
-          aria-label="Tutup"
+          aria-label={t('speedtest.preview_close_btn')}
         >
           <X size={18} />
         </button>
@@ -126,7 +126,7 @@ export const SessionRelogModal: React.FC<SessionRelogModalProps> = ({
           </div>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 600 }}>
-              {t('accounts.relog_modal_title', 'Login Ulang Sesi Telegram')}
+              {t('accounts.relog_modal_title')}
             </h3>
             <div
               style={{
@@ -150,7 +150,7 @@ export const SessionRelogModal: React.FC<SessionRelogModalProps> = ({
                   background: '#ef4444',
                 }}
               />
-              {sessionName || 'Lavender'} · {t('accounts.status_disconnected', 'Terputus')}
+              {sessionName || t('ui.generated.lavender_75c88f3')} · {t('accounts.status_disconnected')}
             </div>
           </div>
         </div>
@@ -202,7 +202,7 @@ export const SessionRelogModal: React.FC<SessionRelogModalProps> = ({
             ) : (
               <RefreshCw size={16} />
             )}
-            {t('accounts.relog_auto_import', 'Coba Impor Otomatis dari Telethon')}
+            {t('accounts.relog_auto_import')}
           </button>
 
           {onNavigateToAccounts && (
@@ -224,7 +224,7 @@ export const SessionRelogModal: React.FC<SessionRelogModalProps> = ({
               }}
             >
               <LogIn size={16} />
-              {t('accounts.relog_go_to_accounts', 'Buka Menu Akun (Login QR / HP)')}
+              {t('accounts.relog_go_to_accounts')}
               <ExternalLink size={14} style={{ marginLeft: 'auto', opacity: 0.6 }} />
             </button>
           )}
@@ -242,7 +242,7 @@ export const SessionRelogModal: React.FC<SessionRelogModalProps> = ({
               fontSize: '0.85rem',
             }}
           >
-            {t('jobs.cancel_btn', 'Batal')}
+            {t('jobs.cancel_btn')}
           </button>
         </div>
       </div>

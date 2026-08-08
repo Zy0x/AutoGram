@@ -13,6 +13,7 @@ use grammers_client::tl;
 use grammers_client::Client;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use tauri::Emitter;
 
 use super::ffmpeg::{
@@ -86,6 +87,28 @@ fn first_missing_offset(ranges: &[(u64, u64)], total: u64) -> Option<u64> {
     (covered < total).then_some(covered)
 }
 
+fn ranges_cover_total(ranges: &[(u64, u64)], total: u64) -> bool {
+    total > 0 && first_missing_offset(ranges, total).is_none()
+}
+
+fn reusable_completed_stream(entry: &StreamEntry, expected_size: u64, on_disk_size: u64) -> bool {
+    entry.done
+        && !entry.cancelled
+        && entry.error.is_none()
+        && entry.total_size == expected_size
+        && on_disk_size >= expected_size
+        && ranges_cover_total(&entry.ranges, expected_size)
+}
+
+/// Opaque, stable cache namespace. Telegram session names can be user supplied,
+/// so never expose them in cache paths, stream URLs, registry ids, or logs.
+fn scoped_chat_cache_key(session: &str, chat: &str) -> String {
+    let digest = Sha256::digest(session.as_bytes());
+    let session_scope = hex::encode(&digest[..6]);
+    let chat_safe = chat.replace(|c: char| !c.is_ascii_alphanumeric(), "_");
+    format!("{session_scope}_{chat_safe}")
+}
+
 fn find_missing_offset_from(ranges: &[(u64, u64)], from: u64, total: u64) -> Option<u64> {
     let sorted = stream_server::merge_ranges(ranges);
     let mut covered = from;
@@ -122,9 +145,13 @@ pub fn cancel_progressive(stream_id: &str) -> bool {
         hit = true;
     }
     if let Some(mut e) = stream_server::get_entry(stream_id) {
-        e.cancelled = true;
-        e.paused = true;
-        stream_server::upsert_entry(e);
+        // Closing a fully buffered preview must not poison its reusable cache.
+        // Only active/incomplete progressive fills are cancellation targets.
+        if !e.done || !ranges_cover_total(&e.ranges, e.total_size) {
+            e.cancelled = true;
+            e.paused = true;
+            stream_server::upsert_entry(e);
+        }
         hit = true;
     }
     hit
@@ -659,8 +686,8 @@ fn start_preview_stream_inner(
     let rt = runtime()?;
     let pdir = preview_dir(sessions_dir);
     let _ = std::fs::create_dir_all(&pdir);
-    let chat_safe = chat.replace(|c: char| !c.is_ascii_alphanumeric(), "_");
     let session_name = identity.session.clone();
+    let chat_safe = scoped_chat_cache_key(&session_name, chat);
 
     // Instant disk cache hit — no MTProto (reopen same photo/doc feels instant).
     if let Some(cached) = find_cached_preview_file(&pdir, &chat_safe, message_id) {
@@ -1365,9 +1392,8 @@ fn start_preview_stream_inner(
 
             if existing.total_size == size {
                 // CASE A: Fully downloaded — instant play, zero MTProto request.
-                if existing.done
+                if reusable_completed_stream(&existing, size, on_disk_size)
                     && partial_path.is_file()
-                    && on_disk_size >= size.saturating_mul(9) / 10
                 {
                     let stream_url = stream_public_url(&stream_id, &name);
                     session_rate::track_stream(&session_name, &stream_id);
@@ -1440,7 +1466,11 @@ fn start_preview_stream_inner(
                 }
 
                 // CASE C: Stale entry (cancelled / error) — remove registry, fall through.
-                if existing.cancelled || existing.error.is_some() {
+                if existing.cancelled
+                    || existing.error.is_some()
+                    || (existing.done
+                        && !reusable_completed_stream(&existing, size, on_disk_size))
+                {
                     stream_server::remove_entry(&stream_id);
                 }
             } else {
@@ -1891,6 +1921,12 @@ fn start_preview_stream_inner(
                     }
                 }
                 let _ = file.flush();
+                if flag.load(Ordering::SeqCst) {
+                    return Err("cancelled".into());
+                }
+                if !ranges_cover_total(&ranges, size) {
+                    return Err("incomplete range coverage".into());
+                }
                 Ok::<(), String>(())
             }
             .await;
@@ -1904,11 +1940,7 @@ fn start_preview_stream_inner(
                         mime: mime_bg,
                         label: name,
                         done: true,
-                        ranges: if ranges.is_empty() {
-                            vec![(0, size)]
-                        } else {
-                            ranges
-                        },
+                        ranges,
                         cancelled: false,
                         error: None,
                         paused: false,
@@ -2035,7 +2067,7 @@ pub fn warm_preview_head_blocking(
     let identity = identity.clone();
     let pdir = preview_dir(&sessions_dir);
     let _ = std::fs::create_dir_all(&pdir);
-    let chat_safe = chat.replace(|c: char| !c.is_ascii_alphanumeric(), "_");
+    let chat_safe = scoped_chat_cache_key(&identity.session, &chat);
     let warm_path = pdir.join(format!("{chat_safe}_{message_id}.warm"));
 
     // Already warmed enough?
@@ -2175,5 +2207,66 @@ mod tests {
             Some(512)
         );
         assert_eq!(first_missing_offset(&[(1024, 2048), (0, 1024)], 2048), None);
+    }
+
+    #[test]
+    fn sparse_or_cancelled_stream_is_never_reused_as_complete() {
+        let sparse = StreamEntry {
+            stream_id: "gscope_me-81".into(),
+            path: "unused.partial".into(),
+            total_size: 10_000,
+            mime: "video/mp4".into(),
+            label: "video.mp4".into(),
+            done: true,
+            ranges: vec![(0, 512), (9_000, 10_000)],
+            cancelled: true,
+            error: None,
+            paused: true,
+            updated_at_ms: 0,
+            moov_ready_cached: true,
+            moov_tail_fetching: false,
+        };
+
+        // Sparse files are preallocated, so logical file size can equal total_size.
+        assert!(!reusable_completed_stream(&sparse, 10_000, 10_000));
+
+        let mut incomplete = sparse.clone();
+        incomplete.cancelled = false;
+        incomplete.paused = false;
+        assert!(!reusable_completed_stream(&incomplete, 10_000, 10_000));
+    }
+
+    #[test]
+    fn fully_covered_stream_is_reusable() {
+        let complete = StreamEntry {
+            stream_id: "gscope_me-81".into(),
+            path: "unused.partial".into(),
+            total_size: 10_000,
+            mime: "video/mp4".into(),
+            label: "video.mp4".into(),
+            done: true,
+            ranges: vec![(5_000, 10_000), (0, 5_000)],
+            cancelled: false,
+            error: None,
+            paused: false,
+            updated_at_ms: 0,
+            moov_ready_cached: true,
+            moov_tail_fetching: false,
+        };
+
+        assert!(reusable_completed_stream(&complete, 10_000, 10_000));
+        assert!(!reusable_completed_stream(&complete, 10_000, 9_999));
+    }
+
+    #[test]
+    fn cache_scope_is_stable_and_session_isolated() {
+        let lavender = scoped_chat_cache_key("Lavender", "me");
+        let mantan_gadis = scoped_chat_cache_key("Mantan Gadis", "me");
+
+        assert_eq!(lavender, scoped_chat_cache_key("Lavender", "me"));
+        assert_ne!(lavender, mantan_gadis);
+        assert!(lavender.ends_with("_me"));
+        assert!(!lavender.contains("Lavender"));
+        assert!(!mantan_gadis.contains("Mantan"));
     }
 }

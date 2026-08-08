@@ -39,7 +39,7 @@ export const MediaStudioOverlays: React.FC<MediaStudioOverlaysProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
             <AlertTriangle size={16} color="var(--danger)" />
             <span>
-              Koneksi Telegram terputus berulang kali. Berhenti sejenak untuk menghindari FloodWait ({retrySec ?? 0}s).
+              {t('ui.generated.koneksi_telegram_terputus_berulang_kali_berhenti_0912079')}{retrySec ?? 0}{t('ui.generated.s_d6c5d1d')}
             </span>
           </div>
           {onResetCircuit && (
@@ -49,7 +49,7 @@ export const MediaStudioOverlays: React.FC<MediaStudioOverlaysProps> = ({
               onClick={onResetCircuit}
               style={{ background: 'var(--danger)', color: '#fff', border: 'none' }}
             >
-              <RefreshCw size={12} /> Coba Lagi Sekarang
+              <RefreshCw size={12} /> {t('ui.generated.coba_lagi_sekarang_3428dcf')}
             </button>
           )}
         </div>
@@ -75,11 +75,11 @@ export const MediaStudioOverlays: React.FC<MediaStudioOverlaysProps> = ({
                   padding: '4px 10px',
                 }}
               >
-                <LogIn size={13} /> {t('accounts.btn_relog', 'Login Ulang')}
+                <LogIn size={13} /> {t('accounts.btn_relog')}
               </button>
             )}
             <button type="button" className="td-chip-btn" onClick={() => setError(null)}>
-              Tutup
+              {t('speedtest.preview_close_btn')}
             </button>
           </div>
         </div>
@@ -87,7 +87,7 @@ export const MediaStudioOverlays: React.FC<MediaStudioOverlaysProps> = ({
 
       {mediaDragActive && (
         <div className="td-internal-dnd-tip" role="status">
-          Lepas di <strong>chat atau folder</strong> di sidebar untuk memindahkan
+          {t('ui.generated.lepas_di_4ee781a')} <strong>{t('ui.generated.chat_atau_folder_3196d63')}</strong> {t('ui.generated.di_sidebar_untuk_memindahkan_78818ed')}
         </div>
       )}
     </>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Home, Bookmark, Clock, Trash2, Download } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export interface SidebarQuickLinksProps {
   activeView: string;
@@ -10,6 +11,7 @@ export const SidebarQuickLinks: React.FC<SidebarQuickLinksProps> = ({
   activeView,
   onSelectView,
 }) => {
+  const { t } = useTranslation();
   const items = [
     { id: 'root', label: 'Drive Root', icon: <Home size={16} className="text-indigo-400" /> },
     { id: 'saved', label: 'Saved Messages', icon: <Bookmark size={16} className="text-amber-400" /> },
@@ -21,7 +23,7 @@ export const SidebarQuickLinks: React.FC<SidebarQuickLinksProps> = ({
   return (
     <div className="space-y-1">
       <span className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-        Navigasi Cepat
+        {t('ui.generated.navigasi_cepat_cf93b3d')}
       </span>
       {items.map((item) => (
         <button

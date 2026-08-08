@@ -41,7 +41,7 @@ export const JobFilterSettings: React.FC<JobFilterSettingsProps> = ({
   return (
     <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 space-y-4">
       <h4 className="font-semibold text-xs text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-        <Filter size={14} className="text-indigo-400" /> Filter &amp; Jenis Media
+        <Filter size={14} className="text-indigo-400" /> {t('ui.generated.filter_jenis_media_c0dce0b')}
       </h4>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -53,7 +53,7 @@ export const JobFilterSettings: React.FC<JobFilterSettingsProps> = ({
             disabled={disabled}
             className="rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
           />
-          <span className="text-slate-200">Video</span>
+          <span className="text-slate-200">{t('speedtest.tab_drive_videos')}</span>
         </label>
         <label className="flex items-center gap-2 p-2 bg-slate-950/60 rounded-lg border border-slate-800/80 cursor-pointer text-xs">
           <input
@@ -63,7 +63,7 @@ export const JobFilterSettings: React.FC<JobFilterSettingsProps> = ({
             disabled={disabled}
             className="rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
           />
-          <span className="text-slate-200">Gambar</span>
+          <span className="text-slate-200">{t('speedtest.tab_drive_images')}</span>
         </label>
         <label className="flex items-center gap-2 p-2 bg-slate-950/60 rounded-lg border border-slate-800/80 cursor-pointer text-xs">
           <input
@@ -73,7 +73,7 @@ export const JobFilterSettings: React.FC<JobFilterSettingsProps> = ({
             disabled={disabled}
             className="rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
           />
-          <span className="text-slate-200">Dokumen</span>
+          <span className="text-slate-200">{t('dashboard.filter_doc')}</span>
         </label>
         <label className="flex items-center gap-2 p-2 bg-slate-950/60 rounded-lg border border-slate-800/80 cursor-pointer text-xs">
           <input
@@ -83,13 +83,13 @@ export const JobFilterSettings: React.FC<JobFilterSettingsProps> = ({
             disabled={disabled}
             className="rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
           />
-          <span className="text-slate-200">Arsip (ZIP)</span>
+          <span className="text-slate-200">{t('ui.generated.arsip_zip_bfbdfd8')}</span>
         </label>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
         <div className="space-y-1">
-          <label className="block text-[11px] text-slate-400">Kata Kunci (Opsional)</label>
+          <label className="block text-[11px] text-slate-400">{t('ui.generated.kata_kunci_opsional_e3dc7b6')}</label>
           <input
             type="text"
             value={keywordFilter}
@@ -100,7 +100,7 @@ export const JobFilterSettings: React.FC<JobFilterSettingsProps> = ({
           />
         </div>
         <div className="space-y-1">
-          <label className="block text-[11px] text-slate-400">Ukuran Min (MB)</label>
+          <label className="block text-[11px] text-slate-400">{t('ui.generated.ukuran_min_mb_5c92d97')}</label>
           <input
             type="number"
             value={minSizeMb || ''}
@@ -111,7 +111,7 @@ export const JobFilterSettings: React.FC<JobFilterSettingsProps> = ({
           />
         </div>
         <div className="space-y-1">
-          <label className="block text-[11px] text-slate-400">Ukuran Maks (MB)</label>
+          <label className="block text-[11px] text-slate-400">{t('ui.generated.ukuran_maks_mb_df6e2e4')}</label>
           <input
             type="number"
             value={maxSizeMb || ''}

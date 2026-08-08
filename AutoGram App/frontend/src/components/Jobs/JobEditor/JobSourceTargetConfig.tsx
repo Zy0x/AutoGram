@@ -23,14 +23,14 @@ export const JobSourceTargetConfig: React.FC<JobSourceTargetConfigProps> = ({
   return (
     <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 space-y-4">
       <h4 className="font-semibold text-xs text-slate-200 uppercase tracking-wider">
-        Konfigurasi Sumber &amp; Tujuan Transfer
+        {t('ui.generated.konfigurasi_sumber_tujuan_transfer_a6c677c')}
       </h4>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
         {/* Source Picker */}
         <div className="space-y-1.5">
           <label className="block text-xs font-medium text-slate-300">
-            Channel / Group Sumber
+            {t('ui.generated.channel_group_sumber_824a1b9')}
           </label>
           <select
             value={sourceId}
@@ -50,7 +50,7 @@ export const JobSourceTargetConfig: React.FC<JobSourceTargetConfigProps> = ({
         {/* Destination Picker */}
         <div className="space-y-1.5">
           <label className="block text-xs font-medium text-slate-300">
-            Tujuan Transfer (Drive / Channel)
+            {t('ui.generated.tujuan_transfer_drive_channel_28bba9d')}
           </label>
           <select
             value={targetId}

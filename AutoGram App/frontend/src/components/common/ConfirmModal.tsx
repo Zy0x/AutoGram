@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { AlertTriangle, Trash2, Info, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export interface ConfirmModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export function ConfirmModal({
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
+  const { t } = useTranslation();
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen && !isLoading) {
@@ -139,7 +141,7 @@ export function ConfirmModal({
               height: '32px',
               flexShrink: 0,
             }}
-            aria-label="Close"
+            aria-label={t('speedtest.preview_close_btn')}
           >
             <X size={18} />
           </button>

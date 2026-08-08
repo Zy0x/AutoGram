@@ -127,13 +127,12 @@ export function ReUploadBatchModal({
             <AlertTriangle size={18} />
           </span>
           <div>
-            <h2 id={titleId} className="rub-title">Konfirmasi Re-upload</h2>
+            <h2 id={titleId} className="rub-title">{t('speedtest.reupload_confirm_title')}</h2>
             <p className="rub-subtitle">
-              {items.length} file dihapus dari tujuan dalam {thresholdDays} hari terakhir.
-              Pilih file yang ingin diunggah ulang.
+              {items.length} {t('ui.generated.file_dihapus_dari_tujuan_dalam_f62460f')} {thresholdDays} {t('ui.generated.hari_terakhir_pilih_file_yang_ingin_diunggah_ula_33dd55f')}
             </p>
           </div>
-          <button type="button" className="rub-close" onClick={onClose} aria-label="Tutup">
+          <button type="button" className="rub-close" onClick={onClose} aria-label={t('speedtest.preview_close_btn')}>
             <X size={16} />
           </button>
         </header>
@@ -142,8 +141,7 @@ export function ReUploadBatchModal({
         <div className="rub-info">
           <RotateCcw size={13} />
           <span>
-            File-file ini sebelumnya sudah ada di destination namun kemudian dihapus.
-            Re-upload akan mengunggah ulang file asli dari drive lokal ke tujuan yang sama.
+            {t('ui.generated.file_file_ini_sebelumnya_sudah_ada_di_destinatio_a19d7d7')}
           </span>
         </div>
 
@@ -156,7 +154,7 @@ export function ReUploadBatchModal({
               ref={(el) => { if (el) el.indeterminate = !allSelected && !noneSelected; }}
               onChange={toggleAll}
             />
-            <span>Pilih semua ({items.length} file)</span>
+            <span>{t('ui.generated.pilih_semua_ea9d584')}{items.length} {t('ui.generated.file_a91fd63')}</span>
           </label>
 
           <ul className="rub-list">
@@ -175,9 +173,9 @@ export function ReUploadBatchModal({
                       <span className="rub-item-name" title={item.name}>{item.name}</span>
                       <span className="rub-item-meta">
                         {sizeStr && <span>{sizeStr}</span>}
-                        {deletedStr && <span>Dihapus: {deletedStr}</span>}
+                        {deletedStr && <span>{t('ui.generated.dihapus_5ba2f89')} {deletedStr}</span>}
                         {item.originalMessageId && (
-                          <span className="rub-item-mid">msg #{item.originalMessageId}</span>
+                          <span className="rub-item-mid">{t('ui.generated.msg_34e2770')}{item.originalMessageId}</span>
                         )}
                       </span>
                     </span>
@@ -196,7 +194,7 @@ export function ReUploadBatchModal({
               {expanded ? (
                 <><ChevronUp size={13} /> {t('speedtest.show_less')}</>
               ) : (
-                <><ChevronDown size={13} /> Tampilkan {items.length - 5} file lainnya</>
+                <><ChevronDown size={13} /> {t('ui.generated.tampilkan_8b412db')} {items.length - 5} {t('ui.generated.file_lainnya_f9b61e0')}</>
               )}
             </button>
           )}
@@ -210,11 +208,11 @@ export function ReUploadBatchModal({
             onClick={onSkipAll}
             title={t("speedtest.batch_reupload_skip")}
           >
-            Lewati Semua
+            {t('ui.generated.lewati_semua_3c90ee4')}
           </button>
           <div className="rub-foot-right">
             <button type="button" className="rub-btn-cancel" onClick={onClose}>
-              Batal
+              {t('accounts.cancel')}
             </button>
             <button
               type="button"
@@ -223,7 +221,7 @@ export function ReUploadBatchModal({
               disabled={noneSelected}
             >
               <Check size={14} />
-              Upload Ulang {selected.size > 0 ? `(${selected.size})` : ''}
+              {t('ui.generated.upload_ulang_344a049')} {selected.size > 0 ? `(${selected.size})` : ''}
             </button>
           </div>
         </footer>

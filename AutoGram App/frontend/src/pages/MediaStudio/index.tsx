@@ -345,24 +345,25 @@ export function MediaStudio({
   onSwitchMode,
   onBackToLauncher,
 }: MediaStudioProps = {}) {
+  const { t } = useTranslation();
   if (!canUseLocalTelegramWorker()) {
     return (
       <main className="main-content page-stack">
         <header className="page-header">
           <h2 className="title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <HardDrive size={26} color="var(--primary)" />
-            Media Studio / Drive
+            {t('ui.generated.media_studio_drive_0e6dd4d')}
           </h2>
-          <p className="subtitle">Desktop application only</p>
+          <p className="subtitle">{t('ui.generated.desktop_application_only_5f2a6ec')}</p>
         </header>
         <div className="card" role="status" style={{ padding: 20, maxWidth: 560 }}>
           <p style={{ margin: 0, lineHeight: 1.5 }}>
-            Drive (upload, re-encode, thumbnail, Telethon) berjalan di{' '}
-            <strong>aplikasi desktop AutoGram</strong>.
+            {t('ui.generated.drive_upload_re_encode_thumbnail_telethon_berjal_11e8e5d')}{' '}
+            <strong>{t('ui.generated.aplikasi_desktop_autogram_833696a')}</strong>.
           </p>
           {onExitToApp && (
             <button type="button" className="btn btn-primary" style={{ marginTop: 16 }} onClick={onExitToApp}>
-              Kembali ke AutoGram
+              {t('speedtest.sidebar_back_to_app')}
             </button>
           )}
         </div>
@@ -1008,10 +1009,10 @@ function MediaDriveDesktop({
     }
     setStatusText(
       q === 'saver'
-        ? 'Thumb: Hemat data'
+        ? t('ui.generated.thumb_hemat_data_03d1b10')
         : q === 'sharp'
-          ? 'Thumb: Jelas'
-          : 'Thumb: Seimbang'
+          ? t('ui.generated.thumb_jelas_c3940c6')
+          : t('ui.generated.thumb_seimbang_8abfbe4')
     );
   };
 
@@ -1051,7 +1052,7 @@ function MediaDriveDesktop({
       setActivePeerId(null);
       setTopicFilter(null);
       setError(friendlyDriveError(e));
-      setStatusText('Lokasi tidak valid di session ini');
+      setStatusText(t('ui.generated.lokasi_tidak_valid_di_session_ini_d5b3e1a'));
       setFiles([]);
       setFilesHasMore(false);
       setNextOffsetId(null);
@@ -1199,7 +1200,7 @@ function MediaDriveDesktop({
       /* empty until live */
     }
 
-    setStatusText('Mengganti session…');
+    setStatusText(t('ui.generated.mengganti_session_1ff878f'));
     setDriveReady(false);
     nativeDriveReadyRef.current = false;
     setSession(next);
@@ -1299,7 +1300,7 @@ function MediaDriveDesktop({
         setApiCreds({ apiId: c.apiId, apiHash: c.apiHash });
         if (!c.apiId || !c.apiHash) {
           setError(
-            'API ID/Hash belum terisi. Buka Settings → simpan credentials (atau pastikan worker/.env ada), lalu refresh.'
+            t('ui.generated.api_id_hash_belum_terisi_buka_settings_simpan_cr_83da05c')
           );
         }
         return c;
@@ -1646,7 +1647,7 @@ function MediaDriveDesktop({
   const refreshLocations = useCallback(async () => {
     if (!creds) return;
     if (isTransferJobActive()) {
-      setStatusText('Transfer aktif — refresh ditunda');
+      setStatusText(t('ui.generated.transfer_aktif_refresh_ditunda_099d58a'));
       return;
     }
     // Staged load: paint chats/folders/files as each RPC finishes (never wait for all).
@@ -1691,7 +1692,7 @@ function MediaDriveDesktop({
     };
 
     try {
-      setStatusText('Memuat Drive…');
+      setStatusText(t('ui.generated.memuat_drives_780fc8f'));
 
       // Prefer staged RPCs when warm session is ready (true progressive UI).
       // The first file page gets exclusive network priority; secondary panels
@@ -1774,7 +1775,7 @@ function MediaDriveDesktop({
           if (!tinyComplete) {
             setScaleHint(
               res.has_more
-                ? 'Folder besar — grid dimuat bertahap; jumlah & ukuran total dihitung otomatis di latar.'
+                ? t('ui.generated.folder_besar_grid_dimuat_bertahap_jumlah_ukuran__85d18bc')
                 : null
             );
             // Stats after topics/files settle (no-op on low-end fullMediaStats=false)
@@ -1786,7 +1787,7 @@ function MediaDriveDesktop({
             if (getDrivePerfProfile().tier === 'low') {
               setScaleHint(
                 (res.has_more
-                  ? 'Mode Hemat: grid kecil, thumb ringan. Scroll untuk memuat lagi.'
+                  ? t('ui.generated.mode_hemat_grid_kecil_thumb_ringan_scroll_untuk__2c3327a')
                   : null) as string | null
               );
             }
@@ -1809,7 +1810,7 @@ function MediaDriveDesktop({
             if (gen !== peerGen.current) return;
             if (isSessionLockError(e) && sessionLockRetriesRef.current < 2) {
               sessionLockRetriesRef.current += 1;
-              setStatusText('Koneksi terkunci. Memulihkan session...');
+              setStatusText(t('ui.generated.koneksi_terkunci_memulihkan_session_dfba1df'));
               try {
                 await stopDriveSession();
                 await new Promise((r) => setTimeout(r, 450));
@@ -1935,7 +1936,7 @@ function MediaDriveDesktop({
       // One-shot fallback: single bootstrap RPC (no warm worker)
       // driveBootstrap kini TIDAK memblokir pada folder scan.
       // Chats + files sudah tersedia langsung; folder scan berjalan via folderScanPromise.
-      setStatusText('Menyambungkan (mode satu-kali)…');
+      setStatusText(t('ui.generated.menyambungkan_mode_satu_kali_ca1d4a0'));
       const boot = await driveBootstrap(creds, peerId, {
         filePageSize: getDrivePerfProfile().filePage,
         chatPageSize: getDrivePerfProfile().chatPage,
@@ -2015,7 +2016,7 @@ function MediaDriveDesktop({
       if (boot.files_has_more || boot.stats_pending || boot.total_bytes == null) {
         setScaleHint(
           boot.files_has_more
-            ? 'Folder besar — grid dimuat bertahap; jumlah & ukuran total dihitung otomatis di latar (tanpa menunggu scroll).'
+            ? t('ui.generated.folder_besar_grid_dimuat_bertahap_jumlah_ukuran__c1251c0')
             : null
         );
         scheduleMediaStats({ force: true, delayMs: INITIAL_STATS_DELAY_MS });
@@ -2103,7 +2104,7 @@ function MediaDriveDesktop({
       if (gen !== peerGen.current) return;
       if (isSessionLockError(e) && sessionLockRetriesRef.current < 2) {
         sessionLockRetriesRef.current += 1;
-        setStatusText('Koneksi terkunci. Memulihkan session...');
+        setStatusText(t('ui.generated.koneksi_terkunci_memulihkan_session_dfba1df'));
         try {
           await stopDriveSession();
           await new Promise((r) => setTimeout(r, 450));
@@ -2357,7 +2358,7 @@ function MediaDriveDesktop({
   const refreshFiles = useCallback(async (retryCount = 0, opts?: { preserveError?: boolean }) => {
     if (!creds) return;
     if (isTransferJobActive()) {
-      setStatusText('Transfer aktif — refresh ditunda');
+      setStatusText(t('ui.generated.transfer_aktif_refresh_ditunda_099d58a'));
       return;
     }
     const gen = ++peerGen.current;
@@ -2432,7 +2433,7 @@ function MediaDriveDesktop({
     }
 
     try {
-      setStatusText(tid != null ? 'Listing files (topik)…' : 'Listing files…');
+      setStatusText(tid != null ? t('ui.generated.listing_files_topik_3ccdf69') : t('ui.generated.listing_files_8ddd84f'));
       const perf = getDrivePerfProfile();
       let res = await driveListFiles(creds, peerId, {
         pageSize: stagedInitialPageSize(perf.tier, perf.filePage),
@@ -2602,7 +2603,7 @@ function MediaDriveDesktop({
       } else {
         setScaleHint(
           hasMore
-            ? 'Folder besar — grid dimuat bertahap; jumlah & ukuran total dihitung otomatis di latar (tanpa menunggu scroll).'
+            ? t('ui.generated.folder_besar_grid_dimuat_bertahap_jumlah_ukuran__c1251c0')
             : null
         );
         // Topic history can still be large. Keep it in the same late stage so
@@ -2662,7 +2663,7 @@ function MediaDriveDesktop({
         return;
       }
       setError(friendlyDriveError(e));
-      setStatusText('List failed');
+      setStatusText(t('ui.generated.list_failed_520195e'));
     } finally {
       setLoadingFiles(false);
       if (gen === peerGen.current) {
@@ -2805,7 +2806,7 @@ function MediaDriveDesktop({
         } catch (err) {
           console.error('[Index] driveIndexFolder trigger failed:', err);
           setIndexingJob({ active: false, processed: 0, total: 0, text: '' });
-          setError('Gagal memulai pengindeksan media: ' + friendlyDriveError(err));
+          setError(t('ui.generated.gagal_memulai_pengindeksan_media_f5bfe76') + friendlyDriveError(err));
         }
       }
     });
@@ -2832,7 +2833,7 @@ function MediaDriveDesktop({
           await updateActionStatus(action.id, 'failed', String(err));
         }
       }
-      setStatusText('Tindakan tertunda selesai diproses.');
+      setStatusText(t('ui.generated.tindakan_tertunda_selesai_diproses_8566b32'));
       void refreshFiles();
     } catch (e) {
       console.warn('[ActionQueue] processPendingActions failed:', e);
@@ -2862,7 +2863,7 @@ function MediaDriveDesktop({
     // on mid/high devices; only constrained devices pause during pagination.
     const pauseThumbsForPaging = getDrivePerfProfile().tier === 'low';
     if (pauseThumbsForPaging) setThumbsPaused(true);
-    setStatusText('Memuat lebih banyak…');
+    setStatusText(t('ui.generated.memuat_lebih_banyak_4a5fdda'));
     const gen = peerGen.current;
     const tid = topicFilterRef.current;
     const cacheKey = getDriveCacheKey(creds?.session || session, peerId, tid);
@@ -2899,7 +2900,7 @@ function MediaDriveDesktop({
         setFilesHasMore(false);
         nextOffsetIdRef.current = null;
         setNextOffsetId(null);
-        setStatusText('Semua media dimuat');
+        setStatusText(t('ui.generated.semua_media_dimuat_2310a13'));
         scheduleMediaStats({ force: true, delayMs: 200 });
         return;
       }
@@ -2908,9 +2909,9 @@ function MediaDriveDesktop({
         const seen = new Set(prev.map((f) => f.id));
         const merged = [...prev, ...page.filter((f) => !seen.has(f.id))];
         if (merged.length >= 10000) {
-          setScaleHint('Folder sangat besar (10k+) — gunakan filter/search; muat bertahap.');
+          setScaleHint(t('ui.generated.folder_sangat_besar_10k_gunakan_filter_search_mu_26d5d50'));
         } else if (merged.length >= 1000) {
-          setScaleHint('1.000+ item dimuat bertahap — hanya baris terlihat yang di-render.');
+          setScaleHint(t('ui.generated.1_000_item_dimuat_bertahap_hanya_baris_terlihat__2b683ad'));
         }
         const known = filesTotalCountRef.current.get(cacheKey);
         setStatusText(
@@ -2981,7 +2982,7 @@ function MediaDriveDesktop({
           throw new Error(`FLOOD_WAIT_${sec}`);
         }
         setError(friendlyDriveError(e));
-        setStatusText('Load more gagal');
+        setStatusText(t('ui.generated.load_more_gagal_b4ced02'));
         throw e;
       }
     } finally {
@@ -3286,7 +3287,7 @@ function MediaDriveDesktop({
     }
     (async () => {
       try {
-        setStatusText(switched ? 'Menyambungkan Drive…' : 'Memuat Drive…');
+        setStatusText(switched ? t('ui.generated.menyambungkan_drive_7c38d21') : t('ui.generated.memuat_drives_780fc8f'));
         if (folders.length === 0) setLoadingFolders(true);
         if (chats.length === 0) setLoadingChats(true);
         if (files.length === 0) setLoadingFiles(true);
@@ -3313,12 +3314,12 @@ function MediaDriveDesktop({
         nativeDriveReadyRef.current = true;
         setThumbsPaused(false);
         invalidateThumbFailures();
-        setStatusText('Grammers terhubung · memuat Drive…');
+        setStatusText(t('ui.generated.grammers_terhubung_memuat_drive_b87aa7c'));
         const ok = nativeConnected;
         if (cancelled) return;
         // Show "terhubung" as soon as worker is warm — don't wait for lists
         setDriveReady(ok || isDriveSessionReady());
-        setStatusText(ok || isDriveSessionReady() ? 'Drive terhubung · memuat…' : 'Memuat Drive…');
+        setStatusText(ok || isDriveSessionReady() ? t('ui.generated.drive_terhubung_memuat_6902ef1') : t('ui.generated.memuat_drives_780fc8f'));
         await refreshLocations();
         // The first measurement includes TCP/MTProto cold connect. Once the
         // visible grid is ready, sample the reused SenderPool once so the UI
@@ -3349,8 +3350,8 @@ function MediaDriveDesktop({
             isDriveSessionReady() || nativeDriveReadyRef.current
               ? perfHint
                 ? `Drive siap · ${perfHint}`
-                : 'Drive siap'
-              : 'Drive (mode satu-kali)'
+                : t('ui.generated.drive_siap_6dadac7')
+              : t('ui.generated.drive_mode_satu_kali_d2784d5')
           );
           if (perfHint) {
             setScaleHint((h) => h || 'Mode Hemat aktif: thumb ringan, halaman kecil, stats ditunda agar perangkat tidak berat.');
@@ -3382,7 +3383,7 @@ function MediaDriveDesktop({
           setLoadingChats(false);
           setLoadingFiles(false);
           setDriveReady(false);
-          setStatusText('Siap');
+          setStatusText(t('nav.status_idle'));
           try {
             const { setAvatarsPaused } = await import('../../lib/media/avatarBatcher');
             setAvatarsPaused(false);
@@ -3786,7 +3787,7 @@ function MediaDriveDesktop({
         }, 1000);
       } else {
         taskRunningRef.current = false;
-        setError("Silakan pilih session Telegram terlebih dahulu sebelum melakukan transfer.");
+        setError(t('ui.generated.silakan_pilih_session_telegram_terlebih_dahulu_s_42aba91'));
       }
       return;
     }
@@ -4000,8 +4001,8 @@ function MediaDriveDesktop({
         if (successCount > 0) {
           setStatusText(`Download selesai: ${successCount}/${totalCount} berkas`);
         } else {
-          setStatusText('Download gagal');
-          setError('Gagal mengunduh berkas');
+          setStatusText(t('ui.generated.download_gagal_19e7bc6'));
+          setError(t('speedtest.download_failed'));
         }
       } else if (task.kind === 'download_one') {
         let errMessage: string | null = null;
@@ -4034,7 +4035,7 @@ function MediaDriveDesktop({
             return { ...t, items: nextItems };
           });
         } else {
-          setStatusText('Download gagal');
+          setStatusText(t('ui.generated.download_gagal_19e7bc6'));
           setError(errMessage);
           setTransfer((t) => {
             const nextItems = t.items.map((it, idx) => {
@@ -4050,7 +4051,7 @@ function MediaDriveDesktop({
     } catch (e: any) {
       const msg = String(e?.message || e);
       setError(msg);
-      setStatusText(task.kind === 'upload' ? 'Upload gagal' : 'Download gagal');
+      setStatusText(task.kind === 'upload' ? t('ui.generated.upload_gagal_bf53c87') : t('ui.generated.download_gagal_19e7bc6'));
       setTransfer((t) => {
         const nextItems = t.items.map((it, idx) => {
           if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
@@ -4260,7 +4261,7 @@ function MediaDriveDesktop({
     // Open the name dialog even if warm session is still connecting — confirm path
     // will re-check creds + ensureDriveSession so "+ Drive" / "+ Folder" is not a silent no-op.
     if (!creds) {
-      setError('Session / API belum siap. Pilih session Lavender, pastikan API ID & Hash terisi, lalu Muat.');
+      setError(t('ui.generated.session_api_belum_siap_pilih_session_lavender_pa_5ba923f'));
       return;
     }
     // Nested folder: explicit parent only when provided.
@@ -4278,23 +4279,23 @@ function MediaDriveDesktop({
     setError(null);
     setInputDlg({
       kind: 'create-folder',
-      title: parentId != null ? String(t('speedtest.create_folder_title', 'Buat folder')) : String(t('speedtest.create_drive_title', 'Buat Drive [TD]')),
+      title: parentId != null ? String(t('speedtest.create_folder_title')) : String(t('speedtest.create_drive_title')),
       description:
         parentId != null
           ? String(t('speedtest.create_folder_desc', { parentName, defaultValue: `Di dalam “${parentName}”. Folder bisa berisi subfolder.` }))
-          : String(t('speedtest.create_drive_desc', 'Drive root di Media Studio (channel privat Telegram [TD]).')),
-      label: parentId != null ? String(t('speedtest.folder_name_label', 'Nama folder')) : String(t('speedtest.drive_name_label', 'Nama Drive')),
-      placeholder: parentId != null ? String(t('speedtest.folder_name_ph', 'mis. Semester 1')) : String(t('speedtest.drive_name_ph', 'mis. Materi Kelas A')),
-      confirmLabel: parentId != null ? String(t('speedtest.create_folder_btn', 'Buat folder')) : String(t('speedtest.create_drive_btn', 'Buat Drive')),
+          : String(t('speedtest.create_drive_desc')),
+      label: parentId != null ? String(t('speedtest.folder_name_label')) : String(t('speedtest.drive_name_label')),
+      placeholder: parentId != null ? String(t('speedtest.folder_name_ph')) : String(t('speedtest.drive_name_ph')),
+      confirmLabel: parentId != null ? String(t('speedtest.create_folder_btn')) : String(t('speedtest.create_drive_btn')),
       onConfirm: (name: any) => {
         void (async () => {
           try {
             if (!creds) {
-              setError('Session / API belum siap.');
+              setError(t('ui.generated.session_api_belum_siap_8049098'));
               return;
             }
             setStatusText(
-              parentId != null ? `Membuat folder di ${parentName}…` : 'Membuat Drive [TD]…'
+              parentId != null ? `Membuat folder di ${parentName}…` : t('ui.generated.membuat_drive_td_16b22cc')
             );
             // Warm Telethon before CreateChannel — avoids disconnect / half-ready races
             try {
@@ -4324,8 +4325,8 @@ function MediaDriveDesktop({
             } else {
               setStatusText(
                 parentId != null
-                  ? 'Folder dibuat — pilih di sidebar Drives [TD]'
-                  : 'Drive dibuat — pilih di sidebar Drives [TD]'
+                  ? t('ui.generated.folder_dibuat_pilih_di_sidebar_drives_td_097c6fb')
+                  : t('ui.generated.drive_dibuat_pilih_di_sidebar_drives_td_622df6b')
               );
             }
           } catch (e: any) {
@@ -4349,7 +4350,7 @@ function MediaDriveDesktop({
                   : 'Gagal membuat Drive [TD]';
             }
             setError(msg);
-            setStatusText('Siap');
+            setStatusText(t('nav.status_idle'));
           }
         })();
       },
@@ -4358,11 +4359,11 @@ function MediaDriveDesktop({
 
   const handleCreateTopic = () => {
     if (!creds) {
-      setError('Session / API belum siap.');
+      setError(t('ui.generated.session_api_belum_siap_8049098'));
       return;
     }
     if (activePeerId == null) {
-      setError('Pilih grup terlebih dahulu.');
+      setError(t('ui.generated.pilih_grup_terlebih_dahulu_89491a7'));
       return;
     }
     setError(null);
@@ -4377,7 +4378,7 @@ function MediaDriveDesktop({
         void (async () => {
           try {
             if (!creds) {
-              setError('Session / API belum siap.');
+              setError(t('ui.generated.session_api_belum_siap_8049098'));
               return;
             }
             setStatusText(`Membuat topik "${name}"…`);
@@ -4405,8 +4406,8 @@ function MediaDriveDesktop({
               setStatusText(`Topik "${name}" berhasil dibuat.`);
             }
           } catch (e: any) {
-            setError(e?.message || 'Gagal membuat topik');
-            setStatusText('Siap');
+            setError(e?.message || t('ui.generated.gagal_membuat_topik_15ff0e8'));
+            setStatusText(t('nav.status_idle'));
           }
         })();
       },
@@ -4415,11 +4416,11 @@ function MediaDriveDesktop({
 
   const handleDeleteTopic = (topicId: number, topicTitle: string) => {
     if (!creds) {
-      setError('Session / API belum siap.');
+      setError(t('ui.generated.session_api_belum_siap_8049098'));
       return;
     }
     if (activePeerId == null) {
-      setError('Pilih grup terlebih dahulu.');
+      setError(t('ui.generated.pilih_grup_terlebih_dahulu_89491a7'));
       return;
     }
     setError(null);
@@ -4451,8 +4452,8 @@ function MediaDriveDesktop({
             }
             setStatusText(`Topik "${topicTitle}" berhasil dihapus.`);
           } catch (e: any) {
-            setError(e?.message || 'Gagal menghapus topik');
-            setStatusText('Siap');
+            setError(e?.message || t('ui.generated.gagal_menghapus_topik_b42a539'));
+            setStatusText(t('nav.status_idle'));
           } finally {
             setLoadingFiles(false);
             setTopicsLoading(false);
@@ -4464,11 +4465,11 @@ function MediaDriveDesktop({
 
   const handleRenameTopic = (topicId: number, currentTitle: string) => {
     if (!creds) {
-      setError('Session / API belum siap.');
+      setError(t('ui.generated.session_api_belum_siap_8049098'));
       return;
     }
     if (activePeerId == null) {
-      setError('Pilih grup terlebih dahulu.');
+      setError(t('ui.generated.pilih_grup_terlebih_dahulu_89491a7'));
       return;
     }
     setInputDlg({
@@ -4499,8 +4500,8 @@ function MediaDriveDesktop({
             }
             setStatusText(`Topik "${currentTitle}" berhasil diganti nama.`);
           } catch (e: any) {
-            setError(e?.message || 'Gagal mengganti nama topik');
-            setStatusText('Siap');
+            setError(e?.message || t('ui.generated.gagal_mengganti_nama_topik_94bac90'));
+            setStatusText(t('nav.status_idle'));
           }
         })();
       },
@@ -4517,7 +4518,7 @@ function MediaDriveDesktop({
   }, []);
 
   const handleRenameFolder = (folderId: number, folderName: string) => {
-    if (!creds) return setError('Pilih session dan isi API ID / Hash dulu.');
+    if (!creds) return setError(t('ui.generated.pilih_session_dan_isi_api_id_hash_dulu_2b90852'));
     const row = folders.find((f) => f.id === folderId);
     const kindLabel = labelDriveItem(row);
     setInputDlg({
@@ -4543,7 +4544,7 @@ function MediaDriveDesktop({
             setStatusText(`${kindLabel} diganti nama: ${res?.folder?.name || name}`);
           } catch (e: any) {
             setError(String(e?.message || e || `Gagal ganti nama ${kindLabel.toLowerCase()}`));
-            setStatusText('Siap');
+            setStatusText(t('nav.status_idle'));
           }
         })();
       },
@@ -4555,15 +4556,15 @@ function MediaDriveDesktop({
     folderName: string,
     preferredTarget?: { id: number; name: string }
   ) => {
-    if (!creds) return setError('Pilih session dan isi API ID / Hash dulu.');
+    if (!creds) return setError(t('ui.generated.pilih_session_dan_isi_api_id_hash_dulu_2b90852'));
 
     const runReparent = (parentId: number | null, parentLabel: string) => {
       if (parentId != null && wouldCreateFolderCycle(folders, folderId, parentId)) {
-        setError('Tidak bisa memindahkan Drive/Folder ke dalam turunannya sendiri (siklus).');
+        setError(t('ui.generated.tidak_bisa_memindahkan_drive_folder_ke_dalam_tur_ff89afa'));
         return;
       }
       if (parentId === folderId) {
-        setError('Folder tidak bisa menjadi induk dirinya sendiri.');
+        setError(t('ui.generated.folder_tidak_bisa_menjadi_induk_dirinya_sendiri_04b40ea'));
         return;
       }
       void (async () => {
@@ -4588,7 +4589,7 @@ function MediaDriveDesktop({
           );
         } catch (e: any) {
           setError(String(e?.message || e || 'Gagal memindahkan folder'));
-          setStatusText('Siap');
+          setStatusText(t('nav.status_idle'));
         }
       })();
     };
@@ -4633,7 +4634,7 @@ function MediaDriveDesktop({
   };
 
   const handleDeleteFolder = (folderId: number, folderName: string) => {
-    if (!creds) return setError('Pilih session dan isi API ID / Hash dulu.');
+    if (!creds) return setError(t('ui.generated.pilih_session_dan_isi_api_id_hash_dulu_2b90852'));
     const row = folders.find((f) => f.id === folderId);
     const kind = driveItemKind(row);
     const kindLabel = labelDriveItem(row);
@@ -4678,7 +4679,7 @@ function MediaDriveDesktop({
             setStatusText(`${kindLabel} dihapus: ${folderName}`);
           } catch (e: any) {
             setError(String(e?.message || e || `Gagal menghapus ${kindLabel.toLowerCase()}`));
-            setStatusText('Siap');
+            setStatusText(t('nav.status_idle'));
           }
         })();
       },
@@ -4690,10 +4691,10 @@ function MediaDriveDesktop({
    * "Buat folder di sini" memakai handleCreateFolder({ parentId: current }).
    */
   const handleCreateSubfolder = () => {
-    if (!creds) return setError('Pilih session dan isi API ID / Hash dulu.');
+    if (!creds) return setError(t('ui.generated.pilih_session_dan_isi_api_id_hash_dulu_2b90852'));
     if (!folders.length) {
       setError(
-        'Belum ada Drive [TD]. Buat Drive root dulu (+ Drive), lalu buat Folder di dalamnya.'
+        t('ui.generated.belum_ada_drive_td_buat_drive_root_dulu_drive_la_5ce5e28')
       );
       return;
     }
@@ -4711,7 +4712,7 @@ function MediaDriveDesktop({
       })),
       onConfirm: (choice: any) => {
         if (choice.id == null) {
-          setError('Pilih Drive atau Folder sebagai induk.');
+          setError(t('ui.generated.pilih_drive_atau_folder_sebagai_induk_8701eec'));
           return;
         }
         handleCreateFolder({ parentId: choice.id });
@@ -4734,7 +4735,7 @@ function MediaDriveDesktop({
         return p.includes('\\') || p.includes('/') || /^[a-zA-Z]:/.test(p);
       });
     if (!cleanPaths.length) {
-      setError('Path file atau URL tidak valid. Coba lagi drop dari File Explorer atau masukkan URL yang benar.');
+      setError(t('ui.generated.path_file_atau_url_tidak_valid_coba_lagi_drop_da_63586d7'));
       return;
     }
     const uploadPeer =
@@ -4928,7 +4929,7 @@ function MediaDriveDesktop({
       });
       if (!savePath) return; // user cancelled
 
-      setStatusText('Sedang membuat ZIP, mohon tunggu...');
+      setStatusText(t('ui.generated.sedang_membuat_zip_mohon_tunggu_a99d00b'));
 
       const params = new URLSearchParams({
         session: creds.session,
@@ -4963,7 +4964,7 @@ function MediaDriveDesktop({
   }, [peerId, creds]);
 
   const handleUpload = async () => {
-    if (!creds) return setError('Select session and set API credentials.');
+    if (!creds) return setError(t('ui.generated.select_session_and_set_api_credentials_1eb97c1'));
     try {
       const { open } = await import('@tauri-apps/plugin-dialog');
       const selected = await open({ multiple: true, title: 'Upload to Drive' });
@@ -5258,7 +5259,7 @@ function MediaDriveDesktop({
   );
 
   const openOneInSystem = async (file: DriveFile) => {
-    if (!creds) return setError('Pilih session dan API credentials dulu.');
+    if (!creds) return setError(t('ui.generated.pilih_session_dan_api_credentials_dulu_59128e4'));
     try {
       setStatusText(`Membuka ${file.name}…`);
       const { openDriveFileInSystem } = await import('../../lib/tauri/documentOpen');
@@ -5266,28 +5267,28 @@ function MediaDriveDesktop({
       setStatusText(`Dibuka: ${file.name}`);
     } catch (e: any) {
       setError(String(e?.message || e));
-      setStatusText('Siap');
+      setStatusText(t('nav.status_idle'));
     }
   };
 
   const openOneWithApp = async (file: DriveFile) => {
-    if (!creds) return setError('Pilih session dan API credentials dulu.');
+    if (!creds) return setError(t('ui.generated.pilih_session_dan_api_credentials_dulu_59128e4'));
     try {
       setStatusText(`Buka dengan… ${file.name}`);
       const { openDriveFileWithApp } = await import('../../lib/tauri/documentOpen');
       await openDriveFileWithApp(creds, file, peerId, null, (p) => {
         setStatusText(p.message);
       });
-      setStatusText('Dialog Windows dibuka — pilih aplikasi');
-      window.setTimeout(() => setStatusText('Siap'), 4000);
+      setStatusText(t('ui.generated.dialog_windows_dibuka_pilih_aplikasi_42d6df0'));
+      window.setTimeout(() => setStatusText(t('nav.status_idle')), 4000);
     } catch (e: any) {
       setError(String(e?.message || e));
-      setStatusText('Siap');
+      setStatusText(t('nav.status_idle'));
     }
   };
 
   const revealOne = async (file: DriveFile) => {
-    if (!creds) return setError('Pilih session dan API credentials dulu.');
+    if (!creds) return setError(t('ui.generated.pilih_session_dan_api_credentials_dulu_59128e4'));
     try {
       const { ensureLocalDocument, revealInFolder } = await import('../../lib/tauri/documentOpen');
       const path = await ensureLocalDocument(creds, file, peerId);
@@ -5302,7 +5303,7 @@ function MediaDriveDesktop({
       if (!creds || !ids.length) return;
       const n = ids.length;
       try {
-        setStatusText(n === 1 ? 'Menghapus…' : `Menghapus ${n} file…`);
+        setStatusText(n === 1 ? t('ui.generated.menghapus_99906e1') : `Menghapus ${n} file…`);
         const items = ids.map((id) => {
           const f = files.find((x) => x.id === id) || liveFilesRef.current.find((x) => x.id === id);
           const targetFolder = (f as any)?.folder_id ?? (f as any)?.folderId ?? (f as any)?.chat_id ?? peerId;
@@ -5350,7 +5351,7 @@ function MediaDriveDesktop({
             `Terhapus ${deletedIds.length}/${n}${failed.length ? ` · ${failed.length} gagal` : ''}`
           );
         } else {
-          setStatusText(n === 1 ? 'File dihapus' : `${n} file dihapus`);
+          setStatusText(n === 1 ? t('ui.generated.file_dihapus_b7abea5') : `${n} file dihapus`);
         }
       } catch (e: any) {
         if (!navigator.onLine) {
@@ -5375,10 +5376,10 @@ function MediaDriveDesktop({
           }
           setSelectedIds([]);
           selectionAnchorRef.current = null;
-          setStatusText(n === 1 ? 'Hapus diantre (offline)' : `${n} hapus diantre (offline)`);
+          setStatusText(n === 1 ? t('ui.generated.hapus_diantre_offline_db0e363') : `${n} hapus diantre (offline)`);
         } else {
           setError(String(e?.message || e));
-          setStatusText('Hapus gagal');
+          setStatusText(t('ui.generated.hapus_gagal_9277ca2'));
         }
       } finally {
         setLoadingFiles(false);
@@ -5421,7 +5422,7 @@ function MediaDriveDesktop({
           try {
             await driveRename(creds, file.id, peerId, name);
             await refreshFiles();
-            setStatusText('Nama diperbarui');
+            setStatusText(t('ui.generated.nama_diperbarui_e6bbb4d'));
           } catch (e: any) {
             if (!navigator.onLine) {
               await enqueueAction({
@@ -5431,7 +5432,7 @@ function MediaDriveDesktop({
                 payload: { newName: name }
               }).catch(() => null);
               setFiles(prev => prev.map(f => f.id === file.id ? { ...f, name } : f));
-              setStatusText('Rename diantre (offline)');
+              setStatusText(t('ui.generated.rename_diantre_offline_83c2138'));
             } else {
               setError(String(e?.message || e));
             }
@@ -5482,7 +5483,7 @@ function MediaDriveDesktop({
       let skipped = 0;
       if (opts.skipDuplicates) {
         try {
-          setStatusText('Cek duplikat di tujuan…');
+          setStatusText(t('ui.generated.cek_duplikat_di_tujuan_d06082a'));
           const destRes = await driveListFiles(creds, opts.toFolderId, { pageSize: 200 });
           const destFiles = [...((destRes?.files || []) as DriveFile[])];
           // Also pull more pages lightly
@@ -5507,7 +5508,7 @@ function MediaDriveDesktop({
             setStatusText(
               skipped
                 ? `Semua ${skipped} file sudah ada di tujuan (skip duplikat)`
-                : 'Tidak ada file untuk disalin'
+                : t('ui.generated.tidak_ada_file_untuk_disalin_06f8625')
             );
             return;
           }
@@ -5809,7 +5810,7 @@ function MediaDriveDesktop({
           e.preventDefault();
           pasteMoveRef.current(clip);
           if (clip.mode === 'copy') {
-            setStatusText('Pilih Salin di dialog konfirmasi');
+            setStatusText(t('ui.generated.pilih_salin_di_dialog_konfirmasi_245908e'));
           }
         }
         return;
@@ -5956,11 +5957,11 @@ function MediaDriveDesktop({
   ) => {
     if (!creds || !messageIds.length) return;
     if (sameDriveLocation(fromFolderId, toFolderId) && !opts?.topicId) {
-      setStatusText('Sudah di lokasi ini — pilih chat/folder lain');
+      setStatusText(t('ui.generated.sudah_di_lokasi_ini_pilih_chat_folder_lain_d3c0ecf'));
       return;
     }
     if (isTransferJobActive() || transfer.active || moveActiveRef.current) {
-      setError('Transfer/pindah masih berjalan — Stop dulu di Transfer Manager.');
+      setError(t('ui.generated.transfer_pindah_masih_berjalan_stop_dulu_di_tran_8fd2468'));
       openTransferManager();
       return;
     }
@@ -6061,7 +6062,7 @@ function MediaDriveDesktop({
       } else if (!done && failed.length) {
         setError(
           `Gagal kirim ke “${targetLabel}”: ${failed[0]}. ` +
-            'Pastikan akun boleh kirim media di chat itu (bukan read-only / di-ban / slowmode).'
+            t('ui.generated.pastikan_akun_boleh_kirim_media_di_chat_itu_buka_edc1b5e')
         );
         setStatusText(`${modeLabel} gagal`);
         setTransfer((t) => markTransferFinished(t, 'failed'));
@@ -6117,19 +6118,19 @@ function MediaDriveDesktop({
         /* ignore */
       }
       if (!creds || !messageIds.length) {
-        setError(!creds ? 'Session/API belum siap — pilih session dulu.' : 'Tidak ada file untuk dipindah.');
+        setError(!creds ? t('ui.generated.session_api_belum_siap_pilih_session_dulu_9d3c40d') : t('ui.generated.tidak_ada_file_untuk_dipindah_272547f'));
         return;
       }
       const hasDestTopic = meta?.topicId != null && Number(meta.topicId) > 0;
       if (sameDriveLocation(fromFolderId, toFolderId) && !hasDestTopic && !meta?.isForum) {
-        setStatusText('Sudah di lokasi ini — pilih chat/folder lain');
+        setStatusText(t('ui.generated.sudah_di_lokasi_ini_pilih_chat_folder_lain_d3c0ecf'));
         setError(null);
         return;
       }
       // Only block if a MOVE is already running — exclusive upload/download should not
       // swallow the confirm dialog (user can still cancel / queue after confirm).
       if (moveActiveRef.current) {
-        setError('Pindah masih berjalan — tunggu selesai atau Stop di Transfer Manager.');
+        setError(t('ui.generated.pindah_masih_berjalan_tunggu_selesai_atau_stop_d_c037275'));
         openTransferManager();
         return;
       }
@@ -6157,7 +6158,7 @@ function MediaDriveDesktop({
         initialTopicId: meta?.topicId ?? null,
         onConfirm: (choice: any) => {
           if (isTransferJobActive() || transfer.active || moveActiveRef.current) {
-            setError('Transfer/pindah masih berjalan — Stop dulu di Transfer Manager.');
+            setError(t('ui.generated.transfer_pindah_masih_berjalan_stop_dulu_di_tran_8fd2468'));
             openTransferManager();
             return;
           }
@@ -6179,7 +6180,7 @@ function MediaDriveDesktop({
       };
       const initialTopicLoading = toFolderId != null && maybeNeedsTopics && !isForum;
       openMoveDlg(buildState([], isForum, initialTopicLoading));
-      setStatusText('Siap');
+      setStatusText(t('nav.status_idle'));
       try {
         (window as unknown as { __lastMoveReq?: Record<string, unknown> }).__lastMoveReq = {
           ...((window as unknown as { __lastMoveReq?: Record<string, unknown> }).__lastMoveReq || {}),
@@ -6213,7 +6214,7 @@ function MediaDriveDesktop({
       if (!creds || !messageIds.length) return;
       const choices = buildMoveDestinations();
       if (!choices.length) {
-        setError('Tidak ada tujuan. Muat ulang daftar chat/folder.');
+        setError(t('ui.generated.tidak_ada_tujuan_muat_ulang_daftar_chat_folder_f50a3d4'));
         return;
       }
       setDestPicker({
@@ -6367,7 +6368,7 @@ function MediaDriveDesktop({
       setChatQuery('');
       setStatusText(
         ids.length === 1
-          ? 'Seret ke chat/folder di sidebar · Esc batal'
+          ? t('ui.generated.seret_ke_chat_folder_di_sidebar_esc_batal_c4c2364')
           : `Seret ${ids.length} item ke chat/folder · Esc batal`
       );
     },
@@ -6460,14 +6461,14 @@ function MediaDriveDesktop({
           if (isDropKeySameAsSource(key, payload.fromFolderId)) {
             endDriveDrag();
             clearMediaDragUi();
-            setStatusText('Sudah di lokasi ini — pilih chat/folder lain');
+            setStatusText(t('ui.generated.sudah_di_lokasi_ini_pilih_chat_folder_lain_d3c0ecf'));
             return;
           }
           // Guard: scrolling past Drives — require stable hover (no accidental drop)
           if (shouldBlockDriveDrop(key)) {
             endDriveDrag();
             clearMediaDragUi();
-            setStatusText('Tahan sebentar di Drive/Folder untuk melepaskan (hindari lepas saat scroll)');
+            setStatusText(t('ui.generated.tahan_sebentar_di_drive_folder_untuk_melepaskan__f1416b5'));
             return;
           }
           dropLockRef.current = true;
@@ -6519,14 +6520,14 @@ function MediaDriveDesktop({
             });
           } else {
             dropLockRef.current = false;
-            setStatusText('Tujuan tidak dikenali — coba lagi');
+            setStatusText(t('ui.generated.tujuan_tidak_dikenali_coba_lagi_ef5197b'));
           }
           return;
         }
         endDriveDrag();
         clearMediaDragUi();
         setLastHoverDropKey(null);
-        setStatusText('Drop dibatalkan — lepas di baris chat/folder (biru)');
+        setStatusText(t('ui.generated.drop_dibatalkan_lepas_di_baris_chat_folder_biru_c0bb452'));
       });
     };
 
@@ -6547,7 +6548,7 @@ function MediaDriveDesktop({
         detachPointerDragListeners();
         endDriveDrag();
         clearMediaDragUi();
-        setStatusText('Drag dibatalkan');
+        setStatusText(t('ui.generated.drag_dibatalkan_455998d'));
       });
     };
     window.addEventListener('blur', onBlur);
@@ -6571,7 +6572,7 @@ function MediaDriveDesktop({
       endDriveDrag();
       clearMediaDragUi();
       dropLockRef.current = false;
-      setStatusText('Drag dibatalkan (Escape)');
+      setStatusText(t('ui.generated.drag_dibatalkan_escape_104f12b'));
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
@@ -6931,7 +6932,7 @@ function MediaDriveDesktop({
       endDriveDrag();
       clearMediaDragUi();
       clearLastOsPaths();
-      return setError('Select session first.');
+      return setError(t('ui.generated.select_session_first_8e5fb74'));
     }
     const toId = target.kind === 'saved' ? null : target.id;
 
@@ -6942,7 +6943,7 @@ function MediaDriveDesktop({
       if (sameDriveLocation(internal.fromFolderId, toId)) {
         endDriveDrag();
         clearMediaDragUi();
-        setStatusText('Sudah di lokasi ini — pilih chat/folder lain');
+        setStatusText(t('ui.generated.sudah_di_lokasi_ini_pilih_chat_folder_lain_d3c0ecf'));
         return;
       }
       dropLockRef.current = true;
@@ -6994,7 +6995,7 @@ function MediaDriveDesktop({
 
     endDriveDrag();
     clearMediaDragUi();
-    setError('Drop tidak dikenali. Seret file dari File Explorer ke baris Saved Messages (hijau).');
+    setError(t('ui.generated.drop_tidak_dikenali_seret_file_dari_file_explore_b4f412d'));
   };
 
   const cancelTransfer = async () => {
@@ -7013,7 +7014,7 @@ function MediaDriveDesktop({
     if (wasMove && !wasDownload) {
       downloadArtifactsRef.current.clear();
       setTransfer((t) => markTransferFinished(t, 'cancelled'));
-      setStatusText('Pindah/salin dihentikan');
+      setStatusText(t('ui.generated.pindah_salin_dihentikan_cc2f389'));
       scheduleTransferHide();
       return;
     }
@@ -7025,13 +7026,13 @@ function MediaDriveDesktop({
         if (res.count > 0) {
           setStatusText(`Transfer dihentikan · ${res.count} file parsial dihapus`);
         } else {
-          setStatusText('Transfer dihentikan');
+          setStatusText(t('ui.generated.transfer_dihentikan_832f41c'));
         }
       } catch {
-        setStatusText('Transfer dihentikan');
+        setStatusText(t('ui.generated.transfer_dihentikan_832f41c'));
       }
     } else {
-      setStatusText('Transfer dihentikan');
+      setStatusText(t('ui.generated.transfer_dihentikan_832f41c'));
     }
     downloadArtifactsRef.current.clear();
     setTransfer((t) => markTransferFinished(t, 'cancelled'));
@@ -7072,7 +7073,7 @@ function MediaDriveDesktop({
     setMediaDragActive(false);
     endDriveDrag();
     if (!creds) {
-      return setError('Select session first.');
+      return setError(t('ui.generated.select_session_first_8e5fb74'));
     }
     // Immediate paths from File.path / cache
     let paths = extractOsPaths(e.dataTransfer);
@@ -7236,7 +7237,7 @@ function MediaDriveDesktop({
             if (!paths.length) {
               pendingOsDropTargetRef.current = null;
               setError(
-                'Drop file gagal: path tidak terbaca. Coba tombol Upload, atau drop lagi dari File Explorer.'
+                t('ui.generated.drop_file_gagal_path_tidak_terbaca_coba_tombol_u_f1f6347')
               );
               clearLastOsPaths();
               return;
@@ -7246,7 +7247,7 @@ function MediaDriveDesktop({
             if (!c) {
               clearLastOsPaths();
               pendingOsDropTargetRef.current = null;
-              setError('Select session first.');
+              setError(t('ui.generated.select_session_first_8e5fb74'));
               return;
             }
 
@@ -7620,7 +7621,7 @@ function MediaDriveDesktop({
                     void (async () => {
                       try {
                         if (!canUseLocalTelegramWorker()) {
-                          setError('Buka folder hanya di desktop app');
+                          setError(t('ui.generated.buka_folder_hanya_di_desktop_app_dfd20c5'));
                           return;
                         }
                         const mod = await import('@tauri-apps/plugin-opener');
@@ -7646,7 +7647,7 @@ function MediaDriveDesktop({
               setSelectedIds(r.ids);
               void (async () => {
                 if (transfer.active) {
-                  setError('Transfer masih berjalan.');
+                  setError(t('ui.generated.transfer_masih_berjalan_6258539'));
                   return;
                 }
                 try {
@@ -7811,7 +7812,7 @@ function MediaDriveDesktop({
               role="status"
             >
               <Upload size={15} />
-              <span>Terdapat unggahan yang belum selesai sebelumnya ({persistedQueueCount} file).</span>
+              <span>{t('ui.generated.terdapat_unggahan_yang_belum_selesai_sebelumnya_d062f9d')}{persistedQueueCount} {t('ui.generated.file_93ddda0')}</span>
               <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
                 <button
                   type="button"
@@ -7819,7 +7820,7 @@ function MediaDriveDesktop({
                   style={{ background: '#d97706', color: '#fff', border: 'none' }}
                   onClick={handleResumeQueue}
                 >
-                  Lanjutkan
+                  {t('ui.generated.lanjutkan_5bcbc79')}
                 </button>
                 <button
                   type="button"
@@ -7827,7 +7828,7 @@ function MediaDriveDesktop({
                   style={{ color: '#d97706', border: '1px solid rgba(217, 119, 6, 0.3)', background: 'transparent' }}
                   onClick={handleDismissPersistedQueue}
                 >
-                  Abaikan
+                  {t('ui.generated.abaikan_96222fb')}
                 </button>
               </div>
             </div>
@@ -7875,7 +7876,7 @@ function MediaDriveDesktop({
                   />
                 </div>
                 <span className="td-drop-overlay-hint" style={{ fontSize: '0.85rem', opacity: 0.7 }}>
-                  Pengurutan global (ukuran/nama) memerlukan pengindeksan data satu kali per chat.
+                  {t('ui.generated.pengurutan_global_ukuran_nama_memerlukan_pengind_544f3d4')}
                 </span>
               </div>
             )}
@@ -7886,15 +7887,15 @@ function MediaDriveDesktop({
                   <Upload size={36} strokeWidth={1.75} />
                 </div>
                 <p className="td-drop-overlay-title">
-                  Lepas untuk mengunggah ke <strong>{breadcrumb}</strong>
+                  {t('ui.generated.lepas_untuk_mengunggah_ke_7f9ddc4')} <strong>{breadcrumb}</strong>
                 </p>
-                <span className="td-drop-overlay-hint">File dari komputer / File Explorer</span>
+                <span className="td-drop-overlay-hint">{t('ui.generated.file_dari_komputer_file_explorer_a254fe8')}</span>
               </div>
             )}
 
             {mediaDragActive && (
               <div className="td-internal-dnd-tip" role="status">
-                Lepas di <strong>chat atau folder</strong> di sidebar untuk memindahkan
+                {t('ui.generated.lepas_di_4ee781a')} <strong>{t('ui.generated.chat_atau_folder_3196d63')}</strong> {t('ui.generated.di_sidebar_untuk_memindahkan_78818ed')}
               </div>
             )}
             <DriveExplorer

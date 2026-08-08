@@ -1,5 +1,6 @@
 import React from 'react';
 import { Music } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export interface MediaAudioPlayerProps {
   src: string;
@@ -8,6 +9,7 @@ export interface MediaAudioPlayerProps {
 }
 
 export const MediaAudioPlayer: React.FC<MediaAudioPlayerProps> = ({ src, name, poster }) => {
+  const { t } = useTranslation();
   return (
     <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-slate-950 text-slate-100">
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-md w-full flex flex-col items-center shadow-2xl text-center space-y-6">
@@ -21,7 +23,7 @@ export const MediaAudioPlayer: React.FC<MediaAudioPlayerProps> = ({ src, name, p
 
         <div>
           <h3 className="font-bold text-base text-slate-100 line-clamp-2">{name}</h3>
-          <p className="text-xs text-slate-400 mt-1">Audio Telegram Stream</p>
+          <p className="text-xs text-slate-400 mt-1">{t('ui.generated.audio_telegram_stream_95461e5')}</p>
         </div>
 
         <audio controls src={src} autoPlay className="w-full rounded-xl" />

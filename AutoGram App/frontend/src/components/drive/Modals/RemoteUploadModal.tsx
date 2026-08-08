@@ -52,12 +52,12 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
     
     const targetUrl = url.trim();
     if (!targetUrl) {
-      setErrorMsg('Silakan masukkan URL file.');
+      setErrorMsg(t('ui.generated.silakan_masukkan_url_file_f3f01c9'));
       return;
     }
     
     if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-      setErrorMsg('URL harus diawali dengan http:// atau https://');
+      setErrorMsg(t('ui.generated.url_harus_diawali_dengan_http_atau_https_8ffbae0'));
       return;
     }
     
@@ -76,7 +76,7 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
       await onUpload(targetUrl, folderId);
       onClose();
     } catch (err: any) {
-      setErrorMsg(err?.message || 'Gagal melakukan remote upload.');
+      setErrorMsg(err?.message || t('ui.generated.gagal_melakukan_remote_upload_9dd65cb'));
     } finally {
       setSubmitting(false);
     }
@@ -104,7 +104,7 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
             className="td-confirm-close" 
             onClick={onClose} 
             disabled={submitting}
-            aria-label="Tutup"
+            aria-label={t('speedtest.preview_close_btn')}
           >
             <X size={18} />
           </button>
@@ -163,7 +163,7 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
             onClick={onClose} 
             disabled={submitting}
           >
-            Batal
+            {t('accounts.cancel')}
           </button>
           <button
             type="submit"

@@ -97,7 +97,7 @@ export function SplashScreen({ onFinish, durationMs = 1600 }: SplashScreenProps)
             WebkitTextFillColor: 'transparent',
           }}
         >
-          AutoGram
+          {t('nav.title')}
         </h1>
         <div
           style={{
@@ -114,7 +114,7 @@ export function SplashScreen({ onFinish, durationMs = 1600 }: SplashScreenProps)
           }}
         >
           <Sparkles size={13} style={{ color: '#38bdf8' }} />
-          <span>Telegram Migration & Cloud Storage Engine</span>
+          <span>{t('ui.generated.telegram_migration_cloud_storage_engine_1675ccb')}</span>
         </div>
       </div>
 
@@ -140,20 +140,11 @@ export function SplashScreen({ onFinish, durationMs = 1600 }: SplashScreenProps)
       </div>
 
       <p style={{ marginTop: '16px', fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>
-        {t('nav.splash_loading', 'Memuat Mesin Telegram & Konfigurasi AutoGram…')}
+        {t('nav.splash_loading')}
       </p>
 
       {/* CSS KEYFRAMES */}
-      <style>{`
-        @keyframes agPulseGlow {
-          0%, 100% { transform: scale(0.95); opacity: 0.6; }
-          50% { transform: scale(1.15); opacity: 1; }
-        }
-        @keyframes agSplashProgress {
-          0% { width: 0%; }
-          100% { width: 100%; }
-        }
-      `}</style>
+      <style>{t('ui.generated.keyframes_agpulseglow_0_100_transform_scale_0_95_24a1414')}</style>
     </div>
   );
 }

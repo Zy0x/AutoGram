@@ -226,11 +226,11 @@ export function VSCodeCodeViewer({
           <Code2 size={15} className="vscode-icon-blue" />
           <span className="vscode-lang-tag">{langInfo.name}</span>
           <span className="vscode-head-meta">
-            {lines.length.toLocaleString()} baris · {formatDriveBytes(activeText.length)}
+            {lines.length.toLocaleString()} {t('ui.generated.baris_89963e4')} {formatDriveBytes(activeText.length)}
           </span>
           {formattedText && (
             <span className="vscode-badge-formatted">
-              <Sparkles size={11} /> Format JSON
+              <Sparkles size={11} /> {t('ui.generated.format_json_868c567')}
             </span>
           )}
         </div>
@@ -244,7 +244,7 @@ export function VSCodeCodeViewer({
               title={formattedText ? 'Kembalikan format asli' : 'Rapikan Format JSON'}
             >
               <Sparkles size={13} />
-              <span>{formattedText ? 'Format Asli' : 'Pretty JSON'}</span>
+              <span>{formattedText ? t('ui.generated.format_asli_746ac2a') : t('ui.generated.pretty_json_729c7af')}</span>
             </button>
           )}
 
@@ -255,7 +255,7 @@ export function VSCodeCodeViewer({
             title={t("speedtest.word_wrap_tooltip")}
           >
             <WrapText size={13} />
-            <span>Wrap</span>
+            <span>{t('ui.generated.wrap_c3447e7')}</span>
           </button>
 
           <button
@@ -265,7 +265,7 @@ export function VSCodeCodeViewer({
             title={t('speedtest.copy_code_tooltip') || "Copy code to clipboard"}
           >
             {copied ? <Check size={13} style={{ color: '#4ade80' }} /> : <Copy size={13} />}
-            <span>{copied ? 'Tersalin!' : 'Salin Kode'}</span>
+            <span>{copied ? t('ui.generated.tersalin_7d2c539') : t('ui.generated.salin_kode_00fb334')}</span>
           </button>
         </div>
       </div>
@@ -289,7 +289,7 @@ export function VSCodeCodeViewer({
           ))}
           {isTruncated && (
             <div className="vscode-code-truncated">
-              ⚠️ Tampilan dipotong pada 1.000.000 karakter untuk performa. Gunakan tombol 'Salin Kode' atau 'Unduh' untuk isi utuh.
+              {t('ui.generated.tampilan_dipotong_pada_1_000_000_karakter_untuk__a77b575')}
             </div>
           )}
         </pre>

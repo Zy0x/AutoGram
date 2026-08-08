@@ -21,7 +21,7 @@ export const SessionManagerTable: React.FC<SessionManagerTableProps> = ({
       <div className="p-4 border-b border-slate-800 flex items-center justify-between">
         <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
           <Shield size={16} className="text-emerald-400" />
-          Daftar Sesi Telegram Aktif ({sessions.length})
+          {t('ui.generated.daftar_sesi_telegram_aktif_a23b263')}{sessions.length})
         </h3>
       </div>
 
@@ -60,7 +60,7 @@ export const SessionManagerTable: React.FC<SessionManagerTableProps> = ({
                     onClick={() => onSelectActive(s.session)}
                     className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-all"
                   >
-                    Gunakan Sesi
+                    {t('ui.generated.gunakan_sesi_fbebb88')}
                   </button>
                 )}
                 <button

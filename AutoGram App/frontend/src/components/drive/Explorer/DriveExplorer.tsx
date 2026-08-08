@@ -893,22 +893,22 @@ export function DriveExplorer({
             <FolderOpen size={48} />
           </div>
           <h3>
-            {query || mediaFilter !== 'all' ? 'Tidak ada yang cocok' : 'Folder ini kosong'}
+            {query || mediaFilter !== 'all' ? t('speedtest.no_match_found') : t('ui.generated.folder_ini_kosong_f7edc44')}
           </h3>
           <p>
             {query || mediaFilter !== 'all'
-              ? 'Coba filter lain, hapus kata pencarian, atau ganti lokasi di sidebar.'
-              : 'Unggah foto, video, atau dokumen — disimpan di Telegram seperti drive sungguhan. Atau buat Drive [TD] di sidebar, lalu Folder di dalamnya.'}
+              ? t('ui.generated.coba_filter_lain_hapus_kata_pencarian_atau_ganti_4f09fdb')
+              : t('ui.generated.unggah_foto_video_atau_dokumen_disimpan_di_teleg_5bde7f2')}
           </p>
           {!query && mediaFilter === 'all' && (
             <div className="td-empty-actions">
               <button type="button" className="td-btn-primary" onClick={onUpload}>
-                <Upload size={16} /> Unggah file
+                <Upload size={16} /> {t('ui.generated.unggah_file_2a57c3c')}
               </button>
               {onCreateFolder && (
                 <button type="button" className="td-btn-secondary" onClick={onCreateFolder}>
                   <FolderPlus size={16} />{' '}
-                  {folderId != null ? 'Buat folder di sini' : 'Buat Drive [TD]'}
+                  {folderId != null ? t('speedtest.ctx_menu_create_subfolder') : t('speedtest.ctx_menu_default_create_drive')}
                 </button>
               )}
             </div>
@@ -930,9 +930,9 @@ export function DriveExplorer({
             style={{ top: LIST_PAD_TOP }}
           >
             <div className="td-list-ico" />
-            <div className="td-list-name">Name</div>
-            <div className="td-list-size">Size</div>
-            <div className="td-list-date">Date</div>
+            <div className="td-list-name">{t('speedtest.col_name')}</div>
+            <div className="td-list-size">{t('speedtest.media_size')}</div>
+            <div className="td-list-date">{t('speedtest.col_date')}</div>
           </div>
           {listItems.map((v) => {
             if (v.index >= displayed.length) {
@@ -974,7 +974,7 @@ export function DriveExplorer({
                           }}
                         >
                           <Loader2 size={16} className="spin text-blue-400" />
-                          <span>{t('speedtest.loading_more', 'Memuat media lagi…')}</span>
+                          <span>{t('speedtest.loading_more')}</span>
                         </div>
                       );
                     }
@@ -994,7 +994,7 @@ export function DriveExplorer({
                             cursor: 'pointer',
                           }}
                         >
-                          <span>{t('speedtest.scroll_to_load_more', 'Gulir atau klik untuk memuat lebih banyak…')}</span>
+                          <span>{t('speedtest.scroll_to_load_more')}</span>
                         </div>
                       );
                     }
@@ -1018,7 +1018,7 @@ export function DriveExplorer({
                           }}
                         >
                           <CheckCircle2 size={16} className="text-emerald-400" />
-                          <span>Semua {displayed.length} media terverifikasi</span>
+                          <span>{t('speedtest.filter_all')} {displayed.length} {t('ui.generated.media_terverifikasi_3e52334')}</span>
                         </div>
                       );
                     }
@@ -1051,7 +1051,7 @@ export function DriveExplorer({
                               onResumeSync();
                             }}
                           >
-                            Lanjutkan
+                            {t('ui.generated.lanjutkan_5bcbc79')}
                           </button>
                         )}
                       </div>
@@ -1142,7 +1142,7 @@ export function DriveExplorer({
                           }}
                         >
                           <Loader2 size={16} className="spin text-blue-400" />
-                          <span>{t('speedtest.loading_more', 'Memuat media lagi…')}</span>
+                          <span>{t('speedtest.loading_more')}</span>
                         </div>
                       );
                     }
@@ -1163,7 +1163,7 @@ export function DriveExplorer({
                             transition: 'all 0.2s ease',
                           }}
                         >
-                          <span>{t('speedtest.scroll_to_load_more', 'Gulir atau klik untuk memuat lebih banyak…')}</span>
+                          <span>{t('speedtest.scroll_to_load_more')}</span>
                         </div>
                       );
                     }
@@ -1186,7 +1186,7 @@ export function DriveExplorer({
                           }}
                         >
                           <CheckCircle2 size={16} className="text-emerald-400" />
-                          <span>Semua {displayed.length} media terverifikasi</span>
+                          <span>{t('speedtest.filter_all')} {displayed.length} {t('ui.generated.media_terverifikasi_3e52334')}</span>
                         </div>
                       );
                     }
@@ -1219,7 +1219,7 @@ export function DriveExplorer({
                               onResumeSync();
                             }}
                           >
-                            Lanjutkan
+                            {t('ui.generated.lanjutkan_5bcbc79')}
                           </button>
                         )}
                       </div>

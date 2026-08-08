@@ -41,7 +41,7 @@ export function Profiles() {
       }
     } catch (err) {
       console.error(err);
-      setError("Failed to load profiles");
+      setError(t('ui.generated.failed_to_load_profiles_25c10cf'));
     } finally {
       setLoading(false);
     }
@@ -71,7 +71,7 @@ export function Profiles() {
       await loadProfiles();
     } catch (err) {
       console.error(err);
-      setError("Failed to delete profile");
+      setError(t('ui.generated.failed_to_delete_profile_ba1affc'));
     }
   };
 
@@ -86,7 +86,7 @@ export function Profiles() {
       await loadProfiles();
     } catch (err) {
       console.error(err);
-      setError("Failed to save profile");
+      setError(t('ui.generated.failed_to_save_profile_0c714d9'));
     }
   };
 
@@ -101,9 +101,9 @@ export function Profiles() {
       <header className="page-header">
         <h2 className="title title-with-icon">
           <Bookmark color="var(--primary)" size={28} aria-hidden />
-          Migration Profiles
+          {t('ui.generated.migration_profiles_998a7df')}
         </h2>
-        <p className="subtitle">Manage your saved templates and configurations.</p>
+        <p className="subtitle">{t('ui.generated.manage_your_saved_templates_and_configurations_11c597b')}</p>
       </header>
 
       {error && (
@@ -116,16 +116,16 @@ export function Profiles() {
         <table className="glass-table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Configuration</th>
-              <th>Created At</th>
-              <th>Actions</th>
+              <th>{t('speedtest.col_name')}</th>
+              <th>{t('speedtest.tools_group_settings')}</th>
+              <th>{t('ui.generated.created_at_5db1542')}</th>
+              <th>{t('automation.col_actions')}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={4} className="empty-state">Loading profiles...</td>
+                <td colSpan={4} className="empty-state">{t('ui.generated.loading_profiles_7b1f2b3')}</td>
               </tr>
             ) : profiles.map((p) => {
               if (isEditing === p.id) {
@@ -151,11 +151,11 @@ export function Profiles() {
                     <td>{p.created_at}</td>
                     <td>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                        <button className="btn btn-secondary" style={{ padding: '6px 10px', color: 'var(--primary)' }} onClick={() => handleSave()} title="Save">
+                        <button className="btn btn-secondary" style={{ padding: '6px 10px', color: 'var(--primary)' }} onClick={() => handleSave()} title={t('speedtest.btn_save')}>
                           <Save size={16} />
                         </button>
-                        <button className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => setIsEditing(null)} title="Cancel">
-                          Cancel
+                        <button className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => setIsEditing(null)} title={t('accounts.cancel')}>
+                          {t('accounts.cancel')}
                         </button>
                       </div>
                     </td>
@@ -186,10 +186,10 @@ export function Profiles() {
                   <td>{p.created_at}</td>
                   <td>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                      <button className="btn btn-secondary" style={{ padding: '6px 10px', color: 'var(--primary)' }} onClick={() => startEdit(p)} title="Edit">
+                      <button className="btn btn-secondary" style={{ padding: '6px 10px', color: 'var(--primary)' }} onClick={() => startEdit(p)} title={t('ui.generated.edit_5301648')}>
                         <Edit3 size={16} />
                       </button>
-                      <button className="btn btn-secondary" style={{ padding: '6px 10px', color: 'var(--danger)' }} onClick={() => handleDelete(p.id)} title="Delete">
+                      <button className="btn btn-secondary" style={{ padding: '6px 10px', color: 'var(--danger)' }} onClick={() => handleDelete(p.id)} title={t('speedtest.preview_delete_btn')}>
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -201,7 +201,7 @@ export function Profiles() {
             {!loading && profiles.length === 0 && (
               <tr>
                 <td colSpan={4} className="empty-state">
-                  No profiles saved yet. You can save your current configuration in the Dashboard.
+                  {t('ui.generated.no_profiles_saved_yet_you_can_save_your_current__b18ce57')}
                 </td>
               </tr>
             )}
@@ -211,11 +211,11 @@ export function Profiles() {
 
       <ConfirmModal
         isOpen={deleteTargetProfileId !== null}
-        title={t('profiles.delete_confirm_title', 'Konfirmasi Hapus Profil')}
-        description={t('profiles.delete_confirm_desc', 'Apakah Anda yakin ingin menghapus profil konfigurasi ini?')}
+        title={t('profiles.delete_confirm_title')}
+        description={t('profiles.delete_confirm_desc')}
         variant="danger"
-        confirmText={t('common.delete', 'Hapus')}
-        cancelText={t('common.cancel', 'Batal')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         onConfirm={executeDeleteProfile}
         onCancel={() => setDeleteTargetProfileId(null)}
       />

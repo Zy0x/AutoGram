@@ -58,7 +58,7 @@ export function Automation() {
   const handleAddAutomation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!sourceEntity || !targetEntity) {
-      alert("Source and Target are required.");
+      alert(t('ui.generated.source_and_target_are_required_c9df716'));
       return;
     }
 
@@ -90,7 +90,7 @@ export function Automation() {
       fetchAutomations();
     } catch (err) {
       console.error('Failed to add automation', err);
-      alert('Error adding automation.');
+      alert(t('ui.generated.error_adding_automation_9b2a5f5'));
     }
   };
 
@@ -144,15 +144,15 @@ export function Automation() {
     <main className="main-content page-stack">
       <header className="page-header page-header-row">
         <div style={{ minWidth: 0 }}>
-            <h2 className="title">Automation & Scheduler</h2>
+            <h2 className="title">{t('automation.title')}</h2>
             <p className="subtitle" style={{ marginBottom: 0 }}>{t('automation.subtitle')}</p>
         </div>
         <div className="page-header-actions">
             <button type="button" className="btn btn-secondary" onClick={fetchAutomations} disabled={isLoading}>
-                <RefreshCw size={18} className={isLoading ? "spin" : ""} /> Refresh
+                <RefreshCw size={18} className={isLoading ? "spin" : ""} /> {t('speedtest.sidebar_btn_refresh')}
             </button>
             <button type="button" className="btn btn-primary" onClick={() => setShowAddForm(!showAddForm)}>
-                <Plus size={18} /> New Automation
+                <Plus size={18} /> {t('ui.generated.new_automation_2b7abce')}
             </button>
         </div>
       </header>
@@ -188,15 +188,15 @@ export function Automation() {
 
             {!isRealtime && (
                 <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Cron Expression <span className="field-hint" style={{ display: 'inline', margin: 0 }}>(Flexible for Supabase/Backend)</span></label>
+                    <label className="input-label">{t('ui.generated.cron_expression_e270255')} <span className="field-hint" style={{ display: 'inline', margin: 0 }}>{t('ui.generated.flexible_for_supabase_backend_dbc4246')}</span></label>
                     <input type="text" className="input-field" value={cronExp} onChange={e => setCronExp(e.target.value)} placeholder="0 * * * *" />
-                    <span className="field-hint" style={{ marginTop: '4px' }}>e.g., &quot;0 * * * *&quot; for every hour.</span>
+                    <span className="field-hint" style={{ marginTop: '4px' }}>{t('ui.generated.e_g_0_for_every_hour_2036b6d')}</span>
                 </div>
             )}
             
             <div className="page-header-actions" style={{ justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddForm(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Save Automation</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAddForm(false)}>{t('accounts.cancel')}</button>
+                <button type="submit" className="btn btn-primary">{t('ui.generated.save_automation_e4def70')}</button>
             </div>
           </form>
         </section>
@@ -206,12 +206,12 @@ export function Automation() {
         <table className="glass-table">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Source &rarr; Target</th>
-                    <th>Type</th>
-                    <th>Status</th>
-                    <th>Last Run</th>
-                    <th>Actions</th>
+                    <th>{t('speedtest.col_name')}</th>
+                    <th>{t('ui.generated.source_target_221c145')}</th>
+                    <th>{t('settings.proxy_type_label')}</th>
+                    <th>{t('automation.col_status')}</th>
+                    <th>{t('ui.generated.last_run_71edaf7')}</th>
+                    <th>{t('automation.col_actions')}</th>
                 </tr>
             </thead>
             <tbody>
@@ -239,9 +239,9 @@ export function Automation() {
                         <td><span style={{color: 'var(--text-muted)', fontSize: '0.85rem'}}>{sourceStr || '-'} &rarr; {targetStr || '-'}</span></td>
                         <td>
                             {isRealtime ? (
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--primary)', fontWeight: 600, fontSize: '0.8rem' }}><Clock size={14}/> Real-Time</span>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--primary)', fontWeight: 600, fontSize: '0.8rem' }}><Clock size={14}/> {t('ui.generated.real_time_70611d6')}</span>
                             ) : (
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--success)', fontWeight: 600, fontSize: '0.8rem' }}><Calendar size={14}/> Cron: {cronExpVal || '-'}</span>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--success)', fontWeight: 600, fontSize: '0.8rem' }}><Calendar size={14}/> {t('ui.generated.cron_1c1b1b7')} {cronExpVal || '-'}</span>
                             )}
                         </td>
                         <td>
@@ -270,7 +270,7 @@ export function Automation() {
                                 >
                                     {statusVal === 'active' ? <Pause size={16} /> : <Play size={16} />}
                                 </button>
-                                <button className="btn btn-secondary" style={{ padding: '6px 10px', color: 'var(--text-muted)' }} onClick={() => deleteAutomation(job.id)} title="Delete">
+                                <button className="btn btn-secondary" style={{ padding: '6px 10px', color: 'var(--text-muted)' }} onClick={() => deleteAutomation(job.id)} title={t('speedtest.preview_delete_btn')}>
                                     <Trash2 size={16} />
                                 </button>
                             </div>
@@ -281,7 +281,7 @@ export function Automation() {
                 {automations.length === 0 && !isLoading && (
                     <tr>
                         <td colSpan={6} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
-                            No automations found. Create one to get started.
+                            {t('ui.generated.no_automations_found_create_one_to_get_started_8813872')}
                         </td>
                     </tr>
                 )}
@@ -291,11 +291,11 @@ export function Automation() {
 
       <ConfirmModal
         isOpen={deleteTargetId !== null}
-        title={t('automation.delete_confirm_title', 'Konfirmasi Hapus Otomatisasi')}
-        description={t('automation.delete_confirm_desc', 'Apakah Anda yakin ingin menghapus pekerjaan otomatisasi ini?')}
+        title={t('automation.delete_confirm_title')}
+        description={t('automation.delete_confirm_desc')}
         variant="danger"
-        confirmText={t('common.delete', 'Hapus')}
-        cancelText={t('common.cancel', 'Batal')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         onConfirm={executeDeleteAutomation}
         onCancel={() => setDeleteTargetId(null)}
       />

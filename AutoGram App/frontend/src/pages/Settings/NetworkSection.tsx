@@ -170,13 +170,12 @@ export const NetworkSection = memo(function NetworkSection() {
           <Network size={18} style={{ color: '#38bdf8' }} />
         </div>
         <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>
-          {t('settings.proxy_title', 'Proxy & VPN Optimizer')}
+          {t('settings.proxy_title')}
         </h3>
       </div>
       <p style={{ margin: '0 0 20px 0', fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.5 }}>
         {t(
-          'settings.proxy_subtitle',
-          'Konfigurasi routing SOCKS5/HTTP/MTProto, penyesuaian timeout & retry agresif untuk jaringan lambat/VPN.'
+          'settings.proxy_subtitle'
         )}
       </p>
 
@@ -185,8 +184,8 @@ export const NetworkSection = memo(function NetworkSection() {
         <div className="td-switches-list">
           <label className="td-switch-row">
             <div>
-              <strong>{t('settings.enable_proxy', 'Aktifkan Proxy')}</strong>
-              <p>Rute lalu lintas Telegram melalui server SOCKS5/HTTP/MTProto kustom</p>
+              <strong>{t('settings.enable_proxy')}</strong>
+              <p>{t('ui.generated.rute_lalu_lintas_telegram_melalui_server_socks5__27881ba')}</p>
             </div>
             <input
               type="checkbox"
@@ -216,7 +215,7 @@ export const NetworkSection = memo(function NetworkSection() {
           >
             <div>
               <label style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
-                Tipe Proxy
+                {t('ui.generated.tipe_proxy_b102b20')}
               </label>
               <select
                 style={{
@@ -237,16 +236,16 @@ export const NetworkSection = memo(function NetworkSection() {
                   })
                 }
               >
-                <option value="socks5">SOCKS5</option>
-                <option value="http">HTTP</option>
-                <option value="https">HTTPS</option>
-                <option value="mtproto">MTProto (Telegram)</option>
+                <option value="socks5">{t('settings.proxy_type_socks5')}</option>
+                <option value="http">{t('settings.proxy_type_http')}</option>
+                <option value="https">{t('settings.proxy_type_https')}</option>
+                <option value="mtproto">{t('settings.proxy_type_mtproto')}</option>
               </select>
             </div>
 
             <div>
               <label style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
-                Host / IP
+                {t('ui.generated.host_ip_4c8335b')}
               </label>
               <input
                 style={{
@@ -273,7 +272,7 @@ export const NetworkSection = memo(function NetworkSection() {
 
             <div>
               <label style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
-                Port
+                {t('settings.proxy_port_label')}
               </label>
               <input
                 type="number"
@@ -303,7 +302,7 @@ export const NetworkSection = memo(function NetworkSection() {
 
             <div>
               <label style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
-                Username (Opsional)
+                {t('ui.generated.username_opsional_83d3e74')}
               </label>
               <input
                 style={{
@@ -329,7 +328,7 @@ export const NetworkSection = memo(function NetworkSection() {
 
             <div>
               <label style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
-                Password (Opsional)
+                {t('ui.generated.password_opsional_07ba8e3')}
               </label>
               <input
                 type="password"
@@ -357,7 +356,7 @@ export const NetworkSection = memo(function NetworkSection() {
             {netCfg.proxy.proxyType === 'mtproto' && (
               <div>
                 <label style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
-                  MTProto Secret (Hex)
+                  {t('ui.generated.mtproto_secret_hex_73e805f')}
                 </label>
                 <input
                   style={{
@@ -378,7 +377,7 @@ export const NetworkSection = memo(function NetworkSection() {
                       proxy: { ...netCfg.proxy, secret: e.target.value },
                     })
                   }
-                  placeholder="dd… atau ee…"
+                  placeholder={t('settings.proxy_secret_placeholder')}
                 />
               </div>
             )}
@@ -393,9 +392,9 @@ export const NetworkSection = memo(function NetworkSection() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Zap size={16} style={{ color: '#38bdf8' }} />
-                <strong>{t('settings.vpn_optimizer', 'VPN Optimizer (Timeout & Retry Agresif)')}</strong>
+                <strong>{t('settings.vpn_optimizer')}</strong>
               </div>
-              <p>Perpendek timeout koneksi & lakukan re-try otomatis saat VPN/jaringan tidak stabil</p>
+              <p>{t('ui.generated.perpendek_timeout_koneksi_lakukan_re_try_otomati_1de5167')}</p>
             </div>
             <input
               type="checkbox"
@@ -432,31 +431,31 @@ export const NetworkSection = memo(function NetworkSection() {
             }}
           >
             <Wifi size={16} />
-            <span>{t('settings.test_proxy', 'Uji Koneksi Proxy / DC')}</span>
+            <span>{t('settings.test_proxy')}</span>
           </button>
         </div>
 
         {/* STATUS MESSAGES */}
         {proxyStatus && (
           <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
-            Proxy TCP:{' '}
+            {t('settings.proxy_tcp_label')}{' '}
             <strong style={{ color: proxyStatus.reachable ? '#4ade80' : '#f87171' }}>
-              {proxyStatus.reachable ? 'OK' : 'Failed'}
+              {proxyStatus.reachable ? t('ui.generated.ok_9ce3bd4') : t('jobs.status_failed')}
             </strong>
             {proxyStatus.latencyMs >= 0 ? ` · ${proxyStatus.latencyMs} ms` : ''} · {proxyStatus.detail}
           </p>
         )}
         {netAvail != null && (
           <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
-            {t('settings.proxy_reachability', 'Keterjangkauan Telegram DC / Proxy:')}{' '}
+            {t('settings.proxy_reachability')}{' '}
             <strong style={{ color: netAvail ? '#4ade80' : '#f87171' }}>
-              {netAvail ? t('settings.proxy_available', 'Tersedia') : t('settings.proxy_unavailable', 'Tidak Dapat Dijangkau')}
+              {netAvail ? t('settings.proxy_available') : t('settings.proxy_unavailable')}
             </strong>
           </p>
         )}
         {vpnHint != null && vpnHint && (
           <p style={{ fontSize: '0.8rem', color: '#f59e0b', margin: '4px 0 0 0' }}>
-            Petunjuk: Telegram DC lambat/tidak terjangkau — pertimbangkan mengaktifkan VPN Optimizer atau Proxy.
+            {t('ui.generated.petunjuk_telegram_dc_lambat_tidak_terjangkau_per_52d2398')}
           </p>
         )}
       </div>

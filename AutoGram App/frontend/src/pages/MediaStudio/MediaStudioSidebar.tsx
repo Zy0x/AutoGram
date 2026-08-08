@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { DriveFolder, DriveChat, DriveTopic } from '../../lib/telegram/driveTypes';
 import { getSessionDisplayName } from '../../lib/telegram';
+import { useTranslation } from 'react-i18next';
 
 type MediaStudioSidebarProps = {
   sessions: string[];
@@ -49,13 +50,14 @@ export const MediaStudioSidebar: React.FC<MediaStudioSidebarProps> = ({
   onNewFolder,
   onRefreshSidebar,
 }) => {
+  const { t } = useTranslation();
   if (isRailCollapsed) {
     return (
       <aside className="w-14 h-full bg-slate-900/90 border-r border-slate-800/80 flex flex-col items-center py-4 gap-4 backdrop-blur-md select-none">
         <button
           onClick={onToggleRail}
           className="p-2 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-all"
-          title="Expand Sidebar"
+          title={t('nav.expand_sidebar')}
         >
           <ChevronRight className="w-5 h-5" />
         </button>
@@ -65,7 +67,7 @@ export const MediaStudioSidebar: React.FC<MediaStudioSidebarProps> = ({
           className={`p-2.5 rounded-xl transition-all ${
             activeFolderId === null ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
           }`}
-          title="Drive Root"
+          title={t('speedtest.drive_root')}
         >
           <HardDrive className="w-5 h-5" />
         </button>
@@ -83,7 +85,7 @@ export const MediaStudioSidebar: React.FC<MediaStudioSidebarProps> = ({
             onChange={(e) => onSelectSession(e.target.value)}
             className="w-full bg-slate-950 border border-slate-800 text-xs text-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-indigo-500 font-mono truncate"
           >
-            {sessions.length === 0 && <option value="">No Active Account</option>}
+            {sessions.length === 0 && <option value="">{t('speedtest.no_active_account')}</option>}
             {sessions.map((s) => (
               <option key={s} value={s}>
                 {getSessionDisplayName(s)}
@@ -94,7 +96,7 @@ export const MediaStudioSidebar: React.FC<MediaStudioSidebarProps> = ({
         <button
           onClick={onRefreshSidebar}
           className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-all"
-          title="Refresh Sidebar"
+          title={t('speedtest.refresh_sidebar')}
         >
           <RefreshCw className="w-4 h-4" />
         </button>
@@ -103,11 +105,11 @@ export const MediaStudioSidebar: React.FC<MediaStudioSidebarProps> = ({
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
         <div>
           <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5 px-2">
-            <span>Drives & Folders</span>
+            <span>{t('speedtest.drives_and_folders')}</span>
             <button
               onClick={onNewFolder}
               className="p-1 hover:bg-slate-800 text-slate-400 hover:text-indigo-400 rounded transition-colors"
-              title="New Folder"
+              title={t('speedtest.new_folder')}
             >
               <FolderPlus className="w-3.5 h-3.5" />
             </button>
@@ -122,7 +124,7 @@ export const MediaStudioSidebar: React.FC<MediaStudioSidebarProps> = ({
             }`}
           >
             <HardDrive className="w-4 h-4 text-indigo-400 shrink-0" />
-            <span className="truncate">Saved Messages (Root)</span>
+            <span className="truncate">{t('ui.generated.saved_messages_root_2532e61')}</span>
           </button>
 
           <div className="mt-1 pl-2 space-y-0.5 border-l border-slate-800 ml-3">
@@ -146,7 +148,7 @@ export const MediaStudioSidebar: React.FC<MediaStudioSidebarProps> = ({
         {topics.length > 0 && (
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5 px-2">
-              Forum Topics
+              {t('ui.generated.forum_topics_ee6217e')}
             </div>
             <div className="space-y-0.5">
               <button
@@ -156,7 +158,7 @@ export const MediaStudioSidebar: React.FC<MediaStudioSidebarProps> = ({
                 }`}
               >
                 <Hash className="w-3.5 h-3.5 text-indigo-400" />
-                <span>All Topics</span>
+                <span>{t('speedtest.all_topics')}</span>
               </button>
               {topics.map((t) => (
                 <button
@@ -177,7 +179,7 @@ export const MediaStudioSidebar: React.FC<MediaStudioSidebarProps> = ({
         {chats.length > 0 && (
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5 px-2">
-              Chats & Channels
+              {t('ui.generated.chats_channels_cc279bb')}
             </div>
             <div className="space-y-0.5">
               {chats.map((c) => (

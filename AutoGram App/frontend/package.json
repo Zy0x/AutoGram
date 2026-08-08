@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "build:web": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "vitest run && node tools/locale-audit.mjs",
+    "test:locale": "node tools/locale-audit.mjs",
     "test:watch": "vitest",
     "tauri": "tauri"
   },
