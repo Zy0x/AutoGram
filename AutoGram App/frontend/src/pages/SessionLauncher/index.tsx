@@ -1101,7 +1101,7 @@ export function SessionLauncher({
               </div>
             </div>
 
-            <p style={{ margin: 0, fontSize: '0.88rem', color: '#cbd5e1', lineHeight: 1.5 }}>
+            <p style={{ margin: 0, fontSize: '0.88rem', color: '#cbd5e1', lineHeight: 1.6, textAlign: 'justify', textJustify: 'inter-word' }}>
               {t('nav.modal_delete_step1_msg', { name: deletingSessionStep1.label || deletingSessionStep1.name })}
             </p>
 
@@ -1204,7 +1204,7 @@ export function SessionLauncher({
               </div>
             </div>
 
-            <p style={{ margin: 0, fontSize: '0.88rem', color: '#cbd5e1', lineHeight: 1.5 }}>
+            <p style={{ margin: 0, fontSize: '0.88rem', color: '#cbd5e1', lineHeight: 1.6, textAlign: 'justify', textJustify: 'inter-word' }}>
               {t('nav.modal_delete_step2_msg', { name: deletingSessionStep2.label || deletingSessionStep2.name })}
             </p>
 
