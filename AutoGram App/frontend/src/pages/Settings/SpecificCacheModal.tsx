@@ -13,6 +13,10 @@ import {
   SlidersHorizontal,
   Upload,
   Sliders,
+  MapPin,
+  FolderTree,
+  MessageSquare,
+  Users,
 } from 'lucide-react';
 
 import { clearThumbCache } from '../../lib/media/thumbBatcher';
@@ -173,6 +177,36 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
     } finally {
       setClearingItem(null);
     }
+  };
+
+  const handleClearSessionLocations = () => {
+    if (!selectedSession) return;
+    localStorage.removeItem(`autogram_drive_locations_v1_${selectedSession}`);
+    localStorage.removeItem(`autogram_drive_scroll_v1_${selectedSession}`);
+    showToast(t('ui.generated.cache_lokasi_folder_sesi_a901b23') + ' dibersihkan!');
+    onRefreshGlobalSize?.();
+  };
+
+  const handleClearSessionSidebar = () => {
+    if (!selectedSession) return;
+    localStorage.removeItem(`autogram_drive_sidebar_v1_${selectedSession}`);
+    showToast(t('ui.generated.cache_pohon_sidebar_sesi_f678b90') + ' dibersihkan!');
+    onRefreshGlobalSize?.();
+  };
+
+  const handleClearSessionTopics = () => {
+    if (!selectedSession) return;
+    localStorage.removeItem(`autogram_drive_topics_v1_${selectedSession}`);
+    showToast(t('ui.generated.cache_topik_forum_sesi_a890f12') + ' dibersihkan!');
+    onRefreshGlobalSize?.();
+  };
+
+  const handleClearSessionPeer = () => {
+    if (!selectedSession) return;
+    localStorage.removeItem(`autogram_drive_peer_v2_${selectedSession}`);
+    localStorage.removeItem('autogram_drive_peer');
+    showToast(t('ui.generated.metadata_peer_channel_sesi_b345c67') + ' dibersihkan!');
+    onRefreshGlobalSize?.();
   };
 
   const handleClearSessionCache = () => {
@@ -361,7 +395,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
         </div>
 
         {/* MODAL BODY */}
-        <div style={{ padding: '20px 24px', maxHeight: '420px', overflowY: 'auto' }}>
+        <div style={{ padding: '20px 24px', maxHeight: '440px', overflowY: 'auto' }}>
           {/* TOAST BANNER */}
           {toastMessage && (
             <div
@@ -752,55 +786,218 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
               </div>
 
               {selectedSession && (
-                <div
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.025)',
-                    border: '1px solid rgba(255, 255, 255, 0.07)',
-                    borderRadius: '14px',
-                    padding: '16px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <strong style={{ fontSize: '0.9rem', color: '#f8fafc' }}>
-                        {t('ui.generated.ringkasan_cache_sesi_e567f89')}
-                      </strong>
-                      <p style={{ margin: 0, fontSize: '0.76rem', color: '#94a3b8', marginTop: '2px' }}>
-                        {t('ui.generated.penyimpanan_navigasi_lokasi_dan_peer_sesi_ini_a123b45')}
-                      </p>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <span
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {/* GRANULAR SESSION CARDS GRID (2x2) */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    {/* 1. Folder Locations */}
+                    <div
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.07)',
+                        borderRadius: '12px',
+                        padding: '12px 14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <MapPin size={15} style={{ color: '#f87171' }} />
+                          <strong style={{ fontSize: '0.84rem', color: '#f8fafc' }}>
+                            {t('ui.generated.cache_lokasi_folder_sesi_a901b23')}
+                          </strong>
+                        </div>
+                        <p style={{ fontSize: '0.73rem', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>
+                          {t('ui.generated.hapus_riwayat_navigasi_folder_dan_lokasi_aktif_s_c456d78')}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearSessionLocations}
                         style={{
-                          display: 'inline-block',
-                          padding: '4px 10px',
+                          marginTop: '12px',
+                          alignSelf: 'flex-start',
+                          background: 'rgba(239, 68, 68, 0.15)',
+                          color: '#fca5a5',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
                           borderRadius: '8px',
-                          background: 'rgba(168, 85, 247, 0.15)',
-                          color: '#c084fc',
-                          fontSize: '0.82rem',
-                          fontWeight: 700,
+                          padding: '5px 10px',
+                          fontSize: '0.74rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px',
                         }}
                       >
-                        {sessionKeysCount} {t('ui.generated.entri_terdeteksi_c123d45')}
-                      </span>
+                        <Trash2 size={12} />
+                        <span>{t('ui.generated.hapus_lokasi_e123a45')}</span>
+                      </button>
+                    </div>
+
+                    {/* 2. Sidebar Tree */}
+                    <div
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.07)',
+                        borderRadius: '12px',
+                        padding: '12px 14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <FolderTree size={15} style={{ color: '#38bdf8' }} />
+                          <strong style={{ fontSize: '0.84rem', color: '#f8fafc' }}>
+                            {t('ui.generated.cache_pohon_sidebar_sesi_f678b90')}
+                          </strong>
+                        </div>
+                        <p style={{ fontSize: '0.73rem', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>
+                          {t('ui.generated.hapus_status_buka_tutup_folder_pada_sidebar_sesi_b123c45')}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearSessionSidebar}
+                        style={{
+                          marginTop: '12px',
+                          alignSelf: 'flex-start',
+                          background: 'rgba(56, 189, 248, 0.15)',
+                          color: '#38bdf8',
+                          border: '1px solid rgba(56, 189, 248, 0.3)',
+                          borderRadius: '8px',
+                          padding: '5px 10px',
+                          fontSize: '0.74rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                        }}
+                      >
+                        <Trash2 size={12} />
+                        <span>{t('ui.generated.hapus_sidebar_d456e78')}</span>
+                      </button>
+                    </div>
+
+                    {/* 3. Forum Topics */}
+                    <div
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.07)',
+                        borderRadius: '12px',
+                        padding: '12px 14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <MessageSquare size={15} style={{ color: '#c084fc' }} />
+                          <strong style={{ fontSize: '0.84rem', color: '#f8fafc' }}>
+                            {t('ui.generated.cache_topik_forum_sesi_a890f12')}
+                          </strong>
+                        </div>
+                        <p style={{ fontSize: '0.73rem', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>
+                          {t('ui.generated.hapus_daftar_topik_dan_utas_obrolan_sesi_ini_c345d67')}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearSessionTopics}
+                        style={{
+                          marginTop: '12px',
+                          alignSelf: 'flex-start',
+                          background: 'rgba(168, 85, 247, 0.15)',
+                          color: '#c084fc',
+                          border: '1px solid rgba(168, 85, 247, 0.3)',
+                          borderRadius: '8px',
+                          padding: '5px 10px',
+                          fontSize: '0.74rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                        }}
+                      >
+                        <Trash2 size={12} />
+                        <span>{t('ui.generated.hapus_topik_e890f12')}</span>
+                      </button>
+                    </div>
+
+                    {/* 4. Peer & Channel Metadata */}
+                    <div
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.07)',
+                        borderRadius: '12px',
+                        padding: '12px 14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <Users size={15} style={{ color: '#60a5fa' }} />
+                          <strong style={{ fontSize: '0.84rem', color: '#f8fafc' }}>
+                            {t('ui.generated.metadata_peer_channel_sesi_b345c67')}
+                          </strong>
+                        </div>
+                        <p style={{ fontSize: '0.73rem', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>
+                          {t('ui.generated.hapus_cache_nama_channel_dan_metadata_entitas_s_d890e12')}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearSessionPeer}
+                        style={{
+                          marginTop: '12px',
+                          alignSelf: 'flex-start',
+                          background: 'rgba(96, 165, 250, 0.15)',
+                          color: '#60a5fa',
+                          border: '1px solid rgba(96, 165, 240, 0.3)',
+                          borderRadius: '8px',
+                          padding: '5px 10px',
+                          fontSize: '0.74rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                        }}
+                      >
+                        <Trash2 size={12} />
+                        <span>{t('ui.generated.hapus_peer_f123a45')}</span>
+                      </button>
                     </div>
                   </div>
 
+                  {/* MASTER SESSION SUMMARY & CLEAR ALL BUTTON */}
                   <div
                     style={{
-                      paddingTop: '12px',
-                      borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+                      background: 'rgba(255, 255, 255, 0.025)',
+                      border: '1px solid rgba(255, 255, 255, 0.07)',
+                      borderRadius: '14px',
+                      padding: '14px 16px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                     }}
                   >
-                    <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                      {t('ui.generated.menghapus_cache_sesi_ini_tidak_mengeluarkan_akun_b901c23')}
-                    </span>
+                    <div>
+                      <strong style={{ fontSize: '0.86rem', color: '#f8fafc', display: 'block' }}>
+                        {t('ui.generated.ringkasan_cache_sesi_e567f89')}
+                      </strong>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                        {sessionKeysCount} {t('ui.generated.entri_terdeteksi_c123d45')} • {t('ui.generated.menghapus_cache_sesi_ini_tidak_mengeluarkan_akun_b901c23')}
+                      </span>
+                    </div>
                     <button
                       type="button"
                       onClick={handleClearSessionCache}
@@ -817,6 +1014,8 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
+                        flexShrink: 0,
+                        marginLeft: '12px',
                       }}
                     >
                       <Trash2 size={14} />
