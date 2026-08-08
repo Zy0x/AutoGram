@@ -603,13 +603,21 @@ pub fn set_custom_cache_dir(new_path: &str, action: &str) -> Result<serde_json::
     if trimmed.is_empty() {
         return Err("Path cannot be empty".to_string());
     }
-    let p = PathBuf::from(trimmed);
+    let mut p = PathBuf::from(trimmed);
+    let is_autogram = p
+        .file_name()
+        .map(|n| n.to_string_lossy().eq_ignore_ascii_case("AutoGram"))
+        .unwrap_or(false);
+    if !is_autogram {
+        p = p.join("AutoGram");
+    }
+
     std::fs::create_dir_all(&p).map_err(|e| format!("Failed to create custom directory: {e}"))?;
 
     // Verify write permissions
     let test_file = p.join(".autogram_write_test");
     if std::fs::write(&test_file, b"test").is_err() {
-        return Err(format!("Selected directory is not writable: {trimmed}"));
+        return Err(format!("Selected directory is not writable: {}", p.display()));
     }
     let _ = std::fs::remove_file(&test_file);
 
@@ -654,7 +662,7 @@ pub fn set_custom_cache_dir(new_path: &str, action: &str) -> Result<serde_json::
     conn.execute(
         "INSERT INTO settings (key, value) VALUES ('custom_cache_dir', ?1)
          ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-        params![trimmed],
+        params![p.display().to_string()],
     )
     .map_err(|e| format!("Save settings error: {e}"))?;
 

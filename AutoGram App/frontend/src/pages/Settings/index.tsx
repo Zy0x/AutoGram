@@ -105,7 +105,11 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
         title: t('settings.custom_cache_location_title'),
       });
       if (selected && typeof selected === 'string') {
-        setPendingNewPath(selected);
+        const normalized = selected.trim().replace(/[\/\\]+$/, '');
+        const targetPath = normalized.toLowerCase().endsWith('autogram')
+          ? normalized
+          : `${normalized}\\AutoGram`;
+        setPendingNewPath(targetPath);
         setIsMigrateModalOpen(true);
       }
     } catch (err) {
