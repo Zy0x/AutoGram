@@ -123,6 +123,9 @@ legacy_scripts/
 
 # Remote automation / CDP debug tooling (local only — not product source)
 remote-automation-suite/
+remote/
+.webview2_data/
+**/.webview2_data/
 remote/reports/logs/
 remote/reports/screenshots/
 remote/reports/summary_*.json
