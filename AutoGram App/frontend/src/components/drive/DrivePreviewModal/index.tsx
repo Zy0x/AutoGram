@@ -70,7 +70,7 @@ import {
   driveStreamStatus,
 } from '../../../lib/telegram/driveApi';
 import { tgDownloadFile } from '../../../lib/telegram';
-import { cacheCapturedThumb, getCachedThumb, setThumbsPaused } from '../../../lib/media/thumbBatcher';
+import { cacheCapturedThumb, getCachedThumb, requestVisibleThumbs, setThumbsPaused } from '../../../lib/media/thumbBatcher';
 import {
   getCachedPreview,
   invalidatePreview,
@@ -484,8 +484,17 @@ export function DrivePreviewModal({
       setSelectedBIndex(currentDupGroup.files.length > 1 ? 1 : 0);
       setIsSlotAEmpty(false);
       setIsSlotBEmpty(false);
+
+      if (creds && currentDupGroup.files.length) {
+        const itemPeerId = folderId != null && folderId !== 0 ? String(folderId) : 'me';
+        const dupIds = currentDupGroup.files.map((df) => df.id);
+        requestVisibleThumbs(creds, folderId, dupIds, {
+          peerId: itemPeerId,
+          topicId: file.topic_id ?? null,
+        });
+      }
     }
-  }, [currentDupGroup]);
+  }, [creds, currentDupGroup, file.topic_id, folderId]);
 
   const [activeSplitSlot, setActiveSplitSlot] = useState<'A' | 'B' | null>(null);
 
@@ -4181,7 +4190,11 @@ export function DrivePreviewModal({
                       const isB = !isSlotBEmpty && idx === selectedBIndex;
                       const isDel = duplicateContext.markedDelete.has(f.id);
                       const sizeStr = formatDriveBytes(f.size || 0);
-                      const cardThumb = f.id === file.id && activeSrc ? activeSrc : gridThumb || poster || '';
+                      const cardThumb =
+                        getCachedThumb(f.folder_id ?? folderId, f.id) ||
+                        f.thumb_data_url ||
+                        f.thumbDataUrl ||
+                        (f.id === file.id ? activeSrc || gridThumb || poster || '' : '');
                       const truncatedName = middleTruncateFilename(f.name, 18);
 
                       return (
@@ -4194,7 +4207,7 @@ export function DrivePreviewModal({
                           <div className="drive-dup-sidebar-thumb-box-23">
                             {isA && <span className="drive-dup-sidebar-badge-a">{t('ui.generated.a_6dcd4ce')}</span>}
                             {isB && <span className="drive-dup-sidebar-badge-b">{t('ui.generated.b_ae4f281')}</span>}
-                            {isImageDriveFile(f) && cardThumb ? (
+                            {cardThumb ? (
                               <img src={cardThumb} alt={f.name} className="drive-dup-sidebar-thumb-23" />
                             ) : (
                               <Film size={18} className="text-slate-400" />
