@@ -980,18 +980,8 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
                   {/* Launcher Hub Option */}
                   <div
+                    className={`startup-option-card ${startupBehavior === 'launcher' ? 'is-active' : ''}`}
                     onClick={() => setStartupBehavior('launcher')}
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: '12px',
-                      background: startupBehavior === 'launcher' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.02)',
-                      border: startupBehavior === 'launcher' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px',
-                    }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'launcher' ? '#38bdf8' : '#f8fafc' }}>
@@ -1006,18 +996,8 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
 
                   {/* Direct Drives Option */}
                   <div
+                    className={`startup-option-card ${startupBehavior === 'drives' ? 'is-active' : ''}`}
                     onClick={() => setStartupBehavior('drives')}
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: '12px',
-                      background: startupBehavior === 'drives' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.02)',
-                      border: startupBehavior === 'drives' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px',
-                    }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'drives' ? '#38bdf8' : '#f8fafc' }}>
@@ -1032,18 +1012,8 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
 
                   {/* Direct Forwarder Option */}
                   <div
+                    className={`startup-option-card ${startupBehavior === 'forwarder' ? 'is-active' : ''}`}
                     onClick={() => setStartupBehavior('forwarder')}
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: '12px',
-                      background: startupBehavior === 'forwarder' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.02)',
-                      border: startupBehavior === 'forwarder' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px',
-                    }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'forwarder' ? '#38bdf8' : '#f8fafc' }}>
@@ -1058,18 +1028,8 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
 
                   {/* Remember Last Workspace Option */}
                   <div
+                    className={`startup-option-card ${startupBehavior === 'last' ? 'is-active' : ''}`}
                     onClick={() => setStartupBehavior('last')}
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: '12px',
-                      background: startupBehavior === 'last' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.02)',
-                      border: startupBehavior === 'last' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px',
-                    }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'last' ? '#38bdf8' : '#f8fafc' }}>

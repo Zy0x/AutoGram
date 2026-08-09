@@ -1,6 +1,9 @@
-AutoGram Version: v3.3.7
+AutoGram Version: v3.3.8
 
 Current State:
+v3.3.8 Settings Section Static Isolation & Interactive Option Card Hover Engine — membenahi `Settings.css`, `Settings/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghapus efek animasi hover dari wadah kartu seksi utama (`.settings-page .glass-panel.card:hover` & `.settings-card:hover`) agar wadah seksi tetap statis, menambahkan animasi hover interaktif berkelas (`.startup-option-card:hover`) dengan elevasi halus dan border cyan glow pada kartu pilihan preference, serta menyajikan efek hover responsif pada tombol sakelar saklar (`.settings-switch:hover`).
+
+Previous:
 v3.3.7 Dynamic Orphaned Session Cleaner Visibility & Soft Animated Glow Engine — membenahi `App.css`, `Settings/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengimplementasikan visibilitas dinamis tombol `[Bersihkan Sesi Yatim]` di mana tombol disembunyikan 100% jika 0 berkas sisa sesi yatim terdeteksi (`orphanedCount === 0`). Saat sisa berkas yatim terdeteksi (`orphanedCount > 0`), tombol muncul secara dinamis dengan efek animasi pendaran amber halus (`@keyframes orphanedPulse`) dan jumlah berkas `(N)` untuk mengajak pengguna melakukan pembersihan.
 
 Previous:

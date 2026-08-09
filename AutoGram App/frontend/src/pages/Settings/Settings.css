@@ -207,10 +207,12 @@
   transition: border-color 180ms ease, background-color 180ms ease;
 }
 
+/* Outer section cards are static layout containers — no hover elevation/background shift */
 .settings-page .glass-panel.card:hover,
 .settings-card:hover {
-  border-color: rgba(148, 163, 184, 0.26);
-  background: var(--settings-surface-raised);
+  /* Static container: preserves standard border and background */
+  border-color: var(--settings-border);
+  background: var(--settings-surface);
 }
 
 .settings-page .card-header,
@@ -585,6 +587,56 @@
 .settings-switch input:checked + .settings-slider:before {
   transform: translateX(20px);
   background-color: #0b1520;
+}
+
+/* Responsive Hover Effects for Toggle Switches */
+.settings-switch:hover .settings-slider {
+  background-color: rgba(255, 255, 255, 0.24);
+  border-color: rgba(56, 189, 248, 0.48);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+}
+
+.settings-switch:hover input:checked + .settings-slider {
+  background-color: #0ea5e9;
+  border-color: #0ea5e9;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.6);
+}
+
+.settings-switch:hover .settings-slider:before {
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.7);
+}
+
+/* Selectable Startup Option Cards Interactive Hover Effects */
+.startup-option-card {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.startup-option-card:hover {
+  background: rgba(56, 189, 248, 0.07);
+  border-color: rgba(56, 189, 248, 0.38);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35), 0 0 14px rgba(56, 189, 248, 0.14);
+}
+
+.startup-option-card.is-active {
+  background: rgba(56, 189, 248, 0.1);
+  border: 1.5px solid #38bdf8;
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.15);
+}
+
+.startup-option-card.is-active:hover {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: #38bdf8;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 18px rgba(56, 189, 248, 0.25);
 }
 
 .settings-action-row .btn {
