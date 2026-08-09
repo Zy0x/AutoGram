@@ -3837,7 +3837,12 @@ export function DrivePreviewModal({
                   {(() => {
                     const fileA = currentDupGroup.files[selectedAIndex] || currentDupGroup.files[0];
                     const isMarkedA = fileA ? duplicateContext.markedDelete.has(fileA.id) : false;
-                    const thumbA = fileA && fileA.id === file.id && activeSrc ? activeSrc : gridThumb || poster || '';
+                    const thumbA = fileA
+                      ? getCachedThumb(fileA.folder_id ?? folderId, fileA.id) ||
+                        fileA.thumb_data_url ||
+                        fileA.thumbDataUrl ||
+                        (fileA.id === file.id ? activeSrc || gridThumb || poster || '' : '')
+                      : '';
                     const nameA = fileA ? middleTruncateFilename(fileA.name, 24) : t('speedtest.preview_card_title_a');
                     const isActiveA = activeSplitSlot === 'A';
                     return (
@@ -3928,7 +3933,7 @@ export function DrivePreviewModal({
                                       : 'grab'
                                     : 'pointer'
                                   : 'pointer';
-                                return isImageDriveFile(fileA) && thumbA ? (
+                                return thumbA ? (
                                   <img
                                     src={thumbA}
                                     alt={fileA.name}
@@ -4008,7 +4013,12 @@ export function DrivePreviewModal({
                   {(() => {
                     const fileB = currentDupGroup.files[selectedBIndex] || currentDupGroup.files[1] || currentDupGroup.files[0];
                     const isMarkedB = fileB ? duplicateContext.markedDelete.has(fileB.id) : false;
-                    const thumbB = fileB && fileB.id === file.id && activeSrc ? activeSrc : gridThumb || poster || '';
+                    const thumbB = fileB
+                      ? getCachedThumb(fileB.folder_id ?? folderId, fileB.id) ||
+                        fileB.thumb_data_url ||
+                        fileB.thumbDataUrl ||
+                        (fileB.id === file.id ? activeSrc || gridThumb || poster || '' : '')
+                      : '';
                     const nameB = fileB ? middleTruncateFilename(fileB.name, 24) : t('speedtest.preview_card_title_b');
                     const isActiveB = activeSplitSlot === 'B';
                     return (
@@ -4099,7 +4109,7 @@ export function DrivePreviewModal({
                                       : 'grab'
                                     : 'pointer'
                                   : 'pointer';
-                                return isImageDriveFile(fileB) && thumbB ? (
+                                return thumbB ? (
                                   <img
                                     src={thumbB}
                                     alt={fileB.name}
