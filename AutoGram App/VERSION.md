@@ -1,7 +1,7 @@
-AutoGram Version: v3.4.2
+AutoGram Version: v3.4.3
 
 Current State:
-v3.4.2 Test Proxy & DC Connection Button Interactive Hover Engine — membenahi `Settings.css`, `NetworkSection.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan animasi hover interaktif berkelas (`.btn-test-proxy:hover`) pada tombol uji koneksi *Test Proxy / DC Connection* dengan pendaran cyan glow (`0 0 16px rgba(56, 189, 248, 0.3)`), elevasi Y-axis halus (`translateY(-2px)`), dan pemekaran skala ikon WiFi (`scale(1.15)`).
+v3.4.3 Main Thread Freeze Elimination Engine — membenahi `lib.rs`, `SessionLauncher/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengkonversi 11 perintah Tauri sinkron (`fn`) yang memblokir Main Event Loop thread menjadi `async fn` dengan `spawn_blocking` (cache_calculate_size, cache_clear_disk, cache_trim_disk, get_available_disk_space, zip_list_local, zip_preview_entry, zip_extract_entry, file_sha256, file_quick_fingerprint, network_test_proxy, tg_probe_session, tg_list_sessions), serta mengoptimalkan polling `SessionLauncher` dari 10s `force:true` menjadi 30s `force:false` untuk menghilangkan penyebab utama UI `(Tidak Merespon)` / `(Not Responding)`.
 
 Previous:
 v3.4.1 Emerald Green Sync for Stable Release Channel Engine — membenahi `Settings.css`, `Settings/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menyelaraskan skema warna aktif, teks, ikon checklist, border glow, dan pendaran hover pada kartu rilis Stable (Recommended) agar 100% konsisten dengan warna hijau emerald badge `STABLE STREAM` (`#10b981` / `rgba(16, 185, 129, 0.16)`).

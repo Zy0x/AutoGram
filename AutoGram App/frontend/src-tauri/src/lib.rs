@@ -837,31 +837,41 @@ fn jobs_run_migration(
 }
 
 #[tauri::command]
-fn cache_calculate_size() -> Result<serde_json::Value, String> {
-    core::jobs_db::calculate_cache_size()
+async fn cache_calculate_size() -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(core::jobs_db::calculate_cache_size)
+        .await
+        .map_err(|e| format!("cache calc task failed: {e}"))?
 }
 
 #[tauri::command]
-fn cache_clear_disk() -> Result<serde_json::Value, String> {
-    core::jobs_db::clear_disk_cache()
+async fn cache_clear_disk() -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(core::jobs_db::clear_disk_cache)
+        .await
+        .map_err(|e| format!("cache clear task failed: {e}"))?
 }
 
 #[tauri::command]
-fn cache_trim_disk(
+async fn cache_trim_disk(
     target_bytes: u64,
     auto_prune: Option<bool>,
     persist_policy: Option<bool>,
 ) -> Result<serde_json::Value, String> {
-    if persist_policy.unwrap_or(false) {
-        core::jobs_db::set_cache_policy(target_bytes, auto_prune.unwrap_or(true))
-    } else {
-        core::jobs_db::trim_disk_cache(target_bytes)
-    }
+    tauri::async_runtime::spawn_blocking(move || {
+        if persist_policy.unwrap_or(false) {
+            core::jobs_db::set_cache_policy(target_bytes, auto_prune.unwrap_or(true))
+        } else {
+            core::jobs_db::trim_disk_cache(target_bytes)
+        }
+    })
+    .await
+    .map_err(|e| format!("cache trim task failed: {e}"))?
 }
 
 #[tauri::command]
-fn get_available_disk_space(path: Option<String>) -> Result<serde_json::Value, String> {
-    core::jobs_db::get_disk_free_space(path)
+async fn get_available_disk_space(path: Option<String>) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || core::jobs_db::get_disk_free_space(path))
+        .await
+        .map_err(|e| format!("disk space task failed: {e}"))?
 }
 
 #[tauri::command]
@@ -1003,27 +1013,37 @@ fn stream_unregister(stream_id: String) {
 }
 
 #[tauri::command]
-fn zip_list_local(path: String) -> Result<core::zip_local::ZipListResult, String> {
-    core::zip_local::list_zip(&path)
+async fn zip_list_local(path: String) -> Result<core::zip_local::ZipListResult, String> {
+    tauri::async_runtime::spawn_blocking(move || core::zip_local::list_zip(&path))
+        .await
+        .map_err(|e| format!("zip list task failed: {e}"))?
 }
 
 #[tauri::command]
-fn zip_preview_entry(
+async fn zip_preview_entry(
     path: String,
     entry_name: String,
     password: Option<String>,
 ) -> Result<core::zip_local::ZipEntryPreview, String> {
-    core::zip_local::preview_zip_entry(&path, &entry_name, password.as_deref())
+    tauri::async_runtime::spawn_blocking(move || {
+        core::zip_local::preview_zip_entry(&path, &entry_name, password.as_deref())
+    })
+    .await
+    .map_err(|e| format!("zip preview task failed: {e}"))?
 }
 
 #[tauri::command]
-fn zip_extract_entry(
+async fn zip_extract_entry(
     archive_path: String,
     entry_name: String,
     dest_path: String,
     password: Option<String>,
 ) -> Result<u64, String> {
-    core::zip_local::extract_zip_entry(&archive_path, &entry_name, &dest_path, password.as_deref())
+    tauri::async_runtime::spawn_blocking(move || {
+        core::zip_local::extract_zip_entry(&archive_path, &entry_name, &dest_path, password.as_deref())
+    })
+    .await
+    .map_err(|e| format!("zip extract task failed: {e}"))?
 }
 
 #[tauri::command]
@@ -1059,13 +1079,17 @@ async fn tg_zip_extract_entry_sparse(
 }
 
 #[tauri::command]
-fn file_sha256(path: String) -> Result<core::hash_util::FileHashResult, String> {
-    core::hash_util::sha256_file(&path)
+async fn file_sha256(path: String) -> Result<core::hash_util::FileHashResult, String> {
+    tauri::async_runtime::spawn_blocking(move || core::hash_util::sha256_file(&path))
+        .await
+        .map_err(|e| format!("sha256 task failed: {e}"))?
 }
 
 #[tauri::command]
-fn file_quick_fingerprint(path: String) -> Result<core::hash_util::FileHashResult, String> {
-    core::hash_util::quick_fingerprint(&path)
+async fn file_quick_fingerprint(path: String) -> Result<core::hash_util::FileHashResult, String> {
+    tauri::async_runtime::spawn_blocking(move || core::hash_util::quick_fingerprint(&path))
+        .await
+        .map_err(|e| format!("fingerprint task failed: {e}"))?
 }
 
 #[tauri::command]
@@ -1103,8 +1127,14 @@ fn network_apply_all(config: core::network::NetworkConfigSnapshot) -> Result<(),
 }
 
 #[tauri::command]
-fn network_test_proxy() -> core::network::ProxyStatus {
-    core::network::test_proxy_tcp()
+async fn network_test_proxy() -> core::network::ProxyStatus {
+    tauri::async_runtime::spawn_blocking(core::network::test_proxy_tcp)
+        .await
+        .unwrap_or_else(|_| core::network::ProxyStatus {
+            reachable: false,
+            latency_ms: -1,
+            detail: "Task join failed".to_string(),
+        })
 }
 
 #[tauri::command]
@@ -1205,15 +1235,33 @@ fn session_guard_snapshot(session: String) -> core::session_guard::SessionGuardS
 }
 
 #[tauri::command]
-fn tg_probe_session(app: AppHandle, session: String) -> core::grammers_ops::SessionProbeResult {
+async fn tg_probe_session(app: AppHandle, session: String) -> core::grammers_ops::SessionProbeResult {
     ensure_sessions_dir_env(&app);
-    core::telegram_ops::tg_probe_session(session)
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_probe_session(session))
+        .await
+        .unwrap_or_else(|_| core::grammers_ops::SessionProbeResult {
+            session: "".to_string(),
+            telethon: core::telethon_session_import::TelethonSessionProbe {
+                path: "".to_string(),
+                exists: false,
+                has_auth_key: false,
+                dc_id: None,
+                server_address: None,
+                port: None,
+                auth_key_len: None,
+            },
+            grammers_exists: false,
+            grammers_path_name: "".to_string(),
+            backend: "grammers".to_string(),
+        })
 }
 
 #[tauri::command]
-fn tg_list_sessions(app: AppHandle) -> Vec<core::grammers_ops::NativeSessionSummary> {
+async fn tg_list_sessions(app: AppHandle) -> Vec<core::grammers_ops::NativeSessionSummary> {
     ensure_sessions_dir_env(&app);
-    core::telegram_ops::tg_list_sessions()
+    tauri::async_runtime::spawn_blocking(core::telegram_ops::tg_list_sessions)
+        .await
+        .unwrap_or_default()
 }
 
 #[tauri::command]

@@ -117,8 +117,8 @@ export function SessionLauncher({
   useEffect(() => {
     refreshSessions(true);
     const interval = setInterval(() => {
-      refreshSessions(true);
-    }, 10000);
+      refreshSessions(false);
+    }, 30000);
     return () => clearInterval(interval);
   }, [refreshSessions]);
 

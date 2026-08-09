@@ -1,4 +1,24 @@
+## v3.4.3 Main Thread Freeze Elimination Engine
+
+### Konversi Perintah Blocking ke Async (`lib.rs`)
+- **`cache_calculate_size` → `async fn` + `spawn_blocking`**: Rekursive disk walk kini berjalan di Tokio thread pool, bukan di Main Event Loop thread.
+- **`cache_clear_disk` → `async fn` + `spawn_blocking`**: Operasi I/O hapus cache disk tidak lagi memblokir message pump Windows.
+- **`cache_trim_disk` → `async fn` + `spawn_blocking`**: Trim disk cache / set policy cache berjalan di background thread.
+- **`get_available_disk_space` → `async fn` + `spawn_blocking`**: Query ruang disk bebas dialihkan ke Tokio thread pool.
+- **`zip_list_local` → `async fn` + `spawn_blocking`**: Pembacaan daftar entry ZIP archive tidak memblokir UI thread.
+- **`zip_preview_entry` → `async fn` + `spawn_blocking`**: Preview isi entry ZIP berjalan non-blocking di background.
+- **`zip_extract_entry` → `async fn` + `spawn_blocking`**: Ekstraksi entry ZIP berjalan sepenuhnya di thread terpisah.
+- **`file_sha256` → `async fn` + `spawn_blocking`**: Hashing SHA256 file multi-GB tidak lagi membekukan UI selama proses berlangsung.
+- **`file_quick_fingerprint` → `async fn` + `spawn_blocking`**: Quick fingerprint file I/O dialihkan ke background thread.
+- **`network_test_proxy` → `async fn` + `spawn_blocking`**: TCP connect probe ke proxy/DC yang dapat hang 5-10 detik kini berjalan di luar Main Event Loop, mengeliminasi timeout Windows `(Not Responding)` saat proxy tidak dapat dijangkau.
+- **`tg_probe_session` → `async fn` + `spawn_blocking`**: SQLite metadata query + disk read sesi Grammers tidak lagi memblokir UI thread.
+- **`tg_list_sessions` → `async fn` + `spawn_blocking`**: Inventarisasi direktori sesi Telegram berjalan di Tokio thread pool.
+
+### Optimasi Polling `SessionLauncher` (`SessionLauncher/index.tsx`)
+- **Interval 10s `force:true` → 30s `force:false`**: Mengurangi frekuensi polling sesi dari setiap 10 detik menjadi 30 detik, dan mengubah mode dari `force: true` (bypass cache, trigger live MTProto auth RPC + avatar download per-akun) menjadi `force: false` (gunakan cache memori terlebih dahulu). Mencegah *polling storm* yang sebelumnya menyebabkan UI starvation dan `(Tidak Merespon)` / `(Not Responding)` pada Windows.
+
 ## v3.4.2 Test Proxy & DC Connection Button Interactive Hover Engine
+
 
 ### Animasi Hover Tombol Uji Koneksi Proxy (`Settings.css` & `NetworkSection.tsx`)
 - **Animasi Hover Interaktif Tombol Test Proxy**: Menambahkan class `.btn-test-proxy` pada tombol *Test Proxy / DC Connection* di seksi Network & Proxy Optimizer dengan pendaran cyan glow (`0 0 16px rgba(56, 189, 248, 0.3)`), elevasi kursor Y-axis (`translateY(-2px)`), serta animasi pemekaran ikon WiFi (`scale(1.15)`) saat kursor mouse di-hover.
