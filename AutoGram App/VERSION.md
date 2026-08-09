@@ -1,6 +1,9 @@
-AutoGram Version: v3.4.1
+AutoGram Version: v3.4.2
 
 Current State:
+v3.4.2 Test Proxy & DC Connection Button Interactive Hover Engine — membenahi `Settings.css`, `NetworkSection.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan animasi hover interaktif berkelas (`.btn-test-proxy:hover`) pada tombol uji koneksi *Test Proxy / DC Connection* dengan pendaran cyan glow (`0 0 16px rgba(56, 189, 248, 0.3)`), elevasi Y-axis halus (`translateY(-2px)`), dan pemekaran skala ikon WiFi (`scale(1.15)`).
+
+Previous:
 v3.4.1 Emerald Green Sync for Stable Release Channel Engine — membenahi `Settings.css`, `Settings/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menyelaraskan skema warna aktif, teks, ikon checklist, border glow, dan pendaran hover pada kartu rilis Stable (Recommended) agar 100% konsisten dengan warna hijau emerald badge `STABLE STREAM` (`#10b981` / `rgba(16, 185, 129, 0.16)`).
 
 Previous:

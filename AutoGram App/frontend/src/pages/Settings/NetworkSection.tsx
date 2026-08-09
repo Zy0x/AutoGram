@@ -413,22 +413,9 @@ export const NetworkSection = memo(function NetworkSection() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '6px' }}>
           <button
             type="button"
+            className="btn-test-proxy"
             disabled={netBusy}
             onClick={() => void testProxy()}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 18px',
-              borderRadius: '10px',
-              background: 'rgba(56, 189, 248, 0.12)',
-              color: '#38bdf8',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              cursor: netBusy ? 'not-allowed' : 'pointer',
-              transition: 'all 0.15s ease',
-            }}
           >
             <Wifi size={16} />
             <span>{t('settings.test_proxy')}</span>

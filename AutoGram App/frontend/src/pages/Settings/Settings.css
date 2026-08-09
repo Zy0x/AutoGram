@@ -695,6 +695,48 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 18px rgba(245, 158, 11, 0.28);
 }
 
+/* Test Proxy / DC Connection Button Hover Effects */
+.btn-test-proxy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-test-proxy:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: #38bdf8;
+  color: #7dd3fc;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35), 0 0 16px rgba(56, 189, 248, 0.3);
+}
+
+.btn-test-proxy:hover:not(:disabled) svg {
+  transform: scale(1.15);
+  transition: transform 0.2s ease;
+}
+
+.btn-test-proxy:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2), 0 0 8px rgba(56, 189, 248, 0.2);
+}
+
+.btn-test-proxy:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 /* Custom Account Select Dropdown Trigger Hover */
 .custom-account-select-trigger {
   width: 100%;

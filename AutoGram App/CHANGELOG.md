@@ -1,3 +1,8 @@
+## v3.4.2 Test Proxy & DC Connection Button Interactive Hover Engine
+
+### Animasi Hover Tombol Uji Koneksi Proxy (`Settings.css` & `NetworkSection.tsx`)
+- **Animasi Hover Interaktif Tombol Test Proxy**: Menambahkan class `.btn-test-proxy` pada tombol *Test Proxy / DC Connection* di seksi Network & Proxy Optimizer dengan pendaran cyan glow (`0 0 16px rgba(56, 189, 248, 0.3)`), elevasi kursor Y-axis (`translateY(-2px)`), serta animasi pemekaran ikon WiFi (`scale(1.15)`) saat kursor mouse di-hover.
+
 ## v3.4.1 Emerald Green Sync for Stable Release Channel Engine
 
 ### Penyelarasan Warna Kartu Channel Stable (`Settings.css` & `Settings/index.tsx`)
