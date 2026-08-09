@@ -1,3 +1,8 @@
+## v3.4.1 Emerald Green Sync for Stable Release Channel Engine
+
+### Penyelarasan Warna Kartu Channel Stable (`Settings.css` & `Settings/index.tsx`)
+- **Harmonisasi Skema Warna Emerald Green**: Menyelaraskan warna kartu aktif, teks judul, ikon checklist `CheckCircle`, border glow, dan pendaran hover pada pilihan rilis *Stable (Recommended)* agar 100% konsisten dengan warna hijau emerald badge `STABLE STREAM` (`#10b981` / `rgba(16, 185, 129, 0.16)`).
+
 ## v3.4.0 Release Channel Option Cards Interactive Hover Engine
 
 ### Animasi Hover Kartu Pilihan Rilis Stable & Beta (`Settings.css` & `Settings/index.tsx`)

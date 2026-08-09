@@ -1,6 +1,9 @@
-AutoGram Version: v3.4.0
+AutoGram Version: v3.4.1
 
 Current State:
+v3.4.1 Emerald Green Sync for Stable Release Channel Engine — membenahi `Settings.css`, `Settings/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menyelaraskan skema warna aktif, teks, ikon checklist, border glow, dan pendaran hover pada kartu rilis Stable (Recommended) agar 100% konsisten dengan warna hijau emerald badge `STABLE STREAM` (`#10b981` / `rgba(16, 185, 129, 0.16)`).
+
+Previous:
 v3.4.0 Release Channel Option Cards Interactive Hover Engine — membenahi `Settings.css`, `Settings/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan animasi hover interaktif berkelas (`.channel-option-card:hover` & `.channel-option-card.is-beta:hover`) pada kartu pilihan rilis Stable (Recommended) dan Beta / Pre-release dengan elevasi Y-axis halus, pendaran border cyan/amber glow, dan bayangan elevasi yang elegan.
 
 Previous:

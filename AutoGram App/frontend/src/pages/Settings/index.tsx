@@ -1116,14 +1116,14 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
                   {/* Stable Channel Pill */}
                   <div
-                    className={`channel-option-card ${releaseChannel === 'stable' ? 'is-active' : ''}`}
+                    className={`channel-option-card is-stable ${releaseChannel === 'stable' ? 'is-active' : ''}`}
                     onClick={() => setReleaseChannel('stable')}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <strong style={{ fontSize: '0.85rem', color: releaseChannel === 'stable' ? '#38bdf8' : '#f8fafc' }}>
+                      <strong style={{ fontSize: '0.85rem', color: releaseChannel === 'stable' ? '#10b981' : '#f8fafc' }}>
                         {t('settings.channel_stable')}
                       </strong>
-                      {releaseChannel === 'stable' && <CheckCircle size={15} color="#38bdf8" />}
+                      {releaseChannel === 'stable' && <CheckCircle size={15} color="#10b981" />}
                     </div>
                     <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
                       {t('settings.channel_stable_desc')}
