@@ -1671,6 +1671,30 @@ async fn autogram_get_job_events(
     core::autogram_core::get_job_events(&conn, job_id)
 }
 
+#[tauri::command]
+fn app_toggle_devtools(window: tauri::WebviewWindow) {
+    if window.is_devtools_open() {
+        window.close_devtools();
+    } else {
+        window.open_devtools();
+    }
+}
+
+#[tauri::command]
+fn app_open_devtools(window: tauri::WebviewWindow) {
+    window.open_devtools();
+}
+
+#[tauri::command]
+fn app_close_devtools(window: tauri::WebviewWindow) {
+    window.close_devtools();
+}
+
+#[tauri::command]
+fn app_is_devtools_open(window: tauri::WebviewWindow) -> bool {
+    window.is_devtools_open()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1680,6 +1704,10 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             greet,
+            app_toggle_devtools,
+            app_open_devtools,
+            app_close_devtools,
+            app_is_devtools_open,
             backend_capabilities,
             features::playback_probe::probe_hardware_playback_capabilities,
             streaming_config_for_size,
@@ -1846,10 +1874,6 @@ pub fn run() {
                 core::network::init_config_path(net_path);
                 let q_path = dir.join("AutoGram").join("studio_queue.json");
                 core::job_queue::init_queue_path(q_path);
-            }
-            #[cfg(debug_assertions)]
-            if let Some(window) = app.get_webview_window("main") {
-                window.open_devtools();
             }
             Ok(())
         })

@@ -1,4 +1,13 @@
+## v3.4.8 On-Demand DevTools & Debug Mode Integration Engine
+
+### Eliminasi Auto-Open DevTools & Kontrol Kondisional (`lib.rs`, `debugMode.ts`, `Settings/index.tsx`)
+- **Penghapusan Auto-Open DevTools Saat Startup**: Menghapus baris `window.open_devtools()` otomatis pada fungsi `setup` `lib.rs`, sehingga DevTools tidak lagi terbuka paksa setiap kali aplikasi dijalankan.
+- **Perintah Manajemen DevTools Rust**: Menambahkan 4 perintah Tauri baru (`app_toggle_devtools`, `app_open_devtools`, `app_close_devtools`, `app_is_devtools_open`) untuk mengontrol jendela DevTools secara dinamis dari frontend.
+- **Integrasi Sakelar Mode Debug & DevTools**: Menyediakan kartu sakelar *Debug Mode* pada Halaman Pengaturan (Tampilan & Bahasa). Saat sakelar diaktifkan, DevTools otomatis dibuka dan pencatatan log debug multi-layer diaktifkan; saat dimatikan, DevTools langsung ditutup secara otomatis.
+- **Pintasan Keyboard Global (F12 & Ctrl+Shift+I)**: Menambahkan pendengar shortcut `F12` dan `Ctrl+Shift+I` yang hanya responsif memicu DevTools apabila *Mode Debug* sedang dalam keadaan aktif.
+
 ## v3.4.7 Hardware Capability Telemetry & Engine Sync Engine
+
 
 ### Telemetri Perangkat Fisik & Penyelarasan Metrik Engine (`PerfSection.tsx`, `id/settings.json`, `en/settings.json`)
 - **Deteksi Telemetri Hardware Fisik Akurat**: Mengintegrasikan hook `useTransferHardwareCapabilities` di dalam `PerfSection.tsx` yang memanggil `get_hardware_capabilities` dari mesin Rust OS probing (WMI/Win32/FFmpeg API). Menampilkan lencana informasi fisik riil pada baris status: nama model CPU utuh (misal: `12th Gen Intel Core i7-12700H (20 Threads)`), akselerasi GPU/Encoder aktif (misal: `NVENC · NVIDIA GeForce RTX 3070`), dan deteksi throughput jaringan (`Fast Net` / `Saver Net`).

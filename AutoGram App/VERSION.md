@@ -1,7 +1,7 @@
-AutoGram Version: v3.4.7
+AutoGram Version: v3.4.8
 
 Current State:
-v3.4.7 Hardware Capability Telemetry & Engine Sync Engine — membenahi `PerfSection.tsx`, `id/settings.json`, `en/settings.json`, `VERSION.md`, dan `CHANGELOG.md`. Mengintegrasikan deteksi telemetri hardware fisik akurat dari Rust OS probing (`get_hardware_capabilities`) ke dalam seksi Optimasi Performa Perangkat: menampilkan nama model CPU riil (beserta jumlah thread), GPU encoder aktif (NVENC / AMF / QSV / x264), dan status throughput jaringan (Fast Net / Saver Net). Menyelaraskan metrik Mode Standar dari 48 Batch menjadi 32 Batch agar 100% presisi dengan `devicePerformance.ts`, serta mengaktifkan event broadcast real-time `autogram-perf-tier-changed` saat pengguna mengganti mode performa.
+v3.4.8 On-Demand DevTools & Debug Mode Integration Engine — membenahi `lib.rs`, `debugMode.ts`, `Settings/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghapus panggilan otomatis `window.open_devtools()` pada peluncuran aplikasi awal di `lib.rs` sehingga Chrome DevTools tidak lagi terbuka secara paksa. Menambahkan perintah Tauri pengelola DevTools (`app_toggle_devtools`, `app_open_devtools`, `app_close_devtools`, `app_is_devtools_open`), mengintegrasikan DevTools dengan status *Mode Debug Developer*, serta menyediakan kartu opsi Mode Debug beserta tombol sakelar aktif/nonaktif pada Pengaturan (Tampilan & Bahasa) serta shortcut global `F12` / `Ctrl+Shift+I` yang hanya aktif saat Mode Debug dihidupkan.
 
 Previous:
 v3.4.1 Emerald Green Sync for Stable Release Channel Engine — membenahi `Settings.css`, `Settings/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menyelaraskan skema warna aktif, teks, ikon checklist, border glow, dan pendaran hover pada kartu rilis Stable (Recommended) agar 100% konsisten dengan warna hijau emerald badge `STABLE STREAM` (`#10b981` / `rgba(16, 185, 129, 0.16)`).

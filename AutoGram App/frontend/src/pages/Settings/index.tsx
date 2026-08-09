@@ -17,7 +17,9 @@ import {
   UserCheck,
   ChevronDown,
   Check,
+  Terminal,
 } from 'lucide-react';
+import { isDebugMode, setDebugMode, subscribeDebugMode } from '../../lib/utils/debugMode';
 
 import { useTranslation } from 'react-i18next';
 import {
@@ -270,6 +272,17 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
   const [defaultAccount, setDefaultAccountState] = useState<string>(() => {
     return localStorage.getItem('autogram_default_session') || '';
   });
+
+  const [debugOn, setDebugOn] = useState<boolean>(() => isDebugMode());
+
+  useEffect(() => {
+    return subscribeDebugMode((on) => setDebugOn(on));
+  }, []);
+
+  const handleToggleDebug = (on: boolean) => {
+    setDebugOn(on);
+    setDebugMode(on).catch(() => {});
+  };
 
   const setDefaultAccount = (sessionName: string) => {
     setDefaultAccountState(sessionName);
@@ -1047,30 +1060,70 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
             </div>
           )}
 
-          {/* TAB 2: INTERFACE & LANGUAGE */}
+          {/* TAB 2: INTERFACE & LANGUAGE + DEBUG MODE */}
           {activeTab === 'general' && (
-            <div className="glass-panel card settings-section-general">
-              <div className="card-header">
-                <Globe size={20} color="var(--primary)" />
-                <h3>{t('settings.general')}</h3>
+            <>
+              <div className="glass-panel card settings-section-general">
+                <div className="card-header">
+                  <Globe size={20} color="var(--primary)" />
+                  <h3>{t('settings.general')}</h3>
+                </div>
+
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <label className="input-label title-with-icon" htmlFor="settings-language">
+                    {t('settings.language')}
+                  </label>
+                  <p className="field-hint">{t('settings.language_desc')}</p>
+                  <select
+                    id="settings-language"
+                    className="input-field"
+                    value={i18n.language}
+                    onChange={(e) => changeLanguage(e.target.value)}
+                  >
+                    <option value="en">{t('settings.language_english')}</option>
+                    <option value="id">{t('settings.language_indonesian')}</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="input-group" style={{ marginBottom: 0 }}>
-                <label className="input-label title-with-icon" htmlFor="settings-language">
-                  {t('settings.language')}
-                </label>
-                <p className="field-hint">{t('settings.language_desc')}</p>
-                <select
-                  id="settings-language"
-                  className="input-field"
-                  value={i18n.language}
-                  onChange={(e) => changeLanguage(e.target.value)}
+              <div className="glass-panel card settings-section-debug" style={{ marginTop: '16px' }}>
+                <div className="card-header">
+                  <Terminal size={20} color="var(--primary)" />
+                  <h3>{t('settings.debug_title')}</h3>
+                </div>
+                <p className="field-hint" style={{ marginTop: 0, marginBottom: '14px' }}>
+                  {t('settings.debug_desc')}
+                </p>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    background: 'rgba(15, 23, 42, 0.6)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                  }}
                 >
-                  <option value="en">{t('settings.language_english')}</option>
-                  <option value="id">{t('settings.language_indonesian')}</option>
-                </select>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                      {debugOn ? t('settings.debug_disable') : t('settings.debug_enable')}
+                    </strong>
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                      {debugOn
+                        ? 'Chrome DevTools & Log Multi-Layer AKTIF (F12 siap)'
+                        : 'DevTools & Log Tambahan NONAKTIF (Buka hanya saat debug)'}
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={debugOn}
+                    onChange={(e) => handleToggleDebug(e.target.checked)}
+                    style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#38bdf8' }}
+                  />
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           {/* TAB 3: APPLICATION UPDATES & RELEASE CHANNEL */}

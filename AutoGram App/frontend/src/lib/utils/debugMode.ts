@@ -221,18 +221,63 @@ export async function setDebugMode(on: boolean): Promise<void> {
     /* ignore */
   }
   await writeFlag(on);
+  if (isTauri()) {
+    try {
+      if (on) {
+        await invoke('app_open_devtools');
+      } else {
+        await invoke('app_close_devtools');
+      }
+    } catch {
+      /* ignore */
+    }
+  }
   debugLog('debugMode', on ? 'Debug Mode ON' : 'Debug Mode OFF');
   notify(on);
 }
 
+let shortcutRegistered = false;
+
+export function setupDevToolsShortcut(): void {
+  if (shortcutRegistered || typeof window === 'undefined') return;
+  shortcutRegistered = true;
+
+  window.addEventListener('keydown', (e: KeyboardEvent) => {
+    const isF12 = e.key === 'F12';
+    const isInspect = (e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'i');
+
+    if (isF12 || isInspect) {
+      if (isDebugMode() && isTauri()) {
+        e.preventDefault();
+        invoke('app_toggle_devtools').catch(() => {});
+      }
+    }
+  });
+}
+
 /** Call on app boot if localStorage says ON. */
 export async function bootstrapDebugMode(): Promise<boolean> {
+  setupDevToolsShortcut();
   const on = isDebugMode();
   if (on) {
     await writeFlag(true);
     debugLog('debugMode', 'bootstrapped ON from localStorage');
+    if (isTauri()) {
+      try {
+        await invoke('app_open_devtools');
+      } catch {
+        /* ignore */
+      }
+    }
   } else {
     await writeFlag(false);
+    if (isTauri()) {
+      try {
+        await invoke('app_close_devtools');
+      } catch {
+        /* ignore */
+      }
+    }
   }
   return on;
 }
@@ -240,3 +285,4 @@ export async function bootstrapDebugMode(): Promise<boolean> {
 export function debugLogFileHint(): string {
   return 'worker/temp/autogram_debug.log';
 }
+
