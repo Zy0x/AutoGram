@@ -96,6 +96,7 @@ import {
   type DriveChat,
 } from '../../../lib/telegram/driveTypes';
 import { DriveZipBrowser } from '../DriveZipBrowser';
+import { SplitVideoPlayer } from './SplitVideoPlayer';
 import {
   ensureLocalDocument,
   openDriveFileInSystem,
@@ -3933,6 +3934,35 @@ export function DrivePreviewModal({
                                       : 'grab'
                                     : 'pointer'
                                   : 'pointer';
+                                if (isVideoDriveFile(fileA)) {
+                                  const isPlaybackA = fileA.id === file.id;
+                                  const videoSrcA = isPlaybackA && activeSrc ? activeSrc : null;
+                                  return (
+                                    <SplitVideoPlayer
+                                      src={videoSrcA}
+                                      poster={thumbA || null}
+                                      loading={isPlaybackA && loading}
+                                      playbackRequested={isPlaybackA && videoIsPlaying}
+                                      backendBufferedPct={isPlaybackA ? bufferPct : 0}
+                                      onRequestPlay={() => {
+                                        if (fileA.id !== file.id) {
+                                          handleSelectSidepanelItem(selectedAIndex);
+                                        } else {
+                                          const v = videoRef.current;
+                                          if (v) {
+                                            if (v.paused) void v.play();
+                                            else v.pause();
+                                          }
+                                        }
+                                      }}
+                                      onSeek={(seconds) => {
+                                        if (isPlaybackA && streamId) {
+                                          void driveStreamSeek(creds, streamId, { time_s: seconds, duration_s: videoDuration });
+                                        }
+                                      }}
+                                    />
+                                  );
+                                }
                                 return thumbA ? (
                                   <img
                                     src={thumbA}
@@ -4109,6 +4139,35 @@ export function DrivePreviewModal({
                                       : 'grab'
                                     : 'pointer'
                                   : 'pointer';
+                                if (isVideoDriveFile(fileB)) {
+                                  const isPlaybackB = fileB.id === file.id;
+                                  const videoSrcB = isPlaybackB && activeSrc ? activeSrc : null;
+                                  return (
+                                    <SplitVideoPlayer
+                                      src={videoSrcB}
+                                      poster={thumbB || null}
+                                      loading={isPlaybackB && loading}
+                                      playbackRequested={isPlaybackB && videoIsPlaying}
+                                      backendBufferedPct={isPlaybackB ? bufferPct : 0}
+                                      onRequestPlay={() => {
+                                        if (fileB.id !== file.id) {
+                                          handleSelectSidepanelItem(selectedBIndex);
+                                        } else {
+                                          const v = videoRef.current;
+                                          if (v) {
+                                            if (v.paused) void v.play();
+                                            else v.pause();
+                                          }
+                                        }
+                                      }}
+                                      onSeek={(seconds) => {
+                                        if (isPlaybackB && streamId) {
+                                          void driveStreamSeek(creds, streamId, { time_s: seconds, duration_s: videoDuration });
+                                        }
+                                      }}
+                                    />
+                                  );
+                                }
                                 return thumbB ? (
                                   <img
                                     src={thumbB}
