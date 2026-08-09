@@ -115,11 +115,26 @@ export function SessionLauncher({
   }, [defaultSession]);
 
   useEffect(() => {
-    refreshSessions(true);
+    // [Stale-While-Revalidate]
+    // Step 1 — Paint immediately from 45s memory cache (0ms, no MTProto hit)
+    refreshSessions(false);
+
+    // Step 2 — After 2.5s delay, run live MTProto auth check in background
+    // Delay avoids hammering DC while the previous Drive/Forwarder MTProto
+    // session is still tearing down, preventing the 8000ms+ latency spike.
+    const liveCheckTimer = setTimeout(() => {
+      refreshSessions(true);
+    }, 2500);
+
+    // Step 3 — Periodic soft refresh every 30s (cache-first, no forced MTProto)
     const interval = setInterval(() => {
       refreshSessions(false);
     }, 30000);
-    return () => clearInterval(interval);
+
+    return () => {
+      clearTimeout(liveCheckTimer);
+      clearInterval(interval);
+    };
   }, [refreshSessions]);
 
   const handlePingSession = (sessionName: string, sessStatus: string, e: React.MouseEvent) => {

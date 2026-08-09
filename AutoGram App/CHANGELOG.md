@@ -1,4 +1,15 @@
+## v3.4.4 Stale-While-Revalidate Session Hub Engine
+
+### Pola Stale-While-Revalidate pada Workspace Hub (`SessionLauncher/index.tsx` & `sessionPicker.ts`)
+- **Instant Paint 0ms saat Mount**: Workspace Hub kini langsung menampilkan daftar akun dari `sessionsQuickCache` (layer cache baru) pada momen pertama komponen di-mount, tanpa perlu menunggu MTProto RPC ke Telegram. Hasilnya: tampilan akun muncul **instan** saat kembali dari Drives atau Forwarder.
+- **Delayed Live MTProto Check (2.5 detik)**: Live auth check (`force:true`) ke Telegram DC kini dijadwalkan dengan jeda 2.5 detik setelah mount. Jeda ini memberi waktu koneksi MTProto dari sesi Drive/Forwarder sebelumnya untuk *teardown* dengan bersih, menghilangkan penyebab latensi **8000ms+** yang sebelumnya terjadi.
+- **`sessionsQuickCache` Layer Kedua**: Menambahkan variabel cache `sessionsQuickCache` yang selalu diperbarui setiap kali ada hasil baru dari `loadSelectableSessions`. Setiap `force:false` call yang datang setelah cache layer ini terisi akan **selalu return instan** tanpa menyentuh disk atau network sama sekali.
+- **TTL Cache 45s → 5 Menit**: Memperpanjang masa berlaku `sessionsMemCache` dari 45 detik menjadi 5 menit, sehingga data sesi tetap tersedia lebih lama saat berpindah-pindah halaman.
+- **`invalidateSessionCache()` Utility**: Menambahkan fungsi eksport `invalidateSessionCache()` untuk mereset kedua layer cache secara paksa — dapat dipanggil dari halaman Accounts setelah penambahan atau penghapusan akun agar Hub selalu menampilkan data terbaru.
+- **Cleanup Timer pada Unmount**: `setTimeout` untuk live check dan `setInterval` untuk polling periodik kini dibersihkan bersama-sama di fungsi `cleanup` `useEffect`, mencegah potensi memory leak saat komponen di-unmount.
+
 ## v3.4.3 Main Thread Freeze Elimination Engine
+
 
 ### Konversi Perintah Blocking ke Async (`lib.rs`)
 - **`cache_calculate_size` → `async fn` + `spawn_blocking`**: Rekursive disk walk kini berjalan di Tokio thread pool, bukan di Main Event Loop thread.

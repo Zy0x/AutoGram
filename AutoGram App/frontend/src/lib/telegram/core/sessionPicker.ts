@@ -176,6 +176,12 @@ export function getActiveSessionTargets(): string[] {
   return readActiveTargets();
 }
 
+/** Hard-reset both cache layers. Call after adding or deleting an account. */
+export function invalidateSessionCache(): void {
+  sessionsMemCache = null;
+  sessionsQuickCache = null;
+}
+
 function isUsableStatus(status: string | undefined): boolean {
   const s = String(status || 'active').toLowerCase();
   // Reject only clearly bad states
@@ -183,9 +189,15 @@ function isUsableStatus(status: string | undefined): boolean {
   return true;
 }
 
-/** Short in-memory cache — avoids re-spawning list-sessions on rapid tab reopen */
+/**
+ * In-memory cache layers:
+ * - sessionsMemCache: result from the most recent loadSelectableSessions call (verify=true or false)
+ * - sessionsQuickCache: last known list regardless of verify — used for instant paint on mount
+ * TTL is 5 minutes; force:true always bypasses both caches.
+ */
 let sessionsMemCache: { at: number; verify: boolean; list: SessionOption[] } | null = null;
-const SESSIONS_MEM_TTL_MS = 45_000;
+let sessionsQuickCache: SessionOption[] | null = null; // stale-while-revalidate layer
+const SESSIONS_MEM_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Load sessions for UI pickers.
@@ -202,12 +214,17 @@ export async function loadSelectableSessions(opts?: {
    * Media Studio must stay offline-fast to avoid lag/force-close on session switch.
    */
   verify?: boolean;
-  /** Bypass 45s memory cache (e.g. after add/delete account) */
+  /** Bypass 5-min memory cache (e.g. after add/delete account) */
   force?: boolean;
 }): Promise<SessionOption[]> {
   const autoSeed = opts?.autoSeedActive !== false;
   const verify = opts?.verify === true;
   const force = opts?.force === true;
+
+  // [Stale-While-Revalidate] — force:false returns instantly from ANY cached layer
+  if (!force && !verify && sessionsQuickCache && sessionsQuickCache.length > 0) {
+    return sessionsQuickCache;
+  }
 
   if (
     !force &&
@@ -287,6 +304,8 @@ export async function loadSelectableSessions(opts?: {
   // Place preferred active session first, then remaining usable sessions
   const result = preferred.length ? [...preferred, ...nonPreferred] : usable;
   sessionsMemCache = { at: Date.now(), verify, list: result };
+  // Always update quick cache so the next force:false call paints instantly
+  sessionsQuickCache = result;
   return result;
 }
 

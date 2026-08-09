@@ -1,7 +1,7 @@
-AutoGram Version: v3.4.3
+AutoGram Version: v3.4.4
 
 Current State:
-v3.4.3 Main Thread Freeze Elimination Engine — membenahi `lib.rs`, `SessionLauncher/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengkonversi 11 perintah Tauri sinkron (`fn`) yang memblokir Main Event Loop thread menjadi `async fn` dengan `spawn_blocking` (cache_calculate_size, cache_clear_disk, cache_trim_disk, get_available_disk_space, zip_list_local, zip_preview_entry, zip_extract_entry, file_sha256, file_quick_fingerprint, network_test_proxy, tg_probe_session, tg_list_sessions), serta mengoptimalkan polling `SessionLauncher` dari 10s `force:true` menjadi 30s `force:false` untuk menghilangkan penyebab utama UI `(Tidak Merespon)` / `(Not Responding)`.
+v3.4.4 Stale-While-Revalidate Session Hub Engine — membenahi `SessionLauncher/index.tsx`, `sessionPicker.ts`, `VERSION.md`, dan `CHANGELOG.md`. Mengimplementasikan pola Stale-While-Revalidate pada Workspace Hub: mount pertama langsung menampilkan data dari cache (`force:false`) dalam 0ms, kemudian live MTProto auth check (`force:true`) dijadwalkan setelah 2.5 detik delay agar koneksi Drive/Forwarder sebelumnya dapat teardown dengan bersih. Menambahkan `sessionsQuickCache` layer kedua sebagai instant-paint cache, memperpanjang TTL cache dari 45s menjadi 5 menit, dan menambahkan `invalidateSessionCache()` utility untuk invalidasi manual pasca tambah/hapus akun.
 
 Previous:
 v3.4.1 Emerald Green Sync for Stable Release Channel Engine — membenahi `Settings.css`, `Settings/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menyelaraskan skema warna aktif, teks, ikon checklist, border glow, dan pendaran hover pada kartu rilis Stable (Recommended) agar 100% konsisten dengan warna hijau emerald badge `STABLE STREAM` (`#10b981` / `rgba(16, 185, 129, 0.16)`).
