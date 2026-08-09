@@ -43,6 +43,9 @@ import {
   applyBulkRenamePattern,
   computeSpaceUsage,
   findDuplicateGroups,
+  loadDeepIndexSnapshot,
+  saveDeepIndexSnapshot,
+  removeFilesFromDeepIndex,
   type DriveAdvFilter,
   type DupGroup,
   EMPTY_ADV_FILTER,
@@ -1084,6 +1087,28 @@ function DupTab({
     setMarkedDelete(smartDeleteIds(groups, keepNewest));
   }, [smartKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // PERSIST DEEP SCANNED INDEX SNAPSHOT TO INDEXEDDB (0ms INSTANT RE-FETCH ON MOUNT)
+  useEffect(() => {
+    const session = creds?.session;
+    if (!session) return;
+    void loadDeepIndexSnapshot(session, folderId, null).catch(() => {});
+  }, [creds?.session, folderId]);
+
+  useEffect(() => {
+    const session = creds?.session;
+    if (!session || groups.length === 0) return;
+    const allScannedFiles = groups.flatMap((g) => g.files);
+    if (!allScannedFiles.length) return;
+
+    void saveDeepIndexSnapshot(session, folderId, null, {
+      files: allScannedFiles,
+      hasMore: !!filesHasMore,
+      nextOffsetId: null,
+      totalCount: totalFileCount || loadedCount,
+      totalBytes: wasteTotal || null,
+    });
+  }, [creds?.session, folderId, groups, filesHasMore, totalFileCount, loadedCount, wasteTotal]);
+
   const categoryCounts = useMemo(() => {
     const counts = { all: groups.length, image: 0, video: 0, document: 0, audio: 0 };
     for (const g of groups) {
@@ -1801,7 +1826,12 @@ function DupTab({
         <button
           type="button"
           disabled={busy || !idsToDelete.length}
-          onClick={() => onDeleteIds(idsToDelete)}
+          onClick={() => {
+            if (creds?.session) {
+              void removeFilesFromDeepIndex(creds.session, folderId, null, idsToDelete);
+            }
+            onDeleteIds(idsToDelete);
+          }}
           style={{
             flex: 1,
             display: 'inline-flex',

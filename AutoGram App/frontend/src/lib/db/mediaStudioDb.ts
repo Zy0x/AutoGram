@@ -73,8 +73,21 @@ export interface SyncState {
   lastSync: number;
 }
 
+export interface DeepIndexRecord {
+  key: string; // session:peerId:topicId
+  session: string;
+  peerId: string;
+  topicId: number | null;
+  files: DriveFile[];
+  hasMore: boolean;
+  nextOffsetId: number | null;
+  totalCount: number | null;
+  totalBytes: number | null;
+  scannedAt: number;
+}
+
 const DB_NAME = 'autogram-media-studio-v4';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -175,6 +188,11 @@ export function initDb(): Promise<IDBDatabase> {
       // 5. Sync State store
       if (!db.objectStoreNames.contains('syncState')) {
         db.createObjectStore('syncState', { keyPath: 'chatId' });
+      }
+
+      // 6. Persistent Location Deep Index store
+      if (!db.objectStoreNames.contains('deepIndex')) {
+        db.createObjectStore('deepIndex', { keyPath: 'key' });
       }
     };
 
@@ -528,6 +546,29 @@ export async function getMediaStudioCacheSize(): Promise<number> {
   } catch {
     return 0;
   }
+}
+
+export async function saveDeepIndexRecord(record: DeepIndexRecord): Promise<void> {
+  const db = await initDb();
+  const tx = db.transaction('deepIndex', 'readwrite');
+  await requestToPromise(tx.objectStore('deepIndex').put(record));
+}
+
+export async function getDeepIndexRecord(key: string): Promise<DeepIndexRecord | null> {
+  const db = await initDb();
+  const tx = db.transaction('deepIndex', 'readonly');
+  try {
+    const rec = await requestToPromise(tx.objectStore('deepIndex').get(key));
+    return (rec as DeepIndexRecord) || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteDeepIndexRecord(key: string): Promise<void> {
+  const db = await initDb();
+  const tx = db.transaction('deepIndex', 'readwrite');
+  await requestToPromise(tx.objectStore('deepIndex').delete(key));
 }
 
 export async function clearMediaStudioCache(): Promise<void> {

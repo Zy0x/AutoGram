@@ -131,6 +131,7 @@ import {
   dedupeByMsgId,
   purgeDeletedMsgIds,
   driveGetMediaStats,
+  removeFilesFromDeepIndex,
 } from '../../lib/telegram';
 import {
   driveScrollLocationKey,
@@ -6878,10 +6879,11 @@ function MediaDriveDesktop({
         filesCacheRef.current.set(key, purgeDeletedMsgIds(cacheList, ids));
       }
 
-      // Purge from localStorage location snapshot
+      // Purge from localStorage location snapshot & IndexedDB deep index
       if (creds?.session) {
         try {
           removeFilesFromDriveLocationSnapshot(localStorage, creds.session, peerId, topicFilterRef.current, ids);
+          void removeFilesFromDeepIndex(creds.session, peerId, topicFilterRef.current, ids);
         } catch {
           /* ignore */
         }

@@ -1,7 +1,7 @@
-AutoGram Version: v3.4.10
+AutoGram Version: v3.5.0
 
 Current State:
-v3.4.10 Duplicate Finder Toolbar & Full-Width Search Reorganization Engine — membenahi `DriveToolsPanel/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memindahkan input field `Search for duplicates...` ke baris terpisah paling atas (di atas filter media Semua, Foto, Video, Dokumen, Audio) dengan lebar penuh `100%` yang otomatis beradaptasi dengan ukuran modal, serta menyusun tombol `Smart Selection` (Seleksi Cerdas) dan `Cancel All` (Batal Semua) sejajar di sebelah kanan filter media dalam kontainer fleksibel yang responsif.
+v3.5.0 Persistent Deep Index Cache & Real-Time SWR Reconciliation Engine — membenahi `mediaStudioDb.ts`, `deepIndexCache.ts`, `telegram/index.ts`, `DriveToolsPanel/index.tsx`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengimplementasikan IndexedDB-backed Persistent Location Deep Index Cache Store (`deepIndex` object store v6) berbasis kombinasi kunci unik lokasi (`session:peerId:topicId`). Menyediakan arsitektur Stale-While-Revalidate (SWR) untuk Instant Paint 0ms saat navigasi kembali ke lokasi drive tanpa kehilangan hasil pengindeksan, serta mempertahankan sinkronisasi 2-arah (2-way real-time sync) melalui penghapusan otomatis ID terhapus dari cache saat aksi hapus di eksekusi di AutoGram maupun terdeteksi dari Telegram MTProto.
 
 Previous:
 v3.4.1 Emerald Green Sync for Stable Release Channel Engine — membenahi `Settings.css`, `Settings/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menyelaraskan skema warna aktif, teks, ikon checklist, border glow, dan pendaran hover pada kartu rilis Stable (Recommended) agar 100% konsisten dengan warna hijau emerald badge `STABLE STREAM` (`#10b981` / `rgba(16, 185, 129, 0.16)`).

@@ -1,4 +1,12 @@
+## v3.5.0 Persistent Deep Index Cache & Real-Time SWR Reconciliation Engine
+
+### Mesin Cache Indeks Permanen & Sinkronisasi Real-Time 2-Arah (`mediaStudioDb.ts`, `deepIndexCache.ts`, `DriveToolsPanel/index.tsx`, `MediaStudio/index.tsx`)
+- **Penyimpanan Indeks Permanen IndexedDB (`deepIndex` Object Store v6)**: Mengintegrasikan modul `deepIndexCache.ts` yang memetakan snapshot pengindeksan lokasi berkapasitas besar berdasarkan kunci kombinasi unik `session:peerId:topicId`. Menembus kuota 5MB browser tanpa membatasi jumlah berkas yang diindeks.
+- **Pemuatan Instant Paint 0ms pada Navigasi**: Saat pengguna membuka kembali *Duplicate Finder* atau beralih antar lokasi drive, daftar berkas hasil pemindaian dan grup duplikat dipulihkan secara instan dari IndexedDB tanpa risiko terhapus dari RAM akibat *unmounting component*.
+- **Integrasi Sinkronisasi 2-Arah & Pembersihan Otomatis ID Terhapus**: Mengintegrasikan fungsi `removeFilesFromDeepIndex` ke dalam handler penghapusan media `MediaStudio/index.tsx` (`onMediaDeleted`) dan tombol `Delete Duplicate Files` di `DupTab`. Setiap media yang terhapus dari AutoGram maupun terdeteksi hilang dari MTProto server akan langsung dibersihkan dari cache permanen secara konsisten.
+
 ## v3.4.10 Duplicate Finder Toolbar & Full-Width Search Reorganization Engine
+
 
 ### Restrukturisasi Tata Letak Toolbar Pencarian & Filter Duplikat (`DriveToolsPanel/index.tsx`)
 - **Input Field Search Lebar Penuh (100%)**: Memindahkan bidang pencarian duplikat (*Search for duplicates...*) ke posisi paling atas di atas baris filter kategori media. Input ini kini berukuran `width: 100%` responsif menyesuaikan dinamika ukuran modal, serta dilengkapi tombol pembersih cepat (`X`) saat terdapat teks.
