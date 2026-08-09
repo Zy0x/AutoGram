@@ -150,6 +150,7 @@ type Props = {
   onDeleteIds: (ids: number[]) => void;
   onBulkRename: (pairs: { id: number; newName: string }[]) => void;
   onLoadMoreFiles?: (opts?: { pageSize?: number }) => Promise<void>;
+  onRefreshFiles?: () => Promise<void>;
   onSmartCopy?: (opts: {
     messageIds: number[];
     toFolderId: number | null;
@@ -181,6 +182,7 @@ export function DriveToolsPanel({
   locationByType = null,
   filesHasMore = false,
   onLoadMoreFiles,
+  onRefreshFiles,
   topicFilter = null,
   isForum = false,
   transferSettings,
@@ -468,6 +470,7 @@ export function DriveToolsPanel({
               totalFileCount={locationTotalCount || files.length}
               filesHasMore={filesHasMore}
               onLoadMoreFiles={onLoadMoreFiles}
+              onRefreshFiles={onRefreshFiles}
               loadedCount={files.length}
               locationLabel={locationLabel}
             />
@@ -948,6 +951,7 @@ function DupTab({
   totalFileCount,
   filesHasMore,
   onLoadMoreFiles,
+  onRefreshFiles,
   loadedCount = 0,
   locationLabel = '',
 }: {
@@ -963,11 +967,27 @@ function DupTab({
   totalFileCount?: number;
   filesHasMore?: boolean;
   onLoadMoreFiles?: (opts?: { pageSize?: number }) => Promise<void>;
+  onRefreshFiles?: () => Promise<void>;
   loadedCount?: number;
   locationLabel?: string;
 }) {
   const { t } = useTranslation();
   const [keepNewest, setKeepNewest] = useState(true);
+  const [preferSplitPreview, setPreferSplitPreview] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    const stored = localStorage.getItem('autogram_prefer_split_preview');
+    return stored !== null ? stored === 'true' : true;
+  });
+
+  const handleTogglePreferSplitPreview = (checked: boolean) => {
+    setPreferSplitPreview(checked);
+    try {
+      localStorage.setItem('autogram_prefer_split_preview', String(checked));
+    } catch {
+      /* ignore */
+    }
+  };
+
   const [markedDelete, setMarkedDelete] = useState<Set<number>>(() => new Set());
   const [filterType, setFilterType] = useState<'all' | 'image' | 'video' | 'document' | 'audio'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -998,6 +1018,13 @@ function DupTab({
     let sameCountStuck = 0;
 
     try {
+      if (onRefreshFiles) {
+        try {
+          await onRefreshFiles();
+        } catch {
+          /* ignore */
+        }
+      }
       while (!scanStopRef.stop && filesHasMoreRef.current) {
         try {
           // Request Turbo Page Size (250 items per page for 5x-10x faster scan!)
@@ -1343,14 +1370,25 @@ function DupTab({
             {showModeSettings ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
 
-          <label className="td-tools-check-inline" title={t("speedtest.smart_pref_tooltip")} style={{ fontSize: '0.75rem', margin: 0 }}>
-            <input
-              type="checkbox"
-              checked={keepNewest}
-              onChange={(e) => setKeepNewest(e.target.checked)}
-            />
-            <span>{t('speedtest.default_keep_newest')}</span>
-          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <label className="td-tools-check-inline" title={t("speedtest.smart_pref_tooltip")} style={{ fontSize: '0.75rem', margin: 0 }}>
+              <input
+                type="checkbox"
+                checked={keepNewest}
+                onChange={(e) => setKeepNewest(e.target.checked)}
+              />
+              <span>{t('speedtest.default_keep_newest')}</span>
+            </label>
+
+            <label className="td-tools-check-inline" title={t("speedtest.prefer_split_mode_tooltip")} style={{ fontSize: '0.75rem', margin: 0 }}>
+              <input
+                type="checkbox"
+                checked={preferSplitPreview}
+                onChange={(e) => handleTogglePreferSplitPreview(e.target.checked)}
+              />
+              <span>{t('speedtest.prefer_split_mode')}</span>
+            </label>
+          </div>
         </div>
 
         {/* COLLAPSIBLE DETECTION MODES DRAWER */}
@@ -1629,6 +1667,10 @@ function DupTab({
                           className={`td-tools-dup-row${canPreview ? ' is-clickable' : ''}`}
                           onClick={() => {
                             if (!onPreviewFile) return;
+                            if (!preferSplitPreview) {
+                              onPreviewFile(f);
+                              return;
+                            }
                             const openGroupPreview = (nextGroupIdx: number, fileToPrev?: DriveFile) => {
                               const targetGroup = filteredGroups[nextGroupIdx];
                               if (!targetGroup) return;

@@ -95,5 +95,6 @@
   "qr_generating": "Membuat QR Code Login Telegram...",
   "btn_reload_qr": "Reload QR Code",
   "qr_expired_hint": "QR Code telah kedaluwarsa. Klik Reload QR Code di bawah untuk memperbarui.",
-  "flood_wait_notice": "Telegram membatasi pemintaan QR Code sementara. Silakan tunggu {{seconds}} detik sebelum mencoba lagi."
+  "flood_wait_notice": "Telegram membatasi pemintaan QR Code sementara. Silakan tunggu {{seconds}} detik sebelum mencoba lagi.",
+  "session_menu": "Menu akun"
 }

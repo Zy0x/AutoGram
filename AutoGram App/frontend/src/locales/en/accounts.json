@@ -95,5 +95,6 @@
   "qr_generating": "Generating Telegram Login QR Code...",
   "btn_reload_qr": "Reload QR Code",
   "qr_expired_hint": "QR Code expired. Click Reload QR Code below to refresh.",
-  "flood_wait_notice": "Telegram is temporarily rate-limiting QR Code requests. Please wait {{seconds}} seconds before trying again."
+  "flood_wait_notice": "Telegram is temporarily rate-limiting QR Code requests. Please wait {{seconds}} seconds before trying again.",
+  "session_menu": "Account menu"
 }
