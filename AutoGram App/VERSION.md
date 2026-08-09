@@ -1,6 +1,9 @@
-AutoGram Version: v3.3.6
+AutoGram Version: v3.3.7
 
 Current State:
+v3.3.7 Dynamic Orphaned Session Cleaner Visibility & Soft Animated Glow Engine — membenahi `App.css`, `Settings/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengimplementasikan visibilitas dinamis tombol `[Bersihkan Sesi Yatim]` di mana tombol disembunyikan 100% jika 0 berkas sisa sesi yatim terdeteksi (`orphanedCount === 0`). Saat sisa berkas yatim terdeteksi (`orphanedCount > 0`), tombol muncul secara dinamis dengan efek animasi pendaran amber halus (`@keyframes orphanedPulse`) dan jumlah berkas `(N)` untuk mengajak pengguna melakukan pembersihan.
+
+Previous:
 v3.3.6 Orphaned Session Purge & Professional Inactive Session Badge Engine — membenahi `session_auth.rs`, `sessionPicker.ts`, `Settings/index.tsx`, `id/settings.json`, `en/settings.json`, `VERSION.md`, dan `CHANGELOG.md`. Mengeksekusi pembersihan instan berkas sisa sesi yatim (`Lavender.grammers.json` dan berkas temp terkait), menambahkan modul `purgeOrphanedSessions` & tombol "Bersihkan Sesi Yatim" pada Manajemen Cache & Penyimpanan, serta menyajikan lencana peringatan profesional `⚠️ Sesi Tidak Aktif` (`⚠️ Inactive Session`) dan subtitle `ID Telegram: Belum Terautentikasi` pada dropdown pemilih akun jika terdeteksi berkas sesi yang mati/tidak terautentikasi.
 
 Previous:

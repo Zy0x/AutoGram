@@ -1,3 +1,10 @@
+## v3.3.7 Dynamic Orphaned Session Cleaner Visibility & Soft Animated Glow Engine
+
+### Visibilitas Dinamis & Efek Glow Beranimasi Tombol Pembersih Sesi Yatim (`App.css` & `Settings/index.tsx`)
+- **Visibilitas Dinamis Kondisional**: Tombol `[Bersihkan Sesi Yatim]` (`purge_orphaned_sessions_btn`) kini secara otomatis disembunyikan total dari antarmuka jika tidak ada berkas sisa sesi yatim (`orphanedCount === 0`).
+- **Pendaran Glow Beranimasi Amber**: Saat terdeteksi adanya sisa berkas sesi yatim (`orphanedCount > 0`), tombol muncul secara dinamis dengan efek animasi pendaran halus (`@keyframes orphanedPulse` / `.btn-orphaned-pulse`) dan badge jumlah `(N)`, seakan-akan meminta pengguna untuk segera melakukan pembersihan sisa sesi secara intuitif.
+- **Pembersihan Otomatis Pasca Eksekusi**: Setelah tombol ditekan dan sesi sisa berhasil dihapus, tombol otomatis menghilang kembali dari antarmuka secara bersih.
+
 ## v3.3.6 Orphaned Session Purge & Professional Inactive Session Badge Engine
 
 ### Pembersihan Sesi Yatim & Lencana Sesi Mati (`session_auth.rs`, `sessionPicker.ts`, `Settings/index.tsx` & Locales)

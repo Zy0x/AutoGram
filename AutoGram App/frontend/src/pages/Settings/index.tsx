@@ -24,6 +24,7 @@ import {
   loadSelectableSessions,
   getSessionDisplayName,
   getSessionMetadata,
+  getActiveSessionTargets,
   SESSION_METADATA_EVENT,
   type SessionOption,
 } from '../../lib/telegram';
@@ -2128,35 +2129,52 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                 <span>{t('settings.manage_cache')}</span>
               </button>
 
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={handlePurgeOrphanedSessions}
-                disabled={isPurgingOrphans}
-                style={{
-                  padding: '11px 14px',
-                  fontSize: '0.84rem',
-                  fontWeight: 600,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  borderColor: 'rgba(245, 158, 11, 0.35)',
-                  background: 'rgba(245, 158, 11, 0.12)',
-                  color: '#f59e0b',
-                  textAlign: 'center',
-                  whiteSpace: 'nowrap',
-                  minHeight: '2.7rem',
-                }}
-                title={t('settings.purge_orphaned_sessions_desc')}
-              >
-                {isPurgingOrphans ? (
-                  <Loader2 size={16} className="spin" style={{ flexShrink: 0 }} />
-                ) : (
-                  <Trash2 size={16} style={{ flexShrink: 0 }} />
-                )}
-                <span>{t('settings.purge_orphaned_sessions_btn')}</span>
-              </button>
+              {(() => {
+                const activeTargetsList = getActiveSessionTargets();
+                const orphanedCount = availableSessions.filter((sess) => {
+                  if (activeTargetsList.includes(sess.name)) return false;
+                  const meta = getSessionMetadata(sess.name);
+                  const hasValidUser = Boolean(meta?.telegramUserId || (meta?.userFullName && !sess.name.startsWith('Lavender')));
+                  return !hasValidUser || sess.status === 'expired' || sess.status === 'error';
+                }).length;
+
+                if (orphanedCount === 0) return null;
+
+                return (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-orphaned-pulse"
+                    onClick={handlePurgeOrphanedSessions}
+                    disabled={isPurgingOrphans}
+                    style={{
+                      padding: '11px 14px',
+                      fontSize: '0.84rem',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      borderColor: 'rgba(245, 158, 11, 0.55)',
+                      background: 'rgba(245, 158, 11, 0.14)',
+                      color: '#f59e0b',
+                      textAlign: 'center',
+                      whiteSpace: 'nowrap',
+                      minHeight: '2.7rem',
+                      transition: 'all 0.2s ease',
+                    }}
+                    title={t('settings.purge_orphaned_sessions_desc')}
+                  >
+                    {isPurgingOrphans ? (
+                      <Loader2 size={16} className="spin" style={{ flexShrink: 0 }} />
+                    ) : (
+                      <Trash2 size={16} style={{ flexShrink: 0 }} />
+                    )}
+                    <span>
+                      {t('settings.purge_orphaned_sessions_btn')} ({orphanedCount})
+                    </span>
+                  </button>
+                );
+              })()}
 
               <button
                 type="button"

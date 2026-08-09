@@ -36,6 +36,26 @@
   animation: shakeError 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
+/* ---------- Orphaned Session Attention Glow Animation ---------- */
+@keyframes orphanedPulse {
+  0% {
+    box-shadow: 0 0 5px rgba(245, 158, 11, 0.3), 0 0 12px rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.65), 0 0 26px rgba(245, 158, 11, 0.35);
+    border-color: rgba(245, 158, 11, 0.95);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(245, 158, 11, 0.3), 0 0 12px rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.45);
+  }
+}
+
+.btn-orphaned-pulse {
+  animation: orphanedPulse 2.2s ease-in-out infinite;
+}
+
 /* ---------- App shell ----------
    Mobile:  column → [scrollable content] + [bottom nav in flow]
    Desktop: row    → [sidebar] + [scrollable content]
