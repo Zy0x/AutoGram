@@ -1,4 +1,12 @@
+## v3.4.6 Performance & Encoding Video UI Refinement & Footer Overflow Engine
+
+### Pembenahan Tombol Reset Footer & Styling Performa (`PerfSection.tsx`, `Settings.css` & `TransferSettingsWorkspace.tsx`)
+- **Pembersihan Teks Tombol Reset Footer**: Memperbaiki masalah di mana tombol reset di footer modal Drive Tools menggabungkan label nama sub-menu panjang sehingga teksnya membengkak dan terpotong di tepi kanan (`Reset Performance & Encoding Video Just`). Mengubahnya menjadi label ringkas dan konsisten `Reset Sub-menu` (`Reset Submenu`).
+- **Pemuatan CSS & Variabel `:root` Standalone**: Mengimpor `Settings.css` langsung di dalam `PerfSection.tsx` serta mendaftarkan variabel CSS `--settings-*` di tingkat `:root`. Memastikan seluruh komponen opsi performa ter-style secara penuh dengan garis tepi, aksen cyan, dan lencana yang presisi baik di Halaman Pengaturan Utama maupun di Modal Drive Tools.
+- **Animasi Hover Interaktif Kartu Opsi Performa**: Menambahkan animasi hover berkelas pada kartu opsi performa (`Saver Mode`, `Standard Mode`, `Turbo Mode`) di mana kursor hover memberikan elevasi Y-axis (`translateY(-2px)`), pendaran border cyan (`rgba(56, 189, 248, 0.45)`), serta efek bayangan *dark glass* (`0 0 16px rgba(56, 189, 248, 0.15)`).
+
 ## v3.4.5 Telegram-Style Session Identity Card Engine
+
 
 ### Format Identitas Akun Standar Telegram (`SessionLauncher/index.tsx` & Locales)
 - **Nama Semibold Putih Penuh**: Nama akun (`font-weight: 600`, `color: #ffffff`) kini tampil bersih dan menonjol tanpa teks label tambahan.

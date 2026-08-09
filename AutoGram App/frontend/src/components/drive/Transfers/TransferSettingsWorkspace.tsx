@@ -3433,7 +3433,7 @@ export function TransferSettingsWorkspace({
               }}
             >
               <RotateCcw size={13} />
-              <span>{t('speedtest.label_rotate_reset')} {subMenuCategories.find((c) => c.id === activeTab)?.label || t('ui.generated.pengaturan_3fcdc1c')} {t('ui.generated.saja_ad2a6e7')}</span>
+              <span>{t('speedtest.label_rotate_reset')} {t('ui.generated.sub_menu_db25b1c')}</span>
             </button>
           )}
 

@@ -2,6 +2,7 @@ import { memo, useMemo, useState, type ComponentType } from 'react';
 import { Battery, Cpu, Gauge, SlidersHorizontal, Sparkles, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { setPerfTierOverride, type PerfTier } from '../../lib/utils/devicePerformance';
+import './Settings.css';
 
 type TierOption = {
   id: PerfTier;

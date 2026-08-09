@@ -1,7 +1,7 @@
-AutoGram Version: v3.4.5
+AutoGram Version: v3.4.6
 
 Current State:
-v3.4.5 Telegram-Style Session Identity Card Engine — membenahi `SessionLauncher/index.tsx`, `id/nav.json`, `en/nav.json`, `VERSION.md`, dan `CHANGELOG.md`. Mengubah format sub-info identitas akun pada Workspace Hub dari label verbose `ID: Lavender · DC4` menjadi format minimalis standar Telegram Desktop / Discord / Notion: baris atas Nama (`font-weight: 600`, putih penuh), baris bawah `@lv_drr · ID 8542241823` (12px, `rgba(255,255,255,0.42)`, tanpa label), dengan fallback `ID XXXXXXXXX` jika username tidak tersedia.
+v3.4.6 Performance & Encoding Video UI Refinement & Footer Overflow Engine — membenahi `PerfSection.tsx`, `Settings.css`, `TransferSettingsWorkspace.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki masalah pemotongan teks tombol reset di footer modal Drive Tools dari label berlebih `Reset Performance & Encoding Video Just` menjadi label ringkas `Reset Sub-menu` (`Reset Submenu`), mengimpor `Settings.css` di `PerfSection.tsx` dan mengalokasikan variabel CSS `--settings-*` pada `:root` agar opsi performa selalu ter-style sempurna di mana pun di-render, serta memberikan animasi hover interaktif berkelas (elevasi Y-axis `-2px`, pendaran border cyan glow, dan bayangan *dark glass*) pada kartu opsi `Saver Mode`, `Standard Mode`, dan `Turbo Mode`.
 
 Previous:
 v3.4.1 Emerald Green Sync for Stable Release Channel Engine — membenahi `Settings.css`, `Settings/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menyelaraskan skema warna aktif, teks, ikon checklist, border glow, dan pendaran hover pada kartu rilis Stable (Recommended) agar 100% konsisten dengan warna hijau emerald badge `STABLE STREAM` (`#10b981` / `rgba(16, 185, 129, 0.16)`).
