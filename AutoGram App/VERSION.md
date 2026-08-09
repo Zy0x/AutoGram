@@ -1,7 +1,7 @@
-AutoGram Version: v3.4.9
+AutoGram Version: v3.4.10
 
 Current State:
-v3.4.9 Comprehensive i18n & Drive Tools Locale Alignment Engine — membenahi `toolsUtils.ts`, `DriveToolsPanel/index.tsx`, `TransferSettingsWorkspace.tsx`, `transferSettingsSearchRegistry.ts`, `id/speedtest.json`, `en/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Mengeliminasi string hardcode campuran pada sidebar navigasi Alat & Pengaturan Drive, menyelaraskan kunci `tools_tab_*` untuk 100% key parity antara Bahasa Indonesia dan Bahasa Inggris, mengganti penanda `ui.generated` pada detail verifikasi 4-level duplikat dengan kunci i18n resmi, serta merevisi pencarian registry agar 100% mengikuti bahasa aktif aplikasi tanpa menyisakan teks campuran.
+v3.4.10 Duplicate Finder Toolbar & Full-Width Search Reorganization Engine — membenahi `DriveToolsPanel/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memindahkan input field `Search for duplicates...` ke baris terpisah paling atas (di atas filter media Semua, Foto, Video, Dokumen, Audio) dengan lebar penuh `100%` yang otomatis beradaptasi dengan ukuran modal, serta menyusun tombol `Smart Selection` (Seleksi Cerdas) dan `Cancel All` (Batal Semua) sejajar di sebelah kanan filter media dalam kontainer fleksibel yang responsif.
 
 Previous:
 v3.4.1 Emerald Green Sync for Stable Release Channel Engine — membenahi `Settings.css`, `Settings/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menyelaraskan skema warna aktif, teks, ikon checklist, border glow, dan pendaran hover pada kartu rilis Stable (Recommended) agar 100% konsisten dengan warna hijau emerald badge `STABLE STREAM` (`#10b981` / `rgba(16, 185, 129, 0.16)`).

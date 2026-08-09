@@ -1423,134 +1423,175 @@ function DupTab({
         )}
       </div>
 
-      {/* 📁 2. SEGMENTED MEDIA CATEGORY TABS & TOOLBAR */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', flexShrink: 0 }}>
-        {/* SLEEK SEGMENTED CONTROL BAR */}
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '3px',
-            background: 'rgba(15, 23, 42, 0.7)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '10px',
-            padding: '3px',
-          }}
-        >
-          {[
-            { id: 'all', label: 'Semua', icon: Grid, count: categoryCounts.all },
-            { id: 'image', label: 'Foto', icon: Image, count: categoryCounts.image },
-            { id: 'video', label: 'Video', icon: Film, count: categoryCounts.video },
-            { id: 'document', label: 'Dokumen', icon: FileText, count: categoryCounts.document },
-            { id: 'audio', label: 'Audio', icon: Music, count: categoryCounts.audio },
-          ].map((tab) => {
-            const IconComp = tab.icon;
-            const isActive = filterType === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setFilterType(tab.id as any)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  padding: '5px 11px',
-                  borderRadius: '7px',
-                  fontSize: '0.78rem',
-                  fontWeight: isActive ? 700 : 500,
-                  background: isActive
-                    ? 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)'
-                    : 'transparent',
-                  border: 'none',
-                  color: isActive ? '#ffffff' : '#94a3b8',
-                  cursor: 'pointer',
-                  boxShadow: isActive ? '0 2px 8px rgba(14, 165, 233, 0.35)' : 'none',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <IconComp size={13} style={{ color: isActive ? '#ffffff' : '#94a3b8' }} />
-                <span>{tab.label}</span>
-                <span
-                  style={{
-                    fontSize: '0.68rem',
-                    padding: '1px 5px',
-                    borderRadius: '4px',
-                    background: isActive ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.06)',
-                    color: isActive ? '#ffffff' : '#64748b',
-                    fontWeight: 700,
-                  }}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
+      {/* 📁 2. DUP SEARCH BAR & SEGMENTED MEDIA CATEGORY TOOLBAR */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0, width: '100%' }}>
+        {/* SEARCH INPUT FIELD (FULL WIDTH ADJUSTING TO MODAL SIZE) */}
+        <div style={{ position: 'relative', width: '100%' }}>
+          <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+          <input
+            type="text"
+            placeholder={t('ui.generated.cari_duplikat_233adbe')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '7px 32px 7px 30px',
+              borderRadius: '9px',
+              background: 'rgba(15, 23, 42, 0.8)',
+              border: '1px solid rgba(56, 189, 248, 0.2)',
+              color: '#f8fafc',
+              fontSize: '0.8rem',
+              outline: 'none',
+              boxSizing: 'border-box',
+              transition: 'all 0.15s ease',
+            }}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              style={{
+                position: 'absolute',
+                right: '8px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'transparent',
+                border: 'none',
+                color: '#64748b',
+                cursor: 'pointer',
+                padding: '2px',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <X size={13} />
+            </button>
+          )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={applySmartAll}
-            title={t('speedtest.per_group_keep_one')}
+        {/* RESPONSIVE ROW: FILTER PILLS (LEFT) + ACTION BUTTONS (RIGHT) */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '8px',
+            width: '100%',
+          }}
+        >
+          {/* SLEEK SEGMENTED CONTROL BAR */}
+          <div
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '4px',
-              padding: '5px 11px',
-              borderRadius: '7px',
-              background: 'rgba(56, 189, 248, 0.12)',
-              border: '1px solid rgba(56, 189, 248, 0.25)',
-              color: '#38bdf8',
-              fontWeight: 700,
-              fontSize: '0.76rem',
-              cursor: 'pointer',
-            }}
-          >
-            <Check size={12} /> {t('ui.generated.seleksi_cerdas_44602fb')}
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={clearAllMarks}
-            title={t('speedtest.keep_all_groups')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '5px 11px',
-              borderRadius: '7px',
-              background: 'rgba(255, 255, 255, 0.06)',
+              gap: '3px',
+              background: 'rgba(15, 23, 42, 0.7)',
               border: '1px solid rgba(255, 255, 255, 0.1)',
-              color: '#cbd5e1',
-              fontWeight: 600,
-              fontSize: '0.76rem',
-              cursor: 'pointer',
+              borderRadius: '10px',
+              padding: '3px',
+              flexWrap: 'wrap',
             }}
           >
-            {t('ui.generated.batal_semua_92252e2')}
-          </button>
+            {[
+              { id: 'all', label: 'Semua', icon: Grid, count: categoryCounts.all },
+              { id: 'image', label: 'Foto', icon: Image, count: categoryCounts.image },
+              { id: 'video', label: 'Video', icon: Film, count: categoryCounts.video },
+              { id: 'document', label: 'Dokumen', icon: FileText, count: categoryCounts.document },
+              { id: 'audio', label: 'Audio', icon: Music, count: categoryCounts.audio },
+            ].map((tab) => {
+              const IconComp = tab.icon;
+              const isActive = filterType === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setFilterType(tab.id as any)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '5px 11px',
+                    borderRadius: '7px',
+                    fontSize: '0.78rem',
+                    fontWeight: isActive ? 700 : 500,
+                    background: isActive
+                      ? 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)'
+                      : 'transparent',
+                    border: 'none',
+                    color: isActive ? '#ffffff' : '#94a3b8',
+                    cursor: 'pointer',
+                    boxShadow: isActive ? '0 2px 8px rgba(14, 165, 233, 0.35)' : 'none',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <IconComp size={13} style={{ color: isActive ? '#ffffff' : '#94a3b8' }} />
+                  <span>{tab.label}</span>
+                  <span
+                    style={{
+                      fontSize: '0.68rem',
+                      padding: '1px 5px',
+                      borderRadius: '4px',
+                      background: isActive ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.06)',
+                      color: isActive ? '#ffffff' : '#64748b',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
-          <div style={{ position: 'relative', width: '160px' }}>
-            <Search size={12} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
-            <input
-              type="text"
-              placeholder={t('ui.generated.cari_duplikat_233adbe')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+          {/* ACTION BUTTONS ALIGNED RIGHT NEXT TO FILTERS */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginLeft: 'auto' }}>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={applySmartAll}
+              title={t('speedtest.per_group_keep_one')}
               style={{
-                width: '100%',
-                padding: '5px 8px 5px 24px',
-                borderRadius: '7px',
-                background: 'rgba(15, 23, 42, 0.8)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                color: '#f8fafc',
-                fontSize: '0.75rem',
-                outline: 'none',
-                boxSizing: 'border-box',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                background: 'rgba(56, 189, 248, 0.12)',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
+                color: '#38bdf8',
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap',
               }}
-            />
+            >
+              <Check size={13} /> {t('ui.generated.seleksi_cerdas_44602fb')}
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={clearAllMarks}
+              title={t('speedtest.keep_all_groups')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                color: '#cbd5e1',
+                fontWeight: 600,
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {t('ui.generated.batal_semua_92252e2')}
+            </button>
           </div>
         </div>
       </div>

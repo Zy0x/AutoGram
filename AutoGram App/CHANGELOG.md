@@ -1,4 +1,11 @@
+## v3.4.10 Duplicate Finder Toolbar & Full-Width Search Reorganization Engine
+
+### Restrukturisasi Tata Letak Toolbar Pencarian & Filter Duplikat (`DriveToolsPanel/index.tsx`)
+- **Input Field Search Lebar Penuh (100%)**: Memindahkan bidang pencarian duplikat (*Search for duplicates...*) ke posisi paling atas di atas baris filter kategori media. Input ini kini berukuran `width: 100%` responsif menyesuaikan dinamika ukuran modal, serta dilengkapi tombol pembersih cepat (`X`) saat terdapat teks.
+- **Penyelarasan Tombol Aksi & Filter Media Responsif**: Menyusun tombol **Smart Selection** (Seleksi Cerdas) dan **Cancel All** (Batal Semua) secara sejajar tepat di sebelah kanan segmented filter (Semua, Foto, Video, Dokumen, Audio) dengan dukungan `flex-wrap` responsif, sehingga layout tidak akan terpotong atau berantakan pada layar resolusi rendah/non-reguler.
+
 ## v3.4.9 Comprehensive i18n & Drive Tools Locale Alignment Engine
+
 
 ### Audit & Penyelarasan Total Lokalisasi Bahasa (`toolsUtils.ts`, `TransferSettingsWorkspace.tsx`, `transferSettingsSearchRegistry.ts`, `speedtest.json`)
 - **Pembersihan String Hardcode Sidebar Tools**: Menghapus atribut `labelDefault` campuran pada array `TOOL_GROUPS` di `toolsUtils.ts` serta memperbarui `DriveToolsPanel/index.tsx` agar nama tab sidebar 100% diambil dari hook penerjemahan `t('speedtest.tools_tab_*')`.
