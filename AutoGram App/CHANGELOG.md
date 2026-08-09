@@ -1,3 +1,12 @@
+## v3.3.5 Optional Config & Settings Reset Engine on Clear Cache
+
+### Opsi Reset Konfigurasi Opsional (`Settings/index.tsx` & Locales)
+- **Opsi Checkbox Reset Config**: Menambahkan pilihan checkbox pada modal konfirmasi *Hapus Semua Cache* untuk mereset preferensi pengaturan & konfigurasi aplikasi ke default (`clear_cache_reset_config_option`).
+- **Perlindungan Preferensi (Safe Default)**: Secara bawaan (default), checkbox berada dalam posisi **tidak dicentang** (`includeConfigReset = false`). Jika pengguna mengonfirmasi tanpa mencentang checkbox, seluruh preferensi pengaturan (seperti batas limit cache, startup behavior, default session, grid zoom, dsb.) akan **tetap tersimpan aman**.
+- **Eksekusi Reset Terisolasi**: Jika checkbox dicentang oleh pengguna, sistem akan menghapus seluruh key preferensi di `localStorage` dan mengembalikan state antarmuka ke nilai default aplikasi.
+- **Notifikasi Toast Dinamis**: Menampilkan pesan toast yang spesifik membedakan apakah cache saja yang dibersihkan atau cache beserta preferensi pengaturan yang direset.
+- **100% Zero Hardcoded Strings**: Key `clear_cache_reset_config_option`, `clear_cache_reset_config_help`, `clear_cache_success_with_config`, dan `clear_cache_success_cache_only` telah ditambahkan secara sinkron pada `id/settings.json` dan `en/settings.json` (100% key parity).
+
 ## v3.3.4 Transfer Preflight UI/UX Simplification & Instant Readability Engine
 
 ### Penyederhanaan & Instansi Antarmuka Preflight (`TransferPreflightDialog.tsx` & `App.css`)

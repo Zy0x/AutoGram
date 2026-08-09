@@ -1,6 +1,9 @@
-AutoGram Version: v3.3.4
+AutoGram Version: v3.3.5
 
 Current State:
+v3.3.5 Optional Config & Settings Reset Engine on Clear Cache — membenahi `Settings/index.tsx`, `id/settings.json`, `en/settings.json`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan opsi checkbox konfirmasi reset preferensi pengaturan & konfigurasi aplikasi saat melakukan "Hapus Semua Cache". Secara bawaan (default) checkbox berada dalam kondisi tidak dicentang (unchecked) untuk menjamin preferensi pengaturan pengguna tidak akan terhapus, kecuali jika pengguna secara sengaja memilih opsi reset tersebut.
+
+Previous:
 v3.3.4 Transfer Preflight UI/UX Simplification & Instant Readability Engine — membenahi `TransferPreflightDialog.tsx`, `App.css`, `id/speedtest.json`, `en/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Membasmi beban kognitif berlebih dengan menyederhanakan baris berkas non-duplikat menjadi tampilan compact 1-baris, menambahkan banner indikator aman (0 matches), memperbaiki isu clipping padding nama berkas di bagian atas, menyediakan toggle detail teknis terisolasi, serta meningkatkan kontras tombol eksekusi utama dengan aksen Emerald Green modern.
 
 Previous:

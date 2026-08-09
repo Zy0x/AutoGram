@@ -587,7 +587,35 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
     }
   };
 
+  const [includeConfigReset, setIncludeConfigReset] = useState(false);
+
+  const resetAllConfigAndPreferences = () => {
+    const preferenceKeys = [
+      'autogram_startup_behavior',
+      'autogram_default_session',
+      'autogram_cache_limit_mb',
+      'autogram_auto_prune_enabled',
+      'autogram_prefer_split_preview',
+      'autogram_job_profiles',
+      'autogram_drive_view',
+      'autogram_drive_rail',
+      'autogram_drive_sort',
+      'autogram_drive_thumb_q',
+      'autogram_drive_grid_zoom',
+      'autogram_transfer_minimized',
+    ];
+    preferenceKeys.forEach((key) => localStorage.removeItem(key));
+
+    setStartupBehaviorState('launcher');
+    setDefaultAccountState('');
+    setCacheLimitMB(5120);
+    setAutoPruneEnabled(true);
+
+    window.dispatchEvent(new CustomEvent('autogram-default-session-changed'));
+  };
+
   const handleClearCache = () => {
+    setIncludeConfigReset(false);
     setIsConfirmClearCacheOpen(true);
   };
 
@@ -618,6 +646,11 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
         throw new Error(`cache clear incomplete: ${diskResult.remainingBytes} bytes remain`);
       }
 
+      // 5. Reset app config & settings preferences if explicitly requested by user
+      if (includeConfigReset) {
+        resetAllConfigAndPreferences();
+      }
+
       // Recalculate size
       await calculateCacheSize();
       setClearSummary({
@@ -625,10 +658,17 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
         freed: clientResult.freedBytes + diskResult.freedBytes,
       });
       setClearStatus('success');
+      showToast(
+        'success',
+        includeConfigReset
+          ? t('settings.clear_cache_success_with_config')
+          : t('settings.clear_cache_success_cache_only')
+      );
       setTimeout(() => setClearStatus('idle'), 5000);
     } catch (err) {
       console.error('Failed to clear cache', err);
       setClearStatus('error');
+      showToast('error', String(t('speedtest.cache_clear_error', 'Gagal membersihkan cache')));
     } finally {
       setIsClearing(false);
     }
@@ -2422,7 +2462,49 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
       <ConfirmModal
         isOpen={isConfirmClearCacheOpen}
         title={t('settings.clear_cache_modal_title')}
-        description={t('settings.clear_cache_modal_msg')}
+        description={
+          <div>
+            <p style={{ margin: '0 0 12px 0' }}>{t('settings.clear_cache_modal_msg')}</p>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '10px',
+                padding: '12px',
+                background: 'rgba(2, 6, 23, 0.45)',
+                border: '1px solid rgba(148, 163, 184, 0.16)',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                userSelect: 'none',
+                marginTop: '12px',
+                transition: 'border-color 150ms ease, background-color 150ms ease',
+              }}
+              className="clear-cache-config-option"
+            >
+              <input
+                type="checkbox"
+                checked={includeConfigReset}
+                onChange={(e) => setIncludeConfigReset(e.target.checked)}
+                style={{
+                  width: '17px',
+                  height: '17px',
+                  marginTop: '2px',
+                  accentColor: '#ef4444',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--td-text, #f1f5f9)' }}>
+                  {t('settings.clear_cache_reset_config_option')}
+                </span>
+                <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
+                  {t('settings.clear_cache_reset_config_help')}
+                </span>
+              </div>
+            </label>
+          </div>
+        }
         confirmText={t('settings.clear_cache_confirm')}
         cancelText={t('common.cancel')}
         variant="danger"
