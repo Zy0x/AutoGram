@@ -67,23 +67,8 @@ function CustomAccountSelect({ value, onChange, options, placeholder, onOpenChan
       {/* TRIGGER BUTTON */}
       <button
         type="button"
+        className={`custom-account-select-trigger ${isOpen ? 'is-open' : ''}`}
         onClick={() => toggleOpen(!isOpen)}
-        style={{
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '10px 14px',
-          borderRadius: '10px',
-          background: '#0b1520',
-          border: isOpen ? '1px solid #38bdf8' : '1px solid rgba(56, 189, 248, 0.25)',
-          boxShadow: isOpen ? '0 0 0 3px rgba(56, 189, 248, 0.25)' : '0 4px 14px rgba(0, 0, 0, 0.25)',
-          color: '#f8fafc',
-          fontSize: '0.85rem',
-          fontWeight: 600,
-          cursor: 'pointer',
-          transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-        }}
       >
         <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {selectedLabel}
@@ -91,6 +76,7 @@ function CustomAccountSelect({ value, onChange, options, placeholder, onOpenChan
         <ChevronDown
           size={16}
           color="#38bdf8"
+          className="chevron-icon"
           style={{
             transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
             transition: 'transform 0.2s ease',
@@ -139,26 +125,10 @@ function CustomAccountSelect({ value, onChange, options, placeholder, onOpenChan
             return (
               <div
                 key={sess.name}
+                className={`custom-account-select-option ${isSelected ? 'is-selected' : ''}`}
                 onClick={() => {
                   onChange(sess.name);
                   toggleOpen(false);
-                }}
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  background: isSelected ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '8px',
-                  transition: 'background 0.15s ease',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSelected) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
-                }}
-                onMouseLeave={(e) => {
-                  if (!isSelected) e.currentTarget.style.background = 'transparent';
                 }}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>

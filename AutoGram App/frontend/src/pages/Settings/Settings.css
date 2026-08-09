@@ -639,6 +639,61 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 18px rgba(56, 189, 248, 0.25);
 }
 
+/* Custom Account Select Dropdown Trigger Hover */
+.custom-account-select-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #0b1520;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  color: #f8fafc;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.custom-account-select-trigger:hover {
+  background: rgba(14, 25, 38, 0.95);
+  border-color: rgba(56, 189, 248, 0.55);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), 0 0 14px rgba(56, 189, 248, 0.2);
+}
+
+.custom-account-select-trigger:hover .chevron-icon {
+  transform: translateY(1px);
+}
+
+.custom-account-select-trigger.is-open {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25), 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* Custom Account Select Option Items Hover */
+.custom-account-select-option {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  transition: all 0.15s ease;
+}
+
+.custom-account-select-option:hover {
+  background: rgba(56, 189, 248, 0.12) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.custom-account-select-option.is-selected {
+  background: rgba(56, 189, 248, 0.18) !important;
+}
+
 .settings-action-row .btn {
   min-width: min(100%, 10rem);
 }

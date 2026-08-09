@@ -1,6 +1,9 @@
-AutoGram Version: v3.3.8
+AutoGram Version: v3.3.9
 
 Current State:
+v3.3.9 Interactive Dropdown Trigger & Option Item Hover Engine — membenahi `Settings.css`, `Settings/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan efek animasi hover interaktif berkelas (`.custom-account-select-trigger:hover`) pada tombol pemicu dropdown akun default dengan pendaran cyan glow halus dan gerakan panah ikon `ChevronDown`, serta memberikan respon visual highlight yang tajam (`.custom-account-select-option:hover`) saat kursor melintas di atas item pilihan dropdown.
+
+Previous:
 v3.3.8 Settings Section Static Isolation & Interactive Option Card Hover Engine — membenahi `Settings.css`, `Settings/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghapus efek animasi hover dari wadah kartu seksi utama (`.settings-page .glass-panel.card:hover` & `.settings-card:hover`) agar wadah seksi tetap statis, menambahkan animasi hover interaktif berkelas (`.startup-option-card:hover`) dengan elevasi halus dan border cyan glow pada kartu pilihan preference, serta menyajikan efek hover responsif pada tombol sakelar saklar (`.settings-switch:hover`).
 
 Previous:
