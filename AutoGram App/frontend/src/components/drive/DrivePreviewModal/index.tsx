@@ -70,7 +70,7 @@ import {
   driveStreamStatus,
 } from '../../../lib/telegram/driveApi';
 import { tgDownloadFile } from '../../../lib/telegram';
-import { cacheCapturedThumb, getCachedThumb, requestVisibleThumbs, setThumbsPaused } from '../../../lib/media/thumbBatcher';
+import { cacheCapturedThumb, getCachedThumb, setThumbsPaused } from '../../../lib/media/thumbBatcher';
 import {
   getCachedPreview,
   invalidatePreview,
@@ -96,7 +96,6 @@ import {
   type DriveChat,
 } from '../../../lib/telegram/driveTypes';
 import { DriveZipBrowser } from '../DriveZipBrowser';
-import { SplitVideoPlayer } from './SplitVideoPlayer';
 import {
   ensureLocalDocument,
   openDriveFileInSystem,
@@ -105,6 +104,14 @@ import {
 } from '../../../lib/tauri/documentOpen';
 import { isDesktop } from '../../../lib/tauri/platform';
 import { DriveConfirmDialog, type DriveConfirmState } from '../Modals/DriveConfirmDialog';
+import {
+  chooseInitialDuplicateSlots,
+  nextDistinctDuplicateIndex,
+  shouldLoadSplitPreview,
+  type DuplicateSplitSlot,
+} from './duplicateCompareState';
+import { SplitVideoPlayer } from './SplitVideoPlayer';
+import { SplitSidepanelThumb } from './SplitSidepanelThumb';
 
 export type DuplicateContextInfo = {
   activeFilteredGroups: {
@@ -147,6 +154,7 @@ type Props = {
     savePath: string;
     name: string;
   }) => Promise<void>;
+  initialFullscreen?: boolean;
 };
 
 type PlayQuality = {
@@ -370,6 +378,236 @@ function clamp(n: number, a: number, b: number) {
   return Math.max(a, Math.min(b, n));
 }
 
+type SplitPreviewMediaProps = {
+  file: DriveFile;
+  folderId: number | null;
+  creds: DriveCredentials;
+  slot: DuplicateSplitSlot;
+  active: boolean;
+  playbackRequested: boolean;
+  onRequestPlayback: () => void;
+  reloadToken: number;
+  fallbackThumb: string;
+  transform: string;
+  dragging: boolean;
+  cursor: string;
+};
+
+function SplitPreviewMedia({
+  file,
+  folderId,
+  creds,
+  slot,
+  active,
+  playbackRequested,
+  onRequestPlayback,
+  reloadToken,
+  fallbackThumb,
+  transform,
+  dragging,
+  cursor,
+}: SplitPreviewMediaProps) {
+  const { t } = useTranslation();
+  const scopedFolderId = file.folder_id ?? folderId;
+  const cachedThumb =
+    getCachedThumb(scopedFolderId, file.id) ||
+    file.thumb_data_url ||
+    file.thumbDataUrl ||
+    fallbackThumb;
+  const [preview, setPreview] = useState<CachedPreview | null>(() =>
+    getCachedPreview(
+      scopedFolderId,
+      file.id,
+      'auto',
+      creds.session,
+      file.peer_id,
+      file.topic_id
+    )
+  );
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [backendBufferedPct, setBackendBufferedPct] = useState(0);
+  const ownedStreamIdRef = useRef<string | null>(null);
+
+  const initialKind = resolvePreviewKind(file, preview?.mime_type || null, preview?.preview_kind || null);
+  const shouldLoad = shouldLoadSplitPreview(
+    initialKind,
+    slot,
+    active ? slot : null,
+    playbackRequested ? slot : null
+  );
+
+  useEffect(() => {
+    if (!shouldLoad) return;
+    let live = true;
+    if (reloadToken > 0 && ownedStreamIdRef.current) {
+      const previousStreamId = ownedStreamIdRef.current;
+      ownedStreamIdRef.current = null;
+      void driveStopStream(creds, previousStreamId, { deletePartial: false });
+      invalidatePreview(
+        scopedFolderId,
+        file.id,
+        creds.session,
+        file.peer_id,
+        file.topic_id
+      );
+      setBackendBufferedPct(0);
+    }
+    setLoadingPreview(true);
+    void loadPreviewCached(creds, file.id, scopedFolderId, 'auto', {
+      force: reloadToken > 0,
+      peerId: file.peer_id,
+      topicId: file.topic_id,
+      accountId: file.account_id || creds.session,
+      })
+      .then((result) => {
+        if (!live) {
+          if (initialKind === 'video' && result.stream_id) {
+            void driveStopStream(creds, result.stream_id, { deletePartial: false });
+          }
+          return;
+        }
+        setPreview(result);
+        if (initialKind === 'video') {
+          ownedStreamIdRef.current = result.stream_id || null;
+          const total = Number(result.size || file.size || 0);
+          const buffered = Number(result.buffered || 0);
+          setBackendBufferedPct(total > 0 ? Math.min(100, (buffered / total) * 100) : 0);
+        }
+      })
+      .catch(() => {
+        if (live) setPreview(null);
+      })
+      .finally(() => {
+        if (live) setLoadingPreview(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [creds, file.id, file.account_id, file.peer_id, file.size, file.topic_id, initialKind, reloadToken, scopedFolderId, shouldLoad]);
+
+  useEffect(() => {
+    if (playbackRequested) return;
+    if (initialKind === 'video') setLoadingPreview(false);
+    const streamId = ownedStreamIdRef.current;
+    if (!streamId) return;
+    ownedStreamIdRef.current = null;
+    void driveStopStream(creds, streamId, { deletePartial: false });
+    invalidatePreview(
+      scopedFolderId,
+      file.id,
+      creds.session,
+      file.peer_id,
+      file.topic_id
+    );
+    setPreview((current) => current?.stream_id === streamId ? null : current);
+    setBackendBufferedPct(0);
+  }, [creds, file.id, file.peer_id, file.topic_id, initialKind, playbackRequested, scopedFolderId]);
+
+  useEffect(() => {
+    if (!playbackRequested || !preview?.stream_id) return;
+    let live = true;
+    let polling = false;
+    const poll = async () => {
+      if (!live || polling || !preview.stream_id) return;
+      polling = true;
+      try {
+        const status = await driveStreamStatus(creds, preview.stream_id);
+        if (!live) return;
+        const total = Number(status.total || file.size || preview.size || 0);
+        const buffered = Number(
+          status.downloaded_filled != null
+            ? status.downloaded_filled
+            : status.downloaded != null
+              ? status.downloaded
+              : status.prefix_bytes || 0
+        );
+        const percent = Number(status.percent);
+        const nextPercent = Number.isFinite(percent) && percent >= 0
+          ? percent
+          : total > 0
+            ? (buffered / total) * 100
+            : 0;
+        setBackendBufferedPct(status.done ? 100 : Math.min(100, Math.max(0, nextPercent)));
+      } finally {
+        polling = false;
+      }
+    };
+    void poll();
+    const timer = window.setInterval(() => void poll(), 700);
+    return () => {
+      live = false;
+      window.clearInterval(timer);
+    };
+  }, [creds, file.size, playbackRequested, preview?.size, preview?.stream_id]);
+
+  useEffect(() => () => {
+    const streamId = ownedStreamIdRef.current;
+    if (!streamId) return;
+    ownedStreamIdRef.current = null;
+    void driveStopStream(creds, streamId, { deletePartial: false });
+  }, [creds]);
+
+  const kind = resolvePreviewKind(file, preview?.mime_type || null, preview?.preview_kind || null);
+  const mediaSource = preview
+    ? buildMediaSrc(
+        preview.stream_url || null,
+        preview.data_url || null,
+        preview.path || null,
+        kind === 'image',
+        { forVideo: kind === 'video' }
+      )
+    : null;
+  const visualSource = mediaSource || cachedThumb || '';
+
+  return (
+    <div
+      className="drive-preview-split-media drive-preview-split-media-content"
+      style={{
+        transform,
+        transition: dragging ? 'none' : 'transform 0.15s cubic-bezier(0.2,0,0,1)',
+        willChange: dragging ? 'transform' : 'auto',
+        cursor,
+      }}
+    >
+      {kind === 'image' && visualSource ? (
+        <img src={visualSource} alt={file.name} draggable={false} />
+      ) : kind === 'video' ? (
+        <SplitVideoPlayer
+          src={playbackRequested ? mediaSource : null}
+          poster={cachedThumb || null}
+          loading={playbackRequested && loadingPreview}
+          playbackRequested={playbackRequested}
+          backendBufferedPct={backendBufferedPct}
+          onRequestPlay={onRequestPlayback}
+          onSeek={(seconds, duration) => {
+            const streamId = ownedStreamIdRef.current || preview?.stream_id;
+            if (!streamId || duration <= 0) return;
+            void driveStreamSeek(creds, streamId, { time_s: seconds, duration_s: duration });
+          }}
+        />
+      ) : kind === 'audio' && active && mediaSource ? (
+        <div className="drive-preview-split-document">
+          <Film size={28} />
+          <audio src={mediaSource} controls preload="metadata" />
+        </div>
+      ) : kind === 'pdf' && active && mediaSource ? (
+        <iframe src={mediaSource} title={file.name} />
+      ) : kind === 'text' && active && preview?.text_content ? (
+        <pre>{preview.text_content}</pre>
+      ) : (
+        <div className="drive-preview-split-document">
+          {loadingPreview ? <Loader2 size={28} className="spin" /> : <FileText size={30} />}
+          <strong>{file.file_ext || file.name.split('.').pop() || t('speedtest.tab_telegram_files')}</strong>
+          <span>{active ? t('speedtest.duplicate_preview_unavailable') : t('speedtest.duplicate_preview_activate')}</span>
+        </div>
+      )}
+      {loadingPreview && (kind !== 'video' || playbackRequested) && (
+        <span className="drive-preview-split-loading">{t('speedtest.label_loading')}</span>
+      )}
+    </div>
+  );
+}
+
 function pointerIdMatches(a: number, b: number): boolean {
   return a === b;
 }
@@ -462,6 +700,7 @@ export function DrivePreviewModal({
   onOpenTransferManager,
   onEnqueueUploadPaths,
   onEnqueueDownloadSingle,
+  initialFullscreen = false,
 }: Props) {
   const { t } = useTranslation();
   const isSplitCompareMode = Boolean(duplicateContext);
@@ -478,26 +717,33 @@ export function DrivePreviewModal({
   const [selectedBIndex, setSelectedBIndex] = useState<number>(1);
   const [isSlotAEmpty, setIsSlotAEmpty] = useState<boolean>(false);
   const [isSlotBEmpty, setIsSlotBEmpty] = useState<boolean>(false);
+  const [splitRatio, setSplitRatio] = useState(50);
+  const [splitReloadToken, setSplitReloadToken] = useState(0);
+  const [splitNotice, setSplitNotice] = useState<string | null>(null);
+  const [singlePreviewFile, setSinglePreviewFile] = useState<DriveFile | null>(null);
+  const [activeSplitSlot, setActiveSplitSlot] = useState<DuplicateSplitSlot | null>(null);
+  const [splitPlaybackSlot, setSplitPlaybackSlot] = useState<DuplicateSplitSlot | null>(null);
+  const [splitMarkedDelete, setSplitMarkedDelete] = useState<Set<number>>(
+    () => new Set(duplicateContext?.markedDelete || [])
+  );
 
   useEffect(() => {
     if (currentDupGroup) {
-      setSelectedAIndex(0);
-      setSelectedBIndex(currentDupGroup.files.length > 1 ? 1 : 0);
+      setSplitMarkedDelete(new Set(duplicateContext?.markedDelete || []));
+      const initial = chooseInitialDuplicateSlots(
+        currentDupGroup.files,
+        file.id,
+        duplicateContext?.markedDelete || new Set<number>()
+      );
+      setSelectedAIndex(initial.aIndex);
+      setSelectedBIndex(initial.bIndex);
       setIsSlotAEmpty(false);
-      setIsSlotBEmpty(false);
-
-      if (creds && currentDupGroup.files.length) {
-        const itemPeerId = folderId != null && folderId !== 0 ? String(folderId) : 'me';
-        const dupIds = currentDupGroup.files.map((df) => df.id);
-        requestVisibleThumbs(creds, folderId, dupIds, {
-          peerId: itemPeerId,
-          topicId: file.topic_id ?? null,
-        });
-      }
+      setIsSlotBEmpty(initial.bEmpty);
+      setActiveSplitSlot(null);
+      setSplitPlaybackSlot(null);
+      setSplitNotice(null);
     }
-  }, [creds, currentDupGroup, file.topic_id, folderId]);
-
-  const [activeSplitSlot, setActiveSplitSlot] = useState<'A' | 'B' | null>(null);
+  }, [currentDupGroup, duplicateContext?.markedDelete, file.id]);
 
   const isHeaderFrozen = isSplitCompareMode && activeSplitSlot === null;
 
@@ -514,75 +760,91 @@ export function DrivePreviewModal({
     return file;
   }, [isSplitCompareMode, currentDupGroup, activeSplitSlot, selectedAIndex, selectedBIndex, file]);
 
-  const handleSelectSidepanelItem = useCallback((idx: number) => {
-    if (activeSplitSlot === 'A') {
+  const handleAssignSlotIndex = useCallback((slot: 'A' | 'B', idx: number) => {
+    if (!currentDupGroup?.files[idx]) return false;
+    const otherIndex = slot === 'A' ? selectedBIndex : selectedAIndex;
+    const otherEmpty = slot === 'A' ? isSlotBEmpty : isSlotAEmpty;
+    if (!otherEmpty && idx === otherIndex) {
+      setSplitNotice(t('speedtest.duplicate_same_slot'));
+      window.setTimeout(() => setSplitNotice(null), 1800);
+      return false;
+    }
+    if (slot === 'A') {
       setSelectedAIndex(idx);
       setIsSlotAEmpty(false);
-    } else if (activeSplitSlot === 'B') {
+    } else {
       setSelectedBIndex(idx);
       setIsSlotBEmpty(false);
-    } else {
-      // Default to Card A if none active yet
-      setActiveSplitSlot('A');
-      setSelectedAIndex(idx);
-      setIsSlotAEmpty(false);
     }
-  }, [activeSplitSlot]);
+    if (splitPlaybackSlot === slot) setSplitPlaybackSlot(null);
+    setActiveSplitSlot(slot);
+    setSplitNotice(null);
+    return true;
+  }, [currentDupGroup, isSlotAEmpty, isSlotBEmpty, selectedAIndex, selectedBIndex, splitPlaybackSlot, t]);
+
+  const handleSelectSidepanelItem = useCallback((idx: number) => {
+    if (!isSlotAEmpty && idx === selectedAIndex) {
+      setActiveSplitSlot('A');
+      return;
+    }
+    if (!isSlotBEmpty && idx === selectedBIndex) {
+      setActiveSplitSlot('B');
+      return;
+    }
+    handleAssignSlotIndex(activeSplitSlot || 'B', idx);
+  }, [activeSplitSlot, handleAssignSlotIndex, isSlotAEmpty, isSlotBEmpty, selectedAIndex, selectedBIndex]);
 
   const handleKeepFile = useCallback((fileToKeepId: number) => {
     if (!duplicateContext || !currentDupGroup) return;
+    setSplitMarkedDelete((previous) => {
+      const next = new Set(previous);
+      for (const groupFile of currentDupGroup.files) {
+        if (groupFile.id === fileToKeepId) next.delete(groupFile.id);
+        else next.add(groupFile.id);
+      }
+      return next;
+    });
     duplicateContext.onKeepOnly(currentDupGroup, fileToKeepId);
   }, [duplicateContext, currentDupGroup]);
 
-  const handleMarkDeleteAndNextFile = useCallback((fileIdToDelete: number, slot: 'A' | 'B') => {
-    if (!duplicateContext || !currentDupGroup) return;
+  const handleToggleDelete = useCallback((fileId: number) => {
+    if (!duplicateContext) return;
+    setSplitMarkedDelete((previous) => {
+      const next = new Set(previous);
+      if (next.has(fileId)) next.delete(fileId);
+      else next.add(fileId);
+      return next;
+    });
+    duplicateContext.onToggleMark(fileId);
+  }, [duplicateContext]);
 
-    if (!duplicateContext.markedDelete.has(fileIdToDelete)) {
-      duplicateContext.onToggleMark(fileIdToDelete);
-    }
-
-    const availableIndices = currentDupGroup.files
-      .map((_, idx) => idx)
-      .filter(idx => idx !== selectedAIndex && idx !== selectedBIndex);
-
-    if (availableIndices.length > 0) {
-      if (slot === 'A') {
-        setSelectedAIndex(availableIndices[0]);
-      } else {
-        setSelectedBIndex(availableIndices[0]);
-      }
-    }
-  }, [duplicateContext, currentDupGroup, selectedAIndex, selectedBIndex]);
-
-  const handleSequentialNext = useCallback(() => {
+  const stepSplitFile = useCallback((direction: -1 | 1, slot: 'A' | 'B' = activeSplitSlot || 'B') => {
     if (!currentDupGroup) return;
-    const totalB = currentDupGroup.files.length;
-    if (selectedBIndex < totalB - 1) {
-      setSelectedBIndex((i) => i + 1);
-    } else if (
-      duplicateContext &&
-      duplicateContext.currentGroupIndex < duplicateContext.activeFilteredGroups.length - 1
-    ) {
-      const nextIdx = duplicateContext.currentGroupIndex + 1;
-      const nextGroup = duplicateContext.activeFilteredGroups[nextIdx];
-      if (nextGroup && duplicateContext.onNavigateGroup) {
-        duplicateContext.onNavigateGroup(nextIdx, nextGroup.files[0]);
-      }
+    const current = slot === 'A' ? selectedAIndex : selectedBIndex;
+    const other = slot === 'A' ? selectedBIndex : selectedAIndex;
+    const nextIndex = nextDistinctDuplicateIndex(
+      currentDupGroup.files.length,
+      current,
+      other,
+      direction,
+      slot === 'A' ? isSlotBEmpty : isSlotAEmpty
+    );
+    if (nextIndex != null) {
+      handleAssignSlotIndex(slot, nextIndex);
+      return;
     }
-  }, [currentDupGroup, selectedBIndex, duplicateContext]);
+    if (!duplicateContext?.onNavigateGroup) return;
+    const groupIndex = duplicateContext.currentGroupIndex + direction;
+    const targetGroup = duplicateContext.activeFilteredGroups[groupIndex];
+    if (!targetGroup) return;
+    const targetFile = direction > 0
+      ? targetGroup.files[1] || targetGroup.files[0]
+      : targetGroup.files[targetGroup.files.length - 1];
+    duplicateContext.onNavigateGroup(groupIndex, targetFile);
+  }, [activeSplitSlot, currentDupGroup, duplicateContext, handleAssignSlotIndex, isSlotAEmpty, isSlotBEmpty, selectedAIndex, selectedBIndex]);
 
-  const handleSequentialPrev = useCallback(() => {
-    if (!currentDupGroup) return;
-    if (selectedBIndex > 0) {
-      setSelectedBIndex((i) => i - 1);
-    } else if (duplicateContext && duplicateContext.currentGroupIndex > 0) {
-      const prevIdx = duplicateContext.currentGroupIndex - 1;
-      const prevGroup = duplicateContext.activeFilteredGroups[prevIdx];
-      if (prevGroup && duplicateContext.onNavigateGroup) {
-        duplicateContext.onNavigateGroup(prevIdx, prevGroup.files[0]);
-      }
-    }
-  }, [currentDupGroup, selectedBIndex, duplicateContext]);
+  const handleSequentialNext = useCallback(() => stepSplitFile(1), [stepSplitFile]);
+  const handleSequentialPrev = useCallback(() => stepSplitFile(-1), [stepSplitFile]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [floodCountdown, setFloodCountdown] = useState<number | null>(null);
@@ -742,7 +1004,7 @@ export function DrivePreviewModal({
 
   const [hasVideoFrame, setHasVideoFrame] = useState(false);
   const [isMagnifierMode] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(initialFullscreen);
   const [showInfo, setShowInfo] = useState(false);
   const [mediaWidth, setMediaWidth] = useState<number | null>(null);
   const [mediaHeight, setMediaHeight] = useState<number | null>(null);
@@ -792,6 +1054,11 @@ export function DrivePreviewModal({
   ) => {
     e.stopPropagation();
     if (e.button !== 0) return;
+
+    if ((e.target as HTMLElement | null)?.closest?.('video, audio, iframe, button')) {
+      setActiveSplitSlot(slot);
+      return;
+    }
 
     if (activeSplitSlot !== slot) {
       setActiveSplitSlot(slot);
@@ -863,6 +1130,29 @@ export function DrivePreviewModal({
     window.addEventListener('pointermove', onPointerMove, { passive: true });
     window.addEventListener('pointerup', onPointerUp, { once: true });
     window.addEventListener('pointercancel', onPointerUp, { once: true });
+  };
+
+  const handleSplitDividerPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const panes = e.currentTarget.parentElement;
+    if (!panes) return;
+    const update = (event: PointerEvent) => {
+      const rect = panes.getBoundingClientRect();
+      const vertical = window.matchMedia('(max-width: 900px)').matches;
+      const raw = vertical
+        ? ((event.clientY - rect.top) / Math.max(1, rect.height)) * 100
+        : ((event.clientX - rect.left) / Math.max(1, rect.width)) * 100;
+      setSplitRatio(clamp(raw, 24, 76));
+    };
+    const finish = () => {
+      window.removeEventListener('pointermove', update);
+      window.removeEventListener('pointerup', finish);
+      window.removeEventListener('pointercancel', finish);
+    };
+    window.addEventListener('pointermove', update, { passive: true });
+    window.addEventListener('pointerup', finish, { once: true });
+    window.addEventListener('pointercancel', finish, { once: true });
   };
   const [videoBufferedPercent, setVideoBufferedPercent] = useState(0);
   const [controlsVisible, setControlsVisible] = useState(true);
@@ -1403,6 +1693,25 @@ export function DrivePreviewModal({
     resetViewTools();
     setMediaWidth(null);
     setMediaHeight(null);
+    if (isSplitCompareMode) {
+      const hiddenStreamId = liveStreamIdRef.current || streamIdRef.current;
+      if (hiddenStreamId) {
+        void driveStopStream(creds, hiddenStreamId, { deletePartial: false });
+      }
+      liveStreamIdRef.current = null;
+      streamIdRef.current = null;
+      setLoading(false);
+      setError(null);
+      setDataUrl(null);
+      setPath(null);
+      setStreamUrl(null);
+      setStreamId(null);
+      setTextBody(null);
+      setPreviewKind(null);
+      setBufferPct(0);
+      setStreamDone(false);
+      return;
+    }
     streamRecoverRef.current = false;
     streamMissingHitsRef.current = 0;
     mediaErrorCountRef.current = 0;
@@ -1426,7 +1735,7 @@ export function DrivePreviewModal({
     const q = readQualityPref();
     setQuality(q);
     loadPreview(q);
-  }, [file.id, folderId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [file.id, folderId, isSplitCompareMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     streamDoneRef.current = streamDone;
@@ -2004,6 +2313,7 @@ export function DrivePreviewModal({
 
       // Debounce rapid nav so stream RPC doesn't pile up
       if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
         if (navLock.current) return;
         navLock.current = true;
         window.setTimeout(() => {
@@ -3332,7 +3642,11 @@ export function DrivePreviewModal({
                     className="td-icon-btn"
                     onClick={(e) => {
                       e.stopPropagation();
-                      void toggleFullscreen();
+                      if (isSplitCompareMode && activeSlotFile) {
+                        setSinglePreviewFile(activeSlotFile);
+                      } else {
+                        void toggleFullscreen();
+                      }
                     }}
                     title={isFullscreen ? t('speedtest.preview_fullscreen_exit') : t('speedtest.preview_fullscreen_enter')}
                     aria-label={t('speedtest.fullscreen')}
@@ -3661,11 +3975,22 @@ export function DrivePreviewModal({
               )}
               <button
                 type="button"
-                className={`drive-tool-btn${loading ? ' is-loading' : ''}`}
+                className={`drive-tool-btn${!isSplitCompareMode && loading ? ' is-loading' : ''}`}
                 title={t('speedtest.reload_preview')}
-                disabled={isHeaderFrozen || loading}
+                disabled={isHeaderFrozen || (!isSplitCompareMode && loading)}
                 onClick={() => {
                   resetViewTools();
+                  if (isSplitCompareMode && activeSlotFile) {
+                    invalidatePreview(
+                      activeSlotFile.folder_id ?? folderId,
+                      activeSlotFile.id,
+                      creds.session,
+                      activeSlotFile.peer_id,
+                      activeSlotFile.topic_id
+                    );
+                    setSplitReloadToken((token) => token + 1);
+                    return;
+                  }
                   invalidatePreview(folderId, file.id);
                   setSrcOverride(null);
                   setError(null);
@@ -3816,39 +4141,48 @@ export function DrivePreviewModal({
         >
           {duplicateContext && currentDupGroup && isSplitCompareMode ? (
             <div style={{ width: '100%', height: '100%', flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'stretch', overflow: 'hidden', background: '#0d1117', color: '#f8fafc' }} className="font-sans">
+              {splitNotice && <div className="drive-preview-split-notice" role="status">{splitNotice}</div>}
               {/* MAIN CONTENT AREA: PREVIEW STAGE + SIDEBAR */}
               <div
+                className="drive-preview-split-layout"
                 onPointerDown={(e) => {
                   if (e.target === e.currentTarget) {
                     setActiveSplitSlot(null);
                   }
                 }}
-                style={{ flex: '1 1 0%', minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'row', width: '100%', height: '100%', overflow: 'hidden', padding: '16px', gap: '16px', boxSizing: 'border-box' }}
               >
                 {/* STAGE SPLIT PREVIEW (CARDS A & B SIDE-BY-SIDE HORIZONTAL) */}
                 <div
+                  className="drive-preview-split-panes"
                   onPointerDown={(e) => {
                     if (e.target === e.currentTarget) {
                       setActiveSplitSlot(null);
                     }
                   }}
-                  style={{ flex: '1 1 0%', minWidth: 0, minHeight: 0, height: '100%', display: 'flex', flexDirection: 'row', alignItems: 'stretch', gap: '16px', overflow: 'hidden' }}
+                  style={{ '--split-a': `${splitRatio}%` } as React.CSSProperties}
                 >
                   {/* CARD A (LEFT) */}
                   {(() => {
                     const fileA = currentDupGroup.files[selectedAIndex] || currentDupGroup.files[0];
-                    const isMarkedA = fileA ? duplicateContext.markedDelete.has(fileA.id) : false;
+                    const isMarkedA = fileA ? splitMarkedDelete.has(fileA.id) : false;
                     const thumbA = fileA
-                      ? getCachedThumb(fileA.folder_id ?? folderId, fileA.id) ||
-                        fileA.thumb_data_url ||
-                        fileA.thumbDataUrl ||
-                        (fileA.id === file.id ? activeSrc || gridThumb || poster || '' : '')
+                      ? getCachedThumb(fileA.folder_id ?? folderId, fileA.id) || fileA.thumb_data_url || fileA.thumbDataUrl || (fileA.id === file.id ? activeSrc || gridThumb || poster || '' : '')
                       : '';
                     const nameA = fileA ? middleTruncateFilename(fileA.name, 24) : t('speedtest.preview_card_title_a');
                     const isActiveA = activeSplitSlot === 'A';
                     return (
                       <div
-                        className={`drive-preview-split-col ${isSlotAEmpty ? '' : isMarkedA ? 'is-marked-delete' : 'is-keep'} ${isActiveA ? 'is-active-card-a' : ''}`}
+                        className={`drive-preview-split-col is-slot-a ${isSlotAEmpty ? '' : isMarkedA ? 'is-marked-delete' : 'is-keep'} ${isActiveA ? 'is-active-card-a' : ''}`}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const idx = Number(e.dataTransfer.getData('application/x-autogram-duplicate-index'));
+                          if (Number.isInteger(idx)) handleAssignSlotIndex('A', idx);
+                        }}
                         onMouseDown={(e) => {
                           if (e.detail > 1) {
                             e.preventDefault();
@@ -3864,9 +4198,6 @@ export function DrivePreviewModal({
                           e.stopPropagation();
                         }}
                         style={{
-                          flex: '1 1 0%',
-                          minWidth: 0,
-                          width: 0,
                           height: '100%',
                           minHeight: 0,
                           display: 'flex',
@@ -3889,6 +4220,7 @@ export function DrivePreviewModal({
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setIsSlotAEmpty(true);
+                                  if (splitPlaybackSlot === 'A') setSplitPlaybackSlot(null);
                                 }}
                                 title={t('speedtest.preview_clear_slot')}
                               >
@@ -3934,69 +4266,25 @@ export function DrivePreviewModal({
                                       : 'grab'
                                     : 'pointer'
                                   : 'pointer';
-                                if (isVideoDriveFile(fileA)) {
-                                  const isPlaybackA = fileA.id === file.id;
-                                  const videoSrcA = isPlaybackA && activeSrc ? activeSrc : null;
-                                  return (
-                                    <SplitVideoPlayer
-                                      src={videoSrcA}
-                                      poster={thumbA || null}
-                                      loading={isPlaybackA && loading}
-                                      playbackRequested={isPlaybackA && videoIsPlaying}
-                                      backendBufferedPct={isPlaybackA ? bufferPct : 0}
-                                      onRequestPlay={() => {
-                                        if (fileA.id !== file.id) {
-                                          handleSelectSidepanelItem(selectedAIndex);
-                                        } else {
-                                          const v = videoRef.current;
-                                          if (v) {
-                                            if (v.paused) void v.play();
-                                            else v.pause();
-                                          }
-                                        }
-                                      }}
-                                      onSeek={(seconds) => {
-                                        if (isPlaybackA && streamId) {
-                                          void driveStreamSeek(creds, streamId, { time_s: seconds, duration_s: videoDuration });
-                                        }
-                                      }}
-                                    />
-                                  );
-                                }
-                                return thumbA ? (
-                                  <img
-                                    src={thumbA}
-                                    alt={fileA.name}
-                                    draggable={false}
-                                    onDragStart={(e) => e.preventDefault()}
-                                    className="drive-preview-split-media"
-                                    style={{
-                                      maxWidth: '100%',
-                                      maxHeight: '100%',
-                                      width: 'auto',
-                                      height: 'auto',
-                                      objectFit: 'contain',
-                                      userSelect: 'none',
-                                      WebkitUserSelect: 'none',
-                                      willChange: isDraggingSlotA ? 'transform' : 'auto',
-                                      transform: transformStrA,
-                                      transition: isDraggingSlotA ? 'none' : 'transform 0.15s cubic-bezier(0.2,0,0,1)',
-                                      cursor: cursorA,
+                                return (
+                                  <SplitPreviewMedia
+                                    key={`split-a-${fileA.id}`}
+                                    file={fileA}
+                                    folderId={folderId}
+                                    creds={creds}
+                                    slot="A"
+                                    active={isActiveA}
+                                    playbackRequested={splitPlaybackSlot === 'A'}
+                                    onRequestPlayback={() => {
+                                      setActiveSplitSlot('A');
+                                      setSplitPlaybackSlot('A');
                                     }}
+                                    reloadToken={splitReloadToken}
+                                    fallbackThumb={thumbA}
+                                    transform={transformStrA}
+                                    dragging={isDraggingSlotA}
+                                    cursor={cursorA}
                                   />
-                                ) : (
-                                  <div
-                                    className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2"
-                                    style={{
-                                      willChange: isDraggingSlotA ? 'transform' : 'auto',
-                                      transform: transformStrA,
-                                      transition: isDraggingSlotA ? 'none' : 'transform 0.15s cubic-bezier(0.2,0,0,1)',
-                                      cursor: cursorA,
-                                    }}
-                                  >
-                                    <Film size={36} />
-                                    <span className="text-xs text-slate-400">{fileA.name}</span>
-                                  </div>
                                 );
                               })()}
                             </div>
@@ -4009,7 +4297,7 @@ export function DrivePreviewModal({
                               <div className="flex items-center gap-2">
                                 <button
                                   type="button"
-                                  className="drive-dup-btn-keep"
+                                  className={`drive-dup-btn-keep${!isMarkedA ? ' is-selected' : ''}`}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleKeepFile(fileA.id);
@@ -4021,39 +4309,82 @@ export function DrivePreviewModal({
                                 </button>
                                 <button
                                   type="button"
-                                  className="drive-dup-btn-delete"
+                                  className={`drive-dup-btn-delete${isMarkedA ? ' is-selected' : ''}`}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleMarkDeleteAndNextFile(fileA.id, 'A');
+                                    handleToggleDelete(fileA.id);
                                   }}
                                   title={t('speedtest.preview_mark_delete')}
                                 >
                                   <Trash2 size={14} />
                                   <span>{t('speedtest.preview_delete_btn')}</span>
                                 </button>
+                                <button
+                                  type="button"
+                                  className="drive-dup-btn-next"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    stepSplitFile(1, 'A');
+                                  }}
+                                  title={t('speedtest.duplicate_next_file')}
+                                >
+                                  <ChevronRight size={14} />
+                                </button>
                               </div>
                             </div>
+                            {showInfo && isActiveA && (
+                              <div className="drive-preview-split-inline-info">
+                                <span>{fileA.mime_type || fileA.file_ext || formatDriveKindLabel(fileA)}</span>
+                                <span>#{fileA.id}</span>
+                                <span>{formatDriveBytes(fileA.size)}</span>
+                              </div>
+                            )}
                           </>
                         )}
                       </div>
                     );
                   })()}
 
+                  <div
+                    className="drive-preview-split-divider"
+                    role="separator"
+                    aria-orientation="vertical"
+                    aria-valuemin={24}
+                    aria-valuemax={76}
+                    aria-valuenow={Math.round(splitRatio)}
+                    tabIndex={0}
+                    onPointerDown={handleSplitDividerPointerDown}
+                    onKeyDown={(e) => {
+                      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+                      e.preventDefault();
+                      setSplitRatio((ratio) => clamp(ratio + (e.key === 'ArrowRight' ? 4 : -4), 24, 76));
+                    }}
+                  >
+                    <span />
+                  </div>
+
                   {/* CARD B (RIGHT) */}
                   {(() => {
                     const fileB = currentDupGroup.files[selectedBIndex] || currentDupGroup.files[1] || currentDupGroup.files[0];
-                    const isMarkedB = fileB ? duplicateContext.markedDelete.has(fileB.id) : false;
+                    const isMarkedB = fileB ? splitMarkedDelete.has(fileB.id) : false;
                     const thumbB = fileB
-                      ? getCachedThumb(fileB.folder_id ?? folderId, fileB.id) ||
-                        fileB.thumb_data_url ||
-                        fileB.thumbDataUrl ||
-                        (fileB.id === file.id ? activeSrc || gridThumb || poster || '' : '')
+                      ? getCachedThumb(fileB.folder_id ?? folderId, fileB.id) || fileB.thumb_data_url || fileB.thumbDataUrl || (fileB.id === file.id ? activeSrc || gridThumb || poster || '' : '')
                       : '';
                     const nameB = fileB ? middleTruncateFilename(fileB.name, 24) : t('speedtest.preview_card_title_b');
                     const isActiveB = activeSplitSlot === 'B';
                     return (
                       <div
-                        className={`drive-preview-split-col ${isSlotBEmpty ? '' : isMarkedB ? 'is-marked-delete' : 'is-keep'} ${isActiveB ? 'is-active-card-b' : ''}`}
+                        className={`drive-preview-split-col is-slot-b ${isSlotBEmpty ? '' : isMarkedB ? 'is-marked-delete' : 'is-keep'} ${isActiveB ? 'is-active-card-b' : ''}`}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const idx = Number(e.dataTransfer.getData('application/x-autogram-duplicate-index'));
+                          if (Number.isInteger(idx)) handleAssignSlotIndex('B', idx);
+                        }}
                         onMouseDown={(e) => {
                           if (e.detail > 1) {
                             e.preventDefault();
@@ -4069,9 +4400,6 @@ export function DrivePreviewModal({
                           e.stopPropagation();
                         }}
                         style={{
-                          flex: '1 1 0%',
-                          minWidth: 0,
-                          width: 0,
                           height: '100%',
                           minHeight: 0,
                           display: 'flex',
@@ -4094,6 +4422,7 @@ export function DrivePreviewModal({
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setIsSlotBEmpty(true);
+                                  if (splitPlaybackSlot === 'B') setSplitPlaybackSlot(null);
                                 }}
                                 title={t('speedtest.preview_clear_slot')}
                               >
@@ -4139,69 +4468,25 @@ export function DrivePreviewModal({
                                       : 'grab'
                                     : 'pointer'
                                   : 'pointer';
-                                if (isVideoDriveFile(fileB)) {
-                                  const isPlaybackB = fileB.id === file.id;
-                                  const videoSrcB = isPlaybackB && activeSrc ? activeSrc : null;
-                                  return (
-                                    <SplitVideoPlayer
-                                      src={videoSrcB}
-                                      poster={thumbB || null}
-                                      loading={isPlaybackB && loading}
-                                      playbackRequested={isPlaybackB && videoIsPlaying}
-                                      backendBufferedPct={isPlaybackB ? bufferPct : 0}
-                                      onRequestPlay={() => {
-                                        if (fileB.id !== file.id) {
-                                          handleSelectSidepanelItem(selectedBIndex);
-                                        } else {
-                                          const v = videoRef.current;
-                                          if (v) {
-                                            if (v.paused) void v.play();
-                                            else v.pause();
-                                          }
-                                        }
-                                      }}
-                                      onSeek={(seconds) => {
-                                        if (isPlaybackB && streamId) {
-                                          void driveStreamSeek(creds, streamId, { time_s: seconds, duration_s: videoDuration });
-                                        }
-                                      }}
-                                    />
-                                  );
-                                }
-                                return thumbB ? (
-                                  <img
-                                    src={thumbB}
-                                    alt={fileB.name}
-                                    draggable={false}
-                                    onDragStart={(e) => e.preventDefault()}
-                                    className="drive-preview-split-media"
-                                    style={{
-                                      maxWidth: '100%',
-                                      maxHeight: '100%',
-                                      width: 'auto',
-                                      height: 'auto',
-                                      objectFit: 'contain',
-                                      userSelect: 'none',
-                                      WebkitUserSelect: 'none',
-                                      willChange: isDraggingSlotB ? 'transform' : 'auto',
-                                      transform: transformStrB,
-                                      transition: isDraggingSlotB ? 'none' : 'transform 0.15s cubic-bezier(0.2,0,0,1)',
-                                      cursor: cursorB,
+                                return (
+                                  <SplitPreviewMedia
+                                    key={`split-b-${fileB.id}`}
+                                    file={fileB}
+                                    folderId={folderId}
+                                    creds={creds}
+                                    slot="B"
+                                    active={isActiveB}
+                                    playbackRequested={splitPlaybackSlot === 'B'}
+                                    onRequestPlayback={() => {
+                                      setActiveSplitSlot('B');
+                                      setSplitPlaybackSlot('B');
                                     }}
+                                    reloadToken={splitReloadToken}
+                                    fallbackThumb={thumbB}
+                                    transform={transformStrB}
+                                    dragging={isDraggingSlotB}
+                                    cursor={cursorB}
                                   />
-                                ) : (
-                                  <div
-                                    className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2"
-                                    style={{
-                                      willChange: isDraggingSlotB ? 'transform' : 'auto',
-                                      transform: transformStrB,
-                                      transition: isDraggingSlotB ? 'none' : 'transform 0.15s cubic-bezier(0.2,0,0,1)',
-                                      cursor: cursorB,
-                                    }}
-                                  >
-                                    <Film size={36} />
-                                    <span className="text-xs text-slate-400">{fileB.name}</span>
-                                  </div>
                                 );
                               })()}
                             </div>
@@ -4214,7 +4499,7 @@ export function DrivePreviewModal({
                               <div className="flex items-center gap-2">
                                 <button
                                   type="button"
-                                  className="drive-dup-btn-keep"
+                                  className={`drive-dup-btn-keep${!isMarkedB ? ' is-selected' : ''}`}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleKeepFile(fileB.id);
@@ -4226,18 +4511,36 @@ export function DrivePreviewModal({
                                 </button>
                                 <button
                                   type="button"
-                                  className="drive-dup-btn-delete"
+                                  className={`drive-dup-btn-delete${isMarkedB ? ' is-selected' : ''}`}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleMarkDeleteAndNextFile(fileB.id, 'B');
+                                    handleToggleDelete(fileB.id);
                                   }}
                                   title={t('speedtest.preview_mark_delete')}
                                 >
                                   <Trash2 size={14} />
                                   <span>{t('speedtest.preview_delete_btn')}</span>
                                 </button>
+                                <button
+                                  type="button"
+                                  className="drive-dup-btn-next"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    stepSplitFile(1, 'B');
+                                  }}
+                                  title={t('speedtest.duplicate_next_file')}
+                                >
+                                  <ChevronRight size={14} />
+                                </button>
                               </div>
                             </div>
+                            {showInfo && isActiveB && (
+                              <div className="drive-preview-split-inline-info">
+                                <span>{fileB.mime_type || fileB.file_ext || formatDriveKindLabel(fileB)}</span>
+                                <span>#{fileB.id}</span>
+                                <span>{formatDriveBytes(fileB.size)}</span>
+                              </div>
+                            )}
                           </>
                         )}
                       </div>
@@ -4246,42 +4549,52 @@ export function DrivePreviewModal({
                 </div>
 
                 {/* RIGHT SIDEPANEL (FILES IN THIS GROUP + FOOTER GROUP NAV) */}
-                <aside className="drive-preview-dup-sidebar" style={{ width: '280px', minWidth: '280px', maxWidth: '280px', flexShrink: 0, height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#161b22', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '12px', boxSizing: 'border-box', overflow: 'hidden' }}>
+                <aside
+                  className="drive-preview-dup-sidebar"
+                  onPointerDown={(e) => {
+                    if (e.target === e.currentTarget) setActiveSplitSlot(null);
+                  }}
+                >
                   <div className="drive-preview-dup-sidebar-head" style={{ flexShrink: 0, paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                     <span className="text-xs font-bold text-slate-200">
                       {t('ui.generated.files_in_this_group_305989c')}{currentDupGroup.files.length})
                     </span>
                   </div>
 
-                  <div className="drive-preview-dup-sidebar-list" style={{ flex: '1 1 0%', minHeight: 0, overflowY: 'auto', padding: '6px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div
+                    className="drive-preview-dup-sidebar-list"
+                    onPointerDown={(e) => {
+                      if (e.target === e.currentTarget) setActiveSplitSlot(null);
+                    }}
+                  >
                     {currentDupGroup.files.map((f, idx) => {
                       const isA = !isSlotAEmpty && idx === selectedAIndex;
                       const isB = !isSlotBEmpty && idx === selectedBIndex;
-                      const isDel = duplicateContext.markedDelete.has(f.id);
+                      const isDel = splitMarkedDelete.has(f.id);
                       const sizeStr = formatDriveBytes(f.size || 0);
-                      const cardThumb =
-                        getCachedThumb(f.folder_id ?? folderId, f.id) ||
-                        f.thumb_data_url ||
-                        f.thumbDataUrl ||
-                        (f.id === file.id ? activeSrc || gridThumb || poster || '' : '');
+                      const cardThumbFallback = (f.id === file.id ? activeSrc || gridThumb || poster || '' : '');
                       const truncatedName = middleTruncateFilename(f.name, 18);
 
                       return (
                         <div
                           key={f.id}
                           onClick={() => handleSelectSidepanelItem(idx)}
-                          className={`drive-dup-sidebar-card ${isA ? 'is-selected-a' : isB ? 'is-selected-b' : ''}`}
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.effectAllowed = 'move';
+                            e.dataTransfer.setData('application/x-autogram-duplicate-index', String(idx));
+                            e.dataTransfer.setData('text/plain', f.name);
+                          }}
+                          className={`drive-dup-sidebar-card ${isDel ? 'is-discarded' : 'is-kept'} ${isA ? 'is-selected-a' : isB ? 'is-selected-b' : ''}`}
                         >
-                          {/* 2:3 ASPECT RATIO THUMBNAIL BOX */}
-                          <div className="drive-dup-sidebar-thumb-box-23">
-                            {isA && <span className="drive-dup-sidebar-badge-a">{t('ui.generated.a_6dcd4ce')}</span>}
-                            {isB && <span className="drive-dup-sidebar-badge-b">{t('ui.generated.b_ae4f281')}</span>}
-                            {cardThumb ? (
-                              <img src={cardThumb} alt={f.name} className="drive-dup-sidebar-thumb-23" />
-                            ) : (
-                              <Film size={18} className="text-slate-400" />
-                            )}
-                          </div>
+                          <SplitSidepanelThumb
+                            file={f}
+                            folderId={folderId}
+                            creds={creds}
+                            fallbackSrc={cardThumbFallback}
+                            isA={isA}
+                            isB={isB}
+                          />
 
                           <div className="drive-dup-sidebar-info">
                             <span className="drive-dup-sidebar-name" title={f.name}>{truncatedName}</span>
@@ -4290,7 +4603,6 @@ export function DrivePreviewModal({
 
                           <div className="drive-dup-sidebar-actions">
                             <button
-                              type="button"
                               className={`drive-dup-icon-check ${!isDel ? '' : 'is-off'}`}
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -4305,7 +4617,7 @@ export function DrivePreviewModal({
                               className={`drive-dup-icon-del ${isDel ? '' : 'is-off'}`}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                duplicateContext.onToggleMark(f.id);
+                                handleToggleDelete(f.id);
                               }}
                               title={t('ui.generated.hapus_delete_f8c0d08')}
                             >
@@ -5676,7 +5988,7 @@ export function DrivePreviewModal({
             </div>
           )}
 
-          {showInfo && (
+          {showInfo && !isSplitCompareMode && (
             <div
               className="drive-preview-info"
               role="dialog"
@@ -5780,5 +6092,21 @@ export function DrivePreviewModal({
   );
 
   if (typeof document === 'undefined') return null;
-  return createPortal(node, document.body);
+  return createPortal(
+    <>
+      {node}
+      {singlePreviewFile && (
+        <DrivePreviewModal
+          file={singlePreviewFile}
+          folderId={singlePreviewFile.folder_id ?? folderId}
+          creds={creds}
+          folders={folders}
+          chats={chats}
+          onClose={() => setSinglePreviewFile(null)}
+          initialFullscreen
+        />
+      )}
+    </>,
+    document.body
+  );
 }
