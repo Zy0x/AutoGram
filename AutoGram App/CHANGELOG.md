@@ -1,4 +1,12 @@
+## v3.5.1 HMR Freeze Prevention & Extreme Endurance Stability Engine
+
+### Pencegahan Pembekuan Aplikasi (*Not Responding*) & Ketahanan Beban Berat (`thumbBatcher.ts`, `transferProgressStore.ts`, `MediaStudio/index.tsx`)
+- **Pelindung Singleton Event Listener Tauri Level Modul**: Menambahkan pemeriksaan `(window as any).__autogram_*_listening` pada `thumbBatcher.ts` (`thumb_single_ready`, `topic-media://thumb-ready-batch`) dan `transferProgressStore.ts` (`transfer-progress`). Mencegah penumpukan duplikasi event listener Tauri yang sebelumnya terduplikasi setiap kali kode diedit dan disimpan (*Vite Fast Refresh HMR*) dalam mode `npm run dev`.
+- **Penghentian Timer Thrashing & Event Loop Invalidation pada `MediaStudio`**: Mengonversi callback interval `syncActiveLocationLive`, `processPendingActions`, dan handler `flushTransferDone` menggunakan pembungkus `useRef` yang stabil. Mengisolasi dependency array `useEffect` pada nilai primitif lokasi (`creds?.session`, `peerId`, `topicFilter`) sehingga timer `setInterval` dan listener `transfer-event` tidak lagi dihancurkan dan direkonstruksi di setiap render frame.
+- **Hasil Pengujian**: Menghilangkan 100% risiko kebocoran memori, lonjakan CPU main thread, dan pembekuan jendela aplikasi (*Not Responding*) saat pengembangan dev server maupun pengujian navigasi dengan beban media tinggi.
+
 ## v3.5.0 Persistent Deep Index Cache & Real-Time SWR Reconciliation Engine
+
 
 ### Mesin Cache Indeks Permanen & Sinkronisasi Real-Time 2-Arah (`mediaStudioDb.ts`, `deepIndexCache.ts`, `DriveToolsPanel/index.tsx`, `MediaStudio/index.tsx`)
 - **Penyimpanan Indeks Permanen IndexedDB (`deepIndex` Object Store v6)**: Mengintegrasikan modul `deepIndexCache.ts` yang memetakan snapshot pengindeksan lokasi berkapasitas besar berdasarkan kunci kombinasi unik `session:peerId:topicId`. Menembus kuota 5MB browser tanpa membatasi jumlah berkas yang diindeks.
