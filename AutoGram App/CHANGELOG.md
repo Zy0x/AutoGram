@@ -1,4 +1,13 @@
+## v3.4.7 Hardware Capability Telemetry & Engine Sync Engine
+
+### Telemetri Perangkat Fisik & Penyelarasan Metrik Engine (`PerfSection.tsx`, `id/settings.json`, `en/settings.json`)
+- **Deteksi Telemetri Hardware Fisik Akurat**: Mengintegrasikan hook `useTransferHardwareCapabilities` di dalam `PerfSection.tsx` yang memanggil `get_hardware_capabilities` dari mesin Rust OS probing (WMI/Win32/FFmpeg API). Menampilkan lencana informasi fisik riil pada baris status: nama model CPU utuh (misal: `12th Gen Intel Core i7-12700H (20 Threads)`), akselerasi GPU/Encoder aktif (misal: `NVENC · NVIDIA GeForce RTX 3070`), dan deteksi throughput jaringan (`Fast Net` / `Saver Net`).
+- **Kalkulasi Rekomendasi Cerdas**: Rekomendasi otomatis mode performa (`Recommended For Your Device`) kini dihitung secara akurat berdasarkan kombinasi jumlah thread CPU riil dan keberadaan akselerasi encoder GPU fisik.
+- **Penyelarasan Metrik 32 Batch (`settings.json`)**: Mengubah teks deskripsi dan label metrik *Mode Standar* dari `48 Batch` menjadi `32 Batch` di file locale `id` dan `en` agar 100% presisi dengan nilai `thumbBatch: 32` di `devicePerformance.ts`.
+- **Broadcast Event Real-time**: Mengirimkan `CustomEvent` `autogram-perf-tier-changed` setiap kali pengguna memilih mode performa baru, memungkinkan komponen UI mendeteksi perubahan konfigurasi secara langsung.
+
 ## v3.4.6 Performance & Encoding Video UI Refinement & Footer Overflow Engine
+
 
 ### Pembenahan Tombol Reset Footer & Styling Performa (`PerfSection.tsx`, `Settings.css` & `TransferSettingsWorkspace.tsx`)
 - **Pembersihan Teks Tombol Reset Footer**: Memperbaiki masalah di mana tombol reset di footer modal Drive Tools menggabungkan label nama sub-menu panjang sehingga teksnya membengkak dan terpotong di tepi kanan (`Reset Performance & Encoding Video Just`). Mengubahnya menjadi label ringkas dan konsisten `Reset Sub-menu` (`Reset Submenu`).
