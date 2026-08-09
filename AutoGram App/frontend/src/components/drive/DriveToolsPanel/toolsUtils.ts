@@ -51,7 +51,7 @@ export function preferredKeepId(g: DupGroup, keepNewest: boolean): number | null
 
 export const TOOL_GROUPS: {
   titleKey: string;
-  tabs: { id: DriveToolsTab; icon: any; labelDefault?: string }[];
+  tabs: { id: DriveToolsTab; icon: any }[];
 }[] = [
   {
     titleKey: 'speedtest.tools_group_drive',
@@ -65,14 +65,14 @@ export const TOOL_GROUPS: {
   {
     titleKey: 'speedtest.tools_group_settings',
     tabs: [
-      { id: 'upload', icon: Upload, labelDefault: 'Upload' },
-      { id: 'download', icon: Download, labelDefault: 'Download' },
-      { id: 'encoding', icon: Film, labelDefault: 'Performance & Encoding Video' },
-      { id: 'album', icon: FolderTree, labelDefault: 'Pengelompokan Album' },
-      { id: 'duplicate', icon: CopyCheck, labelDefault: 'Penanganan Duplikat' },
-      { id: 'oversize', icon: HardDriveUpload, labelDefault: 'Penanganan Berkas Besar' },
-      { id: 'network', icon: Network, labelDefault: 'Proxy & Network' },
-      { id: 'advanced', icon: SlidersHorizontal, labelDefault: 'Pengaturan Lanjutan' },
+      { id: 'upload', icon: Upload },
+      { id: 'download', icon: Download },
+      { id: 'encoding', icon: Film },
+      { id: 'album', icon: FolderTree },
+      { id: 'duplicate', icon: CopyCheck },
+      { id: 'oversize', icon: HardDriveUpload },
+      { id: 'network', icon: Network },
+      { id: 'advanced', icon: SlidersHorizontal },
     ],
   },
 ];

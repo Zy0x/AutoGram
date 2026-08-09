@@ -952,14 +952,14 @@ export function TransferSettingsWorkspace({
 
   // Sub-Menu Categories List (Displays ALL categories directly)
   const subMenuCategories: { id: SubMenuCategory; label: string; desc: string; icon: any }[] = [
-    { id: 'upload', label: t('speedtest.tab_upload'), desc: 'Format pengiriman, caption global, penjadwalan & performa paralel unggah', icon: Upload },
-    { id: 'download', label: t('speedtest.tab_download'), desc: 'Paralelisme unduh, kebijakan konflik nama file, resume & notifikasi', icon: Download },
-    { id: 'encoding', label: t('speedtest.tab_encoding'), desc: 'Mode optimasi performa perangkat, encoder GPU/CPU & kompresi video', icon: Film },
-    { id: 'albums', label: t('speedtest.tab_albums'), desc: 'Grouping foto/video menjadi album Telegram & penanganan dokumen', icon: FolderTree },
-    { id: 'duplicates', label: t('speedtest.tab_duplicates'), desc: 'Pencegahan file duplikat & verifikasi 4-level', icon: CopyCheck },
-    { id: 'limits_recovery', label: t('speedtest.tab_limits_recovery'), desc: 'Opsi pemotongan berkas (>2GB/4GB) & pengalihan akun Premium', icon: HardDriveUpload },
-    { id: 'network', label: t('speedtest.tab_network'), desc: 'SOCKS5/HTTP/MTProto routing, akselerasi timeout & pengoptimalan VPN', icon: Network },
-    { id: 'advanced', label: t('speedtest.tab_advanced'), desc: 'Sinkronisasi tampilan, retry teknis & ekspor/impor konfigurasi', icon: SlidersHorizontal },
+    { id: 'upload', label: t('speedtest.tools_tab_upload'), desc: t('speedtest.tools_tab_upload_desc'), icon: Upload },
+    { id: 'download', label: t('speedtest.tools_tab_download'), desc: t('speedtest.tools_tab_download_desc'), icon: Download },
+    { id: 'encoding', label: t('speedtest.tools_tab_encoding'), desc: t('speedtest.tools_tab_encoding_desc'), icon: Film },
+    { id: 'albums', label: t('speedtest.tools_tab_album'), desc: t('speedtest.tools_tab_album_desc'), icon: FolderTree },
+    { id: 'duplicates', label: t('speedtest.tools_tab_duplicate'), desc: t('speedtest.tools_tab_duplicate_desc'), icon: CopyCheck },
+    { id: 'limits_recovery', label: t('speedtest.tools_tab_oversize'), desc: t('speedtest.tools_tab_oversize_desc'), icon: HardDriveUpload },
+    { id: 'network', label: t('speedtest.tools_tab_network'), desc: t('speedtest.tools_tab_network_desc'), icon: Network },
+    { id: 'advanced', label: t('speedtest.tools_tab_advanced'), desc: t('speedtest.tools_tab_advanced_desc'), icon: SlidersHorizontal },
   ];
 
   return (
@@ -2575,41 +2575,41 @@ export function TransferSettingsWorkspace({
                   {/* LEVEL 1 */}
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('ui.generated.level_1_f25d3c5')}</span>
+                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('speedtest.dup_level_1')}</span>
                       <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{t('nav.status_active')}</span>
                     </div>
-                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('ui.generated.telegram_message_id_98a774f')}</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('ui.generated.pencocokan_id_pesan_telegram_terenkripsi_dalam_d_2331b50')}</p>
+                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('speedtest.dup_level1_title')}</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('speedtest.dup_level1_desc')}</p>
                   </div>
 
                   {/* LEVEL 2 */}
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('ui.generated.level_2_ea5c494')}</span>
+                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('speedtest.dup_level_2')}</span>
                       <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{t('nav.status_active')}</span>
                     </div>
-                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('ui.generated.telegram_unique_file_id_3ab029f')}</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('ui.generated.verifikasi_atribut_file_unique_id_resmi_dari_ser_08170d0')}</p>
+                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('speedtest.dup_level2_title')}</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('speedtest.dup_level2_desc')}</p>
                   </div>
 
                   {/* LEVEL 3 */}
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('ui.generated.level_3_ce0aa4e')}</span>
+                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('speedtest.dup_level_3')}</span>
                       <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{t('nav.status_active')}</span>
                     </div>
-                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('ui.generated.sha_256_checksum_hash_d4073c0')}</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('ui.generated.verifikasi_integritas_biner_berkas_secara_bit_pe_c9aea1b')}</p>
+                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('speedtest.dup_level3_title')}</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('speedtest.dup_level3_desc')}</p>
                   </div>
 
                   {/* LEVEL 4 */}
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('ui.generated.level_4_0f2b7bb')}</span>
+                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('speedtest.dup_level_4')}</span>
                       <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{t('nav.status_active')}</span>
                     </div>
-                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('ui.generated.filename_exact_byte_size_dd74cc3')}</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('ui.generated.pencocokan_presisi_nama_berkas_ukuran_byte_fisik_1f94c9c')}</p>
+                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('speedtest.dup_level4_title')}</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('speedtest.dup_level4_desc')}</p>
                   </div>
                 </div>
               </details>

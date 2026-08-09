@@ -1,4 +1,13 @@
+## v3.4.9 Comprehensive i18n & Drive Tools Locale Alignment Engine
+
+### Audit & Penyelarasan Total Lokalisasi Bahasa (`toolsUtils.ts`, `TransferSettingsWorkspace.tsx`, `transferSettingsSearchRegistry.ts`, `speedtest.json`)
+- **Pembersihan String Hardcode Sidebar Tools**: Menghapus atribut `labelDefault` campuran pada array `TOOL_GROUPS` di `toolsUtils.ts` serta memperbarui `DriveToolsPanel/index.tsx` agar nama tab sidebar 100% diambil dari hook penerjemahan `t('speedtest.tools_tab_*')`.
+- **100% Parity Kunci `tools_tab_*` (ID & EN)**: Menambahkan seluruh kunci `tools_tab_upload`, `tools_tab_download`, `tools_tab_encoding`, `tools_tab_album`, `tools_tab_duplicate`, `tools_tab_oversize`, `tools_tab_network`, dan `tools_tab_advanced` beserta deskripsinya secara simetris di `id/speedtest.json` dan `en/speedtest.json`.
+- **Perbaikan Kartu Verifikasi Duplikat 4-Tingkat**: Mengganti rujukan kunci `ui.generated` pada detail verifikasi duplikat 4-level di `TransferSettingsWorkspace.tsx` dengan kunci terstruktur (`dup_level_1` .. `dup_level_4` dan judul/deskripsinya), menjamin teks verifikasi berubah sempurna saat beralih antara Bahasa Indonesia dan Bahasa Inggris.
+- **Dukungan Pencarian Komand Registry Dinamis**: Menyelaraskan registry pencarian di `transferSettingsSearchRegistry.ts` agar menyerap string dari penerjemah `t('speedtest.tools_tab_*')` untuk pencarian dan filter navigasi real-time.
+
 ## v3.4.8 On-Demand DevTools & Debug Mode Integration Engine
+
 
 ### Eliminasi Auto-Open DevTools & Kontrol Kondisional (`lib.rs`, `debugMode.ts`, `Settings/index.tsx`)
 - **Penghapusan Auto-Open DevTools Saat Startup**: Menghapus baris `window.open_devtools()` otomatis pada fungsi `setup` `lib.rs`, sehingga DevTools tidak lagi terbuka paksa setiap kali aplikasi dijalankan.

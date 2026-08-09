@@ -1,7 +1,7 @@
-AutoGram Version: v3.4.8
+AutoGram Version: v3.4.9
 
 Current State:
-v3.4.8 On-Demand DevTools & Debug Mode Integration Engine — membenahi `lib.rs`, `debugMode.ts`, `Settings/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghapus panggilan otomatis `window.open_devtools()` pada peluncuran aplikasi awal di `lib.rs` sehingga Chrome DevTools tidak lagi terbuka secara paksa. Menambahkan perintah Tauri pengelola DevTools (`app_toggle_devtools`, `app_open_devtools`, `app_close_devtools`, `app_is_devtools_open`), mengintegrasikan DevTools dengan status *Mode Debug Developer*, serta menyediakan kartu opsi Mode Debug beserta tombol sakelar aktif/nonaktif pada Pengaturan (Tampilan & Bahasa) serta shortcut global `F12` / `Ctrl+Shift+I` yang hanya aktif saat Mode Debug dihidupkan.
+v3.4.9 Comprehensive i18n & Drive Tools Locale Alignment Engine — membenahi `toolsUtils.ts`, `DriveToolsPanel/index.tsx`, `TransferSettingsWorkspace.tsx`, `transferSettingsSearchRegistry.ts`, `id/speedtest.json`, `en/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Mengeliminasi string hardcode campuran pada sidebar navigasi Alat & Pengaturan Drive, menyelaraskan kunci `tools_tab_*` untuk 100% key parity antara Bahasa Indonesia dan Bahasa Inggris, mengganti penanda `ui.generated` pada detail verifikasi 4-level duplikat dengan kunci i18n resmi, serta merevisi pencarian registry agar 100% mengikuti bahasa aktif aplikasi tanpa menyisakan teks campuran.
 
 Previous:
 v3.4.1 Emerald Green Sync for Stable Release Channel Engine — membenahi `Settings.css`, `Settings/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menyelaraskan skema warna aktif, teks, ikon checklist, border glow, dan pendaran hover pada kartu rilis Stable (Recommended) agar 100% konsisten dengan warna hijau emerald badge `STABLE STREAM` (`#10b981` / `rgba(16, 185, 129, 0.16)`).

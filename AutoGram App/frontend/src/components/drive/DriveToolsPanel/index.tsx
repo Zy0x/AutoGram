@@ -429,7 +429,7 @@ export function DriveToolsPanel({
                 {group.tabs.map((tItem) => {
                   const Icon = tItem.icon;
                   const isActive = tab === tItem.id;
-                  const tabLabel = tItem.labelDefault || t(`speedtest.tools_tab_${tItem.id === 'transfer' ? 'settings' : tItem.id}`);
+                  const tabLabel = t(`speedtest.tools_tab_${tItem.id === 'transfer' ? 'settings' : tItem.id}`);
                   return (
                     <button
                       key={tItem.id}
