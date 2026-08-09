@@ -1,3 +1,12 @@
+## v3.3.6 Orphaned Session Purge & Professional Inactive Session Badge Engine
+
+### Pembersihan Sesi Yatim & Lencana Sesi Mati (`session_auth.rs`, `sessionPicker.ts`, `Settings/index.tsx` & Locales)
+- **Pembersihan Instan Sesi Sisa**: Berkas sisa sesi yatim (`Lavender.grammers.json` dan berkas temp `.session-shm` / `.session-wal`) dari login lama yang tidak terautentikasi dan mati telah dibersihkan secara instan dari direktori `AutoGram App/worker/sessions/`.
+- **Modul & Tombol "Bersihkan Sesi Yatim"**: Menambahkan fungsi `purgeOrphanedSessions` di `sessionPicker.ts` dan menyediakan tombol aksi `[Bersihkan Sesi Yatim]` (`purge_orphaned_sessions_btn`) pada Manajemen Cache & Penyimpanan di Halaman Pengaturan (`Settings/index.tsx`).
+- **Pembaruan Ekstensi Hapus Rust**: Memperbarui `delete_grammers_session_files` di `session_auth.rs` agar ikut menghapus berkas `.session-shm` dan `.session-wal` saat sesi dihapus.
+- **Badge Peringatan Profesional Dropdown**: Menambahkan indikator lencana berkelas `⚠️ Sesi Tidak Aktif` (`badge_session_inactive`) dengan aksen warm amber dan subtitle `ID Telegram: Belum Terautentikasi` (`session_unauthenticated`) pada dropdown `CustomAccountSelect` jika terdeteksi berkas sesi mati/yatim yang belum terhubung.
+- **100% Zero Hardcoded Strings**: Key `badge_session_inactive`, `session_unauthenticated`, `purge_orphaned_sessions_btn`, `purge_orphaned_sessions_desc`, `purge_orphaned_success`, dan `purge_orphaned_none` telah ditambahkan secara sinkron pada `id/settings.json` dan `en/settings.json` (100% key parity).
+
 ## v3.3.5 Optional Config & Settings Reset Engine on Clear Cache
 
 ### Opsi Reset Konfigurasi Opsional (`Settings/index.tsx` & Locales)

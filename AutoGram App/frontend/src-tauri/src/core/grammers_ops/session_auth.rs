@@ -1163,6 +1163,8 @@ pub fn delete_grammers_session_files(session_name: &str) -> Result<(), TgError> 
             ".grammers.json",
             ".session-journal",
             ".session.lock",
+            ".session-shm",
+            ".session-wal",
         ] {
             let p = sessions_dir.join(format!("{}{}", s_name, ext));
             if p.exists() {

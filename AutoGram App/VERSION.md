@@ -1,6 +1,9 @@
-AutoGram Version: v3.3.5
+AutoGram Version: v3.3.6
 
 Current State:
+v3.3.6 Orphaned Session Purge & Professional Inactive Session Badge Engine — membenahi `session_auth.rs`, `sessionPicker.ts`, `Settings/index.tsx`, `id/settings.json`, `en/settings.json`, `VERSION.md`, dan `CHANGELOG.md`. Mengeksekusi pembersihan instan berkas sisa sesi yatim (`Lavender.grammers.json` dan berkas temp terkait), menambahkan modul `purgeOrphanedSessions` & tombol "Bersihkan Sesi Yatim" pada Manajemen Cache & Penyimpanan, serta menyajikan lencana peringatan profesional `⚠️ Sesi Tidak Aktif` (`⚠️ Inactive Session`) dan subtitle `ID Telegram: Belum Terautentikasi` pada dropdown pemilih akun jika terdeteksi berkas sesi yang mati/tidak terautentikasi.
+
+Previous:
 v3.3.5 Optional Config & Settings Reset Engine on Clear Cache — membenahi `Settings/index.tsx`, `id/settings.json`, `en/settings.json`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan opsi checkbox konfirmasi reset preferensi pengaturan & konfigurasi aplikasi saat melakukan "Hapus Semua Cache". Secara bawaan (default) checkbox berada dalam kondisi tidak dicentang (unchecked) untuk menjamin preferensi pengaturan pengguna tidak akan terhapus, kecuali jika pengguna secara sengaja memilih opsi reset tersebut.
 
 Previous:

@@ -342,3 +342,63 @@ export async function loadSelectableSessionNames(opts?: {
   return list.map((s: any) => s.name);
 }
 
+/**
+ * Detect and delete unauthenticated / orphaned session files locally.
+ * Preserves all active sessions marked in ACTIVE_SESSIONS target list.
+ */
+export async function purgeOrphanedSessions(): Promise<{
+  purgedCount: number;
+  purgedNames: string[];
+}> {
+  const { invoke } = await import('@tauri-apps/api/core');
+  const rawSessions = await tgListSessions().catch(() => []);
+  const activeTargets = readActiveTargets();
+  const { apiId, apiHash } = await getApiCredentials();
+
+  const purgedNames: string[] = [];
+
+  for (const s of rawSessions) {
+    const name = String(s?.name || '').trim();
+    if (!name) continue;
+
+    // Never purge sessions marked as active targets
+    if (activeTargets.includes(name)) continue;
+
+    const meta = getSessionMetadata(name);
+    let isAuthorized = false;
+
+    if (apiId && apiHash) {
+      try {
+        const res = await tgAuthStatus({
+          session: name,
+          apiId: Number(apiId),
+          apiHash,
+        });
+        isAuthorized = !!(res?.ok && res.data?.authorized);
+      } catch {
+        isAuthorized = false;
+      }
+    }
+
+    // Orphaned session: not authorized AND missing valid Telegram User ID
+    if (!isAuthorized && (!meta || !meta.telegramUserId)) {
+      try {
+        await invoke('delete_session_rust', { session: name });
+        deleteSessionLocalData(name, true);
+        purgedNames.push(name);
+      } catch (err) {
+        console.warn(`Failed to purge orphaned session ${name}:`, err);
+      }
+    }
+  }
+
+  invalidateSessionListCache();
+  notifySessionMetadataChanged();
+
+  return {
+    purgedCount: purgedNames.length,
+    purgedNames,
+  };
+}
+
+

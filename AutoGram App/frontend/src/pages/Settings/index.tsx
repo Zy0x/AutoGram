@@ -37,6 +37,7 @@ interface CustomAccountSelectProps {
 }
 
 function CustomAccountSelect({ value, onChange, options, placeholder, onOpenChange }: CustomAccountSelectProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -123,10 +124,16 @@ function CustomAccountSelect({ value, onChange, options, placeholder, onOpenChan
             const displayName = sess.label || getSessionDisplayName(sess.name);
             const isSelected = sess.name === value;
             const meta = getSessionMetadata(sess.name);
+            const hasValidUser = Boolean(meta?.telegramUserId || (meta?.userFullName && !sess.name.startsWith('Lavender')));
+            const isInactive = !hasValidUser || sess.status === 'expired' || sess.status === 'error';
             const displayId = meta?.telegramUserId
               ? String(meta.telegramUserId)
-              : sess.name.replace(/^session_/, '');
-            const subtitleText = `ID Telegram: ${displayId}`;
+              : hasValidUser
+              ? sess.name.replace(/^session_/, '')
+              : null;
+            const subtitleText = displayId
+              ? `ID Telegram: ${displayId}`
+              : `ID Telegram: ${t('settings.session_unauthenticated')}`;
 
             return (
               <div
@@ -154,10 +161,29 @@ function CustomAccountSelect({ value, onChange, options, placeholder, onOpenChan
                 }}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
-                  <span style={{ fontSize: '0.84rem', fontWeight: 600, color: isSelected ? '#38bdf8' : '#f8fafc' }}>
-                    {displayName}
-                  </span>
-                  <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.84rem', fontWeight: 600, color: isSelected ? '#38bdf8' : '#f8fafc' }}>
+                      {displayName}
+                    </span>
+                    {isInactive && (
+                      <span
+                        style={{
+                          fontSize: '0.62rem',
+                          fontWeight: 700,
+                          padding: '2px 7px',
+                          borderRadius: '5px',
+                          background: 'rgba(245, 158, 11, 0.14)',
+                          border: '1px solid rgba(245, 158, 11, 0.35)',
+                          color: '#f59e0b',
+                          whiteSpace: 'nowrap',
+                          letterSpacing: '0.02em',
+                        }}
+                      >
+                        {t('settings.badge_session_inactive')}
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: isInactive ? '#78889b' : '#94a3b8' }}>
                     {subtitleText}
                   </span>
                 </div>
@@ -671,6 +697,29 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
       showToast('error', String(t('speedtest.cache_clear_error', 'Gagal membersihkan cache')));
     } finally {
       setIsClearing(false);
+    }
+  };
+
+  const [isPurgingOrphans, setIsPurgingOrphans] = useState(false);
+
+  const handlePurgeOrphanedSessions = async () => {
+    setIsPurgingOrphans(true);
+    try {
+      const { purgeOrphanedSessions } = await import('../../lib/telegram');
+      const { purgedCount } = await purgeOrphanedSessions();
+      const reloaded = await loadSelectableSessions({ force: true, verify: false });
+      setAvailableSessions(reloaded);
+
+      if (purgedCount > 0) {
+        showToast('success', t('settings.purge_orphaned_success', { count: purgedCount }));
+      } else {
+        showToast('success', t('settings.purge_orphaned_none'));
+      }
+    } catch (err) {
+      console.error('Failed to purge orphaned sessions', err);
+      showToast('error', String(t('speedtest.cache_clear_error', 'Gagal membersihkan cache')));
+    } finally {
+      setIsPurgingOrphans(false);
     }
   };
 
@@ -2077,6 +2126,36 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
               >
                 <SlidersHorizontal size={16} style={{ flexShrink: 0 }} />
                 <span>{t('settings.manage_cache')}</span>
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handlePurgeOrphanedSessions}
+                disabled={isPurgingOrphans}
+                style={{
+                  padding: '11px 14px',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  borderColor: 'rgba(245, 158, 11, 0.35)',
+                  background: 'rgba(245, 158, 11, 0.12)',
+                  color: '#f59e0b',
+                  textAlign: 'center',
+                  whiteSpace: 'nowrap',
+                  minHeight: '2.7rem',
+                }}
+                title={t('settings.purge_orphaned_sessions_desc')}
+              >
+                {isPurgingOrphans ? (
+                  <Loader2 size={16} className="spin" style={{ flexShrink: 0 }} />
+                ) : (
+                  <Trash2 size={16} style={{ flexShrink: 0 }} />
+                )}
+                <span>{t('settings.purge_orphaned_sessions_btn')}</span>
               </button>
 
               <button
