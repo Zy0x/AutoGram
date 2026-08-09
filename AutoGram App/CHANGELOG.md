@@ -1,4 +1,14 @@
+## v3.4.5 Telegram-Style Session Identity Card Engine
+
+### Format Identitas Akun Standar Telegram (`SessionLauncher/index.tsx` & Locales)
+- **Nama Semibold Putih Penuh**: Nama akun (`font-weight: 600`, `color: #ffffff`) kini tampil bersih dan menonjol tanpa teks label tambahan.
+- **Sub-info Kompak Satu Baris**: Menghapus format verbose `ID: Lavender · DC4` dan menggantinya dengan standar Telegram Desktop / Discord / Notion: `@lv_drr  ·  ID 8542241823` — font 11–12px, warna `rgba(255,255,255,0.42)`, tanpa awalan label, separator titik-tengah yang elegan.
+- **Fallback Cerdas Tanpa Username**: Jika akun tidak memiliki username (akun tanpa @handle), baris detail hanya menampilkan `ID XXXXXXXXX` secara rapi tanpa separator yang menggantung.
+- **i18n Key Baru — 100% Zero Hardcode**: Menambahkan dua key i18n baru (`session_detail_username_id` & `session_detail_id_only`) ke `id/nav.json` dan `en/nav.json` dengan paritas 100%.
+- **Ellipsis Overflow-Safe**: Baris detail menggunakan `text-overflow: ellipsis` agar tidak memecah layout pada layar sempit.
+
 ## v3.4.4 Stale-While-Revalidate Session Hub Engine
+
 
 ### Pola Stale-While-Revalidate pada Workspace Hub (`SessionLauncher/index.tsx` & `sessionPicker.ts`)
 - **Instant Paint 0ms saat Mount**: Workspace Hub kini langsung menampilkan daftar akun dari `sessionsQuickCache` (layer cache baru) pada momen pertama komponen di-mount, tanpa perlu menunggu MTProto RPC ke Telegram. Hasilnya: tampilan akun muncul **instan** saat kembali dari Drives atau Forwarder.

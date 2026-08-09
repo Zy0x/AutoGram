@@ -43,6 +43,8 @@
   "modal_delete_with_cache": "Keluarkan Akun & Hapus Seluruh Berkas",
   "modal_delete_with_cache_sub": "Bersihkan berkas, media, dan riwayat lokal",
   "session_id_value": "ID: {{session}}",
+  "session_detail_username_id": "{{username}}  ·  ID {{id}}",
+  "session_detail_id_only": "ID {{id}}",
   "view_profile_photo": "Klik untuk melihat foto profil besar",
   "drives_workspace_desc": "Kelola & Streaming Berkas",
   "forwarder_workspace_desc": "Transfer & Forward Media",

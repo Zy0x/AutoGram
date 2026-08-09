@@ -1,7 +1,7 @@
-AutoGram Version: v3.4.4
+AutoGram Version: v3.4.5
 
 Current State:
-v3.4.4 Stale-While-Revalidate Session Hub Engine — membenahi `SessionLauncher/index.tsx`, `sessionPicker.ts`, `VERSION.md`, dan `CHANGELOG.md`. Mengimplementasikan pola Stale-While-Revalidate pada Workspace Hub: mount pertama langsung menampilkan data dari cache (`force:false`) dalam 0ms, kemudian live MTProto auth check (`force:true`) dijadwalkan setelah 2.5 detik delay agar koneksi Drive/Forwarder sebelumnya dapat teardown dengan bersih. Menambahkan `sessionsQuickCache` layer kedua sebagai instant-paint cache, memperpanjang TTL cache dari 45s menjadi 5 menit, dan menambahkan `invalidateSessionCache()` utility untuk invalidasi manual pasca tambah/hapus akun.
+v3.4.5 Telegram-Style Session Identity Card Engine — membenahi `SessionLauncher/index.tsx`, `id/nav.json`, `en/nav.json`, `VERSION.md`, dan `CHANGELOG.md`. Mengubah format sub-info identitas akun pada Workspace Hub dari label verbose `ID: Lavender · DC4` menjadi format minimalis standar Telegram Desktop / Discord / Notion: baris atas Nama (`font-weight: 600`, putih penuh), baris bawah `@lv_drr · ID 8542241823` (12px, `rgba(255,255,255,0.42)`, tanpa label), dengan fallback `ID XXXXXXXXX` jika username tidak tersedia.
 
 Previous:
 v3.4.1 Emerald Green Sync for Stable Release Channel Engine — membenahi `Settings.css`, `Settings/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menyelaraskan skema warna aktif, teks, ikon checklist, border glow, dan pendaran hover pada kartu rilis Stable (Recommended) agar 100% konsisten dengan warna hijau emerald badge `STABLE STREAM` (`#10b981` / `rgba(16, 185, 129, 0.16)`).

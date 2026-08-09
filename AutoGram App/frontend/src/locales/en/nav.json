@@ -43,6 +43,8 @@
   "modal_delete_with_cache": "Remove Account & Delete All Files",
   "modal_delete_with_cache_sub": "Purge all local media & cached history",
   "session_id_value": "ID: {{session}}",
+  "session_detail_username_id": "{{username}}  ·  ID {{id}}",
+  "session_detail_id_only": "ID {{id}}",
   "view_profile_photo": "Click to view the full-size profile photo",
   "drives_workspace_desc": "Storage & Media Manager",
   "forwarder_workspace_desc": "Transfer & Forward Media",

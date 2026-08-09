@@ -784,7 +784,18 @@ export function SessionLauncher({
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <h3
+                        style={{
+                          margin: 0,
+                          fontSize: '1rem',
+                          fontWeight: 600,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          color: '#ffffff',
+                          letterSpacing: '-0.01em',
+                        }}
+                      >
                         {displayName}
                       </h3>
                       {(sess as any).premium && (
@@ -796,18 +807,39 @@ export function SessionLauncher({
                             background: 'linear-gradient(135deg, #818cf8 0%, #c084fc 100%)',
                             color: '#ffffff',
                             fontWeight: 700,
+                            flexShrink: 0,
                           }}
                         >
                           {t('ui.generated.premium_71c7725')}
                         </span>
                       )}
                     </div>
-                    <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                    {/* Telegram-style compact sub-info: @username · ID XXXXXXXXX */}
+                    <span
+                      style={{
+                        fontSize: '0.73rem',
+                        color: 'rgba(255,255,255,0.42)',
+                        lineHeight: 1.4,
+                        display: 'block',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        marginTop: '2px',
+                        letterSpacing: '0.01em',
+                      }}
+                    >
                       {(() => {
                         const meta = getSessionMetadata(sess.name);
-                        const displayId = meta?.telegramUserId ? String(meta.telegramUserId) : sess.name.replace(/^session_/, '');
-                        return t('nav.session_id_value', { session: displayId });
-                      })()} {(sess as any).datacenterId ? `· DC${(sess as any).datacenterId}` : ''}
+                        const uid = meta?.telegramUserId
+                          ? String(meta.telegramUserId)
+                          : sess.name.replace(/^session_/, '');
+                        const uname = meta?.username
+                          ? (meta.username.startsWith('@') ? meta.username : `@${meta.username}`)
+                          : null;
+                        return uname
+                          ? t('nav.session_detail_username_id', { username: uname, id: uid })
+                          : t('nav.session_detail_id_only', { id: uid });
+                      })()}
                     </span>
                   </div>
                 </div>
