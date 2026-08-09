@@ -1,3 +1,9 @@
+## v3.4.0 Release Channel Option Cards Interactive Hover Engine
+
+### Animasi Hover Kartu Pilihan Rilis Stable & Beta (`Settings.css` & `Settings/index.tsx`)
+- **Animasi Hover Kartu Channel Stable**: Menambahkan class `.channel-option-card:hover` pada pilihan rilis *Stable (Recommended)* dengan efek elevasi Y-axis halus (`translateY(-2px)`), pendaran garis tepi cyan (`rgba(56, 189, 248, 0.38)`), dan bayangan elevasi yang elegan saat kursor mouse di-hover.
+- **Animasi Hover Kartu Channel Beta**: Menambahkan penanganan khusus `.channel-option-card.is-beta:hover` pada pilihan rilis *Beta / Pre-release* dengan aksen pendaran warm amber (`rgba(245, 158, 11, 0.45)`), memberikan pembedaan visual yang jelas dan responsif sesuai tema channel rilis.
+
 ## v3.3.7 Dynamic Orphaned Session Cleaner Visibility & Soft Animated Glow Engine
 
 ### Visibilitas Dinamis & Efek Glow Beranimasi Tombol Pembersih Sesi Yatim (`App.css` & `Settings/index.tsx`)

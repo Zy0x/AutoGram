@@ -1,6 +1,9 @@
-AutoGram Version: v3.3.9
+AutoGram Version: v3.4.0
 
 Current State:
+v3.4.0 Release Channel Option Cards Interactive Hover Engine — membenahi `Settings.css`, `Settings/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan animasi hover interaktif berkelas (`.channel-option-card:hover` & `.channel-option-card.is-beta:hover`) pada kartu pilihan rilis Stable (Recommended) dan Beta / Pre-release dengan elevasi Y-axis halus, pendaran border cyan/amber glow, dan bayangan elevasi yang elegan.
+
+Previous:
 v3.3.9 Interactive Dropdown Trigger & Option Item Hover Engine — membenahi `Settings.css`, `Settings/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan efek animasi hover interaktif berkelas (`.custom-account-select-trigger:hover`) pada tombol pemicu dropdown akun default dengan pendaran cyan glow halus dan gerakan panah ikon `ChevronDown`, serta memberikan respon visual highlight yang tajam (`.custom-account-select-option:hover`) saat kursor melintas di atas item pilihan dropdown.
 
 Previous:

@@ -1116,18 +1116,8 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
                   {/* Stable Channel Pill */}
                   <div
+                    className={`channel-option-card ${releaseChannel === 'stable' ? 'is-active' : ''}`}
                     onClick={() => setReleaseChannel('stable')}
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: '12px',
-                      background: releaseChannel === 'stable' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.02)',
-                      border: releaseChannel === 'stable' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px',
-                    }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <strong style={{ fontSize: '0.85rem', color: releaseChannel === 'stable' ? '#38bdf8' : '#f8fafc' }}>
@@ -1142,18 +1132,8 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
 
                   {/* Beta Channel Pill */}
                   <div
+                    className={`channel-option-card is-beta ${releaseChannel === 'beta' ? 'is-active' : ''}`}
                     onClick={() => setReleaseChannel('beta')}
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: '12px',
-                      background: releaseChannel === 'beta' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255, 255, 255, 0.02)',
-                      border: releaseChannel === 'beta' ? '1.5px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.08)',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px',
-                    }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <strong style={{ fontSize: '0.85rem', color: releaseChannel === 'beta' ? '#f59e0b' : '#f8fafc' }}>
