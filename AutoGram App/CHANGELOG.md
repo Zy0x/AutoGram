@@ -1,3 +1,13 @@
+## v3.3.4 Transfer Preflight UI/UX Simplification & Instant Readability Engine
+
+### Penyederhanaan & Instansi Antarmuka Preflight (`TransferPreflightDialog.tsx` & `App.css`)
+- **Visual Clean Banner**: Menambahkan banner indikator status aman berwarna hijau emerald (`preflight_all_clean_banner`) saat 0 duplikat ditemukan (`duplicateCount === 0`), memberi konfirmasi instan bahwa seluruh berkas aman diunggah.
+- **Penyederhanaan Baris Berkas Normal**: Menyembunyikan 3 baris metadata teknis berlebih (`Category`, `Transform`, `Payload`) dari berkas normal menjadi baris compact 1-baris. Menyelipkan toggle ekspansi detail teknis terisolasi (`preflight_toggle_details`).
+- **Penanganan Khusus Duplikat**: Berkas duplikat tetap ditandai tegas dengan border warna warm amber dan perbandingan *Side-by-Side* file lokal vs Telegram.
+- **Koreksi Visual Padding**: Memperbaiki isu *clipping* teks nomor dan nama berkas pada header item pertama (`td-preflight-item-topline`).
+- **Peningkatan Kontras CTA**: Merombak tombol konfirmasi utama footer menjadi gradien Emerald Green modern dengan pencahayaan shadows yang tegas dan kontras tinggi.
+- **100% Zero Hardcoded Strings**: Key `preflight_all_clean_banner`, `preflight_ready_badge`, `preflight_toggle_details`, dan `preflight_hide_details` telah ditambahkan secara sinkron pada `id/speedtest.json` dan `en/speedtest.json` (100% key parity).
+
 ## v3.3.3 Flip Y & Flip X Axis Orientation Correction Engine
 
 ### Koreksi Pemetaan Sumbu Flip (`id/speedtest.json` & `en/speedtest.json`)

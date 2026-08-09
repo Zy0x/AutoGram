@@ -228,12 +228,26 @@ struct PreparedLedgerIdentity {
     payload_class: String,
 }
 
-fn duplicate_skip_enabled(rec: &TransferRecord) -> bool {
-    rec.options
+fn duplicate_skip_enabled(rec: &TransferRecord, source_path: &str) -> bool {
+    let policy_skips = rec
+        .options
         .get("duplicate_policy")
         .or_else(|| rec.options.get("duplicatePolicy"))
         .and_then(|value| value.as_str())
-        .is_none_or(|value| value.eq_ignore_ascii_case("SKIP"))
+        .is_none_or(|value| value.eq_ignore_ascii_case("SKIP"));
+    if !policy_skips {
+        return false;
+    }
+    !rec.options
+        .get("duplicate_force_upload_paths")
+        .or_else(|| rec.options.get("duplicateForceUploadPaths"))
+        .and_then(|value| value.as_array())
+        .is_some_and(|paths| {
+            paths
+                .iter()
+                .filter_map(|value| value.as_str())
+                .any(|value| value == source_path)
+        })
 }
 
 fn prepared_ledger_identity(
@@ -258,9 +272,10 @@ fn prepared_ledger_identity(
 fn duplicate_match_for_prepared(
     rec: &TransferRecord,
     topic_id: Option<i64>,
+    source_path: &str,
     identity: &PreparedLedgerIdentity,
 ) -> Result<Option<super::autogram_core::transfer::UploadLedgerMatch>, String> {
-    if !duplicate_skip_enabled(rec) {
+    if !duplicate_skip_enabled(rec, source_path) {
         return Ok(None);
     }
     super::autogram_core::transfer::find_upload_ledger_match(
@@ -468,7 +483,13 @@ fn handle_oversize_prepared(
                         "skip" => {
                             let message = format!("oversize_skip: {actual_size} bytes exceeds limit {limit} and no premium session is available");
                             let state = ItemState::Skipped;
-                            job_queue::update_item(tid, item_index, state.clone(), None, Some(message.clone()))?;
+                            job_queue::update_item(
+                                tid,
+                                item_index,
+                                state.clone(),
+                                None,
+                                Some(message.clone()),
+                            )?;
                             emit_album_item_result(app, item_index, &state, None, Some(message));
                             return Ok(Some(true));
                         }
@@ -826,7 +847,9 @@ fn run_intelligent_album(
             runtime_limit,
         )?;
         let ledger_identity = prepared_ledger_identity(&artifact.prepared_path, &classification)?;
-        if let Some(ledger_match) = duplicate_match_for_prepared(rec, topic_id, &ledger_identity)? {
+        if let Some(ledger_match) =
+            duplicate_match_for_prepared(rec, topic_id, &item.path, &ledger_identity)?
+        {
             if ledger_match.match_level == "exact_sha256" {
                 let reason = format!(
                     "duplicate_exact_sha256: existing_message_id={}",
@@ -1786,7 +1809,8 @@ fn run_orchestrated_grammers(
             account_capability.effective_max_bytes,
         )?;
         let ledger_identity = prepared_ledger_identity(&local_path, &delivery)?;
-        if let Some(ledger_match) = duplicate_match_for_prepared(&rec, topic_id, &ledger_identity)?
+        if let Some(ledger_match) =
+            duplicate_match_for_prepared(&rec, topic_id, &item.path, &ledger_identity)?
         {
             if ledger_match.match_level == "exact_sha256" {
                 let reason = format!(
@@ -2303,10 +2327,37 @@ pub fn next_orch_job_id() -> i64 {
 mod tests {
     use super::*;
 
+    fn transfer_with_options(options: serde_json::Value) -> TransferRecord {
+        TransferRecord {
+            transfer_id: "duplicate-choice-test".into(),
+            session: "Lavender".into(),
+            api_id: 1,
+            chat_id: "me".into(),
+            topic_id: None,
+            state: TransferState::Queued,
+            items: Vec::new(),
+            options,
+            created_at_ms: 0,
+            updated_at_ms: 0,
+            done_count: 0,
+            failed_count: 0,
+        }
+    }
+
     #[test]
     fn job_id_increments() {
         let a = next_orch_job_id();
         let b = next_orch_job_id();
         assert!(b > a);
+    }
+
+    #[test]
+    fn duplicate_force_upload_is_scoped_to_the_selected_source_path() {
+        let rec = transfer_with_options(json!({
+            "duplicate_policy": "SKIP",
+            "duplicate_force_upload_paths": ["C:\\media\\chosen.jpg"],
+        }));
+        assert!(!duplicate_skip_enabled(&rec, "C:\\media\\chosen.jpg"));
+        assert!(duplicate_skip_enabled(&rec, "C:\\media\\other.jpg"));
     }
 }

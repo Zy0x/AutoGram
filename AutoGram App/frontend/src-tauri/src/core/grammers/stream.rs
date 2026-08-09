@@ -3,9 +3,9 @@
 use std::collections::HashMap;
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, OnceLock};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use grammers_client::media::{Downloadable, Media, PhotoSize};
@@ -19,6 +19,7 @@ use tauri::Emitter;
 use super::ffmpeg::{
     extract_ffmpeg_frame_sync, find_ffmpeg_binary, is_fallback_black_card_bytes, unstrip_jpeg,
 };
+use super::large_stream_policy::policy_for_size;
 use super::session::{cache_root, now_ms, preview_dir, thumb_dir, BACKEND};
 use super::thumbs::*;
 use crate::core::grammers_ops::{
@@ -133,8 +134,24 @@ fn register_cancel(sid: &str) -> Arc<AtomicBool> {
     flag
 }
 
-fn take_cancel(sid: &str) -> Option<Arc<AtomicBool>> {
-    cancel_flags().lock().remove(sid)
+fn is_current_cancel_registration(sid: &str, flag: &Arc<AtomicBool>) -> bool {
+    cancel_flags()
+        .lock()
+        .get(sid)
+        .map(|current| Arc::ptr_eq(current, flag))
+        .unwrap_or(false)
+}
+
+fn take_cancel_if_current(sid: &str, flag: &Arc<AtomicBool>) -> bool {
+    let mut flags = cancel_flags().lock();
+    let is_current = flags
+        .get(sid)
+        .map(|current| Arc::ptr_eq(current, flag))
+        .unwrap_or(false);
+    if is_current {
+        flags.remove(sid);
+    }
+    is_current
 }
 
 pub fn cancel_progressive(stream_id: &str) -> bool {
@@ -155,6 +172,28 @@ pub fn cancel_progressive(stream_id: &str) -> bool {
         hit = true;
     }
     hit
+}
+
+/// Invalidate every runtime-owned preview after a cache wipe.
+///
+/// This is intentionally broader than `cancel_progressive`: Clear All removes
+/// every disk-backed preview, so no memoized result may continue advertising a
+/// URL or path into the deleted cache tree.
+pub fn clear_runtime_preview_cache() -> usize {
+    preview_cache_generation().fetch_add(1, Ordering::SeqCst);
+    let mut cancelled = 0usize;
+    {
+        let flags = cancel_flags().lock();
+        for flag in flags.values() {
+            flag.store(true, Ordering::SeqCst);
+            cancelled += 1;
+        }
+    }
+    cancel_flags().lock().clear();
+    seek_requests().lock().clear();
+    live_preview_map().lock().clear();
+    preview_inflight().lock().clear();
+    cancelled
 }
 
 /// Find an existing full preview file for this chat+message (photo/doc reopen).
@@ -494,6 +533,11 @@ fn live_preview_map() -> &'static Mutex<HashMap<String, PreviewStreamResult>> {
     MAP.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
+fn preview_cache_generation() -> &'static AtomicU64 {
+    static GENERATION: AtomicU64 = AtomicU64::new(1);
+    &GENERATION
+}
+
 fn preview_key(session: &str, chat: &str, msg: i64) -> String {
     format!("{session}|{chat}|{msg}")
 }
@@ -576,6 +620,7 @@ pub fn start_preview_stream_blocking(
     let chat = chat_id.to_string();
     let session_name = identity.session.clone();
     let key = preview_key(&session_name, &chat, message_id);
+    let cache_generation = preview_cache_generation().load(Ordering::SeqCst);
 
     // Fail-fast during active FloodWait window to avoid thread blocking or MTProto hammering.
     if let Some(secs) = session_rate::flood_remaining_secs(&session_name) {
@@ -642,7 +687,9 @@ pub fn start_preview_stream_blocking(
         preview_inflight().lock().remove(&key);
         let result = start_preview_stream_inner(&sessions_dir, &identity, &chat, message_id);
         if let Ok(r) = &result {
-            if usable_live_preview(r) || r.streaming || !r.path.is_empty() {
+            if preview_cache_generation().load(Ordering::SeqCst) == cache_generation
+                && (usable_live_preview(r) || r.streaming || !r.path.is_empty())
+            {
                 live_preview_map().lock().insert(key, r.clone());
             }
         } else if let Err(e) = &result {
@@ -655,7 +702,10 @@ pub fn start_preview_stream_blocking(
     let result = start_preview_stream_inner(&sessions_dir, &identity, &chat, message_id);
 
     match &result {
-        Ok(r) if usable_live_preview(r) || r.streaming || !r.path.is_empty() => {
+        Ok(r)
+            if preview_cache_generation().load(Ordering::SeqCst) == cache_generation
+                && (usable_live_preview(r) || r.streaming || !r.path.is_empty()) =>
+        {
             live_preview_map().lock().insert(key.clone(), r.clone());
         }
         Err(e) => session_rate::note_error(&identity.session, e),
@@ -1535,10 +1585,11 @@ fn start_preview_stream_inner(
 
         let mut boot_ranges: Vec<(u64, u64)> = Vec::new();
         let mut has_moov_head = false;
-        {
+        let startup_policy = policy_for_size(size);
+        let boot_target = startup_policy.boot_target;
+        if boot_target > 0 {
             let _boot_slot = session_rate::acquire_media_slot(&session_name).await?;
             const BOOT_CHUNK: u64 = 512 * 1024;
-            const BOOT_TARGET: u64 = 512 * 1024;
             let mut iter = live
                 .client
                 .iter_download(&media)
@@ -1549,7 +1600,7 @@ fn start_preview_stream_inner(
                 .read(true)
                 .open(&dest)
                 .map_err(|e| TgError::new(TgErrorCode::Io, format!("open partial: {e}")))?;
-            while offset < BOOT_TARGET {
+            while offset < boot_target {
                 match iter.next().await {
                     Ok(Some(chunk)) if !chunk.is_empty() => {
                         file.seek(SeekFrom::Start(offset))
@@ -1618,9 +1669,24 @@ fn start_preview_stream_inner(
         }
 
         // Establish a pool of 4 parallel Client connections (capped at MAX 4 MTProto TCP sockets for playback demand)
-        let download_clients = obtain_download_clients(sessions_dir, identity, 4)
-            .await
-            .unwrap_or_else(|_| vec![live.client.clone()]);
+        let download_clients = if startup_policy.immediate_url {
+            // The live client is the non-negotiable recovery layer. Auxiliary
+            // clients improve throughput, but a successfully-created socket can
+            // still become silent on its first GetFile request. Keeping live at
+            // index zero guarantees forward progress on every four-chunk batch.
+            // This ordering is isolated to oversized streams.
+            let mut clients = obtain_download_clients(sessions_dir, identity, 3)
+                .await
+                .unwrap_or_default();
+            clients.insert(0, live.client.clone());
+            clients.truncate(4);
+            clients
+        } else {
+            // Preserve the established connection behavior for ordinary preview.
+            obtain_download_clients(sessions_dir, identity, 4)
+                .await
+                .unwrap_or_else(|_| vec![live.client.clone()])
+        };
 
         let dest_path = dest.clone();
         let sid = stream_id.clone();
@@ -1634,17 +1700,34 @@ fn start_preview_stream_inner(
             "[MOOV_SCAN] sid={stream_id} requested_range=0-1MB new_unique_bytes=1048576 found={has_moov_head}"
         );
 
-        // Tail probe scan (last 3MB): fetch last 3MB on demand if MOOV not in head
+        // Tail probe scan: normal files keep the historic 3 MiB window; >=1 GiB
+        // files use a bounded 8 MiB window because their MP4 metadata can be larger.
         if need_async_moov_tail {
             let tail_media = fill_media.clone();
-            let tail_start_offset = size.saturating_sub(3 * 1024 * 1024);
+            let tail_probe_bytes = startup_policy.tail_probe_bytes;
+            let tail_start_offset = size.saturating_sub(tail_probe_bytes);
             let aligned_tail_start = (tail_start_offset / (512 * 1024)) * (512 * 1024);
             let num_chunks = ((size - aligned_tail_start) + 524287) / (512 * 1024);
-            let tail_clients = obtain_download_clients(sessions_dir, identity, 2)
-                .await
-                .unwrap_or_else(|_| download_clients.clone());
+            let tail_clients = if startup_policy.immediate_url {
+                // Reserve index zero (the known-good live client) for the head
+                // fill. Tail metadata can use auxiliary clients in parallel;
+                // if none exists, it still falls back to the live layer.
+                let auxiliary: Vec<_> = download_clients.iter().skip(1).cloned().collect();
+                if auxiliary.is_empty() {
+                    download_clients.clone()
+                } else {
+                    auxiliary
+                }
+            } else {
+                // Preserve the ordinary preview's independent tail-probe pool.
+                obtain_download_clients(sessions_dir, identity, 2)
+                    .await
+                    .unwrap_or_else(|_| download_clients.clone())
+            };
             let tail_dest = dest.clone();
             let tail_sid = stream_id.clone();
+            let tail_generation = cancel.clone();
+            let publish_tail_chunks_immediately = startup_policy.immediate_url;
 
             if let Some(mut e) = stream_server::get_entry(&stream_id) {
                 e.moov_tail_fetching = true;
@@ -1652,6 +1735,11 @@ fn start_preview_stream_inner(
             }
 
             tokio::spawn(async move {
+                if tail_generation.load(Ordering::SeqCst)
+                    || !is_current_cancel_registration(&tail_sid, &tail_generation)
+                {
+                    return;
+                }
                 let (tx, mut rx) = tokio::sync::mpsc::channel(16);
                 for i in 0..num_chunks {
                     let chunk_off = aligned_tail_start + i * (512 * 1024);
@@ -1671,15 +1759,28 @@ fn start_preview_stream_inner(
                 }
                 drop(tx);
                 let mut tail_ranges: Vec<(u64, u64)> = Vec::new();
-                let mut tail_bytes_buf: Vec<u8> = Vec::new();
                 if let Ok(mut f_disk) = std::fs::OpenOptions::new().write(true).open(&tail_dest) {
                     while let Some((chunk_off, res)) = rx.recv().await {
+                        if tail_generation.load(Ordering::SeqCst)
+                            || !is_current_cancel_registration(&tail_sid, &tail_generation)
+                        {
+                            return;
+                        }
                         if let Ok(Some(bytes)) = res {
                             if !bytes.is_empty() {
                                 if f_disk.seek(SeekFrom::Start(chunk_off)).is_ok() && f_disk.write_all(&bytes).is_ok() {
-                                    tail_ranges.push((chunk_off, chunk_off + bytes.len() as u64));
-                                    if tail_bytes_buf.len() < 2 * 1024 * 1024 {
-                                        tail_bytes_buf.extend_from_slice(&bytes);
+                                    let written_range = (chunk_off, chunk_off + bytes.len() as u64);
+                                    tail_ranges.push(written_range);
+                                    let _ = f_disk.flush();
+
+                                    // Publish each oversized tail chunk as soon as it
+                                    // lands. Browser suffix requests no longer wait for
+                                    // every auxiliary probe (up to 8 MiB) to finish.
+                                    if publish_tail_chunks_immediately {
+                                        if let Some(mut entry) = stream_server::get_entry(&tail_sid) {
+                                            entry.ranges.push(written_range);
+                                            stream_server::upsert_entry(entry);
+                                        }
                                     }
                                 }
                             }
@@ -1687,19 +1788,34 @@ fn start_preview_stream_inner(
                     }
                     let _ = f_disk.flush();
                 }
+                // Read the sparse tail back in file order. Network completions can
+                // arrive out of order, so concatenating response order can miss a
+                // `moov` signature split across adjacent Telegram chunks.
+                let mut tail_bytes_buf = vec![0u8; (size - aligned_tail_start) as usize];
+                let tail_bytes_read = std::fs::File::open(&tail_dest)
+                    .and_then(|mut file| {
+                        file.seek(SeekFrom::Start(aligned_tail_start))?;
+                        file.read(&mut tail_bytes_buf)
+                    })
+                    .unwrap_or(0);
+                tail_bytes_buf.truncate(tail_bytes_read);
                 let has_moov_tail = tail_bytes_buf.windows(4).any(|w| w == b"moov");
                 log::info!(
-                    "[MOOV_SCAN] sid={tail_sid} requested_range=last_3MB new_unique_bytes={} found={has_moov_tail}",
+                    "[MOOV_SCAN] sid={tail_sid} requested_range=tail_{tail_probe_bytes} new_unique_bytes={} found={has_moov_tail}",
                     tail_bytes_buf.len()
                 );
                 let _ = stream_server::inspect_mp4_layout(&tail_dest);
-                if let Some(mut e) = stream_server::get_entry(&tail_sid) {
-                    for r in tail_ranges {
-                        e.ranges.push(r);
+                if !tail_generation.load(Ordering::SeqCst)
+                    && is_current_cancel_registration(&tail_sid, &tail_generation)
+                {
+                    if let Some(mut e) = stream_server::get_entry(&tail_sid) {
+                        for r in tail_ranges {
+                            e.ranges.push(r);
+                        }
+                        e.moov_ready_cached = has_moov_tail || has_moov_head;
+                        e.moov_tail_fetching = false;
+                        stream_server::upsert_entry(e);
                     }
-                    e.moov_ready_cached = has_moov_tail || has_moov_head;
-                    e.moov_tail_fetching = false;
-                    stream_server::upsert_entry(e);
                 }
             });
         } else {
@@ -1708,6 +1824,12 @@ fn start_preview_stream_inner(
 
         let fill_clients = download_clients;
         let fill_boot_ranges = boot_ranges.clone();
+        let fill_chunk_timeout = if startup_policy.immediate_url {
+            Duration::from_secs(4)
+        } else {
+            Duration::from_secs(15)
+        };
+        let commit_healthy_progress_early = startup_policy.immediate_url;
         tokio::spawn(async move {
             let _fill_slot = session_rate::try_acquire_media_slot(&session_bg);
             let flag = cancel;
@@ -1806,12 +1928,7 @@ fn start_preview_stream_inner(
                             // Bug lama: iter.next().await bisa stuck selamanya jika Telegram DC diam
                             // (silent timeout, bukan FloodWait), menyebabkan rx.recv() fill-loop
                             // tidak pernah selesai sehingga seek request tidak pernah diproses.
-                            let res = match tokio::time::timeout(
-                                Duration::from_secs(15),
-                                iter.next(),
-                            )
-                            .await
-                            {
+                            let res = match tokio::time::timeout(fill_chunk_timeout, iter.next()).await {
                                 Ok(inner) => inner,
                                 Err(_) => Ok(None), // timeout → empty chunk, fill-loop retry next iter
                             };
@@ -1821,6 +1938,7 @@ fn start_preview_stream_inner(
                     drop(tx);
 
                     let mut written_any = false;
+                    let mut last_batch_response = Instant::now();
                     // SEEK FIX #2: Interruptible 'batch loop dengan timeout 500ms.
                     // Bug lama: `while let Some(...) = rx.recv().await` memblokir fill-loop sampai
                     // SEMUA 4 worker selesai sebelum seek request bisa dibaca dari seek_requests.
@@ -1830,6 +1948,15 @@ fn start_preview_stream_inner(
                     // iterasi luar langsung redirect cursor. Worker yang masih berjalan fail gracefully
                     // saat tx_clone.send() karena rx sudah di-drop.
                     'batch: loop {
+                        // For >=1 GiB media, publish a successful live-client
+                        // chunk promptly instead of waiting for silent auxiliary
+                        // sockets. The next batch retries any missing ranges.
+                        if commit_healthy_progress_early
+                            && written_any
+                            && last_batch_response.elapsed() >= Duration::from_millis(750)
+                        {
+                            break 'batch;
+                        }
                         // Cek seek request mid-batch sebelum timeout berikutnya
                         if seek_requests().lock().contains_key(&sid) {
                             tg_log::info(
@@ -1841,6 +1968,12 @@ fn start_preview_stream_inner(
                         }
                         match tokio::time::timeout(Duration::from_millis(500), rx.recv()).await {
                             Ok(Some((chunk_off, res))) => {
+                                last_batch_response = Instant::now();
+                                if flag.load(Ordering::SeqCst)
+                                    || !is_current_cancel_registration(&sid, &flag)
+                                {
+                                    break 'batch;
+                                }
                                 match res {
                                     Ok(Some(bytes)) if !bytes.is_empty() => {
                                         if file.seek(SeekFrom::Start(chunk_off)).is_ok()
@@ -1931,6 +2064,15 @@ fn start_preview_stream_inner(
             }
             .await;
 
+            // Clear All can start a fresh stream with the same deterministic
+            // id while an old Telegram request is still unwinding. The old
+            // worker must not overwrite the new registry entry, remove its
+            // cancellation token, or untrack the replacement stream.
+            if !is_current_cancel_registration(&sid, &flag) {
+                let _ = persist_memory_session(&live.session, &live.session_path);
+                return;
+            }
+
             match result {
                 Ok(()) => {
                     stream_server::upsert_entry(StreamEntry {
@@ -1974,7 +2116,7 @@ fn start_preview_stream_inner(
             }
             // Keep shared pool alive for Studio / Forwarder — do NOT disconnect.
             let _ = persist_memory_session(&live.session, &live.session_path);
-            let _ = take_cancel(&sid);
+            let _ = take_cancel_if_current(&sid, &flag);
             seek_requests().lock().remove(&sid);
             session_rate::untrack_stream(&session_bg, &sid);
         });
@@ -2198,6 +2340,21 @@ mod tests {
     #[test]
     fn seek_unknown_stream_is_rejected() {
         assert!(!request_progressive_range("no-such-stream-xyz", 1024));
+    }
+
+    #[test]
+    fn stale_worker_cannot_remove_replacement_cancel_registration() {
+        let sid = "qa-generation-owned-stream";
+        cancel_flags().lock().remove(sid);
+        let old = register_cancel(sid);
+        let replacement = register_cancel(sid);
+
+        assert!(!is_current_cancel_registration(sid, &old));
+        assert!(is_current_cancel_registration(sid, &replacement));
+        assert!(!take_cancel_if_current(sid, &old));
+        assert!(is_current_cancel_registration(sid, &replacement));
+        assert!(take_cancel_if_current(sid, &replacement));
+        assert!(!is_current_cancel_registration(sid, &replacement));
     }
 
     #[test]

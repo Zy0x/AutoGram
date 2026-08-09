@@ -19,12 +19,28 @@ pub struct QualityPreflightRequest {
     pub oversize_action: Option<String>,
     pub global_caption: Option<String>,
     pub caption_overflow_policy: Option<String>,
+    pub destination_id: Option<String>,
+    pub topic_id: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QualityPreflightDuplicateMatch {
+    pub match_level: String,
+    pub telegram_message_id: Option<i64>,
+    pub telegram_unique_id: Option<String>,
+    pub existing_name: String,
+    pub existing_size: u64,
+    pub existing_payload_class: String,
+    pub destination_id: String,
+    pub topic_id: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct QualityPreflightItem {
     pub index: usize,
+    pub source_path: String,
     pub source_name: String,
     pub source_size: u64,
     pub category: MediaCategory,
@@ -36,6 +52,7 @@ pub struct QualityPreflightItem {
     pub warnings: Vec<String>,
     pub rejected_alternatives: Vec<String>,
     pub requires_confirmation: bool,
+    pub duplicate_match: Option<QualityPreflightDuplicateMatch>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -214,8 +231,45 @@ pub fn build_quality_preflight(
                     | PayloadClass::AudioGroup
                     | PayloadClass::OriginalDocumentBatch
             );
+        let duplicate_match = if !remote && source_size > 0 {
+            request
+                .destination_id
+                .as_deref()
+                .and_then(|destination_id| {
+                    super::sha256_file(source_path)
+                        .ok()
+                        .and_then(|source_sha256| {
+                            super::find_upload_ledger_match(
+                                &request.session,
+                                destination_id,
+                                request.topic_id,
+                                &source_sha256,
+                                &source_name(source, index),
+                                source_size,
+                            )
+                            .ok()
+                            .flatten()
+                        })
+                        .map(|ledger_match| QualityPreflightDuplicateMatch {
+                            match_level: ledger_match.match_level,
+                            telegram_message_id: ledger_match.telegram_message_id,
+                            telegram_unique_id: ledger_match.telegram_unique_id,
+                            existing_name: ledger_match.filename,
+                            existing_size: ledger_match.file_size,
+                            existing_payload_class: ledger_match.payload_class,
+                            destination_id: destination_id.to_string(),
+                            topic_id: request.topic_id,
+                        })
+                })
+        } else {
+            None
+        };
+        if duplicate_match.is_some() {
+            requires_confirmation = true;
+        }
         items.push(QualityPreflightItem {
             index,
+            source_path: source.clone(),
             source_name: source_name(source, index),
             source_size,
             category,
@@ -227,6 +281,7 @@ pub fn build_quality_preflight(
             warnings,
             rejected_alternatives: rejected,
             requires_confirmation,
+            duplicate_match,
         });
     }
     let caption = request.global_caption.as_deref().unwrap_or_default().trim();
@@ -286,6 +341,8 @@ mod tests {
             oversize_action: Some("split".into()),
             global_caption: None,
             caption_overflow_policy: Some("truncate_with_warning".into()),
+            destination_id: None,
+            topic_id: None,
         }
     }
 

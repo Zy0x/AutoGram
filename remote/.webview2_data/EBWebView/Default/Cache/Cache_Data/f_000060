@@ -1,6 +1,256 @@
-import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/drive/DriveZipBrowser/DriveZipBrowser.css");import { updateStyle as __vite__updateStyle, removeStyle as __vite__removeStyle } from "/@vite/client"
-const __vite__id = "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/DriveZipBrowser.css"
-const __vite__css = "/* ==========================================================================\n   AutoGram Zip Preview Workbench — Mobile-First & Touch-Optimized Vanilla CSS\n   ========================================================================== */\n\n/* Main Container */\n.dzb-container {\n  width: 100%;\n  height: 100%;\n  min-height: 0;\n  display: flex;\n  flex-direction: column;\n  background-color: #090d16;\n  color: #f1f5f9;\n  font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif;\n  user-select: none;\n  overflow: hidden;\n  position: relative;\n}\n\n/* Header & Toolbar */\n.dzb-toolbar {\n  display: flex;\n  flex-direction: column;\n  gap: 10px;\n  padding: 10px 14px;\n  background: rgba(15, 23, 42, 0.95);\n  border-bottom: 1px solid rgba(255, 255, 255, 0.08);\n  flex-shrink: 0;\n}\n\n@media (min-width: 768px) {\n  .dzb-toolbar {\n    flex-direction: row;\n    align-items: center;\n    justify-content: space-between;\n    padding: 10px 16px;\n  }\n}\n\n.dzb-toolbar-top {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  width: 100%;\n}\n\n@media (min-width: 768px) {\n  .dzb-toolbar-top {\n    width: auto;\n    flex-shrink: 0;\n  }\n}\n\n.dzb-title-group {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  min-width: 0;\n}\n\n.dzb-archive-name {\n  margin: 0;\n  font-size: 0.88rem;\n  font-weight: 600;\n  color: #e2e8f0;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  max-width: 220px;\n}\n\n@media (min-width: 640px) {\n  .dzb-archive-name {\n    max-width: 320px;\n    font-size: 0.95rem;\n  }\n}\n\n/* Status Badges */\n.dzb-badge-unlocked {\n  display: inline-flex;\n  align-items: center;\n  gap: 4px;\n  padding: 3px 8px;\n  border-radius: 6px;\n  font-size: 0.68rem;\n  font-weight: 600;\n  background: rgba(16, 185, 129, 0.15);\n  color: #34d399;\n  border: 1px solid rgba(52, 211, 153, 0.3);\n  white-space: nowrap;\n}\n\n.dzb-badge-protected {\n  display: inline-flex;\n  align-items: center;\n  gap: 4px;\n  padding: 3px 8px;\n  border-radius: 6px;\n  font-size: 0.68rem;\n  font-weight: 600;\n  background: rgba(245, 158, 11, 0.15);\n  color: #fbbf24;\n  border: 1px solid rgba(251, 191, 36, 0.3);\n  white-space: nowrap;\n}\n\n/* Touch Navigation Buttons (< >) */\n.dzb-nav-group {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n  flex-shrink: 0;\n}\n\n.dzb-nav-btn {\n  min-width: 44px;\n  min-height: 44px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  border-radius: 10px;\n  background: rgba(255, 255, 255, 0.05);\n  color: #94a3b8;\n  border: 1px solid rgba(255, 255, 255, 0.08);\n  cursor: pointer;\n  transition: all 0.18s ease;\n}\n\n.dzb-nav-btn:hover:not(:disabled) {\n  background: rgba(255, 255, 255, 0.12);\n  color: #f8fafc;\n  border-color: rgba(255, 255, 255, 0.2);\n}\n\n.dzb-nav-btn:disabled {\n  opacity: 0.3;\n  cursor: not-allowed;\n}\n\n/* Controls Area (Search + Categories + Actions) */\n.dzb-toolbar-controls {\n  display: flex;\n  flex-wrap: wrap;\n  align-items: center;\n  gap: 8px;\n  width: 100%;\n}\n\n@media (min-width: 768px) {\n  .dzb-toolbar-controls {\n    flex: 1 1 auto;\n    width: auto;\n    justify-content: flex-end;\n  }\n}\n\n/* Touch-Optimized Search Input */\n.dzb-search-box {\n  position: relative;\n  flex: 1 1 100%;\n  min-width: 0;\n  display: flex;\n  align-items: center;\n}\n\n@media (min-width: 640px) {\n  .dzb-search-box {\n    flex: 1 1 200px;\n    max-width: 280px;\n  }\n}\n\n.dzb-search-input {\n  width: 100%;\n  height: 44px;\n  padding-left: 38px;\n  padding-right: 32px;\n  background: rgba(30, 41, 59, 0.7);\n  border: 1px solid rgba(255, 255, 255, 0.1);\n  border-radius: 12px;\n  font-size: 0.82rem;\n  font-family: inherit;\n  color: #f8fafc;\n  outline: none;\n  transition: all 0.2s ease;\n}\n\n.dzb-search-input::placeholder {\n  color: #64748b;\n}\n\n.dzb-search-input:focus {\n  border-color: #6366f1;\n  background: rgba(30, 41, 59, 0.95);\n  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);\n}\n\n.dzb-search-icon {\n  position: absolute;\n  left: 12px;\n  top: 50%;\n  transform: translateY(-50%);\n  width: 16px;\n  height: 16px;\n  color: #64748b;\n  pointer-events: none;\n}\n\n.dzb-search-clear {\n  position: absolute;\n  right: 6px;\n  top: 50%;\n  transform: translateY(-50%);\n  width: 32px;\n  height: 32px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  border: none;\n  background: transparent;\n  color: #94a3b8;\n  border-radius: 50%;\n  cursor: pointer;\n}\n\n.dzb-search-clear:hover {\n  color: #f8fafc;\n  background: rgba(255, 255, 255, 0.1);\n}\n\n/* Category Filter Pills */\n.dzb-categories {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n  overflow-x: auto;\n  padding: 3px;\n  background: rgba(15, 23, 42, 0.8);\n  border: 1px solid rgba(255, 255, 255, 0.08);\n  border-radius: 12px;\n  scrollbar-width: none;\n  -ms-overflow-style: none;\n  max-width: 100%;\n}\n\n.dzb-categories::-webkit-scrollbar {\n  display: none;\n}\n\n.dzb-cat-tab {\n  min-height: 44px;\n  padding: 0 12px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: 6px;\n  border-radius: 9px;\n  border: none;\n  background: transparent;\n  color: #94a3b8;\n  font-size: 0.78rem;\n  font-weight: 500;\n  cursor: pointer;\n  white-space: nowrap;\n  transition: all 0.18s ease;\n}\n\n.dzb-cat-tab:hover {\n  background: rgba(255, 255, 255, 0.06);\n  color: #e2e8f0;\n}\n\n.dzb-cat-tab.active {\n  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);\n  color: #ffffff;\n  font-weight: 600;\n  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);\n}\n\n/* Actions Group */\n.dzb-action-group {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin-left: auto;\n}\n\n.dzb-btn-primary {\n  min-height: 44px;\n  padding: 0 16px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: 8px;\n  border-radius: 12px;\n  border: none;\n  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);\n  color: #ffffff;\n  font-size: 0.82rem;\n  font-weight: 600;\n  cursor: pointer;\n  transition: all 0.18s ease;\n  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);\n  white-space: nowrap;\n}\n\n.dzb-btn-primary:hover {\n  background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);\n  transform: translateY(-1px);\n}\n\n.dzb-btn-secondary {\n  min-height: 44px;\n  padding: 0 14px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: 8px;\n  border-radius: 12px;\n  border: 1px solid rgba(255, 255, 255, 0.12);\n  background: rgba(30, 41, 59, 0.8);\n  color: #e2e8f0;\n  font-size: 0.82rem;\n  font-weight: 500;\n  cursor: pointer;\n  transition: all 0.18s ease;\n  white-space: nowrap;\n}\n\n.dzb-btn-secondary:hover {\n  background: rgba(51, 65, 85, 0.9);\n  color: #ffffff;\n  border-color: rgba(255, 255, 255, 0.2);\n}\n\n/* Breadcrumb Navigation */\n.dzb-breadcrumbs {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n  padding: 8px 14px;\n  background: rgba(15, 23, 42, 0.5);\n  border-bottom: 1px solid rgba(255, 255, 255, 0.06);\n  font-size: 0.78rem;\n  font-family: monospace;\n  overflow-x: auto;\n  scrollbar-width: none;\n  flex-shrink: 0;\n}\n\n.dzb-breadcrumbs::-webkit-scrollbar {\n  display: none;\n}\n\n.dzb-crumb-btn {\n  min-height: 36px;\n  padding: 0 8px;\n  display: inline-flex;\n  align-items: center;\n  gap: 4px;\n  border-radius: 6px;\n  border: none;\n  background: transparent;\n  color: #94a3b8;\n  font: inherit;\n  cursor: pointer;\n  white-space: nowrap;\n}\n\n.dzb-crumb-btn:hover {\n  background: rgba(255, 255, 255, 0.06);\n  color: #6366f1;\n}\n\n.dzb-crumb-sep {\n  color: #475569;\n  display: inline-flex;\n  align-items: center;\n  flex-shrink: 0;\n}\n\n/* Content Body Area */\n.dzb-content {\n  flex: 1 1 auto;\n  min-height: 0;\n  display: flex;\n  flex-direction: column;\n  overflow-y: auto;\n  background-color: #090d16;\n}\n\n/* Loading & Empty States */\n.dzb-loading-box,\n.dzb-error-box,\n.dzb-empty-box {\n  flex: 1 1 auto;\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n  padding: 32px 16px;\n  text-align: center;\n  gap: 12px;\n  color: #94a3b8;\n  font-size: 0.85rem;\n}\n\n.dzb-spinner {\n  width: 24px;\n  height: 24px;\n  border: 3px solid rgba(99, 102, 241, 0.2);\n  border-top-color: #6366f1;\n  border-radius: 50%;\n  animation: dzb-spin 0.8s linear infinite;\n}\n\n@keyframes dzb-spin {\n  to {\n    transform: rotate(360deg);\n  }\n}\n\n/* Desktop Data Table View (Visible on tablet/desktop >= 640px) */\n.dzb-table-container {\n  display: none;\n  width: 100%;\n}\n\n@media (min-width: 640px) {\n  .dzb-table-container {\n    display: table;\n    border-collapse: collapse;\n    width: 100%;\n    text-align: left;\n  }\n}\n\n.dzb-table-head {\n  position: sticky;\n  top: 0;\n  z-index: 10;\n  background: rgba(15, 23, 42, 0.95);\n  border-bottom: 1px solid rgba(255, 255, 255, 0.1);\n  font-size: 0.72rem;\n  font-weight: 600;\n  color: #64748b;\n  text-transform: uppercase;\n  letter-spacing: 0.05em;\n}\n\n.dzb-table-head th {\n  padding: 10px 14px;\n}\n\n.dzb-table-row {\n  border-bottom: 1px solid rgba(255, 255, 255, 0.04);\n  font-size: 0.8rem;\n  font-family: monospace;\n  transition: background 0.15s ease;\n  cursor: pointer;\n}\n\n.dzb-table-row:hover {\n  background: rgba(30, 41, 59, 0.5);\n}\n\n.dzb-table-row.selected {\n  background: rgba(99, 102, 241, 0.15);\n  color: #e0e7ff;\n}\n\n.dzb-table-cell {\n  padding: 8px 14px;\n  vertical-align: middle;\n}\n\n.dzb-checkbox {\n  width: 18px;\n  height: 18px;\n  accent-color: #6366f1;\n  cursor: pointer;\n  border-radius: 4px;\n}\n\n/* Mobile Card View (Visible on small screens < 640px) */\n.dzb-mobile-cards {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  padding: 10px;\n}\n\n@media (min-width: 640px) {\n  .dzb-mobile-cards {\n    display: none;\n  }\n}\n\n.dzb-card {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  padding: 12px;\n  background: rgba(15, 23, 42, 0.7);\n  border: 1px solid rgba(255, 255, 255, 0.08);\n  border-radius: 14px;\n  transition: all 0.18s ease;\n  cursor: pointer;\n}\n\n.dzb-card:active,\n.dzb-card:hover {\n  background: rgba(30, 41, 59, 0.8);\n  border-color: rgba(99, 102, 241, 0.4);\n}\n\n.dzb-card.selected {\n  background: rgba(99, 102, 241, 0.15);\n  border-color: #6366f1;\n}\n\n.dzb-card-header {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n}\n\n.dzb-card-title {\n  flex: 1 1 auto;\n  min-width: 0;\n  font-size: 0.85rem;\n  font-weight: 500;\n  color: #f1f5f9;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.dzb-card-details {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  font-size: 0.75rem;\n  color: #94a3b8;\n  font-family: monospace;\n  padding-left: 28px;\n}\n\n.dzb-ratio-badge {\n  display: inline-block;\n  padding: 1px 6px;\n  border-radius: 4px;\n  font-size: 0.68rem;\n  font-weight: 600;\n  background: rgba(16, 185, 129, 0.15);\n  color: #34d399;\n}\n\n.dzb-card-actions {\n  display: flex;\n  align-items: center;\n  justify-content: flex-end;\n  gap: 8px;\n  padding-top: 4px;\n  border-top: 1px solid rgba(255, 255, 255, 0.04);\n}\n\n/* Touch Action Buttons */\n.dzb-action-icon-btn {\n  min-width: 44px;\n  min-height: 44px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  border-radius: 10px;\n  background: rgba(255, 255, 255, 0.05);\n  border: 1px solid rgba(255, 255, 255, 0.08);\n  color: #cbd5e1;\n  cursor: pointer;\n  transition: all 0.18s ease;\n}\n\n.dzb-action-icon-btn:hover {\n  background: rgba(99, 102, 241, 0.2);\n  color: #6366f1;\n  border-color: rgba(99, 102, 241, 0.4);\n}\n\n/* Modals Overlay & Card */\n.dzb-modal-overlay {\n  position: fixed;\n  inset: 0;\n  z-index: 9999;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  background: rgba(0, 0, 0, 0.8);\n  padding: 14px;\n  animation: dzb-fade-in 0.2s ease-out;\n}\n\n@keyframes dzb-fade-in {\n  from {\n    opacity: 0;\n    transform: scale(0.98);\n  }\n  to {\n    opacity: 1;\n    transform: scale(1);\n  }\n}\n\n.dzb-modal-card {\n  width: 100%;\n  max-width: 720px;\n  max-height: 85vh;\n  background: #0f172a;\n  border: 1px solid rgba(255, 255, 255, 0.12);\n  border-radius: 16px;\n  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);\n  display: flex;\n  flex-direction: column;\n  overflow: hidden;\n}\n\n.dzb-modal-header {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 12px 16px;\n  background: #090d16;\n  border-bottom: 1px solid rgba(255, 255, 255, 0.08);\n  font-size: 0.85rem;\n  font-weight: 600;\n  color: #f1f5f9;\n}\n\n.dzb-modal-body {\n  flex: 1 1 auto;\n  overflow-y: auto;\n  padding: 16px;\n}\n\n.dzb-modal-footer {\n  display: flex;\n  align-items: center;\n  justify-content: flex-end;\n  gap: 10px;\n  padding: 12px 16px;\n  background: #090d16;\n  border-top: 1px solid rgba(255, 255, 255, 0.08);\n}\n\n/* Workbench refinements: content-first, low-cost surfaces, no GPU blur. */\n.dzb-depth-badge {\n  padding: 3px 8px;\n  border: 1px solid rgba(129, 140, 248, 0.35);\n  border-radius: 999px;\n  color: #c7d2fe;\n  background: rgba(79, 70, 229, 0.16);\n  font-size: 0.68rem;\n  white-space: nowrap;\n}\n\n.dzb-col-check { width: 46px; text-align: center; }\n.dzb-col-size { width: 116px; text-align: right; }\n.dzb-col-compressed { width: 145px; text-align: right; }\n.dzb-col-actions { width: 112px; text-align: right; }\n\n.dzb-entry-name {\n  min-width: 0;\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  color: #e2e8f0;\n}\n.dzb-entry-name.directory {\n  width: 100%;\n  padding: 0;\n  border: 0;\n  background: transparent;\n  color: #fbbf24;\n  font: inherit;\n  text-align: left;\n  cursor: pointer;\n}\n.dzb-entry-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n.dzb-file-icon { flex: 0 0 auto; }\n.dzb-file-icon.image { color: #34d399; }\n.dzb-file-icon.media { color: #818cf8; }\n.dzb-file-icon.document { color: #fbbf24; }\n.dzb-file-icon.archive { color: #c084fc; }\n.dzb-file-icon.generic { color: #94a3b8; }\n.dzb-entry-lock { flex: 0 0 auto; color: #fbbf24; }\n.dzb-row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }\n\n.dzb-preview-modal { max-width: min(1040px, calc(100vw - 28px)); height: min(88vh, 840px); }\n.dzb-modal-title { min-width: 0; display: flex; align-items: center; gap: 8px; color: #c7d2fe; }\n.dzb-modal-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n.dzb-modal-actions { display: flex; align-items: center; gap: 8px; }\n.dzb-btn-compact { min-height: 36px; padding: 0 10px; font-size: 0.78rem; }\n.dzb-preview-body { padding: 0; background: #050810; display: grid; min-height: 0; }\n.dzb-preview-image,\n.dzb-preview-media { width: 100%; height: 100%; max-height: calc(88vh - 62px); object-fit: contain; background: #02040a; }\n.dzb-preview-audio-wrap { min-height: 260px; display: grid; place-items: center; padding: 32px; background: radial-gradient(circle at 50% 30%, rgba(99, 102, 241, 0.18), transparent 60%); }\n.dzb-preview-audio { width: min(620px, 100%); }\n.dzb-preview-pdf { width: 100%; height: 100%; min-height: 68vh; border: 0; background: #fff; }\n.dzb-binary-preview { display: grid; place-items: center; align-content: center; gap: 10px; padding: 36px; text-align: center; color: #94a3b8; }\n.dzb-binary-preview h3 { margin: 0; color: #e2e8f0; }\n.dzb-binary-preview p { max-width: 520px; margin: 0; line-height: 1.5; }\n\n.dzb-extract-modal { max-width: 680px; }\n.dzb-extract-body { display: flex; flex-direction: column; gap: 14px; min-height: 390px; }\n.dzb-modal-description { margin: 0; color: #94a3b8; font-size: 0.82rem; line-height: 1.5; }\n.dzb-destination-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 5px; border: 1px solid rgba(148, 163, 184, 0.14); border-radius: 12px; background: #080d18; }\n.dzb-destination-tab { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 9px; background: transparent; color: #94a3b8; cursor: pointer; }\n.dzb-destination-tab.active { background: #273166; color: #eef2ff; box-shadow: inset 0 0 0 1px rgba(129, 140, 248, 0.35); }\n.dzb-destination-search { min-height: 42px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid rgba(148, 163, 184, 0.18); border-radius: 10px; background: #080d18; color: #64748b; }\n.dzb-destination-search input { width: 100%; border: 0; outline: 0; background: transparent; color: #e2e8f0; }\n.dzb-destination-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; max-height: 250px; overflow: auto; }\n.dzb-destination-card { min-height: 58px; display: flex; align-items: center; gap: 10px; padding: 9px 11px; border: 1px solid rgba(148, 163, 184, 0.14); border-radius: 11px; background: #0a1120; color: #94a3b8; text-align: left; cursor: pointer; }\n.dzb-destination-card:hover { border-color: rgba(129, 140, 248, 0.45); }\n.dzb-destination-card.selected { border-color: #818cf8; background: rgba(79, 70, 229, 0.17); color: #c7d2fe; }\n.dzb-destination-card span { min-width: 0; display: flex; flex-direction: column; gap: 2px; }\n.dzb-destination-card strong,\n.dzb-destination-card small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n.dzb-destination-card strong { color: #e2e8f0; }\n.dzb-destination-card small { color: #64748b; }\n.dzb-topic-field,\n.dzb-password-field { display: flex; flex-direction: column; gap: 7px; color: #cbd5e1; font-size: 0.78rem; }\n.dzb-topic-field > span { display: flex; align-items: center; gap: 6px; }\n.dzb-topic-field input,\n.dzb-password-field > div { min-height: 42px; border: 1px solid rgba(148, 163, 184, 0.18); border-radius: 10px; background: #080d18; color: #e2e8f0; }\n.dzb-topic-field input { padding: 0 12px; }\n.dzb-topic-field small { color: #64748b; }\n.dzb-extract-progress { margin: auto 0 0; padding: 9px 11px; border-radius: 9px; background: rgba(56, 189, 248, 0.1); color: #7dd3fc; }\n\n.dzb-password-modal { max-width: 470px; }\n.dzb-password-body { display: flex; flex-direction: column; gap: 15px; }\n.dzb-password-body > p { margin: 0; color: #94a3b8; line-height: 1.5; }\n.dzb-password-field > div { display: flex; align-items: center; gap: 8px; padding: 0 11px; }\n.dzb-password-field input { width: 100%; border: 0; outline: 0; background: transparent; color: #f8fafc; }\n.dzb-password-error { color: #fca5a5 !important; }\n\n@media (max-width: 640px) {\n  .dzb-badge-unlocked { display: none; }\n  .dzb-destination-tabs { grid-template-columns: 1fr; }\n  .dzb-destination-list { grid-template-columns: 1fr; }\n  .dzb-modal-actions .dzb-btn-compact span { display: none; }\n}\n\n@media (prefers-reduced-motion: reduce) {\n  .dzb-modal-overlay,\n  .dzb-spinner { animation: none; }\n  .dzb-btn-primary:hover { transform: none; }\n}\n"
-__vite__updateStyle(__vite__id, __vite__css)
-import.meta.hot.accept()
-import.meta.hot.prune(() => __vite__removeStyle(__vite__id))
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/drive/Modals/DriveInputDialog.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=66e1eb93"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import { useTranslation } from "/node_modules/.vite/deps/react-i18next.js?v=66e1eb93";
+import __vite__cjsImport4_react from "/node_modules/.vite/deps/react.js?v=66e1eb93"; const useEffect = __vite__cjsImport4_react["useEffect"]; const useRef = __vite__cjsImport4_react["useRef"]; const useState = __vite__cjsImport4_react["useState"];
+import __vite__cjsImport5_reactDom from "/node_modules/.vite/deps/react-dom.js?v=66e1eb93"; const createPortal = __vite__cjsImport5_reactDom["createPortal"];
+import { FolderPlus, MessagesSquare, Pencil, X } from "/node_modules/.vite/deps/lucide-react.js?v=66e1eb93";
+export function DriveInputDialog({ state, onClose }) {
+  _s();
+  const { t } = useTranslation();
+  const inputRef = useRef(null);
+  const open = !!state;
+  const [value, setValue] = useState("");
+  const [error, setError] = useState(null);
+  useEffect(() => {
+    if (!open || !state) return;
+    setValue(state.defaultValue || "");
+    setError(null);
+    const timer = window.setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }, 40);
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, state, onClose]);
+  if (!state) return null;
+  const Icon = state.kind === "create-folder" ? FolderPlus : state.kind === "create-topic" ? MessagesSquare : Pencil;
+  const canSubmit = value.trim().length > 0;
+  const submit = () => {
+    const v = value.trim();
+    if (!v) {
+      setError(String(t("speedtest.err_name_empty")));
+      return;
+    }
+    if (state.defaultValue != null && v === state.defaultValue.trim()) {
+      onClose();
+      return;
+    }
+    const fn = state.onConfirm;
+    onClose();
+    window.setTimeout(() => fn(v), 0);
+  };
+  const node = /* @__PURE__ */ jsxDEV(
+    "div",
+    {
+      className: "td-confirm-overlay",
+      role: "presentation",
+      "data-dialog-kind": state.kind,
+      onClick: onClose,
+      children: /* @__PURE__ */ jsxDEV(
+        "div",
+        {
+          className: `td-confirm-panel input-dialog td-dialog-kind-${state.kind}`,
+          role: "dialog",
+          "aria-modal": "true",
+          "aria-labelledby": "td-input-title",
+          "data-testid": "drive-input-dialog",
+          "data-dialog-layout": "card",
+          onClick: (e) => e.stopPropagation(),
+          children: [
+            /* @__PURE__ */ jsxDEV("header", { className: "td-confirm-head", children: [
+              /* @__PURE__ */ jsxDEV("span", { className: "td-confirm-icon input", "aria-hidden": true, children: /* @__PURE__ */ jsxDEV(Icon, { size: 20, strokeWidth: 2 }, void 0, false, {
+                fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx",
+                lineNumber: 120,
+                columnNumber: 13
+              }, this) }, void 0, false, {
+                fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx",
+                lineNumber: 119,
+                columnNumber: 11
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { className: "td-confirm-head-text", children: [
+                /* @__PURE__ */ jsxDEV("h2", { id: "td-input-title", children: state.title }, void 0, false, {
+                  fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx",
+                  lineNumber: 123,
+                  columnNumber: 13
+                }, this),
+                state.description ? /* @__PURE__ */ jsxDEV("p", { className: "td-confirm-desc", children: state.description }, void 0, false, {
+                  fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx",
+                  lineNumber: 125,
+                  columnNumber: 11
+                }, this) : null
+              ] }, void 0, true, {
+                fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx",
+                lineNumber: 122,
+                columnNumber: 11
+              }, this),
+              /* @__PURE__ */ jsxDEV("button", { type: "button", className: "td-confirm-close", onClick: onClose, "aria-label": t("speedtest.close_esc"), children: /* @__PURE__ */ jsxDEV(X, { size: 18 }, void 0, false, {
+                fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx",
+                lineNumber: 129,
+                columnNumber: 13
+              }, this) }, void 0, false, {
+                fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx",
+                lineNumber: 128,
+                columnNumber: 11
+              }, this)
+            ] }, void 0, true, {
+              fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx",
+              lineNumber: 118,
+              columnNumber: 9
+            }, this),
+            /* @__PURE__ */ jsxDEV("div", { className: "td-input-body", children: [
+              state.label ? /* @__PURE__ */ jsxDEV("label", { className: "td-input-label", htmlFor: "td-drive-input", children: state.label }, void 0, false, {
+                fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx",
+                lineNumber: 135,
+                columnNumber: 9
+              }, this) : null,
+              /* @__PURE__ */ jsxDEV(
+                "input",
+                {
+                  ref: inputRef,
+                  id: "td-drive-input",
+                  className: "td-input-field",
+                  type: "text",
+                  value,
+                  placeholder: state.placeholder || "",
+                  onChange: (e) => {
+                    setValue(e.target.value);
+                    if (error) setError(null);
+                  },
+                  onKeyDown: (e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      submit();
+                    }
+                  },
+                  autoComplete: "off",
+                  spellCheck: false
+                },
+                void 0,
+                false,
+                {
+                  fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx",
+                  lineNumber: 139,
+                  columnNumber: 11
+                },
+                this
+              ),
+              error ? /* @__PURE__ */ jsxDEV("p", { className: "td-input-error", role: "alert", children: error }, void 0, false, {
+                fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx",
+                lineNumber: 160,
+                columnNumber: 9
+              }, this) : null
+            ] }, void 0, true, {
+              fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx",
+              lineNumber: 133,
+              columnNumber: 9
+            }, this),
+            /* @__PURE__ */ jsxDEV("footer", { className: "td-confirm-foot", children: [
+              /* @__PURE__ */ jsxDEV("button", { type: "button", className: "td-confirm-btn ghost", onClick: onClose, children: t("speedtest.topbar_cancel") }, void 0, false, {
+                fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx",
+                lineNumber: 167,
+                columnNumber: 11
+              }, this),
+              /* @__PURE__ */ jsxDEV(
+                "button",
+                {
+                  type: "button",
+                  className: "td-confirm-btn primary",
+                  onClick: submit,
+                  disabled: !canSubmit,
+                  children: [
+                    /* @__PURE__ */ jsxDEV(Icon, { size: 15, strokeWidth: 2.25 }, void 0, false, {
+                      fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx",
+                      lineNumber: 176,
+                      columnNumber: 13
+                    }, this),
+                    /* @__PURE__ */ jsxDEV("span", { children: state.confirmLabel || t("speedtest.btn_save") }, void 0, false, {
+                      fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx",
+                      lineNumber: 177,
+                      columnNumber: 13
+                    }, this)
+                  ]
+                },
+                void 0,
+                true,
+                {
+                  fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx",
+                  lineNumber: 170,
+                  columnNumber: 11
+                },
+                this
+              )
+            ] }, void 0, true, {
+              fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx",
+              lineNumber: 166,
+              columnNumber: 9
+            }, this)
+          ]
+        },
+        void 0,
+        true,
+        {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx",
+          lineNumber: 109,
+          columnNumber: 7
+        },
+        this
+      )
+    },
+    void 0,
+    false,
+    {
+      fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx",
+      lineNumber: 103,
+      columnNumber: 3
+    },
+    this
+  );
+  if (typeof document === "undefined") return null;
+  return createPortal(node, document.body);
+}
+_s(DriveInputDialog, "uTGJlIfQWelZvM5OSnm0RUM/PTE=", false, function() {
+  return [useTranslation];
+});
+_c = DriveInputDialog;
+var _c;
+$RefreshReg$(_c, "DriveInputDialog");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("F:/AutoGram/AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBb0dZOzs7Ozs7Ozs7Ozs7Ozs7OztBQS9GWixTQUFTQSxzQkFBc0I7QUFDL0IsU0FBU0MsV0FBV0MsUUFBUUMsZ0JBQWdCO0FBQzVDLFNBQVNDLG9CQUFvQjtBQUM3QixTQUFTQyxZQUFZQyxnQkFBZ0JDLFFBQVFDLFNBQVM7QUFxQi9DLGdCQUFTQyxpQkFBaUIsRUFBRUMsT0FBT0MsUUFBZSxHQUFHO0FBQUFDLEtBQUE7QUFDMUQsUUFBTSxFQUFFQyxFQUFFLElBQUliLGVBQWU7QUFDN0IsUUFBTWMsV0FBV1osT0FBeUIsSUFBSTtBQUM5QyxRQUFNYSxPQUFPLENBQUMsQ0FBQ0w7QUFDZixRQUFNLENBQUNNLE9BQU9DLFFBQVEsSUFBSWQsU0FBUyxFQUFFO0FBQ3JDLFFBQU0sQ0FBQ2UsT0FBT0MsUUFBUSxJQUFJaEIsU0FBd0IsSUFBSTtBQUV0REYsWUFBVSxNQUFNO0FBQ2QsUUFBSSxDQUFDYyxRQUFRLENBQUNMLE1BQU87QUFDckJPLGFBQVNQLE1BQU1VLGdCQUFnQixFQUFFO0FBQ2pDRCxhQUFTLElBQUk7QUFDYixVQUFNRSxRQUFRQyxPQUFPQyxXQUFXLE1BQU07QUFDcENULGVBQVNVLFNBQVNDLE1BQU07QUFDeEJYLGVBQVNVLFNBQVNFLE9BQU87QUFBQSxJQUMzQixHQUFHLEVBQUU7QUFDTCxVQUFNQyxRQUFRQSxDQUFDQyxNQUFxQjtBQUNsQyxVQUFJQSxFQUFFQyxRQUFRLFVBQVU7QUFDdEJELFVBQUVFLGVBQWU7QUFDakJuQixnQkFBUTtBQUFBLE1BQ1Y7QUFBQSxJQUNGO0FBQ0FXLFdBQU9TLGlCQUFpQixXQUFXSixLQUFLO0FBQ3hDLFdBQU8sTUFBTTtBQUNYTCxhQUFPVSxhQUFhWCxLQUFLO0FBQ3pCQyxhQUFPVyxvQkFBb0IsV0FBV04sS0FBSztBQUFBLElBQzdDO0FBQUEsRUFDRixHQUFHLENBQUNaLE1BQU1MLE9BQU9DLE9BQU8sQ0FBQztBQUV6QixNQUFJLENBQUNELE1BQU8sUUFBTztBQUVuQixRQUFNd0IsT0FDSnhCLE1BQU15QixTQUFTLGtCQUNYOUIsYUFDQUssTUFBTXlCLFNBQVMsaUJBQ2I3QixpQkFDQUM7QUFDUixRQUFNNkIsWUFBWXBCLE1BQU1xQixLQUFLLEVBQUVDLFNBQVM7QUFFeEMsUUFBTUMsU0FBU0EsTUFBTTtBQUNuQixVQUFNQyxJQUFJeEIsTUFBTXFCLEtBQUs7QUFDckIsUUFBSSxDQUFDRyxHQUFHO0FBQ05yQixlQUFTc0IsT0FBTzVCLEVBQUUsMEJBQTBCLENBQUMsQ0FBQztBQUM5QztBQUFBLElBQ0Y7QUFDQSxRQUFJSCxNQUFNVSxnQkFBZ0IsUUFBUW9CLE1BQU05QixNQUFNVSxhQUFhaUIsS0FBSyxHQUFHO0FBQ2pFMUIsY0FBUTtBQUNSO0FBQUEsSUFDRjtBQUNBLFVBQU0rQixLQUFLaEMsTUFBTWlDO0FBQ2pCaEMsWUFBUTtBQUNSVyxXQUFPQyxXQUFXLE1BQU1tQixHQUFHRixDQUFDLEdBQUcsQ0FBQztBQUFBLEVBQ2xDO0FBRUEsUUFBTUksT0FDSjtBQUFBLElBQUM7QUFBQTtBQUFBLE1BQ0MsV0FBVTtBQUFBLE1BQ1YsTUFBSztBQUFBLE1BQ0wsb0JBQWtCbEMsTUFBTXlCO0FBQUFBLE1BQ3hCLFNBQVN4QjtBQUFBQSxNQUVUO0FBQUEsUUFBQztBQUFBO0FBQUEsVUFDQyxXQUFXLGdEQUFnREQsTUFBTXlCLElBQUk7QUFBQSxVQUNyRSxNQUFLO0FBQUEsVUFDTCxjQUFXO0FBQUEsVUFDWCxtQkFBZ0I7QUFBQSxVQUNoQixlQUFZO0FBQUEsVUFDWixzQkFBbUI7QUFBQSxVQUNuQixTQUFTLENBQUNQLE1BQU1BLEVBQUVpQixnQkFBZ0I7QUFBQSxVQUVsQztBQUFBLG1DQUFDLFlBQU8sV0FBVSxtQkFDaEI7QUFBQSxxQ0FBQyxVQUFLLFdBQVUseUJBQXdCLGVBQVcsTUFDakQsaUNBQUMsUUFBSyxNQUFNLElBQUksYUFBYSxLQUE3QjtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUErQixLQURqQztBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUVBO0FBQUEsY0FDQSx1QkFBQyxTQUFJLFdBQVUsd0JBQ2I7QUFBQSx1Q0FBQyxRQUFHLElBQUcsa0JBQWtCbkMsZ0JBQU1vQyxTQUEvQjtBQUFBO0FBQUE7QUFBQTtBQUFBLHVCQUFxQztBQUFBLGdCQUNwQ3BDLE1BQU1xQyxjQUNMLHVCQUFDLE9BQUUsV0FBVSxtQkFBbUJyQyxnQkFBTXFDLGVBQXRDO0FBQUE7QUFBQTtBQUFBO0FBQUEsdUJBQWtELElBQ2hEO0FBQUEsbUJBSk47QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFLQTtBQUFBLGNBQ0EsdUJBQUMsWUFBTyxNQUFLLFVBQVMsV0FBVSxvQkFBbUIsU0FBU3BDLFNBQVMsY0FBWUUsRUFBRSxxQkFBcUIsR0FDdEcsaUNBQUMsS0FBRSxNQUFNLE1BQVQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFBWSxLQURkO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBRUE7QUFBQSxpQkFaRjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQWFBO0FBQUEsWUFFQSx1QkFBQyxTQUFJLFdBQVUsaUJBQ1pIO0FBQUFBLG9CQUFNc0MsUUFDTCx1QkFBQyxXQUFNLFdBQVUsa0JBQWlCLFNBQVEsa0JBQ3ZDdEMsZ0JBQU1zQyxTQURUO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBRUEsSUFDRTtBQUFBLGNBQ0o7QUFBQSxnQkFBQztBQUFBO0FBQUEsa0JBQ0MsS0FBS2xDO0FBQUFBLGtCQUNMLElBQUc7QUFBQSxrQkFDSCxXQUFVO0FBQUEsa0JBQ1YsTUFBSztBQUFBLGtCQUNMO0FBQUEsa0JBQ0EsYUFBYUosTUFBTXVDLGVBQWU7QUFBQSxrQkFDbEMsVUFBVSxDQUFDckIsTUFBTTtBQUNmWCw2QkFBU1csRUFBRXNCLE9BQU9sQyxLQUFLO0FBQ3ZCLHdCQUFJRSxNQUFPQyxVQUFTLElBQUk7QUFBQSxrQkFDMUI7QUFBQSxrQkFDQSxXQUFXLENBQUNTLE1BQU07QUFDaEIsd0JBQUlBLEVBQUVDLFFBQVEsU0FBUztBQUNyQkQsd0JBQUVFLGVBQWU7QUFDakJTLDZCQUFPO0FBQUEsb0JBQ1Q7QUFBQSxrQkFDRjtBQUFBLGtCQUNBLGNBQWE7QUFBQSxrQkFDYixZQUFZO0FBQUE7QUFBQSxnQkFsQmQ7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLGNBa0JvQjtBQUFBLGNBRW5CckIsUUFDQyx1QkFBQyxPQUFFLFdBQVUsa0JBQWlCLE1BQUssU0FDaENBLG1CQURIO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBRUEsSUFDRTtBQUFBLGlCQTlCTjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQStCQTtBQUFBLFlBRUEsdUJBQUMsWUFBTyxXQUFVLG1CQUNoQjtBQUFBLHFDQUFDLFlBQU8sTUFBSyxVQUFTLFdBQVUsd0JBQXVCLFNBQVNQLFNBQzdERSxZQUFFLHlCQUF5QixLQUQ5QjtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUVBO0FBQUEsY0FDQTtBQUFBLGdCQUFDO0FBQUE7QUFBQSxrQkFDQyxNQUFLO0FBQUEsa0JBQ0wsV0FBVTtBQUFBLGtCQUNWLFNBQVMwQjtBQUFBQSxrQkFDVCxVQUFVLENBQUNIO0FBQUFBLGtCQUVYO0FBQUEsMkNBQUMsUUFBSyxNQUFNLElBQUksYUFBYSxRQUE3QjtBQUFBO0FBQUE7QUFBQTtBQUFBLDJCQUFrQztBQUFBLG9CQUNsQyx1QkFBQyxVQUFNMUIsZ0JBQU15QyxnQkFBZ0J0QyxFQUFFLG9CQUFvQixLQUFuRDtBQUFBO0FBQUE7QUFBQTtBQUFBLDJCQUFxRDtBQUFBO0FBQUE7QUFBQSxnQkFQdkQ7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLGNBUUE7QUFBQSxpQkFaRjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQWFBO0FBQUE7QUFBQTtBQUFBLFFBdEVGO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxNQXVFQTtBQUFBO0FBQUEsSUE3RUY7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLEVBOEVBO0FBR0YsTUFBSSxPQUFPdUMsYUFBYSxZQUFhLFFBQU87QUFDNUMsU0FBT2hELGFBQWF3QyxNQUFNUSxTQUFTQyxJQUFJO0FBQ3pDO0FBQUN6QyxHQXpJZUgsa0JBQWdCO0FBQUEsVUFDaEJULGNBQWM7QUFBQTtBQUFBLEtBRGRTO0FBQWdCLElBQUE2QztBQUFBLGFBQUFBLElBQUEiLCJuYW1lcyI6WyJ1c2VUcmFuc2xhdGlvbiIsInVzZUVmZmVjdCIsInVzZVJlZiIsInVzZVN0YXRlIiwiY3JlYXRlUG9ydGFsIiwiRm9sZGVyUGx1cyIsIk1lc3NhZ2VzU3F1YXJlIiwiUGVuY2lsIiwiWCIsIkRyaXZlSW5wdXREaWFsb2ciLCJzdGF0ZSIsIm9uQ2xvc2UiLCJfcyIsInQiLCJpbnB1dFJlZiIsIm9wZW4iLCJ2YWx1ZSIsInNldFZhbHVlIiwiZXJyb3IiLCJzZXRFcnJvciIsImRlZmF1bHRWYWx1ZSIsInRpbWVyIiwid2luZG93Iiwic2V0VGltZW91dCIsImN1cnJlbnQiLCJmb2N1cyIsInNlbGVjdCIsIm9uS2V5IiwiZSIsImtleSIsInByZXZlbnREZWZhdWx0IiwiYWRkRXZlbnRMaXN0ZW5lciIsImNsZWFyVGltZW91dCIsInJlbW92ZUV2ZW50TGlzdGVuZXIiLCJJY29uIiwia2luZCIsImNhblN1Ym1pdCIsInRyaW0iLCJsZW5ndGgiLCJzdWJtaXQiLCJ2IiwiU3RyaW5nIiwiZm4iLCJvbkNvbmZpcm0iLCJub2RlIiwic3RvcFByb3BhZ2F0aW9uIiwidGl0bGUiLCJkZXNjcmlwdGlvbiIsImxhYmVsIiwicGxhY2Vob2xkZXIiLCJ0YXJnZXQiLCJjb25maXJtTGFiZWwiLCJkb2N1bWVudCIsImJvZHkiLCJfYyJdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJEcml2ZUlucHV0RGlhbG9nLnRzeCJdLCJzb3VyY2VzQ29udGVudCI6WyIvKipcbiAqIE1vZGVybiB0ZXh0LWlucHV0IGRpYWxvZyBmb3IgTWVkaWEgU3R1ZGlvIChjcmVhdGUgZm9sZGVyLCByZW5hbWUsIGV0Yy4pLlxuICogUmVwbGFjZXMgbmF0aXZlIHdpbmRvdy5wcm9tcHQoKS5cbiAqIFBvcnRhbGVkIHRvIGRvY3VtZW50LmJvZHkgc28gbGF5b3V0IG5ldmVyIGNvbGxhcHNlcyBpbnNpZGUgLnRkLXBhZ2UgKHZlcnRpY2FsLXN0cmlwIGJ1ZykuXG4gKi9cbmltcG9ydCB7IHVzZVRyYW5zbGF0aW9uIH0gZnJvbSAncmVhY3QtaTE4bmV4dCc7XG5pbXBvcnQgeyB1c2VFZmZlY3QsIHVzZVJlZiwgdXNlU3RhdGUgfSBmcm9tICdyZWFjdCc7XG5pbXBvcnQgeyBjcmVhdGVQb3J0YWwgfSBmcm9tICdyZWFjdC1kb20nO1xuaW1wb3J0IHsgRm9sZGVyUGx1cywgTWVzc2FnZXNTcXVhcmUsIFBlbmNpbCwgWCB9IGZyb20gJ2x1Y2lkZS1yZWFjdCc7XG5cbmV4cG9ydCB0eXBlIERyaXZlSW5wdXRLaW5kID0gJ2NyZWF0ZS1mb2xkZXInIHwgJ3JlbmFtZScgfCAndGV4dCcgfCAnY3JlYXRlLXRvcGljJztcblxuZXhwb3J0IHR5cGUgRHJpdmVJbnB1dFN0YXRlID0ge1xuICBraW5kOiBEcml2ZUlucHV0S2luZDtcbiAgdGl0bGU6IHN0cmluZztcbiAgZGVzY3JpcHRpb24/OiBzdHJpbmc7XG4gIGxhYmVsPzogc3RyaW5nO1xuICBkZWZhdWx0VmFsdWU/OiBzdHJpbmc7XG4gIHBsYWNlaG9sZGVyPzogc3RyaW5nO1xuICBjb25maXJtTGFiZWw/OiBzdHJpbmc7XG4gIC8qKiBDYWxsZWQgd2l0aCB0cmltbWVkIG5vbi1lbXB0eSB2YWx1ZSAqL1xuICBvbkNvbmZpcm06ICh2YWx1ZTogc3RyaW5nKSA9PiB2b2lkO1xufTtcblxudHlwZSBQcm9wcyA9IHtcbiAgc3RhdGU6IERyaXZlSW5wdXRTdGF0ZSB8IG51bGw7XG4gIG9uQ2xvc2U6ICgpID0+IHZvaWQ7XG59O1xuXG5leHBvcnQgZnVuY3Rpb24gRHJpdmVJbnB1dERpYWxvZyh7IHN0YXRlLCBvbkNsb3NlIH06IFByb3BzKSB7XG4gIGNvbnN0IHsgdCB9ID0gdXNlVHJhbnNsYXRpb24oKTtcbiAgY29uc3QgaW5wdXRSZWYgPSB1c2VSZWY8SFRNTElucHV0RWxlbWVudD4obnVsbCk7XG4gIGNvbnN0IG9wZW4gPSAhIXN0YXRlO1xuICBjb25zdCBbdmFsdWUsIHNldFZhbHVlXSA9IHVzZVN0YXRlKCcnKTtcbiAgY29uc3QgW2Vycm9yLCBzZXRFcnJvcl0gPSB1c2VTdGF0ZTxzdHJpbmcgfCBudWxsPihudWxsKTtcblxuICB1c2VFZmZlY3QoKCkgPT4ge1xuICAgIGlmICghb3BlbiB8fCAhc3RhdGUpIHJldHVybjtcbiAgICBzZXRWYWx1ZShzdGF0ZS5kZWZhdWx0VmFsdWUgfHwgJycpO1xuICAgIHNldEVycm9yKG51bGwpO1xuICAgIGNvbnN0IHRpbWVyID0gd2luZG93LnNldFRpbWVvdXQoKCkgPT4ge1xuICAgICAgaW5wdXRSZWYuY3VycmVudD8uZm9jdXMoKTtcbiAgICAgIGlucHV0UmVmLmN1cnJlbnQ/LnNlbGVjdCgpO1xuICAgIH0sIDQwKTtcbiAgICBjb25zdCBvbktleSA9IChlOiBLZXlib2FyZEV2ZW50KSA9PiB7XG4gICAgICBpZiAoZS5rZXkgPT09ICdFc2NhcGUnKSB7XG4gICAgICAgIGUucHJldmVudERlZmF1bHQoKTtcbiAgICAgICAgb25DbG9zZSgpO1xuICAgICAgfVxuICAgIH07XG4gICAgd2luZG93LmFkZEV2ZW50TGlzdGVuZXIoJ2tleWRvd24nLCBvbktleSk7XG4gICAgcmV0dXJuICgpID0+IHtcbiAgICAgIHdpbmRvdy5jbGVhclRpbWVvdXQodGltZXIpO1xuICAgICAgd2luZG93LnJlbW92ZUV2ZW50TGlzdGVuZXIoJ2tleWRvd24nLCBvbktleSk7XG4gICAgfTtcbiAgfSwgW29wZW4sIHN0YXRlLCBvbkNsb3NlXSk7XG5cbiAgaWYgKCFzdGF0ZSkgcmV0dXJuIG51bGw7XG5cbiAgY29uc3QgSWNvbiA9XG4gICAgc3RhdGUua2luZCA9PT0gJ2NyZWF0ZS1mb2xkZXInXG4gICAgICA/IEZvbGRlclBsdXNcbiAgICAgIDogc3RhdGUua2luZCA9PT0gJ2NyZWF0ZS10b3BpYydcbiAgICAgICAgPyBNZXNzYWdlc1NxdWFyZVxuICAgICAgICA6IFBlbmNpbDtcbiAgY29uc3QgY2FuU3VibWl0ID0gdmFsdWUudHJpbSgpLmxlbmd0aCA+IDA7XG5cbiAgY29uc3Qgc3VibWl0ID0gKCkgPT4ge1xuICAgIGNvbnN0IHYgPSB2YWx1ZS50cmltKCk7XG4gICAgaWYgKCF2KSB7XG4gICAgICBzZXRFcnJvcihTdHJpbmcodCgnc3BlZWR0ZXN0LmVycl9uYW1lX2VtcHR5JykpKTtcbiAgICAgIHJldHVybjtcbiAgICB9XG4gICAgaWYgKHN0YXRlLmRlZmF1bHRWYWx1ZSAhPSBudWxsICYmIHYgPT09IHN0YXRlLmRlZmF1bHRWYWx1ZS50cmltKCkpIHtcbiAgICAgIG9uQ2xvc2UoKTtcbiAgICAgIHJldHVybjtcbiAgICB9XG4gICAgY29uc3QgZm4gPSBzdGF0ZS5vbkNvbmZpcm07XG4gICAgb25DbG9zZSgpO1xuICAgIHdpbmRvdy5zZXRUaW1lb3V0KCgpID0+IGZuKHYpLCAwKTtcbiAgfTtcblxuICBjb25zdCBub2RlID0gKFxuICAgIDxkaXZcbiAgICAgIGNsYXNzTmFtZT1cInRkLWNvbmZpcm0tb3ZlcmxheVwiXG4gICAgICByb2xlPVwicHJlc2VudGF0aW9uXCJcbiAgICAgIGRhdGEtZGlhbG9nLWtpbmQ9e3N0YXRlLmtpbmR9XG4gICAgICBvbkNsaWNrPXtvbkNsb3NlfVxuICAgID5cbiAgICAgIDxkaXZcbiAgICAgICAgY2xhc3NOYW1lPXtgdGQtY29uZmlybS1wYW5lbCBpbnB1dC1kaWFsb2cgdGQtZGlhbG9nLWtpbmQtJHtzdGF0ZS5raW5kfWB9XG4gICAgICAgIHJvbGU9XCJkaWFsb2dcIlxuICAgICAgICBhcmlhLW1vZGFsPVwidHJ1ZVwiXG4gICAgICAgIGFyaWEtbGFiZWxsZWRieT1cInRkLWlucHV0LXRpdGxlXCJcbiAgICAgICAgZGF0YS10ZXN0aWQ9XCJkcml2ZS1pbnB1dC1kaWFsb2dcIlxuICAgICAgICBkYXRhLWRpYWxvZy1sYXlvdXQ9XCJjYXJkXCJcbiAgICAgICAgb25DbGljaz17KGUpID0+IGUuc3RvcFByb3BhZ2F0aW9uKCl9XG4gICAgICA+XG4gICAgICAgIDxoZWFkZXIgY2xhc3NOYW1lPVwidGQtY29uZmlybS1oZWFkXCI+XG4gICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwidGQtY29uZmlybS1pY29uIGlucHV0XCIgYXJpYS1oaWRkZW4+XG4gICAgICAgICAgICA8SWNvbiBzaXplPXsyMH0gc3Ryb2tlV2lkdGg9ezJ9IC8+XG4gICAgICAgICAgPC9zcGFuPlxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwidGQtY29uZmlybS1oZWFkLXRleHRcIj5cbiAgICAgICAgICAgIDxoMiBpZD1cInRkLWlucHV0LXRpdGxlXCI+e3N0YXRlLnRpdGxlfTwvaDI+XG4gICAgICAgICAgICB7c3RhdGUuZGVzY3JpcHRpb24gPyAoXG4gICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT1cInRkLWNvbmZpcm0tZGVzY1wiPntzdGF0ZS5kZXNjcmlwdGlvbn08L3A+XG4gICAgICAgICAgICApIDogbnVsbH1cbiAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICA8YnV0dG9uIHR5cGU9XCJidXR0b25cIiBjbGFzc05hbWU9XCJ0ZC1jb25maXJtLWNsb3NlXCIgb25DbGljaz17b25DbG9zZX0gYXJpYS1sYWJlbD17dChcInNwZWVkdGVzdC5jbG9zZV9lc2NcIil9PlxuICAgICAgICAgICAgPFggc2l6ZT17MTh9IC8+XG4gICAgICAgICAgPC9idXR0b24+XG4gICAgICAgIDwvaGVhZGVyPlxuXG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwidGQtaW5wdXQtYm9keVwiPlxuICAgICAgICAgIHtzdGF0ZS5sYWJlbCA/IChcbiAgICAgICAgICAgIDxsYWJlbCBjbGFzc05hbWU9XCJ0ZC1pbnB1dC1sYWJlbFwiIGh0bWxGb3I9XCJ0ZC1kcml2ZS1pbnB1dFwiPlxuICAgICAgICAgICAgICB7c3RhdGUubGFiZWx9XG4gICAgICAgICAgICA8L2xhYmVsPlxuICAgICAgICAgICkgOiBudWxsfVxuICAgICAgICAgIDxpbnB1dFxuICAgICAgICAgICAgcmVmPXtpbnB1dFJlZn1cbiAgICAgICAgICAgIGlkPVwidGQtZHJpdmUtaW5wdXRcIlxuICAgICAgICAgICAgY2xhc3NOYW1lPVwidGQtaW5wdXQtZmllbGRcIlxuICAgICAgICAgICAgdHlwZT1cInRleHRcIlxuICAgICAgICAgICAgdmFsdWU9e3ZhbHVlfVxuICAgICAgICAgICAgcGxhY2Vob2xkZXI9e3N0YXRlLnBsYWNlaG9sZGVyIHx8ICcnfVxuICAgICAgICAgICAgb25DaGFuZ2U9eyhlKSA9PiB7XG4gICAgICAgICAgICAgIHNldFZhbHVlKGUudGFyZ2V0LnZhbHVlKTtcbiAgICAgICAgICAgICAgaWYgKGVycm9yKSBzZXRFcnJvcihudWxsKTtcbiAgICAgICAgICAgIH19XG4gICAgICAgICAgICBvbktleURvd249eyhlKSA9PiB7XG4gICAgICAgICAgICAgIGlmIChlLmtleSA9PT0gJ0VudGVyJykge1xuICAgICAgICAgICAgICAgIGUucHJldmVudERlZmF1bHQoKTtcbiAgICAgICAgICAgICAgICBzdWJtaXQoKTtcbiAgICAgICAgICAgICAgfVxuICAgICAgICAgICAgfX1cbiAgICAgICAgICAgIGF1dG9Db21wbGV0ZT1cIm9mZlwiXG4gICAgICAgICAgICBzcGVsbENoZWNrPXtmYWxzZX1cbiAgICAgICAgICAvPlxuICAgICAgICAgIHtlcnJvciA/IChcbiAgICAgICAgICAgIDxwIGNsYXNzTmFtZT1cInRkLWlucHV0LWVycm9yXCIgcm9sZT1cImFsZXJ0XCI+XG4gICAgICAgICAgICAgIHtlcnJvcn1cbiAgICAgICAgICAgIDwvcD5cbiAgICAgICAgICApIDogbnVsbH1cbiAgICAgICAgPC9kaXY+XG5cbiAgICAgICAgPGZvb3RlciBjbGFzc05hbWU9XCJ0ZC1jb25maXJtLWZvb3RcIj5cbiAgICAgICAgICA8YnV0dG9uIHR5cGU9XCJidXR0b25cIiBjbGFzc05hbWU9XCJ0ZC1jb25maXJtLWJ0biBnaG9zdFwiIG9uQ2xpY2s9e29uQ2xvc2V9PlxuICAgICAgICAgICAge3QoXCJzcGVlZHRlc3QudG9wYmFyX2NhbmNlbFwiKX1cbiAgICAgICAgICA8L2J1dHRvbj5cbiAgICAgICAgICA8YnV0dG9uXG4gICAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcbiAgICAgICAgICAgIGNsYXNzTmFtZT1cInRkLWNvbmZpcm0tYnRuIHByaW1hcnlcIlxuICAgICAgICAgICAgb25DbGljaz17c3VibWl0fVxuICAgICAgICAgICAgZGlzYWJsZWQ9eyFjYW5TdWJtaXR9XG4gICAgICAgICAgPlxuICAgICAgICAgICAgPEljb24gc2l6ZT17MTV9IHN0cm9rZVdpZHRoPXsyLjI1fSAvPlxuICAgICAgICAgICAgPHNwYW4+e3N0YXRlLmNvbmZpcm1MYWJlbCB8fCB0KFwic3BlZWR0ZXN0LmJ0bl9zYXZlXCIpfTwvc3Bhbj5cbiAgICAgICAgICA8L2J1dHRvbj5cbiAgICAgICAgPC9mb290ZXI+XG4gICAgICA8L2Rpdj5cbiAgICA8L2Rpdj5cbiAgKTtcblxuICBpZiAodHlwZW9mIGRvY3VtZW50ID09PSAndW5kZWZpbmVkJykgcmV0dXJuIG51bGw7XG4gIHJldHVybiBjcmVhdGVQb3J0YWwobm9kZSwgZG9jdW1lbnQuYm9keSk7XG59XG4iXSwiZmlsZSI6IkY6L0F1dG9HcmFtL0F1dG9HcmFtIEFwcC9mcm9udGVuZC9zcmMvY29tcG9uZW50cy9kcml2ZS9Nb2RhbHMvRHJpdmVJbnB1dERpYWxvZy50c3gifQ==

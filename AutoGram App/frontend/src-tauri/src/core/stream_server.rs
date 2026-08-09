@@ -420,6 +420,29 @@ pub fn remove_entry(sid: &str) {
     }
 }
 
+/// Drop every progressive stream registry entry from memory and disk.
+///
+/// Cache clearing must invalidate both layers. Removing only the `.partial`
+/// files leaves a live entry that can hand the UI a stale Range URL after a
+/// clear, while removing only the map allows the JSON registry to resurrect it.
+pub fn clear_all_entries() -> usize {
+    let ids: Vec<String> = live_map().read().keys().cloned().collect();
+    let count = ids.len();
+    live_map().write().clear();
+
+    if let Some(dir) = REGISTRY_DIR.get() {
+        if let Ok(entries) = fs::read_dir(dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.extension().and_then(|ext| ext.to_str()) == Some("json") {
+                    let _ = fs::remove_file(path);
+                }
+            }
+        }
+    }
+    count
+}
+
 pub fn status_of(sid: &str) -> StreamStatusDto {
     match get_entry(sid) {
         None => StreamStatusDto {

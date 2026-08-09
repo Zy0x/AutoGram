@@ -736,6 +736,62 @@
   }
 }
 
+.settings-cache-result {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid transparent;
+  border-radius: 0.85rem;
+  animation: cacheResultEnter 180ms ease-out both;
+}
+
+.settings-cache-result.is-success {
+  color: #a7f3d0;
+  background: rgba(6, 78, 59, 0.3);
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.settings-cache-result.is-error {
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.22);
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+.settings-cache-result-icon {
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.settings-cache-result-copy {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.settings-cache-result-copy strong {
+  color: currentColor;
+  font-size: 0.84rem;
+  line-height: 1.25;
+}
+
+.settings-cache-result-copy span {
+  color: #94a3b8;
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
+@keyframes cacheResultEnter {
+  from { opacity: 0; transform: translateY(0.25rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Cache Migration & Reset Modal Pop-in & Hover Animations */
 @keyframes cacheModalPopIn {
   from {

@@ -43,6 +43,7 @@ import {
   noteSidebarDragScroll,
   shouldBlockDriveDrop,
   clearSidebarDragScrollGuard,
+  endDriveDrag,
   endFolderDrag,
   getActiveFolderDrag,
   getDragSourceFolderId,
@@ -340,7 +341,12 @@ function DropRow({
         onDoubleActivate();
       }}
       onContextMenu={(e) => {
-        if (!onContextMenu || dragLive || folderDragLive) return;
+        if (!onContextMenu) return;
+        if (dragLive || folderDragLive) {
+          endDriveDrag();
+          endFolderDrag();
+          onHover(null);
+        }
         e.preventDefault();
         e.stopPropagation();
         onContextMenu(e);

@@ -1,1 +1,886 @@
-{"version":3,"sources":["../../react/cjs/react.development.js","../../react/index.js"],"sourcesContent":["/**\n * @license React\n * react.development.js\n *\n * Copyright (c) Meta Platforms, Inc. and affiliates.\n *\n * This source code is licensed under the MIT license found in the\n * LICENSE file in the root directory of this source tree.\n */\n\n\"use strict\";\n\"production\" !== process.env.NODE_ENV &&\n  (function () {\n    function defineDeprecationWarning(methodName, info) {\n      Object.defineProperty(Component.prototype, methodName, {\n        get: function () {\n          console.warn(\n            \"%s(...) is deprecated in plain JavaScript React classes. %s\",\n            info[0],\n            info[1]\n          );\n        }\n      });\n    }\n    function getIteratorFn(maybeIterable) {\n      if (null === maybeIterable || \"object\" !== typeof maybeIterable)\n        return null;\n      maybeIterable =\n        (MAYBE_ITERATOR_SYMBOL && maybeIterable[MAYBE_ITERATOR_SYMBOL]) ||\n        maybeIterable[\"@@iterator\"];\n      return \"function\" === typeof maybeIterable ? maybeIterable : null;\n    }\n    function warnNoop(publicInstance, callerName) {\n      publicInstance =\n        ((publicInstance = publicInstance.constructor) &&\n          (publicInstance.displayName || publicInstance.name)) ||\n        \"ReactClass\";\n      var warningKey = publicInstance + \".\" + callerName;\n      didWarnStateUpdateForUnmountedComponent[warningKey] ||\n        (console.error(\n          \"Can't call %s on a component that is not yet mounted. This is a no-op, but it might indicate a bug in your application. Instead, assign to `this.state` directly or define a `state = {};` class property with the desired state in the %s component.\",\n          callerName,\n          publicInstance\n        ),\n        (didWarnStateUpdateForUnmountedComponent[warningKey] = !0));\n    }\n    function Component(props, context, updater) {\n      this.props = props;\n      this.context = context;\n      this.refs = emptyObject;\n      this.updater = updater || ReactNoopUpdateQueue;\n    }\n    function ComponentDummy() {}\n    function PureComponent(props, context, updater) {\n      this.props = props;\n      this.context = context;\n      this.refs = emptyObject;\n      this.updater = updater || ReactNoopUpdateQueue;\n    }\n    function noop() {}\n    function testStringCoercion(value) {\n      return \"\" + value;\n    }\n    function checkKeyStringCoercion(value) {\n      try {\n        testStringCoercion(value);\n        var JSCompiler_inline_result = !1;\n      } catch (e) {\n        JSCompiler_inline_result = !0;\n      }\n      if (JSCompiler_inline_result) {\n        JSCompiler_inline_result = console;\n        var JSCompiler_temp_const = JSCompiler_inline_result.error;\n        var JSCompiler_inline_result$jscomp$0 =\n          (\"function\" === typeof Symbol &&\n            Symbol.toStringTag &&\n            value[Symbol.toStringTag]) ||\n          value.constructor.name ||\n          \"Object\";\n        JSCompiler_temp_const.call(\n          JSCompiler_inline_result,\n          \"The provided key is an unsupported type %s. This value must be coerced to a string before using it here.\",\n          JSCompiler_inline_result$jscomp$0\n        );\n        return testStringCoercion(value);\n      }\n    }\n    function getComponentNameFromType(type) {\n      if (null == type) return null;\n      if (\"function\" === typeof type)\n        return type.$$typeof === REACT_CLIENT_REFERENCE\n          ? null\n          : type.displayName || type.name || null;\n      if (\"string\" === typeof type) return type;\n      switch (type) {\n        case REACT_FRAGMENT_TYPE:\n          return \"Fragment\";\n        case REACT_PROFILER_TYPE:\n          return \"Profiler\";\n        case REACT_STRICT_MODE_TYPE:\n          return \"StrictMode\";\n        case REACT_SUSPENSE_TYPE:\n          return \"Suspense\";\n        case REACT_SUSPENSE_LIST_TYPE:\n          return \"SuspenseList\";\n        case REACT_ACTIVITY_TYPE:\n          return \"Activity\";\n      }\n      if (\"object\" === typeof type)\n        switch (\n          (\"number\" === typeof type.tag &&\n            console.error(\n              \"Received an unexpected object in getComponentNameFromType(). This is likely a bug in React. Please file an issue.\"\n            ),\n          type.$$typeof)\n        ) {\n          case REACT_PORTAL_TYPE:\n            return \"Portal\";\n          case REACT_CONTEXT_TYPE:\n            return type.displayName || \"Context\";\n          case REACT_CONSUMER_TYPE:\n            return (type._context.displayName || \"Context\") + \".Consumer\";\n          case REACT_FORWARD_REF_TYPE:\n            var innerType = type.render;\n            type = type.displayName;\n            type ||\n              ((type = innerType.displayName || innerType.name || \"\"),\n              (type = \"\" !== type ? \"ForwardRef(\" + type + \")\" : \"ForwardRef\"));\n            return type;\n          case REACT_MEMO_TYPE:\n            return (\n              (innerType = type.displayName || null),\n              null !== innerType\n                ? innerType\n                : getComponentNameFromType(type.type) || \"Memo\"\n            );\n          case REACT_LAZY_TYPE:\n            innerType = type._payload;\n            type = type._init;\n            try {\n              return getComponentNameFromType(type(innerType));\n            } catch (x) {}\n        }\n      return null;\n    }\n    function getTaskName(type) {\n      if (type === REACT_FRAGMENT_TYPE) return \"<>\";\n      if (\n        \"object\" === typeof type &&\n        null !== type &&\n        type.$$typeof === REACT_LAZY_TYPE\n      )\n        return \"<...>\";\n      try {\n        var name = getComponentNameFromType(type);\n        return name ? \"<\" + name + \">\" : \"<...>\";\n      } catch (x) {\n        return \"<...>\";\n      }\n    }\n    function getOwner() {\n      var dispatcher = ReactSharedInternals.A;\n      return null === dispatcher ? null : dispatcher.getOwner();\n    }\n    function UnknownOwner() {\n      return Error(\"react-stack-top-frame\");\n    }\n    function hasValidKey(config) {\n      if (hasOwnProperty.call(config, \"key\")) {\n        var getter = Object.getOwnPropertyDescriptor(config, \"key\").get;\n        if (getter && getter.isReactWarning) return !1;\n      }\n      return void 0 !== config.key;\n    }\n    function defineKeyPropWarningGetter(props, displayName) {\n      function warnAboutAccessingKey() {\n        specialPropKeyWarningShown ||\n          ((specialPropKeyWarningShown = !0),\n          console.error(\n            \"%s: `key` is not a prop. Trying to access it will result in `undefined` being returned. If you need to access the same value within the child component, you should pass it as a different prop. (https://react.dev/link/special-props)\",\n            displayName\n          ));\n      }\n      warnAboutAccessingKey.isReactWarning = !0;\n      Object.defineProperty(props, \"key\", {\n        get: warnAboutAccessingKey,\n        configurable: !0\n      });\n    }\n    function elementRefGetterWithDeprecationWarning() {\n      var componentName = getComponentNameFromType(this.type);\n      didWarnAboutElementRef[componentName] ||\n        ((didWarnAboutElementRef[componentName] = !0),\n        console.error(\n          \"Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release.\"\n        ));\n      componentName = this.props.ref;\n      return void 0 !== componentName ? componentName : null;\n    }\n    function ReactElement(type, key, props, owner, debugStack, debugTask) {\n      var refProp = props.ref;\n      type = {\n        $$typeof: REACT_ELEMENT_TYPE,\n        type: type,\n        key: key,\n        props: props,\n        _owner: owner\n      };\n      null !== (void 0 !== refProp ? refProp : null)\n        ? Object.defineProperty(type, \"ref\", {\n            enumerable: !1,\n            get: elementRefGetterWithDeprecationWarning\n          })\n        : Object.defineProperty(type, \"ref\", { enumerable: !1, value: null });\n      type._store = {};\n      Object.defineProperty(type._store, \"validated\", {\n        configurable: !1,\n        enumerable: !1,\n        writable: !0,\n        value: 0\n      });\n      Object.defineProperty(type, \"_debugInfo\", {\n        configurable: !1,\n        enumerable: !1,\n        writable: !0,\n        value: null\n      });\n      Object.defineProperty(type, \"_debugStack\", {\n        configurable: !1,\n        enumerable: !1,\n        writable: !0,\n        value: debugStack\n      });\n      Object.defineProperty(type, \"_debugTask\", {\n        configurable: !1,\n        enumerable: !1,\n        writable: !0,\n        value: debugTask\n      });\n      Object.freeze && (Object.freeze(type.props), Object.freeze(type));\n      return type;\n    }\n    function cloneAndReplaceKey(oldElement, newKey) {\n      newKey = ReactElement(\n        oldElement.type,\n        newKey,\n        oldElement.props,\n        oldElement._owner,\n        oldElement._debugStack,\n        oldElement._debugTask\n      );\n      oldElement._store &&\n        (newKey._store.validated = oldElement._store.validated);\n      return newKey;\n    }\n    function validateChildKeys(node) {\n      isValidElement(node)\n        ? node._store && (node._store.validated = 1)\n        : \"object\" === typeof node &&\n          null !== node &&\n          node.$$typeof === REACT_LAZY_TYPE &&\n          (\"fulfilled\" === node._payload.status\n            ? isValidElement(node._payload.value) &&\n              node._payload.value._store &&\n              (node._payload.value._store.validated = 1)\n            : node._store && (node._store.validated = 1));\n    }\n    function isValidElement(object) {\n      return (\n        \"object\" === typeof object &&\n        null !== object &&\n        object.$$typeof === REACT_ELEMENT_TYPE\n      );\n    }\n    function escape(key) {\n      var escaperLookup = { \"=\": \"=0\", \":\": \"=2\" };\n      return (\n        \"$\" +\n        key.replace(/[=:]/g, function (match) {\n          return escaperLookup[match];\n        })\n      );\n    }\n    function getElementKey(element, index) {\n      return \"object\" === typeof element &&\n        null !== element &&\n        null != element.key\n        ? (checkKeyStringCoercion(element.key), escape(\"\" + element.key))\n        : index.toString(36);\n    }\n    function resolveThenable(thenable) {\n      switch (thenable.status) {\n        case \"fulfilled\":\n          return thenable.value;\n        case \"rejected\":\n          throw thenable.reason;\n        default:\n          switch (\n            (\"string\" === typeof thenable.status\n              ? thenable.then(noop, noop)\n              : ((thenable.status = \"pending\"),\n                thenable.then(\n                  function (fulfilledValue) {\n                    \"pending\" === thenable.status &&\n                      ((thenable.status = \"fulfilled\"),\n                      (thenable.value = fulfilledValue));\n                  },\n                  function (error) {\n                    \"pending\" === thenable.status &&\n                      ((thenable.status = \"rejected\"),\n                      (thenable.reason = error));\n                  }\n                )),\n            thenable.status)\n          ) {\n            case \"fulfilled\":\n              return thenable.value;\n            case \"rejected\":\n              throw thenable.reason;\n          }\n      }\n      throw thenable;\n    }\n    function mapIntoArray(children, array, escapedPrefix, nameSoFar, callback) {\n      var type = typeof children;\n      if (\"undefined\" === type || \"boolean\" === type) children = null;\n      var invokeCallback = !1;\n      if (null === children) invokeCallback = !0;\n      else\n        switch (type) {\n          case \"bigint\":\n          case \"string\":\n          case \"number\":\n            invokeCallback = !0;\n            break;\n          case \"object\":\n            switch (children.$$typeof) {\n              case REACT_ELEMENT_TYPE:\n              case REACT_PORTAL_TYPE:\n                invokeCallback = !0;\n                break;\n              case REACT_LAZY_TYPE:\n                return (\n                  (invokeCallback = children._init),\n                  mapIntoArray(\n                    invokeCallback(children._payload),\n                    array,\n                    escapedPrefix,\n                    nameSoFar,\n                    callback\n                  )\n                );\n            }\n        }\n      if (invokeCallback) {\n        invokeCallback = children;\n        callback = callback(invokeCallback);\n        var childKey =\n          \"\" === nameSoFar ? \".\" + getElementKey(invokeCallback, 0) : nameSoFar;\n        isArrayImpl(callback)\n          ? ((escapedPrefix = \"\"),\n            null != childKey &&\n              (escapedPrefix =\n                childKey.replace(userProvidedKeyEscapeRegex, \"$&/\") + \"/\"),\n            mapIntoArray(callback, array, escapedPrefix, \"\", function (c) {\n              return c;\n            }))\n          : null != callback &&\n            (isValidElement(callback) &&\n              (null != callback.key &&\n                ((invokeCallback && invokeCallback.key === callback.key) ||\n                  checkKeyStringCoercion(callback.key)),\n              (escapedPrefix = cloneAndReplaceKey(\n                callback,\n                escapedPrefix +\n                  (null == callback.key ||\n                  (invokeCallback && invokeCallback.key === callback.key)\n                    ? \"\"\n                    : (\"\" + callback.key).replace(\n                        userProvidedKeyEscapeRegex,\n                        \"$&/\"\n                      ) + \"/\") +\n                  childKey\n              )),\n              \"\" !== nameSoFar &&\n                null != invokeCallback &&\n                isValidElement(invokeCallback) &&\n                null == invokeCallback.key &&\n                invokeCallback._store &&\n                !invokeCallback._store.validated &&\n                (escapedPrefix._store.validated = 2),\n              (callback = escapedPrefix)),\n            array.push(callback));\n        return 1;\n      }\n      invokeCallback = 0;\n      childKey = \"\" === nameSoFar ? \".\" : nameSoFar + \":\";\n      if (isArrayImpl(children))\n        for (var i = 0; i < children.length; i++)\n          (nameSoFar = children[i]),\n            (type = childKey + getElementKey(nameSoFar, i)),\n            (invokeCallback += mapIntoArray(\n              nameSoFar,\n              array,\n              escapedPrefix,\n              type,\n              callback\n            ));\n      else if (((i = getIteratorFn(children)), \"function\" === typeof i))\n        for (\n          i === children.entries &&\n            (didWarnAboutMaps ||\n              console.warn(\n                \"Using Maps as children is not supported. Use an array of keyed ReactElements instead.\"\n              ),\n            (didWarnAboutMaps = !0)),\n            children = i.call(children),\n            i = 0;\n          !(nameSoFar = children.next()).done;\n\n        )\n          (nameSoFar = nameSoFar.value),\n            (type = childKey + getElementKey(nameSoFar, i++)),\n            (invokeCallback += mapIntoArray(\n              nameSoFar,\n              array,\n              escapedPrefix,\n              type,\n              callback\n            ));\n      else if (\"object\" === type) {\n        if (\"function\" === typeof children.then)\n          return mapIntoArray(\n            resolveThenable(children),\n            array,\n            escapedPrefix,\n            nameSoFar,\n            callback\n          );\n        array = String(children);\n        throw Error(\n          \"Objects are not valid as a React child (found: \" +\n            (\"[object Object]\" === array\n              ? \"object with keys {\" + Object.keys(children).join(\", \") + \"}\"\n              : array) +\n            \"). If you meant to render a collection of children, use an array instead.\"\n        );\n      }\n      return invokeCallback;\n    }\n    function mapChildren(children, func, context) {\n      if (null == children) return children;\n      var result = [],\n        count = 0;\n      mapIntoArray(children, result, \"\", \"\", function (child) {\n        return func.call(context, child, count++);\n      });\n      return result;\n    }\n    function lazyInitializer(payload) {\n      if (-1 === payload._status) {\n        var ioInfo = payload._ioInfo;\n        null != ioInfo && (ioInfo.start = ioInfo.end = performance.now());\n        ioInfo = payload._result;\n        var thenable = ioInfo();\n        thenable.then(\n          function (moduleObject) {\n            if (0 === payload._status || -1 === payload._status) {\n              payload._status = 1;\n              payload._result = moduleObject;\n              var _ioInfo = payload._ioInfo;\n              null != _ioInfo && (_ioInfo.end = performance.now());\n              void 0 === thenable.status &&\n                ((thenable.status = \"fulfilled\"),\n                (thenable.value = moduleObject));\n            }\n          },\n          function (error) {\n            if (0 === payload._status || -1 === payload._status) {\n              payload._status = 2;\n              payload._result = error;\n              var _ioInfo2 = payload._ioInfo;\n              null != _ioInfo2 && (_ioInfo2.end = performance.now());\n              void 0 === thenable.status &&\n                ((thenable.status = \"rejected\"), (thenable.reason = error));\n            }\n          }\n        );\n        ioInfo = payload._ioInfo;\n        if (null != ioInfo) {\n          ioInfo.value = thenable;\n          var displayName = thenable.displayName;\n          \"string\" === typeof displayName && (ioInfo.name = displayName);\n        }\n        -1 === payload._status &&\n          ((payload._status = 0), (payload._result = thenable));\n      }\n      if (1 === payload._status)\n        return (\n          (ioInfo = payload._result),\n          void 0 === ioInfo &&\n            console.error(\n              \"lazy: Expected the result of a dynamic import() call. Instead received: %s\\n\\nYour code should look like: \\n  const MyComponent = lazy(() => import('./MyComponent'))\\n\\nDid you accidentally put curly braces around the import?\",\n              ioInfo\n            ),\n          \"default\" in ioInfo ||\n            console.error(\n              \"lazy: Expected the result of a dynamic import() call. Instead received: %s\\n\\nYour code should look like: \\n  const MyComponent = lazy(() => import('./MyComponent'))\",\n              ioInfo\n            ),\n          ioInfo.default\n        );\n      throw payload._result;\n    }\n    function resolveDispatcher() {\n      var dispatcher = ReactSharedInternals.H;\n      null === dispatcher &&\n        console.error(\n          \"Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:\\n1. You might have mismatching versions of React and the renderer (such as React DOM)\\n2. You might be breaking the Rules of Hooks\\n3. You might have more than one copy of React in the same app\\nSee https://react.dev/link/invalid-hook-call for tips about how to debug and fix this problem.\"\n        );\n      return dispatcher;\n    }\n    function releaseAsyncTransition() {\n      ReactSharedInternals.asyncTransitions--;\n    }\n    function enqueueTask(task) {\n      if (null === enqueueTaskImpl)\n        try {\n          var requireString = (\"require\" + Math.random()).slice(0, 7);\n          enqueueTaskImpl = (module && module[requireString]).call(\n            module,\n            \"timers\"\n          ).setImmediate;\n        } catch (_err) {\n          enqueueTaskImpl = function (callback) {\n            !1 === didWarnAboutMessageChannel &&\n              ((didWarnAboutMessageChannel = !0),\n              \"undefined\" === typeof MessageChannel &&\n                console.error(\n                  \"This browser does not have a MessageChannel implementation, so enqueuing tasks via await act(async () => ...) will fail. Please file an issue at https://github.com/facebook/react/issues if you encounter this warning.\"\n                ));\n            var channel = new MessageChannel();\n            channel.port1.onmessage = callback;\n            channel.port2.postMessage(void 0);\n          };\n        }\n      return enqueueTaskImpl(task);\n    }\n    function aggregateErrors(errors) {\n      return 1 < errors.length && \"function\" === typeof AggregateError\n        ? new AggregateError(errors)\n        : errors[0];\n    }\n    function popActScope(prevActQueue, prevActScopeDepth) {\n      prevActScopeDepth !== actScopeDepth - 1 &&\n        console.error(\n          \"You seem to have overlapping act() calls, this is not supported. Be sure to await previous act() calls before making a new one. \"\n        );\n      actScopeDepth = prevActScopeDepth;\n    }\n    function recursivelyFlushAsyncActWork(returnValue, resolve, reject) {\n      var queue = ReactSharedInternals.actQueue;\n      if (null !== queue)\n        if (0 !== queue.length)\n          try {\n            flushActQueue(queue);\n            enqueueTask(function () {\n              return recursivelyFlushAsyncActWork(returnValue, resolve, reject);\n            });\n            return;\n          } catch (error) {\n            ReactSharedInternals.thrownErrors.push(error);\n          }\n        else ReactSharedInternals.actQueue = null;\n      0 < ReactSharedInternals.thrownErrors.length\n        ? ((queue = aggregateErrors(ReactSharedInternals.thrownErrors)),\n          (ReactSharedInternals.thrownErrors.length = 0),\n          reject(queue))\n        : resolve(returnValue);\n    }\n    function flushActQueue(queue) {\n      if (!isFlushing) {\n        isFlushing = !0;\n        var i = 0;\n        try {\n          for (; i < queue.length; i++) {\n            var callback = queue[i];\n            do {\n              ReactSharedInternals.didUsePromise = !1;\n              var continuation = callback(!1);\n              if (null !== continuation) {\n                if (ReactSharedInternals.didUsePromise) {\n                  queue[i] = callback;\n                  queue.splice(0, i);\n                  return;\n                }\n                callback = continuation;\n              } else break;\n            } while (1);\n          }\n          queue.length = 0;\n        } catch (error) {\n          queue.splice(0, i + 1), ReactSharedInternals.thrownErrors.push(error);\n        } finally {\n          isFlushing = !1;\n        }\n      }\n    }\n    \"undefined\" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ &&\n      \"function\" ===\n        typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart &&\n      __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());\n    var REACT_ELEMENT_TYPE = Symbol.for(\"react.transitional.element\"),\n      REACT_PORTAL_TYPE = Symbol.for(\"react.portal\"),\n      REACT_FRAGMENT_TYPE = Symbol.for(\"react.fragment\"),\n      REACT_STRICT_MODE_TYPE = Symbol.for(\"react.strict_mode\"),\n      REACT_PROFILER_TYPE = Symbol.for(\"react.profiler\"),\n      REACT_CONSUMER_TYPE = Symbol.for(\"react.consumer\"),\n      REACT_CONTEXT_TYPE = Symbol.for(\"react.context\"),\n      REACT_FORWARD_REF_TYPE = Symbol.for(\"react.forward_ref\"),\n      REACT_SUSPENSE_TYPE = Symbol.for(\"react.suspense\"),\n      REACT_SUSPENSE_LIST_TYPE = Symbol.for(\"react.suspense_list\"),\n      REACT_MEMO_TYPE = Symbol.for(\"react.memo\"),\n      REACT_LAZY_TYPE = Symbol.for(\"react.lazy\"),\n      REACT_ACTIVITY_TYPE = Symbol.for(\"react.activity\"),\n      MAYBE_ITERATOR_SYMBOL = Symbol.iterator,\n      didWarnStateUpdateForUnmountedComponent = {},\n      ReactNoopUpdateQueue = {\n        isMounted: function () {\n          return !1;\n        },\n        enqueueForceUpdate: function (publicInstance) {\n          warnNoop(publicInstance, \"forceUpdate\");\n        },\n        enqueueReplaceState: function (publicInstance) {\n          warnNoop(publicInstance, \"replaceState\");\n        },\n        enqueueSetState: function (publicInstance) {\n          warnNoop(publicInstance, \"setState\");\n        }\n      },\n      assign = Object.assign,\n      emptyObject = {};\n    Object.freeze(emptyObject);\n    Component.prototype.isReactComponent = {};\n    Component.prototype.setState = function (partialState, callback) {\n      if (\n        \"object\" !== typeof partialState &&\n        \"function\" !== typeof partialState &&\n        null != partialState\n      )\n        throw Error(\n          \"takes an object of state variables to update or a function which returns an object of state variables.\"\n        );\n      this.updater.enqueueSetState(this, partialState, callback, \"setState\");\n    };\n    Component.prototype.forceUpdate = function (callback) {\n      this.updater.enqueueForceUpdate(this, callback, \"forceUpdate\");\n    };\n    var deprecatedAPIs = {\n      isMounted: [\n        \"isMounted\",\n        \"Instead, make sure to clean up subscriptions and pending requests in componentWillUnmount to prevent memory leaks.\"\n      ],\n      replaceState: [\n        \"replaceState\",\n        \"Refactor your code to use setState instead (see https://github.com/facebook/react/issues/3236).\"\n      ]\n    };\n    for (fnName in deprecatedAPIs)\n      deprecatedAPIs.hasOwnProperty(fnName) &&\n        defineDeprecationWarning(fnName, deprecatedAPIs[fnName]);\n    ComponentDummy.prototype = Component.prototype;\n    deprecatedAPIs = PureComponent.prototype = new ComponentDummy();\n    deprecatedAPIs.constructor = PureComponent;\n    assign(deprecatedAPIs, Component.prototype);\n    deprecatedAPIs.isPureReactComponent = !0;\n    var isArrayImpl = Array.isArray,\n      REACT_CLIENT_REFERENCE = Symbol.for(\"react.client.reference\"),\n      ReactSharedInternals = {\n        H: null,\n        A: null,\n        T: null,\n        S: null,\n        actQueue: null,\n        asyncTransitions: 0,\n        isBatchingLegacy: !1,\n        didScheduleLegacyUpdate: !1,\n        didUsePromise: !1,\n        thrownErrors: [],\n        getCurrentStack: null,\n        recentlyCreatedOwnerStacks: 0\n      },\n      hasOwnProperty = Object.prototype.hasOwnProperty,\n      createTask = console.createTask\n        ? console.createTask\n        : function () {\n            return null;\n          };\n    deprecatedAPIs = {\n      react_stack_bottom_frame: function (callStackForError) {\n        return callStackForError();\n      }\n    };\n    var specialPropKeyWarningShown, didWarnAboutOldJSXRuntime;\n    var didWarnAboutElementRef = {};\n    var unknownOwnerDebugStack = deprecatedAPIs.react_stack_bottom_frame.bind(\n      deprecatedAPIs,\n      UnknownOwner\n    )();\n    var unknownOwnerDebugTask = createTask(getTaskName(UnknownOwner));\n    var didWarnAboutMaps = !1,\n      userProvidedKeyEscapeRegex = /\\/+/g,\n      reportGlobalError =\n        \"function\" === typeof reportError\n          ? reportError\n          : function (error) {\n              if (\n                \"object\" === typeof window &&\n                \"function\" === typeof window.ErrorEvent\n              ) {\n                var event = new window.ErrorEvent(\"error\", {\n                  bubbles: !0,\n                  cancelable: !0,\n                  message:\n                    \"object\" === typeof error &&\n                    null !== error &&\n                    \"string\" === typeof error.message\n                      ? String(error.message)\n                      : String(error),\n                  error: error\n                });\n                if (!window.dispatchEvent(event)) return;\n              } else if (\n                \"object\" === typeof process &&\n                \"function\" === typeof process.emit\n              ) {\n                process.emit(\"uncaughtException\", error);\n                return;\n              }\n              console.error(error);\n            },\n      didWarnAboutMessageChannel = !1,\n      enqueueTaskImpl = null,\n      actScopeDepth = 0,\n      didWarnNoAwaitAct = !1,\n      isFlushing = !1,\n      queueSeveralMicrotasks =\n        \"function\" === typeof queueMicrotask\n          ? function (callback) {\n              queueMicrotask(function () {\n                return queueMicrotask(callback);\n              });\n            }\n          : enqueueTask;\n    deprecatedAPIs = Object.freeze({\n      __proto__: null,\n      c: function (size) {\n        return resolveDispatcher().useMemoCache(size);\n      }\n    });\n    var fnName = {\n      map: mapChildren,\n      forEach: function (children, forEachFunc, forEachContext) {\n        mapChildren(\n          children,\n          function () {\n            forEachFunc.apply(this, arguments);\n          },\n          forEachContext\n        );\n      },\n      count: function (children) {\n        var n = 0;\n        mapChildren(children, function () {\n          n++;\n        });\n        return n;\n      },\n      toArray: function (children) {\n        return (\n          mapChildren(children, function (child) {\n            return child;\n          }) || []\n        );\n      },\n      only: function (children) {\n        if (!isValidElement(children))\n          throw Error(\n            \"React.Children.only expected to receive a single React element child.\"\n          );\n        return children;\n      }\n    };\n    exports.Activity = REACT_ACTIVITY_TYPE;\n    exports.Children = fnName;\n    exports.Component = Component;\n    exports.Fragment = REACT_FRAGMENT_TYPE;\n    exports.Profiler = REACT_PROFILER_TYPE;\n    exports.PureComponent = PureComponent;\n    exports.StrictMode = REACT_STRICT_MODE_TYPE;\n    exports.Suspense = REACT_SUSPENSE_TYPE;\n    exports.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE =\n      ReactSharedInternals;\n    exports.__COMPILER_RUNTIME = deprecatedAPIs;\n    exports.act = function (callback) {\n      var prevActQueue = ReactSharedInternals.actQueue,\n        prevActScopeDepth = actScopeDepth;\n      actScopeDepth++;\n      var queue = (ReactSharedInternals.actQueue =\n          null !== prevActQueue ? prevActQueue : []),\n        didAwaitActCall = !1;\n      try {\n        var result = callback();\n      } catch (error) {\n        ReactSharedInternals.thrownErrors.push(error);\n      }\n      if (0 < ReactSharedInternals.thrownErrors.length)\n        throw (\n          (popActScope(prevActQueue, prevActScopeDepth),\n          (callback = aggregateErrors(ReactSharedInternals.thrownErrors)),\n          (ReactSharedInternals.thrownErrors.length = 0),\n          callback)\n        );\n      if (\n        null !== result &&\n        \"object\" === typeof result &&\n        \"function\" === typeof result.then\n      ) {\n        var thenable = result;\n        queueSeveralMicrotasks(function () {\n          didAwaitActCall ||\n            didWarnNoAwaitAct ||\n            ((didWarnNoAwaitAct = !0),\n            console.error(\n              \"You called act(async () => ...) without await. This could lead to unexpected testing behaviour, interleaving multiple act calls and mixing their scopes. You should - await act(async () => ...);\"\n            ));\n        });\n        return {\n          then: function (resolve, reject) {\n            didAwaitActCall = !0;\n            thenable.then(\n              function (returnValue) {\n                popActScope(prevActQueue, prevActScopeDepth);\n                if (0 === prevActScopeDepth) {\n                  try {\n                    flushActQueue(queue),\n                      enqueueTask(function () {\n                        return recursivelyFlushAsyncActWork(\n                          returnValue,\n                          resolve,\n                          reject\n                        );\n                      });\n                  } catch (error$0) {\n                    ReactSharedInternals.thrownErrors.push(error$0);\n                  }\n                  if (0 < ReactSharedInternals.thrownErrors.length) {\n                    var _thrownError = aggregateErrors(\n                      ReactSharedInternals.thrownErrors\n                    );\n                    ReactSharedInternals.thrownErrors.length = 0;\n                    reject(_thrownError);\n                  }\n                } else resolve(returnValue);\n              },\n              function (error) {\n                popActScope(prevActQueue, prevActScopeDepth);\n                0 < ReactSharedInternals.thrownErrors.length\n                  ? ((error = aggregateErrors(\n                      ReactSharedInternals.thrownErrors\n                    )),\n                    (ReactSharedInternals.thrownErrors.length = 0),\n                    reject(error))\n                  : reject(error);\n              }\n            );\n          }\n        };\n      }\n      var returnValue$jscomp$0 = result;\n      popActScope(prevActQueue, prevActScopeDepth);\n      0 === prevActScopeDepth &&\n        (flushActQueue(queue),\n        0 !== queue.length &&\n          queueSeveralMicrotasks(function () {\n            didAwaitActCall ||\n              didWarnNoAwaitAct ||\n              ((didWarnNoAwaitAct = !0),\n              console.error(\n                \"A component suspended inside an `act` scope, but the `act` call was not awaited. When testing React components that depend on asynchronous data, you must await the result:\\n\\nawait act(() => ...)\"\n              ));\n          }),\n        (ReactSharedInternals.actQueue = null));\n      if (0 < ReactSharedInternals.thrownErrors.length)\n        throw (\n          ((callback = aggregateErrors(ReactSharedInternals.thrownErrors)),\n          (ReactSharedInternals.thrownErrors.length = 0),\n          callback)\n        );\n      return {\n        then: function (resolve, reject) {\n          didAwaitActCall = !0;\n          0 === prevActScopeDepth\n            ? ((ReactSharedInternals.actQueue = queue),\n              enqueueTask(function () {\n                return recursivelyFlushAsyncActWork(\n                  returnValue$jscomp$0,\n                  resolve,\n                  reject\n                );\n              }))\n            : resolve(returnValue$jscomp$0);\n        }\n      };\n    };\n    exports.cache = function (fn) {\n      return function () {\n        return fn.apply(null, arguments);\n      };\n    };\n    exports.cacheSignal = function () {\n      return null;\n    };\n    exports.captureOwnerStack = function () {\n      var getCurrentStack = ReactSharedInternals.getCurrentStack;\n      return null === getCurrentStack ? null : getCurrentStack();\n    };\n    exports.cloneElement = function (element, config, children) {\n      if (null === element || void 0 === element)\n        throw Error(\n          \"The argument must be a React element, but you passed \" +\n            element +\n            \".\"\n        );\n      var props = assign({}, element.props),\n        key = element.key,\n        owner = element._owner;\n      if (null != config) {\n        var JSCompiler_inline_result;\n        a: {\n          if (\n            hasOwnProperty.call(config, \"ref\") &&\n            (JSCompiler_inline_result = Object.getOwnPropertyDescriptor(\n              config,\n              \"ref\"\n            ).get) &&\n            JSCompiler_inline_result.isReactWarning\n          ) {\n            JSCompiler_inline_result = !1;\n            break a;\n          }\n          JSCompiler_inline_result = void 0 !== config.ref;\n        }\n        JSCompiler_inline_result && (owner = getOwner());\n        hasValidKey(config) &&\n          (checkKeyStringCoercion(config.key), (key = \"\" + config.key));\n        for (propName in config)\n          !hasOwnProperty.call(config, propName) ||\n            \"key\" === propName ||\n            \"__self\" === propName ||\n            \"__source\" === propName ||\n            (\"ref\" === propName && void 0 === config.ref) ||\n            (props[propName] = config[propName]);\n      }\n      var propName = arguments.length - 2;\n      if (1 === propName) props.children = children;\n      else if (1 < propName) {\n        JSCompiler_inline_result = Array(propName);\n        for (var i = 0; i < propName; i++)\n          JSCompiler_inline_result[i] = arguments[i + 2];\n        props.children = JSCompiler_inline_result;\n      }\n      props = ReactElement(\n        element.type,\n        key,\n        props,\n        owner,\n        element._debugStack,\n        element._debugTask\n      );\n      for (key = 2; key < arguments.length; key++)\n        validateChildKeys(arguments[key]);\n      return props;\n    };\n    exports.createContext = function (defaultValue) {\n      defaultValue = {\n        $$typeof: REACT_CONTEXT_TYPE,\n        _currentValue: defaultValue,\n        _currentValue2: defaultValue,\n        _threadCount: 0,\n        Provider: null,\n        Consumer: null\n      };\n      defaultValue.Provider = defaultValue;\n      defaultValue.Consumer = {\n        $$typeof: REACT_CONSUMER_TYPE,\n        _context: defaultValue\n      };\n      defaultValue._currentRenderer = null;\n      defaultValue._currentRenderer2 = null;\n      return defaultValue;\n    };\n    exports.createElement = function (type, config, children) {\n      for (var i = 2; i < arguments.length; i++)\n        validateChildKeys(arguments[i]);\n      i = {};\n      var key = null;\n      if (null != config)\n        for (propName in (didWarnAboutOldJSXRuntime ||\n          !(\"__self\" in config) ||\n          \"key\" in config ||\n          ((didWarnAboutOldJSXRuntime = !0),\n          console.warn(\n            \"Your app (or one of its dependencies) is using an outdated JSX transform. Update to the modern JSX transform for faster performance: https://react.dev/link/new-jsx-transform\"\n          )),\n        hasValidKey(config) &&\n          (checkKeyStringCoercion(config.key), (key = \"\" + config.key)),\n        config))\n          hasOwnProperty.call(config, propName) &&\n            \"key\" !== propName &&\n            \"__self\" !== propName &&\n            \"__source\" !== propName &&\n            (i[propName] = config[propName]);\n      var childrenLength = arguments.length - 2;\n      if (1 === childrenLength) i.children = children;\n      else if (1 < childrenLength) {\n        for (\n          var childArray = Array(childrenLength), _i = 0;\n          _i < childrenLength;\n          _i++\n        )\n          childArray[_i] = arguments[_i + 2];\n        Object.freeze && Object.freeze(childArray);\n        i.children = childArray;\n      }\n      if (type && type.defaultProps)\n        for (propName in ((childrenLength = type.defaultProps), childrenLength))\n          void 0 === i[propName] && (i[propName] = childrenLength[propName]);\n      key &&\n        defineKeyPropWarningGetter(\n          i,\n          \"function\" === typeof type\n            ? type.displayName || type.name || \"Unknown\"\n            : type\n        );\n      var propName = 1e4 > ReactSharedInternals.recentlyCreatedOwnerStacks++;\n      return ReactElement(\n        type,\n        key,\n        i,\n        getOwner(),\n        propName ? Error(\"react-stack-top-frame\") : unknownOwnerDebugStack,\n        propName ? createTask(getTaskName(type)) : unknownOwnerDebugTask\n      );\n    };\n    exports.createRef = function () {\n      var refObject = { current: null };\n      Object.seal(refObject);\n      return refObject;\n    };\n    exports.forwardRef = function (render) {\n      null != render && render.$$typeof === REACT_MEMO_TYPE\n        ? console.error(\n            \"forwardRef requires a render function but received a `memo` component. Instead of forwardRef(memo(...)), use memo(forwardRef(...)).\"\n          )\n        : \"function\" !== typeof render\n          ? console.error(\n              \"forwardRef requires a render function but was given %s.\",\n              null === render ? \"null\" : typeof render\n            )\n          : 0 !== render.length &&\n            2 !== render.length &&\n            console.error(\n              \"forwardRef render functions accept exactly two parameters: props and ref. %s\",\n              1 === render.length\n                ? \"Did you forget to use the ref parameter?\"\n                : \"Any additional parameter will be undefined.\"\n            );\n      null != render &&\n        null != render.defaultProps &&\n        console.error(\n          \"forwardRef render functions do not support defaultProps. Did you accidentally pass a React component?\"\n        );\n      var elementType = { $$typeof: REACT_FORWARD_REF_TYPE, render: render },\n        ownName;\n      Object.defineProperty(elementType, \"displayName\", {\n        enumerable: !1,\n        configurable: !0,\n        get: function () {\n          return ownName;\n        },\n        set: function (name) {\n          ownName = name;\n          render.name ||\n            render.displayName ||\n            (Object.defineProperty(render, \"name\", { value: name }),\n            (render.displayName = name));\n        }\n      });\n      return elementType;\n    };\n    exports.isValidElement = isValidElement;\n    exports.lazy = function (ctor) {\n      ctor = { _status: -1, _result: ctor };\n      var lazyType = {\n          $$typeof: REACT_LAZY_TYPE,\n          _payload: ctor,\n          _init: lazyInitializer\n        },\n        ioInfo = {\n          name: \"lazy\",\n          start: -1,\n          end: -1,\n          value: null,\n          owner: null,\n          debugStack: Error(\"react-stack-top-frame\"),\n          debugTask: console.createTask ? console.createTask(\"lazy()\") : null\n        };\n      ctor._ioInfo = ioInfo;\n      lazyType._debugInfo = [{ awaited: ioInfo }];\n      return lazyType;\n    };\n    exports.memo = function (type, compare) {\n      null == type &&\n        console.error(\n          \"memo: The first argument must be a component. Instead received: %s\",\n          null === type ? \"null\" : typeof type\n        );\n      compare = {\n        $$typeof: REACT_MEMO_TYPE,\n        type: type,\n        compare: void 0 === compare ? null : compare\n      };\n      var ownName;\n      Object.defineProperty(compare, \"displayName\", {\n        enumerable: !1,\n        configurable: !0,\n        get: function () {\n          return ownName;\n        },\n        set: function (name) {\n          ownName = name;\n          type.name ||\n            type.displayName ||\n            (Object.defineProperty(type, \"name\", { value: name }),\n            (type.displayName = name));\n        }\n      });\n      return compare;\n    };\n    exports.startTransition = function (scope) {\n      var prevTransition = ReactSharedInternals.T,\n        currentTransition = {};\n      currentTransition._updatedFibers = new Set();\n      ReactSharedInternals.T = currentTransition;\n      try {\n        var returnValue = scope(),\n          onStartTransitionFinish = ReactSharedInternals.S;\n        null !== onStartTransitionFinish &&\n          onStartTransitionFinish(currentTransition, returnValue);\n        \"object\" === typeof returnValue &&\n          null !== returnValue &&\n          \"function\" === typeof returnValue.then &&\n          (ReactSharedInternals.asyncTransitions++,\n          returnValue.then(releaseAsyncTransition, releaseAsyncTransition),\n          returnValue.then(noop, reportGlobalError));\n      } catch (error) {\n        reportGlobalError(error);\n      } finally {\n        null === prevTransition &&\n          currentTransition._updatedFibers &&\n          ((scope = currentTransition._updatedFibers.size),\n          currentTransition._updatedFibers.clear(),\n          10 < scope &&\n            console.warn(\n              \"Detected a large number of updates inside startTransition. If this is due to a subscription please re-write it to use React provided hooks. Otherwise concurrent mode guarantees are off the table.\"\n            )),\n          null !== prevTransition &&\n            null !== currentTransition.types &&\n            (null !== prevTransition.types &&\n              prevTransition.types !== currentTransition.types &&\n              console.error(\n                \"We expected inner Transitions to have transferred the outer types set and that you cannot add to the outer Transition while inside the inner.This is a bug in React.\"\n              ),\n            (prevTransition.types = currentTransition.types)),\n          (ReactSharedInternals.T = prevTransition);\n      }\n    };\n    exports.unstable_useCacheRefresh = function () {\n      return resolveDispatcher().useCacheRefresh();\n    };\n    exports.use = function (usable) {\n      return resolveDispatcher().use(usable);\n    };\n    exports.useActionState = function (action, initialState, permalink) {\n      return resolveDispatcher().useActionState(\n        action,\n        initialState,\n        permalink\n      );\n    };\n    exports.useCallback = function (callback, deps) {\n      return resolveDispatcher().useCallback(callback, deps);\n    };\n    exports.useContext = function (Context) {\n      var dispatcher = resolveDispatcher();\n      Context.$$typeof === REACT_CONSUMER_TYPE &&\n        console.error(\n          \"Calling useContext(Context.Consumer) is not supported and will cause bugs. Did you mean to call useContext(Context) instead?\"\n        );\n      return dispatcher.useContext(Context);\n    };\n    exports.useDebugValue = function (value, formatterFn) {\n      return resolveDispatcher().useDebugValue(value, formatterFn);\n    };\n    exports.useDeferredValue = function (value, initialValue) {\n      return resolveDispatcher().useDeferredValue(value, initialValue);\n    };\n    exports.useEffect = function (create, deps) {\n      null == create &&\n        console.warn(\n          \"React Hook useEffect requires an effect callback. Did you forget to pass a callback to the hook?\"\n        );\n      return resolveDispatcher().useEffect(create, deps);\n    };\n    exports.useEffectEvent = function (callback) {\n      return resolveDispatcher().useEffectEvent(callback);\n    };\n    exports.useId = function () {\n      return resolveDispatcher().useId();\n    };\n    exports.useImperativeHandle = function (ref, create, deps) {\n      return resolveDispatcher().useImperativeHandle(ref, create, deps);\n    };\n    exports.useInsertionEffect = function (create, deps) {\n      null == create &&\n        console.warn(\n          \"React Hook useInsertionEffect requires an effect callback. Did you forget to pass a callback to the hook?\"\n        );\n      return resolveDispatcher().useInsertionEffect(create, deps);\n    };\n    exports.useLayoutEffect = function (create, deps) {\n      null == create &&\n        console.warn(\n          \"React Hook useLayoutEffect requires an effect callback. Did you forget to pass a callback to the hook?\"\n        );\n      return resolveDispatcher().useLayoutEffect(create, deps);\n    };\n    exports.useMemo = function (create, deps) {\n      return resolveDispatcher().useMemo(create, deps);\n    };\n    exports.useOptimistic = function (passthrough, reducer) {\n      return resolveDispatcher().useOptimistic(passthrough, reducer);\n    };\n    exports.useReducer = function (reducer, initialArg, init) {\n      return resolveDispatcher().useReducer(reducer, initialArg, init);\n    };\n    exports.useRef = function (initialValue) {\n      return resolveDispatcher().useRef(initialValue);\n    };\n    exports.useState = function (initialState) {\n      return resolveDispatcher().useState(initialState);\n    };\n    exports.useSyncExternalStore = function (\n      subscribe,\n      getSnapshot,\n      getServerSnapshot\n    ) {\n      return resolveDispatcher().useSyncExternalStore(\n        subscribe,\n        getSnapshot,\n        getServerSnapshot\n      );\n    };\n    exports.useTransition = function () {\n      return resolveDispatcher().useTransition();\n    };\n    exports.version = \"19.2.7\";\n    \"undefined\" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ &&\n      \"function\" ===\n        typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop &&\n      __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());\n  })();\n","'use strict';\n\nif (process.env.NODE_ENV === 'production') {\n  module.exports = require('./cjs/react.production.js');\n} else {\n  module.exports = require('./cjs/react.development.js');\n}\n"],"mappings":"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","names":[],"x_google_ignoreList":[0,1]}
+import { invoke } from "/node_modules/.vite/deps/@tauri-apps_api_core.js?v=66e1eb93";
+import { writeTextFile, BaseDirectory } from "/node_modules/.vite/deps/@tauri-apps_plugin-fs.js?v=66e1eb93";
+import { listen } from "/node_modules/.vite/deps/@tauri-apps_api_event.js?v=66e1eb93";
+import { spawnDaemonJob, killWorkerJob } from "/src/lib/db/jobProcess.ts";
+import { detectTauriRuntime } from "/src/lib/tauri/platform.ts";
+import { isDebugMode } from "/src/lib/utils/debugMode.ts";
+export const FORCE_RUST_DRIVE = true;
+export const DRIVE_SERVE_JOB_ID_BASE = 992e3;
+export const DRIVE_SERVE_JOB_ID = 991003;
+export const API_SERVER_JOB_ID = 991005;
+export const CIRCUIT_BREAKER_THRESHOLD = 3;
+export const CIRCUIT_BREAKER_COOLDOWN_MS = 3e4;
+export const BACKOFF_DELAYS = [5e3, 1e4, 2e4];
+export const GRACEFUL_SHUTDOWN_MS = 200;
+const consecutiveFailures = {};
+const isTripped = {};
+const sessionErrors = {};
+const lastFailureTime = {};
+let activeJobId = DRIVE_SERVE_JOB_ID;
+function handleStderrLine(creds, line) {
+  const text = String(line || "").trim();
+  if (!text) return;
+  const lower = text.toLowerCase();
+  const key = credKey(creds);
+  const isPermanent = lower.includes("session not authorized") || lower.includes("unauthorized") || lower.includes("api_id/api_hash required") || lower.includes("api_id required") || lower.includes("api_hash required") || lower.includes("invalid api_id") || lower.includes("sessionpasswordneedederror") || lower.includes("authkeyunregisterederror") || lower.includes("passwordrequired") || lower.includes("authkeyerror");
+  if (isPermanent) {
+    console.error("[drive-serve] Permanent failure detected in stderr:", text);
+    sessionErrors[key] = text;
+    isTripped[key] = true;
+    lastFailureTime[key] = Date.now();
+    consecutiveFailures[key] = CIRCUIT_BREAKER_THRESHOLD;
+  }
+}
+function handleSpawnFailure(creds, code) {
+  const key = credKey(creds);
+  if (isTripped[key] && sessionErrors[key] && !sessionErrors[key].includes("Attempt")) {
+    return;
+  }
+  consecutiveFailures[key] = (consecutiveFailures[key] || 0) + 1;
+  lastFailureTime[key] = Date.now();
+  if (consecutiveFailures[key] >= CIRCUIT_BREAKER_THRESHOLD) {
+    isTripped[key] = true;
+    sessionErrors[key] = `Drive session failed to start after 3 attempts (Exit Code: ${code})`;
+    console.error(`[drive-serve] Circuit breaker tripped for ${key}: ${sessionErrors[key]}`);
+  } else {
+    sessionErrors[key] = `Drive session exited with code ${code} (Attempt ${consecutiveFailures[key]}/3)`;
+    console.warn(`[drive-serve] Spawn attempt failed (${consecutiveFailures[key]}/3) for ${key}`);
+  }
+}
+let child = null;
+let apiChild = null;
+let ready = false;
+let starting = null;
+let unsub = null;
+let unsubExit = null;
+let reqSeq = 0;
+const pending = /* @__PURE__ */ new Map();
+let activeCredsKey = "";
+let scheduledStop = null;
+let sessionGeneration = 0;
+let bootstrapLock = Promise.resolve(true);
+let mode = "main";
+let activePreviews = 0;
+let ghostReady = false;
+let ghostTimer = null;
+const GHOST_GRACE_MS = 3e4;
+function credKey(c) {
+  return `${c.session}|${c.apiId}`;
+}
+function sessionLeaseKey(creds) {
+  const input = `${creds.session}|${creds.apiId}`;
+  let h1 = 2166136261;
+  let h2 = 2654435769;
+  for (let i = 0; i < input.length; i++) {
+    const c = input.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 16777619) >>> 0;
+    h2 = Math.imul(h2 ^ c + i, 2246822507) >>> 0;
+  }
+  return `${h1.toString(16).padStart(8, "0")}${h2.toString(16).padStart(8, "0")}`;
+}
+async function hasTransferLease(creds) {
+  if (!detectTauriRuntime()) return false;
+  try {
+    return !!await invoke("get_worker_session_lease", {
+      sessionKeyHash: sessionLeaseKey(creds)
+    });
+  } catch {
+    return false;
+  }
+}
+export function isDriveSessionReadyFor(creds) {
+  if (FORCE_RUST_DRIVE && detectTauriRuntime()) {
+    return !!creds && (!activeCredsKey || activeCredsKey === credKey(creds));
+  }
+  return !!creds && ready && activeCredsKey === credKey(creds);
+}
+const listeners = /* @__PURE__ */ new Set();
+const workerLog = [];
+let workerLogFlushTimer = null;
+function pushWorkerLog(line) {
+  if (!isDebugMode()) {
+    if (workerLog.length > 0) {
+      workerLog.length = 0;
+    }
+    return;
+  }
+  try {
+    const ts = (/* @__PURE__ */ new Date()).toISOString();
+    workerLog.push(`${ts} ${String(line || "")}`);
+    if (workerLog.length > 5e3) workerLog.shift();
+    if (workerLogFlushTimer == null) {
+      workerLogFlushTimer = window.setTimeout(flushWorkerLogToFile, 1e4);
+    }
+  } catch {
+  }
+}
+async function flushWorkerLogToFile() {
+  try {
+    if (workerLogFlushTimer != null) {
+      clearTimeout(workerLogFlushTimer);
+      workerLogFlushTimer = null;
+    }
+    if (!isDebugMode()) {
+      workerLog.length = 0;
+      return;
+    }
+    if (!workerLog.length) return;
+    const contents = workerLog.join("\n") + "\n";
+    try {
+      await writeTextFile("AutoGram/drive-worker.log", contents, {
+        baseDir: BaseDirectory.AppLocalData
+      });
+    } catch (e) {
+      console.warn("[drive-serve] failed to write worker log:", e);
+    }
+  } catch {
+  }
+}
+export function addDriveEventListener(l) {
+  listeners.add(l);
+  return () => {
+    listeners.delete(l);
+  };
+}
+function settleLine(line) {
+  const text = String(line || "").trim();
+  if (!text.startsWith("{")) return;
+  try {
+    const msg = JSON.parse(text);
+    if (msg.type === "ready") {
+      ready = true;
+      return;
+    }
+    if (msg.type === "index_progress" || msg.type === "index_complete" || msg.type === "update" || msg.type === "pts_update") {
+      listeners.forEach((l) => l(msg));
+      return;
+    }
+    const id = msg.id != null ? String(msg.id) : "";
+    if (!id || !pending.has(id)) return;
+    const p = pending.get(id);
+    pending.delete(id);
+    clearTimeout(p.timer);
+    if (msg.ok === false) {
+      p.reject(new Error(msg.error || "Drive serve error"));
+    } else {
+      p.resolve(msg.result);
+    }
+  } catch {
+  }
+}
+async function writeStdin(line) {
+  if (!detectTauriRuntime()) throw new Error("drive-serve requires desktop app");
+  await invoke("write_worker_stdin", { jobId: activeJobId, line });
+}
+export function isDriveSessionReady() {
+  if (FORCE_RUST_DRIVE && detectTauriRuntime()) return true;
+  return ready;
+}
+export function registerPreviewOpen(creds) {
+  const key = credKey(creds);
+  if (activeCredsKey !== key) return;
+  activePreviews++;
+  cancelGhostTransition();
+}
+export function registerPreviewClose(creds) {
+  const key = credKey(creds);
+  if (activeCredsKey !== key) return;
+  activePreviews = Math.max(0, activePreviews - 1);
+  if (activePreviews === 0 && mode === "ghost") {
+    scheduleGhostToMainTransition(creds);
+  }
+}
+export function isGhostSessionReady(creds) {
+  const key = credKey(creds);
+  return activeCredsKey === key && mode === "ghost" && ghostReady;
+}
+export function isPreviewActive() {
+  return mode === "ghost" || mode === "ghost-starting" || activePreviews > 0;
+}
+function scheduleGhostToMainTransition(creds) {
+  cancelGhostTransition();
+  ghostTimer = setTimeout(async () => {
+    if (activePreviews > 0 || mode !== "ghost") return;
+    try {
+      await invoke("cleanup_ghost_session", { sessionName: creds.session });
+    } catch (e) {
+      console.warn("[GhostSession] Cleanup failed:", e);
+    }
+    await ensureDriveSession(creds, false);
+  }, GHOST_GRACE_MS);
+}
+function cancelGhostTransition() {
+  if (ghostTimer) {
+    clearTimeout(ghostTimer);
+    ghostTimer = null;
+  }
+}
+async function spawnGhostSession(creds) {
+  if (!detectTauriRuntime()) return false;
+  const key = credKey(creds);
+  try {
+    mode = "ghost-starting";
+    ghostReady = false;
+    activeJobId = DRIVE_SERVE_JOB_ID;
+    await invoke("ensure_ghost_session", { sessionName: creds.session });
+    await stopDriveSession();
+    await new Promise((resolve) => setTimeout(resolve, GRACEFUL_SHUTDOWN_MS));
+    const generation = ++sessionGeneration;
+    activeCredsKey = key;
+    ready = false;
+    const settleCurrentLine = (line) => {
+      if (generation === sessionGeneration) {
+        settleLine(line);
+        if (ready) {
+          const k = credKey(creds);
+          consecutiveFailures[k] = 0;
+          delete sessionErrors[k];
+        }
+      }
+    };
+    const unsubs = [];
+    let processAssigned = false;
+    let startupReject = null;
+    let onReadyCheck = null;
+    let t = null;
+    const cleanStartupTimers = () => {
+      if (onReadyCheck) {
+        clearInterval(onReadyCheck);
+        onReadyCheck = null;
+      }
+      if (t) {
+        clearTimeout(t);
+        t = null;
+      }
+    };
+    unsub = await listen("worker-line", (ev) => {
+      const p = ev.payload;
+      const jid = p?.jobId ?? p?.job_id;
+      if (Number(jid) !== DRIVE_SERVE_JOB_ID) return;
+      if (generation !== sessionGeneration) return;
+      try {
+        pushWorkerLog(`[ghost ${String(p.stream || "")}] ${String(p.line || "")}`);
+      } catch {
+      }
+      if (p.stream === "stderr") {
+        console.warn("[drive-serve-ghost]", p.line);
+        handleStderrLine(creds, p.line);
+      } else {
+        settleCurrentLine(p.line);
+      }
+    });
+    unsubs.push(unsub);
+    const uStderr = await listen("worker-stderr", (ev) => {
+      if (generation !== sessionGeneration) return;
+      handleStderrLine(creds, ev.payload);
+    });
+    unsubs.push(uStderr);
+    unsubExit = await listen("worker-exit", (ev) => {
+      const p = ev.payload;
+      const jid = p?.jobId ?? p?.job_id;
+      if (Number(jid) !== DRIVE_SERVE_JOB_ID) return;
+      if (generation !== sessionGeneration) return;
+      if (!processAssigned) return;
+      const wasReady = ready;
+      ready = false;
+      const markEnded = () => {
+        if (generation !== sessionGeneration) return;
+        ready = false;
+        child = null;
+        for (const [, pend] of pending) {
+          clearTimeout(pend.timer);
+          const err = new Error("Drive session ended");
+          err.code = "DRIVE_SESSION_ENDED";
+          pend.reject(err);
+        }
+        pending.clear();
+      };
+      if (!wasReady) {
+        cleanStartupTimers();
+        if (startupReject) {
+          startupReject(new Error(`Drive session process exited during startup with code ${p.code}`));
+        }
+        handleSpawnFailure(creds, p.code);
+        return;
+      }
+      if (p.code !== 0) {
+        console.error("[drive-serve] Worker exited with code", p.code, "generation", generation, "activeCredsKey", activeCredsKey);
+        handleSpawnFailure(creds, p.code);
+      } else {
+        console.warn("[drive-serve] Worker exited gracefully (code 0) post-startup", { code: p.code, generation, activeCredsKey });
+        const k = credKey(creds);
+        consecutiveFailures[k] = 0;
+      }
+      try {
+        pushWorkerLog(`[worker-exit] code=${p.code} generation=${generation} activeCreds=${activeCredsKey}`);
+        void flushWorkerLogToFile();
+      } catch {
+      }
+      markEnded();
+    });
+    unsubs.push(unsubExit);
+    await new Promise((resolve, reject) => {
+      startupReject = reject;
+      t = setTimeout(() => {
+        cleanStartupTimers();
+        reject(new Error("Ghost drive session start timeout"));
+      }, 2e4);
+      onReadyCheck = setInterval(() => {
+        if (ready && processAssigned) {
+          cleanStartupTimers();
+          resolve();
+        }
+      }, 120);
+      spawnDaemonJob({
+        jobId: DRIVE_SERVE_JOB_ID,
+        args: [
+          "--action",
+          "drive-serve",
+          "--session",
+          `${creds.session}_preview`,
+          "--api-id",
+          String(creds.apiId),
+          "--api-hash",
+          String(creds.apiHash)
+        ],
+        pipeStdin: true,
+        allowShellFallback: false,
+        onStdoutLine: (line) => {
+          settleCurrentLine(line);
+          if (ready && processAssigned) {
+            cleanStartupTimers();
+            resolve();
+          }
+        },
+        onStderrLine: (line) => console.warn("[drive-serve-ghost]", line),
+        onClose: () => void 0
+      }).then((c) => {
+        child = {
+          ...c,
+          dispose: () => {
+            unsubs.forEach((u) => {
+              try {
+                u();
+              } catch {
+              }
+            });
+            c.dispose?.();
+          }
+        };
+        processAssigned = true;
+        if (ready) {
+          cleanStartupTimers();
+          resolve();
+        }
+      }).catch((e) => {
+        if (onReadyCheck) clearInterval(onReadyCheck);
+        if (t) clearTimeout(t);
+        reject(e);
+      });
+    });
+    mode = "ghost";
+    ghostReady = true;
+    return true;
+  } catch (err) {
+    console.error("[GhostSession] Failed to spawn ghost:", err);
+    mode = "main";
+    ghostReady = false;
+    return await spawnMainSession(creds);
+  }
+}
+async function spawnApiServer(creds) {
+  if (!detectTauriRuntime()) return;
+  try {
+    await killWorkerJob(API_SERVER_JOB_ID);
+  } catch {
+  }
+  console.log("[API-SERVER] Spawning FastAPI server on port 8550...");
+  try {
+    const c = await spawnDaemonJob({
+      jobId: API_SERVER_JOB_ID,
+      args: [
+        "--action",
+        "api-server",
+        "--port",
+        "8550",
+        "--session",
+        creds.session,
+        "--api-id",
+        String(creds.apiId),
+        "--api-hash",
+        String(creds.apiHash)
+      ],
+      allowShellFallback: false,
+      onStdoutLine: (line) => console.log("[API-SERVER stdout]", line),
+      onStderrLine: (line) => console.warn("[API-SERVER stderr]", line),
+      onClose: () => {
+        apiChild = null;
+        console.log("[API-SERVER] FastAPI server stopped.");
+      }
+    });
+    apiChild = c;
+  } catch (err) {
+    console.error("[API-SERVER] Failed to spawn FastAPI server:", err);
+  }
+}
+async function spawnMainSession(creds) {
+  if (!detectTauriRuntime()) return false;
+  const key = credKey(creds);
+  try {
+    mode = "main";
+    ghostReady = false;
+    await stopDriveSession();
+    await new Promise((resolve) => setTimeout(resolve, GRACEFUL_SHUTDOWN_MS));
+    try {
+      await invoke("cleanup_ghost_session", { sessionName: creds.session });
+    } catch (e) {
+      console.warn("[drive-serve] cleanup_ghost_session failed:", e);
+    }
+    const generation = ++sessionGeneration;
+    activeJobId = DRIVE_SERVE_JOB_ID_BASE + generation % 1e3;
+    const currentActiveJobId = activeJobId;
+    activeCredsKey = key;
+    ready = false;
+    const settleCurrentLine = (line) => {
+      if (generation === sessionGeneration) {
+        settleLine(line);
+        if (ready) {
+          const k = credKey(creds);
+          consecutiveFailures[k] = 0;
+          delete sessionErrors[k];
+        }
+      }
+    };
+    const unsubs = [];
+    let processAssigned = false;
+    let startupReject = null;
+    let onReadyCheck = null;
+    let t = null;
+    const cleanStartupTimers = () => {
+      if (onReadyCheck) {
+        clearInterval(onReadyCheck);
+        onReadyCheck = null;
+      }
+      if (t) {
+        clearTimeout(t);
+        t = null;
+      }
+    };
+    unsub = await listen("worker-line", (ev) => {
+      const p = ev.payload;
+      const jid = p?.jobId ?? p?.job_id;
+      if (Number(jid) !== currentActiveJobId) return;
+      if (generation !== sessionGeneration) return;
+      try {
+        pushWorkerLog(`[main ${String(p.stream || "")}] ${String(p.line || "")}`);
+      } catch {
+      }
+      if (p.stream === "stderr") {
+        console.warn("[drive-serve]", p.line);
+        handleStderrLine(creds, p.line);
+      } else {
+        settleCurrentLine(p.line);
+      }
+    });
+    unsubs.push(unsub);
+    const uStderr = await listen("worker-stderr", (ev) => {
+      if (generation !== sessionGeneration) return;
+      handleStderrLine(creds, ev.payload);
+    });
+    unsubs.push(uStderr);
+    unsubExit = await listen("worker-exit", (ev) => {
+      const p = ev.payload;
+      const jid = p?.jobId ?? p?.job_id;
+      if (Number(jid) !== currentActiveJobId) return;
+      if (generation !== sessionGeneration) return;
+      if (!processAssigned) return;
+      const wasReady = ready;
+      ready = false;
+      const markEnded = () => {
+        if (generation !== sessionGeneration) return;
+        ready = false;
+        child = null;
+        for (const [, pend] of pending) {
+          clearTimeout(pend.timer);
+          const err = new Error("Drive session ended");
+          err.code = "DRIVE_SESSION_ENDED";
+          pend.reject(err);
+        }
+        pending.clear();
+      };
+      if (!wasReady) {
+        cleanStartupTimers();
+        if (startupReject) {
+          startupReject(new Error(`Drive session process exited during startup with code ${p.code}`));
+        }
+        handleSpawnFailure(creds, p.code);
+        return;
+      }
+      if (p.code !== 0) {
+        console.error("[drive-serve] Worker exited with code", p.code, "generation", generation, "activeCredsKey", activeCredsKey);
+        handleSpawnFailure(creds, p.code);
+      } else {
+        console.warn("[drive-serve] Worker exited gracefully (code 0) post-startup", { code: p.code, generation, activeCredsKey });
+        const k = credKey(creds);
+        consecutiveFailures[k] = 0;
+      }
+      try {
+        pushWorkerLog(`[worker-exit] code=${p.code} generation=${generation} activeCreds=${activeCredsKey}`);
+        void flushWorkerLogToFile();
+      } catch {
+      }
+      markEnded();
+    });
+    unsubs.push(unsubExit);
+    await new Promise((resolve, reject) => {
+      startupReject = reject;
+      t = setTimeout(() => {
+        cleanStartupTimers();
+        reject(new Error("Drive session start timeout"));
+      }, 2e4);
+      onReadyCheck = setInterval(() => {
+        if (ready && processAssigned) {
+          cleanStartupTimers();
+          resolve();
+        }
+      }, 120);
+      spawnDaemonJob({
+        jobId: currentActiveJobId,
+        args: [
+          "--action",
+          "drive-serve",
+          "--session",
+          creds.session,
+          "--api-id",
+          String(creds.apiId),
+          "--api-hash",
+          String(creds.apiHash)
+        ],
+        pipeStdin: true,
+        allowShellFallback: false,
+        onStdoutLine: (line) => {
+          settleCurrentLine(line);
+          if (ready && processAssigned) {
+            cleanStartupTimers();
+            resolve();
+          }
+        },
+        onStderrLine: (line) => console.warn("[drive-serve]", line),
+        onClose: () => void 0
+      }).then((c) => {
+        child = {
+          ...c,
+          dispose: () => {
+            unsubs.forEach((u) => {
+              try {
+                u();
+              } catch {
+              }
+            });
+            c.dispose?.();
+          }
+        };
+        processAssigned = true;
+        if (ready) {
+          cleanStartupTimers();
+          resolve();
+        }
+      }).catch((e) => {
+        if (onReadyCheck) clearInterval(onReadyCheck);
+        if (t) clearTimeout(t);
+        reject(e);
+      });
+    });
+    void spawnApiServer(creds);
+    return true;
+  } catch (e) {
+    console.warn("[drive-serve] spawn main failed", e);
+    if (activeCredsKey === key) {
+      ready = false;
+      child = null;
+    }
+    return false;
+  }
+}
+export async function ensureDriveSession(creds, needPreview = false) {
+  if (FORCE_RUST_DRIVE && detectTauriRuntime()) {
+    cancelScheduledDriveSessionStop();
+    const key = credKey(creds);
+    if (child || apiChild || ready && activeCredsKey && activeCredsKey !== key) {
+      try {
+        await stopDriveSession();
+      } catch {
+      }
+    }
+    activeCredsKey = key;
+    ready = true;
+    mode = "main";
+    ghostReady = false;
+    return true;
+  }
+  const run = async () => {
+    cancelScheduledDriveSessionStop();
+    const key = credKey(creds);
+    if (isDriveSessionCircuitTripped(creds)) {
+      console.warn(`[drive-serve] Spawn blocked: Circuit breaker tripped for ${key}`);
+      return false;
+    }
+    const failures = consecutiveFailures[key] || 0;
+    if (failures > 0) {
+      const delay = BACKOFF_DELAYS[Math.min(failures - 1, BACKOFF_DELAYS.length - 1)];
+      const elapsed = Date.now() - (lastFailureTime[key] || 0);
+      if (elapsed < delay) {
+        const remaining = delay - elapsed;
+        console.log(`[drive-serve] Backoff active for ${key}. Waiting ${remaining}ms before spawning...`);
+        await new Promise((resolve) => setTimeout(resolve, remaining));
+      }
+    }
+    const transferLease = await hasTransferLease(creds);
+    if (!needPreview) {
+      if (transferLease) return false;
+      if (mode === "main" && isDriveSessionReadyFor(creds)) return true;
+    } else {
+      if (mode === "main" && isDriveSessionReadyFor(creds) && ready) {
+        return true;
+      }
+      if (mode === "ghost" && isDriveSessionReadyFor(creds) && ghostReady) {
+        cancelGhostTransition();
+        return true;
+      }
+    }
+    while (starting) {
+      const inFlight = starting;
+      try {
+        await inFlight;
+      } catch {
+      }
+      if (!needPreview && mode === "main" && isDriveSessionReadyFor(creds)) return true;
+      if (needPreview) {
+        if (mode === "main" && isDriveSessionReadyFor(creds) && ready) return true;
+        if (mode === "ghost" && isDriveSessionReadyFor(creds) && ghostReady) {
+          cancelGhostTransition();
+          return true;
+        }
+      }
+      if (starting === inFlight) break;
+    }
+    if (!detectTauriRuntime()) return false;
+    const leaseNow = await hasTransferLease(creds);
+    const startPromise = (async () => {
+      if (needPreview && leaseNow) {
+        await spawnGhostSession(creds);
+      } else if (leaseNow) {
+        return;
+      } else {
+        await spawnMainSession(creds);
+      }
+    })();
+    starting = startPromise;
+    try {
+      await startPromise;
+      if (needPreview) {
+        return mode === "ghost" && isDriveSessionReadyFor(creds) && ghostReady || mode === "main" && isDriveSessionReadyFor(creds) && ready;
+      }
+      return mode === "main" && isDriveSessionReadyFor(creds);
+    } catch (e) {
+      console.warn("[drive-serve] ensureDriveSession failed", e);
+      return false;
+    } finally {
+      if (starting === startPromise) {
+        starting = null;
+      }
+    }
+  };
+  const next = bootstrapLock.then(run, run);
+  bootstrapLock = next;
+  return next;
+}
+export function scheduleDriveSessionStop(delayMs = 750) {
+  cancelScheduledDriveSessionStop();
+  scheduledStop = setTimeout(() => {
+    scheduledStop = null;
+    void stopDriveSession();
+  }, Math.max(0, delayMs));
+}
+export function cancelScheduledDriveSessionStop() {
+  if (scheduledStop == null) return;
+  clearTimeout(scheduledStop);
+  scheduledStop = null;
+}
+export async function stopDriveSession() {
+  cancelScheduledDriveSessionStop();
+  cancelGhostTransition();
+  sessionGeneration += 1;
+  let quitRequested = false;
+  try {
+    if (ready) {
+      try {
+        await writeStdin(JSON.stringify({ id: "quit", cmd: "quit" }));
+        quitRequested = true;
+      } catch {
+      }
+    }
+  } finally {
+    ready = false;
+    mode = "main";
+    ghostReady = false;
+    activePreviews = 0;
+    for (const [, p] of pending) {
+      clearTimeout(p.timer);
+      const err = new Error("Drive session stopped");
+      err.code = "DRIVE_SESSION_STOPPED";
+      p.reject(err);
+    }
+    pending.clear();
+    if (quitRequested) {
+      await new Promise((resolve) => setTimeout(resolve, 320));
+    }
+    try {
+      await killWorkerJob(DRIVE_SERVE_JOB_ID);
+      await killWorkerJob(activeJobId);
+      if (child?.jobId) {
+        await killWorkerJob(child.jobId);
+      }
+    } catch {
+    }
+    try {
+      await killWorkerJob(API_SERVER_JOB_ID);
+    } catch {
+    }
+    try {
+      child?.dispose?.();
+    } catch {
+    }
+    try {
+      apiChild?.dispose?.();
+    } catch {
+    }
+    child = null;
+    apiChild = null;
+    activeCredsKey = "";
+    unsub = null;
+    unsubExit = null;
+  }
+}
+export async function driveSessionCallFor(creds, cmd, params = {}, timeoutMs = 12e4) {
+  if (FORCE_RUST_DRIVE && detectTauriRuntime()) {
+    const err = new Error(
+      `Telethon drive-serve dinonaktifkan (cmd=${cmd}). Gunakan Rust + Grammers.`
+    );
+    err.code = "TELETHON_DISABLED";
+    throw err;
+  }
+  const expected = credKey(creds);
+  const previewCmds = /* @__PURE__ */ new Set([
+    "preview",
+    "preview_stream",
+    "stream_preview",
+    "preview_warm",
+    "warm_preview",
+    "stream_status",
+    "preview_status",
+    "stop_stream",
+    "stream_stop",
+    "stream_seek",
+    "seek_stream",
+    "preview_seek"
+  ]);
+  const needPreview = mode === "ghost" || previewCmds.has(String(cmd || "").toLowerCase()) || activePreviews > 0;
+  const maxAttempts = 3;
+  let lastErr = null;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (!isDriveSessionReadyFor(creds)) {
+      const ok = await ensureDriveSession(creds, needPreview);
+      if (!ok || !isDriveSessionReadyFor(creds)) {
+        lastErr = new Error("Drive session is not ready for the selected account");
+        if (attempt < maxAttempts - 1) {
+          await new Promise((r) => setTimeout(r, 300 + attempt * 200));
+          continue;
+        }
+        throw lastErr;
+      }
+    }
+    if (!ready || activeCredsKey !== expected) {
+      lastErr = new Error("Drive session changed before request could start");
+      if (attempt < maxAttempts - 1) {
+        await new Promise((r) => setTimeout(r, 300 + attempt * 200));
+        continue;
+      }
+      throw lastErr;
+    }
+    try {
+      return await driveSessionCall(cmd, { ...params, __session_owner: expected }, timeoutMs, expected);
+    } catch (e) {
+      lastErr = e;
+      const msg = String(e?.message || "").toLowerCase();
+      const code = e?.code || "";
+      const isSessionErr = code === "DRIVE_SESSION_STOPPED" || code === "DRIVE_SESSION_ENDED" || /drive session stopped|drive session ended|drive session not ready|session not ready|drive session changed|no stdin for job|is drive-serve running/i.test(msg);
+      if (isSessionErr && attempt < maxAttempts - 1) {
+        try {
+          await ensureDriveSession(creds, needPreview);
+        } catch {
+        }
+        await new Promise((r) => setTimeout(r, 400 + attempt * 250));
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw lastErr;
+}
+export async function driveSessionCall(cmd, params = {}, timeoutMs = 12e4, expectedCredsKey = "") {
+  if (!ready) {
+    throw new Error("Drive session not ready");
+  }
+  if (expectedCredsKey && activeCredsKey !== expectedCredsKey) {
+    throw new Error("Drive session ownership changed");
+  }
+  const id = String(++reqSeq);
+  const { __session_owner: _sessionOwner, ...safeParams } = params;
+  const line = JSON.stringify({ id, cmd, ...safeParams });
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      pending.delete(id);
+      reject(new Error(`Drive RPC timeout: ${cmd}`));
+    }, timeoutMs);
+    pending.set(id, { resolve, reject, timer });
+    if (expectedCredsKey && activeCredsKey !== expectedCredsKey) {
+      pending.delete(id);
+      clearTimeout(timer);
+      reject(new Error("Drive session ownership changed before write"));
+      return;
+    }
+    writeStdin(line).catch((e) => {
+      pending.delete(id);
+      clearTimeout(timer);
+      ready = false;
+      reject(e);
+    });
+  });
+}
+export function getDriveSessionError(creds) {
+  const key = credKey(creds);
+  return sessionErrors[key] || null;
+}
+export function isDriveSessionCircuitTripped(creds) {
+  const key = credKey(creds);
+  if (isTripped[key]) {
+    const timeSinceLastFailure = Date.now() - (lastFailureTime[key] || 0);
+    if (timeSinceLastFailure > CIRCUIT_BREAKER_COOLDOWN_MS) {
+      isTripped[key] = false;
+      consecutiveFailures[key] = CIRCUIT_BREAKER_THRESHOLD - 1;
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
+export function resetDriveSessionCircuit(creds) {
+  const key = credKey(creds);
+  consecutiveFailures[key] = 0;
+  isTripped[key] = false;
+  delete sessionErrors[key];
+  delete lastFailureTime[key];
+}
+
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImRyaXZlU2Vzc2lvbi50cyJdLCJzb3VyY2VzQ29udGVudCI6WyIvKipcclxuICogRHJpdmUgc2Vzc2lvbiBib3VuZGFyeS5cclxuICpcclxuICogRk9SQ0UgUlVTVDogaW50ZXJhY3RpdmUgRHJpdmUgbm8gbG9uZ2VyIHNwYXducyBQeXRob24gVGVsZXRob24gYGRyaXZlLXNlcnZlYC5cclxuICogR3JhbW1lcnMgKFRhdXJpIGB0Z18qYCkgb3ducyBhbGwgTVRQcm90by4gVGhpcyBtb2R1bGUgc3RpbGwgZXhwb3NlcyByZWFkaW5lc3NcclxuICogaGVscGVycyBzbyBVSSBib290IHBhdGhzIHN0YXkgc3RhYmxlLCBhbmQgY2FuIGtpbGwgbGVmdG92ZXIgUHl0aG9uIHdvcmtlcnMuXHJcbiAqL1xyXG5pbXBvcnQgeyBpbnZva2UgfSBmcm9tICdAdGF1cmktYXBwcy9hcGkvY29yZSc7XHJcbmltcG9ydCB7IHdyaXRlVGV4dEZpbGUsIEJhc2VEaXJlY3RvcnkgfSBmcm9tICdAdGF1cmktYXBwcy9wbHVnaW4tZnMnO1xyXG5pbXBvcnQgeyBsaXN0ZW4sIHR5cGUgVW5saXN0ZW5GbiB9IGZyb20gJ0B0YXVyaS1hcHBzL2FwaS9ldmVudCc7XHJcbmltcG9ydCB7IHNwYXduRGFlbW9uSm9iLCBraWxsV29ya2VySm9iLCB0eXBlIEpvYkNoaWxkIH0gZnJvbSAnLi4vLi4vZGIvam9iUHJvY2Vzcyc7XHJcbmltcG9ydCB0eXBlIHsgRHJpdmVDcmVkZW50aWFscyB9IGZyb20gJy4uL2RyaXZlQXBpJztcclxuaW1wb3J0IHsgZGV0ZWN0VGF1cmlSdW50aW1lIH0gZnJvbSAnLi4vLi4vdGF1cmkvcGxhdGZvcm0nO1xyXG5pbXBvcnQgeyBpc0RlYnVnTW9kZSB9IGZyb20gJy4uLy4uL3V0aWxzL2RlYnVnTW9kZSc7XHJcblxyXG4vKiogSGFyZCBjdXRvdmVyOiBuZXZlciBzdGFydCBUZWxldGhvbiBkcml2ZS1zZXJ2ZSBvbiBkZXNrdG9wLiAqL1xyXG5leHBvcnQgY29uc3QgRk9SQ0VfUlVTVF9EUklWRSA9IHRydWU7XHJcblxyXG5leHBvcnQgY29uc3QgRFJJVkVfU0VSVkVfSk9CX0lEX0JBU0UgPSA5OTIwMDA7XHJcbmV4cG9ydCBjb25zdCBEUklWRV9TRVJWRV9KT0JfSUQgPSA5OTEwMDM7XHJcbmV4cG9ydCBjb25zdCBBUElfU0VSVkVSX0pPQl9JRCA9IDk5MTAwNTtcclxuXHJcbmV4cG9ydCBjb25zdCBDSVJDVUlUX0JSRUFLRVJfVEhSRVNIT0xEID0gMztcclxuZXhwb3J0IGNvbnN0IENJUkNVSVRfQlJFQUtFUl9DT09MRE9XTl9NUyA9IDMwMDAwOyAvLyAzMHNcclxuZXhwb3J0IGNvbnN0IEJBQ0tPRkZfREVMQVlTID0gWzUwMDAsIDEwMDAwLCAyMDAwMF07IC8vIDVzLCAxMHMsIDIwc1xyXG5leHBvcnQgY29uc3QgR1JBQ0VGVUxfU0hVVERPV05fTVMgPSAyMDA7IC8vIDIwMG1zIGZhc3Qgc2h1dGRvd24gZm9yIGluc3RhbnQgc2Vzc2lvbiBzd2l0Y2hpbmdcclxuXHJcbi8vIFNlc3Npb24ga2V5IC0+IGNvbnNlY3V0aXZlIGZhaWx1cmVzXHJcbmNvbnN0IGNvbnNlY3V0aXZlRmFpbHVyZXM6IFJlY29yZDxzdHJpbmcsIG51bWJlcj4gPSB7fTtcclxuLy8gU2Vzc2lvbiBrZXkgLT4gaXMgY2lyY3VpdCBicmVha2VyIHRyaXBwZWRcclxuY29uc3QgaXNUcmlwcGVkOiBSZWNvcmQ8c3RyaW5nLCBib29sZWFuPiA9IHt9O1xyXG4vLyBTZXNzaW9uIGtleSAtPiBlcnJvciBtZXNzYWdlIChjbGFzc2lmaWVkIHBlcm1hbmVudC9mYXRhbClcclxuY29uc3Qgc2Vzc2lvbkVycm9yczogUmVjb3JkPHN0cmluZywgc3RyaW5nPiA9IHt9O1xyXG4vLyBTZXNzaW9uIGtleSAtPiBsYXN0IGZhaWx1cmUgdGltZXN0YW1wXHJcbmNvbnN0IGxhc3RGYWlsdXJlVGltZTogUmVjb3JkPHN0cmluZywgbnVtYmVyPiA9IHt9O1xyXG5cclxubGV0IGFjdGl2ZUpvYklkID0gRFJJVkVfU0VSVkVfSk9CX0lEO1xyXG5cclxuZnVuY3Rpb24gaGFuZGxlU3RkZXJyTGluZShjcmVkczogRHJpdmVDcmVkZW50aWFscywgbGluZTogc3RyaW5nKSB7XHJcbiAgY29uc3QgdGV4dCA9IFN0cmluZyhsaW5lIHx8ICcnKS50cmltKCk7XHJcbiAgaWYgKCF0ZXh0KSByZXR1cm47XHJcbiAgY29uc3QgbG93ZXIgPSB0ZXh0LnRvTG93ZXJDYXNlKCk7XHJcbiAgY29uc3Qga2V5ID0gY3JlZEtleShjcmVkcyk7XHJcbiAgXHJcbiAgY29uc3QgaXNQZXJtYW5lbnQgPVxyXG4gICAgbG93ZXIuaW5jbHVkZXMoJ3Nlc3Npb24gbm90IGF1dGhvcml6ZWQnKSB8fFxyXG4gICAgbG93ZXIuaW5jbHVkZXMoJ3VuYXV0aG9yaXplZCcpIHx8XHJcbiAgICBsb3dlci5pbmNsdWRlcygnYXBpX2lkL2FwaV9oYXNoIHJlcXVpcmVkJykgfHxcclxuICAgIGxvd2VyLmluY2x1ZGVzKCdhcGlfaWQgcmVxdWlyZWQnKSB8fFxyXG4gICAgbG93ZXIuaW5jbHVkZXMoJ2FwaV9oYXNoIHJlcXVpcmVkJykgfHxcclxuICAgIGxvd2VyLmluY2x1ZGVzKCdpbnZhbGlkIGFwaV9pZCcpIHx8XHJcbiAgICBsb3dlci5pbmNsdWRlcygnc2Vzc2lvbnBhc3N3b3JkbmVlZGVkZXJyb3InKSB8fFxyXG4gICAgbG93ZXIuaW5jbHVkZXMoJ2F1dGhrZXl1bnJlZ2lzdGVyZWRlcnJvcicpIHx8XHJcbiAgICBsb3dlci5pbmNsdWRlcygncGFzc3dvcmRyZXF1aXJlZCcpIHx8XHJcbiAgICBsb3dlci5pbmNsdWRlcygnYXV0aGtleWVycm9yJyk7XHJcbiAgICBcclxuICBpZiAoaXNQZXJtYW5lbnQpIHtcclxuICAgIGNvbnNvbGUuZXJyb3IoJ1tkcml2ZS1zZXJ2ZV0gUGVybWFuZW50IGZhaWx1cmUgZGV0ZWN0ZWQgaW4gc3RkZXJyOicsIHRleHQpO1xyXG4gICAgc2Vzc2lvbkVycm9yc1trZXldID0gdGV4dDtcclxuICAgIGlzVHJpcHBlZFtrZXldID0gdHJ1ZTtcclxuICAgIGxhc3RGYWlsdXJlVGltZVtrZXldID0gRGF0ZS5ub3coKTtcclxuICAgIGNvbnNlY3V0aXZlRmFpbHVyZXNba2V5XSA9IENJUkNVSVRfQlJFQUtFUl9USFJFU0hPTEQ7XHJcbiAgfVxyXG59XHJcblxyXG5mdW5jdGlvbiBoYW5kbGVTcGF3bkZhaWx1cmUoY3JlZHM6IERyaXZlQ3JlZGVudGlhbHMsIGNvZGU6IG51bWJlcikge1xyXG4gIGNvbnN0IGtleSA9IGNyZWRLZXkoY3JlZHMpO1xyXG4gIGlmIChpc1RyaXBwZWRba2V5XSAmJiBzZXNzaW9uRXJyb3JzW2tleV0gJiYgIXNlc3Npb25FcnJvcnNba2V5XS5pbmNsdWRlcygnQXR0ZW1wdCcpKSB7XHJcbiAgICAvLyBJZiBpdCdzIGFscmVhZHkgdHJpcHBlZCB3aXRoIGEgcGVybWFuZW50IGZhaWx1cmUsIGRvbid0IG92ZXJ3cml0ZSBpdFxyXG4gICAgcmV0dXJuO1xyXG4gIH1cclxuICBcclxuICBjb25zZWN1dGl2ZUZhaWx1cmVzW2tleV0gPSAoY29uc2VjdXRpdmVGYWlsdXJlc1trZXldIHx8IDApICsgMTtcclxuICBsYXN0RmFpbHVyZVRpbWVba2V5XSA9IERhdGUubm93KCk7XHJcbiAgXHJcbiAgaWYgKGNvbnNlY3V0aXZlRmFpbHVyZXNba2V5XSA+PSBDSVJDVUlUX0JSRUFLRVJfVEhSRVNIT0xEKSB7XHJcbiAgICBpc1RyaXBwZWRba2V5XSA9IHRydWU7XHJcbiAgICBzZXNzaW9uRXJyb3JzW2tleV0gPSBgRHJpdmUgc2Vzc2lvbiBmYWlsZWQgdG8gc3RhcnQgYWZ0ZXIgMyBhdHRlbXB0cyAoRXhpdCBDb2RlOiAke2NvZGV9KWA7XHJcbiAgICBjb25zb2xlLmVycm9yKGBbZHJpdmUtc2VydmVdIENpcmN1aXQgYnJlYWtlciB0cmlwcGVkIGZvciAke2tleX06ICR7c2Vzc2lvbkVycm9yc1trZXldfWApO1xyXG4gIH0gZWxzZSB7XHJcbiAgICBzZXNzaW9uRXJyb3JzW2tleV0gPSBgRHJpdmUgc2Vzc2lvbiBleGl0ZWQgd2l0aCBjb2RlICR7Y29kZX0gKEF0dGVtcHQgJHtjb25zZWN1dGl2ZUZhaWx1cmVzW2tleV19LzMpYDtcclxuICAgIGNvbnNvbGUud2FybihgW2RyaXZlLXNlcnZlXSBTcGF3biBhdHRlbXB0IGZhaWxlZCAoJHtjb25zZWN1dGl2ZUZhaWx1cmVzW2tleV19LzMpIGZvciAke2tleX1gKTtcclxuICB9XHJcbn1cclxuXHJcbnR5cGUgUGVuZGluZyA9IHtcclxuICByZXNvbHZlOiAodjogYW55KSA9PiB2b2lkO1xyXG4gIHJlamVjdDogKGU6IEVycm9yKSA9PiB2b2lkO1xyXG4gIHRpbWVyOiBSZXR1cm5UeXBlPHR5cGVvZiBzZXRUaW1lb3V0PjtcclxufTtcclxuXHJcbmxldCBjaGlsZDogSm9iQ2hpbGQgfCBudWxsID0gbnVsbDtcclxubGV0IGFwaUNoaWxkOiBKb2JDaGlsZCB8IG51bGwgPSBudWxsO1xyXG5sZXQgcmVhZHkgPSBmYWxzZTtcclxubGV0IHN0YXJ0aW5nOiBQcm9taXNlPHZvaWQ+IHwgbnVsbCA9IG51bGw7XHJcbmxldCB1bnN1YjogVW5saXN0ZW5GbiB8IG51bGwgPSBudWxsO1xyXG5sZXQgdW5zdWJFeGl0OiBVbmxpc3RlbkZuIHwgbnVsbCA9IG51bGw7XHJcbmxldCByZXFTZXEgPSAwO1xyXG5jb25zdCBwZW5kaW5nID0gbmV3IE1hcDxzdHJpbmcsIFBlbmRpbmc+KCk7XHJcbmxldCBhY3RpdmVDcmVkc0tleSA9ICcnO1xyXG5sZXQgc2NoZWR1bGVkU3RvcDogUmV0dXJuVHlwZTx0eXBlb2Ygc2V0VGltZW91dD4gfCBudWxsID0gbnVsbDtcclxubGV0IHNlc3Npb25HZW5lcmF0aW9uID0gMDtcclxubGV0IGJvb3RzdHJhcExvY2s6IFByb21pc2U8Ym9vbGVhbj4gPSBQcm9taXNlLnJlc29sdmUodHJ1ZSk7XHJcblxyXG5cclxuLy8gR0hPU1QgU0VTU0lPTiBTVEFURVNcclxubGV0IG1vZGU6ICdtYWluJyB8ICdnaG9zdCcgfCAnZ2hvc3Qtc3RhcnRpbmcnID0gJ21haW4nO1xyXG5sZXQgYWN0aXZlUHJldmlld3MgPSAwO1xyXG5sZXQgZ2hvc3RSZWFkeSA9IGZhbHNlO1xyXG5sZXQgZ2hvc3RUaW1lcjogUmV0dXJuVHlwZTx0eXBlb2Ygc2V0VGltZW91dD4gfCBudWxsID0gbnVsbDtcclxuY29uc3QgR0hPU1RfR1JBQ0VfTVMgPSAzMDAwMDtcclxuXHJcbmZ1bmN0aW9uIGNyZWRLZXkoYzogRHJpdmVDcmVkZW50aWFscykge1xyXG4gIHJldHVybiBgJHtjLnNlc3Npb259fCR7Yy5hcGlJZH1gO1xyXG59XHJcblxyXG4vKipcclxuICogTWlycm9yIHRoZSBub24tc2VjcmV0IGxlYXNlIGtleSB1c2VkIGJ5IGRyaXZlQXBpL1J1c3Qgd2l0aG91dCBpbXBvcnRpbmcgdGhlXHJcbiAqIHJ1bnRpbWUgZHJpdmVBcGkgbW9kdWxlIChkcml2ZUFwaSBhbHJlYWR5IGltcG9ydHMgdGhpcyBtb2R1bGUpLiBLZWVwaW5nIHRoaXNcclxuICogZ3VhcmQgYXQgdGhlIHNlc3Npb24gYm91bmRhcnkgYWxzbyBwcm90ZWN0cyBkaXJlY3QgZW5zdXJlRHJpdmVTZXNzaW9uIGNhbGxlcnMuXHJcbiAqL1xyXG5mdW5jdGlvbiBzZXNzaW9uTGVhc2VLZXkoY3JlZHM6IERyaXZlQ3JlZGVudGlhbHMpOiBzdHJpbmcge1xyXG4gIGNvbnN0IGlucHV0ID0gYCR7Y3JlZHMuc2Vzc2lvbn18JHtjcmVkcy5hcGlJZH1gO1xyXG4gIGxldCBoMSA9IDB4ODExYzlkYzU7XHJcbiAgbGV0IGgyID0gMHg5ZTM3NzliOTtcclxuICBmb3IgKGxldCBpID0gMDsgaSA8IGlucHV0Lmxlbmd0aDsgaSsrKSB7XHJcbiAgICBjb25zdCBjID0gaW5wdXQuY2hhckNvZGVBdChpKTtcclxuICAgIGgxID0gTWF0aC5pbXVsKGgxIF4gYywgMHgwMTAwMDE5MykgPj4+IDA7XHJcbiAgICBoMiA9IE1hdGguaW11bChoMiBeIChjICsgaSksIDB4ODVlYmNhNmIpID4+PiAwO1xyXG4gIH1cclxuICByZXR1cm4gYCR7aDEudG9TdHJpbmcoMTYpLnBhZFN0YXJ0KDgsICcwJyl9JHtoMi50b1N0cmluZygxNikucGFkU3RhcnQoOCwgJzAnKX1gO1xyXG59XHJcblxyXG5hc3luYyBmdW5jdGlvbiBoYXNUcmFuc2ZlckxlYXNlKGNyZWRzOiBEcml2ZUNyZWRlbnRpYWxzKTogUHJvbWlzZTxib29sZWFuPiB7XHJcbiAgaWYgKCFkZXRlY3RUYXVyaVJ1bnRpbWUoKSkgcmV0dXJuIGZhbHNlO1xyXG4gIHRyeSB7XHJcbiAgICByZXR1cm4gISEoYXdhaXQgaW52b2tlKCdnZXRfd29ya2VyX3Nlc3Npb25fbGVhc2UnLCB7XHJcbiAgICAgIHNlc3Npb25LZXlIYXNoOiBzZXNzaW9uTGVhc2VLZXkoY3JlZHMpLFxyXG4gICAgfSkpO1xyXG4gIH0gY2F0Y2gge1xyXG4gICAgLy8gT2xkZXIvbm9uLVRhdXJpIHJ1bnRpbWVzIGRvIG5vdCBleHBvc2UgdGhlIGxlYXNlIGNvbW1hbmQuXHJcbiAgICByZXR1cm4gZmFsc2U7XHJcbiAgfVxyXG59XHJcblxyXG4vKipcclxuICogQSByZWFkeSB3b3JrZXIgaXMgb25seSB1c2VmdWwgd2hlbiBpdCBiZWxvbmdzIHRvIHRoZSByZXF1ZXN0ZWQgVGVsZWdyYW1cclxuICogc2Vzc2lvbi4gIFRyZWF0aW5nIGEgd29ya2VyIGZyb20gYW5vdGhlciBzZXNzaW9uIGFzIHJlYWR5IGNhbiBsZWFrIGRpYWxvZ1xyXG4gKiBmb2xkZXJzLCBwZWVycywgYW5kIFNhdmVkIE1lc3NhZ2VzIGJldHdlZW4gYWNjb3VudHMgZHVyaW5nIGEgcmFwaWQgc3dpdGNoLlxyXG4gKi9cclxuZXhwb3J0IGZ1bmN0aW9uIGlzRHJpdmVTZXNzaW9uUmVhZHlGb3IoY3JlZHM6IERyaXZlQ3JlZGVudGlhbHMgfCBudWxsIHwgdW5kZWZpbmVkKSB7XHJcbiAgaWYgKEZPUkNFX1JVU1RfRFJJVkUgJiYgZGV0ZWN0VGF1cmlSdW50aW1lKCkpIHtcclxuICAgIC8vIFZpcnR1YWwgcmVhZHk6IEdyYW1tZXJzIGhhcyBubyBsb25nLWxpdmVkIFB5dGhvbiB3b3JrZXIgdG8gd2FybS5cclxuICAgIHJldHVybiAhIWNyZWRzICYmICghYWN0aXZlQ3JlZHNLZXkgfHwgYWN0aXZlQ3JlZHNLZXkgPT09IGNyZWRLZXkoY3JlZHMpKTtcclxuICB9XHJcbiAgcmV0dXJuICEhY3JlZHMgJiYgcmVhZHkgJiYgYWN0aXZlQ3JlZHNLZXkgPT09IGNyZWRLZXkoY3JlZHMpO1xyXG59XHJcblxyXG50eXBlIERyaXZlRXZlbnRMaXN0ZW5lciA9IChldmVudDogeyB0eXBlOiBzdHJpbmc7IFtrOiBzdHJpbmddOiBhbnkgfSkgPT4gdm9pZDtcclxuY29uc3QgbGlzdGVuZXJzID0gbmV3IFNldDxEcml2ZUV2ZW50TGlzdGVuZXI+KCk7XHJcblxyXG4vLyBXb3JrZXIgbG9nZ2luZyBidWZmZXIgZm9yIGRpYWdub3N0aWNzIChjaXJjdWxhcilcclxuY29uc3Qgd29ya2VyTG9nOiBzdHJpbmdbXSA9IFtdO1xyXG5sZXQgd29ya2VyTG9nRmx1c2hUaW1lcjogbnVtYmVyIHwgbnVsbCA9IG51bGw7XHJcbmZ1bmN0aW9uIHB1c2hXb3JrZXJMb2cobGluZTogc3RyaW5nKSB7XHJcbiAgaWYgKCFpc0RlYnVnTW9kZSgpKSB7XHJcbiAgICBpZiAod29ya2VyTG9nLmxlbmd0aCA+IDApIHtcclxuICAgICAgd29ya2VyTG9nLmxlbmd0aCA9IDA7XHJcbiAgICB9XHJcbiAgICByZXR1cm47XHJcbiAgfVxyXG4gIHRyeSB7XHJcbiAgICBjb25zdCB0cyA9IG5ldyBEYXRlKCkudG9JU09TdHJpbmcoKTtcclxuICAgIHdvcmtlckxvZy5wdXNoKGAke3RzfSAke1N0cmluZyhsaW5lIHx8ICcnKX1gKTtcclxuICAgIGlmICh3b3JrZXJMb2cubGVuZ3RoID4gNTAwMCkgd29ya2VyTG9nLnNoaWZ0KCk7XHJcbiAgICBpZiAod29ya2VyTG9nRmx1c2hUaW1lciA9PSBudWxsKSB7XHJcbiAgICAgIHdvcmtlckxvZ0ZsdXNoVGltZXIgPSB3aW5kb3cuc2V0VGltZW91dChmbHVzaFdvcmtlckxvZ1RvRmlsZSwgMTAwMDApOyAvLyAxMHMgdGhyb3R0bGUgaW4gZGVidWcgbW9kZVxyXG4gICAgfVxyXG4gIH0gY2F0Y2gge1xyXG4gICAgLyogaWdub3JlICovXHJcbiAgfVxyXG59XHJcblxyXG5hc3luYyBmdW5jdGlvbiBmbHVzaFdvcmtlckxvZ1RvRmlsZSgpIHtcclxuICB0cnkge1xyXG4gICAgaWYgKHdvcmtlckxvZ0ZsdXNoVGltZXIgIT0gbnVsbCkge1xyXG4gICAgICBjbGVhclRpbWVvdXQod29ya2VyTG9nRmx1c2hUaW1lcik7XHJcbiAgICAgIHdvcmtlckxvZ0ZsdXNoVGltZXIgPSBudWxsO1xyXG4gICAgfVxyXG4gICAgaWYgKCFpc0RlYnVnTW9kZSgpKSB7XHJcbiAgICAgIHdvcmtlckxvZy5sZW5ndGggPSAwO1xyXG4gICAgICByZXR1cm47XHJcbiAgICB9XHJcbiAgICBpZiAoIXdvcmtlckxvZy5sZW5ndGgpIHJldHVybjtcclxuICAgIGNvbnN0IGNvbnRlbnRzID0gd29ya2VyTG9nLmpvaW4oJ1xcbicpICsgJ1xcbic7XHJcbiAgICAvLyBBdHRlbXB0IHRvIHdyaXRlIHRvIEFwcExvY2FsRGF0YS9BdXRvR3JhbS9kcml2ZS13b3JrZXIubG9nXHJcbiAgICB0cnkge1xyXG4gICAgICBhd2FpdCB3cml0ZVRleHRGaWxlKCdBdXRvR3JhbS9kcml2ZS13b3JrZXIubG9nJywgY29udGVudHMsIHtcclxuICAgICAgICBiYXNlRGlyOiBCYXNlRGlyZWN0b3J5LkFwcExvY2FsRGF0YSxcclxuICAgICAgfSk7XHJcbiAgICB9IGNhdGNoIChlKSB7XHJcbiAgICAgIC8vIGJlc3QtZWZmb3J0OiBpZ25vcmUgd3JpdGUgZmFpbHVyZXNcclxuICAgICAgY29uc29sZS53YXJuKCdbZHJpdmUtc2VydmVdIGZhaWxlZCB0byB3cml0ZSB3b3JrZXIgbG9nOicsIGUpO1xyXG4gICAgfVxyXG4gIH0gY2F0Y2gge1xyXG4gICAgLyogaWdub3JlICovXHJcbiAgfVxyXG59XHJcblxyXG5leHBvcnQgZnVuY3Rpb24gYWRkRHJpdmVFdmVudExpc3RlbmVyKGw6IERyaXZlRXZlbnRMaXN0ZW5lcikge1xyXG4gIGxpc3RlbmVycy5hZGQobCk7XHJcbiAgcmV0dXJuICgpID0+IHtcclxuICAgIGxpc3RlbmVycy5kZWxldGUobCk7XHJcbiAgfTtcclxufVxyXG5cclxuZnVuY3Rpb24gc2V0dGxlTGluZShsaW5lOiBzdHJpbmcpIHtcclxuICBjb25zdCB0ZXh0ID0gU3RyaW5nKGxpbmUgfHwgJycpLnRyaW0oKTtcclxuICBpZiAoIXRleHQuc3RhcnRzV2l0aCgneycpKSByZXR1cm47XHJcbiAgdHJ5IHtcclxuICAgIGNvbnN0IG1zZyA9IEpTT04ucGFyc2UodGV4dCk7XHJcbiAgICBpZiAobXNnLnR5cGUgPT09ICdyZWFkeScpIHtcclxuICAgICAgcmVhZHkgPSB0cnVlO1xyXG4gICAgICByZXR1cm47XHJcbiAgICB9XHJcbiAgICBpZiAoXHJcbiAgICAgIG1zZy50eXBlID09PSAnaW5kZXhfcHJvZ3Jlc3MnIHx8XHJcbiAgICAgIG1zZy50eXBlID09PSAnaW5kZXhfY29tcGxldGUnIHx8XHJcbiAgICAgIG1zZy50eXBlID09PSAndXBkYXRlJyB8fFxyXG4gICAgICBtc2cudHlwZSA9PT0gJ3B0c191cGRhdGUnXHJcbiAgICApIHtcclxuICAgICAgbGlzdGVuZXJzLmZvckVhY2goKGwpID0+IGwobXNnKSk7XHJcbiAgICAgIHJldHVybjtcclxuICAgIH1cclxuICAgIGNvbnN0IGlkID0gbXNnLmlkICE9IG51bGwgPyBTdHJpbmcobXNnLmlkKSA6ICcnO1xyXG4gICAgaWYgKCFpZCB8fCAhcGVuZGluZy5oYXMoaWQpKSByZXR1cm47XHJcbiAgICBjb25zdCBwID0gcGVuZGluZy5nZXQoaWQpITtcclxuICAgIHBlbmRpbmcuZGVsZXRlKGlkKTtcclxuICAgIGNsZWFyVGltZW91dChwLnRpbWVyKTtcclxuICAgIGlmIChtc2cub2sgPT09IGZhbHNlKSB7XHJcbiAgICAgIHAucmVqZWN0KG5ldyBFcnJvcihtc2cuZXJyb3IgfHwgJ0RyaXZlIHNlcnZlIGVycm9yJykpO1xyXG4gICAgfSBlbHNlIHtcclxuICAgICAgcC5yZXNvbHZlKG1zZy5yZXN1bHQpO1xyXG4gICAgfVxyXG4gIH0gY2F0Y2gge1xyXG4gICAgLyogaWdub3JlIG5vbi1qc29uICovXHJcbiAgfVxyXG59XHJcblxyXG5hc3luYyBmdW5jdGlvbiB3cml0ZVN0ZGluKGxpbmU6IHN0cmluZykge1xyXG4gIGlmICghZGV0ZWN0VGF1cmlSdW50aW1lKCkpIHRocm93IG5ldyBFcnJvcignZHJpdmUtc2VydmUgcmVxdWlyZXMgZGVza3RvcCBhcHAnKTtcclxuICBhd2FpdCBpbnZva2UoJ3dyaXRlX3dvcmtlcl9zdGRpbicsIHsgam9iSWQ6IGFjdGl2ZUpvYklkLCBsaW5lIH0pO1xyXG59XHJcblxyXG5leHBvcnQgZnVuY3Rpb24gaXNEcml2ZVNlc3Npb25SZWFkeSgpIHtcclxuICBpZiAoRk9SQ0VfUlVTVF9EUklWRSAmJiBkZXRlY3RUYXVyaVJ1bnRpbWUoKSkgcmV0dXJuIHRydWU7XHJcbiAgcmV0dXJuIHJlYWR5O1xyXG59XHJcblxyXG4vLyBHSE9TVCBTRVNTSU9OIExJRkVDWUNMRSBNQU5BR0VNRU5UXHJcblxyXG5leHBvcnQgZnVuY3Rpb24gcmVnaXN0ZXJQcmV2aWV3T3BlbihjcmVkczogRHJpdmVDcmVkZW50aWFscyk6IHZvaWQge1xyXG4gIGNvbnN0IGtleSA9IGNyZWRLZXkoY3JlZHMpO1xyXG4gIGlmIChhY3RpdmVDcmVkc0tleSAhPT0ga2V5KSByZXR1cm47XHJcbiAgYWN0aXZlUHJldmlld3MrKztcclxuICBjYW5jZWxHaG9zdFRyYW5zaXRpb24oKTtcclxufVxyXG5cclxuZXhwb3J0IGZ1bmN0aW9uIHJlZ2lzdGVyUHJldmlld0Nsb3NlKGNyZWRzOiBEcml2ZUNyZWRlbnRpYWxzKTogdm9pZCB7XHJcbiAgY29uc3Qga2V5ID0gY3JlZEtleShjcmVkcyk7XHJcbiAgaWYgKGFjdGl2ZUNyZWRzS2V5ICE9PSBrZXkpIHJldHVybjtcclxuICBhY3RpdmVQcmV2aWV3cyA9IE1hdGgubWF4KDAsIGFjdGl2ZVByZXZpZXdzIC0gMSk7XHJcbiAgaWYgKGFjdGl2ZVByZXZpZXdzID09PSAwICYmIG1vZGUgPT09ICdnaG9zdCcpIHtcclxuICAgIHNjaGVkdWxlR2hvc3RUb01haW5UcmFuc2l0aW9uKGNyZWRzKTtcclxuICB9XHJcbn1cclxuXHJcbmV4cG9ydCBmdW5jdGlvbiBpc0dob3N0U2Vzc2lvblJlYWR5KGNyZWRzOiBEcml2ZUNyZWRlbnRpYWxzKTogYm9vbGVhbiB7XHJcbiAgY29uc3Qga2V5ID0gY3JlZEtleShjcmVkcyk7XHJcbiAgcmV0dXJuIGFjdGl2ZUNyZWRzS2V5ID09PSBrZXkgJiYgbW9kZSA9PT0gJ2dob3N0JyAmJiBnaG9zdFJlYWR5O1xyXG59XHJcblxyXG5leHBvcnQgZnVuY3Rpb24gaXNQcmV2aWV3QWN0aXZlKCk6IGJvb2xlYW4ge1xyXG4gIHJldHVybiBtb2RlID09PSAnZ2hvc3QnIHx8IG1vZGUgPT09ICdnaG9zdC1zdGFydGluZycgfHwgYWN0aXZlUHJldmlld3MgPiAwO1xyXG59XHJcblxyXG5mdW5jdGlvbiBzY2hlZHVsZUdob3N0VG9NYWluVHJhbnNpdGlvbihjcmVkczogRHJpdmVDcmVkZW50aWFscyk6IHZvaWQge1xyXG4gIGNhbmNlbEdob3N0VHJhbnNpdGlvbigpO1xyXG4gIGdob3N0VGltZXIgPSBzZXRUaW1lb3V0KGFzeW5jICgpID0+IHtcclxuICAgIGlmIChhY3RpdmVQcmV2aWV3cyA+IDAgfHwgbW9kZSAhPT0gJ2dob3N0JykgcmV0dXJuO1xyXG4gICAgdHJ5IHtcclxuICAgICAgYXdhaXQgaW52b2tlKCdjbGVhbnVwX2dob3N0X3Nlc3Npb24nLCB7IHNlc3Npb25OYW1lOiBjcmVkcy5zZXNzaW9uIH0pO1xyXG4gICAgfSBjYXRjaCAoZSkge1xyXG4gICAgICBjb25zb2xlLndhcm4oJ1tHaG9zdFNlc3Npb25dIENsZWFudXAgZmFpbGVkOicsIGUpO1xyXG4gICAgfVxyXG4gICAgLy8gUmUtc3Bhd24gbWFpbiBzZXNzaW9uIHZpYSBzZXJpYWxpemVkIHF1ZXVlXHJcbiAgICBhd2FpdCBlbnN1cmVEcml2ZVNlc3Npb24oY3JlZHMsIGZhbHNlKTtcclxuICB9LCBHSE9TVF9HUkFDRV9NUyk7XHJcbn1cclxuXHJcbmZ1bmN0aW9uIGNhbmNlbEdob3N0VHJhbnNpdGlvbigpOiB2b2lkIHtcclxuICBpZiAoZ2hvc3RUaW1lcikge1xyXG4gICAgY2xlYXJUaW1lb3V0KGdob3N0VGltZXIpO1xyXG4gICAgZ2hvc3RUaW1lciA9IG51bGw7XHJcbiAgfVxyXG59XHJcblxyXG5hc3luYyBmdW5jdGlvbiBzcGF3bkdob3N0U2Vzc2lvbihjcmVkczogRHJpdmVDcmVkZW50aWFscyk6IFByb21pc2U8Ym9vbGVhbj4ge1xyXG4gIGlmICghZGV0ZWN0VGF1cmlSdW50aW1lKCkpIHJldHVybiBmYWxzZTtcclxuICBjb25zdCBrZXkgPSBjcmVkS2V5KGNyZWRzKTtcclxuICB0cnkge1xyXG4gICAgbW9kZSA9ICdnaG9zdC1zdGFydGluZyc7XHJcbiAgICBnaG9zdFJlYWR5ID0gZmFsc2U7XHJcbiAgICBhY3RpdmVKb2JJZCA9IERSSVZFX1NFUlZFX0pPQl9JRDtcclxuXHJcbiAgICAvLyAxLiBDbG9uZSBzZXNzaW9uIHZpYSBSdXN0ICh3aXRoIGF1dG9tYXRpYyBwYXVzZSBmbGFnKVxyXG4gICAgYXdhaXQgaW52b2tlKCdlbnN1cmVfZ2hvc3Rfc2Vzc2lvbicsIHsgc2Vzc2lvbk5hbWU6IGNyZWRzLnNlc3Npb24gfSk7XHJcblxyXG4gICAgLy8gMi4gU3RvcCBtYWluIHNlc3Npb25cclxuICAgIGF3YWl0IHN0b3BEcml2ZVNlc3Npb24oKTtcclxuICAgIGF3YWl0IG5ldyBQcm9taXNlPHZvaWQ+KChyZXNvbHZlKSA9PiBzZXRUaW1lb3V0KHJlc29sdmUsIEdSQUNFRlVMX1NIVVRET1dOX01TKSk7XHJcblxyXG4gICAgLy8gMy4gU3Bhd24gZHJpdmUtc2VydmUgd2l0aCBnaG9zdCBzZXNzaW9uIChfcHJldmlldylcclxuICAgIGNvbnN0IGdlbmVyYXRpb24gPSArK3Nlc3Npb25HZW5lcmF0aW9uO1xyXG4gICAgYWN0aXZlQ3JlZHNLZXkgPSBrZXk7XHJcbiAgICByZWFkeSA9IGZhbHNlO1xyXG4gICAgY29uc3Qgc2V0dGxlQ3VycmVudExpbmUgPSAobGluZTogc3RyaW5nKSA9PiB7XHJcbiAgICAgIGlmIChnZW5lcmF0aW9uID09PSBzZXNzaW9uR2VuZXJhdGlvbikge1xyXG4gICAgICAgIHNldHRsZUxpbmUobGluZSk7XHJcbiAgICAgICAgaWYgKHJlYWR5KSB7XHJcbiAgICAgICAgICBjb25zdCBrID0gY3JlZEtleShjcmVkcyk7XHJcbiAgICAgICAgICBjb25zZWN1dGl2ZUZhaWx1cmVzW2tdID0gMDtcclxuICAgICAgICAgIGRlbGV0ZSBzZXNzaW9uRXJyb3JzW2tdO1xyXG4gICAgICAgIH1cclxuICAgICAgfVxyXG4gICAgfTtcclxuXHJcbiAgICBjb25zdCB1bnN1YnM6IFVubGlzdGVuRm5bXSA9IFtdO1xyXG4gICAgbGV0IHByb2Nlc3NBc3NpZ25lZCA9IGZhbHNlO1xyXG4gICAgbGV0IHN0YXJ0dXBSZWplY3Q6ICgoZXJyOiBFcnJvcikgPT4gdm9pZCkgfCBudWxsID0gbnVsbDtcclxuICAgIGxldCBvblJlYWR5Q2hlY2s6IFJldHVyblR5cGU8dHlwZW9mIHNldEludGVydmFsPiB8IG51bGwgPSBudWxsO1xyXG4gICAgbGV0IHQ6IFJldHVyblR5cGU8dHlwZW9mIHNldFRpbWVvdXQ+IHwgbnVsbCA9IG51bGw7XHJcblxyXG4gICAgY29uc3QgY2xlYW5TdGFydHVwVGltZXJzID0gKCkgPT4ge1xyXG4gICAgICBpZiAob25SZWFkeUNoZWNrKSB7XHJcbiAgICAgICAgY2xlYXJJbnRlcnZhbChvblJlYWR5Q2hlY2spO1xyXG4gICAgICAgIG9uUmVhZHlDaGVjayA9IG51bGw7XHJcbiAgICAgIH1cclxuICAgICAgaWYgKHQpIHtcclxuICAgICAgICBjbGVhclRpbWVvdXQodCk7XHJcbiAgICAgICAgdCA9IG51bGw7XHJcbiAgICAgIH1cclxuICAgIH07XHJcblxyXG4gICAgdW5zdWIgPSBhd2FpdCBsaXN0ZW48eyBqb2JJZDogbnVtYmVyOyBsaW5lOiBzdHJpbmc7IHN0cmVhbTogc3RyaW5nIH0+KCd3b3JrZXItbGluZScsIChldikgPT4ge1xyXG4gICAgICBjb25zdCBwID0gZXYucGF5bG9hZCBhcyBhbnk7XHJcbiAgICAgIGNvbnN0IGppZCA9IHA/LmpvYklkID8/IHA/LmpvYl9pZDtcclxuICAgICAgaWYgKE51bWJlcihqaWQpICE9PSBEUklWRV9TRVJWRV9KT0JfSUQpIHJldHVybjtcclxuICAgICAgaWYgKGdlbmVyYXRpb24gIT09IHNlc3Npb25HZW5lcmF0aW9uKSByZXR1cm47XHJcbiAgICAgIHRyeSB7XHJcbiAgICAgICAgcHVzaFdvcmtlckxvZyhgW2dob3N0ICR7U3RyaW5nKHAuc3RyZWFtIHx8ICcnKX1dICR7U3RyaW5nKHAubGluZSB8fCAnJyl9YCk7XHJcbiAgICAgIH0gY2F0Y2gge1xyXG4gICAgICAgIC8qIGlnbm9yZSAqL1xyXG4gICAgICB9XHJcbiAgICAgIGlmIChwLnN0cmVhbSA9PT0gJ3N0ZGVycicpIHtcclxuICAgICAgICBjb25zb2xlLndhcm4oJ1tkcml2ZS1zZXJ2ZS1naG9zdF0nLCBwLmxpbmUpO1xyXG4gICAgICAgIGhhbmRsZVN0ZGVyckxpbmUoY3JlZHMsIHAubGluZSk7XHJcbiAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgc2V0dGxlQ3VycmVudExpbmUocC5saW5lKTtcclxuICAgICAgfVxyXG4gICAgfSk7XHJcbiAgICB1bnN1YnMucHVzaCh1bnN1Yik7XHJcblxyXG4gICAgY29uc3QgdVN0ZGVyciA9IGF3YWl0IGxpc3RlbjxzdHJpbmc+KCd3b3JrZXItc3RkZXJyJywgKGV2KSA9PiB7XHJcbiAgICAgIGlmIChnZW5lcmF0aW9uICE9PSBzZXNzaW9uR2VuZXJhdGlvbikgcmV0dXJuO1xyXG4gICAgICBoYW5kbGVTdGRlcnJMaW5lKGNyZWRzLCBldi5wYXlsb2FkKTtcclxuICAgIH0pO1xyXG4gICAgdW5zdWJzLnB1c2godVN0ZGVycik7XHJcblxyXG4gICAgdW5zdWJFeGl0ID0gYXdhaXQgbGlzdGVuPHsgam9iSWQ6IG51bWJlcjsgY29kZTogbnVtYmVyIH0+KCd3b3JrZXItZXhpdCcsIChldikgPT4ge1xyXG4gICAgICBjb25zdCBwID0gZXYucGF5bG9hZCBhcyBhbnk7XHJcbiAgICAgIGNvbnN0IGppZCA9IHA/LmpvYklkID8/IHA/LmpvYl9pZDtcclxuICAgICAgaWYgKE51bWJlcihqaWQpICE9PSBEUklWRV9TRVJWRV9KT0JfSUQpIHJldHVybjtcclxuICAgICAgaWYgKGdlbmVyYXRpb24gIT09IHNlc3Npb25HZW5lcmF0aW9uKSByZXR1cm47XHJcbiAgICAgIGlmICghcHJvY2Vzc0Fzc2lnbmVkKSByZXR1cm47XHJcblxyXG4gICAgICBjb25zdCB3YXNSZWFkeSA9IHJlYWR5O1xyXG4gICAgICByZWFkeSA9IGZhbHNlOyAvLyBNYXJrIG5vdCByZWFkeSBpbW1lZGlhdGVseSB0byBwcmV2ZW50IGFueSBuZXcgd3JpdGVTdGRpbi9SUEMgY2FsbHNcclxuXHJcbiAgICAgIGNvbnN0IG1hcmtFbmRlZCA9ICgpID0+IHtcclxuICAgICAgICBpZiAoZ2VuZXJhdGlvbiAhPT0gc2Vzc2lvbkdlbmVyYXRpb24pIHJldHVybjtcclxuICAgICAgICByZWFkeSA9IGZhbHNlO1xyXG4gICAgICAgIGNoaWxkID0gbnVsbDtcclxuICAgICAgICBmb3IgKGNvbnN0IFssIHBlbmRdIG9mIHBlbmRpbmcpIHtcclxuICAgICAgICAgIGNsZWFyVGltZW91dChwZW5kLnRpbWVyKTtcclxuICAgICAgICAgIGNvbnN0IGVyciA9IG5ldyBFcnJvcignRHJpdmUgc2Vzc2lvbiBlbmRlZCcpO1xyXG4gICAgICAgICAgKGVyciBhcyBhbnkpLmNvZGUgPSAnRFJJVkVfU0VTU0lPTl9FTkRFRCc7XHJcbiAgICAgICAgICBwZW5kLnJlamVjdChlcnIpO1xyXG4gICAgICAgIH1cclxuICAgICAgICBwZW5kaW5nLmNsZWFyKCk7XHJcbiAgICAgIH07XHJcblxyXG4gICAgICBpZiAoIXdhc1JlYWR5KSB7XHJcbiAgICAgICAgY2xlYW5TdGFydHVwVGltZXJzKCk7XHJcbiAgICAgICAgaWYgKHN0YXJ0dXBSZWplY3QpIHtcclxuICAgICAgICAgIHN0YXJ0dXBSZWplY3QobmV3IEVycm9yKGBEcml2ZSBzZXNzaW9uIHByb2Nlc3MgZXhpdGVkIGR1cmluZyBzdGFydHVwIHdpdGggY29kZSAke3AuY29kZX1gKSk7XHJcbiAgICAgICAgfVxyXG4gICAgICAgIGhhbmRsZVNwYXduRmFpbHVyZShjcmVkcywgcC5jb2RlKTtcclxuICAgICAgICByZXR1cm47XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIC8vIExvZyBhYm5vcm1hbCBleGl0cyBmb3IgZGlhZ25vc3RpY3NcclxuICAgICAgaWYgKHAuY29kZSAhPT0gMCkge1xyXG4gICAgICAgIGNvbnNvbGUuZXJyb3IoJ1tkcml2ZS1zZXJ2ZV0gV29ya2VyIGV4aXRlZCB3aXRoIGNvZGUnLCBwLmNvZGUsICdnZW5lcmF0aW9uJywgZ2VuZXJhdGlvbiwgJ2FjdGl2ZUNyZWRzS2V5JywgYWN0aXZlQ3JlZHNLZXkpO1xyXG4gICAgICAgIGhhbmRsZVNwYXduRmFpbHVyZShjcmVkcywgcC5jb2RlKTtcclxuICAgICAgfSBlbHNlIHtcclxuICAgICAgICBjb25zb2xlLndhcm4oJ1tkcml2ZS1zZXJ2ZV0gV29ya2VyIGV4aXRlZCBncmFjZWZ1bGx5IChjb2RlIDApIHBvc3Qtc3RhcnR1cCcsIHsgY29kZTogcC5jb2RlLCBnZW5lcmF0aW9uLCBhY3RpdmVDcmVkc0tleSB9KTtcclxuICAgICAgICBjb25zdCBrID0gY3JlZEtleShjcmVkcyk7XHJcbiAgICAgICAgY29uc2VjdXRpdmVGYWlsdXJlc1trXSA9IDA7XHJcbiAgICAgIH1cclxuICAgICAgdHJ5IHtcclxuICAgICAgICBwdXNoV29ya2VyTG9nKGBbd29ya2VyLWV4aXRdIGNvZGU9JHtwLmNvZGV9IGdlbmVyYXRpb249JHtnZW5lcmF0aW9ufSBhY3RpdmVDcmVkcz0ke2FjdGl2ZUNyZWRzS2V5fWApO1xyXG4gICAgICAgIHZvaWQgZmx1c2hXb3JrZXJMb2dUb0ZpbGUoKTtcclxuICAgICAgfSBjYXRjaCB7XHJcbiAgICAgICAgLyogaWdub3JlICovXHJcbiAgICAgIH1cclxuICAgICAgbWFya0VuZGVkKCk7XHJcbiAgICB9KTtcclxuICAgIHVuc3Vicy5wdXNoKHVuc3ViRXhpdCk7XHJcblxyXG4gICAgYXdhaXQgbmV3IFByb21pc2U8dm9pZD4oKHJlc29sdmUsIHJlamVjdCkgPT4ge1xyXG4gICAgICBzdGFydHVwUmVqZWN0ID0gcmVqZWN0O1xyXG4gICAgICB0ID0gc2V0VGltZW91dCgoKSA9PiB7XHJcbiAgICAgICAgY2xlYW5TdGFydHVwVGltZXJzKCk7XHJcbiAgICAgICAgcmVqZWN0KG5ldyBFcnJvcignR2hvc3QgZHJpdmUgc2Vzc2lvbiBzdGFydCB0aW1lb3V0JykpO1xyXG4gICAgICB9LCAyMDAwMCk7XHJcbiAgICAgIC8vIFNvZnQgcG9sbCBvbmx5IOKAlCBzZXR0bGVMaW5lIGFscmVhZHkgZmxpcHMgYHJlYWR5YDsgYXZvaWQgNDBtcyBidXN5IGludGVydmFsLlxyXG4gICAgICBvblJlYWR5Q2hlY2sgPSBzZXRJbnRlcnZhbCgoKSA9PiB7XHJcbiAgICAgICAgaWYgKHJlYWR5ICYmIHByb2Nlc3NBc3NpZ25lZCkge1xyXG4gICAgICAgICAgY2xlYW5TdGFydHVwVGltZXJzKCk7XHJcbiAgICAgICAgICByZXNvbHZlKCk7XHJcbiAgICAgICAgfVxyXG4gICAgICB9LCAxMjApO1xyXG5cclxuICAgICAgc3Bhd25EYWVtb25Kb2Ioe1xyXG4gICAgICAgIGpvYklkOiBEUklWRV9TRVJWRV9KT0JfSUQsXHJcbiAgICAgICAgYXJnczogW1xyXG4gICAgICAgICAgJy0tYWN0aW9uJyxcclxuICAgICAgICAgICdkcml2ZS1zZXJ2ZScsXHJcbiAgICAgICAgICAnLS1zZXNzaW9uJyxcclxuICAgICAgICAgIGAke2NyZWRzLnNlc3Npb259X3ByZXZpZXdgLFxyXG4gICAgICAgICAgJy0tYXBpLWlkJyxcclxuICAgICAgICAgIFN0cmluZyhjcmVkcy5hcGlJZCksXHJcbiAgICAgICAgICAnLS1hcGktaGFzaCcsXHJcbiAgICAgICAgICBTdHJpbmcoY3JlZHMuYXBpSGFzaCksXHJcbiAgICAgICAgXSxcclxuICAgICAgICBwaXBlU3RkaW46IHRydWUsXHJcbiAgICAgICAgYWxsb3dTaGVsbEZhbGxiYWNrOiBmYWxzZSxcclxuICAgICAgICBvblN0ZG91dExpbmU6IChsaW5lOiBhbnkpID0+IHtcclxuICAgICAgICAgIHNldHRsZUN1cnJlbnRMaW5lKGxpbmUpO1xyXG4gICAgICAgICAgaWYgKHJlYWR5ICYmIHByb2Nlc3NBc3NpZ25lZCkge1xyXG4gICAgICAgICAgICBjbGVhblN0YXJ0dXBUaW1lcnMoKTtcclxuICAgICAgICAgICAgcmVzb2x2ZSgpO1xyXG4gICAgICAgICAgfVxyXG4gICAgICAgIH0sXHJcbiAgICAgICAgb25TdGRlcnJMaW5lOiAobGluZTogYW55KSA9PiBjb25zb2xlLndhcm4oJ1tkcml2ZS1zZXJ2ZS1naG9zdF0nLCBsaW5lKSxcclxuICAgICAgICBvbkNsb3NlOiAoKSA9PiB1bmRlZmluZWQsXHJcbiAgICAgIH0pXHJcbiAgICAgICAgLnRoZW4oKGM6IGFueSkgPT4ge1xyXG4gICAgICAgICAgY2hpbGQgPSB7XHJcbiAgICAgICAgICAgIC4uLmMsXHJcbiAgICAgICAgICAgIGRpc3Bvc2U6ICgpID0+IHtcclxuICAgICAgICAgICAgICB1bnN1YnMuZm9yRWFjaCgodSkgPT4ge1xyXG4gICAgICAgICAgICAgICAgdHJ5IHtcclxuICAgICAgICAgICAgICAgICAgdSgpO1xyXG4gICAgICAgICAgICAgICAgfSBjYXRjaCB7XHJcbiAgICAgICAgICAgICAgICAgIC8qIGlnbm9yZSAqL1xyXG4gICAgICAgICAgICAgICAgfVxyXG4gICAgICAgICAgICAgIH0pO1xyXG4gICAgICAgICAgICAgIGMuZGlzcG9zZT8uKCk7XHJcbiAgICAgICAgICAgIH0sXHJcbiAgICAgICAgICB9O1xyXG4gICAgICAgICAgcHJvY2Vzc0Fzc2lnbmVkID0gdHJ1ZTtcclxuICAgICAgICAgIGlmIChyZWFkeSkge1xyXG4gICAgICAgICAgICBjbGVhblN0YXJ0dXBUaW1lcnMoKTtcclxuICAgICAgICAgICAgcmVzb2x2ZSgpO1xyXG4gICAgICAgICAgfVxyXG4gICAgICAgIH0pXHJcbiAgICAgICAgLmNhdGNoKChlOiBhbnkpID0+IHtcclxuICAgICAgICAgIGlmIChvblJlYWR5Q2hlY2spIGNsZWFySW50ZXJ2YWwob25SZWFkeUNoZWNrKTtcclxuICAgICAgICAgIGlmICh0KSBjbGVhclRpbWVvdXQodCk7XHJcbiAgICAgICAgICByZWplY3QoZSk7XHJcbiAgICAgICAgfSk7XHJcbiAgICB9KTtcclxuXHJcbiAgICBtb2RlID0gJ2dob3N0JztcclxuICAgIGdob3N0UmVhZHkgPSB0cnVlO1xyXG4gICAgcmV0dXJuIHRydWU7XHJcbiAgfSBjYXRjaCAoZXJyKSB7XHJcbiAgICBjb25zb2xlLmVycm9yKCdbR2hvc3RTZXNzaW9uXSBGYWlsZWQgdG8gc3Bhd24gZ2hvc3Q6JywgZXJyKTtcclxuICAgIG1vZGUgPSAnbWFpbic7XHJcbiAgICBnaG9zdFJlYWR5ID0gZmFsc2U7XHJcbiAgICByZXR1cm4gYXdhaXQgc3Bhd25NYWluU2Vzc2lvbihjcmVkcyk7XHJcbiAgfVxyXG59XHJcblxyXG5hc3luYyBmdW5jdGlvbiBzcGF3bkFwaVNlcnZlcihjcmVkczogRHJpdmVDcmVkZW50aWFscyk6IFByb21pc2U8dm9pZD4ge1xyXG4gIGlmICghZGV0ZWN0VGF1cmlSdW50aW1lKCkpIHJldHVybjtcclxuICB0cnkge1xyXG4gICAgYXdhaXQga2lsbFdvcmtlckpvYihBUElfU0VSVkVSX0pPQl9JRCk7XHJcbiAgfSBjYXRjaCB7XHJcbiAgICAvKiBpZ25vcmUgKi9cclxuICB9XHJcbiAgY29uc29sZS5sb2coJ1tBUEktU0VSVkVSXSBTcGF3bmluZyBGYXN0QVBJIHNlcnZlciBvbiBwb3J0IDg1NTAuLi4nKTtcclxuICB0cnkge1xyXG4gICAgY29uc3QgYyA9IGF3YWl0IHNwYXduRGFlbW9uSm9iKHtcclxuICAgICAgam9iSWQ6IEFQSV9TRVJWRVJfSk9CX0lELFxyXG4gICAgICBhcmdzOiBbXHJcbiAgICAgICAgJy0tYWN0aW9uJyxcclxuICAgICAgICAnYXBpLXNlcnZlcicsXHJcbiAgICAgICAgJy0tcG9ydCcsXHJcbiAgICAgICAgJzg1NTAnLFxyXG4gICAgICAgICctLXNlc3Npb24nLFxyXG4gICAgICAgIGNyZWRzLnNlc3Npb24sXHJcbiAgICAgICAgJy0tYXBpLWlkJyxcclxuICAgICAgICBTdHJpbmcoY3JlZHMuYXBpSWQpLFxyXG4gICAgICAgICctLWFwaS1oYXNoJyxcclxuICAgICAgICBTdHJpbmcoY3JlZHMuYXBpSGFzaCksXHJcbiAgICAgIF0sXHJcbiAgICAgIGFsbG93U2hlbGxGYWxsYmFjazogZmFsc2UsXHJcbiAgICAgIG9uU3Rkb3V0TGluZTogKGxpbmU6IGFueSkgPT4gY29uc29sZS5sb2coJ1tBUEktU0VSVkVSIHN0ZG91dF0nLCBsaW5lKSxcclxuICAgICAgb25TdGRlcnJMaW5lOiAobGluZTogYW55KSA9PiBjb25zb2xlLndhcm4oJ1tBUEktU0VSVkVSIHN0ZGVycl0nLCBsaW5lKSxcclxuICAgICAgb25DbG9zZTogKCkgPT4ge1xyXG4gICAgICAgIGFwaUNoaWxkID0gbnVsbDtcclxuICAgICAgICBjb25zb2xlLmxvZygnW0FQSS1TRVJWRVJdIEZhc3RBUEkgc2VydmVyIHN0b3BwZWQuJyk7XHJcbiAgICAgIH0sXHJcbiAgICB9KTtcclxuICAgIGFwaUNoaWxkID0gYztcclxuICB9IGNhdGNoIChlcnIpIHtcclxuICAgIGNvbnNvbGUuZXJyb3IoJ1tBUEktU0VSVkVSXSBGYWlsZWQgdG8gc3Bhd24gRmFzdEFQSSBzZXJ2ZXI6JywgZXJyKTtcclxuICB9XHJcbn1cclxuXHJcbmFzeW5jIGZ1bmN0aW9uIHNwYXduTWFpblNlc3Npb24oY3JlZHM6IERyaXZlQ3JlZGVudGlhbHMpOiBQcm9taXNlPGJvb2xlYW4+IHtcclxuICBpZiAoIWRldGVjdFRhdXJpUnVudGltZSgpKSByZXR1cm4gZmFsc2U7XHJcbiAgY29uc3Qga2V5ID0gY3JlZEtleShjcmVkcyk7XHJcbiAgdHJ5IHtcclxuICAgIG1vZGUgPSAnbWFpbic7XHJcbiAgICBnaG9zdFJlYWR5ID0gZmFsc2U7XHJcblxyXG4gICAgYXdhaXQgc3RvcERyaXZlU2Vzc2lvbigpO1xyXG4gICAgYXdhaXQgbmV3IFByb21pc2U8dm9pZD4oKHJlc29sdmUpID0+IHNldFRpbWVvdXQocmVzb2x2ZSwgR1JBQ0VGVUxfU0hVVERPV05fTVMpKTtcclxuICAgIHRyeSB7XHJcbiAgICAgIGF3YWl0IGludm9rZSgnY2xlYW51cF9naG9zdF9zZXNzaW9uJywgeyBzZXNzaW9uTmFtZTogY3JlZHMuc2Vzc2lvbiB9KTtcclxuICAgIH0gY2F0Y2ggKGUpIHtcclxuICAgICAgY29uc29sZS53YXJuKCdbZHJpdmUtc2VydmVdIGNsZWFudXBfZ2hvc3Rfc2Vzc2lvbiBmYWlsZWQ6JywgZSk7XHJcbiAgICB9XHJcblxyXG4gICAgY29uc3QgZ2VuZXJhdGlvbiA9ICsrc2Vzc2lvbkdlbmVyYXRpb247XHJcbiAgICBhY3RpdmVKb2JJZCA9IERSSVZFX1NFUlZFX0pPQl9JRF9CQVNFICsgKGdlbmVyYXRpb24gJSAxMDAwKTtcclxuICAgIGNvbnN0IGN1cnJlbnRBY3RpdmVKb2JJZCA9IGFjdGl2ZUpvYklkO1xyXG4gICAgYWN0aXZlQ3JlZHNLZXkgPSBrZXk7XHJcbiAgICByZWFkeSA9IGZhbHNlO1xyXG4gICAgY29uc3Qgc2V0dGxlQ3VycmVudExpbmUgPSAobGluZTogc3RyaW5nKSA9PiB7XHJcbiAgICAgIGlmIChnZW5lcmF0aW9uID09PSBzZXNzaW9uR2VuZXJhdGlvbikge1xyXG4gICAgICAgIHNldHRsZUxpbmUobGluZSk7XHJcbiAgICAgICAgaWYgKHJlYWR5KSB7XHJcbiAgICAgICAgICBjb25zdCBrID0gY3JlZEtleShjcmVkcyk7XHJcbiAgICAgICAgICBjb25zZWN1dGl2ZUZhaWx1cmVzW2tdID0gMDtcclxuICAgICAgICAgIGRlbGV0ZSBzZXNzaW9uRXJyb3JzW2tdO1xyXG4gICAgICAgIH1cclxuICAgICAgfVxyXG4gICAgfTtcclxuXHJcbiAgICBjb25zdCB1bnN1YnM6IFVubGlzdGVuRm5bXSA9IFtdO1xyXG4gICAgbGV0IHByb2Nlc3NBc3NpZ25lZCA9IGZhbHNlO1xyXG4gICAgbGV0IHN0YXJ0dXBSZWplY3Q6ICgoZXJyOiBFcnJvcikgPT4gdm9pZCkgfCBudWxsID0gbnVsbDtcclxuICAgIGxldCBvblJlYWR5Q2hlY2s6IFJldHVyblR5cGU8dHlwZW9mIHNldEludGVydmFsPiB8IG51bGwgPSBudWxsO1xyXG4gICAgbGV0IHQ6IFJldHVyblR5cGU8dHlwZW9mIHNldFRpbWVvdXQ+IHwgbnVsbCA9IG51bGw7XHJcblxyXG4gICAgY29uc3QgY2xlYW5TdGFydHVwVGltZXJzID0gKCkgPT4ge1xyXG4gICAgICBpZiAob25SZWFkeUNoZWNrKSB7XHJcbiAgICAgICAgY2xlYXJJbnRlcnZhbChvblJlYWR5Q2hlY2spO1xyXG4gICAgICAgIG9uUmVhZHlDaGVjayA9IG51bGw7XHJcbiAgICAgIH1cclxuICAgICAgaWYgKHQpIHtcclxuICAgICAgICBjbGVhclRpbWVvdXQodCk7XHJcbiAgICAgICAgdCA9IG51bGw7XHJcbiAgICAgIH1cclxuICAgIH07XHJcblxyXG4gICAgdW5zdWIgPSBhd2FpdCBsaXN0ZW48eyBqb2JJZDogbnVtYmVyOyBsaW5lOiBzdHJpbmc7IHN0cmVhbTogc3RyaW5nIH0+KCd3b3JrZXItbGluZScsIChldikgPT4ge1xyXG4gICAgICBjb25zdCBwID0gZXYucGF5bG9hZCBhcyBhbnk7XHJcbiAgICAgIGNvbnN0IGppZCA9IHA/LmpvYklkID8/IHA/LmpvYl9pZDtcclxuICAgICAgaWYgKE51bWJlcihqaWQpICE9PSBjdXJyZW50QWN0aXZlSm9iSWQpIHJldHVybjtcclxuICAgICAgaWYgKGdlbmVyYXRpb24gIT09IHNlc3Npb25HZW5lcmF0aW9uKSByZXR1cm47XHJcbiAgICAgIHRyeSB7XHJcbiAgICAgICAgcHVzaFdvcmtlckxvZyhgW21haW4gJHtTdHJpbmcocC5zdHJlYW0gfHwgJycpfV0gJHtTdHJpbmcocC5saW5lIHx8ICcnKX1gKTtcclxuICAgICAgfSBjYXRjaCB7XHJcbiAgICAgICAgLyogaWdub3JlICovXHJcbiAgICAgIH1cclxuICAgICAgaWYgKHAuc3RyZWFtID09PSAnc3RkZXJyJykge1xyXG4gICAgICAgIGNvbnNvbGUud2FybignW2RyaXZlLXNlcnZlXScsIHAubGluZSk7XHJcbiAgICAgICAgaGFuZGxlU3RkZXJyTGluZShjcmVkcywgcC5saW5lKTtcclxuICAgICAgfSBlbHNlIHtcclxuICAgICAgICBzZXR0bGVDdXJyZW50TGluZShwLmxpbmUpO1xyXG4gICAgICB9XHJcbiAgICB9KTtcclxuICAgIHVuc3Vicy5wdXNoKHVuc3ViKTtcclxuXHJcbiAgICBjb25zdCB1U3RkZXJyID0gYXdhaXQgbGlzdGVuPHN0cmluZz4oJ3dvcmtlci1zdGRlcnInLCAoZXYpID0+IHtcclxuICAgICAgaWYgKGdlbmVyYXRpb24gIT09IHNlc3Npb25HZW5lcmF0aW9uKSByZXR1cm47XHJcbiAgICAgIGhhbmRsZVN0ZGVyckxpbmUoY3JlZHMsIGV2LnBheWxvYWQpO1xyXG4gICAgfSk7XHJcbiAgICB1bnN1YnMucHVzaCh1U3RkZXJyKTtcclxuXHJcbiAgICB1bnN1YkV4aXQgPSBhd2FpdCBsaXN0ZW48eyBqb2JJZDogbnVtYmVyOyBjb2RlOiBudW1iZXIgfT4oJ3dvcmtlci1leGl0JywgKGV2KSA9PiB7XHJcbiAgICAgIGNvbnN0IHAgPSBldi5wYXlsb2FkIGFzIGFueTtcclxuICAgICAgY29uc3QgamlkID0gcD8uam9iSWQgPz8gcD8uam9iX2lkO1xyXG4gICAgICBpZiAoTnVtYmVyKGppZCkgIT09IGN1cnJlbnRBY3RpdmVKb2JJZCkgcmV0dXJuO1xyXG4gICAgICBpZiAoZ2VuZXJhdGlvbiAhPT0gc2Vzc2lvbkdlbmVyYXRpb24pIHJldHVybjtcclxuICAgICAgaWYgKCFwcm9jZXNzQXNzaWduZWQpIHJldHVybjtcclxuXHJcbiAgICAgIGNvbnN0IHdhc1JlYWR5ID0gcmVhZHk7XHJcbiAgICAgIHJlYWR5ID0gZmFsc2U7IC8vIE1hcmsgbm90IHJlYWR5IGltbWVkaWF0ZWx5IHRvIHByZXZlbnQgYW55IG5ldyB3cml0ZVN0ZGluL1JQQyBjYWxsc1xyXG5cclxuICAgICAgY29uc3QgbWFya0VuZGVkID0gKCkgPT4ge1xyXG4gICAgICAgIGlmIChnZW5lcmF0aW9uICE9PSBzZXNzaW9uR2VuZXJhdGlvbikgcmV0dXJuO1xyXG4gICAgICAgIHJlYWR5ID0gZmFsc2U7XHJcbiAgICAgICAgY2hpbGQgPSBudWxsO1xyXG4gICAgICAgIGZvciAoY29uc3QgWywgcGVuZF0gb2YgcGVuZGluZykge1xyXG4gICAgICAgICAgY2xlYXJUaW1lb3V0KHBlbmQudGltZXIpO1xyXG4gICAgICAgICAgY29uc3QgZXJyID0gbmV3IEVycm9yKCdEcml2ZSBzZXNzaW9uIGVuZGVkJyk7XHJcbiAgICAgICAgICAoZXJyIGFzIGFueSkuY29kZSA9ICdEUklWRV9TRVNTSU9OX0VOREVEJztcclxuICAgICAgICAgIHBlbmQucmVqZWN0KGVycik7XHJcbiAgICAgICAgfVxyXG4gICAgICAgIHBlbmRpbmcuY2xlYXIoKTtcclxuICAgICAgfTtcclxuXHJcbiAgICAgIGlmICghd2FzUmVhZHkpIHtcclxuICAgICAgICBjbGVhblN0YXJ0dXBUaW1lcnMoKTtcclxuICAgICAgICBpZiAoc3RhcnR1cFJlamVjdCkge1xyXG4gICAgICAgICAgc3RhcnR1cFJlamVjdChuZXcgRXJyb3IoYERyaXZlIHNlc3Npb24gcHJvY2VzcyBleGl0ZWQgZHVyaW5nIHN0YXJ0dXAgd2l0aCBjb2RlICR7cC5jb2RlfWApKTtcclxuICAgICAgICB9XHJcbiAgICAgICAgaGFuZGxlU3Bhd25GYWlsdXJlKGNyZWRzLCBwLmNvZGUpO1xyXG4gICAgICAgIHJldHVybjtcclxuICAgICAgfVxyXG5cclxuICAgICAgLy8gTG9nIGFibm9ybWFsIGV4aXRzIGZvciBkaWFnbm9zdGljc1xyXG4gICAgICBpZiAocC5jb2RlICE9PSAwKSB7XHJcbiAgICAgICAgY29uc29sZS5lcnJvcignW2RyaXZlLXNlcnZlXSBXb3JrZXIgZXhpdGVkIHdpdGggY29kZScsIHAuY29kZSwgJ2dlbmVyYXRpb24nLCBnZW5lcmF0aW9uLCAnYWN0aXZlQ3JlZHNLZXknLCBhY3RpdmVDcmVkc0tleSk7XHJcbiAgICAgICAgaGFuZGxlU3Bhd25GYWlsdXJlKGNyZWRzLCBwLmNvZGUpO1xyXG4gICAgICB9IGVsc2Uge1xyXG4gICAgICAgIGNvbnNvbGUud2FybignW2RyaXZlLXNlcnZlXSBXb3JrZXIgZXhpdGVkIGdyYWNlZnVsbHkgKGNvZGUgMCkgcG9zdC1zdGFydHVwJywgeyBjb2RlOiBwLmNvZGUsIGdlbmVyYXRpb24sIGFjdGl2ZUNyZWRzS2V5IH0pO1xyXG4gICAgICAgIGNvbnN0IGsgPSBjcmVkS2V5KGNyZWRzKTtcclxuICAgICAgICBjb25zZWN1dGl2ZUZhaWx1cmVzW2tdID0gMDtcclxuICAgICAgfVxyXG4gICAgICB0cnkge1xyXG4gICAgICAgIHB1c2hXb3JrZXJMb2coYFt3b3JrZXItZXhpdF0gY29kZT0ke3AuY29kZX0gZ2VuZXJhdGlvbj0ke2dlbmVyYXRpb259IGFjdGl2ZUNyZWRzPSR7YWN0aXZlQ3JlZHNLZXl9YCk7XHJcbiAgICAgICAgdm9pZCBmbHVzaFdvcmtlckxvZ1RvRmlsZSgpO1xyXG4gICAgICB9IGNhdGNoIHtcclxuICAgICAgICAvKiBpZ25vcmUgKi9cclxuICAgICAgfVxyXG4gICAgICBtYXJrRW5kZWQoKTtcclxuICAgIH0pO1xyXG4gICAgdW5zdWJzLnB1c2godW5zdWJFeGl0KTtcclxuXHJcbiAgICBhd2FpdCBuZXcgUHJvbWlzZTx2b2lkPigocmVzb2x2ZSwgcmVqZWN0KSA9PiB7XHJcbiAgICAgIHN0YXJ0dXBSZWplY3QgPSByZWplY3Q7XHJcbiAgICAgIHQgPSBzZXRUaW1lb3V0KCgpID0+IHtcclxuICAgICAgICBjbGVhblN0YXJ0dXBUaW1lcnMoKTtcclxuICAgICAgICByZWplY3QobmV3IEVycm9yKCdEcml2ZSBzZXNzaW9uIHN0YXJ0IHRpbWVvdXQnKSk7XHJcbiAgICAgIH0sIDIwMDAwKTtcclxuICAgICAgLy8gRXZlbnQtZHJpdmVuIHNldHRsZSBwcmVmZXJyZWQ7IDEyMG1zIHBvbGwgaXMgb25seSBhIHNhZmV0eSBuZXQuXHJcbiAgICAgIG9uUmVhZHlDaGVjayA9IHNldEludGVydmFsKCgpID0+IHtcclxuICAgICAgICBpZiAocmVhZHkgJiYgcHJvY2Vzc0Fzc2lnbmVkKSB7XHJcbiAgICAgICAgICBjbGVhblN0YXJ0dXBUaW1lcnMoKTtcclxuICAgICAgICAgIHJlc29sdmUoKTtcclxuICAgICAgICB9XHJcbiAgICAgIH0sIDEyMCk7XHJcblxyXG4gICAgICBzcGF3bkRhZW1vbkpvYih7XHJcbiAgICAgICAgam9iSWQ6IGN1cnJlbnRBY3RpdmVKb2JJZCxcclxuICAgICAgICBhcmdzOiBbXHJcbiAgICAgICAgICAnLS1hY3Rpb24nLFxyXG4gICAgICAgICAgJ2RyaXZlLXNlcnZlJyxcclxuICAgICAgICAgICctLXNlc3Npb24nLFxyXG4gICAgICAgICAgY3JlZHMuc2Vzc2lvbixcclxuICAgICAgICAgICctLWFwaS1pZCcsXHJcbiAgICAgICAgICBTdHJpbmcoY3JlZHMuYXBpSWQpLFxyXG4gICAgICAgICAgJy0tYXBpLWhhc2gnLFxyXG4gICAgICAgICAgU3RyaW5nKGNyZWRzLmFwaUhhc2gpLFxyXG4gICAgICAgIF0sXHJcbiAgICAgICAgcGlwZVN0ZGluOiB0cnVlLFxyXG4gICAgICAgIGFsbG93U2hlbGxGYWxsYmFjazogZmFsc2UsXHJcbiAgICAgICAgb25TdGRvdXRMaW5lOiAobGluZTogYW55KSA9PiB7XHJcbiAgICAgICAgICBzZXR0bGVDdXJyZW50TGluZShsaW5lKTtcclxuICAgICAgICAgIGlmIChyZWFkeSAmJiBwcm9jZXNzQXNzaWduZWQpIHtcclxuICAgICAgICAgICAgY2xlYW5TdGFydHVwVGltZXJzKCk7XHJcbiAgICAgICAgICAgIHJlc29sdmUoKTtcclxuICAgICAgICAgIH1cclxuICAgICAgICB9LFxyXG4gICAgICAgIG9uU3RkZXJyTGluZTogKGxpbmU6IGFueSkgPT4gY29uc29sZS53YXJuKCdbZHJpdmUtc2VydmVdJywgbGluZSksXHJcbiAgICAgICAgb25DbG9zZTogKCkgPT4gdW5kZWZpbmVkLFxyXG4gICAgICB9KVxyXG4gICAgICAgIC50aGVuKChjOiBhbnkpID0+IHtcclxuICAgICAgICAgIGNoaWxkID0ge1xyXG4gICAgICAgICAgICAuLi5jLFxyXG4gICAgICAgICAgICBkaXNwb3NlOiAoKSA9PiB7XHJcbiAgICAgICAgICAgICAgdW5zdWJzLmZvckVhY2goKHUpID0+IHtcclxuICAgICAgICAgICAgICAgIHRyeSB7XHJcbiAgICAgICAgICAgICAgICAgIHUoKTtcclxuICAgICAgICAgICAgICAgIH0gY2F0Y2gge1xyXG4gICAgICAgICAgICAgICAgICAvKiBpZ25vcmUgKi9cclxuICAgICAgICAgICAgICAgIH1cclxuICAgICAgICAgICAgICB9KTtcclxuICAgICAgICAgICAgICBjLmRpc3Bvc2U/LigpO1xyXG4gICAgICAgICAgICB9LFxyXG4gICAgICAgICAgfTtcclxuICAgICAgICAgIHByb2Nlc3NBc3NpZ25lZCA9IHRydWU7XHJcbiAgICAgICAgICBpZiAocmVhZHkpIHtcclxuICAgICAgICAgICAgY2xlYW5TdGFydHVwVGltZXJzKCk7XHJcbiAgICAgICAgICAgIHJlc29sdmUoKTtcclxuICAgICAgICAgIH1cclxuICAgICAgICB9KVxyXG4gICAgICAgIC5jYXRjaCgoZTogYW55KSA9PiB7XHJcbiAgICAgICAgICBpZiAob25SZWFkeUNoZWNrKSBjbGVhckludGVydmFsKG9uUmVhZHlDaGVjayk7XHJcbiAgICAgICAgICBpZiAodCkgY2xlYXJUaW1lb3V0KHQpO1xyXG4gICAgICAgICAgcmVqZWN0KGUpO1xyXG4gICAgICAgIH0pO1xyXG4gICAgfSk7XHJcblxyXG4gICAgLy8gU3Bhd24gRmFzdEFQSSBhcGktc2VydmVyIGFsb25nc2lkZSBtYWluIHNlc3Npb25cclxuICAgIHZvaWQgc3Bhd25BcGlTZXJ2ZXIoY3JlZHMpO1xyXG5cclxuICAgIHJldHVybiB0cnVlO1xyXG4gIH0gY2F0Y2ggKGUpIHtcclxuICAgIGNvbnNvbGUud2FybignW2RyaXZlLXNlcnZlXSBzcGF3biBtYWluIGZhaWxlZCcsIGUpO1xyXG4gICAgaWYgKGFjdGl2ZUNyZWRzS2V5ID09PSBrZXkpIHtcclxuICAgICAgcmVhZHkgPSBmYWxzZTtcclxuICAgICAgY2hpbGQgPSBudWxsO1xyXG4gICAgfVxyXG4gICAgcmV0dXJuIGZhbHNlO1xyXG4gIH1cclxufVxyXG5cclxuLyoqXHJcbiAqIFN0YXJ0IHdhcm0gZHJpdmUtc2VydmUgaWYgcG9zc2libGUuXHJcbiAqXHJcbiAqIG5lZWRQcmV2aWV3PXRydWUgbWVhbnMgdGhlIGNhbGxlciBjYW4gdG9sZXJhdGUgKGFuZCBtYXkgbmVlZCkgYSBnaG9zdFxyXG4gKiBgX3ByZXZpZXdgIHNlc3Npb24gd2hlbiBNZWRpYSBTdHVkaW8gaG9sZHMgYW4gZXhjbHVzaXZlIHRyYW5zZmVyIGxlYXNlLlxyXG4gKiBXaGVuIG5vIHRyYW5zZmVyIGlzIGFjdGl2ZSB3ZSBhbHdheXMgcHJlZmVyIHRoZSBtYWluIHNlc3Npb24g4oCUIHNwYXduaW5nXHJcbiAqIGdob3N0IHVuY29uZGl0aW9uYWxseSByYWNlcyB3aXRoIGxpc3QvYm9vdHN0cmFwIGFuZCBjYXVzZXMgXCJzZXNzaW9uIGluIHVzZVwiXHJcbiAqIC8gU1FMaXRlIGxvY2sgY29uZmxpY3RzLlxyXG4gKi9cclxuZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIGVuc3VyZURyaXZlU2Vzc2lvbihcclxuICBjcmVkczogRHJpdmVDcmVkZW50aWFscyxcclxuICBuZWVkUHJldmlldzogYm9vbGVhbiA9IGZhbHNlXHJcbik6IFByb21pc2U8Ym9vbGVhbj4ge1xyXG4gIC8vIEZPUkNFIFJVU1Q6IG1hcmsgdmlydHVhbCBzZXNzaW9uIHJlYWR5OyBraWxsIGFueSBsZWZ0b3ZlciBQeXRob24gZHJpdmUtc2VydmUuXHJcbiAgaWYgKEZPUkNFX1JVU1RfRFJJVkUgJiYgZGV0ZWN0VGF1cmlSdW50aW1lKCkpIHtcclxuICAgIGNhbmNlbFNjaGVkdWxlZERyaXZlU2Vzc2lvblN0b3AoKTtcclxuICAgIGNvbnN0IGtleSA9IGNyZWRLZXkoY3JlZHMpO1xyXG4gICAgaWYgKGNoaWxkIHx8IGFwaUNoaWxkIHx8IChyZWFkeSAmJiBhY3RpdmVDcmVkc0tleSAmJiBhY3RpdmVDcmVkc0tleSAhPT0ga2V5KSkge1xyXG4gICAgICB0cnkge1xyXG4gICAgICAgIGF3YWl0IHN0b3BEcml2ZVNlc3Npb24oKTtcclxuICAgICAgfSBjYXRjaCB7XHJcbiAgICAgICAgLyogaWdub3JlICovXHJcbiAgICAgIH1cclxuICAgIH1cclxuICAgIGFjdGl2ZUNyZWRzS2V5ID0ga2V5O1xyXG4gICAgcmVhZHkgPSB0cnVlO1xyXG4gICAgbW9kZSA9ICdtYWluJztcclxuICAgIGdob3N0UmVhZHkgPSBmYWxzZTtcclxuICAgIHJldHVybiB0cnVlO1xyXG4gIH1cclxuXHJcbiAgY29uc3QgcnVuID0gYXN5bmMgKCkgPT4ge1xyXG4gICAgY2FuY2VsU2NoZWR1bGVkRHJpdmVTZXNzaW9uU3RvcCgpO1xyXG5cclxuICAgIGNvbnN0IGtleSA9IGNyZWRLZXkoY3JlZHMpO1xyXG5cclxuICAgIC8vIDEuIENoZWNrIENpcmN1aXQgQnJlYWtlclxyXG4gICAgaWYgKGlzRHJpdmVTZXNzaW9uQ2lyY3VpdFRyaXBwZWQoY3JlZHMpKSB7XHJcbiAgICAgIGNvbnNvbGUud2FybihgW2RyaXZlLXNlcnZlXSBTcGF3biBibG9ja2VkOiBDaXJjdWl0IGJyZWFrZXIgdHJpcHBlZCBmb3IgJHtrZXl9YCk7XHJcbiAgICAgIHJldHVybiBmYWxzZTtcclxuICAgIH1cclxuXHJcbiAgICAvLyAyLiBDaGVjayBiYWNrb2ZmIGNvb2xkb3duXHJcbiAgICBjb25zdCBmYWlsdXJlcyA9IGNvbnNlY3V0aXZlRmFpbHVyZXNba2V5XSB8fCAwO1xyXG4gICAgaWYgKGZhaWx1cmVzID4gMCkge1xyXG4gICAgICBjb25zdCBkZWxheSA9IEJBQ0tPRkZfREVMQVlTW01hdGgubWluKGZhaWx1cmVzIC0gMSwgQkFDS09GRl9ERUxBWVMubGVuZ3RoIC0gMSldO1xyXG4gICAgICBjb25zdCBlbGFwc2VkID0gRGF0ZS5ub3coKSAtIChsYXN0RmFpbHVyZVRpbWVba2V5XSB8fCAwKTtcclxuICAgICAgaWYgKGVsYXBzZWQgPCBkZWxheSkge1xyXG4gICAgICAgIGNvbnN0IHJlbWFpbmluZyA9IGRlbGF5IC0gZWxhcHNlZDtcclxuICAgICAgICBjb25zb2xlLmxvZyhgW2RyaXZlLXNlcnZlXSBCYWNrb2ZmIGFjdGl2ZSBmb3IgJHtrZXl9LiBXYWl0aW5nICR7cmVtYWluaW5nfW1zIGJlZm9yZSBzcGF3bmluZy4uLmApO1xyXG4gICAgICAgIGF3YWl0IG5ldyBQcm9taXNlKChyZXNvbHZlKSA9PiBzZXRUaW1lb3V0KHJlc29sdmUsIHJlbWFpbmluZykpO1xyXG4gICAgICB9XHJcbiAgICB9XHJcblxyXG4gICAgY29uc3QgdHJhbnNmZXJMZWFzZSA9IGF3YWl0IGhhc1RyYW5zZmVyTGVhc2UoY3JlZHMpO1xyXG5cclxuICAgIGlmICghbmVlZFByZXZpZXcpIHtcclxuICAgICAgLy8gTm9ybWFsIG1vZGU6IGV4Y2x1c2l2ZSB0cmFuc2ZlciBvd25zIHRoZSBzZXNzaW9uXHJcbiAgICAgIGlmICh0cmFuc2ZlckxlYXNlKSByZXR1cm4gZmFsc2U7XHJcbiAgICAgIGlmIChtb2RlID09PSAnbWFpbicgJiYgaXNEcml2ZVNlc3Npb25SZWFkeUZvcihjcmVkcykpIHJldHVybiB0cnVlO1xyXG4gICAgfSBlbHNlIHtcclxuICAgICAgLy8gUHJldmlldyBtb2RlOlxyXG4gICAgICAvLyAxLiBQcmVmZXIgYSB3YXJtIG1haW4gc2Vzc2lvbiAobm8gY2xvbmUgdGhyYXNoKVxyXG4gICAgICBpZiAobW9kZSA9PT0gJ21haW4nICYmIGlzRHJpdmVTZXNzaW9uUmVhZHlGb3IoY3JlZHMpICYmIHJlYWR5KSB7XHJcbiAgICAgICAgcmV0dXJuIHRydWU7XHJcbiAgICAgIH1cclxuICAgICAgLy8gMi4gR2hvc3QgYWxyZWFkeSBzZXJ2aW5nIHByZXZpZXcgZHVyaW5nIHRyYW5zZmVyXHJcbiAgICAgIGlmIChtb2RlID09PSAnZ2hvc3QnICYmIGlzRHJpdmVTZXNzaW9uUmVhZHlGb3IoY3JlZHMpICYmIGdob3N0UmVhZHkpIHtcclxuICAgICAgICBjYW5jZWxHaG9zdFRyYW5zaXRpb24oKTtcclxuICAgICAgICByZXR1cm4gdHJ1ZTtcclxuICAgICAgfVxyXG4gICAgICAvLyAzLiBUcmFuc2ZlciBvd25zIG1haW4g4oCUIG9ubHkgZ2hvc3QgY2FuIG9wZW4gd2l0aG91dCBjbG9iYmVyaW5nIGl0XHJcbiAgICAgIC8vIChzcGF3biBoYXBwZW5zIGJlbG93KS4gSWYgbm8gbGVhc2UsIGZhbGwgdGhyb3VnaCB0byBtYWluIHNwYXduLlxyXG4gICAgfVxyXG5cclxuICAgIC8vIFdhaXQgZm9yIGFueSBpbi1mbGlnaHQgc3RhcnR1cCB0byBzZXR0bGVcclxuICAgIHdoaWxlIChzdGFydGluZykge1xyXG4gICAgICBjb25zdCBpbkZsaWdodCA9IHN0YXJ0aW5nO1xyXG4gICAgICB0cnkge1xyXG4gICAgICAgIGF3YWl0IGluRmxpZ2h0O1xyXG4gICAgICB9IGNhdGNoIHtcclxuICAgICAgICAvLyBpZ25vcmVcclxuICAgICAgfVxyXG4gICAgICBpZiAoIW5lZWRQcmV2aWV3ICYmIG1vZGUgPT09ICdtYWluJyAmJiBpc0RyaXZlU2Vzc2lvblJlYWR5Rm9yKGNyZWRzKSkgcmV0dXJuIHRydWU7XHJcbiAgICAgIGlmIChuZWVkUHJldmlldykge1xyXG4gICAgICAgIGlmIChtb2RlID09PSAnbWFpbicgJiYgaXNEcml2ZVNlc3Npb25SZWFkeUZvcihjcmVkcykgJiYgcmVhZHkpIHJldHVybiB0cnVlO1xyXG4gICAgICAgIGlmIChtb2RlID09PSAnZ2hvc3QnICYmIGlzRHJpdmVTZXNzaW9uUmVhZHlGb3IoY3JlZHMpICYmIGdob3N0UmVhZHkpIHtcclxuICAgICAgICAgIGNhbmNlbEdob3N0VHJhbnNpdGlvbigpO1xyXG4gICAgICAgICAgcmV0dXJuIHRydWU7XHJcbiAgICAgICAgfVxyXG4gICAgICB9XHJcbiAgICAgIGlmIChzdGFydGluZyA9PT0gaW5GbGlnaHQpIGJyZWFrO1xyXG4gICAgfVxyXG5cclxuICAgIGlmICghZGV0ZWN0VGF1cmlSdW50aW1lKCkpIHJldHVybiBmYWxzZTtcclxuXHJcbiAgICAvLyBSZS1jaGVjayBsZWFzZSBhZnRlciB3YWl0IOKAlCB0cmFuc2ZlciBtYXkgaGF2ZSBzdGFydGVkL2ZpbmlzaGVkXHJcbiAgICBjb25zdCBsZWFzZU5vdyA9IGF3YWl0IGhhc1RyYW5zZmVyTGVhc2UoY3JlZHMpO1xyXG5cclxuICAgIGNvbnN0IHN0YXJ0UHJvbWlzZSA9IChhc3luYyAoKSA9PiB7XHJcbiAgICAgIGlmIChuZWVkUHJldmlldyAmJiBsZWFzZU5vdykge1xyXG4gICAgICAgIC8vIE1lZGlhIFN0dWRpbyBob2xkcyBtYWluIC5zZXNzaW9uIOKAlCB1c2UgaXNvbGF0ZWQgZ2hvc3QgZm9yIHByZXZpZXcvc3RyZWFtXHJcbiAgICAgICAgYXdhaXQgc3Bhd25HaG9zdFNlc3Npb24oY3JlZHMpO1xyXG4gICAgICB9IGVsc2UgaWYgKGxlYXNlTm93KSB7XHJcbiAgICAgICAgLy8gTm9uLXByZXZpZXcgY2FsbGVyIGR1cmluZyB0cmFuc2ZlcjogZG8gbm90IGZpZ2h0IGZvciB0aGUgc2Vzc2lvblxyXG4gICAgICAgIHJldHVybjtcclxuICAgICAgfSBlbHNlIHtcclxuICAgICAgICAvLyBObyBleGNsdXNpdmUgdHJhbnNmZXI6IGFsd2F5cyB1c2UgbWFpbiAoZXZlbiBmb3IgcHJldmlldyBvcGVuKVxyXG4gICAgICAgIGF3YWl0IHNwYXduTWFpblNlc3Npb24oY3JlZHMpO1xyXG4gICAgICB9XHJcbiAgICB9KSgpO1xyXG4gICAgc3RhcnRpbmcgPSBzdGFydFByb21pc2U7XHJcblxyXG4gICAgdHJ5IHtcclxuICAgICAgYXdhaXQgc3RhcnRQcm9taXNlO1xyXG4gICAgICBpZiAobmVlZFByZXZpZXcpIHtcclxuICAgICAgICByZXR1cm4gKFxyXG4gICAgICAgICAgKG1vZGUgPT09ICdnaG9zdCcgJiYgaXNEcml2ZVNlc3Npb25SZWFkeUZvcihjcmVkcykgJiYgZ2hvc3RSZWFkeSkgfHxcclxuICAgICAgICAgIChtb2RlID09PSAnbWFpbicgJiYgaXNEcml2ZVNlc3Npb25SZWFkeUZvcihjcmVkcykgJiYgcmVhZHkpXHJcbiAgICAgICAgKTtcclxuICAgICAgfVxyXG4gICAgICByZXR1cm4gbW9kZSA9PT0gJ21haW4nICYmIGlzRHJpdmVTZXNzaW9uUmVhZHlGb3IoY3JlZHMpO1xyXG4gICAgfSBjYXRjaCAoZSkge1xyXG4gICAgICBjb25zb2xlLndhcm4oJ1tkcml2ZS1zZXJ2ZV0gZW5zdXJlRHJpdmVTZXNzaW9uIGZhaWxlZCcsIGUpO1xyXG4gICAgICByZXR1cm4gZmFsc2U7XHJcbiAgICB9IGZpbmFsbHkge1xyXG4gICAgICBpZiAoc3RhcnRpbmcgPT09IHN0YXJ0UHJvbWlzZSkge1xyXG4gICAgICAgIHN0YXJ0aW5nID0gbnVsbDtcclxuICAgICAgfVxyXG4gICAgfVxyXG4gIH07XHJcblxyXG4gIGNvbnN0IG5leHQgPSBib290c3RyYXBMb2NrLnRoZW4ocnVuLCBydW4pO1xyXG4gIGJvb3RzdHJhcExvY2sgPSBuZXh0O1xyXG4gIHJldHVybiBuZXh0O1xyXG59XHJcblxyXG5leHBvcnQgZnVuY3Rpb24gc2NoZWR1bGVEcml2ZVNlc3Npb25TdG9wKGRlbGF5TXMgPSA3NTApOiB2b2lkIHtcclxuICBjYW5jZWxTY2hlZHVsZWREcml2ZVNlc3Npb25TdG9wKCk7XHJcbiAgc2NoZWR1bGVkU3RvcCA9IHNldFRpbWVvdXQoKCkgPT4ge1xyXG4gICAgc2NoZWR1bGVkU3RvcCA9IG51bGw7XHJcbiAgICB2b2lkIHN0b3BEcml2ZVNlc3Npb24oKTtcclxuICB9LCBNYXRoLm1heCgwLCBkZWxheU1zKSk7XHJcbn1cclxuXHJcbmV4cG9ydCBmdW5jdGlvbiBjYW5jZWxTY2hlZHVsZWREcml2ZVNlc3Npb25TdG9wKCk6IHZvaWQge1xyXG4gIGlmIChzY2hlZHVsZWRTdG9wID09IG51bGwpIHJldHVybjtcclxuICBjbGVhclRpbWVvdXQoc2NoZWR1bGVkU3RvcCk7XHJcbiAgc2NoZWR1bGVkU3RvcCA9IG51bGw7XHJcbn1cclxuXHJcbmV4cG9ydCBhc3luYyBmdW5jdGlvbiBzdG9wRHJpdmVTZXNzaW9uKCk6IFByb21pc2U8dm9pZD4ge1xyXG4gIGNhbmNlbFNjaGVkdWxlZERyaXZlU2Vzc2lvblN0b3AoKTtcclxuICBjYW5jZWxHaG9zdFRyYW5zaXRpb24oKTtcclxuICBzZXNzaW9uR2VuZXJhdGlvbiArPSAxO1xyXG4gIGxldCBxdWl0UmVxdWVzdGVkID0gZmFsc2U7XHJcbiAgdHJ5IHtcclxuICAgIGlmIChyZWFkeSkge1xyXG4gICAgICB0cnkge1xyXG4gICAgICAgIGF3YWl0IHdyaXRlU3RkaW4oSlNPTi5zdHJpbmdpZnkoeyBpZDogJ3F1aXQnLCBjbWQ6ICdxdWl0JyB9KSk7XHJcbiAgICAgICAgcXVpdFJlcXVlc3RlZCA9IHRydWU7XHJcbiAgICAgIH0gY2F0Y2gge1xyXG4gICAgICAgIC8qIGlnbm9yZSAqL1xyXG4gICAgICB9XHJcbiAgICB9XHJcbiAgfSBmaW5hbGx5IHtcclxuICAgIHJlYWR5ID0gZmFsc2U7XHJcbiAgICBtb2RlID0gJ21haW4nO1xyXG4gICAgZ2hvc3RSZWFkeSA9IGZhbHNlO1xyXG4gICAgYWN0aXZlUHJldmlld3MgPSAwO1xyXG4gICAgZm9yIChjb25zdCBbLCBwXSBvZiBwZW5kaW5nKSB7XHJcbiAgICAgIGNsZWFyVGltZW91dChwLnRpbWVyKTtcclxuICAgICAgY29uc3QgZXJyID0gbmV3IEVycm9yKCdEcml2ZSBzZXNzaW9uIHN0b3BwZWQnKTtcclxuICAgICAgKGVyciBhcyBhbnkpLmNvZGUgPSAnRFJJVkVfU0VTU0lPTl9TVE9QUEVEJztcclxuICAgICAgcC5yZWplY3QoZXJyKTtcclxuICAgIH1cclxuICAgIHBlbmRpbmcuY2xlYXIoKTtcclxuICAgIGlmIChxdWl0UmVxdWVzdGVkKSB7XHJcbiAgICAgIGF3YWl0IG5ldyBQcm9taXNlPHZvaWQ+KChyZXNvbHZlKSA9PiBzZXRUaW1lb3V0KHJlc29sdmUsIDMyMCkpO1xyXG4gICAgfVxyXG4gICAgdHJ5IHtcclxuICAgICAgYXdhaXQga2lsbFdvcmtlckpvYihEUklWRV9TRVJWRV9KT0JfSUQpO1xyXG4gICAgICBhd2FpdCBraWxsV29ya2VySm9iKGFjdGl2ZUpvYklkKTtcclxuICAgICAgaWYgKGNoaWxkPy5qb2JJZCkge1xyXG4gICAgICAgIGF3YWl0IGtpbGxXb3JrZXJKb2IoY2hpbGQuam9iSWQpO1xyXG4gICAgICB9XHJcbiAgICB9IGNhdGNoIHtcclxuICAgICAgLyogaWdub3JlICovXHJcbiAgICB9XHJcbiAgICB0cnkge1xyXG4gICAgICBhd2FpdCBraWxsV29ya2VySm9iKEFQSV9TRVJWRVJfSk9CX0lEKTtcclxuICAgIH0gY2F0Y2gge1xyXG4gICAgICAvKiBpZ25vcmUgKi9cclxuICAgIH1cclxuICAgIHRyeSB7XHJcbiAgICAgIGNoaWxkPy5kaXNwb3NlPy4oKTtcclxuICAgIH0gY2F0Y2gge1xyXG4gICAgICAvKiBpZ25vcmUgKi9cclxuICAgIH1cclxuICAgIHRyeSB7XHJcbiAgICAgIGFwaUNoaWxkPy5kaXNwb3NlPy4oKTtcclxuICAgIH0gY2F0Y2gge1xyXG4gICAgICAvKiBpZ25vcmUgKi9cclxuICAgIH1cclxuICAgIGNoaWxkID0gbnVsbDtcclxuICAgIGFwaUNoaWxkID0gbnVsbDtcclxuICAgIGFjdGl2ZUNyZWRzS2V5ID0gJyc7XHJcbiAgICB1bnN1YiA9IG51bGw7XHJcbiAgICB1bnN1YkV4aXQgPSBudWxsO1xyXG4gIH1cclxufVxyXG5cclxuZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIGRyaXZlU2Vzc2lvbkNhbGxGb3IoXHJcbiAgY3JlZHM6IERyaXZlQ3JlZGVudGlhbHMsXHJcbiAgY21kOiBzdHJpbmcsXHJcbiAgcGFyYW1zOiBSZWNvcmQ8c3RyaW5nLCBhbnk+ID0ge30sXHJcbiAgdGltZW91dE1zID0gMTIwMDAwXHJcbik6IFByb21pc2U8YW55PiB7XHJcbiAgaWYgKEZPUkNFX1JVU1RfRFJJVkUgJiYgZGV0ZWN0VGF1cmlSdW50aW1lKCkpIHtcclxuICAgIGNvbnN0IGVyciA9IG5ldyBFcnJvcihcclxuICAgICAgYFRlbGV0aG9uIGRyaXZlLXNlcnZlIGRpbm9uYWt0aWZrYW4gKGNtZD0ke2NtZH0pLiBHdW5ha2FuIFJ1c3QgKyBHcmFtbWVycy5gXHJcbiAgICApO1xyXG4gICAgKGVyciBhcyBhbnkpLmNvZGUgPSAnVEVMRVRIT05fRElTQUJMRUQnO1xyXG4gICAgdGhyb3cgZXJyO1xyXG4gIH1cclxuICBjb25zdCBleHBlY3RlZCA9IGNyZWRLZXkoY3JlZHMpO1xyXG4gIC8vIFByZXZpZXcvc3RyZWFtIFJQQ3MgbWF5IG5lZWQgZ2hvc3QgZHVyaW5nIHRyYW5zZmVyOyBsaXN0L2Jvb3RzdHJhcCBzdGF5IG9uIG1haW4uXHJcbiAgY29uc3QgcHJldmlld0NtZHMgPSBuZXcgU2V0KFtcclxuICAgICdwcmV2aWV3JyxcclxuICAgICdwcmV2aWV3X3N0cmVhbScsXHJcbiAgICAnc3RyZWFtX3ByZXZpZXcnLFxyXG4gICAgJ3ByZXZpZXdfd2FybScsXHJcbiAgICAnd2FybV9wcmV2aWV3JyxcclxuICAgICdzdHJlYW1fc3RhdHVzJyxcclxuICAgICdwcmV2aWV3X3N0YXR1cycsXHJcbiAgICAnc3RvcF9zdHJlYW0nLFxyXG4gICAgJ3N0cmVhbV9zdG9wJyxcclxuICAgICdzdHJlYW1fc2VlaycsXHJcbiAgICAnc2Vla19zdHJlYW0nLFxyXG4gICAgJ3ByZXZpZXdfc2VlaycsXHJcbiAgXSk7XHJcbiAgY29uc3QgbmVlZFByZXZpZXcgPSBtb2RlID09PSAnZ2hvc3QnIHx8IHByZXZpZXdDbWRzLmhhcyhTdHJpbmcoY21kIHx8ICcnKS50b0xvd2VyQ2FzZSgpKSB8fCBhY3RpdmVQcmV2aWV3cyA+IDA7XHJcbiAgY29uc3QgbWF4QXR0ZW1wdHMgPSAzO1xyXG4gIGxldCBsYXN0RXJyOiBhbnkgPSBudWxsO1xyXG4gIGZvciAobGV0IGF0dGVtcHQgPSAwOyBhdHRlbXB0IDwgbWF4QXR0ZW1wdHM7IGF0dGVtcHQrKykge1xyXG4gICAgLy8gRW5zdXJlIHNlc3Npb24gaXMgd2FybSBhbmQgb3duZWRcclxuICAgIGlmICghaXNEcml2ZVNlc3Npb25SZWFkeUZvcihjcmVkcykpIHtcclxuICAgICAgY29uc3Qgb2sgPSBhd2FpdCBlbnN1cmVEcml2ZVNlc3Npb24oY3JlZHMsIG5lZWRQcmV2aWV3KTtcclxuICAgICAgaWYgKCFvayB8fCAhaXNEcml2ZVNlc3Npb25SZWFkeUZvcihjcmVkcykpIHtcclxuICAgICAgICBsYXN0RXJyID0gbmV3IEVycm9yKCdEcml2ZSBzZXNzaW9uIGlzIG5vdCByZWFkeSBmb3IgdGhlIHNlbGVjdGVkIGFjY291bnQnKTtcclxuICAgICAgICBpZiAoYXR0ZW1wdCA8IG1heEF0dGVtcHRzIC0gMSkge1xyXG4gICAgICAgICAgYXdhaXQgbmV3IFByb21pc2UoKHIpID0+IHNldFRpbWVvdXQociwgMzAwICsgYXR0ZW1wdCAqIDIwMCkpO1xyXG4gICAgICAgICAgY29udGludWU7XHJcbiAgICAgICAgfVxyXG4gICAgICAgIHRocm93IGxhc3RFcnI7XHJcbiAgICAgIH1cclxuICAgIH1cclxuICAgIGlmICghcmVhZHkgfHwgYWN0aXZlQ3JlZHNLZXkgIT09IGV4cGVjdGVkKSB7XHJcbiAgICAgIGxhc3RFcnIgPSBuZXcgRXJyb3IoJ0RyaXZlIHNlc3Npb24gY2hhbmdlZCBiZWZvcmUgcmVxdWVzdCBjb3VsZCBzdGFydCcpO1xyXG4gICAgICBpZiAoYXR0ZW1wdCA8IG1heEF0dGVtcHRzIC0gMSkge1xyXG4gICAgICAgIGF3YWl0IG5ldyBQcm9taXNlKChyKSA9PiBzZXRUaW1lb3V0KHIsIDMwMCArIGF0dGVtcHQgKiAyMDApKTtcclxuICAgICAgICBjb250aW51ZTtcclxuICAgICAgfVxyXG4gICAgICB0aHJvdyBsYXN0RXJyO1xyXG4gICAgfVxyXG5cclxuICAgIHRyeSB7XHJcbiAgICAgIHJldHVybiBhd2FpdCBkcml2ZVNlc3Npb25DYWxsKGNtZCwgeyAuLi5wYXJhbXMsIF9fc2Vzc2lvbl9vd25lcjogZXhwZWN0ZWQgfSwgdGltZW91dE1zLCBleHBlY3RlZCk7XHJcbiAgICB9IGNhdGNoIChlOiBhbnkpIHtcclxuICAgICAgbGFzdEVyciA9IGU7XHJcbiAgICAgIGNvbnN0IG1zZyA9IFN0cmluZyhlPy5tZXNzYWdlIHx8ICcnKS50b0xvd2VyQ2FzZSgpO1xyXG4gICAgICBjb25zdCBjb2RlID0gZT8uY29kZSB8fCAnJztcclxuICAgICAgY29uc3QgaXNTZXNzaW9uRXJyID1cclxuICAgICAgICBjb2RlID09PSAnRFJJVkVfU0VTU0lPTl9TVE9QUEVEJyB8fFxyXG4gICAgICAgIGNvZGUgPT09ICdEUklWRV9TRVNTSU9OX0VOREVEJyB8fFxyXG4gICAgICAgIC9kcml2ZSBzZXNzaW9uIHN0b3BwZWR8ZHJpdmUgc2Vzc2lvbiBlbmRlZHxkcml2ZSBzZXNzaW9uIG5vdCByZWFkeXxzZXNzaW9uIG5vdCByZWFkeXxkcml2ZSBzZXNzaW9uIGNoYW5nZWR8bm8gc3RkaW4gZm9yIGpvYnxpcyBkcml2ZS1zZXJ2ZSBydW5uaW5nL2kudGVzdChtc2cpO1xyXG5cclxuICAgICAgaWYgKGlzU2Vzc2lvbkVyciAmJiBhdHRlbXB0IDwgbWF4QXR0ZW1wdHMgLSAxKSB7XHJcbiAgICAgICAgdHJ5IHtcclxuICAgICAgICAgIC8vIFRyeSB0byByZS1ib290c3RyYXAgdGhlIGRyaXZlIHNlc3Npb24gYmVmb3JlIHJldHJ5aW5nXHJcbiAgICAgICAgICBhd2FpdCBlbnN1cmVEcml2ZVNlc3Npb24oY3JlZHMsIG5lZWRQcmV2aWV3KTtcclxuICAgICAgICB9IGNhdGNoIHtcclxuICAgICAgICAgIC8qIGlnbm9yZSAqL1xyXG4gICAgICAgIH1cclxuICAgICAgICBhd2FpdCBuZXcgUHJvbWlzZSgocikgPT4gc2V0VGltZW91dChyLCA0MDAgKyBhdHRlbXB0ICogMjUwKSk7XHJcbiAgICAgICAgY29udGludWU7XHJcbiAgICAgIH1cclxuICAgICAgdGhyb3cgZTtcclxuICAgIH1cclxuICB9XHJcbiAgdGhyb3cgbGFzdEVycjtcclxufVxyXG5cclxuZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIGRyaXZlU2Vzc2lvbkNhbGwoXHJcbiAgY21kOiBzdHJpbmcsXHJcbiAgcGFyYW1zOiBSZWNvcmQ8c3RyaW5nLCBhbnk+ID0ge30sXHJcbiAgdGltZW91dE1zID0gMTIwMDAwLFxyXG4gIGV4cGVjdGVkQ3JlZHNLZXkgPSAnJ1xyXG4pOiBQcm9taXNlPGFueT4ge1xyXG4gIGlmICghcmVhZHkpIHtcclxuICAgIHRocm93IG5ldyBFcnJvcignRHJpdmUgc2Vzc2lvbiBub3QgcmVhZHknKTtcclxuICB9XHJcbiAgaWYgKGV4cGVjdGVkQ3JlZHNLZXkgJiYgYWN0aXZlQ3JlZHNLZXkgIT09IGV4cGVjdGVkQ3JlZHNLZXkpIHtcclxuICAgIHRocm93IG5ldyBFcnJvcignRHJpdmUgc2Vzc2lvbiBvd25lcnNoaXAgY2hhbmdlZCcpO1xyXG4gIH1cclxuICBjb25zdCBpZCA9IFN0cmluZygrK3JlcVNlcSk7XHJcbiAgY29uc3QgeyBfX3Nlc3Npb25fb3duZXI6IF9zZXNzaW9uT3duZXIsIC4uLnNhZmVQYXJhbXMgfSA9IHBhcmFtcztcclxuICBjb25zdCBsaW5lID0gSlNPTi5zdHJpbmdpZnkoeyBpZCwgY21kLCAuLi5zYWZlUGFyYW1zIH0pO1xyXG4gIHJldHVybiBuZXcgUHJvbWlzZSgocmVzb2x2ZSwgcmVqZWN0KSA9PiB7XHJcbiAgICBjb25zdCB0aW1lciA9IHNldFRpbWVvdXQoKCkgPT4ge1xyXG4gICAgICBwZW5kaW5nLmRlbGV0ZShpZCk7XHJcbiAgICAgIHJlamVjdChuZXcgRXJyb3IoYERyaXZlIFJQQyB0aW1lb3V0OiAke2NtZH1gKSk7XHJcbiAgICB9LCB0aW1lb3V0TXMpO1xyXG4gICAgcGVuZGluZy5zZXQoaWQsIHsgcmVzb2x2ZSwgcmVqZWN0LCB0aW1lciB9KTtcclxuICAgIGlmIChleHBlY3RlZENyZWRzS2V5ICYmIGFjdGl2ZUNyZWRzS2V5ICE9PSBleHBlY3RlZENyZWRzS2V5KSB7XHJcbiAgICAgIHBlbmRpbmcuZGVsZXRlKGlkKTtcclxuICAgICAgY2xlYXJUaW1lb3V0KHRpbWVyKTtcclxuICAgICAgcmVqZWN0KG5ldyBFcnJvcignRHJpdmUgc2Vzc2lvbiBvd25lcnNoaXAgY2hhbmdlZCBiZWZvcmUgd3JpdGUnKSk7XHJcbiAgICAgIHJldHVybjtcclxuICAgIH1cclxuICAgIHdyaXRlU3RkaW4obGluZSkuY2F0Y2goKGU6IGFueSkgPT4ge1xyXG4gICAgICBwZW5kaW5nLmRlbGV0ZShpZCk7XHJcbiAgICAgIGNsZWFyVGltZW91dCh0aW1lcik7XHJcbiAgICAgIHJlYWR5ID0gZmFsc2U7XHJcbiAgICAgIHJlamVjdChlKTtcclxuICAgIH0pO1xyXG4gIH0pO1xyXG59XHJcblxyXG5leHBvcnQgZnVuY3Rpb24gZ2V0RHJpdmVTZXNzaW9uRXJyb3IoY3JlZHM6IERyaXZlQ3JlZGVudGlhbHMpOiBzdHJpbmcgfCBudWxsIHtcclxuICBjb25zdCBrZXkgPSBjcmVkS2V5KGNyZWRzKTtcclxuICByZXR1cm4gc2Vzc2lvbkVycm9yc1trZXldIHx8IG51bGw7XHJcbn1cclxuXHJcbmV4cG9ydCBmdW5jdGlvbiBpc0RyaXZlU2Vzc2lvbkNpcmN1aXRUcmlwcGVkKGNyZWRzOiBEcml2ZUNyZWRlbnRpYWxzKTogYm9vbGVhbiB7XHJcbiAgY29uc3Qga2V5ID0gY3JlZEtleShjcmVkcyk7XHJcbiAgaWYgKGlzVHJpcHBlZFtrZXldKSB7XHJcbiAgICBjb25zdCB0aW1lU2luY2VMYXN0RmFpbHVyZSA9IERhdGUubm93KCkgLSAobGFzdEZhaWx1cmVUaW1lW2tleV0gfHwgMCk7XHJcbiAgICBpZiAodGltZVNpbmNlTGFzdEZhaWx1cmUgPiBDSVJDVUlUX0JSRUFLRVJfQ09PTERPV05fTVMpIHtcclxuICAgICAgaXNUcmlwcGVkW2tleV0gPSBmYWxzZTtcclxuICAgICAgY29uc2VjdXRpdmVGYWlsdXJlc1trZXldID0gQ0lSQ1VJVF9CUkVBS0VSX1RIUkVTSE9MRCAtIDE7XHJcbiAgICAgIHJldHVybiBmYWxzZTtcclxuICAgIH1cclxuICAgIHJldHVybiB0cnVlO1xyXG4gIH1cclxuICByZXR1cm4gZmFsc2U7XHJcbn1cclxuXHJcbmV4cG9ydCBmdW5jdGlvbiByZXNldERyaXZlU2Vzc2lvbkNpcmN1aXQoY3JlZHM6IERyaXZlQ3JlZGVudGlhbHMpOiB2b2lkIHtcclxuICBjb25zdCBrZXkgPSBjcmVkS2V5KGNyZWRzKTtcclxuICBjb25zZWN1dGl2ZUZhaWx1cmVzW2tleV0gPSAwO1xyXG4gIGlzVHJpcHBlZFtrZXldID0gZmFsc2U7XHJcbiAgZGVsZXRlIHNlc3Npb25FcnJvcnNba2V5XTtcclxuICBkZWxldGUgbGFzdEZhaWx1cmVUaW1lW2tleV07XHJcbn1cclxuIl0sIm1hcHBpbmdzIjoiQUFPQSxTQUFTLGNBQWM7QUFDdkIsU0FBUyxlQUFlLHFCQUFxQjtBQUM3QyxTQUFTLGNBQStCO0FBQ3hDLFNBQVMsZ0JBQWdCLHFCQUFvQztBQUU3RCxTQUFTLDBCQUEwQjtBQUNuQyxTQUFTLG1CQUFtQjtBQUdyQixhQUFNLG1CQUFtQjtBQUV6QixhQUFNLDBCQUEwQjtBQUNoQyxhQUFNLHFCQUFxQjtBQUMzQixhQUFNLG9CQUFvQjtBQUUxQixhQUFNLDRCQUE0QjtBQUNsQyxhQUFNLDhCQUE4QjtBQUNwQyxhQUFNLGlCQUFpQixDQUFDLEtBQU0sS0FBTyxHQUFLO0FBQzFDLGFBQU0sdUJBQXVCO0FBR3BDLE1BQU0sc0JBQThDLENBQUM7QUFFckQsTUFBTSxZQUFxQyxDQUFDO0FBRTVDLE1BQU0sZ0JBQXdDLENBQUM7QUFFL0MsTUFBTSxrQkFB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

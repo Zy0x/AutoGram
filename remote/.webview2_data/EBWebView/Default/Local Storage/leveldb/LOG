@@ -1,6 +1,88 @@
-2026/08/03-18:09:29.216 6490 Reusing MANIFEST F:\AutoGram\remote\.webview2_data\EBWebView\Default\Local Storage\leveldb/MANIFEST-000001
-2026/08/03-18:09:29.237 6490 Recovering log #528
-2026/08/03-18:09:29.244 6490 Reusing old log F:\AutoGram\remote\.webview2_data\EBWebView\Default\Local Storage\leveldb/000528.log 
-2026/08/03-18:18:29.787 6490 Level-0 table #533: started
-2026/08/03-18:18:29.792 6490 Level-0 table #533: 22455 bytes OK
-2026/08/03-18:18:29.795 6490 Delete type=0 #528
+2026/08/09-18:23:39.662 6ee8 Reusing MANIFEST f:\AutoGram\remote\.webview2_data\EBWebView\Default\Local Storage\leveldb/MANIFEST-000001
+2026/08/09-18:23:39.673 6ee8 Recovering log #611
+2026/08/09-18:23:39.675 6ee8 Level-0 table #614: started
+2026/08/09-18:23:39.686 6ee8 Level-0 table #614: 38532 bytes OK
+2026/08/09-18:23:39.687 6ee8 Recovering log #613
+2026/08/09-18:23:39.697 6ee8 Reusing old log f:\AutoGram\remote\.webview2_data\EBWebView\Default\Local Storage\leveldb/000613.log 
+2026/08/09-18:23:39.702 6ee8 Delete type=0 #611
+2026/08/09-18:23:39.706 6fa0 Compacting 5@0 + 1@1 files
+2026/08/09-18:23:39.729 6fa0 Generated table #615@0: 36 keys, 42847 bytes
+2026/08/09-18:23:39.729 6fa0 Compacted 5@0 + 1@1 files => 42847 bytes
+2026/08/09-18:23:39.731 6fa0 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/09-18:23:39.738 6fa0 Delete type=2 #604
+2026/08/09-18:23:39.738 6fa0 Delete type=2 #606
+2026/08/09-18:23:39.738 6fa0 Delete type=2 #608
+2026/08/09-18:23:39.738 6fa0 Delete type=2 #610
+2026/08/09-18:23:39.738 6fa0 Delete type=2 #612
+2026/08/09-18:23:39.739 6fa0 Delete type=2 #614
+2026/08/09-18:27:40.124 6ee8 Level-0 table #617: started
+2026/08/09-18:27:40.133 6ee8 Level-0 table #617: 37012 bytes OK
+2026/08/09-18:27:40.135 6ee8 Delete type=0 #613
+2026/08/09-18:28:40.117 6ee8 Level-0 table #619: started
+2026/08/09-18:28:40.125 6ee8 Level-0 table #619: 38533 bytes OK
+2026/08/09-18:28:40.127 6ee8 Delete type=0 #616
+2026/08/09-18:29:40.126 6ee8 Level-0 table #621: started
+2026/08/09-18:29:40.134 6ee8 Level-0 table #621: 38532 bytes OK
+2026/08/09-18:29:40.137 6ee8 Delete type=0 #618
+2026/08/09-18:30:40.127 6ee8 Level-0 table #623: started
+2026/08/09-18:30:40.134 6ee8 Level-0 table #623: 38532 bytes OK
+2026/08/09-18:30:40.138 6ee8 Delete type=0 #620
+2026/08/09-18:30:40.140 6ee8 Compacting 4@0 + 1@1 files
+2026/08/09-18:30:40.152 6ee8 Generated table #624@0: 36 keys, 42834 bytes
+2026/08/09-18:30:40.152 6ee8 Compacted 4@0 + 1@1 files => 42834 bytes
+2026/08/09-18:30:40.153 6ee8 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/09-18:30:40.154 6ee8 Delete type=2 #615
+2026/08/09-18:30:40.154 6ee8 Delete type=2 #617
+2026/08/09-18:30:40.154 6ee8 Delete type=2 #619
+2026/08/09-18:30:40.154 6ee8 Delete type=2 #621
+2026/08/09-18:30:40.155 6ee8 Delete type=2 #623
+2026/08/09-18:31:40.130 6ee8 Level-0 table #626: started
+2026/08/09-18:31:40.138 6ee8 Level-0 table #626: 38530 bytes OK
+2026/08/09-18:31:40.141 6ee8 Delete type=0 #622
+2026/08/09-18:32:40.123 6ee8 Level-0 table #628: started
+2026/08/09-18:32:40.131 6ee8 Level-0 table #628: 38532 bytes OK
+2026/08/09-18:32:40.134 6ee8 Delete type=0 #625
+2026/08/09-18:33:40.129 6ee8 Level-0 table #630: started
+2026/08/09-18:33:40.138 6ee8 Level-0 table #630: 38532 bytes OK
+2026/08/09-18:33:40.140 6ee8 Delete type=0 #627
+2026/08/09-18:34:40.124 6ee8 Level-0 table #632: started
+2026/08/09-18:34:40.132 6ee8 Level-0 table #632: 38530 bytes OK
+2026/08/09-18:34:40.135 6ee8 Delete type=0 #629
+2026/08/09-18:34:40.136 6ee8 Compacting 4@0 + 1@1 files
+2026/08/09-18:34:40.148 6ee8 Generated table #633@0: 36 keys, 42832 bytes
+2026/08/09-18:34:40.148 6ee8 Compacted 4@0 + 1@1 files => 42832 bytes
+2026/08/09-18:34:40.149 6ee8 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/09-18:34:40.150 6ee8 Delete type=2 #624
+2026/08/09-18:34:40.150 6ee8 Delete type=2 #626
+2026/08/09-18:34:40.150 6ee8 Delete type=2 #628
+2026/08/09-18:34:40.150 6ee8 Delete type=2 #630
+2026/08/09-18:34:40.150 6ee8 Delete type=2 #632
+2026/08/09-18:35:40.119 6ee8 Level-0 table #635: started
+2026/08/09-18:35:40.126 6ee8 Level-0 table #635: 38533 bytes OK
+2026/08/09-18:35:40.129 6ee8 Delete type=0 #631
+2026/08/09-18:36:40.125 6ee8 Level-0 table #637: started
+2026/08/09-18:36:40.133 6ee8 Level-0 table #637: 38529 bytes OK
+2026/08/09-18:36:40.135 6ee8 Delete type=0 #634
+2026/08/09-18:37:40.118 6ee8 Level-0 table #639: started
+2026/08/09-18:37:40.125 6ee8 Level-0 table #639: 38533 bytes OK
+2026/08/09-18:37:40.127 6ee8 Delete type=0 #636
+2026/08/09-18:38:40.124 6ee8 Level-0 table #641: started
+2026/08/09-18:38:40.131 6ee8 Level-0 table #641: 38532 bytes OK
+2026/08/09-18:38:40.133 6ee8 Delete type=0 #638
+2026/08/09-18:38:40.135 6ee8 Compacting 4@0 + 1@1 files
+2026/08/09-18:38:40.145 6ee8 Generated table #642@0: 36 keys, 42834 bytes
+2026/08/09-18:38:40.145 6ee8 Compacted 4@0 + 1@1 files => 42834 bytes
+2026/08/09-18:38:40.147 6ee8 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/09-18:38:40.147 6ee8 Delete type=2 #633
+2026/08/09-18:38:40.147 6ee8 Delete type=2 #635
+2026/08/09-18:38:40.147 6ee8 Delete type=2 #637
+2026/08/09-18:38:40.147 6ee8 Delete type=2 #639
+2026/08/09-18:38:40.147 6ee8 Delete type=2 #641
+2026/08/09-18:39:40.116 6ee8 Level-0 table #644: started
+2026/08/09-18:39:40.122 6ee8 Level-0 table #644: 38531 bytes OK
+2026/08/09-18:39:40.125 6ee8 Delete type=0 #640
+2026/08/09-18:40:40.116 6ee8 Level-0 table #646: started
+2026/08/09-18:40:40.123 6ee8 Level-0 table #646: 38533 bytes OK
+2026/08/09-18:40:40.126 6ee8 Delete type=0 #643
+2026/08/09-18:41:02.796 6fa0 Level-0 table #648: started
+2026/08/09-18:41:02.835 6fa0 Level-0 table #648: 38534 bytes OK

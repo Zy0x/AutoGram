@@ -847,8 +847,16 @@ fn cache_clear_disk() -> Result<serde_json::Value, String> {
 }
 
 #[tauri::command]
-fn cache_trim_disk(target_bytes: u64) -> Result<serde_json::Value, String> {
-    core::jobs_db::trim_disk_cache(target_bytes)
+fn cache_trim_disk(
+    target_bytes: u64,
+    auto_prune: Option<bool>,
+    persist_policy: Option<bool>,
+) -> Result<serde_json::Value, String> {
+    if persist_policy.unwrap_or(false) {
+        core::jobs_db::set_cache_policy(target_bytes, auto_prune.unwrap_or(true))
+    } else {
+        core::jobs_db::trim_disk_cache(target_bytes)
+    }
 }
 
 #[tauri::command]
@@ -1775,6 +1783,15 @@ pub fn run() {
                     );
                 }
             }
+            // The configured cache ceiling is a backend invariant, not a
+            // Settings-page suggestion. Keep enforcing it while the desktop app
+            // is open, including during progressive media and thumbnail writes.
+            let _ = std::thread::Builder::new()
+                .name("autogram-cache-policy".into())
+                .spawn(|| loop {
+                    let _ = core::jobs_db::enforce_cache_policy();
+                    std::thread::sleep(std::time::Duration::from_secs(5));
+                });
             // Network (proxy/VPN) config under app data
             if let Ok(dir) = app.handle().path().app_local_data_dir() {
                 let net_path = dir.join("AutoGram").join("network_settings.json");

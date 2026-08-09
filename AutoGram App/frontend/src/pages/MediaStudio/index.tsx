@@ -7,8 +7,10 @@ import { TransferPreflightDialog } from '../../components/drive/Transfers/Transf
 import { DriveTransferSettings } from '../../components/drive/Transfers/DriveTransferSettings';
 import {
   runQualityPreflight,
+  type PreflightReviewDecision,
   type QualityPreflightReport,
 } from '../../lib/transfer/qualityPreflight';
+import { cancelledPreflightDecision } from '../../lib/transfer/preflightDuplicateDecision';
 import { MediaStudioProps, readSessionsCache, writeSessionsCache } from './mediaStudioUtils';
 import { isDriveSessionCircuitTripped, resetDriveSessionCircuit } from '../../lib/telegram';
 /**
@@ -695,7 +697,7 @@ function MediaDriveDesktop({
   }));
   const [transfer, setTransfer] = useState<TransferSession>(() => ({ ...EMPTY_TRANSFER_SESSION }));
   const [preflightReport, setPreflightReport] = useState<QualityPreflightReport | null>(null);
-  const preflightResolverRef = useRef<((approved: boolean) => void) | null>(null);
+  const preflightResolverRef = useRef<((decision: PreflightReviewDecision) => void) | null>(null);
   const transferQueueRef = useRef<QueueTask[]>([]);
   const activeTaskStartIndexRef = useRef<number>(0);
   const taskRunningRef = useRef(false);
@@ -778,23 +780,23 @@ function MediaDriveDesktop({
   const [destPicker, setDestPicker] = useState<DriveDestPickerState | null>(null);
 
   useEffect(() => () => {
-    preflightResolverRef.current?.(false);
+    preflightResolverRef.current?.(cancelledPreflightDecision);
     preflightResolverRef.current = null;
   }, []);
 
   const reviewPreflight = useCallback((report: QualityPreflightReport) => {
-    preflightResolverRef.current?.(false);
+    preflightResolverRef.current?.(cancelledPreflightDecision);
     setPreflightReport(report);
-    return new Promise<boolean>((resolve) => {
+    return new Promise<PreflightReviewDecision>((resolve) => {
       preflightResolverRef.current = resolve;
     });
   }, []);
 
-  const closePreflight = useCallback((approved: boolean) => {
+  const closePreflight = useCallback((decision: PreflightReviewDecision) => {
     const resolve = preflightResolverRef.current;
     preflightResolverRef.current = null;
     setPreflightReport(null);
-    resolve?.(approved);
+    resolve?.(decision);
   }, []);
 
   // Default expanded; only collapse if user previously chose so
@@ -2896,12 +2898,33 @@ function MediaDriveDesktop({
       }
       // Avoid stuck pagination if API returned empty but claimed has_more
       if (!page.length) {
+        const exactFiles = liveFilesRef.current;
+        const exactCount = loadedUniqueMediaCount(exactFiles);
+        const exactBytes = loadedMediaBytes(exactFiles);
+        const previousTarget = filesTotalCountRef.current.get(cacheKey) ?? exactCount;
+        const excludedMessages = Math.max(0, previousTarget - exactCount);
         filesHasMoreRef.current = false;
         setFilesHasMore(false);
         nextOffsetIdRef.current = null;
         setNextOffsetId(null);
-        setStatusText(t('ui.generated.semua_media_dimuat_2310a13'));
-        scheduleMediaStats({ force: true, delayMs: 200 });
+        setTotalFileCount(exactCount);
+        setTotalBytes(exactBytes);
+        filesTotalCountRef.current.set(cacheKey, exactCount);
+        filesTotalBytesRef.current.set(cacheKey, exactBytes);
+        setStatsAccurate(true);
+        setStatsLoading(false);
+        if (mediaStatsTimerRef.current != null) {
+          window.clearTimeout(mediaStatsTimerRef.current);
+          mediaStatsTimerRef.current = null;
+        }
+        setStatusText(
+          excludedMessages > 0
+            ? t('speedtest.media_index_reconciled', {
+                media: exactCount.toLocaleString(),
+                skipped: excludedMessages.toLocaleString(),
+              })
+            : t('ui.generated.semua_media_dimuat_2310a13')
+        );
         return;
       }
       setFiles((prev) => {
@@ -4727,7 +4750,7 @@ function MediaDriveDesktop({
     if (!creds || !paths.length) return;
     
     // Normalize paths — allow both local file paths and remote URLs (http/https)
-    const cleanPaths = paths
+    let cleanPaths = paths
       .map((p) => String(p || '').trim().replace(/^["']|["']$/g, ''))
       .filter((p) => {
         if (!p) return false;
@@ -4745,7 +4768,7 @@ function MediaDriveDesktop({
       (uploadPeer == null ? 'Saved Messages' : breadcrumb) ||
       'Drive';
     const label = `→ ${destLabel}`;
-    const names = cleanPaths.map((p) => {
+    let names = cleanPaths.map((p) => {
       if (p.startsWith('http://') || p.startsWith('https://')) {
         try {
           const u = new URL(p);
@@ -4756,6 +4779,18 @@ function MediaDriveDesktop({
       }
       return p.split(/[/\\]/).pop() || p;
     });
+
+    const uploadTopicId = (() => {
+      if (opts?.topicId !== undefined) {
+        return opts.topicId != null && opts.topicId > 0 ? opts.topicId : null;
+      }
+      if (!opts?.skipTopic && sameDriveLocation(uploadPeer, peerId)) {
+        const activeTopicId = topicFilterRef.current;
+        return activeTopicId != null && activeTopicId > 0 ? activeTopicId : null;
+      }
+      return null;
+    })();
+    let duplicateForceUploadPaths: string[] = [];
 
     try {
       setStatusText(String(t('speedtest.preflight_running')));
@@ -4770,10 +4805,29 @@ function MediaDriveDesktop({
         oversizeAction: transferSettings.oversizeAction,
         globalCaption: (transferSettings.globalCaption || '').trim() || undefined,
         captionOverflowPolicy: transferSettings.captionOverflowPolicy,
+        destinationId: studioChatIdFromFolder(uploadPeer),
+        topicId: uploadTopicId,
       });
-      const approved = await reviewPreflight(report);
-      if (!approved) {
+      const decision = await reviewPreflight(report);
+      if (!decision.approved) {
         setStatusText(String(t('speedtest.preflight_cancelled')));
+        return;
+      }
+      const skippedPaths = new Set(decision.skippedPaths);
+      cleanPaths = cleanPaths.filter((path) => !skippedPaths.has(path));
+      duplicateForceUploadPaths = decision.forceUploadPaths.filter((path) => !skippedPaths.has(path));
+      names = cleanPaths.map((path) => path.startsWith('http://') || path.startsWith('https://')
+        ? (() => {
+            try {
+              const url = new URL(path);
+              return url.pathname.split('/').pop() || url.hostname || path;
+            } catch {
+              return path;
+            }
+          })()
+        : path.split(/[/\\]/).pop() || path);
+      if (!cleanPaths.length) {
+        setStatusText(String(t('speedtest.preflight_all_duplicates_skipped')));
         return;
       }
     } catch (preflightError) {
@@ -4823,6 +4877,7 @@ function MediaDriveDesktop({
       download_resume_partial: transferSettings.downloadResumePartial,
       download_integrity: transferSettings.downloadIntegrity,
       duplicate_policy: transferSettings.duplicatePolicy || 'SKIP',
+      duplicate_force_upload_paths: duplicateForceUploadPaths,
       scan_mode: transferSettings.scanMode || 'smart',
       guardrail_enabled: transferSettings.guardrailEnabled !== false,
       guardrail_threshold_days: transferSettings.guardrailThresholdDays ?? 7,
@@ -4830,14 +4885,7 @@ function MediaDriveDesktop({
       max_reupload_per_hour: transferSettings.maxReuploadPerHour ?? 10,
     };
     // Upload into selected forum topic: explicit topicId overrides, otherwise fall back to current active topic
-    if (opts?.topicId !== undefined) {
-      if (opts.topicId != null && opts.topicId > 0) {
-        options.topic_id = opts.topicId;
-      }
-    } else if (!opts?.skipTopic && sameDriveLocation(uploadPeer, peerId)) {
-      const tid = topicFilterRef.current;
-      if (tid != null && tid > 0) options.topic_id = tid;
-    }
+    if (uploadTopicId != null) options.topic_id = uploadTopicId;
 
     // Determine startIndex
     const currentItemsCount = transferRef.current.items.length;
@@ -5566,6 +5614,20 @@ function MediaDriveDesktop({
         id: locationKind === 'saved' ? null : activePeerId,
       }),
     [session, locationKind, activePeerId, pins]
+  );
+
+  const isLocationPinned = useCallback(
+    (kind: 'saved' | 'drive' | 'chat', id: number | null) =>
+      !!session && isDrivePinned(session, { kind, id: kind === 'saved' ? null : id }),
+    [session, pins]
+  );
+
+  const toggleLocationPin = useCallback(
+    (kind: 'saved' | 'drive' | 'chat', id: number | null, label: string) => {
+      if (!session) return;
+      setPins(toggleDrivePin(session, { kind, id: kind === 'saved' ? null : id, label }));
+    },
+    [session]
   );
 
   const goNav = useCallback((dir: 'back' | 'forward') => {
@@ -7750,6 +7812,7 @@ function MediaDriveDesktop({
             locationByType={statsByType}
             filesHasMore={filesHasMore}
             onLoadMoreFiles={loadMoreFiles}
+            onRefreshFiles={() => refreshFiles(0, { preserveError: true })}
             topicFilter={topicFilter}
             isForum={isForumChat}
             transferSettings={transferSettings}
@@ -8050,6 +8113,8 @@ function MediaDriveDesktop({
         handleSelectAllDisplayed={handleSelectAllDisplayed}
         clearSelection={clearSelection}
         selectedIds={selectedIds}
+        isLocationPinned={isLocationPinned}
+        onToggleLocationPin={toggleLocationPin}
         activeConfirm={activeConfirm}
         closeDriveMoveConfirm={closeDriveMoveConfirm}
         setConfirmDlg={setConfirmDlg}
@@ -8063,8 +8128,9 @@ function MediaDriveDesktop({
       />
       <TransferPreflightDialog
         report={preflightReport}
-        onConfirm={() => closePreflight(true)}
-        onCancel={() => closePreflight(false)}
+        creds={creds}
+        onConfirm={closePreflight}
+        onCancel={() => closePreflight(cancelledPreflightDecision)}
       />
       </main>
   );

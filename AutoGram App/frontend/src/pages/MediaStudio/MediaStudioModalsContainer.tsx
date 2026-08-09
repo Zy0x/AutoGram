@@ -57,6 +57,8 @@ export interface MediaStudioModalsContainerProps {
   handleSelectAllDisplayed: () => void;
   clearSelection: () => void;
   selectedIds: number[];
+  isLocationPinned: (kind: 'saved' | 'drive' | 'chat', id: number | null) => boolean;
+  onToggleLocationPin: (kind: 'saved' | 'drive' | 'chat', id: number | null, name: string) => void;
 
   activeConfirm: any;
   closeDriveMoveConfirm: () => void;
@@ -120,6 +122,8 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
   handleSelectAllDisplayed,
   clearSelection,
   selectedIds,
+  isLocationPinned,
+  onToggleLocationPin,
 
   activeConfirm,
   closeDriveMoveConfirm,
@@ -262,6 +266,20 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
                   setTopicFilter(null);
                   topicFilterRef.current = null;
                 }
+              : undefined
+          }
+          isPinned={
+            contextMenu.kind === 'location'
+              ? isLocationPinned(contextMenu.locationKind, contextMenu.id)
+              : false
+          }
+          onTogglePin={
+            contextMenu.kind === 'location'
+              ? () => onToggleLocationPin(
+                  contextMenu.locationKind,
+                  contextMenu.id,
+                  contextMenu.name
+                )
               : undefined
           }
           onDeleteFolder={

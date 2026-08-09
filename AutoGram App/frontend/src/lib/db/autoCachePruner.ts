@@ -1,9 +1,9 @@
 import { getPersistentThumbsSize, prunePersistentThumbsToSize } from '../media/thumbPersistentCache';
-import { getMediaStudioCacheSize } from '../db/mediaStudioDb';
+import { clearMediaStudioCache, getMediaStudioCacheSize } from '../db/mediaStudioDb';
 import { clearThumbCache } from '../media/thumbBatcher';
 import { clearAvatarCache } from '../media/avatarBatcher';
 import { clearPreviewCache } from '../media/previewCache';
-import { cacheCalculateSize, cacheTrimDisk } from '../db/jobsApi';
+import { cacheCalculateSize, cacheSetPolicy, cacheTrimDisk } from '../db/jobsApi';
 
 let isPruning = false;
 
@@ -14,10 +14,6 @@ export async function checkAndAutoPruneCache(): Promise<{ pruned: boolean; freed
 
   const enabledStr = localStorage.getItem('autogram_auto_prune_enabled');
   const autoPruneEnabled = enabledStr === null ? true : enabledStr === 'true';
-
-  if (!autoPruneEnabled) {
-    return { pruned: false, freedBytes: 0 };
-  }
 
   const savedLimit = localStorage.getItem('autogram_cache_limit_mb');
   const limitMB = savedLimit !== null ? Number(savedLimit) : 5120; // Default 5 GB
@@ -49,22 +45,36 @@ export async function checkAndAutoPruneCache(): Promise<{ pruned: boolean; freed
 
     const totalCacheSize = idbSize + diskSize;
 
+    await cacheSetPolicy(limitBytes, autoPruneEnabled);
+
     if (totalCacheSize > limitBytes) {
       console.log(`[AutoCachePruner] Cache size (${(totalCacheSize / (1024 * 1024 * 1024)).toFixed(2)} GB) exceeds limit (${limitMB} MB). Starting auto-prune...`);
 
-      // 1. Prune IndexedDB Thumbs to limit
-      await prunePersistentThumbsToSize(limitBytes);
+      // Budget the cache as one pool. Giving both IndexedDB and disk the full
+      // limit independently is what previously allowed the total to exceed it.
+      const studioSize = await getMediaStudioCacheSize().catch(() => 0);
+      await prunePersistentThumbsToSize(Math.max(0, limitBytes - studioSize - diskSize));
 
       // 2. Clear in-memory UI thumbnail/avatar caches
       clearThumbCache();
       clearAvatarCache();
       clearPreviewCache();
 
-      // 3. Trim Rust Disk Cache to limit (respecting active file lock & 10 min window)
+      const thumbSize = await getPersistentThumbsSize().catch(() => 0);
+      // 3. Give Rust only the remaining combined budget.
       try {
-        await cacheTrimDisk(limitBytes);
+        await cacheTrimDisk(Math.max(0, limitBytes - studioSize - thumbSize));
       } catch (err) {
         console.warn('[AutoCachePruner] Failed to trim disk cache:', err);
+      }
+
+      // Media-list records are rebuildable. If all older disk/thumb entries were
+      // exhausted and the pool is still over budget, release that final cache.
+      const afterDisk = await cacheCalculateSize().catch(() => null);
+      const afterThumbs = await getPersistentThumbsSize().catch(() => 0);
+      if ((Number(afterDisk?.bytes || 0) + afterThumbs + studioSize) > limitBytes) {
+        await clearMediaStudioCache();
+        await cacheTrimDisk(Math.max(0, limitBytes - afterThumbs));
       }
 
       // Calculate new size after pruning

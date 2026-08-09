@@ -1,3 +1,16 @@
-2026/08/03-18:09:31.835 730c Reusing MANIFEST F:\AutoGram\remote\.webview2_data\EBWebView\Default\IndexedDB\http_localhost_1420.indexeddb.leveldb/MANIFEST-000001
-2026/08/03-18:09:31.835 730c Recovering log #11
-2026/08/03-18:09:31.848 730c Reusing old log F:\AutoGram\remote\.webview2_data\EBWebView\Default\IndexedDB\http_localhost_1420.indexeddb.leveldb/000011.log 
+2026/08/09-18:25:13.363 4e38 Reusing MANIFEST f:\AutoGram\remote\.webview2_data\EBWebView\Default\IndexedDB\http_localhost_1420.indexeddb.leveldb/MANIFEST-000001
+2026/08/09-18:25:13.364 4e38 Recovering log #77
+2026/08/09-18:25:13.365 4e38 Reusing old log f:\AutoGram\remote\.webview2_data\EBWebView\Default\IndexedDB\http_localhost_1420.indexeddb.leveldb/000077.log 
+2026/08/09-18:25:13.564 20fc Compacting 1@1 + 1@2 files
+2026/08/09-18:25:13.589 20fc Generated table #80@1: 110 keys, 1905 bytes
+2026/08/09-18:25:13.589 20fc Compacted 1@1 + 1@2 files => 1905 bytes
+2026/08/09-18:25:13.591 20fc compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/08/09-18:25:13.591 20fc Delete type=2 #71
+2026/08/09-18:25:13.591 20fc Delete type=2 #78
+2026/08/09-18:26:15.972 4e38 Level-0 table #82: started
+2026/08/09-18:26:16.002 4e38 Level-0 table #82: 790248 bytes OK
+2026/08/09-18:26:16.004 4e38 Delete type=0 #77
+2026/08/09-18:28:10.329 4e38 Compacting 1@1 + 1@2 files
+2026/08/09-18:28:10.347 4e38 Generated table #83@1: 6052 keys, 397965 bytes
+2026/08/09-18:28:10.347 4e38 Compacted 1@1 + 1@2 files => 397965 bytes
+2026/08/09-18:28:10.348 4e38 compacted to: files[ 0 0 1 0 0 0 0 ]

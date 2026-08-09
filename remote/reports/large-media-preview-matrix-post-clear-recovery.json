@@ -1,0 +1,344 @@
+{
+  "target": {
+    "peerId": "-1003319619788",
+    "messageId": 1618
+  },
+  "samples": [
+    {
+      "second": 1,
+      "found": true,
+      "src": "http://127.0.0.1:62341/stream/g8828a58a3ce1__1003319619788-1618/video_2024-07-06_04-57-03_7388384354787349504.mp4",
+      "paused": false,
+      "currentTime": 0,
+      "duration": null,
+      "readyState": 0,
+      "networkState": 2,
+      "buffered": [],
+      "error": null
+    },
+    {
+      "second": 2,
+      "found": true,
+      "src": "http://127.0.0.1:62341/stream/g8828a58a3ce1__1003319619788-1618/video_2024-07-06_04-57-03_7388384354787349504.mp4",
+      "paused": false,
+      "currentTime": 0,
+      "duration": null,
+      "readyState": 0,
+      "networkState": 2,
+      "buffered": [],
+      "error": null
+    },
+    {
+      "second": 3,
+      "found": true,
+      "src": "http://127.0.0.1:62341/stream/g8828a58a3ce1__1003319619788-1618/video_2024-07-06_04-57-03_7388384354787349504.mp4",
+      "paused": false,
+      "currentTime": 0,
+      "duration": null,
+      "readyState": 0,
+      "networkState": 2,
+      "buffered": [],
+      "error": null
+    },
+    {
+      "second": 4,
+      "found": true,
+      "src": "http://127.0.0.1:62341/stream/g8828a58a3ce1__1003319619788-1618/video_2024-07-06_04-57-03_7388384354787349504.mp4",
+      "paused": false,
+      "currentTime": 0,
+      "duration": null,
+      "readyState": 0,
+      "networkState": 2,
+      "buffered": [],
+      "error": null
+    },
+    {
+      "second": 5,
+      "found": true,
+      "src": "http://127.0.0.1:62341/stream/g8828a58a3ce1__1003319619788-1618/video_2024-07-06_04-57-03_7388384354787349504.mp4",
+      "paused": false,
+      "currentTime": 0,
+      "duration": null,
+      "readyState": 0,
+      "networkState": 2,
+      "buffered": [],
+      "error": null
+    },
+    {
+      "second": 6,
+      "found": true,
+      "src": "http://127.0.0.1:62341/stream/g8828a58a3ce1__1003319619788-1618/video_2024-07-06_04-57-03_7388384354787349504.mp4",
+      "paused": false,
+      "currentTime": 0.364038,
+      "duration": 7136.966667,
+      "readyState": 4,
+      "networkState": 2,
+      "buffered": [
+        [
+          0,
+          0.9
+        ]
+      ],
+      "error": null
+    },
+    {
+      "second": 7,
+      "found": true,
+      "src": "http://127.0.0.1:62341/stream/g8828a58a3ce1__1003319619788-1618/video_2024-07-06_04-57-03_7388384354787349504.mp4",
+      "paused": false,
+      "currentTime": 0.900549,
+      "duration": 7136.966667,
+      "readyState": 2,
+      "networkState": 2,
+      "buffered": [
+        [
+          0,
+          0.9
+        ]
+      ],
+      "error": null
+    },
+    {
+      "second": 8,
+      "found": true,
+      "src": "http://127.0.0.1:62341/stream/g8828a58a3ce1__1003319619788-1618/video_2024-07-06_04-57-03_7388384354787349504.mp4",
+      "paused": false,
+      "currentTime": 0.900549,
+      "duration": 7136.966667,
+      "readyState": 2,
+      "networkState": 2,
+      "buffered": [
+        [
+          0,
+          0.9
+        ]
+      ],
+      "error": null
+    },
+    {
+      "second": 9,
+      "found": true,
+      "src": "http://127.0.0.1:62341/stream/g8828a58a3ce1__1003319619788-1618/video_2024-07-06_04-57-03_7388384354787349504.mp4",
+      "paused": false,
+      "currentTime": 0.900549,
+      "duration": 7136.966667,
+      "readyState": 1,
+      "networkState": 2,
+      "buffered": [
+        [
+          0,
+          0.9
+        ]
+      ],
+      "error": null
+    },
+    {
+      "second": 10,
+      "found": true,
+      "src": "http://127.0.0.1:62341/stream/g8828a58a3ce1__1003319619788-1618/video_2024-07-06_04-57-03_7388384354787349504.mp4",
+      "paused": false,
+      "currentTime": 0.900549,
+      "duration": 7136.966667,
+      "readyState": 1,
+      "networkState": 2,
+      "buffered": [
+        [
+          0,
+          0.9
+        ]
+      ],
+      "error": null
+    },
+    {
+      "second": 11,
+      "found": true,
+      "src": "http://127.0.0.1:62341/stream/g8828a58a3ce1__1003319619788-1618/video_2024-07-06_04-57-03_7388384354787349504.mp4",
+      "paused": false,
+      "currentTime": 0.900549,
+      "duration": 7136.966667,
+      "readyState": 1,
+      "networkState": 2,
+      "buffered": [
+        [
+          0,
+          0.9
+        ]
+      ],
+      "error": null
+    },
+    {
+      "second": 12,
+      "found": true,
+      "src": "http://127.0.0.1:62341/stream/g8828a58a3ce1__1003319619788-1618/video_2024-07-06_04-57-03_7388384354787349504.mp4",
+      "paused": false,
+      "currentTime": 0.900549,
+      "duration": 7136.966667,
+      "readyState": 1,
+      "networkState": 2,
+      "buffered": [
+        [
+          0,
+          0.9
+        ]
+      ],
+      "error": null
+    },
+    {
+      "second": 13,
+      "found": true,
+      "src": "http://127.0.0.1:62341/stream/g8828a58a3ce1__1003319619788-1618/video_2024-07-06_04-57-03_7388384354787349504.mp4",
+      "paused": false,
+      "currentTime": 0.900549,
+      "duration": 7136.966667,
+      "readyState": 1,
+      "networkState": 2,
+      "buffered": [
+        [
+          0,
+          0.9
+        ]
+      ],
+      "error": null
+    },
+    {
+      "second": 14,
+      "found": true,
+      "src": "http://127.0.0.1:62341/stream/g8828a58a3ce1__1003319619788-1618/video_2024-07-06_04-57-03_7388384354787349504.mp4",
+      "paused": false,
+      "currentTime": 0.900549,
+      "duration": 7136.966667,
+      "readyState": 1,
+      "networkState": 2,
+      "buffered": [
+        [
+          0,
+          0.9
+        ]
+      ],
+      "error": null
+    },
+    {
+      "second": 15,
+      "found": true,
+      "src": "http://127.0.0.1:62341/stream/g8828a58a3ce1__1003319619788-1618/video_2024-07-06_04-57-03_7388384354787349504.mp4",
+      "paused": false,
+      "currentTime": 0.900549,
+      "duration": 7136.966667,
+      "readyState": 1,
+      "networkState": 2,
+      "buffered": [
+        [
+          0,
+          0.9
+        ]
+      ],
+      "error": null
+    },
+    {
+      "second": 16,
+      "found": true,
+      "src": "http://127.0.0.1:62341/stream/g8828a58a3ce1__1003319619788-1618/video_2024-07-06_04-57-03_7388384354787349504.mp4",
+      "paused": false,
+      "currentTime": 0.900549,
+      "duration": 7136.966667,
+      "readyState": 1,
+      "networkState": 2,
+      "buffered": [
+        [
+          0,
+          0.9
+        ]
+      ],
+      "error": null
+    },
+    {
+      "second": 17,
+      "found": true,
+      "src": "http://127.0.0.1:62341/stream/g8828a58a3ce1__1003319619788-1618/video_2024-07-06_04-57-03_7388384354787349504.mp4",
+      "paused": false,
+      "currentTime": 0.900549,
+      "duration": 7136.966667,
+      "readyState": 1,
+      "networkState": 2,
+      "buffered": [
+        [
+          0,
+          0.9
+        ]
+      ],
+      "error": null
+    },
+    {
+      "second": 18,
+      "found": true,
+      "src": "http://127.0.0.1:62341/stream/g8828a58a3ce1__1003319619788-1618/video_2024-07-06_04-57-03_7388384354787349504.mp4",
+      "paused": false,
+      "currentTime": 0.900549,
+      "duration": 7136.966667,
+      "readyState": 1,
+      "networkState": 2,
+      "buffered": [
+        [
+          0,
+          0.9
+        ]
+      ],
+      "error": null
+    },
+    {
+      "second": 19,
+      "found": true,
+      "src": "http://127.0.0.1:62341/stream/g8828a58a3ce1__1003319619788-1618/video_2024-07-06_04-57-03_7388384354787349504.mp4",
+      "paused": false,
+      "currentTime": 0.900549,
+      "duration": 7136.966667,
+      "readyState": 1,
+      "networkState": 2,
+      "buffered": [
+        [
+          0,
+          0.9
+        ]
+      ],
+      "error": null
+    },
+    {
+      "second": 20,
+      "found": true,
+      "src": "http://127.0.0.1:62341/stream/g8828a58a3ce1__1003319619788-1618/video_2024-07-06_04-57-03_7388384354787349504.mp4",
+      "paused": false,
+      "currentTime": 0.900549,
+      "duration": 7136.966667,
+      "readyState": 1,
+      "networkState": 2,
+      "buffered": [
+        [
+          0,
+          0.9
+        ]
+      ],
+      "error": null
+    }
+  ],
+  "ranges": [
+    {
+      "label": "head",
+      "range": "bytes=0-65535",
+      "status": 206,
+      "contentRange": "bytes 0-65535/1613427222",
+      "acceptRanges": "bytes",
+      "length": 65536,
+      "elapsedMs": 16
+    },
+    {
+      "label": "tail",
+      "range": "bytes=-65536",
+      "status": 206,
+      "contentRange": "bytes 1613361686-1613427221/1613427222",
+      "acceptRanges": "bytes",
+      "length": 65536,
+      "elapsedMs": 7
+    }
+  ],
+  "passed": true
+}

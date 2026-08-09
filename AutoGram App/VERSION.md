@@ -1,6 +1,9 @@
-AutoGram Version: v3.3.3
+AutoGram Version: v3.3.4
 
 Current State:
+v3.3.4 Transfer Preflight UI/UX Simplification & Instant Readability Engine — membenahi `TransferPreflightDialog.tsx`, `App.css`, `id/speedtest.json`, `en/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Membasmi beban kognitif berlebih dengan menyederhanakan baris berkas non-duplikat menjadi tampilan compact 1-baris, menambahkan banner indikator aman (0 matches), memperbaiki isu clipping padding nama berkas di bagian atas, menyediakan toggle detail teknis terisolasi, serta meningkatkan kontras tombol eksekusi utama dengan aksen Emerald Green modern.
+
+Previous:
 v3.3.3 Flip Y & Flip X Axis Orientation Correction Engine — membenahi `id/speedtest.json`, `en/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki pemetaan sumbu balikan visual agar presisi: ikon balikan horizontal (`FlipHorizontal`) dipetakan ke `Flip Y` dan ikon balikan vertikal (`FlipVertical`) dipetakan ke `Flip X` secara konsisten pada seluruh mode preview media.
 
 Previous:

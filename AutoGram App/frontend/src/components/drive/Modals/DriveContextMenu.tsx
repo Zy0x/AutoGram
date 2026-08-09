@@ -20,6 +20,8 @@ import {
   MessageSquare,
   Home,
   Copy,
+  Pin,
+  PinOff,
 } from 'lucide-react';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
 import { driveFileDisplayName } from '../../../lib/telegram/driveTypes';
@@ -71,6 +73,8 @@ type Props = {
   renameFolderLabel?: string;
   reparentFolderLabel?: string;
   deleteFolderLabel?: string;
+  onTogglePin?: () => void;
+  isPinned?: boolean;
 };
 
 /**
@@ -108,6 +112,8 @@ export function DriveContextMenu({
   renameFolderLabel,
   reparentFolderLabel,
   deleteFolderLabel,
+  onTogglePin,
+  isPinned = false,
 }: Props) {
   const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
@@ -320,6 +326,12 @@ export function DriveContextMenu({
             {onOpenLocation && (
               <button type="button" role="menuitem" onClick={() => run(onOpenLocation)}>
                 <FolderOpen size={14} /> {t('speedtest.ctx_menu_open')}
+              </button>
+            )}
+            {onTogglePin && (
+              <button type="button" role="menuitem" onClick={() => run(onTogglePin)}>
+                {isPinned ? <PinOff size={14} /> : <Pin size={14} />}
+                {isPinned ? t('speedtest.topbar_unpin_loc') : t('speedtest.topbar_pin_loc')}
               </button>
             )}
             {target.locationKind === 'drive' && onCreateSubfolder && (

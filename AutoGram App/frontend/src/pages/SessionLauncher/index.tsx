@@ -398,6 +398,7 @@ export function SessionLauncher({
             return (
               <div
                 key={sess.name}
+                data-session-name={sess.name}
                 style={{
                   borderRadius: '20px',
                   background: 'linear-gradient(150deg, rgba(20, 26, 38, 0.85) 0%, rgba(11, 16, 26, 0.95) 100%)',
@@ -585,7 +586,7 @@ export function SessionLauncher({
                           e.currentTarget.style.background = 'transparent';
                           e.currentTarget.style.color = '#94a3b8';
                         }}
-                        title="Menu Akun"
+                        title={t('accounts.session_menu')}
                       >
                         <MoreVertical size={16} />
                       </button>

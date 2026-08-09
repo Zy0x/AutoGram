@@ -190,6 +190,9 @@ pub struct UploadLedgerMatch {
     pub telegram_message_id: Option<i64>,
     pub telegram_unique_id: Option<String>,
     pub match_level: String,
+    pub filename: String,
+    pub file_size: u64,
+    pub payload_class: String,
 }
 
 pub fn find_upload_ledger_match(
@@ -203,7 +206,7 @@ pub fn find_upload_ledger_match(
     let conn = open()?;
     let topic_key = topic_id.unwrap_or(0);
     let exact = conn.query_row(
-        "SELECT telegram_message_id, telegram_unique_id
+        "SELECT telegram_message_id, telegram_unique_id, filename, file_size, payload_class
          FROM upload_ledger
          WHERE account_id=?1 AND destination_id=?2 AND topic_id=?3 AND prepared_sha256=?4
          ORDER BY updated_at DESC LIMIT 1",
@@ -212,22 +215,28 @@ pub fn find_upload_ledger_match(
             Ok((
                 row.get::<_, Option<i64>>(0)?,
                 row.get::<_, Option<String>>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, i64>(3)?,
+                row.get::<_, String>(4)?,
             ))
         },
     );
     match exact {
-        Ok((message_id, unique_id)) => {
+        Ok((message_id, unique_id, filename, file_size, payload_class)) => {
             return Ok(Some(UploadLedgerMatch {
                 telegram_message_id: message_id,
                 telegram_unique_id: unique_id,
                 match_level: "exact_sha256".into(),
+                filename,
+                file_size: file_size.max(0) as u64,
+                payload_class,
             }))
         }
         Err(rusqlite::Error::QueryReturnedNoRows) => {}
         Err(error) => return Err(format!("query upload ledger hash: {error}")),
     }
     let probable = conn.query_row(
-        "SELECT telegram_message_id, telegram_unique_id
+        "SELECT telegram_message_id, telegram_unique_id, filename, file_size, payload_class
          FROM upload_ledger
          WHERE account_id=?1 AND destination_id=?2 AND topic_id=?3
            AND filename=?4 AND file_size=?5
@@ -243,15 +252,23 @@ pub fn find_upload_ledger_match(
             Ok((
                 row.get::<_, Option<i64>>(0)?,
                 row.get::<_, Option<String>>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, i64>(3)?,
+                row.get::<_, String>(4)?,
             ))
         },
     );
     match probable {
-        Ok((message_id, unique_id)) => Ok(Some(UploadLedgerMatch {
-            telegram_message_id: message_id,
-            telegram_unique_id: unique_id,
-            match_level: "probable_filename_size".into(),
-        })),
+        Ok((message_id, unique_id, filename, file_size, payload_class)) => {
+            Ok(Some(UploadLedgerMatch {
+                telegram_message_id: message_id,
+                telegram_unique_id: unique_id,
+                match_level: "probable_filename_size".into(),
+                filename,
+                file_size: file_size.max(0) as u64,
+                payload_class,
+            }))
+        }
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
         Err(error) => Err(format!("query upload ledger filename: {error}")),
     }

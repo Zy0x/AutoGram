@@ -175,9 +175,33 @@ export async function cacheCalculateSize(): Promise<CacheSizeResult> {
   };
 }
 
-export async function cacheClearDisk(): Promise<void> {
-  if (!detectTauriRuntime()) return;
-  await invoke('cache_clear_disk');
+export interface CacheClearResult {
+  status: 'success' | 'partial';
+  removedFiles: number;
+  freedBytes: number;
+  remainingBytes: number;
+  failedPaths: string[];
+  cancelledStreams: number;
+  clearedRegistryEntries: number;
+}
+
+export async function cacheClearDisk(): Promise<CacheClearResult> {
+  if (!detectTauriRuntime()) {
+    return {
+      status: 'success', removedFiles: 0, freedBytes: 0, remainingBytes: 0,
+      failedPaths: [], cancelledStreams: 0, clearedRegistryEntries: 0,
+    };
+  }
+  const r = await invoke<any>('cache_clear_disk');
+  return {
+    status: r?.status === 'partial' ? 'partial' : 'success',
+    removedFiles: Number(r?.removedFiles || 0),
+    freedBytes: Number(r?.freedBytes || 0),
+    remainingBytes: Number(r?.remainingBytes || 0),
+    failedPaths: Array.isArray(r?.failedPaths) ? r.failedPaths.map(String) : [],
+    cancelledStreams: Number(r?.cancelledStreams || 0),
+    clearedRegistryEntries: Number(r?.clearedRegistryEntries || 0),
+  };
 }
 
 export async function cacheTrimDisk(targetBytes: number): Promise<{ removed_files: number; freed_bytes: number }> {
@@ -187,6 +211,18 @@ export async function cacheTrimDisk(targetBytes: number): Promise<{ removed_file
     removed_files: Number(r?.removed_files || 0),
     freed_bytes: Number(r?.freed_bytes || 0),
   };
+}
+
+export async function cacheSetPolicy(
+  limitBytes: number,
+  autoPrune: boolean
+): Promise<{ limit_satisfied?: boolean; remaining_bytes?: number; removed_files?: number; freed_bytes?: number }> {
+  if (!detectTauriRuntime()) return { limit_satisfied: true, remaining_bytes: 0 };
+  return invoke('cache_trim_disk', {
+    targetBytes: limitBytes,
+    autoPrune,
+    persistPolicy: true,
+  });
 }
 
 export async function getAvailableDiskSpace(path?: string): Promise<{ free_bytes: number; total_bytes: number }> {

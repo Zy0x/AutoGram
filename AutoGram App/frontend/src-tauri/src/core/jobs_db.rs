@@ -681,6 +681,151 @@ pub fn reset_custom_cache_dir() -> Result<serde_json::Value, String> {
     get_custom_cache_dir_info()
 }
 
+const DEFAULT_CACHE_LIMIT_BYTES: u64 = 5 * 1024 * 1024 * 1024;
+
+static CACHE_OPERATION_LOCK: std::sync::OnceLock<std::sync::Mutex<()>> =
+    std::sync::OnceLock::new();
+
+fn cache_operation_lock() -> &'static std::sync::Mutex<()> {
+    CACHE_OPERATION_LOCK.get_or_init(|| std::sync::Mutex::new(()))
+}
+
+fn stream_entry_is_active(entry: &super::stream_server::StreamEntry) -> bool {
+    let now_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_millis())
+        .unwrap_or(0);
+    !entry.done
+        && !entry.cancelled
+        && !entry.paused
+        && now_ms.saturating_sub(entry.updated_at_ms) <= 120_000
+}
+
+fn cache_accounted_file_size(path: &Path, metadata: &std::fs::Metadata) -> u64 {
+    if path.extension().and_then(|ext| ext.to_str()) == Some("partial") {
+        if let Some(stream_id) = path.file_stem().and_then(|name| name.to_str()) {
+            let live_entry = super::stream_server::get_entry(stream_id);
+            let persisted_entry = if live_entry.is_none() {
+                let mut candidates = Vec::new();
+                if let Some(cache_root) = path.parent().and_then(Path::parent) {
+                    candidates.push(cache_root.join("stream_registry").join(format!("{stream_id}.json")));
+                }
+                candidates.push(
+                    std::env::temp_dir()
+                        .join("autogram_stream_registry")
+                        .join(format!("{stream_id}.json")),
+                );
+                candidates.into_iter().find_map(|registry_path| {
+                    let bytes = std::fs::read(registry_path).ok()?;
+                    let entry = serde_json::from_slice::<super::stream_server::StreamEntry>(&bytes).ok()?;
+                    let same_path = entry.path.eq_ignore_ascii_case(&path.display().to_string());
+                    (same_path && entry.total_size == metadata.len()).then_some(entry)
+                })
+            } else {
+                None
+            };
+            if let Some(entry) = live_entry.or(persisted_entry) {
+                if entry.done {
+                    return entry.total_size;
+                }
+                // A progressive file is sparse. Its logical length is the remote
+                // media size, not the bytes currently occupying the cache.
+                return super::stream_server::filled_bytes(&entry.ranges);
+            }
+        }
+    }
+    metadata.len()
+}
+
+fn cache_roots(info: &CacheDirInfo) -> Vec<PathBuf> {
+    let mut roots = vec![
+        info.active_cache_dir.clone(),
+        info.active_temp_dir.clone(),
+        info.active_thumbs_dir.clone(),
+        info.default_cache_dir.clone(),
+    ];
+    if let Some(default_base) = info.default_cache_dir.parent() {
+        roots.push(default_base.join("temp"));
+    }
+
+    let sessions_dir = resolve_sessions_dir(None);
+    roots.push(sessions_dir.join("thumbs"));
+
+    // Only include temp directories owned by the running application. A broad
+    // `autogram-*` prefix also matches WebView profiles, QA reports, and session
+    // authorization scratch directories; scanning or deleting those made a
+    // cache operation both unbounded and unsafe.
+    let sys_temp = std::env::temp_dir();
+    roots.push(sys_temp.join("autogram"));
+    roots.push(sys_temp.join("autogram_studio_prep"));
+    roots.push(sys_temp.join("autogram_stream_registry"));
+
+    roots.sort_by_key(|path| path.components().count());
+    let mut unique: Vec<PathBuf> = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    for root in roots {
+        let key = root.to_string_lossy().to_ascii_lowercase();
+        let nested = unique.iter().any(|parent| root.starts_with(parent));
+        if !nested && seen.insert(key) {
+            unique.push(root);
+        }
+    }
+    unique
+}
+
+pub fn cache_limit_bytes() -> u64 {
+    let Ok(conn) = open_db() else {
+        return DEFAULT_CACHE_LIMIT_BYTES;
+    };
+    conn.query_row(
+        "SELECT value FROM settings WHERE key = 'cache_limit_bytes'",
+        [],
+        |row| row.get::<_, String>(0),
+    )
+    .ok()
+    .and_then(|value| value.parse::<u64>().ok())
+    .unwrap_or(DEFAULT_CACHE_LIMIT_BYTES)
+}
+
+pub fn set_cache_policy(limit_bytes: u64, auto_prune: bool) -> Result<serde_json::Value, String> {
+    let conn = open_db()?;
+    conn.execute(
+        "INSERT INTO settings (key, value) VALUES ('cache_limit_bytes', ?1)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        params![limit_bytes.to_string()],
+    )
+    .map_err(|e| format!("save cache limit: {e}"))?;
+    conn.execute(
+        "INSERT INTO settings (key, value) VALUES ('cache_auto_prune', ?1)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        params![if auto_prune { "true" } else { "false" }],
+    )
+    .map_err(|e| format!("save cache auto-prune: {e}"))?;
+    drop(conn);
+
+    if limit_bytes == 0 {
+        Ok(json!({
+            "status": "success",
+            "limitBytes": 0,
+            "limitSatisfied": true,
+            "backend": "rust",
+        }))
+    } else {
+        let mut result = trim_disk_cache(limit_bytes)?;
+        result["limitBytes"] = json!(limit_bytes);
+        Ok(result)
+    }
+}
+
+/// Enforce the persisted hard limit from cache-producing call chains.
+pub fn enforce_cache_policy() -> Result<serde_json::Value, String> {
+    let limit = cache_limit_bytes();
+    if limit == 0 {
+        return Ok(json!({ "status": "success", "limitSatisfied": true, "limitBytes": 0 }));
+    }
+    trim_disk_cache(limit)
+}
+
 /// Cache size under worker/cache, worker/temp, sessions/thumbs (pure Rust FS).
 pub fn calculate_cache_size() -> Result<serde_json::Value, String> {
     let info = resolve_active_cache_dirs();
@@ -702,7 +847,7 @@ pub fn calculate_cache_size() -> Result<serde_json::Value, String> {
             if p.is_dir() {
                 walk_detailed(&p, sum, stale, now, one_day);
             } else if let Ok(m) = e.metadata() {
-                let len = m.len();
+                let len = cache_accounted_file_size(&p, &m);
                 *sum = sum.saturating_add(len);
                 if let Ok(mod_time) = m.modified() {
                     if let Ok(elapsed) = now.duration_since(mod_time) {
@@ -734,7 +879,7 @@ pub fn calculate_cache_size() -> Result<serde_json::Value, String> {
                     let mut dummy = 0u64;
                     walk_detailed(&child, &mut cache_bytes, &mut dummy, now, one_day);
                 } else if let Ok(m) = entry.metadata() {
-                    cache_bytes = cache_bytes.saturating_add(m.len());
+                    cache_bytes = cache_bytes.saturating_add(cache_accounted_file_size(&child, &m));
                 }
             }
         }
@@ -755,10 +900,20 @@ pub fn calculate_cache_size() -> Result<serde_json::Value, String> {
         walk_detailed(&legacy_thumbs, &mut thumbs_bytes, &mut dummy_stale, now, one_day);
     }
 
-    if let Ok(sys_temp) = std::env::temp_dir().canonicalize() {
-        let autogram_temp = sys_temp.join("autogram");
-        if autogram_temp.is_dir() {
-            walk_detailed(&autogram_temp, &mut sys_temp_bytes, &mut stale_bytes, now, one_day);
+    let sys_temp = std::env::temp_dir();
+    for owned_temp in [
+        sys_temp.join("autogram"),
+        sys_temp.join("autogram_studio_prep"),
+        sys_temp.join("autogram_stream_registry"),
+    ] {
+        if owned_temp.is_dir() {
+            walk_detailed(
+                &owned_temp,
+                &mut sys_temp_bytes,
+                &mut stale_bytes,
+                now,
+                one_day,
+            );
         }
     }
 
@@ -841,94 +996,176 @@ pub fn import_jobs_json(json_str: &str) -> Result<usize, String> {
 }
 
 pub fn clear_disk_cache() -> Result<serde_json::Value, String> {
+    let _operation = cache_operation_lock()
+        .lock()
+        .unwrap_or_else(|error| error.into_inner());
     super::grammers_media::clear_thumb_mem_cache();
     super::grammers_media::clear_thumb_terminal_cache();
+    let cancelled_streams = super::grammers_media::clear_runtime_preview_cache();
+    // Let progressive workers observe cancellation and close their file handles
+    // before Windows deletion. Range responses can retain a Windows handle for
+    // a few seconds after the preview element closes, so bounded retries below
+    // are part of Clear All rather than leaving cleanup to the background prune.
+    std::thread::sleep(std::time::Duration::from_millis(180));
     let info = resolve_active_cache_dirs();
     let mut removed = 0u64;
+    let mut freed_bytes = 0u64;
+    let mut failed_paths = Vec::new();
 
-    fn wipe(dir: &Path, removed: &mut u64) {
-        let Ok(rd) = std::fs::read_dir(dir) else {
+    fn wipe(path: &Path, removed: &mut u64, freed: &mut u64, failed: &mut Vec<String>) {
+        if path.is_file() {
+            let size = std::fs::metadata(path).map(|m| cache_accounted_file_size(path, &m)).unwrap_or(0);
+            match std::fs::remove_file(path) {
+                Ok(()) => {
+                    *removed += 1;
+                    *freed = freed.saturating_add(size);
+                    if path.extension().and_then(|ext| ext.to_str()) == Some("partial") {
+                        if let Some(stream_id) = path.file_stem().and_then(|name| name.to_str()) {
+                            super::stream_server::remove_entry(stream_id);
+                        }
+                    }
+                }
+                Err(_) => failed.push(path.display().to_string()),
+            }
             return;
-        };
+        }
+        let Ok(rd) = std::fs::read_dir(path) else { return; };
         for e in rd.flatten() {
             let p = e.path();
             if p.is_dir() {
-                wipe(&p, removed);
+                wipe(&p, removed, freed, failed);
                 let _ = std::fs::remove_dir(&p);
             } else {
-                if std::fs::remove_file(&p).is_ok() {
-                    *removed += 1;
+                let size = e.metadata().map(|m| cache_accounted_file_size(&p, &m)).unwrap_or(0);
+                match std::fs::remove_file(&p) {
+                    Ok(()) => {
+                        *removed += 1;
+                        *freed = freed.saturating_add(size);
+                        if p.extension().and_then(|ext| ext.to_str()) == Some("partial") {
+                            if let Some(stream_id) = p.file_stem().and_then(|name| name.to_str()) {
+                                super::stream_server::remove_entry(stream_id);
+                            }
+                        }
+                    }
+                    Err(_) => failed.push(p.display().to_string()),
                 }
             }
         }
     }
 
-    if info.active_cache_dir.is_dir() {
-        wipe(&info.active_cache_dir, &mut removed);
-    }
-    if info.active_temp_dir.is_dir() {
-        wipe(&info.active_temp_dir, &mut removed);
-    }
-    if info.active_thumbs_dir.is_dir() {
-        wipe(&info.active_thumbs_dir, &mut removed);
-    }
-
-    let sessions_dir = resolve_sessions_dir(None);
-    let legacy_thumbs = sessions_dir.join("thumbs");
-    if legacy_thumbs.is_dir() && legacy_thumbs != info.active_thumbs_dir {
-        wipe(&legacy_thumbs, &mut removed);
-    }
-
-    if let Ok(sys_temp) = std::env::temp_dir().canonicalize() {
-        let autogram_temp = sys_temp.join("autogram");
-        if autogram_temp.is_dir() {
-            wipe(&autogram_temp, &mut removed);
+    fn sum_owned(path: &Path, total: &mut u64) {
+        if path.is_file() {
+            if let Ok(metadata) = std::fs::metadata(path) {
+                *total = total.saturating_add(cache_accounted_file_size(path, &metadata));
+            }
+            return;
+        }
+        let Ok(entries) = std::fs::read_dir(path) else { return; };
+        for entry in entries.flatten() {
+            let child = entry.path();
+            if child.is_dir() {
+                sum_owned(&child, total);
+            } else if let Ok(metadata) = entry.metadata() {
+                *total = total.saturating_add(cache_accounted_file_size(&child, &metadata));
+            }
         }
     }
 
+    let roots = cache_roots(&info);
+    let mut remaining_bytes = u64::MAX;
+    for attempt in 0..=16 {
+        failed_paths.clear();
+        for root in &roots {
+            wipe(root, &mut removed, &mut freed_bytes, &mut failed_paths);
+        }
+        remaining_bytes = 0;
+        for root in &roots {
+            sum_owned(root, &mut remaining_bytes);
+        }
+        if remaining_bytes == 0 && failed_paths.is_empty() {
+            break;
+        }
+        super::grammers_media::clear_runtime_preview_cache();
+        if attempt < 16 {
+            std::thread::sleep(std::time::Duration::from_millis(250));
+        }
+    }
+    let cleared_registry_entries = super::stream_server::clear_all_entries();
+
     Ok(json!({
-        "status": "success",
+        "status": if remaining_bytes == 0 && failed_paths.is_empty() { "success" } else { "partial" },
         "removedFiles": removed,
+        "freedBytes": freed_bytes,
+        "remainingBytes": remaining_bytes,
+        "failedPaths": failed_paths,
+        "cancelledStreams": cancelled_streams,
+        "clearedRegistryEntries": cleared_registry_entries,
         "backend": "rust"
     }))
 }
 
 pub fn trim_disk_cache(target_bytes: u64) -> Result<serde_json::Value, String> {
+    let _operation = cache_operation_lock()
+        .lock()
+        .unwrap_or_else(|error| error.into_inner());
     let info = resolve_active_cache_dirs();
-    let cache = info.active_cache_dir.clone();
 
     struct FileEntry {
         path: PathBuf,
         size: u64,
         modified: std::time::SystemTime,
+        active: bool,
     }
 
     let mut files = Vec::new();
     let mut current_total: u64 = 0;
 
-    fn collect(dir: &Path, files: &mut Vec<FileEntry>, total: &mut u64) {
-        let Ok(rd) = std::fs::read_dir(dir) else {
+    fn collect(path: &Path, files: &mut Vec<FileEntry>, total: &mut u64) {
+        if path.is_file() {
+            if let Ok(metadata) = std::fs::metadata(path) {
+                let size = cache_accounted_file_size(path, &metadata);
+                let stream_id = path.file_stem().and_then(|name| name.to_str());
+                let active = stream_id
+                    .and_then(super::stream_server::get_entry)
+                    .map(|entry| stream_entry_is_active(&entry))
+                    .unwrap_or(false);
+                *total = total.saturating_add(size);
+                files.push(FileEntry {
+                    path: path.to_path_buf(),
+                    size,
+                    modified: metadata.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
+                    active,
+                });
+            }
             return;
-        };
+        }
+        let Ok(rd) = std::fs::read_dir(path) else { return; };
         for e in rd.flatten() {
             let p = e.path();
             if p.is_dir() {
                 collect(&p, files, total);
             } else if let Ok(m) = e.metadata() {
-                let sz = m.len();
+                let sz = cache_accounted_file_size(&p, &m);
                 let mod_time = m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                let stream_id = p.file_stem().and_then(|name| name.to_str());
+                let active = p.extension().and_then(|ext| ext.to_str()) == Some("partial")
+                    && stream_id
+                        .and_then(super::stream_server::get_entry)
+                        .map(|entry| stream_entry_is_active(&entry))
+                        .unwrap_or(false);
                 *total = total.saturating_add(sz);
                 files.push(FileEntry {
                     path: p,
                     size: sz,
                     modified: mod_time,
+                    active,
                 });
             }
         }
     }
 
-    if cache.is_dir() {
-        collect(&cache, &mut files, &mut current_total);
+    for root in cache_roots(&info) {
+        collect(&root, &mut files, &mut current_total);
     }
 
     let mut removed_count = 0u64;
@@ -937,20 +1174,20 @@ pub fn trim_disk_cache(target_bytes: u64) -> Result<serde_json::Value, String> {
     if current_total > target_bytes {
         files.sort_by_key(|f| f.modified);
 
-        let now = std::time::SystemTime::now();
-        let protect_window = std::time::Duration::from_secs(600); // 10 minutes active file protection
-
         for f in files {
             if current_total <= target_bytes {
                 break;
             }
-            // Skip files modified/accessed in the last 10 minutes (protect active previews/streams)
-            if let Ok(age) = now.duration_since(f.modified) {
-                if age < protect_window {
-                    continue;
-                }
-            }
+            // Registry state, not modification time, is the authority for an
+            // actively served sparse preview. Recent but idle files remain LRU
+            // candidates so the configured ceiling is actually enforceable.
+            if f.active { continue; }
             if std::fs::remove_file(&f.path).is_ok() {
+                if f.path.extension().and_then(|ext| ext.to_str()) == Some("partial") {
+                    if let Some(stream_id) = f.path.file_stem().and_then(|name| name.to_str()) {
+                        super::stream_server::remove_entry(stream_id);
+                    }
+                }
                 removed_count += 1;
                 freed_bytes += f.size;
                 current_total = current_total.saturating_sub(f.size);
@@ -963,6 +1200,8 @@ pub fn trim_disk_cache(target_bytes: u64) -> Result<serde_json::Value, String> {
         "removed_files": removed_count,
         "freed_bytes": freed_bytes,
         "remaining_bytes": current_total,
+        "target_bytes": target_bytes,
+        "limit_satisfied": current_total <= target_bytes,
         "backend": "rust",
     }))
 }

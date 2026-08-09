@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import i18n from '../../i18n';
 
 export const CURRENT_APP_VERSION = '2.1.3';
 export const GITHUB_REPO_URL = 'https://github.com/Zy0x/AutoGram';
@@ -306,8 +307,8 @@ export function useGitHubUpdater(): UpdateInfo & {
       setStatus('networkError');
       setErrorMessage(
         isTimeout
-          ? 'Update check timed out. Check your internet connection.'
-          : 'Could not reach GitHub. Check your internet connection.'
+          ? i18n.t('settings.update_timeout_error')
+          : i18n.t('settings.update_network_error')
       );
       const cache = loadCache();
       if (cache) {

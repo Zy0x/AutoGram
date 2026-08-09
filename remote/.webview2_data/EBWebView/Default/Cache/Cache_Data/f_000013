@@ -1,227 +1,991 @@
-import { invoke } from "/node_modules/.vite/deps/@tauri-apps_api_core.js?v=a6508b91";
-import { detectTauriRuntime } from "/src/lib/tauri/platform.ts";
-export async function fetchBackendCapabilities() {
-  if (!detectTauriRuntime()) return [];
-  try {
-    return await invoke("backend_capabilities");
-  } catch {
-    return [];
-  }
-}
-export async function fetchStreamingConfig(totalSize) {
-  if (!detectTauriRuntime()) return null;
-  try {
-    return await invoke("streaming_config_for_size", {
-      totalSize: Math.max(0, Math.floor(totalSize))
-    });
-  } catch {
-    return null;
-  }
-}
-export async function previewLocalDocument(path) {
-  if (!detectTauriRuntime() || !path) return null;
-  try {
-    return await invoke("preview_local_document", { path });
-  } catch {
-    return null;
-  }
-}
-export async function pathPolicyCheck(path) {
-  if (!detectTauriRuntime() || !path) return false;
-  try {
-    return await invoke("path_policy_check", { path });
-  } catch {
-    return false;
-  }
-}
-export async function streamServerPort() {
-  if (!detectTauriRuntime()) return 0;
-  try {
-    return await invoke("stream_server_port");
-  } catch {
-    return 0;
-  }
-}
-export async function streamStatusLocal(streamId) {
-  if (!detectTauriRuntime() || !streamId) return null;
-  try {
-    return await invoke("stream_status_local", { streamId });
-  } catch {
-    return null;
-  }
-}
-export async function streamRegisterLocal(path, opts) {
-  if (!detectTauriRuntime() || !path) return null;
-  try {
-    return await invoke(
-      "stream_register_local",
-      {
-        path,
-        totalSize: opts?.totalSize ?? null,
-        mime: opts?.mime ?? null,
-        label: opts?.label ?? null
-      }
-    );
-  } catch {
-    return null;
-  }
-}
-export async function zipListLocal(path) {
-  if (!detectTauriRuntime() || !path) {
-    throw new Error("ZIP preview membutuhkan aplikasi desktop (Rust).");
-  }
-  try {
-    return await invoke("zip_list_local", { path });
-  } catch (err) {
-    console.error("[zipListLocal] invoke failed:", err, "path:", path);
-    throw new Error(String(err?.message || err || "Gagal membaca isi ZIP dari Rust"));
-  }
-}
-export async function zipPreviewEntry(path, entryName, password) {
-  if (!detectTauriRuntime() || !path) {
-    throw new Error("ZIP preview membutuhkan aplikasi desktop (Rust).");
-  }
-  try {
-    return await invoke("zip_preview_entry", {
-      path,
-      entryName,
-      password: password || null
-    });
-  } catch (err) {
-    console.error("[zipPreviewEntry] invoke failed:", err, "path:", path, "entry:", entryName);
-    throw new Error(String(err?.message || err || "Gagal membaca berkas dalam ZIP dari Rust"));
-  }
-}
-export async function zipExtractEntry(archivePath, entryName, destPath, password) {
-  if (!detectTauriRuntime() || !archivePath || !destPath) return 0;
-  try {
-    return await invoke("zip_extract_entry", {
-      archivePath,
-      entryName,
-      destPath,
-      password: password || null
-    });
-  } catch (err) {
-    console.error("[zipExtractEntry] invoke failed:", err, "archive:", archivePath, "dest:", destPath);
-    throw new Error(String(err?.message || err || "Gagal mengekstrak berkas dari Rust"));
-  }
-}
-export async function zipListSparse(opts) {
-  if (!detectTauriRuntime()) {
-    throw new Error("Sparse ZIP engine membutuhkan aplikasi desktop (Rust).");
-  }
-  try {
-    return await invoke("tg_zip_list_sparse", { opts });
-  } catch (err) {
-    console.error("[zipListSparse] invoke failed:", err);
-    throw new Error(String(err?.message || err || "Gagal membaca indeks sparse ZIP via Grammers"));
-  }
-}
-export async function zipPreviewEntrySparse(opts, entryName, password) {
-  if (!detectTauriRuntime()) {
-    throw new Error("Sparse ZIP engine membutuhkan aplikasi desktop (Rust).");
-  }
-  try {
-    return await invoke("tg_zip_preview_entry_sparse", {
-      opts,
-      entryName,
-      password: password || null
-    });
-  } catch (err) {
-    console.error("[zipPreviewEntrySparse] invoke failed:", err);
-    throw new Error(String(err?.message || err || "Gagal membaca berkas sparse ZIP via Grammers"));
-  }
-}
-export async function zipExtractEntrySparse(opts, entryName, destPath, password) {
-  if (!detectTauriRuntime() || !destPath) return 0;
-  try {
-    return await invoke("tg_zip_extract_entry_sparse", {
-      opts,
-      entryName,
-      destPath,
-      password: password || null
-    });
-  } catch (err) {
-    console.error("[zipExtractEntrySparse] invoke failed:", err);
-    throw new Error(String(err?.message || err || "Gagal mengekstrak berkas sparse ZIP via Grammers"));
-  }
-}
-export async function fileSha256(path) {
-  if (!detectTauriRuntime() || !path) return null;
-  try {
-    return await invoke("file_sha256", { path });
-  } catch {
-    return null;
-  }
-}
-export async function fileQuickFingerprint(path) {
-  if (!detectTauriRuntime() || !path) return null;
-  try {
-    return await invoke("file_quick_fingerprint", { path });
-  } catch {
-    return null;
-  }
-}
-export async function computeProgressRate(doneBytes, totalBytes, elapsedSecs) {
-  if (!detectTauriRuntime()) return null;
-  try {
-    return await invoke("compute_progress_rate", {
-      doneBytes,
-      totalBytes,
-      elapsedSecs
-    });
-  } catch {
-    return null;
-  }
-}
-export async function normalizeJobConfig(raw) {
-  if (!detectTauriRuntime()) return raw;
-  try {
-    return await invoke("normalize_job_config", { raw });
-  } catch {
-    return raw;
-  }
-}
-export async function networkGetConfig() {
-  if (!detectTauriRuntime()) return null;
-  try {
-    return await invoke("network_get_config");
-  } catch {
-    return null;
-  }
-}
-export async function networkApplyAll(config) {
-  if (!detectTauriRuntime()) return false;
-  try {
-    await invoke("network_apply_all", { config });
-    return true;
-  } catch {
-    return false;
-  }
-}
-export async function networkTestProxy() {
-  if (!detectTauriRuntime()) return null;
-  try {
-    return await invoke("network_test_proxy");
-  } catch {
-    return null;
-  }
-}
-export async function networkIsAvailable() {
-  if (!detectTauriRuntime()) return true;
-  try {
-    return await invoke("network_is_available");
-  } catch {
-    return true;
-  }
-}
-export async function networkDetectVpn() {
-  if (!detectTauriRuntime()) return false;
-  try {
-    return await invoke("network_detect_vpn");
-  } catch {
-    return false;
-  }
-}
+import {
+  __commonJS
+} from "/node_modules/.vite/deps/chunk-PX6F3LHL.js?v=66e1eb93";
 
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInJ1c3RCYWNrZW5kLnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxyXG4gKiBIeWJyaWQgUnVzdCBiYWNrZW5kIGhlbHBlcnMg4oCUIHByZWZlciB0aGVzZSBmb3IgbG9jYWwgd29yayAobm8gUHl0aG9uKS5cclxuICogVGVsZWdyYW0gbmV0d29yayB3b3JrIHN0aWxsIGdvZXMgdGhyb3VnaCBkcml2ZUFwaSAvIFB5dGhvbiB3b3JrZXIuXHJcbiAqL1xyXG5pbXBvcnQgeyBpbnZva2UgfSBmcm9tICdAdGF1cmktYXBwcy9hcGkvY29yZSc7XHJcbmltcG9ydCB7IGRldGVjdFRhdXJpUnVudGltZSB9IGZyb20gJy4vcGxhdGZvcm0nO1xyXG5cclxuZXhwb3J0IHR5cGUgQmFja2VuZE93bmVyID0gJ3J1c3QnIHwgJ3B5dGhvbicgfCAnaHlicmlkJztcclxuXHJcbmV4cG9ydCB0eXBlIENhcGFiaWxpdHlFbnRyeSA9IHtcclxuICBpZDogc3RyaW5nO1xyXG4gIG93bmVyOiBCYWNrZW5kT3duZXI7XHJcbiAgZGVzY3JpcHRpb246IHN0cmluZztcclxufTtcclxuXHJcbmV4cG9ydCB0eXBlIFN0cmVhbWluZ0NvbmZpZyA9IHtcclxuICBsYXllcjogc3RyaW5nO1xyXG4gIGZpcnN0UGxheTogbnVtYmVyO1xyXG4gIGluaXRpYWxIZWFkOiBudW1iZXI7XHJcbiAgd2luZG93U2l6ZTogbnVtYmVyO1xyXG4gIHRocm90dGxlQWhlYWQ6IG51bWJlcjtcclxuICB3b3JrZXJzOiBudW1iZXI7XHJcbiAgY2h1bmtTaXplOiBudW1iZXI7XHJcbn07XHJcblxyXG5leHBvcnQgdHlwZSBMb2NhbERvY1ByZXZpZXcgPSB7XHJcbiAgcGF0aDogc3RyaW5nO1xyXG4gIG1pbWVUeXBlOiBzdHJpbmc7XHJcbiAgc2l6ZTogbnVtYmVyO1xyXG4gIHByZXZpZXdLaW5kOiBzdHJpbmc7XHJcbiAgdGV4dENvbnRlbnQ/OiBzdHJpbmcgfCBudWxsO1xyXG4gIGJhY2tlbmQ6IHN0cmluZztcclxufTtcclxuXHJcbmV4cG9ydCBhc3luYyBmdW5jdGlvbiBmZXRjaEJhY2tlbmRDYXBhYmlsaXRpZXMoKTogUHJvbWlzZTxDYXBhYmlsaXR5RW50cnlbXT4ge1xyXG4gIGlmICghZGV0ZWN0VGF1cmlSdW50aW1lKCkpIHJldHVybiBbXTtcclxuICB0cnkge1xyXG4gICAgcmV0dXJuIGF3YWl0IGludm9rZTxDYXBhYmlsaXR5RW50cnlbXT4oJ2JhY2tlbmRfY2FwYWJpbGl0aWVzJyk7XHJcbiAgfSBjYXRjaCB7XHJcbiAgICByZXR1cm4gW107XHJcbiAgfVxyXG59XHJcblxyXG5leHBvcnQgYXN5bmMgZnVuY3Rpb24gZmV0Y2hTdHJlYW1pbmdDb25maWcodG90YWxTaXplOiBudW1iZXIpOiBQcm9taXNlPFN0cmVhbWluZ0NvbmZpZyB8IG51bGw+IHtcclxuICBpZiAoIWRldGVjdFRhdXJpUnVudGltZSgpKSByZXR1cm4gbnVsbDtcclxuICB0cnkge1xyXG4gICAgcmV0dXJuIGF3YWl0IGludm9rZTxTdHJlYW1pbmdDb25maWc+KCdzdHJlYW1pbmdfY29uZmlnX2Zvcl9zaXplJywge1xyXG4gICAgICB0b3RhbFNpemU6IE1hdGgubWF4KDAsIE1hdGguZmxvb3IodG90YWxTaXplKSksXHJcbiAgICB9KTtcclxuICB9IGNhdGNoIHtcclxuICAgIHJldHVybiBudWxsO1xyXG4gIH1cclxufVxyXG5cclxuLyoqXHJcbiAqIFJlYWQgdGV4dC9jb2RlL29mZmljZSBib2R5IGZyb20gYSBsb2NhbCBjYWNoZSBwYXRoIHZpYSBSdXN0IChubyBUZWxldGhvbikuXHJcbiAqIFJldHVybnMgbnVsbCBpZiBub3QgZGVza3RvcCwgcGF0aCBtaXNzaW5nLCBvciBSdXN0IHJlamVjdHMgdHlwZS5cclxuICovXHJcbmV4cG9ydCBhc3luYyBmdW5jdGlvbiBwcmV2aWV3TG9jYWxEb2N1bWVudChwYXRoOiBzdHJpbmcpOiBQcm9taXNlPExvY2FsRG9jUHJldmlldyB8IG51bGw+IHtcclxuICBpZiAoIWRldGVjdFRhdXJpUnVudGltZSgpIHx8ICFwYXRoKSByZXR1cm4gbnVsbDtcclxuICB0cnkge1xyXG4gICAgcmV0dXJuIGF3YWl0IGludm9rZTxMb2NhbERvY1ByZXZpZXc+KCdwcmV2aWV3X2xvY2FsX2RvY3VtZW50JywgeyBwYXRoIH0pO1xyXG4gIH0gY2F0Y2gge1xyXG4gICAgcmV0dXJuIG51bGw7XHJcbiAgfVxyXG59XHJcblxyXG5leHBvcnQgYXN5bmMgZnVuY3Rpb24gcGF0aFBvbGljeUNoZWNrKHBhdGg6IHN0cmluZyk6IFByb21pc2U8Ym9vbGVhbj4ge1xyXG4gIGlmICghZGV0ZWN0VGF1cmlSdW50aW1lKCkgfHwgIXBhdGgpIHJldHVybiBmYWxzZTtcclxuICB0cnkge1xyXG4gICAgcmV0dXJuIGF3YWl0IGludm9rZTxib29sZWFuPigncGF0aF9wb2xpY3lfY2hlY2snLCB7IHBhdGggfSk7XHJcbiAgfSBjYXRjaCB7XHJcbiAgICByZXR1cm4gZmFsc2U7XHJcbiAgfVxyXG59XHJcblxyXG5leHBvcnQgYXN5bmMgZnVuY3Rpb24gc3RyZWFtU2VydmVyUG9ydCgpOiBQcm9taXNlPG51bWJlcj4ge1xyXG4gIGlmICghZGV0ZWN0VGF1cmlSdW50aW1lKCkpIHJldHVybiAwO1xyXG4gIHRyeSB7XHJcbiAgICByZXR1cm4gYXdhaXQgaW52b2tlPG51bWJlcj4oJ3N0cmVhbV9zZXJ2ZXJfcG9ydCcpO1xyXG4gIH0gY2F0Y2gge1xyXG4gICAgcmV0dXJuIDA7XHJcbiAgfVxyXG59XHJcblxyXG5leHBvcnQgYXN5bmMgZnVuY3Rpb24gc3RyZWFtU3RhdHVzTG9jYWwoc3RyZWFtSWQ6IHN0cmluZykge1xyXG4gIGlmICghZGV0ZWN0VGF1cmlSdW50aW1lKCkgfHwgIXN0cmVhbUlkKSByZXR1cm4gbnVsbDtcclxuICB0cnkge1xyXG4gICAgcmV0dXJuIGF3YWl0IGludm9rZSgnc3RyZWFtX3N0YXR1c19sb2NhbCcsIHsgc3RyZWFtSWQgfSk7XHJcbiAgfSBjYXRjaCB7XHJcbiAgICByZXR1cm4gbnVsbDtcclxuICB9XHJcbn1cclxuXHJcbmV4cG9ydCBhc3luYyBmdW5jdGlvbiBzdHJlYW1SZWdpc3RlckxvY2FsKFxyXG4gIHBhdGg6IHN0cmluZyxcclxuICBvcHRzPzogeyB0b3RhbFNpemU/OiBudW1iZXI7IG1pbWU/OiBzdHJpbmc7IGxhYmVsPzogc3RyaW5nIH1cclxuKSB7XHJcbiAgaWYgKCFkZXRlY3RUYXVyaVJ1bnRpbWUoKSB8fCAhcGF0aCkgcmV0dXJuIG51bGw7XHJcbiAgdHJ5IHtcclxuICAgIHJldHVybiBhd2FpdCBpbnZva2U8eyBzdHJlYW1JZDogc3RyaW5nOyBzdHJlYW1Vcmw6IHN0cmluZzsgcG9ydDogbnVtYmVyOyBiYWNrZW5kOiBzdHJpbmcgfT4oXHJcbiAgICAgICdzdHJlYW1fcmVnaXN0ZXJfbG9jYWwnLFxyXG4gICAgICB7XHJcbiAgICAgICAgcGF0aCxcclxuICAgICAgICB0b3RhbFNpemU6IG9wdHM/LnRvdGFsU2l6ZSA/PyBudWxsLFxyXG4gICAgICAgIG1pbWU6IG9wdHM/Lm1pbWUgPz8gbnVsbCxcclxuICAgICAgICBsYWJlbDogb3B0cz8ubGFiZWwgPz8gbnVsbCxcclxuICAgICAgfVxyXG4gICAgKTtcclxuICB9IGNhdGNoIHtcclxuICAgIHJldHVybiBudWxsO1xyXG4gIH1cclxufVxyXG5cclxuZXhwb3J0IHR5cGUgWmlwRW50cnkgPSB7XG4gIG5hbWU6IHN0cmluZztcclxuICBzaXplOiBudW1iZXI7XHJcbiAgY29tcHJlc3NlZFNpemU6IG51bWJlcjtcclxuICBpc0RpcjogYm9vbGVhbjtcclxuICBtZXRob2Q6IG51bWJlcjtcbiAgZW5jcnlwdGVkPzogYm9vbGVhbjtcbn07XG5cclxuZXhwb3J0IHR5cGUgWmlwTGlzdFJlc3VsdCA9IHtcclxuICBlbnRyaWVzOiBaaXBFbnRyeVtdO1xyXG4gIGNvdW50OiBudW1iZXI7XHJcbiAgdHJ1bmNhdGVkOiBib29sZWFuO1xyXG4gIHRvdGFsRW50cmllczogbnVtYmVyO1xyXG4gIHRvdGFsVW5jb21wcmVzc2VkOiBudW1iZXI7XHJcbiAgYXJjaGl2ZVNpemU6IG51bWJlcjtcclxuICBzb3VyY2U6IHN0cmluZztcclxuICBiYWNrZW5kOiBzdHJpbmc7XHJcbn07XHJcblxyXG5leHBvcnQgdHlwZSBaaXBFbnRyeVByZXZpZXcgPSB7XHJcbiAgbmFtZTogc3RyaW5nO1xyXG4gIHNpemU6IG51bWJlcjtcclxuICB0ZXh0Q29udGVudD86IHN0cmluZyB8IG51bGw7XHJcbiAgZGF0YVVybD86IHN0cmluZyB8IG51bGw7XHJcbiAgbWltZVR5cGU/OiBzdHJpbmcgfCBudWxsO1xyXG4gIGlzQmluYXJ5OiBib29sZWFuO1xyXG4gIGVuY3J5cHRlZDogYm9vbGVhbjtcclxuICBiYWNrZW5kOiBzdHJpbmc7XHJcbn07XHJcblxyXG5leHBvcnQgYXN5bmMgZnVuY3Rpb24gemlwTGlzdExvY2FsKHBhdGg6IHN0cmluZyk6IFByb21pc2U8WmlwTGlzdFJlc3VsdD4ge1xyXG4gIGlmICghZGV0ZWN0VGF1cmlSdW50aW1lKCkgfHwgIXBhdGgpIHtcclxuICAgIHRocm93IG5ldyBFcnJvcignWklQIHByZXZpZXcgbWVtYnV0dWhrYW4gYXBsaWthc2kgZGVza3RvcCAoUnVzdCkuJyk7XHJcbiAgfVxyXG4gIHRyeSB7XHJcbiAgICByZXR1cm4gYXdhaXQgaW52b2tlPFppcExpc3RSZXN1bHQ+KCd6aXBfbGlzdF9sb2NhbCcsIHsgcGF0aCB9KTtcclxuICB9IGNhdGNoIChlcnI6IGFueSkge1xyXG4gICAgY29uc29sZS5lcnJvcignW3ppcExpc3RMb2NhbF0gaW52b2tlIGZhaWxlZDonLCBlcnIsICdwYXRoOicsIHBhdGgpO1xyXG4gICAgdGhyb3cgbmV3IEVycm9yKFN0cmluZyhlcnI/Lm1lc3NhZ2UgfHwgZXJyIHx8ICdHYWdhbCBtZW1iYWNhIGlzaSBaSVAgZGFyaSBSdXN0JykpO1xyXG4gIH1cclxufVxyXG5cclxuZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIHppcFByZXZpZXdFbnRyeShcclxuICBwYXRoOiBzdHJpbmcsXHJcbiAgZW50cnlOYW1lOiBzdHJpbmcsXHJcbiAgcGFzc3dvcmQ/OiBzdHJpbmdcclxuKTogUHJvbWlzZTxaaXBFbnRyeVByZXZpZXc+IHtcclxuICBpZiAoIWRldGVjdFRhdXJpUnVudGltZSgpIHx8ICFwYXRoKSB7XHJcbiAgICB0aHJvdyBuZXcgRXJyb3IoJ1pJUCBwcmV2aWV3IG1lbWJ1dHVoa2FuIGFwbGlrYXNpIGRlc2t0b3AgKFJ1c3QpLicpO1xyXG4gIH1cclxuICB0cnkge1xyXG4gICAgcmV0dXJuIGF3YWl0IGludm9rZTxaaXBFbnRyeVByZXZpZXc+KCd6aXBfcHJldmlld19lbnRyeScsIHtcclxuICAgICAgcGF0aCxcclxuICAgICAgZW50cnlOYW1lLFxyXG4gICAgICBwYXNzd29yZDogcGFzc3dvcmQgfHwgbnVsbCxcclxuICAgIH0pO1xyXG4gIH0gY2F0Y2ggKGVycjogYW55KSB7XHJcbiAgICBjb25zb2xlLmVycm9yKCdbemlwUHJldmlld0VudHJ5XSBpbnZva2UgZmFpbGVkOicsIGVyciwgJ3BhdGg6JywgcGF0aCwgJ2VudHJ5OicsIGVudHJ5TmFtZSk7XHJcbiAgICB0aHJvdyBuZXcgRXJyb3IoU3RyaW5nKGVycj8ubWVzc2FnZSB8fCBlcnIgfHwgJ0dhZ2FsIG1lbWJhY2EgYmVya2FzIGRhbGFtIFpJUCBkYXJpIFJ1c3QnKSk7XHJcbiAgfVxyXG59XHJcblxyXG5leHBvcnQgYXN5bmMgZnVuY3Rpb24gemlwRXh0cmFjdEVudHJ5KFxyXG4gIGFyY2hpdmVQYXRoOiBzdHJpbmcsXHJcbiAgZW50cnlOYW1lOiBzdHJpbmcsXHJcbiAgZGVzdFBhdGg6IHN0cmluZyxcclxuICBwYXNzd29yZD86IHN0cmluZ1xyXG4pOiBQcm9taXNlPG51bWJlcj4ge1xyXG4gIGlmICghZGV0ZWN0VGF1cmlSdW50aW1lKCkgfHwgIWFyY2hpdmVQYXRoIHx8ICFkZXN0UGF0aCkgcmV0dXJuIDA7XHJcbiAgdHJ5IHtcclxuICAgIHJldHVybiBhd2FpdCBpbnZva2U8bnVtYmVyPignemlwX2V4dHJhY3RfZW50cnknLCB7XHJcbiAgICAgIGFyY2hpdmVQYXRoLFxyXG4gICAgICBlbnRyeU5hbWUsXHJcbiAgICAgIGRlc3RQYXRoLFxyXG4gICAgICBwYXNzd29yZDogcGFzc3dvcmQgfHwgbnVsbCxcclxuICAgIH0pO1xyXG4gIH0gY2F0Y2ggKGVycjogYW55KSB7XHJcbiAgICBjb25zb2xlLmVycm9yKCdbemlwRXh0cmFjdEVudHJ5XSBpbnZva2UgZmFpbGVkOicsIGVyciwgJ2FyY2hpdmU6JywgYXJjaGl2ZVBhdGgsICdkZXN0OicsIGRlc3RQYXRoKTtcclxuICAgIHRocm93IG5ldyBFcnJvcihTdHJpbmcoZXJyPy5tZXNzYWdlIHx8IGVyciB8fCAnR2FnYWwgbWVuZ2Vrc3RyYWsgYmVya2FzIGRhcmkgUnVzdCcpKTtcclxuICB9XHJcbn1cclxuXHJcbmV4cG9ydCB0eXBlIFNwYXJzZVppcE9wdHMgPSB7XHJcbiAgc2Vzc2lvbjogc3RyaW5nO1xyXG4gIGFwaUlkOiBudW1iZXI7XHJcbiAgYXBpSGFzaDogc3RyaW5nO1xyXG4gIGNoYXRJZDogc3RyaW5nO1xyXG4gIG1lc3NhZ2VJZDogbnVtYmVyO1xyXG4gIGZvcmNlUmVmcmVzaD86IGJvb2xlYW47XHJcbn07XHJcblxyXG5leHBvcnQgYXN5bmMgZnVuY3Rpb24gemlwTGlzdFNwYXJzZShvcHRzOiBTcGFyc2VaaXBPcHRzKTogUHJvbWlzZTxaaXBMaXN0UmVzdWx0PiB7XHJcbiAgaWYgKCFkZXRlY3RUYXVyaVJ1bnRpbWUoKSkge1xyXG4gICAgdGhyb3cgbmV3IEVycm9yKCdTcGFyc2UgWklQIGVuZ2luZSBtZW1idXR1aGthbiBhcGxpa2FzaSBkZXNrdG9wIChSdXN0KS4nKTtcclxuICB9XHJcbiAgdHJ5IHtcclxuICAgIHJldHVybiBhd2FpdCBpbnZva2U8WmlwTGlzdFJlc3VsdD4oJ3RnX3ppcF9saXN0X3NwYXJzZScsIHsgb3B0cyB9KTtcclxuICB9IGNhdGNoIChlcnI6IGFueSkge1xyXG4gICAgY29uc29sZS5lcnJvcignW3ppcExpc3RTcGFyc2VdIGludm9rZSBmYWlsZWQ6JywgZXJyKTtcclxuICAgIHRocm93IG5ldyBFcnJvcihTdHJpbmcoZXJyPy5tZXNzYWdlIHx8IGVyciB8fCAnR2FnYWwgbWVtYmFjYSBpbmRla3Mgc3BhcnNlIFpJUCB2aWEgR3JhbW1lcnMnKSk7XHJcbiAgfVxyXG59XHJcblxyXG5leHBvcnQgYXN5bmMgZnVuY3Rpb24gemlwUHJldmlld0VudHJ5U3BhcnNlKFxyXG4gIG9wdHM6IFNwYXJzZVppcE9wdHMsXHJcbiAgZW50cnlOYW1lOiBzdHJpbmcsXHJcbiAgcGFzc3dvcmQ/OiBzdHJpbmdcclxuKTogUHJvbWlzZTxaaXBFbnRyeVByZXZpZXc+IHtcclxuICBpZiAoIWRldGVjdFRhdXJpUnVudGltZSgpKSB7XHJcbiAgICB0aHJvdyBuZXcgRXJyb3IoJ1NwYXJzZSBaSVAgZW5naW5lIG1lbWJ1dHVoa2FuIGFwbGlrYXNpIGRlc2t0b3AgKFJ1c3QpLicpO1xyXG4gIH1cclxuICB0cnkge1xyXG4gICAgcmV0dXJuIGF3YWl0IGludm9rZTxaaXBFbnRyeVByZXZpZXc+KCd0Z196aXBfcHJldmlld19lbnRyeV9zcGFyc2UnLCB7XHJcbiAgICAgIG9wdHMsXHJcbiAgICAgIGVudHJ5TmFtZSxcclxuICAgICAgcGFzc3dvcmQ6IHBhc3N3b3JkIHx8IG51bGwsXHJcbiAgICB9KTtcclxuICB9IGNhdGNoIChlcnI6IGFueSkge1xyXG4gICAgY29uc29sZS5lcnJvcignW3ppcFByZXZpZXdFbnRyeVNwYXJzZV0gaW52b2tlIGZhaWxlZDonLCBlcnIpO1xyXG4gICAgdGhyb3cgbmV3IEVycm9yKFN0cmluZyhlcnI/Lm1lc3NhZ2UgfHwgZXJyIHx8ICdHYWdhbCBtZW1iYWNhIGJlcmthcyBzcGFyc2UgWklQIHZpYSBHcmFtbWVycycpKTtcclxuICB9XHJcbn1cclxuXHJcbmV4cG9ydCBhc3luYyBmdW5jdGlvbiB6aXBFeHRyYWN0RW50cnlTcGFyc2UoXHJcbiAgb3B0czogU3BhcnNlWmlwT3B0cyxcclxuICBlbnRyeU5hbWU6IHN0cmluZyxcclxuICBkZXN0UGF0aDogc3RyaW5nLFxyXG4gIHBhc3N3b3JkPzogc3RyaW5nXHJcbik6IFByb21pc2U8bnVtYmVyPiB7XHJcbiAgaWYgKCFkZXRlY3RUYXVyaVJ1bnRpbWUoKSB8fCAhZGVzdFBhdGgpIHJldHVybiAwO1xyXG4gIHRyeSB7XHJcbiAgICByZXR1cm4gYXdhaXQgaW52b2tlPG51bWJlcj4oJ3RnX3ppcF9leHRyYWN0X2VudHJ5X3NwYXJzZScsIHtcclxuICAgICAgb3B0cyxcclxuICAgICAgZW50cnlOYW1lLFxyXG4gICAgICBkZXN0UGF0aCxcclxuICAgICAgcGFzc3dvcmQ6IHBhc3N3b3JkIHx8IG51bGwsXHJcbiAgICB9KTtcclxuICB9IGNhdGNoIChlcnI6IGFueSkge1xyXG4gICAgY29uc29sZS5lcnJvcignW3ppcEV4dHJhY3RFbnRyeVNwYXJzZV0gaW52b2tlIGZhaWxlZDonLCBlcnIpO1xyXG4gICAgdGhyb3cgbmV3IEVycm9yKFN0cmluZyhlcnI/Lm1lc3NhZ2UgfHwgZXJyIHx8ICdHYWdhbCBtZW5nZWtzdHJhayBiZXJrYXMgc3BhcnNlIFpJUCB2aWEgR3JhbW1lcnMnKSk7XHJcbiAgfVxyXG59XHJcblxyXG5leHBvcnQgYXN5bmMgZnVuY3Rpb24gZmlsZVNoYTI1NihwYXRoOiBzdHJpbmcpIHtcclxuICBpZiAoIWRldGVjdFRhdXJpUnVudGltZSgpIHx8ICFwYXRoKSByZXR1cm4gbnVsbDtcclxuICB0cnkge1xyXG4gICAgcmV0dXJuIGF3YWl0IGludm9rZSgnZmlsZV9zaGEyNTYnLCB7IHBhdGggfSk7XHJcbiAgfSBjYXRjaCB7XHJcbiAgICByZXR1cm4gbnVsbDtcclxuICB9XHJcbn1cclxuXHJcbmV4cG9ydCBhc3luYyBmdW5jdGlvbiBmaWxlUXVpY2tGaW5nZXJwcmludChwYXRoOiBzdHJpbmcpIHtcclxuICBpZiAoIWRldGVjdFRhdXJpUnVudGltZSgpIHx8ICFwYXRoKSByZXR1cm4gbnVsbDtcclxuICB0cnkge1xyXG4gICAgcmV0dXJuIGF3YWl0IGludm9rZSgnZmlsZV9xdWlja19maW5nZXJwcmludCcsIHsgcGF0aCB9KTtcclxuICB9IGNhdGNoIHtcclxuICAgIHJldHVybiBudWxsO1xyXG4gIH1cclxufVxyXG5cclxuZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIGNvbXB1dGVQcm9ncmVzc1JhdGUoXHJcbiAgZG9uZUJ5dGVzOiBudW1iZXIsXHJcbiAgdG90YWxCeXRlczogbnVtYmVyLFxyXG4gIGVsYXBzZWRTZWNzOiBudW1iZXJcclxuKSB7XHJcbiAgaWYgKCFkZXRlY3RUYXVyaVJ1bnRpbWUoKSkgcmV0dXJuIG51bGw7XHJcbiAgdHJ5IHtcclxuICAgIHJldHVybiBhd2FpdCBpbnZva2UoJ2NvbXB1dGVfcHJvZ3Jlc3NfcmF0ZScsIHtcclxuICAgICAgZG9uZUJ5dGVzLFxyXG4gICAgICB0b3RhbEJ5dGVzLFxyXG4gICAgICBlbGFwc2VkU2VjcyxcclxuICAgIH0pO1xyXG4gIH0gY2F0Y2gge1xyXG4gICAgcmV0dXJuIG51bGw7XHJcbiAgfVxyXG59XHJcblxyXG5leHBvcnQgYXN5bmMgZnVuY3Rpb24gbm9ybWFsaXplSm9iQ29uZmlnKHJhdzogUmVjb3JkPHN0cmluZywgdW5rbm93bj4pIHtcclxuICBpZiAoIWRldGVjdFRhdXJpUnVudGltZSgpKSByZXR1cm4gcmF3O1xyXG4gIHRyeSB7XHJcbiAgICByZXR1cm4gYXdhaXQgaW52b2tlKCdub3JtYWxpemVfam9iX2NvbmZpZycsIHsgcmF3IH0pO1xyXG4gIH0gY2F0Y2gge1xyXG4gICAgcmV0dXJuIHJhdztcclxuICB9XHJcbn1cclxuXHJcbmV4cG9ydCB0eXBlIFByb3h5Q29uZmlnID0ge1xyXG4gIGVuYWJsZWQ6IGJvb2xlYW47XHJcbiAgcHJveHlUeXBlOiBzdHJpbmc7XHJcbiAgaG9zdDogc3RyaW5nO1xyXG4gIHBvcnQ6IG51bWJlcjtcclxuICB1c2VybmFtZTogc3RyaW5nO1xyXG4gIHBhc3N3b3JkOiBzdHJpbmc7XHJcbiAgc2VjcmV0Pzogc3RyaW5nO1xyXG59O1xyXG5cclxuZXhwb3J0IHR5cGUgVnBuQ29uZmlnID0ge1xyXG4gIGVuYWJsZWQ6IGJvb2xlYW47XHJcbiAgdGltZW91dE11bHRpcGxpZXI6IG51bWJlcjtcclxuICByZXRyeUF0dGVtcHRzOiBudW1iZXI7XHJcbiAgcmV0cnlCYXNlQmFja29mZk1zOiBudW1iZXI7XHJcbiAgcmV0cnlNYXhCYWNrb2ZmTXM6IG51bWJlcjtcclxuICBmbG9vZFdhaXRSZXNwZWN0OiBib29sZWFuO1xyXG4gIGJhbmR3aWR0aExpbWl0VXBLYnM6IG51bWJlcjtcclxuICBiYW5kd2lkdGhMaW1pdERvd25LYnM6IG51bWJlcjtcclxuICBjaHVua1NpemVLYjogbnVtYmVyO1xyXG4gIGtlZXBBbGl2ZUludGVydmFsU2VjOiBudW1iZXI7XHJcbiAgYXV0b0RldGVjdFZwbjogYm9vbGVhbjtcclxuICBjb25uZWN0aW9uUmV0cmllczogbnVtYmVyO1xyXG4gIHJlcXVlc3RSZXRyaWVzOiBudW1iZXI7XHJcbn07XHJcblxyXG5leHBvcnQgdHlwZSBOZXR3b3JrQ29uZmlnU25hcHNob3QgPSB7XHJcbiAgcHJveHk6IFByb3h5Q29uZmlnO1xyXG4gIHZwbjogVnBuQ29uZmlnO1xyXG59O1xyXG5cclxuZXhwb3J0IHR5cGUgUHJveHlTdGF0dXMgPSB7XHJcbiAgcmVhY2hhYmxlOiBib29sZWFuO1xyXG4gIGxhdGVuY3lNczogbnVtYmVyO1xyXG4gIGRldGFpbDogc3RyaW5nO1xyXG59O1xyXG5cclxuZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIG5ldHdvcmtHZXRDb25maWcoKTogUHJvbWlzZTxOZXR3b3JrQ29uZmlnU25hcHNob3QgfCBudWxsPiB7XHJcbiAgaWYgKCFkZXRlY3RUYXVyaVJ1bnRpbWUoKSkgcmV0dXJuIG51bGw7XHJcbiAgdHJ5IHtcclxuICAgIHJldHVybiBhd2FpdCBpbnZva2U8TmV0d29ya0NvbmZpZ1NuYXBzaG90PignbmV0d29ya19nZXRfY29uZmlnJyk7XHJcbiAgfSBjYXRjaCB7XHJcbiAgICByZXR1cm4gbnVsbDtcclxuICB9XHJcbn1cclxuXHJcbmV4cG9ydCBhc3luYyBmdW5jdGlvbiBuZXR3b3JrQXBwbHlBbGwoY29uZmlnOiBOZXR3b3JrQ29uZmlnU25hcHNob3QpOiBQcm9taXNlPGJvb2xlYW4+IHtcclxuICBpZiAoIWRldGVjdFRhdXJpUnVudGltZSgpKSByZXR1cm4gZmFsc2U7XHJcbiAgdHJ5IHtcclxuICAgIGF3YWl0IGludm9rZSgnbmV0d29ya19hcHBseV9hbGwnLCB7IGNvbmZpZyB9KTtcclxuICAgIHJldHVybiB0cnVlO1xyXG4gIH0gY2F0Y2gge1xyXG4gICAgcmV0dXJuIGZhbHNlO1xyXG4gIH1cclxufVxyXG5cclxuZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIG5ldHdvcmtUZXN0UHJveHkoKTogUHJvbWlzZTxQcm94eVN0YXR1cyB8IG51bGw+IHtcclxuICBpZiAoIWRldGVjdFRhdXJpUnVudGltZSgpKSByZXR1cm4gbnVsbDtcclxuICB0cnkge1xyXG4gICAgcmV0dXJuIGF3YWl0IGludm9rZTxQcm94eVN0YXR1cz4oJ25ldHdvcmtfdGVzdF9wcm94eScpO1xyXG4gIH0gY2F0Y2gge1xyXG4gICAgcmV0dXJuIG51bGw7XHJcbiAgfVxyXG59XHJcblxyXG5leHBvcnQgYXN5bmMgZnVuY3Rpb24gbmV0d29ya0lzQXZhaWxhYmxlKCk6IFByb21pc2U8Ym9vbGVhbj4ge1xyXG4gIGlmICghZGV0ZWN0VGF1cmlSdW50aW1lKCkpIHJldHVybiB0cnVlO1xyXG4gIHRyeSB7XHJcbiAgICByZXR1cm4gYXdhaXQgaW52b2tlPGJvb2xlYW4+KCduZXR3b3JrX2lzX2F2YWlsYWJsZScpO1xyXG4gIH0gY2F0Y2gge1xyXG4gICAgcmV0dXJuIHRydWU7XHJcbiAgfVxyXG59XHJcblxyXG5leHBvcnQgYXN5bmMgZnVuY3Rpb24gbmV0d29ya0RldGVjdFZwbigpOiBQcm9taXNlPGJvb2xlYW4+IHtcclxuICBpZiAoIWRldGVjdFRhdXJpUnVudGltZSgpKSByZXR1cm4gZmFsc2U7XHJcbiAgdHJ5IHtcclxuICAgIHJldHVybiBhd2FpdCBpbnZva2U8Ym9vbGVhbj4oJ25ldHdvcmtfZGV0ZWN0X3ZwbicpO1xyXG4gIH0gY2F0Y2gge1xyXG4gICAgcmV0dXJuIGZhbHNlO1xyXG4gIH1cclxufVxyXG5cclxuIl0sIm1hcHBpbmdzIjoiQUFJQSxTQUFTLGNBQWM7QUFDdkIsU0FBUywwQkFBMEI7QUE2Qm5DLHNCQUFzQiwyQkFBdUQ7QUFDM0UsTUFBSSxDQUFDLG1CQUFtQixFQUFHLFFBQU8sQ0FBQztBQUNuQyxNQUFJO0FBQ0YsV0FBTyxNQUFNLE9BQTBCLHNCQUFzQjtBQUFBLEVBQy9ELFFBQVE7QUFDTixXQUFPLENBQUM7QUFBQSxFQUNWO0FBQ0Y7QUFFQSxzQkFBc0IscUJBQXFCLFdBQW9EO0FBQzdGLE1BQUksQ0FBQyxtQkFBbUIsRUFBRyxRQUFPO0FBQ2xDLE1BQUk7QUFDRixXQUFPLE1BQU0sT0FBd0IsNkJBQTZCO0FBQUEsTUFDaEUsV0FBVyxLQUFLLElBQUksR0FBRyxLQUFLLE1BQU0sU0FBUyxDQUFDO0FBQUEsSUFDOUMsQ0FBQztBQUFBLEVBQ0gsUUFBUTtBQUNOLFdBQU87QUFBQSxFQUNUO0FBQ0Y7QUFNQSxzQkFBc0IscUJBQXFCLE1BQStDO0FBQ3hGLE1BQUksQ0FBQyxtQkFBbUIsS0FBSyxDQUFDLEtBQU0sUUFBTztBQUMzQyxNQUFJO0FBQ0YsV0FBTyxNQUFNLE9BQXdCLDBCQUEwQixFQUFFLEtBQUssQ0FBQztBQUFBLEVBQ3pFLFFBQVE7QUFDTixXQUFPO0FBQUEsRUFDVDtBQUNGO0FBRUEsc0JBQXNCLGdCQUFnQixNQUFnQztBQUNwRSxNQUFJLENBQUMsbUJBQW1CLEtBQUssQ0FBQyxLQUFNLFFBQU87QUFDM0MsTUFBSTtBQUNGLFdBQU8sTUFBTSxPQUFnQixxQkFBcUIsRUFBRSxLQUFLLENBQUM7QUFBQSxFQUM1RCxRQUFRO0FBQ04sV0FBTztBQUFBLEVBQ1Q7QUFDRjtBQUVBLHNCQUFzQixtQkFBb0M7QUFDeEQsTUFBSSxDQUFDLG1CQUFtQixFQUFHLFFBQU87QUFDbEMsTUFBSTtBQUNGLFdBQU8sTUFBTSxPQUFlLG9CQUFvQjtBQUFBLEVBQ2xELFFBQVE7QUFDTixXQUFP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
+// node_modules/react/cjs/react.development.js
+var require_react_development = __commonJS({
+  "node_modules/react/cjs/react.development.js"(exports, module) {
+    "use strict";
+    (function() {
+      function defineDeprecationWarning(methodName, info) {
+        Object.defineProperty(Component.prototype, methodName, {
+          get: function() {
+            console.warn(
+              "%s(...) is deprecated in plain JavaScript React classes. %s",
+              info[0],
+              info[1]
+            );
+          }
+        });
+      }
+      function getIteratorFn(maybeIterable) {
+        if (null === maybeIterable || "object" !== typeof maybeIterable)
+          return null;
+        maybeIterable = MAYBE_ITERATOR_SYMBOL && maybeIterable[MAYBE_ITERATOR_SYMBOL] || maybeIterable["@@iterator"];
+        return "function" === typeof maybeIterable ? maybeIterable : null;
+      }
+      function warnNoop(publicInstance, callerName) {
+        publicInstance = (publicInstance = publicInstance.constructor) && (publicInstance.displayName || publicInstance.name) || "ReactClass";
+        var warningKey = publicInstance + "." + callerName;
+        didWarnStateUpdateForUnmountedComponent[warningKey] || (console.error(
+          "Can't call %s on a component that is not yet mounted. This is a no-op, but it might indicate a bug in your application. Instead, assign to `this.state` directly or define a `state = {};` class property with the desired state in the %s component.",
+          callerName,
+          publicInstance
+        ), didWarnStateUpdateForUnmountedComponent[warningKey] = true);
+      }
+      function Component(props, context, updater) {
+        this.props = props;
+        this.context = context;
+        this.refs = emptyObject;
+        this.updater = updater || ReactNoopUpdateQueue;
+      }
+      function ComponentDummy() {
+      }
+      function PureComponent(props, context, updater) {
+        this.props = props;
+        this.context = context;
+        this.refs = emptyObject;
+        this.updater = updater || ReactNoopUpdateQueue;
+      }
+      function noop() {
+      }
+      function testStringCoercion(value) {
+        return "" + value;
+      }
+      function checkKeyStringCoercion(value) {
+        try {
+          testStringCoercion(value);
+          var JSCompiler_inline_result = false;
+        } catch (e) {
+          JSCompiler_inline_result = true;
+        }
+        if (JSCompiler_inline_result) {
+          JSCompiler_inline_result = console;
+          var JSCompiler_temp_const = JSCompiler_inline_result.error;
+          var JSCompiler_inline_result$jscomp$0 = "function" === typeof Symbol && Symbol.toStringTag && value[Symbol.toStringTag] || value.constructor.name || "Object";
+          JSCompiler_temp_const.call(
+            JSCompiler_inline_result,
+            "The provided key is an unsupported type %s. This value must be coerced to a string before using it here.",
+            JSCompiler_inline_result$jscomp$0
+          );
+          return testStringCoercion(value);
+        }
+      }
+      function getComponentNameFromType(type) {
+        if (null == type) return null;
+        if ("function" === typeof type)
+          return type.$$typeof === REACT_CLIENT_REFERENCE ? null : type.displayName || type.name || null;
+        if ("string" === typeof type) return type;
+        switch (type) {
+          case REACT_FRAGMENT_TYPE:
+            return "Fragment";
+          case REACT_PROFILER_TYPE:
+            return "Profiler";
+          case REACT_STRICT_MODE_TYPE:
+            return "StrictMode";
+          case REACT_SUSPENSE_TYPE:
+            return "Suspense";
+          case REACT_SUSPENSE_LIST_TYPE:
+            return "SuspenseList";
+          case REACT_ACTIVITY_TYPE:
+            return "Activity";
+        }
+        if ("object" === typeof type)
+          switch ("number" === typeof type.tag && console.error(
+            "Received an unexpected object in getComponentNameFromType(). This is likely a bug in React. Please file an issue."
+          ), type.$$typeof) {
+            case REACT_PORTAL_TYPE:
+              return "Portal";
+            case REACT_CONTEXT_TYPE:
+              return type.displayName || "Context";
+            case REACT_CONSUMER_TYPE:
+              return (type._context.displayName || "Context") + ".Consumer";
+            case REACT_FORWARD_REF_TYPE:
+              var innerType = type.render;
+              type = type.displayName;
+              type || (type = innerType.displayName || innerType.name || "", type = "" !== type ? "ForwardRef(" + type + ")" : "ForwardRef");
+              return type;
+            case REACT_MEMO_TYPE:
+              return innerType = type.displayName || null, null !== innerType ? innerType : getComponentNameFromType(type.type) || "Memo";
+            case REACT_LAZY_TYPE:
+              innerType = type._payload;
+              type = type._init;
+              try {
+                return getComponentNameFromType(type(innerType));
+              } catch (x) {
+              }
+          }
+        return null;
+      }
+      function getTaskName(type) {
+        if (type === REACT_FRAGMENT_TYPE) return "<>";
+        if ("object" === typeof type && null !== type && type.$$typeof === REACT_LAZY_TYPE)
+          return "<...>";
+        try {
+          var name = getComponentNameFromType(type);
+          return name ? "<" + name + ">" : "<...>";
+        } catch (x) {
+          return "<...>";
+        }
+      }
+      function getOwner() {
+        var dispatcher = ReactSharedInternals.A;
+        return null === dispatcher ? null : dispatcher.getOwner();
+      }
+      function UnknownOwner() {
+        return Error("react-stack-top-frame");
+      }
+      function hasValidKey(config) {
+        if (hasOwnProperty.call(config, "key")) {
+          var getter = Object.getOwnPropertyDescriptor(config, "key").get;
+          if (getter && getter.isReactWarning) return false;
+        }
+        return void 0 !== config.key;
+      }
+      function defineKeyPropWarningGetter(props, displayName) {
+        function warnAboutAccessingKey() {
+          specialPropKeyWarningShown || (specialPropKeyWarningShown = true, console.error(
+            "%s: `key` is not a prop. Trying to access it will result in `undefined` being returned. If you need to access the same value within the child component, you should pass it as a different prop. (https://react.dev/link/special-props)",
+            displayName
+          ));
+        }
+        warnAboutAccessingKey.isReactWarning = true;
+        Object.defineProperty(props, "key", {
+          get: warnAboutAccessingKey,
+          configurable: true
+        });
+      }
+      function elementRefGetterWithDeprecationWarning() {
+        var componentName = getComponentNameFromType(this.type);
+        didWarnAboutElementRef[componentName] || (didWarnAboutElementRef[componentName] = true, console.error(
+          "Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release."
+        ));
+        componentName = this.props.ref;
+        return void 0 !== componentName ? componentName : null;
+      }
+      function ReactElement(type, key, props, owner, debugStack, debugTask) {
+        var refProp = props.ref;
+        type = {
+          $$typeof: REACT_ELEMENT_TYPE,
+          type,
+          key,
+          props,
+          _owner: owner
+        };
+        null !== (void 0 !== refProp ? refProp : null) ? Object.defineProperty(type, "ref", {
+          enumerable: false,
+          get: elementRefGetterWithDeprecationWarning
+        }) : Object.defineProperty(type, "ref", { enumerable: false, value: null });
+        type._store = {};
+        Object.defineProperty(type._store, "validated", {
+          configurable: false,
+          enumerable: false,
+          writable: true,
+          value: 0
+        });
+        Object.defineProperty(type, "_debugInfo", {
+          configurable: false,
+          enumerable: false,
+          writable: true,
+          value: null
+        });
+        Object.defineProperty(type, "_debugStack", {
+          configurable: false,
+          enumerable: false,
+          writable: true,
+          value: debugStack
+        });
+        Object.defineProperty(type, "_debugTask", {
+          configurable: false,
+          enumerable: false,
+          writable: true,
+          value: debugTask
+        });
+        Object.freeze && (Object.freeze(type.props), Object.freeze(type));
+        return type;
+      }
+      function cloneAndReplaceKey(oldElement, newKey) {
+        newKey = ReactElement(
+          oldElement.type,
+          newKey,
+          oldElement.props,
+          oldElement._owner,
+          oldElement._debugStack,
+          oldElement._debugTask
+        );
+        oldElement._store && (newKey._store.validated = oldElement._store.validated);
+        return newKey;
+      }
+      function validateChildKeys(node) {
+        isValidElement(node) ? node._store && (node._store.validated = 1) : "object" === typeof node && null !== node && node.$$typeof === REACT_LAZY_TYPE && ("fulfilled" === node._payload.status ? isValidElement(node._payload.value) && node._payload.value._store && (node._payload.value._store.validated = 1) : node._store && (node._store.validated = 1));
+      }
+      function isValidElement(object) {
+        return "object" === typeof object && null !== object && object.$$typeof === REACT_ELEMENT_TYPE;
+      }
+      function escape(key) {
+        var escaperLookup = { "=": "=0", ":": "=2" };
+        return "$" + key.replace(/[=:]/g, function(match) {
+          return escaperLookup[match];
+        });
+      }
+      function getElementKey(element, index) {
+        return "object" === typeof element && null !== element && null != element.key ? (checkKeyStringCoercion(element.key), escape("" + element.key)) : index.toString(36);
+      }
+      function resolveThenable(thenable) {
+        switch (thenable.status) {
+          case "fulfilled":
+            return thenable.value;
+          case "rejected":
+            throw thenable.reason;
+          default:
+            switch ("string" === typeof thenable.status ? thenable.then(noop, noop) : (thenable.status = "pending", thenable.then(
+              function(fulfilledValue) {
+                "pending" === thenable.status && (thenable.status = "fulfilled", thenable.value = fulfilledValue);
+              },
+              function(error) {
+                "pending" === thenable.status && (thenable.status = "rejected", thenable.reason = error);
+              }
+            )), thenable.status) {
+              case "fulfilled":
+                return thenable.value;
+              case "rejected":
+                throw thenable.reason;
+            }
+        }
+        throw thenable;
+      }
+      function mapIntoArray(children, array, escapedPrefix, nameSoFar, callback) {
+        var type = typeof children;
+        if ("undefined" === type || "boolean" === type) children = null;
+        var invokeCallback = false;
+        if (null === children) invokeCallback = true;
+        else
+          switch (type) {
+            case "bigint":
+            case "string":
+            case "number":
+              invokeCallback = true;
+              break;
+            case "object":
+              switch (children.$$typeof) {
+                case REACT_ELEMENT_TYPE:
+                case REACT_PORTAL_TYPE:
+                  invokeCallback = true;
+                  break;
+                case REACT_LAZY_TYPE:
+                  return invokeCallback = children._init, mapIntoArray(
+                    invokeCallback(children._payload),
+                    array,
+                    escapedPrefix,
+                    nameSoFar,
+                    callback
+                  );
+              }
+          }
+        if (invokeCallback) {
+          invokeCallback = children;
+          callback = callback(invokeCallback);
+          var childKey = "" === nameSoFar ? "." + getElementKey(invokeCallback, 0) : nameSoFar;
+          isArrayImpl(callback) ? (escapedPrefix = "", null != childKey && (escapedPrefix = childKey.replace(userProvidedKeyEscapeRegex, "$&/") + "/"), mapIntoArray(callback, array, escapedPrefix, "", function(c) {
+            return c;
+          })) : null != callback && (isValidElement(callback) && (null != callback.key && (invokeCallback && invokeCallback.key === callback.key || checkKeyStringCoercion(callback.key)), escapedPrefix = cloneAndReplaceKey(
+            callback,
+            escapedPrefix + (null == callback.key || invokeCallback && invokeCallback.key === callback.key ? "" : ("" + callback.key).replace(
+              userProvidedKeyEscapeRegex,
+              "$&/"
+            ) + "/") + childKey
+          ), "" !== nameSoFar && null != invokeCallback && isValidElement(invokeCallback) && null == invokeCallback.key && invokeCallback._store && !invokeCallback._store.validated && (escapedPrefix._store.validated = 2), callback = escapedPrefix), array.push(callback));
+          return 1;
+        }
+        invokeCallback = 0;
+        childKey = "" === nameSoFar ? "." : nameSoFar + ":";
+        if (isArrayImpl(children))
+          for (var i = 0; i < children.length; i++)
+            nameSoFar = children[i], type = childKey + getElementKey(nameSoFar, i), invokeCallback += mapIntoArray(
+              nameSoFar,
+              array,
+              escapedPrefix,
+              type,
+              callback
+            );
+        else if (i = getIteratorFn(children), "function" === typeof i)
+          for (i === children.entries && (didWarnAboutMaps || console.warn(
+            "Using Maps as children is not supported. Use an array of keyed ReactElements instead."
+          ), didWarnAboutMaps = true), children = i.call(children), i = 0; !(nameSoFar = children.next()).done; )
+            nameSoFar = nameSoFar.value, type = childKey + getElementKey(nameSoFar, i++), invokeCallback += mapIntoArray(
+              nameSoFar,
+              array,
+              escapedPrefix,
+              type,
+              callback
+            );
+        else if ("object" === type) {
+          if ("function" === typeof children.then)
+            return mapIntoArray(
+              resolveThenable(children),
+              array,
+              escapedPrefix,
+              nameSoFar,
+              callback
+            );
+          array = String(children);
+          throw Error(
+            "Objects are not valid as a React child (found: " + ("[object Object]" === array ? "object with keys {" + Object.keys(children).join(", ") + "}" : array) + "). If you meant to render a collection of children, use an array instead."
+          );
+        }
+        return invokeCallback;
+      }
+      function mapChildren(children, func, context) {
+        if (null == children) return children;
+        var result = [], count = 0;
+        mapIntoArray(children, result, "", "", function(child) {
+          return func.call(context, child, count++);
+        });
+        return result;
+      }
+      function lazyInitializer(payload) {
+        if (-1 === payload._status) {
+          var ioInfo = payload._ioInfo;
+          null != ioInfo && (ioInfo.start = ioInfo.end = performance.now());
+          ioInfo = payload._result;
+          var thenable = ioInfo();
+          thenable.then(
+            function(moduleObject) {
+              if (0 === payload._status || -1 === payload._status) {
+                payload._status = 1;
+                payload._result = moduleObject;
+                var _ioInfo = payload._ioInfo;
+                null != _ioInfo && (_ioInfo.end = performance.now());
+                void 0 === thenable.status && (thenable.status = "fulfilled", thenable.value = moduleObject);
+              }
+            },
+            function(error) {
+              if (0 === payload._status || -1 === payload._status) {
+                payload._status = 2;
+                payload._result = error;
+                var _ioInfo2 = payload._ioInfo;
+                null != _ioInfo2 && (_ioInfo2.end = performance.now());
+                void 0 === thenable.status && (thenable.status = "rejected", thenable.reason = error);
+              }
+            }
+          );
+          ioInfo = payload._ioInfo;
+          if (null != ioInfo) {
+            ioInfo.value = thenable;
+            var displayName = thenable.displayName;
+            "string" === typeof displayName && (ioInfo.name = displayName);
+          }
+          -1 === payload._status && (payload._status = 0, payload._result = thenable);
+        }
+        if (1 === payload._status)
+          return ioInfo = payload._result, void 0 === ioInfo && console.error(
+            "lazy: Expected the result of a dynamic import() call. Instead received: %s\n\nYour code should look like: \n  const MyComponent = lazy(() => import('./MyComponent'))\n\nDid you accidentally put curly braces around the import?",
+            ioInfo
+          ), "default" in ioInfo || console.error(
+            "lazy: Expected the result of a dynamic import() call. Instead received: %s\n\nYour code should look like: \n  const MyComponent = lazy(() => import('./MyComponent'))",
+            ioInfo
+          ), ioInfo.default;
+        throw payload._result;
+      }
+      function resolveDispatcher() {
+        var dispatcher = ReactSharedInternals.H;
+        null === dispatcher && console.error(
+          "Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:\n1. You might have mismatching versions of React and the renderer (such as React DOM)\n2. You might be breaking the Rules of Hooks\n3. You might have more than one copy of React in the same app\nSee https://react.dev/link/invalid-hook-call for tips about how to debug and fix this problem."
+        );
+        return dispatcher;
+      }
+      function releaseAsyncTransition() {
+        ReactSharedInternals.asyncTransitions--;
+      }
+      function enqueueTask(task) {
+        if (null === enqueueTaskImpl)
+          try {
+            var requireString = ("require" + Math.random()).slice(0, 7);
+            enqueueTaskImpl = (module && module[requireString]).call(
+              module,
+              "timers"
+            ).setImmediate;
+          } catch (_err) {
+            enqueueTaskImpl = function(callback) {
+              false === didWarnAboutMessageChannel && (didWarnAboutMessageChannel = true, "undefined" === typeof MessageChannel && console.error(
+                "This browser does not have a MessageChannel implementation, so enqueuing tasks via await act(async () => ...) will fail. Please file an issue at https://github.com/facebook/react/issues if you encounter this warning."
+              ));
+              var channel = new MessageChannel();
+              channel.port1.onmessage = callback;
+              channel.port2.postMessage(void 0);
+            };
+          }
+        return enqueueTaskImpl(task);
+      }
+      function aggregateErrors(errors) {
+        return 1 < errors.length && "function" === typeof AggregateError ? new AggregateError(errors) : errors[0];
+      }
+      function popActScope(prevActQueue, prevActScopeDepth) {
+        prevActScopeDepth !== actScopeDepth - 1 && console.error(
+          "You seem to have overlapping act() calls, this is not supported. Be sure to await previous act() calls before making a new one. "
+        );
+        actScopeDepth = prevActScopeDepth;
+      }
+      function recursivelyFlushAsyncActWork(returnValue, resolve, reject) {
+        var queue = ReactSharedInternals.actQueue;
+        if (null !== queue)
+          if (0 !== queue.length)
+            try {
+              flushActQueue(queue);
+              enqueueTask(function() {
+                return recursivelyFlushAsyncActWork(returnValue, resolve, reject);
+              });
+              return;
+            } catch (error) {
+              ReactSharedInternals.thrownErrors.push(error);
+            }
+          else ReactSharedInternals.actQueue = null;
+        0 < ReactSharedInternals.thrownErrors.length ? (queue = aggregateErrors(ReactSharedInternals.thrownErrors), ReactSharedInternals.thrownErrors.length = 0, reject(queue)) : resolve(returnValue);
+      }
+      function flushActQueue(queue) {
+        if (!isFlushing) {
+          isFlushing = true;
+          var i = 0;
+          try {
+            for (; i < queue.length; i++) {
+              var callback = queue[i];
+              do {
+                ReactSharedInternals.didUsePromise = false;
+                var continuation = callback(false);
+                if (null !== continuation) {
+                  if (ReactSharedInternals.didUsePromise) {
+                    queue[i] = callback;
+                    queue.splice(0, i);
+                    return;
+                  }
+                  callback = continuation;
+                } else break;
+              } while (1);
+            }
+            queue.length = 0;
+          } catch (error) {
+            queue.splice(0, i + 1), ReactSharedInternals.thrownErrors.push(error);
+          } finally {
+            isFlushing = false;
+          }
+        }
+      }
+      "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
+      var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.transitional.element"), REACT_PORTAL_TYPE = /* @__PURE__ */ Symbol.for("react.portal"), REACT_FRAGMENT_TYPE = /* @__PURE__ */ Symbol.for("react.fragment"), REACT_STRICT_MODE_TYPE = /* @__PURE__ */ Symbol.for("react.strict_mode"), REACT_PROFILER_TYPE = /* @__PURE__ */ Symbol.for("react.profiler"), REACT_CONSUMER_TYPE = /* @__PURE__ */ Symbol.for("react.consumer"), REACT_CONTEXT_TYPE = /* @__PURE__ */ Symbol.for("react.context"), REACT_FORWARD_REF_TYPE = /* @__PURE__ */ Symbol.for("react.forward_ref"), REACT_SUSPENSE_TYPE = /* @__PURE__ */ Symbol.for("react.suspense"), REACT_SUSPENSE_LIST_TYPE = /* @__PURE__ */ Symbol.for("react.suspense_list"), REACT_MEMO_TYPE = /* @__PURE__ */ Symbol.for("react.memo"), REACT_LAZY_TYPE = /* @__PURE__ */ Symbol.for("react.lazy"), REACT_ACTIVITY_TYPE = /* @__PURE__ */ Symbol.for("react.activity"), MAYBE_ITERATOR_SYMBOL = Symbol.iterator, didWarnStateUpdateForUnmountedComponent = {}, ReactNoopUpdateQueue = {
+        isMounted: function() {
+          return false;
+        },
+        enqueueForceUpdate: function(publicInstance) {
+          warnNoop(publicInstance, "forceUpdate");
+        },
+        enqueueReplaceState: function(publicInstance) {
+          warnNoop(publicInstance, "replaceState");
+        },
+        enqueueSetState: function(publicInstance) {
+          warnNoop(publicInstance, "setState");
+        }
+      }, assign = Object.assign, emptyObject = {};
+      Object.freeze(emptyObject);
+      Component.prototype.isReactComponent = {};
+      Component.prototype.setState = function(partialState, callback) {
+        if ("object" !== typeof partialState && "function" !== typeof partialState && null != partialState)
+          throw Error(
+            "takes an object of state variables to update or a function which returns an object of state variables."
+          );
+        this.updater.enqueueSetState(this, partialState, callback, "setState");
+      };
+      Component.prototype.forceUpdate = function(callback) {
+        this.updater.enqueueForceUpdate(this, callback, "forceUpdate");
+      };
+      var deprecatedAPIs = {
+        isMounted: [
+          "isMounted",
+          "Instead, make sure to clean up subscriptions and pending requests in componentWillUnmount to prevent memory leaks."
+        ],
+        replaceState: [
+          "replaceState",
+          "Refactor your code to use setState instead (see https://github.com/facebook/react/issues/3236)."
+        ]
+      };
+      for (fnName in deprecatedAPIs)
+        deprecatedAPIs.hasOwnProperty(fnName) && defineDeprecationWarning(fnName, deprecatedAPIs[fnName]);
+      ComponentDummy.prototype = Component.prototype;
+      deprecatedAPIs = PureComponent.prototype = new ComponentDummy();
+      deprecatedAPIs.constructor = PureComponent;
+      assign(deprecatedAPIs, Component.prototype);
+      deprecatedAPIs.isPureReactComponent = true;
+      var isArrayImpl = Array.isArray, REACT_CLIENT_REFERENCE = /* @__PURE__ */ Symbol.for("react.client.reference"), ReactSharedInternals = {
+        H: null,
+        A: null,
+        T: null,
+        S: null,
+        actQueue: null,
+        asyncTransitions: 0,
+        isBatchingLegacy: false,
+        didScheduleLegacyUpdate: false,
+        didUsePromise: false,
+        thrownErrors: [],
+        getCurrentStack: null,
+        recentlyCreatedOwnerStacks: 0
+      }, hasOwnProperty = Object.prototype.hasOwnProperty, createTask = console.createTask ? console.createTask : function() {
+        return null;
+      };
+      deprecatedAPIs = {
+        react_stack_bottom_frame: function(callStackForError) {
+          return callStackForError();
+        }
+      };
+      var specialPropKeyWarningShown, didWarnAboutOldJSXRuntime;
+      var didWarnAboutElementRef = {};
+      var unknownOwnerDebugStack = deprecatedAPIs.react_stack_bottom_frame.bind(
+        deprecatedAPIs,
+        UnknownOwner
+      )();
+      var unknownOwnerDebugTask = createTask(getTaskName(UnknownOwner));
+      var didWarnAboutMaps = false, userProvidedKeyEscapeRegex = /\/+/g, reportGlobalError = "function" === typeof reportError ? reportError : function(error) {
+        if ("object" === typeof window && "function" === typeof window.ErrorEvent) {
+          var event = new window.ErrorEvent("error", {
+            bubbles: true,
+            cancelable: true,
+            message: "object" === typeof error && null !== error && "string" === typeof error.message ? String(error.message) : String(error),
+            error
+          });
+          if (!window.dispatchEvent(event)) return;
+        } else if ("object" === typeof process && "function" === typeof process.emit) {
+          process.emit("uncaughtException", error);
+          return;
+        }
+        console.error(error);
+      }, didWarnAboutMessageChannel = false, enqueueTaskImpl = null, actScopeDepth = 0, didWarnNoAwaitAct = false, isFlushing = false, queueSeveralMicrotasks = "function" === typeof queueMicrotask ? function(callback) {
+        queueMicrotask(function() {
+          return queueMicrotask(callback);
+        });
+      } : enqueueTask;
+      deprecatedAPIs = Object.freeze({
+        __proto__: null,
+        c: function(size) {
+          return resolveDispatcher().useMemoCache(size);
+        }
+      });
+      var fnName = {
+        map: mapChildren,
+        forEach: function(children, forEachFunc, forEachContext) {
+          mapChildren(
+            children,
+            function() {
+              forEachFunc.apply(this, arguments);
+            },
+            forEachContext
+          );
+        },
+        count: function(children) {
+          var n = 0;
+          mapChildren(children, function() {
+            n++;
+          });
+          return n;
+        },
+        toArray: function(children) {
+          return mapChildren(children, function(child) {
+            return child;
+          }) || [];
+        },
+        only: function(children) {
+          if (!isValidElement(children))
+            throw Error(
+              "React.Children.only expected to receive a single React element child."
+            );
+          return children;
+        }
+      };
+      exports.Activity = REACT_ACTIVITY_TYPE;
+      exports.Children = fnName;
+      exports.Component = Component;
+      exports.Fragment = REACT_FRAGMENT_TYPE;
+      exports.Profiler = REACT_PROFILER_TYPE;
+      exports.PureComponent = PureComponent;
+      exports.StrictMode = REACT_STRICT_MODE_TYPE;
+      exports.Suspense = REACT_SUSPENSE_TYPE;
+      exports.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE = ReactSharedInternals;
+      exports.__COMPILER_RUNTIME = deprecatedAPIs;
+      exports.act = function(callback) {
+        var prevActQueue = ReactSharedInternals.actQueue, prevActScopeDepth = actScopeDepth;
+        actScopeDepth++;
+        var queue = ReactSharedInternals.actQueue = null !== prevActQueue ? prevActQueue : [], didAwaitActCall = false;
+        try {
+          var result = callback();
+        } catch (error) {
+          ReactSharedInternals.thrownErrors.push(error);
+        }
+        if (0 < ReactSharedInternals.thrownErrors.length)
+          throw popActScope(prevActQueue, prevActScopeDepth), callback = aggregateErrors(ReactSharedInternals.thrownErrors), ReactSharedInternals.thrownErrors.length = 0, callback;
+        if (null !== result && "object" === typeof result && "function" === typeof result.then) {
+          var thenable = result;
+          queueSeveralMicrotasks(function() {
+            didAwaitActCall || didWarnNoAwaitAct || (didWarnNoAwaitAct = true, console.error(
+              "You called act(async () => ...) without await. This could lead to unexpected testing behaviour, interleaving multiple act calls and mixing their scopes. You should - await act(async () => ...);"
+            ));
+          });
+          return {
+            then: function(resolve, reject) {
+              didAwaitActCall = true;
+              thenable.then(
+                function(returnValue) {
+                  popActScope(prevActQueue, prevActScopeDepth);
+                  if (0 === prevActScopeDepth) {
+                    try {
+                      flushActQueue(queue), enqueueTask(function() {
+                        return recursivelyFlushAsyncActWork(
+                          returnValue,
+                          resolve,
+                          reject
+                        );
+                      });
+                    } catch (error$0) {
+                      ReactSharedInternals.thrownErrors.push(error$0);
+                    }
+                    if (0 < ReactSharedInternals.thrownErrors.length) {
+                      var _thrownError = aggregateErrors(
+                        ReactSharedInternals.thrownErrors
+                      );
+                      ReactSharedInternals.thrownErrors.length = 0;
+                      reject(_thrownError);
+                    }
+                  } else resolve(returnValue);
+                },
+                function(error) {
+                  popActScope(prevActQueue, prevActScopeDepth);
+                  0 < ReactSharedInternals.thrownErrors.length ? (error = aggregateErrors(
+                    ReactSharedInternals.thrownErrors
+                  ), ReactSharedInternals.thrownErrors.length = 0, reject(error)) : reject(error);
+                }
+              );
+            }
+          };
+        }
+        var returnValue$jscomp$0 = result;
+        popActScope(prevActQueue, prevActScopeDepth);
+        0 === prevActScopeDepth && (flushActQueue(queue), 0 !== queue.length && queueSeveralMicrotasks(function() {
+          didAwaitActCall || didWarnNoAwaitAct || (didWarnNoAwaitAct = true, console.error(
+            "A component suspended inside an `act` scope, but the `act` call was not awaited. When testing React components that depend on asynchronous data, you must await the result:\n\nawait act(() => ...)"
+          ));
+        }), ReactSharedInternals.actQueue = null);
+        if (0 < ReactSharedInternals.thrownErrors.length)
+          throw callback = aggregateErrors(ReactSharedInternals.thrownErrors), ReactSharedInternals.thrownErrors.length = 0, callback;
+        return {
+          then: function(resolve, reject) {
+            didAwaitActCall = true;
+            0 === prevActScopeDepth ? (ReactSharedInternals.actQueue = queue, enqueueTask(function() {
+              return recursivelyFlushAsyncActWork(
+                returnValue$jscomp$0,
+                resolve,
+                reject
+              );
+            })) : resolve(returnValue$jscomp$0);
+          }
+        };
+      };
+      exports.cache = function(fn) {
+        return function() {
+          return fn.apply(null, arguments);
+        };
+      };
+      exports.cacheSignal = function() {
+        return null;
+      };
+      exports.captureOwnerStack = function() {
+        var getCurrentStack = ReactSharedInternals.getCurrentStack;
+        return null === getCurrentStack ? null : getCurrentStack();
+      };
+      exports.cloneElement = function(element, config, children) {
+        if (null === element || void 0 === element)
+          throw Error(
+            "The argument must be a React element, but you passed " + element + "."
+          );
+        var props = assign({}, element.props), key = element.key, owner = element._owner;
+        if (null != config) {
+          var JSCompiler_inline_result;
+          a: {
+            if (hasOwnProperty.call(config, "ref") && (JSCompiler_inline_result = Object.getOwnPropertyDescriptor(
+              config,
+              "ref"
+            ).get) && JSCompiler_inline_result.isReactWarning) {
+              JSCompiler_inline_result = false;
+              break a;
+            }
+            JSCompiler_inline_result = void 0 !== config.ref;
+          }
+          JSCompiler_inline_result && (owner = getOwner());
+          hasValidKey(config) && (checkKeyStringCoercion(config.key), key = "" + config.key);
+          for (propName in config)
+            !hasOwnProperty.call(config, propName) || "key" === propName || "__self" === propName || "__source" === propName || "ref" === propName && void 0 === config.ref || (props[propName] = config[propName]);
+        }
+        var propName = arguments.length - 2;
+        if (1 === propName) props.children = children;
+        else if (1 < propName) {
+          JSCompiler_inline_result = Array(propName);
+          for (var i = 0; i < propName; i++)
+            JSCompiler_inline_result[i] = arguments[i + 2];
+          props.children = JSCompiler_inline_result;
+        }
+        props = ReactElement(
+          element.type,
+          key,
+          props,
+          owner,
+          element._debugStack,
+          element._debugTask
+        );
+        for (key = 2; key < arguments.length; key++)
+          validateChildKeys(arguments[key]);
+        return props;
+      };
+      exports.createContext = function(defaultValue) {
+        defaultValue = {
+          $$typeof: REACT_CONTEXT_TYPE,
+          _currentValue: defaultValue,
+          _currentValue2: defaultValue,
+          _threadCount: 0,
+          Provider: null,
+          Consumer: null
+        };
+        defaultValue.Provider = defaultValue;
+        defaultValue.Consumer = {
+          $$typeof: REACT_CONSUMER_TYPE,
+          _context: defaultValue
+        };
+        defaultValue._currentRenderer = null;
+        defaultValue._currentRenderer2 = null;
+        return defaultValue;
+      };
+      exports.createElement = function(type, config, children) {
+        for (var i = 2; i < arguments.length; i++)
+          validateChildKeys(arguments[i]);
+        i = {};
+        var key = null;
+        if (null != config)
+          for (propName in didWarnAboutOldJSXRuntime || !("__self" in config) || "key" in config || (didWarnAboutOldJSXRuntime = true, console.warn(
+            "Your app (or one of its dependencies) is using an outdated JSX transform. Update to the modern JSX transform for faster performance: https://react.dev/link/new-jsx-transform"
+          )), hasValidKey(config) && (checkKeyStringCoercion(config.key), key = "" + config.key), config)
+            hasOwnProperty.call(config, propName) && "key" !== propName && "__self" !== propName && "__source" !== propName && (i[propName] = config[propName]);
+        var childrenLength = arguments.length - 2;
+        if (1 === childrenLength) i.children = children;
+        else if (1 < childrenLength) {
+          for (var childArray = Array(childrenLength), _i = 0; _i < childrenLength; _i++)
+            childArray[_i] = arguments[_i + 2];
+          Object.freeze && Object.freeze(childArray);
+          i.children = childArray;
+        }
+        if (type && type.defaultProps)
+          for (propName in childrenLength = type.defaultProps, childrenLength)
+            void 0 === i[propName] && (i[propName] = childrenLength[propName]);
+        key && defineKeyPropWarningGetter(
+          i,
+          "function" === typeof type ? type.displayName || type.name || "Unknown" : type
+        );
+        var propName = 1e4 > ReactSharedInternals.recentlyCreatedOwnerStacks++;
+        return ReactElement(
+          type,
+          key,
+          i,
+          getOwner(),
+          propName ? Error("react-stack-top-frame") : unknownOwnerDebugStack,
+          propName ? createTask(getTaskName(type)) : unknownOwnerDebugTask
+        );
+      };
+      exports.createRef = function() {
+        var refObject = { current: null };
+        Object.seal(refObject);
+        return refObject;
+      };
+      exports.forwardRef = function(render) {
+        null != render && render.$$typeof === REACT_MEMO_TYPE ? console.error(
+          "forwardRef requires a render function but received a `memo` component. Instead of forwardRef(memo(...)), use memo(forwardRef(...))."
+        ) : "function" !== typeof render ? console.error(
+          "forwardRef requires a render function but was given %s.",
+          null === render ? "null" : typeof render
+        ) : 0 !== render.length && 2 !== render.length && console.error(
+          "forwardRef render functions accept exactly two parameters: props and ref. %s",
+          1 === render.length ? "Did you forget to use the ref parameter?" : "Any additional parameter will be undefined."
+        );
+        null != render && null != render.defaultProps && console.error(
+          "forwardRef render functions do not support defaultProps. Did you accidentally pass a React component?"
+        );
+        var elementType = { $$typeof: REACT_FORWARD_REF_TYPE, render }, ownName;
+        Object.defineProperty(elementType, "displayName", {
+          enumerable: false,
+          configurable: true,
+          get: function() {
+            return ownName;
+          },
+          set: function(name) {
+            ownName = name;
+            render.name || render.displayName || (Object.defineProperty(render, "name", { value: name }), render.displayName = name);
+          }
+        });
+        return elementType;
+      };
+      exports.isValidElement = isValidElement;
+      exports.lazy = function(ctor) {
+        ctor = { _status: -1, _result: ctor };
+        var lazyType = {
+          $$typeof: REACT_LAZY_TYPE,
+          _payload: ctor,
+          _init: lazyInitializer
+        }, ioInfo = {
+          name: "lazy",
+          start: -1,
+          end: -1,
+          value: null,
+          owner: null,
+          debugStack: Error("react-stack-top-frame"),
+          debugTask: console.createTask ? console.createTask("lazy()") : null
+        };
+        ctor._ioInfo = ioInfo;
+        lazyType._debugInfo = [{ awaited: ioInfo }];
+        return lazyType;
+      };
+      exports.memo = function(type, compare) {
+        null == type && console.error(
+          "memo: The first argument must be a component. Instead received: %s",
+          null === type ? "null" : typeof type
+        );
+        compare = {
+          $$typeof: REACT_MEMO_TYPE,
+          type,
+          compare: void 0 === compare ? null : compare
+        };
+        var ownName;
+        Object.defineProperty(compare, "displayName", {
+          enumerable: false,
+          configurable: true,
+          get: function() {
+            return ownName;
+          },
+          set: function(name) {
+            ownName = name;
+            type.name || type.displayName || (Object.defineProperty(type, "name", { value: name }), type.displayName = name);
+          }
+        });
+        return compare;
+      };
+      exports.startTransition = function(scope) {
+        var prevTransition = ReactSharedInternals.T, currentTransition = {};
+        currentTransition._updatedFibers = /* @__PURE__ */ new Set();
+        ReactSharedInternals.T = currentTransition;
+        try {
+          var returnValue = scope(), onStartTransitionFinish = ReactSharedInternals.S;
+          null !== onStartTransitionFinish && onStartTransitionFinish(currentTransition, returnValue);
+          "object" === typeof returnValue && null !== returnValue && "function" === typeof returnValue.then && (ReactSharedInternals.asyncTransitions++, returnValue.then(releaseAsyncTransition, releaseAsyncTransition), returnValue.then(noop, reportGlobalError));
+        } catch (error) {
+          reportGlobalError(error);
+        } finally {
+          null === prevTransition && currentTransition._updatedFibers && (scope = currentTransition._updatedFibers.size, currentTransition._updatedFibers.clear(), 10 < scope && console.warn(
+            "Detected a large number of updates inside startTransition. If this is due to a subscription please re-write it to use React provided hooks. Otherwise concurrent mode guarantees are off the table."
+          )), null !== prevTransition && null !== currentTransition.types && (null !== prevTransition.types && prevTransition.types !== currentTransition.types && console.error(
+            "We expected inner Transitions to have transferred the outer types set and that you cannot add to the outer Transition while inside the inner.This is a bug in React."
+          ), prevTransition.types = currentTransition.types), ReactSharedInternals.T = prevTransition;
+        }
+      };
+      exports.unstable_useCacheRefresh = function() {
+        return resolveDispatcher().useCacheRefresh();
+      };
+      exports.use = function(usable) {
+        return resolveDispatcher().use(usable);
+      };
+      exports.useActionState = function(action, initialState, permalink) {
+        return resolveDispatcher().useActionState(
+          action,
+          initialState,
+          permalink
+        );
+      };
+      exports.useCallback = function(callback, deps) {
+        return resolveDispatcher().useCallback(callback, deps);
+      };
+      exports.useContext = function(Context) {
+        var dispatcher = resolveDispatcher();
+        Context.$$typeof === REACT_CONSUMER_TYPE && console.error(
+          "Calling useContext(Context.Consumer) is not supported and will cause bugs. Did you mean to call useContext(Context) instead?"
+        );
+        return dispatcher.useContext(Context);
+      };
+      exports.useDebugValue = function(value, formatterFn) {
+        return resolveDispatcher().useDebugValue(value, formatterFn);
+      };
+      exports.useDeferredValue = function(value, initialValue) {
+        return resolveDispatcher().useDeferredValue(value, initialValue);
+      };
+      exports.useEffect = function(create, deps) {
+        null == create && console.warn(
+          "React Hook useEffect requires an effect callback. Did you forget to pass a callback to the hook?"
+        );
+        return resolveDispatcher().useEffect(create, deps);
+      };
+      exports.useEffectEvent = function(callback) {
+        return resolveDispatcher().useEffectEvent(callback);
+      };
+      exports.useId = function() {
+        return resolveDispatcher().useId();
+      };
+      exports.useImperativeHandle = function(ref, create, deps) {
+        return resolveDispatcher().useImperativeHandle(ref, create, deps);
+      };
+      exports.useInsertionEffect = function(create, deps) {
+        null == create && console.warn(
+          "React Hook useInsertionEffect requires an effect callback. Did you forget to pass a callback to the hook?"
+        );
+        return resolveDispatcher().useInsertionEffect(create, deps);
+      };
+      exports.useLayoutEffect = function(create, deps) {
+        null == create && console.warn(
+          "React Hook useLayoutEffect requires an effect callback. Did you forget to pass a callback to the hook?"
+        );
+        return resolveDispatcher().useLayoutEffect(create, deps);
+      };
+      exports.useMemo = function(create, deps) {
+        return resolveDispatcher().useMemo(create, deps);
+      };
+      exports.useOptimistic = function(passthrough, reducer) {
+        return resolveDispatcher().useOptimistic(passthrough, reducer);
+      };
+      exports.useReducer = function(reducer, initialArg, init) {
+        return resolveDispatcher().useReducer(reducer, initialArg, init);
+      };
+      exports.useRef = function(initialValue) {
+        return resolveDispatcher().useRef(initialValue);
+      };
+      exports.useState = function(initialState) {
+        return resolveDispatcher().useState(initialState);
+      };
+      exports.useSyncExternalStore = function(subscribe, getSnapshot, getServerSnapshot) {
+        return resolveDispatcher().useSyncExternalStore(
+          subscribe,
+          getSnapshot,
+          getServerSnapshot
+        );
+      };
+      exports.useTransition = function() {
+        return resolveDispatcher().useTransition();
+      };
+      exports.version = "19.2.7";
+      "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());
+    })();
+  }
+});
+
+// node_modules/react/index.js
+var require_react = __commonJS({
+  "node_modules/react/index.js"(exports, module) {
+    if (false) {
+      module.exports = null;
+    } else {
+      module.exports = require_react_development();
+    }
+  }
+});
+
+export {
+  require_react
+};
+//# sourceMappingURL=chunk-IDLMBQNO.js.map

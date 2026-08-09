@@ -32,24 +32,9 @@ interface ApiSetupScreenProps {
 export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }: ApiSetupScreenProps) {
   const { t } = useTranslation();
   const mouseDownOnBackdropRef = useRef(false);
-
-  // ── Ghost Mode: credentials live in a ref (never in DOM value attribute) ───
-  // When saved credentials exist: inputs show a masked placeholder,
-  // NOT the real value. The real value is only used at submit time.
-  // This prevents credential exposure via DevTools → Elements panel.
-  const savedCredsRef = useRef<{ apiId: string; apiHash: string } | null>(null);
-
-  // What the user has TYPED (empty = user hasn't modified the field)
   const [apiId, setApiId] = useState('');
   const [apiHash, setApiHash] = useState('');
-
-  // Whether the API Hash field has been actively edited by the user this session
-  const [apiHashDirty, setApiHashDirty] = useState(false);
-
-  // Reveal state — when true, TEMPORARILY put the real hash value into the input
   const [showHash, setShowHash] = useState(false);
-  const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const [showGuide, setShowGuide] = useState(false);
   const [hasInteractedGuide, setHasInteractedGuide] = useState(false);
   const [hasClickedTelegramLink, setHasClickedTelegramLink] = useState(false);
@@ -57,43 +42,13 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Load saved credentials into ref ONLY — never into state/DOM
   useEffect(() => {
     bootstrapSecureCredentials()
-      .then((creds) => {
-        if (creds.apiId || creds.apiHash) {
-          savedCredsRef.current = { apiId: creds.apiId, apiHash: creds.apiHash };
-          // Pre-fill apiId display (less sensitive than hash)
-          if (creds.apiId) setApiId(creds.apiId);
-          // Hash stays masked — do NOT setApiHash here
-        }
+      .then(({ apiId: savedId, apiHash: savedHash }) => {
+        if (savedId) setApiId(savedId);
+        if (savedHash) setApiHash(savedHash);
       })
       .catch(() => {});
-  }, []);
-
-  // Toggle reveal: pull real hash into input temporarily, or clear it out
-  const handleToggleShowHash = () => {
-    if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
-    if (!showHash) {
-      // Reveal: put real value into state temporarily
-      const real = savedCredsRef.current?.apiHash || apiHash;
-      setApiHash(real);
-      setShowHash(true);
-      // Auto-hide after 30 seconds for safety
-      revealTimerRef.current = setTimeout(() => {
-        if (!apiHashDirty) setApiHash('');
-        setShowHash(false);
-      }, 30_000);
-    } else {
-      // Hide: if user hasn't edited, wipe real value from DOM immediately
-      if (!apiHashDirty) setApiHash('');
-      setShowHash(false);
-    }
-  };
-
-  // Cleanup reveal timer on unmount
-  useEffect(() => () => {
-    if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
   }, []);
 
   useEffect(() => {
@@ -111,29 +66,27 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
     setError(null);
     setSuccessMsg(null);
 
-    // Resolve effective values: apiId always taken from state (visible field),
-    // apiHash: use saved ref when user hasn't modified the field (ghost mode)
-    const effectiveId = (apiId || savedCredsRef.current?.apiId || '').trim();
-    const effectiveHash = apiHashDirty ? apiHash.trim() : (savedCredsRef.current?.apiHash || apiHash).trim();
+    const trimmedId = apiId.trim();
+    const trimmedHash = apiHash.trim();
 
-    if (!effectiveId || !effectiveHash) {
+    if (!trimmedId || !trimmedHash) {
       setError(t('nav.api_setup_error_empty'));
       return;
     }
 
-    if (!/^\d{4,10}$/.test(effectiveId)) {
+    if (!/^\d{4,10}$/.test(trimmedId)) {
       setError(t('nav.api_setup_error_id_invalid'));
       return;
     }
 
-    if (!/^[a-fA-F0-9]{32}$/.test(effectiveHash)) {
+    if (!/^[a-fA-F0-9]{32}$/.test(trimmedHash)) {
       setError(t('nav.api_setup_error_hash_invalid'));
       return;
     }
 
     setSaving(true);
     try {
-      const checkRes = await verifyTelegramApiCredentials(effectiveId, effectiveHash);
+      const checkRes = await verifyTelegramApiCredentials(trimmedId, trimmedHash);
       if (!checkRes.ok) {
         setError(t(`nav.${checkRes.errorKey || 'api_setup_error_telegram'}`));
         notifyApiError();
@@ -141,12 +94,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
         return;
       }
 
-      await setApiCredentials(effectiveId, effectiveHash);
-      // Update ref so subsequent ghost-mode reads are current
-      savedCredsRef.current = { apiId: effectiveId, apiHash: effectiveHash };
-      // Clear revealed value from DOM now that save succeeded
-      if (!apiHashDirty) setApiHash('');
-      setShowHash(false);
+      await setApiCredentials(trimmedId, trimmedHash);
       setSuccessMsg(t('nav.api_setup_success_verified'));
 
       setTimeout(() => {
@@ -598,13 +546,8 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                   onChange={(e) => {
                     if (error) setError(null);
                     setApiHash(e.target.value);
-                    setApiHashDirty(true);
                   }}
-                  placeholder={
-                    savedCredsRef.current?.apiHash && !apiHashDirty
-                      ? '••••••••••••••••••••••••••••••••'
-                      : t('ui.generated.contoh_0123456789abcdef0123456789abcdef_ece8eb0')
-                  }
+                  placeholder={t('ui.generated.contoh_0123456789abcdef0123456789abcdef_ece8eb0')}
                   required
                   style={{
                     width: '100%',
@@ -622,7 +565,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 />
                 <button
                   type="button"
-                  onClick={handleToggleShowHash}
+                  onClick={() => setShowHash(!showHash)}
                   style={{
                     position: 'absolute',
                     right: '10px',
@@ -903,15 +846,8 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 <input
                   type={showHash ? 'text' : 'password'}
                   value={apiHash}
-                  onChange={(e) => {
-                    setApiHash(e.target.value);
-                    setApiHashDirty(true);
-                  }}
-                  placeholder={
-                    savedCredsRef.current?.apiHash && !apiHashDirty
-                      ? '••••••••••••••••••••••••••••••••'
-                      : t('ui.generated.contoh_0123456789abcdef0123456789abcdef_ece8eb0')
-                  }
+                  onChange={(e) => setApiHash(e.target.value)}
+                  placeholder={t('ui.generated.contoh_0123456789abcdef0123456789abcdef_ece8eb0')}
                   required
                   style={{
                     width: '100%',
@@ -927,7 +863,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 />
                 <button
                   type="button"
-                  onClick={handleToggleShowHash}
+                  onClick={() => setShowHash(!showHash)}
                   style={{
                     position: 'absolute',
                     right: '12px',

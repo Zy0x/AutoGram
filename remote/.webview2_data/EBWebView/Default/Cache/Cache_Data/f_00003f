@@ -1,1 +1,440 @@
-{"version":3,"sources":["../../react-dom/cjs/react-dom.development.js","../../react-dom/index.js"],"sourcesContent":["/**\n * @license React\n * react-dom.development.js\n *\n * Copyright (c) Meta Platforms, Inc. and affiliates.\n *\n * This source code is licensed under the MIT license found in the\n * LICENSE file in the root directory of this source tree.\n */\n\n\"use strict\";\n\"production\" !== process.env.NODE_ENV &&\n  (function () {\n    function noop() {}\n    function testStringCoercion(value) {\n      return \"\" + value;\n    }\n    function createPortal$1(children, containerInfo, implementation) {\n      var key =\n        3 < arguments.length && void 0 !== arguments[3] ? arguments[3] : null;\n      try {\n        testStringCoercion(key);\n        var JSCompiler_inline_result = !1;\n      } catch (e) {\n        JSCompiler_inline_result = !0;\n      }\n      JSCompiler_inline_result &&\n        (console.error(\n          \"The provided key is an unsupported type %s. This value must be coerced to a string before using it here.\",\n          (\"function\" === typeof Symbol &&\n            Symbol.toStringTag &&\n            key[Symbol.toStringTag]) ||\n            key.constructor.name ||\n            \"Object\"\n        ),\n        testStringCoercion(key));\n      return {\n        $$typeof: REACT_PORTAL_TYPE,\n        key: null == key ? null : \"\" + key,\n        children: children,\n        containerInfo: containerInfo,\n        implementation: implementation\n      };\n    }\n    function getCrossOriginStringAs(as, input) {\n      if (\"font\" === as) return \"\";\n      if (\"string\" === typeof input)\n        return \"use-credentials\" === input ? input : \"\";\n    }\n    function getValueDescriptorExpectingObjectForWarning(thing) {\n      return null === thing\n        ? \"`null`\"\n        : void 0 === thing\n          ? \"`undefined`\"\n          : \"\" === thing\n            ? \"an empty string\"\n            : 'something with type \"' + typeof thing + '\"';\n    }\n    function getValueDescriptorExpectingEnumForWarning(thing) {\n      return null === thing\n        ? \"`null`\"\n        : void 0 === thing\n          ? \"`undefined`\"\n          : \"\" === thing\n            ? \"an empty string\"\n            : \"string\" === typeof thing\n              ? JSON.stringify(thing)\n              : \"number\" === typeof thing\n                ? \"`\" + thing + \"`\"\n                : 'something with type \"' + typeof thing + '\"';\n    }\n    function resolveDispatcher() {\n      var dispatcher = ReactSharedInternals.H;\n      null === dispatcher &&\n        console.error(\n          \"Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:\\n1. You might have mismatching versions of React and the renderer (such as React DOM)\\n2. You might be breaking the Rules of Hooks\\n3. You might have more than one copy of React in the same app\\nSee https://react.dev/link/invalid-hook-call for tips about how to debug and fix this problem.\"\n        );\n      return dispatcher;\n    }\n    \"undefined\" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ &&\n      \"function\" ===\n        typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart &&\n      __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());\n    var React = require(\"react\"),\n      Internals = {\n        d: {\n          f: noop,\n          r: function () {\n            throw Error(\n              \"Invalid form element. requestFormReset must be passed a form that was rendered by React.\"\n            );\n          },\n          D: noop,\n          C: noop,\n          L: noop,\n          m: noop,\n          X: noop,\n          S: noop,\n          M: noop\n        },\n        p: 0,\n        findDOMNode: null\n      },\n      REACT_PORTAL_TYPE = Symbol.for(\"react.portal\"),\n      ReactSharedInternals =\n        React.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;\n    (\"function\" === typeof Map &&\n      null != Map.prototype &&\n      \"function\" === typeof Map.prototype.forEach &&\n      \"function\" === typeof Set &&\n      null != Set.prototype &&\n      \"function\" === typeof Set.prototype.clear &&\n      \"function\" === typeof Set.prototype.forEach) ||\n      console.error(\n        \"React depends on Map and Set built-in types. Make sure that you load a polyfill in older browsers. https://reactjs.org/link/react-polyfills\"\n      );\n    exports.__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE =\n      Internals;\n    exports.createPortal = function (children, container) {\n      var key =\n        2 < arguments.length && void 0 !== arguments[2] ? arguments[2] : null;\n      if (\n        !container ||\n        (1 !== container.nodeType &&\n          9 !== container.nodeType &&\n          11 !== container.nodeType)\n      )\n        throw Error(\"Target container is not a DOM element.\");\n      return createPortal$1(children, container, null, key);\n    };\n    exports.flushSync = function (fn) {\n      var previousTransition = ReactSharedInternals.T,\n        previousUpdatePriority = Internals.p;\n      try {\n        if (((ReactSharedInternals.T = null), (Internals.p = 2), fn))\n          return fn();\n      } finally {\n        (ReactSharedInternals.T = previousTransition),\n          (Internals.p = previousUpdatePriority),\n          Internals.d.f() &&\n            console.error(\n              \"flushSync was called from inside a lifecycle method. React cannot flush when React is already rendering. Consider moving this call to a scheduler task or micro task.\"\n            );\n      }\n    };\n    exports.preconnect = function (href, options) {\n      \"string\" === typeof href && href\n        ? null != options && \"object\" !== typeof options\n          ? console.error(\n              \"ReactDOM.preconnect(): Expected the `options` argument (second) to be an object but encountered %s instead. The only supported option at this time is `crossOrigin` which accepts a string.\",\n              getValueDescriptorExpectingEnumForWarning(options)\n            )\n          : null != options &&\n            \"string\" !== typeof options.crossOrigin &&\n            console.error(\n              \"ReactDOM.preconnect(): Expected the `crossOrigin` option (second argument) to be a string but encountered %s instead. Try removing this option or passing a string value instead.\",\n              getValueDescriptorExpectingObjectForWarning(options.crossOrigin)\n            )\n        : console.error(\n            \"ReactDOM.preconnect(): Expected the `href` argument (first) to be a non-empty string but encountered %s instead.\",\n            getValueDescriptorExpectingObjectForWarning(href)\n          );\n      \"string\" === typeof href &&\n        (options\n          ? ((options = options.crossOrigin),\n            (options =\n              \"string\" === typeof options\n                ? \"use-credentials\" === options\n                  ? options\n                  : \"\"\n                : void 0))\n          : (options = null),\n        Internals.d.C(href, options));\n    };\n    exports.prefetchDNS = function (href) {\n      if (\"string\" !== typeof href || !href)\n        console.error(\n          \"ReactDOM.prefetchDNS(): Expected the `href` argument (first) to be a non-empty string but encountered %s instead.\",\n          getValueDescriptorExpectingObjectForWarning(href)\n        );\n      else if (1 < arguments.length) {\n        var options = arguments[1];\n        \"object\" === typeof options && options.hasOwnProperty(\"crossOrigin\")\n          ? console.error(\n              \"ReactDOM.prefetchDNS(): Expected only one argument, `href`, but encountered %s as a second argument instead. This argument is reserved for future options and is currently disallowed. It looks like the you are attempting to set a crossOrigin property for this DNS lookup hint. Browsers do not perform DNS queries using CORS and setting this attribute on the resource hint has no effect. Try calling ReactDOM.prefetchDNS() with just a single string argument, `href`.\",\n              getValueDescriptorExpectingEnumForWarning(options)\n            )\n          : console.error(\n              \"ReactDOM.prefetchDNS(): Expected only one argument, `href`, but encountered %s as a second argument instead. This argument is reserved for future options and is currently disallowed. Try calling ReactDOM.prefetchDNS() with just a single string argument, `href`.\",\n              getValueDescriptorExpectingEnumForWarning(options)\n            );\n      }\n      \"string\" === typeof href && Internals.d.D(href);\n    };\n    exports.preinit = function (href, options) {\n      \"string\" === typeof href && href\n        ? null == options || \"object\" !== typeof options\n          ? console.error(\n              \"ReactDOM.preinit(): Expected the `options` argument (second) to be an object with an `as` property describing the type of resource to be preinitialized but encountered %s instead.\",\n              getValueDescriptorExpectingEnumForWarning(options)\n            )\n          : \"style\" !== options.as &&\n            \"script\" !== options.as &&\n            console.error(\n              'ReactDOM.preinit(): Expected the `as` property in the `options` argument (second) to contain a valid value describing the type of resource to be preinitialized but encountered %s instead. Valid values for `as` are \"style\" and \"script\".',\n              getValueDescriptorExpectingEnumForWarning(options.as)\n            )\n        : console.error(\n            \"ReactDOM.preinit(): Expected the `href` argument (first) to be a non-empty string but encountered %s instead.\",\n            getValueDescriptorExpectingObjectForWarning(href)\n          );\n      if (\n        \"string\" === typeof href &&\n        options &&\n        \"string\" === typeof options.as\n      ) {\n        var as = options.as,\n          crossOrigin = getCrossOriginStringAs(as, options.crossOrigin),\n          integrity =\n            \"string\" === typeof options.integrity ? options.integrity : void 0,\n          fetchPriority =\n            \"string\" === typeof options.fetchPriority\n              ? options.fetchPriority\n              : void 0;\n        \"style\" === as\n          ? Internals.d.S(\n              href,\n              \"string\" === typeof options.precedence\n                ? options.precedence\n                : void 0,\n              {\n                crossOrigin: crossOrigin,\n                integrity: integrity,\n                fetchPriority: fetchPriority\n              }\n            )\n          : \"script\" === as &&\n            Internals.d.X(href, {\n              crossOrigin: crossOrigin,\n              integrity: integrity,\n              fetchPriority: fetchPriority,\n              nonce: \"string\" === typeof options.nonce ? options.nonce : void 0\n            });\n      }\n    };\n    exports.preinitModule = function (href, options) {\n      var encountered = \"\";\n      (\"string\" === typeof href && href) ||\n        (encountered +=\n          \" The `href` argument encountered was \" +\n          getValueDescriptorExpectingObjectForWarning(href) +\n          \".\");\n      void 0 !== options && \"object\" !== typeof options\n        ? (encountered +=\n            \" The `options` argument encountered was \" +\n            getValueDescriptorExpectingObjectForWarning(options) +\n            \".\")\n        : options &&\n          \"as\" in options &&\n          \"script\" !== options.as &&\n          (encountered +=\n            \" The `as` option encountered was \" +\n            getValueDescriptorExpectingEnumForWarning(options.as) +\n            \".\");\n      if (encountered)\n        console.error(\n          \"ReactDOM.preinitModule(): Expected up to two arguments, a non-empty `href` string and, optionally, an `options` object with a valid `as` property.%s\",\n          encountered\n        );\n      else\n        switch (\n          ((encountered =\n            options && \"string\" === typeof options.as ? options.as : \"script\"),\n          encountered)\n        ) {\n          case \"script\":\n            break;\n          default:\n            (encountered =\n              getValueDescriptorExpectingEnumForWarning(encountered)),\n              console.error(\n                'ReactDOM.preinitModule(): Currently the only supported \"as\" type for this function is \"script\" but received \"%s\" instead. This warning was generated for `href` \"%s\". In the future other module types will be supported, aligning with the import-attributes proposal. Learn more here: (https://github.com/tc39/proposal-import-attributes)',\n                encountered,\n                href\n              );\n        }\n      if (\"string\" === typeof href)\n        if (\"object\" === typeof options && null !== options) {\n          if (null == options.as || \"script\" === options.as)\n            (encountered = getCrossOriginStringAs(\n              options.as,\n              options.crossOrigin\n            )),\n              Internals.d.M(href, {\n                crossOrigin: encountered,\n                integrity:\n                  \"string\" === typeof options.integrity\n                    ? options.integrity\n                    : void 0,\n                nonce:\n                  \"string\" === typeof options.nonce ? options.nonce : void 0\n              });\n        } else null == options && Internals.d.M(href);\n    };\n    exports.preload = function (href, options) {\n      var encountered = \"\";\n      (\"string\" === typeof href && href) ||\n        (encountered +=\n          \" The `href` argument encountered was \" +\n          getValueDescriptorExpectingObjectForWarning(href) +\n          \".\");\n      null == options || \"object\" !== typeof options\n        ? (encountered +=\n            \" The `options` argument encountered was \" +\n            getValueDescriptorExpectingObjectForWarning(options) +\n            \".\")\n        : (\"string\" === typeof options.as && options.as) ||\n          (encountered +=\n            \" The `as` option encountered was \" +\n            getValueDescriptorExpectingObjectForWarning(options.as) +\n            \".\");\n      encountered &&\n        console.error(\n          'ReactDOM.preload(): Expected two arguments, a non-empty `href` string and an `options` object with an `as` property valid for a `<link rel=\"preload\" as=\"...\" />` tag.%s',\n          encountered\n        );\n      if (\n        \"string\" === typeof href &&\n        \"object\" === typeof options &&\n        null !== options &&\n        \"string\" === typeof options.as\n      ) {\n        encountered = options.as;\n        var crossOrigin = getCrossOriginStringAs(\n          encountered,\n          options.crossOrigin\n        );\n        Internals.d.L(href, encountered, {\n          crossOrigin: crossOrigin,\n          integrity:\n            \"string\" === typeof options.integrity ? options.integrity : void 0,\n          nonce: \"string\" === typeof options.nonce ? options.nonce : void 0,\n          type: \"string\" === typeof options.type ? options.type : void 0,\n          fetchPriority:\n            \"string\" === typeof options.fetchPriority\n              ? options.fetchPriority\n              : void 0,\n          referrerPolicy:\n            \"string\" === typeof options.referrerPolicy\n              ? options.referrerPolicy\n              : void 0,\n          imageSrcSet:\n            \"string\" === typeof options.imageSrcSet\n              ? options.imageSrcSet\n              : void 0,\n          imageSizes:\n            \"string\" === typeof options.imageSizes\n              ? options.imageSizes\n              : void 0,\n          media: \"string\" === typeof options.media ? options.media : void 0\n        });\n      }\n    };\n    exports.preloadModule = function (href, options) {\n      var encountered = \"\";\n      (\"string\" === typeof href && href) ||\n        (encountered +=\n          \" The `href` argument encountered was \" +\n          getValueDescriptorExpectingObjectForWarning(href) +\n          \".\");\n      void 0 !== options && \"object\" !== typeof options\n        ? (encountered +=\n            \" The `options` argument encountered was \" +\n            getValueDescriptorExpectingObjectForWarning(options) +\n            \".\")\n        : options &&\n          \"as\" in options &&\n          \"string\" !== typeof options.as &&\n          (encountered +=\n            \" The `as` option encountered was \" +\n            getValueDescriptorExpectingObjectForWarning(options.as) +\n            \".\");\n      encountered &&\n        console.error(\n          'ReactDOM.preloadModule(): Expected two arguments, a non-empty `href` string and, optionally, an `options` object with an `as` property valid for a `<link rel=\"modulepreload\" as=\"...\" />` tag.%s',\n          encountered\n        );\n      \"string\" === typeof href &&\n        (options\n          ? ((encountered = getCrossOriginStringAs(\n              options.as,\n              options.crossOrigin\n            )),\n            Internals.d.m(href, {\n              as:\n                \"string\" === typeof options.as && \"script\" !== options.as\n                  ? options.as\n                  : void 0,\n              crossOrigin: encountered,\n              integrity:\n                \"string\" === typeof options.integrity\n                  ? options.integrity\n                  : void 0\n            }))\n          : Internals.d.m(href));\n    };\n    exports.requestFormReset = function (form) {\n      Internals.d.r(form);\n    };\n    exports.unstable_batchedUpdates = function (fn, a) {\n      return fn(a);\n    };\n    exports.useFormState = function (action, initialState, permalink) {\n      return resolveDispatcher().useFormState(action, initialState, permalink);\n    };\n    exports.useFormStatus = function () {\n      return resolveDispatcher().useHostTransitionStatus();\n    };\n    exports.version = \"19.2.7\";\n    \"undefined\" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ &&\n      \"function\" ===\n        typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop &&\n      __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());\n  })();\n","'use strict';\n\nfunction checkDCE() {\n  /* global __REACT_DEVTOOLS_GLOBAL_HOOK__ */\n  if (\n    typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === 'undefined' ||\n    typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== 'function'\n  ) {\n    return;\n  }\n  if (process.env.NODE_ENV !== 'production') {\n    // This branch is unreachable because this function is only called\n    // in production, but the condition is true only in development.\n    // Therefore if the branch is still here, dead code elimination wasn't\n    // properly applied.\n    // Don't change the message. React DevTools relies on it. Also make sure\n    // this message doesn't occur elsewhere in this function, or it will cause\n    // a false positive.\n    throw new Error('^_^');\n  }\n  try {\n    // Verify that the code above has been dead code eliminated (DCE'd).\n    __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE(checkDCE);\n  } catch (err) {\n    // DevTools shouldn't crash React, no matter what.\n    // We should still report in case we break this code.\n    console.error(err);\n  }\n}\n\nif (process.env.NODE_ENV === 'production') {\n  // DCE check should happen before ReactDOM bundle executes so that\n  // DevTools can report bad minification during injection.\n  checkDCE();\n  module.exports = require('./cjs/react-dom.production.js');\n} else {\n  module.exports = require('./cjs/react-dom.development.js');\n}\n"],"mappings":"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","names":[],"x_google_ignoreList":[0,1]}
+export const title = "Settings";
+export const subtitle = "Configure your AutoGram application.";
+export const tab_general = "Interface";
+export const tab_startup = "Startup";
+export const tab_updates = "Updates";
+export const tab_network = "Network & Proxy";
+export const tab_storage = "Storage";
+export const tab_developer = "API & Debug Logs";
+export const back_to_session_hub = "Back to Session Hub";
+export const general = "General Settings";
+export const api_config = "Telegram API Credentials";
+export const api_config_hint = "Get API ID & API Hash from my.telegram.org. On desktop, credentials are stored encrypted in the local keychain. Do not share your hash with anyone.";
+export const language = "Interface Language";
+export const language_desc = "Choose your preferred display language (Indonesian / English).";
+export const startup_behavior_section = "Startup Screen & Default Account";
+export const startup_behavior_section_desc = "Configure which workspace opens when AutoGram launches and manage your default Telegram account.";
+export const startup_mode_label = "Startup Screen Preference";
+export const startup_mode_desc = "Select where AutoGram lands immediately after application launch";
+export const startup_mode_launcher = "Session Launcher Hub (Recommended)";
+export const startup_mode_launcher_desc = "Show session selection hub to pick an account and workspace";
+export const startup_mode_drives = "Direct to Drives Workspace";
+export const startup_mode_drives_desc = "Skip launcher and open Drives Media Studio using default account";
+export const startup_mode_forwarder = "Direct to Forwarder Workspace";
+export const startup_mode_forwarder_desc = "Skip launcher and open File Forwarder Suite using default account";
+export const startup_mode_last = "Remember Last Active Workspace";
+export const startup_mode_last_desc = "Re-open whichever workspace was active when last closed";
+export const default_account_label = "Default Telegram Account";
+export const default_account_desc = "Primary account used for direct workspace startup and quick actions (2-way synced)";
+export const default_account_select_placeholder = "Select Default Account...";
+export const no_accounts_available = "No accounts available. Please add an account in Accounts page.";
+export const density = "Layout Grid Density";
+export const density_compact = "Compact";
+export const density_comfortable = "Comfortable";
+export const density_spacious = "Spacious";
+export const save_credentials = "Save Credentials";
+export const credentials_saved = "Credentials successfully saved in Rust Keychain!";
+export const credentials_error = "Failed to save API credentials.";
+export const cache_management = "Cache & Storage Management";
+export const cache_management_desc = "The app stores temporary data locally (thumbnails, preview data, folder/sidebar history, and transient logs) to speed up navigation. Clear cache if you want to free up disk space or reload fresh data from Telegram.";
+export const custom_cache_location_title = "Custom Cache Directory Location";
+export const custom_cache_location_desc = "Customize physical folder for cache & temporary files to a drive/SSD with more free space.";
+export const custom_cache_current_path = "Current Active Cache Path:";
+export const custom_cache_browse_btn = "Browse Folder";
+export const custom_cache_reset_btn = "Reset to Default";
+export const custom_cache_fallback_warning = "Custom folder is inaccessible (drive unmounted or folder deleted). Automatically fallen back to default directory.";
+export const custom_cache_migrate_modal_title = "Confirm Cache Directory Change";
+export const custom_cache_migrate_modal_msg = "You selected a new location for the cache directory:";
+export const custom_cache_migrate_option_move = "Move Existing Cache to New Folder";
+export const custom_cache_migrate_option_move_desc = "All existing cache & temporary files will be moved to the new folder in the background.";
+export const custom_cache_migrate_option_wipe = "Start Fresh in New Folder";
+export const custom_cache_migrate_option_wipe_desc = "Completely delete all old cache files and initialize a fresh cache directory.";
+export const custom_cache_reset_modal_title = "Reset Cache Location to Default";
+export const custom_cache_reset_modal_msg = "You are resetting the cache location back to the default directory:";
+export const custom_cache_reset_option_move = "Move Cache Back to Default Folder";
+export const custom_cache_reset_option_move_desc = "All existing cache & temporary files in the custom folder will be moved back to default in the background.";
+export const custom_cache_reset_option_wipe = "Start Fresh in Default Folder";
+export const custom_cache_reset_option_wipe_desc = "Reset setting to default and wipe old cache files for a fresh start.";
+export const custom_cache_progress_moving = "Moving cache & temporary files to target location...";
+export const custom_cache_progress_wiping = "Deleting old cache & initializing fresh directory...";
+export const custom_cache_progress_wait = "Please wait while files are being processed...";
+export const custom_cache_success_move = "Cache directory location successfully updated!";
+export const custom_cache_success_reset = "Cache directory successfully reset to default location!";
+export const custom_cache_error_action = "Failed to update cache directory location.";
+export const cache_detected_size = "Detected Cache Size:";
+export const cache_warning_exceed_limit = "Warning: Current detected cache size ({{cacheSize}}) exceeds configured limit ({{limit}}) by {{excess}}. Pruning is recommended.";
+export const cache_warning_exceed_disk = "Critical Warning: Detected cache size ({{cacheSize}}) exceeds available disk space ({{freeDisk}})! Please clear cache immediately.";
+export const cache_warning_low_disk = "Disk Space Warning: Available disk space on this drive is critically low ({{freeDisk}} remaining).";
+export const cache_breakdown_disk = "File Cache";
+export const cache_breakdown_temp = "Temp Buffers";
+export const cache_breakdown_thumbs = "Thumbnails";
+export const cache_breakdown_local = "App Storage";
+export const cache_breakdown_stale = "Stale/Problematic";
+export const cache_limit_label = "Maximum Cache Size Limit:";
+export const cache_warning_limit_exceeds_disk = "Info: Cache limit ({{limit}}) is set higher than available disk space ({{freeDisk}}). The limit will be effectively capped by physical disk capacity.";
+export const custom_limit_exceeds_disk_note = "Note: Auto-prune quota limit is set to {{limit}}. Background auto-prune will run flexibly as cache grows toward the limit or physical disk capacity.";
+export const custom_modal_disk_info = "Available Physical Disk Space: {{freeDisk}}";
+export const cache_usage_label = "Usage from Limit:";
+export const auto_prune_title = "Background Auto-Prune";
+export const auto_prune_desc = "Automatically prunes old cache periodically when exceeding limit (protects active files & transfers).";
+export const calc_size_btn = "Calculate Size";
+export const clear_cache_btn = "Clear All Cache";
+export const manage_cache = "Manage Cache";
+export const calculating = "Calculating...";
+export const clearing = "Clearing...";
+export const trimming = "Trimming...";
+export const clear_cache_modal_title = "Confirm Clear Cache";
+export const clear_cache_modal_msg = "Are you sure you want to clear all local cache, thumbnail memory, and transient preferences?";
+export const clear_cache_confirm = "Yes, Clear All Cache";
+export const db_clear_title = "Transfer Database & Deduplication:";
+export const db_clear_desc = "Wipes all uploaded file history, resume state, audit logs, and local scan cache. Use this if you want Transfer Manager to re-scan fresh via Telegram API to detect missing/deleted files at destination.";
+export const clear_db_btn = "Clear Transfer Database";
+export const disk_usage = "Total disk space used:";
+export const clear_cache = "Clear Cache";
+export const recalculate = "Recalculate";
+export const perf_title = "Device Performance Optimization Mode";
+export const perf_subtitle = "Configure acceleration levels for downloading, thumbnail loading, and card list rendering smoothness.";
+export const perf_section_1_title = "Device Performance Optimization";
+export const perf_section_2_title = "2. Video Encoding & Transcoding Engine";
+export const perf_section_3_title = "3. Practical Video Transcoding Presets";
+export const perf_tier_low_title = "Saver Mode";
+export const perf_tier_low_desc = "Saves RAM & CPU usage. Small thumbnail batching (20 items per request).";
+export const perf_tier_mid_title = "Standard Mode";
+export const perf_tier_mid_desc = "Ideal balance of MTProto transfer speed & visual smoothness (48 batch).";
+export const perf_tier_high_title = "Turbo Mode";
+export const perf_tier_high_desc = "Maximum throughput for fast devices & networks (96 batch, 6 parallel streams).";
+export const perf_status_active = "Active Status:";
+export const perf_engine_rust = "Rust MTProto Engine";
+export const perf_recommended_badge = "Recommended For Your Device";
+export const perf_default_badge = "Default";
+export const perf_metric_low = "20 Batch · Low RAM";
+export const perf_metric_mid = "48 Batch · Balanced";
+export const perf_metric_high = "96 Batch · 6x Parallel Stream";
+export const proxy_title = "Proxy & VPN Optimizer";
+export const proxy_subtitle = "Configure SOCKS5/HTTP/MTProto routing, timeout & aggressive retry adjustments for slow networks/VPNs.";
+export const enable_proxy = "Enable Proxy";
+export const vpn_optimizer = "VPN Optimizer (Aggressive Timeout & Retry)";
+export const save_network = "Save Network Settings";
+export const test_proxy = "Test Proxy / DC Connection";
+export const proxy_reachability = "Telegram DC / Proxy Reachability:";
+export const proxy_available = "Available";
+export const proxy_unavailable = "Unavailable";
+export const debug_title = "Debug Mode";
+export const debug_subtitle = "Full AutoGram & Telegram Drive log buffer";
+export const debug_desc = "Captures worker + UI logs to debug repeating downloads, fallbacks, and transfer errors. Slightly slower when active. Do not share logs because they may contain file paths & names.";
+export const debug_enable = "Enable Debug Mode";
+export const debug_disable = "Disable Debug Mode";
+export const debug_status_active = "Active";
+export const debug_status_inactive = "Disabled";
+export const debug_copy_logs = "Copy";
+export const debug_copied = "Copied ✓";
+export const debug_clear_logs = "Clear";
+export const debug_empty_buffer = "Empty buffer. Run a download, upload, or open Media Studio to populate logs.";
+export const debug_tip = "Jobs already running (drive-serve / downloads) need to be restarted after toggle for flags to take full effect.";
+export const backend_native_title = "Native Telegram Backend";
+export const backend_native_desc = "Grammers is the active MTProto backend for Accounts, Sessions, media list, document preview, progressive video chunking, and seeking.";
+export const confirm_clear_cache_title = "Confirm Cache Clear";
+export const confirm_clear_cache_msg = "Are you sure you want to clear all cache? All thumbnails, media previews, and local folder history will be cleaned.";
+export const confirm_clear_db_title = "Confirm Database Clear";
+export const confirm_clear_db_msg = "Are you sure you want to clear the local database? All job history and local sessions will be wiped.";
+export const density_label = "Layout Density (Grid Spacing)";
+export const api_id_ph = "e.g., 123456";
+export const api_hash_ph = "e.g., 0123456789abcdef0123456789abcdef";
+export const creds_save_success = "✓ Credentials saved to Rust Keychain successfully!";
+export const creds_save_fail = "✕ Failed to save credentials.";
+export const loading_credentials = "Loading credentials...";
+export const worker_ui_transfer_log = "Worker + UI + transfer";
+export const local_media_cache_label = "Local Media & Thumbnail Cache";
+export const clear_db_modal_title = "Confirm Clear Database";
+export const cache_not_calculated = "Not calculated yet";
+export const network_saved_reconnect = "Network settings saved. Reconnect the Drive session to apply the proxy configuration.";
+export const network_save_failed = "Failed to save network settings.";
+export const language_english = "English (US)";
+export const language_indonesian = "Indonesian";
+export const api_id_label = "API ID";
+export const api_hash_label = "API Hash";
+export const backend_active_label = "Active:";
+export const backend_ownership_desc = "Accounts, session switching, document previews, and progressive video are locked to Grammers + Rust so there is one connection source and one session owner.";
+export const proxy_type_label = "Type";
+export const proxy_type_socks5 = "SOCKS5";
+export const proxy_type_http = "HTTP";
+export const proxy_type_https = "HTTPS";
+export const proxy_type_mtproto = "MTProto (Telegram)";
+export const proxy_host_label = "Host";
+export const proxy_port_label = "Port";
+export const proxy_username_label = "Username";
+export const proxy_password_label = "Password";
+export const proxy_secret_label = "MTProto secret (hex)";
+export const proxy_secret_placeholder = "dd… or ee…";
+export const proxy_tcp_label = "Proxy TCP:";
+export const proxy_unreachable_hint = "Hint: Telegram DC is slow or unreachable. Consider enabling VPN Optimizer or Proxy.";
+export const cache_storage_sources = "IndexedDB + LocalStorage + Backend Disk Cache";
+export const cache_clear_success = "Cache cleared successfully. Navigation will reload from scratch.";
+export const cache_clear_success_title = "Cache is completely clean";
+export const cache_clear_success_detail = "Removed {{count}} cached entries and released {{size}}. Transfer Database was preserved.";
+export const cache_clear_error_title = "Cache could not be fully cleared";
+export const cache_clear_error = "Some active cache files are still in use. Close their previews and try again.";
+export const database_clear_success = "✓ Transfer database cleared successfully! Transfer history is now clean.";
+export const database_clear_error = "Failed to clear the transfer database. Check the console logs for details.";
+export const copy_buffer_tooltip = "Copy the debug log buffer";
+export const clear_buffer_tooltip = "Clear the debug log buffer";
+export const recalculate_cache_tooltip = "Recalculate cache size";
+export const auto_update_section = "Application Updates & Release Channel";
+export const auto_update_section_desc = "Configure automatic update checks, background downloads, release channels, and installation preferences.";
+export const release_channel_label = "Release Channel";
+export const release_channel_desc = "Choose whether to receive official stable releases or early preview beta builds";
+export const channel_stable = "Stable (Recommended)";
+export const channel_stable_desc = "Thoroughly tested releases for everyday production stability";
+export const channel_beta = "Beta / Pre-release";
+export const channel_beta_desc = "Get early access to upcoming features and experimental improvements";
+export const auto_check_updates_label = "Check for updates automatically";
+export const auto_check_updates_desc = "Check GitHub releases periodically when AutoGram is running";
+export const auto_download_updates_label = "Download updates automatically in background";
+export const auto_download_updates_desc = "Download new versions quietly in the background and notify when ready to install";
+export const auto_install_exit_label = "Install updates automatically on app exit";
+export const auto_install_exit_desc = "Apply downloaded updates seamlessly when closing AutoGram";
+export const notify_update_label = "Show update notification popups";
+export const notify_update_desc = "Display a notification banner when a new version is ready";
+export const current_version_label = "Current Version";
+export const last_checked_label = "Last Checked";
+export const last_checked_never = "Never";
+export const view_release_notes = "View Release Notes";
+export const btn_check_updates = "Check for Updates";
+export const btn_download_update = "Download Update ({{version}})";
+export const btn_install_restart = "Install & Restart ({{version}})";
+export const update_ready_notice = "Version {{version}} update has been downloaded and is ready to install.";
+export const navigation_aria = "Settings navigation";
+export const channel_beta_stream = "Beta stream";
+export const channel_stable_stream = "Stable stream";
+export const version_prefix = "v";
+export const default_cache_path = "worker/cache (Default)";
+export const unit_gb = "GB";
+export const unit_mb = "MB";
+export const cache_size_label = "Cache size";
+export const calculating_cache = "Calculating cache usage...";
+export const cache_size_desc = "Storage used by downloads, thumbnails, temporary buffers, and app data.";
+export const refresh_cache_btn = "Refresh cache usage";
+export const cache_breakdown_download = "Downloads";
+export const update_timeout_error = "Update check timed out. Check your internet connection.";
+export const update_network_error = "Could not reach GitHub. Check your internet connection.";
+export default {
+  title,
+  subtitle,
+  tab_general,
+  tab_startup,
+  tab_updates,
+  tab_network,
+  tab_storage,
+  tab_developer,
+  back_to_session_hub,
+  general,
+  api_config,
+  api_config_hint,
+  language,
+  language_desc,
+  startup_behavior_section,
+  startup_behavior_section_desc,
+  startup_mode_label,
+  startup_mode_desc,
+  startup_mode_launcher,
+  startup_mode_launcher_desc,
+  startup_mode_drives,
+  startup_mode_drives_desc,
+  startup_mode_forwarder,
+  startup_mode_forwarder_desc,
+  startup_mode_last,
+  startup_mode_last_desc,
+  default_account_label,
+  default_account_desc,
+  default_account_select_placeholder,
+  no_accounts_available,
+  density,
+  density_compact,
+  density_comfortable,
+  density_spacious,
+  save_credentials,
+  credentials_saved,
+  credentials_error,
+  cache_management,
+  cache_management_desc,
+  custom_cache_location_title,
+  custom_cache_location_desc,
+  custom_cache_current_path,
+  custom_cache_browse_btn,
+  custom_cache_reset_btn,
+  custom_cache_fallback_warning,
+  custom_cache_migrate_modal_title,
+  custom_cache_migrate_modal_msg,
+  custom_cache_migrate_option_move,
+  custom_cache_migrate_option_move_desc,
+  custom_cache_migrate_option_wipe,
+  custom_cache_migrate_option_wipe_desc,
+  custom_cache_reset_modal_title,
+  custom_cache_reset_modal_msg,
+  custom_cache_reset_option_move,
+  custom_cache_reset_option_move_desc,
+  custom_cache_reset_option_wipe,
+  custom_cache_reset_option_wipe_desc,
+  custom_cache_progress_moving,
+  custom_cache_progress_wiping,
+  custom_cache_progress_wait,
+  custom_cache_success_move,
+  custom_cache_success_reset,
+  custom_cache_error_action,
+  cache_detected_size,
+  cache_warning_exceed_limit,
+  cache_warning_exceed_disk,
+  cache_warning_low_disk,
+  cache_breakdown_disk,
+  cache_breakdown_temp,
+  cache_breakdown_thumbs,
+  cache_breakdown_local,
+  cache_breakdown_stale,
+  cache_limit_label,
+  cache_warning_limit_exceeds_disk,
+  custom_limit_exceeds_disk_note,
+  custom_modal_disk_info,
+  cache_usage_label,
+  auto_prune_title,
+  auto_prune_desc,
+  calc_size_btn,
+  clear_cache_btn,
+  manage_cache,
+  calculating,
+  clearing,
+  trimming,
+  clear_cache_modal_title,
+  clear_cache_modal_msg,
+  clear_cache_confirm,
+  db_clear_title,
+  db_clear_desc,
+  clear_db_btn,
+  disk_usage,
+  clear_cache,
+  recalculate,
+  perf_title,
+  perf_subtitle,
+  perf_section_1_title,
+  perf_section_2_title,
+  perf_section_3_title,
+  perf_tier_low_title,
+  perf_tier_low_desc,
+  perf_tier_mid_title,
+  perf_tier_mid_desc,
+  perf_tier_high_title,
+  perf_tier_high_desc,
+  perf_status_active,
+  perf_engine_rust,
+  perf_recommended_badge,
+  perf_default_badge,
+  perf_metric_low,
+  perf_metric_mid,
+  perf_metric_high,
+  proxy_title,
+  proxy_subtitle,
+  enable_proxy,
+  vpn_optimizer,
+  save_network,
+  test_proxy,
+  proxy_reachability,
+  proxy_available,
+  proxy_unavailable,
+  debug_title,
+  debug_subtitle,
+  debug_desc,
+  debug_enable,
+  debug_disable,
+  debug_status_active,
+  debug_status_inactive,
+  debug_copy_logs,
+  debug_copied,
+  debug_clear_logs,
+  debug_empty_buffer,
+  debug_tip,
+  backend_native_title,
+  backend_native_desc,
+  confirm_clear_cache_title,
+  confirm_clear_cache_msg,
+  confirm_clear_db_title,
+  confirm_clear_db_msg,
+  density_label,
+  api_id_ph,
+  api_hash_ph,
+  creds_save_success,
+  creds_save_fail,
+  loading_credentials,
+  worker_ui_transfer_log,
+  local_media_cache_label,
+  clear_db_modal_title,
+  cache_not_calculated,
+  network_saved_reconnect,
+  network_save_failed,
+  language_english,
+  language_indonesian,
+  api_id_label,
+  api_hash_label,
+  backend_active_label,
+  backend_ownership_desc,
+  proxy_type_label,
+  proxy_type_socks5,
+  proxy_type_http,
+  proxy_type_https,
+  proxy_type_mtproto,
+  proxy_host_label,
+  proxy_port_label,
+  proxy_username_label,
+  proxy_password_label,
+  proxy_secret_label,
+  proxy_secret_placeholder,
+  proxy_tcp_label,
+  proxy_unreachable_hint,
+  cache_storage_sources,
+  cache_clear_success,
+  cache_clear_success_title,
+  cache_clear_success_detail,
+  cache_clear_error_title,
+  cache_clear_error,
+  database_clear_success,
+  database_clear_error,
+  copy_buffer_tooltip,
+  clear_buffer_tooltip,
+  recalculate_cache_tooltip,
+  auto_update_section,
+  auto_update_section_desc,
+  release_channel_label,
+  release_channel_desc,
+  channel_stable,
+  channel_stable_desc,
+  channel_beta,
+  channel_beta_desc,
+  auto_check_updates_label,
+  auto_check_updates_desc,
+  auto_download_updates_label,
+  auto_download_updates_desc,
+  auto_install_exit_label,
+  auto_install_exit_desc,
+  notify_update_label,
+  notify_update_desc,
+  current_version_label,
+  last_checked_label,
+  last_checked_never,
+  view_release_notes,
+  btn_check_updates,
+  btn_download_update,
+  btn_install_restart,
+  update_ready_notice,
+  navigation_aria,
+  channel_beta_stream,
+  channel_stable_stream,
+  version_prefix,
+  default_cache_path,
+  unit_gb,
+  unit_mb,
+  cache_size_label,
+  calculating_cache,
+  cache_size_desc,
+  refresh_cache_btn,
+  cache_breakdown_download,
+  update_timeout_error,
+  update_network_error,
+};

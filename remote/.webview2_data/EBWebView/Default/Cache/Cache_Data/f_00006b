@@ -1,1 +1,358 @@
-{"version":3,"sources":["../../@tauri-apps/api/webview.js"],"sourcesContent":["import { PhysicalPosition, PhysicalSize, Size, Position } from './dpi.js';\nimport { listen, once, emit, emitTo, TauriEvent } from './event.js';\nimport { invoke } from './core.js';\nimport { Window, getCurrentWindow } from './window.js';\n\n// Copyright 2019-2024 Tauri Programme within The Commons Conservancy\n// SPDX-License-Identifier: Apache-2.0\n// SPDX-License-Identifier: MIT\n/**\n * Provides APIs to create webviews, communicate with other webviews and manipulate the current webview.\n *\n * #### Webview events\n *\n * Events can be listened to using {@link Webview.listen}:\n * ```typescript\n * import { getCurrentWebview } from \"@tauri-apps/api/webview\";\n * getCurrentWebview().listen(\"my-webview-event\", ({ event, payload }) => { });\n * ```\n *\n * @module\n */\n/**\n * Get an instance of `Webview` for the current webview.\n *\n * @since 2.0.0\n */\nfunction getCurrentWebview() {\n    return new Webview(getCurrentWindow(), window.__TAURI_INTERNALS__.metadata.currentWebview.label, {\n        // @ts-expect-error `skip` is not defined in the public API but it is handled by the constructor\n        skip: true\n    });\n}\n/**\n * Gets a list of instances of `Webview` for all available webviews.\n *\n * @since 2.0.0\n */\nasync function getAllWebviews() {\n    return invoke('plugin:webview|get_all_webviews').then((webviews) => webviews.map((w) => new Webview(new Window(w.windowLabel, {\n        // @ts-expect-error `skip` is not defined in the public API but it is handled by the constructor\n        skip: true\n    }), w.label, {\n        // @ts-expect-error `skip` is not defined in the public API but it is handled by the constructor\n        skip: true\n    })));\n}\n/** @ignore */\n// events that are emitted right here instead of by the created webview\nconst localTauriEvents = ['tauri://created', 'tauri://error'];\n/**\n * Create new webview or get a handle to an existing one.\n *\n * Webviews are identified by a *label*  a unique identifier that can be used to reference it later.\n * It may only contain alphanumeric characters `a-zA-Z` plus the following special characters `-`, `/`, `:` and `_`.\n *\n * @example\n * ```typescript\n * import { Window } from \"@tauri-apps/api/window\"\n * import { Webview } from \"@tauri-apps/api/webview\"\n *\n * const appWindow = new Window('uniqueLabel');\n *\n * appWindow.once('tauri://created', async function () {\n *   // `new Webview` Should be called after the window is successfully created,\n *   // or webview may not be attached to the window since window is not created yet.\n *\n *   // loading embedded asset:\n *   const webview = new Webview(appWindow, 'theUniqueLabel', {\n *     url: 'path/to/page.html',\n *\n *     // create a webview with specific logical position and size\n *     x: 0,\n *     y: 0,\n *     width: 800,\n *     height: 600,\n *   });\n *   // alternatively, load a remote URL:\n *   const webview = new Webview(appWindow, 'theUniqueLabel', {\n *     url: 'https://github.com/tauri-apps/tauri',\n *\n *     // create a webview with specific logical position and size\n *     x: 0,\n *     y: 0,\n *     width: 800,\n *     height: 600,\n *   });\n *\n *   webview.once('tauri://created', function () {\n *     // webview successfully created\n *   });\n *   webview.once('tauri://error', function (e) {\n *     // an error happened creating the webview\n *   });\n *\n *\n *   // emit an event to the backend\n *   await webview.emit(\"some-event\", \"data\");\n *   // listen to an event from the backend\n *   const unlisten = await webview.listen(\"event-name\", e => { });\n *   unlisten();\n * });\n * ```\n *\n * @since 2.0.0\n */\nclass Webview {\n    /**\n     * Creates a new Webview.\n     * @example\n     * ```typescript\n     * import { Window } from '@tauri-apps/api/window'\n     * import { Webview } from '@tauri-apps/api/webview'\n     * const appWindow = new Window('my-label')\n     *\n     * appWindow.once('tauri://created', async function() {\n     *   const webview = new Webview(appWindow, 'my-label', {\n     *     url: 'https://github.com/tauri-apps/tauri',\n     *\n     *     // create a webview with specific logical position and size\n     *     x: 0,\n     *     y: 0,\n     *     width: 800,\n     *     height: 600,\n     *   });\n     *\n     *   webview.once('tauri://created', function () {\n     *     // webview successfully created\n     *   });\n     *   webview.once('tauri://error', function (e) {\n     *     // an error happened creating the webview\n     *   });\n     * });\n     * ```\n     *\n     * @param window the window to add this webview to.\n     * @param label The unique webview label. Must be alphanumeric: `a-zA-Z-/:_`.\n     * @returns The {@link Webview} instance to communicate with the webview.\n     */\n    constructor(window, label, options) {\n        this.window = window;\n        this.label = label;\n        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment\n        this.listeners = Object.create(null);\n        // @ts-expect-error `skip` is not a public API so it is not defined in WebviewOptions\n        if (!(options === null || options === void 0 ? void 0 : options.skip)) {\n            invoke('plugin:webview|create_webview', {\n                windowLabel: window.label,\n                options: {\n                    ...options,\n                    label\n                }\n            })\n                .then(async () => this.emit('tauri://created'))\n                .catch(async (e) => this.emit('tauri://error', e));\n        }\n    }\n    /**\n     * Gets the Webview for the webview associated with the given label.\n     * @example\n     * ```typescript\n     * import { Webview } from '@tauri-apps/api/webview';\n     * const mainWebview = Webview.getByLabel('main');\n     * ```\n     *\n     * @param label The webview label.\n     * @returns The Webview instance to communicate with the webview or null if the webview doesn't exist.\n     */\n    static async getByLabel(label) {\n        var _a;\n        return (_a = (await getAllWebviews()).find((w) => w.label === label)) !== null && _a !== void 0 ? _a : null;\n    }\n    /**\n     * Get an instance of `Webview` for the current webview.\n     */\n    static getCurrent() {\n        return getCurrentWebview();\n    }\n    /**\n     * Gets a list of instances of `Webview` for all available webviews.\n     */\n    static async getAll() {\n        return getAllWebviews();\n    }\n    /**\n     * Listen to an emitted event on this webview.\n     *\n     * @example\n     * ```typescript\n     * import { getCurrentWebview } from '@tauri-apps/api/webview';\n     * const unlisten = await getCurrentWebview().listen<string>('state-changed', (event) => {\n     *   console.log(`Got error: ${payload}`);\n     * });\n     *\n     * // you need to call unlisten if your handler goes out of scope e.g. the component is unmounted\n     * unlisten();\n     * ```\n     *\n     * @param event Event name. Must include only alphanumeric characters, `-`, `/`, `:` and `_`.\n     * @param handler Event handler.\n     * @returns A promise resolving to a function to unlisten to the event.\n     * Note that removing the listener is required if your listener goes out of scope e.g. the component is unmounted.\n     */\n    async listen(event, handler) {\n        if (this._handleTauriEvent(event, handler)) {\n            return () => {\n                // eslint-disable-next-line security/detect-object-injection\n                const listeners = this.listeners[event];\n                listeners.splice(listeners.indexOf(handler), 1);\n            };\n        }\n        return listen(event, handler, {\n            target: { kind: 'Webview', label: this.label }\n        });\n    }\n    /**\n     * Listen to an emitted event on this webview only once.\n     *\n     * @example\n     * ```typescript\n     * import { getCurrentWebview } from '@tauri-apps/api/webview';\n     * const unlisten = await getCurrent().once<null>('initialized', (event) => {\n     *   console.log(`Webview initialized!`);\n     * });\n     *\n     * // you need to call unlisten if your handler goes out of scope e.g. the component is unmounted\n     * unlisten();\n     * ```\n     *\n     * @param event Event name. Must include only alphanumeric characters, `-`, `/`, `:` and `_`.\n     * @param handler Event handler.\n     * @returns A promise resolving to a function to unlisten to the event.\n     * Note that removing the listener is required if your listener goes out of scope e.g. the component is unmounted.\n     */\n    async once(event, handler) {\n        if (this._handleTauriEvent(event, handler)) {\n            return () => {\n                // eslint-disable-next-line security/detect-object-injection\n                const listeners = this.listeners[event];\n                listeners.splice(listeners.indexOf(handler), 1);\n            };\n        }\n        return once(event, handler, {\n            target: { kind: 'Webview', label: this.label }\n        });\n    }\n    /**\n     * Emits an event to all {@link EventTarget|targets}.\n     *\n     * @example\n     * ```typescript\n     * import { getCurrentWebview } from '@tauri-apps/api/webview';\n     * await getCurrentWebview().emit('webview-loaded', { loggedIn: true, token: 'authToken' });\n     * ```\n     *\n     * @param event Event name. Must include only alphanumeric characters, `-`, `/`, `:` and `_`.\n     * @param payload Event payload.\n     */\n    async emit(event, payload) {\n        if (localTauriEvents.includes(event)) {\n            // eslint-disable-next-line\n            for (const handler of this.listeners[event] || []) {\n                handler({\n                    event,\n                    id: -1,\n                    payload\n                });\n            }\n            return;\n        }\n        return emit(event, payload);\n    }\n    /**\n     * Emits an event to all {@link EventTarget|targets} matching the given target.\n     *\n     * @example\n     * ```typescript\n     * import { getCurrentWebview } from '@tauri-apps/api/webview';\n     * await getCurrentWebview().emitTo('main', 'webview-loaded', { loggedIn: true, token: 'authToken' });\n     * ```\n     *\n     * @param target Label of the target Window/Webview/WebviewWindow or raw {@link EventTarget} object.\n     * @param event Event name. Must include only alphanumeric characters, `-`, `/`, `:` and `_`.\n     * @param payload Event payload.\n     */\n    async emitTo(target, event, payload) {\n        if (localTauriEvents.includes(event)) {\n            // eslint-disable-next-line\n            for (const handler of this.listeners[event] || []) {\n                handler({\n                    event,\n                    id: -1,\n                    payload\n                });\n            }\n            return;\n        }\n        return emitTo(target, event, payload);\n    }\n    /** @ignore */\n    _handleTauriEvent(event, handler) {\n        if (localTauriEvents.includes(event)) {\n            if (!(event in this.listeners)) {\n                // eslint-disable-next-line security/detect-object-injection\n                this.listeners[event] = [handler];\n            }\n            else {\n                // eslint-disable-next-line security/detect-object-injection\n                this.listeners[event].push(handler);\n            }\n            return true;\n        }\n        return false;\n    }\n    // Getters\n    /**\n     * The position of the top-left hand corner of the webview's client area relative to the top-left hand corner of the desktop.\n     * @example\n     * ```typescript\n     * import { getCurrentWebview } from '@tauri-apps/api/webview';\n     * const position = await getCurrentWebview().position();\n     * ```\n     *\n     * @returns The webview's position.\n     */\n    async position() {\n        return invoke('plugin:webview|webview_position', {\n            label: this.label\n        }).then((p) => new PhysicalPosition(p));\n    }\n    /**\n     * The physical size of the webview's client area.\n     * The client area is the content of the webview, excluding the title bar and borders.\n     * @example\n     * ```typescript\n     * import { getCurrentWebview } from '@tauri-apps/api/webview';\n     * const size = await getCurrentWebview().size();\n     * ```\n     *\n     * @returns The webview's size.\n     */\n    async size() {\n        return invoke('plugin:webview|webview_size', {\n            label: this.label\n        }).then((s) => new PhysicalSize(s));\n    }\n    // Setters\n    /**\n     * Closes the webview.\n     * @example\n     * ```typescript\n     * import { getCurrentWebview } from '@tauri-apps/api/webview';\n     * await getCurrentWebview().close();\n     * ```\n     *\n     * @returns A promise indicating the success or failure of the operation.\n     */\n    async close() {\n        return invoke('plugin:webview|webview_close', {\n            label: this.label\n        });\n    }\n    /**\n     * Resizes the webview.\n     * @example\n     * ```typescript\n     * import { getCurrent, LogicalSize } from '@tauri-apps/api/webview';\n     * await getCurrentWebview().setSize(new LogicalSize(600, 500));\n     * ```\n     *\n     * @param size The logical or physical size.\n     * @returns A promise indicating the success or failure of the operation.\n     */\n    async setSize(size) {\n        return invoke('plugin:webview|set_webview_size', {\n            label: this.label,\n            value: size instanceof Size ? size : new Size(size)\n        });\n    }\n    /**\n     * Sets the webview position.\n     * @example\n     * ```typescript\n     * import { getCurrent, LogicalPosition } from '@tauri-apps/api/webview';\n     * await getCurrentWebview().setPosition(new LogicalPosition(600, 500));\n     * ```\n     *\n     * @param position The new position, in logical or physical pixels.\n     * @returns A promise indicating the success or failure of the operation.\n     */\n    async setPosition(position) {\n        return invoke('plugin:webview|set_webview_position', {\n            label: this.label,\n            value: position instanceof Position ? position : new Position(position)\n        });\n    }\n    /**\n     * Bring the webview to front and focus.\n     * @example\n     * ```typescript\n     * import { getCurrentWebview } from '@tauri-apps/api/webview';\n     * await getCurrentWebview().setFocus();\n     * ```\n     *\n     * @returns A promise indicating the success or failure of the operation.\n     */\n    async setFocus() {\n        return invoke('plugin:webview|set_webview_focus', {\n            label: this.label\n        });\n    }\n    /**\n     * Sets whether the webview should automatically grow and shrink its size and position when the parent window resizes.\n     * @example\n     * ```typescript\n     * import { getCurrentWebview } from '@tauri-apps/api/webview';\n     * await getCurrentWebview().setAutoResize(true);\n     * ```\n     *\n     * @returns A promise indicating the success or failure of the operation.\n     */\n    async setAutoResize(autoResize) {\n        return invoke('plugin:webview|set_webview_auto_resize', {\n            label: this.label,\n            value: autoResize\n        });\n    }\n    /**\n     * Hide the webview.\n     * @example\n     * ```typescript\n     * import { getCurrentWebview } from '@tauri-apps/api/webview';\n     * await getCurrentWebview().hide();\n     * ```\n     *\n     * @returns A promise indicating the success or failure of the operation.\n     */\n    async hide() {\n        return invoke('plugin:webview|webview_hide', {\n            label: this.label\n        });\n    }\n    /**\n     * Show the webview.\n     * @example\n     * ```typescript\n     * import { getCurrentWebview } from '@tauri-apps/api/webview';\n     * await getCurrentWebview().show();\n     * ```\n     *\n     * @returns A promise indicating the success or failure of the operation.\n     */\n    async show() {\n        return invoke('plugin:webview|webview_show', {\n            label: this.label\n        });\n    }\n    /**\n     * Set webview zoom level.\n     * @example\n     * ```typescript\n     * import { getCurrentWebview } from '@tauri-apps/api/webview';\n     * await getCurrentWebview().setZoom(1.5);\n     * ```\n     *\n     * @returns A promise indicating the success or failure of the operation.\n     */\n    async setZoom(scaleFactor) {\n        return invoke('plugin:webview|set_webview_zoom', {\n            label: this.label,\n            value: scaleFactor\n        });\n    }\n    /**\n     * Moves this webview to the given label.\n     * @example\n     * ```typescript\n     * import { getCurrentWebview } from '@tauri-apps/api/webview';\n     * await getCurrentWebview().reparent('other-window');\n     * ```\n     *\n     * @returns A promise indicating the success or failure of the operation.\n     */\n    async reparent(window) {\n        return invoke('plugin:webview|reparent', {\n            label: this.label,\n            window: typeof window === 'string' ? window : window.label\n        });\n    }\n    /**\n     * Clears all browsing data for this webview.\n     * @example\n     * ```typescript\n     * import { getCurrentWebview } from '@tauri-apps/api/webview';\n     * await getCurrentWebview().clearAllBrowsingData();\n     * ```\n     *\n     * @returns A promise indicating the success or failure of the operation.\n     */\n    async clearAllBrowsingData() {\n        return invoke('plugin:webview|clear_all_browsing_data');\n    }\n    /**\n     * Specify the webview background color.\n     *\n     * #### Platfrom-specific:\n     *\n     * - **macOS / iOS**: Not implemented.\n     * - **Windows**:\n     *   - On Windows 7, transparency is not supported and the alpha value will be ignored.\n     *   - On Windows higher than 7: translucent colors are not supported so any alpha value other than `0` will be replaced by `255`\n     *\n     * @returns A promise indicating the success or failure of the operation.\n     *\n     * @since 2.1.0\n     */\n    async setBackgroundColor(color) {\n        return invoke('plugin:webview|set_webview_background_color', { color });\n    }\n    // Listeners\n    /**\n     * Listen to a file drop event.\n     * The listener is triggered when the user hovers the selected files on the webview,\n     * drops the files or cancels the operation.\n     *\n     * @example\n     * ```typescript\n     * import { getCurrentWebview } from \"@tauri-apps/api/webview\";\n     * const unlisten = await getCurrentWebview().onDragDropEvent((event) => {\n     *  if (event.payload.type === 'over') {\n     *    console.log('User hovering', event.payload.position);\n     *  } else if (event.payload.type === 'drop') {\n     *    console.log('User dropped', event.payload.paths);\n     *  } else {\n     *    console.log('File drop cancelled');\n     *  }\n     * });\n     *\n     * // you need to call unlisten if your handler goes out of scope e.g. the component is unmounted\n     * unlisten();\n     * ```\n     *\n     * When the debugger panel is open, the drop position of this event may be inaccurate due to a known limitation.\n     * To retrieve the correct drop position, please detach the debugger.\n     *\n     * @returns A promise resolving to a function to unlisten to the event.\n     * Note that removing the listener is required if your listener goes out of scope e.g. the component is unmounted.\n     */\n    async onDragDropEvent(handler) {\n        const unlistenDragEnter = await this.listen(TauriEvent.DRAG_ENTER, (event) => {\n            handler({\n                ...event,\n                payload: {\n                    type: 'enter',\n                    paths: event.payload.paths,\n                    position: new PhysicalPosition(event.payload.position)\n                }\n            });\n        });\n        const unlistenDragOver = await this.listen(TauriEvent.DRAG_OVER, (event) => {\n            handler({\n                ...event,\n                payload: {\n                    type: 'over',\n                    position: new PhysicalPosition(event.payload.position)\n                }\n            });\n        });\n        const unlistenDragDrop = await this.listen(TauriEvent.DRAG_DROP, (event) => {\n            handler({\n                ...event,\n                payload: {\n                    type: 'drop',\n                    paths: event.payload.paths,\n                    position: new PhysicalPosition(event.payload.position)\n                }\n            });\n        });\n        const unlistenDragLeave = await this.listen(TauriEvent.DRAG_LEAVE, (event) => {\n            handler({ ...event, payload: { type: 'leave' } });\n        });\n        return () => {\n            unlistenDragEnter();\n            unlistenDragDrop();\n            unlistenDragOver();\n            unlistenDragLeave();\n        };\n    }\n}\n\nexport { Webview, getAllWebviews, getCurrentWebview };\n"],"mappings":";;;;;;;;;;;;;;;;;;;;;AA0BA,SAAS,oBAAoB;AACzB,SAAO,IAAI,QAAQ,iBAAiB,GAAG,OAAO,oBAAoB,SAAS,eAAe,OAAO;AAAA;AAAA,IAE7F,MAAM;AAAA,EACV,CAAC;AACL;AAMA,eAAe,iBAAiB;AAC5B,SAAO,OAAO,iCAAiC,EAAE,KAAK,CAAC,aAAa,SAAS,IAAI,CAAC,MAAM,IAAI,QAAQ,IAAI,OAAO,EAAE,aAAa;AAAA;AAAA,IAE1H,MAAM;AAAA,EACV,CAAC,GAAG,EAAE,OAAO;AAAA;AAAA,IAET,MAAM;AAAA,EACV,CAAC,CAAC,CAAC;AACP;AAGA,IAAM,mBAAmB,CAAC,mBAAmB,eAAe;AAyD5D,IAAM,UAAN,MAAc;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,EAiCV,YAAYA,SAAQ,OAAO,SAAS;AAChC,SAAK,SAASA;AACd,SAAK,QAAQ;AAEb,SAAK,YAAY,uBAAO,OAAO,IAAI;AAEnC,QAAI,EAAE,YAAY,QAAQ,YAAY,SAAS,SAAS,QAAQ,OAAO;AACnE,aAAO,iCAAiC;AAAA,QACpC,aAAaA,QAAO;AAAA,QACpB,SAAS;AAAA,UACL,GAAG;AAAA,UACH;AAAA,QACJ;AAAA,MACJ,CAAC,EACI,KAAK,YAAY,KAAK,KAAK,iBAAiB,CAAC,EAC7C,MAAM,OAAO,MAAM,KAAK,KAAK,iBAAiB,CAAC,CAAC;AAAA,IACzD;AAAA,EACJ;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,EAYA,aAAa,WAAW,OAAO;AAC3B,QAAI;AACJ,YAAQ,MAAM,MAAM,eAAe,GAAG,KAAK,CAAC,MAAM,EAAE,UAAU,KAAK,OAAO,QAAQ,OAAO,SAAS,KAAK;AAAA,EAC3G;AAAA;AAAA;AAAA;AAAA,EAIA,OAAO,aAAa;AAChB,WAAO,kBAAkB;AAAA,EAC7B;AAAA;AAAA;AAAA;AAAA,EAIA,aAAa,SAAS;AAClB,WAAO,eAAe;AAAA,EAC1B;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,EAoBA,MAAM,OAAO,OAAO,SAAS;AACzB,QAAI,KAAK,kBAAkB,OAAO,OAAO,GAAG;AACxC,aAAO,MAAM;AAET,cAAM,YAAY,KAAK,UAAU,KAAK;AACtC,kBAAU,OAAO,UAAU,QAAQ,OAAO,GAAG,CAAC;AAAA,MAClD;AAAA,IACJ;AACA,WAAO,OAAO,OAAO,SAAS;AAAA,MAC1B,QAAQ,EAAE,MAAM,WAAW,OAAO,KAAK,MAAM;AAAA,IACjD,CAAC;AAAA,EACL;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,EAoBA,MAAM,KAAK,OAAO,SAAS;AACvB,QAAI,KAAK,kBAAkB,OAAO,OAAO,GAAG;AACxC,aAAO,MAAM;AAET,cAAM,YAAY,KAAK,UAAU,KAAK;AACtC,kBAAU,OAAO,UAAU,QAAQ,OAAO,GAAG,CAAC;AAAA,MAClD;AAAA,IACJ;AACA,WAAO,KAAK,OAAO,SAAS;AAAA,MACxB,QAAQ,EAAE,MAAM,WAAW,OAAO,KAAK,MAAM;AAAA,IACjD,CAAC;AAAA,EACL;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,EAaA,MAAM,KAAK,OAAO,SAAS;AACvB,QAAI,iBAAiB,SAAS,KAAK,GAAG;AAElC,iBAAW,WAAW,KAAK,UAAU,KAAK,KAAK,CAAC,GAAG;AAC/C,gBAAQ;AAAA,UACJ;AAAA,UACA,IAAI;AAAA,UACJ;AAAA,QACJ,CAAC;AAAA,MACL;AACA;AAAA,IACJ;AACA,WAAO,KAAK,OAAO,OAAO;AAAA,EAC9B;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,EAcA,MAAM,OAAO,QAAQ,OAAO,SAAS;AACjC,QAAI,iBAAiB,SAAS,KAAK,GAAG;AAElC,iBAAW,WAAW,KAAK,UAAU,KAAK,KAAK,CAAC,GAAG;AAC/C,gBAAQ;AAAA,UACJ;AAAA,UACA,IAAI;AAAA,UACJ;AAAA,QACJ,CAAC;AAAA,MACL;AACA;AAAA,IACJ;AACA,WAAO,OAAO,QAAQ,OAAO,OAAO;AAAA,EACxC;AAAA;AAAA,EAEA,kBAAkB,OAAO,SAAS;AAC9B,QAAI,iBAAiB,SAAS,KAAK,GAAG;AAClC,UAAI,EAAE,SAAS,KAAK,YAAY;AAE5B,aAAK,UAAU,KAAK,IAAI,CAAC,OAAO;AAAA,MACpC,OACK;AAED,aAAK,UAAU,KAAK,EAAE,KAAK,OAAO;AAAA,MACtC;AACA,aAAO;AAAA,IACX;AACA,WAAO;AAAA,EACX;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,EAYA,MAAM,WAAW;AACb,WAAO,OAAO,mCAAmC;AAAA,MAC7C,OAAO,KAAK;AAAA,IAChB,CAAC,EAAE,KAAK,CAAC,MAAM,IAAI,iBAAiB,CAAC,CAAC;AAAA,EAC1C;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,EAYA,MAAM,OAAO;AACT,WAAO,OAAO,+BAA+B;AAAA,MACzC,OAAO,KAAK;AAAA,IAChB,CAAC,EAAE,KAAK,CAAC,MAAM,IAAI,aAAa,CAAC,CAAC;AAAA,EACtC;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,EAYA,MAAM,QAAQ;AACV,WAAO,OAAO,gCAAgC;AAAA,MAC1C,OAAO,KAAK;AAAA,IAChB,CAAC;AAAA,EACL;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,EAYA,MAAM,QAAQ,MAAM;AAChB,WAAO,OAAO,mCAAmC;AAAA,MAC7C,OAAO,KAAK;AAAA,MACZ,OAAO,gBAAgB,OAAO,OAAO,IAAI,KAAK,IAAI;AAAA,IACtD,CAAC;AAAA,EACL;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,EAYA,MAAM,YAAY,UAAU;AACxB,WAAO,OAAO,uCAAuC;AAAA,MACjD,OAAO,KAAK;AAAA,MACZ,OAAO,oBAAoB,WAAW,WAAW,IAAI,SAAS,QAAQ;AAAA,IAC1E,CAAC;AAAA,EACL;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,EAWA,MAAM,WAAW;AACb,WAAO,OAAO,oCAAoC;AAAA,MAC9C,OAAO,KAAK;AAAA,IAChB,CAAC;AAAA,EACL;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,EAWA,MAAM,cAAc,YAAY;AAC5B,WAAO,OAAO,0CAA0C;AAAA,MACpD,OAAO,KAAK;AAAA,MACZ,OAAO;AAAA,IACX,CAAC;AAAA,EACL;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,EAWA,MAAM,OAAO;AACT,WAAO,OAAO,+BAA+B;AAAA,MACzC,OAAO,KAAK;AAAA,IAChB,CAAC;AAAA,EACL;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,EAWA,MAAM,OAAO;AACT,WAAO,OAAO,+BAA+B;AAAA,MACzC,OAAO,KAAK;AAAA,IAChB,CAAC;AAAA,EACL;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,EAWA,MAAM,QAAQ,aAAa;AACvB,WAAO,OAAO,mCAAmC;AAAA,MAC7C,OAAO,KAAK;AAAA,MACZ,OAAO;AAAA,IACX,CAAC;AAAA,EACL;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,EAWA,MAAM,SAASA,SAAQ;AACnB,WAAO,OAAO,2BAA2B;AAAA,MACrC,OAAO,KAAK;AAAA,MACZ,QAAQ,OAAOA,YAAW,WAAWA,UAASA,QAAO;AAAA,IACzD,CAAC;AAAA,EACL;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,EAWA,MAAM,uBAAuB;AACzB,WAAO,OAAO,wCAAwC;AAAA,EAC1D;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,EAeA,MAAM,mBAAmB,OAAO;AAC5B,WAAO,OAAO,+CAA+C,EAAE,MAAM,CAAC;AAAA,EAC1E;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,EA8BA,MAAM,gBAAgB,SAAS;AAC3B,UAAM,oBAAoB,MAAM,KAAK,OAAO,WAAW,YAAY,CAAC,UAAU;AAC1E,cAAQ;AAAA,QACJ,GAAG;AAAA,QACH,SAAS;AAAA,UACL,MAAM;AAAA,UACN,OAAO,MAAM,QAAQ;AAAA,UACrB,UAAU,IAAI,iBAAiB,MAAM,QAAQ,QAAQ;AAAA,QACzD;AAAA,MACJ,CAAC;AAAA,IACL,CAAC;AACD,UAAM,mBAAmB,MAAM,KAAK,OAAO,WAAW,WAAW,CAAC,UAAU;AACxE,cAAQ;AAAA,QACJ,GAAG;AAAA,QACH,SAAS;AAAA,UACL,MAAM;AAAA,UACN,UAAU,IAAI,iBAAiB,MAAM,QAAQ,QAAQ;AAAA,QACzD;AAAA,MACJ,CAAC;AAAA,IACL,CAAC;AACD,UAAM,mBAAmB,MAAM,KAAK,OAAO,WAAW,WAAW,CAAC,UAAU;AACxE,cAAQ;AAAA,QACJ,GAAG;AAAA,QACH,SAAS;AAAA,UACL,MAAM;AAAA,UACN,OAAO,MAAM,QAAQ;AAAA,UACrB,UAAU,IAAI,iBAAiB,MAAM,QAAQ,QAAQ;AAAA,QACzD;AAAA,MACJ,CAAC;AAAA,IACL,CAAC;AACD,UAAM,oBAAoB,MAAM,KAAK,OAAO,WAAW,YAAY,CAAC,UAAU;AAC1E,cAAQ,EAAE,GAAG,OAAO,SAAS,EAAE,MAAM,QAAQ,EAAE,CAAC;AAAA,IACpD,CAAC;AACD,WAAO,MAAM;AACT,wBAAkB;AAClB,uBAAiB;AACjB,uBAAiB;AACjB,wBAAkB;AAAA,IACtB;AAAA,EACJ;AACJ;","names":["window"],"x_google_ignoreList":[0]}
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=66e1eb93"; const Fragment = __vite__cjsImport0_react_jsxDevRuntime["Fragment"]; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=66e1eb93"; const useMemo = __vite__cjsImport3_react["useMemo"]; const useState = __vite__cjsImport3_react["useState"];
+import { useTranslation } from "/node_modules/.vite/deps/react-i18next.js?v=66e1eb93";
+import { Bot, Folder, FolderInput, HardDrive, Hash, Megaphone, MessageCircle, Search, Users, X } from "/node_modules/.vite/deps/lucide-react.js?v=66e1eb93";
+function ChatIcon({ type }) {
+  if (type === "bot") return /* @__PURE__ */ jsxDEV(Bot, { size: 17 }, void 0, false, {
+    fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+    lineNumber: 40,
+    columnNumber: 30
+  }, this);
+  if (type === "channel") return /* @__PURE__ */ jsxDEV(Megaphone, { size: 17 }, void 0, false, {
+    fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+    lineNumber: 41,
+    columnNumber: 34
+  }, this);
+  if (type === "group") return /* @__PURE__ */ jsxDEV(Users, { size: 17 }, void 0, false, {
+    fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+    lineNumber: 42,
+    columnNumber: 32
+  }, this);
+  return /* @__PURE__ */ jsxDEV(MessageCircle, { size: 17 }, void 0, false, {
+    fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+    lineNumber: 43,
+    columnNumber: 10
+  }, this);
+}
+_c = ChatIcon;
+export function ZipExtractModal({
+  isOpen,
+  selectedCount,
+  folders,
+  chats,
+  busy,
+  progressLabel,
+  onClose,
+  onConfirmExtract
+}) {
+  _s();
+  const { t } = useTranslation();
+  const [tab, setTab] = useState("saved");
+  const [query, setQuery] = useState("");
+  const [selectedId, setSelectedId] = useState(null);
+  const [topicId, setTopicId] = useState("");
+  const filteredFolders = useMemo(
+    () => folders.filter((item) => item.name.toLowerCase().includes(query.trim().toLowerCase())),
+    [folders, query]
+  );
+  const filteredChats = useMemo(
+    () => chats.filter((item) => item.name.toLowerCase().includes(query.trim().toLowerCase())),
+    [chats, query]
+  );
+  const selectedChat = tab === "chat" ? chats.find((chat) => chat.id === selectedId) : null;
+  if (!isOpen) return null;
+  const submit = () => {
+    if (tab === "saved") {
+      onConfirmExtract({ kind: "saved", chatId: "me", folderId: null, topicId: null, label: t("speedtest.saved_messages") });
+      return;
+    }
+    if (selectedId == null) return;
+    if (tab === "drive") {
+      const folder = folders.find((item) => item.id === selectedId);
+      onConfirmExtract({ kind: "drive", chatId: String(selectedId), folderId: selectedId, topicId: null, label: folder?.name || String(selectedId) });
+      return;
+    }
+    const chat = chats.find((item) => item.id === selectedId);
+    const parsedTopic = Number(topicId);
+    onConfirmExtract({
+      kind: "chat",
+      chatId: String(selectedId),
+      folderId: selectedId,
+      topicId: selectedChat?.is_forum && Number.isInteger(parsedTopic) && parsedTopic > 0 ? parsedTopic : null,
+      label: chat?.name || String(selectedId)
+    });
+  };
+  return /* @__PURE__ */ jsxDEV("div", { className: "dzb-modal-overlay", role: "dialog", "aria-modal": "true", "aria-label": t("speedtest.zip_extract_title"), children: /* @__PURE__ */ jsxDEV("div", { className: "dzb-modal-card dzb-extract-modal", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "dzb-modal-header", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "dzb-modal-title", children: [
+        /* @__PURE__ */ jsxDEV(FolderInput, { size: 18 }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+          lineNumber: 101,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("span", { children: [
+          t("speedtest.zip_extract_title"),
+          " · ",
+          selectedCount
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+          lineNumber: 102,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+        lineNumber: 100,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("button", { type: "button", onClick: onClose, className: "dzb-action-icon-btn", title: t("speedtest.zip_close"), disabled: busy, children: /* @__PURE__ */ jsxDEV(X, { size: 18 }, void 0, false, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+        lineNumber: 105,
+        columnNumber: 13
+      }, this) }, void 0, false, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+        lineNumber: 104,
+        columnNumber: 11
+      }, this)
+    ] }, void 0, true, {
+      fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+      lineNumber: 99,
+      columnNumber: 9
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "dzb-modal-body dzb-extract-body", children: [
+      /* @__PURE__ */ jsxDEV("p", { className: "dzb-modal-description", children: t("speedtest.zip_extract_dest_desc") }, void 0, false, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+        lineNumber: 110,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "dzb-destination-tabs", role: "tablist", "aria-label": t("speedtest.zip_destination_type"), children: [
+        ["saved", HardDrive, "speedtest.saved_messages"],
+        ["drive", Folder, "speedtest.zip_dest_drive"],
+        ["chat", MessageCircle, "speedtest.zip_dest_chat"]
+      ].map(
+        ([id, Icon, label]) => /* @__PURE__ */ jsxDEV(
+          "button",
+          {
+            type: "button",
+            role: "tab",
+            "aria-selected": tab === id,
+            className: `dzb-destination-tab ${tab === id ? "active" : ""}`,
+            onClick: () => {
+              setTab(id);
+              setSelectedId(null);
+              setTopicId("");
+            },
+            children: [
+              /* @__PURE__ */ jsxDEV(Icon, { size: 16 }, void 0, false, {
+                fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+                lineNumber: 125,
+                columnNumber: 17
+              }, this),
+              " ",
+              t(label)
+            ]
+          },
+          id,
+          true,
+          {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+            lineNumber: 117,
+            columnNumber: 13
+          },
+          this
+        )
+      ) }, void 0, false, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+        lineNumber: 111,
+        columnNumber: 11
+      }, this),
+      tab === "saved" ? /* @__PURE__ */ jsxDEV("button", { type: "button", className: "dzb-destination-card selected", onClick: () => setSelectedId(null), children: [
+        /* @__PURE__ */ jsxDEV(HardDrive, { size: 20 }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+          lineNumber: 132,
+          columnNumber: 15
+        }, this),
+        /* @__PURE__ */ jsxDEV("span", { children: [
+          /* @__PURE__ */ jsxDEV("strong", { children: t("speedtest.saved_messages") }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+            lineNumber: 133,
+            columnNumber: 21
+          }, this),
+          /* @__PURE__ */ jsxDEV("small", { children: t("speedtest.zip_saved_desc") }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+            lineNumber: 133,
+            columnNumber: 69
+          }, this)
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+          lineNumber: 133,
+          columnNumber: 15
+        }, this)
+      ] }, void 0, true, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+        lineNumber: 131,
+        columnNumber: 11
+      }, this) : /* @__PURE__ */ jsxDEV(Fragment, { children: [
+        /* @__PURE__ */ jsxDEV("label", { className: "dzb-destination-search", children: [
+          /* @__PURE__ */ jsxDEV(Search, { size: 16 }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+            lineNumber: 138,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV("input", { value: query, onChange: (event) => setQuery(event.target.value), placeholder: t("speedtest.zip_destination_search") }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+            lineNumber: 139,
+            columnNumber: 17
+          }, this)
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+          lineNumber: 137,
+          columnNumber: 15
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "dzb-destination-list", children: (tab === "drive" ? filteredFolders : filteredChats).map(
+          (item) => /* @__PURE__ */ jsxDEV(
+            "button",
+            {
+              type: "button",
+              className: `dzb-destination-card ${selectedId === item.id ? "selected" : ""}`,
+              onClick: () => setSelectedId(item.id),
+              children: [
+                tab === "drive" ? /* @__PURE__ */ jsxDEV(Folder, { size: 18 }, void 0, false, {
+                  fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+                  lineNumber: 149,
+                  columnNumber: 40
+                }, this) : /* @__PURE__ */ jsxDEV(ChatIcon, { type: item.type }, void 0, false, {
+                  fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+                  lineNumber: 149,
+                  columnNumber: 63
+                }, this),
+                /* @__PURE__ */ jsxDEV("span", { children: [
+                  /* @__PURE__ */ jsxDEV("strong", { children: item.name }, void 0, false, {
+                    fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+                    lineNumber: 150,
+                    columnNumber: 27
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("small", { children: tab === "drive" ? t("speedtest.zip_dest_drive") : t(`speedtest.zip_chat_type_${item.type}`, { defaultValue: item.type }) }, void 0, false, {
+                    fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+                    lineNumber: 150,
+                    columnNumber: 55
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+                  lineNumber: 150,
+                  columnNumber: 21
+                }, this)
+              ]
+            },
+            item.id,
+            true,
+            {
+              fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+              lineNumber: 143,
+              columnNumber: 15
+            },
+            this
+          )
+        ) }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+          lineNumber: 141,
+          columnNumber: 15
+        }, this)
+      ] }, void 0, true, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+        lineNumber: 136,
+        columnNumber: 11
+      }, this),
+      selectedChat?.is_forum && /* @__PURE__ */ jsxDEV("label", { className: "dzb-topic-field", children: [
+        /* @__PURE__ */ jsxDEV("span", { children: [
+          /* @__PURE__ */ jsxDEV(Hash, { size: 15 }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+            lineNumber: 159,
+            columnNumber: 21
+          }, this),
+          " ",
+          t("speedtest.zip_topic_id")
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+          lineNumber: 159,
+          columnNumber: 15
+        }, this),
+        /* @__PURE__ */ jsxDEV("input", { type: "number", min: 1, value: topicId, onChange: (event) => setTopicId(event.target.value), placeholder: t("speedtest.zip_topic_id_placeholder") }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+          lineNumber: 160,
+          columnNumber: 15
+        }, this),
+        /* @__PURE__ */ jsxDEV("small", { children: t("speedtest.zip_topic_id_hint") }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+          lineNumber: 161,
+          columnNumber: 15
+        }, this)
+      ] }, void 0, true, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+        lineNumber: 158,
+        columnNumber: 11
+      }, this),
+      progressLabel && /* @__PURE__ */ jsxDEV("p", { className: "dzb-extract-progress", role: "status", children: progressLabel }, void 0, false, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+        lineNumber: 164,
+        columnNumber: 29
+      }, this)
+    ] }, void 0, true, {
+      fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+      lineNumber: 109,
+      columnNumber: 9
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "dzb-modal-footer", children: [
+      /* @__PURE__ */ jsxDEV("button", { type: "button", onClick: onClose, className: "dzb-btn-secondary", disabled: busy, children: t("speedtest.zip_btn_cancel") }, void 0, false, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+        lineNumber: 168,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("button", { type: "button", onClick: submit, className: "dzb-btn-primary", disabled: busy || tab !== "saved" && selectedId == null, children: busy ? t("speedtest.zip_extracting") : t("speedtest.zip_start_extract") }, void 0, false, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+        lineNumber: 169,
+        columnNumber: 11
+      }, this)
+    ] }, void 0, true, {
+      fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+      lineNumber: 167,
+      columnNumber: 9
+    }, this)
+  ] }, void 0, true, {
+    fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+    lineNumber: 98,
+    columnNumber: 7
+  }, this) }, void 0, false, {
+    fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx",
+    lineNumber: 97,
+    columnNumber: 5
+  }, this);
+}
+_s(ZipExtractModal, "nC7egSgYyeZUX6COgqhY7mJ6GvM=", false, function() {
+  return [useTranslation];
+});
+_c2 = ZipExtractModal;
+var _c, _c2;
+$RefreshReg$(_c, "ChatIcon");
+$RefreshReg$(_c2, "ZipExtractModal");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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QkFBQyxZQUFPLE1BQUssVUFBUyxTQUFTcUIsUUFBUSxXQUFVLG1CQUFrQixVQUFVMUIsUUFBU00sUUFBUSxXQUFXSSxjQUFjLE1BQ3BIVixpQkFBT0ssRUFBRSwwQkFBMEIsSUFBSUEsRUFBRSw2QkFBNkIsS0FEekU7QUFBQTtBQUFBO0FBQUE7QUFBQSxhQUVBO0FBQUEsU0FKRjtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBS0E7QUFBQSxPQTFFRjtBQUFBO0FBQUE7QUFBQTtBQUFBLFNBMkVBLEtBNUVGO0FBQUE7QUFBQTtBQUFBO0FBQUEsU0E2RUE7QUFFSjtBQUFDRCxHQWxJZVQsaUJBQWU7QUFBQSxVQVVmZCxjQUFjO0FBQUE7QUFBQSxNQVZkYztBQUFlLElBQUFELElBQUFpRDtBQUFBLGFBQUFqRCxJQUFBO0FBQUEsYUFBQWlELEtBQUEiLCJuYW1lcyI6WyJ1c2VNZW1vIiwidXNlU3RhdGUiLCJ1c2VUcmFuc2xhdGlvbiIsIkJvdCIsIkZvbGRlciIsIkZvbGRlcklucHV0IiwiSGFyZERyaXZlIiwiSGFzaCIsIk1lZ2FwaG9uZSIsIk1lc3NhZ2VDaXJjbGUiLCJTZWFyY2giLCJVc2VycyIsIlgiLCJDaGF0SWNvbiIsInR5cGUiLCJfYyIsIlppcEV4dHJhY3RNb2RhbCIsImlzT3BlbiIsInNlbGVjdGVkQ291bnQiLCJmb2xkZXJzIiwiY2hhdHMiLCJidXN5IiwicHJvZ3Jlc3NMYWJlbCIsIm9uQ2xvc2UiLCJvbkNvbmZpcm1FeHRyYWN0IiwiX3MiLCJ0IiwidGFiIiwic2V0VGFiIiwicXVlcnkiLCJzZXRRdWVyeSIsInNlbGVjdGVkSWQiLCJzZXRTZWxlY3RlZElkIiwidG9waWNJZCIsInNldFRvcGljSWQiLCJmaWx0ZXJlZEZvbGRlcnMiLCJmaWx0ZXIiLCJpdGVtIiwibmFtZSIsInRvTG93ZXJDYXNlIiwiaW5jbHVkZXMiLCJ0cmltIiwiZmlsdGVyZWRDaGF0cyIsInNlbGVjdGVkQ2hhdCIsImZpbmQiLCJjaGF0IiwiaWQiLCJzdWJtaXQiLCJraW5kIiwiY2hhdElkIiwiZm9sZGVySWQiLCJsYWJlbCIsImZvbGRlciIsIlN0cmluZyIsInBhcnNlZFRvcGljIiwiTnVtYmVyIiwiaXNfZm9ydW0iLCJpc0ludGVnZXIiLCJtYXAiLCJJY29uIiwiZXZlbnQiLCJ0YXJnZXQiLCJ2YWx1ZSIsImRlZmF1bHRWYWx1ZSIsIl9jMiJdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJaaXBFeHRyYWN0TW9kYWwudHN4Il0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IHVzZU1lbW8sIHVzZVN0YXRlIH0gZnJvbSAncmVhY3QnO1xuaW1wb3J0IHsgdXNlVHJhbnNsYXRpb24gfSBmcm9tICdyZWFjdC1pMThuZXh0JztcbmltcG9ydCB7IEJvdCwgRm9sZGVyLCBGb2xkZXJJbnB1dCwgSGFyZERyaXZlLCBIYXNoLCBNZWdhcGhvbmUsIE1lc3NhZ2VDaXJjbGUsIFNlYXJjaCwgVXNlcnMsIFggfSBmcm9tICdsdWNpZGUtcmVhY3QnO1xuaW1wb3J0IHR5cGUgeyBEcml2ZUNoYXQsIERyaXZlRm9sZGVyIH0gZnJvbSAnLi4vLi4vLi4vbGliL3RlbGVncmFtL2RyaXZlVHlwZXMnO1xuaW1wb3J0IHR5cGUgeyBUYXJnZXREZXN0aW5hdGlvbiB9IGZyb20gJy4vemlwVXRpbHMnO1xuXG50eXBlIFppcEV4dHJhY3RNb2RhbFByb3BzID0ge1xuICBpc09wZW46IGJvb2xlYW47XG4gIHNlbGVjdGVkQ291bnQ6IG51bWJlcjtcbiAgZm9sZGVyczogRHJpdmVGb2xkZXJbXTtcbiAgY2hhdHM6IERyaXZlQ2hhdFtdO1xuICBidXN5PzogYm9vbGVhbjtcbiAgcHJvZ3Jlc3NMYWJlbD86IHN0cmluZyB8IG51bGw7XG4gIG9uQ2xvc2U6ICgpID0+IHZvaWQ7XG4gIG9uQ29uZmlybUV4dHJhY3Q6ICh0YXJnZXQ6IFRhcmdldERlc3RpbmF0aW9uKSA9PiB2b2lkO1xufTtcblxudHlwZSBEZXN0aW5hdGlvblRhYiA9ICdzYXZlZCcgfCAnZHJpdmUnIHwgJ2NoYXQnO1xuXG5mdW5jdGlvbiBDaGF0SWNvbih7IHR5cGUgfTogeyB0eXBlOiBzdHJpbmcgfSkge1xuICBpZiAodHlwZSA9PT0gJ2JvdCcpIHJldHVybiA8Qm90IHNpemU9ezE3fSAvPjtcbiAgaWYgKHR5cGUgPT09ICdjaGFubmVsJykgcmV0dXJuIDxNZWdhcGhvbmUgc2l6ZT17MTd9IC8+O1xuICBpZiAodHlwZSA9PT0gJ2dyb3VwJykgcmV0dXJuIDxVc2VycyBzaXplPXsxN30gLz47XG4gIHJldHVybiA8TWVzc2FnZUNpcmNsZSBzaXplPXsxN30gLz47XG59XG5cbmV4cG9ydCBmdW5jdGlvbiBaaXBFeHRyYWN0TW9kYWwoe1xuICBpc09wZW4sXG4gIHNlbGVjdGVkQ291bnQsXG4gIGZvbGRlcnMsXG4gIGNoYXRzLFxuICBidXN5LFxuICBwcm9ncmVzc0xhYmVsLFxuICBvbkNsb3NlLFxuICBvbkNvbmZpcm1FeHRyYWN0LFxufTogWmlwRXh0cmFjdE1vZGFsUHJvcHMpIHtcbiAgY29uc3QgeyB0IH0gPSB1c2VUcmFuc2xhdGlvbigpO1xuICBjb25zdCBbdGFiLCBzZXRUYWJdID0gdXNlU3RhdGU8RGVzdGluYXRpb25UYWI+KCdzYXZlZCcpO1xuICBjb25zdCBbcXVlcnksIHNldFF1ZXJ5XSA9IHVzZVN0YXRlKCcnKTtcbiAgY29uc3QgW3NlbGVjdGVkSWQsIHNldFNlbGVjdGVkSWRdID0gdXNlU3RhdGU8bnVtYmVyIHwgbnVsbD4obnVsbCk7XG4gIGNvbnN0IFt0b3BpY0lkLCBzZXRUb3BpY0lkXSA9IHVzZVN0YXRlKCcnKTtcblxuICBjb25zdCBmaWx0ZXJlZEZvbGRlcnMgPSB1c2VNZW1vKFxuICAgICgpID0+IGZvbGRlcnMuZmlsdGVyKChpdGVtKSA9PiBpdGVtLm5hbWUudG9Mb3dlckNhc2UoKS5pbmNsdWRlcyhxdWVyeS50cmltKCkudG9Mb3dlckNhc2UoKSkpLFxuICAgIFtmb2xkZXJzLCBxdWVyeV1cbiAgKTtcbiAgY29uc3QgZmlsdGVyZWRDaGF0cyA9IHVzZU1lbW8oXG4gICAgKCkgPT4gY2hhdHMuZmlsdGVyKChpdGVtKSA9PiBpdGVtLm5hbWUudG9Mb3dlckNhc2UoKS5pbmNsdWRlcyhxdWVyeS50cmltKCkudG9Mb3dlckNhc2UoKSkpLFxuICAgIFtjaGF0cywgcXVlcnldXG4gICk7XG4gIGNvbnN0IHNlbGVjdGVkQ2hhdCA9IHRhYiA9PT0gJ2NoYXQnID8gY2hhdHMuZmluZCgoY2hhdCkgPT4gY2hhdC5pZCA9PT0gc2VsZWN0ZWRJZCkgOiBudWxsO1xuXG4gIGlmICghaXNPcGVuKSByZXR1cm4gbnVsbDtcblxuICBjb25zdCBzdWJtaXQgPSAoKSA9PiB7XG4gICAgaWYgKHRhYiA9PT0gJ3NhdmVkJykge1xuICAgICAgb25Db25maXJtRXh0cmFjdCh7IGtpbmQ6ICdzYXZlZCcsIGNoYXRJZDogJ21lJywgZm9sZGVySWQ6IG51bGwsIHRvcGljSWQ6IG51bGwsIGxhYmVsOiB0KCdzcGVlZHRlc3Quc2F2ZWRfbWVzc2FnZXMnKSB9KTtcbiAgICAgIHJldHVybjtcbiAgICB9XG4gICAgaWYgKHNlbGVjdGVkSWQgPT0gbnVsbCkgcmV0dXJuO1xuICAgIGlmICh0YWIgPT09ICdkcml2ZScpIHtcbiAgICAgIGNvbnN0IGZvbGRlciA9IGZvbGRlcnMuZmluZCgoaXRlbSkgPT4gaXRlbS5pZCA9PT0gc2VsZWN0ZWRJZCk7XG4gICAgICBvbkNvbmZpcm1FeHRyYWN0KHsga2luZDogJ2RyaXZlJywgY2hhdElkOiBTdHJpbmcoc2VsZWN0ZWRJZCksIGZvbGRlcklkOiBzZWxlY3RlZElkLCB0b3BpY0lkOiBudWxsLCBsYWJlbDogZm9sZGVyPy5uYW1lIHx8IFN0cmluZyhzZWxlY3RlZElkKSB9KTtcbiAgICAgIHJldHVybjtcbiAgICB9XG4gICAgY29uc3QgY2hhdCA9IGNoYXRzLmZpbmQoKGl0ZW0pID0+IGl0ZW0uaWQgPT09IHNlbGVjdGVkSWQpO1xuICAgIGNvbnN0IHBhcnNlZFRvcGljID0gTnVtYmVyKHRvcGljSWQpO1xuICAgIG9uQ29uZmlybUV4dHJhY3Qoe1xuICAgICAga2luZDogJ2NoYXQnLFxuICAgICAgY2hhdElkOiBTdHJpbmcoc2VsZWN0ZWRJZCksXG4gICAgICBmb2xkZXJJZDogc2VsZWN0ZWRJZCxcbiAgICAgIHRvcGljSWQ6IHNlbGVjdGVkQ2hhdD8uaXNfZm9ydW0gJiYgTnVtYmVyLmlzSW50ZWdlcihwYXJzZWRUb3BpYykgJiYgcGFyc2VkVG9waWMgPiAwID8gcGFyc2VkVG9waWMgOiBudWxsLFxuICAgICAgbGFiZWw6IGNoYXQ/Lm5hbWUgfHwgU3RyaW5nKHNlbGVjdGVkSWQpLFxuICAgIH0pO1xuICB9O1xuXG4gIHJldHVybiAoXG4gICAgPGRpdiBjbGFzc05hbWU9XCJkemItbW9kYWwtb3ZlcmxheVwiIHJvbGU9XCJkaWFsb2dcIiBhcmlhLW1vZGFsPVwidHJ1ZVwiIGFyaWEtbGFiZWw9e3QoJ3NwZWVkdGVzdC56aXBfZXh0cmFjdF90aXRsZScpfT5cbiAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZHpiLW1vZGFsLWNhcmQgZHpiLWV4dHJhY3QtbW9kYWxcIj5cbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJkemItbW9kYWwtaGVhZGVyXCI+XG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJkemItbW9kYWwtdGl0bGVcIj5cbiAgICAgICAgICAgIDxGb2xkZXJJbnB1dCBzaXplPXsxOH0gLz5cbiAgICAgICAgICAgIDxzcGFuPnt0KCdzcGVlZHRlc3QuemlwX2V4dHJhY3RfdGl0bGUnKX0gwrcge3NlbGVjdGVkQ291bnR9PC9zcGFuPlxuICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgIDxidXR0b24gdHlwZT1cImJ1dHRvblwiIG9uQ2xpY2s9e29uQ2xvc2V9IGNsYXNzTmFtZT1cImR6Yi1hY3Rpb24taWNvbi1idG5cIiB0aXRsZT17dCgnc3BlZWR0ZXN0LnppcF9jbG9zZScpfSBkaXNhYmxlZD17YnVzeX0+XG4gICAgICAgICAgICA8WCBzaXplPXsxOH0gLz5cbiAgICAgICAgICA8L2J1dHRvbj5cbiAgICAgICAgPC9kaXY+XG5cbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJkemItbW9kYWwtYm9keSBkemItZXh0cmFjdC1ib2R5XCI+XG4gICAgICAgICAgPHAgY2xhc3NOYW1lPVwiZHpiLW1vZGFsLWRlc2NyaXB0aW9uXCI+e3QoJ3NwZWVkdGVzdC56aXBfZXh0cmFjdF9kZXN0X2Rlc2MnKX08L3A+XG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJkemItZGVzdGluYXRpb24tdGFic1wiIHJvbGU9XCJ0YWJsaXN0XCIgYXJpYS1sYWJlbD17dCgnc3BlZWR0ZXN0LnppcF9kZXN0aW5hdGlvbl90eXBlJyl9PlxuICAgICAgICAgICAgeyhbXG4gICAgICAgICAgICAgIFsnc2F2ZWQnLCBIYXJkRHJpdmUsICdzcGVlZHRlc3Quc2F2ZWRfbWVzc2FnZXMnXSxcbiAgICAgICAgICAgICAgWydkcml2ZScsIEZvbGRlciwgJ3NwZWVkdGVzdC56aXBfZGVzdF9kcml2ZSddLFxuICAgICAgICAgICAgICBbJ2NoYXQnLCBNZXNzYWdlQ2lyY2xlLCAnc3BlZWR0ZXN0LnppcF9kZXN0X2NoYXQnXSxcbiAgICAgICAgICAgIF0gYXMgY29uc3QpLm1hcCgoW2lkLCBJY29uLCBsYWJlbF0pID0+IChcbiAgICAgICAgICAgICAgPGJ1dHRvblxuICAgICAgICAgICAgICAgIGtleT17aWR9XG4gICAgICAgICAgICAgICAgdHlwZT1cImJ1dHRvblwiXG4gICAgICAgICAgICAgICAgcm9sZT1cInRhYlwiXG4gICAgICAgICAgICAgICAgYXJpYS1zZWxlY3RlZD17dGFiID09PSBpZH1cbiAgICAgICAgICAgICAgICBjbGFzc05hbWU9e2BkemItZGVzdGluYXRpb24tdGFiICR7dGFiID09PSBpZCA/ICdhY3RpdmUnIDogJyd9YH1cbiAgICAgICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiB7IHNldFRhYihpZCk7IHNldFNlbGVjdGVkSWQobnVsbCk7IHNldFRvcGljSWQoJycpOyB9fVxuICAgICAgICAgICAgICA+XG4gICAgICAgICAgICAgICAgPEljb24gc2l6ZT17MTZ9IC8+IHt0KGxhYmVsKX1cbiAgICAgICAgICAgICAgPC9idXR0b24+XG4gICAgICAgICAgICApKX1cbiAgICAgICAgICA8L2Rpdj5cblxuICAgICAgICAgIHt0YWIgPT09ICdzYXZlZCcgPyAoXG4gICAgICAgICAgICA8YnV0dG9uIHR5cGU9XCJidXR0b25cIiBjbGFzc05hbWU9XCJkemItZGVzdGluYXRpb24tY2FyZCBzZWxlY3RlZFwiIG9uQ2xpY2s9eygpID0+IHNldFNlbGVjdGVkSWQobnVsbCl9PlxuICAgICAgICAgICAgICA8SGFyZERyaXZlIHNpemU9ezIwfSAvPlxuICAgICAgICAgICAgICA8c3Bhbj48c3Ryb25nPnt0KCdzcGVlZHRlc3Quc2F2ZWRfbWVzc2FnZXMnKX08L3N0cm9uZz48c21hbGw+e3QoJ3NwZWVkdGVzdC56aXBfc2F2ZWRfZGVzYycpfTwvc21hbGw+PC9zcGFuPlxuICAgICAgICAgICAgPC9idXR0b24+XG4gICAgICAgICAgKSA6IChcbiAgICAgICAgICAgIDw+XG4gICAgICAgICAgICAgIDxsYWJlbCBjbGFzc05hbWU9XCJkemItZGVzdGluYXRpb24tc2VhcmNoXCI+XG4gICAgICAgICAgICAgICAgPFNlYXJjaCBzaXplPXsxNn0gLz5cbiAgICAgICAgICAgICAgICA8aW5wdXQgdmFsdWU9e3F1ZXJ5fSBvbkNoYW5nZT17KGV2ZW50KSA9PiBzZXRRdWVyeShldmVudC50YXJnZXQudmFsdWUpfSBwbGFjZWhvbGRlcj17dCgnc3BlZWR0ZXN0LnppcF9kZXN0aW5hdGlvbl9zZWFyY2gnKX0gLz5cbiAgICAgICAgICAgICAgPC9sYWJlbD5cbiAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJkemItZGVzdGluYXRpb24tbGlzdFwiPlxuICAgICAgICAgICAgICAgIHsodGFiID09PSAnZHJpdmUnID8gZmlsdGVyZWRGb2xkZXJzIDogZmlsdGVyZWRDaGF0cykubWFwKChpdGVtKSA9PiAoXG4gICAgICAgICAgICAgICAgICA8YnV0dG9uXG4gICAgICAgICAgICAgICAgICAgIGtleT17aXRlbS5pZH1cbiAgICAgICAgICAgICAgICAgICAgdHlwZT1cImJ1dHRvblwiXG4gICAgICAgICAgICAgICAgICAgIGNsYXNzTmFtZT17YGR6Yi1kZXN0aW5hdGlvbi1jYXJkICR7c2VsZWN0ZWRJZCA9PT0gaXRlbS5pZCA/ICdzZWxlY3RlZCcgOiAnJ31gfVxuICAgICAgICAgICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBzZXRTZWxlY3RlZElkKGl0ZW0uaWQpfVxuICAgICAgICAgICAgICAgICAgPlxuICAgICAgICAgICAgICAgICAgICB7dGFiID09PSAnZHJpdmUnID8gPEZvbGRlciBzaXplPXsxOH0gLz4gOiA8Q2hhdEljb24gdHlwZT17KGl0ZW0gYXMgRHJpdmVDaGF0KS50eXBlfSAvPn1cbiAgICAgICAgICAgICAgICAgICAgPHNwYW4+PHN0cm9uZz57aXRlbS5uYW1lfTwvc3Ryb25nPjxzbWFsbD57dGFiID09PSAnZHJpdmUnID8gdCgnc3BlZWR0ZXN0LnppcF9kZXN0X2RyaXZlJykgOiB0KGBzcGVlZHRlc3QuemlwX2NoYXRfdHlwZV8keyhpdGVtIGFzIERyaXZlQ2hhdCkudHlwZX1gLCB7IGRlZmF1bHRWYWx1ZTogKGl0ZW0gYXMgRHJpdmVDaGF0KS50eXBlIH0pfTwvc21hbGw+PC9zcGFuPlxuICAgICAgICAgICAgICAgICAgPC9idXR0b24+XG4gICAgICAgICAgICAgICAgKSl9XG4gICAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICAgPC8+XG4gICAgICAgICAgKX1cblxuICAgICAgICAgIHtzZWxlY3RlZENoYXQ/LmlzX2ZvcnVtICYmIChcbiAgICAgICAgICAgIDxsYWJlbCBjbGFzc05hbWU9XCJkemItdG9waWMtZmllbGRcIj5cbiAgICAgICAgICAgICAgPHNwYW4+PEhhc2ggc2l6ZT17MTV9IC8+IHt0KCdzcGVlZHRlc3QuemlwX3RvcGljX2lkJyl9PC9zcGFuPlxuICAgICAgICAgICAgICA8aW5wdXQgdHlwZT1cIm51bWJlclwiIG1pbj17MX0gdmFsdWU9e3RvcGljSWR9IG9uQ2hhbmdlPXsoZXZlbnQpID0+IHNldFRvcGljSWQoZXZlbnQudGFyZ2V0LnZhbHVlKX0gcGxhY2Vob2xkZXI9e3QoJ3NwZWVkdGVzdC56aXBfdG9waWNfaWRfcGxhY2Vob2xkZXInKX0gLz5cbiAgICAgICAgICAgICAgPHNtYWxsPnt0KCdzcGVlZHRlc3QuemlwX3RvcGljX2lkX2hpbnQnKX08L3NtYWxsPlxuICAgICAgICAgICAgPC9sYWJlbD5cbiAgICAgICAgICApfVxuICAgICAgICAgIHtwcm9ncmVzc0xhYmVsICYmIDxwIGNsYXNzTmFtZT1cImR6Yi1leHRyYWN0LXByb2dyZXNzXCIgcm9sZT1cInN0YXR1c1wiPntwcm9ncmVzc0xhYmVsfTwvcD59XG4gICAgICAgIDwvZGl2PlxuXG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZHpiLW1vZGFsLWZvb3RlclwiPlxuICAgICAgICAgIDxidXR0b24gdHlwZT1cImJ1dHRvblwiIG9uQ2xpY2s9e29uQ2xvc2V9IGNsYXNzTmFtZT1cImR6Yi1idG4tc2Vjb25kYXJ5XCIgZGlzYWJsZWQ9e2J1c3l9Pnt0KCdzcGVlZHRlc3QuemlwX2J0bl9jYW5jZWwnKX08L2J1dHRvbj5cbiAgICAgICAgICA8YnV0dG9uIHR5cGU9XCJidXR0b25cIiBvbkNsaWNrPXtzdWJtaXR9IGNsYXNzTmFtZT1cImR6Yi1idG4tcHJpbWFyeVwiIGRpc2FibGVkPXtidXN5IHx8ICh0YWIgIT09ICdzYXZlZCcgJiYgc2VsZWN0ZWRJZCA9PSBudWxsKX0+XG4gICAgICAgICAgICB7YnVzeSA/IHQoJ3NwZWVkdGVzdC56aXBfZXh0cmFjdGluZycpIDogdCgnc3BlZWR0ZXN0LnppcF9zdGFydF9leHRyYWN0Jyl9XG4gICAgICAgICAgPC9idXR0b24+XG4gICAgICAgIDwvZGl2PlxuICAgICAgPC9kaXY+XG4gICAgPC9kaXY+XG4gICk7XG59XG4iXSwiZmlsZSI6IkY6L0F1dG9HcmFtL0F1dG9HcmFtIEFwcC9mcm9udGVuZC9zcmMvY29tcG9uZW50cy9kcml2ZS9Ecml2ZVppcEJyb3dzZXIvWmlwRXh0cmFjdE1vZGFsLnRzeCJ9

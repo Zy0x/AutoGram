@@ -1,5 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
+import { X } from 'lucide-react';
 import './App.css';
 import { SplashScreen } from './components/layout/SplashScreen';
 import { ApiSetupScreen } from './pages/ApiSetupScreen';
@@ -130,7 +131,7 @@ function App() {
 
     const interval = setInterval(() => {
       void checkAndAutoPruneCache();
-    }, 15 * 60 * 1000);
+    }, 30 * 1000);
 
     return () => {
       active = false;
@@ -207,7 +208,7 @@ function App() {
                   lineHeight: 1,
                 }}
               >
-                ×
+                <X size={16} aria-hidden="true" />
               </button>
             </div>
           )}

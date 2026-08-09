@@ -66,7 +66,16 @@ pub fn get_media_statistics_blocking(
             .map(|d| d.as_secs())
             .unwrap_or(0);
 
-        if now.saturating_sub(cached.last_sync) < 120 {
+        let cached_media_total = cached
+            .photo_count
+            .saturating_add(cached.video_count)
+            .saturating_add(cached.file_count)
+            .saturating_add(cached.gif_count)
+            .saturating_add(cached.audio_count);
+        // Older builds stored InputMessagesFilterEmpty here, which is a count
+        // of every topic message (including text/service posts), not media.
+        let cache_uses_media_semantics = cached.total_count <= cached_media_total.max(cached.loaded_count);
+        if now.saturating_sub(cached.last_sync) < 120 && cache_uses_media_semantics {
             if loaded_count > cached.loaded_count {
                 cached.loaded_count = loaded_count;
                 let _ = save_statistics(&cached);
@@ -86,14 +95,6 @@ pub fn get_media_statistics_blocking(
                     let peer = resolve_peer(client, &chat).await?;
 
                     let top_msg_id = topic_id.filter(|t| *t > 0).map(|t| t as i32);
-
-                    let total_count = query_count_for_filter(
-                        client,
-                        &peer,
-                        top_msg_id,
-                        tl::enums::MessagesFilter::InputMessagesFilterEmpty,
-                    )
-                    .await;
 
                     let photo_count = query_count_for_filter(
                         client,
@@ -142,6 +143,16 @@ pub fn get_media_statistics_blocking(
                         tl::enums::MessagesFilter::InputMessagesFilterMusic,
                     )
                     .await;
+
+                    // These Telegram search filters are the media categories
+                    // represented by Media Studio cards. Do not use the empty
+                    // filter: it also counts text and service messages.
+                    let total_count = photo_count
+                        .saturating_add(video_count)
+                        .saturating_add(file_count)
+                        .saturating_add(gif_count)
+                        .saturating_add(audio_count)
+                        .max(loaded_count);
 
                     let now = std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)

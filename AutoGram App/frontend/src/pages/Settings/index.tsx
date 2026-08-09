@@ -181,9 +181,12 @@ import {
   getPersistentThumbsSize,
 } from '../../lib/media/thumbPersistentCache';
 import { clearMediaStudioCache, getMediaStudioCacheSize } from '../../lib/db/mediaStudioDb';
+import {
+  clearClientCacheStorage,
+  getClientCacheStorageSize,
+} from '../../lib/db/clientCacheStorage';
 
 import { NetworkSection } from './NetworkSection';
-import { DebugSection } from './DebugLogsSection';
 import { SpecificCacheModal } from './SpecificCacheModal';
 import { CACHE_LIMIT_STEPS, PRESET_CACHE_LIMIT_VALUES } from './settingsUtils';
 import './Settings.css';
@@ -231,6 +234,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
     localBytes: number;
   } | null>(null);
   const [clearStatus, setClearStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [clearSummary, setClearSummary] = useState<{ removed: number; freed: number } | null>(null);
 
   const [isSpecificModalOpen, setIsSpecificModalOpen] = useState(false);
   const [isTrimming, setIsTrimming] = useState(false);
@@ -254,7 +258,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
 
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
 
-  type SettingsTab = 'general' | 'startup' | 'updates' | 'network' | 'storage' | 'developer';
+  type SettingsTab = 'general' | 'startup' | 'updates' | 'network' | 'storage';
   const [activeTab, setActiveTab] = useState<SettingsTab>('startup');
 
   const [startupBehavior, setStartupBehaviorState] = useState<string>(() => {
@@ -441,6 +445,9 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
   const handleToggleAutoPrune = (enabled: boolean) => {
     setAutoPruneEnabled(enabled);
     localStorage.setItem('autogram_auto_prune_enabled', String(enabled));
+    void import('../../lib/db/jobsApi').then(({ cacheSetPolicy }) =>
+      cacheSetPolicy(cacheLimitMB * 1024 * 1024, enabled)
+    );
   };
 
   const handleTrimCache = async (overrideLimitMB?: number) => {
@@ -450,14 +457,20 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
     try {
       const limitBytes = targetMb * 1024 * 1024;
       const { prunePersistentThumbsToSize } = await import('../../lib/media/thumbPersistentCache');
-      await prunePersistentThumbsToSize(limitBytes);
+      const studioBytes = await getMediaStudioCacheSize().catch(() => 0);
+      await prunePersistentThumbsToSize(Math.max(0, limitBytes - studioBytes));
       clearThumbCache();
       clearAvatarCache();
       clearPreviewCache();
       clearZipBrowserCache();
       try {
-        const { cacheTrimDisk } = await import('../../lib/db/jobsApi');
-        await cacheTrimDisk(limitBytes);
+        const [{ cacheTrimDisk, cacheSetPolicy }, thumbBytes] = await Promise.all([
+          import('../../lib/db/jobsApi'),
+          getPersistentThumbsSize().catch(() => 0),
+        ]);
+        const diskBudget = Math.max(0, limitBytes - studioBytes - thumbBytes);
+        await cacheTrimDisk(diskBudget);
+        await cacheSetPolicy(limitBytes, autoPruneEnabled);
       } catch {
         /* best effort */
       }
@@ -474,6 +487,9 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
   const handleCacheLimitChange = (newMb: number) => {
     setCacheLimitMB(newMb);
     localStorage.setItem('autogram_cache_limit_mb', String(newMb));
+    void import('../../lib/db/jobsApi').then(({ cacheSetPolicy }) =>
+      cacheSetPolicy(newMb * 1024 * 1024, autoPruneEnabled)
+    );
     if (newMb > 0 && cacheSize !== null && cacheSize > newMb * 1024 * 1024) {
       void handleTrimCache(newMb);
     }
@@ -487,6 +503,14 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
     handleCacheLimitChange(mbValue);
     setIsCustomModalOpen(false);
   };
+
+  useEffect(() => {
+    void import('../../lib/db/jobsApi')
+      .then(({ cacheSetPolicy }) =>
+        cacheSetPolicy(cacheLimitMB * 1024 * 1024, autoPruneEnabled)
+      )
+      .catch((error) => console.warn('Failed to synchronize cache policy', error));
+  }, [cacheLimitMB, autoPruneEnabled]);
 
   const [isClearingDb, setIsClearingDb] = useState(false);
 
@@ -516,22 +540,9 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
         console.warn('Failed to calculate IDB size', e);
       }
 
-      // 2. LocalStorage & SessionStorage Caches (Exhaustive Scan)
-      let localSize = 0;
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && (key.startsWith('autogram_') || key.startsWith('drive_') || key.includes('session'))) {
-          const val = localStorage.getItem(key) || '';
-          localSize += (key.length + val.length) * 2;
-        }
-      }
-      for (let i = 0; i < sessionStorage.length; i++) {
-        const key = sessionStorage.key(i);
-        if (key && (key.startsWith('autogram_') || key.startsWith('drive_') || key.includes('session'))) {
-          const val = sessionStorage.getItem(key) || '';
-          localSize += (key.length + val.length) * 2;
-        }
-      }
+      // 2. Rebuildable browser caches only. Session, pins, preferences, and
+      // transfer queues are application state and must never inflate cache size.
+      const localSize = getClientCacheStorageSize();
 
       // 3. Disk Cache Backend (Rust FS: Chunk, Part, Previews, Temp)
       let diskCacheBytes = 0;
@@ -584,6 +595,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
     setIsConfirmClearCacheOpen(false);
     setIsClearing(true);
     setClearStatus('idle');
+    setClearSummary(null);
     try {
       // 1. Memory Caches
       clearThumbCache();
@@ -595,36 +607,23 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
       await clearPersistentThumbs();
       await clearMediaStudioCache();
 
-      // 3. LocalStorage & SessionStorage Caches (100% Exhaustive Purge)
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && (key.startsWith('autogram_') || key.startsWith('drive_') || key.includes('session'))) {
-          keysToRemove.push(key);
-        }
-      }
-      for (const key of keysToRemove) {
-        localStorage.removeItem(key);
-      }
-      const sessionKeysToRemove: string[] = [];
-      for (let i = 0; i < sessionStorage.length; i++) {
-        const key = sessionStorage.key(i);
-        if (key && (key.startsWith('autogram_') || key.startsWith('drive_') || key.includes('session'))) {
-          sessionKeysToRemove.push(key);
-        }
-      }
-      for (const key of sessionKeysToRemove) sessionStorage.removeItem(key);
+      // 3. Browser caches. Account/session identity, pins, user preferences,
+      // queued transfers, and the Transfer Database are intentionally excluded.
+      const clientResult = clearClientCacheStorage();
 
       // 4. Disk Cache Backend (Rust FS: Chunk, Part, Previews, Temp)
-      try {
-        const { cacheClearDisk } = await import('../../lib/db/jobsApi');
-        await cacheClearDisk();
-      } catch (e) {
-        console.error('Failed to clear disk cache', e);
+      const { cacheClearDisk } = await import('../../lib/db/jobsApi');
+      const diskResult = await cacheClearDisk();
+      if (diskResult.status !== 'success' || diskResult.remainingBytes > 0) {
+        throw new Error(`cache clear incomplete: ${diskResult.remainingBytes} bytes remain`);
       }
 
       // Recalculate size
       await calculateCacheSize();
+      setClearSummary({
+        removed: clientResult.removedEntries + diskResult.removedFiles,
+        freed: clientResult.freedBytes + diskResult.freedBytes,
+      });
       setClearStatus('success');
       setTimeout(() => setClearStatus('idle'), 5000);
     } catch (err) {
@@ -788,7 +787,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
           {onBackToLauncher && (
             <button type="button" className="btn btn-secondary settings-back-button" onClick={onBackToLauncher}>
               <ArrowLeft size={17} />
-              {t('nav.back_to_launcher')}
+              {t('settings.back_to_session_hub')}
             </button>
           )}
         </div>
@@ -796,7 +795,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
 
       <div className="settings-layout-sidebar">
         {/* LEFT SIDEBAR NAVIGATION */}
-        <nav className="settings-sidebar-nav" aria-label="Settings Navigation">
+        <nav className="settings-sidebar-nav" aria-label={t('settings.navigation_aria')}>
           <button
             type="button"
             className={`settings-sidebar-nav-item ${activeTab === 'startup' ? 'active' : ''}`}
@@ -842,14 +841,6 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
             <span>{t('settings.tab_storage')}</span>
           </button>
 
-          <button
-            type="button"
-            className={`settings-sidebar-nav-item ${activeTab === 'developer' ? 'active' : ''}`}
-            onClick={() => setActiveTab('developer')}
-          >
-            <Key size={18} />
-            <span>{t('settings.tab_developer')}</span>
-          </button>
         </nav>
 
         {/* RIGHT CONTENT PANEL */}
@@ -1083,7 +1074,9 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                     color: releaseChannel === 'beta' ? '#f59e0b' : '#10b981',
                   }}
                 >
-                  {releaseChannel === 'beta' ? 'BETA STREAM' : 'STABLE STREAM'}
+                  {releaseChannel === 'beta'
+                    ? t('settings.channel_beta_stream')
+                    : t('settings.channel_stable_stream')}
                 </span>
               </div>
 
@@ -1215,7 +1208,9 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '0.80rem', color: '#94a3b8' }}>{t('settings.current_version_label')}:</span>
-                    <strong style={{ fontSize: '0.86rem', color: '#38bdf8' }}>v{CURRENT_APP_VERSION}</strong>
+                    <strong style={{ fontSize: '0.86rem', color: '#38bdf8' }}>
+                      {t('settings.version_prefix')}{CURRENT_APP_VERSION}
+                    </strong>
                     <a
                       href={releaseUrl}
                       target="_blank"
@@ -1452,7 +1447,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                     <span style={{ color: '#64748b', marginRight: '6px', fontFamily: 'sans-serif' }}>
                       {t('settings.custom_cache_current_path')}
                     </span>
-                    {customCacheInfo?.activePath || 'worker/cache (Default)'}
+                    {customCacheInfo?.activePath || t('settings.default_cache_path')}
                   </div>
                 </div>
 
@@ -1772,8 +1767,8 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                           outline: 'none',
                         }}
                       >
-                        <option value="GB">GB</option>
-                        <option value="MB">MB</option>
+                        <option value="GB">{t('settings.unit_gb')}</option>
+                        <option value="MB">{t('settings.unit_mb')}</option>
                       </select>
                     </div>
                   </div>
@@ -2071,10 +2066,25 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
             </div>
 
             {clearStatus === 'success' && (
-              <div className="settings-status success">{t('settings.cache_clear_success')}</div>
+              <div className="settings-cache-result is-success" role="status" aria-live="polite">
+                <span className="settings-cache-result-icon"><CheckCircle size={18} /></span>
+                <span className="settings-cache-result-copy">
+                  <strong>{t('settings.cache_clear_success_title')}</strong>
+                  <span>{t('settings.cache_clear_success_detail', {
+                    count: clearSummary?.removed || 0,
+                    size: formatBytes(clearSummary?.freed || 0),
+                  })}</span>
+                </span>
+              </div>
             )}
             {clearStatus === 'error' && (
-              <div className="settings-status error">{t('settings.cache_clear_error')}</div>
+              <div className="settings-cache-result is-error" role="alert">
+                <span className="settings-cache-result-icon"><AlertTriangle size={18} /></span>
+                <span className="settings-cache-result-copy">
+                  <strong>{t('settings.cache_clear_error_title')}</strong>
+                  <span>{t('settings.cache_clear_error')}</span>
+                </span>
+              </div>
             )}
 
             {/* Transfer Database & Deduplication Clean */}
@@ -2139,49 +2149,6 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
         </div>
       )}
 
-      {/* TAB 6: DEVELOPER & LOGS */}
-      {activeTab === 'developer' && (
-        <>
-          {/* Telegram API Credentials Card */}
-          <div className="glass-panel card">
-            <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Key size={20} color="var(--primary)" />
-                <h3>{t('settings.api_config')}</h3>
-              </div>
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  padding: '3px 10px',
-                  borderRadius: '12px',
-                  background: hasApiError ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                  border: hasApiError ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)',
-                  color: hasApiError ? '#f87171' : '#10b981',
-                }}
-              >
-                {hasApiError ? 'Belum Dikonfigurasi' : 'Aktif & Tersimpan'}
-              </span>
-            </div>
-            <p className="field-hint" style={{ marginBottom: '1.25rem', lineHeight: 1.5 }}>
-              {t('settings.api_config_hint')}
-            </p>
-            {onOpenApiSetup && (
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={onOpenApiSetup}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}
-              >
-                <Key size={16} />
-                <span>{t('settings.api_config')}</span>
-              </button>
-            )}
-          </div>
-
-          <DebugSection />
-        </>
-      )}
     </div>
   </div>
 
@@ -2378,7 +2345,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                 wordBreak: 'break-all',
               }}
             >
-              {customCacheInfo?.defaultPath || 'worker/cache (Default)'}
+              {customCacheInfo?.defaultPath || t('settings.default_cache_path')}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '6px' }}>

@@ -3,8 +3,20 @@ import { invoke } from '@tauri-apps/api/core';
 export type PreflightTransform = 'pass_through' | 'lossless_remux' | 'reencode';
 export type PreflightPayload = 'native_visual' | 'document_group' | 'audio_group' | 'original_document_batch' | 'split_part_batch';
 
+export interface QualityPreflightDuplicateMatch {
+  matchLevel: 'exact_sha256' | 'probable_filename_size';
+  telegramMessageId: number | null;
+  telegramUniqueId: string | null;
+  existingName: string;
+  existingSize: number;
+  existingPayloadClass: string;
+  destinationId: string;
+  topicId: number | null;
+}
+
 export interface QualityPreflightItem {
   index: number;
+  sourcePath: string;
   sourceName: string;
   sourceSize: number;
   category: string;
@@ -16,6 +28,7 @@ export interface QualityPreflightItem {
   warnings: string[];
   rejectedAlternatives: string[];
   requiresConfirmation: boolean;
+  duplicateMatch: QualityPreflightDuplicateMatch | null;
 }
 
 export interface QualityPreflightReport {
@@ -44,6 +57,16 @@ export interface QualityPreflightRequest {
   oversizeAction: string;
   globalCaption?: string;
   captionOverflowPolicy: 'truncate_with_warning' | 'fail' | 'split';
+  destinationId: string;
+  topicId?: number | null;
+}
+
+export type TransferDuplicateChoice = 'skip' | 'upload';
+
+export interface PreflightReviewDecision {
+  approved: boolean;
+  skippedPaths: string[];
+  forceUploadPaths: string[];
 }
 
 export function runQualityPreflight(request: QualityPreflightRequest): Promise<QualityPreflightReport> {

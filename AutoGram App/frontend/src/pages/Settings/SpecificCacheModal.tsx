@@ -25,6 +25,8 @@ import { clearAvatarCache } from '../../lib/media/avatarBatcher';
 import { clearPreviewCache } from '../../lib/media/previewCache';
 import { clearZipBrowserCache } from '../../components/drive/DriveZipBrowser/zipUtils';
 import { clearPersistentThumbs } from '../../lib/media/thumbPersistentCache';
+import { clearMediaStudioCache } from '../../lib/db/mediaStudioDb';
+import { clearClientCacheStorage } from '../../lib/db/clientCacheStorage';
 import { tgListSessions } from '../../lib/telegram/core/telegramBackend';
 import { getSessionMetadata } from '../../lib/telegram/core/sessionPicker';
 
@@ -341,32 +343,23 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
     setClearingItem('all_system');
     try {
       clearAvatarCache();
-      try {
-        const { cacheClearDisk } = await import('../../lib/db/jobsApi');
-        await cacheClearDisk();
-      } catch {}
       clearThumbCache();
       clearPreviewCache();
       await clearPersistentThumbs();
+      await clearMediaStudioCache();
       clearZipBrowserCache();
-      handleClearGlobalLocations();
-      handleClearGlobalSidebar();
-      handleClearGlobalTopics();
-      handleClearGlobalPeer();
-      handleClearGlobalChatFolders();
-      handleClearGlobalScroll();
-      localStorage.removeItem('autogram_drive_upload_queue');
-      const uiKeys = [
-        'autogram_drive_view_mode',
-        'autogram_drive_grid_zoom',
-        'autogram_drive_sort_mode',
-        'autogram_drive_thumb_quality',
-        'autogram_drive_task_manager_minimized',
-      ];
-      for (const k of uiKeys) localStorage.removeItem(k);
+      clearClientCacheStorage();
+      const { cacheClearDisk } = await import('../../lib/db/jobsApi');
+      const diskResult = await cacheClearDisk();
+      if (diskResult.status !== 'success' || diskResult.remainingBytes > 0) {
+        throw new Error(`cache clear incomplete: ${diskResult.remainingBytes} bytes remain`);
+      }
 
-      showToast(t('ui.generated.pembersihan_total_cache_sistem_a123f45') + ' berhasil!');
+      showToast(t('ui.generated.pembersihan_total_cache_sistem_a123f45'));
       triggerCacheRefresh();
+    } catch (error) {
+      console.error('Failed to clear every system cache', error);
+      showToast(t('settings.cache_clear_error'));
     } finally {
       setClearingItem(null);
     }
