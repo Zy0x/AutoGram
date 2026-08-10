@@ -21062,3 +21062,20 @@ input[type="search"]::-webkit-search-decoration {
   contain: none !important;
   pointer-events: auto !important;
 }
+
+/* -- Max-Height & Scrollport Binding for Collapsed Navigation Rail -- */
+.td-sidebar.is-collapsed .td-folder-nav,
+.td-sidebar.collapsed .td-folder-nav {
+  max-height: calc(100vh - 150px) !important;
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: auto !important;
+  pointer-events: auto !important;
+  scrollbar-width: none !important;
+}
+
+.td-sidebar.is-collapsed .td-folder-nav::-webkit-scrollbar,
+.td-sidebar.collapsed .td-folder-nav::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+}

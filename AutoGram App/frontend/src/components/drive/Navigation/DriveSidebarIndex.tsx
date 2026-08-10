@@ -1772,6 +1772,11 @@ export function DriveSidebar({
         data-layout-model={layoutModel}
         data-active-tab={activeTab}
         data-has-query={hasLocationQuery ? 'true' : 'false'}
+        onWheel={(e) => {
+          if (collapsed && navRef.current) {
+            navRef.current.scrollTop += e.deltaY;
+          }
+        }}
         onDragOver={(e) => {
           if (
             dragLive ||
