@@ -1716,7 +1716,7 @@ export function DriveSidebar({
               title={t('speedtest.saved_messages')}
             >
               <Home size={13} aria-hidden />
-              <span className="td-sidebar-tab-label td-only-expanded">{t('speedtest.saved_messages_short')}</span>
+              <span className="td-sidebar-tab-label td-only-expanded">{t('speedtest.sidebar_tab_saved')}</span>
             </button>
 
             {/* Tab 2: Recent Locations */}
@@ -1730,13 +1730,13 @@ export function DriveSidebar({
               title={t('speedtest.sidebar_recents_header')}
             >
               <Clock size={13} aria-hidden />
-              <span className="td-sidebar-tab-label td-only-expanded">{t('speedtest.sidebar_recents_header')}</span>
+              <span className="td-sidebar-tab-label td-only-expanded">{t('speedtest.sidebar_tab_recent')}</span>
               {filteredRecents.length > 0 && (
                 <span className="td-tab-badge">{filteredRecents.length}</span>
               )}
             </button>
 
-            {/* Tab 3: Drives [TD] */}
+            {/* Tab 3: Drives */}
             <button
               type="button"
               role="tab"
@@ -1747,13 +1747,13 @@ export function DriveSidebar({
               title={t('ui.generated.drives_td_d85c6ed')}
             >
               <HardDrive size={13} aria-hidden />
-              <span className="td-sidebar-tab-label td-only-expanded">{t('ui.generated.drives_td_d85c6ed')}</span>
+              <span className="td-sidebar-tab-label td-only-expanded">{t('speedtest.sidebar_tab_drives')}</span>
               {folders.length > 0 && (
                 <span className="td-tab-badge">{folders.length}</span>
               )}
             </button>
 
-            {/* Tab 4: Chats & Groups */}
+            {/* Tab 4: Telegram Chats & Groups */}
             <button
               type="button"
               role="tab"
@@ -1764,7 +1764,7 @@ export function DriveSidebar({
               title={t('ui.generated.daftar_chat_71a8e93')}
             >
               <MessageSquare size={13} aria-hidden />
-              <span className="td-sidebar-tab-label td-only-expanded">{t('ui.generated.daftar_chat_71a8e93')}</span>
+              <span className="td-sidebar-tab-label td-only-expanded">{t('speedtest.sidebar_tab_telegram')}</span>
               {chats.length > 0 && (
                 <span className="td-tab-badge">{chatRows.length}</span>
               )}
