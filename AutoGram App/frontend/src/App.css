@@ -20287,3 +20287,11 @@ input[type="search"]::-webkit-search-decoration {
   from { opacity: 0; transform: translateY(3px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* Universal Location Search — when user types in search input, show all matching sections across tabs */
+.td-folder-nav.is-search-mode .td-recents,
+.td-folder-nav.is-search-mode .td-dnd-folder-stack,
+.td-folder-nav.is-search-mode .td-chat-section,
+.td-folder-nav.is-search-mode > .td-folder-row {
+  display: block !important;
+}

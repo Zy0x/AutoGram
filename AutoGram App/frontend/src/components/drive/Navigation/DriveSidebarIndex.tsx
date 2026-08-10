@@ -1647,10 +1647,11 @@ export function DriveSidebar({
       <nav
         ref={navRef as React.RefObject<HTMLElement>}
         className={`td-folder-nav ${anyDragLive ? 'is-drop-mode is-dnd-layout' : ''} ${
-          !chatsExpanded ? 'chats-collapsed' : ''
-        } ${!foldersExpanded ? 'folders-collapsed' : ''} td-nav-model-${layoutModel}`}
+          hasLocationQuery ? 'is-search-mode' : ''
+        } ${!chatsExpanded ? 'chats-collapsed' : ''} ${!foldersExpanded ? 'folders-collapsed' : ''} td-nav-model-${layoutModel}`}
         data-layout-model={layoutModel}
         data-active-tab={activeTab}
+        data-has-query={hasLocationQuery ? 'true' : 'false'}
         onDragOver={(e) => {
           if (
             dragLive ||
@@ -1667,6 +1668,50 @@ export function DriveSidebar({
           }
         }}
       >
+        {/* Universal location search — top of nav for general search across all tabs */}
+        {!anyDragLive && (
+          <div className="td-location-search td-only-expanded">
+            <Search size={14} aria-hidden className="td-location-search-ico" />
+            <input
+              ref={locationSearchRef}
+              type="text"
+              inputMode="search"
+              autoComplete="off"
+              spellCheck={false}
+              value={locationQuery}
+              onChange={(e) => onChatQuery(e.target.value)}
+              placeholder={t("speedtest.sidebar_search_location_ph")}
+              aria-label={t("speedtest.sidebar_search_aria")}
+              title={t("speedtest.sidebar_search_title")}
+              onDragOver={(e) => e.stopPropagation()}
+            />
+            {hasLocationQuery && (
+              <button
+                type="button"
+                className="td-location-search-clear"
+                title={t('speedtest.clear_search')}
+                aria-label={t("speedtest.sidebar_clear_search")}
+                onClick={() => onChatQuery('')}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        )}
+        {hasLocationQuery && !dragLive && (
+          <p className="td-location-search-meta td-only-expanded">
+            {[
+              showSaved ? 1 : 0,
+              folderRows.length,
+              chatRows.length,
+            ].reduce((a, b) => a + b, 0)}{' '}
+            {t('ui.generated.lokasi_9c8096b')}
+            {chatsHasMore && chatRows.length === 0
+              ? t('ui.generated.muat_chat_lain_jika_belum_muncul_38ef29f')
+              : ''}
+          </p>
+        )}
+
         {/* ── Model A & B: Tab bar ── */}
         {(layoutModel === 'model_a' || layoutModel === 'model_b') && !anyDragLive && (
           <div className="td-sidebar-tab-bar td-only-expanded" role="tablist">
@@ -1789,49 +1834,6 @@ export function DriveSidebar({
               );
             })}
           </div>
-        )}
-        {/* Universal location search — hidden while dragging (frees space for drop list) */}
-        {!anyDragLive && (
-          <div className="td-location-search td-only-expanded">
-            <Search size={14} aria-hidden className="td-location-search-ico" />
-            <input
-              ref={locationSearchRef}
-              type="text"
-              inputMode="search"
-              autoComplete="off"
-              spellCheck={false}
-              value={locationQuery}
-              onChange={(e) => onChatQuery(e.target.value)}
-              placeholder={t("speedtest.sidebar_search_location_ph")}
-              aria-label={t("speedtest.sidebar_search_aria")}
-              title={t("speedtest.sidebar_search_title")}
-              onDragOver={(e) => e.stopPropagation()}
-            />
-            {hasLocationQuery && (
-              <button
-                type="button"
-                className="td-location-search-clear"
-                title={t('speedtest.clear_search')}
-                aria-label={t("speedtest.sidebar_clear_search")}
-                onClick={() => onChatQuery('')}
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-        )}
-        {hasLocationQuery && !dragLive && (
-          <p className="td-location-search-meta td-only-expanded">
-            {[
-              showSaved ? 1 : 0,
-              folderRows.length,
-              chatRows.length,
-            ].reduce((a, b) => a + b, 0)}{' '}
-            {t('ui.generated.lokasi_9c8096b')}
-            {chatsHasMore && chatRows.length === 0
-              ? t('ui.generated.muat_chat_lain_jika_belum_muncul_38ef29f')
-              : ''}
-          </p>
         )}
         {/* Shortcuts moved to input title tooltips — strip was visual noise */}
         <div className="td-shortcuts-hint td-only-expanded" style={{ display: 'none' }}>
