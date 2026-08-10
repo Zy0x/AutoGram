@@ -1929,12 +1929,12 @@ export function DriveSidebar({
                   (r.kind !== 'saved' &&
                     locationKind === r.kind &&
                     activePeerId === r.id);
-                const short = recentDisplayLabel(r.label, 18);
+                const kindBadge = r.kind === 'drive' ? 'Drive' : r.kind === 'chat' ? 'Chat' : 'Saved';
                 return (
                   <DropRow
                     key={`${r.kind}:${r.id ?? 'me'}`}
                     dropKeyStr={key}
-                    className={`td-recent-chip ${active ? 'active' : ''}`}
+                    className={`td-folder-row ${active ? 'active' : ''}`}
                     title={
                       dragLive
                         ? `Lepas untuk kirim ke ${r.label}`
@@ -1948,7 +1948,28 @@ export function DriveSidebar({
                     onDropTarget={handleDropKey}
                     onActivate={() => go(() => onSelectRecent?.(r))}
                   >
-                    <span className="td-folder-label">{short}</span>
+                    <span className="td-folder-ico">
+                      {r.kind === 'saved' ? (
+                        <PeerAvatar peerId={0} creds={creds} title={r.label} fallback={<Home size={16} />} />
+                      ) : r.kind === 'drive' ? (
+                        <PeerAvatar peerId={r.id} creds={creds} title={r.label} fallback={<Folder size={16} />} />
+                      ) : (
+                        <PeerAvatar peerId={r.id} creds={creds} title={r.label} fallback={<MessageSquare size={16} />} />
+                      )}
+                    </span>
+                    <span className="td-folder-label">{r.label}</span>
+                    <span className="td-location-badge" style={{
+                      fontSize: '0.62rem',
+                      padding: '1px 6px',
+                      borderRadius: '4px',
+                      border: '1px solid color-mix(in srgb, var(--td-primary, #3b82f6) 40%, var(--td-border))',
+                      color: 'color-mix(in srgb, var(--td-primary, #3b82f6) 85%, var(--td-fg))',
+                      fontWeight: 600,
+                      marginLeft: 'auto',
+                      flexShrink: 0,
+                    }}>
+                      {kindBadge}
+                    </span>
                   </DropRow>
                 );
               })}

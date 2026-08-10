@@ -20326,3 +20326,11 @@ input[type="search"]::-webkit-search-decoration {
   color: var(--td-sub);
   font-weight: 700;
 }
+
+/* Flat Recents List Layout - matches Drives & Chats row styling */
+.td-recents-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  padding: 0 2px !important;
+}
