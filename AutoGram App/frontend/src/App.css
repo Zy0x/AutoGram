@@ -7614,9 +7614,11 @@ body:has(.app-layout-drive-focus),
   flex-wrap: nowrap !important;
   align-items: center;
   gap: 8px;
-  overflow: visible;
+  /* Hard cap: row height NEVER changes when selection mode toggles */
   height: 36px;
   min-height: 36px;
+  max-height: 36px;
+  overflow: hidden;
 }
 .td-topbar-row-2 .td-search {
   flex: 1 1 auto;
@@ -7626,16 +7628,37 @@ body:has(.app-layout-drive-focus),
   height: 36px;
   box-sizing: border-box;
   padding: 6px 12px;
+  transition: opacity 0.12s ease;
 }
+/* When selection active: hide search, strip takes full width */
 .td-topbar-row-2.has-selection-tools .td-search {
-  flex: 1 1 30%;
-  width: auto;
-  min-width: 6rem;
-}
-.td-topbar-row-2.has-selection-tools .td-selection-strip {
-  flex: 0 1 auto;
+  opacity: 0;
+  pointer-events: none;
+  flex: 0 0 0;
+  width: 0;
   min-width: 0;
-  max-width: calc(100% - 6.5rem);
+  max-width: 0;
+  padding: 0;
+  overflow: hidden;
+}
+/* Selection strip: full-width, EXACT same height as search bar */
+.td-topbar-row-2.has-selection-tools .td-selection-strip {
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 36px;
+  min-height: 36px;
+  max-height: 36px;
+  padding: 0 8px;
+  border-radius: 8px;
+}
+/* Compact chip buttons inside row-2 strip to fit within 36px */
+.td-topbar-row-2 .td-selection-strip .td-chip-btn {
+  height: 28px;
+  min-height: 28px;
+  padding: 3px 10px;
+  font-size: 0.74rem;
 }
 /* Dedicated tools row â€” always under search, never side-by-side off-screen */
 .td-topbar-row-tools {
@@ -9176,13 +9199,25 @@ body:has(.app-layout-drive-focus),
   .td-topbar-row-2.has-selection-tools {
     flex-wrap: nowrap;
   }
+  /* Mobile: same override - strip full-width, search hidden */
   .td-topbar-row-2.has-selection-tools .td-search {
-    flex: 1 1 30%;
+    opacity: 0;
+    pointer-events: none;
+    flex: 0 0 0;
+    width: 0;
     min-width: 0;
+    max-width: 0;
+    padding: 0;
+    overflow: hidden;
   }
   .td-topbar-row-2.has-selection-tools .td-selection-strip {
-    flex: 0 1 auto;
-    max-width: calc(100% - 5rem);
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: 100%;
+    height: 36px;
+    min-height: 36px;
+    max-height: 36px;
+    padding: 0 8px;
   }
   .td-selection-strip {
     padding: 6px 8px;
@@ -20120,10 +20155,10 @@ input[type="search"]::-webkit-search-decoration {
 }
 
 /* ------------------------------------------------------------------
-   SIDEBAR LAYOUT ENGINE — Model A / B / C
+   SIDEBAR LAYOUT ENGINE ï¿½ Model A / B / C
    ------------------------------------------------------------------ */
 
-/* Tab bar — Model A (3 tabs) & Model B (4 tabs) */
+/* Tab bar ï¿½ Model A (3 tabs) & Model B (4 tabs) */
 .td-sidebar-tab-bar {
   display: flex;
   align-items: center;
@@ -20205,7 +20240,7 @@ input[type="search"]::-webkit-search-decoration {
   line-height: 1;
 }
 
-/* Quick-access bar — Model A: always shows Saved + pinned chips */
+/* Quick-access bar ï¿½ Model A: always shows Saved + pinned chips */
 .td-sidebar-quick-bar {
   padding: 4px 6px 3px;
   display: flex;
@@ -20288,7 +20323,7 @@ input[type="search"]::-webkit-search-decoration {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Universal Location Search — when user types in search input, show all matching sections across tabs */
+/* Universal Location Search ï¿½ when user types in search input, show all matching sections across tabs */
 .td-folder-nav.is-search-mode .td-recents,
 .td-folder-nav.is-search-mode .td-dnd-folder-stack,
 .td-folder-nav.is-search-mode .td-chat-section,
@@ -20336,7 +20371,7 @@ input[type="search"]::-webkit-search-decoration {
 }
 
 /* ------------------------------------------------------------------
-   COMPLETELY FLAT RECENT SECTION — NO CARD BOX / NO BORDER / NO BG
+   COMPLETELY FLAT RECENT SECTION ï¿½ NO CARD BOX / NO BORDER / NO BG
    ------------------------------------------------------------------ */
 .td-sidebar .td-recents,
 .td-sidebar:not(.is-collapsed):not(.collapsed) .td-recents {
