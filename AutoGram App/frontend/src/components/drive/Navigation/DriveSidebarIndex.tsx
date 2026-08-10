@@ -2360,7 +2360,7 @@ export function DriveSidebar({
                     tabIndex={active ? 0 : -1}
                     className={`td-chat-folder-chip${active ? ' active' : ''}`}
                     style={{ '--td-chat-folder-color': telegramFolderColor(folder.color) } as React.CSSProperties}
-                    title={`${folder.id === 0 ? t("speedtest.all_chats") : folder.title}${folder.kind === 'shared' ? ' · folder bersama Telegram' : ''}`}
+                    title={`${folder.id === 0 ? t("speedtest.all_chats") : folder.title}${folder.kind === 'shared' ? ` · ${t("speedtest.shared_telegram_folder")}` : ''}`}
                     onClick={() => onSelectChatFolder?.(folder.id)}
                     onKeyDown={(event) => {
                       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
@@ -2377,7 +2377,7 @@ export function DriveSidebar({
                     }}
                   >
                     {folder.emoticon && <span aria-hidden>{folder.emoticon}</span>}
-                    <span>{folder.title}</span>
+                    <span>{folder.id === 0 ? t("speedtest.all_chats") : folder.title}</span>
                   </button>
                 );
               })}

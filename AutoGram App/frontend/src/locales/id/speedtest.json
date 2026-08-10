@@ -586,6 +586,7 @@
   "session_header": "Akun",
   "sidebar_chat_folders_header": "Folder Chat Telegram",
   "all_chats": "Semua Chat",
+  "shared_telegram_folder": "Folder Bersama Telegram",
   "ping_transferring": "Telegram: Sedang mentransfer data (Session terkunci eksklusif)",
   "ping_drive_connected": "Drive Terhubung",
   "ping_connected": "Terhubung",

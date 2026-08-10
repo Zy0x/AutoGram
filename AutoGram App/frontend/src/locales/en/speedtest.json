@@ -586,6 +586,7 @@
   "session_header": "Account",
   "sidebar_chat_folders_header": "Telegram Chat Folders",
   "all_chats": "All Chats",
+  "shared_telegram_folder": "Telegram Shared Folder",
   "ping_transferring": "Telegram: Transferring data (Session exclusively locked)",
   "ping_drive_connected": "Drive Connected",
   "ping_connected": "Connected",
