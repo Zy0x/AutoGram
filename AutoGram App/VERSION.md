@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.7
+AutoGram Version: v3.5.8
 
 Current State:
+v3.5.8 Real-Time Pointer Move Hover Indicator Engine — membenahi `MediaStudio/index.tsx`, `DriveTopBar.tsx`, `index.css`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan pemanggilan `setLastHoverDropKey(hoverKey)` pada event listener `onMove` (Pointer Drag Event) saat kartu media diseret di atas workspace, menyematkan kelas CSS `.is-drop-over` bersama `.is-drag-over` pada `DriveTopBar.tsx`, serta mempercantik gaya visual pendaran cyan berkilau `#38bdf8` (`scale(1.08)` dan pendaran `box-shadow`) pada `index.css` sehingga indikator hover langsung berpendar real-time tepat saat kursor melintas di atas pil topik.
+
+Previous:
 v3.5.7 Pointer Drag & HTML5 Topic Drop Hit Testing Engine — membenahi `driveDrag.ts`, `DriveTopBar.tsx`, `useTopicDrop.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan jenis target `topic` pada tipe `DriveDropTarget` dan fungsi `parseDropKey`, menyematkan atribut `data-drop-key="topic:..."` dan `data-location-kind="topic"` pada pil-pil topik di `DriveTopBar.tsx`, menyinkronkan event listener `subscribeDriveDragUi` untuk sorotan visual pendaran real-time saat penyeretan kursor (Pointer Drag System), serta mengintegrasikan pemanggilan `requestMoveToTarget` untuk mentransfer media langsung ke topik target saat kursor/mouse dilepas (*pointerup*).
 
 Previous:

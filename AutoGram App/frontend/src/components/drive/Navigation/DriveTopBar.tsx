@@ -675,7 +675,7 @@ export function DriveTopBar({
               data-location-kind="topic"
               data-topic-id="all"
               className={`td-topic-pill ${topicFilter == null ? 'active' : ''} ${
-                activeDragTopicId === 'all' ? 'is-drag-over' : ''
+                activeDragTopicId === 'all' ? 'is-drag-over is-drop-over' : ''
               }`}
               onClick={() => onTopicFilter?.(null)}
               onDragOver={(e) => handleDragOver(null, e)}
@@ -697,7 +697,7 @@ export function DriveTopBar({
                 data-topic-id={tp.id}
                 className={`td-topic-pill ${topicFilter === tp.id ? 'active' : ''} ${
                   tp.closed ? 'is-closed' : ''
-                } ${activeDragTopicId === tp.id ? 'is-drag-over' : ''}`}
+                } ${activeDragTopicId === tp.id ? 'is-drag-over is-drop-over' : ''}`}
                 onClick={() => onTopicFilter?.(tp.id)}
                 onDragOver={(e) => handleDragOver(tp.id, e)}
                 onDragLeave={(e) => handleDragLeave(tp.id, e)}

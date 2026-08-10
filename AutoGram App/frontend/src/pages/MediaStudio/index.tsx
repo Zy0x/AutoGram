@@ -6465,6 +6465,8 @@ function MediaDriveDesktop({
       pointerDragRef.current.lastX = ev.clientX;
       pointerDragRef.current.lastY = ev.clientY;
       setDragGhost((g) => (g ? { ...g, x: ev.clientX, y: ev.clientY } : g));
+      const hoverKey = pickDropKeyAtPoint(ev.clientX, ev.clientY);
+      setLastHoverDropKey(hoverKey);
     };
 
     const onUp = (ev: PointerEvent | MouseEvent) => {

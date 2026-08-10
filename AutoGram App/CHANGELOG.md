@@ -1,3 +1,10 @@
+## v3.5.8 Real-Time Pointer Move Hover Indicator Engine
+
+### Pembaruan Indikator Hover Penyeretan Kartu Media Real-Time (`MediaStudio/index.tsx`, `DriveTopBar.tsx`, `index.css`)
+- **Pembaruan State Hover Pointer Move (`MediaStudio/index.tsx`)**: Menambahkan pemanggilan `setLastHoverDropKey(pickDropKeyAtPoint(ev.clientX, ev.clientY))` pada callback `onMove` penyeretan kursor (Pointer Drag System) sehingga state Kunci Hover ter-update secara presisi di setiap pergerakan pixel mouse.
+- **Dukungan Kelas CSS Drop Over (`DriveTopBar.tsx`)**: Menyematkan kelas `.is-drop-over` bersama `.is-drag-over` pada pil-pil topik saat `activeDragTopicId` aktif.
+- **Enhancement Visual Pendaran Topik (`index.css`)**: Memperkuat atribut styling visual `.td-topic-pill.is-drop-over` dan `.is-drag-over` dengan efek pendaran cyan `#38bdf8`, latar belakang `color-mix`, pembesaran skala `1.08x`, dan elevasi `z-index: 20`.
+
 ## v3.5.7 Pointer Drag & HTML5 Topic Drop Hit Testing Engine
 
 ### Integrasi Sistem Pointer Drag & Hit-Testing Geometri Topik (`driveDrag.ts`, `DriveTopBar.tsx`, `useTopicDrop.ts`, `MediaStudio/index.tsx`)
