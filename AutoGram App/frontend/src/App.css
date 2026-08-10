@@ -21235,3 +21235,46 @@ input[type="search"]::-webkit-search-decoration {
   stroke-width: 2.5;
   color: #0f172a !important;
 }
+
+/* -- Unclip Pin Badge Overlay on Collapsed Avatars -- */
+.td-quick-item .td-folder-ico,
+.td-pin-item .td-folder-ico {
+  position: relative !important;
+  overflow: visible !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.td-quick-item .td-peer-avatar,
+.td-pin-item .td-peer-avatar,
+.td-quick-item .td-peer-avatar-initials,
+.td-pin-item .td-peer-avatar-initials {
+  border-radius: 50% !important;
+  overflow: hidden !important;
+}
+
+.td-pin-badge-dot {
+  position: absolute !important;
+  bottom: -2px !important;
+  right: -2px !important;
+  width: 14px !important;
+  height: 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #f59e0b !important;
+  color: #0f172a !important;
+  border: 1.5px solid #0f172a !important;
+  border-radius: 50% !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4) !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
+}
+
+.td-pin-svg-icon {
+  width: 8px !important;
+  height: 8px !important;
+  stroke-width: 2.5 !important;
+  color: #0f172a !important;
+}
