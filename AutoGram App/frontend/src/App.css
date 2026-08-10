@@ -20772,3 +20772,105 @@ input[type="search"]::-webkit-search-decoration {
   color: #ffffff !important;
   font-weight: 600 !important;
 }
+
+/* -- Fixed Control Panel Section Background Alignment -- */
+.td-sidebar-fixed-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 12px;
+  background: transparent !important;
+  border-bottom: none !important;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+/* -- Luminous Amber Gold & Champagne Glass Theme (Harmonious Brand System) -- */
+.td-sidebar-tab-bar {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(245, 158, 11, 0.18) !important;
+}
+
+.td-sidebar-tab-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 4px !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: #94a3b8 !important;
+  border-radius: 7px !important;
+  cursor: pointer;
+  font-size: 0.68rem !important;
+  font-weight: 500 !important;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative;
+}
+
+.td-sidebar-tab-btn:hover {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #fef3c7 !important;
+}
+
+.td-sidebar-tab-btn.is-active {
+  color: #fef3c7 !important;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.24) 0%, rgba(217, 119, 6, 0.16) 100%) !important;
+  font-weight: 600 !important;
+  border: 1px solid rgba(245, 158, 11, 0.45) !important;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.2) !important;
+}
+
+.td-sidebar-tab-btn.is-active::after {
+  content: '' !important;
+  position: absolute;
+  bottom: 0;
+  left: 14%;
+  right: 14%;
+  height: 2px;
+  border-radius: 2px;
+  background: #f59e0b !important;
+  box-shadow: 0 0 8px #f59e0b !important;
+}
+
+.td-sidebar-tab-btn .td-tab-badge {
+  background: rgba(245, 158, 11, 0.18) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.25) !important;
+}
+
+.td-sidebar-tab-btn.is-active .td-tab-badge {
+  background: #f59e0b !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  border: none !important;
+}
+
+/* -- Saved Messages & Quick Row Card Luminous Amber Styling -- */
+.td-quick-item {
+  border-radius: 8px !important;
+  padding: 6px 10px !important;
+  transition: all 150ms ease !important;
+}
+
+.td-quick-item:hover {
+  background: rgba(245, 158, 11, 0.1) !important;
+}
+
+.td-quick-item.active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.12) 100%) !important;
+  color: #fef3c7 !important;
+  border: 1px solid rgba(245, 158, 11, 0.38) !important;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.15) !important;
+}
+
+.td-quick-item.active .td-folder-label {
+  color: #fef3c7 !important;
+  font-weight: 600 !important;
+}
