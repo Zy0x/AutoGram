@@ -21020,3 +21020,19 @@ input[type="search"]::-webkit-search-decoration {
   padding: 0 !important;
   margin: 0 auto !important;
 }
+
+/* -- Enable smooth vertical scrolling on collapsed navigation rail -- */
+.td-sidebar.is-collapsed .td-folder-nav,
+.td-sidebar.collapsed .td-folder-nav {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: auto !important;
+  pointer-events: auto !important;
+  scrollbar-width: none !important;
+}
+
+.td-sidebar.is-collapsed .td-folder-nav::-webkit-scrollbar,
+.td-sidebar.collapsed .td-folder-nav::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+}

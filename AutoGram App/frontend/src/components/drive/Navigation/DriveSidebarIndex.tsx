@@ -801,42 +801,7 @@ export function DriveSidebar({
     overscan: collapsed ? 6 : 12,
   });
 
-  /**
-   * Collapsed rail: native wheel jumps many avatars at once (feels too fast).
-   * Dampen wheel/trackpad deltas only in icon-rail mode.
-   */
-  useEffect(() => {
-    if (!collapsed || drawerOpen) return;
-    const SCALE = 0.32; // ~1/3 speed; still responsive on trackpad
-    const LINE_PX = 18; // ~half of 40px hit target per "line" tick
-    const softWheel = (e: WheelEvent) => {
-      const el = e.currentTarget as HTMLElement;
-      if (!el) return;
-      // Let pinch-zoom / horizontal pan through
-      if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-      let dy = e.deltaY;
-      if (e.deltaMode === 1) dy *= LINE_PX; // lines
-      else if (e.deltaMode === 2) dy *= el.clientHeight * 0.35; // pages
-      // Cap huge mouse-wheel notches so one tick ≈ one icon
-      if (e.deltaMode === 0 && Math.abs(dy) > 80) {
-        dy = Math.sign(dy) * (40 + (Math.abs(dy) - 40) * 0.15);
-      }
-      const next = el.scrollTop + dy * SCALE;
-      const max = Math.max(0, el.scrollHeight - el.clientHeight);
-      if (max <= 0) return;
-      e.preventDefault();
-      el.scrollTop = Math.max(0, Math.min(max, next));
-    };
-    const opts: AddEventListenerOptions = { passive: false };
-    const chat = chatListRef.current;
-    const drives = folderStackRef.current;
-    chat?.addEventListener('wheel', softWheel, opts);
-    drives?.addEventListener('wheel', softWheel, opts);
-    return () => {
-      chat?.removeEventListener('wheel', softWheel, opts);
-      drives?.removeEventListener('wheel', softWheel, opts);
-    };
-  }, [collapsed, drawerOpen, chatsExpanded, foldersExpanded, chatRows.length, folders.length]);
+  /* Native smooth scrolling in collapsed mode */
 
   const virtualItems = chatVirtualizer.getVirtualItems();
   const vStart = virtualItems[0]?.index ?? 0;
