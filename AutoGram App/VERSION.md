@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.11
+AutoGram Version: v3.5.12
 
 Current State:
+v3.5.12 Real-Time Drag UI Event Notification & Reset Engine — membenahi `driveDrag.ts`, `useTopicDrop.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan panggilan `notifyDragUi()` di dalam `setLastHoverDropKey(key)` sehingga perubahan posisi hover kursor pada pil topik terkirim secara real-time ke UI subscriber, serta menyempurnakan pembersihan state di `useTopicDrop.ts` saat `isPointerDriveDragActive()` bernilai false agar pendaran hijau zamrud tidak pernah tersangkut setelah drop selesai.
+
+Previous:
 v3.5.11 Emerald Green Drag Hover & Non-Blocking Drop Completion Engine — membenahi `useTopicDrop.ts`, `index.css`, `VERSION.md`, dan `CHANGELOG.md`. Mencegah perlombaan ganda (race condition) antara handler HTML5 drop dan pointerup dengan mengabaikan HTML5 drop saat pointer drag sedang aktif, serta mengganti tema visual indikator hover penyeretan topik menjadi **Hijau Zamrud Terang (#16a34a / #4ade80)** dengan pendaran neon `0 0 30px #4ade80` dan skala `1.14x` untuk memberikan kontras visual 100% berbeda dengan status tab aktif (cyan/biru).
 
 Previous:

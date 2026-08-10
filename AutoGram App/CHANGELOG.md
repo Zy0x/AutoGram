@@ -1,3 +1,9 @@
+## v3.5.12 Real-Time Drag UI Event Notification & Reset Engine
+
+### Notifikasi Event Bus Real-Time & Pembersihan State Drop Otomatis (`driveDrag.ts`, `useTopicDrop.ts`)
+- **Notifikasi Event Bus `notifyDragUi()` pada `setLastHoverDropKey` (`driveDrag.ts`)**: Menambahkan pemanggilan `notifyDragUi()` ketika `setLastHoverDropKey(key)` dipanggil oleh sistem penyeretan pointer. Sebelumnya fungsi ini hanya memperbarui variabel memori tanpa memberi tahu komponen UI, yang menyebabkan indikator hover kursor tidak berganti secara dinamik dan tidak pernah di-reset ke `null` saat drag berakhir.
+- **Pembersihan State Terjamin (`useTopicDrop.ts`)**: Menyempurnakan listener `subscribeDriveDragUi` di `useTopicDrop.ts` sehingga ketika penyeretan berakhir (`isPointerDriveDragActive() === false`), state `pointerHoverKey` dan `activeDragTopicId` langsung di-reset secara instan ke `null`, membasmi masalah pendaran hijau zamrud yang nyangkut 100%.
+
 ## v3.5.11 Emerald Green Drag Hover & Non-Blocking Drop Completion Engine
 
 ### Indikator Visual Hijau Zamrud & Pencegahan Konflik Eksekusi Drop (`useTopicDrop.ts`, `index.css`)

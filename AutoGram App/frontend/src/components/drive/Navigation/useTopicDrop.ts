@@ -18,18 +18,25 @@ export function useTopicDrop({ onDropOnTopic }: UseTopicDropOpts = {}) {
 
   useEffect(() => {
     const unsub = subscribeDriveDragUi(() => {
+      const dragActive = isPointerDriveDragActive() || !!getActiveDriveDrag();
       const k = getLastHoverDropKey();
+      if (!dragActive || !k) {
+        setPointerHoverKey(null);
+        setActiveDragTopicId(null);
+        return;
+      }
       setPointerHoverKey(k);
-      if (k && k.startsWith('topic:')) {
+      if (k.startsWith('topic:')) {
         const idPart = k.slice('topic:'.length);
         if (idPart === 'all' || idPart === 'null') {
           setActiveDragTopicId('all');
         } else {
           const num = Number(idPart);
           if (Number.isFinite(num)) setActiveDragTopicId(num);
+          else setActiveDragTopicId(null);
         }
-      } else if (!k || !k.startsWith('topic:')) {
-        setActiveDragTopicId((prev) => (typeof prev === 'number' || prev === 'all' ? null : prev));
+      } else {
+        setActiveDragTopicId(null);
       }
     });
     return unsub;
