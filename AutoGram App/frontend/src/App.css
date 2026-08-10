@@ -21460,3 +21460,11 @@ input[type="search"]::-webkit-search-decoration {
   color: #fef3c7 !important;
   font-weight: 600 !important;
 }
+
+/* -- Destination Picker Peer Avatar Perfect Fit -- */
+.td-dest-ico .td-peer-avatar {
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+}
