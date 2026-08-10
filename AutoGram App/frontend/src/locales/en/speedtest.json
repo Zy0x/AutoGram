@@ -1401,5 +1401,6 @@
   "time_minutes_ago": "Accessed {{count}}m ago",
   "time_hours_ago": "Accessed {{count}}h ago",
   "time_yesterday": "Accessed yesterday",
-  "time_days_ago": "Accessed {{count}}d ago"
+  "time_days_ago": "Accessed {{count}}d ago",
+  "pin_limit_replaced": "📌 3-pin limit reached: \"{{old}}\" replaced with \"{{new}}\""
 }

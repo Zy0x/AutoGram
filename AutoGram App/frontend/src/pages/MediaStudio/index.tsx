@@ -295,6 +295,7 @@ import {
   saveDrivePeer,
   shouldRecordDriveRecent,
   toggleDrivePin,
+  toggleDrivePinResult,
   type DriveRecent,
 } from '../../lib/telegram';
 
@@ -5629,9 +5630,18 @@ function MediaDriveDesktop({
   const toggleLocationPin = useCallback(
     (kind: 'saved' | 'drive' | 'chat', id: number | null, label: string) => {
       if (!session) return;
-      setPins(toggleDrivePin(session, { kind, id: kind === 'saved' ? null : id, label }));
+      const res = toggleDrivePinResult(session, { kind, id: kind === 'saved' ? null : id, label });
+      setPins(res.pins);
+      if (res.replacedItem) {
+        setStatusText(
+          t('speedtest.pin_limit_replaced', {
+            old: res.replacedItem.label,
+            new: label,
+          })
+        );
+      }
     },
-    [session]
+    [session, t]
   );
 
   const goNav = useCallback((dir: 'back' | 'forward') => {

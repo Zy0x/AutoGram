@@ -1401,5 +1401,6 @@
   "time_minutes_ago": "Diakses {{count}} mnt lalu",
   "time_hours_ago": "Diakses {{count}} jam lalu",
   "time_yesterday": "Diakses kemarin",
-  "time_days_ago": "Diakses {{count}} hr lalu"
+  "time_days_ago": "Diakses {{count}} hr lalu",
+  "pin_limit_replaced": "📌 Batas 3 pin tercapai: \"{{old}}\" digantikan oleh \"{{new}}\""
 }

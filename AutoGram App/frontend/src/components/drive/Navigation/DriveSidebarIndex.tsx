@@ -1820,7 +1820,7 @@ export function DriveSidebar({
                 </DropRow>
               );
             })()}
-            {pins.slice(0, 4).map((r: any) => {
+            {pins.slice(0, 3).map((r: any) => {
               const key = r.kind === 'saved' ? dropKey('saved', null) : dropKey(r.kind, r.id as number);
               registerLabel(key, r.label);
               const active =
