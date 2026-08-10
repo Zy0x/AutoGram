@@ -17,6 +17,12 @@ import {
   X,
   Clock,
   Pin,
+  Filter,
+  Sparkles,
+  User,
+  Radio,
+  MessagesSquare,
+  Check,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -777,6 +783,33 @@ export function DriveSidebar({
     return chatRows.filter((c) => !pinnedChatIds.has(c.id));
   }, [chatRows, pinnedChatIds]);
 
+  const [chatTypeFilter, setChatTypeFilter] = useState<'all' | 'user' | 'group' | 'channel' | 'bot' | 'forum'>('all');
+  const [typeFilterMenuOpen, setTypeFilterMenuOpen] = useState(false);
+  const typeFilterMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!typeFilterMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (typeFilterMenuRef.current && !typeFilterMenuRef.current.contains(e.target as Node)) {
+        setTypeFilterMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [typeFilterMenuOpen]);
+
+  const filteredByTypeChats = useMemo(() => {
+    if (chatTypeFilter === 'all') return displayChatRows;
+    return displayChatRows.filter((c: any) => {
+      if (chatTypeFilter === 'bot') return c.is_bot || c.type === 'bot';
+      if (chatTypeFilter === 'forum') return !!c.is_forum;
+      if (chatTypeFilter === 'group') return c.type === 'group' && !c.is_forum;
+      if (chatTypeFilter === 'channel') return c.type === 'channel';
+      if (chatTypeFilter === 'user') return (c.type === 'user' || !c.type) && !c.is_bot;
+      return true;
+    });
+  }, [displayChatRows, chatTypeFilter]);
+
   const toggleTreeFolder = useCallback((id: number) => {
     setTreeExpanded((prev) => {
       const next = new Set(prev);
@@ -887,7 +920,7 @@ export function DriveSidebar({
   // Virtual list scrolls inside .td-chat-virtual (flex:1 fills leftover height).
   // On short viewports, chrome is compacted via CSS so this pane stays usable.
   const chatVirtualizer = useVirtualizer({
-    count: displayChatRows.length,
+    count: filteredByTypeChats.length,
     getScrollElement: () => chatListRef.current,
     estimateSize: () => (collapsed ? 44 : 44),
     overscan: collapsed ? 6 : 12,
@@ -2413,6 +2446,89 @@ export function DriveSidebar({
           <div className="td-chat-folders-wrap td-only-expanded">
             <span className="td-chat-folders-label">{t("speedtest.sidebar_chat_folders_header")}</span>
             <div className="td-chat-folders" role="tablist" aria-label={t("speedtest.sidebar_chat_folders_aria")}>
+              {/* Chat Type Filter Trigger Button */}
+              <div className="td-chat-type-filter-container" ref={typeFilterMenuRef}>
+                <button
+                  type="button"
+                  className={`td-chat-folder-chip td-chat-type-filter-pill ${chatTypeFilter !== 'all' ? 'active' : ''}`}
+                  onClick={() => setTypeFilterMenuOpen((prev) => !prev)}
+                  title={t('speedtest.filter_by_type')}
+                  aria-label={t('speedtest.filter_by_type')}
+                  aria-expanded={typeFilterMenuOpen}
+                >
+                  <Filter size={13} className="td-filter-icon" />
+                  {chatTypeFilter !== 'all' && (
+                    <span className="td-active-filter-badge">
+                      {chatTypeFilter === 'user' ? t('speedtest.filter_private') :
+                       chatTypeFilter === 'group' ? t('speedtest.filter_groups') :
+                       chatTypeFilter === 'channel' ? t('speedtest.filter_channels') :
+                       chatTypeFilter === 'bot' ? t('speedtest.filter_bots') :
+                       t('speedtest.filter_forums')}
+                    </span>
+                  )}
+                  <ChevronDown size={11} className={`td-filter-arrow ${typeFilterMenuOpen ? 'is-open' : ''}`} />
+                </button>
+
+                {typeFilterMenuOpen && (
+                  <div className="td-chat-type-dropdown" role="menu">
+                    <button
+                      type="button"
+                      className={`td-type-dropdown-item ${chatTypeFilter === 'all' ? 'is-selected' : ''}`}
+                      onClick={() => { setChatTypeFilter('all'); setTypeFilterMenuOpen(false); }}
+                    >
+                      <Sparkles size={14} style={{ color: '#f59e0b' }} />
+                      <span>{t('speedtest.filter_all_chats')}</span>
+                      {chatTypeFilter === 'all' && <Check size={13} style={{ marginLeft: 'auto', color: '#f59e0b' }} />}
+                    </button>
+                    <button
+                      type="button"
+                      className={`td-type-dropdown-item ${chatTypeFilter === 'user' ? 'is-selected' : ''}`}
+                      onClick={() => { setChatTypeFilter('user'); setTypeFilterMenuOpen(false); }}
+                    >
+                      <User size={14} style={{ color: '#38bdf8' }} />
+                      <span>{t('speedtest.filter_private')}</span>
+                      {chatTypeFilter === 'user' && <Check size={13} style={{ marginLeft: 'auto', color: '#f59e0b' }} />}
+                    </button>
+                    <button
+                      type="button"
+                      className={`td-type-dropdown-item ${chatTypeFilter === 'group' ? 'is-selected' : ''}`}
+                      onClick={() => { setChatTypeFilter('group'); setTypeFilterMenuOpen(false); }}
+                    >
+                      <Users size={14} style={{ color: '#818cf8' }} />
+                      <span>{t('speedtest.filter_groups')}</span>
+                      {chatTypeFilter === 'group' && <Check size={13} style={{ marginLeft: 'auto', color: '#f59e0b' }} />}
+                    </button>
+                    <button
+                      type="button"
+                      className={`td-type-dropdown-item ${chatTypeFilter === 'channel' ? 'is-selected' : ''}`}
+                      onClick={() => { setChatTypeFilter('channel'); setTypeFilterMenuOpen(false); }}
+                    >
+                      <Radio size={14} style={{ color: '#34d399' }} />
+                      <span>{t('speedtest.filter_channels')}</span>
+                      {chatTypeFilter === 'channel' && <Check size={13} style={{ marginLeft: 'auto', color: '#f59e0b' }} />}
+                    </button>
+                    <button
+                      type="button"
+                      className={`td-type-dropdown-item ${chatTypeFilter === 'bot' ? 'is-selected' : ''}`}
+                      onClick={() => { setChatTypeFilter('bot'); setTypeFilterMenuOpen(false); }}
+                    >
+                      <Bot size={14} style={{ color: '#c084fc' }} />
+                      <span>{t('speedtest.filter_bots')}</span>
+                      {chatTypeFilter === 'bot' && <Check size={13} style={{ marginLeft: 'auto', color: '#f59e0b' }} />}
+                    </button>
+                    <button
+                      type="button"
+                      className={`td-type-dropdown-item ${chatTypeFilter === 'forum' ? 'is-selected' : ''}`}
+                      onClick={() => { setChatTypeFilter('forum'); setTypeFilterMenuOpen(false); }}
+                    >
+                      <MessagesSquare size={14} style={{ color: '#f472b6' }} />
+                      <span>{t('speedtest.filter_forums')}</span>
+                      {chatTypeFilter === 'forum' && <Check size={13} style={{ marginLeft: 'auto', color: '#f59e0b' }} />}
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {chatFolders.map((folder) => {
                 const active = folder.id === activeChatFolderId;
                 return (
@@ -2481,7 +2597,7 @@ export function DriveSidebar({
           >
             {collapsed ? (
               <div className="td-chat-collapsed-list" style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '4px 0', alignItems: 'center' }}>
-                {displayChatRows.map((c) => {
+                {filteredByTypeChats.map((c) => {
                   const key = dropKey('chat', c.id);
                   registerLabel(key, c.name);
                   const active = locationKind === 'chat' && activePeerId === c.id;
@@ -2530,7 +2646,7 @@ export function DriveSidebar({
                 style={{ height: chatVirtualizer.getTotalSize(), position: 'relative' }}
               >
                 {virtualItems.map((vRow) => {
-                  const c = displayChatRows[vRow.index];
+                  const c = filteredByTypeChats[vRow.index];
                   if (!c) return null;
                   const key = dropKey('chat', c.id);
                   registerLabel(key, c.name);

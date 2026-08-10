@@ -21354,3 +21354,109 @@ input[type="search"]::-webkit-search-decoration {
   justify-content: center !important;
   border: 1px solid color-mix(in srgb, #f59e0b 45%, transparent) !important;
 }
+
+/* -- Telegram Chat Type Filter Container & Dropdown -- */
+.td-chat-type-filter-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  z-index: 25;
+}
+
+.td-chat-type-filter-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  border-radius: 20px !important;
+  background: color-mix(in srgb, var(--td-bg-card, #1e293b) 80%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--td-border) 80%, transparent) !important;
+  color: #94a3b8 !important;
+  font-size: 0.78rem !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 180ms ease !important;
+}
+
+.td-chat-type-filter-pill:hover {
+  background: color-mix(in srgb, #f59e0b 14%, transparent) !important;
+  border-color: color-mix(in srgb, #f59e0b 45%, transparent) !important;
+  color: #fef3c7 !important;
+}
+
+.td-chat-type-filter-pill.active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(217, 119, 6, 0.32) 100%) !important;
+  border-color: color-mix(in srgb, #f59e0b 75%, transparent) !important;
+  color: #fef3c7 !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2) !important;
+}
+
+.td-filter-icon {
+  color: #f59e0b !important;
+  flex-shrink: 0;
+}
+
+.td-active-filter-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+.td-filter-arrow {
+  opacity: 0.7;
+  transition: transform 180ms ease;
+}
+
+.td-filter-arrow.is-open {
+  transform: rotate(180deg);
+}
+
+/* Floating Filter Dropdown Menu */
+.td-chat-type-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 180px;
+  background: #0f172a !important;
+  border: 1px solid color-mix(in srgb, var(--td-border) 80%, transparent) !important;
+  border-radius: 12px !important;
+  padding: 6px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(245, 158, 11, 0.15) !important;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+  animation: tdFadeIn 150ms ease-out;
+}
+
+.td-type-dropdown-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  padding: 8px 10px !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  border: none !important;
+  color: #cbd5e1 !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  transition: all 120ms ease !important;
+}
+
+.td-type-dropdown-item:hover {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #ffffff !important;
+}
+
+.td-type-dropdown-item.is-selected {
+  background: color-mix(in srgb, #f59e0b 20%, transparent) !important;
+  color: #fef3c7 !important;
+  font-weight: 600 !important;
+}
