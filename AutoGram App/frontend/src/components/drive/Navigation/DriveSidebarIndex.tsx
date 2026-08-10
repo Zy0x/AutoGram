@@ -522,11 +522,12 @@ export function DriveSidebar({
     return subscribeSidebarLayoutModel(setLayoutModel);
   }, []);
 
-  // Active tab for Model A / B (home|drives|chats|pins)
-  const [activeTab, setActiveTab] = useState<'home' | 'drives' | 'chats' | 'pins'>('home');
+  // Active tab for Model A / B (saved|recent|drives|chats|home|pins)
+  type SidebarTab = 'saved' | 'recent' | 'drives' | 'chats' | 'home' | 'pins';
+  const [activeTab, setActiveTab] = useState<SidebarTab>('saved');
   // Timer ref for 250ms hover-tab switch during drag
   const tabSwitchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const scheduleTabSwitch = (tab: 'home' | 'drives' | 'chats' | 'pins') => {
+  const scheduleTabSwitch = (tab: SidebarTab) => {
     if (tabSwitchTimerRef.current !== null) return; // already pending
     tabSwitchTimerRef.current = setTimeout(() => {
       tabSwitchTimerRef.current = null;
@@ -1698,35 +1699,44 @@ export function DriveSidebar({
           </p>
         )}
 
-        {/* ── Model A & B: Tab bar ── */}
+        {/* ── Model A & B: 4 Smart Tabs Bar (Saved | Recent | Drives | Chats) ── */}
         {(layoutModel === 'model_a' || layoutModel === 'model_b') && !anyDragLive && (
-          <div className="td-sidebar-tab-bar td-only-expanded" role="tablist">
-            {layoutModel === 'model_b' && (
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === 'pins'}
-                data-drop-key="tab:pins"
-                className={`td-sidebar-tab-btn${activeTab === 'pins' ? ' is-active' : ''}`}
-                onClick={() => setActiveTab('pins')}
-                title={t('ui.generated.disematkan_57b7b13')}
-              >
-                <Pin size={13} aria-hidden />
-                <span className="td-sidebar-tab-label">{t('ui.generated.disematkan_57b7b13')}</span>
-              </button>
-            )}
+          <div className="td-sidebar-tab-bar" role="tablist">
+            {/* Tab 1: Saved Messages */}
             <button
               type="button"
               role="tab"
-              aria-selected={activeTab === 'home'}
-              data-drop-key="tab:home"
-              className={`td-sidebar-tab-btn${activeTab === 'home' ? ' is-active' : ''}`}
-              onClick={() => setActiveTab('home')}
+              aria-selected={activeTab === 'saved' || activeTab === 'home'}
+              data-drop-key="tab:saved"
+              className={`td-sidebar-tab-btn${(activeTab === 'saved' || activeTab === 'home') ? ' is-active' : ''}`}
+              onClick={() => {
+                setActiveTab('saved');
+                go(onSelectSaved);
+              }}
               title={t('speedtest.saved_messages')}
             >
               <Home size={13} aria-hidden />
-              <span className="td-sidebar-tab-label">{t('nav.home')}</span>
+              <span className="td-sidebar-tab-label td-only-expanded">{t('speedtest.saved_messages_short')}</span>
             </button>
+
+            {/* Tab 2: Recent Locations */}
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'recent'}
+              data-drop-key="tab:recent"
+              className={`td-sidebar-tab-btn${activeTab === 'recent' ? ' is-active' : ''}`}
+              onClick={() => setActiveTab('recent')}
+              title={t('speedtest.sidebar_recents_header')}
+            >
+              <Clock size={13} aria-hidden />
+              <span className="td-sidebar-tab-label td-only-expanded">{t('speedtest.sidebar_recents_header')}</span>
+              {filteredRecents.length > 0 && (
+                <span className="td-tab-badge">{filteredRecents.length}</span>
+              )}
+            </button>
+
+            {/* Tab 3: Drives [TD] */}
             <button
               type="button"
               role="tab"
@@ -1737,11 +1747,13 @@ export function DriveSidebar({
               title={t('ui.generated.drives_td_d85c6ed')}
             >
               <HardDrive size={13} aria-hidden />
-              <span className="td-sidebar-tab-label">{t('ui.generated.drives_td_d85c6ed')}</span>
+              <span className="td-sidebar-tab-label td-only-expanded">{t('ui.generated.drives_td_d85c6ed')}</span>
               {folders.length > 0 && (
                 <span className="td-tab-badge">{folders.length}</span>
               )}
             </button>
+
+            {/* Tab 4: Chats & Groups */}
             <button
               type="button"
               role="tab"
@@ -1752,15 +1764,15 @@ export function DriveSidebar({
               title={t('ui.generated.daftar_chat_71a8e93')}
             >
               <MessageSquare size={13} aria-hidden />
-              <span className="td-sidebar-tab-label">{t('ui.generated.daftar_chat_71a8e93')}</span>
+              <span className="td-sidebar-tab-label td-only-expanded">{t('ui.generated.daftar_chat_71a8e93')}</span>
               {chats.length > 0 && (
                 <span className="td-tab-badge">{chatRows.length}</span>
               )}
             </button>
           </div>
         )}
-        {/* ── Model A: Fixed quick-access (Saved + Pins) visible on Home tab ── */}
-        {layoutModel === 'model_a' && activeTab === 'home' && !anyDragLive && (
+        {/* ── Saved Messages & Pins on Saved/Home Tab ── */}
+        {(layoutModel === 'model_a' || layoutModel === 'model_b') && (activeTab === 'saved' || activeTab === 'home') && !anyDragLive && (
           <div className="td-sidebar-quick-bar td-only-expanded">
             {(() => {
               const key = dropKey('saved', null);

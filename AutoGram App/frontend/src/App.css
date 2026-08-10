@@ -20380,3 +20380,24 @@ input[type="search"]::-webkit-search-decoration {
   border-radius: 2px 2px 0 0;
   background: var(--td-primary, #3b82f6);
 }
+
+/* -- 4 Smart Tabs Visibility (Saved | Recent | Drives | Chats) -- */
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode):not(.is-search-mode)[data-active-tab="saved"] .td-dnd-folder-stack,
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode):not(.is-search-mode)[data-active-tab="saved"] .td-chat-section,
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode):not(.is-search-mode)[data-active-tab="saved"] .td-recents,
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode):not(.is-search-mode)[data-active-tab="recent"] .td-dnd-folder-stack,
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode):not(.is-search-mode)[data-active-tab="recent"] .td-chat-section,
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode):not(.is-search-mode)[data-active-tab="recent"] .td-sidebar-quick-bar,
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode):not(.is-search-mode)[data-active-tab="drives"] .td-recents,
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode):not(.is-search-mode)[data-active-tab="drives"] .td-chat-section,
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode):not(.is-search-mode)[data-active-tab="drives"] .td-sidebar-quick-bar,
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode):not(.is-search-mode)[data-active-tab="chats"] .td-recents,
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode):not(.is-search-mode)[data-active-tab="chats"] .td-dnd-folder-stack,
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode):not(.is-search-mode)[data-active-tab="chats"] .td-sidebar-quick-bar {
+  display: none !important;
+}
+
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode)[data-active-tab="recent"] .td-recents,
+.td-folder-nav[data-layout-model="model_b"]:not(.is-drop-mode)[data-active-tab="recent"] .td-recents {
+  display: block !important;
+}
