@@ -20295,3 +20295,34 @@ input[type="search"]::-webkit-search-decoration {
 .td-folder-nav.is-search-mode > .td-folder-row {
   display: block !important;
 }
+
+/* Flat Minimalist Recent Section Header */
+.td-recents-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--td-sub);
+}
+
+.td-recents-icon {
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.td-recents-title {
+  flex: 1;
+}
+
+.td-recents-count {
+  font-size: 0.6rem;
+  padding: 1px 5px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--td-sub) 15%, transparent);
+  color: var(--td-sub);
+  font-weight: 700;
+}

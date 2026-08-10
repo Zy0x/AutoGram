@@ -81,7 +81,6 @@ import {
 
 const LS_SEC_FOLDERS = 'td_sec_folders_open';
 const LS_SEC_CHATS = 'td_sec_chats_open';
-const LS_SEC_RECENTS = 'td_sec_recents_open';
 const TELEGRAM_FOLDER_COLORS = ['#ef4444', '#f59e0b', '#8b5cf6', '#22c55e', '#06b6d4', '#3b82f6', '#ec4899'];
 
 function telegramFolderColor(color?: number | null): string {
@@ -556,7 +555,6 @@ export function DriveSidebar({
   /** Section expand — more space when one list is collapsed (Google Drive–style) */
   const [foldersOpen, setFoldersOpen] = useState(() => readSecOpen(LS_SEC_FOLDERS, true));
   const [chatsOpen, setChatsOpen] = useState(() => readSecOpen(LS_SEC_CHATS, true));
-  const [recentsOpen, setRecentsOpen] = useState(() => readSecOpen(LS_SEC_RECENTS, true));
   /** Expanded parent folders in the Drive tree (folder-in-folder) */
   const [treeExpanded, setTreeExpanded] = useState<Set<number>>(() => new Set());
   const navRef = useRef<HTMLElement | null>(null);
@@ -701,8 +699,6 @@ export function DriveSidebar({
     isFolderReparentDragActive();
   const foldersExpanded = forceSectionsOpen || foldersOpen || collapsed;
   const chatsExpanded = forceSectionsOpen || chatsOpen || collapsed;
-  /** Recents: force open while DnD so chips stay droppable; otherwise honor user toggle */
-  const recentsExpanded = forceSectionsOpen || recentsOpen || collapsed;
 
   // Persist open on drag so layout stays stable after first frame (no mid-drop collapse)
   useEffect(() => {
@@ -719,10 +715,6 @@ export function DriveSidebar({
     });
     setChatsOpen((o) => {
       if (!o) writeSecOpen(LS_SEC_CHATS, true);
-      return true;
-    });
-    setRecentsOpen((o) => {
-      if (!o) writeSecOpen(LS_SEC_RECENTS, true);
       return true;
     });
     // Clear filter so all drop targets show
@@ -768,20 +760,6 @@ export function DriveSidebar({
       const next = !prev;
       writeSecOpen(LS_SEC_CHATS, next);
       return next;
-    });
-  }, []);
-  const toggleRecents = useCallback(() => {
-    setRecentsOpen((prev) => {
-      const next = !prev;
-      writeSecOpen(LS_SEC_RECENTS, next);
-      return next;
-    });
-  }, []);
-  const openRecentsSection = useCallback(() => {
-    setRecentsOpen((prev) => {
-      if (prev) return prev;
-      writeSecOpen(LS_SEC_RECENTS, true);
-      return true;
     });
   }, []);
 
@@ -1931,87 +1909,50 @@ export function DriveSidebar({
           </div>
         )}
 
-        {/* Recent locations — expandable section; chips are drop targets during DnD */}
+        {/* Recent locations — flat clean section without heavy dropdown container */}
         {!hasLocationQuery && filteredRecents.length > 0 && (
-          <div
-            className={`td-recents td-only-expanded${recentsExpanded ? '' : ' is-collapsed-sec'}`}
-            data-recent="1"
-          >
-            <button
-              type="button"
-              className={`td-section-toggle td-recents-toggle${dragLive ? ' is-dnd-target' : ''}`}
-              aria-expanded={recentsExpanded}
-              onClick={toggleRecents}
-              onPointerEnter={() => {
-                if (dragLive || isInternalMediaDragActive() || mediaDragActive) {
-                  openRecentsSection();
-                }
-              }}
-              onDragEnter={(e) => {
-                if (!dragLive && !acceptDrop(e) && !isInternalMediaDragActive()) return;
-                e.preventDefault();
-                openRecentsSection();
-              }}
-              onDragOver={(e) => {
-                if (!dragLive && !acceptDrop(e) && !isInternalMediaDragActive()) return;
-                e.preventDefault();
-                openRecentsSection();
-              }}
-              title={
-                recentsExpanded
-                  ? 'Ciutkan Terbaru'
-                  : 'Perluas Terbaru — lokasi yang baru dibuka'
-              }
-            >
-              <ChevronDown
-                size={14}
-                className={`td-section-chevron ${recentsExpanded ? 'is-open' : ''}`}
-                aria-hidden
-              />
-              <Clock size={12} className="td-recents-toggle-ico" aria-hidden />
-              <span className="td-section-toggle-label">{t("speedtest.sidebar_recents_header")}</span>
-              <span className="td-chat-count" title={t("speedtest.sidebar_recents_tooltip")}>
-                {filteredRecents.length}
-              </span>
-            </button>
-            {recentsExpanded && (
-              <div className="td-recents-list">
-                {filteredRecents.slice(0, 6).map((r: any) => {
-                  const key =
-                    r.kind === 'saved'
-                      ? dropKey('saved', null)
-                      : dropKey(r.kind, r.id as number);
-                  registerLabel(key, r.label);
-                  const active =
-                    (r.kind === 'saved' && locationKind === 'saved') ||
-                    (r.kind !== 'saved' &&
-                      locationKind === r.kind &&
-                      activePeerId === r.id);
-                  const short = recentDisplayLabel(r.label, 18);
-                  return (
-                    <DropRow
-                      key={`${r.kind}:${r.id ?? 'me'}`}
-                      dropKeyStr={key}
-                      className={`td-recent-chip ${active ? 'active' : ''}`}
-                      title={
-                        dragLive
-                          ? `Lepas untuk kirim ke ${r.label}`
-                          : r.label
-                      }
-                      isOver={overKey === key}
-                      invalidTarget={isSelf(key)}
-                      dragLive={dragLive}
-                      acceptDrop={acceptDrop}
-                      onHover={handleHover}
-                      onDropTarget={handleDropKey}
-                      onActivate={() => go(() => onSelectRecent?.(r))}
-                    >
-                      <span className="td-folder-label">{short}</span>
-                    </DropRow>
-                  );
-                })}
-              </div>
-            )}
+          <div className="td-recents td-only-expanded" data-recent="1">
+            <div className="td-recents-header">
+              <Clock size={12} className="td-recents-icon" aria-hidden />
+              <span className="td-recents-title">{t("speedtest.sidebar_recents_header")}</span>
+              <span className="td-recents-count">{filteredRecents.length}</span>
+            </div>
+            <div className="td-recents-list">
+              {filteredRecents.slice(0, 6).map((r: any) => {
+                const key =
+                  r.kind === 'saved'
+                    ? dropKey('saved', null)
+                    : dropKey(r.kind, r.id as number);
+                registerLabel(key, r.label);
+                const active =
+                  (r.kind === 'saved' && locationKind === 'saved') ||
+                  (r.kind !== 'saved' &&
+                    locationKind === r.kind &&
+                    activePeerId === r.id);
+                const short = recentDisplayLabel(r.label, 18);
+                return (
+                  <DropRow
+                    key={`${r.kind}:${r.id ?? 'me'}`}
+                    dropKeyStr={key}
+                    className={`td-recent-chip ${active ? 'active' : ''}`}
+                    title={
+                      dragLive
+                        ? `Lepas untuk kirim ke ${r.label}`
+                        : r.label
+                    }
+                    isOver={overKey === key}
+                    invalidTarget={isSelf(key)}
+                    dragLive={dragLive}
+                    acceptDrop={acceptDrop}
+                    onHover={handleHover}
+                    onDropTarget={handleDropKey}
+                    onActivate={() => go(() => onSelectRecent?.(r))}
+                  >
+                    <span className="td-folder-label">{short}</span>
+                  </DropRow>
+                );
+              })}
+            </div>
           </div>
         )}
 
