@@ -2374,40 +2374,18 @@ export function DriveSidebar({
             role="list"
             aria-label={t('ui.generated.daftar_chat_71a8e93')}
           >
-            <div
-              className="td-chat-virtual-inner"
-              style={{ height: chatVirtualizer.getTotalSize(), position: 'relative' }}
-            >
-              {virtualItems.map((vRow) => {
-                const c = chatRows[vRow.index];
-                if (!c) return null;
-                const key = dropKey('chat', c.id);
-                registerLabel(key, c.name);
-                return (
-                  <div
-                    key={c.id}
-                    className="td-chat-virtual-row"
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: vRow.size,
-                      transform: `translateY(${vRow.start}px)`,
-                    }}
-                  >
+            {collapsed ? (
+              <div className="td-chat-collapsed-list" style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '4px 0', alignItems: 'center' }}>
+                {chatRows.map((c) => {
+                  const key = dropKey('chat', c.id);
+                  registerLabel(key, c.name);
+                  const active = locationKind === 'chat' && activePeerId === c.id;
+                  return (
                     <DropRow
+                      key={c.id}
                       dropKeyStr={key}
-                      className={`td-folder-row ${
-                        locationKind === 'chat' && activePeerId === c.id ? 'active' : ''
-                      }`}
-                      title={
-                        isSelf(key)
-                          ? `${c.name} — lokasi sumber (pilih chat lain)`
-                          : `${c.name} (${c.type}) — klik kanan menu${
-                              c.is_forum ? ' · forum' : ''
-                            }`
-                      }
+                      className={`td-folder-row ${active ? 'active' : ''}`}
+                      title={`${c.name} (${c.type})`}
                       isOver={overKey === key}
                       invalidTarget={isSelf(key)}
                       dragLive={dragLive}
@@ -2426,12 +2404,7 @@ export function DriveSidebar({
                       }
                     >
                       <span className="td-folder-ico">
-                        <PeerAvatar
-                          peerId={c.id}
-                          creds={creds}
-                          title={c.name}
-                          fallback={<ChatIcon type={c.type} />}
-                        />
+                        <PeerAvatar peerId={c.id} creds={creds} title={c.name} fallback={<MessageSquare size={16} />} />
                       </span>
                       <span className="td-folder-label">{c.name}</span>
                       {c.is_forum && (
@@ -2443,10 +2416,73 @@ export function DriveSidebar({
                         </span>
                       )}
                     </DropRow>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div
+                className="td-chat-virtual-inner"
+                style={{ height: chatVirtualizer.getTotalSize(), position: 'relative' }}
+              >
+                {virtualItems.map((vRow) => {
+                  const c = chatRows[vRow.index];
+                  if (!c) return null;
+                  const key = dropKey('chat', c.id);
+                  registerLabel(key, c.name);
+                  return (
+                    <div
+                      key={c.id}
+                      className="td-chat-virtual-row"
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: vRow.size,
+                        transform: `translateY(${vRow.start}px)`,
+                      }}
+                    >
+                      <DropRow
+                        dropKeyStr={key}
+                        className={`td-folder-row ${
+                          locationKind === 'chat' && activePeerId === c.id ? 'active' : ''
+                        }`}
+                        title={
+                          isSelf(key)
+                            ? `${c.name} — lokasi sumber (pilih chat lain)`
+                            : `${c.name} (${c.type}) — klik kanan menu${
+                                c.is_forum ? ' · forum' : ''
+                              }`
+                        }
+                        isOver={overKey === key}
+                        invalidTarget={isSelf(key)}
+                        dragLive={dragLive}
+                        acceptDrop={acceptDrop}
+                        onHover={handleHover}
+                        onDropTarget={handleDropKey}
+                        onActivate={() => go(() => onSelectChat(c.id))}
+                        onContextMenu={(e) =>
+                          onLocationContextMenu?.({
+                            locationKind: 'chat',
+                            id: c.id,
+                            name: c.name,
+                            x: e.clientX,
+                            y: e.clientY,
+                          })
+                        }
+                      >
+                        <span className="td-folder-ico">
+                          <PeerAvatar peerId={c.id} creds={creds} title={c.name} fallback={<MessageSquare size={16} />} />
+                        </span>
+                        <div className="td-folder-text-col" style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: '1px', lineHeight: 1.25 }}>
+                          <span className="td-folder-label">{c.name}</span>
+                        </div>
+                      </DropRow>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
         {/* Active chat pin when section collapsed */}

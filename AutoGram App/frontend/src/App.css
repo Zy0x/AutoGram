@@ -20997,3 +20997,26 @@ input[type="search"]::-webkit-search-decoration {
   display: flex !important;
   visibility: visible !important;
 }
+
+/* -- Collapsed Sidebar Chat Avatar List Styling -- */
+.td-sidebar.is-collapsed .td-chat-collapsed-list,
+.td-sidebar.collapsed .td-chat-collapsed-list {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 4px 0 !important;
+  width: 100% !important;
+}
+
+.td-sidebar.is-collapsed .td-chat-collapsed-list .td-folder-row,
+.td-sidebar.collapsed .td-chat-collapsed-list .td-folder-row {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 9px !important;
+  padding: 0 !important;
+  margin: 0 auto !important;
+}
