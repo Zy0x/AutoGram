@@ -1107,20 +1107,22 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                 >
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
-                      {debugOn ? t('settings.debug_disable') : t('settings.debug_enable')}
+                      {t('settings.debug_enable')}
                     </strong>
                     <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
                       {debugOn
-                        ? 'Chrome DevTools & Log Multi-Layer AKTIF (F12 siap)'
-                        : 'DevTools & Log Tambahan NONAKTIF (Buka hanya saat debug)'}
+                        ? t('settings.debug_hint_active')
+                        : t('settings.debug_hint_inactive')}
                     </span>
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={debugOn}
-                    onChange={(e) => handleToggleDebug(e.target.checked)}
-                    style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#38bdf8' }}
-                  />
+                  <label className="settings-switch" style={{ cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={debugOn}
+                      onChange={(e) => handleToggleDebug(e.target.checked)}
+                    />
+                    <span className="settings-slider round" />
+                  </label>
                 </div>
               </div>
             </>

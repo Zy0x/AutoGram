@@ -1,3 +1,9 @@
+## v3.5.2 Debug Mode Toggle Switch UI Engine
+
+### Sakelar Toggle Switch Standar & Pembersihan Hardcode String (`Settings/index.tsx`, `id/settings.json`, `en/settings.json`)
+- **Implementasi Sakelar Toggle Switch (`Settings/index.tsx`)**: Mengganti elemen sakelar *Enable Debug Mode* pada Halaman Pengaturan (Tampilan & Bahasa) dari elemen `input[type="checkbox"]` standar peramban menjadi sakelar *Toggle Switch* modern (`.settings-switch` & `.settings-slider.round`) yang 100% konsisten dengan desain sistem preferensi AutoGram.
+- **100% Zero Hardcoded Strings i18n (`id/settings.json`, `en/settings.json`)**: Mengekstrak seluruh teks petunjuk indikator status debug (`Chrome DevTools & Log Multi-Layer AKTIF` / `DevTools & Log Tambahan NONAKTIF`) ke dalam kunci i18n `debug_hint_active` dan `debug_hint_inactive` secara terstruktur dengan paritas 100% di Bahasa Indonesia dan Inggris.
+
 ## v3.5.1 Startup Latency & Disk I/O Thrashing Elimination Engine
 
 ### Eliminasi Lag & Status Not Responding Saat Booting Aplikasi (`secureCredentials.ts`, `sessionPicker.ts`, `SessionLauncher/index.tsx`, `App.tsx`, `lib.rs`)

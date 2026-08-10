@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.1
+AutoGram Version: v3.5.2
 
 Current State:
+v3.5.2 Debug Mode Toggle Switch UI Engine — membenahi `Settings/index.tsx`, `id/settings.json`, `en/settings.json`, `VERSION.md`, dan `CHANGELOG.md`. Mengganti elemen elemen sakelar *Enable Debug Mode* dari `input[type="checkbox"]` biasa menjadi *Toggle Switch* standar konsisten (`.settings-switch` & `.settings-slider.round`). Mengekstrak seluruh teks petunjuk indikator status debug ke dalam locale i18n (`debug_hint_active` & `debug_hint_inactive`) tanpa hardcode string.
+
+Previous:
 v3.5.1 Startup Latency & Disk I/O Thrashing Elimination Engine — membenahi `secureCredentials.ts`, `sessionPicker.ts`, `SessionLauncher/index.tsx`, `App.tsx`, `lib.rs`, `VERSION.md`, dan `CHANGELOG.md`. Membasmi penuh fenomena lag dan status *Not Responding* saat aplikasi baru dibuka dengan: (1) Mengoptimasi `verifyTelegramApiCredentials` agar melakukan pengecekan sintaks/presensi lokal cepat (0ms) tanpa memicu pembuatan sesi temporary QR login MTProto di background; (2) Memperbaiki alur pemuatan sesi pada `SessionLauncher` agar menggunakan pembacaan sesi offline cepat (`verify: false`) saat *initial paint*, serta melakukan hidrasi metadata sesi secara sekuensial dengan jeda kontrol (*rate-controlled*); (3) Mengubah interval loop *cache policy thread* di Rust dari 5 detik menjadi 300 detik (5 menit) untuk menghentikan total *Disk I/O thrashing* dari pemindaian rekursif ribuan file thumbnail di Windows OS; (4) Menggeser interval pembersihan cache otomatis di JS frontend agar tidak bertabrakan dengan startup rendering.
 
 Previous:

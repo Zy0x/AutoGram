@@ -135,6 +135,8 @@
   "debug_desc": "Captures worker + UI logs to debug repeating downloads, fallbacks, and transfer errors. Slightly slower when active. Do not share logs because they may contain file paths & names.",
   "debug_enable": "Enable Debug Mode",
   "debug_disable": "Disable Debug Mode",
+  "debug_hint_active": "Chrome DevTools & Multi-Layer Logging ACTIVE (F12 ready)",
+  "debug_hint_inactive": "DevTools & Extra Logs DISABLED (Open only for debugging)",
   "debug_status_active": "Active",
   "debug_status_inactive": "Disabled",
   "debug_copy_logs": "Copy",
