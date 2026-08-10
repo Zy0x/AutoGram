@@ -298,7 +298,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
                       <span className="td-dest-ico" aria-hidden>
                         {isLoading ? (
                           <span className="td-spinner-sm" />
-                        ) : c.kind === 'drive' ? (
+                        ) : c.kind === 'saved' ? (
                           kindIcon(c)
                         ) : (
                           <PeerAvatar
