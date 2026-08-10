@@ -21036,3 +21036,29 @@ input[type="search"]::-webkit-search-decoration {
   display: none !important;
   width: 0 !important;
 }
+
+/* -- Fix Collapsed Rail Scroll Trap & Unblock Mouse Wheel -- */
+.td-sidebar.is-collapsed .td-folder-nav,
+.td-sidebar.collapsed .td-folder-nav {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: auto !important;
+  pointer-events: auto !important;
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+}
+
+.td-sidebar.is-collapsed .td-chat-virtual,
+.td-sidebar.collapsed .td-chat-virtual,
+.td-sidebar.is-collapsed .td-chat-collapsed-list,
+.td-sidebar.collapsed .td-chat-collapsed-list,
+.td-sidebar.is-collapsed .td-chat-section,
+.td-sidebar.collapsed .td-chat-section {
+  overflow-y: visible !important;
+  overflow-x: visible !important;
+  overscroll-behavior: auto !important;
+  height: auto !important;
+  max-height: none !important;
+  contain: none !important;
+  pointer-events: auto !important;
+}
