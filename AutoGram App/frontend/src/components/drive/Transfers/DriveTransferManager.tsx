@@ -266,8 +266,8 @@ export function DriveTransferManager({
           .filter(Boolean)
           .join(' ')}
         onClick={onToggleMinimize}
-        title={`${tip} — klik untuk buka`}
-        aria-label={`Transfer manager: ${tip}. Klik untuk membuka.`}
+        title={`${tip} — ${t('speedtest.click_to_open')}`}
+        aria-label={`Transfer manager: ${tip}. ${t('speedtest.click_to_open')}.`}
       >
         <span className="tm-fab-orb" aria-hidden>
           <ProgressRing percent={pct} size={38} stroke={2.5} />
@@ -569,7 +569,7 @@ export function DriveTransferManager({
                     {it.status === 'skipped' && (
                       <span
                         className="tm-skip-badge-pill"
-                        title={it.note || 'File sudah ada di tujuan — tidak diunggah ulang'}
+                        title={it.note || t('speedtest.file_exists_no_reupload')}
                         aria-label={`Dilewati: ${it.note || 'duplikat'}`}
                       >
                         <SkipForward size={9} />

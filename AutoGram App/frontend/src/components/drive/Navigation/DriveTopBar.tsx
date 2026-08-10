@@ -874,8 +874,8 @@ export function DriveTopBar({
                     type="button"
                     className={`td-pill td-thumb-pill ${thumbQuality === opt.id ? 'active' : ''}`}
                     onClick={() => onThumbQuality(opt.id)}
-                    title={`Thumb: ${description}`}
-                    aria-label={`Thumb: ${label}`}
+                    title={`${t('speedtest.thumb_prefix')}: ${description}`}
+                    aria-label={`${t('speedtest.thumb_prefix')}: ${label}`}
                     aria-pressed={thumbQuality === opt.id}
                   >
                     {short}

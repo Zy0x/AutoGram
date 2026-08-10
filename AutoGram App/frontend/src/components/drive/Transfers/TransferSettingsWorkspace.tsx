@@ -673,8 +673,8 @@ export function TransferSettingsWorkspace({
     const parseInline = (str: string) => {
       if (mode === 'HTML') {
         return str
-          .replace(/<tg-spoiler>(.*?)<\/tg-spoiler>/gi, '<span class="td-tg-spoiler" title="Spoiler Telegram">$1</span>')
-          .replace(/<blockquote expandable>(.*?)<\/blockquote>/gi, '<blockquote class="td-tg-quote expandable" title="Kutipan dapat diperluas">$1</blockquote>')
+          .replace(/<tg-spoiler>(.*?)<\/tg-spoiler>/gi, '<span class="td-tg-spoiler" title="' + t('speedtest.tg_spoiler_tooltip') + '">$1</span>')
+          .replace(/<blockquote expandable>(.*?)<\/blockquote>/gi, '<blockquote class="td-tg-quote expandable" title="' + t('speedtest.expandable_quote_tooltip') + '">$1</blockquote>')
           .replace(/<blockquote>(.*?)<\/blockquote>/gi, '<blockquote class="td-tg-quote">$1</blockquote>')
           .replace(/<code>(.*?)<\/code>/gi, '<code class="td-tg-code">$1</code>')
           .replace(/<pre>(.*?)<\/pre>/gi, '<pre class="td-tg-pre">$1</pre>')
@@ -683,7 +683,7 @@ export function TransferSettingsWorkspace({
       if (mode === 'MarkdownV2') {
         return str
           .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-          .replace(/\|\|(.*?)\|\|/g, '<span class="td-tg-spoiler" title="Spoiler Telegram">$1</span>')
+          .replace(/\|\|(.*?)\|\|/g, '<span class="td-tg-spoiler" title="' + t('speedtest.tg_spoiler_tooltip') + '">$1</span>')
           .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
           .replace(/_(.*?)_/g, '<em>$1</em>')
           .replace(/__(.*?)__/g, '<u>$1</u>')

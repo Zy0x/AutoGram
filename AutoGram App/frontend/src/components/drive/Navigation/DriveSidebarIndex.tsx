@@ -2277,7 +2277,7 @@ export function DriveSidebar({
               <DropRow
                 dropKeyStr={key}
                 className="td-folder-row active td-section-pinned"
-                title={`${f.name} (aktif — klik header untuk semua folder)`}
+                title={`${f.name} (${t('speedtest.active_folder_click_header')})`}
                 isOver={overKey === key}
                 invalidTarget={isSelf(key)}
                 dragLive={dragLive}
@@ -2501,9 +2501,9 @@ export function DriveSidebar({
                         }`}
                         title={
                           isSelf(key)
-                            ? `${c.name} — lokasi sumber (pilih chat lain)`
-                            : `${c.name} (${c.type}) — klik kanan menu${
-                                c.is_forum ? ' · forum' : ''
+                            ? `${c.name} — ${t('speedtest.source_location_choose_other')}`
+                            : `${c.name} (${c.type}) — ${t('speedtest.right_click_menu')}${
+                                c.is_forum ? ` · ${t('speedtest.label_topic')}` : ''
                               }`
                         }
                         isOver={overKey === key}
@@ -2551,7 +2551,7 @@ export function DriveSidebar({
               <DropRow
                 dropKeyStr={key}
                 className="td-folder-row active td-section-pinned"
-                title={`${c.name} (aktif — klik header untuk semua chat)`}
+                title={`${c.name} (${t('speedtest.active_chat_click_header')})`}
                 isOver={overKey === key}
                 invalidTarget={isSelf(key)}
                 dragLive={dragLive}

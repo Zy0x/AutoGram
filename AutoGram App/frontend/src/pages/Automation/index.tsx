@@ -266,7 +266,7 @@ export function Automation() {
                                     className="btn btn-secondary" 
                                     style={{ padding: '6px 10px', color: statusVal === 'active' ? 'var(--danger)' : 'var(--primary)', borderColor: statusVal === 'active' ? 'var(--danger)' : 'var(--primary)' }} 
                                     onClick={() => toggleStatus(job.id, statusVal)} 
-                                    title={statusVal === 'active' ? "Pause" : "Resume"}
+                                    title={statusVal === 'active' ? t("jobs.jobs_pause_exec") : t("jobs.jobs_resume_exec")}
                                 >
                                     {statusVal === 'active' ? <Pause size={16} /> : <Play size={16} />}
                                 </button>

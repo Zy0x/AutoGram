@@ -3718,7 +3718,7 @@ export function DrivePreviewModal({
                 <button
                   type="button"
                   className="drive-tool-btn"
-                  title={`Perkecil (min ${Math.round(MIN_ZOOM * 100)}%) — gulir ke bawah atau -`}
+                  title={t("speedtest.zoom_out_detail_tooltip", { percent: Math.round(MIN_ZOOM * 100) })}
                   disabled={isHeaderFrozen || curTransform.zoom <= MIN_ZOOM + 0.001}
                   onClick={() => zoomBy(-ZOOM_STEP)}
                 >
@@ -3738,7 +3738,7 @@ export function DrivePreviewModal({
                 <button
                   type="button"
                   className="drive-tool-btn"
-                  title={`Perbesar (maks ${Math.round(MAX_ZOOM * 100)}%) — gulir ke atas atau +`}
+                  title={t("speedtest.zoom_in_detail_tooltip", { percent: Math.round(MAX_ZOOM * 100) })}
                   disabled={isHeaderFrozen || curTransform.zoom >= MAX_ZOOM - 0.001}
                   onClick={() => zoomBy(ZOOM_STEP)}
                 >

@@ -312,7 +312,7 @@ export function JobRuntime({
                 </strong>
                 {fallbackTriggered && (
                   <span
-                    title={fallbackReason || 'Fell back due to forward restriction'}
+                    title={fallbackReason || t('jobs.fallback_forward_restriction')}
                     style={{ marginLeft: 6, fontSize: '0.75rem', color: 'var(--warning)' }}
                   >
                     {t('ui.generated.fallback_464e3ea')}
@@ -374,7 +374,7 @@ export function JobRuntime({
                   type="button"
                   className="btn btn-primary"
                   onClick={() => startJob(job, true, false, 'RESUME')}
-                  title={`Retry failed messages (retry-execution)${failedCount > 0 ? ` — ${failedCount} failed` : ''}`}
+                  title={`${t('jobs.retry_failed_messages')}${failedCount > 0 ? ` — ${failedCount} ${t('jobs.failed_count')}` : ''}`}
                 >
                   <RefreshCw size={18} /> {t('ui.generated.retry_failed_a3303b3')} {failedCount > 0 && `(${failedCount})`}
                 </button>

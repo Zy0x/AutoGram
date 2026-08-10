@@ -1,5 +1,8 @@
 {
   "title": "Manajemen Tugas Migrasi",
+  "fallback_forward_restriction": "Pindah metode karena pembatasan forward Telegram",
+  "retry_failed_messages": "Coba ulang pesan yang gagal (retry-execution)",
+  "failed_count": "gagal",
   "subtitle": "Buat, konfigurasi, jalankan, dan pantau pengiriman berkas antar channel/folder.",
   "new_job": "Buat Tugas Baru",
   "col_job_name": "Nama Tugas",

@@ -20,7 +20,7 @@ function parseTelegramMarkdown(text: string) {
     .replace(/__(.*?)__/g, '<u>$1</u>')
     .replace(/_(.*?)_/g, '<i>$1</i>')
     .replace(/~(.*?)~/g, '<s>$1</s>')
-    .replace(/\|\|(.*?)\|\|/g, '<span style="background: rgba(255,255,255,0.1); color: transparent; border-radius: 4px; cursor: pointer; padding: 0 4px;" title="Spoiler">$1</span>')
+    .replace(/\|\|(.*?)\|\|/g, '<span style="background: rgba(255,255,255,0.1); color: transparent; border-radius: 4px; cursor: pointer; padding: 0 4px;" title="' + i18n.t('speedtest.spoiler_title') + '">$1</span>')
     .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" style="color: #58a6ff; text-decoration: none;">$1</a>')
     .replace(/`(.*?)`/g, '<code style="color: #f0f6fc; font-family: monospace; background: rgba(0,0,0,0.3); padding: 2px 4px; border-radius: 4px;">$1</code>')
     .replace(/\n/g, '<br/>');

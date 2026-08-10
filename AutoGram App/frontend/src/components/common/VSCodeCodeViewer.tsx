@@ -241,7 +241,7 @@ export function VSCodeCodeViewer({
               type="button"
               className={`vscode-action-btn ${formattedText ? 'is-active' : ''}`}
               onClick={handleFormatJson}
-              title={formattedText ? 'Kembalikan format asli' : 'Rapikan Format JSON'}
+              title={formattedText ? t('speedtest.restore_original_format') : t('speedtest.format_json_pretty')}
             >
               <Sparkles size={13} />
               <span>{formattedText ? t('ui.generated.format_asli_746ac2a') : t('ui.generated.pretty_json_729c7af')}</span>

@@ -1,5 +1,8 @@
 {
   "title": "Migration Jobs Management",
+  "fallback_forward_restriction": "Fell back due to forward restriction",
+  "retry_failed_messages": "Retry failed messages (retry-execution)",
+  "failed_count": "failed",
   "subtitle": "Create, configure, run, and monitor file transfers between channels/folders.",
   "new_job": "Create New Job",
   "col_job_name": "Job Name",
