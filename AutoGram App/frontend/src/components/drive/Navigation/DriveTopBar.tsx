@@ -691,8 +691,13 @@ export function DriveTopBar({
             {topics.map((tp) => {
               const isOver =
                 activeDragTopicId === tp.id ||
+                activeDragTopicId === String(tp.id) ||
                 pointerHoverKey === `topic:${tp.id}` ||
                 pointerHoverKey === `topic:${String(tp.id)}`;
+              const classes = ['td-topic-pill'];
+              if (topicFilter === tp.id) classes.push('active');
+              if (tp.closed) classes.push('is-closed');
+              if (isOver) classes.push('is-drag-over', 'is-drop-over');
               return (
                 <button
                   key={tp.id}
@@ -700,9 +705,7 @@ export function DriveTopBar({
                   data-drop-key={`topic:${tp.id}`}
                   data-location-kind="topic"
                   data-topic-id={tp.id}
-                  className={`td-topic-pill ${topicFilter === tp.id ? 'active' : ''} ${
-                    tp.closed ? 'is-closed' : ''
-                  } ${isOver ? 'is-drag-over is-drop-over' : ''}`}
+                  className={classes.join(' ')}
                   onClick={() => onTopicFilter?.(tp.id)}
                   onDragOver={(e) => handleDragOver(tp.id, e)}
                   onDragLeave={(e) => handleDragLeave(tp.id, e)}

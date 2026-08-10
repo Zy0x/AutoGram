@@ -1,3 +1,10 @@
+## v3.5.10 CSS Specificity & Geometry Hit-Test Tolerance Engine
+
+### Perbaikan Spesifisitas Spesifik CSS & Toleransi Hit-Test Kursor (`driveDrag.ts`, `DriveTopBar.tsx`, `index.css`)
+- **Toleransi Subpixel Container Scroll (`driveDrag.ts`)**: Menaikkan batas toleransi `pointInScrollClips` menjadi `14px` agar deteksi geometri kursor tidak menolak pil topik akibat perbedaan subpixel border/padding container horizontal `.td-topic-pills`.
+- **Hierarki Spesifisitas CSS Drop-Over (`index.css`)**: Memperbaiki spesifisitas CSS dengan menambahkan `.td-shell.is-media-dnd .td-topic-pill.is-drop-over` dan `button.td-topic-pill.is-drop-over`. Hal ini menjamin status hover kursor (cyan solid `#0284c7` dengan pendaran denyut `scale(1.12)`) menimpa (*override*) gaya status siap-drop global (border cyan putus-putus) 100% tanpa hambatan.
+- **Pengecekan String/Angka Presisi (`DriveTopBar.tsx`)**: Menyempurnakan pemetaan `classes.join(' ')` dan perbandingan `activeDragTopicId === String(tp.id)` pada pil-pil topik bar navigasi.
+
 ## v3.5.9 Topic Pill Active DnD Ready & Pulsing Glow Engine
 
 ### Indikator Visual Kesiapan Penyeretan & Pendaran Denyut Real-Time (`DriveTopBar.tsx`, `index.css`)

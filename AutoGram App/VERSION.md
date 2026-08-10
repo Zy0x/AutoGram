@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.9
+AutoGram Version: v3.5.10
 
 Current State:
+v3.5.10 CSS Specificity & Geometry Hit-Test Tolerance Engine — membenahi `driveDrag.ts`, `DriveTopBar.tsx`, `index.css`, `VERSION.md`, dan `CHANGELOG.md`. Menaikkan batas toleransi `pointInScrollClips` di `driveDrag.ts` menjadi 14px untuk mencegah penolakan kliping subpixel, membenahi spesifisitas CSS di `index.css` (`.td-shell.is-media-dnd .td-topic-pill.is-drop-over`) sehingga warna cyan solid berkilau `#0284c7` dengan denyut pendaran `scale(1.12)` terbukti 100% menimpa warna border putus-putus siap-drop saat kursor mouse berada di atas pil topik.
+
+Previous:
 v3.5.9 Topic Pill Active DnD Ready & Pulsing Glow Engine — membenahi `DriveTopBar.tsx`, `index.css`, `VERSION.md`, dan `CHANGELOG.md`. Menghubungkan evaluasi `isOver` dengan `pointerHoverKey` dan `activeDragTopicId`, menambahkan penanda visual border putus-putus (`.td-shell.is-media-dnd .td-topic-pill`) saat penyeretan kartu media dimulai sehingga seluruh pil topik langsung menyala siap menerima drop, serta menambahkan animasi denyut pendaran cyan berkilau (`animation: td-topic-pulse 0.7s`) dengan pembesaran skala `1.1x` saat kursor berada tepat di atas pil topik.
 
 Previous:
