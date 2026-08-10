@@ -1877,9 +1877,9 @@ export function DriveSidebar({
               : ''}
           </p>
         )}
-        {/* ── Saved Messages & Pins Anchored at Top of All Tabs ── */}
+        {/* ── Saved Messages & Pins Quick Bar (Shown in both Expanded and Collapsed Rail) ── */}
         {(layoutModel === 'model_a' || layoutModel === 'model_b') && !anyDragLive && !hasLocationQuery && (
-          <div className="td-sidebar-quick-bar td-only-expanded">
+          <div className="td-sidebar-quick-bar">
             {(() => {
               const key = dropKey('saved', null);
               registerLabel(key, 'Saved Messages');
@@ -1908,7 +1908,7 @@ export function DriveSidebar({
                   <span className="td-folder-ico">
                     <PeerAvatar peerId={0} creds={creds} title={t('speedtest.saved_messages')} fallback={<Home size={15} />} />
                   </span>
-                  <span className="td-folder-label">{t('speedtest.saved_messages')}</span>
+                  <span className="td-folder-label td-only-expanded">{t('speedtest.saved_messages')}</span>
                 </DropRow>
               );
             })()}
@@ -1923,7 +1923,7 @@ export function DriveSidebar({
                   key={`qb:${r.kind}:${r.id ?? 'me'}`}
                   dropKeyStr={key}
                   className={`td-quick-item td-pin-item ${active ? 'active' : ''}`}
-                  title={r.label}
+                  title={`📌 ${r.label}`}
                   isOver={overKey === key}
                   invalidTarget={isSelf(key)}
                   dragLive={dragLive}
@@ -1932,8 +1932,17 @@ export function DriveSidebar({
                   onDropTarget={handleDropKey}
                   onActivate={() => go(() => onSelectPin?.(r))}
                 >
-                  <Pin size={12} aria-hidden className="td-pin-ico" />
-                  <span className="td-folder-label">{recentDisplayLabel(r.label, 18)}</span>
+                  <span className="td-folder-ico" style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {r.kind === 'chat' && r.id != null ? (
+                      <PeerAvatar peerId={r.id} creds={creds} title={r.label} fallback={<MessageSquare size={15} />} />
+                    ) : r.kind === 'drive' && r.id != null ? (
+                      <PeerAvatar peerId={r.id} creds={creds} title={r.label} fallback={<Folder size={15} />} />
+                    ) : (
+                      <Home size={15} />
+                    )}
+                    <span className="td-pin-badge-dot" title={r.label}>📌</span>
+                  </span>
+                  <span className="td-folder-label td-only-expanded">{recentDisplayLabel(r.label, 18)}</span>
                 </DropRow>
               );
             })}

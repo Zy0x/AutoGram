@@ -21113,3 +21113,66 @@ input[type="search"]::-webkit-search-decoration {
   min-width: 26px !important;
   min-height: 26px !important;
 }
+
+/* -- Collapsed Rail Unified Aesthetics & Amber Gold Theme Alignment -- */
+.td-pin-badge-dot {
+  position: absolute;
+  bottom: -3px;
+  right: -5px;
+  font-size: 9px;
+  line-height: 1;
+  background: color-mix(in srgb, var(--td-bg) 85%, #000);
+  border-radius: 50%;
+  padding: 1px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.td-sidebar.is-collapsed .td-sidebar-quick-bar,
+.td-sidebar.collapsed .td-sidebar-quick-bar {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 6px !important;
+  width: 100% !important;
+  padding: 0 0 6px !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--td-border) 60%, transparent) !important;
+  margin-bottom: 4px !important;
+}
+
+.td-sidebar.is-collapsed .td-quick-item,
+.td-sidebar.collapsed .td-quick-item {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 10px !important;
+  padding: 0 !important;
+  margin: 0 auto !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.td-sidebar.is-collapsed .td-quick-item:hover,
+.td-sidebar.collapsed .td-quick-item:hover {
+  background: color-mix(in srgb, #f59e0b 14%, transparent) !important;
+  border-color: color-mix(in srgb, #f59e0b 35%, transparent) !important;
+}
+
+.td-sidebar.is-collapsed .td-quick-item.active,
+.td-sidebar.collapsed .td-quick-item.active {
+  background: color-mix(in srgb, #f59e0b 22%, transparent) !important;
+  border-color: color-mix(in srgb, #f59e0b 70%, transparent) !important;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.25) !important;
+}
+
+.td-sidebar.is-collapsed .td-collapsed-tab-icon.is-active,
+.td-sidebar.collapsed .td-collapsed-tab-icon.is-active {
+  background: color-mix(in srgb, #f59e0b 22%, transparent) !important;
+  border-color: color-mix(in srgb, #f59e0b 70%, transparent) !important;
+  color: #FEF3C7 !important;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.25) !important;
+}
