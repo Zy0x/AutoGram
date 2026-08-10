@@ -20874,3 +20874,84 @@ input[type="search"]::-webkit-search-decoration {
   color: #fef3c7 !important;
   font-weight: 600 !important;
 }
+
+/* -- Vertical 3 Mini Tab Icon Strip for Collapsed Sidebar -- */
+.td-sidebar-collapsed-tabs {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  width: 100%;
+}
+
+.td-collapsed-tab-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  position: relative;
+  transition: all 150ms ease;
+}
+
+.td-collapsed-tab-icon:hover {
+  background: rgba(245, 158, 11, 0.14);
+  color: #fef3c7;
+}
+
+.td-collapsed-tab-icon.is-active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.28) 0%, rgba(217, 119, 6, 0.18) 100%) !important;
+  color: #fef3c7 !important;
+  border: 1px solid rgba(245, 158, 11, 0.5) !important;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.25) !important;
+}
+
+.td-collapsed-tab-icon .td-collapsed-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  line-height: 1;
+}
+
+.td-collapsed-tab-icon.is-active .td-collapsed-badge {
+  background: #f59e0b;
+  color: #0f172a;
+  border: none;
+}
+
+/* -- Collapsed Sidebar Center-Aligned Items & Text Clean Hide -- */
+.td-sidebar.is-collapsed .td-folder-row,
+.td-sidebar.collapsed .td-folder-row {
+  justify-content: center !important;
+  padding: 6px 0 !important;
+  width: 100% !important;
+}
+
+.td-sidebar.is-collapsed .td-folder-text-col,
+.td-sidebar.is-collapsed .td-location-badge,
+.td-sidebar.is-collapsed .td-folder-subtext,
+.td-sidebar.is-collapsed .td-recents-header,
+.td-sidebar.collapsed .td-folder-text-col,
+.td-sidebar.collapsed .td-location-badge,
+.td-sidebar.collapsed .td-folder-subtext,
+.td-sidebar.collapsed .td-recents-header {
+  display: none !important;
+}
+
+.td-sidebar.is-collapsed .td-folder-ico,
+.td-sidebar.collapsed .td-folder-ico {
+  margin: 0 auto !important;
+}

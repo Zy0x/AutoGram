@@ -1662,38 +1662,42 @@ export function DriveSidebar({
         </p>
       )}
 
-      {/* ── Fixed Sticky Controls Block (Search Bar + 3 Smart Tabs Bar) ── */}
+      {/* ── Fixed Controls Block (Search Bar + 3 Smart Tabs Bar) ── */}
       {!anyDragLive && (
-        <div className="td-sidebar-fixed-controls td-only-expanded">
-          <div className="td-location-search">
-            <Search size={14} aria-hidden className="td-location-search-ico" />
-            <input
-              ref={locationSearchRef}
-              type="text"
-              inputMode="search"
-              autoComplete="off"
-              spellCheck={false}
-              value={locationQuery}
-              onChange={(e) => onChatQuery(e.target.value)}
-              placeholder={t("speedtest.sidebar_search_location_ph")}
-              aria-label={t("speedtest.sidebar_search_aria")}
-              title={t("speedtest.sidebar_search_title")}
-              onDragOver={(e) => e.stopPropagation()}
-            />
-            {hasLocationQuery && (
-              <button
-                type="button"
-                className="td-location-search-clear"
-                title={t('speedtest.clear_search')}
-                aria-label={t("speedtest.sidebar_clear_search")}
-                onClick={() => onChatQuery('')}
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
+        <div className="td-sidebar-fixed-controls">
+          {/* Expanded mode: Search Bar */}
+          {!collapsed && (
+            <div className="td-location-search">
+              <Search size={14} aria-hidden className="td-location-search-ico" />
+              <input
+                ref={locationSearchRef}
+                type="text"
+                inputMode="search"
+                autoComplete="off"
+                spellCheck={false}
+                value={locationQuery}
+                onChange={(e) => onChatQuery(e.target.value)}
+                placeholder={t("speedtest.sidebar_search_location_ph")}
+                aria-label={t("speedtest.sidebar_search_aria")}
+                title={t("speedtest.sidebar_search_title")}
+                onDragOver={(e) => e.stopPropagation()}
+              />
+              {hasLocationQuery && (
+                <button
+                  type="button"
+                  className="td-location-search-clear"
+                  title={t('speedtest.clear_search')}
+                  aria-label={t("speedtest.sidebar_clear_search")}
+                  onClick={() => onChatQuery('')}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          )}
 
-          {(layoutModel === 'model_a' || layoutModel === 'model_b') && (
+          {/* Expanded mode: Horizontal 3 Smart Tabs Bar */}
+          {!collapsed && (layoutModel === 'model_a' || layoutModel === 'model_b') && (
             <div className="td-sidebar-tab-bar" role="tablist">
               {/* Tab 1: Recent Locations */}
               <button
@@ -1706,7 +1710,7 @@ export function DriveSidebar({
                 title={t('speedtest.sidebar_recents_header')}
               >
                 <Clock size={13} aria-hidden />
-                <span className="td-sidebar-tab-label td-only-expanded">{t('speedtest.sidebar_tab_recent')}</span>
+                <span className="td-sidebar-tab-label">{t('speedtest.sidebar_tab_recent')}</span>
                 {filteredRecents.length > 0 && (
                   <span className="td-tab-badge">{filteredRecents.length}</span>
                 )}
@@ -1723,7 +1727,7 @@ export function DriveSidebar({
                 title={t('ui.generated.drives_td_d85c6ed')}
               >
                 <HardDrive size={13} aria-hidden />
-                <span className="td-sidebar-tab-label td-only-expanded">{t('speedtest.sidebar_tab_drives')}</span>
+                <span className="td-sidebar-tab-label">{t('speedtest.sidebar_tab_drives')}</span>
                 {folders.length > 0 && (
                   <span className="td-tab-badge">{folders.length}</span>
                 )}
@@ -1740,9 +1744,54 @@ export function DriveSidebar({
                 title={t('ui.generated.daftar_chat_71a8e93')}
               >
                 <MessageSquare size={13} aria-hidden />
-                <span className="td-sidebar-tab-label td-only-expanded">{t('speedtest.sidebar_tab_telegram')}</span>
+                <span className="td-sidebar-tab-label">{t('speedtest.sidebar_tab_telegram')}</span>
                 {chats.length > 0 && (
                   <span className="td-tab-badge">{chatRows.length}</span>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Collapsed mode: Vertical 3 Mini Tab Icon Strip */}
+          {collapsed && (layoutModel === 'model_a' || layoutModel === 'model_b') && (
+            <div className="td-sidebar-collapsed-tabs" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 'recent'}
+                className={`td-collapsed-tab-icon${activeTab === 'recent' ? ' is-active' : ''}`}
+                onClick={() => setActiveTab('recent')}
+                title={`${t('speedtest.sidebar_tab_recent')} (${filteredRecents.length})`}
+              >
+                <Clock size={15} aria-hidden />
+                {filteredRecents.length > 0 && (
+                  <span className="td-collapsed-badge">{filteredRecents.length}</span>
+                )}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 'drives'}
+                className={`td-collapsed-tab-icon${activeTab === 'drives' ? ' is-active' : ''}`}
+                onClick={() => setActiveTab('drives')}
+                title={`${t('speedtest.sidebar_tab_drives')} (${folders.length})`}
+              >
+                <HardDrive size={15} aria-hidden />
+                {folders.length > 0 && (
+                  <span className="td-collapsed-badge">{folders.length}</span>
+                )}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 'chats'}
+                className={`td-collapsed-tab-icon${activeTab === 'chats' ? ' is-active' : ''}`}
+                onClick={() => setActiveTab('chats')}
+                title={`${t('speedtest.sidebar_tab_telegram')} (${chatRows.length})`}
+              >
+                <MessageSquare size={15} aria-hidden />
+                {chats.length > 0 && (
+                  <span className="td-collapsed-badge">{chatRows.length}</span>
                 )}
               </button>
             </div>
@@ -1939,8 +1988,8 @@ export function DriveSidebar({
 
         {/* Recent locations — flat clean section without heavy dropdown container */}
         {!hasLocationQuery && filteredRecents.length > 0 && (
-          <div className="td-recents td-only-expanded" data-recent="1">
-            <div className="td-recents-header">
+          <div className="td-recents" data-recent="1">
+            <div className="td-recents-header td-only-expanded">
               <Clock size={12} className="td-recents-icon" aria-hidden />
               <span className="td-recents-title">{t("speedtest.sidebar_recents_header")}</span>
               <span className="td-recents-count">{filteredRecents.length}</span>
