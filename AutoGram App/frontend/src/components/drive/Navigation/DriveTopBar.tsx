@@ -27,6 +27,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { useTopicDrop } from './useTopicDrop';
 import type {
   DriveGridZoom,
   DriveMediaFilter,
@@ -107,6 +108,7 @@ type Props = {
   onRenameTopic?: (topicId: number, title: string) => void;
   onCopyTopicId?: (topicId: number, topicPath: string) => void;
   topicsLoading?: boolean;
+  onDropOnTopic?: (topicId: number | null, topicTitle: string, e: React.DragEvent) => void;
   /** Open Drive power tools (dup/rename/copy/filter/space) */
   onOpenTools?: () => void;
   toolsActive?: boolean;
@@ -185,6 +187,7 @@ export function DriveTopBar({
   onRenameTopic,
   onCopyTopicId,
   topicsLoading,
+  onDropOnTopic,
   onOpenTools,
   toolsActive,
   canNavBack: _canNavBack,
@@ -222,6 +225,10 @@ export function DriveTopBar({
     topicFilter != null ||
     !!topicsLoading ||
     !!hasTopicSegment;
+
+  const { activeDragTopicId, handleDragOver, handleDragLeave, handleDrop } = useTopicDrop({
+    onDropOnTopic,
+  });
 
   const [topicContextMenu, setTopicContextMenu] = useState<{
     x: number;
@@ -664,8 +671,13 @@ export function DriveTopBar({
           <div className="td-topic-pills">
             <button
               type="button"
-              className={`td-topic-pill ${topicFilter == null ? 'active' : ''}`}
+              className={`td-topic-pill ${topicFilter == null ? 'active' : ''} ${
+                activeDragTopicId === 'all' ? 'is-drag-over' : ''
+              }`}
               onClick={() => onTopicFilter?.(null)}
+              onDragOver={(e) => handleDragOver(null, e)}
+              onDragLeave={(e) => handleDragLeave(null, e)}
+              onDrop={(e) => handleDrop(null, t('speedtest.all_media_pill'), e)}
               title={t('speedtest.show_group_media')}
             >
               {t('speedtest.all_media_pill')}
@@ -678,8 +690,13 @@ export function DriveTopBar({
                 key={tp.id}
                 type="button"
                 data-topic-id={tp.id}
-                className={`td-topic-pill ${topicFilter === tp.id ? 'active' : ''} ${tp.closed ? 'is-closed' : ''}`}
+                className={`td-topic-pill ${topicFilter === tp.id ? 'active' : ''} ${
+                  tp.closed ? 'is-closed' : ''
+                } ${activeDragTopicId === tp.id ? 'is-drag-over' : ''}`}
                 onClick={() => onTopicFilter?.(tp.id)}
+                onDragOver={(e) => handleDragOver(tp.id, e)}
+                onDragLeave={(e) => handleDragLeave(tp.id, e)}
+                onDrop={(e) => handleDrop(tp.id, tp.title, e)}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   e.stopPropagation();

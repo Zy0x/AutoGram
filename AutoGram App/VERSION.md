@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.5
+AutoGram Version: v3.5.6
 
 Current State:
+v3.5.6 Inter-Topic Media Card Drag & Drop Transfer Engine — membenahi `useTopicDrop.ts`, `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `index.css`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan handler `onDragOver`, `onDragLeave`, `onDrop`, dan efek visual pendaran `.is-drag-over` pada pil-pil topik forum (`.td-topic-pill`) di bar navigasi atas. Menghubungkan fungsi `handleDropOnTopic` di mana ketika kartu media diseret dan dilepas ke pil topik target, sistem secara otomatis membuka dialog konfirmasi transfer/salin ke topik tersebut.
+
+Previous:
 v3.5.5 Rust SQLite & Frontend Synchronized Exact Total Count Engine — membenahi `media_statistics.rs`, `media_counter.rs`, `telegram_ops.rs`, `lib.rs`, `deepIndexCache.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan kolom `is_exact INTEGER NOT NULL DEFAULT 0` pada SQLite `media_statistics` serta command Tauri `tg_save_exact_media_statistics`. Saat pengindeksan penuh (*Deep Scan*) selesai pada frontend, jumlah total presisi (misal: `98` file) dikirim dan disimpan ke SQLite backend Rust. Rust backend kini secara otomatis memprioritaskan nilai presisi tersebut dan menghentikan penggelembungan RPC estimasi Telegram (`100`), menjamin konsistensi 100% dari backend hingga frontend UI.
 
 Previous:

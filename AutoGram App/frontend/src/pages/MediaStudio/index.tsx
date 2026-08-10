@@ -7065,6 +7065,69 @@ function MediaDriveDesktop({
     setError(t('ui.generated.drop_tidak_dikenali_seret_file_dari_file_explore_b4f412d'));
   };
 
+  const handleDropOnTopic = async (targetTopicId: number | null, targetTopicTitle: string, e: React.DragEvent) => {
+    e.preventDefault?.();
+    e.stopPropagation?.();
+    if (dropLockRef.current) return;
+    setDragActive(false);
+    if (!creds) {
+      endDriveDrag();
+      clearMediaDragUi();
+      clearLastOsPaths();
+      return setError(t('ui.generated.select_session_first_8e5fb74'));
+    }
+
+    const internal = getActiveDriveDrag() || getDriveDragData(e.dataTransfer);
+    if (internal?.messageIds?.length) {
+      if (peerId != null && topicFilter != null && topicFilter === targetTopicId) {
+        endDriveDrag();
+        clearMediaDragUi();
+        setStatusText(t('ui.generated.sudah_di_lokasi_ini_pilih_chat_folder_lain_d3c0ecf'));
+        return;
+      }
+      dropLockRef.current = true;
+      endDriveDrag();
+      clearMediaDragUi();
+      try {
+        await requestMoveToTarget(
+          internal.messageIds,
+          internal.fromFolderId,
+          peerId,
+          targetTopicTitle,
+          { isForum: true, topicId: targetTopicId }
+        );
+      } finally {
+        dropLockRef.current = false;
+      }
+      return;
+    }
+
+    let paths = extractOsPaths(e.dataTransfer);
+    if (!paths.length && e.dataTransfer && hasOsFiles(e.dataTransfer)) {
+      paths = await waitForOsPaths(500);
+    }
+    if (paths.length) {
+      dropLockRef.current = true;
+      endDriveDrag();
+      clearMediaDragUi();
+      clearLastOsPaths();
+      try {
+        await runUploadPaths(paths, {
+          targetFolderId: peerId,
+          targetLabel: targetTopicTitle,
+          topicId: targetTopicId,
+          skipTopic: targetTopicId == null,
+        });
+      } finally {
+        dropLockRef.current = false;
+      }
+      return;
+    }
+
+    endDriveDrag();
+    clearMediaDragUi();
+  };
+
   const cancelTransfer = async () => {
     debugLog('drive', 'transfer stop');
     transferQueueRef.current = [];
@@ -7634,6 +7697,7 @@ function MediaDriveDesktop({
               setStatusText(`ID Topik disalin: ${topicPath}`);
             }}
             topicsLoading={topicsLoading}
+            onDropOnTopic={handleDropOnTopic}
             onOpenTools={() => {
               setToolsTab(isAdvFilterActive(advFilter) ? 'filter' : 'dups');
               setToolsOpen(true);

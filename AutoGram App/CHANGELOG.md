@@ -1,3 +1,10 @@
+## v3.5.6 Inter-Topic Media Card Drag & Drop Transfer Engine
+
+### Fitur Drag & Drop Kartu Media antar-Topik Forum (`useTopicDrop.ts`, `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `index.css`)
+- **Hook Modular Drag Drop Topik (`useTopicDrop.ts`)**: Membuat hook terisolasi untuk mengelola event `onDragOver`, `onDragLeave`, `onDrop` serta pelacakan state visual target topik aktif.
+- **Dukungan Drop pada Pil Topik Bar Navigasi (`DriveTopBar.tsx`, `index.css`)**: Menambahkan listener event seret-lepas dan gaya visual pendaran `.is-drag-over` pada pil-pil topik (`.td-topic-pill`) dan tombol "Semua Media".
+- **Handler Drop Topik pada Workspace (`MediaStudio/index.tsx`)**: Menambahkan fungsi `handleDropOnTopic` yang menangkap item media yang diseret (baik internal media cards maupun file OS eksternal) lalu memicu dialog konfirmasi pemindahan/penyalinan langsung ke topik target yang dituju.
+
 ## v3.5.5 Rust SQLite & Frontend Synchronized Exact Total Count Engine
 
 ### Sinkronisasi Total Presisi dari Frontend hingga Rust Backend SQLite (`media_statistics.rs`, `media_counter.rs`, `telegram_ops.rs`, `lib.rs`, `deepIndexCache.ts`)
