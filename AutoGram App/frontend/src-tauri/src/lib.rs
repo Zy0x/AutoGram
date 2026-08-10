@@ -1866,7 +1866,7 @@ pub fn run() {
                 .name("autogram-cache-policy".into())
                 .spawn(|| loop {
                     let _ = core::jobs_db::enforce_cache_policy();
-                    std::thread::sleep(std::time::Duration::from_secs(5));
+                    std::thread::sleep(std::time::Duration::from_secs(300));
                 });
             // Network (proxy/VPN) config under app data
             if let Ok(dir) = app.handle().path().app_local_data_dir() {

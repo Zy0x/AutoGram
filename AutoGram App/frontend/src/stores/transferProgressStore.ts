@@ -153,11 +153,8 @@ class TransferProgressStore {
   }
 
   private initTauriListeners() {
-    if (this.isListening || (typeof window !== 'undefined' && (window as any).__autogram_transfer_progress_listening)) return;
+    if (this.isListening) return;
     this.isListening = true;
-    if (typeof window !== 'undefined') {
-      (window as any).__autogram_transfer_progress_listening = true;
-    }
 
     listen<TransferProgressPayload>('transfer-progress', (event) => {
       const payload = event.payload;

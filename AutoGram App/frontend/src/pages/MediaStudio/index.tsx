@@ -2843,20 +2843,14 @@ function MediaDriveDesktop({
     }
   }, [creds, refreshFiles]);
 
-  const processPendingActionsRef = useRef(processPendingActions);
   useEffect(() => {
-    processPendingActionsRef.current = processPendingActions;
-  }, [processPendingActions]);
-
-  useEffect(() => {
-    const handleOnline = () => void processPendingActionsRef.current();
-    window.addEventListener('online', handleOnline);
-    const interval = window.setInterval(() => void processPendingActionsRef.current(), 15000);
+    window.addEventListener('online', processPendingActions);
+    const interval = window.setInterval(processPendingActions, 15000);
     return () => {
-      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('online', processPendingActions);
       window.clearInterval(interval);
     };
-  }, []);
+  }, [processPendingActions]);
 
   const loadMoreFiles = useCallback(async (opts?: { pageSize?: number }) => {
     const currentOffset = nextOffsetIdRef.current;
@@ -3158,18 +3152,13 @@ function MediaDriveDesktop({
     ]
   );
 
-  const syncActiveLocationLiveRef = useRef(syncActiveLocationLive);
-  useEffect(() => {
-    syncActiveLocationLiveRef.current = syncActiveLocationLive;
-  }, [syncActiveLocationLive]);
-
   useEffect(() => {
     if (!creds) return;
     const plan = getDriveLiveSyncPlan(getDrivePerfProfile().tier);
     const timer = window.setInterval(() => {
-      void syncActiveLocationLiveRef.current('interval');
+      void syncActiveLocationLive('interval');
     }, plan.intervalMs);
-    const onFocus = () => void syncActiveLocationLiveRef.current('focus');
+    const onFocus = () => void syncActiveLocationLive('focus');
     const onVisibility = () => {
       if (document.visibilityState === 'visible') onFocus();
     };
@@ -3180,7 +3169,7 @@ function MediaDriveDesktop({
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [creds?.session, peerId, topicFilter]);
+  }, [creds, peerId, topicFilter, syncActiveLocationLive]);
 
   useEffect(() => {
     void loadSessions();
@@ -3699,11 +3688,6 @@ function MediaDriveDesktop({
     }
   }, [creds, peerId, thumbLocationOptions, uploadSoftRefresh]);
 
-  const flushTransferDoneRef = useRef(flushTransferDone);
-  useEffect(() => {
-    flushTransferDoneRef.current = flushTransferDone;
-  }, [flushTransferDone]);
-
   useEffect(() => {
     if (!detectTauriRuntime()) return;
     let unlisten: (() => void) | undefined;
@@ -3722,7 +3706,7 @@ function MediaDriveDesktop({
             if (transferDoneTimerRef.current) clearTimeout(transferDoneTimerRef.current);
             transferDoneTimerRef.current = setTimeout(() => {
               transferDoneTimerRef.current = null;
-              flushTransferDoneRef.current();
+              flushTransferDone();
             }, 600);
           } else if (e.payload.type === 'StudioFinished') {
             // Session finished: flush immediately (no more events coming)
@@ -3730,7 +3714,7 @@ function MediaDriveDesktop({
               clearTimeout(transferDoneTimerRef.current);
               transferDoneTimerRef.current = null;
             }
-            flushTransferDoneRef.current();
+            flushTransferDone();
           }
         }
       }).then((u) => {
@@ -3743,7 +3727,7 @@ function MediaDriveDesktop({
       for (const t of thumbRetryTimerRef.current) clearTimeout(t);
       thumbRetryTimerRef.current = [];
     };
-  }, []);
+  }, [flushTransferDone]);
 
   /**
    * Lightweight sidebar refresh triggered after upload finishes.

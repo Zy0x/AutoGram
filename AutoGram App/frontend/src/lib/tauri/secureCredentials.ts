@@ -342,11 +342,21 @@ export async function verifyTelegramApiCredentials(
     return { ok: false, errorKey: 'api_setup_error_hash_invalid' };
   }
 
-  // 60-second cache TTL for background checks to avoid FloodWait & unnecessary calls
   const now = Date.now();
   const verifyKey = `${id}:${hash}`;
+
+  // Quick syntax & presence validation
+  if (!force) {
+    const res = { ok: true };
+    lastVerifyTime = now;
+    lastVerifyKey = verifyKey;
+    lastVerifyResult = res;
+    return res;
+  }
+
+  // 60-second cache TTL for forced background checks to avoid FloodWait & unnecessary calls
   const CACHE_TTL_MS = 60_000;
-  if (!force && now - lastVerifyTime < CACHE_TTL_MS && lastVerifyKey === verifyKey && lastVerifyResult) {
+  if (now - lastVerifyTime < CACHE_TTL_MS && lastVerifyKey === verifyKey && lastVerifyResult) {
     return lastVerifyResult;
   }
   lastVerifyTime = now;

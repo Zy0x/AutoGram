@@ -193,8 +193,7 @@ function notifyThumbReady(key: string, url: string, isPlaceholder = false): void
 }
 
 // Setup Tauri event listener for real-time 1-by-1 per-item thumbnail streaming
-if (typeof window !== 'undefined' && !(window as any).__autogram_thumb_batcher_listening) {
-  (window as any).__autogram_thumb_batcher_listening = true;
+if (typeof window !== 'undefined') {
   import('@tauri-apps/api/event')
     .then(({ listen }) => {
       listen<{

@@ -325,26 +325,28 @@ export async function hydrateSessionMetadataInBackground(sessionNames: string[])
 
   for (const sessionName of missing) {
     hydratingSessions.add(sessionName);
-    tgAuthStatus({
-      session: sessionName,
-      apiId: Number(apiId),
-      apiHash,
-    })
-      .then((result) => {
-        if (result?.ok && result.data?.user) {
-          const u = result.data.user;
-          const uFullName = u.firstName || undefined;
-          saveSessionMetadata(sessionName, {
-            userFullName: uFullName,
-            username: u.username || undefined,
-            photoBase64: u.photoBase64 || undefined,
-          });
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        hydratingSessions.delete(sessionName);
+    try {
+      const result = await tgAuthStatus({
+        session: sessionName,
+        apiId: Number(apiId),
+        apiHash,
       });
+      if (result?.ok && result.data?.user) {
+        const u = result.data.user;
+        const uFullName = u.firstName || undefined;
+        saveSessionMetadata(sessionName, {
+          userFullName: uFullName,
+          username: u.username || undefined,
+          photoBase64: u.photoBase64 || undefined,
+        });
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      hydratingSessions.delete(sessionName);
+    }
+    // Rate-control delay between background session checks
+    await new Promise((r) => setTimeout(r, 150));
   }
 }
 

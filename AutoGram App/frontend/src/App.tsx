@@ -127,11 +127,11 @@ function App() {
 
     const timer = setTimeout(() => {
       void checkAndAutoPruneCache();
-    }, 5000);
+    }, 60000);
 
     const interval = setInterval(() => {
       void checkAndAutoPruneCache();
-    }, 30 * 1000);
+    }, 5 * 60 * 1000);
 
     return () => {
       active = false;
