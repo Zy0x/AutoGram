@@ -2137,12 +2137,16 @@ export function DriveSidebar({
                 const kindBadge = (() => {
                   if (r.kind === 'drive') return 'Drive';
                   if (r.kind === 'saved') return 'Saved';
-                  // kind === 'chat': use chatType + isForum for granular label
-                  if (r.isForum) return 'Groups - Forum';
-                  if (r.chatType === 'channel') return 'Channel';
-                  if (r.chatType === 'group') return 'Group';
-                  if (r.chatType === 'bot') return 'Bot';
-                  if (r.chatType === 'user') return 'Private Chat';
+                  // kind === 'chat': resolve type from stored metadata first,
+                  // then fall back to live chats list (covers old localStorage entries without chatType)
+                  const liveMeta = r.id != null ? chats.find((c) => c.id === r.id) : null;
+                  const resolvedIsForum = r.isForum ?? !!(liveMeta?.is_forum);
+                  const resolvedType = r.chatType ?? liveMeta?.type;
+                  if (resolvedIsForum) return 'Groups - Forum';
+                  if (resolvedType === 'channel') return 'Channel';
+                  if (resolvedType === 'group') return 'Group';
+                  if (resolvedType === 'bot') return 'Bot';
+                  if (resolvedType === 'user') return 'Private Chat';
                   return 'Chat';
                 })();
                 return (
