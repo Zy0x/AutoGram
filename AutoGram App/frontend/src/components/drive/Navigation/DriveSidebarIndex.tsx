@@ -1662,33 +1662,10 @@ export function DriveSidebar({
         </p>
       )}
 
-      <nav
-        ref={navRef as React.RefObject<HTMLElement>}
-        className={`td-folder-nav ${anyDragLive ? 'is-drop-mode is-dnd-layout' : ''} ${
-          hasLocationQuery ? 'is-search-mode' : ''
-        } ${!chatsExpanded ? 'chats-collapsed' : ''} ${!foldersExpanded ? 'folders-collapsed' : ''} td-nav-model-${layoutModel}`}
-        data-layout-model={layoutModel}
-        data-active-tab={activeTab}
-        data-has-query={hasLocationQuery ? 'true' : 'false'}
-        onDragOver={(e) => {
-          if (
-            dragLive ||
-            folderDragLive ||
-            acceptDrop(e) ||
-            isInternalMediaDragActive() ||
-            isFolderReparentDragActive()
-          ) {
-            e.preventDefault();
-            applyDropEffect(
-              e.dataTransfer,
-              isFolderReparentDragActive() || folderDragLive ? 'move' : 'move'
-            );
-          }
-        }}
-      >
-        {/* Universal location search — top of nav for general search across all tabs */}
-        {!anyDragLive && (
-          <div className="td-location-search td-only-expanded">
+      {/* ── Fixed Sticky Controls Block (Search Bar + 3 Smart Tabs Bar) ── */}
+      {!anyDragLive && (
+        <div className="td-sidebar-fixed-controls td-only-expanded">
+          <div className="td-location-search">
             <Search size={14} aria-hidden className="td-location-search-ico" />
             <input
               ref={locationSearchRef}
@@ -1715,7 +1692,88 @@ export function DriveSidebar({
               </button>
             )}
           </div>
-        )}
+
+          {(layoutModel === 'model_a' || layoutModel === 'model_b') && (
+            <div className="td-sidebar-tab-bar" role="tablist">
+              {/* Tab 1: Recent Locations */}
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 'recent'}
+                data-drop-key="tab:recent"
+                className={`td-sidebar-tab-btn${activeTab === 'recent' ? ' is-active' : ''}`}
+                onClick={() => setActiveTab('recent')}
+                title={t('speedtest.sidebar_recents_header')}
+              >
+                <Clock size={13} aria-hidden />
+                <span className="td-sidebar-tab-label td-only-expanded">{t('speedtest.sidebar_tab_recent')}</span>
+                {filteredRecents.length > 0 && (
+                  <span className="td-tab-badge">{filteredRecents.length}</span>
+                )}
+              </button>
+
+              {/* Tab 2: Drives */}
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 'drives'}
+                data-drop-key="tab:drives"
+                className={`td-sidebar-tab-btn${activeTab === 'drives' ? ' is-active' : ''}`}
+                onClick={() => setActiveTab('drives')}
+                title={t('ui.generated.drives_td_d85c6ed')}
+              >
+                <HardDrive size={13} aria-hidden />
+                <span className="td-sidebar-tab-label td-only-expanded">{t('speedtest.sidebar_tab_drives')}</span>
+                {folders.length > 0 && (
+                  <span className="td-tab-badge">{folders.length}</span>
+                )}
+              </button>
+
+              {/* Tab 3: Telegram Chats & Groups */}
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 'chats'}
+                data-drop-key="tab:chats"
+                className={`td-sidebar-tab-btn${activeTab === 'chats' ? ' is-active' : ''}`}
+                onClick={() => setActiveTab('chats')}
+                title={t('ui.generated.daftar_chat_71a8e93')}
+              >
+                <MessageSquare size={13} aria-hidden />
+                <span className="td-sidebar-tab-label td-only-expanded">{t('speedtest.sidebar_tab_telegram')}</span>
+                {chats.length > 0 && (
+                  <span className="td-tab-badge">{chatRows.length}</span>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <nav
+        ref={navRef as React.RefObject<HTMLElement>}
+        className={`td-folder-nav ${anyDragLive ? 'is-drop-mode is-dnd-layout' : ''} ${
+          hasLocationQuery ? 'is-search-mode' : ''
+        } ${!chatsExpanded ? 'chats-collapsed' : ''} ${!foldersExpanded ? 'folders-collapsed' : ''} td-nav-model-${layoutModel}`}
+        data-layout-model={layoutModel}
+        data-active-tab={activeTab}
+        data-has-query={hasLocationQuery ? 'true' : 'false'}
+        onDragOver={(e) => {
+          if (
+            dragLive ||
+            folderDragLive ||
+            acceptDrop(e) ||
+            isInternalMediaDragActive() ||
+            isFolderReparentDragActive()
+          ) {
+            e.preventDefault();
+            applyDropEffect(
+              e.dataTransfer,
+              isFolderReparentDragActive() || folderDragLive ? 'move' : 'move'
+            );
+          }
+        }}
+      >
         {hasLocationQuery && !dragLive && (
           <p className="td-location-search-meta td-only-expanded">
             {[
@@ -1728,62 +1786,6 @@ export function DriveSidebar({
               ? t('ui.generated.muat_chat_lain_jika_belum_muncul_38ef29f')
               : ''}
           </p>
-        )}
-
-        {/* ── Model A & B: 3 Smart Tabs Bar (Recent | Drives | Telegram) ── */}
-        {(layoutModel === 'model_a' || layoutModel === 'model_b') && !anyDragLive && (
-          <div className="td-sidebar-tab-bar" role="tablist">
-            {/* Tab 1: Recent Locations */}
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'recent'}
-              data-drop-key="tab:recent"
-              className={`td-sidebar-tab-btn${activeTab === 'recent' ? ' is-active' : ''}`}
-              onClick={() => setActiveTab('recent')}
-              title={t('speedtest.sidebar_recents_header')}
-            >
-              <Clock size={13} aria-hidden />
-              <span className="td-sidebar-tab-label td-only-expanded">{t('speedtest.sidebar_tab_recent')}</span>
-              {filteredRecents.length > 0 && (
-                <span className="td-tab-badge">{filteredRecents.length}</span>
-              )}
-            </button>
-
-            {/* Tab 2: Drives */}
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'drives'}
-              data-drop-key="tab:drives"
-              className={`td-sidebar-tab-btn${activeTab === 'drives' ? ' is-active' : ''}`}
-              onClick={() => setActiveTab('drives')}
-              title={t('ui.generated.drives_td_d85c6ed')}
-            >
-              <HardDrive size={13} aria-hidden />
-              <span className="td-sidebar-tab-label td-only-expanded">{t('speedtest.sidebar_tab_drives')}</span>
-              {folders.length > 0 && (
-                <span className="td-tab-badge">{folders.length}</span>
-              )}
-            </button>
-
-            {/* Tab 3: Telegram Chats & Groups */}
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'chats'}
-              data-drop-key="tab:chats"
-              className={`td-sidebar-tab-btn${activeTab === 'chats' ? ' is-active' : ''}`}
-              onClick={() => setActiveTab('chats')}
-              title={t('ui.generated.daftar_chat_71a8e93')}
-            >
-              <MessageSquare size={13} aria-hidden />
-              <span className="td-sidebar-tab-label td-only-expanded">{t('speedtest.sidebar_tab_telegram')}</span>
-              {chats.length > 0 && (
-                <span className="td-tab-badge">{chatRows.length}</span>
-              )}
-            </button>
-          </div>
         )}
         {/* ── Saved Messages & Pins Anchored at Top of All Tabs ── */}
         {(layoutModel === 'model_a' || layoutModel === 'model_b') && !anyDragLive && !hasLocationQuery && (

@@ -20594,3 +20594,27 @@ input[type="search"]::-webkit-search-decoration {
   display: none !important;
   width: 0 !important;
 }
+
+/* Fixed Control Panel for Sidebar Search & Smart Tabs */
+.td-sidebar-fixed-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 14px 6px;
+  background: var(--td-bg, #0f172a);
+  border-bottom: 1px solid var(--td-border, rgba(255, 255, 255, 0.08));
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.td-sidebar-fixed-controls .td-location-search {
+  margin: 0;
+}
+
+.td-sidebar-fixed-controls .td-sidebar-tab-bar {
+  margin: 0;
+  position: static !important;
+  top: auto !important;
+  background: transparent !important;
+  border-bottom: none !important;
+}
