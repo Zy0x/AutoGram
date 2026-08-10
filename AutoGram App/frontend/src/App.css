@@ -20618,3 +20618,67 @@ input[type="search"]::-webkit-search-decoration {
   background: transparent !important;
   border-bottom: none !important;
 }
+
+/* -- High-End Modern Tab Button Styling (Apple / Raycast / VSCode Theme) -- */
+.td-sidebar-tab-bar {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: color-mix(in srgb, var(--td-surface, #1e293b) 60%, transparent);
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--td-border, #334155) 50%, transparent);
+}
+
+.td-sidebar-tab-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 4px !important;
+  border: none !important;
+  background: transparent !important;
+  color: var(--td-sub, #94a3b8) !important;
+  border-radius: 6px !important;
+  cursor: pointer;
+  font-size: 0.68rem !important;
+  font-weight: 500 !important;
+  transition: all 140ms ease !important;
+  position: relative;
+}
+
+.td-sidebar-tab-btn:hover {
+  background: color-mix(in srgb, var(--td-primary, #3b82f6) 12%, transparent) !important;
+  color: var(--td-fg, #f8fafc) !important;
+}
+
+.td-sidebar-tab-btn.is-active {
+  color: #ffffff !important;
+  background: color-mix(in srgb, var(--td-primary, #3b82f6) 24%, transparent) !important;
+  font-weight: 600 !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--td-primary, #3b82f6) 50%, transparent) !important;
+}
+
+.td-sidebar-tab-btn.is-active::after {
+  content: '' !important;
+  position: absolute;
+  bottom: 0;
+  left: 14%;
+  right: 14%;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--td-primary, #3b82f6) !important;
+}
+
+/* -- Fix Scroll Interception & Freeze Bug in Sidebar Navigation -- */
+.td-chat-virtual,
+.td-chat-virtual-inner,
+.td-chat-virtual-row,
+.td-chat-section,
+.td-dnd-folder-stack {
+  overscroll-behavior: auto !important;
+  contain: none !important;
+  pointer-events: auto !important;
+  touch-action: auto !important;
+}
