@@ -110,6 +110,29 @@ function writeSecOpen(key: string, open: boolean): void {
   }
 }
 
+function formatRelativeAccessTime(timestamp: number | undefined, t: (key: string, opts?: any) => string): string {
+  if (!timestamp) return t('speedtest.time_recently');
+  const now = Date.now();
+  const diffMs = Math.max(0, now - timestamp);
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMin < 1) {
+    return t('speedtest.time_just_now');
+  }
+  if (diffMin < 60) {
+    return t('speedtest.time_minutes_ago', { count: diffMin });
+  }
+  if (diffHours < 24) {
+    return t('speedtest.time_hours_ago', { count: diffHours });
+  }
+  if (diffDays === 1) {
+    return t('speedtest.time_yesterday');
+  }
+  return t('speedtest.time_days_ago', { count: diffDays });
+}
+
 type Props = {
   folders: DriveFolder[];
   chats: DriveChat[];
@@ -1960,7 +1983,12 @@ export function DriveSidebar({
                         <PeerAvatar peerId={r.id} creds={creds} title={r.label} fallback={<MessageSquare size={16} />} />
                       )}
                     </span>
-                    <span className="td-folder-label">{r.label}</span>
+                    <div className="td-folder-text-col" style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: '1px', lineHeight: 1.25 }}>
+                      <span className="td-folder-label">{r.label}</span>
+                      <span className="td-folder-subtext" style={{ fontSize: '0.68rem', color: 'var(--td-sub, #94a3b8)', opacity: 0.85, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {formatRelativeAccessTime(r.at, t)}
+                      </span>
+                    </div>
                     <span className="td-location-badge" style={{
                       fontSize: '0.62rem',
                       padding: '1px 6px',
@@ -1968,7 +1996,7 @@ export function DriveSidebar({
                       border: '1px solid color-mix(in srgb, var(--td-primary, #3b82f6) 40%, var(--td-border))',
                       color: 'color-mix(in srgb, var(--td-primary, #3b82f6) 85%, var(--td-fg))',
                       fontWeight: 600,
-                      marginLeft: 'auto',
+                      marginLeft: '8px',
                       flexShrink: 0,
                     }}>
                       {kindBadge}

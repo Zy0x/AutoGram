@@ -1395,5 +1395,11 @@
   "sidebar_expand_tooltip": "Perluas sidebar",
   "sidebar_collapse_tooltip": "Ciutkan sidebar",
   "header_drive_title": "Cloud Drives",
-  "header_drive_subtitle": "Penyimpanan Telegram"
+  "header_drive_subtitle": "Penyimpanan Telegram",
+  "time_recently": "Diakses baru-baru ini",
+  "time_just_now": "Diakses baru saja",
+  "time_minutes_ago": "Diakses {{count}} mnt lalu",
+  "time_hours_ago": "Diakses {{count}} jam lalu",
+  "time_yesterday": "Diakses kemarin",
+  "time_days_ago": "Diakses {{count}} hr lalu"
 }

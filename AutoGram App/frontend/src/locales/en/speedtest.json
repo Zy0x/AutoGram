@@ -1395,5 +1395,11 @@
   "sidebar_expand_tooltip": "Expand sidebar",
   "sidebar_collapse_tooltip": "Collapse sidebar",
   "header_drive_title": "Cloud Drives",
-  "header_drive_subtitle": "Telegram Storage"
+  "header_drive_subtitle": "Telegram Storage",
+  "time_recently": "Accessed recently",
+  "time_just_now": "Accessed just now",
+  "time_minutes_ago": "Accessed {{count}}m ago",
+  "time_hours_ago": "Accessed {{count}}h ago",
+  "time_yesterday": "Accessed yesterday",
+  "time_days_ago": "Accessed {{count}}d ago"
 }
