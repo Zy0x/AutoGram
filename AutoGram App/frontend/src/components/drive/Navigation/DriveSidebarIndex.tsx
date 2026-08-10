@@ -523,7 +523,7 @@ export function DriveSidebar({
 
   // Active tab for Model A / B (saved|recent|drives|chats|home|pins)
   type SidebarTab = 'saved' | 'recent' | 'drives' | 'chats' | 'home' | 'pins';
-  const [activeTab, setActiveTab] = useState<SidebarTab>('saved');
+  const [activeTab, setActiveTab] = useState<SidebarTab>('recent');
   const [manualSpin, setManualSpin] = useState(false);
   const handleRefreshClick = () => {
     setManualSpin(true);
@@ -1707,27 +1707,10 @@ export function DriveSidebar({
           </p>
         )}
 
-        {/* ── Model A & B: 4 Smart Tabs Bar (Saved | Recent | Drives | Chats) ── */}
+        {/* ── Model A & B: 3 Smart Tabs Bar (Recent | Drives | Telegram) ── */}
         {(layoutModel === 'model_a' || layoutModel === 'model_b') && !anyDragLive && (
           <div className="td-sidebar-tab-bar" role="tablist">
-            {/* Tab 1: Saved Messages */}
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'saved' || activeTab === 'home'}
-              data-drop-key="tab:saved"
-              className={`td-sidebar-tab-btn${(activeTab === 'saved' || activeTab === 'home') ? ' is-active' : ''}`}
-              onClick={() => {
-                setActiveTab('saved');
-                go(onSelectSaved);
-              }}
-              title={t('speedtest.saved_messages')}
-            >
-              <Home size={13} aria-hidden />
-              <span className="td-sidebar-tab-label td-only-expanded">{t('speedtest.sidebar_tab_saved')}</span>
-            </button>
-
-            {/* Tab 2: Recent Locations */}
+            {/* Tab 1: Recent Locations */}
             <button
               type="button"
               role="tab"
@@ -1744,7 +1727,7 @@ export function DriveSidebar({
               )}
             </button>
 
-            {/* Tab 3: Drives */}
+            {/* Tab 2: Drives */}
             <button
               type="button"
               role="tab"
@@ -1761,7 +1744,7 @@ export function DriveSidebar({
               )}
             </button>
 
-            {/* Tab 4: Telegram Chats & Groups */}
+            {/* Tab 3: Telegram Chats & Groups */}
             <button
               type="button"
               role="tab"
@@ -1779,8 +1762,8 @@ export function DriveSidebar({
             </button>
           </div>
         )}
-        {/* ── Saved Messages & Pins on Saved/Home Tab ── */}
-        {(layoutModel === 'model_a' || layoutModel === 'model_b') && (activeTab === 'saved' || activeTab === 'home') && !anyDragLive && (
+        {/* ── Saved Messages & Pins Anchored at Top of All Tabs ── */}
+        {(layoutModel === 'model_a' || layoutModel === 'model_b') && !anyDragLive && !hasLocationQuery && (
           <div className="td-sidebar-quick-bar td-only-expanded">
             {(() => {
               const key = dropKey('saved', null);

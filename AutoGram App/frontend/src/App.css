@@ -20566,3 +20566,15 @@ input[type="search"]::-webkit-search-decoration {
   color: var(--td-fg);
   font-size: 0.9rem;
 }
+
+/* -- 3 Smart Tabs Visibility: Saved Messages always visible at top -- */
+.td-sidebar-quick-bar {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode):not(.is-search-mode)[data-active-tab="recent"] .td-sidebar-quick-bar,
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode):not(.is-search-mode)[data-active-tab="drives"] .td-sidebar-quick-bar,
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode):not(.is-search-mode)[data-active-tab="chats"] .td-sidebar-quick-bar {
+  display: flex !important;
+}
