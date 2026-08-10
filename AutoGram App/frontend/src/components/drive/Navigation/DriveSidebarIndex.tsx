@@ -755,6 +755,28 @@ export function DriveSidebar({
     return buildFolderTreeRows(folders, { expandedIds: treeExpanded });
   }, [folders, folderRows, hasLocationQuery, treeExpanded]);
 
+  const pinnedDriveIds = useMemo(() => {
+    return new Set(
+      pins.filter((p: any) => p.kind === 'drive' && p.id != null).map((p: any) => Number(p.id))
+    );
+  }, [pins]);
+
+  const pinnedChatIds = useMemo(() => {
+    return new Set(
+      pins.filter((p: any) => p.kind === 'chat' && p.id != null).map((p: any) => Number(p.id))
+    );
+  }, [pins]);
+
+  const displayFolderTreeRows = useMemo(() => {
+    if (pinnedDriveIds.size === 0) return folderTreeRows;
+    return folderTreeRows.filter(({ folder: f }) => !pinnedDriveIds.has(f.id));
+  }, [folderTreeRows, pinnedDriveIds]);
+
+  const displayChatRows = useMemo(() => {
+    if (pinnedChatIds.size === 0) return chatRows;
+    return chatRows.filter((c) => !pinnedChatIds.has(c.id));
+  }, [chatRows, pinnedChatIds]);
+
   const toggleTreeFolder = useCallback((id: number) => {
     setTreeExpanded((prev) => {
       const next = new Set(prev);
@@ -865,7 +887,7 @@ export function DriveSidebar({
   // Virtual list scrolls inside .td-chat-virtual (flex:1 fills leftover height).
   // On short viewports, chrome is compacted via CSS so this pane stays usable.
   const chatVirtualizer = useVirtualizer({
-    count: chatRows.length,
+    count: displayChatRows.length,
     getScrollElement: () => chatListRef.current,
     estimateSize: () => (collapsed ? 44 : 44),
     overscan: collapsed ? 6 : 12,
@@ -2159,7 +2181,7 @@ export function DriveSidebar({
             <p className="td-sidebar-hint td-only-expanded">{t('speedtest.sidebar_drives_empty')}</p>
           )}
           {foldersExpanded &&
-            folderTreeRows.map(({ folder: f, depth, hasChildren }) => {
+            displayFolderTreeRows.map(({ folder: f, depth, hasChildren }) => {
               const key = dropKey('drive', f.id);
               registerLabel(key, f.name);
               const isOpen = treeExpanded.has(f.id);
@@ -2428,7 +2450,7 @@ export function DriveSidebar({
           >
             {collapsed ? (
               <div className="td-chat-collapsed-list" style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '4px 0', alignItems: 'center' }}>
-                {chatRows.map((c) => {
+                {displayChatRows.map((c) => {
                   const key = dropKey('chat', c.id);
                   registerLabel(key, c.name);
                   const active = locationKind === 'chat' && activePeerId === c.id;
@@ -2477,7 +2499,7 @@ export function DriveSidebar({
                 style={{ height: chatVirtualizer.getTotalSize(), position: 'relative' }}
               >
                 {virtualItems.map((vRow) => {
-                  const c = chatRows[vRow.index];
+                  const c = displayChatRows[vRow.index];
                   if (!c) return null;
                   const key = dropKey('chat', c.id);
                   registerLabel(key, c.name);
