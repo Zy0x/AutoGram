@@ -20334,3 +20334,25 @@ input[type="search"]::-webkit-search-decoration {
   gap: 2px !important;
   padding: 0 2px !important;
 }
+
+/* ------------------------------------------------------------------
+   COMPLETELY FLAT RECENT SECTION — NO CARD BOX / NO BORDER / NO BG
+   ------------------------------------------------------------------ */
+.td-sidebar .td-recents,
+.td-sidebar:not(.is-collapsed):not(.collapsed) .td-recents {
+  margin: 0 0 6px 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+.td-sidebar .td-recents-header {
+  padding: 8px 10px 4px !important;
+}
+
+.td-sidebar .td-recents-list {
+  padding: 0 !important;
+  gap: 2px !important;
+}
