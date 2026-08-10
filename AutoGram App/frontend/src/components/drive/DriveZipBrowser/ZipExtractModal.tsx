@@ -1,14 +1,17 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bot, Folder, FolderInput, HardDrive, Hash, Megaphone, MessageCircle, Search, Users, X } from 'lucide-react';
+import type { DriveCredentials } from '../../../lib/telegram/driveApi/driveApiUtils';
 import type { DriveChat, DriveFolder } from '../../../lib/telegram/driveTypes';
 import type { TargetDestination } from './zipUtils';
+import { PeerAvatar } from '../Navigation/sidebarUtils';
 
 type ZipExtractModalProps = {
   isOpen: boolean;
   selectedCount: number;
   folders: DriveFolder[];
   chats: DriveChat[];
+  creds?: DriveCredentials | null;
   busy?: boolean;
   progressLabel?: string | null;
   onClose: () => void;
@@ -29,6 +32,7 @@ export function ZipExtractModal({
   selectedCount,
   folders,
   chats,
+  creds,
   busy,
   progressLabel,
   onClose,
@@ -127,7 +131,13 @@ export function ZipExtractModal({
                     className={`dzb-destination-card ${selectedId === item.id ? 'selected' : ''}`}
                     onClick={() => setSelectedId(item.id)}
                   >
-                    {tab === 'drive' ? <Folder size={18} /> : <ChatIcon type={(item as DriveChat).type} />}
+                    {tab === 'drive' ? (
+                      <Folder size={18} />
+                    ) : (
+                      <span style={{ width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 8 }}>
+                        <PeerAvatar peerId={item.id} creds={creds} title={item.name} fallback={<ChatIcon type={(item as DriveChat).type} />} />
+                      </span>
+                    )}
                     <span><strong>{item.name}</strong><small>{tab === 'drive' ? t('speedtest.zip_dest_drive') : t(`speedtest.zip_chat_type_${(item as DriveChat).type}`, { defaultValue: (item as DriveChat).type })}</small></span>
                   </button>
                 ))}

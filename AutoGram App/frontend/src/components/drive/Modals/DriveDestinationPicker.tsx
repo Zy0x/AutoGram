@@ -11,6 +11,7 @@ import { Bot, Folder, FolderInput, Hash, Home, Megaphone, MessageSquare, Search,
 import type { DriveCredentials } from '../../../lib/telegram/driveApi/driveApiUtils';
 import type { DriveTopic } from '../../../lib/telegram/driveTypes';
 import { driveListTopics } from '../../../lib/telegram/driveApi/driveFoldersApi';
+import { PeerAvatar } from '../Navigation/sidebarUtils';
 
 export type DriveDestChoice = {
   id: number | null;
@@ -295,7 +296,18 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
                       onMouseEnter={() => setSelectedIdx(i)}
                     >
                       <span className="td-dest-ico" aria-hidden>
-                        {isLoading ? <span className="td-spinner-sm" /> : kindIcon(c)}
+                        {isLoading ? (
+                          <span className="td-spinner-sm" />
+                        ) : c.kind === 'drive' ? (
+                          kindIcon(c)
+                        ) : (
+                          <PeerAvatar
+                            peerId={c.id ?? 0}
+                            creds={state?.creds}
+                            title={c.label}
+                            fallback={kindIcon(c)}
+                          />
+                        )}
                       </span>
                       <span className="td-dest-label" title={c.label}>
                         {c.label}

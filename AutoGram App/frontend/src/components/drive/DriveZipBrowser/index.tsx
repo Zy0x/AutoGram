@@ -356,6 +356,7 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
         selectedCount={selectedEntries.size}
         folders={folders}
         chats={chats}
+        creds={creds}
         busy={extractBusy}
         progressLabel={extractProgress}
         onClose={() => { if (!extractBusy) setShowExtractModal(false); }}

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Select } from '../../common/Select';
 import { InfoTooltip } from '../../common/InfoTooltip';
 import { CaptionModal } from '../Modals/CaptionModal';
+import { PeerAvatar } from '../../drive/Navigation/sidebarUtils';
 
 export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => void, onStart: (config: any) => void, initialJob?: any }) {
   const { t } = useTranslation();
@@ -23,6 +24,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
   const [selectedFolderId, setSelectedFolderId] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isForumGroup, setIsForumGroup] = useState(false);
+  const [activeCreds, setActiveCreds] = useState<any>(null);
 
   const [isCaptionModalOpen, setIsCaptionModalOpen] = useState(false);
   
@@ -291,6 +293,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
         apiId: String(apiId),
         apiHash: String(apiHash),
       };
+      setActiveCreds(creds);
 
       // Fetch Telegram chat folders if not loaded yet
       if (chatFolders.length <= 1) {
@@ -1432,7 +1435,9 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                             onClick={() => selectDialog(d.id, d.name, d.is_forum)}
                             style={{ display: 'flex', alignItems: 'center' }}
                           >
-                            {icon}
+                            <span style={{ width: 24, height: 24, marginRight: '12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <PeerAvatar peerId={Number(d.id)} creds={activeCreds} title={d.name} fallback={icon} />
+                            </span>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div
                                 style={{
