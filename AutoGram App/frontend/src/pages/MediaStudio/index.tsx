@@ -7742,16 +7742,16 @@ function MediaDriveDesktop({
             onNavBack={() => goNav('back')}
             onNavForward={() => goNav('forward')}
             isPinned={currentPinned}
-            onTogglePin={() => {
+            onTogglePin={locationKind !== 'saved' ? () => {
               if (!session) return;
               setPins(
                 toggleDrivePin(session, {
                   kind: locationKind,
-                  id: locationKind === 'saved' ? null : activePeerId,
+                  id: activePeerId,
                   label: locationLabel,
                 })
               );
-            }}
+            } : undefined}
             spaceLabel={spaceHint}
             statsLoading={statsLoading}
             statsAccurate={statsAccurate}
