@@ -21079,3 +21079,8 @@ input[type="search"]::-webkit-search-decoration {
   display: none !important;
   width: 0 !important;
 }
+
+/* -- Smooth Kinetic Scroll Behavior for Navigation Rail -- */
+.td-folder-nav {
+  scroll-behavior: smooth !important;
+}

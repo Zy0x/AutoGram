@@ -1774,7 +1774,10 @@ export function DriveSidebar({
         data-has-query={hasLocationQuery ? 'true' : 'false'}
         onWheel={(e) => {
           if (collapsed && navRef.current) {
-            navRef.current.scrollTop += e.deltaY;
+            navRef.current.scrollBy({
+              top: e.deltaY * 0.55,
+              behavior: 'smooth',
+            });
           }
         }}
         onDragOver={(e) => {
