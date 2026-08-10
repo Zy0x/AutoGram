@@ -1394,6 +1394,6 @@
   "discard_changes": "Buang & Muat Profil",
   "sidebar_expand_tooltip": "Perluas sidebar",
   "sidebar_collapse_tooltip": "Ciutkan sidebar",
-  "header_drive_title": "Telegram Drive",
-  "header_drive_subtitle": "Penyimpanan Awan"
+  "header_drive_title": "Cloud Drives",
+  "header_drive_subtitle": "Penyimpanan Telegram"
 }

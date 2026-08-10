@@ -1394,6 +1394,6 @@
   "discard_changes": "Discard & Load Profile",
   "sidebar_expand_tooltip": "Expand sidebar",
   "sidebar_collapse_tooltip": "Collapse sidebar",
-  "header_drive_title": "Telegram Drive",
-  "header_drive_subtitle": "Cloud Storage"
+  "header_drive_title": "Cloud Drives",
+  "header_drive_subtitle": "Telegram Storage"
 }
