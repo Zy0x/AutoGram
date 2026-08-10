@@ -20578,3 +20578,19 @@ input[type="search"]::-webkit-search-decoration {
 .td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode):not(.is-search-mode)[data-active-tab="chats"] .td-sidebar-quick-bar {
   display: flex !important;
 }
+
+/* -- Single Unified Scrollbar for Sidebar Navigation (Eliminate Double Scrollbar) -- */
+.td-folder-nav .td-chat-virtual,
+.td-folder-nav .td-chat-section,
+.td-folder-nav .td-chat-list,
+.td-chat-virtual,
+.td-chat-virtual.is-rail {
+  max-height: none !important;
+  overflow-y: visible !important;
+  height: auto !important;
+}
+
+.td-chat-virtual::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+}
