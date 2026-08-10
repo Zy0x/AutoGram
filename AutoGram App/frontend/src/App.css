@@ -20415,3 +20415,26 @@ input[type="search"]::-webkit-search-decoration {
   letter-spacing: 0.05em !important;
 }
 
+
+/* Session Header Row: ACCOUNT on left, ping indicator on right */
+.td-session-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 3px;
+}
+
+.td-session-header-row .td-label {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  font-size: 0.65rem !important;
+  letter-spacing: 0.05em !important;
+}
+
+.td-session-header-row .td-conn-indicator {
+  margin: 0 !important;
+  font-size: 0.65rem !important;
+  white-space: nowrap;
+}
