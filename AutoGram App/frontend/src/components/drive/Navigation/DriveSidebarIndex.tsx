@@ -680,6 +680,14 @@ export function DriveSidebar({
     () => matchesSavedMessagesQuery(locationQuery),
     [locationQuery]
   );
+  const filteredRecents = useMemo(() => {
+    if (layoutModel === 'model_a') {
+      const pinnedKeys = new Set(pins.map((p) => `${p.kind}:${p.id ?? 'me'}`));
+      pinnedKeys.add('saved:me');
+      return recents.filter((r) => !pinnedKeys.has(`${r.kind}:${r.id ?? 'me'}`));
+    }
+    return recents;
+  }, [recents, pins, layoutModel]);
   const busy = !!(loadingFolders || loadingChats);
 
   // While searching or dragging, force sections open so targets stay reachable.
@@ -1924,7 +1932,7 @@ export function DriveSidebar({
         )}
 
         {/* Recent locations — expandable section; chips are drop targets during DnD */}
-        {!hasLocationQuery && recents.length > 0 && (
+        {!hasLocationQuery && filteredRecents.length > 0 && (
           <div
             className={`td-recents td-only-expanded${recentsExpanded ? '' : ' is-collapsed-sec'}`}
             data-recent="1"
@@ -1963,12 +1971,12 @@ export function DriveSidebar({
               <Clock size={12} className="td-recents-toggle-ico" aria-hidden />
               <span className="td-section-toggle-label">{t("speedtest.sidebar_recents_header")}</span>
               <span className="td-chat-count" title={t("speedtest.sidebar_recents_tooltip")}>
-                {recents.length}
+                {filteredRecents.length}
               </span>
             </button>
             {recentsExpanded && (
               <div className="td-recents-list">
-                {recents.slice(0, 6).map((r: any) => {
+                {filteredRecents.slice(0, 6).map((r: any) => {
                   const key =
                     r.kind === 'saved'
                       ? dropKey('saved', null)
