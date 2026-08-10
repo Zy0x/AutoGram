@@ -1694,7 +1694,7 @@ export function DriveSidebar({
               title={t('speedtest.saved_messages')}
             >
               <Home size={13} aria-hidden />
-              <span className="td-sidebar-tab-label">{t('speedtest.saved_messages')}</span>
+              <span className="td-sidebar-tab-label">{t('nav.home')}</span>
             </button>
             <button
               type="button"
@@ -1838,7 +1838,7 @@ export function DriveSidebar({
           {t('ui.generated.ctrl_k_lokasi_ctrl_f_file_ctrl_a_pilih_esc_398cbc6')}
         </div>
 
-        {showSaved &&
+        {showSaved && layoutModel !== 'model_a' &&
           (() => {
             const key = dropKey('saved', null);
             registerLabel(key, 'Saved Messages');
@@ -1878,7 +1878,7 @@ export function DriveSidebar({
           })()}
 
         {/* Pinned favorites */}
-        {!hasLocationQuery && pins.length > 0 && (
+        {!hasLocationQuery && pins.length > 0 && (layoutModel === 'model_c' || (layoutModel === 'model_b' && activeTab === 'pins')) && (
           <div className="td-recents td-pins td-only-expanded" data-pins="1">
             <div className="td-recents-label">
               <Pin size={12} aria-hidden />
