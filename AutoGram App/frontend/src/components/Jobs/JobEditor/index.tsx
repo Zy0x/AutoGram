@@ -1331,7 +1331,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                             transition: 'var(--transition-safe)',
                           }}
                         >
-                          {f === 'Group' ? 'Group/Forum' : f}
+                          {f === 'Group' ? 'Groups - Forum' : f}
                         </div>
                       ))}
                     </div>

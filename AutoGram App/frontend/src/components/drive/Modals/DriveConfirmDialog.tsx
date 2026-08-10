@@ -293,7 +293,7 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
                     className="td-confirm-topic-select"
                     value={topicId == null ? '' : String(topicId)}
                     onChange={(value) => setTopicId(value ? Number(value) : null)}
-                    ariaLabel="Topik forum tujuan"
+                    ariaLabel="Topik tujuan"
                     options={[
                       { value: '', label: t('speedtest.forum_topic_general_all', { defaultValue: 'General / Semua media (Chat Utama)' }) },
                       ...topics.map((topic) => ({
