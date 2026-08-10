@@ -606,7 +606,7 @@
   "filter_groups": "Groups",
   "filter_channels": "Channels",
   "filter_bots": "Bots",
-  "filter_forums": "Forums / Topics",
+  "filter_forums": "Group with Topics",
   "spoiler_title": "Spoiler",
   "tg_spoiler_tooltip": "Telegram Spoiler",
   "expandable_quote_tooltip": "Expandable Blockquote",
