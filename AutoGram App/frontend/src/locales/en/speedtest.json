@@ -583,7 +583,7 @@
   "label_video": "Video",
   "label_audio": "Audio",
   "label_open_doc": "Open Document",
-  "session_header": "Connected Session",
+  "session_header": "Account",
   "sidebar_chat_folders_header": "Telegram Chat Folders",
   "all_chats": "All Chats",
   "ping_transferring": "Telegram: Transferring data (Session exclusively locked)",
