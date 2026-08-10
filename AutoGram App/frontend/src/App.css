@@ -21090,3 +21090,26 @@ input[type="search"]::-webkit-search-decoration {
 .td-sidebar.collapsed .td-folder-nav {
   scroll-behavior: auto !important;
 }
+
+/* -- Telegram-Style Colorful Letter Avatar Styling -- */
+.td-peer-avatar-initials {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+  border-radius: 50% !important;
+  font-family: var(--td-font, system-ui, -apple-system, sans-serif) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25) !important;
+}
+
+.td-sidebar.is-collapsed .td-peer-avatar-initials,
+.td-sidebar.collapsed .td-peer-avatar-initials {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+}

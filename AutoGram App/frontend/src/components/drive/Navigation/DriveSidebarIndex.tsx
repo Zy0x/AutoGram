@@ -216,7 +216,46 @@ function ChatIcon({ type }: { type: string }) {
   return <Hash size={16} />;
 }
 
-/** Real Telegram profile photo with lucide/type fallback */
+const TELEGRAM_GRADIENTS = [
+  'linear-gradient(135deg, #fd746c 0%, #ff9068 100%)', // Red Coral
+  'linear-gradient(135deg, #f2994a 0%, #f2c94c 100%)', // Orange Amber
+  'linear-gradient(135deg, #38ef7d 0%, #11998e 100%)', // Emerald Green
+  'linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%)', // Cyan Blue
+  'linear-gradient(135deg, #8a2387 0%, #e94057 100%)', // Violet Magenta
+  'linear-gradient(135deg, #00b4db 0%, #0083b0 100%)', // Ocean Blue
+  'linear-gradient(135deg, #fc466b 0%, #3f5efb 100%)', // Electric Pink
+  'linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%)', // Deep Purple
+];
+
+function getPeerGradient(peerId: number): string {
+  const index = Math.abs(peerId || 0) % TELEGRAM_GRADIENTS.length;
+  return TELEGRAM_GRADIENTS[index];
+}
+
+function getPeerInitials(title?: string): string {
+  if (!title) return '';
+  const clean = title.trim();
+  if (!clean) return '';
+  
+  const words = clean.split(/[\s~_\-\[\]()]+/).filter(Boolean);
+  if (words.length >= 2) {
+    const w1 = words[0].replace(/^[^\w#]/g, '');
+    const w2 = words[1].replace(/^[^\w]/g, '');
+    const c1 = w1[0] || '';
+    const c2 = w2[0] || '';
+    const initials = (c1 + c2).toUpperCase();
+    if (initials) return initials.slice(0, 2);
+  }
+  
+  const w1 = words[0] || clean;
+  const cleaned = w1.replace(/^[^\w#]/g, '');
+  if (cleaned.length >= 2 && cleaned.startsWith('#')) {
+    return cleaned.slice(0, 2).toUpperCase();
+  }
+  return (cleaned.slice(0, 1) || clean.slice(0, 1)).toUpperCase();
+}
+
+/** Real Telegram profile photo with Lucide / Telegram-style initial avatar fallback */
 function PeerAvatar({
   peerId,
   creds,
@@ -228,7 +267,6 @@ function PeerAvatar({
   fallback: React.ReactNode;
   title?: string;
 }) {
-
   const cached = getCachedAvatar(peerId);
   const [url, setUrl] = useState<string | null>(() =>
     cached === undefined ? null : cached
@@ -267,6 +305,38 @@ function PeerAvatar({
       />
     );
   }
+
+  // Telegram-style colorful initials fallback for chats without custom photos
+  if (peerId !== 0 && title) {
+    const initials = getPeerInitials(title);
+    if (initials) {
+      return (
+        <span
+          className="td-peer-avatar-initials"
+          style={{
+            background: getPeerGradient(peerId),
+            color: '#ffffff',
+            fontWeight: 700,
+            fontSize: '11px',
+            letterSpacing: '-0.2px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            height: '100%',
+            borderRadius: '50%',
+            textTransform: 'uppercase',
+            userSelect: 'none',
+            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)',
+          }}
+          title={title}
+        >
+          {initials}
+        </span>
+      );
+    }
+  }
+
   return <span className="td-peer-avatar-fallback">{fallback}</span>;
 }
 
