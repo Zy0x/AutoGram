@@ -20404,13 +20404,14 @@ input[type="search"]::-webkit-search-decoration {
 
 /* Tight session block spacing - ACCOUNT label bound tightly to dropdown with top margin */
 .td-sidebar-session {
-  padding: 10px 14px 8px !important;
+  padding: 5px 14px 8px !important;
   gap: 4px !important;
 }
 
 .td-sidebar-session .td-label {
-  margin-top: 4px !important;
+  margin-top: 1px !important;
   margin-bottom: 0px !important;
   font-size: 0.65rem !important;
   letter-spacing: 0.05em !important;
 }
+
