@@ -5622,9 +5622,11 @@ function MediaDriveDesktop({
   );
 
   const isLocationPinned = useCallback(
-    (kind: 'saved' | 'drive' | 'chat', id: number | null) =>
-      !!session && isDrivePinned(session, { kind, id: kind === 'saved' ? null : id }),
-    [session, pins]
+    (kind: 'saved' | 'drive' | 'chat', id: number | null) => {
+      if (kind === 'saved') return true;
+      return pins.some((p) => p.kind === kind && (id == null ? p.id == null : p.id === id));
+    },
+    [pins]
   );
 
   const toggleLocationPin = useCallback(

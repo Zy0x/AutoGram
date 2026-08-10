@@ -274,7 +274,7 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
               : false
           }
           onTogglePin={
-            contextMenu.kind === 'location'
+            contextMenu.kind === 'location' && contextMenu.locationKind !== 'saved'
               ? () => onToggleLocationPin(
                   contextMenu.locationKind,
                   contextMenu.id,
