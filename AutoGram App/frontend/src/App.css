@@ -21176,3 +21176,62 @@ input[type="search"]::-webkit-search-decoration {
   color: #FEF3C7 !important;
   box-shadow: 0 2px 10px rgba(245, 158, 11, 0.25) !important;
 }
+
+/* -- High-Contrast Pinned Chat & Quick Bar Styling Fix -- */
+.td-quick-item {
+  background: color-mix(in srgb, var(--td-bg-card, #1e293b) 60%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--td-border) 70%, transparent) !important;
+  color: #F1F5F9 !important;
+}
+
+.td-quick-item .td-folder-label {
+  color: #F1F5F9 !important;
+  font-weight: 500 !important;
+}
+
+.td-quick-item:hover {
+  background: color-mix(in srgb, #f59e0b 14%, transparent) !important;
+  border-color: color-mix(in srgb, #f59e0b 40%, transparent) !important;
+  color: #FEF3C7 !important;
+}
+
+.td-quick-item:hover .td-folder-label {
+  color: #FEF3C7 !important;
+}
+
+.td-quick-item.active {
+  background: color-mix(in srgb, #f59e0b 24%, transparent) !important;
+  border-color: color-mix(in srgb, #f59e0b 80%, transparent) !important;
+  color: #FEF3C7 !important;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.25) !important;
+}
+
+.td-quick-item.active .td-folder-label {
+  color: #FEF3C7 !important;
+  font-weight: 600 !important;
+}
+
+/* Premium Gold Pin Badge Indicator */
+.td-pin-badge-dot {
+  position: absolute;
+  bottom: -3px;
+  right: -5px;
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f59e0b !important;
+  color: #0f172a !important;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.td-pin-svg-icon {
+  width: 8px;
+  height: 8px;
+  stroke-width: 2.5;
+  color: #0f172a !important;
+}

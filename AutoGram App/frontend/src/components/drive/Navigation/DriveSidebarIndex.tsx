@@ -1923,7 +1923,7 @@ export function DriveSidebar({
                   key={`qb:${r.kind}:${r.id ?? 'me'}`}
                   dropKeyStr={key}
                   className={`td-quick-item td-pin-item ${active ? 'active' : ''}`}
-                  title={`📌 ${r.label}`}
+                  title={r.label}
                   isOver={overKey === key}
                   invalidTarget={isSelf(key)}
                   dragLive={dragLive}
@@ -1940,7 +1940,9 @@ export function DriveSidebar({
                     ) : (
                       <Home size={15} />
                     )}
-                    <span className="td-pin-badge-dot" title={r.label}>📌</span>
+                    <span className="td-pin-badge-dot" title={r.label}>
+                      <Pin size={8} className="td-pin-svg-icon" />
+                    </span>
                   </span>
                   <span className="td-folder-label td-only-expanded">{recentDisplayLabel(r.label, 18)}</span>
                 </DropRow>
