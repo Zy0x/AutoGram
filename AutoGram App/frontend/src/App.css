@@ -20955,3 +20955,45 @@ input[type="search"]::-webkit-search-decoration {
 .td-sidebar.collapsed .td-folder-ico {
   margin: 0 auto !important;
 }
+
+/* -- Explicit Tab-Content Display Rules (Expanded & Collapsed Rail) -- */
+.td-folder-nav[data-active-tab="chats"] .td-chat-section,
+.td-folder-nav[data-active-tab="chats"] .td-chat-virtual {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+.td-folder-nav[data-active-tab="chats"] .td-recents,
+.td-folder-nav[data-active-tab="chats"] .td-dnd-folder-stack {
+  display: none !important;
+}
+
+.td-folder-nav[data-active-tab="recent"] .td-recents {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.td-folder-nav[data-active-tab="recent"] .td-chat-section,
+.td-folder-nav[data-active-tab="recent"] .td-dnd-folder-stack {
+  display: none !important;
+}
+
+.td-folder-nav[data-active-tab="drives"] .td-dnd-folder-stack {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.td-folder-nav[data-active-tab="drives"] .td-recents,
+.td-folder-nav[data-active-tab="drives"] .td-chat-section {
+  display: none !important;
+}
+
+.td-sidebar-quick-bar {
+  display: flex !important;
+  visibility: visible !important;
+}
