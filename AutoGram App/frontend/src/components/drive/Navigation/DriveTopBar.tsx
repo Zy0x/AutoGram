@@ -226,7 +226,7 @@ export function DriveTopBar({
     !!topicsLoading ||
     !!hasTopicSegment;
 
-  const { activeDragTopicId, handleDragOver, handleDragLeave, handleDrop } = useTopicDrop({
+  const { activeDragTopicId, pointerHoverKey, handleDragOver, handleDragLeave, handleDrop } = useTopicDrop({
     onDropOnTopic,
   });
 
@@ -675,7 +675,7 @@ export function DriveTopBar({
               data-location-kind="topic"
               data-topic-id="all"
               className={`td-topic-pill ${topicFilter == null ? 'active' : ''} ${
-                activeDragTopicId === 'all' ? 'is-drag-over is-drop-over' : ''
+                activeDragTopicId === 'all' || pointerHoverKey === 'topic:all' ? 'is-drag-over is-drop-over' : ''
               }`}
               onClick={() => onTopicFilter?.(null)}
               onDragOver={(e) => handleDragOver(null, e)}
@@ -688,35 +688,41 @@ export function DriveTopBar({
             {topicsLoading && topics.length === 0 && (
               <span className="td-topics-loading">{t("speedtest.loading_topics")}</span>
             )}
-            {topics.map((tp) => (
-              <button
-                key={tp.id}
-                type="button"
-                data-drop-key={`topic:${tp.id}`}
-                data-location-kind="topic"
-                data-topic-id={tp.id}
-                className={`td-topic-pill ${topicFilter === tp.id ? 'active' : ''} ${
-                  tp.closed ? 'is-closed' : ''
-                } ${activeDragTopicId === tp.id ? 'is-drag-over is-drop-over' : ''}`}
-                onClick={() => onTopicFilter?.(tp.id)}
-                onDragOver={(e) => handleDragOver(tp.id, e)}
-                onDragLeave={(e) => handleDragLeave(tp.id, e)}
-                onDrop={(e) => handleDrop(tp.id, tp.title, e)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setTopicContextMenu({
-                    x: e.clientX,
-                    y: e.clientY,
-                    topicId: tp.id,
-                    title: tp.title,
-                  });
-                }}
-                title={tp.closed ? `${tp.title} (${t("speedtest.topic_closed_suffix")})` : tp.title}
-              >
-                {tp.title}
-              </button>
-            ))}
+            {topics.map((tp) => {
+              const isOver =
+                activeDragTopicId === tp.id ||
+                pointerHoverKey === `topic:${tp.id}` ||
+                pointerHoverKey === `topic:${String(tp.id)}`;
+              return (
+                <button
+                  key={tp.id}
+                  type="button"
+                  data-drop-key={`topic:${tp.id}`}
+                  data-location-kind="topic"
+                  data-topic-id={tp.id}
+                  className={`td-topic-pill ${topicFilter === tp.id ? 'active' : ''} ${
+                    tp.closed ? 'is-closed' : ''
+                  } ${isOver ? 'is-drag-over is-drop-over' : ''}`}
+                  onClick={() => onTopicFilter?.(tp.id)}
+                  onDragOver={(e) => handleDragOver(tp.id, e)}
+                  onDragLeave={(e) => handleDragLeave(tp.id, e)}
+                  onDrop={(e) => handleDrop(tp.id, tp.title, e)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setTopicContextMenu({
+                      x: e.clientX,
+                      y: e.clientY,
+                      topicId: tp.id,
+                      title: tp.title,
+                    });
+                  }}
+                  title={tp.closed ? `${tp.title} (${t("speedtest.topic_closed_suffix")})` : tp.title}
+                >
+                  {tp.title}
+                </button>
+              );
+            })}
             {onAddTopic && (
               <button
                 type="button"

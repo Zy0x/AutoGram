@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.8
+AutoGram Version: v3.5.9
 
 Current State:
+v3.5.9 Topic Pill Active DnD Ready & Pulsing Glow Engine — membenahi `DriveTopBar.tsx`, `index.css`, `VERSION.md`, dan `CHANGELOG.md`. Menghubungkan evaluasi `isOver` dengan `pointerHoverKey` dan `activeDragTopicId`, menambahkan penanda visual border putus-putus (`.td-shell.is-media-dnd .td-topic-pill`) saat penyeretan kartu media dimulai sehingga seluruh pil topik langsung menyala siap menerima drop, serta menambahkan animasi denyut pendaran cyan berkilau (`animation: td-topic-pulse 0.7s`) dengan pembesaran skala `1.1x` saat kursor berada tepat di atas pil topik.
+
+Previous:
 v3.5.8 Real-Time Pointer Move Hover Indicator Engine — membenahi `MediaStudio/index.tsx`, `DriveTopBar.tsx`, `index.css`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan pemanggilan `setLastHoverDropKey(hoverKey)` pada event listener `onMove` (Pointer Drag Event) saat kartu media diseret di atas workspace, menyematkan kelas CSS `.is-drop-over` bersama `.is-drag-over` pada `DriveTopBar.tsx`, serta mempercantik gaya visual pendaran cyan berkilau `#38bdf8` (`scale(1.08)` dan pendaran `box-shadow`) pada `index.css` sehingga indikator hover langsung berpendar real-time tepat saat kursor melintas di atas pil topik.
 
 Previous:

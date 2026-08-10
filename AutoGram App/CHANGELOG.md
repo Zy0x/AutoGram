@@ -1,3 +1,10 @@
+## v3.5.9 Topic Pill Active DnD Ready & Pulsing Glow Engine
+
+### Indikator Visual Kesiapan Penyeretan & Pendaran Denyut Real-Time (`DriveTopBar.tsx`, `index.css`)
+- **Pengecekan Dual Key `pointerHoverKey` & `activeDragTopicId` (`DriveTopBar.tsx`)**: Menyambungkan variabel `pointerHoverKey` dari `useTopicDrop` secara presisi ke pemeriksaan `isOver` di setiap pil topik.
+- **Visual Kesiapan Penyeretan Global (`index.css`)**: Menambahkan pemeta gaya `.td-shell.is-media-dnd .td-topic-pill` dengan border cyan putus-putus dan latar transparan cyan saat penyeretan kartu media dimulai, memberikan sinyal seketika bahwa seluruh pil topik siap menerima drop.
+- **Animasi Denyut Cahaya Cyan (`index.css`)**: Menambahkan keyframe animasi `@keyframes td-topic-pulse` (durasi `0.7s`) dengan pembesaran skala `1.1x` dan pendaran ganda cyan (`box-shadow: 0 0 24px rgba(56,189,248,1)`) saat kursor mouse berada di atas pil topik.
+
 ## v3.5.8 Real-Time Pointer Move Hover Indicator Engine
 
 ### Pembaruan Indikator Hover Penyeretan Kartu Media Real-Time (`MediaStudio/index.tsx`, `DriveTopBar.tsx`, `index.css`)

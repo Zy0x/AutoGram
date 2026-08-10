@@ -100,16 +100,36 @@ select,
   -webkit-touch-callout: none;
 }
 
+/* Topic Pills Drag and Drop State Indicators */
+.td-shell.is-media-dnd .td-topic-pill {
+  border-style: dashed !important;
+  border-color: rgba(56, 189, 248, 0.6) !important;
+  background: color-mix(in srgb, #0ea5e9 15%, transparent) !important;
+  color: #38bdf8 !important;
+}
+
 .td-topic-pill.is-drag-over,
 .td-topic-pill.is-drop-over {
-  background: color-mix(in srgb, #0ea5e9 40%, #0f172a) !important;
+  background: color-mix(in srgb, #0ea5e9 50%, #0f172a) !important;
   border: 2px solid #38bdf8 !important;
   color: #ffffff !important;
-  box-shadow: 0 0 16px rgba(56, 189, 248, 0.75), inset 0 0 8px rgba(56, 189, 248, 0.3) !important;
-  transform: scale(1.08) !important;
-  font-weight: 750 !important;
-  z-index: 20 !important;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.9), inset 0 0 10px rgba(56, 189, 248, 0.5) !important;
+  transform: scale(1.1) !important;
+  font-weight: 800 !important;
+  z-index: 50 !important;
   position: relative !important;
+  animation: td-topic-pulse 0.7s ease-in-out infinite alternate !important;
+}
+
+@keyframes td-topic-pulse {
+  from {
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.7), inset 0 0 6px rgba(56, 189, 248, 0.3);
+    transform: scale(1.06);
+  }
+  to {
+    box-shadow: 0 0 24px rgba(56, 189, 248, 1), inset 0 0 14px rgba(56, 189, 248, 0.6);
+    transform: scale(1.12);
+  }
 }
 
 /* Label text inside buttons also non-selectable (nested spans) */
