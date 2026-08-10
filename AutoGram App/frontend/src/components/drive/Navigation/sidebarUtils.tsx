@@ -16,7 +16,6 @@ import {
   getActiveFolderDrag,
   hasOsFiles,
   isFolderReparentDragActive,
-  isInternalMediaDragActive,
   isPointerDriveDragActive,
   shouldBlockDriveDrop,
 } from '../../../lib/telegram';
@@ -133,7 +132,49 @@ export function ChatIcon({ type }: { type: string }) {
   return <Hash size={16} />;
 }
 
-/** Real Telegram profile photo with lucide/type fallback */
+// ---------------------------------------------------------------------------
+// Telegram-style colorful gradient palette (same as DriveSidebarIndex)
+// ---------------------------------------------------------------------------
+const TELEGRAM_GRADIENTS = [
+  'linear-gradient(135deg, #fd746c 0%, #ff9068 100%)', // Red Coral
+  'linear-gradient(135deg, #f2994a 0%, #f2c94c 100%)', // Orange Amber
+  'linear-gradient(135deg, #38ef7d 0%, #11998e 100%)', // Emerald Green
+  'linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%)', // Cyan Blue
+  'linear-gradient(135deg, #8a2387 0%, #e94057 100%)', // Violet Magenta
+  'linear-gradient(135deg, #00b4db 0%, #0083b0 100%)', // Ocean Blue
+  'linear-gradient(135deg, #fc466b 0%, #3f5efb 100%)', // Electric Pink
+  'linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%)', // Deep Purple
+];
+
+function getPeerGradient(peerId: number): string {
+  const index = Math.abs(peerId || 0) % TELEGRAM_GRADIENTS.length;
+  return TELEGRAM_GRADIENTS[index];
+}
+
+function getPeerInitials(title?: string): string {
+  if (!title) return '';
+  const clean = title.trim();
+  if (!clean) return '';
+
+  const words = clean.split(/[\s~_\-\[\]()]+/).filter(Boolean);
+  if (words.length >= 2) {
+    const w1 = words[0].replace(/^[^\w#]/g, '');
+    const w2 = words[1].replace(/^[^\w]/g, '');
+    const c1 = w1[0] || '';
+    const c2 = w2[0] || '';
+    const initials = (c1 + c2).toUpperCase();
+    if (initials) return initials.slice(0, 2);
+  }
+
+  const w1 = words[0] || clean;
+  const cleaned = w1.replace(/^[^\w#]/g, '');
+  if (cleaned.length >= 2 && cleaned.startsWith('#')) {
+    return cleaned.slice(0, 2).toUpperCase();
+  }
+  return (cleaned.slice(0, 1) || clean.slice(0, 1)).toUpperCase();
+}
+
+/** Real Telegram profile photo with Telegram-style initials fallback (same as sidebar) */
 export function PeerAvatar({
   peerId,
   creds,
@@ -183,6 +224,38 @@ export function PeerAvatar({
       />
     );
   }
+
+  // Telegram-style colorful initials fallback for peers without custom photos
+  if (peerId !== 0 && title) {
+    const initials = getPeerInitials(title);
+    if (initials) {
+      return (
+        <span
+          className="td-peer-avatar-initials"
+          style={{
+            background: getPeerGradient(peerId),
+            color: '#ffffff',
+            fontWeight: 700,
+            fontSize: '11px',
+            letterSpacing: '-0.2px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            height: '100%',
+            borderRadius: '50%',
+            textTransform: 'uppercase',
+            userSelect: 'none',
+            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)',
+          }}
+          title={title}
+        >
+          {initials}
+        </span>
+      );
+    }
+  }
+
   return <span className="td-peer-avatar-fallback">{fallback}</span>;
 }
 
@@ -302,75 +375,39 @@ export function DropRow({
           e.dataTransfer.setData('text/plain', `folder:${folderDragSource.folderId}`);
           e.dataTransfer.setData(
             'application/x-autogram-folder',
-            String(folderDragSource.folderId)
+            JSON.stringify(folderDragSource)
           );
           e.dataTransfer.effectAllowed = 'move';
-          // Transparent drag image — less “stuck” native glyph in WebView2
-          const img = document.createElement('div');
-          img.textContent = folderDragSource.folderName;
-          img.style.cssText =
-            'position:fixed;top:-999px;left:-999px;padding:6px 10px;border-radius:8px;background:#1e293b;color:#f1f5f9;font:600 12px system-ui;border:1px solid #3b82f6;';
-          document.body.appendChild(img);
-          e.dataTransfer.setDragImage(img, 12, 12);
-          window.setTimeout(() => img.remove(), 0);
         } catch {
           /* ignore */
         }
       }}
       onDragEnd={() => {
-        endFolderDrag();
-        onHover(null);
+        if (folderDragSource) endFolderDrag();
       }}
       onDragEnter={(e) => {
         if (!allow(e)) return;
         e.preventDefault();
-        e.stopPropagation();
-        if (invalidTarget && anyDrag) applyDropEffect(e.dataTransfer, 'none');
-        else if (folderDragLive || isFolderReparentDragActive())
-          applyDropEffect(e.dataTransfer, 'move');
-        else if (dragLive || isInternalMediaDragActive()) applyDropEffect(e.dataTransfer, 'move');
-        else if (hasOsFiles(e.dataTransfer)) applyDropEffect(e.dataTransfer, 'copy');
-        else applyDropEffect(e.dataTransfer, 'move');
         onHover(dropKeyStr);
       }}
       onDragOver={(e) => {
         if (!allow(e)) return;
         e.preventDefault();
-        e.stopPropagation();
-        if (invalidTarget && anyDrag) {
-          applyDropEffect(e.dataTransfer, 'none');
-        } else if (folderDragLive || isFolderReparentDragActive()) {
-          applyDropEffect(e.dataTransfer, 'move');
-        } else if (dragLive || isInternalMediaDragActive()) {
-          applyDropEffect(e.dataTransfer, 'move');
-        } else if (hasOsFiles(e.dataTransfer)) {
-          applyDropEffect(e.dataTransfer, 'copy');
-        } else {
-          applyDropEffect(e.dataTransfer, 'move');
-        }
+        applyDropEffect(e.dataTransfer, 'copy');
         onHover(dropKeyStr);
       }}
       onDragLeave={(e) => {
-        // WebView often gives relatedTarget=null mid-drag — don't clear green on child hops
-        const rel = e.relatedTarget as Node | null;
-        if (!rel) return;
-        if (e.currentTarget.contains(rel)) return;
+        const related = e.relatedTarget as Node | null;
+        if (related && (e.currentTarget as HTMLElement).contains(related)) return;
         onHover(null);
       }}
       onDrop={(e) => {
+        onHover(null);
+        if (invalidTarget) return;
+        if (hasOsFiles(e.dataTransfer)) return;
+        if (isPointerDriveDragActive() && shouldBlockDriveDrop(dropKeyStr)) return;
         e.preventDefault();
         e.stopPropagation();
-        onHover(null);
-        // Pointer internal drag: SpeedTest pointerup owns completion
-        if (isPointerDriveDragActive()) return;
-        if (invalidTarget && anyDrag && !hasOsFiles(e.dataTransfer)) {
-          endFolderDrag();
-          return;
-        }
-        if (shouldBlockDriveDrop(dropKeyStr)) {
-          endFolderDrag();
-          return;
-        }
         onDropTarget(dropKeyStr, e);
       }}
     >
@@ -378,4 +415,3 @@ export function DropRow({
     </div>
   );
 }
-
