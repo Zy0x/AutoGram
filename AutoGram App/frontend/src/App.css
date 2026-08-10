@@ -21278,3 +21278,38 @@ input[type="search"]::-webkit-search-decoration {
   stroke-width: 2.5 !important;
   color: #0f172a !important;
 }
+
+/* -- Luminous Amber Gold Primary Action Button (+ Drive Baru) -- */
+.td-rail-actions .td-rail-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  height: 38px !important;
+  padding: 0 14px !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(217, 119, 6, 0.28) 100%) !important;
+  border: 1px solid color-mix(in srgb, #f59e0b 60%, transparent) !important;
+  color: #FEF3C7 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.1px !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15) !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.td-rail-actions .td-rail-btn:hover {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.28) 0%, rgba(217, 119, 6, 0.42) 100%) !important;
+  border-color: color-mix(in srgb, #f59e0b 90%, transparent) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.32) !important;
+  transform: translateY(-1px) !important;
+}
+
+.td-rail-actions .td-rail-btn .td-btn-add-icon,
+.td-rail-actions .td-rail-btn svg {
+  color: #fbbf24 !important;
+  filter: drop-shadow(0 1px 2px rgba(245, 158, 11, 0.4)) !important;
+}

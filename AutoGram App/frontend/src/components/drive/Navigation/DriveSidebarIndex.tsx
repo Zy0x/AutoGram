@@ -1675,9 +1675,9 @@ export function DriveSidebar({
             }
           }}
         >
-          <FolderPlus size={16} aria-hidden />
+          <FolderPlus size={16} aria-hidden className="td-btn-add-icon" />
           <span className="td-rail-btn-label">
-            {createIsSubfolder ? t('ui.generated.folder_0d9a3d4') : t('ui.generated.drive_29ede6d')}
+            {createIsSubfolder ? t('speedtest.btn_create_folder') : t('speedtest.btn_create_drive')}
           </span>
         </button>
       </div>

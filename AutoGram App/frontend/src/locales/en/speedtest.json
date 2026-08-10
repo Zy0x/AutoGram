@@ -598,6 +598,8 @@
   "ping_fair": "Fair",
   "ping_poor": "Weak",
   "btn_add_drive": "+ New Drive",
+  "btn_create_drive": "New Drive",
+  "btn_create_folder": "New Folder",
   "topbar_selected_count_tooltip": "{{count}} files selected",
   "topbar_forward_tooltip": "Send / move to chat or folder",
   "topbar_wait_transfer": "Wait for transfer to complete",

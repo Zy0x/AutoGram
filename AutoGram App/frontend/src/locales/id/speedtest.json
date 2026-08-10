@@ -598,6 +598,8 @@
   "ping_fair": "Sedang",
   "ping_poor": "Lemah",
   "btn_add_drive": "+ Drive Baru",
+  "btn_create_drive": "Drive Baru",
+  "btn_create_folder": "Folder Baru",
   "topbar_selected_count_tooltip": "{{count}} berkas terpilih",
   "topbar_forward_tooltip": "Kirim / pindahkan ke chat atau folder",
   "topbar_wait_transfer": "Tunggu transfer selesai",
