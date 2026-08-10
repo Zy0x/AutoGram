@@ -59,12 +59,20 @@ pub fn get_media_statistics_blocking(
     let account_id = identity.session.clone();
     let peer_id = chat_id.to_string();
 
-    // Check cache first (valid for 120s)
+    // Check cache first (valid for 120s or permanently if marked is_exact)
     if let Some(mut cached) = get_cached_statistics(&account_id, &peer_id, topic_id) {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_secs())
             .unwrap_or(0);
+
+        if cached.is_exact == Some(true) {
+            if loaded_count > cached.loaded_count {
+                cached.loaded_count = loaded_count;
+                let _ = save_statistics(&cached);
+            }
+            return Ok(cached);
+        }
 
         let cached_media_total = cached
             .photo_count
@@ -173,6 +181,7 @@ pub fn get_media_statistics_blocking(
                         loaded_count,
                         total_bytes: 0,
                         last_sync: now,
+                        is_exact: Some(false),
                     };
 
                     let _ = save_statistics(&stats);

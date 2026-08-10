@@ -1342,6 +1342,19 @@ async fn tg_get_media_statistics(
 }
 
 #[tauri::command]
+async fn tg_save_exact_media_statistics(
+    app: AppHandle,
+    request: core::telegram_ops::SaveExactMediaStatisticsRequest,
+) -> Result<core::telegram_ops::OpResult<bool>, String> {
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || {
+        core::telegram_ops::tg_save_exact_media_statistics(request)
+    })
+    .await
+    .map_err(|e| format!("native save exact media statistics task failed: {e}"))
+}
+
+#[tauri::command]
 async fn tg_list_media(
     app: AppHandle,
     request: core::telegram_ops::ListMediaRequest,
@@ -1749,6 +1762,7 @@ pub fn run() {
             tg_list_dialogs,
             tg_list_dialog_filters,
             tg_get_media_statistics,
+            tg_save_exact_media_statistics,
             tg_list_media,
             tg_start_folder_stream,
             tg_cancel_folder_stream,

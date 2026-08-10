@@ -1,3 +1,11 @@
+## v3.5.5 Rust SQLite & Frontend Synchronized Exact Total Count Engine
+
+### Sinkronisasi Total Presisi dari Frontend hingga Rust Backend SQLite (`media_statistics.rs`, `media_counter.rs`, `telegram_ops.rs`, `lib.rs`, `deepIndexCache.ts`)
+- **Skema Kolom `is_exact` pada SQLite `media_statistics` (`media_statistics.rs`)**: Menambahkan kolom `is_exact INTEGER NOT NULL DEFAULT 0` pada tabel `media_statistics` di `telegram_migrator.db` SQLite untuk membedakan secara tegas antara total estimasi pencarian awal dengan total presisi pengindeksan penuh.
+- **Tauri Command `tg_save_exact_media_statistics` (`telegram_ops.rs`, `lib.rs`)**: Membuat API bridge Tauri native untuk mengizinkan frontend mengirimkan jumlah total presisi hasil *Deep Scan* langsung ke backend SQLite Rust.
+- **Sinkronisasi Otomatis Snapshot (`deepIndexCache.ts`)**: Saat *Deep Scan* selesai (`hasMore === false`), `saveDeepIndexSnapshot` memicu panggilan `tg_save_exact_media_statistics` untuk memperbarui SQLite Rust.
+- **Proteksi Re-overcounting Rust (`media_counter.rs`)**: Memperbarui `get_media_statistics_blocking` di mana jika data SQLite memiliki status `is_exact == Some(true)`, Rust akan secara instan mengembalikan total presisi (misal: 98 file) dan tidak lagi menembak 5 RPC pencarian kategori Telegram yang dapat menggelembungkan jumlah media (misal: 100).
+
 ## v3.5.4 Exact Deep Index Reconciliation & Calculation Lock Elimination Engine
 
 ### Pembenahan Penguncian State Total & Penyelarasan Kunci Snapshot Topik (`MediaStudio/index.tsx`, `DriveToolsPanel/index.tsx`)

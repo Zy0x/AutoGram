@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.4
+AutoGram Version: v3.5.5
 
 Current State:
+v3.5.5 Rust SQLite & Frontend Synchronized Exact Total Count Engine — membenahi `media_statistics.rs`, `media_counter.rs`, `telegram_ops.rs`, `lib.rs`, `deepIndexCache.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan kolom `is_exact INTEGER NOT NULL DEFAULT 0` pada SQLite `media_statistics` serta command Tauri `tg_save_exact_media_statistics`. Saat pengindeksan penuh (*Deep Scan*) selesai pada frontend, jumlah total presisi (misal: `98` file) dikirim dan disimpan ke SQLite backend Rust. Rust backend kini secara otomatis memprioritaskan nilai presisi tersebut dan menghentikan penggelembungan RPC estimasi Telegram (`100`), menjamin konsistensi 100% dari backend hingga frontend UI.
+
+Previous:
 v3.5.4 Exact Deep Index Reconciliation & Calculation Lock Elimination Engine — membenahi `MediaStudio/index.tsx`, `DriveToolsPanel/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki bug penguncian `Math.max(prev, n)` pada `setTotalFileCount` di mana nilai perkiraan awal Telegram yang menggelembung (`6.271 items`) sebelumnya mengunci state total count sehingga menghalangi hasil indeks presisi (`5.947 items`) untuk menggantikannya. Serta memperbaiki kunci `topicFilter` pada penulisan snapshot IndexedDB di `DupTab`.
 
 Previous:

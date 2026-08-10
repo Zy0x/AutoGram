@@ -26,6 +26,7 @@ pub struct MediaStatisticsResult {
     pub loaded_count: usize,
     pub total_bytes: u64,
     pub last_sync: u64,
+    pub is_exact: Option<bool>,
 }
 
 fn resolve_migrator_db() -> PathBuf {
@@ -78,10 +79,12 @@ fn open_db() -> Result<Connection, String> {
              loaded_count INTEGER NOT NULL DEFAULT 0,
              total_bytes INTEGER NOT NULL DEFAULT 0,
              last_sync INTEGER NOT NULL DEFAULT 0,
+             is_exact INTEGER NOT NULL DEFAULT 0,
              PRIMARY KEY (account_id, peer_id, topic_id)
          );",
     )
     .map_err(|e| format!("init media_statistics table: {e}"))?;
+    let _ = conn.execute("ALTER TABLE media_statistics ADD COLUMN is_exact INTEGER NOT NULL DEFAULT 0;", []);
     Ok(conn)
 }
 
@@ -94,7 +97,7 @@ pub fn get_cached_statistics(
     let tid = topic_id.unwrap_or(0);
     let mut stmt = conn
         .prepare(
-            "SELECT total_count, photo_count, video_count, file_count, gif_count, link_count, audio_count, loaded_count, total_bytes, last_sync
+            "SELECT total_count, photo_count, video_count, file_count, gif_count, link_count, audio_count, loaded_count, total_bytes, last_sync, is_exact
              FROM media_statistics
              WHERE account_id = ?1 AND peer_id = ?2 AND topic_id = ?3",
         )
@@ -102,6 +105,7 @@ pub fn get_cached_statistics(
 
     let row = stmt
         .query_row(params![account_id, peer_id, tid], |r| {
+            let is_exact_val: i64 = r.get(10).unwrap_or(0);
             Ok(MediaStatisticsResult {
                 account_id: account_id.to_string(),
                 peer_id: peer_id.to_string(),
@@ -116,6 +120,7 @@ pub fn get_cached_statistics(
                 loaded_count: r.get::<_, i64>(7)? as usize,
                 total_bytes: r.get::<_, i64>(8)? as u64,
                 last_sync: r.get::<_, i64>(9)? as u64,
+                is_exact: Some(is_exact_val == 1),
             })
         })
         .ok()?;
@@ -131,10 +136,12 @@ pub fn save_statistics(stats: &MediaStatisticsResult) -> Result<(), String> {
         .map(|d| d.as_secs())
         .unwrap_or(0);
 
+    let is_exact_num = if stats.is_exact.unwrap_or(false) { 1i64 } else { 0i64 };
+
     conn.execute(
         "INSERT INTO media_statistics (
-            account_id, peer_id, topic_id, total_count, photo_count, video_count, file_count, gif_count, link_count, audio_count, loaded_count, total_bytes, last_sync
-         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+            account_id, peer_id, topic_id, total_count, photo_count, video_count, file_count, gif_count, link_count, audio_count, loaded_count, total_bytes, last_sync, is_exact
+         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
          ON CONFLICT(account_id, peer_id, topic_id) DO UPDATE SET
             total_count = excluded.total_count,
             photo_count = excluded.photo_count,
@@ -145,7 +152,8 @@ pub fn save_statistics(stats: &MediaStatisticsResult) -> Result<(), String> {
             audio_count = excluded.audio_count,
             loaded_count = excluded.loaded_count,
             total_bytes = excluded.total_bytes,
-            last_sync = excluded.last_sync;",
+            last_sync = excluded.last_sync,
+            is_exact = MAX(media_statistics.is_exact, excluded.is_exact);",
         params![
             stats.account_id,
             stats.peer_id,
@@ -160,6 +168,7 @@ pub fn save_statistics(stats: &MediaStatisticsResult) -> Result<(), String> {
             stats.loaded_count as i64,
             stats.total_bytes as i64,
             now as i64,
+            is_exact_num,
         ],
     )
     .map_err(|e| format!("save statistics: {e}"))?;

@@ -419,6 +419,45 @@ pub fn tg_get_media_statistics(
     }
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveExactMediaStatisticsRequest {
+    pub session: String,
+    pub chat_id: String,
+    pub topic_id: Option<i64>,
+    pub exact_total: usize,
+    pub exact_bytes: Option<u64>,
+}
+
+pub fn tg_save_exact_media_statistics(
+    req: SaveExactMediaStatisticsRequest,
+) -> OpResult<bool> {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let stats = super::media_statistics::MediaStatisticsResult {
+        account_id: req.session,
+        peer_id: req.chat_id,
+        topic_id: req.topic_id,
+        total_count: req.exact_total,
+        photo_count: 0,
+        video_count: 0,
+        file_count: 0,
+        gif_count: 0,
+        link_count: 0,
+        audio_count: 0,
+        loaded_count: req.exact_total,
+        total_bytes: req.exact_bytes.unwrap_or(0),
+        last_sync: now,
+        is_exact: Some(true),
+    };
+    match super::media_statistics::save_statistics(&stats) {
+        Ok(_) => ok_result("grammers", true),
+        Err(e) => err_result("grammers", TgError::new(TgErrorCode::Internal, e)),
+    }
+}
+
 pub fn tg_list_media(req: ListMediaRequest) -> OpResult<super::grammers_ops::ListMediaResult> {
     let dir = sessions_dir_from_env();
     let identity = TelegramIdentity {
