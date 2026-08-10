@@ -2062,7 +2062,7 @@ export function DriveSidebar({
                   onDoubleActivate={
                     hasChildren && !collapsed ? () => toggleTreeFolder(f.id) : undefined
                   }
-                  style={collapsed ? undefined : { paddingLeft: 8 + depth * 14 }}
+                  style={collapsed ? undefined : { paddingLeft: (depth === 0 && !hasChildren) ? 4 : 4 + depth * 14 }}
                   onContextMenu={(e) =>
                     onLocationContextMenu?.({
                       locationKind: 'drive',
@@ -2102,9 +2102,9 @@ export function DriveSidebar({
                           <ChevronRight size={14} aria-hidden />
                         )}
                       </button>
-                    ) : (
+                    ) : depth > 0 ? (
                       <span className="td-folder-tree-spacer" aria-hidden />
-                    ))}
+                    ) : null)}
                   <span className="td-folder-ico">
                     <PeerAvatar
                       peerId={f.id}
@@ -2168,56 +2168,60 @@ export function DriveSidebar({
         {/* Quiet line between Drives (above) and Chats (below) — no extra zone icons */}
         {/* td-chat-section wraps the divider + header + list so CSS tab-switching can target it */}
         <div className="td-chat-section">
-        <div
-          className="td-zone-divider"
-          role="separator"
-          aria-label={t("speedtest.sidebar_resizer_aria")}
-        >
-          <span className="td-zone-divider-line" aria-hidden />
-        </div>
+        {(layoutModel === 'model_c' || hasLocationQuery) && (
+          <div
+            className="td-zone-divider"
+            role="separator"
+            aria-label={t("speedtest.sidebar_resizer_aria")}
+          >
+            <span className="td-zone-divider-line" aria-hidden />
+          </div>
+        )}
 
-        {/* Chats section */}
-        <button
-          type="button"
-          className={`td-section-toggle td-only-expanded${dragLive ? ' is-dnd-target' : ''}`}
-          aria-expanded={chatsExpanded}
-          onClick={toggleChats}
-          onPointerEnter={() => {
-            if (dragLive || isInternalMediaDragActive() || mediaDragActive) openChatsSection();
-          }}
-          onDragEnter={(e) => {
-            if (!dragLive && !acceptDrop(e) && !isInternalMediaDragActive()) return;
-            e.preventDefault();
-            openChatsSection();
-          }}
-          onDragOver={(e) => {
-            if (!dragLive && !acceptDrop(e) && !isInternalMediaDragActive()) return;
-            e.preventDefault();
-            openChatsSection();
-          }}
-          title={
-            chatsExpanded
-              ? 'Ciutkan daftar chat — lebih luas untuk folder'
-              : dragLive
-                ? 'Arahkan ke sini untuk buka daftar chat (drop target)'
-                : 'Perluas daftar chat'
-          }
-        >
-          <ChevronDown
-            size={14}
-            className={`td-section-chevron ${chatsExpanded ? 'is-open' : ''}`}
-            aria-hidden
-          />
-          <span className="td-section-toggle-label">{t("speedtest.sidebar_chats_header")}</span>
-          {chatIndex.length > 0 && (
-            <span className="td-chat-count" title={t("speedtest.sidebar_chats_tooltip")}>
-              {hasLocationQuery
-                ? `${chatRows.length}/${chatIndex.length}`
-                : chatIndex.length}
-              {chatsHasMore ? '+' : ''}
-            </span>
-          )}
-        </button>
+        {/* Chats section toggle — only in stacked model or universal search */}
+        {(layoutModel === 'model_c' || hasLocationQuery) && (
+          <button
+            type="button"
+            className={`td-section-toggle td-only-expanded${dragLive ? ' is-dnd-target' : ''}`}
+            aria-expanded={chatsExpanded}
+            onClick={toggleChats}
+            onPointerEnter={() => {
+              if (dragLive || isInternalMediaDragActive() || mediaDragActive) openChatsSection();
+            }}
+            onDragEnter={(e) => {
+              if (!dragLive && !acceptDrop(e) && !isInternalMediaDragActive()) return;
+              e.preventDefault();
+              openChatsSection();
+            }}
+            onDragOver={(e) => {
+              if (!dragLive && !acceptDrop(e) && !isInternalMediaDragActive()) return;
+              e.preventDefault();
+              openChatsSection();
+            }}
+            title={
+              chatsExpanded
+                ? 'Ciutkan daftar chat — lebih luas untuk folder'
+                : dragLive
+                  ? 'Arahkan ke sini untuk buka daftar chat (drop target)'
+                  : 'Perluas daftar chat'
+            }
+          >
+            <ChevronDown
+              size={14}
+              className={`td-section-chevron ${chatsExpanded ? 'is-open' : ''}`}
+              aria-hidden
+            />
+            <span className="td-section-toggle-label">{t("speedtest.sidebar_chats_header")}</span>
+            {chatIndex.length > 0 && (
+              <span className="td-chat-count" title={t("speedtest.sidebar_chats_tooltip")}>
+                {hasLocationQuery
+                  ? `${chatRows.length}/${chatIndex.length}`
+                  : chatIndex.length}
+                {chatsHasMore ? '+' : ''}
+              </span>
+            )}
+          </button>
+        )}
         {chatsExpanded && chatFolders.length > 0 && (
           <div className="td-chat-folders-wrap td-only-expanded">
             <span className="td-chat-folders-label">{t("speedtest.sidebar_chat_folders_header")}</span>
