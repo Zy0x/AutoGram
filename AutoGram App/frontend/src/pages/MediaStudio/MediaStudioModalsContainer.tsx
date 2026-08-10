@@ -315,9 +315,9 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
               : undefined
           }
           onCopyId={
-            contextMenu.kind === 'location' && contextMenu.id != null
+            contextMenu.kind === 'location'
               ? () => {
-                  const id = String(contextMenu.id);
+                  const id = contextMenu.locationKind === 'saved' ? 'me' : String(contextMenu.id ?? 'me');
                   void navigator.clipboard?.writeText(id).then(
                     () => setStatusText(`ID disalin: ${id}`),
                     () => setStatusText(`ID: ${id}`)

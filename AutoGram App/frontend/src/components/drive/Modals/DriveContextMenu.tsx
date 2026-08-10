@@ -349,7 +349,7 @@ export function DriveContextMenu({
                 <FolderInput size={14} /> {resolvedReparentFolderLabel}
               </button>
             )}
-            {target.locationKind !== 'saved' && onCopyId && target.id != null && (
+            {onCopyId && (
               <button type="button" role="menuitem" onClick={() => run(onCopyId)}>
                 <Copy size={14} /> {t('speedtest.ctx_menu_copy_id')}
               </button>
