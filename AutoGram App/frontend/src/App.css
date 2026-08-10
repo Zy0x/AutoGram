@@ -21084,3 +21084,9 @@ input[type="search"]::-webkit-search-decoration {
 .td-folder-nav {
   scroll-behavior: smooth !important;
 }
+
+/* -- Golden Ratio Zero-Delay Micro-Dampened Scrollport -- */
+.td-sidebar.is-collapsed .td-folder-nav,
+.td-sidebar.collapsed .td-folder-nav {
+  scroll-behavior: auto !important;
+}
