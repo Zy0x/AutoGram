@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.10
+AutoGram Version: v3.5.11
 
 Current State:
+v3.5.11 Emerald Green Drag Hover & Non-Blocking Drop Completion Engine — membenahi `useTopicDrop.ts`, `index.css`, `VERSION.md`, dan `CHANGELOG.md`. Mencegah perlombaan ganda (race condition) antara handler HTML5 drop dan pointerup dengan mengabaikan HTML5 drop saat pointer drag sedang aktif, serta mengganti tema visual indikator hover penyeretan topik menjadi **Hijau Zamrud Terang (#16a34a / #4ade80)** dengan pendaran neon `0 0 30px #4ade80` dan skala `1.14x` untuk memberikan kontras visual 100% berbeda dengan status tab aktif (cyan/biru).
+
+Previous:
 v3.5.10 CSS Specificity & Geometry Hit-Test Tolerance Engine — membenahi `driveDrag.ts`, `DriveTopBar.tsx`, `index.css`, `VERSION.md`, dan `CHANGELOG.md`. Menaikkan batas toleransi `pointInScrollClips` di `driveDrag.ts` menjadi 14px untuk mencegah penolakan kliping subpixel, membenahi spesifisitas CSS di `index.css` (`.td-shell.is-media-dnd .td-topic-pill.is-drop-over`) sehingga warna cyan solid berkilau `#0284c7` dengan denyut pendaran `scale(1.12)` terbukti 100% menimpa warna border putus-putus siap-drop saat kursor mouse berada di atas pil topik.
 
 Previous:

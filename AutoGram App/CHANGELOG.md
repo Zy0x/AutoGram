@@ -1,3 +1,9 @@
+## v3.5.11 Emerald Green Drag Hover & Non-Blocking Drop Completion Engine
+
+### Indikator Visual Hijau Zamrud & Pencegahan Konflik Eksekusi Drop (`useTopicDrop.ts`, `index.css`)
+- **Pencegahan Dual Drop Race Condition (`useTopicDrop.ts`)**: Menambahkan pemeriksaan `if (isPointerDriveDragActive()) return;` pada `handleDrop`. Hal ini mengalihkan penanganan penyelesaian drop ke handler `pointerup` utama di `MediaStudio`, mencegah konflik pembukaan modal dialog ganda atau macet akibat pembatalan state.
+- **Tema Indikator Hover Hijau Zamrud Terang (`index.css`)**: Mengganti warna penanda hover drag pil topik menjadi **Hijau Zamrud Terang (`#16a34a` / `#4ade80`)** dengan border `2.5px solid #4ade80`, pendaran neon ganda `0 0 30px #4ade80`, dan animasi denyut pembesaran `1.15x`. Warna hijau zamrud ini membuat indikator penyeretan 100% kontras dan berbeda dari tab aktif cyan/biru biasa.
+
 ## v3.5.10 CSS Specificity & Geometry Hit-Test Tolerance Engine
 
 ### Perbaikan Spesifisitas Spesifik CSS & Toleransi Hit-Test Kursor (`driveDrag.ts`, `DriveTopBar.tsx`, `index.css`)

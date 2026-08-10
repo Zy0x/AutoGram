@@ -3,6 +3,7 @@ import {
   getActiveDriveDrag,
   getDriveDragData,
   getLastHoverDropKey,
+  isPointerDriveDragActive,
   setLastHoverDropKey,
   subscribeDriveDragUi,
 } from '../../../lib/telegram';
@@ -65,6 +66,9 @@ export function useTopicDrop({ onDropOnTopic }: UseTopicDropOpts = {}) {
       e.stopPropagation();
       setLastHoverDropKey(null);
       setActiveDragTopicId(null);
+
+      // Pointer internal drag: SpeedTest pointerup in MediaStudio owns completion
+      if (isPointerDriveDragActive()) return;
 
       const internal = getActiveDriveDrag() || getDriveDragData(e.dataTransfer);
       if (!internal || !internal.messageIds || !internal.messageIds.length) {
