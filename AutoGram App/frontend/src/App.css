@@ -20438,3 +20438,41 @@ input[type="search"]::-webkit-search-decoration {
   font-size: 0.65rem !important;
   white-space: nowrap;
 }
+
+/* Minimalist Session Header Right & Refresh Icon Button */
+.td-session-header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.td-session-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: transparent;
+  border: none;
+  color: var(--td-sub);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+  padding: 0;
+}
+
+.td-session-refresh-btn:hover {
+  background: color-mix(in srgb, var(--td-primary) 15%, transparent);
+  color: var(--td-primary);
+}
+
+.td-session-refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.td-rail-toolbar .td-rail-tool.is-full-width {
+  flex: 1;
+  width: 100%;
+  justify-content: center;
+}

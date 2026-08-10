@@ -1526,40 +1526,52 @@ export function DriveSidebar({
       <div className="td-sidebar-session td-only-expanded">
         <div className="td-session-header-row">
           <label className="td-label">{t("speedtest.session_header")}</label>
-          <div className={`td-conn-indicator status-${pingState?.status || (connected ? 'excellent' : 'disconnected')}`}>
-            <span className={`td-conn-dot ${pingState?.status || (connected ? 'excellent' : 'disconnected')} pulse`} />
-            <span className="td-conn-text" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-              <span>
-                {pingState?.status === 'offline' && 'Internet Terputus (Device Offline)'}
-                {pingState?.status === 'disconnected' && 'Terputus'}
-                {pingState?.status === 'transferring' && 'Sedang mentransfer...'}
-                {pingState?.status === 'excellent' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_excellent')}`}
-                {pingState?.status === 'good' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_good')}`}
-                {pingState?.status === 'fair' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_fair')}`}
-                {pingState?.status === 'poor' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_poor')}`}
-                {!pingState && (connected ? t('speedtest.ping_drive_connected') : t('speedtest.ping_not_connected'))}
+          <div className="td-session-header-right">
+            <button
+              type="button"
+              className="td-session-refresh-btn"
+              title={t("speedtest.sidebar_refresh_all")}
+              aria-label={t("speedtest.sidebar_refresh_tooltip")}
+              onClick={onRefresh}
+              disabled={busy}
+            >
+              {busy ? <Loader2 size={12} className="spin" aria-hidden /> : <RefreshCw size={12} aria-hidden />}
+            </button>
+            <div className={`td-conn-indicator status-${pingState?.status || (connected ? 'excellent' : 'disconnected')}`}>
+              <span className={`td-conn-dot ${pingState?.status || (connected ? 'excellent' : 'disconnected')} pulse`} />
+              <span className="td-conn-text" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <span>
+                  {pingState?.status === 'offline' && 'Internet Terputus (Device Offline)'}
+                  {pingState?.status === 'disconnected' && 'Terputus'}
+                  {pingState?.status === 'transferring' && 'Sedang mentransfer...'}
+                  {pingState?.status === 'excellent' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_excellent')}`}
+                  {pingState?.status === 'good' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_good')}`}
+                  {pingState?.status === 'fair' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_fair')}`}
+                  {pingState?.status === 'poor' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_poor')}`}
+                  {!pingState && (connected ? t('speedtest.ping_drive_connected') : t('speedtest.ping_not_connected'))}
+                </span>
+                {(!connected || pingState?.status === 'disconnected') && onOpenRelogModal && (
+                  <button
+                    type="button"
+                    className="td-chip-btn"
+                    onClick={onOpenRelogModal}
+                    style={{
+                      background: 'var(--primary, #3b82f6)',
+                      color: '#fff',
+                      border: 'none',
+                      fontSize: '0.68rem',
+                      padding: '1px 6px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      marginLeft: '4px',
+                    }}
+                  >
+                    {t('accounts.btn_relog')}
+                  </button>
+                )}
               </span>
-              {(!connected || pingState?.status === 'disconnected') && onOpenRelogModal && (
-                <button
-                  type="button"
-                  className="td-chip-btn"
-                  onClick={onOpenRelogModal}
-                  style={{
-                    background: 'var(--primary, #3b82f6)',
-                    color: '#fff',
-                    border: 'none',
-                    fontSize: '0.68rem',
-                    padding: '1px 6px',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    marginLeft: '4px',
-                  }}
-                >
-                  {t('accounts.btn_relog')}
-                </button>
-              )}
-            </span>
+            </div>
           </div>
         </div>
         <MediaSelect
@@ -1576,18 +1588,7 @@ export function DriveSidebar({
       <div className="td-rail-actions td-rail-toolbar" role="toolbar" aria-label={t('ui.generated.aksi_drive_47b8b0c')}>
         <button
           type="button"
-          className="td-rail-btn td-rail-tool"
-          title={t("speedtest.sidebar_refresh_all")}
-          aria-label={t("speedtest.sidebar_refresh_tooltip")}
-          onClick={onRefresh}
-          disabled={busy}
-        >
-          {busy ? <Loader2 size={16} className="spin" aria-hidden /> : <RefreshCw size={16} aria-hidden />}
-          <span className="td-rail-btn-label">{t('speedtest.label_load')}</span>
-        </button>
-        <button
-          type="button"
-          className="td-rail-btn td-rail-tool"
+          className="td-rail-btn td-rail-tool is-full-width"
           title={
             createIsSubfolder
               ? `Buat folder di dalam “${activeDriveFolder?.name || 'lokasi ini'}” (folder dalam Drive/Folder)`
