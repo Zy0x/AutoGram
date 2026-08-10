@@ -20356,3 +20356,27 @@ input[type="search"]::-webkit-search-decoration {
   padding: 0 !important;
   gap: 2px !important;
 }
+
+/* Sidebar Tab Buttons - clean focus/active outline without yellow artifacts */
+.td-sidebar-tab-btn:focus,
+.td-sidebar-tab-btn:focus-visible,
+.td-sidebar-tab-btn:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.td-sidebar-tab-btn.is-active {
+  color: var(--td-primary, #3b82f6) !important;
+  background: color-mix(in srgb, var(--td-primary, #3b82f6) 12%, transparent) !important;
+}
+
+.td-sidebar-tab-btn.is-active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--td-primary, #3b82f6);
+}

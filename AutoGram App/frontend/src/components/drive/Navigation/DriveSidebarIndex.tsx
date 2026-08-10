@@ -1759,8 +1759,8 @@ export function DriveSidebar({
             </button>
           </div>
         )}
-        {/* ── Model A: Fixed quick-access (Saved + Pins) always visible ── */}
-        {layoutModel === 'model_a' && !anyDragLive && (
+        {/* ── Model A: Fixed quick-access (Saved + Pins) visible on Home tab ── */}
+        {layoutModel === 'model_a' && activeTab === 'home' && !anyDragLive && (
           <div className="td-sidebar-quick-bar td-only-expanded">
             {(() => {
               const key = dropKey('saved', null);
@@ -1979,40 +1979,42 @@ export function DriveSidebar({
 
         {/* Drives [TD] — compact stack while dragging so CHATS list gets height */}
         <div ref={folderStackRef} className="td-dnd-folder-stack">
-          <button
-            type="button"
-            className={`td-section-toggle td-only-expanded${dragLive ? ' is-dnd-target' : ''}`}
-            aria-expanded={foldersExpanded}
-            onClick={toggleFolders}
-            onPointerEnter={() => {
-              if (dragLive || isInternalMediaDragActive() || mediaDragActive) openFoldersSection();
-            }}
-            onDragEnter={(e) => {
-              if (!dragLive && !acceptDrop(e) && !isInternalMediaDragActive()) return;
-              e.preventDefault();
-              openFoldersSection();
-            }}
-            onDragOver={(e) => {
-              if (!dragLive && !acceptDrop(e) && !isInternalMediaDragActive()) return;
-              e.preventDefault();
-              openFoldersSection();
-            }}
-            title={
-              foldersExpanded
-                ? 'Ciutkan Drives — lebih luas untuk chat'
-                : 'Perluas Drives'
-            }
-          >
-            <ChevronDown
-              size={14}
-              className={`td-section-chevron ${foldersExpanded ? 'is-open' : ''}`}
-              aria-hidden
-            />
-            <span className="td-section-toggle-label">{t('ui.generated.drives_td_d85c6ed')}</span>
-            <span className="td-chat-count" title={t("speedtest.sidebar_td_count")}>
-              {hasLocationQuery ? `${folderRows.length}/${folders.length}` : folders.length}
-            </span>
-          </button>
+          {(layoutModel === 'model_c' || hasLocationQuery) && (
+            <button
+              type="button"
+              className={`td-section-toggle td-only-expanded${dragLive ? ' is-dnd-target' : ''}`}
+              aria-expanded={foldersExpanded}
+              onClick={toggleFolders}
+              onPointerEnter={() => {
+                if (dragLive || isInternalMediaDragActive() || mediaDragActive) openFoldersSection();
+              }}
+              onDragEnter={(e) => {
+                if (!dragLive && !acceptDrop(e) && !isInternalMediaDragActive()) return;
+                e.preventDefault();
+                openFoldersSection();
+              }}
+              onDragOver={(e) => {
+                if (!dragLive && !acceptDrop(e) && !isInternalMediaDragActive()) return;
+                e.preventDefault();
+                openFoldersSection();
+              }}
+              title={
+                foldersExpanded
+                  ? 'Ciutkan Drives — lebih luas untuk chat'
+                  : 'Perluas Drives'
+              }
+            >
+              <ChevronDown
+                size={14}
+                className={`td-section-chevron ${foldersExpanded ? 'is-open' : ''}`}
+                aria-hidden
+              />
+              <span className="td-section-toggle-label">{t('ui.generated.drives_td_d85c6ed')}</span>
+              <span className="td-chat-count" title={t("speedtest.sidebar_td_count")}>
+                {hasLocationQuery ? `${folderRows.length}/${folders.length}` : folders.length}
+              </span>
+            </button>
+          )}
           {foldersExpanded && folders.length === 0 && !loadingFolders && !hasLocationQuery && (
             <p className="td-sidebar-hint td-only-expanded">
               <strong>{t('speedtest.perspective_drive_short')}</strong> {t('ui.generated.root_penanda_7790d14')} <code>{t('ui.generated.td_1294383')}</code>{t('ui.generated.buka_drive_lalu_d92c640')}{' '}
@@ -2112,8 +2114,8 @@ export function DriveSidebar({
                     />
                   </span>
                   <span className="td-folder-label">{f.name}</span>
-                  {/* Badges only on roots / orphan — nested keeps full name visible */}
-                  {itemKind === 'drive' && !f.is_orphan && depth === 0 && (
+                  {/* Badges only on roots / orphan when searching or in stacked model */}
+                  {itemKind === 'drive' && !f.is_orphan && depth === 0 && (layoutModel === 'model_c' || hasLocationQuery) && (
                     <span className="td-badge-drive td-only-expanded" title={t("speedtest.sidebar_drive_root")}>
                       {t('speedtest.perspective_drive_short')}
                     </span>
