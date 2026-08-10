@@ -20118,3 +20118,172 @@ input[type="search"]::-webkit-search-decoration {
     display: none;
   }
 }
+
+/* ------------------------------------------------------------------
+   SIDEBAR LAYOUT ENGINE — Model A / B / C
+   ------------------------------------------------------------------ */
+
+/* Tab bar — Model A (3 tabs) & Model B (4 tabs) */
+.td-sidebar-tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px 0;
+  border-bottom: 1px solid var(--td-border);
+  background: var(--td-surface);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.td-sidebar-tab-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 5px 4px 4px;
+  border: none;
+  background: transparent;
+  color: var(--td-sub);
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  font-size: 0.62rem;
+  font-weight: 500;
+  transition: background 150ms, color 150ms;
+  position: relative;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.td-sidebar-tab-btn:hover {
+  background: var(--td-hover);
+  color: var(--td-fg);
+}
+
+.td-sidebar-tab-btn.is-active {
+  color: var(--td-primary, #3b82f6);
+  background: color-mix(in srgb, var(--td-primary, #3b82f6) 10%, transparent);
+}
+
+.td-sidebar-tab-btn.is-active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--td-primary, #3b82f6);
+}
+
+.td-sidebar-tab-label {
+  font-size: 0.59rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.td-tab-badge {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: var(--td-primary, #3b82f6);
+  color: #fff;
+  font-size: 0.53rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* Quick-access bar — Model A: always shows Saved + pinned chips */
+.td-sidebar-quick-bar {
+  padding: 4px 6px 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border-bottom: 1px solid var(--td-border);
+  flex-shrink: 0;
+}
+
+.td-quick-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--td-fg);
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  transition: background 120ms;
+}
+
+.td-quick-item:hover { background: var(--td-hover); }
+
+.td-quick-item.active {
+  background: color-mix(in srgb, var(--td-primary, #3b82f6) 12%, transparent);
+  color: var(--td-primary, #3b82f6);
+}
+
+.td-pin-ico { opacity: 0.6; flex-shrink: 0; }
+
+.td-pin-item .td-folder-label { font-size: 0.75rem; color: var(--td-sub); }
+
+/* -- CSS tab-switching: Model A & B (no drag) -- */
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode)[data-active-tab="drives"] .td-recents,
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode)[data-active-tab="drives"] .td-pins,
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode)[data-active-tab="chats"] .td-recents,
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode)[data-active-tab="chats"] .td-pins,
+.td-folder-nav[data-layout-model="model_b"]:not(.is-drop-mode)[data-active-tab="drives"] .td-recents,
+.td-folder-nav[data-layout-model="model_b"]:not(.is-drop-mode)[data-active-tab="drives"] .td-pins,
+.td-folder-nav[data-layout-model="model_b"]:not(.is-drop-mode)[data-active-tab="chats"] .td-recents,
+.td-folder-nav[data-layout-model="model_b"]:not(.is-drop-mode)[data-active-tab="chats"] .td-pins { display: none; }
+
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode)[data-active-tab="home"] .td-dnd-folder-stack,
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode)[data-active-tab="chats"] .td-dnd-folder-stack,
+.td-folder-nav[data-layout-model="model_b"]:not(.is-drop-mode)[data-active-tab="home"] .td-dnd-folder-stack,
+.td-folder-nav[data-layout-model="model_b"]:not(.is-drop-mode)[data-active-tab="pins"] .td-dnd-folder-stack,
+.td-folder-nav[data-layout-model="model_b"]:not(.is-drop-mode)[data-active-tab="chats"] .td-dnd-folder-stack { display: none; }
+
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode)[data-active-tab="home"] .td-chat-section,
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode)[data-active-tab="drives"] .td-chat-section,
+.td-folder-nav[data-layout-model="model_b"]:not(.is-drop-mode)[data-active-tab="home"] .td-chat-section,
+.td-folder-nav[data-layout-model="model_b"]:not(.is-drop-mode)[data-active-tab="pins"] .td-chat-section,
+.td-folder-nav[data-layout-model="model_b"]:not(.is-drop-mode)[data-active-tab="drives"] .td-chat-section { display: none; }
+
+/* Model A: hide Saved row (shown in quick-bar instead) */
+.td-folder-nav[data-layout-model="model_a"]:not(.is-drop-mode) > .td-folder-row { display: none; }
+
+/* Model B: hide Saved row when not on home tab */
+.td-folder-nav[data-layout-model="model_b"]:not(.is-drop-mode)[data-active-tab="drives"] > .td-folder-row,
+.td-folder-nav[data-layout-model="model_b"]:not(.is-drop-mode)[data-active-tab="pins"] > .td-folder-row,
+.td-folder-nav[data-layout-model="model_b"]:not(.is-drop-mode)[data-active-tab="chats"] > .td-folder-row { display: none; }
+
+/* Model B: Pins tab shows recents */
+.td-folder-nav[data-layout-model="model_b"]:not(.is-drop-mode)[data-active-tab="pins"] .td-recents { display: block !important; }
+
+/* Smooth fade-in on tab switch */
+.td-folder-nav[data-layout-model="model_a"] .td-recents,
+.td-folder-nav[data-layout-model="model_a"] .td-dnd-folder-stack,
+.td-folder-nav[data-layout-model="model_a"] .td-chat-section,
+.td-folder-nav[data-layout-model="model_b"] .td-recents,
+.td-folder-nav[data-layout-model="model_b"] .td-dnd-folder-stack,
+.td-folder-nav[data-layout-model="model_b"] .td-chat-section { animation: td-tab-fadein 160ms ease; }
+
+@keyframes td-tab-fadein {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

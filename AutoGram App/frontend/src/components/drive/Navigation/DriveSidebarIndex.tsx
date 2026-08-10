@@ -73,6 +73,11 @@ import {
   wouldCreateFolderCycle,
 } from '../../../lib/telegram';
 import { MediaSelect } from './MediaSelect';
+import {
+  getSidebarLayoutModel,
+  subscribeSidebarLayoutModel,
+  type SidebarLayoutModel,
+} from '../../../stores/sidebarLayoutStore';
 
 const LS_SEC_FOLDERS = 'td_sec_folders_open';
 const LS_SEC_CHATS = 'td_sec_chats_open';
@@ -509,6 +514,34 @@ export function DriveSidebar({
 
     return `Telegram: ${label} ${msLabel ? `(${msLabel})` : ''}`;
   };
+
+  // Sidebar layout model (Model A / B / C) — reactive
+  const [layoutModel, setLayoutModel] = useState<SidebarLayoutModel>(
+    () => getSidebarLayoutModel()
+  );
+  useEffect(() => {
+    return subscribeSidebarLayoutModel(setLayoutModel);
+  }, []);
+
+  // Active tab for Model A / B (home|drives|chats|pins)
+  const [activeTab, setActiveTab] = useState<'home' | 'drives' | 'chats' | 'pins'>('home');
+  // Timer ref for 250ms hover-tab switch during drag
+  const tabSwitchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleTabSwitch = (tab: 'home' | 'drives' | 'chats' | 'pins') => {
+    if (tabSwitchTimerRef.current !== null) return; // already pending
+    tabSwitchTimerRef.current = setTimeout(() => {
+      tabSwitchTimerRef.current = null;
+      setActiveTab(tab);
+    }, 250);
+  };
+  const cancelTabSwitch = () => {
+    if (tabSwitchTimerRef.current !== null) {
+      clearTimeout(tabSwitchTimerRef.current);
+      tabSwitchTimerRef.current = null;
+    }
+  };
+  // Clean up timer on unmount
+  useEffect(() => () => { cancelTabSwitch(); }, []);
 
   const [overKey, setOverKey] = useState<string | null>(null);
   const [, setMetaTick] = useState(0);
@@ -1333,6 +1366,13 @@ export function DriveSidebar({
         break;
       }
       const key = hit(e.clientX, e.clientY);
+      // Tab hover auto-switch (Model A / B): hover tab button for 250ms → switch
+      if (key && key.startsWith('tab:')) {
+        const tab = key.slice('tab:'.length) as 'home' | 'drives' | 'chats' | 'pins';
+        scheduleTabSwitch(tab);
+      } else {
+        cancelTabSwitch();
+      }
       applyHoverKey(key);
     };
 
@@ -1608,7 +1648,9 @@ export function DriveSidebar({
         ref={navRef as React.RefObject<HTMLElement>}
         className={`td-folder-nav ${anyDragLive ? 'is-drop-mode is-dnd-layout' : ''} ${
           !chatsExpanded ? 'chats-collapsed' : ''
-        } ${!foldersExpanded ? 'folders-collapsed' : ''}`}
+        } ${!foldersExpanded ? 'folders-collapsed' : ''} td-nav-model-${layoutModel}`}
+        data-layout-model={layoutModel}
+        data-active-tab={activeTab}
         onDragOver={(e) => {
           if (
             dragLive ||
@@ -1625,6 +1667,129 @@ export function DriveSidebar({
           }
         }}
       >
+        {/* ── Model A & B: Tab bar ── */}
+        {(layoutModel === 'model_a' || layoutModel === 'model_b') && !anyDragLive && (
+          <div className="td-sidebar-tab-bar td-only-expanded" role="tablist">
+            {layoutModel === 'model_b' && (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 'pins'}
+                data-drop-key="tab:pins"
+                className={`td-sidebar-tab-btn${activeTab === 'pins' ? ' is-active' : ''}`}
+                onClick={() => setActiveTab('pins')}
+                title={t('ui.generated.disematkan_57b7b13')}
+              >
+                <Pin size={13} aria-hidden />
+                <span className="td-sidebar-tab-label">{t('ui.generated.disematkan_57b7b13')}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'home'}
+              data-drop-key="tab:home"
+              className={`td-sidebar-tab-btn${activeTab === 'home' ? ' is-active' : ''}`}
+              onClick={() => setActiveTab('home')}
+              title={t('speedtest.saved_messages')}
+            >
+              <Home size={13} aria-hidden />
+              <span className="td-sidebar-tab-label">{t('speedtest.saved_messages')}</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'drives'}
+              data-drop-key="tab:drives"
+              className={`td-sidebar-tab-btn${activeTab === 'drives' ? ' is-active' : ''}`}
+              onClick={() => setActiveTab('drives')}
+              title={t('ui.generated.drives_td_d85c6ed')}
+            >
+              <HardDrive size={13} aria-hidden />
+              <span className="td-sidebar-tab-label">{t('ui.generated.drives_td_d85c6ed')}</span>
+              {folders.length > 0 && (
+                <span className="td-tab-badge">{folders.length}</span>
+              )}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'chats'}
+              data-drop-key="tab:chats"
+              className={`td-sidebar-tab-btn${activeTab === 'chats' ? ' is-active' : ''}`}
+              onClick={() => setActiveTab('chats')}
+              title={t('ui.generated.daftar_chat_71a8e93')}
+            >
+              <MessageSquare size={13} aria-hidden />
+              <span className="td-sidebar-tab-label">{t('ui.generated.daftar_chat_71a8e93')}</span>
+              {chats.length > 0 && (
+                <span className="td-tab-badge">{chatRows.length}</span>
+              )}
+            </button>
+          </div>
+        )}
+        {/* ── Model A: Fixed quick-access (Saved + Pins) always visible ── */}
+        {layoutModel === 'model_a' && !anyDragLive && (
+          <div className="td-sidebar-quick-bar td-only-expanded">
+            {(() => {
+              const key = dropKey('saved', null);
+              registerLabel(key, 'Saved Messages');
+              return (
+                <DropRow
+                  dropKeyStr={key}
+                  className={`td-quick-item ${locationKind === 'saved' ? 'active' : ''}`}
+                  title={t('speedtest.sidebar_saved_messages_tooltip')}
+                  isOver={overKey === key}
+                  invalidTarget={isSelf(key)}
+                  dragLive={dragLive}
+                  acceptDrop={acceptDrop}
+                  onHover={handleHover}
+                  onDropTarget={handleDropKey}
+                  onActivate={() => go(onSelectSaved)}
+                  onContextMenu={(e) =>
+                    onLocationContextMenu?.({
+                      locationKind: 'saved',
+                      id: null,
+                      name: 'Saved Messages',
+                      x: e.clientX,
+                      y: e.clientY,
+                    })
+                  }
+                >
+                  <span className="td-folder-ico">
+                    <PeerAvatar peerId={0} creds={creds} title={t('speedtest.saved_messages')} fallback={<Home size={15} />} />
+                  </span>
+                  <span className="td-folder-label">{t('speedtest.saved_messages')}</span>
+                </DropRow>
+              );
+            })()}
+            {pins.slice(0, 4).map((r: any) => {
+              const key = r.kind === 'saved' ? dropKey('saved', null) : dropKey(r.kind, r.id as number);
+              registerLabel(key, r.label);
+              const active =
+                (r.kind === 'saved' && locationKind === 'saved') ||
+                (r.kind !== 'saved' && locationKind === r.kind && activePeerId === r.id);
+              return (
+                <DropRow
+                  key={`qb:${r.kind}:${r.id ?? 'me'}`}
+                  dropKeyStr={key}
+                  className={`td-quick-item td-pin-item ${active ? 'active' : ''}`}
+                  title={r.label}
+                  isOver={overKey === key}
+                  invalidTarget={isSelf(key)}
+                  dragLive={dragLive}
+                  acceptDrop={acceptDrop}
+                  onHover={handleHover}
+                  onDropTarget={handleDropKey}
+                  onActivate={() => go(() => onSelectPin?.(r))}
+                >
+                  <Pin size={12} aria-hidden className="td-pin-ico" />
+                  <span className="td-folder-label">{recentDisplayLabel(r.label, 18)}</span>
+                </DropRow>
+              );
+            })}
+          </div>
+        )}
         {/* Universal location search — hidden while dragging (frees space for drop list) */}
         {!anyDragLive && (
           <div className="td-location-search td-only-expanded">
@@ -2027,6 +2192,8 @@ export function DriveSidebar({
           })()}
 
         {/* Quiet line between Drives (above) and Chats (below) — no extra zone icons */}
+        {/* td-chat-section wraps the divider + header + list so CSS tab-switching can target it */}
+        <div className="td-chat-section">
         <div
           className="td-zone-divider"
           role="separator"
@@ -2271,6 +2438,7 @@ export function DriveSidebar({
             </span>
           </button>
         )}
+        </div>{/* /td-chat-section */}
       </nav>
 
       <div className="td-sidebar-foot td-only-expanded p-3 border-t border-gray-100 dark:border-gray-800">

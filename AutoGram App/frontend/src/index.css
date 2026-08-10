@@ -136,6 +136,94 @@ button.td-topic-pill.is-drop-over {
   }
 }
 
+/* Sidebar Layout Models A & B - Segmented Control & Top Quick Access Bar */
+.td-sidebar-quick-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-bottom: 8px;
+}
+.td-sidebar-quick-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.td-sidebar-tabs-bar {
+  display: grid;
+  padding: 3px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  gap: 3px;
+  margin-bottom: 8px;
+}
+.td-sidebar-tabs-bar.model-a {
+  grid-template-columns: repeat(3, 1fr);
+}
+.td-sidebar-tabs-bar.model-b {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.td-sidebar-tab-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 4px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.td-sidebar-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+}
+
+.td-sidebar-tab-btn.active {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #38bdf8;
+  font-weight: 750;
+}
+
+.td-sidebar-tab-btn.is-drag-over,
+.td-sidebar-tab-btn.is-drop-over,
+button.td-sidebar-tab-btn.is-drag-over,
+button.td-sidebar-tab-btn.is-drop-over {
+  background: #16a34a !important;
+  border: 2px solid #4ade80 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 16px rgba(74, 222, 128, 0.9) !important;
+  transform: scale(1.06) !important;
+}
+
+.td-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.1);
+  color: inherit;
+}
+.td-sidebar-tab-btn.active .td-tab-badge {
+  background: rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+}
+
 /* Label text inside buttons also non-selectable (nested spans) */
 button *,
 .btn *,

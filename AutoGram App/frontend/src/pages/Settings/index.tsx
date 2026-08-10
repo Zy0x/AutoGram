@@ -18,9 +18,15 @@ import {
   ChevronDown,
   Check,
   Terminal,
+  PanelLeft,
 } from 'lucide-react';
 import { isDebugMode, setDebugMode, subscribeDebugMode } from '../../lib/utils/debugMode';
-
+import {
+  getSidebarLayoutModel,
+  setSidebarLayoutModel,
+  subscribeSidebarLayoutModel,
+  type SidebarLayoutModel,
+} from '../../stores/sidebarLayoutStore';
 import { useTranslation } from 'react-i18next';
 import {
   loadSelectableSessions,
@@ -274,10 +280,20 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
   });
 
   const [debugOn, setDebugOn] = useState<boolean>(() => isDebugMode());
+  const [sidebarModel, setSidebarModelState] = useState<SidebarLayoutModel>(() => getSidebarLayoutModel());
 
   useEffect(() => {
     return subscribeDebugMode((on) => setDebugOn(on));
   }, []);
+
+  useEffect(() => {
+    return subscribeSidebarLayoutModel((m) => setSidebarModelState(m));
+  }, []);
+
+  const handleSidebarModelChange = (m: SidebarLayoutModel) => {
+    setSidebarModelState(m);
+    setSidebarLayoutModel(m);
+  };
 
   const handleToggleDebug = (on: boolean) => {
     setDebugOn(on);
@@ -1069,7 +1085,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                   <h3>{t('settings.general')}</h3>
                 </div>
 
-                <div className="input-group" style={{ marginBottom: 0 }}>
+                <div className="input-group" style={{ marginBottom: '20px' }}>
                   <label className="input-label title-with-icon" htmlFor="settings-language">
                     {t('settings.language')}
                   </label>
@@ -1083,6 +1099,163 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                     <option value="en">{t('settings.language_english')}</option>
                     <option value="id">{t('settings.language_indonesian')}</option>
                   </select>
+                </div>
+
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <label className="input-label title-with-icon">
+                    <PanelLeft size={18} color="#38bdf8" style={{ marginRight: '6px' }} />
+                    {t('settings.sidebar_layout_title')}
+                  </label>
+                  <p className="field-hint">{t('settings.sidebar_layout_desc')}</p>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                      gap: '12px',
+                      marginTop: '10px',
+                    }}
+                  >
+                    {/* MODEL A CARD */}
+                    <div
+                      onClick={() => handleSidebarModelChange('model_a')}
+                      style={{
+                        padding: '14px 16px',
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        background:
+                          sidebarModel === 'model_a'
+                            ? 'rgba(56, 189, 248, 0.12)'
+                            : 'rgba(15, 23, 42, 0.6)',
+                        border:
+                          sidebarModel === 'model_a'
+                            ? '2px solid #38bdf8'
+                            : '1px solid rgba(255, 255, 255, 0.08)',
+                        boxShadow:
+                          sidebarModel === 'model_a'
+                            ? '0 0 16px rgba(56, 189, 248, 0.25)'
+                            : 'none',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginBottom: '6px',
+                        }}
+                      >
+                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                          {t('settings.sidebar_model_a_title')}
+                        </strong>
+                        {sidebarModel === 'model_a' && <Check size={16} color="#38bdf8" />}
+                      </div>
+                      <p
+                        style={{
+                          fontSize: '0.76rem',
+                          color: '#94a3b8',
+                          lineHeight: '1.4',
+                          margin: 0,
+                        }}
+                      >
+                        {t('settings.sidebar_model_a_desc')}
+                      </p>
+                    </div>
+
+                    {/* MODEL B CARD */}
+                    <div
+                      onClick={() => handleSidebarModelChange('model_b')}
+                      style={{
+                        padding: '14px 16px',
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        background:
+                          sidebarModel === 'model_b'
+                            ? 'rgba(56, 189, 248, 0.12)'
+                            : 'rgba(15, 23, 42, 0.6)',
+                        border:
+                          sidebarModel === 'model_b'
+                            ? '2px solid #38bdf8'
+                            : '1px solid rgba(255, 255, 255, 0.08)',
+                        boxShadow:
+                          sidebarModel === 'model_b'
+                            ? '0 0 16px rgba(56, 189, 248, 0.25)'
+                            : 'none',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginBottom: '6px',
+                        }}
+                      >
+                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                          {t('settings.sidebar_model_b_title')}
+                        </strong>
+                        {sidebarModel === 'model_b' && <Check size={16} color="#38bdf8" />}
+                      </div>
+                      <p
+                        style={{
+                          fontSize: '0.76rem',
+                          color: '#94a3b8',
+                          lineHeight: '1.4',
+                          margin: 0,
+                        }}
+                      >
+                        {t('settings.sidebar_model_b_desc')}
+                      </p>
+                    </div>
+
+                    {/* MODEL C CARD */}
+                    <div
+                      onClick={() => handleSidebarModelChange('model_c')}
+                      style={{
+                        padding: '14px 16px',
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        background:
+                          sidebarModel === 'model_c'
+                            ? 'rgba(56, 189, 248, 0.12)'
+                            : 'rgba(15, 23, 42, 0.6)',
+                        border:
+                          sidebarModel === 'model_c'
+                            ? '2px solid #38bdf8'
+                            : '1px solid rgba(255, 255, 255, 0.08)',
+                        boxShadow:
+                          sidebarModel === 'model_c'
+                            ? '0 0 16px rgba(56, 189, 248, 0.25)'
+                            : 'none',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginBottom: '6px',
+                        }}
+                      >
+                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                          {t('settings.sidebar_model_c_title')}
+                        </strong>
+                        {sidebarModel === 'model_c' && <Check size={16} color="#38bdf8" />}
+                      </div>
+                      <p
+                        style={{
+                          fontSize: '0.76rem',
+                          color: '#94a3b8',
+                          lineHeight: '1.4',
+                          margin: 0,
+                        }}
+                      >
+                        {t('settings.sidebar_model_c_desc')}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
