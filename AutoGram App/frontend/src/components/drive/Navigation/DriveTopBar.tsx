@@ -208,6 +208,12 @@ export function DriveTopBar({
   onBackToLauncher: _onBackToLauncher,
 }: Props) {
   const { t } = useTranslation();
+  const [manualSpin, setManualSpin] = useState(false);
+  const handleRefreshClick = () => {
+    setManualSpin(true);
+    setTimeout(() => setManualSpin(false), 800);
+    onRefresh();
+  };
   const isFinal = Boolean(statsAccurate || (!loading && hasMore === false));
   const effectiveTotalCount = useMemo(() => {
     if (hasMore === false && fileCount > 0) {
@@ -561,13 +567,13 @@ export function DriveTopBar({
 
           <button
             type="button"
-            className="td-icon-btn"
-            onClick={onRefresh}
+            className={`td-icon-btn${loading || manualSpin ? ' is-refreshing' : ''}`}
+            onClick={handleRefreshClick}
             disabled={loading}
             title={t("speedtest.topbar_refresh_all")}
             aria-label={t('speedtest.sidebar_btn_refresh')}
           >
-            <RefreshCw size={16} className={loading ? 'spin' : undefined} />
+            <RefreshCw size={16} className={loading || manualSpin ? 'spin' : undefined} />
           </button>
 
           {(onOpenTools || onOpenTransferSettings) && (
