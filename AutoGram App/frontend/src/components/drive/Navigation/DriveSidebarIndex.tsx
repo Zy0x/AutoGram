@@ -1917,15 +1917,16 @@ export function DriveSidebar({
                   onHover={handleHover}
                   onDropTarget={handleDropKey}
                   onActivate={() => go(onSelectSaved)}
-                  onContextMenu={(e) =>
+                  onContextMenu={(e) => {
+                    e.preventDefault();
                     onLocationContextMenu?.({
                       locationKind: 'saved',
                       id: null,
-                      name: 'Saved Messages',
+                      name: t('speedtest.saved_messages') || 'Saved Messages',
                       x: e.clientX,
                       y: e.clientY,
-                    })
-                  }
+                    });
+                  }}
                 >
                   <span className="td-folder-ico">
                     <PeerAvatar peerId={0} creds={creds} title={t('speedtest.saved_messages')} fallback={<Home size={15} />} />
@@ -1953,6 +1954,16 @@ export function DriveSidebar({
                   onHover={handleHover}
                   onDropTarget={handleDropKey}
                   onActivate={() => go(() => onSelectPin?.(r))}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    onLocationContextMenu?.({
+                      locationKind: r.kind === 'saved' ? 'saved' : r.kind === 'drive' ? 'drive' : 'chat',
+                      id: r.kind === 'saved' ? null : (r.id as number),
+                      name: r.label,
+                      x: e.clientX,
+                      y: e.clientY,
+                    });
+                  }}
                 >
                   <span className="td-folder-ico" style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                     {r.kind === 'chat' && r.id != null ? (
@@ -2051,6 +2062,16 @@ export function DriveSidebar({
                     onHover={handleHover}
                     onDropTarget={handleDropKey}
                     onActivate={() => go(() => onSelectPin?.(r))}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      onLocationContextMenu?.({
+                        locationKind: r.kind === 'saved' ? 'saved' : r.kind === 'drive' ? 'drive' : 'chat',
+                        id: r.kind === 'saved' ? null : (r.id as number),
+                        name: r.label,
+                        x: e.clientX,
+                        y: e.clientY,
+                      });
+                    }}
                   >
                     <span className="td-folder-label">{short}</span>
                   </DropRow>
@@ -2098,6 +2119,16 @@ export function DriveSidebar({
                     onHover={handleHover}
                     onDropTarget={handleDropKey}
                     onActivate={() => go(() => onSelectRecent?.(r))}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      onLocationContextMenu?.({
+                        locationKind: r.kind === 'saved' ? 'saved' : r.kind === 'drive' ? 'drive' : 'chat',
+                        id: r.kind === 'saved' ? null : (r.id as number),
+                        name: r.label,
+                        x: e.clientX,
+                        y: e.clientY,
+                      });
+                    }}
                   >
                     <span className="td-folder-ico">
                       {r.kind === 'saved' ? (
