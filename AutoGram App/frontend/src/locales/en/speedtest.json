@@ -1391,5 +1391,9 @@
   "unsaved_profile_title": "Discard Current Changes?",
   "unsaved_profile_desc": "You have unsaved draft changes. Loading a profile will discard them.",
   "keep_editing": "Cancel",
-  "discard_changes": "Discard & Load Profile"
+  "discard_changes": "Discard & Load Profile",
+  "sidebar_expand_tooltip": "Expand sidebar",
+  "sidebar_collapse_tooltip": "Collapse sidebar",
+  "header_drive_title": "Telegram Drive",
+  "header_drive_subtitle": "Cloud Storage"
 }

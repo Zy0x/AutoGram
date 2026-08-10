@@ -1391,5 +1391,9 @@
   "unsaved_profile_title": "Buang Perubahan Saat Ini?",
   "unsaved_profile_desc": "Anda memiliki perubahan draf yang belum disimpan. Memuat profil akan membuang perubahan ini.",
   "keep_editing": "Batal",
-  "discard_changes": "Buang & Muat Profil"
+  "discard_changes": "Buang & Muat Profil",
+  "sidebar_expand_tooltip": "Perluas sidebar",
+  "sidebar_collapse_tooltip": "Ciutkan sidebar",
+  "header_drive_title": "Telegram Drive",
+  "header_drive_subtitle": "Penyimpanan Awan"
 }

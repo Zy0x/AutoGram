@@ -17,8 +17,6 @@ import {
   X,
   Clock,
   Pin,
-  PanelLeftClose,
-  PanelLeftOpen,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -1486,40 +1484,48 @@ export function DriveSidebar({
       aria-label={t('ui.generated.drive_locations_e6fade5')}
       data-collapsed={collapsed ? 'true' : 'false'}
     >
-      {/* Unified Sleek Top Navigation Bar */}
+      {/* Expand/collapse first (top) — users expect this control at the top of the rail */}
       <div className="td-rail-head">
-        {onExitToApp ? (
+        <button
+          type="button"
+          className="td-rail-brand td-rail-brand-toggle"
+          onClick={onToggleCollapse}
+          title={collapsed ? t('speedtest.sidebar_expand_tooltip') : t('speedtest.sidebar_collapse_tooltip')}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? t('speedtest.sidebar_expand_tooltip') : t('speedtest.sidebar_collapse_tooltip')}
+        >
+          <div className="td-sidebar-logo">
+            <HardDrive size={20} />
+            {collapsed && (
+              <span
+                className={`td-sidebar-logo-dot td-rail-conn-dot ${pingState?.status || (connected ? 'excellent' : 'disconnected')} pulse`}
+                title={getPingTooltip()}
+              />
+            )}
+          </div>
+          <div className="td-sidebar-brand-text">
+            <strong>{t('speedtest.header_drive_title')}</strong>
+            <span>{t('speedtest.header_drive_subtitle')}</span>
+          </div>
+        </button>
+
+        {onExitToApp && (
           <button
             type="button"
-            className="td-header-back-btn td-only-expanded"
+            className="td-rail-btn td-rail-back"
             onClick={() => {
               onExitToApp();
               onCloseDrawer?.();
             }}
             title={t("speedtest.sidebar_back_to_app")}
           >
-            <ArrowLeft size={14} />
-            <Rocket size={14} className="td-back-rocket-ico" />
-            <span className="td-back-btn-text">{t('nav.title')}</span>
+            <ArrowLeft size={18} />
+            <span className="td-rail-btn-label">
+              <Rocket size={14} />
+              {t('nav.title')}
+            </span>
           </button>
-        ) : (
-          <div className="td-sidebar-brand-mini td-only-expanded">
-            <HardDrive size={18} />
-            <strong>{t('speedtest.perspective_drive_short')}</strong>
-          </div>
         )}
-
-        {/* Dedicated Sidebar Collapse / Expand Toggle Button */}
-        <button
-          type="button"
-          className="td-header-toggle-btn"
-          onClick={onToggleCollapse}
-          title={collapsed ? `Perluas sidebar Drive (${getPingTooltip()})` : 'Ciutkan sidebar Drive'}
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? 'Perluas sidebar Drive' : 'Ciutkan sidebar Drive'}
-        >
-          {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={17} />}
-        </button>
       </div>
 
       <div className="td-sidebar-session td-only-expanded">
