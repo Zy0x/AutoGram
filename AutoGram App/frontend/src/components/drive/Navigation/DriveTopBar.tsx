@@ -671,6 +671,9 @@ export function DriveTopBar({
           <div className="td-topic-pills">
             <button
               type="button"
+              data-drop-key="topic:all"
+              data-location-kind="topic"
+              data-topic-id="all"
               className={`td-topic-pill ${topicFilter == null ? 'active' : ''} ${
                 activeDragTopicId === 'all' ? 'is-drag-over' : ''
               }`}
@@ -689,6 +692,8 @@ export function DriveTopBar({
               <button
                 key={tp.id}
                 type="button"
+                data-drop-key={`topic:${tp.id}`}
+                data-location-kind="topic"
                 data-topic-id={tp.id}
                 className={`td-topic-pill ${topicFilter === tp.id ? 'active' : ''} ${
                   tp.closed ? 'is-closed' : ''

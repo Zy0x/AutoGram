@@ -1,3 +1,11 @@
+## v3.5.7 Pointer Drag & HTML5 Topic Drop Hit Testing Engine
+
+### Integrasi Sistem Pointer Drag & Hit-Testing Geometri Topik (`driveDrag.ts`, `DriveTopBar.tsx`, `useTopicDrop.ts`, `MediaStudio/index.tsx`)
+- **Tipe Drop Target & Parser (`driveDrag.ts`)**: Menambahkan jenis target `topic` pada tipe `DriveDropTarget` dan mendukung parsing Kunci Drop `topic:all` serta `topic:${id}` pada `parseDropKey`.
+- **Atribut Geometri Hit-Testing (`DriveTopBar.tsx`)**: Menambahkan atribut `data-drop-key="topic:..."` dan `data-location-kind="topic"` pada setiap pil topik agar dapat dideteksi oleh mesin `pickDropKeyAtPoint(x, y)` saat kursor diseret di atasnya.
+- **Sinkronisasi State Pendaran Kursor (`useTopicDrop.ts`)**: Menghubungkan listener `subscribeDriveDragUi` sehingga pil topik langsung berpendar cyan (`.is-drag-over`) secara real-time mengikuti pergerakan pointer mouse/kursor.
+- **Pelepasan Pointer Drag & Resolusi Topik Target (`MediaStudio/index.tsx`)**: Memperbarui `resolveDropTargetLabel` untuk mengenali topik, dan menghubungkan penyerahan parameter `topicId` pada eksekusi `requestMoveToTargetRef` saat kursor dilepas (*pointerup*).
+
 ## v3.5.6 Inter-Topic Media Card Drag & Drop Transfer Engine
 
 ### Fitur Drag & Drop Kartu Media antar-Topik Forum (`useTopicDrop.ts`, `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `index.css`)

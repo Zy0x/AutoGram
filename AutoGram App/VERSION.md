@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.6
+AutoGram Version: v3.5.7
 
 Current State:
+v3.5.7 Pointer Drag & HTML5 Topic Drop Hit Testing Engine — membenahi `driveDrag.ts`, `DriveTopBar.tsx`, `useTopicDrop.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan jenis target `topic` pada tipe `DriveDropTarget` dan fungsi `parseDropKey`, menyematkan atribut `data-drop-key="topic:..."` dan `data-location-kind="topic"` pada pil-pil topik di `DriveTopBar.tsx`, menyinkronkan event listener `subscribeDriveDragUi` untuk sorotan visual pendaran real-time saat penyeretan kursor (Pointer Drag System), serta mengintegrasikan pemanggilan `requestMoveToTarget` untuk mentransfer media langsung ke topik target saat kursor/mouse dilepas (*pointerup*).
+
+Previous:
 v3.5.6 Inter-Topic Media Card Drag & Drop Transfer Engine — membenahi `useTopicDrop.ts`, `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `index.css`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan handler `onDragOver`, `onDragLeave`, `onDrop`, dan efek visual pendaran `.is-drag-over` pada pil-pil topik forum (`.td-topic-pill`) di bar navigasi atas. Menghubungkan fungsi `handleDropOnTopic` di mana ketika kartu media diseret dan dilepas ke pil topik target, sistem secara otomatis membuka dialog konfirmasi transfer/salin ke topik tersebut.
 
 Previous:

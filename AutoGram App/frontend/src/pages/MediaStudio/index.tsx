@@ -6341,6 +6341,13 @@ function MediaDriveDesktop({
       if (parsed.kind === 'saved') {
         return { kind: 'saved', id: null, label: 'Saved Messages' };
       }
+      if (parsed.kind === 'topic') {
+        if (parsed.id == null) {
+          return { kind: 'topic', id: null, label: t('speedtest.all_media_pill') };
+        }
+        const tp = topics.find((x) => x.id === parsed.id);
+        return { kind: 'topic', id: parsed.id, label: tp?.title || `Topik #${parsed.id}` };
+      }
       if (parsed.kind === 'drive') {
         const f = folders.find((x) => x.id === parsed.id);
         return { kind: 'drive', id: parsed.id, label: f?.name || `Folder ${parsed.id}` };
@@ -6348,7 +6355,7 @@ function MediaDriveDesktop({
       const c = chats.find((x) => x.id === parsed.id);
       return { kind: 'chat', id: parsed.id, label: c?.name || `Chat ${parsed.id}` };
     },
-    [folders, chats]
+    [folders, chats, topics, t]
   );
 
   // Live refs so sync pointer handlers always see latest callbacks
@@ -6545,17 +6552,17 @@ function MediaDriveDesktop({
           endDriveDrag();
           clearMediaDragUi();
           if (target) {
-            const toId = target.kind === 'saved' ? null : target.id;
+            const isTopicDrop = target.kind === 'topic';
+            const toId = target.kind === 'saved' ? null : isTopicDrop ? (peerId ?? null) : target.id;
             const chatMeta =
               toId != null ? chatsRef.current.find((c) => c.id === toId) : null;
-            // Dispatch to React-owned listener (native pointerup setState can be dropped
-            // after HMR / outside React batch — CustomEvent is reliable).
             const dropDetail = {
               messageIds: moveIds,
               fromFolderId: moveFrom,
               toFolderId: toId,
               targetLabel: target.label,
-              isForum: !!chatMeta?.is_forum,
+              isForum: isTopicDrop || !!chatMeta?.is_forum,
+              topicId: isTopicDrop ? target.id : null,
             };
             // Call React path immediately via ref AND event (belt + suspenders)
             try {
@@ -6573,7 +6580,7 @@ function MediaDriveDesktop({
                   dropDetail.fromFolderId,
                   dropDetail.toFolderId,
                   dropDetail.targetLabel,
-                  { isForum: dropDetail.isForum }
+                  { isForum: dropDetail.isForum, topicId: dropDetail.topicId }
                 );
               } catch (e) {
                 console.error('requestMove after drop failed', e);
@@ -6853,6 +6860,7 @@ function MediaDriveDesktop({
         toFolderId?: number | null;
         targetLabel?: string;
         isForum?: boolean;
+        topicId?: number | null;
       } | null;
       if (!d?.messageIds?.length || !d.targetLabel) return;
       void requestMoveToTargetRef.current(
@@ -6860,7 +6868,7 @@ function MediaDriveDesktop({
         d.fromFolderId ?? null,
         d.toFolderId ?? null,
         d.targetLabel,
-        { isForum: !!d.isForum }
+        { isForum: !!d.isForum, topicId: d.topicId ?? null }
       );
     };
     window.addEventListener('autogram-drive-drop-move', onDropMove as EventListener);
