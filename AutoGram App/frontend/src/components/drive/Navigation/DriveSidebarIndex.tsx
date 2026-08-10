@@ -5,7 +5,6 @@ import {
   RefreshCw,
   Home,
   HardDrive,
-  Loader2,
   MessageSquare,
   Users,
   Hash,
@@ -525,6 +524,12 @@ export function DriveSidebar({
   // Active tab for Model A / B (saved|recent|drives|chats|home|pins)
   type SidebarTab = 'saved' | 'recent' | 'drives' | 'chats' | 'home' | 'pins';
   const [activeTab, setActiveTab] = useState<SidebarTab>('saved');
+  const [manualSpin, setManualSpin] = useState(false);
+  const handleRefreshClick = () => {
+    setManualSpin(true);
+    setTimeout(() => setManualSpin(false), 800);
+    onRefresh();
+  };
   // Timer ref for 250ms hover-tab switch during drag
   const tabSwitchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scheduleTabSwitch = (tab: SidebarTab) => {
@@ -1529,13 +1534,13 @@ export function DriveSidebar({
             <label className="td-label">{t("speedtest.session_header")}</label>
             <button
               type="button"
-              className="td-session-refresh-btn"
+              className={`td-session-refresh-btn${busy || manualSpin ? ' is-refreshing' : ''}`}
               title={t("speedtest.sidebar_refresh_all")}
               aria-label={t("speedtest.sidebar_refresh_tooltip")}
-              onClick={onRefresh}
+              onClick={handleRefreshClick}
               disabled={busy}
             >
-              {busy ? <Loader2 size={12} className="spin" aria-hidden /> : <RefreshCw size={12} aria-hidden />}
+              <RefreshCw size={12} className={busy || manualSpin ? 'spin' : ''} aria-hidden />
             </button>
           </div>
           <div className={`td-conn-indicator status-${pingState?.status || (connected ? 'excellent' : 'disconnected')}`}>
