@@ -128,7 +128,7 @@
   "dest_badge_group": "Group",
   "dest_badge_channel": "Channel",
   "dest_badge_bot": "Bot",
-  "dest_badge_user": "Chat",
+  "dest_badge_user": "Private Chat",
   "select_topic_in_chat": "Select Topic in “{{chat}}”",
   "back_to_chats": "Back to destination list",
   "loading_topics_for_chat": "Loading topics...",

@@ -2134,7 +2134,17 @@ export function DriveSidebar({
                   (r.kind !== 'saved' &&
                     locationKind === r.kind &&
                     activePeerId === r.id);
-                const kindBadge = r.kind === 'drive' ? 'Drive' : r.kind === 'chat' ? 'Chat' : 'Saved';
+                const kindBadge = (() => {
+                  if (r.kind === 'drive') return 'Drive';
+                  if (r.kind === 'saved') return 'Saved';
+                  // kind === 'chat': use chatType + isForum for granular label
+                  if (r.isForum) return 'Groups - Forum';
+                  if (r.chatType === 'channel') return 'Channel';
+                  if (r.chatType === 'group') return 'Group';
+                  if (r.chatType === 'bot') return 'Bot';
+                  if (r.chatType === 'user') return 'Private Chat';
+                  return 'Chat';
+                })();
                 return (
                   <DropRow
                     key={`${r.kind}:${r.id ?? 'me'}`}
@@ -2178,16 +2188,24 @@ export function DriveSidebar({
                         {formatRelativeAccessTime(r.at, t)}
                       </span>
                     </div>
-                    <span className="td-location-badge" style={{
-                      fontSize: '0.62rem',
-                      padding: '1px 6px',
-                      borderRadius: '4px',
-                      border: '1px solid color-mix(in srgb, var(--td-primary, #3b82f6) 40%, var(--td-border))',
-                      color: 'color-mix(in srgb, var(--td-primary, #3b82f6) 85%, var(--td-fg))',
-                      fontWeight: 600,
-                      marginLeft: '8px',
-                      flexShrink: 0,
-                    }}>
+                    <span className="td-location-badge" style={(() => {
+                      const base = {
+                        fontSize: '0.62rem',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        fontWeight: 600,
+                        marginLeft: '8px',
+                        flexShrink: 0 as const,
+                      };
+                      if (kindBadge === 'Groups - Forum') return { ...base, background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.45)', color: '#c4b5fd' };
+                      if (kindBadge === 'Channel') return { ...base, background: 'rgba(6,182,212,0.13)', border: '1px solid rgba(6,182,212,0.4)', color: '#67e8f9' };
+                      if (kindBadge === 'Group') return { ...base, background: 'rgba(34,197,94,0.13)', border: '1px solid rgba(34,197,94,0.4)', color: '#86efac' };
+                      if (kindBadge === 'Bot') return { ...base, background: 'rgba(16,185,129,0.13)', border: '1px solid rgba(16,185,129,0.4)', color: '#6ee7b7' };
+                      if (kindBadge === 'Private Chat') return { ...base, background: 'rgba(148,163,184,0.13)', border: '1px solid rgba(148,163,184,0.4)', color: '#cbd5e1' };
+                      if (kindBadge === 'Drive') return { ...base, background: 'rgba(249,115,22,0.13)', border: '1px solid rgba(249,115,22,0.4)', color: '#fdba74' };
+                      if (kindBadge === 'Saved') return { ...base, background: 'rgba(59,130,246,0.13)', border: '1px solid rgba(59,130,246,0.4)', color: '#93c5fd' };
+                      return { ...base, border: '1px solid color-mix(in srgb, var(--td-primary, #3b82f6) 40%, var(--td-border))', color: 'color-mix(in srgb, var(--td-primary, #3b82f6) 85%, var(--td-fg))' };
+                    })()}>
                       {kindBadge}
                     </span>
                   </DropRow>

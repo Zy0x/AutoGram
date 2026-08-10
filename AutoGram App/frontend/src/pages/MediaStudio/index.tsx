@@ -5732,6 +5732,14 @@ function MediaDriveDesktop({
     }
     // Re-push when label becomes real (folders/chats loaded) even if same key
     const generic = /^Folder |^Chat /.test(label);
+    // Determine chatType and isForum from the current peer
+    const activeChatMeta = locationKind === 'chat'
+      ? chats.find((c) => c.id === activePeerId)
+      : locationKind === 'drive'
+        ? chats.find((c) => c.id === activePeerId)
+        : null;
+    const activeChatType = activeChatMeta?.type;
+    const activeIsForum = !!(activeChatMeta?.is_forum);
     if (lastRecentKeyRef.current === k && generic) return;
     if (lastRecentKeyRef.current === k && !generic) {
       // upgrade label once
@@ -5740,6 +5748,8 @@ function MediaDriveDesktop({
           kind: locationKind,
           id: locationKind === 'saved' ? null : activePeerId,
           label,
+          chatType: activeChatType,
+          isForum: activeIsForum,
         })
       );
       return;
@@ -5750,6 +5760,8 @@ function MediaDriveDesktop({
         kind: locationKind,
         id: locationKind === 'saved' ? null : activePeerId,
         label,
+        chatType: activeChatType,
+        isForum: activeIsForum,
       })
     );
   }, [session, locationKind, activePeerId, folders, chats]);
