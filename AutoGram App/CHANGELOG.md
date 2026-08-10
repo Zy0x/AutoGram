@@ -1,3 +1,9 @@
+## v3.5.4 Exact Deep Index Reconciliation & Calculation Lock Elimination Engine
+
+### Pembenahan Penguncian State Total & Penyelarasan Kunci Snapshot Topik (`MediaStudio/index.tsx`, `DriveToolsPanel/index.tsx`)
+- **Eliminasi Penguncian Total Max (`MediaStudio/index.tsx`)**: Memperbaiki logika `setTotalFileCount` pada handler `media_stats` dan *live sync*. Menghapus pemaksaan `Math.max(prev, n)` yang sebelumnya secara keliru mengunci jumlah total media ke angka perkiraan awal Telegram yang paling besar (`6.271`), sehingga kini jumlah riil deduplikasi presisi hasil pengindeksan penuh (`5.947`) dapat secara langsung meng-override state total.
+- **Kunci Snapshot IndexedDB Berbasis Topik (`DriveToolsPanel/index.tsx`)**: Memperbaiki parameter `topicFilter` pada fungsi `loadDeepIndexSnapshot` dan `saveDeepIndexSnapshot` di komponen `DupTab`. Snapshot indeks kini disimpan dan dipulihkan secara persis sesuai kunci unik lokasi topik (`session:peerId:topicFilter`).
+
 ## v3.5.3 Forum Topic Scope Deep Index Label Engine
 
 ### Penyelarasan Label Lingkup Topik & Pemindaian Indeks (`DriveToolsPanel/index.tsx`, `id/speedtest.json`, `en/speedtest.json`)

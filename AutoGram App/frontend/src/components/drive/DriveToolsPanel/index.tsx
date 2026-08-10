@@ -1097,8 +1097,8 @@ function DupTab({
   useEffect(() => {
     const session = creds?.session;
     if (!session) return;
-    void loadDeepIndexSnapshot(session, folderId, null).catch(() => {});
-  }, [creds?.session, folderId]);
+    void loadDeepIndexSnapshot(session, folderId, topicFilter).catch(() => {});
+  }, [creds?.session, folderId, topicFilter]);
 
   useEffect(() => {
     const session = creds?.session;
@@ -1106,14 +1106,14 @@ function DupTab({
     const allScannedFiles = groups.flatMap((g) => g.files);
     if (!allScannedFiles.length) return;
 
-    void saveDeepIndexSnapshot(session, folderId, null, {
+    void saveDeepIndexSnapshot(session, folderId, topicFilter, {
       files: allScannedFiles,
       hasMore: !!filesHasMore,
       nextOffsetId: null,
       totalCount: totalFileCount || loadedCount,
       totalBytes: wasteTotal || null,
     });
-  }, [creds?.session, folderId, groups, filesHasMore, totalFileCount, loadedCount, wasteTotal]);
+  }, [creds?.session, folderId, topicFilter, groups, filesHasMore, totalFileCount, loadedCount, wasteTotal]);
 
   const categoryCounts = useMemo(() => {
     const counts = { all: groups.length, image: 0, video: 0, document: 0, audio: 0 };

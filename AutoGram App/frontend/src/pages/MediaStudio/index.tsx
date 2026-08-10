@@ -1493,16 +1493,16 @@ function MediaDriveDesktop({
           const n = Number(res.total_count);
           if (Number.isFinite(n) && n >= 0) {
             setTotalFileCount((prev) => {
-              // Final unique is authoritative. Progress may raise lower bound only
-              // when not marked pure estimate-without-sizes.
+              // Final/accurate unique count is authoritative.
               const loaded = loadedUniqueMediaCount(liveFilesRef.current);
               let next = Math.max(n, loaded);
-              if (!isFinal) {
+              if (!isFinal && !res?.accurate) {
                 if (res?.estimate && res?.total_bytes == null) {
-                  // Counter lower-bound only — don't overwrite a better unique partial
-                  next = prev != null ? Math.max(prev, n, loaded) : Math.max(n, loaded);
-                } else {
-                  next = prev != null ? Math.max(prev, n, loaded) : Math.max(n, loaded);
+                  // Rough estimate without bytes — only use if prev is not set
+                  next = prev != null ? prev : Math.max(n, loaded);
+                } else if (prev != null && prev > n && loaded < n) {
+                  // Allow exact count n to replace previous inflated estimate
+                  next = Math.max(n, loaded);
                 }
               }
               filesTotalCountRef.current.set(cacheKey, next);
@@ -2520,7 +2520,10 @@ function MediaDriveDesktop({
         const n = clampMediaTotal(res.total_count, page);
         if (n != null) {
           filesTotalCountRef.current.set(cacheKey, n);
-          setTotalFileCount((prev) => (prev != null ? Math.max(prev, n) : n));
+          setTotalFileCount((prev) => {
+            if (!filesHasMoreRef.current || res.accurate) return n;
+            return prev != null ? n : n;
+          });
         }
       } else if (tid != null) {
         const known = filesTotalCountRef.current.get(cacheKey);

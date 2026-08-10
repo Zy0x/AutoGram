@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.3
+AutoGram Version: v3.5.4
 
 Current State:
+v3.5.4 Exact Deep Index Reconciliation & Calculation Lock Elimination Engine — membenahi `MediaStudio/index.tsx`, `DriveToolsPanel/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki bug penguncian `Math.max(prev, n)` pada `setTotalFileCount` di mana nilai perkiraan awal Telegram yang menggelembung (`6.271 items`) sebelumnya mengunci state total count sehingga menghalangi hasil indeks presisi (`5.947 items`) untuk menggantikannya. Serta memperbaiki kunci `topicFilter` pada penulisan snapshot IndexedDB di `DupTab`.
+
+Previous:
 v3.5.3 Forum Topic Scope Deep Index Label Engine — membenahi `DriveToolsPanel/index.tsx`, `id/speedtest.json`, `en/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Menyelaraskan teks tombol pemicu pemindaian indeks duplikat (`scan_index_topic` & `rescan_index_topic`) agar secara otomatis mengenali lingkup aktif (*Scope*) bila sedang berada di dalam topik spesifik Forum (`Twitter`), membedakan secara tegas antara total media per-Topik (`5.947 items`) dengan estimasi total media per-Chat/Channel (`6.271 items`).
 
 Previous:
