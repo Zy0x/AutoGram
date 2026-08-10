@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.2
+AutoGram Version: v3.5.3
 
 Current State:
+v3.5.3 Forum Topic Scope Deep Index Label Engine — membenahi `DriveToolsPanel/index.tsx`, `id/speedtest.json`, `en/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Menyelaraskan teks tombol pemicu pemindaian indeks duplikat (`scan_index_topic` & `rescan_index_topic`) agar secara otomatis mengenali lingkup aktif (*Scope*) bila sedang berada di dalam topik spesifik Forum (`Twitter`), membedakan secara tegas antara total media per-Topik (`5.947 items`) dengan estimasi total media per-Chat/Channel (`6.271 items`).
+
+Previous:
 v3.5.2 Debug Mode Toggle Switch UI Engine — membenahi `Settings/index.tsx`, `id/settings.json`, `en/settings.json`, `VERSION.md`, dan `CHANGELOG.md`. Mengganti elemen elemen sakelar *Enable Debug Mode* dari `input[type="checkbox"]` biasa menjadi *Toggle Switch* standar konsisten (`.settings-switch` & `.settings-slider.round`). Mengekstrak seluruh teks petunjuk indikator status debug ke dalam locale i18n (`debug_hint_active` & `debug_hint_inactive`) tanpa hardcode string.
 
 Previous:

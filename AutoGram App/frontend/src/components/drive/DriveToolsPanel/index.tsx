@@ -476,6 +476,8 @@ export function DriveToolsPanel({
               onRefreshFiles={onRefreshFiles}
               loadedCount={files.length}
               locationLabel={locationLabel}
+              isForum={isForum}
+              topicFilter={topicFilter}
             />
           )}
 
@@ -957,6 +959,8 @@ function DupTab({
   onRefreshFiles,
   loadedCount = 0,
   locationLabel = '',
+  isForum = false,
+  topicFilter = null,
 }: {
   groups: DupGroup[];
   wasteTotal: number;
@@ -973,6 +977,8 @@ function DupTab({
   onRefreshFiles?: () => Promise<void>;
   loadedCount?: number;
   locationLabel?: string;
+  isForum?: boolean;
+  topicFilter?: number | null;
 }) {
   const { t } = useTranslation();
   const [keepNewest, setKeepNewest] = useState(true);
@@ -1296,9 +1302,17 @@ function DupTab({
               >
                 {filesHasMore ? <Search size={14} /> : <RefreshCw size={14} />}
                 <span>
-                  {filesHasMore
-                    ? `Pindai Indeks Chat (${targetTotal.toLocaleString('id-ID')} items)`
-                    : `Pindai Ulang Indeks (${loadedCount.toLocaleString('id-ID')} items)`}
+                  {(() => {
+                    const isScopedTopic = isForum && topicFilter != null;
+                    if (filesHasMore) {
+                      return isScopedTopic
+                        ? t('speedtest.scan_index_topic', { total: targetTotal.toLocaleString('id-ID') })
+                        : t('speedtest.scan_index_chat', { total: targetTotal.toLocaleString('id-ID') });
+                    }
+                    return isScopedTopic
+                      ? t('speedtest.rescan_index_topic', { total: loadedCount.toLocaleString('id-ID') })
+                      : t('speedtest.rescan_index_chat', { total: loadedCount.toLocaleString('id-ID') });
+                  })()}
                 </span>
               </button>
             ) : (

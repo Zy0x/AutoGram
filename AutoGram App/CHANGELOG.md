@@ -1,3 +1,9 @@
+## v3.5.3 Forum Topic Scope Deep Index Label Engine
+
+### Penyelarasan Label Lingkup Topik & Pemindaian Indeks (`DriveToolsPanel/index.tsx`, `id/speedtest.json`, `en/speedtest.json`)
+- **Penyelarasan Dinamis Label Pemicu Pemindaian (`DriveToolsPanel/index.tsx`)**: Menambahkan pendeteksian `isScopedTopic` (`isForum && topicFilter != null`). Saat berada dalam topik spesifik Forum (`Twitter`), label tombol otomatis disesuaikan menjadi `Pindai Indeks Topik` / `Pindai Ulang Indeks Topik` untuk membedakan lingkup pengindeksan topik dengan total media per-Chat/Channel.
+- **Paritas Kunci i18n (`id/speedtest.json`, `en/speedtest.json`)**: Menambahkan kunci `scan_index_topic`, `rescan_index_topic`, `scan_index_chat`, dan `rescan_index_chat` secara simetris di Bahasa Indonesia dan Inggris tanpa *hardcoded strings*.
+
 ## v3.5.2 Debug Mode Toggle Switch UI Engine
 
 ### Sakelar Toggle Switch Standar & Pembersihan Hardcode String (`Settings/index.tsx`, `id/settings.json`, `en/settings.json`)
