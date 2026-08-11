@@ -1035,6 +1035,49 @@ export function DriveSidebar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collapsed, folders.length, folderRows.length, chatQuery, foldersExpanded, chatsExpanded]);
 
+  // Ultra-smooth GPU LERP momentum wheel scrolling for chatListRef (.td-chat-virtual)
+  useEffect(() => {
+    const el = chatListRef.current;
+    if (!el) return;
+
+    let currentScroll = el.scrollTop;
+    let targetScroll = el.scrollTop;
+    let animId = 0;
+
+    const smoothStep = () => {
+      const diff = targetScroll - currentScroll;
+      if (Math.abs(diff) > 0.3) {
+        currentScroll += diff * 0.24;
+        el.scrollTop = Math.round(currentScroll);
+        animId = requestAnimationFrame(smoothStep);
+      } else {
+        el.scrollTop = targetScroll;
+        currentScroll = targetScroll;
+        animId = 0;
+      }
+    };
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.altKey) return;
+      const delta = e.deltaY;
+      if (!delta) return;
+      e.preventDefault();
+
+      const maxScroll = el.scrollHeight - el.clientHeight;
+      targetScroll = Math.max(0, Math.min(maxScroll, targetScroll + delta * 0.9));
+      if (!animId) {
+        currentScroll = el.scrollTop;
+        animId = requestAnimationFrame(smoothStep);
+      }
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', handleWheel);
+      if (animId) cancelAnimationFrame(animId);
+    };
+  }, [chatsExpanded, activeTab]);
+
   // Subscribe so green targets activate the same tick as beginDriveDrag()
   useEffect(() => {
     return subscribeDriveDragUi(() => {

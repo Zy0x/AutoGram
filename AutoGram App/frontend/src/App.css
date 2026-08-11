@@ -2059,6 +2059,16 @@ select.input-field option:checked,
   pointer-events: none !important;
 }
 
+/* GPU Hardware Layer Promotion & Smooth Compositing for Virtual Rows */
+.td-chat-virtual-row,
+.td-chat-virtual .td-folder-row,
+.td-chat-virtual .td-chat-row {
+  will-change: transform;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  contain: layout style;
+}
+
 .td-folder-nav.is-drop-mode .td-folder-row.dnd-ready:hover:not(.is-drop-over):not(.is-drop-invalid) {
   background: var(--td-hover);
 }
