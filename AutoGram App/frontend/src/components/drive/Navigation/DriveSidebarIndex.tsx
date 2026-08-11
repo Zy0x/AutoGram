@@ -1180,83 +1180,6 @@ export function DriveSidebar({
     };
 
     /**
-     * Nested scroll while dragging:
-     * Prefer the list the pointer is *strictly* over. Chat top used to lose to
-     * Drives bottom (pad overlap) which made scrolling chat upward feel stuck.
-     */
-    const scrollInnerOnly = (dir: 'up' | 'down', step: number) => {
-      const folders = folderStackRef.current;
-      const chat = chatListRef.current;
-      const fR = folders?.getBoundingClientRect();
-      const cR = chat?.getBoundingClientRect();
-      // Generous hit pad — only used when not strictly over either list
-      const pad = 20;
-      const overFoldersStrict =
-        !!fR && lastY >= fR.top && lastY <= fR.bottom;
-      const overChatStrict =
-        !!cR && lastY >= cR.top && lastY <= cR.bottom;
-      const overFoldersPad =
-        !!fR && lastY >= fR.top - pad && lastY <= fR.bottom + pad;
-      const overChatPad =
-        !!cR && lastY >= cR.top - pad && lastY <= cR.bottom + pad;
-
-      const tryFolders = () => {
-        if (folders && canScroll(folders, dir)) {
-          applyScroll(folders, dir, step);
-          return 'folders' as const;
-        }
-        return null;
-      };
-      const tryChat = () => {
-        if (chat && canScroll(chat, dir)) {
-          applyScroll(chat, dir, step);
-          if (dir === 'down') tryLoadMore(chat);
-          return 'chat' as const;
-        }
-        return null;
-      };
-
-      // Strict containment wins — fixes chat-up stolen by drives bottom pad.
-      // No cross-list fallback when strictly over one pane (avoids yanking the other).
-      if (overChatStrict && !overFoldersStrict) {
-        return tryChat();
-      }
-      if (overFoldersStrict && !overChatStrict) {
-        return tryFolders();
-      }
-      // Overlap: pick nearer list center, then fall back
-      if (overChatStrict && overFoldersStrict && fR && cR) {
-        const midF = (fR.top + fR.bottom) / 2;
-        const midC = (cR.top + cR.bottom) / 2;
-        if (Math.abs(lastY - midC) <= Math.abs(lastY - midF)) {
-          return tryChat() ?? tryFolders();
-        }
-        return tryFolders() ?? tryChat();
-      }
-      // Near-pad only (gap between sections)
-      if (overChatPad && !overFoldersPad) return tryChat();
-      if (overFoldersPad && !overChatPad) return tryFolders();
-      if (overChatPad) return tryChat() ?? tryFolders();
-      if (overFoldersPad) return tryFolders() ?? tryChat();
-      return null;
-    };
-
-    /**
-     * When over Drives/Chats list → scroll that list first.
-     * Otherwise outer nav, then fall back to inner.
-     */
-    const cascadeScroll = (dir: 'up' | 'down', step: number) => {
-      const innerFirst = scrollInnerOnly(dir, step);
-      if (innerFirst) return innerFirst;
-      const nav = navRef.current;
-      if (nav && canScroll(nav, dir)) {
-        applyScroll(nav, dir, step);
-        return 'nav';
-      }
-      return null;
-    };
-
-    /**
      * Standard Desktop Drag Auto-Scroll Controller (VS Code / Telegram Desktop Spec)
      * Renders clean, predictable 60px edge zones with progressive quadratic acceleration (8px to 120px/frame).
      */
@@ -1532,29 +1455,55 @@ export function DriveSidebar({
       applyHoverKey(key);
     };
 
-    // Wheel during drag:
-    // - scroll up: body first; if mentok atas → only scroll inner if pointer is over that list
-    // - scroll down: body first, then inner
+    // Direct Wheel Scroll during drag (Mouse wheel & Trackpad support)
     const onWheel = (e: WheelEvent) => {
-      if (
-        !isInternalMediaDragActive() &&
-        !mediaDragActive &&
-        !dragLive &&
-        !folderDragLive &&
-        !isFolderReparentDragActive()
-      )
-        return;
+      const isDragging =
+        isPointerDriveDragActive() ||
+        isInternalMediaDragActive() ||
+        mediaDragActive ||
+        dragLive ||
+        folderDragLive ||
+        isFolderReparentDragActive();
+
+      if (!isDragging) return;
+
       const side = sidebarRef.current?.getBoundingClientRect();
       if (!side) return;
       if (e.clientX < side.left - 24 || e.clientX > side.right + 24) return;
+
       lastX = e.clientX;
       lastY = e.clientY;
       hasPointer = true;
-      const dir: 'up' | 'down' = e.deltaY < 0 ? 'up' : 'down';
-      const step = Math.min(64, Math.max(12, Math.abs(e.deltaY) * 1.2));
-      const scrolled = cascadeScroll(dir, step);
-      if (scrolled) {
+
+      const chatEl = chatListRef.current;
+      const foldersEl = folderStackRef.current;
+      const navEl = navRef.current;
+
+      const chatRect = chatEl?.getBoundingClientRect();
+      const foldersRect = foldersEl?.getBoundingClientRect();
+
+      const isOverChat = !!chatRect && e.clientY >= chatRect.top && e.clientY <= chatRect.bottom;
+      const isOverFolders = !!foldersRect && e.clientY >= foldersRect.top && e.clientY <= foldersRect.bottom;
+
+      let target: HTMLElement | null = null;
+
+      if (isOverChat && chatEl && chatEl.scrollHeight > chatEl.clientHeight) {
+        target = chatEl;
+      } else if (isOverFolders && foldersEl && foldersEl.scrollHeight > foldersEl.clientHeight) {
+        target = foldersEl;
+      } else if (navEl && navEl.scrollHeight > navEl.clientHeight) {
+        target = navEl;
+      }
+
+      if (target) {
         e.preventDefault();
+        const delta = e.deltaY;
+        target.scrollTop = Math.max(0, Math.min(target.scrollHeight - target.clientHeight, target.scrollTop + delta));
+        if (delta > 0 && target === chatEl) {
+          tryLoadMore(chatEl);
+        }
+        const key = hit(e.clientX, e.clientY);
+        applyHoverKey(key);
       }
     };
 
