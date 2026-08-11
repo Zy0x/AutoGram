@@ -1311,24 +1311,36 @@ export function DriveSidebar({
             const overFoldersStrict = !!folders && lastY >= folders.top - 12 && lastY <= folders.bottom + 12;
             const overChatStrict = !!chat && lastY >= chat.top - 12 && lastY <= chat.bottom + 12;
 
-            // 1. Strict containment over Chats list -> inner scroll ALWAYS takes priority
+            // 1. Strict containment over Chats list -> cascadeScroll (inner first, then nav)
             if (overChatStrict && chat) {
               if (lastY > chat.bottom - chatBand) {
                 const depth = Math.min(1, Math.max(0.2, (lastY - (chat.bottom - chatBand)) / (chatBand * 0.6)));
-                scrollInnerOnly('down', stepAt(depth));
+                cascadeScroll('down', stepAt(depth));
               } else if (lastY < chat.top + chatBand) {
                 const depth = Math.min(1, Math.max(0.2, (chat.top + chatBand - lastY) / (chatBand * 0.6)));
-                scrollInnerOnly('up', stepAt(depth));
+                cascadeScroll('up', stepAt(depth));
+              } else if (lastY < refR.top + edge) {
+                const depth = Math.min(1, Math.max(0.2, (refR.top + edge - lastY) / edge));
+                cascadeScroll('up', stepAt(depth));
+              } else if (lastY > refR.bottom - edge) {
+                const depth = Math.min(1, Math.max(0.2, (lastY - (refR.bottom - edge)) / edge));
+                cascadeScroll('down', stepAt(depth));
               }
             }
-            // 2. Strict containment over Drives list -> inner scroll ALWAYS takes priority
+            // 2. Strict containment over Drives list -> cascadeScroll (inner first, then nav)
             else if (overFoldersStrict && folders) {
               if (lastY > folders.bottom - drivesBand) {
                 const depth = Math.min(1, Math.max(0.2, (lastY - (folders.bottom - drivesBand)) / (drivesBand * 0.6)));
-                scrollInnerOnly('down', stepAt(depth));
+                cascadeScroll('down', stepAt(depth));
               } else if (lastY < folders.top + drivesBand) {
                 const depth = Math.min(1, Math.max(0.2, (folders.top + drivesBand - lastY) / (drivesBand * 0.6)));
-                scrollInnerOnly('up', stepAt(depth));
+                cascadeScroll('up', stepAt(depth));
+              } else if (lastY < refR.top + edge) {
+                const depth = Math.min(1, Math.max(0.2, (refR.top + edge - lastY) / edge));
+                cascadeScroll('up', stepAt(depth));
+              } else if (lastY > refR.bottom - edge) {
+                const depth = Math.min(1, Math.max(0.2, (lastY - (refR.bottom - edge)) / edge));
+                cascadeScroll('down', stepAt(depth));
               }
             }
             // 3. Pointer outside specific lists -> fall back to outer sidebar edge scrolling
@@ -1342,16 +1354,16 @@ export function DriveSidebar({
               // Gap between sections fallback
               if (chat && lastY < chat.top + chatBand && lastY > chat.top - outside) {
                 const depth = Math.min(1, Math.max(0.2, (chat.top + chatBand - lastY) / chatBand));
-                scrollInnerOnly('up', stepAt(depth));
+                cascadeScroll('up', stepAt(depth));
               } else if (chat && lastY > chat.bottom - chatBand && lastY < chat.bottom + outside) {
                 const depth = Math.min(1, Math.max(0.2, (lastY - (chat.bottom - chatBand)) / chatBand));
-                scrollInnerOnly('down', stepAt(depth));
+                cascadeScroll('down', stepAt(depth));
               } else if (folders && lastY > folders.bottom - drivesBand && lastY < folders.bottom + outside) {
                 const depth = Math.min(1, Math.max(0.2, (lastY - (folders.bottom - drivesBand)) / drivesBand));
-                scrollInnerOnly('down', stepAt(depth));
+                cascadeScroll('down', stepAt(depth));
               } else if (folders && lastY < folders.top + drivesBand && lastY > folders.top - outside) {
                 const depth = Math.min(1, Math.max(0.2, (folders.top + drivesBand - lastY) / drivesBand));
-                scrollInnerOnly('up', stepAt(depth));
+                cascadeScroll('up', stepAt(depth));
               }
             }
           }
@@ -1539,31 +1551,16 @@ export function DriveSidebar({
         return;
       const side = sidebarRef.current?.getBoundingClientRect();
       if (!side) return;
-      if (e.clientX < side.left - 12 || e.clientX > side.right + 12) return;
+      if (e.clientX < side.left - 24 || e.clientX > side.right + 24) return;
       lastX = e.clientX;
       lastY = e.clientY;
       hasPointer = true;
       const dir: 'up' | 'down' = e.deltaY < 0 ? 'up' : 'down';
-      const step = Math.min(48, Math.max(8, Math.abs(e.deltaY)));
-      const nav = navRef.current;
-
-      if (dir === 'up') {
-        // Prefer the list under the pointer first (chat-up / drives-up),
-        // then outer nav — avoids chat feeling stuck while body still scrolls.
-        if (scrollInnerOnly('up', step)) {
-          e.preventDefault();
-          return;
-        }
-        if (nav && canScroll(nav, 'up')) {
-          applyScroll(nav, 'up', step);
-          e.preventDefault();
-        }
-        return;
+      const step = Math.min(64, Math.max(12, Math.abs(e.deltaY) * 1.2));
+      const scrolled = cascadeScroll(dir, step);
+      if (scrolled) {
+        e.preventDefault();
       }
-
-      // down
-      const which = cascadeScroll('down', step);
-      if (which) e.preventDefault();
     };
 
     const onPointerUp = () => {
