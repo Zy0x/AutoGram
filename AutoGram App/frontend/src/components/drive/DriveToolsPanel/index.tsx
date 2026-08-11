@@ -325,8 +325,8 @@ export function DriveToolsPanel({
               type="button"
               className={`td-header-sidebar-toggle ${isSidebarCollapsed ? 'is-collapsed' : ''}`}
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              title={isSidebarCollapsed ? 'Klik untuk Perluas Sidebar Navigasi' : 'Klik untuk Ciutkan Sidebar Navigasi'}
-              aria-label={isSidebarCollapsed ? 'Klik untuk Perluas Sidebar Navigasi' : 'Klik untuk Ciutkan Sidebar Navigasi'}
+              title={t(isSidebarCollapsed ? 'speedtest.sidebar_expand_tooltip' : 'speedtest.sidebar_collapse_tooltip')}
+              aria-label={t(isSidebarCollapsed ? 'speedtest.sidebar_expand_tooltip' : 'speedtest.sidebar_collapse_tooltip')}
             >
               <div className="td-header-toggle-icon">
                 <SlidersHorizontal size={18} />
@@ -1243,6 +1243,7 @@ function DupTab({
     >
       {/* 📊 1. HERO SUMMARY & SCANNER BANNER (SINGLE UNIFIED TOP CARD) */}
       <div
+        className="td-tools-dup-hero"
         style={{
           background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(15, 23, 42, 0.7) 100%)',
           border: '1px solid rgba(56, 189, 248, 0.18)',
@@ -1254,9 +1255,9 @@ function DupTab({
           flexShrink: 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+        <div className="td-tools-dup-hero-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           {/* KEY METRICS */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          <div className="td-tools-dup-metrics" style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('ui.generated.grup_duplikat_77084e6')}</span>
               <strong style={{ fontSize: '1.15rem', color: '#38bdf8', fontWeight: 800 }}>{filteredGroups.length}</strong>
@@ -1278,7 +1279,7 @@ function DupTab({
           </div>
 
           {/* DEEP SCAN ACTION BUTTON (ALWAYS VISIBLE & WORKING) */}
-          <div>
+          <div className="td-tools-dup-scan-action">
             {!isScanning ? (
               <button
                 type="button"
@@ -1363,6 +1364,7 @@ function DupTab({
 
         {floodWaitSeconds !== null && (
           <div
+            className="td-tools-dup-floodwait"
             style={{
               background: 'rgba(239, 68, 68, 0.2)',
               border: '1px solid #ef4444',
@@ -1387,8 +1389,9 @@ function DupTab({
         )}
 
         {/* OPTIONAL ADVANCED DETECTION MODE TOGGLE BUTTON */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '8px', marginTop: '2px' }}>
+        <div className="td-tools-dup-preferences" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '8px', marginTop: '2px' }}>
           <button
+            className="td-tools-dup-mode-toggle"
             type="button"
             onClick={() => setShowModeSettings((prev) => !prev)}
             style={{
@@ -1409,7 +1412,7 @@ function DupTab({
             {showModeSettings ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <div className="td-tools-dup-preference-list" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             <label className="td-tools-check-inline" title={t("speedtest.smart_pref_tooltip")} style={{ fontSize: '0.75rem', margin: 0 }}>
               <input
                 type="checkbox"
@@ -1434,11 +1437,11 @@ function DupTab({
         {showModeSettings && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', paddingTop: '4px' }}>
             {[
-              { id: 'all_levels', label: '✨ Semua Level (1-4)' },
-              { id: 'hash_unique', label: 'L1: Hash & Unique ID' },
-              { id: 'name_size', label: 'L2: Nama + Ukuran' },
-              { id: 'size_only', label: 'L3: Ukuran Byte' },
-              { id: 'message_clone', label: 'L4: Forward Clone' },
+              { id: 'all_levels', label: t('speedtest.dup_mode_all_levels') },
+              { id: 'hash_unique', label: t('speedtest.dup_mode_hash_unique') },
+              { id: 'name_size', label: t('speedtest.dup_mode_name_size') },
+              { id: 'size_only', label: t('speedtest.dup_mode_size_only') },
+              { id: 'message_clone', label: t('speedtest.dup_mode_message_clone') },
             ].map((m) => (
               <button
                 key={m.id}
@@ -1521,6 +1524,7 @@ function DupTab({
         >
           {/* SLEEK SEGMENTED CONTROL BAR */}
           <div
+            className="td-tools-dup-category-bar"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -1533,16 +1537,17 @@ function DupTab({
             }}
           >
             {[
-              { id: 'all', label: 'Semua', icon: Grid, count: categoryCounts.all },
-              { id: 'image', label: 'Foto', icon: Image, count: categoryCounts.image },
-              { id: 'video', label: 'Video', icon: Film, count: categoryCounts.video },
-              { id: 'document', label: 'Dokumen', icon: FileText, count: categoryCounts.document },
-              { id: 'audio', label: 'Audio', icon: Music, count: categoryCounts.audio },
+              { id: 'all', label: t('speedtest.duplicate_filter_all'), icon: Grid, count: categoryCounts.all },
+              { id: 'image', label: t('speedtest.duplicate_filter_image'), icon: Image, count: categoryCounts.image },
+              { id: 'video', label: t('speedtest.duplicate_filter_video'), icon: Film, count: categoryCounts.video },
+              { id: 'document', label: t('speedtest.duplicate_filter_document'), icon: FileText, count: categoryCounts.document },
+              { id: 'audio', label: t('speedtest.duplicate_filter_audio'), icon: Music, count: categoryCounts.audio },
             ].map((tab) => {
               const IconComp = tab.icon;
               const isActive = filterType === tab.id;
               return (
                 <button
+                  className="td-tools-dup-category"
                   key={tab.id}
                   type="button"
                   onClick={() => setFilterType(tab.id as any)}
@@ -1584,8 +1589,9 @@ function DupTab({
           </div>
 
           {/* ACTION BUTTONS ALIGNED RIGHT NEXT TO FILTERS */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginLeft: 'auto' }}>
+          <div className="td-tools-dup-actions" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginLeft: 'auto' }}>
             <button
+              className="td-tools-dup-action"
               type="button"
               disabled={busy}
               onClick={applySmartAll}
@@ -1609,6 +1615,7 @@ function DupTab({
               <Check size={13} /> {t('ui.generated.seleksi_cerdas_44602fb')}
             </button>
             <button
+              className="td-tools-dup-action"
               type="button"
               disabled={busy}
               onClick={clearAllMarks}
@@ -1800,6 +1807,7 @@ function DupTab({
 
       {/* 🔴 4. STICKY BOTTOM ACTION DOCK */}
       <div
+        className="td-tools-dup-dock"
         style={{
           position: 'sticky',
           bottom: 0,
@@ -1819,6 +1827,7 @@ function DupTab({
         }}
       >
         <div
+          className="td-tools-dup-maintained"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -1838,6 +1847,7 @@ function DupTab({
         </div>
 
         <button
+          className="td-tools-dup-delete-selection"
           type="button"
           disabled={busy || !idsToDelete.length}
           onClick={() => {

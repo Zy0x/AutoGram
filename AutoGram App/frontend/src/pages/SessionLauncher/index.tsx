@@ -193,6 +193,7 @@ export function SessionLauncher({
 
   return (
     <div
+      className="ag-launcher-shell"
       style={{
         minHeight: '100vh',
         width: '100vw',
@@ -206,6 +207,7 @@ export function SessionLauncher({
     >
       {/* TOP LAUNCHER NAVBAR */}
       <header
+        className="ag-launcher-header"
         style={{
           height: '64px',
           padding: '0 32px',
@@ -220,7 +222,7 @@ export function SessionLauncher({
           zIndex: 50,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="ag-launcher-brand" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div
             style={{
               width: '38px',
@@ -246,7 +248,7 @@ export function SessionLauncher({
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="ag-launcher-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
             type="button"
             onClick={onOpenAccounts}
@@ -326,8 +328,8 @@ export function SessionLauncher({
       </header>
 
       {/* HERO SECTION */}
-      <main style={{ flex: 1, maxWidth: '1120px', width: '100%', margin: '0 auto', padding: '40px 24px 60px', boxSizing: 'border-box' }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+      <main className="ag-launcher-main" style={{ flex: 1, maxWidth: '1120px', width: '100%', margin: '0 auto', padding: '40px 24px 60px', boxSizing: 'border-box' }}>
+        <div className="ag-launcher-hero" style={{ textAlign: 'center', marginBottom: '32px' }}>
           <h1 style={{ fontSize: '2.1rem', fontWeight: 800, margin: '0 0 10px 0', letterSpacing: '-0.02em' }}>
             {t('nav.launcher_title')}
           </h1>
@@ -339,6 +341,7 @@ export function SessionLauncher({
         {/* WORKSPACE LOCKOUT ALERT BANNER */}
         {hasApiError && (
           <div
+            className="ag-launcher-api-alert"
             style={{
               margin: '0 auto 28px',
               maxWidth: '680px',
@@ -385,6 +388,7 @@ export function SessionLauncher({
 
         {/* SESSION CARDS GRID */}
         <div
+          className="ag-launcher-session-grid"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
@@ -412,6 +416,7 @@ export function SessionLauncher({
 
             return (
               <div
+                className="ag-launcher-session-card"
                 key={sess.name}
                 data-session-name={sess.name}
                 style={{
@@ -431,7 +436,7 @@ export function SessionLauncher({
                 }}
               >
                 {/* DEFAULT BADGE / SET DEFAULT BUTTON */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '26px' }}>
+                <div className="ag-launcher-card-status" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '26px' }}>
                   <div
                     onClick={(e) => handlePingSession(sess.name, sess.status, e)}
                     title={
@@ -887,7 +892,7 @@ export function SessionLauncher({
                   </div>
                 ) : (
                   /* MODE ACTION BUTTONS */
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="ag-launcher-mode-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     {/* BUKA DRIVES */}
                     <button
                       type="button"
@@ -1456,6 +1461,7 @@ export function SessionLauncher({
 
       {/* FOOTER BAR */}
       <footer
+        className="ag-launcher-footer"
         style={{
           padding: '16px 32px',
           borderTop: '1px solid rgba(255, 255, 255, 0.06)',

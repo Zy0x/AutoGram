@@ -140,7 +140,18 @@ function App() {
     };
   }, []);
 
+  // Auto-dismiss fallback notice after 5 seconds
+  useEffect(() => {
+    if (fallbackNotice) {
+      const timer = setTimeout(() => {
+        setFallbackNotice(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [fallbackNotice]);
+
   const handleSelectMode = (sessionName: string, mode: 'drives' | 'forwarder') => {
+    setFallbackNotice(false);
     setCurrentSession(sessionName);
     localStorage.setItem('autogram_drive_session', sessionName);
     setAppMode(mode);
@@ -180,6 +191,7 @@ function App() {
         <>
           {fallbackNotice && (
             <div
+              className="ag-startup-fallback"
               style={{
                 background: 'rgba(245, 158, 11, 0.15)',
                 borderBottom: '1px solid rgba(245, 158, 11, 0.35)',
@@ -197,6 +209,7 @@ function App() {
               <span>{t('nav.startup_fallback_notice')}</span>
               <button
                 type="button"
+                className="ag-startup-fallback-close"
                 onClick={() => setFallbackNotice(false)}
                 style={{
                   background: 'transparent',

@@ -197,7 +197,11 @@
     top: 0;
   }
   .settings-sidebar-nav-item {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: max-content;
     white-space: nowrap;
+    scroll-snap-align: start;
   }
 }
 
@@ -863,7 +867,17 @@
   }
 
   .settings-header-actions {
-    order: -1;
+    order: initial;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch !important;
+  }
+
+  .settings-header-actions .btn,
+  .settings-header-actions > button {
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
   }
 
   .settings-page .glass-panel.card,

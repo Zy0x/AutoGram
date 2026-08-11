@@ -1727,7 +1727,6 @@ fn start_preview_stream_inner(
             let tail_dest = dest.clone();
             let tail_sid = stream_id.clone();
             let tail_generation = cancel.clone();
-            let publish_tail_chunks_immediately = startup_policy.immediate_url;
 
             if let Some(mut e) = stream_server::get_entry(&stream_id) {
                 e.moov_tail_fetching = true;
@@ -1769,19 +1768,7 @@ fn start_preview_stream_inner(
                         if let Ok(Some(bytes)) = res {
                             if !bytes.is_empty() {
                                 if f_disk.seek(SeekFrom::Start(chunk_off)).is_ok() && f_disk.write_all(&bytes).is_ok() {
-                                    let written_range = (chunk_off, chunk_off + bytes.len() as u64);
-                                    tail_ranges.push(written_range);
-                                    let _ = f_disk.flush();
-
-                                    // Publish each oversized tail chunk as soon as it
-                                    // lands. Browser suffix requests no longer wait for
-                                    // every auxiliary probe (up to 8 MiB) to finish.
-                                    if publish_tail_chunks_immediately {
-                                        if let Some(mut entry) = stream_server::get_entry(&tail_sid) {
-                                            entry.ranges.push(written_range);
-                                            stream_server::upsert_entry(entry);
-                                        }
-                                    }
+                                    tail_ranges.push((chunk_off, chunk_off + bytes.len() as u64));
                                 }
                             }
                         }

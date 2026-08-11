@@ -32,93 +32,38 @@ export function ForwarderWorkspace({
   const [activeTab, setActiveTab] = useState<'jobs' | 'new_job' | 'history' | 'settings'>('jobs');
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        width: '100vw',
-        background: '#090e17',
-        color: '#f8fafc',
-        display: 'flex',
-        flexDirection: 'column',
-        boxSizing: 'border-box',
-        overflow: 'hidden',
-      }}
-    >
+    <div className="ag-forwarder-shell">
       {/* HEADER TOPBAR WITH DUAL-BAR QUICK SWITCHER & SESSION BADGE */}
-      <header
-        style={{
-          height: '60px',
-          padding: '0 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          background: 'rgba(11, 16, 26, 0.95)',
-          backdropFilter: 'blur(16px)',
-          zIndex: 40,
-        }}
-      >
+      <header className="ag-forwarder-header">
         {/* LEFT: SESSION BADGE BUTTON (RETURN TO LAUNCHER) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div className="ag-forwarder-identity">
           <button
             type="button"
             onClick={onBackToLauncher}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '6px 14px',
-              borderRadius: '12px',
-              background: 'rgba(56, 189, 248, 0.12)',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              color: '#38bdf8',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '0.85rem',
-              transition: 'all 0.15s ease',
-            }}
+            className="ag-forwarder-session"
             title={t('nav.switch_session')}
           >
             <Zap size={16} />
-            <span>{activeSession || t('ui.generated.session_utama_6c6254e')}</span>
-            <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>▾</span>
+            <span className="ag-forwarder-session-name">{activeSession || t('ui.generated.session_utama_6c6254e')}</span>
+            <span className="ag-forwarder-chevron" aria-hidden="true">▾</span>
           </button>
 
-          <span style={{ color: '#475569', fontSize: '0.8rem' }}>|</span>
+          <span className="ag-forwarder-divider" aria-hidden="true">|</span>
 
-          <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <ArrowRightLeft size={18} style={{ color: '#818cf8' }} />
+          <span className="ag-forwarder-product">
+            <ArrowRightLeft size={18} aria-hidden="true" />
             <span>{t('ui.generated.forwarder_suite_35718a2')}</span>
           </span>
         </div>
 
 
         {/* RIGHT: API & SETTINGS */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="ag-forwarder-actions">
           {onOpenApiSetup && (
             <button
               type="button"
               onClick={onOpenApiSetup}
-              className={hasApiError ? 'api-credentials-btn-error' : undefined}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '0 12px',
-                height: '36px',
-                borderRadius: '10px',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                ...(hasApiError
-                  ? {}
-                  : {
-                      background: 'rgba(56, 189, 248, 0.12)',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
-                      color: '#38bdf8',
-                    }),
-              }}
+              className={`ag-forwarder-action ag-forwarder-api${hasApiError ? ' api-credentials-btn-error' : ''}`}
               title={hasApiError ? t('ui.generated.api_id_hash_belum_terisi_buka_settings_dan_simpa_9ccf412') : t('settings.api_config')}
               aria-label={t('settings.api_config')}
             >
@@ -129,20 +74,7 @@ export function ForwarderWorkspace({
           <button
             type="button"
             onClick={onOpenSettings}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '0 12px',
-              height: '36px',
-              borderRadius: '10px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              color: '#94a3b8',
-              fontSize: '0.82rem',
-              fontWeight: 500,
-              cursor: 'pointer',
-            }}
+            className="ag-forwarder-action"
             title={t('nav.tab_forwarder_settings')}
           >
             <SlidersHorizontal size={15} />
@@ -152,33 +84,13 @@ export function ForwarderWorkspace({
       </header>
 
       {/* SUB-NAV TABS FOR FORWARDER WORKSPACE */}
-      <div
-        style={{
-          height: '44px',
-          padding: '0 24px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
-          background: 'rgba(15, 23, 42, 0.6)',
-        }}
-      >
+      <div className="ag-forwarder-tabs" role="tablist">
         <button
           type="button"
           onClick={() => setActiveTab('jobs')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '6px 14px',
-            borderRadius: '8px',
-            background: activeTab === 'jobs' ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
-            border: activeTab === 'jobs' ? '1px solid rgba(99, 102, 241, 0.4)' : '1px solid transparent',
-            color: activeTab === 'jobs' ? '#818cf8' : '#94a3b8',
-            fontSize: '0.8rem',
-            fontWeight: activeTab === 'jobs' ? 600 : 500,
-            cursor: 'pointer',
-          }}
+          className={`ag-forwarder-tab${activeTab === 'jobs' ? ' is-active' : ''}`}
+          role="tab"
+          aria-selected={activeTab === 'jobs'}
         >
           <Play size={14} />
           <span>{t('nav.tab_jobs_active')}</span>
@@ -187,19 +99,9 @@ export function ForwarderWorkspace({
         <button
           type="button"
           onClick={() => setActiveTab('new_job')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '6px 14px',
-            borderRadius: '8px',
-            background: activeTab === 'new_job' ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
-            border: activeTab === 'new_job' ? '1px solid rgba(99, 102, 241, 0.4)' : '1px solid transparent',
-            color: activeTab === 'new_job' ? '#818cf8' : '#94a3b8',
-            fontSize: '0.8rem',
-            fontWeight: activeTab === 'new_job' ? 600 : 500,
-            cursor: 'pointer',
-          }}
+          className={`ag-forwarder-tab${activeTab === 'new_job' ? ' is-active' : ''}`}
+          role="tab"
+          aria-selected={activeTab === 'new_job'}
         >
           <Plus size={14} />
           <span>{t('nav.tab_new_job')}</span>
@@ -208,19 +110,9 @@ export function ForwarderWorkspace({
         <button
           type="button"
           onClick={() => setActiveTab('history')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '6px 14px',
-            borderRadius: '8px',
-            background: activeTab === 'history' ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
-            border: activeTab === 'history' ? '1px solid rgba(99, 102, 241, 0.4)' : '1px solid transparent',
-            color: activeTab === 'history' ? '#818cf8' : '#94a3b8',
-            fontSize: '0.8rem',
-            fontWeight: activeTab === 'history' ? 600 : 500,
-            cursor: 'pointer',
-          }}
+          className={`ag-forwarder-tab${activeTab === 'history' ? ' is-active' : ''}`}
+          role="tab"
+          aria-selected={activeTab === 'history'}
         >
           <History size={14} />
           <span>{t('nav.tab_history')}</span>
@@ -228,7 +120,7 @@ export function ForwarderWorkspace({
       </div>
 
       {/* MAIN VIEWPORT */}
-      <main style={{ flex: 1, overflow: 'auto', padding: '0' }}>
+      <main className="ag-forwarder-main">
         <Jobs />
       </main>
     </div>
