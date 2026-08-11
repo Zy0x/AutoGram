@@ -287,15 +287,6 @@ export function DriveTopBar({
             <span className="td-chip-label">{t('speedtest.topbar_select_all')}</span>
           </button>
         )}
-        <button
-          type="button"
-          className="td-chip-btn"
-          onClick={onClearSelection}
-          title={t("speedtest.topbar_deselect_all_tooltip")}
-        >
-          <SquareX size={15} strokeWidth={2} aria-hidden />
-          <span className="td-chip-label">{t('speedtest.topbar_cancel')}</span>
-        </button>
         {onInvertSelection && (
           <button
             type="button"
@@ -307,6 +298,16 @@ export function DriveTopBar({
             <span className="td-chip-label">{t('speedtest.topbar_invert')}</span>
           </button>
         )}
+        <button
+          type="button"
+          className="td-chip-btn"
+          onClick={onClearSelection}
+          title={t("speedtest.topbar_deselect_all_tooltip")}
+        >
+          <SquareX size={15} strokeWidth={2} aria-hidden />
+          <span className="td-chip-label">{t('speedtest.topbar_cancel')}</span>
+        </button>
+        <div className="td-selection-divider" aria-hidden="true" />
       </div>
       <div className="td-selection-strip-right">
         {onMoveSelected && (

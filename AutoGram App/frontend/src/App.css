@@ -7647,26 +7647,138 @@ body:has(.app-layout-drive-focus),
   height: 36px;
   min-height: 36px;
   max-height: 36px;
-  padding: 0 6px;
+  padding: 0 8px;
   border-radius: 8px;
   box-sizing: border-box;
+  background: color-mix(in srgb, #0ea5e9 12%, #0f172a);
+  border: 1px solid color-mix(in srgb, #38bdf8 30%, rgba(51, 65, 85, 0.6));
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.3), 0 1px 0 rgba(255, 255, 255, 0.05) inset;
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
-/* Compact elements inside row-2 selection strip to fit perfectly within 36px */
-.td-topbar-row-2 .td-selection-strip .td-chip-btn {
-  height: 28px;
-  min-height: 28px;
-  max-height: 28px;
-  padding: 0 8px;
-  font-size: 0.74rem;
-  box-sizing: border-box;
+.td-topbar-row-2.has-selection-tools .td-selection-strip::-webkit-scrollbar {
+  display: none;
 }
+
+/* Elegant vertical divider between selection controls & data actions */
+.td-selection-divider {
+  width: 1px;
+  height: 16px;
+  background: rgba(148, 163, 184, 0.28);
+  margin: 0 4px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* Counter Badge: Glowing cyan pill */
 .td-topbar-row-2 .td-selection-strip .td-selection-count {
   height: 28px;
   min-height: 28px;
   max-height: 28px;
+  padding: 0 10px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #7dd3fc;
+  background: rgba(14, 165, 233, 0.22);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  border-radius: 999px;
+  box-sizing: border-box;
+  box-shadow: 0 0 12px rgba(14, 165, 233, 0.18);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.td-topbar-row-2 .td-selection-strip .td-selection-count strong {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  color: #f0f9ff;
+}
+
+/* Left side selection control buttons: Ghost / Subtle (No heavy box outlines) */
+.td-topbar-row-2 .td-selection-strip-left .td-chip-btn {
+  height: 28px;
+  min-height: 28px;
+  max-height: 28px;
   padding: 0 8px;
   font-size: 0.74rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
   box-sizing: border-box;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.td-topbar-row-2 .td-selection-strip-left .td-chip-btn:hover:not(:disabled) {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.td-topbar-row-2 .td-selection-strip-left .td-chip-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* Right side action buttons */
+.td-topbar-row-2 .td-selection-strip-right .td-chip-btn {
+  height: 28px;
+  min-height: 28px;
+  max-height: 28px;
+  padding: 0 10px;
+  font-size: 0.74rem;
+  font-weight: 650;
+  border-radius: 6px;
+  box-sizing: border-box;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.td-topbar-row-2 .td-selection-strip-right .td-chip-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* Primary Action: Pindah / Move */
+.td-topbar-row-2 .td-selection-strip-right .td-chip-btn.primary {
+  background: rgba(14, 165, 233, 0.2);
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  color: #7dd3fc;
+  font-weight: 700;
+}
+.td-topbar-row-2 .td-selection-strip-right .td-chip-btn.primary:hover:not(:disabled) {
+  background: rgba(14, 165, 233, 0.36);
+  border-color: #38bdf8;
+  color: #f0f9ff;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+}
+
+/* Neutral Action: Download */
+.td-topbar-row-2 .td-selection-strip-right .td-chip-btn:not(.primary):not(.danger) {
+  background: rgba(30, 41, 59, 0.75);
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  color: #e2e8f0;
+}
+.td-topbar-row-2 .td-selection-strip-right .td-chip-btn:not(.primary):not(.danger):hover:not(:disabled) {
+  background: #334155;
+  border-color: rgba(148, 163, 184, 0.55);
+  color: #fff;
+}
+
+/* Danger Action: Hapus / Delete */
+.td-topbar-row-2 .td-selection-strip-right .td-chip-btn.danger {
+  background: rgba(239, 68, 68, 0.16);
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  color: #fca5a5;
+  font-weight: 700;
+}
+.td-topbar-row-2 .td-selection-strip-right .td-chip-btn.danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #f87171;
+  color: #fff;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
 }
 /* Dedicated tools row — always under search, never side-by-side off-screen */
 .td-topbar-row-tools {
