@@ -1184,8 +1184,12 @@ export function DriveSidebar({
     };
 
     /**
-     * Standard Desktop Drag Auto-Scroll Controller (VS Code / Telegram Desktop Spec)
-     * Renders clean, predictable 60px edge zones with progressive quadratic acceleration (8px to 120px/frame).
+     * Optimized Drag Auto-Scroll Controller
+     * - Fixed 80px edge zones (not proportional) so scroll starts predictably near edges
+     * - Speed range: 2px (entry) → 28px (deep edge) per RAF frame → smooth, no sudden jumps
+     * - Lerp 0.30: fast enough to feel responsive, slow enough to avoid teleporting
+     * - Decay 0.88 when leaving zone: gradual wind-down, no abrupt stop mid-drag
+     * - Quadratic curve (^2) for natural progressive feel without late-zone explosion
      */
     const performDragAutoScroll = (_x: number, y: number) => {
       // Pause auto-scroll while user is actively turning mouse wheel
@@ -1222,35 +1226,39 @@ export function DriveSidebar({
       }
 
       if (!primaryTarget || !targetRect) {
-        currentSpeed = currentSpeed * 0.7;
+        // Gentle decay when no scrollable target found — avoids abrupt speed reset
+        currentSpeed = currentSpeed * 0.82;
         return;
       }
 
-      // Upper 40% and Lower 40% edge zones for early, smooth gradient detection
-      const edgeZone = Math.max(70, Math.floor(targetRect.height * 0.40));
+      // Fixed 80px edge zone: consistent entry point regardless of list height.
+      // This prevents the "scroll only starts near the very bottom" problem.
+      const EDGE_ZONE = 80;
       let dir: 'up' | 'down' | null = null;
       let dist = 0;
 
-      if (y > targetRect.bottom - edgeZone) {
+      if (y > targetRect.bottom - EDGE_ZONE) {
         dir = 'down';
-        dist = y - (targetRect.bottom - edgeZone);
-      } else if (y < targetRect.top + edgeZone) {
+        dist = y - (targetRect.bottom - EDGE_ZONE);
+      } else if (y < targetRect.top + EDGE_ZONE) {
         dir = 'up';
-        dist = (targetRect.top + edgeZone) - y;
+        dist = (targetRect.top + EDGE_ZONE) - y;
       }
 
       if (!dir) {
-        currentSpeed = currentSpeed * 0.65;
+        // Gradual deceleration when cursor moves out of edge zone mid-drag
+        currentSpeed = currentSpeed * 0.88;
         return;
       }
 
-      // Target speed calculation (10px to 96px/frame max)
-      const ratio = Math.max(0.0, dist / edgeZone);
-      const targetStep = Math.min(96, Math.floor(10 + Math.pow(ratio, 1.3) * 86));
+      // Quadratic curve: smooth start at zone entry (2px), natural ramp to max (28px) at zone edge.
+      // Using ^2 (not ^1.3) avoids the late-zone speed explosion that causes "sudden jump" UX.
+      const ratio = Math.max(0.0, Math.min(1.0, dist / EDGE_ZONE));
+      const targetStep = 2 + Math.pow(ratio, 2) * 26; // 2px..28px
 
-      // Inertial Smooth Damping (EMA Lerp 0.22): silken smooth acceleration & deceleration without teleporting
-      currentSpeed = currentSpeed + (targetStep - currentSpeed) * 0.22;
-      const activeStep = Math.max(1, Math.round(currentSpeed));
+      // EMA Lerp 0.30: fast enough to be responsive, smooth enough to avoid teleporting
+      currentSpeed = currentSpeed + (targetStep - currentSpeed) * 0.30;
+      const activeStep = Math.max(0.5, currentSpeed);
 
       // Execute cascade scroll: try primaryTarget first, then fallback to navEl
       if (canScroll(primaryTarget, dir)) {
