@@ -124,6 +124,8 @@
   "perf_tier_high_desc": "Maximum throughput for fast devices & networks (96 batch, 6 parallel streams).",
   "perf_status_active": "Active Status:",
   "perf_engine_rust": "Rust MTProto Engine",
+  "perf_fast_net": "Fast network",
+  "perf_saver_net": "Saver network",
   "perf_recommended_badge": "Recommended For Your Device",
   "perf_default_badge": "Default",
   "perf_metric_low": "20 Batch · Low RAM",

@@ -343,6 +343,7 @@ export function mapDialogToChat(d: {
   id: number | string;
   title?: string;
   isUser?: boolean;
+  isBot?: boolean;
   isChannel?: boolean;
   isGroup?: boolean;
   isForum?: boolean;
@@ -350,7 +351,9 @@ export function mapDialogToChat(d: {
   const title = String(d.title || d.id);
   const isTd = title.includes('[TD]');
   const isGroup = d.isGroup === true || (d.isChannel && d.isForum === true);
-  const type = d.isUser
+  const type = d.isBot
+    ? 'bot'
+    : d.isUser
     ? 'user'
     : isGroup
       ? 'group'

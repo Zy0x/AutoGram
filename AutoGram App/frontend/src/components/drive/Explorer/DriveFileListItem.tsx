@@ -93,7 +93,11 @@ function DriveFileListItemInner({
       }}
       draggable={!onMediaDragPrime}
       onPointerDown={(e) => {
-        if (e.shiftKey || e.ctrlKey || e.metaKey) {
+        if (e.ctrlKey || e.metaKey) {
+          e.preventDefault();
+          return;
+        }
+        if (e.shiftKey) {
           e.preventDefault();
         }
         onPointerDown(e);

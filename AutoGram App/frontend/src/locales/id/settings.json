@@ -124,6 +124,8 @@
   "perf_tier_high_desc": "Throughput maksimal untuk perangkat & jaringan cepat (96 batch, 6 stream paralel).",
   "perf_status_active": "Status Aktif:",
   "perf_engine_rust": "Engine MTProto Rust",
+  "perf_fast_net": "Jaringan cepat",
+  "perf_saver_net": "Jaringan hemat",
   "perf_recommended_badge": "Rekomendasi Perangkat Ini",
   "perf_default_badge": "Default",
   "perf_metric_low": "20 Batch · Hemat RAM",

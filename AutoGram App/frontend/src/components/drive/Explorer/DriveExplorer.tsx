@@ -30,6 +30,7 @@ import {
   hitTestDisplayedByMarquee,
   marqueeModeFromKeys,
   normalizeContentRect,
+  shouldStartExplorerMarquee,
   type MarqueeMode,
 } from '../../../lib/telegram';
 import { DriveFileCard } from './DriveFileCard';
@@ -164,6 +165,7 @@ export function DriveExplorer({
   onVisibleIdsChange,
   scanState,
   onResumeSync,
+  viewPerspective = 'telegram',
 }: Props) {
   const { t } = useTranslation();
   const draggingSet = useMemo(() => new Set(draggingIds || []), [draggingIds]);
@@ -230,6 +232,11 @@ export function DriveExplorer({
   const [liveSelected, setLiveSelected] = useState<number[] | null>(null);
   /** Last computed final selection for commit (same as live) */
   const liveSelectedRef = useRef<number[] | null>(null);
+  const suppressMarqueeClickRef = useRef(false);
+
+  useEffect(() => () => {
+    document.body.classList.remove('td-marquee-active');
+  }, []);
 
   useEffect(() => {
     if (creds) {
@@ -289,8 +296,9 @@ export function DriveExplorer({
       mediaFilter,
       sortMode,
       adv: advFilter ?? null,
+      perspective: viewPerspective,
     });
-  }, [contextFiles, query, mediaFilter, sortMode, advFilter]);
+  }, [contextFiles, query, mediaFilter, sortMode, advFilter, viewPerspective]);
 
   const displayedIds = useMemo(() => displayed.map((f: any) => f.id), [displayed]);
   const thumbableDisplayedIds = useMemo(
@@ -704,17 +712,27 @@ export function DriveExplorer({
     }
   }, []);
 
-  const isInteractiveTarget = (t: EventTarget | null) => {
+  const getPointerTargetKind = (t: EventTarget | null) => {
     const el = t as HTMLElement | null;
-    if (!el?.closest) return false;
-    return !!el.closest(
-      '.td-file-card, .td-list-row, button, a, input, textarea, select, [role="button"]'
-    );
+    if (!el?.closest) return { overCard: false, overControl: false };
+    const card = el.closest('.td-file-card, .td-list-row');
+    const control = el.closest('button, a, input, textarea, select, [role="button"]');
+    return {
+      overCard: Boolean(card),
+      // Cards expose role="button" for keyboard semantics; only nested controls
+      // must retain exclusive pointer ownership.
+      overControl: Boolean(control && control !== card),
+    };
   };
 
   const onExplorerPointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0) return;
-    if (isInteractiveTarget(e.target)) return;
+    const targetKind = getPointerTargetKind(e.target);
+    if (!shouldStartExplorerMarquee({
+      button: e.button,
+      ...targetKind,
+      ctrlKey: e.ctrlKey,
+      metaKey: e.metaKey,
+    })) return;
     const el = parentRef.current;
     if (!el) return;
 
@@ -749,6 +767,7 @@ export function DriveExplorer({
       baseSelected: [...selectedIds],
       moved: false,
     };
+    document.body.classList.add('td-marquee-active');
     liveSelectedRef.current = null;
     setMarqueeBox(null);
     setLiveSelected(null);
@@ -785,6 +804,7 @@ export function DriveExplorer({
     const finalIds = liveSelectedRef.current;
 
     marqueeRef.current = null;
+    document.body.classList.remove('td-marquee-active');
     detachMarqueeScroll();
     try {
       parentRef.current?.releasePointerCapture(e.pointerId);
@@ -803,6 +823,13 @@ export function DriveExplorer({
       }
       return;
     }
+
+    // Pointer-up is followed by a synthetic click. Swallow that click after a
+    // real marquee so the starting card cannot undo the committed selection.
+    suppressMarqueeClickRef.current = true;
+    window.setTimeout(() => {
+      suppressMarqueeClickRef.current = false;
+    }, 0);
 
     // Commit the same list shown live (content-stable hits + baseSelected)
     if (finalIds) {
@@ -845,6 +872,12 @@ export function DriveExplorer({
       onPointerMove={onExplorerPointerMove}
       onPointerUp={endMarquee}
       onPointerCancel={endMarquee}
+      onClickCapture={(e) => {
+        if (!suppressMarqueeClickRef.current) return;
+        e.preventDefault();
+        e.stopPropagation();
+        suppressMarqueeClickRef.current = false;
+      }}
       onContextMenu={(e) => {
         // Fallback if document capture is absent — block native menu always
         e.preventDefault();

@@ -20,7 +20,9 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
   const [isLoadingDialogs, setIsLoadingDialogs] = useState(false);
   const [selectedDialogId, setSelectedDialogId] = useState<string | null>(null);
   const [dialogFilter, setDialogFilter] = useState<string>('All');
-  const [chatFolders, setChatFolders] = useState<any[]>([{ id: 0, title: 'Semua Chat', kind: 'all' }]);
+  const [chatFolders, setChatFolders] = useState<any[]>([
+    { id: 0, title: t('dashboard.all_chats'), kind: 'all' },
+  ]);
   const [selectedFolderId, setSelectedFolderId] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isForumGroup, setIsForumGroup] = useState(false);
@@ -1334,7 +1336,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                             transition: 'var(--transition-safe)',
                           }}
                         >
-                          {f === 'Group' ? 'Groups - Forum' : f}
+                          {f === 'Group' ? t('speedtest.filter_forums') : f}
                         </div>
                       ))}
                     </div>
@@ -1342,7 +1344,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                       <Search size={16} style={{ position: 'absolute', left: '32px', top: '18px', color: 'var(--text-muted)' }} />
                       <input
                         type="text"
-                        placeholder={t('dashboard.search_chat_placeholder') || "Cari nama atau ID obrolan..."}
+                        placeholder={t('dashboard.search_chat_placeholder')}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         style={{

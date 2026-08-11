@@ -65,6 +65,8 @@ pub struct DialogEntry {
     pub id: i64,
     pub title: String,
     pub is_user: bool,
+    #[serde(default)]
+    pub is_bot: bool,
     pub is_channel: bool,
     pub is_group: bool,
     /// True when peer is a forum (topics UI). Megagroup channels with forum flag.
@@ -427,11 +429,15 @@ pub struct SaveExactMediaStatisticsRequest {
     pub topic_id: Option<i64>,
     pub exact_total: usize,
     pub exact_bytes: Option<u64>,
+    pub photo_count: Option<usize>,
+    pub video_count: Option<usize>,
+    pub file_count: Option<usize>,
+    pub gif_count: Option<usize>,
+    pub link_count: Option<usize>,
+    pub audio_count: Option<usize>,
 }
 
-pub fn tg_save_exact_media_statistics(
-    req: SaveExactMediaStatisticsRequest,
-) -> OpResult<bool> {
+pub fn tg_save_exact_media_statistics(req: SaveExactMediaStatisticsRequest) -> OpResult<bool> {
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs())
@@ -441,12 +447,12 @@ pub fn tg_save_exact_media_statistics(
         peer_id: req.chat_id,
         topic_id: req.topic_id,
         total_count: req.exact_total,
-        photo_count: 0,
-        video_count: 0,
-        file_count: 0,
-        gif_count: 0,
-        link_count: 0,
-        audio_count: 0,
+        photo_count: req.photo_count.unwrap_or(0),
+        video_count: req.video_count.unwrap_or(0),
+        file_count: req.file_count.unwrap_or(0),
+        gif_count: req.gif_count.unwrap_or(0),
+        link_count: req.link_count.unwrap_or(0),
+        audio_count: req.audio_count.unwrap_or(0),
         loaded_count: req.exact_total,
         total_bytes: req.exact_bytes.unwrap_or(0),
         last_sync: now,

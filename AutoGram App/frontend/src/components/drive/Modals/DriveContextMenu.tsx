@@ -22,6 +22,7 @@ import {
   Copy,
   Pin,
   PinOff,
+  ChevronRight,
 } from 'lucide-react';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
 import { driveFileDisplayName } from '../../../lib/telegram/driveTypes';
@@ -68,6 +69,7 @@ type Props = {
   onOpenLocation?: () => void;
   onDeleteFolder?: () => void;
   onCopyId?: () => void;
+  onCopyPathId?: () => void;
   onRenameFolder?: () => void;
   onReparentFolder?: () => void;
   renameFolderLabel?: string;
@@ -107,6 +109,7 @@ export function DriveContextMenu({
   onOpenLocation,
   onDeleteFolder,
   onCopyId,
+  onCopyPathId,
   onRenameFolder,
   onReparentFolder,
   renameFolderLabel,
@@ -118,6 +121,7 @@ export function DriveContextMenu({
   const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: x, top: y });
+  const [copyMenuOpen, setCopyMenuOpen] = useState(false);
   const isFile = target.kind === 'file';
   const isLocation = target.kind === 'location';
   const file = isFile ? target.file : null;
@@ -191,6 +195,34 @@ export function DriveContextMenu({
       : isLocation
       ? t('speedtest.ctx_menu_aria_location')
       : t('speedtest.ctx_menu_aria_canvas');
+
+  const copyIdentityMenu = onCopyId ? (
+    <div className={`drive-context-submenu${copyMenuOpen ? ' is-open' : ''}`}>
+      <button
+        type="button"
+        role="menuitem"
+        aria-haspopup="menu"
+        aria-expanded={copyMenuOpen}
+        onClick={() => setCopyMenuOpen((open) => !open)}
+      >
+        <Copy size={14} />
+        <span>{t('speedtest.ctx_menu_copy_identity')}</span>
+        <ChevronRight size={13} className="drive-context-submenu-arrow" />
+      </button>
+      {copyMenuOpen && (
+        <div className="drive-context-submenu-items" role="menu">
+          <button type="button" role="menuitem" onClick={() => run(onCopyId)}>
+            <Copy size={13} /> {t('speedtest.ctx_menu_copy_id')}
+          </button>
+          {onCopyPathId && (
+            <button type="button" role="menuitem" onClick={() => run(onCopyPathId)}>
+              <FolderTree size={13} /> {t('speedtest.ctx_menu_copy_path_id')}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  ) : null;
 
   const node = (
     <>
@@ -292,11 +324,7 @@ export function DriveContextMenu({
                 <Download size={14} /> {t('speedtest.ctx_menu_download')}
               </button>
             )}
-            {onCopyId && (
-              <button type="button" role="menuitem" onClick={() => run(onCopyId)}>
-                <Copy size={14} /> {t('speedtest.ctx_menu_copy_id')}
-              </button>
-            )}
+            {copyIdentityMenu}
             {onRename && (
               <button type="button" role="menuitem" onClick={() => run(onRename)}>
                 <Pencil size={14} /> {t('speedtest.ctx_menu_rename')}
@@ -349,11 +377,7 @@ export function DriveContextMenu({
                 <FolderInput size={14} /> {resolvedReparentFolderLabel}
               </button>
             )}
-            {onCopyId && (
-              <button type="button" role="menuitem" onClick={() => run(onCopyId)}>
-                <Copy size={14} /> {t('speedtest.ctx_menu_copy_id')}
-              </button>
-            )}
+            {copyIdentityMenu}
             {target.locationKind === 'drive' && onDeleteFolder && (
               <button
                 type="button"

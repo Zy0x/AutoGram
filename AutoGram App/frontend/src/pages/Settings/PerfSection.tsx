@@ -222,7 +222,7 @@ export const PerfSection = memo(function PerfSection() {
             }}
           >
             <Wifi size={12} style={{ color: profile.fastNet ? '#38bdf8' : '#f59e0b', flexShrink: 0 }} />
-            <span>{profile.fastNet ? 'Fast Net' : 'Saver Net'}</span>
+            <span>{profile.fastNet ? t('settings.perf_fast_net') : t('settings.perf_saver_net')}</span>
           </span>
 
           <span
@@ -247,4 +247,3 @@ export const PerfSection = memo(function PerfSection() {
     </section>
   );
 });
-

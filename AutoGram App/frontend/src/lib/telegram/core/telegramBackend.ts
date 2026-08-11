@@ -96,6 +96,8 @@ export type TgMediaStatisticsResult = {
   loadedCount: number;
   totalBytes: number;
   lastSync: number;
+  /** False for overlapping Telegram search-filter counters; true after unique-ID reconciliation. */
+  isExact?: boolean | null;
 };
 
 export async function tgGetMediaStatistics(args: {
@@ -325,6 +327,7 @@ export type TgDialogEntry = {
   id: number;
   title: string;
   isUser: boolean;
+  isBot?: boolean;
   isChannel: boolean;
   isGroup: boolean;
   isForum?: boolean;

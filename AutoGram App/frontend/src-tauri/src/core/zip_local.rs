@@ -2,16 +2,91 @@
 //! Remote Telegram range access is provided by the Grammers sparse ZIP engine.
 
 use base64::Engine;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::fs::File;
-use std::io::{Read, Seek};
+use std::io::{Read, Seek, Write};
+use zip::write::SimpleFileOptions;
 use zip::CompressionMethod;
 use zip::ZipArchive;
+use zip::ZipWriter;
 
 use super::path_policy;
 
 const MAX_LIST: usize = 8000;
 const MAX_ENTRY: usize = 12 * 1024 * 1024;
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ZipCreateEntry {
+    pub source_path: String,
+    pub archive_name: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ZipCreateResult {
+    pub output_path: String,
+    pub entry_count: usize,
+    pub source_bytes: u64,
+    pub archive_bytes: u64,
+}
+
+pub fn create_zip_from_files(
+    output_path: &str,
+    entries: &[ZipCreateEntry],
+) -> Result<ZipCreateResult, String> {
+    if entries.is_empty() {
+        return Err("ZIP requires at least one completed file".into());
+    }
+    let output = path_policy::assert_safe_transfer_path(output_path)?;
+    if let Some(parent) = output.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| format!("create ZIP directory: {e}"))?;
+    }
+    let file = File::create(&output).map_err(|e| format!("create ZIP output: {e}"))?;
+    let mut writer = ZipWriter::new(file);
+    // Media is already compressed; Store avoids hours of redundant CPU work
+    // for multi-gigabyte Telegram scopes while still producing a standard ZIP.
+    let options = SimpleFileOptions::default()
+        .compression_method(CompressionMethod::Stored)
+        .unix_permissions(0o644);
+    let mut source_bytes = 0u64;
+
+    for (index, entry) in entries.iter().enumerate() {
+        let source = path_policy::assert_safe_transfer_path(&entry.source_path)?;
+        let mut input = File::open(&source)
+            .map_err(|e| format!("open ZIP source {}: {e}", source.display()))?;
+        source_bytes = source_bytes.saturating_add(input.metadata().map(|m| m.len()).unwrap_or(0));
+        let fallback = format!("file_{}", index + 1);
+        let safe_name = entry
+            .archive_name
+            .replace('\\', "_")
+            .replace('/', "_")
+            .trim_matches('.')
+            .trim()
+            .to_string();
+        writer
+            .start_file(
+                if safe_name.is_empty() {
+                    fallback
+                } else {
+                    safe_name
+                },
+                options,
+            )
+            .map_err(|e| format!("start ZIP entry: {e}"))?;
+        std::io::copy(&mut input, &mut writer).map_err(|e| format!("write ZIP entry: {e}"))?;
+    }
+
+    let mut output_file = writer.finish().map_err(|e| format!("finalize ZIP: {e}"))?;
+    output_file.flush().map_err(|e| format!("flush ZIP: {e}"))?;
+    let archive_bytes = output_file.metadata().map(|m| m.len()).unwrap_or(0);
+    Ok(ZipCreateResult {
+        output_path: output.to_string_lossy().to_string(),
+        entry_count: entries.len(),
+        source_bytes,
+        archive_bytes,
+    })
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -507,6 +582,46 @@ mod tests {
         assert_eq!(list.entries[0].name, "hi.txt");
         let prev = preview_zip_entry(path.to_str().unwrap(), "hi.txt", None).unwrap();
         assert_eq!(prev.text_content.unwrap(), "hello zip");
+    }
+
+    #[test]
+    fn creates_zip_from_completed_downloads() {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("ag_zip_create_{unique}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let first_path = dir.join("first.bin");
+        let second_path = dir.join("second.bin");
+        let output_path = dir.join("media.zip");
+        std::fs::write(&first_path, b"first payload").unwrap();
+        std::fs::write(&second_path, b"second payload").unwrap();
+
+        let result = create_zip_from_files(
+            output_path.to_str().unwrap(),
+            &[
+                ZipCreateEntry {
+                    source_path: first_path.to_string_lossy().to_string(),
+                    archive_name: "folder/first.bin".into(),
+                },
+                ZipCreateEntry {
+                    source_path: second_path.to_string_lossy().to_string(),
+                    archive_name: "second.bin".into(),
+                },
+            ],
+        )
+        .unwrap();
+
+        assert_eq!(result.entry_count, 2);
+        assert_eq!(result.source_bytes, 27);
+        assert!(result.archive_bytes > result.source_bytes);
+        let list = list_zip(output_path.to_str().unwrap()).unwrap();
+        assert_eq!(list.count, 2);
+        assert_eq!(list.entries[0].name, "folder_first.bin");
+        assert_eq!(list.entries[1].name, "second.bin");
+
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]

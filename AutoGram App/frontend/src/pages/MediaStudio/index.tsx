@@ -134,6 +134,11 @@ import {
   removeFilesFromDeepIndex,
 } from '../../lib/telegram';
 import {
+  countExactMediaBreakdown,
+  countPerspectiveMedia,
+  type ExactMediaBreakdown,
+} from '../../components/drive/utils/mediaStatistics';
+import {
   driveScrollLocationKey,
   loadDriveScrollPosition,
   saveDriveScrollPosition,
@@ -174,6 +179,7 @@ import {
   isDriveGridZoom,
   isDriveSortMode,
   isDriveThumbQuality,
+  matchesMediaFilter,
   loadTransferSettings,
   saveTransferSettings,
   type DriveTransferSettings as TransferSettingsState,
@@ -269,6 +275,10 @@ import {
   type DriveDropTarget,
 } from '../../lib/telegram';
 import {
+  chatFolderDropKeyAtPoint,
+  parseChatFolderDropKey,
+} from '../../components/drive/utils/chatFolderDrop';
+import {
   buildDriveBreadcrumbSegments,
   folderDirectChildIds,
   wouldCreateFolderCycle,
@@ -278,6 +288,7 @@ import { DriveSidebar } from '../../components/drive/Navigation/DriveSidebarInde
 import { DriveTopBar, type DriveCrumbSeg } from '../../components/drive/Navigation/DriveTopBar';
 import { DriveExplorer } from '../../components/drive/Explorer/DriveExplorer';
 import { DriveTransferManager } from '../../components/drive/Transfers/DriveTransferManager';
+import { DownloadAllZipModal, type ZipCategory } from '../../components/drive/Modals/DownloadAllZipModal';
 
 import { type DriveConfirmState } from '../../components/drive/Modals/DriveConfirmDialog';
 import { type DriveInputState } from '../../components/drive/Modals/DriveInputDialog';
@@ -326,7 +337,7 @@ async function flushTransferDebugLog(session: TransferSession) {
 
 interface QueueTask {
   id: string;
-  kind: 'upload' | 'download' | 'download_one';
+  kind: 'upload' | 'download' | 'download_one' | 'download_zip';
   paths?: string[];
   targetFolderId?: number | null;
   targetLabel?: string;
@@ -517,6 +528,7 @@ function MediaDriveDesktop({
   const [statsByType, setStatsByType] = useState<
     { type: string; count: number; bytes: number }[] | null
   >(null);
+  const [cachedMediaBreakdown, setCachedMediaBreakdown] = useState<ExactMediaBreakdown | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [nextOffsetId, setNextOffsetId] = useState<number | null>(
     () => initialLocationCache?.nextOffsetId ?? null
@@ -567,6 +579,23 @@ function MediaDriveDesktop({
   } | null>(null);
   /** Prevents concurrent ZIP-all downloads from overlapping */
   const isDownloadingZipRef = useRef(false);
+  const [zipPreflight, setZipPreflight] = useState<{
+    open: boolean;
+    indexing: boolean;
+    ready: boolean;
+    scannedCount: number;
+    expectedCount: number | null;
+    indexedFiles: DriveFile[];
+    error: string | null;
+  }>({
+    open: false,
+    indexing: false,
+    ready: false,
+    scannedCount: 0,
+    expectedCount: null,
+    indexedFiles: [],
+    error: null,
+  });
   /** Filled after requestMoveToTarget is defined — used by Ctrl+V keyboard */
   const pasteMoveRef = useRef<
     (clip: {
@@ -642,6 +671,10 @@ function MediaDriveDesktop({
   const [chatQuery, setChatQuery] = useState('');
   const [mediaFilter, setMediaFilter] = useState<DriveMediaFilter>('all');
   const [viewPerspective, setViewPerspective] = useState<ViewPerspective>('telegram');
+  const perspectivePrefsRef = useRef<Record<ViewPerspective, { filter: DriveMediaFilter; sort: DriveSortMode }>>({
+    telegram: { filter: 'all', sort: 'newest' },
+    drive: { filter: 'all', sort: 'name_asc' },
+  });
   const [sortMode, setSortMode] = useState<DriveSortMode>(() => {
     try {
       const raw = localStorage.getItem(LS_SORT);
@@ -1144,6 +1177,7 @@ function MediaDriveDesktop({
     setTotalBytes(null);
     setStatsAccurate(false);
     setStatsByType(null);
+    setCachedMediaBreakdown(null);
     setTopics([]);
     setTopicFilter(null);
     setIsForumChat(false);
@@ -1220,10 +1254,28 @@ function MediaDriveDesktop({
       mediaFilter,
       sortMode,
       adv: advFilter,
+      perspective: viewPerspective,
     });
-  }, [files, query, mediaFilter, sortMode, advFilter]);
+  }, [files, query, mediaFilter, sortMode, advFilter, viewPerspective]);
 
   const previewIndex = previewFile ? sortedPreviewList.findIndex((f) => f.id === previewFile.id) : -1;
+
+  const perspectiveCounts = useMemo(() => {
+    if (!filesHasMore && files.length > 0) {
+      return countPerspectiveMedia(files, viewPerspective);
+    }
+    if (viewPerspective === 'telegram' && cachedMediaBreakdown) {
+      return {
+        all: totalFileCount ?? 0,
+        media: cachedMediaBreakdown.photoCount + cachedMediaBreakdown.videoCount,
+        files: cachedMediaBreakdown.fileCount,
+        links: cachedMediaBreakdown.linkCount,
+        gifs: cachedMediaBreakdown.gifCount,
+        audio: cachedMediaBreakdown.audioCount,
+      };
+    }
+    return null;
+  }, [filesHasMore, files, viewPerspective, cachedMediaBreakdown, totalFileCount]);
 
   // If App bootstrap still running, fill creds ASAP so drive boot can start
   useEffect(() => {
@@ -1459,6 +1511,52 @@ function MediaDriveDesktop({
   );
 
   /**
+   * Fetch the same lightweight category counters Telegram uses for its shared
+   * media tabs. This is deliberately an estimate: overlapping MTProto filters
+   * are replaced later by the unique metadata walk.
+   */
+  const refreshQuickMediaStats = useCallback(async () => {
+    if (!creds) return;
+    const tid = topicFilterRef.current;
+    const cacheKey = getDriveCacheKey(creds.session, peerId, tid);
+    const gen = peerGen.current;
+    const statsGen = topicGenRef.current;
+    try {
+      const fastStats = await driveGetMediaStats(creds, peerId, tid, liveFilesRef.current.length);
+      if (!fastStats || gen !== peerGen.current || statsGen !== topicGenRef.current) return;
+      const activeTid =
+        topicFilterRef.current != null && Number(topicFilterRef.current) > 0
+          ? Number(topicFilterRef.current)
+          : null;
+      const responseTid =
+        fastStats.topicId != null && Number(fastStats.topicId) > 0
+          ? Number(fastStats.topicId)
+          : null;
+      if (activeTid !== responseTid) return;
+
+      const loaded = loadedUniqueMediaCount(liveFilesRef.current);
+      const estimate = Math.max(Number(fastStats.totalCount) || 0, loaded);
+      setTotalFileCount(estimate);
+      filesTotalCountRef.current.set(cacheKey, estimate);
+      setCachedMediaBreakdown({
+        photoCount: fastStats.photoCount || 0,
+        videoCount: fastStats.videoCount || 0,
+        fileCount: fastStats.fileCount || 0,
+        gifCount: fastStats.gifCount || 0,
+        linkCount: fastStats.linkCount || 0,
+        audioCount: fastStats.audioCount || 0,
+      });
+      if (fastStats.totalBytes > 0) {
+        setTotalBytes(fastStats.totalBytes);
+        filesTotalBytesRef.current.set(cacheKey, fastStats.totalBytes);
+      }
+      setStatsAccurate(fastStats.isExact === true);
+    } catch {
+      // Loaded-card count remains the safe fallback while the full walk runs.
+    }
+  }, [creds, peerId, getDriveCacheKey]);
+
+  /**
    * Accurate location totals (count + bytes) independent of pagination.
    * Starts right after first page (does not wait for scroll). Grid stays fast
    * because only metadata is walked; progressive peek polls update the pill.
@@ -1544,22 +1642,6 @@ function MediaDriveDesktop({
       let firstPoll: number | undefined;
       let pollInFlight = false;
       try {
-        try {
-          const fastStats = await driveGetMediaStats(creds, peerId, tid, liveFilesRef.current.length);
-          if (fastStats && gen === peerGen.current && statsGen === topicGenRef.current) {
-            if (fastStats.totalCount > 0) {
-              setTotalFileCount(fastStats.totalCount);
-              filesTotalCountRef.current.set(cacheKey, fastStats.totalCount);
-            }
-            if (fastStats.totalBytes > 0) {
-              setTotalBytes(fastStats.totalBytes);
-              filesTotalBytesRef.current.set(cacheKey, fastStats.totalBytes);
-            }
-          }
-        } catch {
-          /* ignore fast stats error */
-        }
-
         const walkPromise = driveMediaStats(creds, peerId, {
           topicId: tid,
           force: opts?.force !== false,
@@ -1610,7 +1692,7 @@ function MediaDriveDesktop({
     [creds, peerId, getDriveCacheKey]
   );
 
-  /** Defer media_stats so list_topics + first list_files win the Telethon pipe.
+  /** Defer the unique media walk so list_topics + first list_files win the MTProto pipe.
    *  Low-end: delayed full walk (still runs — storage accuracy needs it).
    *  urgent: Storage tab / user needs totals now. */
   const scheduleMediaStats = useCallback(
@@ -1619,6 +1701,9 @@ function MediaDriveDesktop({
         window.clearTimeout(mediaStatsTimerRef.current);
         mediaStatsTimerRef.current = null;
       }
+      // Paint Telegram-style estimated totals immediately. The expensive unique
+      // scan below remains deferred so cards and thumbnails keep first priority.
+      void refreshQuickMediaStats();
       const perf = getDrivePerfProfile();
       // Always eventually compute accurate unique totals for the location.
       // Low-end waits longer so boot/thumbs stay smooth.
@@ -1638,7 +1723,7 @@ function MediaDriveDesktop({
         void refreshMediaStats({ force: opts?.force !== false });
       }, delay);
     },
-    [refreshMediaStats]
+    [refreshMediaStats, refreshQuickMediaStats]
   );
 
   // Storage tab needs accurate location size — force unique walk immediately
@@ -3477,6 +3562,7 @@ function MediaDriveDesktop({
     }
     setStatsAccurate(false);
     setStatsByType(null);
+    setCachedMediaBreakdown(null);
     setTotalFileCount(null);
     setTotalBytes(null);
     setTopicFilter(null);
@@ -3547,6 +3633,7 @@ function MediaDriveDesktop({
       setTotalFileCount(null);
       setTotalBytes(null);
       setStatsByType(null);
+      setCachedMediaBreakdown(null);
       setStatsAccurate(false);
       setStatsLoading(true);
 
@@ -4032,6 +4119,73 @@ function MediaDriveDesktop({
           setStatusText(t('ui.generated.download_gagal_19e7bc6'));
           setError(t('speedtest.download_failed'));
         }
+      } else if (task.kind === 'download_zip') {
+        const completedEntries: Array<{ sourcePath: string; archiveName: string }> = [];
+        const usedArchiveNames = new Map<string, number>();
+        const totalCount = task.selectedIds!.length;
+        try {
+          await runWithConcurrency(totalCount, Number(task.options?.concurrency), async (i) => {
+            await waitWhileDriveTransferPaused();
+            const messageId = task.selectedIds![i];
+            const rawName = task.names[i] || `msg_${messageId}`;
+            const safeName = rawName.replace(/[<>:"/\\|?*]/g, '_');
+            const seenCount = usedArchiveNames.get(safeName.toLowerCase()) || 0;
+            usedArchiveNames.set(safeName.toLowerCase(), seenCount + 1);
+            const archiveName = seenCount === 0
+              ? safeName
+              : safeName.replace(/(\.[^.]+)?$/, ` (${seenCount + 1})$1`);
+            const { join } = await import('@tauri-apps/api/path');
+            const stagePath = await join(task.saveDir!, `${String(i + 1).padStart(8, '0')}_${safeName}`);
+            const itemIdx = task.startIndex + i;
+            setTransfer((state) => ({
+              ...state,
+              items: state.items.map((item, index) => index === itemIdx
+                ? { ...item, status: 'active' as const, percent: 15 }
+                : item),
+            }));
+            const result = await tgDownloadFile({
+              session: creds!.session,
+              apiId: Number(creds!.apiId) || 0,
+              apiHash: creds!.apiHash,
+              chatId: String(task.targetFolderId ?? peerId ?? 'me'),
+              messageId,
+              destPath: stagePath,
+              conflictPolicy: 'overwrite',
+              resumePartial: true,
+              integrity: transferSettings.downloadIntegrity,
+              transferId: `zip:${task.id}`,
+              itemIndex: itemIdx,
+            });
+            if (!result?.ok) {
+              throw new Error(result?.userMessage || result?.error?.message || t('speedtest.download_failed'));
+            }
+            completedEntries.push({ sourcePath: stagePath, archiveName });
+            setTransfer((state) => ({
+              ...state,
+              items: state.items.map((item, index) => index === itemIdx
+                ? { ...item, status: 'done' as const, percent: 100 }
+                : item),
+            }));
+          });
+          if (!completedEntries.length) throw new Error(t('speedtest.zip_no_completed_files'));
+          const { invoke } = await import('@tauri-apps/api/core');
+          await invoke('zip_create_from_files', {
+            outputPath: task.savePath,
+            entries: completedEntries,
+          });
+          setStatusText(t('speedtest.zip_saved_success', {
+            count: completedEntries.length,
+            path: task.savePath,
+          }));
+        } finally {
+          try {
+            const { remove } = await import('@tauri-apps/plugin-fs');
+            await remove(task.saveDir!, { recursive: true });
+          } catch {
+            /* cleanup is retried by the cache maintenance path */
+          }
+          isDownloadingZipRef.current = false;
+        }
       } else if (task.kind === 'download_one') {
         let errMessage: string | null = null;
         try {
@@ -4160,6 +4314,11 @@ function MediaDriveDesktop({
     localStorage.setItem(LS_TM_MIN, '0');
   }, []);
 
+  const toggleTransferManagerFromToolbar = useCallback(() => {
+    if (transferHideTimer.current) clearTimeout(transferHideTimer.current);
+    toggleTransferMinimize();
+  }, [toggleTransferMinimize]);
+
   const getDisplayedIds = useCallback(() => {
     if (displayedIdsRef.current.length) return displayedIdsRef.current;
     return filterAndSortDriveFilesPower(files, {
@@ -4167,8 +4326,9 @@ function MediaDriveDesktop({
       mediaFilter,
       sortMode,
       adv: advFilter,
+      perspective: viewPerspective,
     }).map((f) => f.id);
-  }, [files, query, mediaFilter, sortMode, advFilter]);
+  }, [files, query, mediaFilter, sortMode, advFilter, viewPerspective]);
 
   const getDisplayedFiles = useCallback(() => {
     return filterAndSortDriveFilesPower(files, {
@@ -4176,8 +4336,9 @@ function MediaDriveDesktop({
       mediaFilter,
       sortMode,
       adv: advFilter,
+      perspective: viewPerspective,
     });
-  }, [files, query, mediaFilter, sortMode, advFilter]);
+  }, [files, query, mediaFilter, sortMode, advFilter, viewPerspective]);
 
   const clearSelection = useCallback(() => {
     setSelectedIds([]);
@@ -4261,13 +4422,14 @@ function MediaDriveDesktop({
       mediaFilter,
       sortMode,
       adv: advFilter,
+      perspective: viewPerspective,
     }).map((f) => f.id);
     displayedIdsRef.current = ids;
     setSelectedIds((prev) => pruneSelectionToDisplayed(prev, ids));
     if (selectionAnchorRef.current != null && !ids.includes(selectionAnchorRef.current)) {
       selectionAnchorRef.current = null;
     }
-  }, [files, query, mediaFilter, sortMode, advFilter]);
+  }, [files, query, mediaFilter, sortMode, advFilter, viewPerspective]);
 
   // Browser-style location history (skip when navigating via back/forward)
   useEffect(() => {
@@ -4968,53 +5130,143 @@ function MediaDriveDesktop({
     });
   };
 
-  const handleDownloadAll = useCallback(async () => {
-    if (!creds || isDownloadingZipRef.current) return;
-    isDownloadingZipRef.current = true;
+  const runZipFullIndex = async () => {
+    if (!creds || zipPreflight.indexing) return;
+    setZipPreflight((state) => ({
+      ...state,
+      indexing: true,
+      ready: false,
+      error: null,
+      scannedCount: liveFilesRef.current.length,
+      expectedCount: totalFileCount,
+    }));
+    let previousCount = -1;
+    let stalled = 0;
     try {
-      const folderIdStr = peerId ? String(peerId) : 'home';
-      // Show save-as dialog FIRST so user can cancel before we start any network work
+      while (filesHasMoreRef.current) {
+        await loadMoreFiles({ pageSize: 250 });
+        await new Promise((resolve) => window.setTimeout(resolve, 80));
+        const currentCount = loadedUniqueMediaCount(liveFilesRef.current);
+        setZipPreflight((state) => ({ ...state, scannedCount: currentCount }));
+        if (currentCount === previousCount) stalled += 1;
+        else stalled = 0;
+        previousCount = currentCount;
+        if (stalled >= 4) throw new Error(t('speedtest.zip_index_stalled'));
+      }
+      const indexedFiles = dedupeByMsgId(liveFilesRef.current);
+      const exactBreakdown = countExactMediaBreakdown(indexedFiles);
+      const exactBytes = loadedMediaBytes(indexedFiles);
+      setCachedMediaBreakdown(exactBreakdown);
+      setStatsAccurate(true);
+      setStatsByType([
+        { type: 'photo', count: exactBreakdown.photoCount, bytes: 0 },
+        { type: 'video', count: exactBreakdown.videoCount, bytes: 0 },
+        { type: 'file', count: exactBreakdown.fileCount, bytes: 0 },
+        { type: 'gif', count: exactBreakdown.gifCount, bytes: 0 },
+        { type: 'link', count: exactBreakdown.linkCount, bytes: 0 },
+        { type: 'audio', count: exactBreakdown.audioCount, bytes: 0 },
+      ].filter((row) => row.count > 0));
+      setTotalFileCount(indexedFiles.length);
+      setTotalBytes(exactBytes);
+      if (peerId != null) {
+        const { invoke } = await import('@tauri-apps/api/core');
+        void invoke('tg_save_exact_media_statistics', {
+          request: {
+            session: String(creds.session).trim(),
+            chatId: String(peerId),
+            topicId: topicFilterRef.current ?? null,
+            exactTotal: indexedFiles.length,
+            exactBytes,
+            ...exactBreakdown,
+          },
+        }).catch(() => undefined);
+      }
+      setZipPreflight((state) => ({
+        ...state,
+        indexing: false,
+        ready: true,
+        scannedCount: indexedFiles.length,
+        expectedCount: indexedFiles.length,
+        indexedFiles,
+      }));
+    } catch (zipError) {
+      setZipPreflight((state) => ({
+        ...state,
+        indexing: false,
+        ready: false,
+        error: String((zipError as Error)?.message || zipError),
+      }));
+    }
+  };
+
+  const handleDownloadAll = () => {
+    if (!creds || isDownloadingZipRef.current) return;
+    setZipPreflight({
+      open: true,
+      indexing: false,
+      ready: false,
+      scannedCount: loadedUniqueMediaCount(liveFilesRef.current),
+      expectedCount: totalFileCount,
+      indexedFiles: [],
+      error: null,
+    });
+    window.setTimeout(() => void runZipFullIndex(), 0);
+  };
+
+  const createIndexedZip = async (category: ZipCategory) => {
+    if (!creds || !zipPreflight.ready || isDownloadingZipRef.current) return;
+    const selectedFiles = category === 'all'
+      ? zipPreflight.indexedFiles
+      : zipPreflight.indexedFiles.filter((file) => matchesMediaFilter(file, category, 'drive'));
+    if (!selectedFiles.length) return;
+    try {
       const { save } = await import('@tauri-apps/plugin-dialog');
       const savePath = await save({
-        defaultPath: `folder_${folderIdStr}.zip`,
-        title: 'Simpan ZIP — Download Semua File',
-        filters: [{ name: 'ZIP Archive', extensions: ['zip'] }],
+        defaultPath: `autogram_${peerId ?? 'saved'}_${topicFilterRef.current ?? 'all'}.zip`,
+        title: t('speedtest.zip_save_title'),
+        filters: [{ name: t('speedtest.zip_archive_filter'), extensions: ['zip'] }],
       });
-      if (!savePath) return; // user cancelled
+      if (!savePath) return;
+      const { tempDir, join } = await import('@tauri-apps/api/path');
+      const { mkdir } = await import('@tauri-apps/plugin-fs');
+      const stageDir = await join(await tempDir(), `autogram-zip-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+      await mkdir(stageDir, { recursive: true });
 
-      setStatusText(t('ui.generated.sedang_membuat_zip_mohon_tunggu_a99d00b'));
-
-      const params = new URLSearchParams({
-        session: creds.session,
-        api_id: String(creds.apiId),
-        api_hash: creds.apiHash,
-      });
-
-      const response = await fetch(
-        `http://127.0.0.1:8550/api/v1/folders/${folderIdStr}/download-all?${params.toString()}`
-      );
-
-      if (!response.ok) {
-        let errDetail = `HTTP ${response.status}`;
-        try {
-          const body = (await response.json()) as { detail?: string };
-          errDetail = body.detail || errDetail;
-        } catch { /* ignore */ }
-        throw new Error(errDetail);
-      }
-
-      const arrayBuffer = await response.arrayBuffer();
-      const { writeFile } = await import('@tauri-apps/plugin-fs');
-      await writeFile(savePath, new Uint8Array(arrayBuffer));
-
-      setStatusText(`✓ ZIP berhasil disimpan: ${savePath}`);
-    } catch (err: any) {
-      console.error('[handleDownloadAll] error:', err);
-      setStatusText(`Gagal download ZIP: ${(err as Error)?.message ?? String(err)}`);
-    } finally {
+      isDownloadingZipRef.current = true;
+      setZipPreflight((state) => ({ ...state, open: false }));
+      const names = selectedFiles.map((file) => driveFileDisplayName(file));
+      const taskId = `download_zip_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      const newTask: QueueTask = {
+        id: taskId,
+        kind: 'download_zip',
+        targetFolderId: peerId,
+        targetLabel: savePath,
+        selectedIds: selectedFiles.map((file) => file.id),
+        saveDir: stageDir,
+        savePath,
+        names,
+        options: { concurrency: transferSettings.downloadConcurrency },
+        startIndex: 0,
+      };
+      if (transferHideTimer.current) clearTimeout(transferHideTimer.current);
+      void clearDriveTransferPause();
+      setTransfer(seedTransferSession({
+        direction: 'download',
+        names,
+        totals: selectedFiles.map((file) => file.size || 0),
+        label: t('speedtest.zip_transfer_label', { count: names.length }),
+        destination: savePath,
+      }));
+      transferQueueRef.current.push(newTask);
+      setTransferMinimized(false);
+      localStorage.setItem(LS_TM_MIN, '0');
+      setError(null);
+      void processNextQueueTask();
+    } catch (zipError) {
       isDownloadingZipRef.current = false;
+      setError(String((zipError as Error)?.message || zipError));
     }
-  }, [peerId, creds]);
+  };
 
   const handleUpload = async () => {
     if (!creds) return setError(t('ui.generated.select_session_and_set_api_credentials_1eb97c1'));
@@ -6476,6 +6728,28 @@ function MediaDriveDesktop({
   const attachPointerDragListeners = useCallback(() => {
     detachPointerDragListeners();
     pointerFinishedRef.current = false;
+    let chatFolderHoverId: number | null = null;
+    let chatFolderHoverTimer: number | null = null;
+
+    const clearChatFolderHover = () => {
+      if (chatFolderHoverTimer != null) window.clearTimeout(chatFolderHoverTimer);
+      chatFolderHoverTimer = null;
+      chatFolderHoverId = null;
+    };
+
+    const scheduleChatFolderHover = (folderId: number | null) => {
+      if (folderId == null) {
+        clearChatFolderHover();
+        return;
+      }
+      if (chatFolderHoverId === folderId && chatFolderHoverTimer != null) return;
+      clearChatFolderHover();
+      chatFolderHoverId = folderId;
+      chatFolderHoverTimer = window.setTimeout(() => {
+        chatFolderHoverTimer = null;
+        void selectChatFolder(folderId);
+      }, 260);
+    };
 
     const finishOnce = (fn: () => void) => {
       if (pointerFinishedRef.current) return;
@@ -6489,8 +6763,10 @@ function MediaDriveDesktop({
       pointerDragRef.current.lastX = ev.clientX;
       pointerDragRef.current.lastY = ev.clientY;
       setDragGhost((g) => (g ? { ...g, x: ev.clientX, y: ev.clientY } : g));
-      const hoverKey = pickDropKeyAtPoint(ev.clientX, ev.clientY);
+      const hoverKey = pickDropKeyAtPoint(ev.clientX, ev.clientY)
+        || chatFolderDropKeyAtPoint(ev.clientX, ev.clientY);
       setLastHoverDropKey(hoverKey);
+      scheduleChatFolderHover(parseChatFolderDropKey(hoverKey));
     };
 
     const onUp = (ev: PointerEvent | MouseEvent) => {
@@ -6521,7 +6797,7 @@ function MediaDriveDesktop({
             ? ev.clientY
             : pointerDragRef.current?.lastY ?? ev.clientY;
         // 1) geometry  2) live DOM highlight  3) last hover key from sidebar module
-        let key = pickDropKeyAtPoint(cx, cy);
+        let key = pickDropKeyAtPoint(cx, cy) || chatFolderDropKeyAtPoint(cx, cy);
         if (!key) {
           try {
             key =
@@ -6557,6 +6833,13 @@ function MediaDriveDesktop({
           return;
         }
         if (key) {
+          const chatFolderId = parseChatFolderDropKey(key);
+          if (chatFolderId != null) {
+            endDriveDrag();
+            clearMediaDragUi();
+            setStatusText(t('speedtest.drag_chat_folder_opened'));
+            return;
+          }
           if (isDropKeySameAsSource(key, payload.fromFolderId)) {
             endDriveDrag();
             clearMediaDragUi();
@@ -6653,13 +6936,14 @@ function MediaDriveDesktop({
     window.addEventListener('blur', onBlur);
 
     pointerListenCleanupRef.current = () => {
+      clearChatFolderHover();
       window.removeEventListener('pointermove', onMove, true);
       window.removeEventListener('pointerup', onUp, true);
       window.removeEventListener('pointercancel', onUp, true);
       window.removeEventListener('mouseup', onMouseUp, true);
       window.removeEventListener('blur', onBlur);
     };
-  }, [clearMediaDragUi, detachPointerDragListeners]);
+  }, [clearMediaDragUi, detachPointerDragListeners, selectChatFolder]);
 
   // Escape cancels active media drag (ghost + in-memory payload)
   useEffect(() => {
@@ -6753,6 +7037,7 @@ function MediaDriveDesktop({
       file: DriveFile,
       e: React.PointerEvent | { clientX: number; clientY: number; pointerId?: number; button?: number; pointerType?: string; currentTarget?: EventTarget | null }
     ) => {
+      if (document.body.classList.contains('td-marquee-active')) return;
       const button = 'button' in e ? e.button : 0;
       const pointerType = 'pointerType' in e ? e.pointerType : 'mouse';
       if (button !== 0 && pointerType === 'mouse') return;
@@ -6944,6 +7229,10 @@ function MediaDriveDesktop({
 
     const onDown = (e: PointerEvent) => {
       if (e.button !== 0) return;
+      // Ctrl/Cmd explicitly assigns this gesture to Explorer marquee. The
+      // document-capture DnD fallback runs before React handlers, so it must
+      // honor the modifier here as well as in DriveFileCard.
+      if (e.ctrlKey || e.metaKey) return;
       const t = e.target as HTMLElement | null;
       if (!t?.closest) return;
       if (t.closest('button, a, input, label, .td-select-check, .td-file-act')) return;
@@ -6962,6 +7251,10 @@ function MediaDriveDesktop({
 
     const onMove = (e: PointerEvent) => {
       if (!down || primed) return;
+      if (document.body.classList.contains('td-marquee-active')) {
+        down = null;
+        return;
+      }
       if (e.pointerId !== down.id && e.pointerId !== 0) {
         // some hosts reuse pointerId oddly — still allow if buttons pressed
         if (e.buttons !== 1) return;
@@ -6995,6 +7288,10 @@ function MediaDriveDesktop({
     // mousemove fallback for hosts that drop pointermove mid-gesture
     const onMouseMove = (e: MouseEvent) => {
       if (!down || primed || e.buttons !== 1) return;
+      if (document.body.classList.contains('td-marquee-active')) {
+        down = null;
+        return;
+      }
       const dist = Math.hypot(e.clientX - down.x, e.clientY - down.y);
       if (dist < DRAG_THRESHOLD_PX) return;
       const file = filesRef.current.find((f) => f.id === down!.fileId);
@@ -7705,7 +8002,7 @@ function MediaDriveDesktop({
             }}
             onSwitchMode={onSwitchMode}
             onBackToLauncher={onBackToLauncher}
-            onOpenTransferManager={openTransferManager}
+            onOpenTransferManager={toggleTransferManagerFromToolbar}
             transferHasHistory={
               transfer.active || (transfer.items?.length ?? 0) > 0 || !!transfer.banner
             }
@@ -7717,9 +8014,15 @@ function MediaDriveDesktop({
             totalCount={totalFileCount}
             viewPerspective={viewPerspective}
             onViewPerspective={(p) => {
+              if (p === viewPerspective) return;
+              perspectivePrefsRef.current[viewPerspective] = { filter: mediaFilter, sort: sortMode };
+              const nextPrefs = perspectivePrefsRef.current[p];
               setViewPerspective(p);
-              setMediaFilter('all');
+              setMediaFilter(nextPrefs.filter);
+              setSortMode(nextPrefs.sort);
+              clearSelection();
             }}
+            categoryCounts={perspectiveCounts}
             isForum={isForumChat}
             topics={topics}
             topicFilter={topicFilter}
@@ -8234,6 +8537,22 @@ function MediaDriveDesktop({
         creds={creds}
         onConfirm={closePreflight}
         onCancel={() => closePreflight(cancelledPreflightDecision)}
+      />
+      <DownloadAllZipModal
+        open={zipPreflight.open}
+        locationLabel={breadcrumb || locationLabel}
+        indexing={zipPreflight.indexing}
+        ready={zipPreflight.ready}
+        scannedCount={zipPreflight.scannedCount}
+        expectedCount={zipPreflight.expectedCount}
+        indexedFiles={zipPreflight.indexedFiles}
+        error={zipPreflight.error}
+        onIndex={() => void runZipFullIndex()}
+        onCreate={(category) => void createIndexedZip(category)}
+        onClose={() => {
+          if (zipPreflight.indexing) return;
+          setZipPreflight((state) => ({ ...state, open: false }));
+        }}
       />
       </main>
   );

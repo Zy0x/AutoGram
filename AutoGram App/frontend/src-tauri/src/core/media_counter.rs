@@ -11,41 +11,43 @@ use crate::core::media_statistics::{
     get_cached_statistics, save_statistics, MediaStatisticsResult,
 };
 use crate::core::telegram_ops::TelegramIdentity;
-use crate::core::tg_error::{map_invocation, TgError, TgErrorCode};
+use crate::core::tg_error::{map_invocation, TgError};
 
-async fn query_count_for_filter(
-    client: &grammers_client::Client,
-    peer: &grammers_session::types::PeerRef,
-    top_msg_id: Option<i32>,
-    filter: tl::enums::MessagesFilter,
-) -> usize {
-    let input_peer: tl::enums::InputPeer = peer.into();
-    let req = tl::functions::messages::Search {
-        peer: input_peer,
-        q: String::new(),
-        from_id: None,
-        saved_peer_id: None,
-        saved_reaction: None,
-        top_msg_id,
-        filter,
-        min_date: 0,
-        max_date: 0,
-        offset_id: 0,
-        add_offset: 0,
-        limit: 1,
-        max_id: 0,
-        min_id: 0,
-        hash: 0,
-    };
+#[derive(Default)]
+struct SearchCounterBreakdown {
+    photo_count: usize,
+    video_count: usize,
+    file_count: usize,
+    gif_count: usize,
+    link_count: usize,
+    audio_count: usize,
+}
 
-    match client.invoke(&req).await {
-        Ok(res) => match res {
-            tl::enums::messages::Messages::Slice(m) => m.count as usize,
-            tl::enums::messages::Messages::ChannelMessages(m) => m.count as usize,
-            tl::enums::messages::Messages::Messages(m) => m.messages.len(),
-            _ => 0,
-        },
-        Err(_) => 0,
+impl SearchCounterBreakdown {
+    fn ingest(&mut self, counter: tl::enums::messages::SearchCounter) {
+        let tl::enums::messages::SearchCounter::Counter(counter) = counter;
+        let count = counter.count.max(0) as usize;
+        match counter.filter {
+            tl::enums::MessagesFilter::InputMessagesFilterPhotos => self.photo_count = count,
+            tl::enums::MessagesFilter::InputMessagesFilterVideo => self.video_count = count,
+            tl::enums::MessagesFilter::InputMessagesFilterDocument => self.file_count = count,
+            tl::enums::MessagesFilter::InputMessagesFilterGif => self.gif_count = count,
+            tl::enums::MessagesFilter::InputMessagesFilterUrl => self.link_count = count,
+            tl::enums::MessagesFilter::InputMessagesFilterMusic => self.audio_count = count,
+            _ => {}
+        }
+    }
+
+    fn estimated_total(&self, loaded_count: usize) -> usize {
+        // Telegram counters intentionally overlap (for example a video can also
+        // be a document). This sum is an instant estimate only; the unique media
+        // walk remains the final authority.
+        self.photo_count
+            .saturating_add(self.video_count)
+            .saturating_add(self.file_count)
+            .saturating_add(self.gif_count)
+            .saturating_add(self.audio_count)
+            .max(loaded_count)
     }
 }
 
@@ -82,7 +84,8 @@ pub fn get_media_statistics_blocking(
             .saturating_add(cached.audio_count);
         // Older builds stored InputMessagesFilterEmpty here, which is a count
         // of every topic message (including text/service posts), not media.
-        let cache_uses_media_semantics = cached.total_count <= cached_media_total.max(cached.loaded_count);
+        let cache_uses_media_semantics =
+            cached.total_count <= cached_media_total.max(cached.loaded_count);
         if now.saturating_sub(cached.last_sync) < 120 && cache_uses_media_semantics {
             if loaded_count > cached.loaded_count {
                 cached.loaded_count = loaded_count;
@@ -104,63 +107,31 @@ pub fn get_media_statistics_blocking(
 
                     let top_msg_id = topic_id.filter(|t| *t > 0).map(|t| t as i32);
 
-                    let photo_count = query_count_for_filter(
-                        client,
-                        &peer,
-                        top_msg_id,
+                    // Telegram itself fills the shared-media tabs with this one
+                    // vector RPC. It is substantially cheaper and less prone to
+                    // rate limits than six sequential messages.search calls.
+                    let filters = vec![
                         tl::enums::MessagesFilter::InputMessagesFilterPhotos,
-                    )
-                    .await;
-
-                    let video_count = query_count_for_filter(
-                        client,
-                        &peer,
-                        top_msg_id,
                         tl::enums::MessagesFilter::InputMessagesFilterVideo,
-                    )
-                    .await;
-
-                    let file_count = query_count_for_filter(
-                        client,
-                        &peer,
-                        top_msg_id,
                         tl::enums::MessagesFilter::InputMessagesFilterDocument,
-                    )
-                    .await;
-
-                    let gif_count = query_count_for_filter(
-                        client,
-                        &peer,
-                        top_msg_id,
                         tl::enums::MessagesFilter::InputMessagesFilterGif,
-                    )
-                    .await;
-
-                    let link_count = query_count_for_filter(
-                        client,
-                        &peer,
-                        top_msg_id,
                         tl::enums::MessagesFilter::InputMessagesFilterUrl,
-                    )
-                    .await;
-
-                    let audio_count = query_count_for_filter(
-                        client,
-                        &peer,
-                        top_msg_id,
                         tl::enums::MessagesFilter::InputMessagesFilterMusic,
-                    )
-                    .await;
-
-                    // These Telegram search filters are the media categories
-                    // represented by Media Studio cards. Do not use the empty
-                    // filter: it also counts text and service messages.
-                    let total_count = photo_count
-                        .saturating_add(video_count)
-                        .saturating_add(file_count)
-                        .saturating_add(gif_count)
-                        .saturating_add(audio_count)
-                        .max(loaded_count);
+                    ];
+                    let counters = client
+                        .invoke(&tl::functions::messages::GetSearchCounters {
+                            peer: (&peer).into(),
+                            saved_peer_id: None,
+                            top_msg_id,
+                            filters,
+                        })
+                        .await
+                        .map_err(|err| map_invocation(&err))?;
+                    let mut breakdown = SearchCounterBreakdown::default();
+                    for counter in counters {
+                        breakdown.ingest(counter);
+                    }
+                    let total_count = breakdown.estimated_total(loaded_count);
 
                     let now = std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
@@ -172,12 +143,12 @@ pub fn get_media_statistics_blocking(
                         peer_id: chat,
                         topic_id,
                         total_count,
-                        photo_count,
-                        video_count,
-                        file_count,
-                        gif_count,
-                        link_count,
-                        audio_count,
+                        photo_count: breakdown.photo_count,
+                        video_count: breakdown.video_count,
+                        file_count: breakdown.file_count,
+                        gif_count: breakdown.gif_count,
+                        link_count: breakdown.link_count,
+                        audio_count: breakdown.audio_count,
                         loaded_count,
                         total_bytes: 0,
                         last_sync: now,

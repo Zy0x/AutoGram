@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { DrivePreviewModal } from '../../components/drive/DrivePreviewModal';
 import { DriveContextMenu } from '../../components/drive/Modals/DriveContextMenu';
 import { DriveConfirmDialog } from '../../components/drive/Modals/DriveConfirmDialog';
@@ -9,6 +10,8 @@ import { SessionRelogModal } from '../../components/drive/Modals/SessionRelogMod
 import type { DriveCredentials } from '../../lib/telegram/driveApi';
 import type { DriveChat, DriveFile, DriveFolder } from '../../lib/telegram/driveTypes';
 import type { DuplicateContextInfo } from '../../components/drive/DrivePreviewModal';
+import { getSessionMetadata } from '../../lib/telegram/core/sessionPicker';
+import { buildMediaPathId } from '../../components/drive/utils/mediaPathId';
 
 export interface MediaStudioModalsContainerProps {
   relogModalOpen?: boolean;
@@ -117,7 +120,7 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
   handleRenameFolder,
   handleReparentFolder,
   labelDriveItem,
-  breadcrumbSegs,
+  breadcrumbSegs: _breadcrumbSegs,
   setStatusText,
   handleSelectAllDisplayed,
   clearSelection,
@@ -139,6 +142,16 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
   setRemoteUploadOpen,
   handleRemoteUpload,
 }) => {
+  const { t } = useTranslation();
+  const accountUserId = getSessionMetadata(sessionName || '')?.telegramUserId ||
+    String(sessionName || '').replace(/^session_/, '') || '0';
+  const activeChat = chats.find((chat) => Number(chat.id) === Number(activePeerId)) || null;
+  const copyWithStatus = (value: string, kind: 'id' | 'path') => {
+    void navigator.clipboard?.writeText(value).then(
+      () => setStatusText(t(kind === 'path' ? 'speedtest.copy_path_id_success' : 'speedtest.copy_id_success', { value })),
+      () => setStatusText(value)
+    );
+  };
   return (
     <>
       {previewFile && creds && (
@@ -318,24 +331,30 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
             contextMenu.kind === 'location'
               ? () => {
                   const id = contextMenu.locationKind === 'saved' ? 'me' : String(contextMenu.id ?? 'me');
-                  void navigator.clipboard?.writeText(id).then(
-                    () => setStatusText(`ID disalin: ${id}`),
-                    () => setStatusText(`ID: ${id}`)
-                  );
+                  copyWithStatus(id, 'id');
                 }
               : contextMenu.kind === 'file'
                 ? () => {
-                    const file = contextMenu.file;
-                    const segments = breadcrumbSegs
-                      .map((s) => (s.id != null ? String(s.id) : null))
-                      .filter(Boolean);
-                    const fullPath = '/' + [...segments, String(file.id)].join('/');
-                    void navigator.clipboard?.writeText(fullPath).then(
-                      () => setStatusText(`ID disalin: ${fullPath}`),
-                      () => setStatusText(`ID: ${fullPath}`)
-                    );
+                    copyWithStatus(String(contextMenu.file.id), 'id');
                   }
                 : undefined
+          }
+          onCopyPathId={
+            contextMenu.kind === 'location' || contextMenu.kind === 'file'
+              ? () => {
+                  const file = contextMenu.kind === 'file' ? contextMenu.file : null;
+                  const path = buildMediaPathId({
+                    accountUserId,
+                    locationKind: contextMenu.kind === 'location' ? contextMenu.locationKind : locationKind,
+                    peerId: contextMenu.kind === 'location' ? contextMenu.id : activePeerId,
+                    topicId: file?.topic_id ?? topicFilterRef.current,
+                    mediaId: file?.id ?? null,
+                    chat: activeChat,
+                    file,
+                  });
+                  copyWithStatus(path, 'path');
+                }
+              : undefined
           }
           onRefresh={contextMenu.kind === 'canvas' ? () => void refreshFiles() : undefined}
           onSelectAll={

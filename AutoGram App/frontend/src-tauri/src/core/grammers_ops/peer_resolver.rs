@@ -117,12 +117,14 @@ pub fn list_dialogs_blocking(
                             .name()
                             .map(|s| s.to_string())
                             .unwrap_or_else(|| id.to_string());
-                        let (is_user, is_channel, is_group, is_forum) = match &peer {
-                            grammers_client::peer::Peer::User(_) => (true, false, false, false),
+                        let (is_user, is_bot, is_channel, is_group, is_forum) = match &peer {
+                            grammers_client::peer::Peer::User(user) => {
+                                (true, user.is_bot(), false, false, false)
+                            }
                             grammers_client::peer::Peer::Channel(ch) => {
                                 let is_megagroup = ch.raw.megagroup;
                                 let is_forum = ch.raw.forum;
-                                (false, !is_megagroup, is_megagroup, is_forum)
+                                (false, false, !is_megagroup, is_megagroup, is_forum)
                             }
                             grammers_client::peer::Peer::Group(g) => {
                                 use grammers_client::tl::enums::Chat as C;
@@ -131,13 +133,14 @@ pub fn list_dialogs_blocking(
                                     _ => false,
                                 };
                                 // Megagroup → treat as group (is_channel false for UI folders)
-                                (false, false, true, forum)
+                                (false, false, false, true, forum)
                             }
                         };
                         out.push(DialogEntry {
                             id,
                             title,
                             is_user,
+                            is_bot,
                             is_channel,
                             is_group,
                             is_forum,

@@ -1047,6 +1047,18 @@ async fn zip_extract_entry(
 }
 
 #[tauri::command]
+async fn zip_create_from_files(
+    output_path: String,
+    entries: Vec<core::zip_local::ZipCreateEntry>,
+) -> Result<core::zip_local::ZipCreateResult, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        core::zip_local::create_zip_from_files(&output_path, &entries)
+    })
+    .await
+    .map_err(|e| format!("zip create task failed: {e}"))?
+}
+
+#[tauri::command]
 async fn tg_zip_list_sparse(
     opts: core::grammers_sparse_zip::SparseZipOpts,
 ) -> Result<core::zip_local::ZipListResult, String> {
@@ -1733,6 +1745,7 @@ pub fn run() {
             zip_list_local,
             zip_preview_entry,
             zip_extract_entry,
+            zip_create_from_files,
             tg_zip_list_sparse,
             tg_zip_preview_entry_sparse,
             tg_zip_extract_entry_sparse,

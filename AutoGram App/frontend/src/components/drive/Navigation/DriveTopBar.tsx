@@ -135,6 +135,8 @@ type Props = {
   onViewPerspective?: (perspective: 'telegram' | 'drive') => void;
   /** Total item count from Telegram query metadata */
   totalCount?: number | null;
+  /** Exact counts for the filter pills in the active perspective. */
+  categoryCounts?: Record<string, number> | null;
   /** Dual-Bar Quick Switcher callback */
   onSwitchMode?: (mode: 'drives' | 'forwarder') => void;
   onBackToLauncher?: () => void;
@@ -204,6 +206,7 @@ export function DriveTopBar({
   viewPerspective = 'telegram',
   onViewPerspective,
   totalCount,
+  categoryCounts,
   onSwitchMode: _onSwitchMode,
   onBackToLauncher: _onBackToLauncher,
 }: Props) {
@@ -219,10 +222,10 @@ export function DriveTopBar({
     if (hasMore === false && fileCount > 0) {
       return fileCount;
     }
-    if (totalCount != null && totalCount > fileCount) {
-      return totalCount;
+    if (totalCount != null && totalCount >= 0) {
+      return Math.max(totalCount, fileCount);
     }
-    return null;
+    return fileCount;
   }, [hasMore, fileCount, totalCount]);
   const hasTopicSegment = breadcrumbSegs?.some((s) => s.kind === 'topic');
   const showTopics =
@@ -351,7 +354,11 @@ export function DriveTopBar({
   );
 
   return (
-    <header className={`td-topbar${hasSelection ? ' has-selection' : ''}`}>
+    <header
+      className={`td-topbar${hasSelection ? ' has-selection' : ''}`}
+      data-perspective={viewPerspective}
+      data-stats-exact={isFinal ? 'true' : 'false'}
+    >
       {/* Row 1: nav + breadcrumbs + primary actions (always stable) */}
       <div className="td-topbar-row td-topbar-row-1">
         <div className="td-topbar-left">
@@ -463,7 +470,7 @@ export function DriveTopBar({
             title={
               statsLoading && !isFinal
                 ? t('speedtest.count_pill_counting_title', {
-                    count: fileCount,
+                    count: effectiveTotalCount,
                     space: spaceLabel ? ` · ${spaceLabel}` : '',
                     defaultValue: `Menghitung total media unik di lokasi… (${fileCount}${spaceLabel ? ` · ${spaceLabel}` : ''})`,
                   })
@@ -481,25 +488,23 @@ export function DriveTopBar({
                   })
                 : spaceLabel
                 ? t('speedtest.count_pill_estimate_title', {
-                    count: fileCount,
+                    count: effectiveTotalCount,
                     space: spaceLabel,
                     defaultValue: `${fileCount} item · ${spaceLabel} (perkiraan / belum final)`,
                   })
                 : t('speedtest.count_pill_simple_title', {
-                    count: fileCount,
+                    count: effectiveTotalCount,
                     defaultValue: `${fileCount} item di lokasi ini`,
                   })
             }
           >
-            {effectiveTotalCount && effectiveTotalCount > fileCount
-              ? t('speedtest.items_loaded_total', {
-                  loaded: fileCount.toLocaleString(),
-                  total: effectiveTotalCount.toLocaleString(),
-                  defaultValue: `${fileCount.toLocaleString()} / ${effectiveTotalCount.toLocaleString()} Item`,
+            {!isFinal && totalCount != null
+              ? t('speedtest.items_total_estimate', {
+                  count: effectiveTotalCount.toLocaleString(),
                 })
               : t('speedtest.items_total_simple', {
-                  count: fileCount.toLocaleString(),
-                  defaultValue: `${fileCount.toLocaleString()} Items`,
+                  count: effectiveTotalCount.toLocaleString(),
+                  defaultValue: `${effectiveTotalCount.toLocaleString()} Items`,
                 })}
             {statsLoading && !isFinal ? (
               <span className="td-count-ellip" aria-hidden>
@@ -599,11 +604,11 @@ export function DriveTopBar({
               onClick={onOpenTransferManager}
               title={
                 transferBusy
-                  ? `Transfer Manager — ${transferBadgeCount} file berjalan`
+                  ? t('speedtest.topbar_tm_running', { count: transferBadgeCount })
                   : transferBadgeKind === 'error'
-                    ? `Transfer Manager — ${transferBadgeCount} gagal`
+                    ? t('speedtest.topbar_tm_failed', { count: transferBadgeCount })
                     : transferBadgeKind === 'done'
-                      ? `Transfer Manager — ${transferBadgeCount} selesai`
+                      ? t('speedtest.topbar_tm_done', { count: transferBadgeCount })
                       : t('speedtest.topbar_open_transfer_manager')
               }
               aria-label={t('speedtest.topbar_tm_aria')}
@@ -653,13 +658,13 @@ export function DriveTopBar({
             disabled={!!actionsDisabled}
             title={
               actionsDisabled
-                ? 'Transfer masih berjalan — Stop dulu di Transfer Manager'
+                ? t('speedtest.topbar_upload_wait_title')
                 : t('speedtest.upload_file_to_loc')
             }
             aria-label={
               actionsDisabled
-                ? 'Unggah dinonaktifkan — transfer masih berjalan'
-                : 'Unggah file ke lokasi ini'
+                ? t('speedtest.topbar_upload_wait_aria')
+                : t('speedtest.upload_file_to_loc')
             }
           >
             <Upload size={15} />
@@ -829,6 +834,11 @@ export function DriveTopBar({
                   aria-pressed={mediaFilter === id}
                 >
                   <span className="td-pill-label">{label}</span>
+                  {categoryCounts && categoryCounts[id] != null && (
+                    <span className="td-filter-count" aria-hidden>
+                      {categoryCounts[id].toLocaleString()}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>

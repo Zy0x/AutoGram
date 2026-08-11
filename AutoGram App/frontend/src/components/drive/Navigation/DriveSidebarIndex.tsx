@@ -24,8 +24,9 @@ import {
   MessagesSquare,
   Check,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { createPortal } from 'react-dom';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import type { DriveChat, DriveChatFolder, DriveFolder } from '../../../lib/telegram/driveTypes';
 import type { DriveDropTarget } from '../../../lib/telegram';
@@ -62,6 +63,10 @@ import {
   setLastHoverDropKey,
   subscribeDriveDragUi,
 } from '../../../lib/telegram';
+import {
+  chatFolderDropKey,
+  parseChatFolderDropKey,
+} from '../utils/chatFolderDrop';
 import { DRIVE_FOLDER_SOFT_LIMIT, driveItemKind } from '../../../lib/telegram/driveTypes';
 import {
   getCachedAvatar,
@@ -631,21 +636,66 @@ export function DriveSidebar({
   };
   // Timer ref for 250ms hover-tab switch during drag
   const tabSwitchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingTabSwitchRef = useRef<SidebarTab | null>(null);
   const scheduleTabSwitch = (tab: SidebarTab) => {
-    if (tabSwitchTimerRef.current !== null) return; // already pending
+    // Following the newest hover target matters when the pointer crosses tabs
+    // faster than the dwell delay. The old timer must never open a stale tab.
+    if (pendingTabSwitchRef.current === tab && tabSwitchTimerRef.current !== null) return;
+    if (tabSwitchTimerRef.current !== null) clearTimeout(tabSwitchTimerRef.current);
+    pendingTabSwitchRef.current = tab;
     tabSwitchTimerRef.current = setTimeout(() => {
       tabSwitchTimerRef.current = null;
+      pendingTabSwitchRef.current = null;
       setActiveTab(tab);
-    }, 250);
+      window.requestAnimationFrame(() => {
+        const selector = tab === 'recent'
+          ? '.td-recents'
+          : tab === 'drives'
+            ? '.td-dnd-folder-stack'
+            : '.td-chat-section';
+        navRef.current?.querySelector<HTMLElement>(selector)?.scrollIntoView({ block: 'nearest' });
+      });
+    }, 220);
   };
   const cancelTabSwitch = () => {
     if (tabSwitchTimerRef.current !== null) {
       clearTimeout(tabSwitchTimerRef.current);
       tabSwitchTimerRef.current = null;
     }
+    pendingTabSwitchRef.current = null;
+  };
+  const chatFolderSwitchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingChatFolderSwitchRef = useRef<number | null>(null);
+  const scheduleChatFolderSwitch = (folderId: number) => {
+    if (
+      folderId === activeChatFolderId ||
+      (pendingChatFolderSwitchRef.current === folderId && chatFolderSwitchTimerRef.current !== null)
+    ) return;
+    if (chatFolderSwitchTimerRef.current !== null) clearTimeout(chatFolderSwitchTimerRef.current);
+    pendingChatFolderSwitchRef.current = folderId;
+    chatFolderSwitchTimerRef.current = setTimeout(() => {
+      chatFolderSwitchTimerRef.current = null;
+      pendingChatFolderSwitchRef.current = null;
+      openChatsSection();
+      setActiveTab('chats');
+      onSelectChatFolder?.(folderId);
+      window.requestAnimationFrame(() => {
+        chatListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }, 260);
+  };
+  const cancelChatFolderSwitch = () => {
+    if (chatFolderSwitchTimerRef.current !== null) {
+      clearTimeout(chatFolderSwitchTimerRef.current);
+      chatFolderSwitchTimerRef.current = null;
+    }
+    pendingChatFolderSwitchRef.current = null;
   };
   // Clean up timer on unmount
-  useEffect(() => () => { cancelTabSwitch(); }, []);
+  useEffect(() => () => {
+    cancelTabSwitch();
+    cancelChatFolderSwitch();
+  }, []);
 
   const [overKey, setOverKey] = useState<string | null>(null);
   const [, setMetaTick] = useState(0);
@@ -786,11 +836,36 @@ export function DriveSidebar({
   const [chatTypeFilter, setChatTypeFilter] = useState<'all' | 'user' | 'group' | 'channel' | 'bot' | 'forum'>('all');
   const [typeFilterMenuOpen, setTypeFilterMenuOpen] = useState(false);
   const typeFilterMenuRef = useRef<HTMLDivElement>(null);
+  const typeFilterButtonRef = useRef<HTMLButtonElement>(null);
+  const chatFoldersScrollerRef = useRef<HTMLDivElement>(null);
+  const [chatFoldersScrolled, setChatFoldersScrolled] = useState(false);
+  const [typeFilterMenuPosition, setTypeFilterMenuPosition] = useState({ left: 0, top: 0 });
+
+  const activeChatTypeLabel = chatTypeFilter === 'all' ? t('speedtest.filter_all_chats') :
+    chatTypeFilter === 'user' ? t('speedtest.filter_private') :
+    chatTypeFilter === 'group' ? t('speedtest.filter_groups') :
+    chatTypeFilter === 'channel' ? t('speedtest.filter_channels') :
+    chatTypeFilter === 'bot' ? t('speedtest.filter_bots') :
+    t('speedtest.filter_forums');
+
+  const toggleTypeFilterMenu = useCallback((event?: ReactMouseEvent<HTMLButtonElement>) => {
+    const rect = event?.currentTarget.getBoundingClientRect() || typeFilterButtonRef.current?.getBoundingClientRect();
+    if (rect) {
+      setTypeFilterMenuPosition({ left: rect.left, top: rect.bottom + 6 });
+    }
+    setTypeFilterMenuOpen((prev) => !prev);
+  }, []);
 
   useEffect(() => {
     if (!typeFilterMenuOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (typeFilterMenuRef.current && !typeFilterMenuRef.current.contains(e.target as Node)) {
+      const target = e.target as Element | null;
+      if (
+        typeFilterMenuRef.current &&
+        !typeFilterMenuRef.current.contains(e.target as Node) &&
+        !target?.closest?.('.td-chat-type-filter-pill') &&
+        !target?.closest?.('[data-chat-type-dropdown]')
+      ) {
         setTypeFilterMenuOpen(false);
       }
     };
@@ -1355,6 +1430,16 @@ export function DriveSidebar({
       lastY = e.clientY;
       hasPointer = true;
       const key = hit(e.clientX, e.clientY);
+      if (key?.startsWith('tab:')) {
+        scheduleTabSwitch(key.slice('tab:'.length) as SidebarTab);
+        cancelChatFolderSwitch();
+      } else if (parseChatFolderDropKey(key) != null) {
+        cancelTabSwitch();
+        scheduleChatFolderSwitch(parseChatFolderDropKey(key)!);
+      } else {
+        cancelTabSwitch();
+        cancelChatFolderSwitch();
+      }
       const folderDrag = getActiveFolderDrag();
       if (folderDrag || isFolderReparentDragActive()) {
         const invalid = !key || isSelf(key) || shouldBlockDriveDrop(key);
@@ -1405,6 +1490,15 @@ export function DriveSidebar({
       const key = hit(e.clientX, e.clientY) || getLastHoverDropKey();
       if (!key) {
         if (isFolderDrag) endFolderDrag();
+        return;
+      }
+      const chatFolderId = parseChatFolderDropKey(key);
+      if (chatFolderId != null) {
+        e.preventDefault();
+        e.stopPropagation();
+        scheduleChatFolderSwitch(chatFolderId);
+        endDriveDrag();
+        setOverKey(null);
         return;
       }
       if (isFolderDrag) {
@@ -1473,10 +1567,15 @@ export function DriveSidebar({
       const key = hit(e.clientX, e.clientY);
       // Tab hover auto-switch (Model A / B): hover tab button for 250ms → switch
       if (key && key.startsWith('tab:')) {
-        const tab = key.slice('tab:'.length) as 'home' | 'drives' | 'chats' | 'pins';
+        const tab = key.slice('tab:'.length) as SidebarTab;
         scheduleTabSwitch(tab);
+        cancelChatFolderSwitch();
+      } else if (parseChatFolderDropKey(key) != null) {
+        cancelTabSwitch();
+        scheduleChatFolderSwitch(parseChatFolderDropKey(key)!);
       } else {
         cancelTabSwitch();
+        cancelChatFolderSwitch();
       }
       applyHoverKey(key);
     };
@@ -1753,10 +1852,9 @@ export function DriveSidebar({
       )}
 
       {/* ── Fixed Controls Block (Search Bar + 3 Smart Tabs Bar) ── */}
-      {!anyDragLive && (
-        <div className="td-sidebar-fixed-controls">
+      <div className="td-sidebar-fixed-controls">
           {/* Expanded mode: Search Bar */}
-          {!collapsed && (
+          {!anyDragLive && !collapsed && (
             <div className="td-location-search">
               <Search size={14} aria-hidden className="td-location-search-ico" />
               <input
@@ -1795,7 +1893,7 @@ export function DriveSidebar({
                 role="tab"
                 aria-selected={activeTab === 'recent'}
                 data-drop-key="tab:recent"
-                className={`td-sidebar-tab-btn${activeTab === 'recent' ? ' is-active' : ''}`}
+                className={`td-sidebar-tab-btn${activeTab === 'recent' ? ' is-active' : ''}${overKey === 'tab:recent' ? ' is-drag-hover' : ''}`}
                 onClick={() => setActiveTab('recent')}
                 title={t('speedtest.sidebar_recents_header')}
               >
@@ -1812,7 +1910,7 @@ export function DriveSidebar({
                 role="tab"
                 aria-selected={activeTab === 'drives'}
                 data-drop-key="tab:drives"
-                className={`td-sidebar-tab-btn${activeTab === 'drives' ? ' is-active' : ''}`}
+                className={`td-sidebar-tab-btn${activeTab === 'drives' ? ' is-active' : ''}${overKey === 'tab:drives' ? ' is-drag-hover' : ''}`}
                 onClick={() => setActiveTab('drives')}
                 title={t('ui.generated.drives_td_d85c6ed')}
               >
@@ -1829,7 +1927,7 @@ export function DriveSidebar({
                 role="tab"
                 aria-selected={activeTab === 'chats'}
                 data-drop-key="tab:chats"
-                className={`td-sidebar-tab-btn${activeTab === 'chats' ? ' is-active' : ''}`}
+                className={`td-sidebar-tab-btn${activeTab === 'chats' ? ' is-active' : ''}${overKey === 'tab:chats' ? ' is-drag-hover' : ''}`}
                 onClick={() => setActiveTab('chats')}
                 title={t('ui.generated.daftar_chat_71a8e93')}
               >
@@ -1849,7 +1947,8 @@ export function DriveSidebar({
                 type="button"
                 role="tab"
                 aria-selected={activeTab === 'recent'}
-                className={`td-collapsed-tab-icon${activeTab === 'recent' ? ' is-active' : ''}`}
+                data-drop-key="tab:recent"
+                className={`td-collapsed-tab-icon${activeTab === 'recent' ? ' is-active' : ''}${overKey === 'tab:recent' ? ' is-drag-hover' : ''}`}
                 onClick={() => setActiveTab('recent')}
                 title={`${t('speedtest.sidebar_tab_recent')} (${filteredRecents.length})`}
               >
@@ -1862,7 +1961,8 @@ export function DriveSidebar({
                 type="button"
                 role="tab"
                 aria-selected={activeTab === 'drives'}
-                className={`td-collapsed-tab-icon${activeTab === 'drives' ? ' is-active' : ''}`}
+                data-drop-key="tab:drives"
+                className={`td-collapsed-tab-icon${activeTab === 'drives' ? ' is-active' : ''}${overKey === 'tab:drives' ? ' is-drag-hover' : ''}`}
                 onClick={() => setActiveTab('drives')}
                 title={`${t('speedtest.sidebar_tab_drives')} (${folders.length})`}
               >
@@ -1875,7 +1975,8 @@ export function DriveSidebar({
                 type="button"
                 role="tab"
                 aria-selected={activeTab === 'chats'}
-                className={`td-collapsed-tab-icon${activeTab === 'chats' ? ' is-active' : ''}`}
+                data-drop-key="tab:chats"
+                className={`td-collapsed-tab-icon${activeTab === 'chats' ? ' is-active' : ''}${overKey === 'tab:chats' ? ' is-drag-hover' : ''}`}
                 onClick={() => setActiveTab('chats')}
                 title={`${t('speedtest.sidebar_tab_telegram')} (${chatRows.length})`}
               >
@@ -1886,8 +1987,7 @@ export function DriveSidebar({
               </button>
             </div>
           )}
-        </div>
-      )}
+      </div>
 
       <nav
         ref={navRef as React.RefObject<HTMLElement>}
@@ -2467,32 +2567,45 @@ export function DriveSidebar({
         {chatsExpanded && chatFolders.length > 0 && (
           <div className="td-chat-folders-wrap td-only-expanded">
             <span className="td-chat-folders-label">{t("speedtest.sidebar_chat_folders_header")}</span>
-            <div className="td-chat-folders" role="tablist" aria-label={t("speedtest.sidebar_chat_folders_aria")}>
+            <div
+              ref={chatFoldersScrollerRef}
+              className={`td-chat-folders-row${chatFoldersScrolled ? ' is-scrolled' : ''}`}
+              onScroll={(event) => setChatFoldersScrolled(event.currentTarget.scrollLeft > 14)}
+            >
+              <button
+                type="button"
+                className={`td-chat-type-filter-compact td-chat-type-filter-pill${chatTypeFilter !== 'all' ? ' active' : ''}${chatFoldersScrolled ? ' is-visible' : ''}`}
+                onClick={toggleTypeFilterMenu}
+                title={activeChatTypeLabel}
+                aria-label={`${t('speedtest.filter_by_type')}: ${activeChatTypeLabel}`}
+                aria-expanded={typeFilterMenuOpen}
+                tabIndex={chatFoldersScrolled ? 0 : -1}
+              >
+                <Filter size={13} className="td-filter-icon" />
+              </button>
               {/* Chat Type Filter Trigger Button */}
               <div className="td-chat-type-filter-container" ref={typeFilterMenuRef}>
                 <button
+                  ref={typeFilterButtonRef}
                   type="button"
                   className={`td-chat-folder-chip td-chat-type-filter-pill ${chatTypeFilter !== 'all' ? 'active' : ''}`}
-                  onClick={() => setTypeFilterMenuOpen((prev) => !prev)}
+                  onClick={toggleTypeFilterMenu}
                   title={t('speedtest.filter_by_type')}
                   aria-label={t('speedtest.filter_by_type')}
                   aria-expanded={typeFilterMenuOpen}
                 >
                   <Filter size={13} className="td-filter-icon" />
-                  {chatTypeFilter !== 'all' && (
-                    <span className="td-active-filter-badge">
-                      {chatTypeFilter === 'user' ? t('speedtest.filter_private') :
-                       chatTypeFilter === 'group' ? t('speedtest.filter_groups') :
-                       chatTypeFilter === 'channel' ? t('speedtest.filter_channels') :
-                       chatTypeFilter === 'bot' ? t('speedtest.filter_bots') :
-                       t('speedtest.filter_forums')}
-                    </span>
-                  )}
+                  <span className="td-active-filter-badge">{activeChatTypeLabel}</span>
                   <ChevronDown size={11} className={`td-filter-arrow ${typeFilterMenuOpen ? 'is-open' : ''}`} />
                 </button>
 
-                {typeFilterMenuOpen && (
-                  <div className="td-chat-type-dropdown" role="menu">
+                {typeFilterMenuOpen && createPortal(
+                  <div
+                    className="td-chat-type-dropdown"
+                    role="menu"
+                    data-chat-type-dropdown
+                    style={{ left: typeFilterMenuPosition.left, top: typeFilterMenuPosition.top }}
+                  >
                     <button
                       type="button"
                       className={`td-type-dropdown-item ${chatTypeFilter === 'all' ? 'is-selected' : ''}`}
@@ -2547,23 +2660,52 @@ export function DriveSidebar({
                       <span>{t('speedtest.filter_forums')}</span>
                       {chatTypeFilter === 'forum' && <Check size={13} style={{ marginLeft: 'auto', color: '#f59e0b' }} />}
                     </button>
-                  </div>
+                  </div>,
+                  document.body
                 )}
               </div>
 
+              <div className="td-chat-folders" role="tablist" aria-label={t("speedtest.sidebar_chat_folders_aria")}>
               {chatFolders.map((folder) => {
                 const active = folder.id === activeChatFolderId;
                 return (
                   <button
                     key={folder.id}
                     type="button"
+                    data-drop-key={chatFolderDropKey(folder.id)}
+                    data-chat-folder-id={folder.id}
                     role="tab"
                     aria-selected={active}
                     tabIndex={active ? 0 : -1}
-                    className={`td-chat-folder-chip${active ? ' active' : ''}`}
+                    className={`td-chat-folder-chip${active ? ' active' : ''}${overKey === chatFolderDropKey(folder.id) ? ' is-drag-hover is-drop-over' : ''}`}
                     style={{ '--td-chat-folder-color': telegramFolderColor(folder.color) } as React.CSSProperties}
                     title={`${folder.id === 0 ? t("speedtest.all_chats") : folder.title}${folder.kind === 'shared' ? ` · ${t("speedtest.shared_telegram_folder")}` : ''}`}
                     onClick={() => onSelectChatFolder?.(folder.id)}
+                    onPointerEnter={() => {
+                      if (!anyDragLive) return;
+                      const key = chatFolderDropKey(folder.id);
+                      handleHover(key);
+                      scheduleChatFolderSwitch(folder.id);
+                    }}
+                    onPointerMove={() => {
+                      if (!anyDragLive) return;
+                      const key = chatFolderDropKey(folder.id);
+                      handleHover(key);
+                      scheduleChatFolderSwitch(folder.id);
+                    }}
+                    onPointerLeave={() => {
+                      if (!anyDragLive) return;
+                      cancelChatFolderSwitch();
+                      handleHover(null);
+                    }}
+                    onDragEnter={(event) => {
+                      if (!anyDragLive) return;
+                      event.preventDefault();
+                      applyDropEffect(event.dataTransfer, 'move');
+                      const key = chatFolderDropKey(folder.id);
+                      handleHover(key);
+                      scheduleChatFolderSwitch(folder.id);
+                    }}
                     onKeyDown={(event) => {
                       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
                       event.preventDefault();
@@ -2583,6 +2725,7 @@ export function DriveSidebar({
                   </button>
                 );
               })}
+              </div>
             </div>
           </div>
         )}
