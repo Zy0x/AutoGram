@@ -21689,11 +21689,17 @@ input[type="search"]::-webkit-search-decoration {
   background: transparent !important;
 }
 
-/* Disable scroll snap during drag & drop so auto-scroll doesn't fight frame updates */
+/* Disable scroll snap and force direct auto scroll behavior during drag & drop */
 .td-sidebar.media-dnd .td-chat-folders-row,
 .td-folder-nav.is-drop-mode .td-chat-folders-row {
   scroll-snap-type: none !important;
   scroll-behavior: auto !important;
+}
+
+.td-sidebar.media-dnd .td-chat-virtual,
+.td-folder-nav.is-drop-mode .td-chat-virtual {
+  scroll-behavior: auto !important;
+  will-change: scroll-position;
 }
 
 .td-chat-folders-row > .td-chat-folders {

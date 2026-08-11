@@ -42,9 +42,6 @@ import {
   canAcceptDriveDrop,
   DRAG_SCROLL_EDGE_PX,
   DRAG_SCROLL_OUTSIDE_PX,
-  DRAG_SCROLL_STEP_MIN_PX,
-  DRAG_SCROLL_STEP_MAX_PX,
-  DRAG_SCROLL_EASE_POWER,
   noteSidebarDragHover,
   noteSidebarDragScroll,
   shouldBlockDriveDrop,
@@ -1142,11 +1139,7 @@ export function DriveSidebar({
      */
     const edgeStep = (depth01: number) => {
       const d = Math.max(0, Math.min(1, depth01));
-      const eased = Math.pow(d, DRAG_SCROLL_EASE_POWER);
-      return (
-        DRAG_SCROLL_STEP_MIN_PX +
-        eased * (DRAG_SCROLL_STEP_MAX_PX - DRAG_SCROLL_STEP_MIN_PX)
-      );
+      return 3 + Math.floor(d * 15);
     };
 
     const canScroll = (el: HTMLElement, dir: 'up' | 'down') => {
@@ -1161,8 +1154,6 @@ export function DriveSidebar({
       const px = scrollCarry;
       scrollCarry = 0;
       noteSidebarDragScroll(px);
-      // While scrolling, clear drive highlight so green fly-by doesn't invite accidental drop
-      setOverKey((prev) => (prev && prev.startsWith('drive:') ? null : prev));
       if (dir === 'up') el.scrollTop = Math.max(0, el.scrollTop - px);
       else {
         el.scrollTop = Math.min(
