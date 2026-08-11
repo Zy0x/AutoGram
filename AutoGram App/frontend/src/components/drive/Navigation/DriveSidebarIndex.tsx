@@ -1229,9 +1229,9 @@ export function DriveSidebar({
 
       if (!dir) return;
 
-      // Pure linear gradient (0.0 to 1.0+) — eliminates any sudden speed jumps near the last item
-      const ratio = Math.min(1.3, Math.max(0.0, dist / edgeZone));
-      const step = Math.min(60, Math.floor(6 + ratio * 42));
+      // Progressive ramp: gentle 8px/frame start in 40% edge zone up to 135px/frame over bottommost visible card item
+      const ratio = Math.max(0.0, dist / edgeZone);
+      const step = Math.min(135, Math.floor(8 + Math.pow(ratio, 1.4) * 90));
 
       // Execute cascade scroll: try primaryTarget first, then fallback to navEl
       if (canScroll(primaryTarget, dir)) {
