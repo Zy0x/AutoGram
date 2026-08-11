@@ -1132,6 +1132,8 @@ export function DriveSidebar({
     let scrollCarry = 0;
     /** Inertial velocity state for silken smooth acceleration & deceleration */
     let currentSpeed = 0;
+    /** Cooldown timestamp to pause auto-scroll while user is actively turning mouse wheel */
+    let wheelScrollUntil = 0;
 
     const canScroll = (el: HTMLElement, dir: 'up' | 'down') => {
       if (dir === 'up') return el.scrollTop > 1;
@@ -1186,6 +1188,11 @@ export function DriveSidebar({
      * Renders clean, predictable 60px edge zones with progressive quadratic acceleration (8px to 120px/frame).
      */
     const performDragAutoScroll = (_x: number, y: number) => {
+      // Pause auto-scroll while user is actively turning mouse wheel
+      if (Date.now() < wheelScrollUntil) {
+        currentSpeed = 0;
+        return;
+      }
       const side = sidebarRef.current?.getBoundingClientRect();
       if (!side) return;
 
@@ -1509,6 +1516,8 @@ export function DriveSidebar({
 
       if (target) {
         e.preventDefault();
+        wheelScrollUntil = Date.now() + 450;
+        currentSpeed = 0;
         const delta = e.deltaY;
         target.scrollTop = Math.max(0, Math.min(target.scrollHeight - target.clientHeight, target.scrollTop + delta));
         if (delta > 0 && target === chatEl) {
