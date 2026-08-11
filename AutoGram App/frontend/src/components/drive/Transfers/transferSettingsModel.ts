@@ -156,6 +156,7 @@ export function normalizeTransferSettings(raw?: Partial<DriveTransferSettings>):
 
   return {
     ...base,
+    preventStickerConversion: Boolean(base.preventStickerConversion),
     uploadConcurrency,
     downloadConcurrency,
     albumGroupSize,

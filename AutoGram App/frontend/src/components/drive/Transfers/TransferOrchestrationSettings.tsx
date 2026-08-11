@@ -104,6 +104,31 @@ export function TransferOrchestrationSettings({ mode, settings, onChange, disabl
           description: String(t(`speedtest.presentation_${value}_desc`)),
         }))}
       />
+
+      {(() => {
+        const isStickerEnabled = !disabled && settings.presentationOverride !== 'force_document' && !settings.forceDocumentDefault;
+        return (
+          <div className="td-xfer-checks" style={{ marginTop: '12px', opacity: isStickerEnabled ? 1 : 0.55 }}>
+            <label className="td-xfer-check" style={{ cursor: isStickerEnabled ? 'pointer' : 'not-allowed' }}>
+              <input
+                type="checkbox"
+                checked={Boolean(settings.preventStickerConversion)}
+                disabled={!isStickerEnabled}
+                onChange={(event) => onChange({ preventStickerConversion: event.target.checked })}
+              />
+              <span>
+                <strong>{t('speedtest.prevent_sticker_conversion_title')} (.webp, .tgs, .webm)</strong>
+                <small>{t('speedtest.prevent_sticker_conversion_desc')}</small>
+                {!isStickerEnabled && (
+                  <small style={{ color: '#f59e0b', marginTop: '4px', display: 'block' }}>
+                    ⚠️ {t('speedtest.prevent_sticker_conversion_doc_note')}
+                  </small>
+                )}
+              </span>
+            </label>
+          </div>
+        );
+      })()}
       {settings.oversizeAction === 'alternate_account' && (
         <div className="td-xfer-subsection">
           <label className="td-xfer-range-row">

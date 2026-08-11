@@ -1475,5 +1475,8 @@
   "topbar_tm_failed": "Transfer Manager — {{count}} gagal",
   "topbar_tm_done": "Transfer Manager — {{count}} selesai",
   "topbar_upload_wait_title": "Transfer masih berjalan — hentikan dahulu di Transfer Manager",
-  "topbar_upload_wait_aria": "Unggah dinonaktifkan selama transfer berjalan"
+  "topbar_upload_wait_aria": "Unggah dinonaktifkan selama transfer berjalan",
+  "prevent_sticker_conversion_title": "Jangan Jadikan Stiker (Konversi Otomatis)",
+  "prevent_sticker_conversion_desc": "Mengkonversi berkas format stiker Telegram (.webp, .tgs, .webm) menjadi foto atau video standar sebelum diunggah agar tidak menjadi stiker di chat.",
+  "prevent_sticker_conversion_doc_note": "Fitur ini hanya aktif pada Mode Delivery Auto & Media Native Telegram (Pada Mode Dokumen Asli, Telegram tidak memproses berkas sebagai stiker)."
 }

@@ -1475,5 +1475,8 @@
   "topbar_tm_failed": "Transfer Manager — {{count}} failed",
   "topbar_tm_done": "Transfer Manager — {{count}} completed",
   "topbar_upload_wait_title": "A transfer is still running — stop it in Transfer Manager first",
-  "topbar_upload_wait_aria": "Upload disabled while a transfer is running"
+  "topbar_upload_wait_aria": "Upload disabled while a transfer is running",
+  "prevent_sticker_conversion_title": "Prevent Converting to Sticker (Auto Transcode)",
+  "prevent_sticker_conversion_desc": "Converts Telegram sticker formats (.webp, .tgs, .webm) into standard photo or video media before uploading to prevent them from becoming stickers in chat.",
+  "prevent_sticker_conversion_doc_note": "This option is only available in Auto & Native Media Delivery Modes (In Original Document mode, Telegram does not process files as stickers)."
 }

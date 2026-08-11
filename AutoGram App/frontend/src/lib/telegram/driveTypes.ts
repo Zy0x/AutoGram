@@ -609,6 +609,8 @@ export type DriveTransferSettings = {
   sendAs: string;
   /** Preferred original document send (no photo compression) — alias of ORIGINAL for clarity */
   forceDocumentDefault: boolean;
+  /** Prevent Telegram sticker conversion by transcoding .webp/.tgs/.webm to standard media before upload */
+  preventStickerConversion?: boolean;
   /** Duplicate resolution policy: 'SKIP' (default) or 'FORCE_UPLOAD' (always upload) */
   duplicatePolicy: 'SKIP' | 'FORCE_UPLOAD';
   /** Destination scan depth mode */
@@ -712,6 +714,7 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   scheduleAt: '',
   sendAs: '',
   forceDocumentDefault: false,
+  preventStickerConversion: false,
   duplicatePolicy: 'SKIP',
   scanMode: 'smart',
   guardrailEnabled: true,

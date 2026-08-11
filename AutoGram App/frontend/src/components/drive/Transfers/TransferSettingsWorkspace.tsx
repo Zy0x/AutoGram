@@ -1271,6 +1271,62 @@ export function TransferSettingsWorkspace({
                   </label>
                 </div>
               </div>
+
+              {/* SUB-SECTION 1.3: KONVERSI MEDIA STIKER */}
+              {(() => {
+                const isStickerOptionEnabled = !transferActive && (currentDeliveryFormat === 'auto' || currentDeliveryFormat === 'telegram');
+                return (
+                  <div
+                    className="td-settings-subcard"
+                    style={{
+                      marginTop: '16px',
+                      opacity: isStickerOptionEnabled ? 1 : 0.55,
+                      transition: 'opacity 0.2s ease',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '12px',
+                      padding: '14px 16px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <label className="td-field-label" style={{ margin: 0 }}>
+                        {t('speedtest.prevent_sticker_conversion_title')}
+                      </label>
+                      <span
+                        style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
+                          background: 'rgba(56, 189, 248, 0.15)',
+                          color: '#38bdf8',
+                          border: '1px solid rgba(56, 189, 248, 0.3)',
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                        }}
+                      >
+                        .webp • .tgs • .webm
+                      </span>
+                    </div>
+                    <div className="td-xfer-checks">
+                      <label className="td-xfer-check" style={{ cursor: isStickerOptionEnabled ? 'pointer' : 'not-allowed' }}>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(draft.preventStickerConversion)}
+                          disabled={!isStickerOptionEnabled}
+                          onChange={(e) => patch({ preventStickerConversion: e.target.checked })}
+                        />
+                        <span>
+                          <strong>{t('speedtest.prevent_sticker_conversion_title')}</strong>
+                          <small>{t('speedtest.prevent_sticker_conversion_desc')}</small>
+                          {!isStickerOptionEnabled && (
+                            <small style={{ color: '#f59e0b', marginTop: '6px', display: 'block', fontWeight: 500 }}>
+                              ⚠️ {t('speedtest.prevent_sticker_conversion_doc_note')}
+                            </small>
+                          )}
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* ==========================================
