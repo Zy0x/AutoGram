@@ -2048,21 +2048,33 @@ select.input-field option:checked,
   filter: none !important;
   box-shadow: none !important;
 }
+/* Ensure entire row acts as a single unbroken hit-target during Drag & Drop without child dead-zones */
+.td-folder-nav.is-drop-mode .td-folder-row *,
+.td-sidebar.media-dnd .td-folder-row *,
+.td-sidebar.media-dnd .td-quick-item *,
+.td-sidebar.media-dnd .td-recent-chip *,
+.td-folder-row.dnd-ready * {
+  pointer-events: none !important;
+}
+
 .td-folder-nav.is-drop-mode .td-folder-row.dnd-ready:hover:not(.is-drop-over):not(.is-drop-invalid) {
   background: var(--td-hover);
 }
-/* Drop target only */
+/* Drop target only — high precision active state with smooth glow & scaling */
 .td-folder-row.is-drop-over,
-.td-folder-nav.is-drop-mode .td-folder-row.is-drop-over {
-  background: color-mix(in srgb, #3b82f6 28%, var(--td-surface)) !important;
-  border: 2px solid #3b82f6 !important;
+.td-folder-nav.is-drop-mode .td-folder-row.is-drop-over,
+.td-sidebar.media-dnd .td-recent-chip.is-drop-over,
+.td-quick-item.is-drop-over {
+  background: color-mix(in srgb, var(--td-primary, #3b82f6) 24%, var(--td-surface)) !important;
+  border: 1.5px solid var(--td-primary, #3b82f6) !important;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--td-primary, #3b82f6) 40%, transparent) !important;
   color: var(--td-text) !important;
-  box-shadow: none !important;
   font-weight: 700;
   opacity: 1 !important;
   filter: none !important;
-  transform: none !important;
-  z-index: 8;
+  transform: scale(1.012);
+  transition: background 70ms ease, border-color 70ms ease, box-shadow 70ms ease, transform 70ms ease !important;
+  z-index: 10 !important;
   position: relative;
 }
 .td-folder-row.is-drop-over .td-folder-label,
