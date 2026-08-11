@@ -1197,10 +1197,29 @@ pub fn prepare_upload_artifact_with_policy(
     }
     let source_analysis =
         super::autogram_core::transfer::analyze_media(std::path::Path::new(&local));
-    let prepared_analysis =
-        super::autogram_core::transfer::analyze_media(std::path::Path::new(&prepared));
+    let prepared_path_obj = std::path::Path::new(&prepared);
+    let prepared_analysis = super::autogram_core::transfer::analyze_media(prepared_path_obj);
+    let is_image_output = matches!(
+        prepared_analysis.category,
+        super::autogram_core::transfer::MediaCategory::JpegImage
+            | super::autogram_core::transfer::MediaCategory::PngImage
+            | super::autogram_core::transfer::MediaCategory::WebpImage
+    ) || prepared_path_obj
+        .extension()
+        .and_then(|s| s.to_str())
+        .map(|ext| matches!(ext.to_ascii_lowercase().as_str(), "png" | "jpg" | "jpeg" | "webp"))
+        .unwrap_or(false);
+
     if transformed {
-        let validation_error = if prepared_analysis.probe_error.is_some() {
+        let validation_error = if is_image_output {
+            let exists_and_nonempty = prepared_path_obj.is_file()
+                && fs::metadata(prepared_path_obj).map(|m| m.len()).unwrap_or(0) > 0;
+            if !exists_and_nonempty {
+                Some("encoder_output_invalid: transcoded image output file is missing or empty".into())
+            } else {
+                None
+            }
+        } else if prepared_analysis.probe_error.is_some() {
             Some("encoder_validation_unavailable: prepared output could not be inspected".into())
         } else if !prepared_analysis.is_validated_native_video() {
             Some(
@@ -1234,12 +1253,17 @@ pub fn prepare_upload_artifact_with_policy(
             return Err(error);
         }
     }
-    let native_visual_validated = match prepared_analysis.category {
-        super::autogram_core::transfer::MediaCategory::JpegImage => true,
-        super::autogram_core::transfer::MediaCategory::Mp4Video => {
-            prepared_analysis.is_validated_native_video()
+    let native_visual_validated = if is_image_output {
+        prepared_path_obj.is_file()
+    } else {
+        match prepared_analysis.category {
+            super::autogram_core::transfer::MediaCategory::JpegImage
+            | super::autogram_core::transfer::MediaCategory::PngImage => true,
+            super::autogram_core::transfer::MediaCategory::Mp4Video => {
+                prepared_analysis.is_validated_native_video()
+            }
+            _ => false,
         }
-        _ => false,
     };
     Ok(PreparedUploadArtifact {
         source_path: path.to_string(),
