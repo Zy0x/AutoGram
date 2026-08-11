@@ -1137,9 +1137,10 @@ export function DriveSidebar({
      * Depth 0 (just entered edge band) → crawl; depth 1 (extreme edge / past edge) → fast.
      * Ease-in power curve keeps most of the band slow; only the last portion ramps.
      */
+    // Fast, responsive vertical edge scroll (6px to 32px per frame)
     const edgeStep = (depth01: number) => {
       const d = Math.max(0, Math.min(1, depth01));
-      return 3 + Math.floor(d * 15);
+      return 6 + Math.floor(d * 26);
     };
 
     const canScroll = (el: HTMLElement, dir: 'up' | 'down') => {
@@ -1163,6 +1164,7 @@ export function DriveSidebar({
       }
     };
 
+    let lastHoverTime = 0;
     /** Hover key with dwell/scroll guard for Drive rows */
     const applyHoverKey = (key: string | null) => {
       noteSidebarDragHover(key);
@@ -1171,8 +1173,12 @@ export function DriveSidebar({
         setOverKey(null);
         return;
       }
-      setOverKey((prev) => (prev === key ? prev : key));
-      if (key) setLastHoverDropKey(key);
+      const now = Date.now();
+      if (now - lastHoverTime > 45 || !key) {
+        lastHoverTime = now;
+        setOverKey((prev) => (prev === key ? prev : key));
+        if (key) setLastHoverDropKey(key);
+      }
     };
 
     const tryLoadMore = (el: HTMLElement) => {

@@ -2053,6 +2053,8 @@ select.input-field option:checked,
 .td-sidebar.media-dnd .td-folder-row *,
 .td-sidebar.media-dnd .td-quick-item *,
 .td-sidebar.media-dnd .td-recent-chip *,
+.td-sidebar.media-dnd .td-chat-virtual-row *,
+.td-sidebar.media-dnd .td-chat-row *,
 .td-folder-row.dnd-ready * {
   pointer-events: none !important;
 }
