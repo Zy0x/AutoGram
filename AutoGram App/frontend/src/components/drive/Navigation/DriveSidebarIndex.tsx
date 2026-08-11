@@ -1035,49 +1035,6 @@ export function DriveSidebar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collapsed, folders.length, folderRows.length, chatQuery, foldersExpanded, chatsExpanded]);
 
-  // Ultra-smooth GPU LERP momentum wheel scrolling for chatListRef (.td-chat-virtual)
-  useEffect(() => {
-    const el = chatListRef.current;
-    if (!el) return;
-
-    let currentScroll = el.scrollTop;
-    let targetScroll = el.scrollTop;
-    let animId = 0;
-
-    const smoothStep = () => {
-      const diff = targetScroll - currentScroll;
-      if (Math.abs(diff) > 0.3) {
-        currentScroll += diff * 0.24;
-        el.scrollTop = Math.round(currentScroll);
-        animId = requestAnimationFrame(smoothStep);
-      } else {
-        el.scrollTop = targetScroll;
-        currentScroll = targetScroll;
-        animId = 0;
-      }
-    };
-
-    const handleWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.altKey) return;
-      const delta = e.deltaY;
-      if (!delta) return;
-      e.preventDefault();
-
-      const maxScroll = el.scrollHeight - el.clientHeight;
-      targetScroll = Math.max(0, Math.min(maxScroll, targetScroll + delta * 0.9));
-      if (!animId) {
-        currentScroll = el.scrollTop;
-        animId = requestAnimationFrame(smoothStep);
-      }
-    };
-
-    el.addEventListener('wheel', handleWheel, { passive: false });
-    return () => {
-      el.removeEventListener('wheel', handleWheel);
-      if (animId) cancelAnimationFrame(animId);
-    };
-  }, [chatsExpanded, activeTab]);
-
   // Subscribe so green targets activate the same tick as beginDriveDrag()
   useEffect(() => {
     return subscribeDriveDragUi(() => {
@@ -1180,10 +1137,10 @@ export function DriveSidebar({
      * Depth 0 (just entered edge band) → crawl; depth 1 (extreme edge / past edge) → fast.
      * Ease-in power curve keeps most of the band slow; only the last portion ramps.
      */
-    // Fast, responsive vertical edge scroll (6px to 32px per frame)
+    // Ultra-fast & responsive vertical edge scroll (12px to 54px per frame)
     const edgeStep = (depth01: number) => {
       const d = Math.max(0, Math.min(1, depth01));
-      return 6 + Math.floor(d * 26);
+      return 12 + Math.floor(Math.pow(d, 0.75) * 42);
     };
 
     const canScroll = (el: HTMLElement, dir: 'up' | 'down') => {
@@ -1348,122 +1305,52 @@ export function DriveSidebar({
             const stepAt = (depth: number) => edgeStep(depth);
             const folders = folderStackRef.current?.getBoundingClientRect();
             const chat = chatListRef.current?.getBoundingClientRect();
-            // Wider edge bands inside both lists for easier up/down scroll while DnD
-            const drivesBand = Math.max(
-              56,
-              Math.min(72, Math.floor((folders?.height || 120) * 0.38))
-            );
-            // Match Drives band sizing so chat-up is as easy as drives-up
-            const chatBand = Math.max(
-              56,
-              Math.min(80, Math.floor((chat?.height || 140) * 0.4))
-            );
-            const overFoldersStrict =
-              !!folders && lastY >= folders.top && lastY <= folders.bottom;
-            const overChatStrict =
-              !!chat && lastY >= chat.top && lastY <= chat.bottom;
+            // Wider & more sensitive edge bands inside both lists for rapid up/down scroll while DnD
+            const drivesBand = Math.max(70, Math.min(110, Math.floor((folders?.height || 140) * 0.45)));
+            const chatBand = Math.max(80, Math.min(130, Math.floor((chat?.height || 180) * 0.45)));
+            const overFoldersStrict = !!folders && lastY >= folders.top - 12 && lastY <= folders.bottom + 12;
+            const overChatStrict = !!chat && lastY >= chat.top - 12 && lastY <= chat.bottom + 12;
 
-            // ── TOP of sidebar body ──
-            if (lastY < refR.top + edge && lastY > refR.top - outside) {
-              const depth =
-                lastY < refR.top
-                  ? 1
-                  : Math.min(1, (refR.top + edge - lastY) / edge);
-              // Prefer list under cursor (Drives/Chats), then nav
+            // 1. Strict containment over Chats list -> inner scroll ALWAYS takes priority
+            if (overChatStrict && chat) {
+              if (lastY > chat.bottom - chatBand) {
+                const depth = Math.min(1, Math.max(0.2, (lastY - (chat.bottom - chatBand)) / (chatBand * 0.6)));
+                scrollInnerOnly('down', stepAt(depth));
+              } else if (lastY < chat.top + chatBand) {
+                const depth = Math.min(1, Math.max(0.2, (chat.top + chatBand - lastY) / (chatBand * 0.6)));
+                scrollInnerOnly('up', stepAt(depth));
+              }
+            }
+            // 2. Strict containment over Drives list -> inner scroll ALWAYS takes priority
+            else if (overFoldersStrict && folders) {
+              if (lastY > folders.bottom - drivesBand) {
+                const depth = Math.min(1, Math.max(0.2, (lastY - (folders.bottom - drivesBand)) / (drivesBand * 0.6)));
+                scrollInnerOnly('down', stepAt(depth));
+              } else if (lastY < folders.top + drivesBand) {
+                const depth = Math.min(1, Math.max(0.2, (folders.top + drivesBand - lastY) / (drivesBand * 0.6)));
+                scrollInnerOnly('up', stepAt(depth));
+              }
+            }
+            // 3. Pointer outside specific lists -> fall back to outer sidebar edge scrolling
+            else if (lastY < refR.top + edge && lastY > refR.top - outside) {
+              const depth = lastY < refR.top ? 1 : Math.min(1, (refR.top + edge - lastY) / edge);
               cascadeScroll('up', stepAt(depth));
-            }
-            // ── BOTTOM of sidebar body ──
-            else if (lastY > refR.bottom - edge && lastY < refR.bottom + outside) {
-              const depth =
-                lastY > refR.bottom
-                  ? 1
-                  : Math.min(1, (lastY - (refR.bottom - edge)) / edge);
+            } else if (lastY > refR.bottom - edge && lastY < refR.bottom + outside) {
+              const depth = lastY > refR.bottom ? 1 : Math.min(1, (lastY - (refR.bottom - edge)) / edge);
               cascadeScroll('down', stepAt(depth));
-            }
-            // ── Mid-body / over Drives or Chats panes ──
-            // When pointer is in Chats, handle chat bands first so the top of
-            // the chat list is not stolen by the Drives bottom "scroll down" band.
-            else if (overChatStrict && chat) {
-              if (
-                lastY > chat.bottom - chatBand &&
-                lastY < chat.bottom + outside
-              ) {
-                const depth = Math.min(
-                  1,
-                  (lastY - (chat.bottom - chatBand)) / chatBand
-                );
-                scrollInnerOnly('down', stepAt(depth));
-              } else if (
-                lastY < chat.top + chatBand &&
-                lastY > chat.top - outside
-              ) {
-                const depth = Math.min(
-                  1,
-                  (chat.top + chatBand - lastY) / chatBand
-                );
-                scrollInnerOnly('up', stepAt(depth));
-              }
-            } else if (overFoldersStrict && folders) {
-              if (
-                lastY > folders.bottom - drivesBand &&
-                lastY < folders.bottom + outside
-              ) {
-                const depth = Math.min(
-                  1,
-                  (lastY - (folders.bottom - drivesBand)) / drivesBand
-                );
-                scrollInnerOnly('down', stepAt(depth));
-              } else if (
-                lastY < folders.top + drivesBand &&
-                lastY > folders.top - outside
-              ) {
-                const depth = Math.min(
-                  1,
-                  (folders.top + drivesBand - lastY) / drivesBand
-                );
-                scrollInnerOnly('up', stepAt(depth));
-              }
             } else {
-              // Near edges outside strict rects (gap between sections / pad)
-              if (
-                chat &&
-                lastY < chat.top + chatBand &&
-                lastY > chat.top - outside
-              ) {
-                const depth = Math.min(
-                  1,
-                  (chat.top + chatBand - lastY) / chatBand
-                );
+              // Gap between sections fallback
+              if (chat && lastY < chat.top + chatBand && lastY > chat.top - outside) {
+                const depth = Math.min(1, Math.max(0.2, (chat.top + chatBand - lastY) / chatBand));
                 scrollInnerOnly('up', stepAt(depth));
-              } else if (
-                chat &&
-                lastY > chat.bottom - chatBand &&
-                lastY < chat.bottom + outside
-              ) {
-                const depth = Math.min(
-                  1,
-                  (lastY - (chat.bottom - chatBand)) / chatBand
-                );
+              } else if (chat && lastY > chat.bottom - chatBand && lastY < chat.bottom + outside) {
+                const depth = Math.min(1, Math.max(0.2, (lastY - (chat.bottom - chatBand)) / chatBand));
                 scrollInnerOnly('down', stepAt(depth));
-              } else if (
-                folders &&
-                lastY > folders.bottom - drivesBand &&
-                lastY < folders.bottom + outside
-              ) {
-                const depth = Math.min(
-                  1,
-                  (lastY - (folders.bottom - drivesBand)) / drivesBand
-                );
+              } else if (folders && lastY > folders.bottom - drivesBand && lastY < folders.bottom + outside) {
+                const depth = Math.min(1, Math.max(0.2, (lastY - (folders.bottom - drivesBand)) / drivesBand));
                 scrollInnerOnly('down', stepAt(depth));
-              } else if (
-                folders &&
-                lastY < folders.top + drivesBand &&
-                lastY > folders.top - outside
-              ) {
-                const depth = Math.min(
-                  1,
-                  (folders.top + drivesBand - lastY) / drivesBand
-                );
+              } else if (folders && lastY < folders.top + drivesBand && lastY > folders.top - outside) {
+                const depth = Math.min(1, Math.max(0.2, (folders.top + drivesBand - lastY) / drivesBand));
                 scrollInnerOnly('up', stepAt(depth));
               }
             }
