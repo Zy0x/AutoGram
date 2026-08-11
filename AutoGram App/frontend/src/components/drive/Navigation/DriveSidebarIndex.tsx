@@ -1282,6 +1282,26 @@ export function DriveSidebar({
           const right = side.right + 8;
           const inX = lastX >= left && lastX <= right;
           if (inX) {
+            // Horizontal auto-scroll for chat folder chips strip during drag
+            const chipScroller = chatFoldersScrollerRef.current;
+            if (chipScroller) {
+              const chipR = chipScroller.getBoundingClientRect();
+              if (
+                lastY >= chipR.top - 12 &&
+                lastY <= chipR.bottom + 12 &&
+                lastX >= chipR.left &&
+                lastX <= chipR.right
+              ) {
+                const edgeZone = 48;
+                if (lastX > chipR.right - edgeZone) {
+                  const depth = Math.min(1, (lastX - (chipR.right - edgeZone)) / edgeZone);
+                  chipScroller.scrollLeft += Math.max(3, Math.floor(depth * 14));
+                } else if (lastX < chipR.left + edgeZone) {
+                  const depth = Math.min(1, (chipR.left + edgeZone - lastX) / edgeZone);
+                  chipScroller.scrollLeft -= Math.max(3, Math.floor(depth * 14));
+                }
+              }
+            }
             const edge = Math.max(
               DRAG_SCROLL_EDGE_PX,
               Math.min(110, Math.floor(refR.height * 0.26))
@@ -2572,12 +2592,14 @@ export function DriveSidebar({
               className={`td-chat-folders-row${chatFoldersScrolled ? ' is-scrolled' : ''}`}
               onScroll={(event) => setChatFoldersScrolled(event.currentTarget.scrollLeft > 14)}
               onWheel={(e) => {
-                const el = e.currentTarget;
-                const delta = e.deltaY !== 0 ? e.deltaY : e.deltaX;
-                if (delta !== 0) {
+                if (e.currentTarget) {
                   e.preventDefault();
                   e.stopPropagation();
-                  el.scrollLeft += delta * 0.85;
+                  const delta = e.deltaY !== 0 ? e.deltaY : e.deltaX;
+                  e.currentTarget.scrollBy({
+                    left: delta * 0.85,
+                    behavior: 'smooth',
+                  });
                 }
               }}
             >
