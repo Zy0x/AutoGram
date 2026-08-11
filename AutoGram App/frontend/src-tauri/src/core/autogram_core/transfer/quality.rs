@@ -249,7 +249,7 @@ pub fn classify_prepared_delivery(
         };
     }
     let payload_class = match category {
-        MediaCategory::JpegImage => PayloadClass::NativeVisual,
+        MediaCategory::JpegImage | MediaCategory::PngImage => PayloadClass::NativeVisual,
         MediaCategory::Mp4Video if native_video_validated => PayloadClass::NativeVisual,
         MediaCategory::Audio if is_consumer_audio(path) => PayloadClass::AudioGroup,
         _ => PayloadClass::DocumentGroup,
