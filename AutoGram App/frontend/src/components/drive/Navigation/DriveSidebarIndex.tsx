@@ -1229,9 +1229,9 @@ export function DriveSidebar({
 
       if (!dir) return;
 
-      // Progressive ramp: gentle 8px/frame start in 40% edge zone up to 135px/frame over bottommost visible card item
+      // Turbo Lightning Speed Ramp: 12px/frame start up to 300px/frame over bottommost visible card item
       const ratio = Math.max(0.0, dist / edgeZone);
-      const step = Math.min(135, Math.floor(8 + Math.pow(ratio, 1.4) * 90));
+      const step = Math.min(300, Math.floor(12 + Math.pow(ratio, 1.2) * 288));
 
       // Execute cascade scroll: try primaryTarget first, then fallback to navEl
       if (canScroll(primaryTarget, dir)) {
