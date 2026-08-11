@@ -3,7 +3,7 @@
  * Portaled to document.body — avoids vertical-strip layout when nested in .td-page.
  */
 import { useTranslation } from 'react-i18next';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -197,11 +197,29 @@ export function DriveToolsPanel({
   onSmartCopy: _onSmartCopy,
 }: Props) {
   const { t } = useTranslation();
-  const [dupMode, setDupMode] = useState<
+  const [dupMode, setDupModeState] = useState<
     'all_levels' | 'hash_unique' | 'name_size' | 'size_only' | 'message_clone'
-  >('all_levels');
-  const [pattern, setPattern] = useState('{name}_{n:2}.{ext}');
-  const [startAt, setStartAt] = useState(1);
+  >(() => (localStorage.getItem('autogram_dup_mode') as any) || 'all_levels');
+  const setDupMode = useCallback((mode: 'all_levels' | 'hash_unique' | 'name_size' | 'size_only' | 'message_clone') => {
+    setDupModeState(mode);
+    try { localStorage.setItem('autogram_dup_mode', mode); } catch {}
+  }, []);
+
+  const [pattern, setPatternState] = useState(() => localStorage.getItem('autogram_rename_pattern') || '{name}_{n:2}.{ext}');
+  const setPattern = useCallback((p: string) => {
+    setPatternState(p);
+    try { localStorage.setItem('autogram_rename_pattern', p); } catch {}
+  }, []);
+
+  const [startAt, setStartAtState] = useState(() => {
+    const v = localStorage.getItem('autogram_rename_start_at');
+    return v ? parseInt(v, 10) || 1 : 1;
+  });
+  const setStartAt = useCallback((n: number) => {
+    setStartAtState(n);
+    try { localStorage.setItem('autogram_rename_start_at', String(n)); } catch {}
+  }, []);
+
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [toolsSearchQuery, setToolsSearchQuery] = useState('');
 
@@ -211,21 +229,41 @@ export function DriveToolsPanel({
     ...(transferSettings || {}),
   }));
 
+  const prevOpenRef = useRef(open);
   useEffect(() => {
+    const justOpened = open && !prevOpenRef.current;
+    prevOpenRef.current = open;
+
     if (open && transferSettings) {
       setXferDraft({
         ...DEFAULT_TRANSFER_SETTINGS,
         ...transferSettings,
       });
-      setXferSubTab('upload');
+      if (justOpened) {
+        setXferSubTab('upload');
+      }
     }
   }, [open, transferSettings]);
 
-  const patchXfer = (partial: Partial<DriveTransferSettings>) => {
-    setXferDraft((d: any) => ({ ...d, ...partial }));
-  };
+  const patchXfer = useCallback((partial: Partial<DriveTransferSettings>) => {
+    setXferDraft((prev: DriveTransferSettings) => {
+      const merged = { ...prev, ...partial };
+      const next: DriveTransferSettings = {
+        ...merged,
+        uploadConcurrency: clampConcurrency(merged.uploadConcurrency),
+        downloadConcurrency: clampConcurrency(merged.downloadConcurrency),
+        globalCaption: (merged.globalCaption || '').slice(0, 1024),
+        albumGroupSize: Math.max(2, Math.min(10, merged.albumGroupSize)),
+        encoderMaxParallel: Math.max(1, Math.min(4, merged.encoderMaxParallel)),
+      };
+      if (onTransferSettingsChange) {
+        onTransferSettingsChange(next);
+      }
+      return next;
+    });
+  }, [onTransferSettingsChange]);
 
-  const applyXferSettings = () => {
+  const applyXferSettings = useCallback(() => {
     if (!onTransferSettingsChange) return;
     const next: DriveTransferSettings = {
       ...xferDraft,
@@ -236,7 +274,7 @@ export function DriveToolsPanel({
       encoderMaxParallel: Math.max(1, Math.min(4, xferDraft.encoderMaxParallel)),
     };
     onTransferSettingsChange(next);
-  };
+  }, [xferDraft, onTransferSettingsChange]);
 
   const groups = useMemo(
     () => findDuplicateGroups(files, dupMode as any),
@@ -786,7 +824,7 @@ export function DriveToolsPanel({
               draft={xferDraft}
               onChange={patchXfer}
               onSave={applyXferSettings}
-              onReset={() => setXferDraft({ ...DEFAULT_TRANSFER_SETTINGS })}
+              onReset={() => patchXfer({ ...DEFAULT_TRANSFER_SETTINGS })}
               transferActive={transferActive}
               subTab={xferSubTab}
               onSubTab={setXferSubTab}
