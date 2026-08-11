@@ -7887,8 +7887,9 @@ body:has(.app-layout-drive-focus),
   flex: 0 0 auto;
   margin-left: 4px;
 }
+/* Keep gap strictly identical (4px) in selected and non-selected states */
 .td-topbar.has-selection {
-  gap: 6px;
+  gap: 4px;
 }
 .td-breadcrumbs {
   display: flex;
