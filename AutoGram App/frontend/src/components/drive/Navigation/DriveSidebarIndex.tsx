@@ -1498,13 +1498,10 @@ export function DriveSidebar({
 
     // Direct Wheel Scroll during drag (Mouse wheel & Trackpad support)
     // Conflict-free design:
-    //   1. Normalize deltaMode so pixel / line / page all feel the same
-    //   2. Adaptive cooldown: short for slow scroll, longer for fast flicks
-    //   3. Do NOT update lastY from wheel — RAF must keep using the real drag Y
-    //      so it doesn't mis-trigger auto-scroll after wheel finishes
-    //   4. Save speedAfterWheel so RAF re-enters smoothly (no jump from 0)
-    //   5. Set currentSpeed = 0 inside RAF only — not here — to avoid the
-    //      one-frame flash where both wheel and RAF both mutate scrollTop
+    //   1. Detect trackpad vs physical mouse wheel for optimal cooldown (60ms vs 180-350ms)
+    //   2. Ignore trackpad surface micro-noise (<0.6px)
+    //   3. Cascade scroll: if inner list hits top/bottom, pass remaining delta to navEl
+    //   4. Preserve speedAfterWheel so auto-scroll smoothly continues when trackpad stops
     const onWheel = (e: WheelEvent) => {
       const isDragging =
         isPointerDriveDragActive() ||
@@ -1520,10 +1517,9 @@ export function DriveSidebar({
       if (!side) return;
       if (e.clientX < side.left - 24 || e.clientX > side.right + 24) return;
 
-      // NOTE: intentionally NOT updating lastX/lastY here.
-      // Wheel position ≠ drag ghost position. If we update lastY, the RAF loop
-      // will think the drag cursor moved to the wheel's Y coordinate and may
-      // start/stop auto-scroll in the wrong direction right after wheel ends.
+      // Ignore tiny trackpad surface touch drift (<0.6px) to avoid interrupting auto-scroll
+      if (Math.abs(e.deltaY) < 0.6 && Math.abs(e.deltaX) < 0.6) return;
+
       hasPointer = true;
 
       const chatEl = chatListRef.current;
@@ -1536,53 +1532,75 @@ export function DriveSidebar({
       const isOverChat = !!chatRect && e.clientY >= chatRect.top && e.clientY <= chatRect.bottom;
       const isOverFolders = !!foldersRect && e.clientY >= foldersRect.top && e.clientY <= foldersRect.bottom;
 
-      let target: HTMLElement | null = null;
+      let primaryTarget: HTMLElement | null = null;
 
       if (isOverChat && chatEl && chatEl.scrollHeight > chatEl.clientHeight) {
-        target = chatEl;
+        primaryTarget = chatEl;
       } else if (isOverFolders && foldersEl && foldersEl.scrollHeight > foldersEl.clientHeight) {
-        target = foldersEl;
+        primaryTarget = foldersEl;
       } else if (navEl && navEl.scrollHeight > navEl.clientHeight) {
-        target = navEl;
+        primaryTarget = navEl;
       }
 
-      if (target) {
+      if (primaryTarget || navEl) {
         e.preventDefault();
+
+        // Trackpad detection: deltaMode===0 with small or fractional deltaY
+        const isTrackpad = e.deltaMode === WheelEvent.DOM_DELTA_PIXEL && (
+          !Number.isInteger(e.deltaY) || Math.abs(e.deltaY) < 40
+        );
 
         // Normalize delta across deltaMode (PIXEL=0, LINE=1, PAGE=2)
         let pixelDelta: number;
-        switch (e.deltaMode) {
-          case WheelEvent.DOM_DELTA_LINE:
-            // 1 line ≈ 28px (matches browser default line height)
-            pixelDelta = e.deltaY * 28;
-            break;
-          case WheelEvent.DOM_DELTA_PAGE:
-            // 1 page = clientHeight
-            pixelDelta = e.deltaY * (target.clientHeight * 0.85);
-            break;
-          default:
-            // DOM_DELTA_PIXEL — use raw value but cap at ±300 to prevent trackpad flicks
-            pixelDelta = Math.sign(e.deltaY) * Math.min(Math.abs(e.deltaY), 300);
+        if (e.deltaMode === WheelEvent.DOM_DELTA_LINE) {
+          pixelDelta = e.deltaY * 28;
+        } else if (e.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+          const pageH = (primaryTarget || navEl)?.clientHeight || 400;
+          pixelDelta = e.deltaY * (pageH * 0.85);
+        } else {
+          // Trackpad / pixel mode — direct delta, capped at ±250 max per frame
+          pixelDelta = Math.sign(e.deltaY) * Math.min(Math.abs(e.deltaY), 250);
         }
 
-        // Adaptive cooldown: fast flick → longer pause to let inertia settle
-        // Slow nudge → shorter pause so auto-scroll resumes quickly
+        // Cooldown tuning:
+        // Trackpad emits events every 8-16ms while finger moves.
+        // A 60ms cooldown (~3 frames at 60Hz) is optimal so auto-scroll resumes
+        // almost instantly 60ms after trackpad fingers stop!
+        // Physical mouse wheel receives 180-350ms adaptive cooldown for discrete step clicks.
         const absDelta = Math.abs(pixelDelta);
-        const cooldown = absDelta > 120 ? 600 : absDelta > 40 ? 380 : 220;
-        const resumeAt = Date.now() + cooldown;
-        wheelScrollUntil = resumeAt;
+        const cooldown = isTrackpad
+          ? 60
+          : (absDelta > 100 ? 350 : 180);
 
-        // Snapshot current speed so RAF re-enters smoothly after cooldown
-        // (speed decays to ~speedAfterWheel value during wheel session)
-        speedAfterWheel = currentSpeed * 0.4;
+        wheelScrollUntil = Date.now() + cooldown;
 
-        target.scrollTop = Math.max(
-          0,
-          Math.min(target.scrollHeight - target.clientHeight, target.scrollTop + pixelDelta)
-        );
-        if (pixelDelta > 0 && target === chatEl) {
-          tryLoadMore(chatEl);
+        // Preserve auto-scroll speed snapshot so RAF re-enters smoothly when trackpad stops
+        speedAfterWheel = Math.max(currentSpeed, 18);
+
+        // Cascade scroll execution: try primaryTarget first, pass remaining delta to navEl if primary hits bound
+        const target = primaryTarget || navEl;
+        if (target) {
+          const oldTop = target.scrollTop;
+          target.scrollTop = Math.max(
+            0,
+            Math.min(target.scrollHeight - target.clientHeight, oldTop + pixelDelta)
+          );
+          const consumed = target.scrollTop - oldTop;
+          const remaining = pixelDelta - consumed;
+
+          // Cascade unconsumed delta to outer container if inner list hit top/bottom bound
+          if (Math.abs(remaining) > 0.5 && navEl && navEl !== target && navEl.scrollHeight > navEl.clientHeight) {
+            navEl.scrollTop = Math.max(
+              0,
+              Math.min(navEl.scrollHeight - navEl.clientHeight, navEl.scrollTop + remaining)
+            );
+          }
+
+          if (pixelDelta > 0 && target === chatEl) {
+            tryLoadMore(chatEl);
+          }
         }
+
         const key = hit(e.clientX, e.clientY);
         applyHoverKey(key);
       }
@@ -1971,7 +1989,7 @@ export function DriveSidebar({
         onWheel={(e) => {
           if (collapsed && navRef.current) {
             e.preventDefault();
-            navRef.current.scrollTop += e.deltaY * 0.38;
+            navRef.current.scrollTop += e.deltaY;
           }
         }}
         onDragOver={(e) => {
@@ -2547,10 +2565,7 @@ export function DriveSidebar({
                   e.preventDefault();
                   e.stopPropagation();
                   const delta = e.deltaY !== 0 ? e.deltaY : e.deltaX;
-                  e.currentTarget.scrollBy({
-                    left: delta * 0.85,
-                    behavior: 'smooth',
-                  });
+                  e.currentTarget.scrollLeft += delta;
                 }
               }}
             >
