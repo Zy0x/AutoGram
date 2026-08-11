@@ -1264,10 +1264,11 @@ export function DriveSidebar({
         return;
       }
 
-      // Quadratic curve: smooth start at zone entry (2px), natural ramp to max (28px) at zone edge.
+      // Quadratic curve: smooth start at zone entry (4px), natural ramp to max (36px) at zone edge.
+      // Tuned via physics simulation: near-edge ~270px/s (usable), deep-edge ~2160px/s (fast scroll).
       // Using ^2 (not ^1.3) avoids the late-zone speed explosion that causes "sudden jump" UX.
       const ratio = Math.max(0.0, Math.min(1.0, dist / EDGE_ZONE));
-      const targetStep = 2 + Math.pow(ratio, 2) * 26; // 2px..28px
+      const targetStep = 4 + Math.pow(ratio, 2) * 32; // 4px..36px
 
       // EMA Lerp 0.30: fast enough to be responsive, smooth enough to avoid teleporting
       currentSpeed = currentSpeed + (targetStep - currentSpeed) * 0.30;
