@@ -1287,18 +1287,16 @@ export function DriveSidebar({
             if (chipScroller) {
               const chipR = chipScroller.getBoundingClientRect();
               if (
-                lastY >= chipR.top - 12 &&
-                lastY <= chipR.bottom + 12 &&
-                lastX >= chipR.left &&
-                lastX <= chipR.right
+                lastY >= chipR.top - 24 &&
+                lastY <= chipR.bottom + 30
               ) {
-                const edgeZone = 48;
-                if (lastX > chipR.right - edgeZone) {
-                  const depth = Math.min(1, (lastX - (chipR.right - edgeZone)) / edgeZone);
-                  chipScroller.scrollLeft += Math.max(3, Math.floor(depth * 14));
-                } else if (lastX < chipR.left + edgeZone) {
-                  const depth = Math.min(1, (chipR.left + edgeZone - lastX) / edgeZone);
-                  chipScroller.scrollLeft -= Math.max(3, Math.floor(depth * 14));
+                const edgeZone = 75;
+                if (lastX >= chipR.right - edgeZone) {
+                  const depth = Math.min(1, Math.max(0.2, (lastX - (chipR.right - edgeZone)) / edgeZone));
+                  chipScroller.scrollLeft += Math.max(4, Math.floor(depth * 18));
+                } else if (lastX <= chipR.left + edgeZone) {
+                  const depth = Math.min(1, Math.max(0.2, (chipR.left + edgeZone - lastX) / edgeZone));
+                  chipScroller.scrollLeft -= Math.max(4, Math.floor(depth * 18));
                 }
               }
             }
