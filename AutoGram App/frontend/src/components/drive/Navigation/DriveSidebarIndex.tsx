@@ -40,8 +40,6 @@ import {
   applyDropEffect,
   beginFolderDrag,
   canAcceptDriveDrop,
-  DRAG_SCROLL_EDGE_PX,
-  DRAG_SCROLL_OUTSIDE_PX,
   noteSidebarDragHover,
   noteSidebarDragScroll,
   shouldBlockDriveDrop,
@@ -1133,16 +1131,6 @@ export function DriveSidebar({
     /** Fractional px accumulator — smooth sub-pixel crawl at low speeds */
     let scrollCarry = 0;
 
-    /**
-     * Depth 0 (just entered edge band) → crawl; depth 1 (extreme edge / past edge) → fast.
-     * Ease-in power curve keeps most of the band slow; only the last portion ramps.
-     */
-    // Progressive quadratic edge acceleration curve (10px to 160px per frame)
-    const edgeStep = (depthRatio: number) => {
-      const d = Math.max(0, depthRatio);
-      return Math.min(160, Math.floor(10 + Math.pow(d, 2.2) * 110));
-    };
-
     const canScroll = (el: HTMLElement, dir: 'up' | 'down') => {
       if (dir === 'up') return el.scrollTop > 1;
       return el.scrollTop + el.clientHeight < el.scrollHeight - 2;
@@ -1268,15 +1256,77 @@ export function DriveSidebar({
       return null;
     };
 
+    /**
+     * Standard Desktop Drag Auto-Scroll Controller (VS Code / Telegram Desktop Spec)
+     * Renders clean, predictable 60px edge zones with progressive quadratic acceleration (8px to 120px/frame).
+     */
+    const performDragAutoScroll = (_x: number, y: number) => {
+      const side = sidebarRef.current?.getBoundingClientRect();
+      if (!side) return;
+
+      const chatEl = chatListRef.current;
+      const foldersEl = folderStackRef.current;
+      const navEl = navRef.current;
+
+      const chatRect = chatEl?.getBoundingClientRect();
+      const foldersRect = foldersEl?.getBoundingClientRect();
+      const navRect = navEl?.getBoundingClientRect();
+
+      const isOverChat = !!chatRect && y >= chatRect.top - 10 && y <= chatRect.bottom + 10;
+      const isOverFolders = !!foldersRect && y >= foldersRect.top - 10 && y <= foldersRect.bottom + 10;
+
+      let primaryTarget: HTMLElement | null = null;
+      let targetRect: DOMRect | null = null;
+
+      if (isOverChat && chatEl && chatEl.scrollHeight > chatEl.clientHeight + 2) {
+        primaryTarget = chatEl;
+        targetRect = chatRect;
+      } else if (isOverFolders && foldersEl && foldersEl.scrollHeight > foldersEl.clientHeight + 2) {
+        primaryTarget = foldersEl;
+        targetRect = foldersRect;
+      } else if (navEl && navEl.scrollHeight > navEl.clientHeight + 2) {
+        primaryTarget = navEl;
+        targetRect = navRect || side;
+      }
+
+      if (!primaryTarget || !targetRect) return;
+
+      // Standard Edge Zone: 60px (or max 24% of container height)
+      const edgeZone = Math.max(50, Math.min(80, Math.floor(targetRect.height * 0.24)));
+      let dir: 'up' | 'down' | null = null;
+      let dist = 0;
+
+      if (y > targetRect.bottom - edgeZone) {
+        dir = 'down';
+        dist = y - (targetRect.bottom - edgeZone);
+      } else if (y < targetRect.top + edgeZone) {
+        dir = 'up';
+        dist = (targetRect.top + edgeZone) - y;
+      }
+
+      if (!dir) return;
+
+      // Calculate speed ratio (0.0 to 1.0+)
+      const ratio = Math.max(0.1, dist / edgeZone);
+      const step = Math.min(135, Math.floor(8 + Math.pow(ratio, 2.0) * 95));
+
+      // Execute cascade scroll: try primaryTarget first, then fallback to navEl
+      if (canScroll(primaryTarget, dir)) {
+        applyScroll(primaryTarget, dir, step);
+        if (dir === 'down' && primaryTarget === chatEl) {
+          tryLoadMore(chatEl);
+        }
+      } else if (navEl && primaryTarget !== navEl && canScroll(navEl, dir)) {
+        applyScroll(navEl, dir, step);
+      }
+    };
+
     const edgeScroll = () => {
       if (hasPointer) {
         const side = sidebarRef.current?.getBoundingClientRect();
-        const nav = navRef.current;
-        const navR = nav?.getBoundingClientRect();
-        const refR = navR || side;
-        if (refR && side) {
-          const left = side.left - 8;
-          const right = side.right + 8;
+        if (side) {
+          const left = side.left - 24;
+          const right = side.right + 24;
           const inX = lastX >= left && lastX <= right;
           if (inX) {
             // Horizontal auto-scroll for chat folder chips strip during drag
@@ -1297,75 +1347,9 @@ export function DriveSidebar({
                 }
               }
             }
-            const edge = Math.max(
-              DRAG_SCROLL_EDGE_PX,
-              Math.min(110, Math.floor(refR.height * 0.26))
-            );
-            const outside = DRAG_SCROLL_OUTSIDE_PX;
-            const stepAt = (depth: number) => edgeStep(depth);
-            const folders = folderStackRef.current?.getBoundingClientRect();
-            const chat = chatListRef.current?.getBoundingClientRect();
-            // Progressive edge bands inside both lists with quadratic edge proximity acceleration
-            const drivesBand = Math.max(80, Math.min(140, Math.floor((folders?.height || 140) * 0.48)));
-            const chatBand = Math.max(90, Math.min(160, Math.floor((chat?.height || 180) * 0.48)));
-            const overFoldersStrict = !!folders && lastY >= folders.top - 16 && lastY <= folders.bottom + 16;
-            const overChatStrict = !!chat && lastY >= chat.top - 16 && lastY <= chat.bottom + 16;
 
-            // 1. Strict containment over Chats list -> progressive quadratic edge scroll
-            if (overChatStrict && chat) {
-              if (lastY > chat.bottom - chatBand) {
-                const d = (lastY - (chat.bottom - chatBand)) / chatBand;
-                cascadeScroll('down', stepAt(d));
-              } else if (lastY < chat.top + chatBand) {
-                const d = (chat.top + chatBand - lastY) / chatBand;
-                cascadeScroll('up', stepAt(d));
-              } else if (lastY < refR.top + edge) {
-                const d = (refR.top + edge - lastY) / edge;
-                cascadeScroll('up', stepAt(d));
-              } else if (lastY > refR.bottom - edge) {
-                const d = (lastY - (refR.bottom - edge)) / edge;
-                cascadeScroll('down', stepAt(d));
-              }
-            }
-            // 2. Strict containment over Drives list -> progressive quadratic edge scroll
-            else if (overFoldersStrict && folders) {
-              if (lastY > folders.bottom - drivesBand) {
-                const d = (lastY - (folders.bottom - drivesBand)) / drivesBand;
-                cascadeScroll('down', stepAt(d));
-              } else if (lastY < folders.top + drivesBand) {
-                const d = (folders.top + drivesBand - lastY) / drivesBand;
-                cascadeScroll('up', stepAt(d));
-              } else if (lastY < refR.top + edge) {
-                const d = (refR.top + edge - lastY) / edge;
-                cascadeScroll('up', stepAt(d));
-              } else if (lastY > refR.bottom - edge) {
-                const d = (lastY - (refR.bottom - edge)) / edge;
-                cascadeScroll('down', stepAt(d));
-              }
-            }
-            // 3. Pointer outside specific lists -> fall back to outer sidebar edge scrolling
-            else if (lastY < refR.top + edge && lastY > refR.top - outside) {
-              const d = (refR.top + edge - lastY) / edge;
-              cascadeScroll('up', stepAt(d));
-            } else if (lastY > refR.bottom - edge && lastY < refR.bottom + outside) {
-              const d = (lastY - (refR.bottom - edge)) / edge;
-              cascadeScroll('down', stepAt(d));
-            } else {
-              // Gap between sections fallback
-              if (chat && lastY < chat.top + chatBand && lastY > chat.top - outside) {
-                const d = (chat.top + chatBand - lastY) / chatBand;
-                cascadeScroll('up', stepAt(d));
-              } else if (chat && lastY > chat.bottom - chatBand && lastY < chat.bottom + outside) {
-                const d = (lastY - (chat.bottom - chatBand)) / chatBand;
-                cascadeScroll('down', stepAt(d));
-              } else if (folders && lastY > folders.bottom - drivesBand && lastY < folders.bottom + outside) {
-                const d = (lastY - (folders.bottom - drivesBand)) / drivesBand;
-                cascadeScroll('down', stepAt(d));
-              } else if (folders && lastY < folders.top + drivesBand && lastY > folders.top - outside) {
-                const d = (folders.top + drivesBand - lastY) / drivesBand;
-                cascadeScroll('up', stepAt(d));
-              }
-            }
+            // Universal Desktop Standard Vertical Auto-Scroll Engine
+            performDragAutoScroll(lastX, lastY);
           }
         }
       }
