@@ -1380,6 +1380,9 @@ export function DriveSidebar({
         lastX = e.clientX;
         lastY = e.clientY;
         hasPointer = true;
+        e.preventDefault();
+        const key = hit(e.clientX, e.clientY);
+        applyHoverKey(key);
         return;
       }
       e.preventDefault();
@@ -1491,7 +1494,15 @@ export function DriveSidebar({
 
     // Pointer path: hover only (SpeedTest owns pointerup → move)
     const onPointerMove = (e: PointerEvent) => {
-      if (!isInternalMediaDragActive() && !mediaDragActive && !dragLive) return;
+      if (
+        !isInternalMediaDragActive() &&
+        !mediaDragActive &&
+        !dragLive &&
+        !isPointerDriveDragActive() &&
+        !isFolderReparentDragActive() &&
+        !folderDragLive
+      )
+        return;
       lastX = e.clientX;
       lastY = e.clientY;
       hasPointer = true;
