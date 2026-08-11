@@ -1587,7 +1587,9 @@ export function DriveSidebar({
     document.addEventListener('dragenter', onDragEnter, true);
     document.addEventListener('drop', onDrop, true);
     document.addEventListener('pointermove', onPointerMove, true);
+    document.addEventListener('mousemove', onPointerMove as any, true);
     document.addEventListener('pointerup', onPointerUp, true);
+    document.addEventListener('mouseup', onPointerUp, true);
     document.addEventListener('wheel', onWheel, { capture: true, passive: false });
     window.addEventListener('dragend', clear, true);
 
@@ -1597,7 +1599,9 @@ export function DriveSidebar({
       document.removeEventListener('dragenter', onDragEnter, true);
       document.removeEventListener('drop', onDrop, true);
       document.removeEventListener('pointermove', onPointerMove, true);
+      document.removeEventListener('mousemove', onPointerMove as any, true);
       document.removeEventListener('pointerup', onPointerUp, true);
+      document.removeEventListener('mouseup', onPointerUp, true);
       document.removeEventListener('wheel', onWheel, true);
       window.removeEventListener('dragend', clear, true);
     };
