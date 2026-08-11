@@ -1130,6 +1130,8 @@ export function DriveSidebar({
     let loadMoreCool = 0;
     /** Fractional px accumulator — smooth sub-pixel crawl at low speeds */
     let scrollCarry = 0;
+    /** Inertial velocity state for silken smooth acceleration & deceleration */
+    let currentSpeed = 0;
 
     const canScroll = (el: HTMLElement, dir: 'up' | 'down') => {
       if (dir === 'up') return el.scrollTop > 1;
@@ -1212,7 +1214,10 @@ export function DriveSidebar({
         targetRect = navRect || side;
       }
 
-      if (!primaryTarget || !targetRect) return;
+      if (!primaryTarget || !targetRect) {
+        currentSpeed = currentSpeed * 0.7;
+        return;
+      }
 
       // Upper 40% and Lower 40% edge zones for early, smooth gradient detection
       const edgeZone = Math.max(70, Math.floor(targetRect.height * 0.40));
@@ -1227,20 +1232,27 @@ export function DriveSidebar({
         dist = (targetRect.top + edgeZone) - y;
       }
 
-      if (!dir) return;
+      if (!dir) {
+        currentSpeed = currentSpeed * 0.65;
+        return;
+      }
 
-      // Turbo Lightning Speed Ramp: 12px/frame start up to 300px/frame over bottommost visible card item
+      // Target speed calculation (10px to 96px/frame max)
       const ratio = Math.max(0.0, dist / edgeZone);
-      const step = Math.min(300, Math.floor(12 + Math.pow(ratio, 1.2) * 288));
+      const targetStep = Math.min(96, Math.floor(10 + Math.pow(ratio, 1.3) * 86));
+
+      // Inertial Smooth Damping (EMA Lerp 0.22): silken smooth acceleration & deceleration without teleporting
+      currentSpeed = currentSpeed + (targetStep - currentSpeed) * 0.22;
+      const activeStep = Math.max(1, Math.round(currentSpeed));
 
       // Execute cascade scroll: try primaryTarget first, then fallback to navEl
       if (canScroll(primaryTarget, dir)) {
-        applyScroll(primaryTarget, dir, step);
+        applyScroll(primaryTarget, dir, activeStep);
         if (dir === 'down' && primaryTarget === chatEl) {
           tryLoadMore(chatEl);
         }
       } else if (navEl && primaryTarget !== navEl && canScroll(navEl, dir)) {
-        applyScroll(navEl, dir, step);
+        applyScroll(navEl, dir, activeStep);
       }
     };
 
