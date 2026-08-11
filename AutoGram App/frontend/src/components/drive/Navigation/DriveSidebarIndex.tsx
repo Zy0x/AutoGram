@@ -1134,6 +1134,11 @@ export function DriveSidebar({
     let currentSpeed = 0;
     /** Cooldown timestamp to pause auto-scroll while user is actively turning mouse wheel */
     let wheelScrollUntil = 0;
+    /**
+     * Speed to resume from after wheel cooldown expires.
+     * Prevents RAF from abruptly re-accelerating from 0 after a wheel session.
+     */
+    let speedAfterWheel = 0;
 
     const canScroll = (el: HTMLElement, dir: 'up' | 'down') => {
       if (dir === 'up') return el.scrollTop > 1;
@@ -1192,10 +1197,18 @@ export function DriveSidebar({
      * - Quadratic curve (^2) for natural progressive feel without late-zone explosion
      */
     const performDragAutoScroll = (_x: number, y: number) => {
-      // Pause auto-scroll while user is actively turning mouse wheel
+      // Pause auto-scroll while user is actively turning mouse wheel.
+      // Instead of hard-resetting to 0, decay gradually so that when
+      // cooldown expires the speed re-enters smoothly from speedAfterWheel.
       if (Date.now() < wheelScrollUntil) {
-        currentSpeed = 0;
+        currentSpeed = currentSpeed * 0.80;
         return;
+      }
+      // Cooldown just expired: seed currentSpeed from the preserved snapshot
+      // so auto-scroll doesn't restart from a dead stop (avoids the "jolt")
+      if (speedAfterWheel > 0) {
+        currentSpeed = Math.max(currentSpeed, speedAfterWheel);
+        speedAfterWheel = 0;
       }
       const side = sidebarRef.current?.getBoundingClientRect();
       if (!side) return;
@@ -1483,6 +1496,14 @@ export function DriveSidebar({
     };
 
     // Direct Wheel Scroll during drag (Mouse wheel & Trackpad support)
+    // Conflict-free design:
+    //   1. Normalize deltaMode so pixel / line / page all feel the same
+    //   2. Adaptive cooldown: short for slow scroll, longer for fast flicks
+    //   3. Do NOT update lastY from wheel — RAF must keep using the real drag Y
+    //      so it doesn't mis-trigger auto-scroll after wheel finishes
+    //   4. Save speedAfterWheel so RAF re-enters smoothly (no jump from 0)
+    //   5. Set currentSpeed = 0 inside RAF only — not here — to avoid the
+    //      one-frame flash where both wheel and RAF both mutate scrollTop
     const onWheel = (e: WheelEvent) => {
       const isDragging =
         isPointerDriveDragActive() ||
@@ -1498,8 +1519,10 @@ export function DriveSidebar({
       if (!side) return;
       if (e.clientX < side.left - 24 || e.clientX > side.right + 24) return;
 
-      lastX = e.clientX;
-      lastY = e.clientY;
+      // NOTE: intentionally NOT updating lastX/lastY here.
+      // Wheel position ≠ drag ghost position. If we update lastY, the RAF loop
+      // will think the drag cursor moved to the wheel's Y coordinate and may
+      // start/stop auto-scroll in the wrong direction right after wheel ends.
       hasPointer = true;
 
       const chatEl = chatListRef.current;
@@ -1524,11 +1547,39 @@ export function DriveSidebar({
 
       if (target) {
         e.preventDefault();
-        wheelScrollUntil = Date.now() + 450;
-        currentSpeed = 0;
-        const delta = e.deltaY;
-        target.scrollTop = Math.max(0, Math.min(target.scrollHeight - target.clientHeight, target.scrollTop + delta));
-        if (delta > 0 && target === chatEl) {
+
+        // Normalize delta across deltaMode (PIXEL=0, LINE=1, PAGE=2)
+        let pixelDelta: number;
+        switch (e.deltaMode) {
+          case WheelEvent.DOM_DELTA_LINE:
+            // 1 line ≈ 28px (matches browser default line height)
+            pixelDelta = e.deltaY * 28;
+            break;
+          case WheelEvent.DOM_DELTA_PAGE:
+            // 1 page = clientHeight
+            pixelDelta = e.deltaY * (target.clientHeight * 0.85);
+            break;
+          default:
+            // DOM_DELTA_PIXEL — use raw value but cap at ±300 to prevent trackpad flicks
+            pixelDelta = Math.sign(e.deltaY) * Math.min(Math.abs(e.deltaY), 300);
+        }
+
+        // Adaptive cooldown: fast flick → longer pause to let inertia settle
+        // Slow nudge → shorter pause so auto-scroll resumes quickly
+        const absDelta = Math.abs(pixelDelta);
+        const cooldown = absDelta > 120 ? 600 : absDelta > 40 ? 380 : 220;
+        const resumeAt = Date.now() + cooldown;
+        wheelScrollUntil = resumeAt;
+
+        // Snapshot current speed so RAF re-enters smoothly after cooldown
+        // (speed decays to ~speedAfterWheel value during wheel session)
+        speedAfterWheel = currentSpeed * 0.4;
+
+        target.scrollTop = Math.max(
+          0,
+          Math.min(target.scrollHeight - target.clientHeight, target.scrollTop + pixelDelta)
+        );
+        if (pixelDelta > 0 && target === chatEl) {
           tryLoadMore(chatEl);
         }
         const key = hit(e.clientX, e.clientY);
