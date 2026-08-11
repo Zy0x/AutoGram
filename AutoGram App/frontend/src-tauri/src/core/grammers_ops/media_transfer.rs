@@ -169,21 +169,42 @@ async fn try_recover_album_from_history(
 /// relying on nearby chat history. Telegram returns `updateMessageID`
 /// entries keyed by the exact random IDs used for this commit.
 fn map_album_random_ids(random_ids: &[i64], updates: tl::enums::Updates) -> Vec<Option<i64>> {
-    let updates = match updates {
+    let updates_list = match updates {
         tl::enums::Updates::Updates(value) => value.updates,
         tl::enums::Updates::Combined(value) => value.updates,
         _ => Vec::new(),
     };
-    let by_random_id: HashMap<i64, i64> = updates
-        .into_iter()
-        .filter_map(|update| match update {
-            tl::enums::Update::MessageId(value) => Some((value.random_id, i64::from(value.id))),
-            _ => None,
-        })
-        .collect();
+    let mut by_random_id: HashMap<i64, i64> = HashMap::new();
+    let mut ordered_message_ids: Vec<i64> = Vec::new();
+
+    for update in updates_list {
+        match update {
+            tl::enums::Update::MessageId(value) => {
+                by_random_id.insert(value.random_id, i64::from(value.id));
+            }
+            tl::enums::Update::NewMessage(value) => {
+                if let tl::enums::Message::Message(msg) = value.message {
+                    ordered_message_ids.push(i64::from(msg.id));
+                }
+            }
+            tl::enums::Update::NewChannelMessage(value) => {
+                if let tl::enums::Message::Message(msg) = value.message {
+                    ordered_message_ids.push(i64::from(msg.id));
+                }
+            }
+            _ => {}
+        }
+    }
+
     random_ids
         .iter()
-        .map(|random_id| by_random_id.get(random_id).copied())
+        .enumerate()
+        .map(|(idx, random_id)| {
+            by_random_id
+                .get(random_id)
+                .copied()
+                .or_else(|| ordered_message_ids.get(idx).copied())
+        })
         .collect()
 }
 
