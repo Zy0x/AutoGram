@@ -1137,10 +1137,10 @@ export function DriveSidebar({
      * Depth 0 (just entered edge band) → crawl; depth 1 (extreme edge / past edge) → fast.
      * Ease-in power curve keeps most of the band slow; only the last portion ramps.
      */
-    // Super-charged ultra-fast edge scroll (24px to 96px per frame)
-    const edgeStep = (depth01: number) => {
-      const d = Math.max(0, Math.min(1, depth01));
-      return 24 + Math.floor(Math.pow(d, 0.6) * 72);
+    // Progressive quadratic edge acceleration curve (10px to 160px per frame)
+    const edgeStep = (depthRatio: number) => {
+      const d = Math.max(0, depthRatio);
+      return Math.min(160, Math.floor(10 + Math.pow(d, 2.2) * 110));
     };
 
     const canScroll = (el: HTMLElement, dir: 'up' | 'down') => {
@@ -1305,65 +1305,65 @@ export function DriveSidebar({
             const stepAt = (depth: number) => edgeStep(depth);
             const folders = folderStackRef.current?.getBoundingClientRect();
             const chat = chatListRef.current?.getBoundingClientRect();
-            // Wider & more sensitive edge bands inside both lists for rapid up/down scroll while DnD
-            const drivesBand = Math.max(70, Math.min(110, Math.floor((folders?.height || 140) * 0.45)));
-            const chatBand = Math.max(80, Math.min(130, Math.floor((chat?.height || 180) * 0.45)));
-            const overFoldersStrict = !!folders && lastY >= folders.top - 12 && lastY <= folders.bottom + 12;
-            const overChatStrict = !!chat && lastY >= chat.top - 12 && lastY <= chat.bottom + 12;
+            // Progressive edge bands inside both lists with quadratic edge proximity acceleration
+            const drivesBand = Math.max(80, Math.min(140, Math.floor((folders?.height || 140) * 0.48)));
+            const chatBand = Math.max(90, Math.min(160, Math.floor((chat?.height || 180) * 0.48)));
+            const overFoldersStrict = !!folders && lastY >= folders.top - 16 && lastY <= folders.bottom + 16;
+            const overChatStrict = !!chat && lastY >= chat.top - 16 && lastY <= chat.bottom + 16;
 
-            // 1. Strict containment over Chats list -> cascadeScroll (inner first, then nav)
+            // 1. Strict containment over Chats list -> progressive quadratic edge scroll
             if (overChatStrict && chat) {
               if (lastY > chat.bottom - chatBand) {
-                const depth = Math.min(1, Math.max(0.2, (lastY - (chat.bottom - chatBand)) / (chatBand * 0.6)));
-                cascadeScroll('down', stepAt(depth));
+                const d = (lastY - (chat.bottom - chatBand)) / chatBand;
+                cascadeScroll('down', stepAt(d));
               } else if (lastY < chat.top + chatBand) {
-                const depth = Math.min(1, Math.max(0.2, (chat.top + chatBand - lastY) / (chatBand * 0.6)));
-                cascadeScroll('up', stepAt(depth));
+                const d = (chat.top + chatBand - lastY) / chatBand;
+                cascadeScroll('up', stepAt(d));
               } else if (lastY < refR.top + edge) {
-                const depth = Math.min(1, Math.max(0.2, (refR.top + edge - lastY) / edge));
-                cascadeScroll('up', stepAt(depth));
+                const d = (refR.top + edge - lastY) / edge;
+                cascadeScroll('up', stepAt(d));
               } else if (lastY > refR.bottom - edge) {
-                const depth = Math.min(1, Math.max(0.2, (lastY - (refR.bottom - edge)) / edge));
-                cascadeScroll('down', stepAt(depth));
+                const d = (lastY - (refR.bottom - edge)) / edge;
+                cascadeScroll('down', stepAt(d));
               }
             }
-            // 2. Strict containment over Drives list -> cascadeScroll (inner first, then nav)
+            // 2. Strict containment over Drives list -> progressive quadratic edge scroll
             else if (overFoldersStrict && folders) {
               if (lastY > folders.bottom - drivesBand) {
-                const depth = Math.min(1, Math.max(0.2, (lastY - (folders.bottom - drivesBand)) / (drivesBand * 0.6)));
-                cascadeScroll('down', stepAt(depth));
+                const d = (lastY - (folders.bottom - drivesBand)) / drivesBand;
+                cascadeScroll('down', stepAt(d));
               } else if (lastY < folders.top + drivesBand) {
-                const depth = Math.min(1, Math.max(0.2, (folders.top + drivesBand - lastY) / (drivesBand * 0.6)));
-                cascadeScroll('up', stepAt(depth));
+                const d = (folders.top + drivesBand - lastY) / drivesBand;
+                cascadeScroll('up', stepAt(d));
               } else if (lastY < refR.top + edge) {
-                const depth = Math.min(1, Math.max(0.2, (refR.top + edge - lastY) / edge));
-                cascadeScroll('up', stepAt(depth));
+                const d = (refR.top + edge - lastY) / edge;
+                cascadeScroll('up', stepAt(d));
               } else if (lastY > refR.bottom - edge) {
-                const depth = Math.min(1, Math.max(0.2, (lastY - (refR.bottom - edge)) / edge));
-                cascadeScroll('down', stepAt(depth));
+                const d = (lastY - (refR.bottom - edge)) / edge;
+                cascadeScroll('down', stepAt(d));
               }
             }
             // 3. Pointer outside specific lists -> fall back to outer sidebar edge scrolling
             else if (lastY < refR.top + edge && lastY > refR.top - outside) {
-              const depth = lastY < refR.top ? 1 : Math.min(1, (refR.top + edge - lastY) / edge);
-              cascadeScroll('up', stepAt(depth));
+              const d = (refR.top + edge - lastY) / edge;
+              cascadeScroll('up', stepAt(d));
             } else if (lastY > refR.bottom - edge && lastY < refR.bottom + outside) {
-              const depth = lastY > refR.bottom ? 1 : Math.min(1, (lastY - (refR.bottom - edge)) / edge);
-              cascadeScroll('down', stepAt(depth));
+              const d = (lastY - (refR.bottom - edge)) / edge;
+              cascadeScroll('down', stepAt(d));
             } else {
               // Gap between sections fallback
               if (chat && lastY < chat.top + chatBand && lastY > chat.top - outside) {
-                const depth = Math.min(1, Math.max(0.2, (chat.top + chatBand - lastY) / chatBand));
-                cascadeScroll('up', stepAt(depth));
+                const d = (chat.top + chatBand - lastY) / chatBand;
+                cascadeScroll('up', stepAt(d));
               } else if (chat && lastY > chat.bottom - chatBand && lastY < chat.bottom + outside) {
-                const depth = Math.min(1, Math.max(0.2, (lastY - (chat.bottom - chatBand)) / chatBand));
-                cascadeScroll('down', stepAt(depth));
+                const d = (lastY - (chat.bottom - chatBand)) / chatBand;
+                cascadeScroll('down', stepAt(d));
               } else if (folders && lastY > folders.bottom - drivesBand && lastY < folders.bottom + outside) {
-                const depth = Math.min(1, Math.max(0.2, (lastY - (folders.bottom - drivesBand)) / drivesBand));
-                cascadeScroll('down', stepAt(depth));
+                const d = (lastY - (folders.bottom - drivesBand)) / drivesBand;
+                cascadeScroll('down', stepAt(d));
               } else if (folders && lastY < folders.top + drivesBand && lastY > folders.top - outside) {
-                const depth = Math.min(1, Math.max(0.2, (folders.top + drivesBand - lastY) / drivesBand));
-                cascadeScroll('up', stepAt(depth));
+                const d = (folders.top + drivesBand - lastY) / drivesBand;
+                cascadeScroll('up', stepAt(d));
               }
             }
           }
