@@ -2187,8 +2187,8 @@ body.td-dnd-internal .td-drawer-backdrop {
 
 .td-sidebar.media-dnd .td-recents {
   margin-bottom: 4px;
-  flex: 0 0 auto !important;
-  max-height: 76px;
+  flex: 1 1 auto !important;
+  max-height: none !important;
   overflow-x: hidden;
   overflow-y: auto;
   position: relative;
