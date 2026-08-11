@@ -2060,20 +2060,23 @@ select.input-field option:checked,
 .td-folder-nav.is-drop-mode .td-folder-row.dnd-ready:hover:not(.is-drop-over):not(.is-drop-invalid) {
   background: var(--td-hover);
 }
-/* Drop target only — high precision active state with smooth glow & scaling */
+/* Drop target only — 100% unclipped inset border & silky smooth transition */
 .td-folder-row.is-drop-over,
 .td-folder-nav.is-drop-mode .td-folder-row.is-drop-over,
 .td-sidebar.media-dnd .td-recent-chip.is-drop-over,
+.td-sidebar.media-dnd .td-recent-chip.is-drop-over.td-folder-row,
 .td-quick-item.is-drop-over {
-  background: color-mix(in srgb, var(--td-primary, #3b82f6) 24%, var(--td-surface)) !important;
-  border: 1.5px solid var(--td-primary, #3b82f6) !important;
-  box-shadow: 0 0 14px color-mix(in srgb, var(--td-primary, #3b82f6) 40%, transparent) !important;
+  background: color-mix(in srgb, var(--td-primary, #3b82f6) 22%, var(--td-surface)) !important;
+  border: 1px solid transparent !important;
+  outline: 2px solid var(--td-primary, #3b82f6) !important;
+  outline-offset: -2px !important;
+  box-shadow: inset 0 0 14px color-mix(in srgb, var(--td-primary, #3b82f6) 35%, transparent) !important;
   color: var(--td-text) !important;
-  font-weight: 700;
+  font-weight: 700 !important;
   opacity: 1 !important;
   filter: none !important;
-  transform: scale(1.012);
-  transition: background 70ms ease, border-color 70ms ease, box-shadow 70ms ease, transform 70ms ease !important;
+  transform: none !important;
+  transition: background 120ms cubic-bezier(0.16, 1, 0.3, 1), outline 120ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 120ms cubic-bezier(0.16, 1, 0.3, 1) !important;
   z-index: 10 !important;
   position: relative;
 }
@@ -2225,8 +2228,10 @@ body.td-dnd-internal .td-drawer-backdrop {
 }
 .td-sidebar.media-dnd .td-recent-chip.is-drop-over,
 .td-sidebar.media-dnd .td-recent-chip.is-drop-over.td-folder-row {
-  background: color-mix(in srgb, #22c55e 30%, var(--td-surface)) !important;
-  border-color: #4ade80 !important;
+  background: color-mix(in srgb, var(--td-primary, #3b82f6) 22%, var(--td-surface)) !important;
+  outline: 2px solid var(--td-primary, #3b82f6) !important;
+  outline-offset: -2px !important;
+  box-shadow: inset 0 0 14px color-mix(in srgb, var(--td-primary, #3b82f6) 35%, transparent) !important;
   color: var(--td-text) !important;
   opacity: 1 !important;
   filter: none !important;
@@ -20529,7 +20534,7 @@ input[type="search"]::-webkit-search-decoration {
   display: flex !important;
   flex-direction: column !important;
   gap: 2px !important;
-  padding: 0 2px !important;
+  padding: 3px 4px !important;
 }
 
 /* ------------------------------------------------------------------
@@ -22398,6 +22403,12 @@ input[type="search"]::-webkit-search-decoration {
 }
 
 @media (min-width: 540px) {
+  .td-recents-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+    padding: 3px 4px !important;
+  }
   .ag-launcher-session-grid {
     grid-template-columns: repeat(auto-fit, minmax(min(21.25rem, 100%), 1fr)) !important;
   }
