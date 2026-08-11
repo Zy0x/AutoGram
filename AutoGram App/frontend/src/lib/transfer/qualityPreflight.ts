@@ -59,6 +59,7 @@ export interface QualityPreflightRequest {
   captionOverflowPolicy: 'truncate_with_warning' | 'fail' | 'split';
   destinationId: string;
   topicId?: number | null;
+  preventStickerConversion?: boolean;
 }
 
 export type TransferDuplicateChoice = 'skip' | 'upload';

@@ -1580,11 +1580,30 @@ fn run_orchestrated_grammers(
             .filter(|t| *t > 0)
     });
 
-    let album_quality_mode = rec
+    let prevent_sticker = option_bool(
+        &rec.options,
+        "prevent_sticker_conversion",
+        "preventStickerConversion",
+        false,
+    );
+
+    let raw_quality_mode = rec
         .options
         .get("quality_mode")
         .and_then(|v| v.as_str())
         .or_else(|| rec.options.get("qualityMode").and_then(|v| v.as_str()));
+
+    let album_quality_mode_str = if prevent_sticker {
+        format!("{}_PREVENT_STICKER", raw_quality_mode.unwrap_or("SEIMBANG"))
+    } else {
+        raw_quality_mode.unwrap_or("").to_string()
+    };
+    let album_quality_mode = if album_quality_mode_str.is_empty() {
+        None
+    } else {
+        Some(album_quality_mode_str.as_str())
+    };
+
     let album_hardware_override = rec
         .options
         .get("reencodeHardware")
@@ -1612,11 +1631,19 @@ fn run_orchestrated_grammers(
     }
 
     let quality_mode = if feature_flags.transfer_v4 {
-        rec.options
+        let base_m = rec
+            .options
             .get("quality_mode")
             .and_then(|v| v.as_str())
             .or_else(|| rec.options.get("qualityMode").and_then(|v| v.as_str()))
-            .map(|s| s.to_string())
+            .unwrap_or("");
+        if prevent_sticker {
+            Some(format!("{base_m}_PREVENT_STICKER"))
+        } else {
+            Some(base_m.to_string())
+        }
+    } else if prevent_sticker {
+        Some("PREVENT_STICKER".into())
     } else {
         Some("ORIGINAL".into())
     };

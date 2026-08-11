@@ -494,6 +494,60 @@ pub fn extract_video_thumbnail(path: &str) -> Option<PathBuf> {
     }
 }
 
+/// Losslessly transcode WebP / sticker formats to PNG with 1:1 pixel fidelity
+/// to prevent `400: MEDIA_EMPTY` RPC errors when sending Telegram photo albums.
+pub fn transcode_sticker_media_to_image_lossless(path: &str) -> Result<PathBuf, String> {
+    let p = Path::new(path);
+    if !p.is_file() {
+        return Err(format!("file not found: {path}"));
+    }
+    let Some(ff) = find_ffmpeg_binary() else {
+        return Err("ffmpeg binary not found for WebP conversion".into());
+    };
+
+    let out_png = unique_name("transcoded_photo", "png");
+
+    let mut cmd = Command::new(&ff);
+    cmd.args([
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-nostdin",
+        "-y",
+        "-i",
+        path,
+        "-vframes",
+        "1",
+        "-c:v",
+        "png",
+        "-compression_level",
+        "1",
+    ]);
+    cmd.arg(&out_png);
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000);
+    }
+
+    let output = cmd.output().map_err(|e| format!("spawn ffmpeg failed: {e}"))?;
+    if output.status.success() && out_png.is_file() {
+        let sz = fs::metadata(&out_png).map(|m| m.len()).unwrap_or(0);
+        if sz > 0 {
+            tg_log::info(
+                BACKEND,
+                "webp_transcode_png_ok",
+                format!("input={path} output={} size={sz}", out_png.display()),
+            );
+            return Ok(out_png);
+        }
+    }
+
+    let err_msg = String::from_utf8_lossy(&output.stderr);
+    Err(format!("ffmpeg webp conversion failed: {err_msg}"))
+}
+
 /// Optional lean reencode for Telegram-friendly MP4 (when quality_mode suggests it).
 /// Returns the original path when the selected mode safely permits passthrough;
 /// strict encoder strategies return an error when their contract cannot be met.
@@ -529,14 +583,7 @@ pub fn maybe_reencode_for_telegram(
         return Ok(path.to_string());
     }
     let mode = quality_mode.unwrap_or("").to_ascii_uppercase();
-    // ORIGINAL / DOCUMENT / empty → skip
-    if mode.is_empty()
-        || mode.contains("ORIGINAL")
-        || mode.contains("DOCUMENT")
-        || mode.contains("SKIP")
-    {
-        return Ok(path.to_string());
-    }
+
     let p = Path::new(path);
     if !p.is_file() {
         return Ok(path.to_string());
@@ -546,6 +593,41 @@ pub fn maybe_reencode_for_telegram(
         .and_then(|s| s.to_str())
         .unwrap_or("")
         .to_ascii_lowercase();
+
+    // 1:1 Lossless conversion for WebP / Sticker media if prevent_sticker_conversion is requested
+    // or if sending in photo albums where Telegram API rejects raw .webp with MEDIA_EMPTY (400)
+    if ext == "webp" || ext == "tgs" {
+        let prevent_sticker = mode.contains("PREVENT_STICKER")
+            || mode.contains("PHOTO")
+            || mode.contains("VISUAL")
+            || mode.contains("SEIMBANG")
+            || mode.contains("HEMAT")
+            || mode.contains("JELAS")
+            || mode.contains("HIGH")
+            || mode.contains("LOW")
+            || mode.contains("AUTO");
+
+        if prevent_sticker {
+            match transcode_sticker_media_to_image_lossless(path) {
+                Ok(out_path) => {
+                    return Ok(out_path.display().to_string());
+                }
+                Err(e) => {
+                    tg_log::warn(BACKEND, "webp_transcode_failed", e);
+                }
+            }
+        }
+    }
+
+    // ORIGINAL / DOCUMENT / empty → skip video reencode
+    if mode.is_empty()
+        || mode.contains("ORIGINAL")
+        || mode.contains("DOCUMENT")
+        || mode.contains("SKIP")
+    {
+        return Ok(path.to_string());
+    }
+
     let is_video = matches!(
         ext.as_str(),
         "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp"

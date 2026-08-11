@@ -4974,6 +4974,7 @@ function MediaDriveDesktop({
         captionOverflowPolicy: transferSettings.captionOverflowPolicy,
         destinationId: studioChatIdFromFolder(uploadPeer),
         topicId: uploadTopicId,
+        preventStickerConversion: transferSettings.preventStickerConversion,
       });
       const decision = await reviewPreflight(report);
       if (!decision.approved) {
