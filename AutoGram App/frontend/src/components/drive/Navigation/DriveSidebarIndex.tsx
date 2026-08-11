@@ -1137,10 +1137,10 @@ export function DriveSidebar({
      * Depth 0 (just entered edge band) → crawl; depth 1 (extreme edge / past edge) → fast.
      * Ease-in power curve keeps most of the band slow; only the last portion ramps.
      */
-    // Ultra-fast & responsive vertical edge scroll (12px to 54px per frame)
+    // Super-charged ultra-fast edge scroll (24px to 96px per frame)
     const edgeStep = (depth01: number) => {
       const d = Math.max(0, Math.min(1, depth01));
-      return 12 + Math.floor(Math.pow(d, 0.75) * 42);
+      return 24 + Math.floor(Math.pow(d, 0.6) * 72);
     };
 
     const canScroll = (el: HTMLElement, dir: 'up' | 'down') => {
@@ -1151,7 +1151,7 @@ export function DriveSidebar({
     const applyScroll = (el: HTMLElement, dir: 'up' | 'down', step: number) => {
       // Accumulate fractional steps so slow speeds don't quantize to 0
       scrollCarry += Math.max(0, step);
-      if (scrollCarry < 0.35) return;
+      if (scrollCarry < 0.1) return;
       const px = scrollCarry;
       scrollCarry = 0;
       noteSidebarDragScroll(px);
