@@ -2571,6 +2571,15 @@ export function DriveSidebar({
               ref={chatFoldersScrollerRef}
               className={`td-chat-folders-row${chatFoldersScrolled ? ' is-scrolled' : ''}`}
               onScroll={(event) => setChatFoldersScrolled(event.currentTarget.scrollLeft > 14)}
+              onWheel={(e) => {
+                const el = e.currentTarget;
+                const delta = e.deltaY !== 0 ? e.deltaY : e.deltaX;
+                if (delta !== 0) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  el.scrollLeft += delta * 0.85;
+                }
+              }}
             >
               <button
                 type="button"
