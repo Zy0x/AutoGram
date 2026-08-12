@@ -1250,34 +1250,41 @@ export function DriveSidebar({
         return;
       }
 
-      // Uniform 150px edge zone: auto-scroll triggers instantly near top/bottom
-      const EDGE_ZONE = 150;
+      // Precision Deadband + Edge Hot-Zone Controller:
+      // Visible list items in the main body (between top+28px and bottom-40px)
+      // are 100% hoverable without premature auto-scrolling.
+      // Auto-scrolling ONLY triggers when pushing into top/bottom hot-zones.
+      const HOT_ZONE_BOTTOM = 40;
+      const HOT_ZONE_TOP = 28;
       let dir: 'up' | 'down' | null = null;
       let dist = 0;
+      let maxDepth = 120;
 
-      if (y > targetRect.bottom - EDGE_ZONE) {
+      if (y >= targetRect.bottom - HOT_ZONE_BOTTOM) {
         dir = 'down';
-        dist = y - (targetRect.bottom - EDGE_ZONE);
-      } else if (y < targetRect.top + EDGE_ZONE) {
+        dist = y - (targetRect.bottom - HOT_ZONE_BOTTOM);
+        maxDepth = 120;
+      } else if (y <= targetRect.top + HOT_ZONE_TOP) {
         dir = 'up';
-        dist = (targetRect.top + EDGE_ZONE) - y;
+        dist = (targetRect.top + HOT_ZONE_TOP) - y;
+        maxDepth = 100;
       }
 
       if (!dir) {
-        // Fast, smooth deceleration when cursor leaves edge zone mid-drag
-        currentSpeed = currentSpeed * 0.70;
+        // Cursor is over visible list items (e.g. RANDOM LAVENDER):
+        // Immediately halt auto-scroll so hover selection is 100% precise!
+        currentSpeed = currentSpeed * 0.40;
+        if (currentSpeed < 0.1) currentSpeed = 0;
         return;
       }
 
-      // Linear Uniform Speed Scaling (60px..150px per frame):
-      // - Entry speed is immediately fast & usable (60px/frame = ~3,600px/s) -> NO sluggish entry crawl
-      // - Linear scale (ratio * 90) -> NO non-linear speed spikes or sudden "jolts" at the extreme edge
-      // - Max speed (150px/frame = ~9,000px/s) -> ultra-fast scrolling across 100+ items
-      const ratio = Math.max(0.0, Math.min(1.0, dist / EDGE_ZONE));
-      const targetStep = 60 + ratio * 90; // 60px..150px linear
+      // Turbo progressive curve when pushing into the edge hot-zone:
+      // Starts at 24px/frame (~1,440px/s) and ramps up to 260px/frame (~15,600px/s).
+      const ratio = Math.max(0.0, Math.min(1.0, dist / maxDepth));
+      const targetStep = 24 + Math.pow(ratio, 1.1) * 236; // 24px..260px
 
-      // Direct Lerp 0.60 for instant, smooth speed response
-      currentSpeed = currentSpeed + (targetStep - currentSpeed) * 0.60;
+      // Ultra-Fast EMA Lerp 0.75: instant turbo response in edge hot-zones
+      currentSpeed = currentSpeed + (targetStep - currentSpeed) * 0.75;
       const activeStep = Math.max(1.0, currentSpeed);
 
       // Execute cascade scroll: try primaryTarget first, then fallback to navEl
