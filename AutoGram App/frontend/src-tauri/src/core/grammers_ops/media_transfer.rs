@@ -49,6 +49,7 @@ async fn try_recover_album_from_history(
     chat_id: &str,
     topic_id: Option<i64>,
     expected_indices: &[usize],
+    min_timestamp: i64,
 ) -> Option<Vec<UploadStepResult>> {
     let expected_count = expected_indices.len();
     let mut best_recovered: Option<Vec<UploadStepResult>> = None;
@@ -67,23 +68,18 @@ async fn try_recover_album_from_history(
             BACKEND,
             "album_recovery_check_start",
             format!(
-                "Checking history for chat={chat_id} topic={:?} expected_count={expected_count} attempt={attempt}",
+                "Checking history for chat={chat_id} topic={:?} expected_count={expected_count} attempt={attempt} min_ts={min_timestamp}",
                 topic_id
             ),
         );
 
         let mut iter = client.iter_messages(peer).limit(50);
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs() as i64;
-
         let mut recent_msgs = Vec::new();
 
         while let Ok(Some(msg)) = iter.next().await {
             let msg_date = msg.date().timestamp();
-            // Accept messages from last 10 minutes
-            if now - msg_date > 600 {
+            // Accept only messages sent during or after this batch attempt (min_timestamp - 10s margin for clock skew)
+            if msg_date < min_timestamp - 10 {
                 break;
             }
             recent_msgs.push(msg);
@@ -768,6 +764,10 @@ pub fn upload_prepared_album_blocking_with_app(
                 let schedule_date = schedule_date
                     .filter(|value| *value > 0)
                     .and_then(|value| i32::try_from(value).ok());
+                let batch_start_ts = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs() as i64;
                 let sent = client
                     .invoke(&tl::functions::messages::SendMultiMedia {
                         silent,
@@ -805,6 +805,7 @@ pub fn upload_prepared_album_blocking_with_app(
                             &chat,
                             topic_id,
                             &expected_indices,
+                            batch_start_ts,
                         )
                         .await
                         {
@@ -854,6 +855,7 @@ pub fn upload_prepared_album_blocking_with_app(
                         &chat,
                         topic_id,
                         &expected_indices,
+                        batch_start_ts,
                     )
                     .await
                     {

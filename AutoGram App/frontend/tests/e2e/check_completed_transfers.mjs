@@ -1,7 +1,4 @@
-import path from 'path';
-
-async function clickBottomQueue() {
-  console.log('=== CLICKING BOTTOM MODAL ACTION BUTTON ===');
+async function checkHistory() {
   const listRes = await fetch('http://127.0.0.1:9230/json/list');
   const targets = await listRes.json();
   const pageTarget = targets.find(t => t.type === 'page' && t.url.includes('1420')) || targets.find(t => t.type === 'page');
@@ -49,26 +46,23 @@ async function clickBottomQueue() {
     return res?.result?.value;
   }
 
-  const clickRes = await evaluate(`
-    (function() {
-      const btns = Array.from(document.querySelectorAll('button'));
-      const bottomBtn = btns.find(b => b.innerText.includes('Queue ') || b.innerText.includes('skip '));
-      if (bottomBtn && bottomBtn instanceof HTMLElement) {
-        bottomBtn.click();
-        return { success: true, text: bottomBtn.innerText };
+  const res = await evaluate(`
+    (async function() {
+      if (window.__TAURI_INTERNALS__) {
+        try {
+          const list = await window.__TAURI_INTERNALS__.invoke('studio_list_transfers', {});
+          return list;
+        } catch (e) {
+          return { error: String(e) };
+        }
       }
-      const primaryBtn = document.querySelector('.td-modal-footer button.primary, [role="dialog"] .primary');
-      if (primaryBtn && primaryBtn instanceof HTMLElement) {
-        primaryBtn.click();
-        return { success: true, text: primaryBtn.innerText };
-      }
-      return { success: false, buttons: btns.map(b => b.innerText) };
+      return null;
     })()
   `);
 
-  console.log('Click Bottom Queue Result:', clickRes);
+  console.log('Recent Transfer Runs:', JSON.stringify(res, null, 2));
   ws.close();
   process.exit(0);
 }
 
-clickBottomQueue();
+checkHistory();

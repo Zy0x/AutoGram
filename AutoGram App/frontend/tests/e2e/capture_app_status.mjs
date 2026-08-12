@@ -3,7 +3,7 @@ import path from 'path';
 async function capture() {
   const listRes = await fetch('http://127.0.0.1:9230/json/list');
   const targets = await listRes.json();
-  const pageTarget = targets.find(t => t.type === 'page');
+  const pageTarget = targets.find(t => t.type === 'page' && t.url.includes('1420')) || targets.find(t => t.type === 'page');
 
   if (!pageTarget || !pageTarget.webSocketDebuggerUrl) {
     console.error('Could not find active WebView2 page target in CDP.');

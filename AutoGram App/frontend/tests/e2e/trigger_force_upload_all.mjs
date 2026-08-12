@@ -5,22 +5,19 @@ const SOURCE_DIR = 'E:\\Data\\Upload\\Upload Fix\\New folder';
 const TARGET_PEER_ID = -1003214112048;
 const TARGET_TOPIC_ID = 9929;
 
-async function run() {
-  console.log('=== RAW CDP TOPIC UPLOAD TEST ===');
-  
+async function forceUploadAllToTopic() {
+  console.log('=== FORCE RESEND ALL 43 FILES AS 10-ALBUM GRIDS TO TOPIC 9929 ===');
+
   // 1. Fetch CDP target
   const listRes = await fetch('http://127.0.0.1:9230/json/list');
   const targets = await listRes.json();
-  const pageTarget = targets.find(t => t.type === 'page');
+  const pageTarget = targets.find(t => t.type === 'page' && t.url.includes('1420')) || targets.find(t => t.type === 'page');
 
   if (!pageTarget || !pageTarget.webSocketDebuggerUrl) {
     console.error('Could not find active WebView2 page target in CDP.');
     process.exit(1);
   }
 
-  console.log('Found page target:', pageTarget.title, pageTarget.url);
-
-  // 2. Connect via native WebSocket
   const ws = new WebSocket(pageTarget.webSocketDebuggerUrl);
 
   let msgId = 0;
@@ -42,8 +39,6 @@ async function run() {
     ws.onerror = reject;
   });
 
-  console.log('Connected to WebView2 CDP WebSocket!');
-
   function sendCDP(method, params = {}) {
     return new Promise((resolve) => {
       const id = ++msgId;
@@ -61,8 +56,8 @@ async function run() {
     return res?.result?.value;
   }
 
-  // 3. Configure Transfer Settings
-  console.log('\n⚙️ Configuring Transfer Settings:');
+  // 2. Set Transfer Settings (Prevent Sticker Conversion = true, Album Group Size = 10)
+  console.log('⚙️ Configuring Transfer Settings:');
   console.log('  • Prevent Converting to Sticker (Auto Transcode): ON (true)');
   console.log('  • Album Group Size: 10 Media/Album');
   console.log('  • Group As Album: ON (true)');
@@ -89,18 +84,17 @@ async function run() {
     })()
   `);
 
-  // 4. Verify Files
   const files = fs.readdirSync(SOURCE_DIR)
     .filter(f => f.endsWith('.webp') || f.endsWith('.png') || f.endsWith('.jpg') || f.endsWith('.jpeg'))
     .sort();
 
-  console.log(`Found ${files.length} media files in source folder.`);
+  console.log(`Found ${files.length} files in ${SOURCE_DIR}`);
   const absoluteFilePaths = files.map(f => path.join(SOURCE_DIR, f));
 
-  // 5. Trigger Upload to Group & Topic
-  console.log(`\n🚀 Triggering Upload of ${files.length} files to Group ${TARGET_PEER_ID}, Topic ${TARGET_TOPIC_ID} ...`);
-
+  // 3. Trigger upload
+  console.log(`🚀 Triggering upload to Group ${TARGET_PEER_ID}, Topic ${TARGET_TOPIC_ID} ...`);
   const filePathsJson = JSON.stringify(absoluteFilePaths);
+
   const triggerRes = await evaluate(`
     (async function() {
       if (typeof window.__autogram_runUpload !== 'function') {
@@ -121,61 +115,53 @@ async function run() {
 
   console.log('Upload trigger result:', triggerRes);
 
-  await new Promise(r => setTimeout(r, 2000));
+  // 4. Wait for Quality Preflight Modal to render
+  await new Promise(r => setTimeout(r, 2500));
 
-  // 6. Preflight Modal: force all duplicate choices to 'upload' (Send anyway) so all 43 items are queued!
-  const clickedPreflight = await evaluate(`
+  // 5. Click "Send all duplicates" / "Send anyway for all" on preflight modal header, then click primary confirm!
+  console.log('👉 Overriding duplicate choices: Selecting "Send anyway" for ALL files...');
+  const overrideRes = await evaluate(`
     (function() {
-      const uploadChoices = Array.from(document.querySelectorAll('.td-preflight-choice.is-upload'));
-      uploadChoices.forEach(btn => {
-        if (btn instanceof HTMLElement) btn.click();
-      });
+      // Find 'Send all duplicates' chip button
+      const allBtns = Array.from(document.querySelectorAll('button'));
+      const chipBtns = Array.from(document.querySelectorAll('.td-preflight-banner button.td-chip-btn, .td-preflight-banner button'));
+      
+      // Try chip button first
+      if (chipBtns.length >= 2 && chipBtns[1] instanceof HTMLElement) {
+        chipBtns[1].click();
+      } else {
+        // Fallback: click every individual 'Send anyway' / 'is-upload' choice button
+        const uploadChoices = Array.from(document.querySelectorAll('.td-preflight-choice.is-upload'));
+        uploadChoices.forEach(btn => {
+          if (btn instanceof HTMLElement) btn.click();
+        });
+      }
 
+      return { headerClicked: true };
+    })()
+  `);
+
+  console.log('Header override action:', overrideRes);
+
+  await new Promise(r => setTimeout(r, 1500));
+
+  // 6. Click bottom primary confirm button (Queue 43, skip 0)
+  const confirmRes = await evaluate(`
+    (function() {
       const confirmBtn = document.querySelector('.td-preflight-foot button.td-btn-primary, .td-modal-footer button.primary');
       if (confirmBtn && confirmBtn instanceof HTMLElement) {
         const text = confirmBtn.innerText;
         confirmBtn.click();
-        return { clicked: true, text, overrideCount: uploadChoices.length };
+        return { success: true, text };
       }
-      return { clicked: false };
+      return { success: false };
     })()
   `);
 
-  if (clickedPreflight?.clicked) {
-    console.log('Preflight modal approved:', clickedPreflight.text);
-  }
-
-  await new Promise(r => setTimeout(r, 2000));
-
-  // 7. Monitor Upload Progress
-  console.log('\n📊 Monitoring Topic Upload Progress...');
-  for (let i = 1; i <= 30; i++) {
-    await new Promise(r => setTimeout(r, 2000));
-    const status = await evaluate(`
-      (function() {
-        const modalText = document.querySelector('.td-modal, .td-transfer-manager')?.innerText || document.body.innerText;
-        const items = Array.from(document.querySelectorAll('.td-transfer-row, .td-xfer-item, [data-transfer-id]'));
-        const completedItems = items.filter(el => el.textContent.includes('100%') || el.classList.contains('is-finished') || el.classList.contains('completed')).length;
-        const failedItems = items.filter(el => el.classList.contains('is-failed') || el.textContent.includes('Gagal') || el.textContent.includes('Error') || el.textContent.includes('could not be proven')).length;
-
-        return {
-          doneCount: completedItems,
-          failedCount: failedItems,
-          snippet: modalText.slice(0, 250).replace(/\\n/g, ' '),
-        };
-      })()
-    `);
-
-    console.log(`[${i * 2}s] Done: ${status?.doneCount || 0}, Failed: ${status?.failedCount || 0}. Snippet: ${status?.snippet || ''}`);
-
-    if ((status?.doneCount || 0) + (status?.failedCount || 0) >= 43) {
-      break;
-    }
-  }
+  console.log('Final Preflight Modal Submission:', confirmRes);
 
   ws.close();
-  console.log('\n=== RAW CDP TOPIC UPLOAD TEST COMPLETED ===');
   process.exit(0);
 }
 
-run();
+forceUploadAllToTopic();

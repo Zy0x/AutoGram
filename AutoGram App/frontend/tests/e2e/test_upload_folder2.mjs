@@ -1,26 +1,27 @@
 import fs from 'fs';
 import path from 'path';
 
-const SOURCE_DIR = 'E:\\Data\\Upload\\Upload Fix\\New folder';
+const SOURCE_DIR = 'E:\\Data\\Upload\\Upload Fix\\New Folder 2';
 const TARGET_PEER_ID = -1003214112048;
 const TARGET_TOPIC_ID = 9929;
 
-async function run() {
-  console.log('=== RAW CDP TOPIC UPLOAD TEST ===');
-  
+async function runTestFolder2() {
+  console.log('=== REAL-TIME REMOTE TEST: UPLOAD NEW FOLDER 2 TO TOPIC 9929 ===');
+  console.log(`Source Folder: ${SOURCE_DIR}`);
+  console.log(`Target Destination: Group ID ${TARGET_PEER_ID}, Topic ID ${TARGET_TOPIC_ID}`);
+
   // 1. Fetch CDP target
   const listRes = await fetch('http://127.0.0.1:9230/json/list');
   const targets = await listRes.json();
-  const pageTarget = targets.find(t => t.type === 'page');
+  const pageTarget = targets.find(t => t.type === 'page' && t.url.includes('1420')) || targets.find(t => t.type === 'page');
 
   if (!pageTarget || !pageTarget.webSocketDebuggerUrl) {
     console.error('Could not find active WebView2 page target in CDP.');
     process.exit(1);
   }
 
-  console.log('Found page target:', pageTarget.title, pageTarget.url);
+  console.log('Connected to page target:', pageTarget.title, pageTarget.url);
 
-  // 2. Connect via native WebSocket
   const ws = new WebSocket(pageTarget.webSocketDebuggerUrl);
 
   let msgId = 0;
@@ -42,8 +43,6 @@ async function run() {
     ws.onerror = reject;
   });
 
-  console.log('Connected to WebView2 CDP WebSocket!');
-
   function sendCDP(method, params = {}) {
     return new Promise((resolve) => {
       const id = ++msgId;
@@ -61,7 +60,7 @@ async function run() {
     return res?.result?.value;
   }
 
-  // 3. Configure Transfer Settings
+  // 2. Configure Transfer Settings in LocalStorage
   console.log('\n⚙️ Configuring Transfer Settings:');
   console.log('  • Prevent Converting to Sticker (Auto Transcode): ON (true)');
   console.log('  • Album Group Size: 10 Media/Album');
@@ -89,7 +88,7 @@ async function run() {
     })()
   `);
 
-  // 4. Verify Files
+  // 3. Scan files in New Folder 2
   const files = fs.readdirSync(SOURCE_DIR)
     .filter(f => f.endsWith('.webp') || f.endsWith('.png') || f.endsWith('.jpg') || f.endsWith('.jpeg'))
     .sort();
@@ -97,7 +96,7 @@ async function run() {
   console.log(`Found ${files.length} media files in source folder.`);
   const absoluteFilePaths = files.map(f => path.join(SOURCE_DIR, f));
 
-  // 5. Trigger Upload to Group & Topic
+  // 4. Trigger Upload via window.__autogram_runUpload
   console.log(`\n🚀 Triggering Upload of ${files.length} files to Group ${TARGET_PEER_ID}, Topic ${TARGET_TOPIC_ID} ...`);
 
   const filePathsJson = JSON.stringify(absoluteFilePaths);
@@ -121,61 +120,111 @@ async function run() {
 
   console.log('Upload trigger result:', triggerRes);
 
-  await new Promise(r => setTimeout(r, 2000));
+  await new Promise(r => setTimeout(r, 2500));
 
-  // 6. Preflight Modal: force all duplicate choices to 'upload' (Send anyway) so all 43 items are queued!
-  const clickedPreflight = await evaluate(`
+  // 5. Handle Quality Preflight Modal (Force include all duplicates if any)
+  console.log('👉 Checking Quality Preflight Modal...');
+  const preflightRes = await evaluate(`
     (function() {
-      const uploadChoices = Array.from(document.querySelectorAll('.td-preflight-choice.is-upload'));
-      uploadChoices.forEach(btn => {
-        if (btn instanceof HTMLElement) btn.click();
-      });
+      const banner = document.querySelector('.td-preflight-banner');
+      if (banner) {
+        const chipBtns = Array.from(banner.querySelectorAll('button'));
+        if (chipBtns.length >= 2 && chipBtns[1] instanceof HTMLElement) {
+          chipBtns[1].click();
+        }
+      }
 
       const confirmBtn = document.querySelector('.td-preflight-foot button.td-btn-primary, .td-modal-footer button.primary');
       if (confirmBtn && confirmBtn instanceof HTMLElement) {
         const text = confirmBtn.innerText;
         confirmBtn.click();
-        return { clicked: true, text, overrideCount: uploadChoices.length };
+        return { success: true, text };
       }
-      return { clicked: false };
+
+      const anyQueueBtn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Queue') || b.innerText.includes('skip'));
+      if (anyQueueBtn && anyQueueBtn instanceof HTMLElement) {
+        const text = anyQueueBtn.innerText;
+        anyQueueBtn.click();
+        return { success: true, text };
+      }
+
+      return { success: false };
     })()
   `);
 
-  if (clickedPreflight?.clicked) {
-    console.log('Preflight modal approved:', clickedPreflight.text);
-  }
+  console.log('Preflight submission result:', preflightRes);
 
   await new Promise(r => setTimeout(r, 2000));
 
-  // 7. Monitor Upload Progress
-  console.log('\n📊 Monitoring Topic Upload Progress...');
+  // 6. Monitor transfer progress live
+  console.log('\n📊 Monitoring Live Upload Progress of New Folder 2...');
   for (let i = 1; i <= 30; i++) {
     await new Promise(r => setTimeout(r, 2000));
     const status = await evaluate(`
       (function() {
         const modalText = document.querySelector('.td-modal, .td-transfer-manager')?.innerText || document.body.innerText;
+        const finishedMatches = modalText.match(/(\\d+)\\s*\\/\\s*10\\s+done/i) || modalText.match(/(\\d+)\\s+selesai/i);
+        const doneCount = finishedMatches ? parseInt(finishedMatches[1], 10) : 0;
+
         const items = Array.from(document.querySelectorAll('.td-transfer-row, .td-xfer-item, [data-transfer-id]'));
         const completedItems = items.filter(el => el.textContent.includes('100%') || el.classList.contains('is-finished') || el.classList.contains('completed')).length;
-        const failedItems = items.filter(el => el.classList.contains('is-failed') || el.textContent.includes('Gagal') || el.textContent.includes('Error') || el.textContent.includes('could not be proven')).length;
+        const failedItems = items.filter(el => el.classList.contains('is-failed') || el.textContent.includes('Gagal') || el.textContent.includes('Error')).length;
+
+        const isCompleted = modalText.includes('Completed') || modalText.includes('Selesai') || modalText.includes('10/10 done');
 
         return {
-          doneCount: completedItems,
-          failedCount: failedItems,
+          doneCount: Math.max(doneCount, completedItems),
+          failedItems,
+          isCompleted,
           snippet: modalText.slice(0, 250).replace(/\\n/g, ' '),
         };
       })()
     `);
 
-    console.log(`[${i * 2}s] Done: ${status?.doneCount || 0}, Failed: ${status?.failedCount || 0}. Snippet: ${status?.snippet || ''}`);
+    console.log(`[${i * 2}s] Status: ${status?.doneCount || 0}/10 finished, ${status?.failedItems || 0} failed. Snippet: ${status?.snippet || ''}`);
 
-    if ((status?.doneCount || 0) + (status?.failedCount || 0) >= 43) {
+    if (status?.isCompleted || ((status?.doneCount || 0) + (status?.failedItems || 0) >= 10)) {
+      console.log('\n✅ Frontend Transfer Manager finished!');
       break;
     }
   }
 
+  // 7. Verify SQLite Database & Telegram Server Response via Backend IPC
+  console.log('\n🔍 AUDITING BACKEND SQLITE & TELEGRAM SERVER RESPONSE...');
+  const dbAudit = await evaluate(`
+    (async function() {
+      if (window.__TAURI_INTERNALS__) {
+        try {
+          const list = await window.__TAURI_INTERNALS__.invoke('studio_list_transfers', {});
+          const latest = list && list.length ? list[0] : null;
+          return latest;
+        } catch (e) {
+          return { error: String(e) };
+        }
+      }
+      return null;
+    })()
+  `);
+
+  console.log('\n=== BACKEND AUDIT RESULT ===');
+  if (dbAudit && !dbAudit.error) {
+    console.log(`Transfer ID: ${dbAudit.transferId}`);
+    console.log(`State: ${dbAudit.state}`);
+    console.log(`Done Count: ${dbAudit.doneCount}`);
+    console.log(`Failed Count: ${dbAudit.failedCount}`);
+    console.log('Items Committed to Telegram:');
+    if (Array.isArray(dbAudit.items)) {
+      dbAudit.items.forEach(item => {
+        console.log(`  [Item ${item.index + 1}] file="${path.basename(item.path)}" -> Telegram Message ID: /${item.messageId} (state: ${item.state})`);
+      });
+    }
+  } else {
+    console.log('Backend DB Audit query result:', dbAudit);
+  }
+
   ws.close();
-  console.log('\n=== RAW CDP TOPIC UPLOAD TEST COMPLETED ===');
+  console.log('\n=== REAL-TIME REMOTE TEST NEW FOLDER 2 COMPLETE ===');
   process.exit(0);
 }
 
-run();
+runTestFolder2();
