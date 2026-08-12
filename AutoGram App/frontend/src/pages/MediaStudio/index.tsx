@@ -8281,6 +8281,7 @@ function MediaDriveDesktop({
               setTransferSettings(next);
               saveTransferSettings(next);
               void setSecureTransferSettings(next);
+              void reevaluatePreflight(next);
             }}
             onPreviewFile={(f, opts) => {
               // Keep tools open behind preview so user can resume dups after Esc

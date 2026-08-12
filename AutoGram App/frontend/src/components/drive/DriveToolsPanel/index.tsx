@@ -56,6 +56,7 @@ import {
   searchSettingsRegistry,
   type SearchableSettingItem,
 } from '../Transfers/transferSettingsSearchRegistry';
+import { TransferSettingsWorkspace } from '../Transfers/TransferSettingsWorkspace';
 export type { DriveToolsTab };
 
 /** Prefer keep one file per group (newest or oldest by message id). Rest → delete set. */
@@ -184,9 +185,9 @@ export function DriveToolsPanel({
   onRefreshFiles,
   topicFilter = null,
   isForum = false,
-  transferSettings: _transferSettings,
-  onTransferSettingsChange: _onTransferSettingsChange,
-  transferActive: _transferActive,
+  transferSettings,
+  onTransferSettingsChange,
+  transferActive,
   onPreviewFile,
   onDeleteIds,
   onBulkRename,
@@ -748,6 +749,17 @@ export function DriveToolsPanel({
                 </button>
               </div>
             </div>
+          )}
+
+          {tab === 'settings' && transferSettings && onTransferSettingsChange && (
+            <TransferSettingsWorkspace
+              settings={transferSettings}
+              onChange={onTransferSettingsChange}
+              onClose={onClose}
+              transferActive={transferActive}
+              embedded={true}
+              activeCategory="menu"
+            />
           )}
 
           </main>

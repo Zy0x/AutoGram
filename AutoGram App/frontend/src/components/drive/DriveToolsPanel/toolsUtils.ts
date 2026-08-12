@@ -3,6 +3,7 @@ import {
   Layers,
   Type,
   Filter,
+  Settings2,
 } from 'lucide-react';
 import type { DupGroup } from '../../../lib/telegram';
 
@@ -10,7 +11,8 @@ export type DriveToolsTab =
   | 'dups'
   | 'space'
   | 'rename'
-  | 'filter';
+  | 'filter'
+  | 'settings';
 
 export function smartDeleteIds(groups: DupGroup[], keepNewest: boolean): Set<number> {
   const out = new Set<number>();
@@ -43,6 +45,7 @@ export const TOOL_GROUPS: {
       { id: 'rename', icon: Type },
       { id: 'space', icon: HardDrive },
       { id: 'filter', icon: Filter },
+      { id: 'settings', icon: Settings2 },
     ],
   },
 ];
