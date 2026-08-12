@@ -31,8 +31,6 @@ import {
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import type { DriveChat, DriveFile, DriveFolder, DriveTransferSettings } from '../../../lib/telegram/driveTypes';
 import {
-  DEFAULT_TRANSFER_SETTINGS,
-  clampConcurrency,
   canShowDriveThumb,
   driveFileDisplayName,
   formatDriveBytes,
