@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import {
   AlertTriangle,
@@ -138,7 +139,7 @@ export function TransferPreflightDialog({
     return report?.items.filter((i) => i.transform === 'reencode').length || 0;
   }, [report]);
 
-  if (!report) return null;
+  if (!report || typeof document === 'undefined') return null;
 
   const visibleItems = report.items.slice(0, 100);
   const hiddenCount = Math.max(0, report.items.length - visibleItems.length);
@@ -158,8 +159,8 @@ export function TransferPreflightDialog({
     setExpandedDetails((current) => ({ ...current, [path]: !current[path] }));
   };
 
-  return (
-    <div className={`td-xfer-settings-overlay td-preflight-overlay ${hasStackedModal ? 'has-stacked-modal' : ''}`} role="presentation">
+  const node = (
+    <div className={`td-preflight-overlay ${hasStackedModal ? 'has-stacked-modal' : ''}`} role="presentation">
       <section className="td-preflight-dialog" role="dialog" aria-modal="true" aria-labelledby="transfer-preflight-title">
         <header className="td-preflight-head">
           <div className="td-xfer-settings-title">
@@ -457,4 +458,6 @@ export function TransferPreflightDialog({
       </section>
     </div>
   );
+
+  return createPortal(node, document.body);
 }

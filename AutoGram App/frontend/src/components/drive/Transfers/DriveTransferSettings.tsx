@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import type { DriveTransferSettings } from '../../../lib/telegram/driveTypes';
 import { TransferSettingsWorkspace, type SubMenuCategory } from './TransferSettingsWorkspace';
 
@@ -12,6 +13,7 @@ interface DriveTransferSettingsProps {
 
 /**
  * Standalone Portal/Modal wrapper around canonical TransferSettingsWorkspace.
+ * Portaled directly to document.body (matching DriveToolsPanel pattern 1:1).
  */
 export function DriveTransferSettings({
   open = true,
@@ -21,8 +23,9 @@ export function DriveTransferSettings({
   transferActive,
   initialCategory = 'menu',
 }: DriveTransferSettingsProps) {
-  if (open === false) return null;
-  return (
+  if (open === false || typeof document === 'undefined') return null;
+
+  const node = (
     <div className="td-xfer-settings-overlay" role="presentation" onClick={onClose}>
       <div
         className="td-xfer-settings-dialog"
@@ -41,4 +44,6 @@ export function DriveTransferSettings({
       </div>
     </div>
   );
+
+  return createPortal(node, document.body);
 }
