@@ -1148,6 +1148,10 @@ fn upload_prepared_album_blocking_with_app_legacy(
                     }
                 }
 
+                let batch_start_ts = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs() as i64;
                 let sent_res = client.send_album(peer, medias).await;
                 let sent = match sent_res {
                     Ok(s) => s,
@@ -1167,6 +1171,7 @@ fn upload_prepared_album_blocking_with_app_legacy(
                             &chat,
                             topic_id,
                             &expected_indices,
+                            batch_start_ts,
                         )
                         .await
                         {
@@ -1214,6 +1219,7 @@ fn upload_prepared_album_blocking_with_app_legacy(
                         &chat,
                         topic_id,
                         &expected_indices,
+                        batch_start_ts,
                     )
                     .await
                     {
