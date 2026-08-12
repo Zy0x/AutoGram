@@ -1170,8 +1170,15 @@ export function DriveSidebar({
         setOverKey(null);
         return;
       }
+      // During active high-speed auto-scrolling (currentSpeed > 2.5px/frame),
+      // suppress state churn from rows rapidly flying past under stationary cursor.
+      // This prevents React re-render stutter and stops visual hover flicker/glitches.
+      if (currentSpeed > 2.5) {
+        setOverKey(null);
+        return;
+      }
       const now = Date.now();
-      if (now - lastHoverTime > 45 || !key) {
+      if (now - lastHoverTime > 40 || !key) {
         lastHoverTime = now;
         setOverKey((prev) => (prev === key ? prev : key));
         if (key) setLastHoverDropKey(key);
@@ -1189,12 +1196,11 @@ export function DriveSidebar({
     };
 
     /**
-     * Optimized Drag Auto-Scroll Controller
-     * - Fixed 80px edge zones (not proportional) so scroll starts predictably near edges
-     * - Speed range: 2px (entry) → 28px (deep edge) per RAF frame → smooth, no sudden jumps
-     * - Lerp 0.30: fast enough to feel responsive, slow enough to avoid teleporting
-     * - Decay 0.88 when leaving zone: gradual wind-down, no abrupt stop mid-drag
-     * - Quadratic curve (^2) for natural progressive feel without late-zone explosion
+     * High-Speed Smooth Drag Auto-Scroll Controller
+     * - Wide 140px edge zone for effortless, natural entry
+     * - Speed range: 12px (entry) → 96px (deep edge) per RAF frame (~5760px/s)
+     * - Fast EMA Lerp 0.50: instant speed buildup without frame drops
+     * - OverKey state pause during active scroll eliminates DOM hover churn & glitches
      */
     const performDragAutoScroll = (_x: number, y: number) => {
       // Pause auto-scroll while user is actively turning mouse wheel.
@@ -1244,9 +1250,8 @@ export function DriveSidebar({
         return;
       }
 
-      // Expanded 120px edge zone: starts scrolling earlier as cursor approaches edge.
-      // Prevents user from having to drag all the way off the bottom/top.
-      const EDGE_ZONE = 120;
+      // Wide 140px edge zone: auto-scroll starts effortlessly as cursor approaches edge
+      const EDGE_ZONE = 140;
       let dir: 'up' | 'down' | null = null;
       let dist = 0;
 
@@ -1264,13 +1269,13 @@ export function DriveSidebar({
         return;
       }
 
-      // Responsive progressive curve: starts smoothly at 8px/frame (480px/s),
-      // ramps up dynamically to 64px/frame (~3840px/s) deep in the edge zone.
+      // Fast progressive curve: starts smoothly at 12px/frame (720px/s),
+      // ramps up dynamically to 96px/frame (~5760px/s) deep in the edge zone.
       const ratio = Math.max(0.0, Math.min(1.0, dist / EDGE_ZONE));
-      const targetStep = 8 + Math.pow(ratio, 1.4) * 56; // 8px..64px
+      const targetStep = 12 + Math.pow(ratio, 1.2) * 84; // 12px..96px
 
-      // Fast EMA Lerp 0.45: quick responsiveness without jerky teleporting
-      currentSpeed = currentSpeed + (targetStep - currentSpeed) * 0.45;
+      // Fast EMA Lerp 0.50: ultra-responsive speed acceleration
+      currentSpeed = currentSpeed + (targetStep - currentSpeed) * 0.50;
       const activeStep = Math.max(0.5, currentSpeed);
 
       // Execute cascade scroll: try primaryTarget first, then fallback to navEl
