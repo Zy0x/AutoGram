@@ -31,4 +31,10 @@ Dokumen ini berfungsi sebagai pelengkap untuk aturan pengembangan proyek AutoGra
    - **DILARANG HARDIKOD** teks/string dalam bahasa Indonesia maupun Inggris langsung di dalam file `.tsx` / `.ts`.
    - Setiap penambahan key di `id/*.json` **WAJIB** secara sinkron menambahkan key yang sama di `en/*.json` (100% key parity).
    - Gunakan hook `const { t } = useTranslation();` dari `react-i18next` di seluruh komponen UI.
+8. **Remote E2E & Executable Desktop Control Standard (Mandatory):**
+   - Setiap kali pengguna meminta untuk melakukan "remote", "remote test", atau pengujian otomatisasi pada AutoGram, agen **WAJIB** mengendalikan langsung proses executable native (`frontend.exe`) via CDP (Chrome DevTools Protocol pada WebView2), **BUKAN** browser standalone.
+   - **Mekanisme Peluncuran & Remote Attach:**
+     - Set `$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=9230"` saat mengaktifkan `frontend.exe`.
+     - Hubungkan alat otomatisasi/Playwright menggunakan `chromium.connectOverCDP('http://127.0.0.1:9230')`.
+   - Hal ini menjamin seluruh fungsionalitas backend Rust (IPC), SQLite, dan perilaku native aplikasi dieksekusi dan diuji secara real-time.
 </RULE[project_autogram]>

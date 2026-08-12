@@ -51,8 +51,17 @@ async fn try_recover_album_from_history(
     expected_indices: &[usize],
 ) -> Option<Vec<UploadStepResult>> {
     let expected_count = expected_indices.len();
+    let mut best_recovered: Option<Vec<UploadStepResult>> = None;
     for attempt in 1..=5 {
-        tokio::time::sleep(Duration::from_millis(1500)).await;
+        // Progressive backoff: give Telegram more time to index large albums
+        let delay_ms = match attempt {
+            1 => 1500,
+            2 => 2000,
+            3 => 3000,
+            4 => 4000,
+            _ => 5000,
+        };
+        tokio::time::sleep(Duration::from_millis(delay_ms)).await;
 
         tg_log::info(
             BACKEND,
@@ -121,31 +130,7 @@ async fn try_recover_album_from_history(
 
         if !best_group_mids.is_empty() {
             best_group_mids.sort();
-            let mut out = Vec::new();
             let recovered_count = best_group_mids.len();
-            for (i, &mid) in best_group_mids.iter().enumerate() {
-                out.push(UploadStepResult {
-                    status: "done".into(),
-                    message_id: Some(mid),
-                    error: None,
-                    index: expected_indices[i],
-                    backend: Some(BACKEND.into()),
-                });
-            }
-            for i in recovered_count..expected_count {
-                out.push(UploadStepResult {
-                    status: "failed".into(),
-                    message_id: None,
-                    error: Some(format!(
-                        "Item ke-{} tidak diterima oleh Telegram dalam paket album ini ({} dari {} berhasil).",
-                        i + 1,
-                        recovered_count,
-                        expected_count
-                    )),
-                    index: expected_indices[i],
-                    backend: Some(BACKEND.into()),
-                });
-            }
             tg_log::info(
                 BACKEND,
                 "album_recovered_by_grouped_id",
@@ -154,7 +139,54 @@ async fn try_recover_album_from_history(
                     recovered_count, expected_count, attempt
                 ),
             );
-            return Some(out);
+
+            // Perfect match — return immediately
+            if recovered_count == expected_count {
+                let mut out = Vec::new();
+                for (i, &mid) in best_group_mids.iter().enumerate() {
+                    out.push(UploadStepResult {
+                        status: "done".into(),
+                        message_id: Some(mid),
+                        error: None,
+                        index: expected_indices[i],
+                        backend: Some(BACKEND.into()),
+                    });
+                }
+                return Some(out);
+            }
+
+            // Partial match — keep best result so far, retry for stragglers
+            let prev_best = best_recovered.as_ref().map_or(0, |v| {
+                v.iter().filter(|r| r.status == "done").count()
+            });
+            if recovered_count > prev_best {
+                let mut out = Vec::new();
+                for (i, &mid) in best_group_mids.iter().enumerate() {
+                    out.push(UploadStepResult {
+                        status: "done".into(),
+                        message_id: Some(mid),
+                        error: None,
+                        index: expected_indices[i],
+                        backend: Some(BACKEND.into()),
+                    });
+                }
+                for i in recovered_count..expected_count {
+                    out.push(UploadStepResult {
+                        status: "failed".into(),
+                        message_id: None,
+                        error: Some(format!(
+                            "Item ke-{} tidak diterima oleh Telegram dalam paket album ini ({} dari {} berhasil).",
+                            i + 1,
+                            recovered_count,
+                            expected_count
+                        )),
+                        index: expected_indices[i],
+                        backend: Some(BACKEND.into()),
+                    });
+                }
+                best_recovered = Some(out);
+            }
+            // Continue loop — more items may appear in later attempts
         }
 
         // Never claim arbitrary recent media as this commit. A false positive
@@ -162,7 +194,7 @@ async fn try_recover_album_from_history(
         // Telegram grouped_id is accepted for automatic reconciliation.
     }
 
-    None
+    best_recovered
 }
 
 /// Resolve the message IDs returned by `messages.sendMultiMedia` without

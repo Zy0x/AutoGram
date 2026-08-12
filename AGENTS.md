@@ -78,6 +78,14 @@ Do not claim done until:
 - **100% Key Parity:** Every key added to `id/*.json` MUST immediately have an identical matching key in `en/*.json`.
 - **Hook Pattern:** Always consume translations via `const { t } = useTranslation();` from `react-i18next`.
 
+## Remote E2E & Executable Desktop Control Standard (Mandatory)
+
+- When asked to perform "remote", remote testing, or remote control on AutoGram, agents **MUST** target the actual running native executable (`frontend.exe`) via CDP over WebView2, **NOT** standalone browser testing.
+- **Launch / Attach Mechanism:**
+  - Set `$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=9230"` and launch `frontend.exe` (or connect to an active CDP port if already running).
+  - Connect Playwright or CDP tools using `chromium.connectOverCDP('http://127.0.0.1:9230')`.
+- This ensures all IPC Rust backend features, SQLite state, and native desktop behaviors are directly tested and controlled in real-time.
+
 ## Safety & language
 
 - Prefer **murid** over **siswa** in product copy when Indonesian is used.

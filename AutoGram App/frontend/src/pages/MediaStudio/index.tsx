@@ -4928,6 +4928,20 @@ function MediaDriveDesktop({
       setError(t('ui.generated.path_file_atau_url_tidak_valid_coba_lagi_drop_da_63586d7'));
       return;
     }
+
+    // Dedup guard: reject identical path sets enqueued within 2s (drop race protection)
+    const pathsKey = cleanPaths.slice().sort().join('|');
+    const nowMs = Date.now();
+    const isDuplicateTask = transferQueueRef.current.some(
+      (tsk) =>
+        tsk.kind === 'upload' &&
+        nowMs - parseInt(tsk.id.split('_')[1] || '0', 10) < 2000 &&
+        tsk.paths?.slice().sort().join('|') === pathsKey
+    );
+    if (isDuplicateTask) {
+      console.warn('[AutoGram] duplicate upload task rejected (drop race guard)');
+      return;
+    }
     const uploadPeer =
       opts && 'targetFolderId' in (opts || {}) ? (opts!.targetFolderId as number | null) : peerId;
     const destLabel =
@@ -7532,9 +7546,12 @@ function MediaDriveDesktop({
     if (dropLockRef.current) {
       return;
     }
+    // Acquire lock BEFORE any async wait to prevent native handlers from racing
+    dropLockRef.current = true;
     setMediaDragActive(false);
     endDriveDrag();
     if (!creds) {
+      dropLockRef.current = false;
       return setError(t('ui.generated.select_session_first_8e5fb74'));
     }
     // Immediate paths from File.path / cache
@@ -7545,9 +7562,9 @@ function MediaDriveDesktop({
     }
     if (!paths.length) {
       // Still empty — Tauri drop handler may still fire with paths; don't error here
+      dropLockRef.current = false;
       return;
     }
-    dropLockRef.current = true;
     clearLastOsPaths();
     try {
       // Prefer pending sidebar target (HTML5 drop on row before Tauri fires)
@@ -7743,12 +7760,8 @@ function MediaDriveDesktop({
         };
 
         unsubs.push(await getCurrentWebview().onDragDropEvent(onNativeDrag as any));
-        try {
-          const { getCurrentWindow } = await import('@tauri-apps/api/window');
-          unsubs.push(await getCurrentWindow().onDragDropEvent(onNativeDrag as any));
-        } catch {
-          /* window API optional */
-        }
+        // Note: getCurrentWindow().onDragDropEvent removed — on Tauri 2 (Windows)
+        // it fires the identical event as getCurrentWebview(), causing double execution.
         unlisten = () => {
           unsubs.forEach((u) => {
             try {
