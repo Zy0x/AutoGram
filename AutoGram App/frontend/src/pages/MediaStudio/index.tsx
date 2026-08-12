@@ -8014,8 +8014,8 @@ function MediaDriveDesktop({
             }}
             onRefresh={refreshFiles}
             onOpenTransferSettings={() => {
-              setToolsTab('upload');
-              setToolsOpen(true);
+              setToolsOpen(false);
+              setTransferSettingsOpen(true);
             }}
             onSwitchMode={onSwitchMode}
             onBackToLauncher={onBackToLauncher}
