@@ -2428,7 +2428,14 @@ export function TransferSettingsWorkspace({
                         max={10}
                         value={draft.albumGroupSize || 10}
                         disabled={!!transferActive}
-                        onChange={(e) => patch({ albumGroupSize: Number(e.target.value) })}
+                        onChange={(e) => {
+                          const size = Number(e.target.value);
+                          patch({
+                            albumGroupSize: size,
+                            // Auto-switch packing mode: custom when < 10, maximum when at 10
+                            albumPacking: size < 10 ? 'custom' : 'maximum',
+                          });
+                        }}
                       />
                       <div className="td-slider-value-bar">
                         <span className="td-slider-val">{draft.albumGroupSize || 10} {t('ui.generated.media_album_214c464')}</span>
