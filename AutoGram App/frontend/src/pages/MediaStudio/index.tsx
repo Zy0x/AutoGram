@@ -8554,6 +8554,9 @@ function MediaDriveDesktop({
         creds={creds}
         onConfirm={closePreflight}
         onCancel={() => closePreflight(cancelledPreflightDecision)}
+        onOpenSettings={() => {
+          setTransferSettingsOpen(true);
+        }}
       />
       <DownloadAllZipModal
         open={zipPreflight.open}

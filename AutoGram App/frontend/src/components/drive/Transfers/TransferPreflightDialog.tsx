@@ -11,6 +11,7 @@ import {
   Info,
   RefreshCw,
   Send,
+  Settings,
   Video,
   X,
 } from 'lucide-react';
@@ -96,9 +97,10 @@ type Props = {
   creds: DriveCredentials | null;
   onConfirm: (decision: PreflightReviewDecision) => void;
   onCancel: () => void;
+  onOpenSettings?: () => void;
 };
 
-export function TransferPreflightDialog({ report, creds, onConfirm, onCancel }: Props) {
+export function TransferPreflightDialog({ report, creds, onConfirm, onCancel, onOpenSettings }: Props) {
   const { t } = useTranslation();
   const [choices, setChoices] = useState<Record<string, TransferDuplicateChoice>>({});
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
@@ -280,6 +282,21 @@ export function TransferPreflightDialog({ report, creds, onConfirm, onCancel }: 
                   {activePopover === 'album' && t('speedtest.preflight_info_disable_album')}
                 </p>
               </div>
+              {onOpenSettings && (
+                <div className="td-preflight-popover-foot">
+                  <button
+                    type="button"
+                    className="td-btn-primary td-preflight-popover-btn"
+                    onClick={() => {
+                      setActivePopover(null);
+                      onOpenSettings();
+                    }}
+                  >
+                    <Settings size={14} aria-hidden />
+                    <span>{t('speedtest.preflight_info_open_settings')}</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
