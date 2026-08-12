@@ -12393,9 +12393,42 @@ body:has(.app-layout-drive-focus),
   gap: 8px;
 }
 .td-xfer-settings-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 16000;
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  z-index: 16000 !important;
+  background: rgba(0, 0, 0, 0.65) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px !important;
+  box-sizing: border-box !important;
+  overflow: auto !important;
+}
+.td-xfer-settings-dialog {
+  width: min(1180px, calc(100vw - 32px)) !important;
+  min-width: min(300px, calc(100vw - 32px)) !important;
+  max-width: min(1180px, calc(100vw - 32px)) !important;
+  height: min(90vh, 90dvh, 840px) !important;
+  max-height: min(90vh, 90dvh, 840px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: linear-gradient(150deg, rgba(20, 25, 34, 0.98) 0%, rgba(13, 16, 23, 0.98) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+  overflow: hidden !important;
+  color: #f1f5f9 !important;
+  box-sizing: border-box !important;
+}
+.td-xfer-settings-dialog .td-xfer-single-workspace {
+  background: transparent !important;
+  border-radius: 16px !important;
+  height: 100% !important;
 }
 .td-preflight-overlay {
   position: fixed;
