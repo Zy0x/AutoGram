@@ -247,16 +247,14 @@ export function TransferSettingsWorkspace({
   const { t } = useTranslation();
   const searchInputId = useId();
 
-  // Navigation state: direct sub-menu category (never default to intermediate menu)
-  const [activeTab, setActiveTab] = useState<WorkspaceTabState>(() => propsActiveCategory || 'upload');
+  // Navigation state: allow 'menu' (main menu overview) or specific sub-menu category
+  const [activeTab, setActiveTab] = useState<WorkspaceTabState>(() => propsActiveCategory || 'menu');
 
   useEffect(() => {
     if (propsActiveCategory) {
       setActiveTab(propsActiveCategory);
-    } else if (activeTab === 'menu') {
-      setActiveTab('upload');
     }
-  }, [propsActiveCategory, activeTab]);
+  }, [propsActiveCategory]);
   const [internalSettingsQuery, setInternalSettingsQuery] = useState('');
 
   const settingsQuery = propsSearchQuery !== undefined ? propsSearchQuery : internalSettingsQuery;

@@ -1,5 +1,5 @@
 import type { DriveTransferSettings } from '../../../lib/telegram/driveTypes';
-import { TransferSettingsWorkspace } from './TransferSettingsWorkspace';
+import { TransferSettingsWorkspace, type SubMenuCategory } from './TransferSettingsWorkspace';
 
 interface DriveTransferSettingsProps {
   open?: boolean;
@@ -7,6 +7,7 @@ interface DriveTransferSettingsProps {
   onChange: (next: DriveTransferSettings) => void;
   onClose: () => void;
   transferActive?: boolean;
+  initialCategory?: SubMenuCategory | 'menu';
 }
 
 /**
@@ -18,6 +19,7 @@ export function DriveTransferSettings({
   onChange,
   onClose,
   transferActive,
+  initialCategory = 'menu',
 }: DriveTransferSettingsProps) {
   if (open === false) return null;
   return (
@@ -34,7 +36,7 @@ export function DriveTransferSettings({
           onClose={onClose}
           transferActive={transferActive}
           embedded={false}
-          activeCategory="upload"
+          activeCategory={initialCategory === 'menu' ? undefined : initialCategory}
         />
       </div>
     </div>
