@@ -864,6 +864,11 @@ function MediaDriveDesktop({
       console.warn('Failed to re-evaluate preflight after settings change:', err);
     }
   }, [preflightReport]);
+
+  // Default expanded; only collapse if user previously chose so
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(LS_COLLAPSE) === '1');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  /** Mobile drawer: always open at full panel width (never icon-rail 72px). */
   const openDrawer = useCallback(() => {
     setCollapsed(false);
     setDrawerOpen(true);
