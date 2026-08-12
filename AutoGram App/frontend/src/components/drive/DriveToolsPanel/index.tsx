@@ -53,7 +53,6 @@ import {
 } from '../../../lib/telegram';
 import { FileTypeIcon } from '../Explorer/FileTypeIcon';
 import { TOOL_GROUPS, type DriveToolsTab } from './toolsUtils';
-import { TransferSettingsWorkspace } from '../Transfers/TransferSettingsWorkspace';
 import {
   buildSearchRegistry,
   searchSettingsRegistry,
@@ -95,13 +94,14 @@ function ToolTabIntro({
   selectedCount: number;
 }) {
   const { t } = useTranslation();
-  const key = tab;
+  const item = TOOL_GROUPS.flatMap((group) => group.tabs).find((candidate) => candidate.id === tab);
+  const Icon = item?.icon || SlidersHorizontal;
   return (
     <section className="td-tools-tab-intro">
       <div className="td-tools-tab-intro-icon"><Icon size={20} /></div>
       <div className="td-tools-tab-intro-copy">
-        <h3>{t(`speedtest.tools_tab_${key}`)}</h3>
-        <p>{t(`speedtest.tools_tab_${key}_desc`)}</p>
+        <h3>{t(`speedtest.tools_tab_${tab}`)}</h3>
+        <p>{t(`speedtest.tools_tab_${tab}_desc`)}</p>
       </div>
       <div className="td-tools-tab-intro-meta">
         <span title={locationLabel}>{locationLabel}</span>
