@@ -1250,8 +1250,8 @@ export function DriveSidebar({
         return;
       }
 
-      // Turbo 180px edge zone: auto-scrolling triggers immediately as cursor gets near top/bottom
-      const EDGE_ZONE = 180;
+      // Uniform 150px edge zone: auto-scroll triggers instantly near top/bottom
+      const EDGE_ZONE = 150;
       let dir: 'up' | 'down' | null = null;
       let dist = 0;
 
@@ -1264,18 +1264,20 @@ export function DriveSidebar({
       }
 
       if (!dir) {
-        // Fast deceleration when cursor leaves edge zone mid-drag
-        currentSpeed = currentSpeed * 0.75;
+        // Fast, smooth deceleration when cursor leaves edge zone mid-drag
+        currentSpeed = currentSpeed * 0.70;
         return;
       }
 
-      // Turbo progressive curve: starts at 24px/frame (~1,440px/s) on entry,
-      // ramps up rapidly to 260px/frame (~15,600px/s) deep in the edge zone.
+      // Linear Uniform Speed Scaling (60px..150px per frame):
+      // - Entry speed is immediately fast & usable (60px/frame = ~3,600px/s) -> NO sluggish entry crawl
+      // - Linear scale (ratio * 90) -> NO non-linear speed spikes or sudden "jolts" at the extreme edge
+      // - Max speed (150px/frame = ~9,000px/s) -> ultra-fast scrolling across 100+ items
       const ratio = Math.max(0.0, Math.min(1.0, dist / EDGE_ZONE));
-      const targetStep = 24 + Math.pow(ratio, 1.1) * 236; // 24px..260px
+      const targetStep = 60 + ratio * 90; // 60px..150px linear
 
-      // Ultra-Fast EMA Lerp 0.75: near-instant speed response
-      currentSpeed = currentSpeed + (targetStep - currentSpeed) * 0.75;
+      // Direct Lerp 0.60 for instant, smooth speed response
+      currentSpeed = currentSpeed + (targetStep - currentSpeed) * 0.60;
       const activeStep = Math.max(1.0, currentSpeed);
 
       // Execute cascade scroll: try primaryTarget first, then fallback to navEl
