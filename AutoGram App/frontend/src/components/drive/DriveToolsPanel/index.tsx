@@ -758,7 +758,6 @@ export function DriveToolsPanel({
               onClose={onClose}
               transferActive={transferActive}
               embedded={true}
-              activeCategory="menu"
             />
           )}
 
