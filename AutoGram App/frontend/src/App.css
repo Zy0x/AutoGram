@@ -12392,6 +12392,11 @@ body:has(.app-layout-drive-focus),
   align-items: center;
   gap: 8px;
 }
+.td-xfer-settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 16000;
+}
 .td-preflight-overlay {
   position: fixed;
   inset: 0;

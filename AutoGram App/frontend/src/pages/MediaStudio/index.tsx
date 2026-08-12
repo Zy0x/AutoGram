@@ -834,6 +834,31 @@ function MediaDriveDesktop({
     resolve?.(decision);
   }, []);
 
+  const reevaluatePreflight = useCallback(async (nextSettings: TransferSettingsState) => {
+    if (!preflightReport || !creds) return;
+    try {
+      const cleanPaths = preflightReport.items.map((i) => i.sourcePath);
+      const updated = await runQualityPreflight({
+        session: creds.session,
+        apiId: Number(creds.apiId) || 0,
+        apiHash: creds.apiHash,
+        paths: cleanPaths,
+        qualityMode: nextSettings.qualityMode,
+        presentationOverride: nextSettings.presentationOverride,
+        groupAsAlbum: nextSettings.groupAsAlbum,
+        oversizeAction: nextSettings.oversizeAction,
+        globalCaption: (nextSettings.globalCaption || '').trim() || undefined,
+        captionOverflowPolicy: nextSettings.captionOverflowPolicy,
+        destinationId: preflightReport.destinationId,
+        topicId: preflightReport.topicId,
+        preventStickerConversion: nextSettings.preventStickerConversion,
+      });
+      setPreflightReport(updated);
+    } catch (err) {
+      console.warn('Failed to re-evaluate preflight after settings change:', err);
+    }
+  }, [preflightReport, creds]);
+
   // Default expanded; only collapse if user previously chose so
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(LS_COLLAPSE) === '1');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -8269,6 +8294,7 @@ function MediaDriveDesktop({
               setTransferSettings(next);
               saveTransferSettings(next);
               void setSecureTransferSettings(next);
+              void reevaluatePreflight(next);
             }}
           />
 
