@@ -1160,21 +1160,48 @@ fn run_intelligent_album(
                 spoiler: item.spoiler,
             })
             .collect();
-        match grammers_ops::upload_prepared_album_blocking_with_app(
-            sessions,
-            delivery_identity,
-            &rec.chat_id,
-            &upload_files,
-            group.as_document,
-            silent,
-            topic_id,
-            app.cloned(),
-            Some(tid.to_string()),
-            compatibility_key.schedule_at,
-            compatibility_key.send_as.clone(),
-            Some(random_ids),
-            Some(commit_id.clone()),
-        ) {
+        let mut album_attempts = 0usize;
+        let album_exec_res = loop {
+            album_attempts += 1;
+            let res = grammers_ops::upload_prepared_album_blocking_with_app(
+                sessions,
+                delivery_identity,
+                &rec.chat_id,
+                &upload_files,
+                group.as_document,
+                silent,
+                topic_id,
+                app.cloned(),
+                Some(tid.to_string()),
+                compatibility_key.schedule_at,
+                compatibility_key.send_as.clone(),
+                Some(random_ids.clone()),
+                Some(commit_id.clone()),
+            );
+            match res {
+                Ok(ok_res) => break Ok(ok_res),
+                Err(err) => {
+                    let is_network = grammers_ops::is_pool_or_transport_error(&err) || err.retryable();
+                    if is_network && album_attempts <= 3 {
+                        let wait_secs = err.flood_wait_secs().unwrap_or((album_attempts * 2) as u32);
+                        tg_log::warn(
+                            "studio_orch",
+                            "album_upload_network_retry",
+                            format!(
+                                "Album upload attempt {}/3 failed with network error ({:?}): {}. Disconnecting socket pool and retrying in {}s...",
+                                album_attempts, err.code(), err.user_message(), wait_secs
+                            ),
+                        );
+                        grammers_ops::disconnect_cached_session(&delivery_identity.session);
+                        std::thread::sleep(std::time::Duration::from_secs(wait_secs as u64));
+                        continue;
+                    }
+                    break Err(err);
+                }
+            }
+        };
+
+        match album_exec_res {
             Ok(results) => {
                 let mut message_ids = Vec::new();
                 let mut all_committed = true;
@@ -1249,7 +1276,7 @@ fn run_intelligent_album(
             }
             Err(error) => {
                 let message = format!(
-                    "Album commit could not be proven; automatic single retry is disabled: {}",
+                    "Album commit could not be proven: {}",
                     error.user_message()
                 );
                 if first_error.is_none() {
@@ -1287,7 +1314,50 @@ fn run_intelligent_album(
         }
         let _ = job_queue::update_item(tid, item.index, ItemState::Uploading, None, None);
         let as_document = item.key.payload_class != PayloadClass::NativeVisual;
-        match grammers_ops::upload_file_blocking_topic_with_delivery(
+
+        let mut single_attempts = 0usize;
+        let single_exec_res = loop {
+            single_attempts += 1;
+            let res = grammers_ops::upload_file_blocking_topic_with_delivery(
+                sessions,
+                delivery_identity,
+                &rec.chat_id,
+                &item.path,
+                &item.caption,
+                as_document,
+                silent,
+                item.spoiler,
+                item.index,
+                topic_id,
+                item.key.schedule_at,
+                item.key.send_as.clone(),
+                app.cloned(),
+                Some(tid.to_string()),
+            );
+            match res {
+                Ok(ok_res) => break Ok(ok_res),
+                Err(err) => {
+                    let is_network = grammers_ops::is_pool_or_transport_error(&err) || err.retryable();
+                    if is_network && single_attempts <= 3 {
+                        let wait_secs = err.flood_wait_secs().unwrap_or((single_attempts * 2) as u32);
+                        tg_log::warn(
+                            "studio_orch",
+                            "single_upload_network_retry",
+                            format!(
+                                "Single upload attempt {}/3 failed with network error ({:?}): {}. Disconnecting socket pool and retrying in {}s...",
+                                single_attempts, err.code(), err.user_message(), wait_secs
+                            ),
+                        );
+                        grammers_ops::disconnect_cached_session(&delivery_identity.session);
+                        std::thread::sleep(std::time::Duration::from_secs(wait_secs as u64));
+                        continue;
+                    }
+                    break Err(err);
+                }
+            }
+        };
+
+        match single_exec_res {
             sessions,
             delivery_identity,
             &rec.chat_id,
