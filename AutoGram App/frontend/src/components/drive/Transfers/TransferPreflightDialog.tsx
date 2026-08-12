@@ -424,6 +424,17 @@ export function TransferPreflightDialog({ report, creds, onConfirm, onCancel, on
 
         <footer className="td-preflight-foot">
           <div>
+            {onOpenSettings && (
+              <button
+                type="button"
+                className="td-chip-btn"
+                onClick={onOpenSettings}
+                title="Pengaturan Drive & Transfer (Upload)"
+              >
+                <Settings size={13} aria-hidden style={{ marginRight: 4 }} />
+                <span>Drive Settings</span>
+              </button>
+            )}
             <button type="button" className="td-chip-btn" onClick={onCancel}>{t('speedtest.topbar_cancel')}</button>
           </div>
           <button
