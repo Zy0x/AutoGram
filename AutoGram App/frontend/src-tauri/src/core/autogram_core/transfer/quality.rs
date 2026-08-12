@@ -62,6 +62,7 @@ pub enum TransformAction {
     PassThrough,
     LosslessRemux,
     Reencode,
+    ConvertWebpPng,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

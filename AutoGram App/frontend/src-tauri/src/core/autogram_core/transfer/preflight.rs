@@ -16,6 +16,7 @@ pub struct QualityPreflightRequest {
     pub quality_mode: Option<String>,
     pub presentation_override: Option<String>,
     pub group_as_album: bool,
+    pub prevent_sticker_conversion: Option<bool>,
     pub oversize_action: Option<String>,
     pub global_caption: Option<String>,
     pub caption_overflow_policy: Option<String>,
@@ -70,6 +71,8 @@ pub struct QualityPreflightReport {
     pub items: Vec<QualityPreflightItem>,
     pub requires_confirmation: bool,
     pub album_is_provisional: bool,
+    pub transform_convert_count: usize,
+    pub transform_reencode_count: usize,
 }
 
 fn source_name(path: &str, index: usize) -> String {
@@ -127,6 +130,24 @@ pub fn build_quality_preflight(
         let mut rejected = Vec::new();
         let mut requires_confirmation = false;
 
+        let ext_lower = source_path
+            .extension()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_ascii_lowercase();
+        let is_webp_sticker = category == MediaCategory::WebpImage || ext_lower == "webp" || ext_lower == "tgs";
+        let prevent_sticker = request.prevent_sticker_conversion.unwrap_or(false)
+            || request.group_as_album
+            || request.quality_mode.as_deref().unwrap_or("").to_ascii_uppercase().contains("PREVENT_STICKER")
+            || request.quality_mode.as_deref().unwrap_or("").to_ascii_uppercase().contains("PHOTO")
+            || request.quality_mode.as_deref().unwrap_or("").to_ascii_uppercase().contains("VISUAL")
+            || request.quality_mode.as_deref().unwrap_or("").to_ascii_uppercase().contains("SEIMBANG")
+            || request.quality_mode.as_deref().unwrap_or("").to_ascii_uppercase().contains("HEMAT")
+            || request.quality_mode.as_deref().unwrap_or("").to_ascii_uppercase().contains("JELAS")
+            || request.quality_mode.as_deref().unwrap_or("").to_ascii_uppercase().contains("HIGH")
+            || request.quality_mode.as_deref().unwrap_or("").to_ascii_uppercase().contains("LOW")
+            || request.quality_mode.as_deref().unwrap_or("").to_ascii_uppercase().contains("AUTO");
+
         let (transform, payload_class, as_document, reason_code) = if remote {
             warnings.push("remote_analysis_deferred".into());
             requires_confirmation = true;
@@ -150,6 +171,13 @@ pub fn build_quality_preflight(
                 PayloadClass::DocumentGroup,
                 true,
                 "presentation_forced_document".to_string(),
+            )
+        } else if is_webp_sticker && prevent_sticker {
+            (
+                TransformAction::ConvertWebpPng,
+                PayloadClass::NativeVisual,
+                false,
+                "convert_webp_png_lossless".to_string(),
             )
         } else if category == MediaCategory::OtherVideo
             && analysis
@@ -308,6 +336,15 @@ pub fn build_quality_preflight(
     };
     let requires_confirmation =
         items.iter().any(|item| item.requires_confirmation) || !caption_warnings.is_empty();
+    let transform_convert_count = items
+        .iter()
+        .filter(|item| item.transform == TransformAction::ConvertWebpPng)
+        .count();
+    let transform_reencode_count = items
+        .iter()
+        .filter(|item| item.transform == TransformAction::Reencode)
+        .count();
+
     QualityPreflightReport {
         schema_version: 1,
         capability_source: capability_source.to_string(),
@@ -321,6 +358,8 @@ pub fn build_quality_preflight(
         items,
         requires_confirmation,
         album_is_provisional: request.group_as_album,
+        transform_convert_count,
+        transform_reencode_count,
     }
 }
 
@@ -338,6 +377,7 @@ mod tests {
             quality_mode: Some(mode.into()),
             presentation_override: Some("automatic".into()),
             group_as_album: true,
+            prevent_sticker_conversion: None,
             oversize_action: Some("split".into()),
             global_caption: None,
             caption_overflow_policy: Some("truncate_with_warning".into()),

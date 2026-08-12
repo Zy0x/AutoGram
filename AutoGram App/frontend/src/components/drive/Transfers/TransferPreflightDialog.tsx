@@ -8,7 +8,9 @@ import {
   CopyCheck,
   FileSearch,
   ImageOff,
+  RefreshCw,
   Send,
+  Video,
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -28,14 +30,8 @@ import type {
 } from '../../../lib/transfer/qualityPreflight';
 
 function transferPreviewSource(path: string): string | null {
-  if (!path) return null;
-  if (/^https?:\/\//i.test(path)) return path;
-  if (!/\.(avif|bmp|gif|heic|jpe?g|png|svg|webp)$/i.test(path)) return null;
-  try {
-    return convertFileSrc(path);
-  } catch {
-    return null;
-  }
+  if (path.startsWith('http://') || path.startsWith('https://')) return null;
+  return convertFileSrc(path);
 }
 
 function TelegramDuplicateThumb({
@@ -121,6 +117,16 @@ export function TransferPreflightDialog({ report, creds, onConfirm, onCancel, on
   );
   const queuedCount = Math.max(0, (report?.items.length || 0) - skippedCount);
 
+  const convertCount = useMemo(() => {
+    if (typeof report?.transformConvertCount === 'number') return report.transformConvertCount;
+    return report?.items.filter((i) => i.transform === 'convert_webp_png').length || 0;
+  }, [report]);
+
+  const reencodeCount = useMemo(() => {
+    if (typeof report?.transformReencodeCount === 'number') return report.transformReencodeCount;
+    return report?.items.filter((i) => i.transform === 'reencode').length || 0;
+  }, [report]);
+
   if (!report) return null;
 
   const visibleItems = report.items.slice(0, 100);
@@ -142,11 +148,11 @@ export function TransferPreflightDialog({ report, creds, onConfirm, onCancel, on
   };
 
   return (
-    <div className="td-xfer-settings-overlay td-preflight-overlay" role="presentation">
-      <section className="td-preflight-dialog" role="dialog" aria-modal="true" aria-labelledby="transfer-preflight-title">
-        <header className="td-preflight-head">
-          <div className="td-xfer-settings-title">
-            <FileSearch size={20} aria-hidden />
+    <div className="td-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="transfer-preflight-title">
+      <div className="td-modal-box td-modal-preflight">
+        <header className="td-modal-header">
+          <div className="td-preflight-title-group">
+            <FileSearch size={22} className="td-preflight-head-icon" aria-hidden />
             <div>
               <h2 id="transfer-preflight-title">{t('speedtest.preflight_title')}</h2>
               <p>{t('speedtest.preflight_review_help')}</p>
@@ -167,6 +173,19 @@ export function TransferPreflightDialog({ report, creds, onConfirm, onCancel, on
             <span>{t('speedtest.preflight_caption_limit', { count: report.captionLimit })}</span>
           </div>
         </div>
+
+        {(convertCount > 0 || reencodeCount > 0) && (
+          <div className="td-preflight-transform-notice-banner" role="status">
+            <RefreshCw size={16} aria-hidden />
+            <span>
+              {convertCount > 0 && reencodeCount > 0
+                ? t('speedtest.preflight_transform_banner_summary', { convertCount, reencodeCount })
+                : convertCount > 0
+                ? t('speedtest.preflight_transform_banner_convert', { convertCount })
+                : t('speedtest.preflight_transform_banner_reencode', { reencodeCount })}
+            </span>
+          </div>
+        )}
 
         {duplicateCount === 0 ? (
           <div className="td-preflight-clean-banner" role="status">
@@ -224,6 +243,18 @@ export function TransferPreflightDialog({ report, creds, onConfirm, onCancel, on
                       </span>
                     ) : (
                       <span className="td-preflight-ready-tag">{t('speedtest.preflight_ready_badge')}</span>
+                    )}
+                    {item.transform === 'convert_webp_png' && (
+                      <span className="td-preflight-transform-tag is-convert">
+                        <RefreshCw size={11} aria-hidden />
+                        <span>{t('speedtest.preflight_transform_badge_convert_webp_png')}</span>
+                      </span>
+                    )}
+                    {item.transform === 'reencode' && (
+                      <span className="td-preflight-transform-tag is-reencode">
+                        <Video size={11} aria-hidden />
+                        <span>{t('speedtest.preflight_transform_badge_reencode_video')}</span>
+                      </span>
                     )}
                   </div>
                   <span>{formatDriveBytes(item.sourceSize)}</span>
@@ -330,7 +361,7 @@ export function TransferPreflightDialog({ report, creds, onConfirm, onCancel, on
             {t('speedtest.preflight_confirm_selection', { queue: queuedCount, skip: skippedCount })}
           </button>
         </footer>
-      </section>
+      </div>
     </div>
   );
 }

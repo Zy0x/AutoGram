@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 
-export type PreflightTransform = 'pass_through' | 'lossless_remux' | 'reencode';
+export type PreflightTransform = 'pass_through' | 'lossless_remux' | 'reencode' | 'convert_webp_png';
 export type PreflightPayload = 'native_visual' | 'document_group' | 'audio_group' | 'original_document_batch' | 'split_part_batch';
 
 export interface QualityPreflightDuplicateMatch {
@@ -44,6 +44,8 @@ export interface QualityPreflightReport {
   items: QualityPreflightItem[];
   requiresConfirmation: boolean;
   albumIsProvisional: boolean;
+  transformConvertCount?: number;
+  transformReencodeCount?: number;
 }
 
 export interface QualityPreflightRequest {
