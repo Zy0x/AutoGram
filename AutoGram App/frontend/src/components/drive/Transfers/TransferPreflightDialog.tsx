@@ -8,8 +8,10 @@ import {
   CopyCheck,
   FileSearch,
   ImageOff,
+  Info,
   RefreshCw,
   Send,
+  Settings,
   Video,
   X,
 } from 'lucide-react';
@@ -102,6 +104,7 @@ export function TransferPreflightDialog({ report, creds, onConfirm, onCancel, on
   const { t } = useTranslation();
   const [choices, setChoices] = useState<Record<string, TransferDuplicateChoice>>({});
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
+  const [activePopover, setActivePopover] = useState<'transform' | 'clean' | 'album' | null>(null);
 
   useEffect(() => {
     if (report) setChoices(defaultDuplicateChoices(report));
@@ -177,20 +180,38 @@ export function TransferPreflightDialog({ report, creds, onConfirm, onCancel, on
         {(convertCount > 0 || reencodeCount > 0) && (
           <div className="td-preflight-transform-notice-banner" role="status">
             <RefreshCw size={16} aria-hidden />
-            <span>
+            <span className="td-preflight-banner-text">
               {convertCount > 0 && reencodeCount > 0
                 ? t('speedtest.preflight_transform_banner_summary', { convertCount, reencodeCount })
                 : convertCount > 0
                 ? t('speedtest.preflight_transform_banner_convert', { convertCount })
                 : t('speedtest.preflight_transform_banner_reencode', { reencodeCount })}
             </span>
+            <button
+              type="button"
+              className={`td-preflight-info-btn ${activePopover === 'transform' ? 'is-active' : ''}`}
+              onClick={() => setActivePopover(activePopover === 'transform' ? null : 'transform')}
+              aria-label="Info Settings"
+              title="Informasi Settings"
+            >
+              <Info size={13} aria-hidden />
+            </button>
           </div>
         )}
 
         {duplicateCount === 0 ? (
           <div className="td-preflight-clean-banner" role="status">
             <CheckCircle2 size={18} className="td-clean-icon" aria-hidden />
-            <span>{t('speedtest.preflight_all_clean_banner')}</span>
+            <span className="td-preflight-banner-text">{t('speedtest.preflight_all_clean_banner')}</span>
+            <button
+              type="button"
+              className={`td-preflight-info-btn ${activePopover === 'clean' ? 'is-active' : ''}`}
+              onClick={() => setActivePopover(activePopover === 'clean' ? null : 'clean')}
+              aria-label="Info Settings"
+              title="Informasi Settings"
+            >
+              <Info size={13} aria-hidden />
+            </button>
           </div>
         ) : (
           <div className="td-preflight-duplicate-toolbar">
@@ -218,7 +239,65 @@ export function TransferPreflightDialog({ report, creds, onConfirm, onCancel, on
         {report.albumIsProvisional && (
           <div className="td-xfer-note">
             <AlertTriangle size={16} aria-hidden />
-            <span>{t('speedtest.preflight_album_provisional')}</span>
+            <span className="td-preflight-banner-text">{t('speedtest.preflight_album_provisional')}</span>
+            <button
+              type="button"
+              className={`td-preflight-info-btn ${activePopover === 'album' ? 'is-active' : ''}`}
+              onClick={() => setActivePopover(activePopover === 'album' ? null : 'album')}
+              aria-label="Info Settings"
+              title="Informasi Settings"
+            >
+              <Info size={13} aria-hidden />
+            </button>
+          </div>
+        )}
+
+        {activePopover && (
+          <div className="td-preflight-popover-overlay" onClick={() => setActivePopover(null)}>
+            <div className="td-preflight-popover-card" onClick={(e) => e.stopPropagation()}>
+              <div className="td-preflight-popover-head">
+                <strong>
+                  {activePopover === 'transform' && t('speedtest.preflight_info_title_transform')}
+                  {activePopover === 'clean' && t('speedtest.preflight_info_title_clean')}
+                  {activePopover === 'album' && t('speedtest.preflight_info_title_album')}
+                </strong>
+                <button type="button" className="td-icon-btn" onClick={() => setActivePopover(null)}>
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="td-preflight-popover-body">
+                <p className="td-preflight-popover-loc">
+                  {activePopover === 'transform' && t('speedtest.preflight_info_loc_transform')}
+                  {activePopover === 'clean' && t('speedtest.preflight_info_loc_clean')}
+                  {activePopover === 'album' && t('speedtest.preflight_info_loc_album')}
+                </p>
+                <p className="td-preflight-popover-desc">
+                  {activePopover === 'transform' && t('speedtest.preflight_info_desc_transform')}
+                  {activePopover === 'clean' && t('speedtest.preflight_info_desc_clean')}
+                  {activePopover === 'album' && t('speedtest.preflight_info_desc_album')}
+                </p>
+                <p className="td-preflight-popover-disable">
+                  {activePopover === 'transform' && t('speedtest.preflight_info_disable_transform')}
+                  {activePopover === 'clean' && t('speedtest.preflight_info_disable_clean')}
+                  {activePopover === 'album' && t('speedtest.preflight_info_disable_album')}
+                </p>
+              </div>
+              {onBackToSettings && (
+                <div className="td-preflight-popover-foot">
+                  <button
+                    type="button"
+                    className="td-btn-primary td-preflight-popover-btn"
+                    onClick={() => {
+                      setActivePopover(null);
+                      onBackToSettings();
+                    }}
+                  >
+                    <Settings size={14} aria-hidden />
+                    <span>{t('speedtest.preflight_info_open_settings')}</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
