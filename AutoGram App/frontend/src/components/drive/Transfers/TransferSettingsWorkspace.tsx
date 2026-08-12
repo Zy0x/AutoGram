@@ -94,6 +94,7 @@ import {
   type SearchableSettingItem,
   type SubMenuCategory,
 } from './transferSettingsSearchRegistry';
+export type { SubMenuCategory };
 
 function captionToEditorHtml(text: string, mode: 'MarkdownV2' | 'HTML' | 'Plain'): string {
   if (!text) return '<p><br></p>';
