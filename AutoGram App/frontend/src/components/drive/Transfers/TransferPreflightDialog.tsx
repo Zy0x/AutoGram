@@ -11,7 +11,6 @@ import {
   Info,
   RefreshCw,
   Send,
-  Settings,
   Video,
   X,
 } from 'lucide-react';
@@ -97,10 +96,9 @@ type Props = {
   creds: DriveCredentials | null;
   onConfirm: (decision: PreflightReviewDecision) => void;
   onCancel: () => void;
-  onBackToSettings?: () => void;
 };
 
-export function TransferPreflightDialog({ report, creds, onConfirm, onCancel, onBackToSettings }: Props) {
+export function TransferPreflightDialog({ report, creds, onConfirm, onCancel }: Props) {
   const { t } = useTranslation();
   const [choices, setChoices] = useState<Record<string, TransferDuplicateChoice>>({});
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
@@ -282,21 +280,6 @@ export function TransferPreflightDialog({ report, creds, onConfirm, onCancel, on
                   {activePopover === 'album' && t('speedtest.preflight_info_disable_album')}
                 </p>
               </div>
-              {onBackToSettings && (
-                <div className="td-preflight-popover-foot">
-                  <button
-                    type="button"
-                    className="td-btn-primary td-preflight-popover-btn"
-                    onClick={() => {
-                      setActivePopover(null);
-                      onBackToSettings();
-                    }}
-                  >
-                    <Settings size={14} aria-hidden />
-                    <span>{t('speedtest.preflight_info_open_settings')}</span>
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -424,11 +407,6 @@ export function TransferPreflightDialog({ report, creds, onConfirm, onCancel, on
 
         <footer className="td-preflight-foot">
           <div>
-            {onBackToSettings && (
-              <button type="button" className="td-chip-btn" onClick={onBackToSettings}>
-                {t('speedtest.tools_tab_settings')}
-              </button>
-            )}
             <button type="button" className="td-chip-btn" onClick={onCancel}>{t('speedtest.topbar_cancel')}</button>
           </div>
           <button
