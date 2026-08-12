@@ -725,7 +725,6 @@ function MediaDriveDesktop({
       }
     | null
   >(null);
-
   const [transferSettings, setTransferSettings] = useState<TransferSettingsState>(() => ({
     ...DEFAULT_TRANSFER_SETTINGS,
     ...loadTransferSettings(),
@@ -733,6 +732,12 @@ function MediaDriveDesktop({
   const [transfer, setTransfer] = useState<TransferSession>(() => ({ ...EMPTY_TRANSFER_SESSION }));
   const [preflightReport, setPreflightReport] = useState<QualityPreflightReport | null>(null);
   const preflightResolverRef = useRef<((decision: PreflightReviewDecision) => void) | null>(null);
+  const lastPreflightRequestRef = useRef<{
+    creds: DriveCredentials;
+    cleanPaths: string[];
+    destinationId: string;
+    topicId: number | null;
+  } | null>(null);
   const transferQueueRef = useRef<QueueTask[]>([]);
   const activeTaskStartIndexRef = useRef<number>(0);
   const taskRunningRef = useRef(false);
@@ -831,38 +836,34 @@ function MediaDriveDesktop({
     const resolve = preflightResolverRef.current;
     preflightResolverRef.current = null;
     setPreflightReport(null);
+    lastPreflightRequestRef.current = null;
     resolve?.(decision);
   }, []);
 
   const reevaluatePreflight = useCallback(async (nextSettings: TransferSettingsState) => {
-    if (!preflightReport || !creds) return;
+    if (!preflightReport || !lastPreflightRequestRef.current) return;
+    const req = lastPreflightRequestRef.current;
     try {
-      const cleanPaths = preflightReport.items.map((i) => i.sourcePath);
       const updated = await runQualityPreflight({
-        session: creds.session,
-        apiId: Number(creds.apiId) || 0,
-        apiHash: creds.apiHash,
-        paths: cleanPaths,
+        session: req.creds.session,
+        apiId: Number(req.creds.apiId) || 0,
+        apiHash: req.creds.apiHash,
+        paths: req.cleanPaths,
         qualityMode: nextSettings.qualityMode,
         presentationOverride: nextSettings.presentationOverride,
         groupAsAlbum: nextSettings.groupAsAlbum,
         oversizeAction: nextSettings.oversizeAction,
         globalCaption: (nextSettings.globalCaption || '').trim() || undefined,
         captionOverflowPolicy: nextSettings.captionOverflowPolicy,
-        destinationId: preflightReport.destinationId,
-        topicId: preflightReport.topicId,
+        destinationId: req.destinationId,
+        topicId: req.topicId,
         preventStickerConversion: nextSettings.preventStickerConversion,
       });
       setPreflightReport(updated);
     } catch (err) {
       console.warn('Failed to re-evaluate preflight after settings change:', err);
     }
-  }, [preflightReport, creds]);
-
-  // Default expanded; only collapse if user previously chose so
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(LS_COLLAPSE) === '1');
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  /** Mobile drawer: always open at full panel width (never icon-rail 72px). */
+  }, [preflightReport]);
   const openDrawer = useCallback(() => {
     setCollapsed(false);
     setDrawerOpen(true);
@@ -5000,6 +5001,12 @@ function MediaDriveDesktop({
 
     try {
       setStatusText(String(t('speedtest.preflight_running')));
+      lastPreflightRequestRef.current = {
+        creds,
+        cleanPaths,
+        destinationId: studioChatIdFromFolder(uploadPeer),
+        topicId: uploadTopicId,
+      };
       const report = await runQualityPreflight({
         session: creds.session,
         apiId: Number(creds.apiId) || 0,
