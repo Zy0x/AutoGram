@@ -1244,9 +1244,9 @@ export function DriveSidebar({
         return;
       }
 
-      // Fixed 80px edge zone: consistent entry point regardless of list height.
-      // This prevents the "scroll only starts near the very bottom" problem.
-      const EDGE_ZONE = 80;
+      // Expanded 120px edge zone: starts scrolling earlier as cursor approaches edge.
+      // Prevents user from having to drag all the way off the bottom/top.
+      const EDGE_ZONE = 120;
       let dir: 'up' | 'down' | null = null;
       let dist = 0;
 
@@ -1264,14 +1264,13 @@ export function DriveSidebar({
         return;
       }
 
-      // Quadratic curve: smooth start at zone entry (4px), natural ramp to max (36px) at zone edge.
-      // Tuned via physics simulation: near-edge ~270px/s (usable), deep-edge ~2160px/s (fast scroll).
-      // Using ^2 (not ^1.3) avoids the late-zone speed explosion that causes "sudden jump" UX.
+      // Responsive progressive curve: starts smoothly at 8px/frame (480px/s),
+      // ramps up dynamically to 64px/frame (~3840px/s) deep in the edge zone.
       const ratio = Math.max(0.0, Math.min(1.0, dist / EDGE_ZONE));
-      const targetStep = 4 + Math.pow(ratio, 2) * 32; // 4px..36px
+      const targetStep = 8 + Math.pow(ratio, 1.4) * 56; // 8px..64px
 
-      // EMA Lerp 0.30: fast enough to be responsive, smooth enough to avoid teleporting
-      currentSpeed = currentSpeed + (targetStep - currentSpeed) * 0.30;
+      // Fast EMA Lerp 0.45: quick responsiveness without jerky teleporting
+      currentSpeed = currentSpeed + (targetStep - currentSpeed) * 0.45;
       const activeStep = Math.max(0.5, currentSpeed);
 
       // Execute cascade scroll: try primaryTarget first, then fallback to navEl
