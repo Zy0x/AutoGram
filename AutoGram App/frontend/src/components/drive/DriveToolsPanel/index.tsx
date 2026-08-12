@@ -186,9 +186,9 @@ export function DriveToolsPanel({
   onRefreshFiles,
   topicFilter = null,
   isForum = false,
-  transferSettings,
-  onTransferSettingsChange,
-  transferActive,
+  transferSettings: _transferSettings,
+  onTransferSettingsChange: _onTransferSettingsChange,
+  transferActive: _transferActive,
   onPreviewFile,
   onDeleteIds,
   onBulkRename,
@@ -220,59 +220,6 @@ export function DriveToolsPanel({
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [toolsSearchQuery, setToolsSearchQuery] = useState('');
-
-  const [xferSubTab, setXferSubTab] = useState<'upload' | 'download'>('upload');
-  const [xferDraft, setXferDraft] = useState<DriveTransferSettings>(() => ({
-    ...DEFAULT_TRANSFER_SETTINGS,
-    ...(transferSettings || {}),
-  }));
-
-  const prevOpenRef = useRef(open);
-  useEffect(() => {
-    const justOpened = open && !prevOpenRef.current;
-    prevOpenRef.current = open;
-
-    if (open && transferSettings) {
-      setXferDraft({
-        ...DEFAULT_TRANSFER_SETTINGS,
-        ...transferSettings,
-      });
-      if (justOpened) {
-        setXferSubTab('upload');
-      }
-    }
-  }, [open, transferSettings]);
-
-  const patchXfer = useCallback((partial: Partial<DriveTransferSettings>) => {
-    setXferDraft((prev: DriveTransferSettings) => {
-      const merged = { ...prev, ...partial };
-      const next: DriveTransferSettings = {
-        ...merged,
-        uploadConcurrency: clampConcurrency(merged.uploadConcurrency),
-        downloadConcurrency: clampConcurrency(merged.downloadConcurrency),
-        globalCaption: (merged.globalCaption || '').slice(0, 1024),
-        albumGroupSize: Math.max(2, Math.min(10, merged.albumGroupSize)),
-        encoderMaxParallel: Math.max(1, Math.min(4, merged.encoderMaxParallel)),
-      };
-      if (onTransferSettingsChange) {
-        onTransferSettingsChange(next);
-      }
-      return next;
-    });
-  }, [onTransferSettingsChange]);
-
-  const applyXferSettings = useCallback(() => {
-    if (!onTransferSettingsChange) return;
-    const next: DriveTransferSettings = {
-      ...xferDraft,
-      uploadConcurrency: clampConcurrency(xferDraft.uploadConcurrency),
-      downloadConcurrency: clampConcurrency(xferDraft.downloadConcurrency),
-      globalCaption: (xferDraft.globalCaption || '').slice(0, 1024),
-      albumGroupSize: Math.max(2, Math.min(10, xferDraft.albumGroupSize)),
-      encoderMaxParallel: Math.max(1, Math.min(4, xferDraft.encoderMaxParallel)),
-    };
-    onTransferSettingsChange(next);
-  }, [xferDraft, onTransferSettingsChange]);
 
   const groups = useMemo(
     () => findDuplicateGroups(files, dupMode as any),
