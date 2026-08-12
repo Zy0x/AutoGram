@@ -754,7 +754,7 @@ pub fn upload_prepared_album_blocking_with_app(
                 let reply_to = reply_to.map(|reply_to_msg_id| {
                     tl::types::InputReplyToMessage {
                         reply_to_msg_id,
-                        top_msg_id: None,
+                        top_msg_id: Some(reply_to_msg_id),
                         reply_to_peer_id: None,
                         quote_text: None,
                         quote_entities: None,
@@ -1772,7 +1772,7 @@ pub fn upload_file_blocking_topic_with_delivery(
                 let reply_to = reply_to.map(|reply_to_msg_id| {
                     tl::types::InputReplyToMessage {
                         reply_to_msg_id,
-                        top_msg_id: None,
+                        top_msg_id: Some(reply_to_msg_id),
                         reply_to_peer_id: None,
                         quote_text: None,
                         quote_entities: None,
