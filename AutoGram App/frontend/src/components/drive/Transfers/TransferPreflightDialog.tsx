@@ -148,11 +148,11 @@ export function TransferPreflightDialog({ report, creds, onConfirm, onCancel, on
   };
 
   return (
-    <div className="td-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="transfer-preflight-title">
-      <div className="td-modal-box td-modal-preflight">
-        <header className="td-modal-header">
-          <div className="td-preflight-title-group">
-            <FileSearch size={22} className="td-preflight-head-icon" aria-hidden />
+    <div className="td-xfer-settings-overlay td-preflight-overlay" role="presentation">
+      <section className="td-preflight-dialog" role="dialog" aria-modal="true" aria-labelledby="transfer-preflight-title">
+        <header className="td-preflight-head">
+          <div className="td-xfer-settings-title">
+            <FileSearch size={20} aria-hidden />
             <div>
               <h2 id="transfer-preflight-title">{t('speedtest.preflight_title')}</h2>
               <p>{t('speedtest.preflight_review_help')}</p>
@@ -361,7 +361,7 @@ export function TransferPreflightDialog({ report, creds, onConfirm, onCancel, on
             {t('speedtest.preflight_confirm_selection', { queue: queuedCount, skip: skippedCount })}
           </button>
         </footer>
-      </div>
+      </section>
     </div>
   );
 }

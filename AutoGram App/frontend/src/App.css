@@ -12545,14 +12545,14 @@ body:has(.app-layout-drive-focus),
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 12px;
-  padding: 10px 14px;
-  border-radius: 8px;
+  margin: 12px 16px 0;
+  padding: 11px 16px;
+  border-radius: 11px;
   background: rgba(59, 130, 246, 0.09);
-  border: 1px solid rgba(59, 130, 246, 0.25);
+  border: 1px solid rgba(59, 130, 246, 0.28);
   color: #93c5fd;
-  font-size: 0.76rem;
-  font-weight: 500;
+  font-size: 0.82rem;
+  font-weight: 600;
   line-height: 1.4;
 }
 .td-preflight-transform-notice-banner svg {
