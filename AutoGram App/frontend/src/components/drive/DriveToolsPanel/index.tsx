@@ -95,9 +95,7 @@ function ToolTabIntro({
   selectedCount: number;
 }) {
   const { t } = useTranslation();
-  const item = TOOL_GROUPS.flatMap((group) => group.tabs).find((candidate) => candidate.id === tab);
-  const Icon = item?.icon || SlidersHorizontal;
-  const key = tab === 'transfer' ? 'settings' : tab;
+  const key = tab;
   return (
     <section className="td-tools-tab-intro">
       <div className="td-tools-tab-intro-icon"><Icon size={20} /></div>
@@ -324,20 +322,8 @@ export function DriveToolsPanel({
 
   const handleSearchResultClick = (item: SearchableSettingItem) => {
     setToolsSearchQuery('');
-    if (item.isDriveTool) {
+    if (item.isDriveTool && (['dups', 'space', 'rename', 'filter'] as string[]).includes(item.tab)) {
       onTab(item.tab as DriveToolsTab);
-    } else {
-      if (tab !== 'transfer') {
-        onTab('transfer');
-      }
-      window.setTimeout(() => {
-        const el = document.getElementById(item.sectionId);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          el.classList.add('td-search-highlight');
-          window.setTimeout(() => el.classList.remove('td-search-highlight'), 1800);
-        }
-      }, 100);
     }
   };
 
@@ -470,7 +456,7 @@ export function DriveToolsPanel({
                 {group.tabs.map((tItem) => {
                   const Icon = tItem.icon;
                   const isActive = tab === tItem.id;
-                  const tabLabel = t(`speedtest.tools_tab_${tItem.id === 'transfer' ? 'settings' : tItem.id}`);
+                  const tabLabel = t(`speedtest.tools_tab_${tItem.id}`);
                   return (
                     <button
                       key={tItem.id}
@@ -488,8 +474,8 @@ export function DriveToolsPanel({
             ))}
           </aside>
 
-          <main className={`td-tools-main ${tab === 'transfer' ? 'is-transfer-tab' : ''}`}>
-          {!['dups', 'transfer', 'upload', 'download', 'encoding', 'album', 'duplicate', 'oversize', 'network', 'advanced'].includes(tab) && (
+          <main className="td-tools-main">
+          {tab !== 'dups' && (
             <ToolTabIntro
               tab={tab}
               locationLabel={locationLabel}
@@ -819,31 +805,6 @@ export function DriveToolsPanel({
             </div>
           )}
 
-          {['transfer', 'upload', 'download', 'encoding', 'album', 'duplicate', 'oversize', 'network', 'advanced'].includes(tab) && (
-            <TransferTabContent
-              draft={xferDraft}
-              onChange={patchXfer}
-              onSave={applyXferSettings}
-              onReset={() => patchXfer({ ...DEFAULT_TRANSFER_SETTINGS })}
-              transferActive={transferActive}
-              subTab={xferSubTab}
-              onSubTab={setXferSubTab}
-              searchQuery={toolsSearchQuery}
-              onSearchQueryChange={setToolsSearchQuery}
-              onSelectTool={(toolId) => onTab(toolId as any)}
-              activeCategory={
-                tab === 'album'
-                  ? 'albums'
-                  : tab === 'duplicate'
-                  ? 'duplicates'
-                  : tab === 'oversize'
-                  ? 'limits_recovery'
-                  : tab === 'transfer'
-                  ? 'upload'
-                  : (tab as any)
-              }
-            />
-          )}
           </main>
         </div>
       </div>
@@ -852,41 +813,6 @@ export function DriveToolsPanel({
 
   if (typeof document === 'undefined') return null;
   return createPortal(node, document.body);
-}
-
-function TransferTabContent({
-  draft,
-  onChange,
-  transferActive,
-  searchQuery,
-  onSearchQueryChange,
-  onSelectTool,
-  activeCategory,
-}: {
-  draft: DriveTransferSettings;
-  onChange: (partial: Partial<DriveTransferSettings>) => void;
-  onSave: () => void;
-  onReset: () => void;
-  transferActive?: boolean;
-  subTab: 'upload' | 'download';
-  onSubTab: (t: 'upload' | 'download') => void;
-  searchQuery?: string;
-  onSearchQueryChange?: (query: string) => void;
-  onSelectTool?: (toolTab: DriveToolsTab) => void;
-  activeCategory?: any;
-}) {
-  return (
-    <TransferSettingsWorkspace
-      settings={draft}
-      onChange={(next) => onChange(next)}
-      transferActive={transferActive}
-      embedded={true}
-      searchQuery={searchQuery}
-      onSearchQueryChange={onSearchQueryChange}
-      onSelectTool={(tool) => onSelectTool?.(tool as DriveToolsTab)}
-      activeCategory={activeCategory}
-    />
-  );
 }
 
 /** Compact thumbnail for duplicate list rows (reuses grid thumb cache/batcher). */
