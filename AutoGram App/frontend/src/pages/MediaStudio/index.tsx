@@ -7592,6 +7592,9 @@ function MediaDriveDesktop({
   resolveDropRef.current = resolveDropTargetLabel;
   const runUploadRef = useRef(runUploadPaths);
   runUploadRef.current = runUploadPaths;
+  if (typeof window !== 'undefined') {
+    (window as any).__autogram_runUpload = (paths: string[], opts?: any) => runUploadRef.current(paths, opts);
+  }
 
   // Tauri 2 native file drop — reliable absolute paths (HTML5 File.path is empty)
   useEffect(() => {

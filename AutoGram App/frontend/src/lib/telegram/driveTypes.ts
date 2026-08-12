@@ -816,6 +816,7 @@ export function loadTransferSettings(): DriveTransferSettings {
       scheduleAt: typeof p.scheduleAt === 'string' ? p.scheduleAt.slice(0, 32) : '',
       sendAs: typeof p.sendAs === 'string' ? p.sendAs.trim().slice(0, 128) : '',
       forceDocumentDefault: !!p.forceDocumentDefault,
+      preventStickerConversion: Boolean(p.preventStickerConversion),
       duplicatePolicy: p.duplicatePolicy === 'FORCE_UPLOAD' ? 'FORCE_UPLOAD' : 'SKIP',
       scanMode: isScanMode(p.scanMode) ? p.scanMode : DEFAULT_TRANSFER_SETTINGS.scanMode,
       guardrailEnabled: p.guardrailEnabled !== false,
