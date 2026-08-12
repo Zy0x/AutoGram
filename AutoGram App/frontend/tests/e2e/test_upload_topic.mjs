@@ -22,7 +22,7 @@ async function runTopicUpload() {
 
   const contexts = browser.contexts();
   const pages = contexts[0].pages();
-  const page = pages[0];
+  const page = pages.find(p => p.url().includes('1420') || p.url().includes('localhost')) || pages[0];
 
   console.log('Connected to page:', await page.title());
 
