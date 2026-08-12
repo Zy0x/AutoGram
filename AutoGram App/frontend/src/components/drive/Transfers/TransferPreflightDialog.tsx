@@ -98,9 +98,17 @@ type Props = {
   onConfirm: (decision: PreflightReviewDecision) => void;
   onCancel: () => void;
   onOpenSettings?: () => void;
+  hasStackedModal?: boolean;
 };
 
-export function TransferPreflightDialog({ report, creds, onConfirm, onCancel, onOpenSettings }: Props) {
+export function TransferPreflightDialog({
+  report,
+  creds,
+  onConfirm,
+  onCancel,
+  onOpenSettings,
+  hasStackedModal,
+}: Props) {
   const { t } = useTranslation();
   const [choices, setChoices] = useState<Record<string, TransferDuplicateChoice>>({});
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
@@ -151,7 +159,7 @@ export function TransferPreflightDialog({ report, creds, onConfirm, onCancel, on
   };
 
   return (
-    <div className="td-xfer-settings-overlay td-preflight-overlay" role="presentation">
+    <div className={`td-xfer-settings-overlay td-preflight-overlay ${hasStackedModal ? 'has-stacked-modal' : ''}`} role="presentation">
       <section className="td-preflight-dialog" role="dialog" aria-modal="true" aria-labelledby="transfer-preflight-title">
         <header className="td-preflight-head">
           <div className="td-xfer-settings-title">
