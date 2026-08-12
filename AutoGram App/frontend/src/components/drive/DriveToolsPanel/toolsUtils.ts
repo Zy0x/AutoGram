@@ -3,7 +3,14 @@ import {
   Layers,
   Type,
   Filter,
-  Settings2,
+  Upload,
+  Download,
+  Film,
+  FolderTree,
+  CopyCheck,
+  HardDriveUpload,
+  Network,
+  SlidersHorizontal,
 } from 'lucide-react';
 import type { DupGroup } from '../../../lib/telegram';
 
@@ -12,7 +19,14 @@ export type DriveToolsTab =
   | 'space'
   | 'rename'
   | 'filter'
-  | 'settings';
+  | 'upload'
+  | 'download'
+  | 'encoding'
+  | 'albums'
+  | 'duplicates'
+  | 'limits_recovery'
+  | 'network'
+  | 'advanced';
 
 export function smartDeleteIds(groups: DupGroup[], keepNewest: boolean): Set<number> {
   const out = new Set<number>();
@@ -45,7 +59,19 @@ export const TOOL_GROUPS: {
       { id: 'rename', icon: Type },
       { id: 'space', icon: HardDrive },
       { id: 'filter', icon: Filter },
-      { id: 'settings', icon: Settings2 },
+    ],
+  },
+  {
+    titleKey: 'speedtest.tools_group_settings',
+    tabs: [
+      { id: 'upload', icon: Upload },
+      { id: 'download', icon: Download },
+      { id: 'encoding', icon: Film },
+      { id: 'albums', icon: FolderTree },
+      { id: 'duplicates', icon: CopyCheck },
+      { id: 'limits_recovery', icon: HardDriveUpload },
+      { id: 'network', icon: Network },
+      { id: 'advanced', icon: SlidersHorizontal },
     ],
   },
 ];
