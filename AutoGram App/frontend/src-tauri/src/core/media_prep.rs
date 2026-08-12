@@ -494,7 +494,8 @@ pub fn extract_video_thumbnail(path: &str) -> Option<PathBuf> {
     }
 }
 
-/// Transcode WebP / sticker formats to 100% maximum quality JPEG (jpg)
+/// Transcode WebP / sticker formats to 100% true lossless PNG (png)
+/// preserving original dimensions, alpha transparency, and visual quality (no quality loss)
 /// for native compatibility with Telegram MTProto Photo Albums (InputMediaUploadedPhoto).
 pub fn transcode_sticker_media_to_image_lossless(path: &str) -> Result<PathBuf, String> {
     let p = Path::new(path);
@@ -505,7 +506,7 @@ pub fn transcode_sticker_media_to_image_lossless(path: &str) -> Result<PathBuf, 
         return Err("ffmpeg binary not found for WebP conversion".into());
     };
 
-    let out_jpg = unique_name("transcoded_photo", "jpg");
+    let out_png = unique_name("transcoded_photo", "png");
 
     let mut cmd = Command::new(&ff);
     cmd.args([
@@ -518,10 +519,10 @@ pub fn transcode_sticker_media_to_image_lossless(path: &str) -> Result<PathBuf, 
         path,
         "-vframes",
         "1",
-        "-q:v",
+        "-compression_level",
         "1",
     ]);
-    cmd.arg(&out_jpg);
+    cmd.arg(&out_png);
 
     #[cfg(windows)]
     {
@@ -530,15 +531,15 @@ pub fn transcode_sticker_media_to_image_lossless(path: &str) -> Result<PathBuf, 
     }
 
     let output = cmd.output().map_err(|e| format!("spawn ffmpeg failed: {e}"))?;
-    if output.status.success() && out_jpg.is_file() {
-        let sz = fs::metadata(&out_jpg).map(|m| m.len()).unwrap_or(0);
+    if output.status.success() && out_png.is_file() {
+        let sz = fs::metadata(&out_png).map(|m| m.len()).unwrap_or(0);
         if sz > 0 {
             tg_log::info(
                 BACKEND,
-                "webp_transcode_jpg_ok",
-                format!("input={path} output={} size={sz}", out_jpg.display()),
+                "webp_transcode_png_ok",
+                format!("input={path} output={} size={sz}", out_png.display()),
             );
-            return Ok(out_jpg);
+            return Ok(out_png);
         }
     }
 
