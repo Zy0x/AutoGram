@@ -1358,21 +1358,6 @@ fn run_intelligent_album(
         };
 
         match single_exec_res {
-            sessions,
-            delivery_identity,
-            &rec.chat_id,
-            &item.path,
-            &item.caption,
-            as_document,
-            silent,
-            item.spoiler,
-            item.index,
-            topic_id,
-            item.key.schedule_at,
-            item.key.send_as.clone(),
-            app.cloned(),
-            Some(tid.to_string()),
-        ) {
             Ok(result) => {
                 let state = if matches!(result.status.as_str(), "done" | "success") {
                     any_ok = true;
