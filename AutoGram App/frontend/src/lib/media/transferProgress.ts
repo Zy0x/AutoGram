@@ -83,7 +83,6 @@ export function recomputeOverall(session: TransferSession): TransferSession {
   const n = items.length;
   let transferred = session.transferred;
   let total = session.total;
-  let overall = session.overallPercent;
 
   if (n > 0) {
     const itemTransferred = items.reduce((s, i) => s + (i.transferred || 0), 0);
@@ -92,28 +91,67 @@ export function recomputeOverall(session: TransferSession): TransferSession {
     const itemTotals = items.reduce((s, i) => s + (i.total || 0), 0);
     if (itemTotals > total) total = itemTotals;
 
+    // Calculate phase-aware effective percentage for each item
+    const computeItemEffectivePercent = (item: TransferItem): number => {
+      const st = item.status;
+      if (
+        st === 'done' ||
+        st === 'skipped' ||
+        st === 'failed' ||
+        st === 'cancelled' ||
+        st === 'needs_verification'
+      ) {
+        return 100;
+      }
+      if (st === 'queued' || st === 'paused') {
+        return 0;
+      }
+      if (st === 'waiting_commit') return 95;
+      if (st === 'committing') return 98;
+      if (st === 'uploaded') return 92;
+
+      if (st === 'preparing') {
+        if (item.phase === 'reencode') {
+          return Math.min(15, (item.percent || 0) * 0.15);
+        }
+        return Math.min(10, item.percent || 4);
+      }
+
+      // Active state (uploading / downloading)
+      const basePct = item.percent || 0;
+      if (item.total > 0 && item.transferred > 0) {
+        const rawTransferPct = Math.min(100, (item.transferred / item.total) * 100);
+        return 15 + rawTransferPct * 0.80; // 15% prep + 80% upload + 5% commit
+      }
+      return 15 + basePct * 0.80;
+    };
+
+    let overall = 0;
     if (total > 0) {
-      overall = Math.min(100, (transferred / total) * 100);
-    } else {
-      const sumPct = items.reduce((s, i) => {
-        if (
-          i.status === 'done' ||
-          i.status === 'skipped' ||
-          i.status === 'failed' ||
-          i.status === 'cancelled' ||
-          i.status === 'needs_verification'
-        ) return s + 100;
-        return s + (i.percent || 0);
+      const weightedSum = items.reduce((acc, item) => {
+        const weight = item.total > 0 ? item.total : total / n;
+        return acc + weight * (computeItemEffectivePercent(item) / 100);
       }, 0);
-      overall = sumPct / n;
+      overall = Math.min(100, Math.max(0, (weightedSum / total) * 100));
+    } else {
+      const sumPct = items.reduce((acc, item) => acc + computeItemEffectivePercent(item), 0);
+      overall = Math.min(100, Math.max(0, sumPct / n));
     }
+
+    return {
+      ...session,
+      transferred,
+      total,
+      overallPercent: Math.round(overall * 100) / 100,
+      etaSeconds: computeEta(transferred, total, session.speed_mb_s),
+    };
   }
 
   return {
     ...session,
     transferred,
     total,
-    overallPercent: Math.round(overall * 100) / 100,
+    overallPercent: Math.round((session.overallPercent || 0) * 100) / 100,
     etaSeconds: computeEta(transferred, total, session.speed_mb_s),
   };
 }

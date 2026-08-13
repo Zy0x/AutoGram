@@ -53,6 +53,14 @@ type Props = {
   downloadFolderPath?: string | null;
   onRetryFailed?: () => void;
   canRetryFailed?: boolean;
+  unresolvedTransfer?: {
+    transferId: string;
+    totalItems: number;
+    remainingItems: number;
+    chatId?: string;
+  } | null;
+  onResumeUnresolved?: () => void;
+  onClearUnresolved?: () => void;
 };
 
 function StatusIcon({ status }: { status: string }) {
@@ -139,10 +147,13 @@ export function DriveTransferManager({
   downloadFolderPath,
   onRetryFailed,
   canRetryFailed,
+  unresolvedTransfer,
+  onResumeUnresolved,
+  onClearUnresolved,
 }: Props) {
   const { t } = useTranslation();
   const hasSession = sessionVisible(session);
-  const visible = hasSession || forceShow;
+  const visible = hasSession || forceShow || Boolean(unresolvedTransfer);
   const counts = useMemo(() => countByStatus(session), [session]);
   const isUpload = session?.direction === 'upload';
   const isMove = session?.direction === 'move';
@@ -152,7 +163,6 @@ export function DriveTransferManager({
   const encodeItem = itemsList.find(
     (item: any) => item.phase === 'reencode' && item.status === 'preparing'
   );
-  const displayPercent = encodeItem ? encodeItem.percent : (session?.overallPercent ?? 0);
 
   const { jobs } = useTransferProgressStore();
   const activeJob = jobs.find((j) => j.activeStage !== 'idle' && j.activeStage !== 'done') || jobs[0];
@@ -165,9 +175,9 @@ export function DriveTransferManager({
 
   const liveStageProgress = activeJob ? activeJob[currentStage] : null;
 
-  const realTimePercent = liveStageProgress && liveStageProgress.percent > 0
-    ? liveStageProgress.percent
-    : displayPercent;
+  // Use aggregate session.overallPercent for stable multi-item progress
+  const aggregatePercent = Math.min(100, Math.max(0, session?.overallPercent ?? 0));
+  const realTimePercent = aggregatePercent;
 
   const realTimeSpeedStr = liveStageProgress && liveStageProgress.speed > 0
     ? formatSpeedBytes(liveStageProgress.speed)
@@ -181,14 +191,18 @@ export function DriveTransferManager({
         ? formatTransferEta(session.etaSeconds)
         : '';
 
+  const hasEncodePhase = itemsList.some((i: any) => i.status === 'preparing' || i.phase === 'reencode');
+  const hasUploadPhase = itemsList.some((i: any) => i.status === 'active' || i.phase === 'upload');
+  const hasCommitPhase = itemsList.some((i: any) => i.status === 'waiting_commit' || i.status === 'committing' || i.status === 'uploaded');
+
   const phaseLabel = isPreparing || currentStage === 'encode'
-    ? 'Re-encode'
+    ? t('speedtest.transfer_phase_encode')
     : isMove
       ? session.label?.startsWith('Salin')
         ? 'Menyalin'
         : 'Memindahkan'
       : currentStage === 'upload'
-        ? 'Uploading'
+        ? t('speedtest.transfer_phase_upload')
         : 'Downloading';
   const activeName = activeItemName(session);
   const hasFinished = counts.done + counts.failed + counts.skipped + counts.needsVerification > 0;
@@ -358,6 +372,46 @@ export function DriveTransferManager({
           </button>
         </div>
       </header>
+
+      {unresolvedTransfer && (
+        <div className="tm-recovery-card" style={{ padding: '10px 14px', margin: '8px 12px', background: 'rgba(234, 179, 8, 0.12)', border: '1px solid rgba(234, 179, 8, 0.3)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, fontSize: '12.5px', color: '#eab308' }}>
+            <AlertCircle size={14} />
+            <span>{t('speedtest.transfer_unresolved_title')}</span>
+          </div>
+          <p style={{ margin: 0, fontSize: '11.5px', opacity: 0.85 }}>
+            {t('speedtest.transfer_unresolved_desc', { remaining: unresolvedTransfer.remainingItems, total: unresolvedTransfer.totalItems })}
+          </p>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+            {onResumeUnresolved && (
+              <button type="button" className="td-chip-btn" onClick={onResumeUnresolved} style={{ fontSize: '11px', padding: '3px 8px' }}>
+                <Play size={12} style={{ marginRight: 4 }} />
+                <span>{t('speedtest.transfer_unresolved_resume')}</span>
+              </button>
+            )}
+            {onClearUnresolved && (
+              <button type="button" className="td-chip-btn" onClick={onClearUnresolved} style={{ fontSize: '11px', padding: '3px 8px' }}>
+                <X size={12} style={{ marginRight: 4 }} />
+                <span>{t('speedtest.transfer_unresolved_clear')}</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {session.active && (
+        <div className="tm-phase-pills" style={{ display: 'flex', gap: '6px', padding: '6px 14px 2px', fontSize: '11px' }}>
+          <span style={{ padding: '2px 8px', borderRadius: '12px', background: hasEncodePhase ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)', color: hasEncodePhase ? '#60a5fa' : 'inherit', fontWeight: hasEncodePhase ? 600 : 400 }}>
+            {t('speedtest.transfer_phase_encode')}
+          </span>
+          <span style={{ padding: '2px 8px', borderRadius: '12px', background: hasUploadPhase ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)', color: hasUploadPhase ? '#60a5fa' : 'inherit', fontWeight: hasUploadPhase ? 600 : 400 }}>
+            {t('speedtest.transfer_phase_upload')}
+          </span>
+          <span style={{ padding: '2px 8px', borderRadius: '12px', background: hasCommitPhase ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255, 255, 255, 0.05)', color: hasCommitPhase ? '#c084fc' : 'inherit', fontWeight: hasCommitPhase ? 600 : 400 }}>
+            {t('speedtest.transfer_phase_commit')}
+          </span>
+        </div>
+      )}
 
       {isEmptyShell ? (
         <div className="tm-empty">

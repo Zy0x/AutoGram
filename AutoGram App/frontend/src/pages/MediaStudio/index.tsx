@@ -131,6 +131,7 @@ import {
   driveGetMediaStats,
   loadDeepIndexSnapshot,
   saveDeepIndexSnapshot,
+  saveDeepIndexSnapshotDebounced,
   removeFilesFromDeepIndex,
 } from '../../lib/telegram';
 import {
@@ -1325,6 +1326,69 @@ function MediaDriveDesktop({
       cancelled = true;
     };
   }, [apiCreds.apiId, apiCreds.apiHash]);
+
+  const [unresolvedTransfer, setUnresolvedTransfer] = useState<{
+    transferId: string;
+    totalItems: number;
+    remainingItems: number;
+    chatId?: string;
+  } | null>(null);
+
+  // Check unresolved transfers from Rust SQLite job queue on mount
+  useEffect(() => {
+    if (!driveReady || !creds) return;
+    let cancelled = false;
+    const checkUnresolved = async () => {
+      try {
+        if (typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__) {
+          const { invoke } = await import('@tauri-apps/api/core');
+          const records = await invoke<Array<any>>('studio_list_transfers', {});
+          if (cancelled || !Array.isArray(records)) return;
+          const pending = records.find(
+            (r) => r.state === 'Running' || r.state === 'Queued' || r.state === 'Paused'
+          );
+          if (pending && Array.isArray(pending.items) && pending.items.length) {
+            const pendingItemsCount = pending.items.filter((i: any) => i.state !== 'Done').length;
+            if (pendingItemsCount > 0) {
+              setUnresolvedTransfer({
+                transferId: pending.transferId,
+                totalItems: pending.items.length,
+                remainingItems: pendingItemsCount,
+                chatId: pending.chatId,
+              });
+            }
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    void checkUnresolved();
+    return () => {
+      cancelled = true;
+    };
+  }, [driveReady, creds]);
+
+  const handleResumeUnresolved = useCallback(() => {
+    if (!unresolvedTransfer || !creds) return;
+    setUnresolvedTransfer(null);
+    setTransferMinimized(false);
+    void (async () => {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        await invoke('studio_set_transfer_paused', { paused: false });
+      } catch {
+        /* ignore */
+      }
+    })();
+  }, [unresolvedTransfer, creds]);
+
+  const handleClearUnresolved = useCallback(() => {
+    if (!unresolvedTransfer) return;
+    const tid = unresolvedTransfer.transferId;
+    setUnresolvedTransfer(null);
+    void cancelDriveJob(tid);
+  }, [unresolvedTransfer]);
 
   // Dynamically fetch missing message ID from Telegram when searched
   useEffect(() => {
@@ -2953,6 +3017,7 @@ function MediaDriveDesktop({
         text: t('speedtest.sort_index_progress', { count: indexed.length }),
       });
 
+      let lastUiUpdateTime = Date.now();
       while (hasMore && generation === sortIndexGenerationRef.current) {
         try {
           const response = await driveListFiles(creds, peerId, {
@@ -2972,9 +3037,15 @@ function MediaDriveDesktop({
           cursor = hasMore ? next : null;
           totalHint = Math.max(Number(response.total_count || 0), totalHint || 0, indexed.length);
 
-          liveFilesRef.current = indexed;
-          setFiles(indexed);
-          filesCacheRef.current.set(cacheKey, indexed);
+          const now = Date.now();
+          const shouldUpdateUi = !hasMore || now - lastUiUpdateTime > 800 || indexed.length < 500;
+          if (shouldUpdateUi) {
+            lastUiUpdateTime = now;
+            liveFilesRef.current = indexed;
+            setFiles(indexed);
+            filesCacheRef.current.set(cacheKey, indexed);
+          }
+
           setIndexingJob({
             active: hasMore,
             processed: indexed.length,
@@ -2983,15 +3054,15 @@ function MediaDriveDesktop({
           });
           const context = buildDriveMediaContext(creds.session, peerId, topicId);
           void saveMediaRecords(scopeMediaRecords(page, context, peerId || 0)).catch(() => undefined);
-          await saveDeepIndexSnapshot(creds.session, peerId, topicId, {
+          void saveDeepIndexSnapshotDebounced(creds.session, peerId, topicId, {
             files: indexed,
             hasMore,
             nextOffsetId: cursor,
             totalCount: hasMore ? totalHint : indexed.length,
             totalBytes: hasMore ? null : loadedMediaBytes(indexed),
-          });
+          }, 800);
           if (!page.length) hasMore = false;
-          if (hasMore) await new Promise((resolve) => window.setTimeout(resolve, 120));
+          if (hasMore) await new Promise((resolve) => window.setTimeout(resolve, 40));
         } catch (err) {
           const message = String((err as Error)?.message || err || '');
           const wait = message.match(/FLOOD_WAIT_?(\d+)/i) || message.match(/wait\s*(\d+)\s*s/i);
@@ -3009,6 +3080,16 @@ function MediaDriveDesktop({
       }
       if (generation !== sortIndexGenerationRef.current) return;
       const exactBytes = loadedMediaBytes(indexed);
+      liveFilesRef.current = indexed;
+      setFiles(indexed);
+      filesCacheRef.current.set(cacheKey, indexed);
+      await saveDeepIndexSnapshot(creds.session, peerId, topicId, {
+        files: indexed,
+        hasMore: false,
+        nextOffsetId: null,
+        totalCount: indexed.length,
+        totalBytes: exactBytes,
+      });
       filesHasMoreRef.current = false;
       nextOffsetIdRef.current = null;
       setFilesHasMore(false);
@@ -8261,6 +8342,9 @@ function MediaDriveDesktop({
               transfer.direction === 'download' &&
               (transfer.items || []).some((i) => i.status === 'failed')
             }
+            unresolvedTransfer={unresolvedTransfer}
+            onResumeUnresolved={handleResumeUnresolved}
+            onClearUnresolved={handleClearUnresolved}
             onRetryFailed={() => {
               const r = lastDownloadRetryRef.current;
               if (!r || !creds) return;

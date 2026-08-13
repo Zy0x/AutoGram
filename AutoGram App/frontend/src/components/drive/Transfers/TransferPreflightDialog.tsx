@@ -454,14 +454,26 @@ export function TransferPreflightDialog({
             )}
             <button type="button" className="td-chip-btn" onClick={onCancel}>{t('speedtest.topbar_cancel')}</button>
           </div>
-          <button
-            type="button"
-            className="td-btn-primary"
-            onClick={() => onConfirm(buildPreflightReviewDecision(report, choices))}
-            disabled={report.hasBlockingIssues || queuedCount === 0}
-          >
-            {t('speedtest.preflight_confirm_selection', { queue: queuedCount, skip: skippedCount })}
-          </button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              type="button"
+              className="td-chip-btn"
+              onClick={() => onConfirm({ ...buildPreflightReviewDecision(report, choices), dryRun: true })}
+              disabled={report.hasBlockingIssues || queuedCount === 0}
+              title={t('speedtest.preflight_dry_run_subtitle')}
+            >
+              <FileSearch size={14} aria-hidden style={{ marginRight: 4 }} />
+              <span>{t('speedtest.preflight_dry_run')}</span>
+            </button>
+            <button
+              type="button"
+              className="td-btn-primary"
+              onClick={() => onConfirm(buildPreflightReviewDecision(report, choices))}
+              disabled={report.hasBlockingIssues || queuedCount === 0}
+            >
+              {t('speedtest.preflight_confirm_selection', { queue: queuedCount, skip: skippedCount })}
+            </button>
+          </div>
         </footer>
       </section>
     </div>

@@ -1,4 +1,13 @@
 {
+  "transfer_phase_encode": "Re-encode",
+  "transfer_phase_upload": "Upload",
+  "transfer_phase_commit": "Telegram Commit",
+  "transfer_unresolved_title": "Unresolved Transfer Found",
+  "transfer_unresolved_desc": "Found {{remaining}} of {{total}} files from a previous transfer session that were not finished.",
+  "transfer_unresolved_resume": "Resume Transfer",
+  "transfer_unresolved_clear": "Clear Queue",
+  "preflight_dry_run": "Dry Run",
+  "preflight_dry_run_subtitle": "Simulate transfer without uploading files to Telegram",
   "media_index_reconciled": "{{media}} media indexed · {{skipped}} non-media messages skipped",
   "duplicate_scan_index": "Scan chat index ({{count}} items)",
   "duplicate_rescan_index": "Validate index again ({{count}} items)",

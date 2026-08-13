@@ -1,4 +1,13 @@
 {
+  "transfer_phase_encode": "Re-encode",
+  "transfer_phase_upload": "Unggah",
+  "transfer_phase_commit": "Komit Telegram",
+  "transfer_unresolved_title": "Transfer Belum Selesai Ditemukan",
+  "transfer_unresolved_desc": "Ditemukan {{remaining}} dari {{total}} berkas yang belum selesai ditransfer pada sesi sebelumnya.",
+  "transfer_unresolved_resume": "Lanjutkan Transfer",
+  "transfer_unresolved_clear": "Hapus Antrean",
+  "preflight_dry_run": "Uji Coba (Dry Run)",
+  "preflight_dry_run_subtitle": "Simulasikan transfer tanpa mengunggah berkas ke Telegram",
   "media_index_reconciled": "{{media}} media terindeks · {{skipped}} pesan nonmedia dilewati",
   "duplicate_scan_index": "Pindai indeks chat ({{count}} item)",
   "duplicate_rescan_index": "Validasi ulang indeks ({{count}} item)",
