@@ -95,12 +95,19 @@ function ToolTabIntro({
   const { t } = useTranslation();
   const item = TOOL_GROUPS.flatMap((group) => group.tabs).find((candidate) => candidate.id === tab);
   const Icon = item?.icon || SlidersHorizontal;
+  const descriptionKey = tab === 'albums'
+    ? 'album'
+    : tab === 'duplicates'
+      ? 'duplicate'
+      : tab === 'limits_recovery'
+        ? 'oversize'
+        : tab;
   return (
     <section className="td-tools-tab-intro">
       <div className="td-tools-tab-intro-icon"><Icon size={20} /></div>
       <div className="td-tools-tab-intro-copy">
         <h3>{t(`speedtest.tools_tab_${tab}`)}</h3>
-        <p>{t(`speedtest.tools_tab_${tab}_desc`)}</p>
+        <p>{t(`speedtest.tools_tab_${descriptionKey}_desc`)}</p>
       </div>
       <div className="td-tools-tab-intro-meta">
         <span title={locationLabel}>{locationLabel}</span>

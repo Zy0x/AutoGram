@@ -12960,6 +12960,23 @@ body:has(.app-layout-drive-focus),
     grid-template-columns: 1fr;
   }
 }
+
+@media (hover: none), (pointer: coarse) {
+  .td-preflight-dialog button,
+  .td-preflight-choice,
+  .td-preflight-info-btn,
+  .td-preflight-details-toggle,
+  .td-preflight-popover-btn {
+    min-height: 2.75rem !important;
+  }
+
+  .td-preflight-info-btn {
+    width: 2.75rem !important;
+    min-width: 2.75rem !important;
+    height: 2.75rem !important;
+    margin-block: -0.65rem;
+  }
+}
 .td-transfer-summary {
   padding: 6px 12px;
   font-size: 0.72rem;
@@ -22949,12 +22966,21 @@ input[type="search"]::-webkit-search-decoration {
   .drive-dup-btn-keep,
   .drive-dup-btn-delete,
   .drive-dup-btn-next,
+  .td-confirm-close,
+  .td-confirm-btn,
+  .td-confirm-mode-btn,
   .settings-sidebar-nav-item,
   .btn,
   .btn-primary,
   .btn-secondary,
   .btn-danger {
     min-height: 2.75rem !important;
+  }
+
+  .td-confirm-close {
+    min-width: 2.75rem !important;
+    width: 2.75rem !important;
+    flex-basis: 2.75rem !important;
   }
 
   input:not([type='range']):not([type='hidden']):not([type='checkbox']):not([type='radio']),
