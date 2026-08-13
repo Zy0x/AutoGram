@@ -433,6 +433,16 @@ export function filterAndSortDriveFiles(
   return [...list].sort((a, b) => compareDriveFiles(a, b, sortMode));
 }
 
+/**
+ * Constructing a numeric collator inside the sort comparator is very costly
+ * for large Telegram histories (tens of thousands of comparisons per click).
+ * Keep one immutable collator for every Drive name sort instead.
+ */
+const DRIVE_NAME_COLLATOR = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: 'base',
+});
+
 /** Compare two files for the given sort preset (stable ties via message id). */
 export function compareDriveFiles(a: DriveFile, b: DriveFile, mode: DriveSortMode): number {
   let c = 0;
@@ -446,11 +456,11 @@ export function compareDriveFiles(a: DriveFile, b: DriveFile, mode: DriveSortMod
       if (c === 0) c = (a.id || 0) - (b.id || 0);
       return c;
     case 'name_asc':
-      c = a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+      c = DRIVE_NAME_COLLATOR.compare(a.name, b.name);
       if (c === 0) c = (b.id || 0) - (a.id || 0);
       return c;
     case 'name_desc':
-      c = b.name.localeCompare(a.name, undefined, { numeric: true, sensitivity: 'base' });
+      c = DRIVE_NAME_COLLATOR.compare(b.name, a.name);
       if (c === 0) c = (b.id || 0) - (a.id || 0);
       return c;
     case 'size_desc':

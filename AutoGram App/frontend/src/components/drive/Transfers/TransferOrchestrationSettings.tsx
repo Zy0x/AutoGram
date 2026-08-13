@@ -117,7 +117,9 @@ export function TransferOrchestrationSettings({ mode, settings, onChange, disabl
                 onChange={(event) => onChange({ preventStickerConversion: event.target.checked })}
               />
               <span>
-                <strong>{t('speedtest.prevent_sticker_conversion_title')} (.webp, .tgs, .webm)</strong>
+                <strong>
+                  {t('speedtest.prevent_sticker_conversion_title')} {t('speedtest.prevent_sticker_conversion_formats')}
+                </strong>
                 <small>{t('speedtest.prevent_sticker_conversion_desc')}</small>
                 {!isStickerEnabled && (
                   <small style={{ color: '#f59e0b', marginTop: '4px', display: 'block' }}>
@@ -171,24 +173,27 @@ export function TransferOrchestrationSettings({ mode, settings, onChange, disabl
       <p className="td-xfer-hint">{t('speedtest.album_orchestration_desc')}</p>
       {settings.groupAsAlbum && (
         <div className="td-xfer-subsection">
-          <MediaSelect
-            value={settings.albumPacking}
-            disabled={disabled}
-            onChange={(value) => onChange({ albumPacking: value as DriveTransferSettings['albumPacking'] })}
-            ariaLabel={t('speedtest.album_packing')}
-            options={['maximum', 'balanced', 'custom', 'follow_selection', 'never'].map((value) => ({
-              value,
-              label: String(t(`speedtest.album_packing_${value}`)),
-              description: String(t(`speedtest.album_packing_${value}_desc`)),
-            }))}
-          />
-          {settings.albumPacking === 'custom' && (
-            <label className="td-xfer-range-row">
-              <span>{t('speedtest.album_group_size')}</span>
-              <input type="range" min={2} max={10} value={settings.albumGroupSize} disabled={disabled} onChange={(event) => onChange({ albumGroupSize: Number(event.target.value) })} />
-              <span className="td-xfer-range-val">{settings.albumGroupSize}</span>
-            </label>
-          )}
+          <label className="td-xfer-range-row">
+            <span>{t('speedtest.album_grid_size')}</span>
+            <input
+              type="range"
+              min={2}
+              max={10}
+              value={settings.albumGroupSize}
+              disabled={disabled}
+              onChange={(event) => {
+                const albumGroupSize = Number(event.target.value);
+                onChange({
+                  albumGroupSize,
+                  albumPacking: albumGroupSize === 10 ? 'maximum' : 'custom',
+                });
+              }}
+            />
+            <span className="td-xfer-range-val">{settings.albumGroupSize}</span>
+          </label>
+          <p className="td-xfer-hint">
+            {t('speedtest.album_grid_size_desc', { size: settings.albumGroupSize })}
+          </p>
           <MediaSelect
             value={
               settings.albumFailurePolicy === 'atomic_strict' || settings.albumFailurePolicy === 'cancel_group'

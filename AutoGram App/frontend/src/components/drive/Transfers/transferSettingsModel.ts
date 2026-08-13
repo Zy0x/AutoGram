@@ -139,6 +139,9 @@ export function normalizeTransferSettings(raw?: Partial<DriveTransferSettings>):
   const uploadConcurrency = clampConcurrency(base.uploadConcurrency);
   const downloadConcurrency = clampConcurrency(base.downloadConcurrency);
   const albumGroupSize = Math.max(2, Math.min(10, Number(base.albumGroupSize) || 10));
+  // One value controls both the transfer batch and Telegram's album grid.
+  // Normalize legacy packing presets so they cannot override the chosen size.
+  const albumPacking: DriveTransferSettings['albumPacking'] = albumGroupSize === 10 ? 'maximum' : 'custom';
   const encoderMaxParallel = Math.max(1, Math.min(4, Number(base.encoderMaxParallel) || 1));
   const globalCaption = (base.globalCaption || '').slice(0, 65536);
 
@@ -159,6 +162,7 @@ export function normalizeTransferSettings(raw?: Partial<DriveTransferSettings>):
     preventStickerConversion: Boolean(base.preventStickerConversion),
     uploadConcurrency,
     downloadConcurrency,
+    albumPacking,
     albumGroupSize,
     encoderMaxParallel,
     globalCaption,

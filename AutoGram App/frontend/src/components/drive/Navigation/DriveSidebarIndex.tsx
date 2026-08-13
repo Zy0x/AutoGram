@@ -1130,15 +1130,16 @@ export function DriveSidebar({
     let loadMoreCool = 0;
     /** Fractional px accumulator — smooth sub-pixel crawl at low speeds */
     let scrollCarry = 0;
-    /** Inertial velocity state for silken smooth acceleration & deceleration */
-    let currentSpeed = 0;
+    /** Time-based velocity in px/s; independent from 60/120/144 Hz displays. */
+    let currentVelocity = 0;
+    let lastFrameAt = performance.now();
     /** Cooldown timestamp to pause auto-scroll while user is actively turning mouse wheel */
     let wheelScrollUntil = 0;
     /**
      * Speed to resume from after wheel cooldown expires.
      * Prevents RAF from abruptly re-accelerating from 0 after a wheel session.
      */
-    let speedAfterWheel = 0;
+    let velocityAfterWheel = 0;
 
     const canScroll = (el: HTMLElement, dir: 'up' | 'down') => {
       if (dir === 'up') return el.scrollTop > 1;
@@ -1170,10 +1171,10 @@ export function DriveSidebar({
         setOverKey(null);
         return;
       }
-      // During active high-speed auto-scrolling (currentSpeed > 2.5px/frame),
+      // During active high-speed auto-scrolling, suppress transient hover churn.
       // suppress state churn from rows rapidly flying past under stationary cursor.
       // This prevents React re-render stutter and stops visual hover flicker/glitches.
-      if (currentSpeed > 2.5) {
+      if (currentVelocity > 700) {
         setOverKey(null);
         return;
       }
@@ -1187,8 +1188,8 @@ export function DriveSidebar({
 
     const tryLoadMore = (el: HTMLElement) => {
       if (
-        el.scrollTop + el.clientHeight >= el.scrollHeight - 100 &&
-        Date.now() - loadMoreCool > 700
+        el.scrollTop + el.clientHeight >= el.scrollHeight - Math.max(360, el.clientHeight * 0.75) &&
+        Date.now() - loadMoreCool > 350
       ) {
         loadMoreCool = Date.now();
         onLoadMoreChats?.();
@@ -1202,19 +1203,19 @@ export function DriveSidebar({
      * - Fast EMA Lerp 0.50: instant speed buildup without frame drops
      * - OverKey state pause during active scroll eliminates DOM hover churn & glitches
      */
-    const performDragAutoScroll = (_x: number, y: number) => {
+    const performDragAutoScroll = (_x: number, y: number, deltaSeconds: number) => {
       // Pause auto-scroll while user is actively turning mouse wheel.
       // Instead of hard-resetting to 0, decay gradually so that when
       // cooldown expires the speed re-enters smoothly from speedAfterWheel.
       if (Date.now() < wheelScrollUntil) {
-        currentSpeed = currentSpeed * 0.80;
+        currentVelocity = currentVelocity * 0.80;
         return;
       }
       // Cooldown just expired: seed currentSpeed from the preserved snapshot
       // so auto-scroll doesn't restart from a dead stop (avoids the "jolt")
-      if (speedAfterWheel > 0) {
-        currentSpeed = Math.max(currentSpeed, speedAfterWheel);
-        speedAfterWheel = 0;
+      if (velocityAfterWheel > 0) {
+        currentVelocity = Math.max(currentVelocity, velocityAfterWheel);
+        velocityAfterWheel = 0;
       }
       const side = sidebarRef.current?.getBoundingClientRect();
       if (!side) return;
@@ -1246,7 +1247,7 @@ export function DriveSidebar({
 
       if (!primaryTarget || !targetRect) {
         // Gentle decay when no scrollable target found — avoids abrupt speed reset
-        currentSpeed = currentSpeed * 0.82;
+        currentVelocity = currentVelocity * 0.82;
         return;
       }
 
@@ -1254,8 +1255,8 @@ export function DriveSidebar({
       // Visible list items in the main body (between top+28px and bottom-40px)
       // are 100% hoverable without premature auto-scrolling.
       // Auto-scrolling ONLY triggers when pushing into top/bottom hot-zones.
-      const HOT_ZONE_BOTTOM = 40;
-      const HOT_ZONE_TOP = 28;
+      const HOT_ZONE_BOTTOM = 88;
+      const HOT_ZONE_TOP = 64;
       let dir: 'up' | 'down' | null = null;
       let dist = 0;
       let maxDepth = 120;
@@ -1273,19 +1274,18 @@ export function DriveSidebar({
       if (!dir) {
         // Cursor is over visible list items (e.g. RANDOM LAVENDER):
         // Immediately halt auto-scroll so hover selection is 100% precise!
-        currentSpeed = currentSpeed * 0.40;
-        if (currentSpeed < 0.1) currentSpeed = 0;
+        currentVelocity = currentVelocity * 0.38;
+        if (currentVelocity < 8) currentVelocity = 0;
         return;
       }
 
-      // Turbo progressive curve when pushing into the edge hot-zone:
-      // Starts at 24px/frame (~1,440px/s) and ramps up to 260px/frame (~15,600px/s).
+      // Progressive time-based velocity: responsive near the edge without
+      // frame-rate-dependent jumps on high-refresh/DPI displays.
       const ratio = Math.max(0.0, Math.min(1.0, dist / maxDepth));
-      const targetStep = 24 + Math.pow(ratio, 1.1) * 236; // 24px..260px
-
-      // Ultra-Fast EMA Lerp 0.75: instant turbo response in edge hot-zones
-      currentSpeed = currentSpeed + (targetStep - currentSpeed) * 0.75;
-      const activeStep = Math.max(1.0, currentSpeed);
+      const targetVelocity = 520 + Math.pow(ratio, 1.35) * 2480; // 520..3000 px/s
+      const smoothing = 1 - Math.exp(-12 * deltaSeconds);
+      currentVelocity += (targetVelocity - currentVelocity) * smoothing;
+      const activeStep = Math.max(1, currentVelocity * deltaSeconds);
 
       // Execute cascade scroll: try primaryTarget first, then fallback to navEl
       if (canScroll(primaryTarget, dir)) {
@@ -1299,6 +1299,9 @@ export function DriveSidebar({
     };
 
     const edgeScroll = () => {
+      const frameAt = performance.now();
+      const deltaSeconds = Math.min(0.032, Math.max(0.001, (frameAt - lastFrameAt) / 1000));
+      lastFrameAt = frameAt;
       if (hasPointer) {
         const side = sidebarRef.current?.getBoundingClientRect();
         if (side) {
@@ -1326,7 +1329,7 @@ export function DriveSidebar({
             }
 
             // Universal Desktop Standard Vertical Auto-Scroll Engine
-            performDragAutoScroll(lastX, lastY);
+            performDragAutoScroll(lastX, lastY, deltaSeconds);
           }
         }
       }
@@ -1588,7 +1591,7 @@ export function DriveSidebar({
         wheelScrollUntil = Date.now() + cooldown;
 
         // Preserve auto-scroll speed snapshot so RAF re-enters smoothly when trackpad stops
-        speedAfterWheel = Math.max(currentSpeed, 18);
+        velocityAfterWheel = Math.max(currentVelocity, 900);
 
         // Cascade scroll execution: try primaryTarget first, pass remaining delta to navEl if primary hits bound
         const target = primaryTarget || navEl;

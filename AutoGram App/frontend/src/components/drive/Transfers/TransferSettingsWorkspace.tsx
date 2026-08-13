@@ -2420,7 +2420,7 @@ export function TransferSettingsWorkspace({
               {draft.groupAsAlbum && (
                 <div className="td-conditional-box">
                   <div className="td-field-group">
-                    <label className="td-field-label">{t('ui.generated.ukuran_kelompok_album_maximum_media_items_5bb502d')}</label>
+                    <label className="td-field-label">{t('speedtest.album_grid_size')}</label>
                     <div className="td-slider-row-box">
                       <input
                         type="range"
@@ -2438,15 +2438,18 @@ export function TransferSettingsWorkspace({
                         }}
                       />
                       <div className="td-slider-value-bar">
-                        <span className="td-slider-val">{draft.albumGroupSize || 10} {t('ui.generated.media_album_214c464')}</span>
+                        <span className="td-slider-val">{t('speedtest.album_grid_size_value', { size: draft.albumGroupSize || 10 })}</span>
                         <span className="td-concurrency-badge">
-                          {(draft.albumGroupSize || 10) === 10 && '⚡ Standard Maksimal Telegram (10 Media)'}
-                          {(draft.albumGroupSize || 10) >= 5 && (draft.albumGroupSize || 10) <= 9 && '📦 Kelompok Sedang'}
-                          {(draft.albumGroupSize || 10) >= 2 && (draft.albumGroupSize || 10) <= 4 && '👥 Kelompok Ringkas'}
+                          {(draft.albumGroupSize || 10) === 10 && t('speedtest.album_grid_size_max')}
+                          {(draft.albumGroupSize || 10) >= 5 && (draft.albumGroupSize || 10) <= 9 && t('speedtest.album_grid_size_medium')}
+                          {(draft.albumGroupSize || 10) >= 2 && (draft.albumGroupSize || 10) <= 4 && t('speedtest.album_grid_size_compact')}
                         </span>
                       </div>
                     </div>
                   </div>
+                  <p className="td-xfer-hint">
+                    {t('speedtest.album_grid_size_desc', { size: draft.albumGroupSize || 10 })}
+                  </p>
 
                   <div className="td-switches-list" style={{ marginTop: '16px' }}>
                     <label className="td-switch-row">

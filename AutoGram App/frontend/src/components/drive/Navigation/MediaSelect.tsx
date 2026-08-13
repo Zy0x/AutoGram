@@ -185,9 +185,11 @@ export function MediaSelect({
                 onFocus={() => setActiveIndex(index)}
                 onClick={() => {
                   if (option.disabled) return;
-                  onChange(option.value);
                   setOpen(false);
                   triggerRef.current?.focus();
+                  // Let the portal close and return pointer control before a
+                  // large media collection is filtered/sorted and rendered.
+                  window.setTimeout(() => onChange(option.value), 0);
                 }}
               >
                 <span className="td-modern-select-copy">

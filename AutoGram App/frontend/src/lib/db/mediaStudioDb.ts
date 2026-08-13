@@ -301,7 +301,9 @@ export async function saveMediaRecords(records: Omit<MediaRecord, 'lastAccessed'
       if (!rec.accountId || !rec.peerId || !rec.scopeKind) continue;
       const fullRecord: MediaRecord = {
         ...rec,
-        name: (rec.name || '').trim().toLowerCase(),
+        // Preserve the display name. IndexedDB ordering remains deterministic,
+        // while the explorer applies locale-aware case-insensitive sorting.
+        name: (rec.name || '').trim(),
         lastAccessed: now,
         accessCount: 1,
       };
@@ -584,4 +586,3 @@ export async function clearMediaStudioCache(): Promise<void> {
     }
   } catch {}
 }
-

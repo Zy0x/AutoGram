@@ -16,6 +16,9 @@ pub struct QualityPreflightRequest {
     pub quality_mode: Option<String>,
     pub presentation_override: Option<String>,
     pub group_as_album: bool,
+    pub album_group_size: Option<usize>,
+    pub album_avoid_single: Option<bool>,
+    pub duplicate_policy: Option<String>,
     pub prevent_sticker_conversion: Option<bool>,
     pub oversize_action: Option<String>,
     pub global_caption: Option<String>,
@@ -73,6 +76,32 @@ pub struct QualityPreflightReport {
     pub album_is_provisional: bool,
     pub transform_convert_count: usize,
     pub transform_reencode_count: usize,
+    pub album_grid_size: usize,
+    pub planned_album_sizes: Vec<usize>,
+}
+
+fn album_partition_sizes(total: usize, requested: usize, avoid_single: bool) -> Vec<usize> {
+    let target = requested.clamp(2, 10);
+    if total == 0 {
+        return Vec::new();
+    }
+    let mut sizes = Vec::new();
+    let mut remaining = total;
+    while remaining > target {
+        sizes.push(target);
+        remaining -= target;
+    }
+    if remaining > 0 {
+        sizes.push(remaining);
+    }
+    if avoid_single && sizes.len() >= 2 && sizes.last() == Some(&1) {
+        let donor = sizes.len() - 2;
+        if sizes[donor] > 2 {
+            sizes[donor] -= 1;
+            *sizes.last_mut().expect("album remainder") = 2;
+        }
+    }
+    sizes
 }
 
 fn source_name(path: &str, index: usize) -> String {
@@ -93,6 +122,13 @@ fn source_name(path: &str, index: usize) -> String {
 
 fn is_remote(path: &str) -> bool {
     path.starts_with("http://") || path.starts_with("https://")
+}
+
+fn duplicate_probe_enabled(request: &QualityPreflightRequest) -> bool {
+    !request
+        .duplicate_policy
+        .as_deref()
+        .is_some_and(|policy| policy.eq_ignore_ascii_case("FORCE_UPLOAD"))
 }
 
 pub fn build_quality_preflight(
@@ -135,18 +171,64 @@ pub fn build_quality_preflight(
             .and_then(|s| s.to_str())
             .unwrap_or("")
             .to_ascii_lowercase();
-        let is_webp_sticker = category == MediaCategory::WebpImage || ext_lower == "webp" || ext_lower == "tgs";
+        let is_webp_sticker =
+            category == MediaCategory::WebpImage || ext_lower == "webp" || ext_lower == "tgs";
         let prevent_sticker = request.prevent_sticker_conversion.unwrap_or(false)
             || request.group_as_album
-            || request.quality_mode.as_deref().unwrap_or("").to_ascii_uppercase().contains("PREVENT_STICKER")
-            || request.quality_mode.as_deref().unwrap_or("").to_ascii_uppercase().contains("PHOTO")
-            || request.quality_mode.as_deref().unwrap_or("").to_ascii_uppercase().contains("VISUAL")
-            || request.quality_mode.as_deref().unwrap_or("").to_ascii_uppercase().contains("SEIMBANG")
-            || request.quality_mode.as_deref().unwrap_or("").to_ascii_uppercase().contains("HEMAT")
-            || request.quality_mode.as_deref().unwrap_or("").to_ascii_uppercase().contains("JELAS")
-            || request.quality_mode.as_deref().unwrap_or("").to_ascii_uppercase().contains("HIGH")
-            || request.quality_mode.as_deref().unwrap_or("").to_ascii_uppercase().contains("LOW")
-            || request.quality_mode.as_deref().unwrap_or("").to_ascii_uppercase().contains("AUTO");
+            || request
+                .quality_mode
+                .as_deref()
+                .unwrap_or("")
+                .to_ascii_uppercase()
+                .contains("PREVENT_STICKER")
+            || request
+                .quality_mode
+                .as_deref()
+                .unwrap_or("")
+                .to_ascii_uppercase()
+                .contains("PHOTO")
+            || request
+                .quality_mode
+                .as_deref()
+                .unwrap_or("")
+                .to_ascii_uppercase()
+                .contains("VISUAL")
+            || request
+                .quality_mode
+                .as_deref()
+                .unwrap_or("")
+                .to_ascii_uppercase()
+                .contains("SEIMBANG")
+            || request
+                .quality_mode
+                .as_deref()
+                .unwrap_or("")
+                .to_ascii_uppercase()
+                .contains("HEMAT")
+            || request
+                .quality_mode
+                .as_deref()
+                .unwrap_or("")
+                .to_ascii_uppercase()
+                .contains("JELAS")
+            || request
+                .quality_mode
+                .as_deref()
+                .unwrap_or("")
+                .to_ascii_uppercase()
+                .contains("HIGH")
+            || request
+                .quality_mode
+                .as_deref()
+                .unwrap_or("")
+                .to_ascii_uppercase()
+                .contains("LOW")
+            || request
+                .quality_mode
+                .as_deref()
+                .unwrap_or("")
+                .to_ascii_uppercase()
+                .contains("AUTO");
 
         let (transform, payload_class, as_document, reason_code) = if remote {
             warnings.push("remote_analysis_deferred".into());
@@ -259,7 +341,8 @@ pub fn build_quality_preflight(
                     | PayloadClass::AudioGroup
                     | PayloadClass::OriginalDocumentBatch
             );
-        let duplicate_match = if !remote && source_size > 0 {
+        let duplicate_check_enabled = duplicate_probe_enabled(request);
+        let duplicate_match = if duplicate_check_enabled && !remote && source_size > 0 {
             request
                 .destination_id
                 .as_deref()
@@ -345,8 +428,19 @@ pub fn build_quality_preflight(
         .filter(|item| item.transform == TransformAction::Reencode)
         .count();
 
+    let album_grid_size = request.album_group_size.unwrap_or(10).clamp(2, 10);
+    let planned_album_sizes = if request.group_as_album {
+        let eligible_count = items.iter().filter(|item| item.album_eligible).count();
+        album_partition_sizes(
+            eligible_count,
+            album_grid_size,
+            request.album_avoid_single.unwrap_or(true),
+        )
+    } else {
+        Vec::new()
+    };
     QualityPreflightReport {
-        schema_version: 1,
+        schema_version: 2,
         capability_source: capability_source.to_string(),
         engine_mode: feature_flags.engine_mode().into(),
         effective_max_bytes,
@@ -360,6 +454,8 @@ pub fn build_quality_preflight(
         album_is_provisional: request.group_as_album,
         transform_convert_count,
         transform_reencode_count,
+        album_grid_size,
+        planned_album_sizes,
     }
 }
 
@@ -377,6 +473,9 @@ mod tests {
             quality_mode: Some(mode.into()),
             presentation_override: Some("automatic".into()),
             group_as_album: true,
+            album_group_size: Some(10),
+            album_avoid_single: Some(true),
+            duplicate_policy: Some("SKIP".into()),
             prevent_sticker_conversion: None,
             oversize_action: Some("split".into()),
             global_caption: None,
@@ -416,6 +515,34 @@ mod tests {
         );
         assert!(report.items[0].as_document);
         assert!(report.items[0].requires_confirmation);
+    }
+
+    #[test]
+    fn custom_album_grid_size_seven_plans_seven_plus_three() {
+        let mut request = request(Path::new("unused"), "SMART");
+        request.paths = (0..10)
+            .map(|index| format!("https://example.invalid/{index}.jpg"))
+            .collect();
+        request.album_group_size = Some(7);
+        let report = build_quality_preflight(
+            &request,
+            "live",
+            u64::MAX,
+            1_024,
+            true,
+            TransferFeatureFlags::default(),
+        );
+        assert_eq!(report.album_grid_size, 7);
+        assert_eq!(report.planned_album_sizes, vec![7, 3]);
+    }
+
+    #[test]
+    fn force_upload_skips_the_preflight_duplicate_probe() {
+        let mut request = request(Path::new("unused"), "SMART");
+        request.duplicate_policy = Some("FORCE_UPLOAD".into());
+        assert!(!duplicate_probe_enabled(&request));
+        request.duplicate_policy = Some("SKIP".into());
+        assert!(duplicate_probe_enabled(&request));
     }
 
     #[test]

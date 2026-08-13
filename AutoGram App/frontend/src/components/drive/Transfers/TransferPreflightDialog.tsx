@@ -200,8 +200,8 @@ export function TransferPreflightDialog({
               type="button"
               className={`td-preflight-info-btn ${activePopover === 'transform' ? 'is-active' : ''}`}
               onClick={() => setActivePopover(activePopover === 'transform' ? null : 'transform')}
-              aria-label="Info Settings"
-              title="Informasi Settings"
+              aria-label={t('speedtest.preflight_info_button')}
+              title={t('speedtest.preflight_info_button')}
             >
               <Info size={13} aria-hidden />
             </button>
@@ -216,8 +216,8 @@ export function TransferPreflightDialog({
               type="button"
               className={`td-preflight-info-btn ${activePopover === 'clean' ? 'is-active' : ''}`}
               onClick={() => setActivePopover(activePopover === 'clean' ? null : 'clean')}
-              aria-label="Info Settings"
-              title="Informasi Settings"
+              aria-label={t('speedtest.preflight_info_button')}
+              title={t('speedtest.preflight_info_button')}
             >
               <Info size={13} aria-hidden />
             </button>
@@ -248,13 +248,21 @@ export function TransferPreflightDialog({
         {report.albumIsProvisional && (
           <div className="td-xfer-note">
             <AlertTriangle size={16} aria-hidden />
-            <span className="td-preflight-banner-text">{t('speedtest.preflight_album_provisional')}</span>
+            <span className="td-preflight-banner-text">
+              {t('speedtest.preflight_album_provisional')}
+              {report.plannedAlbumSizes.length > 0 && (
+                <> {t('speedtest.preflight_album_grid_plan', {
+                  size: report.albumGridSize,
+                  groups: report.plannedAlbumSizes.join(' + '),
+                })}</>
+              )}
+            </span>
             <button
               type="button"
               className={`td-preflight-info-btn ${activePopover === 'album' ? 'is-active' : ''}`}
               onClick={() => setActivePopover(activePopover === 'album' ? null : 'album')}
-              aria-label="Info Settings"
-              title="Informasi Settings"
+              aria-label={t('speedtest.preflight_info_button')}
+              title={t('speedtest.preflight_info_button')}
             >
               <Info size={13} aria-hidden />
             </button>
@@ -438,10 +446,10 @@ export function TransferPreflightDialog({
                 type="button"
                 className="td-chip-btn"
                 onClick={onOpenSettings}
-                title="Pengaturan Drive & Transfer (Upload)"
+                title={t('speedtest.preflight_drive_settings_title')}
               >
                 <Settings size={13} aria-hidden style={{ marginRight: 4 }} />
-                <span>Drive Settings</span>
+                <span>{t('speedtest.preflight_drive_settings')}</span>
               </button>
             )}
             <button type="button" className="td-chip-btn" onClick={onCancel}>{t('speedtest.topbar_cancel')}</button>

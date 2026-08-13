@@ -21492,6 +21492,14 @@ input[type="search"]::-webkit-search-decoration {
   scroll-behavior: auto !important;
 }
 
+/* RAF-driven drag auto-scroll must be immediate. Smooth behavior restarts a
+   CSS animation every frame and collapses effective speed to a few pixels/s. */
+.td-sidebar.media-dnd .td-folder-nav,
+.td-folder-nav.is-drop-mode {
+  scroll-behavior: auto !important;
+  will-change: scroll-position;
+}
+
 /* -- Telegram-Style Colorful Letter Avatar Styling -- */
 .td-peer-avatar-initials {
   width: 26px !important;

@@ -80,7 +80,6 @@ import {
   CHAT_BULK_PAGE,
   type DriveCredentials,
   type ChatListCursor,
-  driveIndexFolder,
   addDriveEventListener,
 } from '../../lib/telegram/driveApi';
 import {
@@ -91,7 +90,6 @@ import {
 } from '../../lib/telegram';
 import {
   saveCheckpoint,
-  getCheckpoint,
   saveMediaRecords,
   getMediaPageByContext,
   buildDriveMediaContext,
@@ -131,6 +129,8 @@ import {
   dedupeByMsgId,
   purgeDeletedMsgIds,
   driveGetMediaStats,
+  loadDeepIndexSnapshot,
+  saveDeepIndexSnapshot,
   removeFilesFromDeepIndex,
 } from '../../lib/telegram';
 import {
@@ -194,6 +194,7 @@ import {
   transferBadge,
 } from '../../lib/media/transferProgress';
 import { debugLog } from '../../lib/utils/debugMode';
+import { normalizeTransferSettings } from '../../components/drive/Transfers/transferSettingsModel';
 import {
   applyClickSelection,
   invertSelectionOnDisplayed,
@@ -690,6 +691,7 @@ function MediaDriveDesktop({
     total: number;
     text: string;
   }>({ active: false, processed: 0, total: 0, text: '' });
+  const sortIndexGenerationRef = useRef(0);
   const [thumbQuality, setThumbQualityState] = useState<DriveThumbQuality>(() => {
     try {
       const raw = localStorage.getItem(LS_THUMB_Q);
@@ -725,10 +727,9 @@ function MediaDriveDesktop({
       }
     | null
   >(null);
-  const [transferSettings, setTransferSettings] = useState<TransferSettingsState>(() => ({
-    ...DEFAULT_TRANSFER_SETTINGS,
-    ...loadTransferSettings(),
-  }));
+  const [transferSettings, setTransferSettings] = useState<TransferSettingsState>(() =>
+    normalizeTransferSettings({ ...DEFAULT_TRANSFER_SETTINGS, ...loadTransferSettings() })
+  );
   const [transfer, setTransfer] = useState<TransferSession>(() => ({ ...EMPTY_TRANSFER_SESSION }));
   const [preflightReport, setPreflightReport] = useState<QualityPreflightReport | null>(null);
   const preflightResolverRef = useRef<((decision: PreflightReviewDecision) => void) | null>(null);
@@ -852,6 +853,9 @@ function MediaDriveDesktop({
         qualityMode: nextSettings.qualityMode,
         presentationOverride: nextSettings.presentationOverride,
         groupAsAlbum: nextSettings.groupAsAlbum,
+        albumGroupSize: nextSettings.albumGroupSize,
+        albumAvoidSingle: nextSettings.albumAvoidSingle,
+        duplicatePolicy: nextSettings.duplicatePolicy,
         oversizeAction: nextSettings.oversizeAction,
         globalCaption: (nextSettings.globalCaption || '').trim() || undefined,
         captionOverflowPolicy: nextSettings.captionOverflowPolicy,
@@ -1364,7 +1368,12 @@ function MediaDriveDesktop({
       try {
         const secureSettings = await getSecureTransferSettings();
         if (active && secureSettings) {
-          setTransferSettings(secureSettings);
+          const normalized = normalizeTransferSettings(secureSettings);
+          setTransferSettings(normalized);
+          saveTransferSettings(normalized);
+          if (JSON.stringify(normalized) !== JSON.stringify(secureSettings)) {
+            void setSecureTransferSettings(normalized);
+          }
         }
       } catch (err) {
         console.warn('Failed to load secure transfer settings:', err);
@@ -2887,53 +2896,139 @@ function MediaDriveDesktop({
     };
   }, [creds, peerId, refreshFiles]);
 
-  const prevSortAndPeerRef = useRef<{ sortMode: string; peerId: number | null }>({
+  const prevSortAndPeerRef = useRef<{ sortMode: string; peerId: number | null; topicId: number | null }>({
     sortMode: String(sortMode),
     peerId,
+    topicId: topicFilter,
   });
 
-  // Sort mode changes or mount trigger for indexing
+  // Global sort index: paint the current/saved set immediately, then complete
+  // a Grammers walk in the background. The explorer sorts the merged set, so
+  // switching perspective or sort never blocks the grid behind an overlay.
   useEffect(() => {
-    if (!creds || !peerId) return;
+    if (!creds) return;
     const sortModeStr = String(sortMode);
     if (
       prevSortAndPeerRef.current.sortMode === sortModeStr &&
-      prevSortAndPeerRef.current.peerId === peerId
+      prevSortAndPeerRef.current.peerId === peerId &&
+      prevSortAndPeerRef.current.topicId === topicFilter
     ) {
       return;
     }
-    prevSortAndPeerRef.current = { sortMode: sortModeStr, peerId };
-    const isTimeSort = sortModeStr === 'newest' || sortModeStr === 'oldest';
-    if (isTimeSort) {
+    prevSortAndPeerRef.current = { sortMode: sortModeStr, peerId, topicId: topicFilter };
+    const generation = ++sortIndexGenerationRef.current;
+    if (sortModeStr === 'newest') {
       setIndexingJob({ active: false, processed: 0, total: 0, text: '' });
       void refreshFilesRef.current?.();
       return;
     }
-    
-    const jobId = `index_chat_${peerId}${topicFilterRef.current ? `_topic_${topicFilterRef.current}` : ''}`;
-    void getCheckpoint(jobId).then(async (cp) => {
-      if (cp && cp.status === 'completed') {
-        void refreshFilesRef.current?.();
-      } else {
-        setIndexingJob({
-          active: true,
-          processed: cp?.processedCount || 0,
-          total: cp?.totalCount || 100,
-          text: 'Memulai pengindeksan media untuk pengurutan global...'
-        });
+
+    const topicId = topicFilterRef.current;
+    const cacheKey = getDriveCacheKey(creds.session, peerId, topicId);
+    const run = async () => {
+      let snapshot = await loadDeepIndexSnapshot(creds.session, peerId, topicId);
+      if (generation !== sortIndexGenerationRef.current) return;
+      let indexed = dedupeByMsgId(snapshot?.files?.length ? snapshot.files : liveFilesRef.current);
+      if (indexed.length) {
+        liveFilesRef.current = indexed;
+        setFiles(indexed);
+        filesCacheRef.current.set(cacheKey, indexed);
+      }
+      if (snapshot && !snapshot.hasMore) {
+        const bytes = loadedMediaBytes(indexed);
+        setTotalFileCount(indexed.length);
+        setTotalBytes(bytes);
+        setStatsAccurate(true);
+        setIndexingJob({ active: false, processed: indexed.length, total: indexed.length, text: '' });
+        return;
+      }
+
+      let cursor = snapshot?.nextOffsetId ?? null;
+      let hasMore = snapshot?.hasMore ?? true;
+      let totalHint = snapshot?.totalCount ?? filesTotalCountRef.current.get(cacheKey) ?? indexed.length;
+      setIndexingJob({
+        active: true,
+        processed: indexed.length,
+        total: Math.max(totalHint || 0, indexed.length),
+        text: t('speedtest.sort_index_progress', { count: indexed.length }),
+      });
+
+      while (hasMore && generation === sortIndexGenerationRef.current) {
         try {
-          await driveIndexFolder(creds, peerId, {
-            topicId: topicFilterRef.current,
-            jobId: jobId
+          const response = await driveListFiles(creds, peerId, {
+            pageSize: 250,
+            offsetId: cursor,
+            topicId,
+            quickStats: false,
+            sortMode: 'newest',
+            bypassCache: true,
           });
+          if (generation !== sortIndexGenerationRef.current) return;
+          const page = dedupeByMsgId(response.files || []);
+          const seen = new Set(indexed.map((file) => file.id));
+          indexed = [...indexed, ...page.filter((file) => !seen.has(file.id))];
+          const next = response.next_offset_id ?? null;
+          hasMore = Boolean(response.has_more && next != null && Number(next) !== Number(cursor));
+          cursor = hasMore ? next : null;
+          totalHint = Math.max(Number(response.total_count || 0), totalHint || 0, indexed.length);
+
+          liveFilesRef.current = indexed;
+          setFiles(indexed);
+          filesCacheRef.current.set(cacheKey, indexed);
+          setIndexingJob({
+            active: hasMore,
+            processed: indexed.length,
+            total: totalHint,
+            text: t('speedtest.sort_index_progress', { count: indexed.length }),
+          });
+          const context = buildDriveMediaContext(creds.session, peerId, topicId);
+          void saveMediaRecords(scopeMediaRecords(page, context, peerId || 0)).catch(() => undefined);
+          await saveDeepIndexSnapshot(creds.session, peerId, topicId, {
+            files: indexed,
+            hasMore,
+            nextOffsetId: cursor,
+            totalCount: hasMore ? totalHint : indexed.length,
+            totalBytes: hasMore ? null : loadedMediaBytes(indexed),
+          });
+          if (!page.length) hasMore = false;
+          if (hasMore) await new Promise((resolve) => window.setTimeout(resolve, 120));
         } catch (err) {
-          console.error('[Index] driveIndexFolder trigger failed:', err);
-          setIndexingJob({ active: false, processed: 0, total: 0, text: '' });
-          setError(t('ui.generated.gagal_memulai_pengindeksan_media_f5bfe76') + friendlyDriveError(err));
+          const message = String((err as Error)?.message || err || '');
+          const wait = message.match(/FLOOD_WAIT_?(\d+)/i) || message.match(/wait\s*(\d+)\s*s/i);
+          if (wait && generation === sortIndexGenerationRef.current) {
+            const seconds = Math.max(1, Number(wait[1]) || 1);
+            setIndexingJob((current) => ({
+              ...current,
+              text: t('speedtest.sort_index_rate_wait', { seconds }),
+            }));
+            await new Promise((resolve) => window.setTimeout(resolve, seconds * 1000));
+            continue;
+          }
+          throw err;
         }
       }
+      if (generation !== sortIndexGenerationRef.current) return;
+      const exactBytes = loadedMediaBytes(indexed);
+      filesHasMoreRef.current = false;
+      nextOffsetIdRef.current = null;
+      setFilesHasMore(false);
+      setNextOffsetId(null);
+      setTotalFileCount(indexed.length);
+      setTotalBytes(exactBytes);
+      setStatsAccurate(true);
+      setIndexingJob({ active: false, processed: indexed.length, total: indexed.length, text: '' });
+    };
+
+    void run().catch((err) => {
+      if (generation !== sortIndexGenerationRef.current) return;
+      console.error('[SortIndex] Grammers walk failed:', err);
+      setIndexingJob({ active: false, processed: 0, total: 0, text: '' });
+      setError(t('speedtest.sort_index_failed', { error: friendlyDriveError(err) }));
     });
-  }, [sortMode, peerId, creds, refreshFiles]);
+    return () => {
+      if (sortIndexGenerationRef.current === generation) sortIndexGenerationRef.current += 1;
+    };
+  }, [sortMode, peerId, topicFilter, creds, getDriveCacheKey, t]);
 
   const processPendingActions = useCallback(async () => {
     if (!creds || !navigator.onLine) return;
@@ -5020,6 +5115,9 @@ function MediaDriveDesktop({
         qualityMode: transferSettings.qualityMode,
         presentationOverride: transferSettings.presentationOverride,
         groupAsAlbum: transferSettings.groupAsAlbum,
+        albumGroupSize: transferSettings.albumGroupSize,
+        albumAvoidSingle: transferSettings.albumAvoidSingle,
+        duplicatePolicy: transferSettings.duplicatePolicy,
         oversizeAction: transferSettings.oversizeAction,
         globalCaption: (transferSettings.globalCaption || '').trim() || undefined,
         captionOverflowPolicy: transferSettings.captionOverflowPolicy,
@@ -8278,10 +8376,11 @@ function MediaDriveDesktop({
             transferSettings={transferSettings}
             transferActive={transfer.active}
             onTransferSettingsChange={(next: TransferSettingsState) => {
-              setTransferSettings(next);
-              saveTransferSettings(next);
-              void setSecureTransferSettings(next);
-              void reevaluatePreflight(next);
+              const normalized = normalizeTransferSettings(next);
+              setTransferSettings(normalized);
+              saveTransferSettings(normalized);
+              void setSecureTransferSettings(normalized);
+              void reevaluatePreflight(normalized);
             }}
             onPreviewFile={(f, opts) => {
               // Keep tools open behind preview so user can resume dups after Esc
@@ -8304,10 +8403,11 @@ function MediaDriveDesktop({
             transferActive={transfer.active}
             onClose={() => setTransferSettingsOpen(false)}
             onChange={(next: TransferSettingsState) => {
-              setTransferSettings(next);
-              saveTransferSettings(next);
-              void setSecureTransferSettings(next);
-              void reevaluatePreflight(next);
+              const normalized = normalizeTransferSettings(next);
+              setTransferSettings(normalized);
+              saveTransferSettings(normalized);
+              void setSecureTransferSettings(normalized);
+              void reevaluatePreflight(normalized);
             }}
           />
 
@@ -8360,32 +8460,35 @@ function MediaDriveDesktop({
           )}
 
           <div className="td-explorer-wrapper" style={{ position: 'relative', flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            {indexingJob.active && sortMode !== 'newest' && sortMode !== 'oldest' && (
+            {indexingJob.active && sortMode !== 'newest' && (
               <div
-                className="td-drop-overlay"
+                className="td-sort-index-status"
+                role="status"
                 style={{
                   zIndex: 20,
-                  background: 'rgba(15, 23, 42, 0.85)',
+                  position: 'absolute',
+                  top: '10px',
+                  right: '12px',
+                  background: 'rgba(15, 23, 42, 0.92)',
                   backdropFilter: 'blur(8px)',
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: '16px',
+                  gap: '8px',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '24px',
+                  padding: '8px 10px',
+                  border: '1px solid rgba(56, 189, 248, 0.28)',
+                  borderRadius: '10px',
                   color: '#fff',
+                  pointerEvents: 'none',
                 }}
               >
-                <div className="td-drop-overlay-icon" style={{ animation: 'pulse 1.5s infinite' }}>
-                  <HardDrive size={36} className="text-blue-500" />
-                </div>
-                <p className="td-drop-overlay-title" style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                <HardDrive size={16} className="text-blue-500" />
+                <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>
                   {indexingJob.text}
-                </p>
+                </span>
                 <div
                   style={{
-                    width: '280px',
-                    height: '6px',
+                    width: '72px',
+                    height: '4px',
                     background: 'rgba(255, 255, 255, 0.1)',
                     borderRadius: '3px',
                     overflow: 'hidden',
@@ -8400,9 +8503,6 @@ function MediaDriveDesktop({
                     }}
                   />
                 </div>
-                <span className="td-drop-overlay-hint" style={{ fontSize: '0.85rem', opacity: 0.7 }}>
-                  {t('ui.generated.pengurutan_global_ukuran_nama_memerlukan_pengind_544f3d4')}
-                </span>
               </div>
             )}
 

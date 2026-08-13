@@ -293,6 +293,7 @@ fn persist_upload_ledger_binding(
     topic_id: Option<i64>,
     uploader_account_id: &str,
     telegram_message_id: Option<i64>,
+    item_index: usize,
     identity: &PreparedLedgerIdentity,
 ) {
     if let Err(error) = super::autogram_core::transfer::record_upload_ledger(
@@ -312,6 +313,63 @@ fn persist_upload_ledger_binding(
             format!("transfer={} error={error}", rec.transfer_id),
         );
     }
+
+    // Preflight sees the original source path, while the final duplicate guard sees
+    // the prepared artifact. Persist both identities so the next preflight can skip
+    // immediately without repeating preparation, while retaining the final-output
+    // guard for transforms whose bytes differ from the source.
+    let Some(source_item) = rec.items.iter().find(|item| item.index == item_index) else {
+        return;
+    };
+    let source_path = std::path::Path::new(&source_item.path);
+    let source_identity =
+        super::autogram_core::transfer::sha256_file(source_path).and_then(|sha256| {
+            Ok(PreparedLedgerIdentity {
+                sha256,
+                filename: source_path
+                    .file_name()
+                    .and_then(|value| value.to_str())
+                    .unwrap_or("file")
+                    .to_string(),
+                size: std::fs::metadata(source_path)
+                    .map(|metadata| metadata.len())
+                    .map_err(|error| format!("read source identity: {error}"))?,
+                payload_class: identity.payload_class.clone(),
+            })
+        });
+    match source_identity {
+        Ok(source_identity) if source_identity.sha256 != identity.sha256 => {
+            if let Err(error) = super::autogram_core::transfer::record_upload_ledger(
+                uploader_account_id,
+                &rec.chat_id,
+                topic_id,
+                telegram_message_id,
+                None,
+                &source_identity.sha256,
+                &source_identity.filename,
+                source_identity.size,
+                &source_identity.payload_class,
+            ) {
+                tg_log::warn(
+                    "studio_orch",
+                    "upload_source_ledger_persist_failed",
+                    format!(
+                        "transfer={} index={} error={error}",
+                        rec.transfer_id, item_index
+                    ),
+                );
+            }
+        }
+        Ok(_) => {}
+        Err(error) => tg_log::warn(
+            "studio_orch",
+            "upload_source_ledger_identity_failed",
+            format!(
+                "transfer={} index={} error={error}",
+                rec.transfer_id, item_index
+            ),
+        ),
+    }
 }
 
 fn persist_upload_ledger_for_path(
@@ -319,6 +377,7 @@ fn persist_upload_ledger_for_path(
     topic_id: Option<i64>,
     uploader_account_id: &str,
     telegram_message_id: Option<i64>,
+    item_index: usize,
     prepared_path: &str,
     as_document: bool,
 ) {
@@ -347,6 +406,7 @@ fn persist_upload_ledger_for_path(
             topic_id,
             uploader_account_id,
             telegram_message_id,
+            item_index,
             &identity,
         ),
         Err(error) => tg_log::warn(
@@ -533,6 +593,7 @@ fn handle_oversize_prepared(
                 topic_id,
                 &alternate.session,
                 result.message_id,
+                item_index,
                 prepared_path,
                 as_document,
             );
@@ -623,6 +684,7 @@ fn handle_oversize_prepared(
                 topic_id,
                 &identity.session,
                 manifest_result.message_id,
+                item_index,
                 prepared_path,
                 true,
             );
@@ -647,23 +709,19 @@ fn run_intelligent_album(
     feature_flags: TransferFeatureFlags,
 ) -> Result<OrchStartResult, String> {
     let mode = QualityMode::parse(quality_mode_value);
-    let packing = match rec
-        .options
-        .get("album_packing")
-        .or_else(|| rec.options.get("albumPacking"))
-        .and_then(|v| v.as_str())
-        .unwrap_or("maximum")
-    {
-        "balanced" => AlbumPackingPolicy::Balanced,
-        "custom" => AlbumPackingPolicy::Custom,
-        "follow_selection" | "followSelection" => AlbumPackingPolicy::FollowSelection,
-        "never" => AlbumPackingPolicy::Never,
-        _ => AlbumPackingPolicy::Maximum,
+    // One setting controls both album batch size and the Telegram grid. Legacy
+    // packing presets must not silently override the user's selected size.
+    let album_grid_size =
+        option_usize(&rec.options, "album_group_size", "albumGroupSize", 10).clamp(2, 10);
+    let packing = if album_grid_size == 10 {
+        AlbumPackingPolicy::Maximum
+    } else {
+        AlbumPackingPolicy::Custom
     };
     let plan_options = AlbumPlanOptions {
         enabled: true,
         packing,
-        custom_size: option_usize(&rec.options, "album_group_size", "albumGroupSize", 10),
+        custom_size: album_grid_size,
         avoid_single_remainder: option_bool(
             &rec.options,
             "album_avoid_single",
@@ -1181,9 +1239,11 @@ fn run_intelligent_album(
             match res {
                 Ok(ok_res) => break Ok(ok_res),
                 Err(err) => {
-                    let is_network = grammers_ops::is_pool_or_transport_error(&err) || err.retryable();
+                    let is_network =
+                        grammers_ops::is_pool_or_transport_error(&err) || err.retryable();
                     if is_network && album_attempts <= 3 {
-                        let wait_secs = err.flood_wait_secs().unwrap_or((album_attempts * 2) as u32);
+                        let wait_secs =
+                            err.flood_wait_secs().unwrap_or((album_attempts * 2) as u32);
                         tg_log::warn(
                             "studio_orch",
                             "album_upload_network_retry",
@@ -1237,6 +1297,7 @@ fn run_intelligent_album(
                                 topic_id,
                                 &delivery_identity.session,
                                 result.message_id,
+                                result.index,
                                 ledger_identity,
                             );
                         }
@@ -1275,10 +1336,7 @@ fn run_intelligent_album(
                 )?;
             }
             Err(error) => {
-                let message = format!(
-                    "Album commit could not be proven: {}",
-                    error.user_message()
-                );
+                let message = format!("Album commit could not be proven: {}", error.user_message());
                 if first_error.is_none() {
                     first_error = Some(message.clone());
                 }
@@ -1337,9 +1395,12 @@ fn run_intelligent_album(
             match res {
                 Ok(ok_res) => break Ok(ok_res),
                 Err(err) => {
-                    let is_network = grammers_ops::is_pool_or_transport_error(&err) || err.retryable();
+                    let is_network =
+                        grammers_ops::is_pool_or_transport_error(&err) || err.retryable();
                     if is_network && single_attempts <= 3 {
-                        let wait_secs = err.flood_wait_secs().unwrap_or((single_attempts * 2) as u32);
+                        let wait_secs = err
+                            .flood_wait_secs()
+                            .unwrap_or((single_attempts * 2) as u32);
                         tg_log::warn(
                             "studio_orch",
                             "single_upload_network_retry",
@@ -1380,6 +1441,7 @@ fn run_intelligent_album(
                             topic_id,
                             &delivery_identity.session,
                             result.message_id,
+                            item.index,
                             ledger_identity,
                         );
                     }
@@ -2059,6 +2121,7 @@ fn run_orchestrated_grammers(
                         topic_id,
                         &identity.session,
                         r.message_id,
+                        item.index,
                         &ledger_identity,
                     );
                 }

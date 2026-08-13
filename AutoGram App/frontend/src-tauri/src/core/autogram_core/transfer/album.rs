@@ -232,6 +232,63 @@ mod tests {
             vec![10]
         );
     }
+
+    #[test]
+    fn custom_grid_seven_partitions_ten_as_seven_plus_three() {
+        let options = AlbumPlanOptions {
+            enabled: true,
+            packing: AlbumPackingPolicy::Custom,
+            custom_size: 7,
+            avoid_single_remainder: true,
+            group_documents: true,
+            group_audio: true,
+            group_original_documents: true,
+        };
+        let plan = build_album_plan(items(10, PayloadClass::NativeVisual), &options);
+        assert_eq!(
+            plan.groups
+                .iter()
+                .map(|group| group.items.len())
+                .collect::<Vec<_>>(),
+            vec![7, 3]
+        );
+        assert!(plan.singles.is_empty());
+    }
+
+    #[test]
+    fn every_custom_grid_preserves_items_and_telegram_limits() {
+        for grid in 2..=10 {
+            for total in 1..=41 {
+                let options = AlbumPlanOptions {
+                    enabled: true,
+                    packing: AlbumPackingPolicy::Custom,
+                    custom_size: grid,
+                    avoid_single_remainder: true,
+                    group_documents: true,
+                    group_audio: true,
+                    group_original_documents: true,
+                };
+                let plan = build_album_plan(items(total, PayloadClass::NativeVisual), &options);
+                let delivered = plan
+                    .groups
+                    .iter()
+                    .map(|group| group.items.len())
+                    .sum::<usize>()
+                    + plan.singles.len();
+                assert_eq!(delivered, total, "grid={grid} total={total}");
+                assert!(plan
+                    .groups
+                    .iter()
+                    .all(|group| (2..=grid).contains(&group.items.len())));
+                let unavoidable_single = total == 1 || (grid == 2 && total % 2 == 1);
+                assert_eq!(
+                    plan.singles.len(),
+                    usize::from(unavoidable_single),
+                    "grid={grid} total={total}"
+                );
+            }
+        }
+    }
     #[test]
     fn eleven_rebalances_to_nine_plus_two() {
         let p = build_album_plan(items(11, PayloadClass::NativeVisual), &options());
@@ -274,7 +331,10 @@ mod tests {
         let mut intent_unknown = intent;
         intent_unknown.mark_unknown_commit("MTProto RPC timeout during sendMultiMedia");
         assert_eq!(intent_unknown.state, AlbumCommitState::UnknownCommit);
-        assert!(intent_unknown.reconciliation_reason.unwrap().contains("RPC timeout"));
+        assert!(intent_unknown
+            .reconciliation_reason
+            .unwrap()
+            .contains("RPC timeout"));
     }
 }
 
@@ -307,9 +367,7 @@ impl AlbumCommitIntent {
         failure_policy: AlbumFailurePolicy,
     ) -> Self {
         let count = group.items.len();
-        let random_ids: Vec<i64> = (0..count)
-            .map(|i| (i as i64 + 1) * 100_000 + 42)
-            .collect();
+        let random_ids: Vec<i64> = (0..count).map(|i| (i as i64 + 1) * 100_000 + 42).collect();
 
         AlbumCommitIntent {
             logical_commit_id: logical_commit_id.into(),
@@ -327,4 +385,3 @@ impl AlbumCommitIntent {
         self.reconciliation_reason = Some(reason.into());
     }
 }
-

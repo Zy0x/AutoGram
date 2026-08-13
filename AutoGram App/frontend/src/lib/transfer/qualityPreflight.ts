@@ -46,6 +46,8 @@ export interface QualityPreflightReport {
   albumIsProvisional: boolean;
   transformConvertCount?: number;
   transformReencodeCount?: number;
+  albumGridSize: number;
+  plannedAlbumSizes: number[];
 }
 
 export interface QualityPreflightRequest {
@@ -56,6 +58,9 @@ export interface QualityPreflightRequest {
   qualityMode: string;
   presentationOverride: string;
   groupAsAlbum: boolean;
+  albumGroupSize: number;
+  albumAvoidSingle: boolean;
+  duplicatePolicy: 'SKIP' | 'FORCE_UPLOAD';
   oversizeAction: string;
   globalCaption?: string;
   captionOverflowPolicy: 'truncate_with_warning' | 'fail' | 'split';
