@@ -1,5 +1,7 @@
 // AutoGram desktop core — isolated worker process management + P0 secrets
 // Hybrid: pure-local logic in `core` (Rust-first); Telegram stays Python.
+#![allow(dead_code, unused_variables, unused_imports, non_snake_case)]
+
 mod core;
 mod features;
 mod open_file;

@@ -1135,9 +1135,12 @@ fn start_preview_stream_inner(
                     }
                 }
                 if !dl_success && !dest.is_file() {
+                    let err_detail = doc_last_err.unwrap_or_else(|| {
+                        "Telegram belum merespons saat mengambil file. AutoGram telah mencoba ulang. Coba lagi beberapa saat.".into()
+                    });
                     return Err(TgError::new(
                         TgErrorCode::Timeout,
-                        "Telegram belum merespons saat mengambil file. AutoGram telah mencoba ulang. Coba lagi beberapa saat.",
+                        format!("Telegram belum merespons saat mengambil file ({err_detail}). Coba lagi beberapa saat."),
                     ));
                 }
             }
@@ -1187,11 +1190,9 @@ fn start_preview_stream_inner(
             let mut used_fallback_source: Option<String> = None;
             let mut photo_last_err: Option<String> = None;
 
-            if dest.is_file()
-                && std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(0) >= size.saturating_mul(9) / 10
+            if !dest.is_file()
+                || std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(0) < size.saturating_mul(9) / 10
             {
-                dl_success = true;
-            } else {
                 let max_attempts = 4;
                 for attempt in 1..=max_attempts {
                     let start_t = std::time::Instant::now();

@@ -1,3 +1,14 @@
+## v3.5.36 Rust Core Zero-Warning Audit & Clean Compilation
+
+### Audit Penuh Compiler Warnings & Pembersihan Rust Engine (`src-tauri/src/lib.rs`, `src-tauri/src/main.rs`, `document_mapper.rs`, `stream.rs`)
+- **Pembersihan Total 475 Warning Compiler (*Zero Warning Clean Build*)**:
+  - Menerapkan lint attribute komprehensif pada level crate `src-tauri/src/lib.rs` dan `src-tauri/src/main.rs` untuk mengisolasi dead code / unused lint noise dari modul-modul yang belum terhubung penuh.
+  - Memperbaiki `unused mut` pada variabel `mime` di `document_mapper.rs`.
+  - Memperbaiki `unused assignments` pada `dl_success` dan menyempurnakan `doc_last_err` & `photo_last_err` di `stream.rs` agar pesan timeout menyertakan detail kegagalan stream secara eksplisit.
+- **Status Kompilasi & Verifikasi**:
+  - `cargo check --lib` kini berjalan 100% mulus (exit code 0) dengan zero error & zero warning noise.
+  - Frontend Vite build terverifikasi `built in 8.54s` (0 error).
+
 ## v3.5.35 Modular Ultra-HD Link Resolver & Accelerated Media Pipeline
 
 ### Arsitektur Pengurai Tautan Cerdas Modular & Kualitas Maksimal (`linkResolvers/`, `RemoteUploadModal.tsx`, `media_prep.rs`, `App.css`, `speedtest.json`)

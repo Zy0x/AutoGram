@@ -122,7 +122,7 @@ pub fn message_to_topic_media_item(
                 };
 
                 let mut raw_name: Option<String> = None;
-                let mut mime: Option<String> = Some(doc.mime_type.clone());
+                let mime: Option<String> = Some(doc.mime_type.clone());
 
                 let mut is_video_attr = false;
                 let mut is_audio_attr = false;

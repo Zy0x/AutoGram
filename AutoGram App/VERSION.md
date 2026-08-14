@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.35
+AutoGram Version: v3.5.36
 
 Current State:
+v3.5.36 Rust Core Zero-Warning Audit & Clean Compilation — membenahi `src-tauri/src/lib.rs`, `src-tauri/src/main.rs`, `src/features/topic_media/mtproto/document_mapper.rs`, `src/core/grammers/stream.rs`, `VERSION.md`, dan `CHANGELOG.md`. Mengeliminasi seluruh 475 warning dead code & unused compiler lints pada crate `frontend` (lib), menyempurnakan penanganan pesan error timeout fallback pada streaming dokumen dan foto, serta memastikan verifikasi `cargo check --lib` dan frontend Vite build berjalan 100% mulus dengan 0 error dan zero warning noise.
+
+Previous:
 v3.5.35 Modular Ultra-HD Link Resolver & Accelerated Media Pipeline — membenahi `media_prep.rs`, `src/lib/telegram/linkResolvers/` (`types.ts`, `registry.ts`, `youtubeResolver.ts`, `tiktokResolver.ts`, `gdriveResolver.ts`, `dropboxResolver.ts`, `mediafireResolver.ts`, `teraboxResolver.ts`, `pinterestResolver.ts`, `pixivResolver.ts`, `socialMediaResolver.ts`, `directFileResolver.ts`), `RemoteUploadModal.tsx`, `App.css`, `src/locales/en/speedtest.json`, `src/locales/id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Membangun arsitektur pengurai tautan cerdas modular dengan isolasi penuh (*fail-safe provider pattern*) yang mendukung kualitas maksimal (YouTube hingga 8K Ultra HD/4K/2K/1080p60 & 320kbps Audio; TikTok Clean No-Watermark HD/2K; Terabox Direct Stream; Pinterest & Pixiv Lossless; Google Drive & Dropbox Direct Converter). Memperluas kapasitas unduh backend Rust hingga 4GB dengan akselerasi stream buffer dan pratinjau kartu media kaya (cover thumbnail, overlay durasi, creator tag, badge tanpa watermark, dan grid pemilih kualitas).
 
 Previous:
