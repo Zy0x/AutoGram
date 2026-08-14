@@ -226,21 +226,11 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
                 ? t('speedtest.select_topic_in_chat', { chat: topicSubView.choice.label })
                 : state.title}
             </h2>
-            {topicSubView ? (
-              <div className="td-dest-header-subwrap">
-                <button
-                  type="button"
-                  className="td-dest-back-pill"
-                  onClick={() => setTopicSubView(null)}
-                  title={t('speedtest.back_to_chats')}
-                >
-                  <ArrowLeft size={12} strokeWidth={2.5} />
-                  <span>{t('speedtest.back_to_chats')}</span>
-                </button>
-              </div>
-            ) : (
-              state.detail && <p>{state.detail}</p>
-            )}
+            <p className="td-confirm-desc">
+              {topicSubView
+                ? t('speedtest.select_topic_desc')
+                : (state.detail || '')}
+            </p>
           </div>
           <button type="button" className="td-confirm-close" onClick={onClose} aria-label={t('speedtest.preview_close_btn')}>
             <X size={18} />

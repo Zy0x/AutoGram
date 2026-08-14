@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.24
+AutoGram Version: v3.5.25
 
 Current State:
+v3.5.25 Clean Unified Back Navigation & De-duplicated Topic Header — membenahi `DriveDestinationPicker.tsx`, `src/locales/en/speedtest.json`, `src/locales/id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Menghilangkan tombol kembali redundan (*duplicate back buttons*) pada header sub-tampilan topik forum. Memusatkan aksi kembali secara elegan pada satu tombol header kiri interaktif `ArrowLeft` (`is-back-btn`), sembari menyajikan deskripsi bantuan yang bersih dan komunikatif (`select_topic_desc`) di bawah judul modal.
+
+Previous:
 v3.5.24 Premium Topic Navigation & Dedicated Topic Search Engine — membenahi `DriveDestinationPicker.tsx`, `App.css`, `src/locales/en/speedtest.json`, `src/locales/id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Mengganti teks kembali (*back to destination list*) biasa dengan sistem navigasi bertingkat premium: tombol ikon interaktif `ArrowLeft` pada header modal (`is-back-btn`) dengan efek glow & scale, tombol pill breadcrumb berdesain modern (`td-dest-back-pill`) dengan animasi transisi hover, serta kolom pencarian topik khusus (`ph_search_topic`) untuk memfilter puluhan topik forum Telegram secara instan.
 
 Previous:

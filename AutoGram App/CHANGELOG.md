@@ -1,3 +1,10 @@
+## v3.5.25 Clean Unified Back Navigation & De-duplicated Topic Header
+
+### Eliminasi Tombol Redundan & Pemusatan Navigasi Topik (`DriveDestinationPicker.tsx`)
+- **Penghapusan Tombol Kembali Ganda (`DriveDestinationPicker.tsx`)**: Menghilangkan tombol breadcrumb pill redundan yang sebelumnya muncul di bawah judul saat tombol panah kiri header (`ArrowLeft`) sudah aktif.
+- **Header Bersih dengan Deskripsi Kontekstual**: Menyajikan deskripsi bantuan yang jelas (`select_topic_desc`) di bawah judul modal saat memilih topik forum ("Pilih salah satu topik forum tujuan untuk melanjutkan.").
+- **Zero Hardcoded Strings & Parity**: Seluruh key baru (`select_topic_desc`) diselaraskan 100% pada bahasa Indonesia dan Inggris.
+
 ## v3.5.24 Premium Topic Navigation & Dedicated Topic Search Engine
 
 ### Peningkatan UI Tombol Kembali & Pencarian Topik Forum (`DriveDestinationPicker.tsx`, `App.css`)

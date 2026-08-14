@@ -130,6 +130,7 @@
   "dest_badge_bot": "Bot",
   "dest_badge_user": "Private Chat",
   "select_topic_in_chat": "Pilih Topik di “{{chat}}”",
+  "select_topic_desc": "Pilih salah satu topik forum tujuan untuk melanjutkan.",
   "back_to_chats": "Kembali ke daftar tujuan",
   "loading_topics_for_chat": "Memuat topik...",
   "show_less": "Sembunyikan",
