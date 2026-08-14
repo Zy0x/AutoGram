@@ -1,3 +1,10 @@
+## v3.5.16 Streamlined Non-Redundant 1:1 Telegram Message Preview & Resolution Engine
+
+### Pembersihan Tombol Redundan & Penyempurnaan 1:1 Telegram UI (`TelegramMessagePreviewModal.tsx`, `App.css`)
+- **Pembersihan Tombol Duplikat**: Menghapus tombol ganda/redundant di header dan footer. Header kini hanya menampilkan avatar pengirim, nama, info topik/chat, serta tombol close `✕` di kanan atas. Footer bawah menyajikan bilah aksi ringkas dan bersih khusus Telegram: **Salin Keterangan** (*Copy Caption*), **Salin Tautan Telegram** (*Copy Link*), dan tombol aksi utama **Buka di Telegram** (*Open in Telegram*).
+- **Engine Resolusi Visual Multi-Tier**: Mengintegrasikan `previewCache` (resolusi penuh), `thumbBatcher` (memory cache & progressive saver), `loadPersistentThumb` (IndexedDB), dan pemanggilan otomatis `loadPreviewCached` / `requestThumb` sehingga pratinjau gambar termuat instan dalam kualitas tertinggi.
+- **Ekor Gelembung Chat Native Telegram (*Bubble Tail*) (`App.css`)**: Mengimplementasikan segitiga ekor gelembung otentik Telegram pada sudut kiri bawah (`clip-path: polygon(100% 0, 0 100%, 100% 100%)`) yang menyatu mulus dengan avatar pengirim.
+
 ## v3.5.15 Authentic 1:1 Telegram Message Preview & Real-Time Media Thumbnail Engine
 
 ### Rekonstruksi Total Pratinjau Pesan Telegram Otentik 1:1 (`TelegramMessagePreviewModal.tsx`, `App.css`)

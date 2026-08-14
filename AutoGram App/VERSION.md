@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.15
+AutoGram Version: v3.5.16
 
 Current State:
+v3.5.16 Streamlined Non-Redundant 1:1 Telegram Message Preview & Resolution Engine — membenahi `TelegramMessagePreviewModal.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Menghapus seluruh tombol duplikat/redundant di bilah header dan footer modal, mengintegrasikan sistem pencarian visual multi-tier (`previewCache` full resolution, `thumbBatcher` memory/saver LRU, IndexedDB persistent cache, dan live RPC request), menambahkan ekor gelembung chat (*authentic Telegram bubble tail* via clip-path), serta merapikan bilah aksi Telegram Desktop bawah menjadi satu baris bersih dan terpusat.
+
+Previous:
 v3.5.15 Authentic 1:1 Telegram Message Preview & Real-Time Media Thumbnail Engine — membenahi `TelegramMessagePreviewModal.tsx`, `DriveContextMenu.tsx`, `MediaStudioModalsContainer.tsx`, `App.css`, `en/speedtest.json`, `id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan antarmuka pratinjau pesan Telegram 100% otentik 1:1 dengan Telegram Desktop/Mobile, meliputi wallpaper dark-slate bergradasi radial khas Telegram (`#0e1621` / `#17212b`), gelembung tanggal mengambang (*floating date badge*), avatar pengirim dengan 7 palet gradien khas Telegram dan inisial teks/bintang, gelembung chat `#182533` dengan sudut rounded asimetris dan ekor bubble tip, integrasi penuh dengan `thumbBatcher` (memory cache, IndexedDB persistent cache, live MTProto thumbnail fetcher, dan konversi URI `convertFileSrc`), overlay pemutar video dengan tombol kaca play melingkar dan durasi, pemutar audio dengan waveform visualizer, kartu dokumen berikon unduhan Telegram, tampilan teks keterangan pesan multi-baris, jumlah tayangan channel (`👁`), waktu pengiriman pesan, serta centang ganda biru (`✓✓`).
 
 Previous:

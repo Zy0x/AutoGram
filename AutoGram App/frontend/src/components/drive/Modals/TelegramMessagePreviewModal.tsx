@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import {
   X,
-  ExternalLink,
   Copy,
   Check,
   Video,
@@ -35,6 +34,7 @@ import {
   requestThumb,
 } from '../../../lib/media/thumbBatcher';
 import { loadPersistentThumb } from '../../../lib/media/thumbPersistentCache';
+import { getCachedPreview, loadPreviewCached } from '../../../lib/media/previewCache';
 
 export interface TelegramMessagePreviewModalProps {
   file: DriveFile | null;
@@ -121,8 +121,14 @@ export function TelegramMessagePreviewModal({
   const itemTopicId = file?.topic_id ?? null;
   const thumbLocator = { peerId: itemPeerId, topicId: itemTopicId };
 
-  const getInitialThumb = (): string | null => {
+  const getInitialImage = (): string | null => {
     if (!file) return null;
+    // 1. Check full preview cache
+    const previewHit = getCachedPreview(scopedFolderId, file.id, 'auto', creds?.session, itemPeerId, itemTopicId);
+    if (previewHit?.data_url) return normalizeSrc(previewHit.data_url);
+    if (previewHit?.path) return normalizeSrc(previewHit.path);
+
+    // 2. Check thumbnail cache
     const mem = getCachedThumb(scopedFolderId, file.id, thumbLocator);
     if (mem) return normalizeSrc(mem);
     if (creds?.session) {
@@ -135,7 +141,7 @@ export function TelegramMessagePreviewModal({
     return null;
   };
 
-  const [thumbUrl, setThumbUrl] = useState<string | null>(getInitialThumb);
+  const [imageSrc, setImageSrc] = useState<string | null>(getInitialImage);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -150,19 +156,40 @@ export function TelegramMessagePreviewModal({
     return () => window.removeEventListener('keydown', onKeyDown, true);
   }, [isOpen, onClose]);
 
-  // Sync thumbnail and fetch from backend if missing
+  // Sync thumbnail / full image preview and fetch from backend if missing
   useEffect(() => {
     if (!file || !isOpen) return;
     setImgError(false);
     setImgLoaded(false);
 
     let isMounted = true;
-    const current = getInitialThumb();
+    const current = getInitialImage();
     if (current) {
-      setThumbUrl(current);
+      setImageSrc(current);
     }
 
-    if (!current && creds?.session) {
+    if (creds?.session) {
+      const isImg = isImageDriveFile(file);
+
+      // Attempt full image preview fetch if image
+      if (isImg && !current) {
+        void loadPreviewCached(creds, file.id, scopedFolderId, 'auto', {
+          peerId: itemPeerId,
+          topicId: itemTopicId,
+          accountId: file.account_id || creds.session,
+        }).then((res) => {
+          if (!isMounted || !res) return;
+          const url = res.data_url || res.path;
+          if (url) {
+            setImageSrc(normalizeSrc(url));
+            setImgError(false);
+          }
+        }).catch(() => {
+          // Fall back to thumb request
+        });
+      }
+
+      // Check IndexedDB persistent thumbnail cache
       const balancedKey = buildThumbCacheKey(
         scopedFolderId,
         file.id,
@@ -172,8 +199,8 @@ export function TelegramMessagePreviewModal({
         itemTopicId
       );
       void loadPersistentThumb(balancedKey).then((persisted) => {
-        if (isMounted && persisted) {
-          setThumbUrl(normalizeSrc(persisted));
+        if (isMounted && persisted && !imageSrc) {
+          setImageSrc(normalizeSrc(persisted));
         }
       });
 
@@ -190,7 +217,7 @@ export function TelegramMessagePreviewModal({
       if (!isMounted) return;
       const hit = getCachedThumb(scopedFolderId, file.id, thumbLocator);
       if (hit) {
-        setThumbUrl(normalizeSrc(hit));
+        setImageSrc(normalizeSrc(hit));
         setImgError(false);
         return;
       }
@@ -213,7 +240,7 @@ export function TelegramMessagePreviewModal({
           itemTopicId
         );
         if (detail.key === expectedBalanced || detail.key === expectedSaver) {
-          setThumbUrl(normalizeSrc(detail.url));
+          setImageSrc(normalizeSrc(detail.url));
           setImgError(false);
         }
       }
@@ -233,7 +260,7 @@ export function TelegramMessagePreviewModal({
   const isImage = isImageDriveFile(file) || file.icon_type === 'image' || file.mime_type?.startsWith('image/');
   const isAudio = isAudioDriveFile(file) || file.icon_type === 'audio' || file.icon_type === 'voice' || file.mime_type?.startsWith('audio/');
   const isDocument = !isImage && !isVideo && !isAudio;
-  const isVisualMedia = isImage || isVideo || (thumbUrl && !imgError);
+  const isVisualMedia = isImage || isVideo || (imageSrc && !imgError);
 
   const displayName = driveFileDisplayName(file);
   const isSavedMessages = file.is_saved_messages || file.peer_kind === 'saved_messages' || file.peer_id === 'me';
@@ -314,7 +341,7 @@ export function TelegramMessagePreviewModal({
         aria-modal="true"
         aria-label={t('speedtest.tg_preview_title')}
       >
-        {/* Telegram Desktop Top Header Bar */}
+        {/* Telegram Desktop Top Header Bar (No redundant duplicate actions) */}
         <div className="tg-msg-preview-header">
           <div className="tg-msg-preview-header-left">
             <div
@@ -342,26 +369,6 @@ export function TelegramMessagePreviewModal({
             </div>
           </div>
           <div className="tg-msg-preview-header-right">
-            {tgUrl && (
-              <button
-                type="button"
-                className="tg-msg-preview-top-btn"
-                onClick={handleCopyLink}
-                title={t('speedtest.ctx_menu_copy_tg')}
-              >
-                {copiedLink ? <Check size={16} color="#10b981" /> : <Share2 size={16} />}
-              </button>
-            )}
-            {tgUrl && (
-              <button
-                type="button"
-                className="tg-msg-preview-top-btn"
-                onClick={handleOpenTelegram}
-                title={t('speedtest.ctx_menu_open_tg')}
-              >
-                <ExternalLink size={16} />
-              </button>
-            )}
             <button
               type="button"
               className="tg-msg-preview-close-btn"
@@ -390,7 +397,7 @@ export function TelegramMessagePreviewModal({
               <span>{avatarInitials}</span>
             </div>
 
-            {/* Telegram Chat Bubble */}
+            {/* Telegram Chat Bubble with authentic corner tail */}
             <div className={`tg-msg-bubble${isVisualMedia ? ' has-media' : ''}`}>
               {/* Sender / Channel Title */}
               <div className="tg-msg-bubble-sender-row">
@@ -403,9 +410,9 @@ export function TelegramMessagePreviewModal({
               {/* 1. Visual Media (Photo / Video Thumbnail) */}
               {isVisualMedia && (
                 <div className={`tg-msg-bubble-media-wrapper${isVideo ? ' is-video' : ''}`}>
-                  {thumbUrl && !imgError ? (
+                  {imageSrc && !imgError ? (
                     <img
-                      src={thumbUrl}
+                      src={imageSrc}
                       alt={displayName}
                       className={`tg-msg-bubble-img${imgLoaded ? ' is-loaded' : ''}`}
                       onLoad={() => setImgLoaded(true)}
@@ -414,9 +421,9 @@ export function TelegramMessagePreviewModal({
                   ) : (
                     <div className="tg-msg-bubble-media-placeholder">
                       {isVideo ? (
-                        <Video size={42} className="tg-placeholder-icon" />
+                        <Video size={38} className="tg-placeholder-icon" />
                       ) : (
-                        <ImageIcon size={42} className="tg-placeholder-icon" />
+                        <ImageIcon size={38} className="tg-placeholder-icon" />
                       )}
                       <span className="tg-placeholder-text">
                         {t('speedtest.tg_preview_image_loading', { defaultValue: 'Loading preview…' })}
@@ -474,7 +481,7 @@ export function TelegramMessagePreviewModal({
               )}
 
               {/* 3. Document / File Card Layout */}
-              {isDocument && !thumbUrl && (
+              {isDocument && !imageSrc && (
                 <div className="tg-msg-bubble-doc-card">
                   <div className="tg-msg-bubble-doc-icon-circle">
                     <Download size={20} color="#ffffff" />
@@ -515,27 +522,30 @@ export function TelegramMessagePreviewModal({
           </div>
         </div>
 
-        {/* Footer Action Bar */}
+        {/* Telegram-style Quick Action Strip (Non-redundant, clean) */}
         <div className="tg-msg-preview-footer">
-          <button
-            type="button"
-            className="tg-msg-action-btn"
-            onClick={handleCopyCaption}
-            title={captionText}
-          >
-            {copiedCaption ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
-            <span>
-              {copiedCaption
-                ? t('speedtest.tg_preview_copied')
-                : t('speedtest.tg_preview_copy_caption')}
-            </span>
-          </button>
+          {captionText && (
+            <button
+              type="button"
+              className="tg-msg-action-btn"
+              onClick={handleCopyCaption}
+              title={captionText}
+            >
+              {copiedCaption ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
+              <span>
+                {copiedCaption
+                  ? t('speedtest.tg_preview_copied')
+                  : t('speedtest.tg_preview_copy_caption')}
+              </span>
+            </button>
+          )}
 
           {tgUrl && (
             <button
               type="button"
               className="tg-msg-action-btn"
               onClick={handleCopyLink}
+              title={tgUrl}
             >
               {copiedLink ? <Check size={14} color="#10b981" /> : <Share2 size={14} />}
               <span>
@@ -556,14 +566,6 @@ export function TelegramMessagePreviewModal({
               <span>{t('speedtest.ctx_menu_open_tg')}</span>
             </button>
           )}
-
-          <button
-            type="button"
-            className="tg-msg-action-btn is-close"
-            onClick={onClose}
-          >
-            <span>{t('ui.close', { defaultValue: 'Tutup' })}</span>
-          </button>
         </div>
       </div>
     </div>
