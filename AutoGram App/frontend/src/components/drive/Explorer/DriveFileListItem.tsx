@@ -1,6 +1,8 @@
 import { memo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Scissors, Copy } from 'lucide-react';
 import { driveFileDisplayName, formatDriveBytes, type DriveFile } from '../../../lib/telegram/driveTypes';
-import { usePointerDragPrime } from '../../../lib/telegram';
+import { usePointerDragPrime, useDriveClipboard } from '../../../lib/telegram';
 import { FileTypeIcon } from './FileTypeIcon';
 
 type Props = {
@@ -30,6 +32,10 @@ function DriveFileListItemInner({
   onMediaDragPrime,
   onWarmPreview,
 }: Props) {
+  const { t } = useTranslation();
+  const clipboard = useDriveClipboard();
+  const isCut = clipboard?.mode === 'cut' && clipboard.messageIds.includes(file.id);
+  const isCopy = clipboard?.mode === 'copy' && clipboard.messageIds.includes(file.id);
   const date = file.created_at ? new Date(file.created_at).toLocaleString() : '—';
   const displayName = driveFileDisplayName(file);
   const {
@@ -50,7 +56,9 @@ function DriveFileListItemInner({
     <div
       data-msg-id={file.id}
       data-drive-file="1"
-      className={`td-list-row ${selected ? 'selected' : ''}${isDragSource ? ' is-dragging' : ''}`}
+      className={`td-list-row ${selected ? 'selected' : ''}${isDragSource ? ' is-dragging' : ''}${
+        isCut ? ' is-clipboard-cut' : ''
+      }${isCopy ? ' is-clipboard-copy' : ''}`}
       onMouseEnter={() => onWarmPreview?.()}
       onPointerEnter={() => onWarmPreview?.()}
       onMouseDown={(e) => {
@@ -130,7 +138,19 @@ function DriveFileListItemInner({
         <FileTypeIcon file={file} size="sm" />
       </div>
       <div className="td-list-name" title={displayName}>
-        {displayName}
+        {isCut && (
+          <span className="td-clipboard-badge is-cut" title={t('speedtest.clipboard_cut_badge')}>
+            <Scissors size={10} />
+            <span>{t('speedtest.clipboard_cut_tag')}</span>
+          </span>
+        )}
+        {isCopy && (
+          <span className="td-clipboard-badge is-copy" title={t('speedtest.clipboard_copy_badge')}>
+            <Copy size={10} />
+            <span>{t('speedtest.clipboard_copy_tag')}</span>
+          </span>
+        )}
+        <span>{displayName}</span>
       </div>
       <div className="td-list-size">{formatDriveBytes(file.size)}</div>
       <div className="td-list-date">{date}</div>

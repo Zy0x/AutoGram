@@ -28,7 +28,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import { HardDrive, Upload } from 'lucide-react';
+import { HardDrive, Upload, Scissors, Copy, ClipboardPaste, X } from 'lucide-react';
 import { canUseLocalTelegramWorker, detectTauriRuntime } from '../../lib/tauri/platform';
 import {
   openDriveMoveConfirm,
@@ -215,6 +215,7 @@ import {
   navForward,
   navPush,
   setDriveClipboard,
+  useDriveClipboard,
   type DriveAdvFilter,
   type DriveNavHistory,
 } from '../../lib/telegram';
@@ -403,6 +404,7 @@ function MediaDriveDesktop({
   onBackToLauncher,
 }: MediaStudioProps) {
   const { t } = useTranslation();
+  const clipboard = useDriveClipboard();
   // Instant restore from cache — avoids waiting list-sessions before first paint boot
   const [sessions, setSessions] = useState<string[]>(() => readSessionsCache());
   const [session, setSession] = useState(() => {
@@ -6355,6 +6357,10 @@ function MediaDriveDesktop({
           closeDrawer();
           return;
         }
+        if (getDriveClipboard()) {
+          setDriveClipboard(null);
+          return;
+        }
         clearSelection();
         setError(null);
         return;
@@ -8764,6 +8770,55 @@ function MediaDriveDesktop({
           setZipPreflight((state) => ({ ...state, open: false }));
         }}
       />
+      {clipboard && clipboard.messageIds.length > 0 && (
+        <aside className="td-clipboard-floating-bar" aria-label={t('speedtest.clipboard_banner_label')}>
+          <div className="td-clipboard-floating-info">
+            <span className={`td-clipboard-floating-icon ${clipboard.mode}`}>
+              {clipboard.mode === 'cut' ? <Scissors size={15} /> : <Copy size={15} />}
+            </span>
+            <div className="td-clipboard-floating-text">
+              <span className="td-clipboard-floating-title">
+                {clipboard.mode === 'cut'
+                  ? t('speedtest.clipboard_cut_active', {
+                      count: clipboard.messageIds.length,
+                      defaultValue: `${clipboard.messageIds.length} berkas dipotong (Cut)`,
+                    })
+                  : t('speedtest.clipboard_copy_active', {
+                      count: clipboard.messageIds.length,
+                      defaultValue: `${clipboard.messageIds.length} berkas disalin (Copy)`,
+                    })}
+              </span>
+              <span className="td-clipboard-floating-desc">
+                {t('speedtest.clipboard_paste_hint')}
+              </span>
+            </div>
+          </div>
+          <div className="td-clipboard-floating-actions">
+            <button
+              type="button"
+              className="td-clipboard-paste-btn"
+              onClick={() => {
+                if (clipboard && clipboard.messageIds.length) {
+                  pasteMoveRef.current(clipboard);
+                }
+              }}
+              title="Ctrl+V"
+            >
+              <ClipboardPaste size={14} />
+              <span>{t('speedtest.clipboard_paste_here')}</span>
+            </button>
+            <button
+              type="button"
+              className="td-clipboard-cancel-btn"
+              onClick={() => setDriveClipboard(null)}
+              title="Esc"
+              aria-label={t('speedtest.clipboard_cancel')}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </aside>
+      )}
       </main>
   );
 }

@@ -1,3 +1,14 @@
+## v3.5.30 Reactive Clipboard Store & Visual Cut/Copy Indicators
+
+### Indikator Visual Kartu Media & Floating Clipboard Action Bar (`drivePower.ts`, `DriveFileCard.tsx`, `DriveFileListItem.tsx`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json`)
+- **Reactive Clipboard Store (`useSyncExternalStore`)**: Memodernisasi status internal clipboard Drive menjadi reactive external store sehingga perubahan status Cut / Copy / Paste / Clear langsung disinkronkan ke seluruh komponen UI tanpa delay.
+- **Indikator Visual Kartu Media (Grid & List View)**:
+  - ✂️ **Mode Cut (`Ctrl+X`)**: Kartu media berubah menjadi semi-transparan (`opacity: 0.52`), berbingkai putus-putus (*dashed amber border*), serta dilengkapi badge indikator `Cut`.
+  - 📋 **Mode Copy (`Ctrl+C`)**: Kartu media ditandai dengan sorotan border ungu lembut (*violet glow pulse border*) dan badge `Copy`.
+- **Floating Clipboard Action Bar**: Menampilkan bilah status aksi mengambang (*glassmorphic capsule bar*) di bagian bawah layar saat clipboard terisi, menyertakan tombol cepat *"Tempel di Sini"* (`Ctrl+V`) dan *"Batal"* (`Esc`).
+- **Pembersihan Clipboard Cepat via `Escape`**: Menekan tombol `Escape` di area studio kini secara instan membatalkan seleksi clipboard aktif.
+- **100% Zero Hardcoded Strings & Parity**: Seluruh key teks (`clipboard_cut_badge`, `clipboard_cut_tag`, `clipboard_copy_badge`, `clipboard_copy_tag`, `clipboard_banner_label`, `clipboard_cut_active`, `clipboard_copy_active`, `clipboard_paste_hint`, `clipboard_paste_here`, `clipboard_cancel`) tersedia lengkap dalam bahasa Indonesia dan Inggris.
+
 ## v3.5.29 Drive Settings Integrated Album Grouping & Move/Copy Confirm Engine
 
 ### Integrasi Pengelompokan Album ke Drive Settings & Opsi Modal Konfirmasi (`DriveConfirmDialog.tsx`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json`)

@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.29
+AutoGram Version: v3.5.30
 
 Current State:
+v3.5.30 Reactive Clipboard Store & Visual Cut/Copy Indicators — membenahi `drivePower.ts`, `DriveFileCard.tsx`, `DriveFileListItem.tsx`, `MediaStudio/index.tsx`, `App.css`, `src/locales/en/speedtest.json`, `src/locales/id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Mengubah internal clipboard store menjadi *reactive external store* dengan `useSyncExternalStore` & `useDriveClipboard`. Memberikan indikator visual instan pada kartu media (grid & list) saat dieksekusi `Ctrl+X` (Cut: efek *semi-transparent dashed amber border* + badge `Cut`) atau `Ctrl+C` (Copy: *violet glow pulse border* + badge `Copy`). Menyediakan *floating action bar* modern di bagian bawah layar untuk aksi cepat *"Tempel di Sini"* (Ctrl+V) & *"Batal"* (Esc) serta integrasi pembersihan clipboard via tombol `Escape`.
+
+Previous:
 v3.5.29 Drive Settings Integrated Album Grouping & Move/Copy Confirm Engine — membenahi `DriveConfirmDialog.tsx`, `MediaStudio/index.tsx`, `App.css`, `src/locales/en/speedtest.json`, `src/locales/id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Mengintegrasikan seluruh orkestrasi pengelompokan album (*album grouping*) Copy/Move secara langsung ke preferensi sentral **Drive Settings** (`groupAsAlbum`, `albumGroupSize`). Menambahkan visual format pengiriman interaktif pada modal konfirmasi (`DriveConfirmDialog`) dengan badge status sinkronisasi Drive Settings, opsi toggle Album vs Satuan per transfer, serta kepatuhan 100% Zero Hardcoded Strings.
 
 Previous:

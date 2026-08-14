@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { memo, useEffect, useState } from 'react';
-import { Eye, Download, Trash2, Check, Loader2, Play } from 'lucide-react';
+import { Eye, Download, Trash2, Check, Loader2, Play, Scissors, Copy } from 'lucide-react';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import {
   canShowDriveThumb,
@@ -12,7 +12,7 @@ import {
   isVideoDriveFile,
   type DriveFile,
 } from '../../../lib/telegram/driveTypes';
-import { usePointerDragPrime } from '../../../lib/telegram';
+import { usePointerDragPrime, useDriveClipboard } from '../../../lib/telegram';
 import {
   getCachedThumb,
   getCachedSaverThumb,
@@ -97,6 +97,9 @@ function DriveFileCardInner({
   }
 
   const [dragging, setDragging] = useState(false);
+  const clipboard = useDriveClipboard();
+  const isCut = clipboard?.mode === 'cut' && clipboard.messageIds.includes(file.id);
+  const isCopy = clipboard?.mode === 'copy' && clipboard.messageIds.includes(file.id);
   const [recentlyUploaded, setRecentlyUploaded] = useState(
     () => !!file.recently_uploaded_at && Date.now() - file.recently_uploaded_at < 4_000
   );
@@ -303,7 +306,9 @@ function DriveFileCardInner({
       data-topic-id={itemTopicId ?? 'all'}
       className={`td-file-card ${selected ? 'selected' : ''}${isVideo ? ' is-video' : ''}${
         dragging || isDragSource ? ' is-dragging' : ''
-      }${thumb ? ' has-thumb' : ' no-thumb'}${recentlyUploaded ? ' is-new-upload' : ''}`}
+      }${thumb ? ' has-thumb' : ' no-thumb'}${recentlyUploaded ? ' is-new-upload' : ''}${
+        isCut ? ' is-clipboard-cut' : ''
+      }${isCopy ? ' is-clipboard-copy' : ''}`}
       onMouseEnter={() => onWarmPreview?.()}
       onPointerEnter={() => onWarmPreview?.()}
       onMouseDown={(e) => {
@@ -399,6 +404,18 @@ function DriveFileCardInner({
     >
       <div className="td-file-card-inner">
         {recentlyUploaded && <span className="td-new-upload-badge">{t('speedtest.badge_recently_uploaded')}</span>}
+        {isCut && (
+          <span className="td-clipboard-badge is-cut" title={t('speedtest.clipboard_cut_badge')}>
+            <Scissors size={10} />
+            <span>{t('speedtest.clipboard_cut_tag')}</span>
+          </span>
+        )}
+        {isCopy && (
+          <span className="td-clipboard-badge is-copy" title={t('speedtest.clipboard_copy_badge')}>
+            <Copy size={10} />
+            <span>{t('speedtest.clipboard_copy_tag')}</span>
+          </span>
+        )}
         {(() => {
           const tgCat = (file.telegram_category || (file.as_document ? 'file' : file.icon_type === 'image' || file.icon_type === 'video' ? 'media' : file.icon_type || 'file')).toLowerCase();
           const drFmt = (file.drive_format || file.file_ext || '').toUpperCase();

@@ -24106,3 +24106,192 @@ button.td-confirm-icon.is-back-btn:active {
 .td-topic-nav-btn:active {
   transform: scale(0.92);
 }
+
+/* ─── Drive Clipboard Visual Indicators & Floating Action Bar ─────────────── */
+.td-file-card.is-clipboard-cut {
+  opacity: 0.52;
+  filter: grayscale(20%);
+  transition: opacity 160ms ease, filter 160ms ease;
+}
+
+.td-file-card.is-clipboard-cut .td-file-card-inner {
+  border: 1.5px dashed #f59e0b !important;
+  background: color-mix(in srgb, #f59e0b 6%, var(--td-card-bg, #1e293b)) !important;
+}
+
+.td-file-card.is-clipboard-copy .td-file-card-inner {
+  border: 1.5px solid #a78bfa !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, #a78bfa 45%, transparent), 0 6px 20px color-mix(in srgb, #a78bfa 25%, transparent) !important;
+}
+
+.td-list-row.is-clipboard-cut {
+  opacity: 0.52;
+  border-left: 3px dashed #f59e0b !important;
+  background: color-mix(in srgb, #f59e0b 8%, transparent) !important;
+}
+
+.td-list-row.is-clipboard-copy {
+  border-left: 3px solid #a78bfa !important;
+  background: color-mix(in srgb, #a78bfa 14%, transparent) !important;
+}
+
+.td-clipboard-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  margin-right: 6px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.td-file-card .td-clipboard-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 4;
+}
+
+.td-clipboard-badge.is-cut {
+  background: rgba(245, 158, 11, 0.28);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.55);
+}
+
+.td-clipboard-badge.is-copy {
+  background: rgba(167, 139, 250, 0.28);
+  color: #c4b5fd;
+  border: 1px solid rgba(167, 139, 250, 0.55);
+}
+
+@keyframes tdClipboardSlideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+.td-clipboard-floating-bar {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 12px 8px 16px;
+  background: color-mix(in srgb, #0f172a 94%, #000);
+  border: 1px solid color-mix(in srgb, #a78bfa 45%, rgba(255, 255, 255, 0.15));
+  border-radius: 9999px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(167, 139, 250, 0.25);
+  backdrop-filter: blur(20px);
+  animation: tdClipboardSlideUp 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.td-clipboard-floating-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.td-clipboard-floating-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.td-clipboard-floating-icon.cut {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.td-clipboard-floating-icon.copy {
+  background: rgba(167, 139, 250, 0.2);
+  color: #c4b5fd;
+  border: 1px solid rgba(167, 139, 250, 0.4);
+}
+
+.td-clipboard-floating-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.td-clipboard-floating-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #f8fafc;
+  line-height: 1.2;
+}
+
+.td-clipboard-floating-desc {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  line-height: 1.2;
+}
+
+.td-clipboard-floating-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.td-clipboard-paste-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);
+  transition: all 140ms ease;
+}
+
+.td-clipboard-paste-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.55);
+}
+
+.td-clipboard-paste-btn:active {
+  transform: translateY(1px);
+}
+
+.td-clipboard-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.td-clipboard-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
