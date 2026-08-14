@@ -5094,7 +5094,7 @@ video.drive-preview-media {
 .drive-context-submenu-flyout {
   position: absolute;
   top: -4px;
-  left: calc(100% + 4px);
+  left: calc(100% - 2px);
   min-width: 184px;
   background: var(--td-surface, #17212b);
   border: 1px solid var(--td-border, rgba(255, 255, 255, 0.1));
@@ -5105,28 +5105,29 @@ video.drive-preview-media {
   flex-direction: column;
   gap: 2px;
   z-index: 15002;
-  animation: drive-submenu-pop 120ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: drive-submenu-pop 100ms cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
 }
 
 .drive-context-submenu.flyout-left .drive-context-submenu-flyout {
   left: auto;
-  right: calc(100% + 4px);
+  right: calc(100% - 2px);
 }
 
 /* Generous invisible bridge so cursor moving across gap never loses hover */
 .drive-context-submenu-flyout::before {
   content: '';
   position: absolute;
-  top: -14px;
-  bottom: -14px;
-  left: -20px;
-  width: 28px;
+  top: -16px;
+  bottom: -16px;
+  left: -24px;
+  width: 32px;
   z-index: 1;
 }
 
 .drive-context-submenu.flyout-left .drive-context-submenu-flyout::before {
   left: auto;
-  right: -20px;
+  right: -24px;
 }
 
 .drive-context-submenu-flyout button {

@@ -1,3 +1,10 @@
+## v3.5.19 Seamless Zero-Flicker Submenu Hover & 280ms Intent Buffer Engine
+
+### Konsolidasi Koordinator Submenu & Eliminasi Jitter Pergeseran Posisi (`DriveContextMenu.tsx`, `App.css`)
+- **Single Centralized Submenu Coordinator (`DriveContextMenu.tsx`)**: Menghilangkan persaingan timer (*competing debounce timers*) antara komponen anak dan induk. Seluruh lifecycle buka/tutup submenu kini dikelola terpusat oleh koordinator tunggal dengan *intent buffer* **280ms**, memberikan waktu yang sangat leluasa bagi pengguna untuk menggerakkan kursor secara alami ke flyout submenu tanpa risiko tertutup prematur.
+- **Pembersihan Layout Shift Jitter**: Menghapus kalkulasi posisi asinkronus yang memicu pergeseran koordinat setelah elemen ter-render. Posisi submenu kini diselaraskan seketika secara sinkron dan stabil sejak frame pertama.
+- **Pelebaran Jembatan Hover & Zero Physical Gap (`App.css`)**: Mengintegrasikan overlap 2px (`left: calc(100% - 2px)`) serta memperbesar jembatan tangkapan hover tak kasat mata (*invisible hover bridge*) hingga **32px** dengan perlindungan sumbu Y `top/bottom: -16px`, menjamin kursor tidak pernah kehilangan fokus submenu saat melintasi batas menu.
+
 ## v3.5.18 Submenu Visual Parity & SVG Icon Sizing Engine
 
 ### Penyempurnaan Ikon Submenu Telegram & Aturan SVG Global (`DriveContextMenu.tsx`, `App.css`)

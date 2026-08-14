@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.18
+AutoGram Version: v3.5.19
 
 Current State:
+v3.5.19 Seamless Zero-Flicker Submenu Hover & 280ms Intent Buffer Engine — membenahi `DriveContextMenu.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Menghilangkan persaingan timer (*competing timers*) dan lonjakan posisi (*layout shift jumps*) dengan menyatukan arsitektur state submenu ke satu *Centralized Submenu Coordinator* tunggal. Menerapkan *intent buffer* 280ms saat kursor bergerak melintasi item lain, menghilangkan celah fisik dengan overlap 2px (`left: calc(100% - 2px)`), memperluas jembatan hover tak kasat mata (*invisible hover bridge*) hingga 32px (`top/bottom: -16px`), dan menghapus kalkulasi posisi asinkronus yang memicu pergeseran kursor.
+
+Previous:
 v3.5.18 Submenu Visual Parity & SVG Icon Sizing Engine — membenahi `DriveContextMenu.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki hilangnya icon pada opsi "Open message in Telegram" dengan menyematkan icon otentik Telegram `<Send size={14} />` (pesawat kertas Telegram), serta menambahkan aturan CSS global `.drive-context-menu button svg, .drive-context-submenu-flyout button svg` (`width/height: 14px`, `flex-shrink: 0`, `vertical-align: middle`) agar seluruh icon submenu tampil seragam dan tidak terpotong.
 
 Previous:
