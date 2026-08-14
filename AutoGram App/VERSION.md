@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.13
+AutoGram Version: v3.5.14
 
 Current State:
+v3.5.14 Context Menu Grouping Hub & In-App Telegram Message Preview Engine — membenahi `DriveContextMenu.tsx`, `TelegramMessagePreviewModal.tsx`, `MediaStudioModalsContainer.tsx`, `App.css`, `en/speedtest.json`, `id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Mengelompokkan seluruh opsi klik kanan ke dalam struktur terorganisir dengan submenu melayang bertingkat (*cascading flyout hubs*) meliputi **Telegram >** (Preview message, Open message in Telegram, Copy Telegram link), **Open in System >** (Default application, Choose app..., Show in folder), **Copy identity >** (Copy ID, Copy Path ID), serta garis pembatas fungsional (*divider*). Dilengkapi dengan modal pratinjau pesan Telegram dalam aplikasi (*Telegram Message Preview Modal*) berdesain gelembung chat native Telegram (`#0e1621` / `#182533`), kartu preview thumbnail media/dokumen, teks caption lengkap, timestamp, dan status centang ganda (`✓✓`).
+
+Previous:
 v3.5.13 Cascading Flyout Submenu & Desktop Context Menu Engine — membenahi `DriveContextMenu.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Mengubah tampilan submenu "Copy identity" (Salin identitas) dari format akordeon vertikal ke bawah menjadi menu melayang bertingkat (*cascading flyout submenu*) ke samping kanan/kiri standar desktop (seperti Windows 11/native OS), lengkap dengan panah indikator `ChevronRight` statis, jembatan hover halus bebas flicker, deteksi batas layar otomatis (*screen-edge collision detection*), dan penutupan otomatis saat kursor melintas di item menu utama lainnya.
 
 Previous:

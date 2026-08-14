@@ -29,6 +29,7 @@ import { driveFileDisplayName } from '../../../lib/telegram/driveTypes';
 import { isDesktop } from '../../../lib/tauri/platform';
 import { buildTelegramMessageUrl } from '../../../lib/telegram/utils/telegramMessageUrl';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { TelegramMessagePreviewModal } from './TelegramMessagePreviewModal';
 
 export type DriveLocationKind = 'saved' | 'drive' | 'chat';
 
@@ -48,6 +49,9 @@ type Props = {
   target: DriveContextMenuTarget;
   onClose: () => void;
   onPreview?: () => void;
+  onPreviewMessage?: (file: DriveFile) => void;
+  chatName?: string;
+  topicName?: string;
   onDownload?: () => void;
   onRename?: () => void;
   onDelete?: () => void;
@@ -205,6 +209,9 @@ export function DriveContextMenu({
   target,
   onClose,
   onPreview,
+  onPreviewMessage,
+  chatName,
+  topicName,
   onDownload,
   onRename,
   onDelete,
@@ -237,7 +244,8 @@ export function DriveContextMenu({
   const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: x, top: y });
-  const [copyMenuOpen, setCopyMenuOpen] = useState(false);
+  const [activeSubmenu, setActiveSubmenu] = useState<'telegram' | 'system' | 'copyIdentity' | null>(null);
+  const [previewMsgFile, setPreviewMsgFile] = useState<DriveFile | null>(null);
   const isFile = target.kind === 'file';
   const isLocation = target.kind === 'location';
   const file = isFile ? target.file : null;
@@ -284,6 +292,7 @@ export function DriveContextMenu({
         const el = ref.current;
         if (el && e.target instanceof Node && el.contains(e.target)) return;
         if ((e.target as HTMLElement | null)?.closest?.('.drive-context-menu')) return;
+        if ((e.target as HTMLElement | null)?.closest?.('.tg-msg-preview-dialog')) return;
         onCloseRef.current();
       };
       window.addEventListener('pointerdown', onPointer, true);
@@ -306,7 +315,7 @@ export function DriveContextMenu({
   };
 
   const closeSubmenu = () => {
-    if (copyMenuOpen) setCopyMenuOpen(false);
+    if (activeSubmenu !== null) setActiveSubmenu(null);
   };
 
   const aria =
@@ -316,12 +325,115 @@ export function DriveContextMenu({
       ? t('speedtest.ctx_menu_aria_location')
       : t('speedtest.ctx_menu_aria_canvas');
 
+  const tgUrl = file ? buildTelegramMessageUrl(file) : null;
+
+  const telegramMenu = file ? (
+    <DriveContextSubmenuItem
+      icon={<MessageSquare size={14} />}
+      label={t('speedtest.ctx_menu_telegram')}
+      isOpen={activeSubmenu === 'telegram'}
+      onOpenChange={(open) => setActiveSubmenu(open ? 'telegram' : null)}
+    >
+      <button
+        type="button"
+        role="menuitem"
+        onClick={() => {
+          if (onPreviewMessage) {
+            run(() => onPreviewMessage(file));
+          } else {
+            setPreviewMsgFile(file);
+          }
+        }}
+      >
+        <MessageSquare size={14} />
+        <span>{t('speedtest.ctx_menu_preview_message')}</span>
+      </button>
+      {tgUrl ? (
+        <>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() =>
+              run(async () => {
+                try {
+                  await openUrl(tgUrl);
+                } catch (err) {
+                  console.error('[DriveContextMenu] Open Telegram link failed:', err);
+                }
+              })
+            }
+          >
+            <ExternalLink size={14} />
+            <span>{t('speedtest.ctx_menu_open_tg')}</span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() =>
+              run(async () => {
+                try {
+                  await navigator.clipboard.writeText(tgUrl);
+                } catch (err) {
+                  console.error('[DriveContextMenu] Copy Telegram link failed:', err);
+                }
+              })
+            }
+          >
+            <Copy size={14} />
+            <span>{t('speedtest.ctx_menu_copy_tg')}</span>
+          </button>
+        </>
+      ) : (
+        <button
+          type="button"
+          role="menuitem"
+          disabled
+          className="drive-context-disabled"
+          style={{ opacity: 0.5, cursor: 'not-allowed' }}
+          title={t('speedtest.ctx_menu_tg_link_unavailable')}
+        >
+          <ExternalLink size={14} />
+          <span>{t('speedtest.ctx_menu_tg_link_unavailable')}</span>
+        </button>
+      )}
+    </DriveContextSubmenuItem>
+  ) : null;
+
+  const systemMenu =
+    isDesktop() && (onOpenSystem || onOpenWith || onReveal) ? (
+      <DriveContextSubmenuItem
+        icon={<AppWindow size={14} />}
+        label={t('speedtest.ctx_menu_open_in_system')}
+        isOpen={activeSubmenu === 'system'}
+        onOpenChange={(open) => setActiveSubmenu(open ? 'system' : null)}
+      >
+        {onOpenSystem && (
+          <button type="button" role="menuitem" onClick={() => run(onOpenSystem)}>
+            <ExternalLink size={14} />
+            <span>{t('speedtest.ctx_menu_open_default')}</span>
+          </button>
+        )}
+        {onOpenWith && (
+          <button type="button" role="menuitem" onClick={() => run(onOpenWith)}>
+            <AppWindow size={14} />
+            <span>{t('speedtest.ctx_menu_open_with')}</span>
+          </button>
+        )}
+        {onReveal && (
+          <button type="button" role="menuitem" onClick={() => run(onReveal)}>
+            <FolderOpen size={14} />
+            <span>{t('speedtest.ctx_menu_reveal')}</span>
+          </button>
+        )}
+      </DriveContextSubmenuItem>
+    ) : null;
+
   const copyIdentityMenu = onCopyId ? (
     <DriveContextSubmenuItem
       icon={<Copy size={14} />}
       label={t('speedtest.ctx_menu_copy_identity')}
-      isOpen={copyMenuOpen}
-      onOpenChange={setCopyMenuOpen}
+      isOpen={activeSubmenu === 'copyIdentity'}
+      onOpenChange={(open) => setActiveSubmenu(open ? 'copyIdentity' : null)}
     >
       <button type="button" role="menuitem" onClick={() => run(onCopyId)}>
         <Copy size={14} />
@@ -359,6 +471,8 @@ export function DriveContextMenu({
             <div className="drive-context-title" title={driveFileDisplayName(file)}>
               {driveFileDisplayName(file)}
             </div>
+
+            {/* Group 1: Preview & Telegram Hub */}
             {onPreview && (
               <button
                 type="button"
@@ -369,90 +483,11 @@ export function DriveContextMenu({
                 <Eye size={14} /> {t('speedtest.ctx_menu_preview')}
               </button>
             )}
-            {/* Telegram Message Link Options */}
-            {(() => {
-              const tgUrl = buildTelegramMessageUrl(file);
-              if (tgUrl) {
-                return (
-                  <>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onMouseEnter={closeSubmenu}
-                      onClick={() =>
-                        run(async () => {
-                          try {
-                            await openUrl(tgUrl);
-                          } catch (err) {
-                            console.error('[DriveContextMenu] Open Telegram link failed:', err);
-                          }
-                        })
-                      }
-                    >
-                      <ExternalLink size={14} /> {t('speedtest.ctx_menu_open_tg')}
-                    </button>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onMouseEnter={closeSubmenu}
-                      onClick={() =>
-                        run(async () => {
-                          try {
-                            await navigator.clipboard.writeText(tgUrl);
-                          } catch (err) {
-                            console.error('[DriveContextMenu] Copy Telegram link failed:', err);
-                          }
-                        })
-                      }
-                    >
-                      <Copy size={14} /> {t('speedtest.ctx_menu_copy_tg')}
-                    </button>
-                  </>
-                );
-              }
-              return (
-                <button
-                  type="button"
-                  role="menuitem"
-                  disabled
-                  className="drive-context-disabled"
-                  style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                  title={t('speedtest.ctx_menu_tg_link_unavailable')}
-                >
-                  <MessageSquare size={14} /> {t('speedtest.ctx_menu_tg_link_unavailable')}
-                </button>
-              );
-            })()}
-            {isDesktop() && onOpenSystem && (
-              <button
-                type="button"
-                role="menuitem"
-                onMouseEnter={closeSubmenu}
-                onClick={() => run(onOpenSystem)}
-              >
-                <ExternalLink size={14} /> {t('speedtest.ctx_menu_open')}
-              </button>
-            )}
-            {isDesktop() && onOpenWith && (
-              <button
-                type="button"
-                role="menuitem"
-                onMouseEnter={closeSubmenu}
-                onClick={() => run(onOpenWith)}
-              >
-                <AppWindow size={14} /> {t('speedtest.ctx_menu_open_with')}
-              </button>
-            )}
-            {isDesktop() && onReveal && (
-              <button
-                type="button"
-                role="menuitem"
-                onMouseEnter={closeSubmenu}
-                onClick={() => run(onReveal)}
-              >
-                <FolderOpen size={14} /> {t('speedtest.ctx_menu_reveal')}
-              </button>
-            )}
+            {telegramMenu}
+
+            <div className="drive-context-divider" role="separator" />
+
+            {/* Group 2: Transfer & System Access */}
             {onDownload && (
               <button
                 type="button"
@@ -463,6 +498,11 @@ export function DriveContextMenu({
                 <Download size={14} /> {t('speedtest.ctx_menu_download')}
               </button>
             )}
+            {systemMenu}
+
+            <div className="drive-context-divider" role="separator" />
+
+            {/* Group 3: Identity & Management */}
             {copyIdentityMenu}
             {onRename && (
               <button
@@ -484,16 +524,20 @@ export function DriveContextMenu({
                 <FolderInput size={14} /> {t('speedtest.ctx_menu_move')}
               </button>
             )}
+
             {onDelete && (
-              <button
-                type="button"
-                role="menuitem"
-                className="danger"
-                onMouseEnter={closeSubmenu}
-                onClick={() => run(onDelete)}
-              >
-                <Trash2 size={14} /> {t('speedtest.ctx_menu_delete')}
-              </button>
+              <>
+                <div className="drive-context-divider" role="separator" />
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="danger"
+                  onMouseEnter={closeSubmenu}
+                  onClick={() => run(onDelete)}
+                >
+                  <Trash2 size={14} /> {t('speedtest.ctx_menu_delete')}
+                </button>
+              </>
             )}
           </>
         ) : isLocation ? (
@@ -559,15 +603,18 @@ export function DriveContextMenu({
             )}
             {copyIdentityMenu}
             {target.locationKind === 'drive' && onDeleteFolder && (
-              <button
-                type="button"
-                role="menuitem"
-                className="danger"
-                onMouseEnter={closeSubmenu}
-                onClick={() => run(onDeleteFolder)}
-              >
-                <Trash2 size={14} /> {resolvedDeleteFolderLabel}
-              </button>
+              <>
+                <div className="drive-context-divider" role="separator" />
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="danger"
+                  onMouseEnter={closeSubmenu}
+                  onClick={() => run(onDeleteFolder)}
+                >
+                  <Trash2 size={14} /> {resolvedDeleteFolderLabel}
+                </button>
+              </>
             )}
           </>
         ) : (
@@ -636,15 +683,18 @@ export function DriveContextMenu({
               </button>
             )}
             {selectedCount > 0 && onDelete && (
-              <button
-                type="button"
-                role="menuitem"
-                className="danger"
-                onMouseEnter={closeSubmenu}
-                onClick={() => run(onDelete)}
-              >
-                <Trash2 size={14} /> {t('speedtest.ctx_menu_delete_selected', { count: selectedCount, defaultValue: `Hapus terpilih (${selectedCount})` })}
-              </button>
+              <>
+                <div className="drive-context-divider" role="separator" />
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="danger"
+                  onMouseEnter={closeSubmenu}
+                  onClick={() => run(onDelete)}
+                >
+                  <Trash2 size={14} /> {t('speedtest.ctx_menu_delete_selected', { count: selectedCount, defaultValue: `Hapus terpilih (${selectedCount})` })}
+                </button>
+              </>
             )}
           </>
         )}
@@ -653,5 +703,16 @@ export function DriveContextMenu({
   );
 
   if (typeof document === 'undefined') return null;
-  return createPortal(node, document.body);
+  return (
+    <>
+      {createPortal(node, document.body)}
+      <TelegramMessagePreviewModal
+        isOpen={Boolean(previewMsgFile)}
+        file={previewMsgFile}
+        onClose={() => setPreviewMsgFile(null)}
+        chatName={chatName || (isLocation ? target.name : undefined)}
+        topicName={topicName}
+      />
+    </>
+  );
 }

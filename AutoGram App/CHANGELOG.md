@@ -1,3 +1,24 @@
+## v3.5.14 Context Menu Grouping Hub & In-App Telegram Message Preview Engine
+
+### Restrukturisasi Kelompok Menu Klik Kanan (*Context Menu Hubs*) (`DriveContextMenu.tsx`, `App.css`)
+- **Hub Submenu Telegram (`Telegram >`)**: Menyatukan seluruh aksi terkait Telegram ke dalam cascading flyout menu:
+  - 💬 **Preview message (*Pratinjau pesan*)**: Membuka modal pratinjau pesan Telegram dalam aplikasi.
+  - ↗️ **Open message in Telegram (*Buka pesan di Telegram*)**: Membuka link pesan langsung di aplikasi Telegram resmi atau web browser via OS opener.
+  - 📋 **Copy Telegram link (*Salin tautan Telegram*)**: Menyalin URL pesan `https://t.me/...` ke clipboard dengan konfirmasi feedback.
+- **Hub Submenu Akses Sistem OS (`Open in System >`)**: Mengelompokkan perintah eksekusi desktop native:
+  - ↗️ **Default application (*Aplikasi bawaan*)**: Membuka file langsung di pemutar media/penampil default sistem operasi.
+  - 🪟 **Choose app... (*Pilih aplikasi...*)**: Membuka pemilih program (*Open With*) native Windows.
+  - 📁 **Show in folder (*Tampilkan di folder*)**: Membuka file explorer dan menyorot file di direktori unduhan/cache lokal.
+- **Hub Submenu Identitas (*Copy identity >*)**: Mempertahankan submenu mandiri untuk menyalin ID media (`Copy ID`) dan Path ID Telegram (`Copy Path ID`).
+- **Garis Pembatas Fungsional (*Dividers*) (`App.css`, `DriveContextMenu.tsx`)**: Menyematkan separator tipis `.drive-context-divider` (`border-top: 1px solid rgba(255,255,255,0.08)`) di antara kelompok Pratinjau & Telegram, Unduhan & Sistem, Manajemen & Identitas, serta tombol Hapus (*Delete*).
+
+### Modal Pratinjau Pesan Telegram dalam Aplikasi (*Telegram Message Preview Modal*) (`TelegramMessagePreviewModal.tsx`, `App.css`)
+- **Desain Chat Bubble Otentik Telegram**: Mengadopsi antarmuka pesan Telegram dengan latar belakang bertema dark slate (`#0e1621` / `#182533`), bubble chat `#182533` dengan sudut rounded asimetris (border-radius 16px dengan lekukan bubble tip 4px di pojok kiri atas).
+- **Header Pengirim & Tag Topik**: Menampilkan nama kanal/grup/pengirim berwarna biru cerah Telegram (`#64b5f6`), badge topik/forum bergaya pil, serta tombol aksi cepat.
+- **Media Preview Card**: Mendukung visual thumbnail media untuk gambar/video atau kartu lampiran dokumen dengan metadata ekstensi file dan ukuran file yang diformat presisi.
+- **Preservasi Teks Keterangan (*Caption*) & Timestamp**: Menampilkan teks keterangan pesan asli dengan format multiline rapi, jam pengiriman pesan, serta indikator centang ganda (`✓✓`) berwarna biru khas Telegram.
+- **Bilah Aksi & Internasionalisasi Penuh**: Dilengkapi tombol **Copy Text**, **Copy Link**, dan **Open in Telegram**, dengan 100% key parity pada file locale `id/speedtest.json` dan `en/speedtest.json`.
+
 ## v3.5.13 Cascading Flyout Submenu & Desktop Context Menu Engine
 
 ### Submenu Melayang Bertingkat (*Cascading Flyout*) Standar Desktop OS (`DriveContextMenu.tsx`, `App.css`)

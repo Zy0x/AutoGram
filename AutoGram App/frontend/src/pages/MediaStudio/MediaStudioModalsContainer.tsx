@@ -211,6 +211,8 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
                 : { kind: 'canvas' }
           }
           onClose={() => setContextMenu(null)}
+          chatName={folders.find((f) => f.id === peerId)?.name || chats.find((c) => c.id === peerId)?.name || (locationKind === 'saved' ? 'Saved Messages' : undefined)}
+          topicName={topicFilterRef?.current?.title || topicFilterRef?.current?.name}
           onPreview={
             contextMenu.kind === 'file'
               ? () => setPreviewFile(contextMenu.file)

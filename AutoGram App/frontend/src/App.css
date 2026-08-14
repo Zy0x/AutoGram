@@ -4957,6 +4957,311 @@ video.drive-preview-media {
   }
 }
 
+.drive-context-divider {
+  height: 1px;
+  background: var(--td-border, rgba(255, 255, 255, 0.08));
+  margin: 4px 6px;
+}
+
+/* Telegram Message Preview Modal */
+.tg-msg-preview-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 16000;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: tg-preview-fade 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tg-msg-preview-dialog {
+  position: relative;
+  width: min(520px, 94vw);
+  max-height: 90vh;
+  background: var(--td-surface, #17212b);
+  border: 1px solid var(--td-border, rgba(255, 255, 255, 0.12));
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: tg-preview-scale 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tg-msg-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--td-border, rgba(255, 255, 255, 0.08));
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.tg-msg-preview-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tg-msg-preview-brand-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2aabee, #229ed9);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(34, 158, 217, 0.35);
+}
+
+.tg-msg-preview-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--td-text, #fff);
+}
+
+.tg-msg-preview-subtitle {
+  font-size: 0.76rem;
+  color: var(--td-sub, #8e9fb3);
+  margin-top: 1px;
+}
+
+.tg-msg-preview-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--td-sub, #8e9fb3);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.tg-msg-preview-close-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.tg-msg-preview-canvas {
+  background: #0e1621;
+  padding: 24px 20px;
+  overflow-y: auto;
+  max-height: 60vh;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.tg-msg-bubble {
+  position: relative;
+  background: #182533;
+  border-radius: 12px 12px 12px 4px;
+  padding: 12px 14px;
+  max-width: 96%;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tg-msg-bubble-sender {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #64b5f6;
+}
+
+.tg-msg-bubble-topic-badge {
+  font-size: 0.72rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(100, 181, 246, 0.15);
+  color: #90caf9;
+  font-weight: 500;
+}
+
+.tg-msg-bubble-media {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 280px;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tg-msg-bubble-media-img {
+  max-width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.tg-msg-bubble-video-badge {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+.tg-msg-bubble-doc-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+
+.tg-msg-bubble-doc-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(42, 171, 238, 0.15);
+  color: #2aabee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tg-msg-bubble-doc-info {
+  overflow: hidden;
+}
+
+.tg-msg-bubble-doc-name {
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: #e7ecf3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tg-msg-bubble-doc-size {
+  font-size: 0.74rem;
+  color: #8e9fb3;
+  margin-top: 2px;
+}
+
+.tg-msg-bubble-text {
+  font-size: 0.92rem;
+  line-height: 1.48;
+  color: #e7ecf3;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+
+.tg-msg-bubble-text.is-filename {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.tg-msg-bubble-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: #8e9fb3;
+  margin-top: 2px;
+}
+
+.tg-msg-bubble-check {
+  color: #53bdeb;
+}
+
+.tg-msg-preview-footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 18px;
+  background: rgba(255, 255, 255, 0.02);
+  border-top: 1px solid var(--td-border, rgba(255, 255, 255, 0.08));
+}
+
+.tg-msg-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--td-border, rgba(255, 255, 255, 0.1));
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--td-text, #fff);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.tg-msg-action-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.tg-msg-action-btn.is-primary {
+  background: rgba(42, 171, 238, 0.18);
+  border-color: rgba(42, 171, 238, 0.4);
+  color: #64b5f6;
+}
+
+.tg-msg-action-btn.is-primary:hover {
+  background: rgba(42, 171, 238, 0.3);
+  border-color: rgba(42, 171, 238, 0.6);
+}
+
+.tg-msg-action-btn.is-close {
+  margin-left: auto;
+  background: transparent;
+  border-color: transparent;
+  color: var(--td-sub, #8e9fb3);
+}
+
+.tg-msg-action-btn.is-close:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+@keyframes tg-preview-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes tg-preview-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 .drive-empty {
   display: flex;
   flex-direction: column;
