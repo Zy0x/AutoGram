@@ -1,3 +1,11 @@
+## v3.5.39 Standard Media Preview Magnifier Restoration
+
+### Pengembalian Fitur Tombol Magnifier (Kaca Pembesar) (`DrivePreviewModal/index.tsx`)
+- **Restorasi Tombol Magnifier di Toolbar Preview Media Standar**:
+  - Mengembalikan tombol **Magnifier / Kaca Pembesar** (`Search` icon) pada kelompok kontrol *ZOOM* di toolbar pratinjau media standar (`!isSplitCompareMode`).
+  - Mengaktifkan status toggle interaktif (`isMagnifierMode` state) dengan visual active state (`.drive-tool-btn.is-on`), memungkinkan pengguna melakukan interaksi pembesaran visual, drag/pan kanvas media, dan double-click zoom in/out secara independen tanpa memicu kontrol playback video (seperti pause/seek otomatis).
+  - Mereset mode kaca pembesar secara bersih saat berpindah berkas atau menutup jendela pratinjau.
+
 ## v3.5.38 Uncompressed Stream Passthrough & Per-Upload Setting Override Engine
 
 ### Mesin Override Kualitas Modal & Direct Passthrough Uncompressed (`RemoteUploadModal.tsx`, `MediaStudio/index.tsx`, `quality.rs`, `media_prep.rs`, `studio_orch.rs`, `preflight.rs`, `App.css`)

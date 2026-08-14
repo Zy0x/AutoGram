@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.38
+AutoGram Version: v3.5.39
 
 Current State:
+v3.5.39 Standard Media Preview Magnifier Restoration — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengembalikan tombol Magnifier (Kaca Pembesar) pada grup toolbar Zoom preview media standar (khusus non-split compare) dengan status aktif interaktif, transisi ikon Search, pointer pan/drag, serta double-click zoom in/out.
+
+Previous:
 v3.5.38 Uncompressed Stream Passthrough & Per-Upload Setting Override Engine — membenahi `RemoteUploadModal.tsx`, `MediaStudio/index.tsx`, `quality.rs`, `media_prep.rs`, `studio_orch.rs`, `preflight.rs`, `App.css`, `src/locales/en/speedtest.json`, `src/locales/id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki arsitektur pengiriman berkas remote dan lokal agar pilihan format/kualitas pada modal (`Optimasi Stream`, `Media Asli (Uncompressed / Direct Passthrough)`, dan `Sebagai Dokumen`) dapat langsung meng-override pengaturan global Drive Settings. Menjamin video berlabel Uncompressed/Original tidak dipaksa di-reencode oleh FFmpeg melainkan langsung diunggah utuh dengan kualitas master/source aslinya.
 
 Previous:

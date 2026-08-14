@@ -37,6 +37,7 @@ import {
   Copy,
   Printer,
   Repeat,
+  Search,
 } from 'lucide-react';
 import { DeadCenterProgress } from '../Explorer/DriveSkeleton';
 import { convertFileSrc } from '@tauri-apps/api/core';
@@ -1003,7 +1004,7 @@ export function DrivePreviewModal({
   });
 
   const [hasVideoFrame, setHasVideoFrame] = useState(false);
-  const [isMagnifierMode] = useState(false);
+  const [isMagnifierMode, setIsMagnifierMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(initialFullscreen);
   const [showInfo, setShowInfo] = useState(false);
   const [mediaWidth, setMediaWidth] = useState<number | null>(null);
@@ -1390,6 +1391,7 @@ export function DrivePreviewModal({
       panRef.current = { x: 0, y: 0 };
       setIsDragging(false);
       dragRef.current = null;
+      setIsMagnifierMode(false);
       setShowInfo(false);
       setPlaybackRate(1);
       setMuted(false);
@@ -3745,6 +3747,19 @@ export function DrivePreviewModal({
                   <ZoomIn size={15} />
                   <span className="drive-tool-btn-label">{t("speedtest.label_zoom_in")}</span>
                 </button>
+                {!isSplitCompareMode && (
+                  <button
+                    type="button"
+                    className={`drive-tool-btn${isMagnifierMode ? ' is-on' : ''}`}
+                    title={t("speedtest.tooltip_magnifier")}
+                    disabled={isHeaderFrozen}
+                    onClick={() => setIsMagnifierMode((v) => !v)}
+                    aria-pressed={isMagnifierMode}
+                  >
+                    <Search size={15} />
+                    <span className="drive-tool-btn-label">{t("speedtest.label_magnifier")}</span>
+                  </button>
+                )}
               </div>
             )}
 
