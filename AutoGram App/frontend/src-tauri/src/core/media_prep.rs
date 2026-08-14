@@ -86,7 +86,7 @@ fn emit_transfer_event(
     }
 }
 
-/// Download remote URL to a temp file under path policy (max ~200MB).
+/// Download remote URL to a temp file under path policy (max up to 4GB Telegram limit).
 pub fn download_remote_url(
     url: &str,
     app: Option<&tauri::AppHandle>,
@@ -99,18 +99,31 @@ pub fn download_remote_url(
     tg_log::info(
         BACKEND,
         "remote_download_start",
-        url.chars().take(80).collect::<String>(),
+        url.chars().take(120).collect::<String>(),
     );
 
     let agent = ureq::AgentBuilder::new()
-        .timeout_connect(std::time::Duration::from_secs(15))
-        .timeout_read(std::time::Duration::from_secs(120))
+        .timeout_connect(std::time::Duration::from_secs(20))
+        .timeout_read(std::time::Duration::from_secs(300))
+        .redirects(8)
         .build();
-    let resp = agent
-        .get(url)
-        .set("User-Agent", "AutoGram/2.0")
-        .call()
-        .map_err(|e| format!("download failed: {e}"))?;
+
+    let mut req = agent.get(url);
+    req = req.set(
+        "User-Agent",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 AutoGram/3.5",
+    );
+    req = req.set("Accept", "*/*");
+    req = req.set("Accept-Language", "en-US,en;q=0.9,id;q=0.8");
+
+    // Add Referer for sensitive platforms if applicable
+    if url.contains("pixiv.net") || url.contains("pximg.net") {
+        req = req.set("Referer", "https://www.pixiv.net/");
+    } else if url.contains("tiktok.com") {
+        req = req.set("Referer", "https://www.tiktok.com/");
+    }
+
+    let resp = req.call().map_err(|e| format!("download failed: {e}"))?;
 
     let content_type = resp
         .header("content-type")
@@ -123,9 +136,12 @@ pub fn download_remote_url(
     use std::io::{Read, Write};
     let mut reader = resp.into_reader();
     let mut file = fs::File::create(&dest).map_err(|e| format!("create temp: {e}"))?;
-    let max = 200 * 1024 * 1024usize;
-    let mut buf = [0u8; 64 * 1024];
+    // Full 4GB limit for Telegram Premium / large files
+    let max = 4096 * 1024 * 1024usize;
+    let mut buf = [0u8; 128 * 1024];
     let mut written: usize = 0;
+    let mut last_emit_ms = 0u128;
+
     loop {
         let n = reader
             .read(&mut buf)
@@ -134,33 +150,57 @@ pub fn download_remote_url(
             break;
         }
         written = written.saturating_add(n);
-        if let Some(total) = content_length {
-            if total > 0 {
-                let pct = (written as f64 / total as f64 * 100.0).min(99.0);
+        
+        let now_ms = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or(0);
+
+        if now_ms.saturating_sub(last_emit_ms) > 200 || written == n {
+            last_emit_ms = now_ms;
+            if let Some(total) = content_length {
+                if total > 0 {
+                    let pct = (written as f64 / total as f64 * 100.0).min(99.9);
+                    emit_transfer_event(
+                        app,
+                        "StudioProgress",
+                        serde_json::json!({
+                            "item_index": item_index,
+                            "percent": pct,
+                            "transferred": written,
+                            "total": total,
+                            "phase": "download"
+                        }),
+                    );
+                }
+            } else {
                 emit_transfer_event(
                     app,
                     "StudioProgress",
                     serde_json::json!({
                         "item_index": item_index,
-                        "percent": pct,
+                        "percent": 50.0,
                         "transferred": written,
-                        "total": total,
+                        "total": 0,
                         "phase": "download"
                     }),
                 );
             }
         }
+
         if written > max {
             let _ = fs::remove_file(&dest);
-            return Err("remote file > 200MB (limit)".into());
+            return Err("remote file exceeds maximum 4GB limit".into());
         }
         file.write_all(&buf[..n])
             .map_err(|e| format!("write temp: {e}"))?;
     }
+
     if written < 16 {
         let _ = fs::remove_file(&dest);
-        return Err("remote file empty".into());
+        return Err("remote file empty or connection closed prematurely".into());
     }
+
     path_policy::assert_safe_transfer_path(dest.to_str().unwrap_or(""))
         .map_err(|e| e.to_string())?;
     tg_log::info(

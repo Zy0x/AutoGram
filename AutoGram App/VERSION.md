@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.34
+AutoGram Version: v3.5.35
 
 Current State:
+v3.5.35 Modular Ultra-HD Link Resolver & Accelerated Media Pipeline — membenahi `media_prep.rs`, `src/lib/telegram/linkResolvers/` (`types.ts`, `registry.ts`, `youtubeResolver.ts`, `tiktokResolver.ts`, `gdriveResolver.ts`, `dropboxResolver.ts`, `mediafireResolver.ts`, `teraboxResolver.ts`, `pinterestResolver.ts`, `pixivResolver.ts`, `socialMediaResolver.ts`, `directFileResolver.ts`), `RemoteUploadModal.tsx`, `App.css`, `src/locales/en/speedtest.json`, `src/locales/id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Membangun arsitektur pengurai tautan cerdas modular dengan isolasi penuh (*fail-safe provider pattern*) yang mendukung kualitas maksimal (YouTube hingga 8K Ultra HD/4K/2K/1080p60 & 320kbps Audio; TikTok Clean No-Watermark HD/2K; Terabox Direct Stream; Pinterest & Pixiv Lossless; Google Drive & Dropbox Direct Converter). Memperluas kapasitas unduh backend Rust hingga 4GB dengan akselerasi stream buffer dan pratinjau kartu media kaya (cover thumbnail, overlay durasi, creator tag, badge tanpa watermark, dan grid pemilih kualitas).
+
+Previous:
 v3.5.34 Unified Native Desktop OS Clipboard Architecture — membenahi `src-tauri/src/lib.rs`, `desktopClipboard.ts`, `RemoteUploadModal.tsx`, `DriveContextMenu.tsx`, `TelegramMessagePreviewModal.tsx`, `MediaStudioModalsContainer.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Melakukan audit menyeluruh terhadap seluruh pemanggilan API web clipboard di seluruh basis kode. Mengimplementasikan `desktop_write_clipboard` di Rust serta modul terpusat `desktopClipboard.ts` (`nativeReadClipboardText` & `nativeWriteClipboardText`) untuk menjamin seluruh operasi baca dan tulis clipboard di seluruh aplikasi AutoGram berjalan 100% native di lapisan OS tanpa dialog izin atau isu fokus window.
 
 Previous:

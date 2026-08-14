@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   Layers,
   Sparkles,
+  Play,
 } from 'lucide-react';
 import type { DriveDestChoice, DriveDestPickerState } from './DriveDestinationPicker';
 import { DriveDestinationPicker } from './DriveDestinationPicker';
@@ -30,6 +31,10 @@ import type { DriveCredentials } from '../../../lib/telegram/driveApi/driveApiUt
 import { PeerAvatar } from '../Navigation/sidebarUtils';
 import { formatDriveBytes } from '../../../lib/telegram/driveTypes';
 import { nativeReadClipboardText } from '../../../lib/tauri/desktopClipboard';
+import {
+  resolveRemoteMediaUrl,
+  type ResolvedMediaInfo,
+} from '../../../lib/telegram/linkResolvers';
 
 interface RemoteUploadModalProps {
   isOpen: boolean;
@@ -82,6 +87,18 @@ function inferFilenameFromUrl(rawUrl: string): string {
     const seg = clean.split(/[/\\]/).filter(Boolean).pop();
     return seg || 'remote_file.bin';
   }
+}
+
+function formatMediaDuration(sec?: number): string | null {
+  if (!sec || isNaN(sec) || sec <= 0) return null;
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  const h = Math.floor(m / 60);
+  const remM = m % 60;
+  if (h > 0) {
+    return `${h}:${remM.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+  return `${remM}:${s.toString().padStart(2, '0')}`;
 }
 
 function kindIcon(c: DriveDestChoice) {
@@ -149,6 +166,9 @@ export function RemoteUploadModal({
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>('auto');
   const [inspection, setInspection] = useState<UrlInspection | null>(null);
 
+  const [resolvedMedia, setResolvedMedia] = useState<ResolvedMediaInfo | null>(null);
+  const [selectedFormatId, setSelectedFormatId] = useState<string>('');
+
   const [selectedDest, setSelectedDest] = useState<DriveDestChoice>(
     currentDestination || { id: null, label: 'Saved Messages', kind: 'saved' }
   );
@@ -169,6 +189,8 @@ export function RemoteUploadModal({
       setBatchUrlsText('');
       setDeliveryMode('auto');
       setInspection(null);
+      setResolvedMedia(null);
+      setSelectedFormatId('');
       setSelectedDest(currentDestination || { id: null, label: 'Saved Messages', kind: 'saved' });
       setErrorMsg('');
       setPickerOpen(false);
@@ -189,7 +211,7 @@ export function RemoteUploadModal({
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, pickerOpen, onClose]);
 
-  // Live URL inspection engine (debounced)
+  // Live URL & Media inspection engine (debounced)
   const probeUrl = useCallback(async (rawUrl: string) => {
     if (inspectAbortRef.current) {
       inspectAbortRef.current.abort();
@@ -199,6 +221,7 @@ export function RemoteUploadModal({
     const trimmed = rawUrl.trim();
     if (!trimmed || (!trimmed.startsWith('http://') && !trimmed.startsWith('https://'))) {
       setInspection(null);
+      setResolvedMedia(null);
       return;
     }
 
@@ -219,90 +242,57 @@ export function RemoteUploadModal({
 
     const controller = new AbortController();
     inspectAbortRef.current = controller;
-    const timeoutId = window.setTimeout(() => controller.abort(), 4000);
 
     try {
-      // 1. Try FastAPI local verify if present
-      let verifiedViaFastApi = false;
-      try {
-        const verifyRes = await fetch(
-          `http://127.0.0.1:8550/api/v1/verify-url?url=${encodeURIComponent(trimmed)}`,
-          { signal: controller.signal }
-        );
-        if (verifyRes.ok) {
-          const data = (await verifyRes.json()) as {
-            valid: boolean;
-            filename?: string;
-            size?: number;
-            mime?: string;
-          };
-          if (data.valid) {
-            verifiedViaFastApi = true;
-            const finalName = data.filename || baseName;
-            const finalExt = finalName.split('.').pop() || ext;
-            setInspection({
-              url: trimmed,
-              status: 'valid',
-              filename: finalName,
-              size: data.size || null,
-              mimeType: data.mime || null,
-              kind: inferKindFromExt(finalExt),
-            });
-            window.clearTimeout(timeoutId);
-            return;
-          }
-        }
-      } catch {
-        /* FastAPI not active in pure Rust mode — fallback to direct probe */
+      // 1. Run through Modular Smart Link Resolver
+      const resolved = await resolveRemoteMediaUrl(trimmed, controller.signal);
+      if (resolved) {
+        setResolvedMedia(resolved);
+        setSelectedFormatId(resolved.selectedFormatId || resolved.formats[0]?.id || '');
+
+        const bestFmt =
+          resolved.formats.find((f) => f.id === resolved.selectedFormatId) || resolved.formats[0];
+        const resName = resolved.title
+          ? resolved.title.includes('.')
+            ? resolved.title
+            : `${resolved.title}.${bestFmt?.ext || ext || 'mp4'}`
+          : baseName;
+
+        setInspection({
+          url: trimmed,
+          status: 'valid',
+          filename: resName,
+          size: bestFmt?.filesizeBytes || null,
+          mimeType: bestFmt?.isVideo
+            ? 'video/mp4'
+            : bestFmt?.isAudio
+              ? 'audio/mp3'
+              : bestFmt?.isImage
+                ? 'image/jpeg'
+                : null,
+          kind: bestFmt?.isVideo
+            ? 'video'
+            : bestFmt?.isAudio
+              ? 'audio'
+              : bestFmt?.isImage
+                ? 'image'
+                : inferKindFromExt(bestFmt?.ext || ext),
+        });
+        return;
       }
-
-      if (!verifiedViaFastApi) {
-        // 2. Direct browser HEAD probe
-        try {
-          const headRes = await fetch(trimmed, {
-            method: 'HEAD',
-            signal: controller.signal,
-            headers: { Accept: '*/*' },
-          });
-
-          const clHeader = headRes.headers.get('content-length');
-          const ctHeader = headRes.headers.get('content-type');
-          const cdHeader = headRes.headers.get('content-disposition');
-
-          let resolvedFilename = baseName;
-          if (cdHeader && cdHeader.includes('filename=')) {
-            const match = cdHeader.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i);
-            if (match?.[1]) {
-              resolvedFilename = decodeURIComponent(match[1].trim());
-            }
-          }
-
-          const parsedSize = clHeader ? parseInt(clHeader, 10) : null;
-          const finalExt = resolvedFilename.split('.').pop() || ext;
-
-          setInspection({
-            url: trimmed,
-            status: headRes.ok ? 'valid' : 'direct_stream',
-            filename: resolvedFilename,
-            size: parsedSize && Number.isFinite(parsedSize) && parsedSize > 0 ? parsedSize : null,
-            mimeType: ctHeader || null,
-            kind: inferKindFromExt(finalExt),
-          });
-        } catch {
-          // CORS/offline probe block: Rust backend handles downloads without browser CORS restrictions
-          setInspection({
-            url: trimmed,
-            status: 'direct_stream',
-            filename: baseName,
-            size: null,
-            mimeType: null,
-            kind: inferredKind,
-          });
-        }
-      }
-    } finally {
-      window.clearTimeout(timeoutId);
+    } catch {
+      /* fallback */
     }
+
+    // Direct stream fallback inspection
+    setInspection({
+      url: trimmed,
+      status: 'direct_stream',
+      filename: baseName,
+      size: null,
+      mimeType: null,
+      kind: inferredKind,
+    });
   }, []);
 
   const handleUrlChange = (val: string) => {
@@ -380,8 +370,20 @@ export function RemoteUploadModal({
 
       setSubmitting(true);
       try {
-        await onUpload([targetUrl], selectedDest, {
-          customFilename: customFilename.trim() || undefined,
+        const activeFormat =
+          resolvedMedia?.formats.find((f) => f.id === selectedFormatId) ||
+          resolvedMedia?.formats[0];
+        const effectiveUrl = activeFormat?.directUrl || targetUrl;
+        const effectiveFilename =
+          customFilename.trim() ||
+          (resolvedMedia?.title
+            ? resolvedMedia.title.includes('.')
+              ? resolvedMedia.title
+              : `${resolvedMedia.title}.${activeFormat?.ext || 'mp4'}`
+            : undefined);
+
+        await onUpload([effectiveUrl], selectedDest, {
+          customFilename: effectiveFilename,
           asDocument: deliveryMode === 'document',
         });
         onClose();
@@ -529,8 +531,54 @@ export function RemoteUploadModal({
                 </div>
               </div>
 
-              {/* Live URL Inspector Card */}
-              {inspection && url.trim() && (
+              {/* Rich Streaming Media Preview Card (YouTube, TikTok, Terabox, Pinterest, etc.) */}
+              {resolvedMedia && (resolvedMedia.thumbnailUrl || resolvedMedia.platform !== 'direct') ? (
+                <div className="td-remote-media-card">
+                  {resolvedMedia.thumbnailUrl && (
+                    <div className="td-remote-media-thumb-wrap">
+                      <img
+                        src={resolvedMedia.thumbnailUrl}
+                        alt={resolvedMedia.title}
+                        className="td-remote-media-thumb"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                      <div className="td-remote-media-play-overlay">
+                        <Play size={18} fill="currentColor" />
+                      </div>
+                      {resolvedMedia.durationSec ? (
+                        <span className="td-remote-media-duration">
+                          {formatMediaDuration(resolvedMedia.durationSec)}
+                        </span>
+                      ) : null}
+                    </div>
+                  )}
+                  <div className="td-remote-media-details">
+                    <div className="td-remote-media-badges">
+                      <span className={`td-remote-platform-badge ${resolvedMedia.platform}`}>
+                        {resolvedMedia.platformName}
+                      </span>
+                      {resolvedMedia.formats.some((f) => f.isCleanNoWatermark) && (
+                        <span className="td-remote-clean-badge">
+                          <Sparkles size={11} />
+                          <span>{t('speedtest.remote_clean_no_watermark')}</span>
+                        </span>
+                      )}
+                    </div>
+                    <div className="td-remote-media-title" title={resolvedMedia.title}>
+                      {resolvedMedia.title}
+                    </div>
+                    {resolvedMedia.author && (
+                      <div className="td-remote-media-author">
+                        <span>{resolvedMedia.author}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : inspection && url.trim() ? (
+                /* Standard File Inspector Card */
                 <div className={`td-remote-inspector-card kind-${inspection.kind}`}>
                   <div className="td-remote-inspector-icon">
                     {fileKindIcon(inspection.kind)}
@@ -568,6 +616,41 @@ export function RemoteUploadModal({
                         )}
                       </span>
                     </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Stream Quality & Format Selector (YouTube 8K/4K/1080p, TikTok HD, Audio) */}
+              {resolvedMedia && resolvedMedia.formats.length > 1 && (
+                <div className="td-remote-field-group">
+                  <label className="td-input-label">
+                    {t('speedtest.remote_quality_selector_label')}
+                  </label>
+                  <div className="td-remote-quality-grid">
+                    {resolvedMedia.formats.map((fmt) => {
+                      const isSelected = selectedFormatId === fmt.id;
+                      return (
+                        <button
+                          key={fmt.id}
+                          type="button"
+                          className={`td-remote-quality-chip ${isSelected ? 'active' : ''} tier-${fmt.qualityTier}`}
+                          onClick={() => {
+                            setSelectedFormatId(fmt.id);
+                            if (fmt.filesizeBytes) {
+                              setInspection((prev) =>
+                                prev ? { ...prev, size: fmt.filesizeBytes } : prev
+                              );
+                            }
+                          }}
+                          disabled={submitting}
+                        >
+                          <span className="td-remote-quality-chip-title">{fmt.label}</span>
+                          {fmt.badge && (
+                            <span className="td-remote-quality-chip-badge">{fmt.badge}</span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}

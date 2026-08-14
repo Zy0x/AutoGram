@@ -1,3 +1,22 @@
+## v3.5.35 Modular Ultra-HD Link Resolver & Accelerated Media Pipeline
+
+### Arsitektur Pengurai Tautan Cerdas Modular & Kualitas Maksimal (`linkResolvers/`, `RemoteUploadModal.tsx`, `media_prep.rs`, `App.css`, `speedtest.json`)
+- **Arsitektur Modular & Terisolasi Penuh (*Plugin Provider Pattern*)**:
+  - Membangun subsistem modular `src/lib/telegram/linkResolvers/` dengan arsitektur provider independen (`types.ts`, `registry.ts`).
+  - Setiap penyedia platform berjalan dalam batas isolasi error (*isolated error boundary*). Jika salah satu platform mengalami perubahan API atau kegagalan koneksi, sistem secara anggun beralih ke fallback tanpa merusak platform lainnya atau alur kerja aplikasi.
+- **Dukungan Kualitas Ultra-Tinggi (Hingga 8K / 4K / Lossless Audio)**:
+  - 🎬 **YouTube Resolver (`youtubeResolver.ts`)**: Resolusi format multi-tier dari **8K Ultra HD (4320p)**, **4K UHD (2160p)**, **2K QHD (1440p)**, **1080p 60fps**, **720p HD**, hingga **Hi-Res Audio MP3 (320 kbps)** dengan cover thumbnail resolusi maksimal (`maxresdefault.jpg`).
+  - ✨ **TikTok Clean No-Watermark (`tiktokResolver.ts`)**: Ekstraksi video kualitas tertinggi asli dari server **100% Bersih Tanpa Watermark**, lengkap dengan username pembuat, avatar, durasi, dan track musik terpisah.
+  - 📂 **Google Drive & Dropbox Direct Converter (`gdriveResolver.ts`, `dropboxResolver.ts`)**: Otomatis mengonversi tautan share/view biasa menjadi *direct streamable binary download link*.
+  - 🌐 **Terabox, Pinterest, Pixiv & Media Sosial (`teraboxResolver.ts`, `pinterestResolver.ts`, `pixivResolver.ts`, `socialMediaResolver.ts`)**: Resolusi unduhan direct CDN, artwork original uncompressed *lossless*, dan media Facebook/Instagram/Twitter.
+- **Antarmuka Pratinjau Media Kaya (*Rich Media Preview Card & Quality Selector*)**:
+  - Kartu pratinjau interaktif menampilkan cover thumbnail gambar resolusi tinggi dengan badge tombol putar dan durasi waktu.
+  - Badge identitas platform dinamis dan badge hijau `✨ Bersih Tanpa Watermark`.
+  - Grid chip pemilih kualitas dan resolusi stream yang responsif dan interaktif.
+- **Ekspansi Kapasitas Unduh Backend Rust Hingga 4GB (`media_prep.rs`)**:
+  - Menghapus batas usang 200MB dan memperluas kapasitas unduh hingga **4GB** (sesuai batas maksimal Telegram Premium) dan 2GB (Standard).
+  - Mengadopsi buffer streaming 128KB, penanganan `User-Agent` & `Referer` modern, serta siaran progres live `StudioProgress` ke antrean transfer.
+
 ## v3.5.34 Unified Native Desktop OS Clipboard Architecture
 
 ### Audit Menyeluruh & Arsitektur Clipboard Native OS Terpadu (`src-tauri/src/lib.rs`, `desktopClipboard.ts`, `RemoteUploadModal.tsx`, `DriveContextMenu.tsx`, `TelegramMessagePreviewModal.tsx`, `MediaStudioModalsContainer.tsx`)
