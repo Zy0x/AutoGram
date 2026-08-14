@@ -5046,8 +5046,8 @@ video.drive-preview-media {
   vertical-align: middle;
 }
 
-.drive-context-menu:not(.has-active-submenu) button:hover,
-.drive-context-menu.has-active-submenu .drive-context-submenu.is-open > button,
+.drive-context-menu button:hover,
+.drive-context-submenu:hover > button,
 .drive-context-submenu-flyout button:hover {
   background: rgba(255, 174, 0, 0.12);
   color: var(--td-text, #fff);

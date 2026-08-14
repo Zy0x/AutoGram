@@ -1,3 +1,9 @@
+## v3.5.21 Instant 0ms Hover Feedback & Snappy Submenu Switch Engine
+
+### Respon Hover Instan Tanpa Lag & Penyetelan Intent Switch 80ms (`DriveContextMenu.tsx`, `App.css`)
+- **Instant 0ms CSS Hover Response (`App.css`)**: Mengeliminasi delay transisi hover dengan menerapkan aturan CSS murni (`.drive-context-menu button:hover, .drive-context-submenu:hover > button, .drive-context-submenu-flyout button:hover`). Setiap item yang disentuh kursor kini menyala seketika dalam 0ms tanpa terhambat status pembuka submenu.
+- **Tuning Intent Switch 80ms (`DriveContextMenu.tsx`)**: Menurunkan durasi penutupan submenu (*switch intent delay*) menjadi **80ms**. Pengguna dapat berpindah kursor antar item menu dengan sangat cepat, responsif, dan presisi tinggi tanpa jeda lambat.
+
 ## v3.5.20 Strict Single Active Hover Highlight & Bounded Bridge Engine
 
 ### Eksklusivitas Highlight Hover & Pembatasan Geometri Jembatan (`DriveContextMenu.tsx`, `App.css`)

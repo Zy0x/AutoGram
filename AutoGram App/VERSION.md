@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.20
+AutoGram Version: v3.5.21
 
 Current State:
+v3.5.21 Instant 0ms Hover Feedback & Snappy Submenu Switch Engine — membenahi `DriveContextMenu.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Menghilangkan kelambatan perpindahan hover (*hover transition lag*) dengan menghapus restriksi blocking CSS dan menyederhanakan aturan hover murni 0ms (`.drive-context-menu button:hover`, `.drive-context-submenu:hover > button`, `.drive-context-submenu-flyout button:hover`). Menyetel delay penutupan submenu (*switch intent delay*) menjadi ultra-responsif 80ms sehingga perpindahan kursor antar item terasa instan, tajam, dan tidak terasa lambat sedikit pun.
+
+Previous:
 v3.5.20 Strict Single Active Hover Highlight & Bounded Bridge Engine — membenahi `DriveContextMenu.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki munculnya 2 highlight hover secara bersamaan (misal: "Preview" dan "Telegram") dengan menerapkan aturan CSS scoped exclusivity `.drive-context-menu:not(.has-active-submenu) button:hover` dan `.drive-context-menu.has-active-submenu .drive-context-submenu.is-open > button`. Membatasi jembatan hover tak kasat mata (`top: 0; bottom: 0; left: -20px; width: 24px;`) agar tidak mencuat ke atas/bawah menu tetangga, serta menyetel delay switch kursor ke 200ms.
 
 Previous:
