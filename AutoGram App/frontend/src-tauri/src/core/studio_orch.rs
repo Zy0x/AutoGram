@@ -886,7 +886,7 @@ fn run_intelligent_album(
             .and_then(|value| value.as_str())
             .unwrap_or("automatic")
         {
-            "force_document" if mode != QualityMode::Original => {
+            "force_document" | "document" if mode != QualityMode::Original => {
                 classification.payload_class = PayloadClass::DocumentGroup;
                 classification.as_document = true;
                 classification.reason_code = "presentation_forced_document".into();
@@ -1644,7 +1644,7 @@ fn run_orchestrated_grammers(
             .get("presentation_override")
             .or_else(|| rec.options.get("presentationOverride"))
             .and_then(|v| v.as_str())
-            .map(|value| value == "force_document")
+            .map(|value| value == "force_document" || value == "document")
             .unwrap_or(false);
     let silent = rec
         .options
@@ -1939,7 +1939,8 @@ fn run_orchestrated_grammers(
             .get("presentation_override")
             .or_else(|| rec.options.get("presentationOverride"))
             .and_then(|value| value.as_str())
-            == Some("force_document")
+            .map(|value| value == "force_document" || value == "document")
+            .unwrap_or(false)
         {
             delivery.as_document = true;
         }

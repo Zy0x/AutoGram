@@ -5046,6 +5046,7 @@ function MediaDriveDesktop({
       topicId?: number | null;
       skipTopic?: boolean;
       presentationOverride?: 'document' | 'original' | 'standard' | 'compressed';
+      qualityMode?: string;
       customFilename?: string;
     }
   ) => {
@@ -5182,7 +5183,13 @@ function MediaDriveDesktop({
       ? Math.floor(new Date(transferSettings.scheduleAt).getTime() / 1000)
       : undefined;
     const options: Record<string, unknown> = {
-      quality_mode: transferSettings.qualityMode,
+      quality_mode:
+        opts?.qualityMode ||
+        (opts?.presentationOverride === 'document'
+          ? 'ORIGINAL'
+          : opts?.presentationOverride === 'original'
+            ? 'ORIGINAL'
+            : transferSettings.qualityMode),
       concurrency: transferSettings.uploadConcurrency,
       group_as_album: transferSettings.groupAsAlbum,
       silent: transferSettings.silent,
@@ -5191,12 +5198,15 @@ function MediaDriveDesktop({
       schedule_at: Number.isFinite(scheduleAtSeconds) && scheduleAtSeconds! > Date.now() / 1000
         ? scheduleAtSeconds
         : undefined,
-      send_as: transferSettings.sendAs.trim() || undefined,
+      send_as:
+        opts?.presentationOverride === 'document'
+          ? 'document'
+          : transferSettings.sendAs.trim() || undefined,
       global_caption: (transferSettings.globalCaption || '').trim() || undefined,
       caption_overflow_policy: transferSettings.captionOverflowPolicy,
       reencodeHardware: transferSettings.reencodeHardware,
       reencodePreset: transferSettings.reencodePreset,
-      presentation_override: transferSettings.presentationOverride,
+      presentation_override: opts?.presentationOverride || transferSettings.presentationOverride,
       album_packing: transferSettings.albumPacking,
       album_group_size: transferSettings.albumGroupSize,
       album_avoid_single: transferSettings.albumAvoidSingle,
@@ -5295,7 +5305,12 @@ function MediaDriveDesktop({
   const handleRemoteUpload = async (
     urls: string | string[],
     dest: DriveDestChoice,
-    opts?: { customFilename?: string; asDocument?: boolean }
+    opts?: {
+      customFilename?: string;
+      asDocument?: boolean;
+      qualityMode?: string;
+      presentationOverride?: 'document' | 'original' | 'standard' | 'compressed';
+    }
   ) => {
     const list = Array.isArray(urls) ? urls : [urls];
     // Route through the Transfer Manager queue (same pipeline as local file uploads)
@@ -5304,7 +5319,8 @@ function MediaDriveDesktop({
       targetFolderId: dest.id,
       targetLabel: dest.label,
       topicId: dest.topicId ?? null,
-      presentationOverride: opts?.asDocument ? 'document' : undefined,
+      presentationOverride: opts?.presentationOverride ?? (opts?.asDocument ? 'document' : undefined),
+      qualityMode: opts?.qualityMode,
       customFilename: opts?.customFilename,
     });
   };

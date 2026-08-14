@@ -144,7 +144,10 @@ pub fn build_quality_preflight(
     } else {
         QualityMode::Original
     };
-    let force_document = request.presentation_override.as_deref() == Some("force_document");
+    let force_document = matches!(
+        request.presentation_override.as_deref(),
+        Some("force_document") | Some("document")
+    );
     let mut items = Vec::with_capacity(request.paths.len());
 
     for (index, source) in request.paths.iter().enumerate() {

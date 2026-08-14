@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.37
+AutoGram Version: v3.5.38
 
 Current State:
+v3.5.38 Uncompressed Stream Passthrough & Per-Upload Setting Override Engine — membenahi `RemoteUploadModal.tsx`, `MediaStudio/index.tsx`, `quality.rs`, `media_prep.rs`, `studio_orch.rs`, `preflight.rs`, `App.css`, `src/locales/en/speedtest.json`, `src/locales/id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki arsitektur pengiriman berkas remote dan lokal agar pilihan format/kualitas pada modal (`Optimasi Stream`, `Media Asli (Uncompressed / Direct Passthrough)`, dan `Sebagai Dokumen`) dapat langsung meng-override pengaturan global Drive Settings. Menjamin video berlabel Uncompressed/Original tidak dipaksa di-reencode oleh FFmpeg melainkan langsung diunggah utuh dengan kualitas master/source aslinya.
+
+Previous:
 v3.5.37 Resilient Media Prep Engine & Multi-Engine TikTok Resolver — membenahi `media_prep.rs`, `analysis.rs`, `tiktokResolver.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki bug validasi `encoder_validation_unavailable` di backend Rust dengan mengizinkan hasil transcode/remux ffmpeg valid tetap diproses meski inspeksi ffprobe tidak tersedia di sistem. Memperluas deteksi biner `ffprobe` di lingkungan Windows, menambahkan mesin sekunder *multi-engine fallback* pada resolusi TikTok Clean No-Watermark (`vt.tiktok.com`), serta merapikan parsing nama berkas URL stream pada antrean Transfer Manager.
 
 Previous:

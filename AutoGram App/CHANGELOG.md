@@ -1,3 +1,16 @@
+## v3.5.38 Uncompressed Stream Passthrough & Per-Upload Setting Override Engine
+
+### Mesin Override Kualitas Modal & Direct Passthrough Uncompressed (`RemoteUploadModal.tsx`, `MediaStudio/index.tsx`, `quality.rs`, `media_prep.rs`, `studio_orch.rs`, `preflight.rs`, `App.css`)
+- **Pilihan 3 Mode Format Pengiriman Lengkap di Remote Upload**:
+  - 🎬 **Optimasi Stream (`auto`)**: Mengoptimalkan video (H.264/AAC MP4) agar langsung dapat diputar di semua klien Telegram.
+  - ✨ **Media Asli / Uncompressed (`uncompressed`)**: Mode streaming langsung (*Direct Passthrough*) tanpa re-encode. Resolusi, bitrate, dan format video/audio dipertahankan 100% utuh seperti sumber aslinya.
+  - 📁 **Sebagai Dokumen (`document`)**: Mengunggah berkas murni tanpa kompresi visual Telegram.
+- **Dukungan Override Kualitas Per-Upload (`MediaStudio/index.tsx`)**:
+  - `runUploadPaths` dan `handleRemoteUpload` kini memprioritaskan parameter `qualityMode` dan `presentationOverride` yang dikirim dari modal unggah (seperti Remote Upload Modal), sehingga pengaturan lokal per-tugas dapat langsung meng-override pengaturan default di Drive Settings.
+- **Backend Rust Passthrough & Quality Mode Parser (`quality.rs`, `media_prep.rs`, `studio_orch.rs`, `preflight.rs`)**:
+  - Memperluas parser `QualityMode::parse` dan fungsi pengecekan `maybe_reencode_for_telegram` di Rust untuk mengenali nilai `UNCOMPRESSED`, `RAW`, `LOSSLESS`, `PASSTHROUGH`, dan `DIRECT` agar tidak di-reencode oleh FFmpeg.
+  - Menyelaraskan penerimaan nilai `presentation_override` untuk `document` dan `force_document` di seluruh pipeline pengiriman dan preflight.
+
 ## v3.5.37 Resilient Media Prep Engine & Multi-Engine TikTok Resolver
 
 ### Perbaikan Validasi Encoder Rust & Multi-Engine TikTok Resolver (`media_prep.rs`, `analysis.rs`, `tiktokResolver.ts`, `MediaStudio/index.tsx`)

@@ -658,10 +658,14 @@ pub fn maybe_reencode_for_telegram(
         }
     }
 
-    // ORIGINAL / DOCUMENT / empty → skip video reencode
+    // ORIGINAL / DOCUMENT / UNCOMPRESSED / RAW / LOSSLESS / PASSTHROUGH / empty → skip video reencode
     if mode.is_empty()
         || mode.contains("ORIGINAL")
         || mode.contains("DOCUMENT")
+        || mode.contains("UNCOMPRESSED")
+        || mode.contains("RAW")
+        || mode.contains("LOSSLESS")
+        || mode.contains("PASSTHROUGH")
         || mode.contains("SKIP")
     {
         return Ok(path.to_string());

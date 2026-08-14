@@ -20,7 +20,7 @@ impl QualityMode {
             .as_str()
         {
             "HIGH_QUALITY" | "HIGHQUALITY" | "HQ" => Self::HighQuality,
-            "ORIGINAL" | "DOCUMENT" => Self::Original,
+            "ORIGINAL" | "DOCUMENT" | "UNCOMPRESSED" | "RAW" | "LOSSLESS" | "PASSTHROUGH" | "DIRECT" => Self::Original,
             _ => Self::Smart,
         }
     }

@@ -45,12 +45,17 @@ interface RemoteUploadModalProps {
   onUpload: (
     urls: string | string[],
     destination: DriveDestChoice,
-    opts?: { customFilename?: string; asDocument?: boolean }
+    opts?: {
+      customFilename?: string;
+      asDocument?: boolean;
+      qualityMode?: string;
+      presentationOverride?: 'document' | 'original' | 'standard' | 'compressed';
+    }
   ) => Promise<void>;
 }
 
 type RemoteUploadTab = 'single' | 'batch';
-type DeliveryMode = 'auto' | 'document';
+type DeliveryMode = 'auto' | 'uncompressed' | 'document';
 type UrlKind = 'video' | 'image' | 'audio' | 'zip' | 'doc' | 'other';
 
 interface UrlInspection {
@@ -382,9 +387,24 @@ export function RemoteUploadModal({
               : `${resolvedMedia.title}.${activeFormat?.ext || 'mp4'}`
             : undefined);
 
+        const effectiveQualityMode =
+          deliveryMode === 'uncompressed'
+            ? 'ORIGINAL'
+            : deliveryMode === 'document'
+              ? 'DOCUMENT'
+              : 'SMART';
+        const effectivePresentation =
+          deliveryMode === 'document'
+            ? 'document'
+            : deliveryMode === 'uncompressed'
+              ? 'original'
+              : 'standard';
+
         await onUpload([effectiveUrl], selectedDest, {
           customFilename: effectiveFilename,
           asDocument: deliveryMode === 'document',
+          qualityMode: effectiveQualityMode,
+          presentationOverride: effectivePresentation,
         });
         onClose();
       } catch (err: any) {
@@ -400,8 +420,23 @@ export function RemoteUploadModal({
 
       setSubmitting(true);
       try {
+        const effectiveQualityMode =
+          deliveryMode === 'uncompressed'
+            ? 'ORIGINAL'
+            : deliveryMode === 'document'
+              ? 'DOCUMENT'
+              : 'SMART';
+        const effectivePresentation =
+          deliveryMode === 'document'
+            ? 'document'
+            : deliveryMode === 'uncompressed'
+              ? 'original'
+              : 'standard';
+
         await onUpload(batchUrls, selectedDest, {
           asDocument: deliveryMode === 'document',
+          qualityMode: effectiveQualityMode,
+          presentationOverride: effectivePresentation,
         });
         onClose();
       } catch (err: any) {
@@ -716,7 +751,7 @@ export function RemoteUploadModal({
             </div>
           )}
 
-          {/* Delivery Format Option: Auto Media vs Document */}
+          {/* Delivery Format Option: Auto Media vs Uncompressed Stream vs Document */}
           <div className="td-remote-field-group">
             <label className="td-input-label">{t('speedtest.remote_delivery_mode_label')}</label>
             <div className="td-remote-mode-selector">
@@ -730,6 +765,18 @@ export function RemoteUploadModal({
                 <div className="td-remote-mode-text">
                   <span className="td-remote-mode-title">{t('speedtest.remote_mode_auto')}</span>
                   <span className="td-remote-mode-desc">{t('speedtest.remote_mode_auto_hint')}</span>
+                </div>
+              </button>
+              <button
+                type="button"
+                className={`td-remote-mode-btn ${deliveryMode === 'uncompressed' ? 'active' : ''}`}
+                onClick={() => setDeliveryMode('uncompressed')}
+                disabled={submitting}
+              >
+                <Sparkles size={14} />
+                <div className="td-remote-mode-text">
+                  <span className="td-remote-mode-title">{t('speedtest.remote_mode_uncompressed')}</span>
+                  <span className="td-remote-mode-desc">{t('speedtest.remote_mode_uncompressed_hint')}</span>
                 </div>
               </button>
               <button
