@@ -741,6 +741,8 @@
   "label_topic": "Topik",
   "all_media_pill": "Semua Media",
   "loading_topics": "Memuat topik…",
+  "scroll_topics_left": "Gulir topik ke kiri",
+  "scroll_topics_right": "Gulir topik ke kanan",
   "status_live_sync": "Sinkronisasi live · {{count}}{{more}} berkas",
   "status_loaded_files": "{{count}}{{more}} berkas terdaftar{{topicNote}}",
   "preview_zoom_pan_tooltip": "Tahan & seret untuk geser · gulir untuk zoom (25%–600%) · double-klik untuk 100%",

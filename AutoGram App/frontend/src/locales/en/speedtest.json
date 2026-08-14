@@ -741,6 +741,8 @@
   "label_topic": "Topics",
   "all_media_pill": "All Media",
   "loading_topics": "Loading topics…",
+  "scroll_topics_left": "Scroll topics left",
+  "scroll_topics_right": "Scroll topics right",
   "status_live_sync": "Live sync · {{count}}{{more}} files",
   "status_loaded_files": "{{count}}{{more}} files listed{{topicNote}}",
   "preview_zoom_pan_tooltip": "Hold & drag to pan · scroll to zoom (25%–600%) · double-click for 100%",

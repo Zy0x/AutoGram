@@ -23,9 +23,11 @@ import {
   Edit2,
   Globe,
   FolderArchive,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTopicDrop } from './useTopicDrop';
 import type {
@@ -235,8 +237,21 @@ export function DriveTopBar({
     !!topicsLoading ||
     !!hasTopicSegment;
 
-  const { activeDragTopicId, pointerHoverKey, handleDragOver, handleDragLeave, handleDrop } = useTopicDrop({
+  const topicPillsRef = useRef<HTMLDivElement>(null);
+  const {
+    activeDragTopicId,
+    pointerHoverKey,
+    canScrollLeft,
+    canScrollRight,
+    scrollTopicsBy,
+    handlePillsWheel,
+    handlePillsDragOver,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+  } = useTopicDrop({
     onDropOnTopic,
+    topicPillsRef,
   });
 
   const [topicContextMenu, setTopicContextMenu] = useState<{
@@ -680,72 +695,109 @@ export function DriveTopBar({
             <MessagesSquare size={14} />
             {t('speedtest.label_topic')}
           </span>
-          <div className="td-topic-pills">
-            <button
-              type="button"
-              data-drop-key="topic:all"
-              data-location-kind="topic"
-              data-topic-id="all"
-              className={`td-topic-pill ${topicFilter == null ? 'active' : ''} ${
-                activeDragTopicId === 'all' || pointerHoverKey === 'topic:all' ? 'is-drag-over is-drop-over' : ''
-              }`}
-              onClick={() => onTopicFilter?.(null)}
-              onDragOver={(e) => handleDragOver(null, e)}
-              onDragLeave={(e) => handleDragLeave(null, e)}
-              onDrop={(e) => handleDrop(null, t('speedtest.all_media_pill'), e)}
-              title={t('speedtest.show_group_media')}
-            >
-              {t('speedtest.all_media_pill')}
-            </button>
-            {topicsLoading && topics.length === 0 && (
-              <span className="td-topics-loading">{t("speedtest.loading_topics")}</span>
-            )}
-            {topics.map((tp) => {
-              const isOver =
-                activeDragTopicId === tp.id ||
-                activeDragTopicId === String(tp.id) ||
-                pointerHoverKey === `topic:${tp.id}` ||
-                pointerHoverKey === `topic:${String(tp.id)}`;
-              const classes = ['td-topic-pill'];
-              if (topicFilter === tp.id) classes.push('active');
-              if (tp.closed) classes.push('is-closed');
-              if (isOver) classes.push('is-drag-over', 'is-drop-over');
-              return (
-                <button
-                  key={tp.id}
-                  type="button"
-                  data-drop-key={`topic:${tp.id}`}
-                  data-location-kind="topic"
-                  data-topic-id={tp.id}
-                  className={classes.join(' ')}
-                  onClick={() => onTopicFilter?.(tp.id)}
-                  onDragOver={(e) => handleDragOver(tp.id, e)}
-                  onDragLeave={(e) => handleDragLeave(tp.id, e)}
-                  onDrop={(e) => handleDrop(tp.id, tp.title, e)}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setTopicContextMenu({
-                      x: e.clientX,
-                      y: e.clientY,
-                      topicId: tp.id,
-                      title: tp.title,
-                    });
-                  }}
-                  title={tp.closed ? `${tp.title} (${t("speedtest.topic_closed_suffix")})` : tp.title}
-                >
-                  {tp.title}
-                </button>
-              );
-            })}
-            {onAddTopic && (
+          <div className="td-topics-scroll-container">
+            {canScrollLeft && (
               <button
                 type="button"
-                className="td-topic-pill td-topic-pill-add"
-                onClick={onAddTopic}
-                title={t('speedtest.add_new_topic')}
+                className="td-topic-nav-btn left"
+                onClick={() => scrollTopicsBy(-200)}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  scrollTopicsBy(-18);
+                }}
+                title={t('speedtest.scroll_topics_left')}
+                aria-label={t('speedtest.scroll_topics_left')}
               >
-                {t("speedtest.btn_add_topic")}
+                <ChevronLeft size={13} strokeWidth={2.5} />
+              </button>
+            )}
+            <div
+              ref={topicPillsRef}
+              className="td-topic-pills"
+              onWheel={handlePillsWheel}
+              onDragOver={handlePillsDragOver}
+            >
+              <button
+                type="button"
+                data-drop-key="topic:all"
+                data-location-kind="topic"
+                data-topic-id="all"
+                className={`td-topic-pill ${topicFilter == null ? 'active' : ''} ${
+                  activeDragTopicId === 'all' || pointerHoverKey === 'topic:all' ? 'is-drag-over is-drop-over' : ''
+                }`}
+                onClick={() => onTopicFilter?.(null)}
+                onDragOver={(e) => handleDragOver(null, e)}
+                onDragLeave={(e) => handleDragLeave(null, e)}
+                onDrop={(e) => handleDrop(null, t('speedtest.all_media_pill'), e)}
+                title={t('speedtest.show_group_media')}
+              >
+                {t('speedtest.all_media_pill')}
+              </button>
+              {topicsLoading && topics.length === 0 && (
+                <span className="td-topics-loading">{t("speedtest.loading_topics")}</span>
+              )}
+              {topics.map((tp) => {
+                const isOver =
+                  activeDragTopicId === tp.id ||
+                  activeDragTopicId === String(tp.id) ||
+                  pointerHoverKey === `topic:${tp.id}` ||
+                  pointerHoverKey === `topic:${String(tp.id)}`;
+                const classes = ['td-topic-pill'];
+                if (topicFilter === tp.id) classes.push('active');
+                if (tp.closed) classes.push('is-closed');
+                if (isOver) classes.push('is-drag-over', 'is-drop-over');
+                return (
+                  <button
+                    key={tp.id}
+                    type="button"
+                    data-drop-key={`topic:${tp.id}`}
+                    data-location-kind="topic"
+                    data-topic-id={tp.id}
+                    className={classes.join(' ')}
+                    onClick={() => onTopicFilter?.(tp.id)}
+                    onDragOver={(e) => handleDragOver(tp.id, e)}
+                    onDragLeave={(e) => handleDragLeave(tp.id, e)}
+                    onDrop={(e) => handleDrop(tp.id, tp.title, e)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setTopicContextMenu({
+                        x: e.clientX,
+                        y: e.clientY,
+                        topicId: tp.id,
+                        title: tp.title,
+                      });
+                    }}
+                    title={tp.closed ? `${tp.title} (${t("speedtest.topic_closed_suffix")})` : tp.title}
+                  >
+                    {tp.title}
+                  </button>
+                );
+              })}
+              {onAddTopic && (
+                <button
+                  type="button"
+                  className="td-topic-pill td-topic-pill-add"
+                  onClick={onAddTopic}
+                  title={t('speedtest.add_new_topic')}
+                >
+                  {t("speedtest.btn_add_topic")}
+                </button>
+              )}
+            </div>
+            {canScrollRight && (
+              <button
+                type="button"
+                className="td-topic-nav-btn right"
+                onClick={() => scrollTopicsBy(200)}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  scrollTopicsBy(18);
+                }}
+                title={t('speedtest.scroll_topics_right')}
+                aria-label={t('speedtest.scroll_topics_right')}
+              >
+                <ChevronRight size={13} strokeWidth={2.5} />
               </button>
             )}
           </div>

@@ -1,3 +1,11 @@
+## v3.5.27 Horizontal Drag Scroll & Topic Strip Auto-Scroll Engine
+
+### Dukungan Scroll Horizontal & Auto-Scroll Saat Drag Media ke Bilah Topik Forum (`useTopicDrop.ts`, `DriveTopBar.tsx`, `App.css`)
+- **Continuous Edge Auto-Scroll Loop**: Mengimplementasikan edge auto-scroll loop berbasis `requestAnimationFrame` saat pengguna melakukan drag kartu media. Ketika kursor mendekati ujung kiri atau kanan strip topik (`.td-topic-pills`), baris topik akan otomatis bergulir secara mulus.
+- **Konversi Scroll Roda Mouse (Wheel)**: Mengonversi event roda mouse (`deltaY` & `deltaX`) pada container topik dan window listener menjadi scroll horizontal instan (`scrollLeft`), bahkan ketika pointer capture sedang aktif.
+- **Tombol Navigasi Scroll Panah Kiri/Kanan**: Menyediakan tombol chevron navigasi (`td-topic-nav-btn`) yang muncul dinamis saat topik meluap (`overflow-x`), mendukung klik maupun hover-drag scrolling.
+- **100% Zero Hardcoded Strings & Parity**: Seluruh key tooltip (`scroll_topics_left`, `scroll_topics_right`) tersedia identik dalam bahasa Indonesia dan Inggris.
+
 ## v3.5.26 Dual Action Move & Copy Context Menu Engine
 
 ### Penyesuaian Menu Konteks Berkas (`DriveContextMenu.tsx`, `speedtest.json`)

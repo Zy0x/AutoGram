@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.26
+AutoGram Version: v3.5.27
 
 Current State:
+v3.5.27 Horizontal Drag Scroll & Topic Strip Auto-Scroll Engine — membenahi `useTopicDrop.ts`, `DriveTopBar.tsx`, `App.css`, `src/locales/en/speedtest.json`, `src/locales/id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki masalah di mana pengguna tidak dapat menggulir horizontal bilah topik forum saat sedang melakukan drag-and-drop kartu media. Menambahkan continuous edge auto-scroll loop (60fps) ketika kursor mendekati batas kiri/kanan strip topik, konversi scroll roda mouse (vertikal & horizontal) langsung ke `scrollLeft`, tombol kontrol navigasi panah kiri/kanan (`ChevronLeft`/`ChevronRight`), serta dukungan dragover scroll pada container topik.
+
+Previous:
 v3.5.26 Dual Action Move & Copy Context Menu Engine — membenahi `DriveContextMenu.tsx`, `src/locales/en/speedtest.json`, `src/locales/id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Memperbarui label menu aksi berkas dari sebelumnya *"Move to…"* menjadi *"Copy/Move to…"* (*"Salin/Pindah ke…"*) untuk merefleksikan kapabilitas multimodal pengiriman, penyalinan (*copy/forward*), dan pemindahan (*move*) berkas ke berbagai folder Drive, Saved Messages, chat, maupun topik forum Telegram.
 
 Previous:
