@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.22
+AutoGram Version: v3.5.23
 
 Current State:
+v3.5.23 Rock-Solid Modal Lifecycle & Isolated Destination Picker Engine — membenahi `RemoteUploadModal.tsx`, `DriveDestinationPicker.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki bug di mana modal tujuan tertutup atau reset secara tidak sengaja (*unexpected auto-close / auto-reset*) saat pengguna sedang memilih target atau topik forum. Mengisolasi lifecycle inisialisasi state hanya saat modal pertama kali dibuka (`prevIsOpenRef`), menstabilkan referensi objek picker state (`useMemo`), menambahkan penanganan event keyboard Escape secara terisolasi (`capture: true` + `stopPropagation`), dan menetapkan z-index layering yang presisi (`14100`) agar backdrop click tidak saling mengganggu antar modal bertumpuk.
+
+Previous:
 v3.5.22 Comprehensive Target Hierarchy & Topic Picker for Remote URL Upload — membenahi `RemoteUploadModal.tsx`, `MediaStudioModalsContainer.tsx`, `MediaStudio/index.tsx`, `App.css`, `src/locales/en/speedtest.json`, `src/locales/id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Membawa kelengkapan pemilihan target tujuan unggah remote URL setara 100% dengan modal Move/Copy/Send file. Pengguna kini dapat memilih Saved Messages, seluruh Folder & Subfolder Drive, Channel, Group/Supergroup, serta Topik Forum secara langsung dengan selector interaktif, pencarian cepat, lencana kategori, avatar tujuan, dan auto-deteksi lokasi folder aktif pengguna saat ini.
 
 Previous:

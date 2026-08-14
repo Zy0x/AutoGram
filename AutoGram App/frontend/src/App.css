@@ -23109,6 +23109,9 @@ input[type="search"]::-webkit-search-decoration {
   border-color: rgba(56, 189, 248, 0.55);
   background: rgba(14, 165, 233, 0.13);
 }
+.td-confirm-overlay[data-dialog-kind="dest"] {
+  z-index: 14100 !important;
+}
 .td-zip-category-grid button:disabled { opacity: 0.42; cursor: not-allowed; }
 .td-zip-category-grid b { color: #7dd3fc; font-size: 0.72rem; }
 

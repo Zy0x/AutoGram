@@ -61,17 +61,28 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
+  const isPickerOpen = Boolean(state);
+  const prevOpenRef = useRef(false);
+
   useEffect(() => {
-    if (!state) return;
-    // Reset internal state whenever a new picker session opens (state identity changes).
-    setQuery('');
-    setSelectedIdx(0);
-    setLoadingId(null);
-    setTopicSubView(null);
-    const timeoutId = window.setTimeout(() => searchRef.current?.focus(), 40);
+    if (isPickerOpen && !prevOpenRef.current) {
+      // Reset internal state only when the picker transitions from closed to open
+      setQuery('');
+      setSelectedIdx(0);
+      setLoadingId(null);
+      setTopicSubView(null);
+      const timeoutId = window.setTimeout(() => searchRef.current?.focus(), 40);
+      return () => window.clearTimeout(timeoutId);
+    }
+    prevOpenRef.current = isPickerOpen;
+  }, [isPickerOpen]);
+
+  useEffect(() => {
+    if (!isPickerOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
+        e.stopPropagation();
         if (topicSubViewRef.current) {
           setTopicSubView(null);
         } else {
@@ -79,14 +90,9 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
         }
       }
     };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.clearTimeout(timeoutId);
-      window.removeEventListener('keydown', onKey);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state]); // Only re-init when the picker opens with a new state object.
-               // onClose & topicSubView accessed via refs — excluded intentionally.
+    window.addEventListener('keydown', onKey, { capture: true });
+    return () => window.removeEventListener('keydown', onKey, { capture: true });
+  }, [isPickerOpen]);
 
   const filtered = useMemo(() => {
     if (!state) return [];

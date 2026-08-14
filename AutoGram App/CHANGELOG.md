@@ -1,3 +1,11 @@
+## v3.5.23 Rock-Solid Modal Lifecycle & Isolated Destination Picker Engine
+
+### Perbaikan Bug Auto-Close & Auto-Reset pada Modal Tujuan (`RemoteUploadModal.tsx`, `DriveDestinationPicker.tsx`, `App.css`)
+- **Penstabilan State Initialization & Isolation (`RemoteUploadModal.tsx`)**: Mengisolasi effect reset form menggunakan `prevIsOpenRef`. State `url`, `selectedDest`, `errorMsg`, dan `pickerOpen` kini hanya diinisialisasi sekali saat modal pertama kali dibuka, sehingga re-render periodik pada komponen induk (seperti polling progress transfer atau interval refresh) tidak lagi me-reset atau menutup modal target secara tiba-tiba.
+- **Isolasi Transisi Picker & Reset Guard (`DriveDestinationPicker.tsx`)**: Mencegah hilangnya pencarian (`query`), pilihan indeks (`selectedIdx`), dan sub-tampilan topik forum (`topicSubView`) yang sebelumnya ter-reset kembali ke daftar utama saat terjadi re-render pada state picker.
+- **Keyboard Event Capture & Isolation**: Menggunakan `{ capture: true }` dan `e.stopPropagation()` pada tombol Escape di `DriveDestinationPicker` sehingga saat menutup topik atau picker, modal induk di belakangnya (`RemoteUploadModal`) tetap terbuka dengan aman.
+- **Safe Backdrop & Layering Stacking (`App.css`, `RemoteUploadModal.tsx`)**: Memberikan z-index khusus `14100` pada overlay picker tujuan dan menambahkan guard pada klik backdrop luar agar tidak menutup modal induk saat picker aktif di atasnya.
+
 ## v3.5.22 Comprehensive Target Hierarchy & Topic Picker for Remote URL Upload
 
 ### Kelengkapan Hirarki Folder, Channel, & Topik Forum pada Modal Remote URL (`RemoteUploadModal.tsx`, `MediaStudioModalsContainer.tsx`, `MediaStudio/index.tsx`, `App.css`)

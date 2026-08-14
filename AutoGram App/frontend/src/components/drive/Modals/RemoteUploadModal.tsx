@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link2, X, Loader2, Home, Folder, Megaphone, Users, Bot, MessageSquare, Hash, ChevronRight } from 'lucide-react';
-import type { DriveDestChoice } from './DriveDestinationPicker';
+import type { DriveDestChoice, DriveDestPickerState } from './DriveDestinationPicker';
 import { DriveDestinationPicker } from './DriveDestinationPicker';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi/driveApiUtils';
 import { PeerAvatar } from '../Navigation/sidebarUtils';
@@ -65,17 +65,19 @@ export function RemoteUploadModal({
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Reset fields only when modal is opened
+  // Track opening transition so state is only initialized once upon opening
+  const prevIsOpenRef = useRef(false);
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !prevIsOpenRef.current) {
       setUrl('');
       setSelectedDest(currentDestination || { id: null, label: 'Saved Messages', kind: 'saved' });
       setErrorMsg('');
       setPickerOpen(false);
     }
+    prevIsOpenRef.current = isOpen;
   }, [isOpen, currentDestination]);
 
-  // Handle Escape key to close modal
+  // Handle Escape key to close modal (only if inner destination picker is not open)
   useEffect(() => {
     if (!isOpen || pickerOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -87,6 +89,21 @@ export function RemoteUploadModal({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, pickerOpen, onClose]);
+
+  // Stable destination picker state to prevent re-instantiation
+  const pickerState = useMemo<DriveDestPickerState | null>(() => {
+    if (!pickerOpen) return null;
+    return {
+      title: t('speedtest.remote_upload_select_target'),
+      detail: t('speedtest.remote_upload_select_target_desc'),
+      choices: destinations,
+      creds,
+      onConfirm: (choice) => {
+        setSelectedDest(choice);
+        setPickerOpen(false);
+      },
+    };
+  }, [pickerOpen, destinations, creds, t]);
 
   if (!isOpen) return null;
 
@@ -126,8 +143,15 @@ export function RemoteUploadModal({
     }
   };
 
+  const handleOverlayClick = () => {
+    // Only close if inner picker is not currently open
+    if (!pickerOpen) {
+      onClose();
+    }
+  };
+
   const node = (
-    <div className="td-confirm-overlay" role="presentation" onClick={onClose}>
+    <div className="td-confirm-overlay" role="presentation" onClick={handleOverlayClick}>
       <form
         onSubmit={handleSubmit}
         className="td-confirm-panel input-dialog td-dialog-kind-rename"
@@ -206,8 +230,8 @@ export function RemoteUploadModal({
                     />
                   )}
                 </span>
-                <div className="td-remote-dest-text">
-                  <span className="td-remote-dest-name" title={selectedDest.label}>
+                <div className="td-remote-dest-info">
+                  <span className="td-remote-dest-title" title={selectedDest.label}>
                     {selectedDest.label}
                   </span>
                   {selectedDest.topicId ? (
@@ -258,21 +282,10 @@ export function RemoteUploadModal({
         </footer>
       </form>
 
-      {pickerOpen && (
-        <DriveDestinationPicker
-          state={{
-            title: t('speedtest.remote_upload_select_target'),
-            detail: t('speedtest.remote_upload_select_target_desc'),
-            choices: destinations,
-            creds,
-            onConfirm: (choice) => {
-              setSelectedDest(choice);
-              setPickerOpen(false);
-            },
-          }}
-          onClose={() => setPickerOpen(false)}
-        />
-      )}
+      <DriveDestinationPicker
+        state={pickerState}
+        onClose={() => setPickerOpen(false)}
+      />
     </div>
   );
 
