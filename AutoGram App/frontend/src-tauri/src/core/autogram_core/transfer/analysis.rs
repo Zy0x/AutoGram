@@ -57,18 +57,30 @@ struct ProbeFormat {
 }
 
 fn ffprobe_path() -> Option<PathBuf> {
-    let ffmpeg = crate::core::grammers_media::find_ffmpeg_binary()?;
-    let candidate = ffmpeg
-        .parent()
-        .map(|parent| {
-            parent.join(if cfg!(windows) {
+    if let Some(ffmpeg) = crate::core::grammers_media::find_ffmpeg_binary() {
+        if let Some(parent) = ffmpeg.parent() {
+            let candidate = parent.join(if cfg!(windows) {
                 "ffprobe.exe"
             } else {
                 "ffprobe"
-            })
-        })
-        .unwrap_or_else(|| PathBuf::from("ffprobe"));
-    candidate.is_file().then_some(candidate)
+            });
+            if candidate.is_file() {
+                return Some(candidate);
+            }
+        }
+    }
+    let path_var = std::env::var_os("PATH")?;
+    for dir in std::env::split_paths(&path_var) {
+        let full = if cfg!(windows) {
+            dir.join("ffprobe.exe")
+        } else {
+            dir.join("ffprobe")
+        };
+        if full.is_file() {
+            return Some(full);
+        }
+    }
+    None
 }
 
 fn analyze_media_uncached(path: &Path) -> MediaAnalysis {

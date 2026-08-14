@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.36
+AutoGram Version: v3.5.37
 
 Current State:
+v3.5.37 Resilient Media Prep Engine & Multi-Engine TikTok Resolver — membenahi `media_prep.rs`, `analysis.rs`, `tiktokResolver.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki bug validasi `encoder_validation_unavailable` di backend Rust dengan mengizinkan hasil transcode/remux ffmpeg valid tetap diproses meski inspeksi ffprobe tidak tersedia di sistem. Memperluas deteksi biner `ffprobe` di lingkungan Windows, menambahkan mesin sekunder *multi-engine fallback* pada resolusi TikTok Clean No-Watermark (`vt.tiktok.com`), serta merapikan parsing nama berkas URL stream pada antrean Transfer Manager.
+
+Previous:
 v3.5.36 Rust Core Zero-Warning Audit & Clean Compilation — membenahi `src-tauri/src/lib.rs`, `src-tauri/src/main.rs`, `src/features/topic_media/mtproto/document_mapper.rs`, `src/core/grammers/stream.rs`, `VERSION.md`, dan `CHANGELOG.md`. Mengeliminasi seluruh 475 warning dead code & unused compiler lints pada crate `frontend` (lib), menyempurnakan penanganan pesan error timeout fallback pada streaming dokumen dan foto, serta memastikan verifikasi `cargo check --lib` dan frontend Vite build berjalan 100% mulus dengan 0 error dan zero warning noise.
 
 Previous:

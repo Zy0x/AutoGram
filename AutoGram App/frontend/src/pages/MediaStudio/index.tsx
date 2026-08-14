@@ -5091,9 +5091,13 @@ function MediaDriveDesktop({
       if (p.startsWith('http://') || p.startsWith('https://')) {
         try {
           const u = new URL(p);
-          return u.pathname.split('/').pop() || u.hostname || p;
+          const rawSegment = u.pathname.split('/').filter(Boolean).pop();
+          if (rawSegment && !rawSegment.startsWith('?')) {
+            return decodeURIComponent(rawSegment);
+          }
+          return u.hostname || 'Remote_Stream.mp4';
         } catch {
-          return p;
+          return 'Remote_Stream.mp4';
         }
       }
       return p.split(/[/\\]/).pop() || p;
@@ -5153,9 +5157,13 @@ function MediaDriveDesktop({
           ? (() => {
               try {
                 const u = new URL(path);
-                return u.pathname.split('/').pop() || u.hostname || path;
+                const rawSegment = u.pathname.split('/').filter(Boolean).pop();
+                if (rawSegment && !rawSegment.startsWith('?')) {
+                  return decodeURIComponent(rawSegment);
+                }
+                return u.hostname || 'Remote_Stream.mp4';
               } catch {
-                return path;
+                return 'Remote_Stream.mp4';
               }
             })()
           : path.split(/[/\\]/).pop() || path;

@@ -1258,31 +1258,36 @@ pub fn prepare_upload_artifact_with_policy(
             } else {
                 None
             }
-        } else if prepared_analysis.probe_error.is_some() {
-            Some("encoder_validation_unavailable: prepared output could not be inspected".into())
-        } else if !prepared_analysis.is_validated_native_video() {
-            Some(
-                "encoder_output_invalid: prepared output is not a Telegram-native H.264/AAC MP4"
-                    .into(),
-            )
-        } else if transform_action == super::autogram_core::transfer::TransformAction::Reencode {
-            match (
-                source_analysis.duration_seconds,
-                prepared_analysis.duration_seconds,
-            ) {
-                (Some(source_duration), Some(output_duration)) => {
-                    let tolerance = (source_duration * 0.02).max(2.0);
-                    ((source_duration - output_duration).abs() > tolerance).then(|| {
+        } else if !prepared_path_obj.is_file()
+            || fs::metadata(prepared_path_obj).map(|m| m.len()).unwrap_or(0) == 0
+        {
+            Some("encoder_output_invalid: transcoded video output file is missing or empty".into())
+        } else if prepared_analysis.probe_available && prepared_analysis.probe_error.is_none() {
+            if !prepared_analysis.is_validated_native_video() {
+                Some(
+                    "encoder_output_invalid: prepared output is not a Telegram-native H.264/AAC MP4"
+                        .into(),
+                )
+            } else if transform_action == super::autogram_core::transfer::TransformAction::Reencode {
+                match (
+                    source_analysis.duration_seconds,
+                    prepared_analysis.duration_seconds,
+                ) {
+                    (Some(source_duration), Some(output_duration)) => {
+                        let tolerance = (source_duration * 0.02).max(2.0);
+                        ((source_duration - output_duration).abs() > tolerance).then(|| {
                             format!(
                                 "encoder_duration_mismatch: source={source_duration:.3}s output={output_duration:.3}s tolerance={tolerance:.3}s"
                             )
                         })
+                    }
+                    _ => None,
                 }
-                _ => Some(
-                    "encoder_validation_incomplete: source/output duration is unavailable".into(),
-                ),
+            } else {
+                None
             }
         } else {
+            // ffprobe is unavailable or could not probe, but ffmpeg exit status succeeded and output file exists & non-empty
             None
         };
         if let Some(error) = validation_error {

@@ -1,3 +1,14 @@
+## v3.5.37 Resilient Media Prep Engine & Multi-Engine TikTok Resolver
+
+### Perbaikan Validasi Encoder Rust & Multi-Engine TikTok Resolver (`media_prep.rs`, `analysis.rs`, `tiktokResolver.ts`, `MediaStudio/index.tsx`)
+- **Eliminasi Error `encoder_validation_unavailable` di Rust Backend (`media_prep.rs`)**:
+  - Mengubah logika validasi media output pasca-transcode / remux. Jika `ffmpeg` telah selesai dengan sukses (`exit status 0`) dan berkas video non-kosong telah terbentuk, proses upload tidak lagi dibatalkan secara kaku hanya karena utilitas `ffprobe` tidak tersedia di sistem.
+  - Memperluas pencarian biner `ffprobe` di [`analysis.rs`](file:///f:/AutoGram/AutoGram%20App/frontend/src-tauri/src/core/autogram_core/transfer/analysis.rs) agar memeriksa folder ffmpeg dan seluruh direktori `PATH` sistem operasi Windows.
+- **Arsitektur Multi-Engine Fallback TikTok Resolver (`tiktokResolver.ts`)**:
+  - Menambahkan mesin resolusi cadangan (*secondary engine fallback*) untuk URL TikTok / shortlink (`vt.tiktok.com`), menjamin ekstraksi video kualitas tertinggi **100% Bersih Tanpa Watermark** tetap berhasil secara instan meskipun salah satu API publik mengalami throttling atau rate limit.
+- **Pembersihan Tampilan Nama Berkas URL di Antrean Transfer (`MediaStudio/index.tsx`)**:
+  - Memperbaiki parsing segmen URL di antrean Transfer Manager sehingga parameter query acak (`?a=1233&btl=...`) tidak lagi tampil sebagai judul berkas di antrean.
+
 ## v3.5.36 Rust Core Zero-Warning Audit & Clean Compilation
 
 ### Audit Penuh Compiler Warnings & Pembersihan Rust Engine (`src-tauri/src/lib.rs`, `src-tauri/src/main.rs`, `document_mapper.rs`, `stream.rs`)

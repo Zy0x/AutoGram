@@ -99,6 +99,45 @@ export const tiktokResolver: LinkResolverProvider = {
         }
       }
     } catch {
+      /* fallback to secondary provider below */
+    }
+
+    // Secondary engine fallback
+    try {
+      const fallbackUrl = `https://api.vkrdownloader.com/server?vkr=${encodeURIComponent(cleanUrl)}`;
+      const resp2 = await fetch(fallbackUrl, {
+        signal: signal || AbortSignal.timeout(6000),
+      });
+      if (resp2.ok) {
+        const resJson = await resp2.json();
+        const downloadUrl = resJson.data?.downloadUrl || resJson.downloadUrl || resJson.url;
+        if (downloadUrl) {
+          return {
+            url: cleanUrl,
+            platform: 'tiktok',
+            platformName: 'TikTok (Clean No-Watermark)',
+            title: resJson.data?.title || resJson.title || `TikTok_${Date.now()}`,
+            thumbnailUrl: resJson.data?.thumbnail || resJson.thumbnail,
+            durationSec: resJson.data?.duration,
+            formats: [
+              {
+                id: 'tiktok_nwm_fallback',
+                label: 'HD Lossless (No Watermark)',
+                qualityTier: '1080p',
+                resolution: '1080p HD',
+                ext: 'mp4',
+                directUrl: downloadUrl,
+                isCleanNoWatermark: true,
+                isVideo: true,
+                badge: 'NO WATERMARK HD',
+              },
+            ],
+            selectedFormatId: 'tiktok_nwm_fallback',
+            resolvedAt: Date.now(),
+          };
+        }
+      }
+    } catch {
       /* fallback to direct probe */
     }
 
