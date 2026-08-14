@@ -6435,6 +6435,7 @@ function MediaDriveDesktop({
   type MoveRunOpts = {
     deleteSource?: boolean;
     topicId?: number | null;
+    groupAsAlbum?: boolean;
   };
 
   const moveMessageIds = async (
@@ -6480,7 +6481,12 @@ function MediaDriveDesktop({
     let done = 0;
     const failed: string[] = [];
     let cancelled = false;
-    const BATCH_SIZE = 10;
+    const shouldGroup =
+      (opts?.groupAsAlbum !== undefined
+        ? opts.groupAsAlbum
+        : transferSettings.groupAsAlbum !== false) && messageIds.length > 1;
+    const groupSize = Math.max(2, Math.min(10, Number(transferSettings.albumGroupSize) || 10));
+    const BATCH_SIZE = shouldGroup ? groupSize : 1;
     try {
       for (let i = 0; i < messageIds.length; i += BATCH_SIZE) {
         if (moveAbortRef.current?.cancelled) {
@@ -6685,6 +6691,8 @@ function MediaDriveDesktop({
         isTopicLoading: topicLoading,
         topics: topicsList,
         initialTopicId: meta?.topicId ?? null,
+        initialGroupAsAlbum: transferSettings.groupAsAlbum !== false,
+        albumGroupSize: Math.max(2, Math.min(10, Number(transferSettings.albumGroupSize) || 10)),
         onConfirm: (choice: any) => {
           if (isTransferJobActive() || transfer.active || moveActiveRef.current) {
             setError(t('ui.generated.transfer_pindah_masih_berjalan_stop_dulu_di_tran_8fd2468'));
@@ -6694,10 +6702,15 @@ function MediaDriveDesktop({
           const moveChoice =
             choice && 'mode' in choice
               ? choice
-              : { mode: 'move' as const, topicId: meta?.topicId ?? null as number | null };
+              : {
+                  mode: 'move' as const,
+                  topicId: meta?.topicId ?? null as number | null,
+                  groupAsAlbum: transferSettings.groupAsAlbum !== false,
+                };
           void moveMessageIds(messageIds, fromFolderId, toFolderId, targetLabel, {
             deleteSource: moveChoice.mode !== 'copy',
             topicId: moveChoice.topicId ?? meta?.topicId ?? null,
+            groupAsAlbum: moveChoice.groupAsAlbum,
           });
         },
       });

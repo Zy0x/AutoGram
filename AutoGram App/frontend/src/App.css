@@ -15371,6 +15371,30 @@ body:has(.app-layout-drive-focus),
   margin: 0;
 }
 
+.td-confirm-group-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+.td-confirm-section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  font-weight: 650;
+  color: #cbd5e1;
+}
+.td-confirm-section-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #a78bfa;
+  background: color-mix(in srgb, #a78bfa 12%, transparent);
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, #a78bfa 25%, transparent);
+}
+
 .td-confirm-mode {
   display: grid;
   grid-template-columns: 1fr 1fr;

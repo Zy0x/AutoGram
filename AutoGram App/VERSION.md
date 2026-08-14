@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.28
+AutoGram Version: v3.5.29
 
 Current State:
+v3.5.29 Drive Settings Integrated Album Grouping & Move/Copy Confirm Engine — membenahi `DriveConfirmDialog.tsx`, `MediaStudio/index.tsx`, `App.css`, `src/locales/en/speedtest.json`, `src/locales/id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Mengintegrasikan seluruh orkestrasi pengelompokan album (*album grouping*) Copy/Move secara langsung ke preferensi sentral **Drive Settings** (`groupAsAlbum`, `albumGroupSize`). Menambahkan visual format pengiriman interaktif pada modal konfirmasi (`DriveConfirmDialog`) dengan badge status sinkronisasi Drive Settings, opsi toggle Album vs Satuan per transfer, serta kepatuhan 100% Zero Hardcoded Strings.
+
+Previous:
 v3.5.28 Smart Album Batching & Zero-Forward Clean Copy/Move Engine — membenahi `driveFilesApi.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengimplementasikan pengiriman batch media cerdas (*smart album grouping*) hingga 10 berkas per batch dengan `drop_author: true` (bersih tanpa tag *"Forwarded from"*). Menerapkan protokol keamanan 2 fase (*strict 2-phase verified delivery*): berkas asal hanya dihapus setelah pesan tujuan 100% terkonfirmasi sukses terkirim di server Telegram, serta mekanisme *graceful fallback* individual otomatis jika batch album mengalami penolakan tipe media.
 
 Previous:

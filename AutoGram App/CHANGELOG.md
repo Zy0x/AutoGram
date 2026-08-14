@@ -1,3 +1,13 @@
+## v3.5.29 Drive Settings Integrated Album Grouping & Move/Copy Confirm Engine
+
+### Integrasi Pengelompokan Album ke Drive Settings & Opsi Modal Konfirmasi (`DriveConfirmDialog.tsx`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json`)
+- **Integrasi Penuh ke Drive Settings (*Single Source of Truth*)**: Seluruh orkestrasi Copy/Move kini otomatis mematuhi pengaturan sentral dari **Drive Settings → Tab Album** (`transferSettings.groupAsAlbum` dan `transferSettings.albumGroupSize`).
+- **Opsi Visual Format Pengiriman di Modal Konfirmasi**: Pada modal konfirmasi pemindahan berkas banyak (`names.length > 1`), disajikan pemilih format interaktif:
+  - 🔘 **Gabung Album (Maks N)**: Kolase media rapi & 1 notifikasi ke chat/topik tujuan.
+  - 🔘 **Kirim Satuan (Terpisah)**: Pesan individual terpisah per berkas.
+  - Ditandai dengan badge resmi `Tersinkron Drive Settings` (*Synced with Drive Settings*).
+- **100% Zero Hardcoded Strings & Parity**: Seluruh key teks (`confirm_format_title`, `confirm_sync_drive_settings`, `confirm_group_album`, `confirm_group_album_hint`, `confirm_send_individual`, `confirm_send_individual_hint`) tersedia identik dalam bahasa Indonesia dan Inggris.
+
 ## v3.5.28 Smart Album Batching & Zero-Forward Clean Copy/Move Engine
 
 ### Pengelompokan Album Cerdas & Salin Bersih Tanpa Header Forward (`driveFilesApi.ts`, `MediaStudio/index.tsx`)

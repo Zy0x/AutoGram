@@ -13,6 +13,8 @@ import {
   Trash2,
   X,
   Copy,
+  LayoutGrid,
+  Layers,
 } from 'lucide-react';
 import type { DriveTopic } from '../../../lib/telegram/driveTypes';
 import { MediaSelect } from '../Navigation/MediaSelect';
@@ -22,6 +24,7 @@ export type DriveConfirmKind = 'delete' | 'download' | 'move';
 export type DriveMoveChoice = {
   mode: 'move' | 'copy';
   topicId: number | null;
+  groupAsAlbum?: boolean;
 };
 
 /**
@@ -47,6 +50,10 @@ export type DriveConfirmState = {
   isTopicLoading?: boolean;
   /** Optional pre-selected forum topic ID */
   initialTopicId?: number | null;
+  /** Initial group as album mode synced from Drive Settings */
+  initialGroupAsAlbum?: boolean;
+  /** Configured album group size from Drive Settings */
+  albumGroupSize?: number;
   /** delete: file (default) vs folder channel [TD] vs forum topic */
   entity?: 'file' | 'folder' | 'topic';
   /**
@@ -72,11 +79,13 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
   const open = !!state;
   const [moveMode, setMoveMode] = useState<'move' | 'copy'>('move');
   const [topicId, setTopicId] = useState<number | null>(state?.initialTopicId ?? null);
+  const [groupAsAlbum, setGroupAsAlbum] = useState<boolean>(state?.initialGroupAsAlbum ?? true);
 
   useEffect(() => {
     if (!open || !state) return;
     setMoveMode('move');
     setTopicId(state.initialTopicId ?? null);
+    setGroupAsAlbum(state.initialGroupAsAlbum ?? true);
     const t = window.setTimeout(() => confirmRef.current?.focus(), 50);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -188,7 +197,11 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
       if (isFolderReparent) {
         fn();
       } else if (isMove) {
-        fn({ mode: moveMode, topicId: topicId && topicId > 0 ? topicId : null });
+        fn({
+          mode: moveMode,
+          topicId: topicId && topicId > 0 ? topicId : null,
+          groupAsAlbum,
+        });
       } else if (isDelete && isFolder) {
         // Always cascade: hapus item + semua folder/file di dalamnya (tanpa opsi rumit)
         fn({ cascade: true, detachChildren: false });
@@ -279,6 +292,33 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
                 <span className="td-confirm-mode-hint">{t('speedtest.action_keep_source')}</span>
               </button>
             </div>
+
+            {n > 1 && (
+              <div className="td-confirm-group-section">
+                <div className="td-confirm-section-label">
+                  <span>{t('speedtest.confirm_format_title', { defaultValue: 'Format Pengiriman' })}</span>
+                  <span className="td-confirm-section-badge">{t('speedtest.confirm_sync_drive_settings', { defaultValue: 'Tersinkron Drive Settings' })}</span>
+                </div>
+                <div className="td-confirm-mode group-mode" role="group" aria-label={t('speedtest.confirm_format_title', { defaultValue: 'Format Pengiriman' })}>
+                  <button
+                    type="button"
+                    className={`td-confirm-mode-btn ${groupAsAlbum ? 'active' : ''}`}
+                    onClick={() => setGroupAsAlbum(true)}
+                  >
+                    <LayoutGrid size={14} /> {t('speedtest.confirm_group_album', { size: state.albumGroupSize || 10, defaultValue: `Gabung Album (Maks ${state.albumGroupSize || 10})` })}
+                    <span className="td-confirm-mode-hint">{t('speedtest.confirm_group_album_hint', { defaultValue: 'Kolase media rapi & 1 notifikasi' })}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`td-confirm-mode-btn ${!groupAsAlbum ? 'active' : ''}`}
+                    onClick={() => setGroupAsAlbum(false)}
+                  >
+                    <Layers size={14} /> {t('speedtest.confirm_send_individual', { defaultValue: 'Kirim Satuan (Terpisah)' })}
+                    <span className="td-confirm-mode-hint">{t('speedtest.confirm_send_individual_hint', { defaultValue: 'Pesan individual per berkas' })}</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {(state.isForum || state.isTopicLoading) && (
               <label className="td-confirm-topic">
