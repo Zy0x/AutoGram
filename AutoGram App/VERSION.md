@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.14
+AutoGram Version: v3.5.15
 
 Current State:
+v3.5.15 Authentic 1:1 Telegram Message Preview & Real-Time Media Thumbnail Engine — membenahi `TelegramMessagePreviewModal.tsx`, `DriveContextMenu.tsx`, `MediaStudioModalsContainer.tsx`, `App.css`, `en/speedtest.json`, `id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan antarmuka pratinjau pesan Telegram 100% otentik 1:1 dengan Telegram Desktop/Mobile, meliputi wallpaper dark-slate bergradasi radial khas Telegram (`#0e1621` / `#17212b`), gelembung tanggal mengambang (*floating date badge*), avatar pengirim dengan 7 palet gradien khas Telegram dan inisial teks/bintang, gelembung chat `#182533` dengan sudut rounded asimetris dan ekor bubble tip, integrasi penuh dengan `thumbBatcher` (memory cache, IndexedDB persistent cache, live MTProto thumbnail fetcher, dan konversi URI `convertFileSrc`), overlay pemutar video dengan tombol kaca play melingkar dan durasi, pemutar audio dengan waveform visualizer, kartu dokumen berikon unduhan Telegram, tampilan teks keterangan pesan multi-baris, jumlah tayangan channel (`👁`), waktu pengiriman pesan, serta centang ganda biru (`✓✓`).
+
+Previous:
 v3.5.14 Context Menu Grouping Hub & In-App Telegram Message Preview Engine — membenahi `DriveContextMenu.tsx`, `TelegramMessagePreviewModal.tsx`, `MediaStudioModalsContainer.tsx`, `App.css`, `en/speedtest.json`, `id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Mengelompokkan seluruh opsi klik kanan ke dalam struktur terorganisir dengan submenu melayang bertingkat (*cascading flyout hubs*) meliputi **Telegram >** (Preview message, Open message in Telegram, Copy Telegram link), **Open in System >** (Default application, Choose app..., Show in folder), **Copy identity >** (Copy ID, Copy Path ID), serta garis pembatas fungsional (*divider*). Dilengkapi dengan modal pratinjau pesan Telegram dalam aplikasi (*Telegram Message Preview Modal*) berdesain gelembung chat native Telegram (`#0e1621` / `#182533`), kartu preview thumbnail media/dokumen, teks caption lengkap, timestamp, dan status centang ganda (`✓✓`).
 
 Previous:

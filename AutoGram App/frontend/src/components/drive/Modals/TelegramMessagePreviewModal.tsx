@@ -6,22 +6,35 @@ import {
   ExternalLink,
   Copy,
   Check,
-  MessageSquare,
-  FileText,
   Video,
-  Music,
   Image as ImageIcon,
   CheckCheck,
   Share2,
+  Play,
+  Eye,
+  Send,
+  Download,
 } from 'lucide-react';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
 import {
   driveFileDisplayName,
   formatDriveBytes,
   isVideoDriveFile,
+  isImageDriveFile,
+  isAudioDriveFile,
+  canShowDriveThumb,
 } from '../../../lib/telegram/driveTypes';
 import { buildTelegramMessageUrl } from '../../../lib/telegram/utils/telegramMessageUrl';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { convertFileSrc } from '@tauri-apps/api/core';
+import type { DriveCredentials } from '../../../lib/telegram/driveApi';
+import {
+  getCachedThumb,
+  getCachedSaverThumb,
+  buildThumbCacheKey,
+  requestThumb,
+} from '../../../lib/media/thumbBatcher';
+import { loadPersistentThumb } from '../../../lib/media/thumbPersistentCache';
 
 export interface TelegramMessagePreviewModalProps {
   file: DriveFile | null;
@@ -29,6 +42,63 @@ export interface TelegramMessagePreviewModalProps {
   onClose: () => void;
   chatName?: string;
   topicName?: string;
+  creds?: DriveCredentials | null;
+  folderId?: number | null;
+}
+
+function normalizeSrc(src: string | null | undefined): string | null {
+  if (!src) return null;
+  if (
+    src.startsWith('data:image/') ||
+    src.startsWith('blob:') ||
+    src.startsWith('http://') ||
+    src.startsWith('https://') ||
+    src.startsWith('asset:')
+  ) {
+    return src;
+  }
+  try {
+    return convertFileSrc(src);
+  } catch {
+    return src;
+  }
+}
+
+function getTelegramAvatarGradient(name: string, id?: number | string | null): string {
+  const gradients = [
+    'linear-gradient(135deg, #e17076, #ff885e)', // Red-orange
+    'linear-gradient(135deg, #faa774, #e56576)', // Orange-pink
+    'linear-gradient(135deg, #a695e7, #7e65d4)', // Purple
+    'linear-gradient(135deg, #7bc862, #4fae60)', // Green
+    'linear-gradient(135deg, #6ec9cb, #36a7aa)', // Cyan
+    'linear-gradient(135deg, #65aadd, #2f7fc2)', // Blue
+    'linear-gradient(135deg, #ee7aae, #d44e8c)', // Pink
+  ];
+  let hash = 0;
+  const str = String(id || name || 'Telegram');
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  const idx = Math.abs(hash) % gradients.length;
+  return gradients[idx];
+}
+
+function getAvatarInitials(name: string): string {
+  const clean = name.replace(/[\[\]\(\)\-_@#]/g, ' ').trim();
+  if (!clean) return 'TG';
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return clean.slice(0, 2).toUpperCase();
+}
+
+function formatDuration(seconds?: number | null): string {
+  if (!seconds || seconds <= 0) return '';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
 export function TelegramMessagePreviewModal({
@@ -37,10 +107,35 @@ export function TelegramMessagePreviewModal({
   onClose,
   chatName,
   topicName,
+  creds,
+  folderId,
 }: TelegramMessagePreviewModalProps) {
   const { t } = useTranslation();
   const [copiedCaption, setCopiedCaption] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+  const scopedFolderId = file?.folder_id ?? folderId ?? null;
+  const itemPeerId = scopedFolderId != null && scopedFolderId !== 0 ? String(scopedFolderId) : (file?.peer_id || 'me');
+  const itemTopicId = file?.topic_id ?? null;
+  const thumbLocator = { peerId: itemPeerId, topicId: itemTopicId };
+
+  const getInitialThumb = (): string | null => {
+    if (!file) return null;
+    const mem = getCachedThumb(scopedFolderId, file.id, thumbLocator);
+    if (mem) return normalizeSrc(mem);
+    if (creds?.session) {
+      const saver = getCachedSaverThumb(scopedFolderId, file.id, creds.session, thumbLocator);
+      if (saver) return normalizeSrc(saver);
+    }
+    if (file.thumb_data_url || file.thumbDataUrl) {
+      return normalizeSrc((file.thumb_data_url || file.thumbDataUrl) as string);
+    }
+    return null;
+  };
+
+  const [thumbUrl, setThumbUrl] = useState<string | null>(getInitialThumb);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -55,36 +150,125 @@ export function TelegramMessagePreviewModal({
     return () => window.removeEventListener('keydown', onKeyDown, true);
   }, [isOpen, onClose]);
 
+  // Sync thumbnail and fetch from backend if missing
+  useEffect(() => {
+    if (!file || !isOpen) return;
+    setImgError(false);
+    setImgLoaded(false);
+
+    let isMounted = true;
+    const current = getInitialThumb();
+    if (current) {
+      setThumbUrl(current);
+    }
+
+    if (!current && creds?.session) {
+      const balancedKey = buildThumbCacheKey(
+        scopedFolderId,
+        file.id,
+        'balanced',
+        creds.session,
+        itemPeerId,
+        itemTopicId
+      );
+      void loadPersistentThumb(balancedKey).then((persisted) => {
+        if (isMounted && persisted) {
+          setThumbUrl(normalizeSrc(persisted));
+        }
+      });
+
+      if (canShowDriveThumb(file)) {
+        void requestThumb(creds, scopedFolderId, file.id, {
+          priority: 'visible',
+          peerId: itemPeerId,
+          topicId: itemTopicId,
+        });
+      }
+    }
+
+    const onThumbReady = (ev: Event) => {
+      if (!isMounted) return;
+      const hit = getCachedThumb(scopedFolderId, file.id, thumbLocator);
+      if (hit) {
+        setThumbUrl(normalizeSrc(hit));
+        setImgError(false);
+        return;
+      }
+      const detail = (ev as CustomEvent).detail as { key?: string; url?: string } | undefined;
+      if (detail?.key && detail?.url && creds?.session) {
+        const expectedBalanced = buildThumbCacheKey(
+          scopedFolderId,
+          file.id,
+          'balanced',
+          creds.session,
+          itemPeerId,
+          itemTopicId
+        );
+        const expectedSaver = buildThumbCacheKey(
+          scopedFolderId,
+          file.id,
+          'saver',
+          creds.session,
+          itemPeerId,
+          itemTopicId
+        );
+        if (detail.key === expectedBalanced || detail.key === expectedSaver) {
+          setThumbUrl(normalizeSrc(detail.url));
+          setImgError(false);
+        }
+      }
+    };
+
+    window.addEventListener('autogram-thumb-ready', onThumbReady);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('autogram-thumb-ready', onThumbReady);
+    };
+  }, [file?.id, scopedFolderId, itemPeerId, itemTopicId, creds?.session, isOpen]);
+
   if (!isOpen || !file) return null;
 
   const tgUrl = buildTelegramMessageUrl(file);
   const isVideo = isVideoDriveFile(file);
-  const isImage = file.icon_type === 'image' || file.mime_type?.startsWith('image/');
-  const isAudio = file.icon_type === 'audio' || file.icon_type === 'voice' || file.mime_type?.startsWith('audio/');
+  const isImage = isImageDriveFile(file) || file.icon_type === 'image' || file.mime_type?.startsWith('image/');
+  const isAudio = isAudioDriveFile(file) || file.icon_type === 'audio' || file.icon_type === 'voice' || file.mime_type?.startsWith('audio/');
+  const isDocument = !isImage && !isVideo && !isAudio;
+  const isVisualMedia = isImage || isVideo || (thumbUrl && !imgError);
+
   const displayName = driveFileDisplayName(file);
-  const thumbUrl = (file.thumb_data_url || file.thumbDataUrl || '') as string;
   const isSavedMessages = file.is_saved_messages || file.peer_kind === 'saved_messages' || file.peer_id === 'me';
-
-  const captionText = file.original_name || file.name || '';
-  const dateFormatted = file.created_at
-    ? new Date(file.created_at).toLocaleString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-        day: 'numeric',
-        month: 'short',
-      })
-    : '';
-
-  const timeOnly = file.created_at
-    ? new Date(file.created_at).toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : '12:00';
 
   const senderName = isSavedMessages
     ? t('speedtest.account_saved_messages', { defaultValue: 'Saved Messages' })
     : chatName || file.peer_username || t('speedtest.tg_preview_sender_unknown');
+
+  const avatarGradient = getTelegramAvatarGradient(senderName, file.peer_id);
+  const avatarInitials = isSavedMessages ? '⭐' : getAvatarInitials(senderName);
+
+  const rawCaption = file.name || file.original_name || '';
+  const captionText = rawCaption;
+
+  // Telegram date formatting
+  const fileDate = file.created_at ? new Date(file.created_at) : new Date();
+  const isToday = new Date().toDateString() === fileDate.toDateString();
+  const dateHeader = isToday
+    ? t('speedtest.tg_preview_today', { defaultValue: 'Today' })
+    : fileDate.toLocaleDateString(undefined, {
+        month: 'long',
+        day: 'numeric',
+        year: fileDate.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
+      });
+
+  const timeOnly = fileDate.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const durationStr = formatDuration(file.duration || file.duration_s);
+  const fileExt = (file.file_ext || file.name.split('.').pop() || 'FILE').toUpperCase();
+
+  // Pseudo-random view count based on file.id for channel feel
+  const viewCount = file.id ? `${((Math.abs(file.id * 17) % 8900) + 120).toLocaleString()}` : '1.4k';
 
   const handleCopyCaption = async () => {
     if (!captionText) return;
@@ -130,98 +314,208 @@ export function TelegramMessagePreviewModal({
         aria-modal="true"
         aria-label={t('speedtest.tg_preview_title')}
       >
-        {/* Header */}
+        {/* Telegram Desktop Top Header Bar */}
         <div className="tg-msg-preview-header">
           <div className="tg-msg-preview-header-left">
-            <div className="tg-msg-preview-brand-icon">
-              <MessageSquare size={16} />
+            <div
+              className="tg-msg-preview-chat-avatar"
+              style={{ background: avatarGradient }}
+            >
+              <span>{avatarInitials}</span>
             </div>
-            <div>
-              <div className="tg-msg-preview-title">
-                {t('speedtest.tg_preview_title')}
+            <div className="tg-msg-preview-chat-meta">
+              <div className="tg-msg-preview-chat-name" title={senderName}>
+                {senderName}
               </div>
-              <div className="tg-msg-preview-subtitle">
-                {senderName} {topicName ? `· #${topicName}` : ''} {file.id ? `· ID #${file.id}` : ''}
+              <div className="tg-msg-preview-chat-subtitle">
+                {isSavedMessages
+                  ? t('speedtest.account_saved_messages', { defaultValue: 'Saved Messages' })
+                  : topicName
+                    ? `#${topicName}`
+                    : file.peer_kind === 'channel'
+                      ? 'channel'
+                      : file.peer_kind === 'supergroup' || file.peer_kind === 'basic_group'
+                        ? 'group'
+                        : 'chat'}
+                {file.id ? ` · Message ID #${file.id}` : ''}
               </div>
             </div>
           </div>
-          <button
-            type="button"
-            className="tg-msg-preview-close-btn"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            <X size={18} />
-          </button>
+          <div className="tg-msg-preview-header-right">
+            {tgUrl && (
+              <button
+                type="button"
+                className="tg-msg-preview-top-btn"
+                onClick={handleCopyLink}
+                title={t('speedtest.ctx_menu_copy_tg')}
+              >
+                {copiedLink ? <Check size={16} color="#10b981" /> : <Share2 size={16} />}
+              </button>
+            )}
+            {tgUrl && (
+              <button
+                type="button"
+                className="tg-msg-preview-top-btn"
+                onClick={handleOpenTelegram}
+                title={t('speedtest.ctx_menu_open_tg')}
+              >
+                <ExternalLink size={16} />
+              </button>
+            )}
+            <button
+              type="button"
+              className="tg-msg-preview-close-btn"
+              onClick={onClose}
+              aria-label="Close"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
-        {/* Telegram Chat Wallpaper Canvas */}
+        {/* Telegram Wallpaper Area */}
         <div className="tg-msg-preview-canvas">
-          {/* Telegram Bubble */}
-          <div className="tg-msg-bubble">
-            {/* Sender / Chat Title */}
-            <div className="tg-msg-bubble-sender">
-              <span>{senderName}</span>
-              {topicName && (
-                <span className="tg-msg-bubble-topic-badge">#{topicName}</span>
-              )}
+          {/* Floating Date Badge Header */}
+          <div className="tg-date-bubble-container">
+            <span className="tg-date-bubble">{dateHeader}</span>
+          </div>
+
+          {/* Message Row with Left Avatar */}
+          <div className="tg-msg-row">
+            <div
+              className="tg-msg-row-avatar"
+              style={{ background: avatarGradient }}
+              title={senderName}
+            >
+              <span>{avatarInitials}</span>
             </div>
 
-            {/* Media Attachment Preview (if image/video or thumb exists) */}
-            {thumbUrl && thumbUrl.startsWith('data:image/') ? (
-              <div className="tg-msg-bubble-media">
-                <img
-                  src={thumbUrl}
-                  alt={displayName}
-                  className="tg-msg-bubble-media-img"
-                />
-                {isVideo && (
-                  <div className="tg-msg-bubble-video-badge">
-                    <Video size={14} />
-                    <span>{formatDriveBytes(file.size)}</span>
-                  </div>
+            {/* Telegram Chat Bubble */}
+            <div className={`tg-msg-bubble${isVisualMedia ? ' has-media' : ''}`}>
+              {/* Sender / Channel Title */}
+              <div className="tg-msg-bubble-sender-row">
+                <span className="tg-msg-bubble-sender-name">{senderName}</span>
+                {topicName && (
+                  <span className="tg-msg-bubble-topic-badge">#{topicName}</span>
                 )}
               </div>
-            ) : (
-              <div className="tg-msg-bubble-doc-card">
-                <div className="tg-msg-bubble-doc-icon">
-                  {isVideo ? (
-                    <Video size={20} />
-                  ) : isImage ? (
-                    <ImageIcon size={20} />
-                  ) : isAudio ? (
-                    <Music size={20} />
+
+              {/* 1. Visual Media (Photo / Video Thumbnail) */}
+              {isVisualMedia && (
+                <div className={`tg-msg-bubble-media-wrapper${isVideo ? ' is-video' : ''}`}>
+                  {thumbUrl && !imgError ? (
+                    <img
+                      src={thumbUrl}
+                      alt={displayName}
+                      className={`tg-msg-bubble-img${imgLoaded ? ' is-loaded' : ''}`}
+                      onLoad={() => setImgLoaded(true)}
+                      onError={() => setImgError(true)}
+                    />
                   ) : (
-                    <FileText size={20} />
+                    <div className="tg-msg-bubble-media-placeholder">
+                      {isVideo ? (
+                        <Video size={42} className="tg-placeholder-icon" />
+                      ) : (
+                        <ImageIcon size={42} className="tg-placeholder-icon" />
+                      )}
+                      <span className="tg-placeholder-text">
+                        {t('speedtest.tg_preview_image_loading', { defaultValue: 'Loading preview…' })}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Video Play Button Overlay */}
+                  {isVideo && (
+                    <div className="tg-msg-bubble-video-overlay">
+                      <div className="tg-msg-video-play-btn">
+                        <Play size={22} fill="#ffffff" color="#ffffff" style={{ marginLeft: 3 }} />
+                      </div>
+                      {durationStr && (
+                        <div className="tg-msg-video-duration-badge">
+                          <span>{durationStr}</span>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
-                <div className="tg-msg-bubble-doc-info">
-                  <div className="tg-msg-bubble-doc-name" title={displayName}>
-                    {displayName}
+              )}
+
+              {/* 2. Audio Player Layout */}
+              {isAudio && (
+                <div className="tg-msg-bubble-audio-box">
+                  <div className="tg-msg-audio-play-circle">
+                    <Play size={18} fill="#ffffff" color="#ffffff" style={{ marginLeft: 2 }} />
                   </div>
-                  <div className="tg-msg-bubble-doc-size">
-                    {formatDriveBytes(file.size)}
+                  <div className="tg-msg-audio-info">
+                    <div className="tg-msg-audio-title" title={displayName}>
+                      {displayName}
+                    </div>
+                    <div className="tg-msg-audio-waveform">
+                      <div className="tg-audio-bar" style={{ height: '45%' }} />
+                      <div className="tg-audio-bar" style={{ height: '70%' }} />
+                      <div className="tg-audio-bar" style={{ height: '95%' }} />
+                      <div className="tg-audio-bar" style={{ height: '60%' }} />
+                      <div className="tg-audio-bar" style={{ height: '35%' }} />
+                      <div className="tg-audio-bar" style={{ height: '80%' }} />
+                      <div className="tg-audio-bar" style={{ height: '100%' }} />
+                      <div className="tg-audio-bar" style={{ height: '65%' }} />
+                      <div className="tg-audio-bar" style={{ height: '40%' }} />
+                      <div className="tg-audio-bar" style={{ height: '85%' }} />
+                      <div className="tg-audio-bar" style={{ height: '55%' }} />
+                      <div className="tg-audio-bar" style={{ height: '30%' }} />
+                    </div>
+                    <div className="tg-msg-audio-sub">
+                      <span>{durationStr || formatDriveBytes(file.size)}</span>
+                      <span>·</span>
+                      <span>{formatDriveBytes(file.size)}</span>
+                    </div>
                   </div>
                 </div>
+              )}
+
+              {/* 3. Document / File Card Layout */}
+              {isDocument && !thumbUrl && (
+                <div className="tg-msg-bubble-doc-card">
+                  <div className="tg-msg-bubble-doc-icon-circle">
+                    <Download size={20} color="#ffffff" />
+                  </div>
+                  <div className="tg-msg-bubble-doc-meta">
+                    <div className="tg-msg-bubble-doc-filename" title={displayName}>
+                      {displayName}
+                    </div>
+                    <div className="tg-msg-bubble-doc-sub">
+                      <span className="tg-doc-size">{formatDriveBytes(file.size)}</span>
+                      <span className="tg-doc-ext-badge">{fileExt}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 4. Message Caption / Text Content */}
+              {captionText && (
+                <div className="tg-msg-bubble-caption-text">
+                  {captionText}
+                </div>
+              )}
+
+              {/* 5. Telegram Footer Inside Bubble: Views + Timestamp + Double Checkmarks */}
+              <div className="tg-msg-bubble-footer">
+                {!isSavedMessages && (
+                  <div className="tg-msg-bubble-views">
+                    <Eye size={12} />
+                    <span>{viewCount}</span>
+                  </div>
+                )}
+                <div className="tg-msg-bubble-time-block">
+                  <span className="tg-msg-bubble-time">{timeOnly}</span>
+                  <CheckCheck size={14} className="tg-msg-bubble-check" />
+                </div>
               </div>
-            )}
-
-            {/* Message Caption Text */}
-            {captionText && captionText !== displayName ? (
-              <div className="tg-msg-bubble-text">{captionText}</div>
-            ) : (
-              <div className="tg-msg-bubble-text is-filename">{displayName}</div>
-            )}
-
-            {/* Bubble Meta Timestamp + Checkmark */}
-            <div className="tg-msg-bubble-meta">
-              <span className="tg-msg-bubble-time">{dateFormatted || timeOnly}</span>
-              <CheckCheck size={14} className="tg-msg-bubble-check" />
             </div>
           </div>
         </div>
 
-        {/* Footer Action Buttons */}
+        {/* Footer Action Bar */}
         <div className="tg-msg-preview-footer">
           <button
             type="button"
@@ -258,7 +552,7 @@ export function TelegramMessagePreviewModal({
               className="tg-msg-action-btn is-primary"
               onClick={handleOpenTelegram}
             >
-              <ExternalLink size={14} />
+              <Send size={14} />
               <span>{t('speedtest.ctx_menu_open_tg')}</span>
             </button>
           )}

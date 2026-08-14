@@ -30,6 +30,7 @@ import { isDesktop } from '../../../lib/tauri/platform';
 import { buildTelegramMessageUrl } from '../../../lib/telegram/utils/telegramMessageUrl';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { TelegramMessagePreviewModal } from './TelegramMessagePreviewModal';
+import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 
 export type DriveLocationKind = 'saved' | 'drive' | 'chat';
 
@@ -52,6 +53,8 @@ type Props = {
   onPreviewMessage?: (file: DriveFile) => void;
   chatName?: string;
   topicName?: string;
+  creds?: DriveCredentials | null;
+  folderId?: number | null;
   onDownload?: () => void;
   onRename?: () => void;
   onDelete?: () => void;
@@ -212,6 +215,8 @@ export function DriveContextMenu({
   onPreviewMessage,
   chatName,
   topicName,
+  creds,
+  folderId,
   onDownload,
   onRename,
   onDelete,
@@ -712,6 +717,8 @@ export function DriveContextMenu({
         onClose={() => setPreviewMsgFile(null)}
         chatName={chatName || (isLocation ? target.name : undefined)}
         topicName={topicName}
+        creds={creds}
+        folderId={folderId}
       />
     </>
   );

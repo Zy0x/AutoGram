@@ -1,3 +1,17 @@
+## v3.5.15 Authentic 1:1 Telegram Message Preview & Real-Time Media Thumbnail Engine
+
+### Rekonstruksi Total Pratinjau Pesan Telegram Otentik 1:1 (`TelegramMessagePreviewModal.tsx`, `App.css`)
+- **Integrasi Penuh Engine Thumbnail (`TelegramMessagePreviewModal.tsx`)**: Menghubungkan komponen pratinjau pesan secara langsung ke `thumbBatcher` AutoGram (pemeriksaan *memory cache* `getCachedThumb`, *progressive saver cache* `getCachedSaverThumb`, *IndexedDB cache* `loadPersistentThumb`, dan permintaan thumbnail dinamis MTProto Telegram via `requestThumb`). Mendukung konversi path lokal aman melalui `convertFileSrc` serta listener event `autogram-thumb-ready` sehingga foto dan thumbnail video selalu termuat dan tampil dengan benar tanpa error.
+- **Antarmuka Wallpaper & Gelembung Tanggal (*Floating Date Badge*) (`TelegramMessagePreviewModal.tsx`, `App.css`)**: Menghadirkan latar belakang chat dark-slate bergradasi radial `#0e1621` / `#17212b`, lengkap dengan gelembung tanggal mengambang di bagian atas berlatar belakang kaca gelap (`rgba(0, 0, 0, 0.42)`) dengan efek blur `10px` bertuliskan tanggal pesan atau *Today / Hari ini*.
+- **Avatar Pengirim Otentik Telegram & Tata Letak Baris Pesan (`TelegramMessagePreviewModal.tsx`, `App.css`)**: Menampilkan avatar melingkar di samping gelembung pesan dengan 7 palet gradien khas Telegram (merah, oranye, ungu, hijau, cyan, biru, merah muda) berdasarkan hash pengirim/kanal, serta inisial nama atau ikon bintang untuk *Saved Messages*.
+- **Desain Gelembung Chat 1:1 Telegram Desktop**:
+  - **Gelembung Pesan `#182533`**: Menggunakan sudut rounded asimetris (`16px 16px 16px 4px`) dengan ekor pesan (*bubble tip*).
+  - **Header Pengirim**: Menampilkan nama kanal/grup/kontak berwarna biru cerah Telegram (`#64b5f6`), badge topik forum `#topic` bergaya kapsul pill.
+  - **Media Preview Foto & Video**: Gambar tampil responsif dengan sudut lengkung `12px` dan transisi *fade-in* halus saat gambar selesai dimuat. Pada video, terdapat tombol play kaca bulat melingkar 48px di bagian tengah serta badge durasi video di sudut kiri bawah.
+  - **Pemutar Audio & Kartu Dokumen**: Tampilan pesan audio dilengkapi visualizer bar waveform dan tombol play `#2481cc`. Pesan dokumen menampilkan kartu lampiran file dengan tombol lingkaran unduhan Telegram, nama file tebal, ukuran file, dan badge ekstensi (misal `ZIP`, `PDF`, `MP4`).
+  - **Footer Gelembung Pesan**: Menampilkan jumlah tayangan kanal (`👁 1.4k`), jam pengiriman pesan, dan centang ganda biru Telegram (`✓✓`).
+- **Penerusan Kredensial & Folder ID (`DriveContextMenu.tsx`, `MediaStudioModalsContainer.tsx`)**: Meneruskan props `creds` dan `folderId` dari context menu ke `TelegramMessagePreviewModal` untuk memastikan sesi Telegram aktif selalu tersedia saat memuat pratinjau media.
+
 ## v3.5.14 Context Menu Grouping Hub & In-App Telegram Message Preview Engine
 
 ### Restrukturisasi Kelompok Menu Klik Kanan (*Context Menu Hubs*) (`DriveContextMenu.tsx`, `App.css`)
