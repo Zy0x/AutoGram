@@ -15225,6 +15225,104 @@ body:has(.app-layout-drive-focus),
   color: #38bdf8;
   border-color: color-mix(in srgb, #0284c7 32%, transparent);
 }
+.td-dest-badge.user {
+  background: color-mix(in srgb, #64748b 16%, transparent);
+  color: #cbd5e1;
+  border-color: color-mix(in srgb, #64748b 32%, transparent);
+}
+/* Remote URL Target Destination Selector Card */
+.td-remote-dest-wrap {
+  margin-top: 6px;
+  width: 100%;
+}
+.td-remote-dest-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--td-surface-2, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--td-border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  color: var(--td-text, #fff);
+  cursor: pointer;
+  text-align: left;
+  transition: all 120ms ease;
+  min-height: 48px;
+  box-sizing: border-box;
+}
+.td-remote-dest-card:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--td-accent, #38bdf8) 8%, var(--td-surface-2, rgba(255, 255, 255, 0.05)));
+  border-color: var(--td-accent, #38bdf8);
+}
+.td-remote-dest-card:focus-visible {
+  outline: 2px solid var(--td-accent, #38bdf8);
+  outline-offset: 2px;
+}
+.td-remote-dest-card:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.td-remote-dest-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+.td-remote-dest-main .td-dest-ico {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+.td-remote-dest-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.td-remote-dest-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--td-text, #fff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.td-remote-dest-topic {
+  font-size: 0.72rem;
+  color: var(--td-accent-light, #38bdf8);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 1px;
+}
+.td-remote-dest-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: 10px;
+}
+.td-remote-dest-change-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: var(--td-accent-light, #38bdf8);
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--td-accent, #38bdf8) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--td-accent, #38bdf8) 25%, transparent);
+  transition: background 120ms ease;
+}
+.td-remote-dest-card:hover .td-remote-dest-change-tag {
+  background: color-mix(in srgb, var(--td-accent, #38bdf8) 22%, transparent);
+}
 .td-dest-badge.forum {
   background: color-mix(in srgb, #8b5cf6 20%, transparent);
   color: #c4b5fd;

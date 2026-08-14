@@ -1,24 +1,67 @@
 import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Link2, X, Loader2 } from 'lucide-react';
-
-export interface DriveFolderOption {
-  id: number;
-  name: string;
-}
+import { Link2, X, Loader2, Home, Folder, Megaphone, Users, Bot, MessageSquare, Hash, ChevronRight } from 'lucide-react';
+import type { DriveDestChoice } from './DriveDestinationPicker';
+import { DriveDestinationPicker } from './DriveDestinationPicker';
+import type { DriveCredentials } from '../../../lib/telegram/driveApi/driveApiUtils';
+import { PeerAvatar } from '../Navigation/sidebarUtils';
 
 interface RemoteUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  folders: DriveFolderOption[];
-  onUpload: (url: string, folderId: number | null) => Promise<void>;
+  destinations: DriveDestChoice[];
+  currentDestination?: DriveDestChoice;
+  creds?: DriveCredentials | null;
+  onUpload: (url: string, destination: DriveDestChoice) => Promise<void>;
 }
 
-export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: RemoteUploadModalProps) {
+function kindIcon(c: DriveDestChoice) {
+  if (c.kind === 'saved') return <Home size={16} />;
+  if (c.kind === 'drive') return <Folder size={16} />;
+  if (c.isForum) return <Hash size={16} />;
+  if (c.type === 'group' || c.type === 'supergroup') return <Users size={16} />;
+  if (c.type === 'channel') return <Megaphone size={16} />;
+  if (c.type === 'bot') return <Bot size={16} />;
+  return <MessageSquare size={16} />;
+}
+
+function renderBadge(c: DriveDestChoice, t: any) {
+  if (c.kind === 'saved') {
+    return <span className="td-dest-badge saved">{t('speedtest.dest_badge_saved')}</span>;
+  }
+  if (c.isForum) {
+    return <span className="td-dest-badge forum">{t('speedtest.dest_badge_forum')}</span>;
+  }
+  if (c.kind === 'drive') {
+    return <span className="td-dest-badge td">{t('speedtest.dest_badge_drive')}</span>;
+  }
+  if (c.type === 'group' || c.type === 'supergroup') {
+    return <span className="td-dest-badge group">{t('speedtest.dest_badge_group')}</span>;
+  }
+  if (c.type === 'channel') {
+    return <span className="td-dest-badge channel">{t('speedtest.dest_badge_channel')}</span>;
+  }
+  if (c.type === 'bot') {
+    return <span className="td-dest-badge bot">{t('speedtest.dest_badge_bot')}</span>;
+  }
+  return <span className="td-dest-badge user">{t('speedtest.dest_badge_user')}</span>;
+}
+
+export function RemoteUploadModal({
+  isOpen,
+  onClose,
+  destinations,
+  currentDestination,
+  creds,
+  onUpload,
+}: RemoteUploadModalProps) {
   const { t } = useTranslation();
   const [url, setUrl] = useState('');
-  const [folderId, setFolderId] = useState<number | null>(null);
+  const [selectedDest, setSelectedDest] = useState<DriveDestChoice>(
+    currentDestination || { id: null, label: 'Saved Messages', kind: 'saved' }
+  );
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -26,14 +69,15 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
   useEffect(() => {
     if (isOpen) {
       setUrl('');
-      setFolderId(null);
+      setSelectedDest(currentDestination || { id: null, label: 'Saved Messages', kind: 'saved' });
       setErrorMsg('');
+      setPickerOpen(false);
     }
-  }, [isOpen]);
+  }, [isOpen, currentDestination]);
 
   // Handle Escape key to close modal
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || pickerOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -42,7 +86,7 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose]);
+  }, [isOpen, pickerOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -73,7 +117,7 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
         throw new Error(data.error || 'URL tidak valid atau tidak merujuk ke file media langsung.');
       }
 
-      await onUpload(targetUrl, folderId);
+      await onUpload(targetUrl, selectedDest);
       onClose();
     } catch (err: any) {
       setErrorMsg(err?.message || t('ui.generated.gagal_melakukan_remote_upload_9dd65cb'));
@@ -136,24 +180,53 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
             autoFocus
           />
 
-          <label className="td-input-label" htmlFor="td-remote-folder" style={{ marginTop: '6px' }}>
+          <label className="td-input-label" htmlFor="td-remote-target" style={{ marginTop: '10px' }}>
             {t("speedtest.destination_folder_label")}
           </label>
-          <select
-            id="td-remote-folder"
-            className="td-input-field"
-            value={folderId === null ? '' : folderId}
-            onChange={(e) => setFolderId(e.target.value === '' ? null : Number(e.target.value))}
-            disabled={submitting}
-            style={{ cursor: 'pointer', appearance: 'auto' }}
-          >
-            <option value="">{t("speedtest.saved_messages")}</option>
-            {folders.map((folder) => (
-              <option key={folder.id} value={folder.id}>
-                {folder.name}
-              </option>
-            ))}
-          </select>
+
+          <div className="td-remote-dest-wrap">
+            <button
+              id="td-remote-target"
+              type="button"
+              className="td-remote-dest-card"
+              onClick={() => setPickerOpen(true)}
+              disabled={submitting}
+              title={t('speedtest.btn_change_dest')}
+            >
+              <div className="td-remote-dest-main">
+                <span className="td-dest-ico" aria-hidden>
+                  {selectedDest.kind === 'saved' ? (
+                    <Home size={16} />
+                  ) : (
+                    <PeerAvatar
+                      peerId={selectedDest.id ?? 0}
+                      creds={creds}
+                      title={selectedDest.label}
+                      fallback={kindIcon(selectedDest)}
+                    />
+                  )}
+                </span>
+                <div className="td-remote-dest-text">
+                  <span className="td-remote-dest-name" title={selectedDest.label}>
+                    {selectedDest.label}
+                  </span>
+                  {selectedDest.topicId ? (
+                    <span className="td-remote-dest-topic">
+                      <Hash size={11} style={{ display: 'inline', verticalAlign: '-1px' }} />
+                      {` ${t('speedtest.topic_label', { defaultValue: 'Topik' })} #${selectedDest.topicId}`}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+              <div className="td-remote-dest-actions">
+                {renderBadge(selectedDest, t)}
+                <span className="td-remote-dest-change-tag">
+                  {t('speedtest.btn_change_dest')}
+                  <ChevronRight size={13} style={{ marginLeft: 3 }} />
+                </span>
+              </div>
+            </button>
+          </div>
         </div>
 
         <footer className="td-confirm-foot">
@@ -184,6 +257,22 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
           </button>
         </footer>
       </form>
+
+      {pickerOpen && (
+        <DriveDestinationPicker
+          state={{
+            title: t('speedtest.remote_upload_select_target'),
+            detail: t('speedtest.remote_upload_select_target_desc'),
+            choices: destinations,
+            creds,
+            onConfirm: (choice) => {
+              setSelectedDest(choice);
+              setPickerOpen(false);
+            },
+          }}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
     </div>
   );
 

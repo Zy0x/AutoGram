@@ -4,7 +4,7 @@ import { DrivePreviewModal } from '../../components/drive/DrivePreviewModal';
 import { DriveContextMenu } from '../../components/drive/Modals/DriveContextMenu';
 import { DriveConfirmDialog } from '../../components/drive/Modals/DriveConfirmDialog';
 import { DriveInputDialog } from '../../components/drive/Modals/DriveInputDialog';
-import { DriveDestinationPicker } from '../../components/drive/Modals/DriveDestinationPicker';
+import { DriveDestinationPicker, type DriveDestChoice } from '../../components/drive/Modals/DriveDestinationPicker';
 import { RemoteUploadModal } from '../../components/drive/Modals/RemoteUploadModal';
 import { SessionRelogModal } from '../../components/drive/Modals/SessionRelogModal';
 import type { DriveCredentials } from '../../lib/telegram/driveApi';
@@ -19,44 +19,44 @@ export interface MediaStudioModalsContainerProps {
   sessionName?: string;
   onNavigateToAccounts?: () => void;
   previewFile: DriveFile | null;
-  setPreviewFile: (f: DriveFile | null) => void;
-  duplicateContext?: DuplicateContextInfo | null;
+  setPreviewFile: (file: DriveFile | null) => void;
+  duplicateContext: DuplicateContextInfo | null;
   peerId: number | null;
   creds: DriveCredentials | null;
   folders: DriveFolder[];
   chats: DriveChat[];
   refreshFiles: () => Promise<void>;
   refreshLocations: () => Promise<void>;
-  openTransferManager: () => void;
-  runUploadPaths: (paths: string[], opts?: any) => Promise<void>;
+  openTransferManager: (tab?: 'downloads' | 'uploads') => void;
+  runUploadPaths: (paths: string[], opts?: { targetFolderId?: number | null; targetLabel?: string; topicId?: number | null; skipTopic?: boolean }) => Promise<void>;
   handleEnqueueSingleDownload: (opts: { messageId: number; folderId: number | null; savePath: string; name: string }) => Promise<void>;
   previewIndex: number;
   sortedPreviewList: DriveFile[];
   
   contextMenu: any;
   setContextMenu: (menu: any) => void;
-  downloadOne: (f: DriveFile) => void;
-  openOneInSystem: (f: DriveFile) => void;
-  openOneWithApp: (f: DriveFile) => void;
-  revealOne: (f: DriveFile) => void;
-  handleRename: (f: DriveFile) => void;
+  downloadOne: (file: DriveFile) => void;
+  openOneInSystem: (file: DriveFile) => void;
+  openOneWithApp: (file: DriveFile) => void;
+  revealOne: (file: DriveFile) => void;
+  handleRename: (file: DriveFile) => void;
   handleDeleteIds: (ids: number[]) => void;
-  handleMove: (f: DriveFile) => void;
+  handleMove: (file: DriveFile) => void;
   handleUpload: () => void;
   locationKind: 'saved' | 'drive' | 'chat';
-  activePeerId: string | number | null;
-  handleCreateFolder: (opts?: any) => void;
+  activePeerId: number | null;
+  handleCreateFolder: (opts?: { parentId?: number | null }) => void;
   handleCreateSubfolder: () => void;
   setLocationKind: (kind: 'saved' | 'drive' | 'chat') => void;
-  setActivePeerId: (id: any) => void;
-  setTopicFilter: (tf: any) => void;
-  topicFilterRef: React.MutableRefObject<any>;
-  handleDeleteFolder: (id: number, name: string) => void;
-  handleRenameFolder: (id: number, name: string) => void;
-  handleReparentFolder: (id: number, name: string) => void;
-  labelDriveItem: (f: DriveFolder | undefined) => string;
+  setActivePeerId: (id: number | null) => void;
+  setTopicFilter: (topicId: number | null) => void;
+  topicFilterRef: React.MutableRefObject<number | null>;
+  handleDeleteFolder: (folderId: number, folderName: string) => void;
+  handleRenameFolder: (folderId: number, folderName: string) => void;
+  handleReparentFolder: (folderId: number, folderName: string) => void;
+  labelDriveItem: (folder?: DriveFolder) => string;
   breadcrumbSegs: any[];
-  setStatusText: (txt: string) => void;
+  setStatusText: (text: string) => void;
   handleSelectAllDisplayed: () => void;
   clearSelection: () => void;
   selectedIds: number[];
@@ -75,7 +75,7 @@ export interface MediaStudioModalsContainerProps {
 
   remoteUploadOpen: boolean;
   setRemoteUploadOpen: (open: boolean) => void;
-  handleRemoteUpload: (url: string, targetFolderId: number | null) => Promise<void>;
+  handleRemoteUpload: (url: string, destination: DriveDestChoice) => Promise<void>;
 }
 
 export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProps> = ({
@@ -212,7 +212,7 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
           }
           onClose={() => setContextMenu(null)}
           chatName={folders.find((f) => f.id === peerId)?.name || chats.find((c) => c.id === peerId)?.name || (locationKind === 'saved' ? 'Saved Messages' : undefined)}
-          topicName={topicFilterRef?.current?.title || topicFilterRef?.current?.name}
+          topicName={topicFilterRef?.current != null ? `Topik #${topicFilterRef.current}` : undefined}
           creds={creds}
           folderId={peerId}
           onPreview={
@@ -401,14 +401,67 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
       />
       <DriveInputDialog state={inputDlg} onClose={() => setInputDlg(null)} />
       <DriveDestinationPicker state={destPicker} onClose={() => setDestPicker(null)} />
-      <RemoteUploadModal
-        isOpen={remoteUploadOpen}
-        onClose={() => setRemoteUploadOpen(false)}
-        folders={chats
-          .filter((c) => c.is_drive_folder || c.title_raw?.includes('[TD]') || c.name?.includes('[TD]'))
-          .map((c) => ({ id: c.id, name: c.title_raw || c.name }))}
-        onUpload={handleRemoteUpload}
-      />
+      {(() => {
+        const driveEntries: DriveDestChoice[] = folders.map((f) => {
+          const match = chats.find((c) => c.id === f.id);
+          return {
+            id: f.id as number | null,
+            label: f.name,
+            isForum: !!match?.is_forum,
+            kind: 'drive' as const,
+            type: match?.type || 'drive',
+          };
+        });
+        const driveIds = new Set(driveEntries.map((e) => e.id));
+        const allDestinations: DriveDestChoice[] = [
+          { id: null, label: 'Saved Messages', isForum: false, kind: 'saved' },
+          ...driveEntries,
+          ...chats
+            .filter((c) => !driveIds.has(c.id))
+            .slice(0, 150)
+            .map((c) => ({
+              id: c.id as number | null,
+              label: c.name,
+              isForum: !!c.is_forum,
+              kind: 'chat' as const,
+              type: c.type,
+            })),
+        ];
+
+        let currentDestChoice: DriveDestChoice = { id: null, label: 'Saved Messages', kind: 'saved' };
+        if (locationKind === 'drive' && activePeerId != null) {
+          const f = folders.find((x) => x.id === activePeerId);
+          const match = chats.find((c) => c.id === activePeerId);
+          currentDestChoice = {
+            id: activePeerId,
+            label: f?.name || 'Drive',
+            kind: 'drive',
+            isForum: !!match?.is_forum,
+            topicId: topicFilterRef?.current ?? null,
+          };
+        } else if (locationKind === 'chat' && activePeerId != null) {
+          const c = chats.find((x) => x.id === activePeerId);
+          currentDestChoice = {
+            id: activePeerId,
+            label: c?.name || 'Chat',
+            kind: 'chat',
+            type: c?.type,
+            isForum: !!c?.is_forum,
+            topicId: topicFilterRef?.current ?? null,
+          };
+        }
+
+        return (
+          <RemoteUploadModal
+            isOpen={remoteUploadOpen}
+            onClose={() => setRemoteUploadOpen(false)}
+            destinations={allDestinations}
+            currentDestination={currentDestChoice}
+            creds={creds}
+            onUpload={handleRemoteUpload}
+          />
+        );
+      })()}
       <SessionRelogModal
         open={!!relogModalOpen}
         sessionName={sessionName || creds?.session || 'Lavender'}

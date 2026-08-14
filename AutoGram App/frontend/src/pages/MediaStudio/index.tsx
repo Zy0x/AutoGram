@@ -5267,16 +5267,13 @@ function MediaDriveDesktop({
     void processNextQueueTask();
   };
 
-  const handleRemoteUpload = async (url: string, targetFolderId: number | null) => {
+  const handleRemoteUpload = async (url: string, dest: DriveDestChoice) => {
     // Route through the Transfer Manager queue (same pipeline as local file uploads)
     // so the upload appears in the Transfer Manager with live progress.
-    const destLabel =
-      targetFolderId != null
-        ? (breadcrumb || 'Drive')
-        : 'Saved Messages';
     await runUploadPaths([url], {
-      targetFolderId,
-      targetLabel: destLabel,
+      targetFolderId: dest.id,
+      targetLabel: dest.label,
+      topicId: dest.topicId ?? null,
     });
   };
 

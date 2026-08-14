@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.21
+AutoGram Version: v3.5.22
 
 Current State:
+v3.5.22 Comprehensive Target Hierarchy & Topic Picker for Remote URL Upload — membenahi `RemoteUploadModal.tsx`, `MediaStudioModalsContainer.tsx`, `MediaStudio/index.tsx`, `App.css`, `src/locales/en/speedtest.json`, `src/locales/id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Membawa kelengkapan pemilihan target tujuan unggah remote URL setara 100% dengan modal Move/Copy/Send file. Pengguna kini dapat memilih Saved Messages, seluruh Folder & Subfolder Drive, Channel, Group/Supergroup, serta Topik Forum secara langsung dengan selector interaktif, pencarian cepat, lencana kategori, avatar tujuan, dan auto-deteksi lokasi folder aktif pengguna saat ini.
+
+Previous:
 v3.5.21 Instant 0ms Hover Feedback & Snappy Submenu Switch Engine — membenahi `DriveContextMenu.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Menghilangkan kelambatan perpindahan hover (*hover transition lag*) dengan menghapus restriksi blocking CSS dan menyederhanakan aturan hover murni 0ms (`.drive-context-menu button:hover`, `.drive-context-submenu:hover > button`, `.drive-context-submenu-flyout button:hover`). Menyetel delay penutupan submenu (*switch intent delay*) menjadi ultra-responsif 80ms sehingga perpindahan kursor antar item terasa instan, tajam, dan tidak terasa lambat sedikit pun.
 
 Previous:

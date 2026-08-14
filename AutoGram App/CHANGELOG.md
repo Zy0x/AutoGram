@@ -1,3 +1,12 @@
+## v3.5.22 Comprehensive Target Hierarchy & Topic Picker for Remote URL Upload
+
+### Kelengkapan Hirarki Folder, Channel, & Topik Forum pada Modal Remote URL (`RemoteUploadModal.tsx`, `MediaStudioModalsContainer.tsx`, `MediaStudio/index.tsx`, `App.css`)
+- **100% Target Destination Parity (`RemoteUploadModal.tsx`, `MediaStudioModalsContainer.tsx`)**: Menghilangkan batasan pemilihan tujuan unggah remote URL yang sebelumnya hanya menampilkan `[TD]` drives dalam dropdown select sederhana. Kini modal unggah remote mendukung 100% pohon hirarki tujuan yang identik dengan modal Move/Copy/Send file, meliputi Saved Messages, seluruh Drive Root & Subfolder Telegram Drive, Channel Publik/Privat, Group/Supergroup, serta Bot.
+- **Dukungan Penuh Pemilihan Topik Forum (`RemoteUploadModal.tsx`, `DriveDestinationPicker.tsx`)**: Memungkinkan pengguna memilih sub-topik spesifik saat mengunggah file remote ke Forum atau Supergroup bertopik Telegram.
+- **Smart Active Location Pre-Selection**: Secara cerdas memilih tujuan awal berdasarkan folder atau channel yang sedang aktif dibuka pengguna di Media Studio, memudahkan pengguna mengunggah langsung ke tampilan aktif tanpa memilih ulang.
+- **Interactive Destination Card & Category Badges (`App.css`, `RemoteUploadModal.tsx`)**: Mengganti elemen HTML select lama dengan kartu interaktif modern yang dilengkapi avatar peer, ikon jenis tujuan, nama topik, badge kategori (`Saved`, `Drive`, `Channel`, `Forum`, `Group`), dan tombol ganti tujuan instan.
+- **Zero Hardcoded Strings & 100% Key Parity (`en/speedtest.json`, `id/speedtest.json`)**: Seluruh teks antarmuka diekstrak ke file i18n dengan keselarasan penuh bahasa Indonesia dan Inggris.
+
 ## v3.5.21 Instant 0ms Hover Feedback & Snappy Submenu Switch Engine
 
 ### Respon Hover Instan Tanpa Lag & Penyetelan Intent Switch 80ms (`DriveContextMenu.tsx`, `App.css`)
