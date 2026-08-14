@@ -5040,7 +5040,14 @@ function MediaDriveDesktop({
 
   const runUploadPaths = async (
     paths: string[],
-    opts?: { targetFolderId?: number | null; targetLabel?: string; topicId?: number | null; skipTopic?: boolean }
+    opts?: {
+      targetFolderId?: number | null;
+      targetLabel?: string;
+      topicId?: number | null;
+      skipTopic?: boolean;
+      presentationOverride?: 'document' | 'original' | 'standard' | 'compressed';
+      customFilename?: string;
+    }
   ) => {
     if (!creds || !paths.length) return;
     
@@ -5078,6 +5085,9 @@ function MediaDriveDesktop({
       'Drive';
     const label = `→ ${destLabel}`;
     let names = cleanPaths.map((p) => {
+      if (opts?.customFilename && cleanPaths.length === 1) {
+        return opts.customFilename;
+      }
       if (p.startsWith('http://') || p.startsWith('https://')) {
         try {
           const u = new URL(p);
@@ -5115,7 +5125,7 @@ function MediaDriveDesktop({
         apiHash: creds.apiHash,
         paths: cleanPaths,
         qualityMode: transferSettings.qualityMode,
-        presentationOverride: transferSettings.presentationOverride,
+        presentationOverride: opts?.presentationOverride ?? transferSettings.presentationOverride,
         groupAsAlbum: transferSettings.groupAsAlbum,
         albumGroupSize: transferSettings.albumGroupSize,
         albumAvoidSingle: transferSettings.albumAvoidSingle,
@@ -5135,16 +5145,21 @@ function MediaDriveDesktop({
       const skippedPaths = new Set(decision.skippedPaths);
       cleanPaths = cleanPaths.filter((path) => !skippedPaths.has(path));
       duplicateForceUploadPaths = decision.forceUploadPaths.filter((path) => !skippedPaths.has(path));
-      names = cleanPaths.map((path) => path.startsWith('http://') || path.startsWith('https://')
-        ? (() => {
-            try {
-              const url = new URL(path);
-              return url.pathname.split('/').pop() || url.hostname || path;
-            } catch {
-              return path;
-            }
-          })()
-        : path.split(/[/\\]/).pop() || path);
+      names = cleanPaths.map((path) => {
+        if (opts?.customFilename && cleanPaths.length === 1) {
+          return opts.customFilename;
+        }
+        return path.startsWith('http://') || path.startsWith('https://')
+          ? (() => {
+              try {
+                const u = new URL(path);
+                return u.pathname.split('/').pop() || u.hostname || path;
+              } catch {
+                return path;
+              }
+            })()
+          : path.split(/[/\\]/).pop() || path;
+      });
       if (!cleanPaths.length) {
         setStatusText(String(t('speedtest.preflight_all_duplicates_skipped')));
         return;
@@ -5269,13 +5284,20 @@ function MediaDriveDesktop({
     void processNextQueueTask();
   };
 
-  const handleRemoteUpload = async (url: string, dest: DriveDestChoice) => {
+  const handleRemoteUpload = async (
+    urls: string | string[],
+    dest: DriveDestChoice,
+    opts?: { customFilename?: string; asDocument?: boolean }
+  ) => {
+    const list = Array.isArray(urls) ? urls : [urls];
     // Route through the Transfer Manager queue (same pipeline as local file uploads)
     // so the upload appears in the Transfer Manager with live progress.
-    await runUploadPaths([url], {
+    await runUploadPaths(list, {
       targetFolderId: dest.id,
       targetLabel: dest.label,
       topicId: dest.topicId ?? null,
+      presentationOverride: opts?.asDocument ? 'document' : undefined,
+      customFilename: opts?.customFilename,
     });
   };
 

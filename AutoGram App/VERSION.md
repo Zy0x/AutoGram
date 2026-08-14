@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.31
+AutoGram Version: v3.5.32
 
 Current State:
+v3.5.32 Remote URL Upload Revamp & Live Inspector Engine — membenahi `RemoteUploadModal.tsx`, `MediaStudioModalsContainer.tsx`, `MediaStudio/index.tsx`, `App.css`, `src/locales/en/speedtest.json`, `src/locales/id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Merombak modal Remote Upload dengan antarmuka tab ganda modern (*Single File* vs *Batch URLs*), mesin *Live URL Inspector* cerdas yang mendeteksi nama berkas, ukuran, dan tipe media secara instan, tombol cepat *Paste from Clipboard*, opsi kustomisasi nama berkas (*Custom Filename*), pemilih mode pengiriman (*Auto-Detect Media* vs *As Document*), serta eliminasi glitch duplikasi label topik pada kartu destinasi tujuan.
+
+Previous:
 v3.5.31 Precision Topic Destination & Non-Destructive Clipboard Persistence — membenahi `MediaStudio/index.tsx`, `DriveConfirmDialog.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki penentuan topik tujuan saat melakukan tempel media (*Paste Here* / `Ctrl+V`) di dalam grup/forum dengan topik aktif, sehingga dialog konfirmasi otomatis memilih topik tujuan yang sedang dibuka (`topicFilter`) bukan kembali ke General. Memperbaiki siklus hidup clipboard: membatalkan dialog konfirmasi (Cancel / Esc / X modal) kini mempertahankan seleksi papan klip secara aman (*non-destructive*), dan clipboard hanya dibatalkan jika pengguna secara eksplisit menekan tombol **"X"** pada bilah aksi mengambang (*floating bar*) atau saat aksi pemindahan berkas telah terkonfirmasi dieksekusi.
 
 Previous:

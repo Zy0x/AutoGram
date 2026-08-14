@@ -24119,6 +24119,455 @@ button.td-confirm-icon.is-back-btn:active {
   background: color-mix(in srgb, #f59e0b 6%, var(--td-card-bg, #1e293b)) !important;
 }
 
+/* ==========================================================================
+   Remote URL Upload Modal Revamp
+   ========================================================================== */
+.td-remote-upload-panel {
+  max-width: 520px !important;
+  width: 95vw !important;
+}
+
+.td-remote-head-icon {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(99, 102, 241, 0.25)) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+}
+
+.td-remote-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  margin: 12px 18px 0;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.td-remote-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.td-remote-tab:hover:not(:disabled) {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.td-remote-tab.active {
+  color: #ffffff;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(99, 102, 241, 0.22));
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.td-remote-tab-badge {
+  font-size: 0.7rem;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: #38bdf8;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.td-remote-body {
+  padding: 14px 18px 18px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.td-remote-error-box {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  font-size: 0.82rem;
+  margin-bottom: 2px;
+}
+
+.td-remote-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.td-remote-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.td-remote-paste-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: #38bdf8;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.td-remote-paste-action:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #7dd3fc;
+}
+
+.td-remote-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.td-remote-input-icon {
+  position: absolute;
+  left: 12px;
+  color: #64748b;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.td-remote-url-input {
+  padding-left: 36px !important;
+  padding-right: 34px !important;
+}
+
+.td-remote-clear-btn {
+  position: absolute;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.td-remote-clear-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+/* Inspector Card */
+.td-remote-inspector-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 200ms ease;
+}
+
+.td-remote-inspector-card.kind-video {
+  border-color: rgba(168, 85, 247, 0.35);
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(15, 23, 42, 0.7));
+}
+.td-remote-inspector-card.kind-image {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(15, 23, 42, 0.7));
+}
+.td-remote-inspector-card.kind-audio {
+  border-color: rgba(234, 179, 8, 0.35);
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.1), rgba(15, 23, 42, 0.7));
+}
+.td-remote-inspector-card.kind-zip {
+  border-color: rgba(249, 115, 22, 0.35);
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(15, 23, 42, 0.7));
+}
+.td-remote-inspector-card.kind-doc {
+  border-color: rgba(56, 189, 248, 0.35);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(15, 23, 42, 0.7));
+}
+
+.td-remote-inspector-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.08);
+  color: #38bdf8;
+}
+.kind-video .td-remote-inspector-icon { color: #c084fc; background: rgba(168, 85, 247, 0.2); }
+.kind-image .td-remote-inspector-icon { color: #4ade80; background: rgba(34, 197, 94, 0.2); }
+.kind-audio .td-remote-inspector-icon { color: #facc15; background: rgba(234, 179, 8, 0.2); }
+.kind-zip .td-remote-inspector-icon { color: #fb923c; background: rgba(249, 115, 22, 0.2); }
+.kind-doc .td-remote-inspector-icon { color: #38bdf8; background: rgba(56, 189, 248, 0.2); }
+
+.td-remote-inspector-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.td-remote-inspector-name {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.td-remote-inspector-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.td-remote-meta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.td-remote-meta-badge.size {
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+}
+
+.td-remote-meta-badge.stream {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+}
+
+.td-remote-meta-badge.status.valid {
+  background: rgba(34, 197, 94, 0.15);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.td-remote-meta-badge.status.direct_stream {
+  background: rgba(56, 189, 248, 0.15);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.td-remote-meta-badge.status.inspecting {
+  background: rgba(234, 179, 8, 0.15);
+  color: #fde047;
+}
+
+/* Delivery Mode Selector */
+.td-remote-mode-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.td-remote-mode-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 8px 10px;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 140ms ease;
+  color: #94a3b8;
+}
+
+.td-remote-mode-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #e2e8f0;
+}
+
+.td-remote-mode-btn.active {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.12);
+}
+
+.td-remote-mode-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.td-remote-mode-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: inherit;
+}
+
+.td-remote-mode-desc {
+  font-size: 0.69rem;
+  color: #64748b;
+  margin-top: 1px;
+  line-height: 1.25;
+}
+
+.td-remote-mode-btn.active .td-remote-mode-desc {
+  color: #7dd3fc;
+  opacity: 0.85;
+}
+
+/* Batch Textarea */
+.td-remote-batch-textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-size: 0.8rem !important;
+  line-height: 1.45 !important;
+  resize: vertical;
+  min-height: 105px;
+}
+
+.td-remote-batch-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.td-remote-batch-hint {
+  font-size: 0.73rem;
+  color: #94a3b8;
+}
+
+/* Remote URL Target Destination Selector Card */
+.td-remote-dest-wrap {
+  margin-top: 6px;
+  width: 100%;
+}
+.td-remote-dest-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--td-surface-2, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--td-border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  color: var(--td-text, #fff);
+  cursor: pointer;
+  text-align: left;
+  transition: all 120ms ease;
+  min-height: 48px;
+  box-sizing: border-box;
+}
+.td-remote-dest-card:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--td-accent, #38bdf8) 8%, var(--td-surface-2, rgba(255, 255, 255, 0.05)));
+  border-color: var(--td-accent, #38bdf8);
+}
+.td-remote-dest-card:focus-visible {
+  outline: 2px solid var(--td-accent, #38bdf8);
+  outline-offset: 2px;
+}
+.td-remote-dest-card:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.td-remote-dest-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+.td-remote-dest-main .td-dest-ico {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+.td-remote-dest-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.td-remote-dest-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--td-text, #fff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.td-remote-dest-topic {
+  font-size: 0.72rem;
+  color: var(--td-accent-light, #38bdf8);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 1px;
+}
+.td-remote-dest-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: 10px;
+}
+.td-remote-dest-change-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: var(--td-accent-light, #38bdf8);
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--td-accent, #38bdf8) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--td-accent, #38bdf8) 25%, transparent);
+  transition: background 120ms ease;
+}
+.td-remote-dest-card:hover .td-remote-dest-change-tag {
+  background: color-mix(in srgb, var(--td-accent, #38bdf8) 22%, transparent);
+}
+
+.td-remote-submit-btn {
+  background: linear-gradient(135deg, #0284c7, #4f46e5) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35) !important;
+}
+
+.td-remote-submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0369a1, #4338ca) !important;
+  box-shadow: 0 4px 18px rgba(2, 132, 199, 0.5) !important;
+}
+
 .td-file-card.is-clipboard-copy .td-file-card-inner {
   border: 1.5px solid #a78bfa !important;
   box-shadow: 0 0 0 2px color-mix(in srgb, #a78bfa 45%, transparent), 0 6px 20px color-mix(in srgb, #a78bfa 25%, transparent) !important;

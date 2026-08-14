@@ -1,3 +1,20 @@
+## v3.5.32 Remote URL Upload Revamp & Live Inspector Engine
+
+### Rombak Antarmuka Modal Remote URL & Fitur Cerdas (`RemoteUploadModal.tsx`, `MediaStudioModalsContainer.tsx`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json`)
+- **Navigasi Mode Tab Ganda (*Single File* vs *Batch URLs*)**:
+  - 🔗 **Mode Satu Berkas (*Single File*)**: Input URL dengan fitur pemeriksa metadata langsung, tombol kustomisasi nama berkas, dan toggle format pengiriman.
+  - 📚 **Mode Banyak URL (*Batch URLs*)**: Area multiline untuk memasukkan daftar banyak URL publik sekaligus (1 URL per baris) dengan counter validasi instan.
+- **Mesin Pemeriksa Metadata Langsung (*Live URL Inspector*)**:
+  - Menampilkan kartu inspeksi berkas animasi saat URL dimasukkan: **Nama Berkas yang Terdeteksi**, **Ukuran Berkas Terformat (MB/GB)**, **Ikon & Badge Tipe Media** (Video, Gambar, Audio, Zip, Dokumen), serta status koneksi live (*Direct URL Verified / Direct Stream*).
+  - Mengadopsi mekanisme *fault-tolerant* mandiri sehingga tidak lagi bergantung kaku pada port 8550 lokal.
+- **Aksi Cepat Papan Klip (*Paste from Clipboard*)**: Tombol 📋 *Paste* di samping label input untuk menempelkan tautan dari papan klip sistem dengan 1 klik.
+- **Kustomisasi Nama Berkas (*Custom Filename Override*)**: Field opsional untuk mengubah nama berkas tujuan sebelum diunggah ke Telegram.
+- **Pemilih Format Pengiriman (*Delivery Format Mode*)**:
+  - 🎬 **Deteksi Otomatis (*Auto-Detect Media*)**: Media interaktif yang dapat langsung diputar di Telegram.
+  - 📁 **Sebagai Dokumen (*As Document*)**: Berkas murni tanpa kompresi (*uncompressed file*).
+- **Pembersihan Glitch Label Topik Target**: Menghilangkan duplikasi tanda `#` pada kartu destinasi chat/folder dan menyajikan avatar + badge tipe lokasi yang proporsional.
+- **100% Zero Hardcoded Strings & Parity**: Seluruh key baru (`remote_tab_single`, `remote_tab_batch`, `remote_paste_clipboard`, `remote_custom_name_label`, `remote_custom_name_placeholder`, `remote_batch_placeholder`, `remote_batch_count`, `remote_inspecting`, `remote_inspect_valid`, `remote_inspect_direct_stream`, `remote_delivery_mode_label`, `remote_mode_auto`, `remote_mode_doc`, dll.) tersedia lengkap dalam bahasa Indonesia dan Inggris.
+
 ## v3.5.31 Precision Topic Destination & Non-Destructive Clipboard Persistence
 
 ### Presisi Topik Tujuan Paste & Persistensi Clipboard Non-Destruktif (`MediaStudio/index.tsx`, `DriveConfirmDialog.tsx`)

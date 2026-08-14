@@ -75,7 +75,11 @@ export interface MediaStudioModalsContainerProps {
 
   remoteUploadOpen: boolean;
   setRemoteUploadOpen: (open: boolean) => void;
-  handleRemoteUpload: (url: string, destination: DriveDestChoice) => Promise<void>;
+  handleRemoteUpload: (
+    urls: string | string[],
+    destination: DriveDestChoice,
+    opts?: { customFilename?: string; asDocument?: boolean }
+  ) => Promise<void>;
 }
 
 export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProps> = ({
