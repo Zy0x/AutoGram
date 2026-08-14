@@ -1,12 +1,12 @@
 import { useTranslation } from 'react-i18next';
 /**
- * Destination picker for Media Studio (move / send).
+ * Destination picker for Media Studio (move / send / upload).
  * Replaces native window.prompt with numbered list.
  * Portaled to document.body — avoids vertical-strip layout when nested in .td-page.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Bot, Folder, FolderInput, Hash, Home, Megaphone, MessageSquare, Search, Users, X } from 'lucide-react';
+import { ArrowLeft, Bot, Folder, FolderInput, Hash, Home, Megaphone, MessageSquare, Search, Users, X } from 'lucide-react';
 
 import type { DriveCredentials } from '../../../lib/telegram/driveApi/driveApiUtils';
 import type { DriveTopic } from '../../../lib/telegram/driveTypes';
@@ -39,7 +39,7 @@ function kindIcon(c: DriveDestChoice) {
   if (c.kind === 'saved') return <Home size={15} />;
   if (c.kind === 'drive') return <Folder size={15} />;
   if (c.isForum) return <Hash size={15} />;
-  if (c.type === 'group') return <Users size={15} />;
+  if (c.type === 'group' || c.type === 'supergroup') return <Users size={15} />;
   if (c.type === 'channel') return <Megaphone size={15} />;
   if (c.type === 'bot') return <Bot size={15} />;
   return <MessageSquare size={15} />;
@@ -48,14 +48,14 @@ function kindIcon(c: DriveDestChoice) {
 export function DriveDestinationPicker({ state, onClose }: Props) {
   const { t } = useTranslation();
   const searchRef = useRef<HTMLInputElement>(null);
+  const topicSearchRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
+  const [topicQuery, setTopicQuery] = useState('');
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [topicSubView, setTopicSubView] = useState<{ choice: DriveDestChoice; topics: DriveTopic[] } | null>(null);
 
   // Keep refs for unstable values/callbacks to prevent useEffect re-runs on every parent render.
-  // onClose = () => setDestPicker(null) is a new function on every parent render.
-  // topicSubView must also be read via ref inside the ESC handler to avoid stale closure.
   const topicSubViewRef = useRef(topicSubView);
   topicSubViewRef.current = topicSubView;
   const onCloseRef = useRef(onClose);
@@ -68,6 +68,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
     if (isPickerOpen && !prevOpenRef.current) {
       // Reset internal state only when the picker transitions from closed to open
       setQuery('');
+      setTopicQuery('');
       setSelectedIdx(0);
       setLoadingId(null);
       setTopicSubView(null);
@@ -76,6 +77,14 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
     }
     prevOpenRef.current = isPickerOpen;
   }, [isPickerOpen]);
+
+  useEffect(() => {
+    if (topicSubView) {
+      setTopicQuery('');
+      const timeoutId = window.setTimeout(() => topicSearchRef.current?.focus(), 40);
+      return () => window.clearTimeout(timeoutId);
+    }
+  }, [topicSubView]);
 
   useEffect(() => {
     if (!isPickerOpen) return;
@@ -100,6 +109,13 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
     if (!q) return state.choices;
     return state.choices.filter((c) => c.label.toLowerCase().includes(q));
   }, [state, query]);
+
+  const filteredTopics = useMemo(() => {
+    if (!topicSubView) return [];
+    const q = topicQuery.trim().toLowerCase();
+    if (!q) return topicSubView.topics;
+    return topicSubView.topics.filter((top) => (top.title || `Topik ${top.id}`).toLowerCase().includes(q));
+  }, [topicSubView, topicQuery]);
 
   useEffect(() => {
     setSelectedIdx(0);
@@ -132,7 +148,6 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
       const res = await driveListTopics(state.creds, c.id);
       const topicsList = (res?.topics || []) as DriveTopic[];
       // Smart detection: only show topic sub-view when destination truly has topics.
-      // If API says no forum & no topics → skip sub-view, go directly to confirm.
       const isForum = !!(res?.is_forum || topicsList.length > 0);
       if (isForum) {
         setTopicSubView({ choice: { ...c, isForum: true }, topics: topicsList });
@@ -166,7 +181,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
     if (c.kind === 'drive') {
       return <span className="td-dest-badge td">{t('speedtest.dest_badge_drive')}</span>;
     }
-    if (c.type === 'group') {
+    if (c.type === 'group' || c.type === 'supergroup') {
       return <span className="td-dest-badge group">{t('speedtest.dest_badge_group')}</span>;
     }
     if (c.type === 'channel') {
@@ -190,9 +205,21 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <header className="td-confirm-head">
-          <span className="td-confirm-icon move" aria-hidden>
-            <FolderInput size={20} />
-          </span>
+          {topicSubView ? (
+            <button
+              type="button"
+              className="td-confirm-icon move is-back-btn"
+              onClick={() => setTopicSubView(null)}
+              title={t('speedtest.back_to_chats')}
+              aria-label={t('speedtest.back_to_chats')}
+            >
+              <ArrowLeft size={18} strokeWidth={2.2} />
+            </button>
+          ) : (
+            <span className="td-confirm-icon move" aria-hidden>
+              <FolderInput size={20} />
+            </span>
+          )}
           <div className="td-confirm-head-text">
             <h2 id="td-dest-title">
               {topicSubView
@@ -200,14 +227,17 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
                 : state.title}
             </h2>
             {topicSubView ? (
-              <button
-                type="button"
-                className="td-dest-back-btn"
-                style={{ background: 'none', border: 'none', color: 'var(--td-accent-light, #38bdf8)', fontSize: '12px', padding: 0, cursor: 'pointer', marginTop: '2px' }}
-                onClick={() => setTopicSubView(null)}
-              >
-                ← {t('speedtest.back_to_chats')}
-              </button>
+              <div className="td-dest-header-subwrap">
+                <button
+                  type="button"
+                  className="td-dest-back-pill"
+                  onClick={() => setTopicSubView(null)}
+                  title={t('speedtest.back_to_chats')}
+                >
+                  <ArrowLeft size={12} strokeWidth={2.5} />
+                  <span>{t('speedtest.back_to_chats')}</span>
+                </button>
+              </div>
             ) : (
               state.detail && <p>{state.detail}</p>
             )}
@@ -218,44 +248,65 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
         </header>
 
         {topicSubView ? (
-          <ul className="td-dest-list" role="listbox" aria-label={t('ui.generated.daftar_topik_forum_18bc840')}>
-            <li>
-              <button
-                type="button"
-                role="option"
-                aria-selected="true"
-                className="td-dest-item is-active"
-                onClick={() => pick({ ...topicSubView.choice, topicId: null })}
-              >
-                <span className="td-dest-ico" aria-hidden>
-                  <Hash size={15} />
-                </span>
-                <span className="td-dest-label">
-                  {t('speedtest.forum_topic_general_all')}
-                </span>
-                <span className="td-dest-badge forum">{t('speedtest.dest_badge_forum')}</span>
-              </button>
-            </li>
-            {topicSubView.topics.map((topic) => (
-              <li key={`topic-${topic.id}`}>
-                <button
-                  type="button"
-                  role="option"
-                  disabled={!!topic.closed}
-                  className="td-dest-item"
-                  onClick={() => pick({ ...topicSubView.choice, topicId: topic.id })}
-                >
-                  <span className="td-dest-ico" aria-hidden>
-                    <Hash size={15} />
-                  </span>
-                  <span className="td-dest-label">
-                    {topic.title || `Topik ${topic.id}`}
-                  </span>
-                  {topic.closed && <span className="td-dest-badge">{t('speedtest.topic_closed')}</span>}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <>
+            {topicSubView.topics.length > 4 && (
+              <div className="td-dest-search">
+                <Search size={14} aria-hidden />
+                <input
+                  ref={topicSearchRef}
+                  type="search"
+                  className="td-dest-search-input"
+                  value={topicQuery}
+                  onChange={(e) => setTopicQuery(e.target.value)}
+                  placeholder={t('speedtest.ph_search_topic')}
+                  aria-label={t('speedtest.ph_search_topic')}
+                />
+              </div>
+            )}
+            <ul className="td-dest-list" role="listbox" aria-label={t('ui.generated.daftar_topik_forum_18bc840')}>
+              {!topicQuery && (
+                <li>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected="true"
+                    className="td-dest-item is-active"
+                    onClick={() => pick({ ...topicSubView.choice, topicId: null })}
+                  >
+                    <span className="td-dest-ico" aria-hidden>
+                      <Hash size={15} />
+                    </span>
+                    <span className="td-dest-label">
+                      {t('speedtest.forum_topic_general_all')}
+                    </span>
+                    <span className="td-dest-badge forum">{t('speedtest.dest_badge_forum')}</span>
+                  </button>
+                </li>
+              )}
+              {filteredTopics.length === 0 && topicQuery && (
+                <li className="td-dest-empty">{t('speedtest.no_match_found')}</li>
+              )}
+              {filteredTopics.map((topic) => (
+                <li key={`topic-${topic.id}`}>
+                  <button
+                    type="button"
+                    role="option"
+                    disabled={!!topic.closed}
+                    className="td-dest-item"
+                    onClick={() => pick({ ...topicSubView.choice, topicId: topic.id })}
+                  >
+                    <span className="td-dest-ico" aria-hidden>
+                      <Hash size={15} />
+                    </span>
+                    <span className="td-dest-label">
+                      {topic.title || `Topik ${topic.id}`}
+                    </span>
+                    {topic.closed && <span className="td-dest-badge">{t('speedtest.topic_closed')}</span>}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
         ) : (
           <>
             <div className="td-dest-search">

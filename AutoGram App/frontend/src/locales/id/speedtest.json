@@ -977,6 +977,7 @@
   "quality_mode_original_desc": "Semua sebagai dokumen (force_document). Paling cepat, tanpa kompresi foto Telegram.",
   "ph_search_zip": "Cari berkas zip...",
   "ph_search_chat_folder": "Cari chat / folder…",
+  "ph_search_topic": "Cari topik…",
   "ph_remote_url": "https://example.com/file.zip",
   "ph_folder_name": "Nama folder...",
   "label_filter": "FILTER",

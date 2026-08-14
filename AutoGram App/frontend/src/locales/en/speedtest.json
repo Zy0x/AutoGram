@@ -977,6 +977,7 @@
   "quality_mode_original_desc": "All as documents (force_document). Fastest, no Telegram photo compression.",
   "ph_search_zip": "Search zip entries...",
   "ph_search_chat_folder": "Search chat / folder…",
+  "ph_search_topic": "Search topic…",
   "ph_remote_url": "https://example.com/file.zip",
   "ph_folder_name": "Folder name...",
   "label_filter": "FILTER",

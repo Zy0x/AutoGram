@@ -1,3 +1,12 @@
+## v3.5.24 Premium Topic Navigation & Dedicated Topic Search Engine
+
+### Peningkatan UI Tombol Kembali & Pencarian Topik Forum (`DriveDestinationPicker.tsx`, `App.css`)
+- **Redesain Tombol Navigasi Kembali (`DriveDestinationPicker.tsx`, `App.css`)**: Mengganti teks link biasa dengan komponen navigasi ganda yang elegan dan modern:
+  1. Tombol header kiri interaktif `<button className="td-confirm-icon is-back-btn">` dengan ikon `ArrowLeft`, efek hover scale, dan glow aksen biru.
+  2. Tombol breadcrumb pill `<button className="td-dest-back-pill">` di bawah judul dengan micro-interaction perpindahan kursor smooth.
+- **Dukungan Pencarian Topik Khusus (`DriveDestinationPicker.tsx`, `speedtest.json`)**: Menambahkan kolom pencarian topik (`ph_search_topic`) ketika forum memiliki banyak sub-topik, memungkinkan pemfilteran nama topik secara real-time.
+- **Zero Hardcoded Strings & Parity**: Seluruh key baru (`ph_search_topic`) tersedia identik dalam bahasa Indonesia dan Inggris.
+
 ## v3.5.23 Rock-Solid Modal Lifecycle & Isolated Destination Picker Engine
 
 ### Perbaikan Bug Auto-Close & Auto-Reset pada Modal Tujuan (`RemoteUploadModal.tsx`, `DriveDestinationPicker.tsx`, `App.css`)

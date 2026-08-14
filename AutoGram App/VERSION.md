@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.23
+AutoGram Version: v3.5.24
 
 Current State:
+v3.5.24 Premium Topic Navigation & Dedicated Topic Search Engine — membenahi `DriveDestinationPicker.tsx`, `App.css`, `src/locales/en/speedtest.json`, `src/locales/id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Mengganti teks kembali (*back to destination list*) biasa dengan sistem navigasi bertingkat premium: tombol ikon interaktif `ArrowLeft` pada header modal (`is-back-btn`) dengan efek glow & scale, tombol pill breadcrumb berdesain modern (`td-dest-back-pill`) dengan animasi transisi hover, serta kolom pencarian topik khusus (`ph_search_topic`) untuk memfilter puluhan topik forum Telegram secara instan.
+
+Previous:
 v3.5.23 Rock-Solid Modal Lifecycle & Isolated Destination Picker Engine — membenahi `RemoteUploadModal.tsx`, `DriveDestinationPicker.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki bug di mana modal tujuan tertutup atau reset secara tidak sengaja (*unexpected auto-close / auto-reset*) saat pengguna sedang memilih target atau topik forum. Mengisolasi lifecycle inisialisasi state hanya saat modal pertama kali dibuka (`prevIsOpenRef`), menstabilkan referensi objek picker state (`useMemo`), menambahkan penanganan event keyboard Escape secara terisolasi (`capture: true` + `stopPropagation`), dan menetapkan z-index layering yang presisi (`14100`) agar backdrop click tidak saling mengganggu antar modal bertumpuk.
 
 Previous:
