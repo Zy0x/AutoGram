@@ -75,7 +75,6 @@ export interface PreflightReviewDecision {
   approved: boolean;
   skippedPaths: string[];
   forceUploadPaths: string[];
-  dryRun?: boolean;
 }
 
 export function runQualityPreflight(request: QualityPreflightRequest): Promise<QualityPreflightReport> {

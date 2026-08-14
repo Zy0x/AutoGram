@@ -207,52 +207,6 @@ pub fn message_to_topic_media_item(
                     updated_at: now,
                 })
             }
-            tl::enums::MessageMedia::WebPage(wp_media) => {
-                let (url, title, desc, has_thumb) = match &wp_media.webpage {
-                    tl::enums::WebPage::Page(page) => {
-                        let has_photo = page.photo.is_some();
-                        (page.url.clone(), page.title.clone(), page.description.clone(), has_photo)
-                    }
-                    tl::enums::WebPage::Empty(e) => (format!("url_{}", e.id), None, None, false),
-                    tl::enums::WebPage::Pending(p) => (p.url.clone().unwrap_or_else(|| format!("url_{}", p.id)), None, None, false),
-                    tl::enums::WebPage::NotModified(_) => ("webpage".to_string(), None, None, false),
-                };
-                let file_name = title.unwrap_or_else(|| {
-                    if !url.is_empty() {
-                        url.clone()
-                    } else {
-                        caption.clone().unwrap_or_else(|| format!("link_{message_id}"))
-                    }
-                });
-                Some(TopicMediaItem {
-                    account_id: ctx.account_id.clone(),
-                    peer_id: ctx.peer_id.clone(),
-                    topic_id: ctx.topic_id,
-                    message_id,
-                    message_date,
-                    edit_date: None,
-                    grouped_id: m.grouped_id,
-                    sender_id: None,
-                    caption: if caption.is_some() { caption } else { desc },
-                    media_type: "link".to_string(),
-                    mime_type: Some("text/x-url".to_string()),
-                    file_name,
-                    file_size: url.len() as u64,
-                    document_id: None,
-                    access_hash: None,
-                    dc_id: None,
-                    file_reference: None,
-                    width: None,
-                    height: None,
-                    duration_ms: None,
-                    has_server_thumb: has_thumb,
-                    has_video_thumb: false,
-                    thumb_url: None,
-                    is_deleted: false,
-                    created_at: now,
-                    updated_at: now,
-                })
-            }
             _ => {
                 crate::core::tg_log::info(
                     "grammers",
@@ -265,37 +219,6 @@ pub fn message_to_topic_media_item(
                 None
             }
         }
-    } else if text.contains("http://") || text.contains("https://") || text.contains("t.me/") {
-        let first_line = text.lines().next().unwrap_or("link").trim();
-        let file_name = if first_line.len() > 100 { &first_line[..100] } else { first_line }.to_string();
-        Some(TopicMediaItem {
-            account_id: ctx.account_id.clone(),
-            peer_id: ctx.peer_id.clone(),
-            topic_id: ctx.topic_id,
-            message_id,
-            message_date,
-            edit_date: None,
-            grouped_id: m.grouped_id,
-            sender_id: None,
-            caption: Some(text.to_string()),
-            media_type: "link".to_string(),
-            mime_type: Some("text/x-url".to_string()),
-            file_name,
-            file_size: text.len() as u64,
-            document_id: None,
-            access_hash: None,
-            dc_id: None,
-            file_reference: None,
-            width: None,
-            height: None,
-            duration_ms: None,
-            has_server_thumb: false,
-            has_video_thumb: false,
-            thumb_url: None,
-            is_deleted: false,
-            created_at: now,
-            updated_at: now,
-        })
     } else {
         crate::core::tg_log::info(
             "grammers",

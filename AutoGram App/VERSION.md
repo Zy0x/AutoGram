@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.12
+AutoGram Version: v3.5.13
 
 Current State:
+v3.5.13 Cascading Flyout Submenu & Desktop Context Menu Engine — membenahi `DriveContextMenu.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Mengubah tampilan submenu "Copy identity" (Salin identitas) dari format akordeon vertikal ke bawah menjadi menu melayang bertingkat (*cascading flyout submenu*) ke samping kanan/kiri standar desktop (seperti Windows 11/native OS), lengkap dengan panah indikator `ChevronRight` statis, jembatan hover halus bebas flicker, deteksi batas layar otomatis (*screen-edge collision detection*), dan penutupan otomatis saat kursor melintas di item menu utama lainnya.
+
+Previous:
 v3.5.12 Real-Time Drag UI Event Notification & Reset Engine — membenahi `driveDrag.ts`, `useTopicDrop.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan panggilan `notifyDragUi()` di dalam `setLastHoverDropKey(key)` sehingga perubahan posisi hover kursor pada pil topik terkirim secara real-time ke UI subscriber, serta menyempurnakan pembersihan state di `useTopicDrop.ts` saat `isPointerDriveDragActive()` bernilai false agar pendaran hijau zamrud tidak pernah tersangkut setelah drop selesai.
 
 Previous:

@@ -79,6 +79,122 @@ type Props = {
   isPinned?: boolean;
 };
 
+interface SubmenuProps {
+  icon: React.ReactNode;
+  label: string;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  children: React.ReactNode;
+}
+
+function DriveContextSubmenuItem({
+  icon,
+  label,
+  isOpen,
+  onOpenChange,
+  children,
+}: SubmenuProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [placement, setPlacement] = useState<{ side: 'right' | 'left'; topOffset: number }>({
+    side: 'right',
+    topOffset: 0,
+  });
+  const timerRef = useRef<number | null>(null);
+
+  const calculatePlacement = () => {
+    const el = containerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const estWidth = 190;
+    const estHeight = 86;
+    const pad = 8;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    // Horizontal placement: check if right side fits, otherwise flip to left side
+    let side: 'right' | 'left' = 'right';
+    if (rect.right + estWidth + pad > vw) {
+      if (rect.left - estWidth - pad >= 0) {
+        side = 'left';
+      } else {
+        const spaceRight = vw - rect.right;
+        const spaceLeft = rect.left;
+        side = spaceRight >= spaceLeft ? 'right' : 'left';
+      }
+    }
+
+    // Vertical placement adjustment to stay within viewport
+    let topOffset = 0;
+    if (rect.top + estHeight > vh - pad) {
+      topOffset = Math.max(-(rect.top - pad), (vh - pad) - (rect.top + estHeight));
+    }
+
+    setPlacement({ side, topOffset });
+  };
+
+  const handleMouseEnter = () => {
+    if (timerRef.current) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    calculatePlacement();
+    onOpenChange(true);
+  };
+
+  const handleMouseLeave = () => {
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => {
+      onOpenChange(false);
+    }, 160);
+  };
+
+  useLayoutEffect(() => {
+    if (isOpen) {
+      calculatePlacement();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className={`drive-context-submenu ${placement.side === 'left' ? 'flyout-left' : 'flyout-right'}${isOpen ? ' is-open' : ''}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <button
+        type="button"
+        role="menuitem"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        onClick={(e) => {
+          e.stopPropagation();
+          calculatePlacement();
+          onOpenChange(!isOpen);
+        }}
+      >
+        {icon}
+        <span>{label}</span>
+        <ChevronRight size={13} className="drive-context-submenu-arrow" />
+      </button>
+      {isOpen && (
+        <div
+          className="drive-context-submenu-flyout"
+          style={{ top: `${placement.topOffset}px` }}
+          role="menu"
+        >
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /**
  * Drive tools menu — portaled to document.body.
  * Supports file, empty canvas, and sidebar location (drive/chat/saved).
@@ -189,6 +305,10 @@ export function DriveContextMenu({
     }
   };
 
+  const closeSubmenu = () => {
+    if (copyMenuOpen) setCopyMenuOpen(false);
+  };
+
   const aria =
     isFile
       ? t('speedtest.ctx_menu_aria_file')
@@ -197,31 +317,23 @@ export function DriveContextMenu({
       : t('speedtest.ctx_menu_aria_canvas');
 
   const copyIdentityMenu = onCopyId ? (
-    <div className={`drive-context-submenu${copyMenuOpen ? ' is-open' : ''}`}>
-      <button
-        type="button"
-        role="menuitem"
-        aria-haspopup="menu"
-        aria-expanded={copyMenuOpen}
-        onClick={() => setCopyMenuOpen((open) => !open)}
-      >
+    <DriveContextSubmenuItem
+      icon={<Copy size={14} />}
+      label={t('speedtest.ctx_menu_copy_identity')}
+      isOpen={copyMenuOpen}
+      onOpenChange={setCopyMenuOpen}
+    >
+      <button type="button" role="menuitem" onClick={() => run(onCopyId)}>
         <Copy size={14} />
-        <span>{t('speedtest.ctx_menu_copy_identity')}</span>
-        <ChevronRight size={13} className="drive-context-submenu-arrow" />
+        <span>{t('speedtest.ctx_menu_copy_id')}</span>
       </button>
-      {copyMenuOpen && (
-        <div className="drive-context-submenu-items" role="menu">
-          <button type="button" role="menuitem" onClick={() => run(onCopyId)}>
-            <Copy size={13} /> {t('speedtest.ctx_menu_copy_id')}
-          </button>
-          {onCopyPathId && (
-            <button type="button" role="menuitem" onClick={() => run(onCopyPathId)}>
-              <FolderTree size={13} /> {t('speedtest.ctx_menu_copy_path_id')}
-            </button>
-          )}
-        </div>
+      {onCopyPathId && (
+        <button type="button" role="menuitem" onClick={() => run(onCopyPathId)}>
+          <FolderTree size={14} />
+          <span>{t('speedtest.ctx_menu_copy_path_id')}</span>
+        </button>
       )}
-    </div>
+    </DriveContextSubmenuItem>
   ) : null;
 
   const node = (
@@ -248,7 +360,12 @@ export function DriveContextMenu({
               {driveFileDisplayName(file)}
             </div>
             {onPreview && (
-              <button type="button" role="menuitem" onClick={() => run(onPreview)}>
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={closeSubmenu}
+                onClick={() => run(onPreview)}
+              >
                 <Eye size={14} /> {t('speedtest.ctx_menu_preview')}
               </button>
             )}
@@ -261,6 +378,7 @@ export function DriveContextMenu({
                     <button
                       type="button"
                       role="menuitem"
+                      onMouseEnter={closeSubmenu}
                       onClick={() =>
                         run(async () => {
                           try {
@@ -276,6 +394,7 @@ export function DriveContextMenu({
                     <button
                       type="button"
                       role="menuitem"
+                      onMouseEnter={closeSubmenu}
                       onClick={() =>
                         run(async () => {
                           try {
@@ -305,38 +424,74 @@ export function DriveContextMenu({
               );
             })()}
             {isDesktop() && onOpenSystem && (
-              <button type="button" role="menuitem" onClick={() => run(onOpenSystem)}>
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={closeSubmenu}
+                onClick={() => run(onOpenSystem)}
+              >
                 <ExternalLink size={14} /> {t('speedtest.ctx_menu_open')}
               </button>
             )}
             {isDesktop() && onOpenWith && (
-              <button type="button" role="menuitem" onClick={() => run(onOpenWith)}>
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={closeSubmenu}
+                onClick={() => run(onOpenWith)}
+              >
                 <AppWindow size={14} /> {t('speedtest.ctx_menu_open_with')}
               </button>
             )}
             {isDesktop() && onReveal && (
-              <button type="button" role="menuitem" onClick={() => run(onReveal)}>
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={closeSubmenu}
+                onClick={() => run(onReveal)}
+              >
                 <FolderOpen size={14} /> {t('speedtest.ctx_menu_reveal')}
               </button>
             )}
             {onDownload && (
-              <button type="button" role="menuitem" onClick={() => run(onDownload)}>
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={closeSubmenu}
+                onClick={() => run(onDownload)}
+              >
                 <Download size={14} /> {t('speedtest.ctx_menu_download')}
               </button>
             )}
             {copyIdentityMenu}
             {onRename && (
-              <button type="button" role="menuitem" onClick={() => run(onRename)}>
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={closeSubmenu}
+                onClick={() => run(onRename)}
+              >
                 <Pencil size={14} /> {t('speedtest.ctx_menu_rename')}
               </button>
             )}
             {onMove && (
-              <button type="button" role="menuitem" onClick={() => run(onMove)}>
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={closeSubmenu}
+                onClick={() => run(onMove)}
+              >
                 <FolderInput size={14} /> {t('speedtest.ctx_menu_move')}
               </button>
             )}
             {onDelete && (
-              <button type="button" role="menuitem" className="danger" onClick={() => run(onDelete)}>
+              <button
+                type="button"
+                role="menuitem"
+                className="danger"
+                onMouseEnter={closeSubmenu}
+                onClick={() => run(onDelete)}
+              >
                 <Trash2 size={14} /> {t('speedtest.ctx_menu_delete')}
               </button>
             )}
@@ -352,28 +507,53 @@ export function DriveContextMenu({
               {target.name}
             </div>
             {onOpenLocation && (
-              <button type="button" role="menuitem" onClick={() => run(onOpenLocation)}>
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={closeSubmenu}
+                onClick={() => run(onOpenLocation)}
+              >
                 <FolderOpen size={14} /> {t('speedtest.ctx_menu_open')}
               </button>
             )}
             {onTogglePin && (
-              <button type="button" role="menuitem" onClick={() => run(onTogglePin)}>
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={closeSubmenu}
+                onClick={() => run(onTogglePin)}
+              >
                 {isPinned ? <PinOff size={14} /> : <Pin size={14} />}
                 {isPinned ? t('speedtest.topbar_unpin_loc') : t('speedtest.topbar_pin_loc')}
               </button>
             )}
             {target.locationKind === 'drive' && onCreateSubfolder && (
-              <button type="button" role="menuitem" onClick={() => run(onCreateSubfolder)}>
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={closeSubmenu}
+                onClick={() => run(onCreateSubfolder)}
+              >
                 <FolderTree size={14} /> {t('speedtest.ctx_menu_create_subfolder')}
               </button>
             )}
             {target.locationKind === 'drive' && onRenameFolder && (
-              <button type="button" role="menuitem" onClick={() => run(onRenameFolder)}>
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={closeSubmenu}
+                onClick={() => run(onRenameFolder)}
+              >
                 <Pencil size={14} /> {resolvedRenameFolderLabel}
               </button>
             )}
             {target.locationKind === 'drive' && onReparentFolder && (
-              <button type="button" role="menuitem" onClick={() => run(onReparentFolder)}>
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={closeSubmenu}
+                onClick={() => run(onReparentFolder)}
+              >
                 <FolderInput size={14} /> {resolvedReparentFolderLabel}
               </button>
             )}
@@ -383,6 +563,7 @@ export function DriveContextMenu({
                 type="button"
                 role="menuitem"
                 className="danger"
+                onMouseEnter={closeSubmenu}
                 onClick={() => run(onDeleteFolder)}
               >
                 <Trash2 size={14} /> {resolvedDeleteFolderLabel}
@@ -395,37 +576,73 @@ export function DriveContextMenu({
               {locationLabel || t('speedtest.ctx_menu_this_location')}
             </div>
             {onRefresh && (
-              <button type="button" role="menuitem" onClick={() => run(onRefresh)}>
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={closeSubmenu}
+                onClick={() => run(onRefresh)}
+              >
                 <RefreshCw size={14} /> {t('speedtest.ctx_menu_refresh')}
               </button>
             )}
             {onUpload && (
-              <button type="button" role="menuitem" onClick={() => run(onUpload)}>
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={closeSubmenu}
+                onClick={() => run(onUpload)}
+              >
                 <Upload size={14} /> {t('speedtest.ctx_menu_upload')}
               </button>
             )}
             {onCreateFolder && (
-              <button type="button" role="menuitem" onClick={() => run(onCreateFolder)}>
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={closeSubmenu}
+                onClick={() => run(onCreateFolder)}
+              >
                 <FolderPlus size={14} /> {resolvedCreateFolderLabel}
               </button>
             )}
             {onCreateSubfolder && (
-              <button type="button" role="menuitem" onClick={() => run(onCreateSubfolder)}>
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={closeSubmenu}
+                onClick={() => run(onCreateSubfolder)}
+              >
                 <FolderTree size={14} /> {resolvedCreateSubfolderLabel}
               </button>
             )}
             {onSelectAll && (
-              <button type="button" role="menuitem" onClick={() => run(onSelectAll)}>
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={closeSubmenu}
+                onClick={() => run(onSelectAll)}
+              >
                 <CheckSquare size={14} /> {t('speedtest.ctx_menu_select_all')}
               </button>
             )}
             {selectedCount > 0 && onClearSelection && (
-              <button type="button" role="menuitem" onClick={() => run(onClearSelection)}>
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={closeSubmenu}
+                onClick={() => run(onClearSelection)}
+              >
                 <Square size={14} /> {t('speedtest.ctx_menu_clear_selection', { count: selectedCount, defaultValue: `Hapus pilihan (${selectedCount})` })}
               </button>
             )}
             {selectedCount > 0 && onDelete && (
-              <button type="button" role="menuitem" className="danger" onClick={() => run(onDelete)}>
+              <button
+                type="button"
+                role="menuitem"
+                className="danger"
+                onMouseEnter={closeSubmenu}
+                onClick={() => run(onDelete)}
+              >
                 <Trash2 size={14} /> {t('speedtest.ctx_menu_delete_selected', { count: selectedCount, defaultValue: `Hapus terpilih (${selectedCount})` })}
               </button>
             )}

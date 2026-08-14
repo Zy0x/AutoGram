@@ -1,3 +1,11 @@
+## v3.5.13 Cascading Flyout Submenu & Desktop Context Menu Engine
+
+### Submenu Melayang Bertingkat (*Cascading Flyout*) Standar Desktop OS (`DriveContextMenu.tsx`, `App.css`)
+- **Struktur Flyout Submenu Bertingkat (`DriveContextMenu.tsx`)**: Mengganti sistem ekspansi akordeon vertikal ke bawah pada menu "Copy identity" (Salin identitas) menjadi komponen submenu bertingkat (*cascading flyout submenu*) `DriveContextSubmenuItem` yang muncul melayang ke samping kanan/kiri menu utama, sesuai standar antarmuka desktop native (seperti Windows 11 context menu).
+- **Deteksi Batas Layar Cerdas (*Screen-Edge Collision Detection*) (`DriveContextMenu.tsx`)**: Menambahkan algoritma kalkulasi posisi dinamis yang secara otomatis membalik orientasi flyout ke sisi kiri (`flyout-left`) bila menu berada di dekat batas kanan layar atau viewport sempit, serta mengompensasi offset vertikal agar submenu tidak pernah terpotong di bagian bawah layar.
+- **Jembatan Hover Bebas Flicker & Penutupan Cepat (`App.css`, `DriveContextMenu.tsx`)**: Menyematkan pseudo-element jembatan kursor (`::before`) pada flyout container dan penundaan debounce `160ms` agar pengguna dapat memindahkan kursor mouse secara mulus ke submenu tanpa risiko tertutup mendadak. Menambahkan event listener `onMouseEnter={closeSubmenu}` pada seluruh item menu utama tetangga sehingga submenu tertutup seketika saat kursor berpindah ke opsi lain.
+- **Visual Konsisten & Panah Statis (`App.css`)**: Mempertahankan ikon panah `ChevronRight` tetap mengarah ke kanan (tidak lagi berputar ke bawah), menambahkan styling dark-glass elevation dengan border-radius 10px, shadow `0 16px 48px rgba(0,0,0,0.5)`, dan animasi pop-in halus 120ms.
+
 ## v3.5.12 Real-Time Drag UI Event Notification & Reset Engine
 
 ### Notifikasi Event Bus Real-Time & Pembersihan State Drop Otomatis (`driveDrag.ts`, `useTopicDrop.ts`)
