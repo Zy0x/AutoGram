@@ -1,3 +1,9 @@
+## v3.5.33 Silent Native OS Clipboard Access & Zero Permission Prompts
+
+### Akses Papan Klip Native OS Tanpa Popup Izin Browser (`src-tauri/src/lib.rs`, `RemoteUploadModal.tsx`)
+- **Command Native Rust `desktop_read_clipboard`**: Membaca isi teks papan klip (*clipboard*) secara langsung melalui API sistem operasi Windows (`GetClipboardData` dengan format `CF_UNICODETEXT`) di lapisan backend Rust native.
+- **Eliminasi Total Popup Izin Browser (*Zero Permission Prompts*)**: Menggantikan ketergantungan pada `navigator.clipboard.readText()` web API yang memicu popup izin browser Chromium/WebView2 (*"http://localhost:1420 wants to see text and images copied to the clipboard"*), sehingga tombol *Paste* berfungsi instan, senyap, dan mulus layaknya aplikasi desktop native profesional.
+
 ## v3.5.32 Remote URL Upload Revamp & Live Inspector Engine
 
 ### Rombak Antarmuka Modal Remote URL & Fitur Cerdas (`RemoteUploadModal.tsx`, `MediaStudioModalsContainer.tsx`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json`)

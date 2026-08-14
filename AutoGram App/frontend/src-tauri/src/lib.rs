@@ -1720,6 +1720,57 @@ fn app_is_devtools_open(window: tauri::WebviewWindow) -> bool {
     window.is_devtools_open()
 }
 
+#[tauri::command]
+fn desktop_read_clipboard() -> Result<String, String> {
+    #[cfg(target_os = "windows")]
+    {
+        extern "system" {
+            fn OpenClipboard(h_wnd: *mut std::ffi::c_void) -> i32;
+            fn CloseClipboard() -> i32;
+            fn GetClipboardData(u_format: u32) -> *mut std::ffi::c_void;
+            fn GlobalLock(h_mem: *mut std::ffi::c_void) -> *mut u16;
+            fn GlobalUnlock(h_mem: *mut std::ffi::c_void) -> i32;
+        }
+
+        const CF_UNICODETEXT: u32 = 13;
+
+        unsafe {
+            if OpenClipboard(std::ptr::null_mut()) == 0 {
+                return Ok(String::new());
+            }
+
+            let h_data = GetClipboardData(CF_UNICODETEXT);
+            if h_data.is_null() {
+                CloseClipboard();
+                return Ok(String::new());
+            }
+
+            let ptr = GlobalLock(h_data);
+            if ptr.is_null() {
+                CloseClipboard();
+                return Ok(String::new());
+            }
+
+            let mut len = 0;
+            while *ptr.add(len) != 0 {
+                len += 1;
+            }
+
+            let slice = std::slice::from_raw_parts(ptr, len);
+            let result = String::from_utf16_lossy(slice);
+
+            GlobalUnlock(h_data);
+            CloseClipboard();
+
+            Ok(result)
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        Ok(String::new())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1729,6 +1780,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             greet,
+            desktop_read_clipboard,
             app_toggle_devtools,
             app_open_devtools,
             app_close_devtools,

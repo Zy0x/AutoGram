@@ -314,17 +314,36 @@ export function RemoteUploadModal({
   };
 
   const handlePasteClipboard = async () => {
+    let text = '';
+    // 1. First try native Tauri desktop command (0 permission dialogs, direct OS clipboard access)
     try {
-      const text = await navigator.clipboard?.readText();
-      if (text) {
-        if (tab === 'single') {
-          handleUrlChange(text.trim());
-        } else {
-          setBatchUrlsText((prev) => (prev ? `${prev}\n${text.trim()}` : text.trim()));
-        }
+      const { invoke } = await import('@tauri-apps/api/core');
+      const res = await invoke<string>('desktop_read_clipboard');
+      if (typeof res === 'string' && res.trim()) {
+        text = res.trim();
       }
     } catch {
-      /* clipboard read permission denied */
+      /* not running in Tauri or command unavailable */
+    }
+
+    // 2. Fallback to standard web clipboard API only if desktop invoke didn't return text
+    if (!text) {
+      try {
+        const webText = await navigator.clipboard?.readText();
+        if (webText && typeof webText === 'string') {
+          text = webText.trim();
+        }
+      } catch {
+        /* permission dismissed or blocked */
+      }
+    }
+
+    if (text) {
+      if (tab === 'single') {
+        handleUrlChange(text);
+      } else {
+        setBatchUrlsText((prev) => (prev ? `${prev}\n${text}` : text));
+      }
     }
   };
 

@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.32
+AutoGram Version: v3.5.33
 
 Current State:
+v3.5.33 Silent Native OS Clipboard Access & Zero Permission Prompts — membenahi `src-tauri/src/lib.rs`, `RemoteUploadModal.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengimplementasikan command native Rust `desktop_read_clipboard` yang membaca teks clipboard langsung dari OS Windows (Win32 `GetClipboardData` / `CF_UNICODETEXT`) di level backend desktop, sepenuhnya mengeliminasi popup dialog izin browser Chromium/WebView2 (*"http://localhost:1420 wants to see text and images copied to clipboard"*) saat menekan tombol Paste URL.
+
+Previous:
 v3.5.32 Remote URL Upload Revamp & Live Inspector Engine — membenahi `RemoteUploadModal.tsx`, `MediaStudioModalsContainer.tsx`, `MediaStudio/index.tsx`, `App.css`, `src/locales/en/speedtest.json`, `src/locales/id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Merombak modal Remote Upload dengan antarmuka tab ganda modern (*Single File* vs *Batch URLs*), mesin *Live URL Inspector* cerdas yang mendeteksi nama berkas, ukuran, dan tipe media secara instan, tombol cepat *Paste from Clipboard*, opsi kustomisasi nama berkas (*Custom Filename*), pemilih mode pengiriman (*Auto-Detect Media* vs *As Document*), serta eliminasi glitch duplikasi label topik pada kartu destinasi tujuan.
 
 Previous:
