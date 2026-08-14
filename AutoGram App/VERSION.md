@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.16
+AutoGram Version: v3.5.17
 
 Current State:
+v3.5.17 Rock-Solid Submenu Hover Debounce & Precise Positioning Engine — membenahi `DriveContextMenu.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki hilangnya submenu (*flicker/premature closure*) saat kursor pengguna bergerak secara diagonal melintasi item menu di sekitarnya. Mengganti penutupan instan dengan pengelola penundaan niat (*intent debounce timer* 140ms pada regular items dan 180ms pada leave), memperbesar area jembatan tak kasat mata (*invisible hover bridge* dari 12px ke 28px dengan proteksi sumbu Y `top/bottom: -14px`), serta menyelaraskan ketinggian vertikal flyout submenu (`top: -4px`) dengan deteksi viewport dinamis berbasis tinggi elemen aktual.
+
+Previous:
 v3.5.16 Streamlined Non-Redundant 1:1 Telegram Message Preview & Resolution Engine — membenahi `TelegramMessagePreviewModal.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Menghapus seluruh tombol duplikat/redundant di bilah header dan footer modal, mengintegrasikan sistem pencarian visual multi-tier (`previewCache` full resolution, `thumbBatcher` memory/saver LRU, IndexedDB persistent cache, dan live RPC request), menambahkan ekor gelembung chat (*authentic Telegram bubble tail* via clip-path), serta merapikan bilah aksi Telegram Desktop bawah menjadi satu baris bersih dan terpusat.
 
 Previous:

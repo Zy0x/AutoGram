@@ -91,6 +91,7 @@ interface SubmenuProps {
   label: string;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  onHoverStay?: () => void;
   children: React.ReactNode;
 }
 
@@ -99,12 +100,13 @@ function DriveContextSubmenuItem({
   label,
   isOpen,
   onOpenChange,
+  onHoverStay,
   children,
 }: SubmenuProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [placement, setPlacement] = useState<{ side: 'right' | 'left'; topOffset: number }>({
     side: 'right',
-    topOffset: 0,
+    topOffset: -4,
   });
   const timerRef = useRef<number | null>(null);
 
@@ -112,9 +114,8 @@ function DriveContextSubmenuItem({
     const el = containerRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const estWidth = 190;
-    const estHeight = 86;
-    const pad = 8;
+    const estWidth = 200;
+    const pad = 10;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
@@ -130,9 +131,12 @@ function DriveContextSubmenuItem({
       }
     }
 
-    // Vertical placement adjustment to stay within viewport
-    let topOffset = 0;
-    if (rect.top + estHeight > vh - pad) {
+    // Vertical placement: align top with trigger item (-4px) by default
+    // If it extends beyond bottom of viewport, adjust upwards
+    const flyoutEl = el.querySelector<HTMLElement>('.drive-context-submenu-flyout');
+    const estHeight = flyoutEl ? flyoutEl.offsetHeight : 130;
+    let topOffset = -4;
+    if (rect.top + topOffset + estHeight > vh - pad) {
       topOffset = Math.max(-(rect.top - pad), (vh - pad) - (rect.top + estHeight));
     }
 
@@ -144,6 +148,7 @@ function DriveContextSubmenuItem({
       window.clearTimeout(timerRef.current);
       timerRef.current = null;
     }
+    onHoverStay?.();
     calculatePlacement();
     onOpenChange(true);
   };
@@ -152,7 +157,7 @@ function DriveContextSubmenuItem({
     if (timerRef.current) window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => {
       onOpenChange(false);
-    }, 160);
+    }, 180);
   };
 
   useLayoutEffect(() => {
@@ -194,6 +199,8 @@ function DriveContextSubmenuItem({
           className="drive-context-submenu-flyout"
           style={{ top: `${placement.topOffset}px` }}
           role="menu"
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
         >
           {children}
         </div>
@@ -319,8 +326,29 @@ export function DriveContextMenu({
     }
   };
 
-  const closeSubmenu = () => {
-    if (activeSubmenu !== null) setActiveSubmenu(null);
+  const submenuTimerRef = useRef<number | null>(null);
+
+  const scheduleCloseSubmenu = (delay = 140) => {
+    if (submenuTimerRef.current) window.clearTimeout(submenuTimerRef.current);
+    submenuTimerRef.current = window.setTimeout(() => {
+      setActiveSubmenu(null);
+    }, delay);
+  };
+
+  const cancelCloseSubmenu = () => {
+    if (submenuTimerRef.current) {
+      window.clearTimeout(submenuTimerRef.current);
+      submenuTimerRef.current = null;
+    }
+  };
+
+  const handleSubmenuOpen = (menuKey: 'telegram' | 'system' | 'copyIdentity') => {
+    cancelCloseSubmenu();
+    setActiveSubmenu(menuKey);
+  };
+
+  const handleSubmenuClose = () => {
+    scheduleCloseSubmenu(180);
   };
 
   const aria =
@@ -337,7 +365,11 @@ export function DriveContextMenu({
       icon={<MessageSquare size={14} />}
       label={t('speedtest.ctx_menu_telegram')}
       isOpen={activeSubmenu === 'telegram'}
-      onOpenChange={(open) => setActiveSubmenu(open ? 'telegram' : null)}
+      onOpenChange={(open) => {
+        if (open) handleSubmenuOpen('telegram');
+        else handleSubmenuClose();
+      }}
+      onHoverStay={cancelCloseSubmenu}
     >
       <button
         type="button"
@@ -410,7 +442,11 @@ export function DriveContextMenu({
         icon={<AppWindow size={14} />}
         label={t('speedtest.ctx_menu_open_in_system')}
         isOpen={activeSubmenu === 'system'}
-        onOpenChange={(open) => setActiveSubmenu(open ? 'system' : null)}
+        onOpenChange={(open) => {
+          if (open) handleSubmenuOpen('system');
+          else handleSubmenuClose();
+        }}
+        onHoverStay={cancelCloseSubmenu}
       >
         {onOpenSystem && (
           <button type="button" role="menuitem" onClick={() => run(onOpenSystem)}>
@@ -438,7 +474,11 @@ export function DriveContextMenu({
       icon={<Copy size={14} />}
       label={t('speedtest.ctx_menu_copy_identity')}
       isOpen={activeSubmenu === 'copyIdentity'}
-      onOpenChange={(open) => setActiveSubmenu(open ? 'copyIdentity' : null)}
+      onOpenChange={(open) => {
+        if (open) handleSubmenuOpen('copyIdentity');
+        else handleSubmenuClose();
+      }}
+      onHoverStay={cancelCloseSubmenu}
     >
       <button type="button" role="menuitem" onClick={() => run(onCopyId)}>
         <Copy size={14} />
@@ -482,7 +522,7 @@ export function DriveContextMenu({
               <button
                 type="button"
                 role="menuitem"
-                onMouseEnter={closeSubmenu}
+                onMouseEnter={() => scheduleCloseSubmenu(120)}
                 onClick={() => run(onPreview)}
               >
                 <Eye size={14} /> {t('speedtest.ctx_menu_preview')}
@@ -497,7 +537,7 @@ export function DriveContextMenu({
               <button
                 type="button"
                 role="menuitem"
-                onMouseEnter={closeSubmenu}
+                onMouseEnter={() => scheduleCloseSubmenu(120)}
                 onClick={() => run(onDownload)}
               >
                 <Download size={14} /> {t('speedtest.ctx_menu_download')}
@@ -513,7 +553,7 @@ export function DriveContextMenu({
               <button
                 type="button"
                 role="menuitem"
-                onMouseEnter={closeSubmenu}
+                onMouseEnter={() => scheduleCloseSubmenu(120)}
                 onClick={() => run(onRename)}
               >
                 <Pencil size={14} /> {t('speedtest.ctx_menu_rename')}
@@ -523,7 +563,7 @@ export function DriveContextMenu({
               <button
                 type="button"
                 role="menuitem"
-                onMouseEnter={closeSubmenu}
+                onMouseEnter={() => scheduleCloseSubmenu(120)}
                 onClick={() => run(onMove)}
               >
                 <FolderInput size={14} /> {t('speedtest.ctx_menu_move')}
@@ -537,7 +577,7 @@ export function DriveContextMenu({
                   type="button"
                   role="menuitem"
                   className="danger"
-                  onMouseEnter={closeSubmenu}
+                  onMouseEnter={() => scheduleCloseSubmenu(120)}
                   onClick={() => run(onDelete)}
                 >
                   <Trash2 size={14} /> {t('speedtest.ctx_menu_delete')}
@@ -559,7 +599,7 @@ export function DriveContextMenu({
               <button
                 type="button"
                 role="menuitem"
-                onMouseEnter={closeSubmenu}
+                onMouseEnter={() => scheduleCloseSubmenu(120)}
                 onClick={() => run(onOpenLocation)}
               >
                 <FolderOpen size={14} /> {t('speedtest.ctx_menu_open')}
@@ -569,7 +609,7 @@ export function DriveContextMenu({
               <button
                 type="button"
                 role="menuitem"
-                onMouseEnter={closeSubmenu}
+                onMouseEnter={() => scheduleCloseSubmenu(120)}
                 onClick={() => run(onTogglePin)}
               >
                 {isPinned ? <PinOff size={14} /> : <Pin size={14} />}
@@ -580,7 +620,7 @@ export function DriveContextMenu({
               <button
                 type="button"
                 role="menuitem"
-                onMouseEnter={closeSubmenu}
+                onMouseEnter={() => scheduleCloseSubmenu(120)}
                 onClick={() => run(onCreateSubfolder)}
               >
                 <FolderTree size={14} /> {t('speedtest.ctx_menu_create_subfolder')}
@@ -590,7 +630,7 @@ export function DriveContextMenu({
               <button
                 type="button"
                 role="menuitem"
-                onMouseEnter={closeSubmenu}
+                onMouseEnter={() => scheduleCloseSubmenu(120)}
                 onClick={() => run(onRenameFolder)}
               >
                 <Pencil size={14} /> {resolvedRenameFolderLabel}
@@ -600,7 +640,7 @@ export function DriveContextMenu({
               <button
                 type="button"
                 role="menuitem"
-                onMouseEnter={closeSubmenu}
+                onMouseEnter={() => scheduleCloseSubmenu(120)}
                 onClick={() => run(onReparentFolder)}
               >
                 <FolderInput size={14} /> {resolvedReparentFolderLabel}
@@ -614,7 +654,7 @@ export function DriveContextMenu({
                   type="button"
                   role="menuitem"
                   className="danger"
-                  onMouseEnter={closeSubmenu}
+                  onMouseEnter={() => scheduleCloseSubmenu(120)}
                   onClick={() => run(onDeleteFolder)}
                 >
                   <Trash2 size={14} /> {resolvedDeleteFolderLabel}
@@ -631,7 +671,7 @@ export function DriveContextMenu({
               <button
                 type="button"
                 role="menuitem"
-                onMouseEnter={closeSubmenu}
+                onMouseEnter={() => scheduleCloseSubmenu(120)}
                 onClick={() => run(onRefresh)}
               >
                 <RefreshCw size={14} /> {t('speedtest.ctx_menu_refresh')}
@@ -641,7 +681,7 @@ export function DriveContextMenu({
               <button
                 type="button"
                 role="menuitem"
-                onMouseEnter={closeSubmenu}
+                onMouseEnter={() => scheduleCloseSubmenu(120)}
                 onClick={() => run(onUpload)}
               >
                 <Upload size={14} /> {t('speedtest.ctx_menu_upload')}
@@ -651,7 +691,7 @@ export function DriveContextMenu({
               <button
                 type="button"
                 role="menuitem"
-                onMouseEnter={closeSubmenu}
+                onMouseEnter={() => scheduleCloseSubmenu(120)}
                 onClick={() => run(onCreateFolder)}
               >
                 <FolderPlus size={14} /> {resolvedCreateFolderLabel}
@@ -661,7 +701,7 @@ export function DriveContextMenu({
               <button
                 type="button"
                 role="menuitem"
-                onMouseEnter={closeSubmenu}
+                onMouseEnter={() => scheduleCloseSubmenu(120)}
                 onClick={() => run(onCreateSubfolder)}
               >
                 <FolderTree size={14} /> {resolvedCreateSubfolderLabel}
@@ -671,7 +711,7 @@ export function DriveContextMenu({
               <button
                 type="button"
                 role="menuitem"
-                onMouseEnter={closeSubmenu}
+                onMouseEnter={() => scheduleCloseSubmenu(120)}
                 onClick={() => run(onSelectAll)}
               >
                 <CheckSquare size={14} /> {t('speedtest.ctx_menu_select_all')}
@@ -681,7 +721,7 @@ export function DriveContextMenu({
               <button
                 type="button"
                 role="menuitem"
-                onMouseEnter={closeSubmenu}
+                onMouseEnter={() => scheduleCloseSubmenu(120)}
                 onClick={() => run(onClearSelection)}
               >
                 <Square size={14} /> {t('speedtest.ctx_menu_clear_selection', { count: selectedCount, defaultValue: `Hapus pilihan (${selectedCount})` })}
@@ -694,7 +734,7 @@ export function DriveContextMenu({
                   type="button"
                   role="menuitem"
                   className="danger"
-                  onMouseEnter={closeSubmenu}
+                  onMouseEnter={() => scheduleCloseSubmenu(120)}
                   onClick={() => run(onDelete)}
                 >
                   <Trash2 size={14} /> {t('speedtest.ctx_menu_delete_selected', { count: selectedCount, defaultValue: `Hapus terpilih (${selectedCount})` })}

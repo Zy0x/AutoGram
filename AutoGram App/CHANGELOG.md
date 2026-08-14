@@ -1,3 +1,10 @@
+## v3.5.17 Rock-Solid Submenu Hover Debounce & Precise Positioning Engine
+
+### Eliminasi Flicker & Presisi Hover Submenu Hub (`DriveContextMenu.tsx`, `App.css`)
+- **Intent Debounce Manager**: Menggantikan penutupan langsung submenu saat kursor melintasi tombol lain dengan `scheduleCloseSubmenu(120ms - 140ms)` dan `cancelCloseSubmenu()`. Dengan sistem ini, sapuan kursor diagonal (*diagonal mouse movement*) saat pengguna bergerak dari item utama ("Telegram >", "Open in system >", "Copy identity >") menuju item di dalam flyout menu tidak lagi memicu penutupan prematur ataupun flicker.
+- **Pelebaran Hitbox Jembatan Tak Kasat Mata (*Invisible Hover Bridge*) (`App.css`)**: Memperluas area tangkapan kursor `::before` pada flyout menu dari sebelumnya 12px menjadi 28px dengan perlindungan sumbu vertikal (`top/bottom: -14px`), memastikan tidak ada celah mati saat kursor melintasi batas antara menu induk dan submenu anak.
+- **Presisi Penyelarasan Vertikal (*Precise Vertical Alignment*) (`DriveContextMenu.tsx`, `App.css`)**: Mengatur titik awal flyout menu agar sejajar presisi dengan bagian atas tombol pemicu (`top: -4px`) dan mengkalkulasi offset batas layar secara dinamis berdasarkan tinggi riil konten elemen flyout menu.
+
 ## v3.5.16 Streamlined Non-Redundant 1:1 Telegram Message Preview & Resolution Engine
 
 ### Pembersihan Tombol Redundan & Penyempurnaan 1:1 Telegram UI (`TelegramMessagePreviewModal.tsx`, `App.css`)

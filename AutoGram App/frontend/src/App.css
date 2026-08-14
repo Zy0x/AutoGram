@@ -4889,9 +4889,9 @@ video.drive-preview-media {
 
 .drive-context-submenu-flyout {
   position: absolute;
-  top: 0;
+  top: -4px;
   left: calc(100% + 4px);
-  min-width: 180px;
+  min-width: 184px;
   background: var(--td-surface, #17212b);
   border: 1px solid var(--td-border, rgba(255, 255, 255, 0.1));
   border-radius: 10px;
@@ -4909,19 +4909,20 @@ video.drive-preview-media {
   right: calc(100% + 4px);
 }
 
-/* Invisible bridge so cursor moving across gap does not lose hover */
+/* Generous invisible bridge so cursor moving across gap never loses hover */
 .drive-context-submenu-flyout::before {
   content: '';
   position: absolute;
-  top: -6px;
-  bottom: -6px;
-  left: -8px;
-  width: 12px;
+  top: -14px;
+  bottom: -14px;
+  left: -20px;
+  width: 28px;
+  z-index: 1;
 }
 
 .drive-context-submenu.flyout-left .drive-context-submenu-flyout::before {
   left: auto;
-  right: -8px;
+  right: -20px;
 }
 
 .drive-context-submenu-flyout button {
