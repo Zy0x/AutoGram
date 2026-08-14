@@ -12,6 +12,7 @@ import type { DriveChat, DriveFile, DriveFolder } from '../../lib/telegram/drive
 import type { DuplicateContextInfo } from '../../components/drive/DrivePreviewModal';
 import { getSessionMetadata } from '../../lib/telegram/core/sessionPicker';
 import { buildMediaPathId } from '../../components/drive/utils/mediaPathId';
+import { nativeWriteClipboardText } from '../../lib/tauri/desktopClipboard';
 
 export interface MediaStudioModalsContainerProps {
   relogModalOpen?: boolean;
@@ -150,11 +151,13 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
   const accountUserId = getSessionMetadata(sessionName || '')?.telegramUserId ||
     String(sessionName || '').replace(/^session_/, '') || '0';
   const activeChat = chats.find((chat) => Number(chat.id) === Number(activePeerId)) || null;
-  const copyWithStatus = (value: string, kind: 'id' | 'path') => {
-    void navigator.clipboard?.writeText(value).then(
-      () => setStatusText(t(kind === 'path' ? 'speedtest.copy_path_id_success' : 'speedtest.copy_id_success', { value })),
-      () => setStatusText(value)
-    );
+  const copyWithStatus = async (value: string, kind: 'id' | 'path') => {
+    const success = await nativeWriteClipboardText(value);
+    if (success) {
+      setStatusText(t(kind === 'path' ? 'speedtest.copy_path_id_success' : 'speedtest.copy_id_success', { value }));
+    } else {
+      setStatusText(value);
+    }
   };
   return (
     <>

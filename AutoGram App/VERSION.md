@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.33
+AutoGram Version: v3.5.34
 
 Current State:
+v3.5.34 Unified Native Desktop OS Clipboard Architecture — membenahi `src-tauri/src/lib.rs`, `desktopClipboard.ts`, `RemoteUploadModal.tsx`, `DriveContextMenu.tsx`, `TelegramMessagePreviewModal.tsx`, `MediaStudioModalsContainer.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Melakukan audit menyeluruh terhadap seluruh pemanggilan API web clipboard di seluruh basis kode. Mengimplementasikan `desktop_write_clipboard` di Rust serta modul terpusat `desktopClipboard.ts` (`nativeReadClipboardText` & `nativeWriteClipboardText`) untuk menjamin seluruh operasi baca dan tulis clipboard di seluruh aplikasi AutoGram berjalan 100% native di lapisan OS tanpa dialog izin atau isu fokus window.
+
+Previous:
 v3.5.33 Silent Native OS Clipboard Access & Zero Permission Prompts — membenahi `src-tauri/src/lib.rs`, `RemoteUploadModal.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengimplementasikan command native Rust `desktop_read_clipboard` yang membaca teks clipboard langsung dari OS Windows (Win32 `GetClipboardData` / `CF_UNICODETEXT`) di level backend desktop, sepenuhnya mengeliminasi popup dialog izin browser Chromium/WebView2 (*"http://localhost:1420 wants to see text and images copied to clipboard"*) saat menekan tombol Paste URL.
 
 Previous:

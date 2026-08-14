@@ -32,6 +32,7 @@ import { buildTelegramMessageUrl } from '../../../lib/telegram/utils/telegramMes
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { TelegramMessagePreviewModal } from './TelegramMessagePreviewModal';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
+import { nativeWriteClipboardText } from '../../../lib/tauri/desktopClipboard';
 
 export type DriveLocationKind = 'saved' | 'drive' | 'chat';
 
@@ -362,11 +363,7 @@ export function DriveContextMenu({
             role="menuitem"
             onClick={() =>
               run(async () => {
-                try {
-                  await navigator.clipboard.writeText(tgUrl);
-                } catch (err) {
-                  console.error('[DriveContextMenu] Copy Telegram link failed:', err);
-                }
+                await nativeWriteClipboardText(tgUrl);
               })
             }
           >

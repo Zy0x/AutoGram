@@ -29,6 +29,7 @@ import { DriveDestinationPicker } from './DriveDestinationPicker';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi/driveApiUtils';
 import { PeerAvatar } from '../Navigation/sidebarUtils';
 import { formatDriveBytes } from '../../../lib/telegram/driveTypes';
+import { nativeReadClipboardText } from '../../../lib/tauri/desktopClipboard';
 
 interface RemoteUploadModalProps {
   isOpen: boolean;
@@ -314,30 +315,7 @@ export function RemoteUploadModal({
   };
 
   const handlePasteClipboard = async () => {
-    let text = '';
-    // 1. First try native Tauri desktop command (0 permission dialogs, direct OS clipboard access)
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      const res = await invoke<string>('desktop_read_clipboard');
-      if (typeof res === 'string' && res.trim()) {
-        text = res.trim();
-      }
-    } catch {
-      /* not running in Tauri or command unavailable */
-    }
-
-    // 2. Fallback to standard web clipboard API only if desktop invoke didn't return text
-    if (!text) {
-      try {
-        const webText = await navigator.clipboard?.readText();
-        if (webText && typeof webText === 'string') {
-          text = webText.trim();
-        }
-      } catch {
-        /* permission dismissed or blocked */
-      }
-    }
-
+    const text = await nativeReadClipboardText();
     if (text) {
       if (tab === 'single') {
         handleUrlChange(text);

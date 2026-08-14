@@ -1771,6 +1771,67 @@ fn desktop_read_clipboard() -> Result<String, String> {
     }
 }
 
+#[tauri::command]
+fn desktop_write_clipboard(text: String) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        extern "system" {
+            fn OpenClipboard(h_wnd: *mut std::ffi::c_void) -> i32;
+            fn CloseClipboard() -> i32;
+            fn EmptyClipboard() -> i32;
+            fn SetClipboardData(u_format: u32, h_mem: *mut std::ffi::c_void) -> *mut std::ffi::c_void;
+            fn GlobalAlloc(u_flags: u32, dw_bytes: usize) -> *mut std::ffi::c_void;
+            fn GlobalLock(h_mem: *mut std::ffi::c_void) -> *mut u16;
+            fn GlobalUnlock(h_mem: *mut std::ffi::c_void) -> i32;
+            fn GlobalFree(h_mem: *mut std::ffi::c_void) -> *mut std::ffi::c_void;
+        }
+
+        const CF_UNICODETEXT: u32 = 13;
+        const GMEM_MOVEABLE: u32 = 0x0002;
+
+        unsafe {
+            if OpenClipboard(std::ptr::null_mut()) == 0 {
+                return Err("Failed to open clipboard".to_string());
+            }
+
+            EmptyClipboard();
+
+            let utf16: Vec<u16> = text.encode_utf16().chain(std::iter::once(0)).collect();
+            let bytes_len = utf16.len() * std::mem::size_of::<u16>();
+
+            let h_mem = GlobalAlloc(GMEM_MOVEABLE, bytes_len);
+            if h_mem.is_null() {
+                CloseClipboard();
+                return Err("Failed to allocate global memory".to_string());
+            }
+
+            let ptr = GlobalLock(h_mem);
+            if ptr.is_null() {
+                GlobalFree(h_mem);
+                CloseClipboard();
+                return Err("Failed to lock global memory".to_string());
+            }
+
+            std::ptr::copy_nonoverlapping(utf16.as_ptr(), ptr, utf16.len());
+            GlobalUnlock(h_mem);
+
+            if SetClipboardData(CF_UNICODETEXT, h_mem).is_null() {
+                GlobalFree(h_mem);
+                CloseClipboard();
+                return Err("Failed to set clipboard data".to_string());
+            }
+
+            CloseClipboard();
+            Ok(())
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = text;
+        Ok(())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1781,6 +1842,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             desktop_read_clipboard,
+            desktop_write_clipboard,
             app_toggle_devtools,
             app_open_devtools,
             app_close_devtools,

@@ -27,6 +27,7 @@ import { buildTelegramMessageUrl } from '../../../lib/telegram/utils/telegramMes
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
+import { nativeWriteClipboardText } from '../../../lib/tauri/desktopClipboard';
 import {
   getCachedThumb,
   getCachedSaverThumb,
@@ -299,24 +300,16 @@ export function TelegramMessagePreviewModal({
 
   const handleCopyCaption = async () => {
     if (!captionText) return;
-    try {
-      await navigator.clipboard.writeText(captionText);
-      setCopiedCaption(true);
-      setTimeout(() => setCopiedCaption(false), 2000);
-    } catch (err) {
-      console.error('[TelegramMessagePreviewModal] Copy text failed:', err);
-    }
+    await nativeWriteClipboardText(captionText);
+    setCopiedCaption(true);
+    setTimeout(() => setCopiedCaption(false), 2000);
   };
 
   const handleCopyLink = async () => {
     if (!tgUrl) return;
-    try {
-      await navigator.clipboard.writeText(tgUrl);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2000);
-    } catch (err) {
-      console.error('[TelegramMessagePreviewModal] Copy link failed:', err);
-    }
+    await nativeWriteClipboardText(tgUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
   };
 
   const handleOpenTelegram = async () => {
