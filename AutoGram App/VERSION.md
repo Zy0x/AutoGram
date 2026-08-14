@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.19
+AutoGram Version: v3.5.20
 
 Current State:
+v3.5.20 Strict Single Active Hover Highlight & Bounded Bridge Engine — membenahi `DriveContextMenu.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki munculnya 2 highlight hover secara bersamaan (misal: "Preview" dan "Telegram") dengan menerapkan aturan CSS scoped exclusivity `.drive-context-menu:not(.has-active-submenu) button:hover` dan `.drive-context-menu.has-active-submenu .drive-context-submenu.is-open > button`. Membatasi jembatan hover tak kasat mata (`top: 0; bottom: 0; left: -20px; width: 24px;`) agar tidak mencuat ke atas/bawah menu tetangga, serta menyetel delay switch kursor ke 200ms.
+
+Previous:
 v3.5.19 Seamless Zero-Flicker Submenu Hover & 280ms Intent Buffer Engine — membenahi `DriveContextMenu.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Menghilangkan persaingan timer (*competing timers*) dan lonjakan posisi (*layout shift jumps*) dengan menyatukan arsitektur state submenu ke satu *Centralized Submenu Coordinator* tunggal. Menerapkan *intent buffer* 280ms saat kursor bergerak melintasi item lain, menghilangkan celah fisik dengan overlap 2px (`left: calc(100% - 2px)`), memperluas jembatan hover tak kasat mata (*invisible hover bridge*) hingga 32px (`top/bottom: -16px`), dan menghapus kalkulasi posisi asinkronus yang memicu pergeseran kursor.
 
 Previous:

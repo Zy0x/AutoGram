@@ -5046,8 +5046,11 @@ video.drive-preview-media {
   vertical-align: middle;
 }
 
-.drive-context-menu button:hover {
+.drive-context-menu:not(.has-active-submenu) button:hover,
+.drive-context-menu.has-active-submenu .drive-context-submenu.is-open > button,
+.drive-context-submenu-flyout button:hover {
   background: rgba(255, 174, 0, 0.12);
+  color: var(--td-text, #fff);
 }
 
 .drive-context-menu button.danger {
@@ -5080,15 +5083,9 @@ video.drive-preview-media {
   transition: opacity 140ms ease, transform 140ms ease;
 }
 
-.drive-context-submenu > button:hover .drive-context-submenu-arrow,
+.drive-context-submenu:hover > button .drive-context-submenu-arrow,
 .drive-context-submenu.is-open > button .drive-context-submenu-arrow {
   opacity: 1;
-}
-
-.drive-context-submenu:hover > button,
-.drive-context-submenu.is-open > button {
-  background: rgba(255, 174, 0, 0.12);
-  color: var(--td-text, #fff);
 }
 
 .drive-context-submenu-flyout {
@@ -5114,20 +5111,20 @@ video.drive-preview-media {
   right: calc(100% - 2px);
 }
 
-/* Generous invisible bridge so cursor moving across gap never loses hover */
+/* Invisible bridge strictly spanning horizontal gap without bleeding into upper/lower items */
 .drive-context-submenu-flyout::before {
   content: '';
   position: absolute;
-  top: -16px;
-  bottom: -16px;
-  left: -24px;
-  width: 32px;
+  top: 0;
+  bottom: 0;
+  left: -20px;
+  width: 24px;
   z-index: 1;
 }
 
 .drive-context-submenu.flyout-left .drive-context-submenu-flyout::before {
   left: auto;
-  right: -24px;
+  right: -20px;
 }
 
 .drive-context-submenu-flyout button {

@@ -284,7 +284,7 @@ export function DriveContextMenu({
 
   const submenuTimerRef = useRef<number | null>(null);
 
-  const scheduleCloseSubmenu = (delay = 280) => {
+  const scheduleCloseSubmenu = (delay = 200) => {
     if (submenuTimerRef.current) window.clearTimeout(submenuTimerRef.current);
     submenuTimerRef.current = window.setTimeout(() => {
       setActiveSubmenu(null);
@@ -304,7 +304,7 @@ export function DriveContextMenu({
   };
 
   const handleSubmenuClose = () => {
-    scheduleCloseSubmenu(280);
+    scheduleCloseSubmenu(200);
   };
 
   const aria =
@@ -455,7 +455,7 @@ export function DriveContextMenu({
       />
       <div
         ref={ref}
-        className="drive-context-menu"
+        className={`drive-context-menu${activeSubmenu ? ' has-active-submenu' : ''}`}
         style={{ top: pos.top, left: pos.left }}
         role="menu"
         aria-label={aria}

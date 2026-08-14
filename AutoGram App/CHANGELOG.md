@@ -1,3 +1,10 @@
+## v3.5.20 Strict Single Active Hover Highlight & Bounded Bridge Engine
+
+### Eksklusivitas Highlight Hover & Pembatasan Geometri Jembatan (`DriveContextMenu.tsx`, `App.css`)
+- **Scoped Exclusivity Highlight (`App.css`, `DriveContextMenu.tsx`)**: Mencegah terjadinya 2 item menu tersorot (*hovered*) secara bersamaan saat submenu terbuka (seperti "Preview" dan "Telegram"). Menambahkan penanda `.has-active-submenu` pada elemen menu induk dan menerapkan aturan CSS scoped sehingga saat submenu aktif, hanya tombol submenu aktif (`.drive-context-submenu.is-open > button`) dan item di dalam flyout (`.drive-context-submenu-flyout button:hover`) yang dapat memiliki latar belakang hover.
+- **Pembatasan Geometri Jembatan Hover (`App.css`)**: Mengatur batas vertikal jembatan tak kasat mata `::before` menjadi `top: 0; bottom: 0;` (sebelumnya meluas secara negatif ke atas/bawah), mencegah kursor memicu event pada tombol tetangga di atas atau di bawah saat bergerak menuju flyout submenu.
+- **Tuning Waktu Switch Intensional (200ms)**: Menyetel delay perpindahan hover ke 200ms untuk pengalaman navigasi yang responsif, mulus, dan presisi.
+
 ## v3.5.19 Seamless Zero-Flicker Submenu Hover & 280ms Intent Buffer Engine
 
 ### Konsolidasi Koordinator Submenu & Eliminasi Jitter Pergeseran Posisi (`DriveContextMenu.tsx`, `App.css`)
