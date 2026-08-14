@@ -1,3 +1,9 @@
+## v3.5.26 Dual Action Move & Copy Context Menu Engine
+
+### Penyesuaian Menu Konteks Berkas (`DriveContextMenu.tsx`, `speedtest.json`)
+- **Pembaruan Label Menu Aksi Salin/Pindah**: Mengubah label menu konteks file dari `Move to…` menjadi `Copy/Move to…` (Bahasa Indonesia: `Salin/Pindah ke…`) untuk merefleksikan alur tujuan transfer yang mendukung penyalinan dan pemindahan berkas.
+- **100% Zero Hardcoded Strings & Parity**: Seluruh key `ctx_menu_move` telah diperbarui identik pada `en/speedtest.json` dan `id/speedtest.json`.
+
 ## v3.5.25 Clean Unified Back Navigation & De-duplicated Topic Header
 
 ### Eliminasi Tombol Redundan & Pemusatan Navigasi Topik (`DriveDestinationPicker.tsx`)

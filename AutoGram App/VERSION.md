@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.25
+AutoGram Version: v3.5.26
 
 Current State:
+v3.5.26 Dual Action Move & Copy Context Menu Engine — membenahi `DriveContextMenu.tsx`, `src/locales/en/speedtest.json`, `src/locales/id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Memperbarui label menu aksi berkas dari sebelumnya *"Move to…"* menjadi *"Copy/Move to…"* (*"Salin/Pindah ke…"*) untuk merefleksikan kapabilitas multimodal pengiriman, penyalinan (*copy/forward*), dan pemindahan (*move*) berkas ke berbagai folder Drive, Saved Messages, chat, maupun topik forum Telegram.
+
+Previous:
 v3.5.25 Clean Unified Back Navigation & De-duplicated Topic Header — membenahi `DriveDestinationPicker.tsx`, `src/locales/en/speedtest.json`, `src/locales/id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Menghilangkan tombol kembali redundan (*duplicate back buttons*) pada header sub-tampilan topik forum. Memusatkan aksi kembali secara elegan pada satu tombol header kiri interaktif `ArrowLeft` (`is-back-btn`), sembari menyajikan deskripsi bantuan yang bersih dan komunikatif (`select_topic_desc`) di bawah judul modal.
 
 Previous:

@@ -680,7 +680,7 @@
   "ctx_menu_download": "Unduh",
   "ctx_menu_copy_id": "Salin ID",
   "ctx_menu_rename": "Ganti nama",
-  "ctx_menu_move": "Pindah ke…",
+  "ctx_menu_move": "Salin/Pindah ke…",
   "ctx_menu_delete": "Hapus",
   "ctx_menu_create_subfolder": "Buat folder di sini",
   "ctx_menu_refresh": "Muat ulang",

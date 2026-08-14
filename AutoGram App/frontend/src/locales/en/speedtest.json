@@ -680,7 +680,7 @@
   "ctx_menu_download": "Download",
   "ctx_menu_copy_id": "Copy ID",
   "ctx_menu_rename": "Rename",
-  "ctx_menu_move": "Move to…",
+  "ctx_menu_move": "Copy/Move to…",
   "ctx_menu_delete": "Delete",
   "ctx_menu_create_subfolder": "Create folder here",
   "ctx_menu_refresh": "Refresh",
