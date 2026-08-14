@@ -81,11 +81,23 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
   const [topicId, setTopicId] = useState<number | null>(state?.initialTopicId ?? null);
   const [groupAsAlbum, setGroupAsAlbum] = useState<boolean>(state?.initialGroupAsAlbum ?? true);
 
+  const isFirstOpen = useRef(true);
+
   useEffect(() => {
-    if (!open || !state) return;
-    setMoveMode('move');
-    setTopicId(state.initialTopicId ?? null);
-    setGroupAsAlbum(state.initialGroupAsAlbum ?? true);
+    if (!open || !state) {
+      isFirstOpen.current = true;
+      return;
+    }
+    if (isFirstOpen.current) {
+      isFirstOpen.current = false;
+      setMoveMode('move');
+      setTopicId(state.initialTopicId ?? null);
+      setGroupAsAlbum(state.initialGroupAsAlbum ?? true);
+    } else {
+      if (state.initialTopicId != null) {
+        setTopicId((prev) => (prev == null ? state.initialTopicId ?? null : prev));
+      }
+    }
     const t = window.setTimeout(() => confirmRef.current?.focus(), 50);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {

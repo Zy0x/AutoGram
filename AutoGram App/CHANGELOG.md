@@ -1,3 +1,10 @@
+## v3.5.31 Precision Topic Destination & Non-Destructive Clipboard Persistence
+
+### Presisi Topik Tujuan Paste & Persistensi Clipboard Non-Destruktif (`MediaStudio/index.tsx`, `DriveConfirmDialog.tsx`)
+- **Presisi Topik Tujuan pada Operasi Paste (`Ctrl+V` / *"Paste Here"*)**: Saat pengguna menekan *"Paste Here"* atau shortcut `Ctrl+V` di dalam forum/grup yang sedang membuka topik spesifik (`topicFilter`), dialog konfirmasi kini otomatis membaca topik aktif tersebut sebagai `initialTopicId` dan mencantumkan nama topiknya (`#NamaTopik`) pada target label, sehingga media langsung terarah ke topik yang tepat dan tidak lagi salah kembali ke General chat.
+- **Pemuatan Instan Daftar Topik dari State Lokal**: Saat menempel di lokasi aktif yang sama, daftar topik langsung dimuat dari memori lokal (`topics`) tanpa jeda asynchronous tambahan.
+- **Persistensi Clipboard Aman (*Non-Destructive Life-cycle*)**: Membatalkan dialog konfirmasi (baik melalui tombol *"Cancel"*, tombol *"X"* modal, maupun tombol `Escape`) tidak lagi menghapus status seleksi papan klip secara prematur. Papan klip tetap aktif dan hanya dibatalkan jika pengguna secara eksplisit menekan tombol **"X"** pada bilah aksi mengambang (*floating bar*) atau setelah aksi pemindahan (*Move*) berhasil terkonfirmasi dieksekusi.
+
 ## v3.5.30 Reactive Clipboard Store & Visual Cut/Copy Indicators
 
 ### Indikator Visual Kartu Media & Floating Clipboard Action Bar (`drivePower.ts`, `DriveFileCard.tsx`, `DriveFileListItem.tsx`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json`)

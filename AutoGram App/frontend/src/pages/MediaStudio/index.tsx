@@ -6357,10 +6357,6 @@ function MediaDriveDesktop({
           closeDrawer();
           return;
         }
-        if (getDriveClipboard()) {
-          setDriveClipboard(null);
-          return;
-        }
         clearSelection();
         setError(null);
         return;
@@ -6713,6 +6709,11 @@ function MediaDriveDesktop({
                   topicId: meta?.topicId ?? null as number | null,
                   groupAsAlbum: transferSettings.groupAsAlbum !== false,
                 };
+          const clip = getDriveClipboard();
+          if (clip && clip.mode === 'cut') {
+            const hasAnyCut = messageIds.some((id) => clip.messageIds.includes(id));
+            if (hasAnyCut) setDriveClipboard(null);
+          }
           void moveMessageIds(messageIds, fromFolderId, toFolderId, targetLabel, {
             deleteSource: moveChoice.mode !== 'copy',
             topicId: moveChoice.topicId ?? meta?.topicId ?? null,
@@ -6726,8 +6727,11 @@ function MediaDriveDesktop({
         openDriveMoveConfirm(s);
         setConfirmDlg(s);
       };
-      const initialTopicLoading = toFolderId != null && maybeNeedsTopics && !isForum;
-      openMoveDlg(buildState([], isForum, initialTopicLoading));
+      const initialTopicsList = toFolderId === peerId && topics.length > 0 ? topics : [];
+      const initialForum = isForum || initialTopicsList.length > 0;
+      const initialTopicLoading =
+        toFolderId != null && maybeNeedsTopics && !initialForum && initialTopicsList.length === 0;
+      openMoveDlg(buildState(initialTopicsList, initialForum, initialTopicLoading));
       setStatusText(t('nav.status_idle'));
       try {
         (window as unknown as { __lastMoveReq?: Record<string, unknown> }).__lastMoveReq = {
@@ -6741,7 +6745,7 @@ function MediaDriveDesktop({
         /* ignore */
       }
 
-      if (toFolderId != null && maybeNeedsTopics) {
+      if (toFolderId != null && maybeNeedsTopics && initialTopicsList.length === 0) {
         try {
           const res = await driveListTopics(creds, toFolderId);
           const topicsList = (res?.topics || []) as DriveTopic[];
@@ -6752,9 +6756,18 @@ function MediaDriveDesktop({
         }
       }
     },
-    // moveMessageIds closes over latest state; openTransferManager stable enough
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [creds, files, chats, transfer.active, openTransferManager]
+    [
+      creds,
+      files,
+      chats,
+      topics,
+      peerId,
+      transfer.active,
+      transferSettings,
+      moveMessageIds,
+      openTransferManager,
+      t,
+    ]
   );
 
   const openMoveDestinationPicker = useCallback(
@@ -6784,7 +6797,7 @@ function MediaDriveDesktop({
         },
       });
     },
-    [creds, peerId, buildMoveDestinations, requestMoveToTarget]
+    [creds, peerId, buildMoveDestinations, requestMoveToTarget, t]
   );
 
   const handleMove = (file: DriveFile) => {
@@ -6846,16 +6859,23 @@ function MediaDriveDesktop({
   const requestMoveToTargetRef = useRef(requestMoveToTarget);
   requestMoveToTargetRef.current = requestMoveToTarget;
   pasteMoveRef.current = (clip) => {
-    const label =
+    const currentTopicId =
+      topicFilterRef.current != null && Number(topicFilterRef.current) > 0
+        ? Number(topicFilterRef.current)
+        : null;
+    const currentTopic = currentTopicId ? topics.find((tp) => tp.id === currentTopicId) : null;
+    let baseLabel =
       locationKind === 'saved'
         ? 'Saved Messages'
         : folders.find((f) => f.id === activePeerId)?.name ||
           chats.find((c) => c.id === activePeerId)?.name ||
           'Lokasi ini';
-    void requestMoveToTarget(clip.messageIds, clip.fromFolderId, peerId, label, {
-      isForum: isForumChat,
-    }).then(() => {
-      if (clip.mode === 'cut') setDriveClipboard(null);
+    if (currentTopic?.title) {
+      baseLabel = `${baseLabel} (#${currentTopic.title})`;
+    }
+    void requestMoveToTarget(clip.messageIds, clip.fromFolderId, peerId, baseLabel, {
+      isForum: isForumChat || !!currentTopicId,
+      topicId: currentTopicId,
     });
   };
   runMoveCopyRef.current = (messageIds, fromFolderId, toFolderId, targetLabel, opts) => {

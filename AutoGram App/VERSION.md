@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.30
+AutoGram Version: v3.5.31
 
 Current State:
+v3.5.31 Precision Topic Destination & Non-Destructive Clipboard Persistence — membenahi `MediaStudio/index.tsx`, `DriveConfirmDialog.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki penentuan topik tujuan saat melakukan tempel media (*Paste Here* / `Ctrl+V`) di dalam grup/forum dengan topik aktif, sehingga dialog konfirmasi otomatis memilih topik tujuan yang sedang dibuka (`topicFilter`) bukan kembali ke General. Memperbaiki siklus hidup clipboard: membatalkan dialog konfirmasi (Cancel / Esc / X modal) kini mempertahankan seleksi papan klip secara aman (*non-destructive*), dan clipboard hanya dibatalkan jika pengguna secara eksplisit menekan tombol **"X"** pada bilah aksi mengambang (*floating bar*) atau saat aksi pemindahan berkas telah terkonfirmasi dieksekusi.
+
+Previous:
 v3.5.30 Reactive Clipboard Store & Visual Cut/Copy Indicators — membenahi `drivePower.ts`, `DriveFileCard.tsx`, `DriveFileListItem.tsx`, `MediaStudio/index.tsx`, `App.css`, `src/locales/en/speedtest.json`, `src/locales/id/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Mengubah internal clipboard store menjadi *reactive external store* dengan `useSyncExternalStore` & `useDriveClipboard`. Memberikan indikator visual instan pada kartu media (grid & list) saat dieksekusi `Ctrl+X` (Cut: efek *semi-transparent dashed amber border* + badge `Cut`) atau `Ctrl+C` (Copy: *violet glow pulse border* + badge `Copy`). Menyediakan *floating action bar* modern di bagian bawah layar untuk aksi cepat *"Tempel di Sini"* (Ctrl+V) & *"Batal"* (Esc) serta integrasi pembersihan clipboard via tombol `Escape`.
 
 Previous:
