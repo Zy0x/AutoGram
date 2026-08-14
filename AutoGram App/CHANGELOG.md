@@ -1,3 +1,11 @@
+## v3.5.28 Smart Album Batching & Zero-Forward Clean Copy/Move Engine
+
+### Pengelompokan Album Cerdas & Salin Bersih Tanpa Header Forward (`driveFilesApi.ts`, `MediaStudio/index.tsx`)
+- **Pengelompokan Batch Media / Album Cerdas (Max 10 per Album)**: Berkas yang disalin/dipindahkan kini dikirim dalam paket grup album Telegram (hingga 10 berkas per album batch), menghasilkan tampilan rapi dan terkumpul di chat atau topik forum tujuan.
+- **Clean Copy Tanpa Label *"Forwarded from"***: Mengaktifkan `drop_author: true` pada layer backend Rust + Grammers MTProto sehingga berkas tiba secara bersih layaknya pesan asli.
+- **Keamanan Data 2-Fase pada Mode Move**: Pada operasi pindah (`Move`), penghapusan pesan sumber di chat asal dijamin hanya dieksekusi setelah server Telegram mengonfirmasi pesan baru berhasil terkirim di chat tujuan.
+- **Graceful Fallback Otomatis**: Jika paket album mengalami penolakan (misal karena batasan format file campuran), sistem secara otomatis beralih memindahkan file per-item tanpa membatalkan transfer dan tanpa kehilangan data.
+
 ## v3.5.27 Horizontal Drag Scroll & Topic Strip Auto-Scroll Engine
 
 ### Dukungan Scroll Horizontal & Auto-Scroll Saat Drag Media ke Bilah Topik Forum (`useTopicDrop.ts`, `DriveTopBar.tsx`, `App.css`)

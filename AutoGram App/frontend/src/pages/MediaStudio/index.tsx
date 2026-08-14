@@ -6480,8 +6480,9 @@ function MediaDriveDesktop({
     let done = 0;
     const failed: string[] = [];
     let cancelled = false;
+    const BATCH_SIZE = 10;
     try {
-      for (let i = 0; i < messageIds.length; i++) {
+      for (let i = 0; i < messageIds.length; i += BATCH_SIZE) {
         if (moveAbortRef.current?.cancelled) {
           cancelled = true;
           // Mark remaining as cancelled
@@ -6495,44 +6496,83 @@ function MediaDriveDesktop({
           });
           break;
         }
-        const id = messageIds[i];
-        setTransfer((t) =>
-          applyTransferEvent(t, {
-            type: 'StudioItemStarted',
-            index: i,
-            path: moveNames[i],
-          })
-        );
+
+        const batchIds = messageIds.slice(i, i + BATCH_SIZE);
+        // Mark all items in this batch as started
+        setTransfer((t) => {
+          let cur = t;
+          for (let j = 0; j < batchIds.length; j++) {
+            cur = applyTransferEvent(cur, {
+              type: 'StudioItemStarted',
+              index: i + j,
+              path: moveNames[i + j],
+            });
+          }
+          return cur;
+        });
+
+        // 1. Try batch / album forward (clean copy, drop_author: true, grouped)
         try {
-          await driveMove(creds, id, fromFolderId, toFolderId, {
+          await driveMove(creds, batchIds, fromFolderId, toFolderId, {
             deleteSource,
             topicId,
           });
-          done += 1;
-          setTransfer((t) =>
-            applyTransferEvent(t, {
-              type: 'StudioItemDone',
-              index: i,
-              status: 'done',
-              messageId: id,
-              message_id: id,
-            })
-          );
-        } catch (e: any) {
-          failed.push(`${id}: ${e?.message || e}`);
-          setTransfer((t) =>
-            applyTransferEvent(t, {
-              type: 'StudioItemDone',
-              index: i,
-              status: 'failed',
-              error: String(e?.message || e),
-            })
-          );
+          done += batchIds.length;
+          setTransfer((t) => {
+            let cur = t;
+            for (let j = 0; j < batchIds.length; j++) {
+              cur = applyTransferEvent(cur, {
+                type: 'StudioItemDone',
+                index: i + j,
+                status: 'done',
+                messageId: batchIds[j],
+                message_id: batchIds[j],
+              });
+            }
+            return cur;
+          });
+        } catch (batchErr: any) {
+          // 2. Graceful fallback: if batch fails (e.g. mixed media types), process individually
+          for (let j = 0; j < batchIds.length; j++) {
+            if (moveAbortRef.current?.cancelled) {
+              cancelled = true;
+              break;
+            }
+            const singleId = batchIds[j];
+            const itemIdx = i + j;
+            try {
+              await driveMove(creds, singleId, fromFolderId, toFolderId, {
+                deleteSource,
+                topicId,
+              });
+              done += 1;
+              setTransfer((t) =>
+                applyTransferEvent(t, {
+                  type: 'StudioItemDone',
+                  index: itemIdx,
+                  status: 'done',
+                  messageId: singleId,
+                  message_id: singleId,
+                })
+              );
+            } catch (e: any) {
+              failed.push(`${singleId}: ${e?.message || e}`);
+              setTransfer((t) =>
+                applyTransferEvent(t, {
+                  type: 'StudioItemDone',
+                  index: itemIdx,
+                  status: 'failed',
+                  error: String(e?.message || e),
+                })
+              );
+            }
+          }
         }
+
         setTransfer((t) => ({
           ...t,
-          overallPercent: Math.round((100 * (i + 1)) / messageIds.length),
-          transferred: i + 1,
+          overallPercent: Math.round((100 * Math.min(messageIds.length, i + batchIds.length)) / messageIds.length),
+          transferred: Math.min(messageIds.length, i + batchIds.length),
           total: messageIds.length,
         }));
       }

@@ -387,7 +387,7 @@ export type DriveMoveOpts = {
 
 export async function driveMove(
   creds: DriveCredentials,
-  messageId: number,
+  messageId: number | number[],
   fromFolderId: number | null,
   toFolderId: number | null,
   opts?: DriveMoveOpts
@@ -399,12 +399,14 @@ export async function driveMove(
   const sourceChat = fromFolderId == null ? 'me' : String(fromFolderId);
   const destChat =
     toFolderId === null || toFolderId === undefined ? 'me' : String(toFolderId);
+  const ids = Array.isArray(messageId) ? messageId : [messageId];
+  if (!ids.length) return { status: 'success', moved: 0, backend: 'grammers' };
   const gr = await tgMoveMessages({
     ...id,
     sourceChat,
     destChat,
     destTopicId: topicId,
-    messageIds: [messageId],
+    messageIds: ids,
     deleteSource,
   });
   if (!gr?.ok) {
@@ -412,7 +414,7 @@ export async function driveMove(
   }
   return {
     status: 'success',
-    moved: gr.data?.moved ?? 0,
+    moved: gr.data?.moved ?? ids.length,
     backend: 'grammers',
   };
 }
