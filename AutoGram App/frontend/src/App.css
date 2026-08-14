@@ -4772,6 +4772,201 @@ video.drive-preview-media {
   font-size: 0.72rem;
   color: #94a3b8;
 }
+.drive-preview-media-wrap.is-transformed .drive-preview-media {
+  max-width: 100%;
+  max-height: 100%;
+}
+.drive-preview-media-wrap.is-pannable .drive-preview-video,
+.drive-preview-media-wrap.is-dragging .drive-preview-video {
+  max-width: none;
+  max-height: none;
+}
+
+/* ── Preview modal: viewport + container responsive ── */
+@media (max-width: 1100px) {
+  .drive-preview-modal {
+    width: 100%;
+    height: min(96dvh, 96vh);
+    max-height: min(96dvh, 96vh);
+  }
+}
+@media (max-width: 900px) {
+  .drive-preview-overlay {
+    padding: 0;
+    align-items: stretch;
+    justify-content: stretch;
+  }
+  .drive-preview-modal {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+    border: 0;
+  }
+}
+@media (max-width: 640px), (max-height: 560px) {
+  .drive-preview-header {
+    padding: 6px 8px;
+    row-gap: 4px;
+  }
+  .drive-preview-toolbar {
+    padding: 4px 6px;
+  }
+  .drive-tool-group-label {
+    display: none;
+  }
+  .drive-tool-btn-label {
+    display: none; /* icon-only; title= keeps meaning */
+  }
+  .drive-tool-btn {
+    min-width: 32px;
+    min-height: 32px;
+    padding: 6px;
+    justify-content: center;
+  }
+  .drive-tool-btn-value .drive-tool-btn-label {
+    display: inline; /* keep "100%" visible */
+    font-size: 0.7rem;
+  }
+  .drive-preview-body {
+    padding: 2px;
+  }
+  .drive-stream-bar {
+    top: 6px;
+    max-width: min(260px, 86%);
+    height: 20px;
+    padding: 0 8px;
+  }
+  .drive-stream-label {
+    font-size: 0.6rem;
+    max-width: 220px;
+  }
+  .drive-quality-badge {
+    max-width: 3.25rem;
+    font-size: 0.62rem;
+  }
+}
+@media (max-width: 400px) {
+  .drive-preview-nav .td-icon-btn {
+    width: 30px;
+    height: 30px;
+  }
+  .drive-preview-info {
+    max-width: min(260px, 92%);
+    font-size: 0.68rem;
+    right: 4px;
+    bottom: 4px;
+  }
+}
+/* When modal itself is narrow (side-by-side / undocked window) */
+@container drive-preview (max-width: 520px) {
+  .drive-tool-group-label {
+    display: none;
+  }
+  .drive-tool-btn-label {
+    display: none;
+  }
+  .drive-tool-btn-value .drive-tool-btn-label {
+    display: inline;
+  }
+  .drive-preview-title strong {
+    font-size: 0.8rem;
+  }
+}
+
+/* YouTube-style playback quality menu */
+.drive-quality-wrap {
+  position: relative;
+}
+.drive-quality-btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+  min-width: auto;
+  padding: 0 8px !important;
+}
+.drive-resolution-btn {
+  border: 1px solid rgba(56, 189, 248, 0.28) !important;
+  background: rgba(14, 165, 233, 0.1) !important;
+}
+.drive-resolution-btn:hover {
+  background: rgba(14, 165, 233, 0.18) !important;
+}
+.drive-quality-badge {
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  color: #e2e8f0;
+  max-width: 5.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drive-resolution-menu {
+  min-width: min(300px, 82vw);
+}
+.drive-quality-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 100;
+  width: min(280px, 78vw);
+  padding: 8px 0 6px;
+  border-radius: 12px;
+  background: #0f172a;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  color: #f1f5f9;
+}
+.drive-quality-menu-title {
+  padding: 4px 12px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+}
+.drive-quality-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.drive-quality-item:hover {
+  background: rgba(56, 189, 248, 0.1);
+}
+.drive-quality-item.selected {
+  background: rgba(34, 197, 94, 0.12);
+}
+.drive-quality-item-check {
+  width: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #4ade80;
+}
+.drive-quality-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.drive-quality-item-body strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.drive-quality-item-body .drive-muted {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
 .drive-quality-tag {
   display: inline-block;
   padding: 1px 6px;
@@ -4840,6 +5035,15 @@ video.drive-preview-media {
   cursor: pointer;
   font-size: 0.88rem;
   text-align: left;
+}
+
+.drive-context-menu button svg,
+.drive-context-submenu-flyout button svg {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .drive-context-menu button:hover {

@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.17
+AutoGram Version: v3.5.18
 
 Current State:
+v3.5.18 Submenu Visual Parity & SVG Icon Sizing Engine — membenahi `DriveContextMenu.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki hilangnya icon pada opsi "Open message in Telegram" dengan menyematkan icon otentik Telegram `<Send size={14} />` (pesawat kertas Telegram), serta menambahkan aturan CSS global `.drive-context-menu button svg, .drive-context-submenu-flyout button svg` (`width/height: 14px`, `flex-shrink: 0`, `vertical-align: middle`) agar seluruh icon submenu tampil seragam dan tidak terpotong.
+
+Previous:
 v3.5.17 Rock-Solid Submenu Hover Debounce & Precise Positioning Engine — membenahi `DriveContextMenu.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki hilangnya submenu (*flicker/premature closure*) saat kursor pengguna bergerak secara diagonal melintasi item menu di sekitarnya. Mengganti penutupan instan dengan pengelola penundaan niat (*intent debounce timer* 140ms pada regular items dan 180ms pada leave), memperbesar area jembatan tak kasat mata (*invisible hover bridge* dari 12px ke 28px dengan proteksi sumbu Y `top/bottom: -14px`), serta menyelaraskan ketinggian vertikal flyout submenu (`top: -4px`) dengan deteksi viewport dinamis berbasis tinggi elemen aktual.
 
 Previous:

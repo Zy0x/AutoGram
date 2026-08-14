@@ -23,6 +23,7 @@ import {
   Pin,
   PinOff,
   ChevronRight,
+  Send,
 } from 'lucide-react';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
 import { driveFileDisplayName } from '../../../lib/telegram/driveTypes';
@@ -400,7 +401,7 @@ export function DriveContextMenu({
               })
             }
           >
-            <ExternalLink size={14} />
+            <Send size={14} />
             <span>{t('speedtest.ctx_menu_open_tg')}</span>
           </button>
           <button
@@ -429,7 +430,7 @@ export function DriveContextMenu({
           style={{ opacity: 0.5, cursor: 'not-allowed' }}
           title={t('speedtest.ctx_menu_tg_link_unavailable')}
         >
-          <ExternalLink size={14} />
+          <Send size={14} />
           <span>{t('speedtest.ctx_menu_tg_link_unavailable')}</span>
         </button>
       )}

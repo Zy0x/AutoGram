@@ -1,3 +1,9 @@
+## v3.5.18 Submenu Visual Parity & SVG Icon Sizing Engine
+
+### Penyempurnaan Ikon Submenu Telegram & Aturan SVG Global (`DriveContextMenu.tsx`, `App.css`)
+- **Ikon Otentik Telegram pada "Open message in Telegram" (`DriveContextMenu.tsx`)**: Menyematkan ikon pesawat kertas khas Telegram `<Send size={14} />` pada tombol buka pesan Telegram di submenu Telegram Hub, memastikan seluruh item menu (Preview message, Open message in Telegram, Copy Telegram link) memiliki ikon visual yang lengkap dan sejajar.
+- **Standarisasi Ukuran & Alignment Ikon SVG (`App.css`)**: Menambahkan aturan styling eksplisit untuk `.drive-context-menu button svg, .drive-context-submenu-flyout button svg` (`width: 14px; height: 14px; flex-shrink: 0; display: inline-block; vertical-align: middle;`) sehingga seluruh ikon di menu konteks maupun flyout submenu tampil proporsional dan tidak pernah menyusut atau hilang.
+
 ## v3.5.17 Rock-Solid Submenu Hover Debounce & Precise Positioning Engine
 
 ### Eliminasi Flicker & Presisi Hover Submenu Hub (`DriveContextMenu.tsx`, `App.css`)
