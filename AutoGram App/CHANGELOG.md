@@ -1,3 +1,14 @@
+## v3.7.10 Native Forum Topic Title Resolution & Dynamic Polling (Phase 11)
+
+### 1. Resolusi Otomatis Nama Asli Topik Forum Telegram
+- **Dynamic Topic Title Fetcher (`RemoteUploadModal.tsx`, `DriveDestinationPicker.tsx`)**:
+  - Menambahkan resolver dinamis `driveListTopics(creds, chatId)` di latar belakang modal saat forum topic ID aktif terdeteksi tetapi nama aslinya belum termuat.
+  - Mengubah penampilan ID numerik (`# Topik #43421`) menjadi nama asli topik forum Telegram secara instan dan mulus.
+  - Memperbaiki parsing badge topik agar membersihkan simbol tagar ganda menjadi satu badge `# <Nama Asli Topik>`.
+- **Verifikasi Kualitas**:
+  - 146 unit test Vitest lulus 100%.
+  - 4.827 kunci kamus i18n sinkron sempurna (0 hardcoded, 0 missing).
+
 ## v3.7.9 Dynamic Destination Topic Badge & Forum Integration (Phase 10)
 
 ### 1. Penampilan & Integrasi Topik Forum pada Destinasi Unggah

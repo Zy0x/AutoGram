@@ -29,6 +29,7 @@ import {
 import type { DriveDestChoice, DriveDestPickerState } from './DriveDestinationPicker';
 import { DriveDestinationPicker } from './DriveDestinationPicker';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi/driveApiUtils';
+import { driveListTopics } from '../../../lib/telegram/driveApi/driveFoldersApi';
 import { PeerAvatar } from '../Navigation/sidebarUtils';
 import { formatDriveBytes } from '../../../lib/telegram/driveTypes';
 import { nativeReadClipboardText } from '../../../lib/tauri/desktopClipboard';
@@ -214,6 +215,41 @@ export function RemoteUploadModal({
     }
     prevIsOpenRef.current = isOpen;
   }, [isOpen, currentDestination, transferSettings]);
+
+  useEffect(() => {
+    if (
+      isOpen &&
+      selectedDest.isForum &&
+      selectedDest.id != null &&
+      selectedDest.topicId != null &&
+      (!selectedDest.topicName ||
+        selectedDest.topicName.startsWith('Topik #') ||
+        selectedDest.topicName.startsWith('Topic #') ||
+        selectedDest.topicName.startsWith('Topik ')) &&
+      creds
+    ) {
+      let active = true;
+      driveListTopics(creds, selectedDest.id)
+        .then((res) => {
+          if (!active || !res?.topics) return;
+          const found = res.topics.find((t: any) => Number(t.id) === Number(selectedDest.topicId));
+          if (found?.title) {
+            setSelectedDest((prev) => {
+              if (Number(prev.topicId) === Number(selectedDest.topicId)) {
+                return { ...prev, topicName: found.title };
+              }
+              return prev;
+            });
+          }
+        })
+        .catch(() => {
+          /* fallback */
+        });
+      return () => {
+        active = false;
+      };
+    }
+  }, [isOpen, selectedDest.id, selectedDest.topicId, selectedDest.isForum, selectedDest.topicName, creds]);
 
   useEffect(() => {
     if (!isOpen || pickerOpen) return;

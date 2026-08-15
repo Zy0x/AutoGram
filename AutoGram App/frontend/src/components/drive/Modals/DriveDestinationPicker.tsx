@@ -288,7 +288,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
                       pick({
                         ...topicSubView.choice,
                         topicId: topic.id,
-                        topicName: topic.title || `Topik #${topic.id}`,
+                        topicName: topic.title || (topic.id === 1 ? 'General' : `Topik ${topic.id}`),
                       })
                     }
                   >
@@ -296,7 +296,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
                       <Hash size={15} />
                     </span>
                     <span className="td-dest-label">
-                      {topic.title || `Topik ${topic.id}`}
+                      {topic.title || (topic.id === 1 ? t('speedtest.forum_topic_general_all') : `Topik ${topic.id}`)}
                     </span>
                     {topic.closed && <span className="td-dest-badge">{t('speedtest.topic_closed')}</span>}
                   </button>
