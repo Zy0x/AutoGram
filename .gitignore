@@ -163,7 +163,19 @@ AutoGram App/worker/**/__pycache__/
 AutoGram App/worker/temp_*.mp4
 AutoGram App/worker/_ff_*.py
 AutoGram App/rustup-init.exe
-AutoGram App/frontend/src-tauri/target/
 AutoGram App/src-tauri/target/
+
+# Local Dev Artifacts & MCP Tooling
+graphify-out/
+mcps/
+*.grammers.json
+*.session.json
+**/sessions/
+worker/sessions/
+AutoGram App/worker/sessions/
+
+# Raw audit logs & evidence
+docs/**/evidence/
+docs/**/raw/
 
 
