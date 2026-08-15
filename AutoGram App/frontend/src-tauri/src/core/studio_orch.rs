@@ -321,6 +321,9 @@ fn persist_upload_ledger_binding(
     let Some(source_item) = rec.items.iter().find(|item| item.index == item_index) else {
         return;
     };
+    if media_prep::is_remote_url(&source_item.path) {
+        return;
+    }
     let source_path = std::path::Path::new(&source_item.path);
     let source_identity =
         super::autogram_core::transfer::sha256_file(source_path).and_then(|sha256| {
