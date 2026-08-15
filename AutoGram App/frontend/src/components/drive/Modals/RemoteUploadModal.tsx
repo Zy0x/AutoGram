@@ -604,6 +604,34 @@ export function RemoteUploadModal({
 
       setSubmitting(true);
       try {
+        const expandedBatchUrls: string[] = [];
+        for (const singleUrl of batchUrls) {
+          const lower = singleUrl.toLowerCase();
+          if (
+            lower.includes('tiktok.com') ||
+            lower.includes('douyin.com') ||
+            lower.includes('youtube.com') ||
+            lower.includes('youtu.be') ||
+            lower.includes('pinterest.com')
+          ) {
+            try {
+              const res = await resolveRemoteMediaUrl(singleUrl);
+              if (res.albumImages && res.albumImages.length > 0) {
+                // Expand slideshow to all high-definition photos in the album pack
+                expandedBatchUrls.push(...res.albumImages);
+                continue;
+              } else if (res.formats && res.formats.length > 0) {
+                // Use highest peak quality master stream
+                expandedBatchUrls.push(res.formats[0].directUrl);
+                continue;
+              }
+            } catch {
+              // fallback to raw url
+            }
+          }
+          expandedBatchUrls.push(singleUrl);
+        }
+
         const effectiveQualityMode =
           deliveryMode === 'uncompressed'
             ? 'ORIGINAL'
@@ -617,7 +645,7 @@ export function RemoteUploadModal({
               ? 'original'
               : 'standard';
 
-        await onUpload(batchUrls, selectedDest, {
+        await onUpload(expandedBatchUrls, selectedDest, {
           asDocument: deliveryMode === 'document',
           qualityMode: effectiveQualityMode,
           presentationOverride: effectivePresentation,

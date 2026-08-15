@@ -1,3 +1,14 @@
+## v3.7.14 Batch Remote Upload Peak Stream & Slideshow Auto-Expansion (Phase 15)
+
+### 1. Otomatisasi Kualitas Puncak & Ekstraksi Full Album Slideshow pada Remote Batch
+- **Batch Preflight Stream Intelligence (`RemoteUploadModal.tsx`)**:
+  - Mengintegrasikan resolusi dinamis pra-pengiriman pada tab Batch URLs:
+    - **Video Stream**: Secara otomatis mengambil dan mengekstrak *Peak Quality Master Stream* (`hdplay`, `a=0`) tanpa watermark untuk seluruh tautan video sosial (TikTok, YouTube, Pinterest, dsb.).
+    - **Slideshow Album Foto**: Secara otomatis mendeteksi jika URL merupakan album slideshow TikTok dan mengekspansi URL tersebut menjadi **seluruh berkas foto individual beresolusi tinggi (*uncompressed HD photos*)** sehingga semua foto dalam album terunggah lengkap ke Telegram Cloud.
+- **Verifikasi Kualitas**:
+  - 146 unit test Vitest lulus 100%.
+  - 4.835 kunci kamus i18n sinkron sempurna (0 hardcoded, 0 missing).
+
 ## v3.7.13 Drive TopBar View Controls Reordering (Phase 14)
 
 ### 1. Penyesuaian Tata Letak Toolbar Navigasi Drives
