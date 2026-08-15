@@ -713,7 +713,7 @@ export function isTopicScope(v: unknown): v is TopicScope {
 }
 
 export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
-  qualityMode: 'HIGH_QUALITY',
+  qualityMode: 'SMART',
   uploadConcurrency: 4,
   downloadConcurrency: 4,
   groupAsAlbum: false,
