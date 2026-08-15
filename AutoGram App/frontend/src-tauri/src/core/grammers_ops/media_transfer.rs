@@ -1512,6 +1512,7 @@ pub fn upload_file_blocking_topic_with_app(
                     .silent(silent)
                     .reply_to(reply_to);
                 // Prefer document for fidelity; video gets thumbnail + video attributes
+                // Prefer document for fidelity; video gets thumbnail + video attributes
                 msg = if as_document {
                     let mut doc_msg = msg.mime_type(mime).document(uploaded);
                     if is_video || is_image {
@@ -1799,7 +1800,7 @@ pub fn upload_file_blocking_topic_with_delivery(
                 }
 
                 msg = if as_document {
-                    let mut doc_msg = msg.mime_type("application/octet-stream").document(uploaded);
+                    let mut doc_msg = msg.mime_type(mime).document(uploaded);
                     if is_video || is_image {
                         let thumb_path = extract_video_thumbnail(path_str);
                         if let Some(ref tp) = thumb_path {

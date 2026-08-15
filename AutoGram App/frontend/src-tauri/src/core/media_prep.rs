@@ -320,7 +320,12 @@ fn sniff_actual_media_extension(path: &Path) -> Option<&'static str> {
                     return Some("wav");
                 }
                 // MP4 / MOV / M4V / 3GP (ftyp / moov / mdat)
-                if n >= 12 && (&magic[4..8] == b"ftyp" || &magic[4..8] == b"moov" || &magic[4..8] == b"mdat") {
+                if (n >= 8 && &magic[4..8] == b"ftyp")
+                    || (n >= 8 && &magic[4..8] == b"moov")
+                    || (n >= 8 && &magic[4..8] == b"mdat")
+                    || magic.starts_with(b"ftyp")
+                    || magic.starts_with(b"moov")
+                {
                     return Some("mp4");
                 }
                 // Matroska / WebM
@@ -354,6 +359,23 @@ fn sniff_actual_media_extension(path: &Path) -> Option<&'static str> {
 }
 
 fn ext_from_url_or_ctype(url: &str, ctype: &str) -> String {
+    let u_lower = url.to_ascii_lowercase();
+    if u_lower.contains("photomode-image") || u_lower.contains(".jpeg") || u_lower.contains(".jpg") {
+        return "jpg".into();
+    }
+    if u_lower.contains("ies-music") || u_lower.contains("/music/") {
+        return "mp3".into();
+    }
+    if u_lower.contains(".png") {
+        return "png".into();
+    }
+    if u_lower.contains(".webp") {
+        return "webp".into();
+    }
+    if u_lower.contains(".mp4") {
+        return "mp4".into();
+    }
+
     if let Some(path) = url.split('?').next() {
         if let Some(ext) = Path::new(path).extension().and_then(|s| s.to_str()) {
             let e = ext.to_ascii_lowercase();

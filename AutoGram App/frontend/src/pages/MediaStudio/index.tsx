@@ -5098,16 +5098,29 @@ function MediaDriveDesktop({
       (uploadPeer == null ? 'Saved Messages' : breadcrumb) ||
       'Drive';
     const label = `→ ${destLabel}`;
-    let names = cleanPaths.map((p) => {
-      if (opts?.customFilename && cleanPaths.length === 1) {
-        return opts.customFilename;
+    let names = cleanPaths.map((p, idx) => {
+      if (opts?.customFilename) {
+        if (cleanPaths.length === 1) {
+          return opts.customFilename;
+        }
+        const dotIdx = opts.customFilename.lastIndexOf('.');
+        if (dotIdx > 0) {
+          const base = opts.customFilename.substring(0, dotIdx);
+          const ext = opts.customFilename.substring(dotIdx);
+          return `${base}_${idx + 1}${ext}`;
+        }
+        return `${opts.customFilename}_${idx + 1}`;
       }
       if (p.startsWith('http://') || p.startsWith('https://')) {
         try {
           const u = new URL(p);
           const rawSegment = u.pathname.split('/').filter(Boolean).pop();
           if (rawSegment && !rawSegment.startsWith('?')) {
-            return decodeURIComponent(rawSegment);
+            const decoded = decodeURIComponent(rawSegment);
+            if (decoded.includes('.')) return decoded;
+            if (p.includes('photomode') || p.includes('image') || p.includes('avatar')) return `${decoded}.jpg`;
+            if (p.includes('music') || p.includes('audio')) return `${decoded}.mp3`;
+            return `${decoded}.mp4`;
           }
           return u.hostname || 'Remote_Stream.mp4';
         } catch {
