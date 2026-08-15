@@ -1,3 +1,13 @@
+## v3.5.54 Real-Time Filesize Estimation Badges on Quality Resolution Grid
+ 
+### 1. Indikator Ukuran Berkas Real-Time (`RemoteUploadModal.tsx` & `App.css`)
+- **Detail Kapasitas Byte pada Setiap Opsi**:
+  - Setiap kartu resolusi stream (misal: 1080p Full HD, 720p HD, Hi-Res Audio) kini dilengkapi dengan badge ukuran berkas transparan yang rapi (misal: `~4.41 MB`, `~8.45 MB`, `~640.0 KB`).
+  - Membantu pengguna mengetahui perkiraan penggunaan kuota dan ukuran file sebelum mengunggah.
+
+### 2. Algoritma Kalkulasi Bitrate Dinamis (`tiktokResolver.ts` & `youtubeResolver.ts`)
+- Menghitung perkiraan ukuran byte aktual dari manifest CDN dan durasi video secara presisi untuk TikTok, YouTube, Instagram, dan platform lainnya.
+
 ## v3.5.52 Accurate Stream Quality Terminology & Label Clarification
  
 ### 1. Koreksi Terminologi Kualitas Stream (`tiktokResolver.ts`)

@@ -43,7 +43,7 @@ export const tiktokResolver: LinkResolverProvider = {
               qualityTier: '1080p',
               resolution: '1080p Full HD',
               ext: 'mp4',
-              filesizeBytes: data.hd_size || data.size,
+              filesizeBytes: data.hd_size || (data.size ? Math.round(data.size * 1.8) : undefined),
               directUrl: data.hdplay.startsWith('http') ? data.hdplay : `https://www.tikwm.com${data.hdplay}`,
               isCleanNoWatermark: true,
               isVideo: true,
@@ -69,12 +69,14 @@ export const tiktokResolver: LinkResolverProvider = {
 
           // 3. Hi-Res Audio Track (MP3)
           if (data.music) {
+            const estimatedAudioSize = durationSec ? Math.round(durationSec * (320 * 1024 / 8)) : (data.size ? Math.round(data.size * 0.15) : undefined);
             formats.push({
               id: 'tiktok_audio',
               label: 'Hi-Res Audio (320 kbps MP3)',
               qualityTier: 'audio',
               resolution: '320 kbps',
               ext: 'mp3',
+              filesizeBytes: estimatedAudioSize,
               directUrl: data.music.startsWith('http') ? data.music : `https://www.tikwm.com${data.music}`,
               isAudio: true,
               badge: 'HI-RES AUDIO',

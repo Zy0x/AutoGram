@@ -697,9 +697,16 @@ export function RemoteUploadModal({
                           disabled={submitting}
                         >
                           <span className="td-remote-quality-chip-title">{fmt.label}</span>
-                          {fmt.badge && (
-                            <span className="td-remote-quality-chip-badge">{fmt.badge}</span>
-                          )}
+                          <div className="td-remote-quality-chip-meta">
+                            {fmt.badge && (
+                              <span className="td-remote-quality-chip-badge">{fmt.badge}</span>
+                            )}
+                            {fmt.filesizeBytes ? (
+                              <span className="td-remote-quality-chip-size">
+                                ~{formatDriveBytes(fmt.filesizeBytes)}
+                              </span>
+                            ) : null}
+                          </div>
                         </button>
                       );
                     })}

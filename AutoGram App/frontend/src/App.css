@@ -24660,15 +24660,43 @@ button.td-confirm-icon.is-back-btn:active {
   line-height: 1.2;
 }
 
+.td-remote-quality-chip-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 6px;
+  margin-top: 3px;
+}
+
 .td-remote-quality-chip-badge {
   font-size: 0.64rem;
   font-weight: 700;
   color: #38bdf8;
-  opacity: 0.85;
+  opacity: 0.9;
+}
+
+.td-remote-quality-chip-size {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+
+.td-remote-quality-chip.active .td-remote-quality-chip-size {
+  background: rgba(56, 189, 248, 0.22);
+  color: #e0f2fe;
 }
 
 .tier-8k .td-remote-quality-chip-badge { color: #fbbf24; }
 .tier-4k .td-remote-quality-chip-badge { color: #c084fc; }
+.tier-2k .td-remote-quality-chip-badge { color: #60a5fa; }
+.tier-1080p .td-remote-quality-chip-badge { color: #38bdf8; }
+.tier-720p .td-remote-quality-chip-badge { color: #818cf8; }
 .tier-audio .td-remote-quality-chip-badge { color: #34d399; }
 
 /* Remote URL Target Destination Selector Card */

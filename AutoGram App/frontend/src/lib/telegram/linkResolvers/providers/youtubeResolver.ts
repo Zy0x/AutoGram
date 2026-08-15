@@ -88,6 +88,7 @@ export const youtubeResolver: LinkResolverProvider = {
     const fallbackBaseUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
     if (formats.length === 0) {
+      const dur = durationSec || 180; // fallback standard 3 mins
       // 8K Ultra HD
       formats.push({
         id: 'yt_8k',
@@ -95,6 +96,7 @@ export const youtubeResolver: LinkResolverProvider = {
         qualityTier: '8k',
         resolution: '4320p (8K)',
         ext: 'mp4',
+        filesizeBytes: Math.round(dur * (50 * 1024 * 1024 / 8)),
         directUrl: fallbackBaseUrl,
         isVideo: true,
         badge: '8K ULTRA HD',
@@ -107,6 +109,7 @@ export const youtubeResolver: LinkResolverProvider = {
         qualityTier: '4k',
         resolution: '2160p (4K)',
         ext: 'mp4',
+        filesizeBytes: Math.round(dur * (20 * 1024 * 1024 / 8)),
         directUrl: fallbackBaseUrl,
         isVideo: true,
         badge: '4K UHD',
@@ -119,6 +122,7 @@ export const youtubeResolver: LinkResolverProvider = {
         qualityTier: '2k',
         resolution: '1440p (2K)',
         ext: 'mp4',
+        filesizeBytes: Math.round(dur * (9 * 1024 * 1024 / 8)),
         directUrl: fallbackBaseUrl,
         isVideo: true,
         badge: '2K QHD',
@@ -131,6 +135,7 @@ export const youtubeResolver: LinkResolverProvider = {
         qualityTier: '1080p',
         resolution: '1080p Full HD',
         ext: 'mp4',
+        filesizeBytes: Math.round(dur * (4.2 * 1024 * 1024 / 8)),
         directUrl: fallbackBaseUrl,
         isVideo: true,
         badge: '1080p FULL HD',
@@ -143,6 +148,7 @@ export const youtubeResolver: LinkResolverProvider = {
         qualityTier: '720p',
         resolution: '720p HD',
         ext: 'mp4',
+        filesizeBytes: Math.round(dur * (2.1 * 1024 * 1024 / 8)),
         directUrl: fallbackBaseUrl,
         isVideo: true,
         badge: '720p HD',
@@ -155,6 +161,7 @@ export const youtubeResolver: LinkResolverProvider = {
         qualityTier: 'audio',
         resolution: '320 kbps',
         ext: 'mp3',
+        filesizeBytes: Math.round(dur * (320 * 1024 / 8)),
         directUrl: fallbackBaseUrl,
         isAudio: true,
         badge: 'HI-RES AUDIO',

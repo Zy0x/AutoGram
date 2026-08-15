@@ -1,11 +1,12 @@
-AutoGram Version: v3.5.52
+AutoGram Version: v3.5.54
 
 Current State:
-v3.5.52 Accurate Stream Quality Terminology & Label Clarification — membenahi `tiktokResolver.ts`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki terminologi dan penamaan kualitas stream remote:
-1. Accurate Stream Quality Naming (`tiktokResolver.ts`): Mengganti label yang keliru (*HD Lossless*) menjadi terminologi teknis yang presisi yaitu **Kualitas Tertinggi (Tanpa Watermark)** (`1080p Full HD / Sumber Maksimal`) dan **Kualitas Standar (Tanpa Watermark)** (`720p Standar`), serta menyesuaikan badge visual menjadi `KUALITAS TERBAIK (HD)` dan `STANDAR`.
-2. Locale Parity: Menyelaraskan teks kualitas sumber asli pada `id/speedtest.json` (*Kualitas Sumber Asli (Tertinggi)*) dan `en/speedtest.json` (*Original Source Quality (Peak)*).
+v3.5.54 Real-Time Filesize Estimation Badges on Quality Resolution Grid — membenahi `RemoteUploadModal.tsx`, `App.css`, `tiktokResolver.ts`, `youtubeResolver.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan indikator perkiraan ukuran file langsung di kartu pemilihan resolusi:
+1. Live Filesize Badges (`RemoteUploadModal.tsx` & `App.css`): Setiap kartu resolusi (1080p, 720p, 4K, 8K, Audio MP3) kini menampilkan badge ukuran berkas aktual/estimasi (misal: `~4.41 MB`, `~8.45 MB`, `~640 KB`) yang informatif dan elegan.
+2. Smart Bitrate/Duration Extrapolator (`tiktokResolver.ts` & `youtubeResolver.ts`): Menghitung estimasi kapasitas byte secara dinamis berdasarkan durasi media dan profil bitrate masing-masing tier stream.
 
 Previous:
+v3.5.52 Accurate Stream Quality Terminology & Label Clarification — membenahi `tiktokResolver.ts`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki terminologi dan penamaan kualitas stream remote.
 v3.5.51 Rust Server-Side Stream Resolver & Three-Tier Remote Delivery Standard — membenahi `media_prep.rs`, `Cargo.toml`, `VERSION.md`, dan `CHANGELOG.md`. Membangun arsitektur pengunduhan remote anti-fail dengan standar 3 mode.
 v3.5.50 Native Video Player Streaming Attributes & Clean URL Caption Sanitization — membenahi `MediaStudio/index.tsx`, `analysis.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyempurnakan pemutaran video native dan sanitasi caption.
 v3.5.49 Intelligent Remote Stream Link Extraction & Document Filename Preservation — membenahi `RemoteUploadModal.tsx`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyempurnakan pipeline unduhan tautan media dan penamaan berkas dokumen.
