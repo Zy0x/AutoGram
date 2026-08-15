@@ -1,3 +1,15 @@
+## v3.7.5 Comprehensive Consistency & Concurrency Badge Internationalization (Phase 6)
+
+### 1. Penyelarasan Menyeluruh Indikator Konkurensi & Zero Inconsistencies
+- **Internationalization Badge Konkurensi Transfer**:
+  - Mengekstrak teks indikator slider konkurensi upload & download (`🐢 Stabil`, `⚡ Seimbang (Rekomendasi)`, `🚀 Kecepatan Tinggi (Maks 10)`) ke dalam kamus `drive_tools.json`.
+  - Memastikan 100% konsistensi paritas bahasa Indonesia dan Inggris di seluruh modal Drive Tools (`DriveToolsModal.tsx` & `TransferSettingsWorkspace.tsx`).
+- **Verifikasi Mendalam Tanpa Inkonsistensi**:
+  - 146 unit test Vitest lulus 100%.
+  - 115 unit test backend Rust lulus 100%.
+  - Audit paritas kamus i18n lulus 100% dengan **0 hardcoded strings** dan **4.809 keys** sinkron penuh.
+  - Remote CDP WebView2 testing pada `frontend.exe` terverifikasi beroperasi tanpa error/freeze.
+
 ## v3.7.4 Complete Naming Alignment: Drives Workspace & Upload Orchestrator (Phase 5)
 
 ### 1. Penyelarasan Halaman & Modul Kanonikal Drives

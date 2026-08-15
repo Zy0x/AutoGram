@@ -1622,5 +1622,8 @@
   "message_id_label": "ID Pesan #{{id}}",
   "shortcut_ctrl_v": "Tempel (Ctrl+V)",
   "shortcut_esc": "Batal (Esc)",
-  "close": "Tutup"
+  "close": "Tutup",
+  "concurrency_badge_stable": "🐢 Stabil",
+  "concurrency_badge_balanced": "⚡ Seimbang (Rekomendasi)",
+  "concurrency_badge_high_speed": "🚀 Kecepatan Tinggi (Maks 10)"
 }

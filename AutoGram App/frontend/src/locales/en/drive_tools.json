@@ -1622,5 +1622,8 @@
   "message_id_label": "Message ID #{{id}}",
   "shortcut_ctrl_v": "Paste (Ctrl+V)",
   "shortcut_esc": "Cancel (Esc)",
-  "close": "Close"
+  "close": "Close",
+  "concurrency_badge_stable": "🐢 Stable",
+  "concurrency_badge_balanced": "⚡ Balanced (Recommended)",
+  "concurrency_badge_high_speed": "🚀 High Speed (Max 10)"
 }

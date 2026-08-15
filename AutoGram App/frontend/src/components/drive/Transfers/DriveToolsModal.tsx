@@ -1218,9 +1218,9 @@ export function TransferSettingsWorkspace({
                   <div className="td-slider-value-bar">
                     <span className="td-slider-val">{draft.uploadConcurrency} {t('speedtest.tab_telegram_files')}</span>
                     <span className="td-concurrency-badge">
-                      {draft.uploadConcurrency <= 2 && '🐢 Stabil'}
-                      {draft.uploadConcurrency >= 3 && draft.uploadConcurrency <= 6 && '⚡ Seimbang (Rekomendasi)'}
-                      {draft.uploadConcurrency >= 7 && '🚀 Kecepatan Tinggi (Maks 10)'}
+                      {draft.uploadConcurrency <= 2 && t('drive_tools.concurrency_badge_stable')}
+                      {draft.uploadConcurrency >= 3 && draft.uploadConcurrency <= 6 && t('drive_tools.concurrency_badge_balanced')}
+                      {draft.uploadConcurrency >= 7 && t('drive_tools.concurrency_badge_high_speed')}
                     </span>
                   </div>
                 </div>
@@ -1922,9 +1922,9 @@ export function TransferSettingsWorkspace({
                   <div className="td-slider-value-bar">
                     <span className="td-slider-val">{draft.downloadConcurrency} {t('speedtest.tab_telegram_files')}</span>
                     <span className="td-concurrency-badge">
-                      {draft.downloadConcurrency <= 2 && '🐢 Stabil'}
-                      {draft.downloadConcurrency >= 3 && draft.downloadConcurrency <= 6 && '⚡ Seimbang (Rekomendasi)'}
-                      {draft.downloadConcurrency >= 7 && '🚀 Kecepatan Tinggi (Maks 10)'}
+                      {draft.downloadConcurrency <= 2 && t('drive_tools.concurrency_badge_stable')}
+                      {draft.downloadConcurrency >= 3 && draft.downloadConcurrency <= 6 && t('drive_tools.concurrency_badge_balanced')}
+                      {draft.downloadConcurrency >= 7 && t('drive_tools.concurrency_badge_high_speed')}
                     </span>
                   </div>
                 </div>
