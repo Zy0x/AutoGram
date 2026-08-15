@@ -35,49 +35,49 @@ export const tiktokResolver: LinkResolverProvider = {
 
           const formats: StreamQualityFormat[] = [];
 
-          // 1. HD / Peak Quality (Highest Available)
+          // 1. Full HD 1080p (Peak HD Clean Stream)
           if (data.hdplay) {
             formats.push({
               id: 'tiktok_hd_nwm',
-              label: 'Kualitas Tertinggi (Tanpa Watermark)',
+              label: 'Full HD 1080p (60fps)',
               qualityTier: '1080p',
-              resolution: '1080p Full HD / Sumber Maksimal',
+              resolution: '1080p Full HD',
               ext: 'mp4',
               filesizeBytes: data.hd_size || data.size,
               directUrl: data.hdplay.startsWith('http') ? data.hdplay : `https://www.tikwm.com${data.hdplay}`,
               isCleanNoWatermark: true,
               isVideo: true,
-              badge: 'KUALITAS TERBAIK (HD)',
+              badge: '1080p FULL HD',
             });
           }
 
-          // 2. Standard Clean Video (No Watermark)
+          // 2. HD 720p (Source Clean Stream)
           if (data.play) {
             formats.push({
               id: 'tiktok_standard_nwm',
-              label: 'Kualitas Standar (Tanpa Watermark)',
+              label: 'HD 720p',
               qualityTier: '720p',
-              resolution: '720p Standar',
+              resolution: '720p HD',
               ext: 'mp4',
               filesizeBytes: data.size,
               directUrl: data.play.startsWith('http') ? data.play : `https://www.tikwm.com${data.play}`,
               isCleanNoWatermark: true,
               isVideo: true,
-              badge: 'STANDAR',
+              badge: '720p HD',
             });
           }
 
-          // 3. Audio Only Track (MP3)
+          // 3. Hi-Res Audio Track (MP3)
           if (data.music) {
             formats.push({
               id: 'tiktok_audio',
-              label: `Audio Asli (${data.music_info?.title || 'Track'})`,
+              label: 'Hi-Res Audio (320 kbps MP3)',
               qualityTier: 'audio',
               resolution: '320 kbps',
               ext: 'mp3',
               directUrl: data.music.startsWith('http') ? data.music : `https://www.tikwm.com${data.music}`,
               isAudio: true,
-              badge: 'HANYA SUARA',
+              badge: 'HI-RES AUDIO',
             });
           }
 
