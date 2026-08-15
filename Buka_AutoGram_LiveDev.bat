@@ -5,5 +5,6 @@ echo   AutoGram Desktop - Mode Pengembangan Langsung (Live Dev)
 echo   Perubahan UI/Kode akan langsung sinkron secara otomatis!
 echo ========================================================
 cd /d "f:\AutoGram\AutoGram App\frontend"
+set WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9230
 npx tauri dev -- --no-default-features --features grammers
 pause
