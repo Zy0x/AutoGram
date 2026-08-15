@@ -107,7 +107,21 @@ export const tiktokResolver: LinkResolverProvider = {
           const isPhotoPost = Array.isArray(data.images) && data.images.length > 0;
 
           if (isPhotoPost) {
-            // A. PHOTO / SLIDESHOW MODE
+            // A. PHOTO / SLIDESHOW MODE (Full Slideshow Pack & Individual Slides)
+            if (data.images.length > 1) {
+              formats.push({
+                id: 'tiktok_photo_all_pack',
+                label: `Semua Foto (${data.images.length} Foto HD - Full Album)`,
+                qualityTier: 'original',
+                resolution: `Album ${data.images.length} Foto`,
+                ext: 'jpg',
+                directUrl: data.images[0].startsWith('http') ? data.images[0] : `https://www.tikwm.com${data.images[0]}`,
+                isImage: true,
+                isCleanNoWatermark: true,
+                badge: `FULL ALBUM (${data.images.length})`,
+              });
+            }
+
             data.images.forEach((imgUrl: string, idx: number) => {
               formats.push({
                 id: `tiktok_photo_${idx + 1}`,
