@@ -1,3 +1,8 @@
+## v3.5.40 Delivery Format Symmetrical Layout Polish
+
+### Penyempurnaan Tata Letak Delivery Format Modal (`App.css`)
+- **Penyelarasan 3 Kolom Simetris**: Memperbaiki grid pemilih format pengiriman (*Optimized Stream*, *Uncompressed Media*, dan *As Document*) agar tersusun sejajar secara simetris dalam 3 kolom yang seimbang dan otomatis beralih ke tata letak vertikal bertumpuk pada layar sempit/mobile.
+
 ## v3.5.39 Standard Media Preview Magnifier Restoration
 
 ### Pengembalian Fitur Tombol Magnifier (Kaca Pembesar) (`DrivePreviewModal/index.tsx`)

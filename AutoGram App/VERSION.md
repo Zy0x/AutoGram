@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.39
+AutoGram Version: v3.5.40
 
 Current State:
+v3.5.40 Delivery Format Symmetrical Layout Polish — membenahi `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperhalus tata letak grid pemilih format pengiriman (*Delivery Format Selector*) pada Remote Upload Modal menjadi 3 kolom simetris yang responsif dan rapi di semua resolusi.
+
+Previous:
 v3.5.39 Standard Media Preview Magnifier Restoration — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengembalikan tombol Magnifier (Kaca Pembesar) pada grup toolbar Zoom preview media standar (khusus non-split compare) dengan status aktif interaktif, transisi ikon Search, pointer pan/drag, serta double-click zoom in/out.
 
 Previous:

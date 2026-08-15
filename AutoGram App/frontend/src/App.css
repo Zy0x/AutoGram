@@ -24386,8 +24386,14 @@ button.td-confirm-icon.is-back-btn:active {
 /* Delivery Mode Selector */
 .td-remote-mode-selector {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
+}
+
+@media (max-width: 500px) {
+  .td-remote-mode-selector {
+    grid-template-columns: 1fr;
+  }
 }
 
 .td-remote-mode-btn {
