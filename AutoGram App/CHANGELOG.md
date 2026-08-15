@@ -1,3 +1,14 @@
+## v3.6.9 Direct Passthrough Native Media & Clean Filename Delivery
+
+### 1. Optimalisasi Mode *Original Native Media* (`quality.rs` & `studio_orch.rs`)
+- **Direct Passthrough Media Visual & Video**:
+  - Mengubah klasifikasi `QualityMode::Original` agar secara cerdas mendeteksi format media visual yang sudah didukung secara asli oleh Telegram (seperti `.jpg`, `.png`, `.webp`, `.mp4`).
+  - Berkas asli dikirimkan **langsung sebagai Foto / Video Visual Telegram (`NativeVisual` / Photo / Video Player)** tanpa perlu melalui re-encoding ffmpeg atau dipaksa berubah menjadi berkas dokumen putih.
+  - Memisahkan secara tegas mode **Dokumen Mentah** (`QualityMode::Document` / `asDocument: true`) untuk pengiriman murni sebagai arsip berkas lampiran.
+- **Pembersihan Judul & Sanitasi Caption Remote (`media_transfer.rs` & `MediaStudio/index.tsx`)**:
+  - Mengabaikan token hash internal CDN (seperti `...~tplv-photomode-image`) agar tidak mencemari caption pesan di Telegram.
+  - Menerapkan penamaan berkas kustom dan ekstraksi judul media yang bersih ke setiap slide foto atau file remote.
+
 ## v3.6.8 Modern Aesthetic Dual-Panel Studio Canvas Revamp
 
 ### 1. Desain Visual Modern Dual-Panel Studio (`RemoteUploadModal.tsx` & `App.css`)

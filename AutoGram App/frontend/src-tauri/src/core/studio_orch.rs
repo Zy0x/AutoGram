@@ -14,8 +14,8 @@ use std::time::Duration;
 use super::autogram_core::transfer::{
     apply_album_caption_policy, build_album_plan, classify_prepared_delivery, normalize_caption,
     AlbumCompatibilityKey, AlbumFailurePolicy, AlbumPackingPolicy, AlbumPlanOptions,
-    CaptionOverflowPolicy, DeliveryClassification, PayloadClass, PreparedAlbumItem, QualityMode,
-    TransferFeatureFlags,
+    CaptionOverflowPolicy, DeliveryClassification, MediaCategory, PayloadClass, PreparedAlbumItem,
+    QualityMode, TransferFeatureFlags,
 };
 use super::grammers_ops::{self, resolve_sessions_dir};
 use super::job_queue::{self, CreateTransferRequest, ItemState, TransferRecord, TransferState};
@@ -889,13 +889,25 @@ fn run_intelligent_album(
             .and_then(|value| value.as_str())
             .unwrap_or("automatic")
         {
-            "force_document" | "document" if mode != QualityMode::Original => {
+            "force_document" | "document" => {
                 classification.payload_class = PayloadClass::DocumentGroup;
                 classification.as_document = true;
                 classification.reason_code = "presentation_forced_document".into();
             }
-            "force_native_media" if classification.payload_class != PayloadClass::NativeVisual => {
-                classification.reason_code = "unsafe_native_override_rejected".into();
+            "force_native_media" | "original" | "native" if classification.payload_class != PayloadClass::NativeVisual => {
+                if matches!(
+                    classification.category,
+                    MediaCategory::JpegImage
+                        | MediaCategory::PngImage
+                        | MediaCategory::WebpImage
+                        | MediaCategory::Mp4Video
+                ) {
+                    classification.payload_class = PayloadClass::NativeVisual;
+                    classification.as_document = false;
+                    classification.reason_code = "forced_native_media_passthrough".into();
+                } else {
+                    classification.reason_code = "unsafe_native_override_rejected".into();
+                }
             }
             _ => {}
         }

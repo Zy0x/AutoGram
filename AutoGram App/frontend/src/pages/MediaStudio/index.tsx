@@ -5174,9 +5174,18 @@ function MediaDriveDesktop({
       const skippedPaths = new Set(decision.skippedPaths);
       cleanPaths = cleanPaths.filter((path) => !skippedPaths.has(path));
       duplicateForceUploadPaths = decision.forceUploadPaths.filter((path) => !skippedPaths.has(path));
-      names = cleanPaths.map((path) => {
-        if (opts?.customFilename && cleanPaths.length === 1) {
-          return opts.customFilename;
+      names = cleanPaths.map((path, idx) => {
+        if (opts?.customFilename) {
+          if (cleanPaths.length === 1) {
+            return opts.customFilename;
+          }
+          const dotIdx = opts.customFilename.lastIndexOf('.');
+          if (dotIdx > 0) {
+            const base = opts.customFilename.substring(0, dotIdx);
+            const ext = opts.customFilename.substring(dotIdx);
+            return `${base}_${idx + 1}${ext}`;
+          }
+          return `${opts.customFilename}_${idx + 1}`;
         }
         return path.startsWith('http://') || path.startsWith('https://')
           ? (() => {
@@ -5184,7 +5193,11 @@ function MediaDriveDesktop({
                 const u = new URL(path);
                 const rawSegment = u.pathname.split('/').filter(Boolean).pop();
                 if (rawSegment && !rawSegment.startsWith('?')) {
-                  return decodeURIComponent(rawSegment);
+                  const decoded = decodeURIComponent(rawSegment);
+                  if (decoded.includes('.')) return decoded;
+                  if (path.includes('photomode') || path.includes('image') || path.includes('avatar')) return `${decoded}.jpg`;
+                  if (path.includes('music') || path.includes('audio')) return `${decoded}.mp3`;
+                  return `${decoded}.mp4`;
                 }
                 return u.hostname || 'Remote_Stream.mp4';
               } catch {

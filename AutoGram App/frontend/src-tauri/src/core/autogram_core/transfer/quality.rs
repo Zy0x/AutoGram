@@ -9,6 +9,7 @@ pub enum QualityMode {
     HighQuality,
     Smart,
     Original,
+    Document,
 }
 
 impl QualityMode {
@@ -20,7 +21,8 @@ impl QualityMode {
             .as_str()
         {
             "HIGH_QUALITY" | "HIGHQUALITY" | "HQ" => Self::HighQuality,
-            "ORIGINAL" | "DOCUMENT" | "UNCOMPRESSED" | "RAW" | "LOSSLESS" | "PASSTHROUGH" | "DIRECT" => Self::Original,
+            "DOCUMENT" | "DOC" | "FILE" | "RAW_DOCUMENT" => Self::Document,
+            "ORIGINAL" | "UNCOMPRESSED" | "RAW" | "LOSSLESS" | "PASSTHROUGH" | "DIRECT" | "NATIVE" => Self::Original,
             _ => Self::Smart,
         }
     }
@@ -240,13 +242,35 @@ pub fn classify_prepared_delivery(
     native_video_validated: bool,
 ) -> DeliveryClassification {
     let category = classify_media(path);
-    if mode == QualityMode::Original {
+    if mode == QualityMode::Document {
         return DeliveryClassification {
             category,
             payload_class: PayloadClass::OriginalDocumentBatch,
             transform: TransformAction::PassThrough,
             as_document: true,
-            reason_code: "original_generic_document".into(),
+            reason_code: "forced_raw_document".into(),
+        };
+    }
+    if mode == QualityMode::Original {
+        let payload_class = match category {
+            MediaCategory::JpegImage | MediaCategory::PngImage | MediaCategory::WebpImage => {
+                PayloadClass::NativeVisual
+            }
+            MediaCategory::Mp4Video => PayloadClass::NativeVisual,
+            MediaCategory::Audio if is_consumer_audio(path) => PayloadClass::AudioGroup,
+            _ => PayloadClass::OriginalDocumentBatch,
+        };
+        let as_document = payload_class != PayloadClass::NativeVisual && payload_class != PayloadClass::AudioGroup;
+        return DeliveryClassification {
+            category,
+            payload_class,
+            transform: TransformAction::PassThrough,
+            as_document,
+            reason_code: if as_document {
+                "original_unsupported_document".into()
+            } else {
+                "original_direct_passthrough".into()
+            },
         };
     }
     let payload_class = match category {
@@ -294,9 +318,18 @@ mod tests {
     }
 
     #[test]
-    fn original_is_always_generic_document() {
+    fn original_passthrough_preserves_native_visual() {
         let path = fixture("photo.jpg", &[0xff, 0xd8, 0xff, 0xdb]);
         let result = classify_delivery(&path, QualityMode::Original, false);
+        assert!(!result.as_document);
+        assert_eq!(result.payload_class, PayloadClass::NativeVisual);
+        assert_eq!(result.transform, TransformAction::PassThrough);
+    }
+
+    #[test]
+    fn document_mode_forces_generic_document() {
+        let path = fixture("photo.jpg", &[0xff, 0xd8, 0xff, 0xdb]);
+        let result = classify_delivery(&path, QualityMode::Document, false);
         assert!(result.as_document);
         assert_eq!(result.payload_class, PayloadClass::OriginalDocumentBatch);
     }

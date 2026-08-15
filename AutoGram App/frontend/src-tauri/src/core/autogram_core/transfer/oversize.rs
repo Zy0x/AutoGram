@@ -22,7 +22,9 @@ pub fn resolve_oversize(
     configured: OversizeAction,
 ) -> OversizeDecision {
     let action = match (mode, category, configured) {
-        (QualityMode::Original, _, OversizeAction::Split) => OversizeAction::Split,
+        (QualityMode::Original | QualityMode::Document, _, OversizeAction::Split) => {
+            OversizeAction::Split
+        }
         (_, MediaCategory::Mp4Video | MediaCategory::OtherVideo, OversizeAction::Split) => {
             OversizeAction::Split
         }

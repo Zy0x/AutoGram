@@ -142,7 +142,7 @@ pub fn build_quality_preflight(
     let mode = if feature_flags.transfer_v4 {
         QualityMode::parse(request.quality_mode.as_deref())
     } else {
-        QualityMode::Original
+        QualityMode::Document
     };
     let force_document = matches!(
         request.presentation_override.as_deref(),
@@ -233,30 +233,79 @@ pub fn build_quality_preflight(
                 .to_ascii_uppercase()
                 .contains("AUTO");
 
-        let (transform, payload_class, as_document, reason_code) = if remote {
-            warnings.push("remote_analysis_deferred".into());
-            requires_confirmation = true;
-            (
-                TransformAction::PassThrough,
-                PayloadClass::DocumentGroup,
-                true,
-                "remote_analysis_deferred".to_string(),
-            )
-        } else if mode == QualityMode::Original {
-            rejected.push("original_forbids_transform".into());
-            (
-                TransformAction::PassThrough,
-                PayloadClass::OriginalDocumentBatch,
-                true,
-                "original_generic_document".to_string(),
-            )
-        } else if force_document {
+        let (transform, payload_class, as_document, reason_code) = if force_document || mode == QualityMode::Document {
             (
                 TransformAction::PassThrough,
                 PayloadClass::DocumentGroup,
                 true,
                 "presentation_forced_document".to_string(),
             )
+        } else if mode == QualityMode::Original {
+            let is_supported_visual = matches!(
+                category,
+                MediaCategory::JpegImage
+                    | MediaCategory::PngImage
+                    | MediaCategory::WebpImage
+                    | MediaCategory::Mp4Video
+            ) || (remote && (source.ends_with(".jpg") || source.ends_with(".jpeg") || source.ends_with(".png") || source.ends_with(".mp4") || source.contains("photomode") || source.contains("tiktok") || source.contains("instagram")));
+            let is_supported_audio = category == MediaCategory::Audio;
+            if is_supported_visual {
+                (
+                    TransformAction::PassThrough,
+                    PayloadClass::NativeVisual,
+                    false,
+                    "original_passthrough_visual".to_string(),
+                )
+            } else if is_supported_audio {
+                (
+                    TransformAction::PassThrough,
+                    PayloadClass::AudioGroup,
+                    false,
+                    "original_passthrough_audio".to_string(),
+                )
+            } else {
+                rejected.push("original_forbids_transform".into());
+                (
+                    TransformAction::PassThrough,
+                    PayloadClass::OriginalDocumentBatch,
+                    true,
+                    "original_generic_document".to_string(),
+                )
+            }
+        } else if remote {
+            warnings.push("remote_analysis_deferred".into());
+            requires_confirmation = true;
+            let looks_like_photo = source.ends_with(".jpg")
+                || source.ends_with(".jpeg")
+                || source.ends_with(".png")
+                || source.contains("photomode")
+                || source.contains("image");
+            let looks_like_audio = source.ends_with(".mp3")
+                || source.ends_with(".m4a")
+                || source.contains("audio")
+                || source.contains("music");
+            if looks_like_photo {
+                (
+                    TransformAction::PassThrough,
+                    PayloadClass::NativeVisual,
+                    false,
+                    "remote_visual_stream".to_string(),
+                )
+            } else if looks_like_audio {
+                (
+                    TransformAction::PassThrough,
+                    PayloadClass::AudioGroup,
+                    false,
+                    "remote_audio_stream".to_string(),
+                )
+            } else {
+                (
+                    TransformAction::PassThrough,
+                    PayloadClass::NativeVisual,
+                    false,
+                    "remote_video_stream".to_string(),
+                )
+            }
         } else if is_webp_sticker && prevent_sticker {
             (
                 TransformAction::ConvertWebpPng,
@@ -501,11 +550,28 @@ mod tests {
             TransferFeatureFlags::default(),
         );
         assert_eq!(report.items[0].transform, TransformAction::PassThrough);
+        assert!(!report.items[0].as_document);
+        assert_eq!(report.items[0].payload_class, PayloadClass::NativeVisual);
+    }
+
+    #[test]
+    fn document_mode_forces_generic_document_preflight() {
+        let path = std::env::temp_dir().join("autogram-preflight-doc.jpg");
+        fs::write(&path, [0xff, 0xd8, 0xff, 0xdb]).unwrap();
+        let report = build_quality_preflight(
+            &request(&path, "DOCUMENT"),
+            "fallback",
+            10,
+            1_024,
+            true,
+            TransferFeatureFlags::default(),
+        );
+        assert_eq!(report.items[0].transform, TransformAction::PassThrough);
         assert!(report.items[0].as_document);
     }
 
     #[test]
-    fn remote_input_is_never_guessed_native() {
+    fn remote_input_requires_confirmation() {
         let mut request = request(Path::new("unused"), "SMART");
         request.paths = vec!["https://example.invalid/clip.mp4".into()];
         let report = build_quality_preflight(
@@ -516,7 +582,7 @@ mod tests {
             true,
             TransferFeatureFlags::default(),
         );
-        assert!(report.items[0].as_document);
+        assert_eq!(report.items[0].transform, TransformAction::PassThrough);
         assert!(report.items[0].requires_confirmation);
     }
 

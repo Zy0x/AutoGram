@@ -1746,11 +1746,23 @@ pub fn upload_file_blocking_topic_with_delivery(
                 let mime = infer_mime_type(&ext, is_image, is_video);
                 let path_str = path.to_str().unwrap_or("");
 
+                let is_raw_hash_token = caption.contains("~tplv")
+                    || caption.contains("photomode")
+                    || (caption.len() >= 32
+                        && !caption.contains(' ')
+                        && caption
+                            .chars()
+                            .all(|c| c.is_ascii_hexdigit() || c == '-' || c == '_' || c == '~'));
+
                 let display_filename = if filename.starts_with("remote_")
                     || filename.starts_with("reenc_")
                     || filename.starts_with("remux_")
                 {
-                    if !caption.is_empty() && !caption.contains('\n') && caption.len() <= 60 {
+                    if !caption.is_empty()
+                        && !caption.contains('\n')
+                        && caption.len() <= 60
+                        && !is_raw_hash_token
+                    {
                         if caption.contains('.') {
                             caption.clone()
                         } else {
@@ -1792,8 +1804,13 @@ pub fn upload_file_blocking_topic_with_delivery(
                         TgError::new(TgErrorCode::Io, format!("upload_file: {error}"))
                     })?
                 };
+                let effective_text = if is_raw_hash_token {
+                    String::new()
+                } else {
+                    caption.clone()
+                };
                 let mut msg = InputMessage::new()
-                    .text(caption.clone())
+                    .text(effective_text)
                     .silent(silent);
                 if let Some(r) = reply_to {
                     msg = msg.reply_to(Some(r));
