@@ -174,17 +174,18 @@ export const tiktokResolver: LinkResolverProvider = {
             });
           }
 
-          // 5. Creator Profile Avatar
-          if (data.author?.avatar) {
+          // 5. Creator Profile Avatar (Highest Resolution Master)
+          const highestAvatar = data.author?.avatar_larger || data.author?.avatar_medium || data.author?.avatar;
+          if (highestAvatar) {
             formats.push({
               id: 'tiktok_profile_avatar',
               label: 'Foto Profil Kreator (HD Avatar)',
               qualityTier: 'original',
-              resolution: 'Profile Avatar',
+              resolution: 'Profile Avatar HD',
               ext: 'jpg',
-              directUrl: data.author.avatar.startsWith('http') ? data.author.avatar : `https://www.tikwm.com${data.author.avatar}`,
+              directUrl: highestAvatar.startsWith('http') ? highestAvatar : `https://www.tikwm.com${highestAvatar}`,
               isImage: true,
-              badge: 'AVATAR',
+              badge: 'AVATAR HD',
             });
           }
 
