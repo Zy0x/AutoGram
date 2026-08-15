@@ -160,11 +160,16 @@ export const tiktokResolver: LinkResolverProvider = {
               });
             }
 
-            // 2. HD 720p (Source Clean Stream)
-            if (data.play && data.play !== data.hdplay) {
+            // 2. HD 720p / Compressed Stream (Only if distinct from master HD)
+            const hasDistinctStandardStream =
+              data.play &&
+              data.play !== data.hdplay &&
+              (!data.hdplay || (data.size && data.hd_size && data.size < data.hd_size * 0.92));
+
+            if (hasDistinctStandardStream) {
               formats.push({
                 id: 'tiktok_standard_nwm',
-                label: 'HD 720p',
+                label: 'HD 720p (Compressed)',
                 qualityTier: '720p',
                 resolution: '720p HD',
                 ext: 'mp4',
@@ -173,6 +178,20 @@ export const tiktokResolver: LinkResolverProvider = {
                 isCleanNoWatermark: true,
                 isVideo: true,
                 badge: '720p HD',
+              });
+            } else if (!data.hdplay && data.play) {
+              // Fallback if hdplay is not provided by server
+              formats.push({
+                id: 'tiktok_standard_nwm',
+                label: peakLabel,
+                qualityTier: peakTier,
+                resolution: peakRes,
+                ext: 'mp4',
+                filesizeBytes: data.size,
+                directUrl: data.play.startsWith('http') ? data.play : `https://www.tikwm.com${data.play}`,
+                isCleanNoWatermark: true,
+                isVideo: true,
+                badge: peakBadge,
               });
             }
           }

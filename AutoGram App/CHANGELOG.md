@@ -1,3 +1,14 @@
+## v3.7.11 TikTok Quality Tier Intelligence & Stream Deduplication (Phase 12)
+
+### 1. Optimasi & Penyelarasan Kualitas Stream TikTok
+- **Stream Format Deduplication (`tiktokResolver.ts`)**:
+  - Mengintegrasikan logika deteksi cerdas antara Master Source Stream (`hdplay`, `a=0`) dan CDN Standard Stream (`play`, `a=1233`).
+  - Mencegah duplikasi kartu opsi resolusi ketika server TikTok hanya menyediakan satu ukuran file master (misalnya video berdurasi pendek <15 detik dengan ukuran ~2.58 MB yang belum di-downscale oleh TikTok).
+  - Menampilkan kartu stream terkompresi (`HD 720p (Compressed)`) hanya jika server TikTok benar-benar menyediakan file terkompresi dengan bitrate/ukuran yang berbeda.
+- **Verifikasi Kualitas**:
+  - 146 unit test Vitest lulus 100%.
+  - 4.827 kunci kamus i18n sinkron sempurna (0 hardcoded, 0 missing).
+
 ## v3.7.10 Native Forum Topic Title Resolution & Dynamic Polling (Phase 11)
 
 ### 1. Resolusi Otomatis Nama Asli Topik Forum Telegram
