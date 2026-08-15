@@ -1,3 +1,13 @@
+## v3.5.52 Accurate Stream Quality Terminology & Label Clarification
+ 
+### 1. Koreksi Terminologi Kualitas Stream (`tiktokResolver.ts`)
+- **Penamaan Presisi Bebas Misnomer**:
+  - Mengubah penamaan yang keliru (*HD Lossless*) menjadi terminologi teknis yang tepat: **Kualitas Tertinggi (Tanpa Watermark)** (`1080p Full HD / Sumber Maksimal`) dan **Kualitas Standar (Tanpa Watermark)** (`720p Standar`).
+  - Memperbarui badge visual menjadi `KUALITAS TERBAIK (HD)` dan `STANDAR`.
+
+### 2. Harmonisasi Locale (`id/speedtest.json` & `en/speedtest.json`)
+- **100% Key Parity**: Menyelaraskan teks kualitas sumber asli menjadi *Kualitas Sumber Asli (Tertinggi)* pada bahasa Indonesia dan *Original Source Quality (Peak)* pada bahasa Inggris.
+
 ## v3.5.51 Rust Server-Side Stream Resolver & Three-Tier Remote Delivery Standard
  
 ### 1. Server-Side Rust Stream Resolver (`media_prep.rs`)

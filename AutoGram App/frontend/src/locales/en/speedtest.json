@@ -468,7 +468,7 @@
   "remote_quality_1080p": "1080p Full HD",
   "remote_quality_720p": "720p HD",
   "remote_quality_audio": "Hi-Res Audio Only",
-  "remote_quality_original": "Original Source (Lossless)",
+  "remote_quality_original": "Original Source Quality (Peak)",
   "remote_clean_no_watermark": "No Watermark Clean Stream",
   "remote_resolved_media_title": "Detected Media Preview",
   "remote_duration_label": "Duration: {{duration}}",

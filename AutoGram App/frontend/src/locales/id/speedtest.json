@@ -468,7 +468,7 @@
   "remote_quality_1080p": "1080p Full HD",
   "remote_quality_720p": "720p HD",
   "remote_quality_audio": "Audio High-Bitrate Saja",
-  "remote_quality_original": "Kualitas Sumber Asli (Lossless)",
+  "remote_quality_original": "Kualitas Sumber Asli (Tertinggi)",
   "remote_clean_no_watermark": "Bersih Tanpa Watermark",
   "remote_resolved_media_title": "Pratinjau Media Terdeteksi",
   "remote_duration_label": "Durasi: {{duration}}",

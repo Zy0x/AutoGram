@@ -1,14 +1,12 @@
-AutoGram Version: v3.5.51
+AutoGram Version: v3.5.52
 
 Current State:
-v3.5.51 Rust Server-Side Stream Resolver & Three-Tier Remote Delivery Standard — membenahi `media_prep.rs`, `Cargo.toml`, `VERSION.md`, dan `CHANGELOG.md`. Membangun arsitektur pengunduhan remote anti-fail dengan standar 3 mode:
-1. Rust Server-Side Stream Resolver (`media_prep.rs`): Menanamkan engine resolusi tautan langsung pada Rust backend via `ureq` (kebal batasan CORS browser/WebView2). Saat tautan TikTok, Douyin, atau media sosial diproses, backend secara otonom mengurai URL menjadi direct CDN HD MP4 stream (~8.85 MB), mengeliminasi risiko unduhan HTML mentah berukuran 43 KB `.bin`.
-2. Strict Three-Tier Delivery Standard:
-   - Mode Otomatis (Adaptive): Re-encode cerdas 1:1 jika dibutuhkan, sent as native playable video stream.
-   - Mode Media Stream Asli (Original Native Media): 1:1 Direct Bitstream Passthrough tanpa re-encode, sent as native playable video stream.
-   - Mode Dokumen Asli (Original Document): Pengiriman dokumen biner mentah bit-for-bit lengkap dengan cover thumbnail.
+v3.5.52 Accurate Stream Quality Terminology & Label Clarification — membenahi `tiktokResolver.ts`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki terminologi dan penamaan kualitas stream remote:
+1. Accurate Stream Quality Naming (`tiktokResolver.ts`): Mengganti label yang keliru (*HD Lossless*) menjadi terminologi teknis yang presisi yaitu **Kualitas Tertinggi (Tanpa Watermark)** (`1080p Full HD / Sumber Maksimal`) dan **Kualitas Standar (Tanpa Watermark)** (`720p Standar`), serta menyesuaikan badge visual menjadi `KUALITAS TERBAIK (HD)` dan `STANDAR`.
+2. Locale Parity: Menyelaraskan teks kualitas sumber asli pada `id/speedtest.json` (*Kualitas Sumber Asli (Tertinggi)*) dan `en/speedtest.json` (*Original Source Quality (Peak)*).
 
 Previous:
+v3.5.51 Rust Server-Side Stream Resolver & Three-Tier Remote Delivery Standard — membenahi `media_prep.rs`, `Cargo.toml`, `VERSION.md`, dan `CHANGELOG.md`. Membangun arsitektur pengunduhan remote anti-fail dengan standar 3 mode.
 v3.5.50 Native Video Player Streaming Attributes & Clean URL Caption Sanitization — membenahi `MediaStudio/index.tsx`, `analysis.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyempurnakan pemutaran video native dan sanitasi caption.
 v3.5.49 Intelligent Remote Stream Link Extraction & Document Filename Preservation — membenahi `RemoteUploadModal.tsx`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyempurnakan pipeline unduhan tautan media dan penamaan berkas dokumen.
 v3.5.48 Native Grammers SendMessage Unification & Zero-Rejection Document Delivery — membenahi `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyatukan pengiriman berkas ke engine native Grammers.
