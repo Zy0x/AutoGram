@@ -116,6 +116,16 @@ pub fn resolve_social_media_direct_url(url: &str) -> Option<String> {
                         };
                         return Some(direct);
                     }
+                    if let Some(images) = data.get("images").and_then(|v| v.as_array()) {
+                        if let Some(first_img) = images.first().and_then(|v| v.as_str()) {
+                            let direct = if first_img.starts_with("http") {
+                                first_img.to_string()
+                            } else {
+                                format!("https://www.tikwm.com{first_img}")
+                            };
+                            return Some(direct);
+                        }
+                    }
                 }
             }
         }

@@ -50,8 +50,6 @@ export const tiktokResolver: LinkResolverProvider = {
           const author = data.author?.nickname ? `@${data.author.unique_id || data.author.nickname}` : undefined;
           const authorAvatar = data.author?.avatar;
           const durationSec = data.duration;
-          const thumbnailUrl = data.origin_cover || data.cover;
-
           const formats: StreamQualityFormat[] = [];
 
           // Detect if video is 4K, 2K, or 1080p based on title, duration, and bitrate
@@ -69,38 +67,61 @@ export const tiktokResolver: LinkResolverProvider = {
           let peakRes = detectedFps ? `1080p Full HD • ${detectedFps}` : '1080p Full HD';
 
           // 1. Peak Quality (Full HD 1080p Master with True Physical Specs)
-          if (data.hdplay) {
-            formats.push({
-              id: 'tiktok_hd_nwm',
-              label: peakLabel,
-              qualityTier: peakTier,
-              resolution: peakRes,
-              ext: 'mp4',
-              filesizeBytes: data.hd_size || data.size,
-              directUrl: data.hdplay.startsWith('http') ? data.hdplay : `https://www.tikwm.com${data.hdplay}`,
-              isCleanNoWatermark: true,
-              isVideo: true,
-              badge: peakBadge,
+          const isPhotoPost = Array.isArray(data.images) && data.images.length > 0;
+
+          if (isPhotoPost) {
+            // A. PHOTO / SLIDESHOW MODE
+            data.images.forEach((imgUrl: string, idx: number) => {
+              formats.push({
+                id: `tiktok_photo_${idx + 1}`,
+                label: data.images.length === 1 
+                  ? 'Foto Original (Clean HD)' 
+                  : `Foto ${idx + 1} dari ${data.images.length} (Clean HD)`,
+                qualityTier: 'original',
+                resolution: 'Original HD Photo',
+                ext: 'jpg',
+                directUrl: imgUrl.startsWith('http') ? imgUrl : `https://www.tikwm.com${imgUrl}`,
+                isImage: true,
+                isCleanNoWatermark: true,
+                badge: data.images.length === 1 ? 'HD PHOTO' : `FOTO ${idx + 1}`,
+              });
             });
+          } else {
+            // B. VIDEO MODE
+            // 1. Peak Quality (Full HD 1080p Master with True Physical Specs)
+            if (data.hdplay) {
+              formats.push({
+                id: 'tiktok_hd_nwm',
+                label: peakLabel,
+                qualityTier: peakTier,
+                resolution: peakRes,
+                ext: 'mp4',
+                filesizeBytes: data.hd_size || data.size,
+                directUrl: data.hdplay.startsWith('http') ? data.hdplay : `https://www.tikwm.com${data.hdplay}`,
+                isCleanNoWatermark: true,
+                isVideo: true,
+                badge: peakBadge,
+              });
+            }
+
+            // 2. HD 720p (Source Clean Stream)
+            if (data.play && data.play !== data.hdplay) {
+              formats.push({
+                id: 'tiktok_standard_nwm',
+                label: 'HD 720p',
+                qualityTier: '720p',
+                resolution: '720p HD',
+                ext: 'mp4',
+                filesizeBytes: data.size,
+                directUrl: data.play.startsWith('http') ? data.play : `https://www.tikwm.com${data.play}`,
+                isCleanNoWatermark: true,
+                isVideo: true,
+                badge: '720p HD',
+              });
+            }
           }
 
-          // 2. HD 720p (Source Clean Stream)
-          if (data.play) {
-            formats.push({
-              id: 'tiktok_standard_nwm',
-              label: 'HD 720p',
-              qualityTier: '720p',
-              resolution: '720p HD',
-              ext: 'mp4',
-              filesizeBytes: data.size,
-              directUrl: data.play.startsWith('http') ? data.play : `https://www.tikwm.com${data.play}`,
-              isCleanNoWatermark: true,
-              isVideo: true,
-              badge: '720p HD',
-            });
-          }
-
-          // 3. Hi-Res Audio Track (MP3)
+          // 4. Hi-Res Audio Track (MP3)
           if (data.music) {
             const estimatedAudioSize = durationSec ? Math.round(durationSec * (320 * 1024 / 8)) : (data.size ? Math.round(data.size * 0.15) : undefined);
             formats.push({
@@ -116,6 +137,24 @@ export const tiktokResolver: LinkResolverProvider = {
             });
           }
 
+          // 5. Creator Profile Avatar
+          if (data.author?.avatar) {
+            formats.push({
+              id: 'tiktok_profile_avatar',
+              label: 'Foto Profil Kreator (HD Avatar)',
+              qualityTier: 'original',
+              resolution: 'Profile Avatar',
+              ext: 'jpg',
+              directUrl: data.author.avatar.startsWith('http') ? data.author.avatar : `https://www.tikwm.com${data.author.avatar}`,
+              isImage: true,
+              badge: 'AVATAR',
+            });
+          }
+
+          const effectiveThumb = (Array.isArray(data.images) && data.images.length > 0)
+            ? data.images[0]
+            : (data.origin_cover || data.cover);
+
           if (formats.length > 0) {
             return {
               url: cleanUrl,
@@ -125,7 +164,7 @@ export const tiktokResolver: LinkResolverProvider = {
               author,
               authorAvatar,
               durationSec,
-              thumbnailUrl,
+              thumbnailUrl: effectiveThumb,
               formats,
               selectedFormatId: formats[0].id,
               resolvedAt: Date.now(),
