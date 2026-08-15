@@ -1,0 +1,16 @@
+{
+  "localeKeys": {
+    "id": 4827,
+    "en": 4827
+  },
+  "parity": {
+    "idOnly": [],
+    "enOnly": []
+  },
+  "usedKeys": 2336,
+  "missing": [],
+  "fallbackCalls": [],
+  "hardcodedCount": 0,
+  "hardcodedByFile": [],
+  "hardcoded": []
+}

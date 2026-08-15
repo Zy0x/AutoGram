@@ -451,6 +451,7 @@
   "remote_tab_batch": "Batch URLs",
   "remote_paste_clipboard": "Paste",
   "remote_clear_input": "Clear",
+  "remote_url_placeholder": "https://vt.tiktok.com/... or https://youtube.com/...",
   "remote_custom_name_label": "Custom Filename (Optional)",
   "remote_custom_name_placeholder": "e.g. video_documentary.mp4",
   "remote_batch_placeholder": "Enter direct URLs (one per line):\nhttps://example.com/file1.mp4\nhttps://example.com/archive.zip",

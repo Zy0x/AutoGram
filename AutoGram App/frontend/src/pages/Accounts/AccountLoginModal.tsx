@@ -70,7 +70,7 @@ export const AccountLoginModal: React.FC<AccountLoginModalProps> = ({
               type="text"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="+628123456789"
+              placeholder={t('accounts.ph_phone_example')}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:ring-1 focus:ring-indigo-500 font-mono"
             />
             <button
@@ -93,7 +93,7 @@ export const AccountLoginModal: React.FC<AccountLoginModalProps> = ({
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="12345"
+              placeholder={t('accounts.ph_code_example')}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-center text-lg tracking-widest text-slate-100 focus:ring-1 focus:ring-indigo-500 font-mono"
             />
             <button

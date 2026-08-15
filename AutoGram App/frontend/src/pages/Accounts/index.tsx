@@ -1058,7 +1058,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                   <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Key size={14} /> {t('accounts.otp_code')}
                   </label>
-                  <input type="text" className="input-field" placeholder="12345" value={code} onChange={e => setCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && code && !isProcessing) handleSignIn() }} disabled={isProcessing} />
+                  <input type="text" className="input-field" placeholder={t('accounts.ph_code_example')} value={code} onChange={e => setCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && code && !isProcessing) handleSignIn() }} disabled={isProcessing} />
                 </div>
                 <button className="btn btn-primary" onClick={handleSignIn} disabled={isProcessing || !code}>
                   {isProcessing ? <RefreshCcw className="spin" size={18} /> : t('accounts.verify_code')}
@@ -1571,7 +1571,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                     <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Key size={14} /> {t('accounts.otp_code')}
                     </label>
-                    <input type="text" className="input-field" placeholder="12345" value={code} onChange={e => setCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && code && !isProcessing) handleSignIn() }} disabled={isProcessing} />
+                    <input type="text" className="input-field" placeholder={t('accounts.ph_code_example')} value={code} onChange={e => setCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && code && !isProcessing) handleSignIn() }} disabled={isProcessing} />
                   </div>
                   <button className="btn btn-primary" onClick={handleSignIn} disabled={isProcessing || !code}>
                     {isProcessing ? <RefreshCcw className="spin" size={18} /> : t('accounts.verify_code')}

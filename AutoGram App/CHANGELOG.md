@@ -1,3 +1,14 @@
+## v3.7.8 Comprehensive Placeholder Internationalization & Harmonization (Phase 9)
+
+### 1. Audit & Harmonisasi Seluruh Placeholder Antarmuka
+- **Internationalization Placeholder Menyeluruh (`RemoteUploadModal.tsx`, `Accounts/index.tsx`, `AccountLoginModal.tsx`)**:
+  - Mengganti placeholder URL remote yang sebelumnya hardcoded (`https://vt.tiktok.com/... atau https://youtube.com/...`) dengan token kamus dinamis `speedtest.remote_url_placeholder` yang menyesuaikan bahasa aktif (ID: `"atau"`, EN: `"or"`).
+  - Menyelaraskan seluruh placeholder OTP (`accounts.ph_code_example`) dan nomor telepon (`accounts.ph_phone_example`) di seluruh modal dan form login akun.
+  - Memastikan 100% placeholder pencarian, nama profil, limit transfer, filter ukuran, dan input URL di seluruh halaman terhubung ke kamus i18n dengan paritas 1:1.
+- **Verifikasi Kualitas**:
+  - **4.827 Kunci Kamus** terverifikasi sinkron 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
+  - 146 unit test Vitest lulus 100%.
+
 ## v3.7.7 Live Preview Canvas Metadata Styling & Platform Badge Polish (Phase 8)
 
 ### 1. Perbaikan Visual Metadata Card & Platform Badges pada Remote Upload

@@ -655,7 +655,7 @@ export function RemoteUploadModal({
                       id="td-remote-url"
                       className="td-input-field td-remote-url-input"
                       type="text"
-                      placeholder="https://vt.tiktok.com/... atau https://youtube.com/..."
+                      placeholder={t('speedtest.remote_url_placeholder')}
                       value={url}
                       onChange={(e) => handleUrlChange(e.target.value)}
                       disabled={submitting}

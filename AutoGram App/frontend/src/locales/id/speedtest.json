@@ -451,6 +451,7 @@
   "remote_tab_batch": "Banyak URL",
   "remote_paste_clipboard": "Tempel",
   "remote_clear_input": "Bersihkan",
+  "remote_url_placeholder": "https://vt.tiktok.com/... atau https://youtube.com/...",
   "remote_custom_name_label": "Nama Berkas Kustom (Opsional)",
   "remote_custom_name_placeholder": "contoh: video_dokumenter.mp4",
   "remote_batch_placeholder": "Masukkan URL langsung (satu per baris):\nhttps://example.com/file1.mp4\nhttps://example.com/archive.zip",
