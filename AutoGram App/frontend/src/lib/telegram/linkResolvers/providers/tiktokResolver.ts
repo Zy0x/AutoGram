@@ -59,28 +59,16 @@ export const tiktokResolver: LinkResolverProvider = {
           const rawSize = data.hd_size || data.size || 0;
           const bitrateBps = (durationSec && rawSize) ? (rawSize * 8) / durationSec : 0;
 
-          // Detect explicit FPS tag from title (e.g. 120fps, 90fps, 60fps, 144fps, 240fps)
+          // Detect explicit FPS tag from title or metadata (e.g. 120fps, 90fps, 60fps, 144fps, 240fps)
           const fpsMatch = titleLower.match(/\b(240|144|120|90|60)\s*fps\b/i);
-          const detectedFps = fpsMatch ? `${fpsMatch[1]}fps` : undefined;
+          const detectedFps = fpsMatch ? `${fpsMatch[1]}fps` : (bitrateBps > 15_000_000 ? '60fps' : undefined);
 
           let peakTier: QualityTier = '1080p';
-          let peakLabel = detectedFps ? `Full HD 1080p (${detectedFps})` : 'Full HD 1080p (Master Stream)';
+          let peakLabel = detectedFps ? `Full HD 1080p (${detectedFps} Master)` : 'Full HD 1080p (Master Stream)';
           let peakBadge = '1080p FULL HD';
           let peakRes = detectedFps ? `1080p Full HD • ${detectedFps}` : '1080p Full HD';
 
-          if (titleLower.includes('4k') || titleLower.includes('2160p') || bitrateBps > 30_000_000) {
-            peakTier = '4k';
-            peakLabel = detectedFps ? `4K Ultra HD (${detectedFps} Master)` : '4K Ultra HD (Master Stream)';
-            peakBadge = '4K UHD';
-            peakRes = detectedFps ? `4K Ultra HD (2160p) • ${detectedFps}` : '4K Ultra HD (2160p)';
-          } else if (titleLower.includes('2k') || titleLower.includes('1440p') || bitrateBps > 15_000_000) {
-            peakTier = '2k';
-            peakLabel = detectedFps ? `2K Quad HD (${detectedFps})` : '2K Quad HD (1440p)';
-            peakBadge = '2K QHD';
-            peakRes = detectedFps ? `2K Quad HD (1440p) • ${detectedFps}` : '2K Quad HD (1440p)';
-          }
-
-          // 1. Peak Quality (4K UHD / 2K QHD / Full HD 1080p)
+          // 1. Peak Quality (Full HD 1080p Master with True Physical Specs)
           if (data.hdplay) {
             formats.push({
               id: 'tiktok_hd_nwm',
