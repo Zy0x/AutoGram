@@ -33,6 +33,8 @@ export interface StreamQualityFormat {
   isVideo?: boolean;
   isAudio?: boolean;
   isImage?: boolean;
+  isAlbumPack?: boolean;
+  allAlbumUrls?: string[];
   badge?: string; // e.g. "8K ULTRA", "4K UHD", "NO WATERMARK", "320 KBPS"
 }
 
@@ -45,6 +47,7 @@ export interface ResolvedMediaInfo {
   authorAvatar?: string;
   durationSec?: number;
   thumbnailUrl?: string;
+  albumImages?: string[];
   description?: string;
   formats: StreamQualityFormat[];
   selectedFormatId: string;

@@ -107,6 +107,10 @@ export const tiktokResolver: LinkResolverProvider = {
           const isPhotoPost = Array.isArray(data.images) && data.images.length > 0;
 
           if (isPhotoPost) {
+            const allDirectImages = data.images.map((imgUrl: string) =>
+              imgUrl.startsWith('http') ? imgUrl : `https://www.tikwm.com${imgUrl}`
+            );
+
             // A. PHOTO / SLIDESHOW MODE (Full Slideshow Pack & Individual Slides)
             if (data.images.length > 1) {
               formats.push({
@@ -115,7 +119,9 @@ export const tiktokResolver: LinkResolverProvider = {
                 qualityTier: 'original',
                 resolution: `Album ${data.images.length} Foto`,
                 ext: 'jpg',
-                directUrl: data.images[0].startsWith('http') ? data.images[0] : `https://www.tikwm.com${data.images[0]}`,
+                directUrl: allDirectImages[0],
+                allAlbumUrls: allDirectImages,
+                isAlbumPack: true,
                 isImage: true,
                 isCleanNoWatermark: true,
                 badge: `FULL ALBUM (${data.images.length})`,
@@ -123,6 +129,7 @@ export const tiktokResolver: LinkResolverProvider = {
             }
 
             data.images.forEach((imgUrl: string, idx: number) => {
+              const fullImgUrl = imgUrl.startsWith('http') ? imgUrl : `https://www.tikwm.com${imgUrl}`;
               formats.push({
                 id: `tiktok_photo_${idx + 1}`,
                 label: data.images.length === 1 
@@ -131,7 +138,7 @@ export const tiktokResolver: LinkResolverProvider = {
                 qualityTier: 'original',
                 resolution: 'Original HD Photo',
                 ext: 'jpg',
-                directUrl: imgUrl.startsWith('http') ? imgUrl : `https://www.tikwm.com${imgUrl}`,
+                directUrl: fullImgUrl,
                 isImage: true,
                 isCleanNoWatermark: true,
                 badge: data.images.length === 1 ? 'HD PHOTO' : `FOTO ${idx + 1}`,
@@ -203,8 +210,12 @@ export const tiktokResolver: LinkResolverProvider = {
             });
           }
 
-          const effectiveThumb = (Array.isArray(data.images) && data.images.length > 0)
-            ? data.images[0]
+          const rawAlbumImages = Array.isArray(data.images) && data.images.length > 0
+            ? data.images.map((img: string) => img.startsWith('http') ? img : `https://www.tikwm.com${img}`)
+            : undefined;
+
+          const effectiveThumb = rawAlbumImages && rawAlbumImages.length > 0
+            ? rawAlbumImages[0]
             : (data.origin_cover || data.cover);
 
           if (formats.length > 0) {
@@ -217,6 +228,7 @@ export const tiktokResolver: LinkResolverProvider = {
               authorAvatar,
               durationSec,
               thumbnailUrl: effectiveThumb,
+              albumImages: rawAlbumImages,
               formats,
               selectedFormatId: formats[0].id,
               resolvedAt: Date.now(),

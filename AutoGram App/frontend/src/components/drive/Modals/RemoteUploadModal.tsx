@@ -396,6 +396,10 @@ export function RemoteUploadModal({
           activeResolved?.formats.find((f) => f.id === selectedFormatId) ||
           activeResolved?.formats[0];
         const effectiveUrl = activeFormat?.directUrl || targetUrl;
+        const uploadUrls = (activeFormat?.isAlbumPack && activeFormat.allAlbumUrls && activeFormat.allAlbumUrls.length > 0)
+          ? activeFormat.allAlbumUrls
+          : [effectiveUrl];
+
         const effectiveFilename =
           customFilename.trim() ||
           (activeResolved?.title
@@ -417,7 +421,7 @@ export function RemoteUploadModal({
               ? 'original'
               : 'standard';
 
-        await onUpload([effectiveUrl], selectedDest, {
+        await onUpload(uploadUrls, selectedDest, {
           customFilename: effectiveFilename,
           asDocument: deliveryMode === 'document',
           qualityMode: effectiveQualityMode,
@@ -671,6 +675,31 @@ export function RemoteUploadModal({
                   </div>
                 </div>
               ) : null}
+
+              {/* Photo Slideshow Mini Carousel Strip */}
+              {resolvedMedia?.albumImages && resolvedMedia.albumImages.length > 1 && (
+                <div className="td-remote-album-strip-container">
+                  <div className="td-remote-album-strip-header">
+                    <span className="td-remote-album-strip-count">
+                      <ImageIcon size={12} />
+                      <span>{t('speedtest.remote_album_strip_count', { count: resolvedMedia.albumImages.length })}</span>
+                    </span>
+                  </div>
+                  <div className="td-remote-album-strip">
+                    {resolvedMedia.albumImages.map((imgUrl, idx) => (
+                      <div key={idx} className="td-remote-album-thumb-wrap" title={t('speedtest.remote_photo_n', { idx: idx + 1, total: resolvedMedia.albumImages?.length || 0 })}>
+                        <img
+                          src={imgUrl}
+                          alt={`Slide ${idx + 1}`}
+                          className="td-remote-album-thumb"
+                          loading="lazy"
+                        />
+                        <span className="td-remote-album-thumb-idx">#{idx + 1}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Stream Quality & Format Selector (YouTube 8K/4K/1080p, TikTok HD, Audio) */}
               {resolvedMedia && resolvedMedia.formats.length > 1 && (
