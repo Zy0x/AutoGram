@@ -1,4 +1,4 @@
-export * from './mediaStudioDb';
+export * from './driveWorkspaceDb';
 export * from './jobsApi';
 export * from './autoCachePruner';
 export * from './jobStatus';

@@ -1,3 +1,17 @@
+## v3.7.1 Architectural Alignment: Component & Database Modules (Phase 2)
+
+### 1. Penyelarasan Modul Database & Komponen UI (`driveWorkspaceDb.ts` & `DriveToolsModal.tsx`)
+- **Penyelarasan Canonical DB Module**:
+  - Menghadirkan modul database resmi `src/lib/db/driveWorkspaceDb.ts` yang menggantikan penamaan lama `mediaStudioDb.ts` untuk pengelolaan cache folder, thumbnail, context, dan preferensi Drives.
+  - Memastikan *backward compatibility* tetap 100% utuh di `src/lib/db/index.ts` dan `mediaStudioDb.ts`.
+- **Penyelarasan Komponen Modal Drive Tools & Task Editor**:
+  - Membuat canonical module `DriveToolsModal.tsx` & `driveToolsModel.ts` di bawah `src/components/drive/Tools/` dan `src/components/drive/Transfers/`.
+  - Menambahkan re-export bersih `MigrationTaskEditor.tsx` untuk pembuatan dan penyuntingan tugas migrasi.
+- **Verifikasi Komprehensif & Remote CDP E2E**:
+  - 146 unit test di 16 test suite Vitest lulus 100%.
+  - Seluruh pengujian Rust di modul transfer backend lulus 100%.
+  - Pengujian remote CDP WebView2 native pada port 9230 terverifikasi berjalan mulus.
+
 ## v3.7.0 Architectural Alignment: Drive Tools Locale & Workspace Namespaces (Phase 1)
 
 ### 1. Penyelarasan Namespace Locale & i18n (`drive_tools.json` & `locales/index.ts`)
