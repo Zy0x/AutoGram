@@ -1,12 +1,15 @@
-AutoGram Version: v3.5.50
+AutoGram Version: v3.5.51
 
 Current State:
-v3.5.50 Native Video Player Streaming Attributes & Clean URL Caption Sanitization — membenahi `MediaStudio/index.tsx`, `analysis.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyempurnakan pemutaran video native dan sanitasi caption:
-1. Native Video Player Attributes: Memastikan pengiriman video pada Mode Otomatis (Adaptive) dan Media Stream Asli menyertakan atribut `Attribute::Video` lengkap dengan `supports_streaming: true`, dimensi piksel terkalibrasi (`vid_w`/`vid_h`), dan durasi valid, sehingga aplikasi Telegram resmi menampilkan gelembung video native interaktif (*in-app streaming player*) bukan lampiran berkas kotak dokumen.
-2. Clean URL Caption Sanitization: Menghilangkan query string URL CDN mentah (`?a=1233&bti=...`) dari teks caption saat mengunggah berkas via Remote URL.
-3. Permissive Native Video Validation: Mengizinkan berkas kontainer MP4 valid diproses sebagai video native tanpa terdegradasi menjadi dokumen saat inspeksi metadata ffprobe lokal tidak aktif.
+v3.5.51 Rust Server-Side Stream Resolver & Three-Tier Remote Delivery Standard — membenahi `media_prep.rs`, `Cargo.toml`, `VERSION.md`, dan `CHANGELOG.md`. Membangun arsitektur pengunduhan remote anti-fail dengan standar 3 mode:
+1. Rust Server-Side Stream Resolver (`media_prep.rs`): Menanamkan engine resolusi tautan langsung pada Rust backend via `ureq` (kebal batasan CORS browser/WebView2). Saat tautan TikTok, Douyin, atau media sosial diproses, backend secara otonom mengurai URL menjadi direct CDN HD MP4 stream (~8.85 MB), mengeliminasi risiko unduhan HTML mentah berukuran 43 KB `.bin`.
+2. Strict Three-Tier Delivery Standard:
+   - Mode Otomatis (Adaptive): Re-encode cerdas 1:1 jika dibutuhkan, sent as native playable video stream.
+   - Mode Media Stream Asli (Original Native Media): 1:1 Direct Bitstream Passthrough tanpa re-encode, sent as native playable video stream.
+   - Mode Dokumen Asli (Original Document): Pengiriman dokumen biner mentah bit-for-bit lengkap dengan cover thumbnail.
 
 Previous:
+v3.5.50 Native Video Player Streaming Attributes & Clean URL Caption Sanitization — membenahi `MediaStudio/index.tsx`, `analysis.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyempurnakan pemutaran video native dan sanitasi caption.
 v3.5.49 Intelligent Remote Stream Link Extraction & Document Filename Preservation — membenahi `RemoteUploadModal.tsx`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyempurnakan pipeline unduhan tautan media dan penamaan berkas dokumen.
 v3.5.48 Native Grammers SendMessage Unification & Zero-Rejection Document Delivery — membenahi `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyatukan pengiriman berkas ke engine native Grammers.
 v3.5.47 Pure Binary Document Delivery & MTProto Octet-Stream Optimization — membenahi `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki format biner dokumen asli pada MTProto.

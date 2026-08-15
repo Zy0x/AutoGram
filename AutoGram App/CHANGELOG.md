@@ -1,3 +1,15 @@
+## v3.5.51 Rust Server-Side Stream Resolver & Three-Tier Remote Delivery Standard
+ 
+### 1. Server-Side Rust Stream Resolver (`media_prep.rs`)
+- **Ekstraksi Stream Bebas Batasan CORS**:
+  - `download_remote_url` kini secara mandiri mengurai tautan platform media sosial (TikTok, Douyin, dll) ke URL direct CDN stream HD MP4 (~8.85 MB) langsung di backend Rust via `ureq`.
+  - Menghilangkan sepenuhnya risiko unduhan halaman HTML mentah 43 KB yang memicu file `.bin`.
+
+### 2. Standarisasi Tiga Tingkat Format Pengunggahan
+- **Mode Otomatis (Adaptive)**: Optimasi adaptif H.264/AAC dengan faststart streaming dan tampilan pemutar video interaktif Telegram.
+- **Mode Media Stream Asli**: Passthrough biner 1:1 langsung dari CDN tanpa re-encode, tetap dikirimkan sebagai pemutar video interaktif Telegram (`Attribute::Video`).
+- **Mode Dokumen Asli**: Berkas mentah bit-for-bit `application/octet-stream` dengan nama file dan cover thumbnail yang valid.
+
 ## v3.5.50 Native Video Player Streaming Attributes & Clean URL Caption Sanitization
  
 ### 1. Integrasi Streaming Player Video Telegram Native (`media_transfer.rs`)

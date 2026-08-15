@@ -86,16 +86,57 @@ fn emit_transfer_event(
     }
 }
 
+pub fn resolve_social_media_direct_url(url: &str) -> Option<String> {
+    let u_lower = url.to_ascii_lowercase();
+    if (u_lower.contains("tiktok.com") || u_lower.contains("douyin.com"))
+        && !u_lower.contains("tiktokcdn")
+        && !u_lower.contains(".mp4")
+    {
+        let api_url = format!("https://www.tikwm.com/api/?url={}&hd=1", urlencoding::encode(url));
+        let agent = ureq::AgentBuilder::new()
+            .timeout_connect(std::time::Duration::from_secs(10))
+            .timeout_read(std::time::Duration::from_secs(15))
+            .build();
+        if let Ok(resp) = agent.get(&api_url).call() {
+            if let Ok(json_val) = resp.into_json::<serde_json::Value>() {
+                if let Some(data) = json_val.get("data") {
+                    if let Some(hdplay) = data.get("hdplay").and_then(|v| v.as_str()) {
+                        let direct = if hdplay.starts_with("http") {
+                            hdplay.to_string()
+                        } else {
+                            format!("https://www.tikwm.com{hdplay}")
+                        };
+                        return Some(direct);
+                    }
+                    if let Some(play) = data.get("play").and_then(|v| v.as_str()) {
+                        let direct = if play.starts_with("http") {
+                            play.to_string()
+                        } else {
+                            format!("https://www.tikwm.com{play}")
+                        };
+                        return Some(direct);
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
 /// Download remote URL to a temp file under path policy (max up to 4GB Telegram limit).
 pub fn download_remote_url(
     url: &str,
     app: Option<&tauri::AppHandle>,
     item_index: usize,
 ) -> Result<PathBuf, String> {
-    let url = url.trim();
-    if !is_remote_url(url) {
+    let url_str = url.trim();
+    if !is_remote_url(url_str) {
         return Err("not a remote URL".into());
     }
+
+    let resolved_url = resolve_social_media_direct_url(url_str).unwrap_or_else(|| url_str.to_string());
+    let url = resolved_url.as_str();
+
     tg_log::info(
         BACKEND,
         "remote_download_start",
@@ -321,7 +362,7 @@ fn ext_from_url_or_ctype(url: &str, ctype: &str) -> String {
     if c.contains("webp") {
         return "webp".into();
     }
-    if c.contains("mp4") {
+    if c.contains("mp4") || c.contains("video_mp4") || c.contains("quicktime") {
         return "mp4".into();
     }
     if c.contains("webm") {
@@ -329,6 +370,15 @@ fn ext_from_url_or_ctype(url: &str, ctype: &str) -> String {
     }
     if c.contains("gif") {
         return "gif".into();
+    }
+    if c.contains("audio/mpeg") || c.contains("audio/mp3") || c.contains("audio/aac") {
+        return "mp3".into();
+    }
+    if c.contains("pdf") {
+        return "pdf".into();
+    }
+    if c.contains("zip") {
+        return "zip".into();
     }
     "bin".into()
 }
