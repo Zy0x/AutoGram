@@ -1,3 +1,14 @@
+## v3.7.12 Universal Stream Format Internationalization & Harmonization (Phase 13)
+
+### 1. Internasionalisasi Menyeluruh Format Stream & Avatar Kreator
+- **Dynamic Format Label Localization (`RemoteUploadModal.tsx`, `tiktokResolver.ts`, `drive_tools.json`)**:
+  - Menghapus teks bahasa Indonesia yang ter-hardcode di dalam resolver media (`Foto Profil Kreator (HD Avatar)`, `Semua Foto (...)`, `Foto Original (Clean HD)`).
+  - Menambahkan kamus terjemahan dinamis `remote_fmt_creator_avatar`, `remote_fmt_album_pack`, `remote_fmt_single_photo`, dan `remote_fmt_slide_photo` pada kamus `drive_tools.json` (ID & EN).
+  - Mengintegrasikan fungsi pembantu `getFormatDisplayLabel` pada modal Remote Upload agar seluruh kartu opsi resolusi dan avatar kreator mengikuti bahasa aktif pengguna secara dinamis dan konsisten 100%.
+- **Verifikasi Kualitas**:
+  - **4.835 Kunci Kamus** terverifikasi sinkron 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
+  - 146 unit test Vitest lulus 100%.
+
 ## v3.7.11 TikTok Quality Tier Intelligence & Stream Deduplication (Phase 12)
 
 ### 1. Optimasi & Penyelarasan Kualitas Stream TikTok

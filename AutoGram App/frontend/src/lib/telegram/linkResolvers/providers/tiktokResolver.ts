@@ -37,12 +37,12 @@ export const tiktokResolver: LinkResolverProvider = {
             formats: [
               {
                 id: 'tiktok_profile_link',
-                label: `Informasi Profil (@${uniqueId})`,
+                label: `Profile Information (@${uniqueId})`,
                 qualityTier: 'original',
                 resolution: 'Creator Profile',
                 ext: 'txt',
                 directUrl: cleanUrl,
-                badge: 'PROFIL AKUN',
+                badge: 'PROFILE',
               },
             ],
             selectedFormatId: 'tiktok_profile_link',
@@ -113,9 +113,9 @@ export const tiktokResolver: LinkResolverProvider = {
             if (data.images.length > 1) {
               formats.push({
                 id: 'tiktok_photo_all_pack',
-                label: `Semua Foto (${data.images.length} Foto HD - Full Album)`,
+                label: `All Photos (${data.images.length} HD Photos - Full Album)`,
                 qualityTier: 'original',
-                resolution: `Album ${data.images.length} Foto`,
+                resolution: `Album ${data.images.length} Photos`,
                 ext: 'jpg',
                 directUrl: allDirectImages[0],
                 allAlbumUrls: allDirectImages,
@@ -131,15 +131,15 @@ export const tiktokResolver: LinkResolverProvider = {
               formats.push({
                 id: `tiktok_photo_${idx + 1}`,
                 label: data.images.length === 1 
-                  ? 'Foto Original (Clean HD)' 
-                  : `Foto ${idx + 1} dari ${data.images.length} (Clean HD)`,
+                  ? 'Original Photo (Clean HD)' 
+                  : `Photo ${idx + 1} of ${data.images.length} (Clean HD)`,
                 qualityTier: 'original',
                 resolution: 'Original HD Photo',
                 ext: 'jpg',
                 directUrl: fullImgUrl,
                 isImage: true,
                 isCleanNoWatermark: true,
-                badge: data.images.length === 1 ? 'HD PHOTO' : `FOTO ${idx + 1}`,
+                badge: data.images.length === 1 ? 'HD PHOTO' : `PHOTO ${idx + 1}`,
               });
             });
           } else {
@@ -217,7 +217,7 @@ export const tiktokResolver: LinkResolverProvider = {
           if (highestAvatar) {
             formats.push({
               id: 'tiktok_profile_avatar',
-              label: 'Foto Profil Kreator (HD Avatar)',
+              label: 'Creator Profile Photo (HD Avatar)',
               qualityTier: 'original',
               resolution: 'Profile Avatar HD',
               ext: 'jpg',

@@ -163,6 +163,32 @@ function renderBadge(c: DriveDestChoice, t: any) {
   return <span className="td-dest-badge user">{t('speedtest.dest_badge_user')}</span>;
 }
 
+function getFormatDisplayLabel(
+  fmt: StreamQualityFormat,
+  resolvedMedia: ResolvedMediaInfo | null,
+  t: any
+): string {
+  if (fmt.id === 'tiktok_profile_avatar') {
+    return t('speedtest.remote_fmt_creator_avatar');
+  }
+  if (fmt.id === 'tiktok_photo_all_pack' || fmt.isAlbumPack) {
+    const total = resolvedMedia?.albumImages?.length || '';
+    return t('speedtest.remote_fmt_album_pack', { total });
+  }
+  if (fmt.id.startsWith('tiktok_photo_')) {
+    const total = resolvedMedia?.albumImages?.length || 1;
+    const match = fmt.id.match(/photo_(\d+)/);
+    if (match && match[1]) {
+      const idx = parseInt(match[1], 10);
+      if (total <= 1) {
+        return t('speedtest.remote_fmt_single_photo');
+      }
+      return t('speedtest.remote_fmt_slide_photo', { idx, total });
+    }
+  }
+  return fmt.label;
+}
+
 export function RemoteUploadModal({
   isOpen,
   onClose,
@@ -1037,7 +1063,9 @@ export function RemoteUploadModal({
                               disabled={submitting}
                             >
                               <div className="td-remote-quality-chip-top">
-                                <span className="td-remote-quality-chip-title">{fmt.label}</span>
+                                <span className="td-remote-quality-chip-title">
+                                  {getFormatDisplayLabel(fmt, resolvedMedia, t)}
+                                </span>
                                 {isSelected && <CheckCircle2 size={13} className="td-remote-chip-active-ico" />}
                               </div>
                               <div className="td-remote-quality-chip-meta">
