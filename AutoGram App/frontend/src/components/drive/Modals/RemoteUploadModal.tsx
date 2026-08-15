@@ -23,7 +23,6 @@ import {
   CheckCircle2,
   Layers,
   Sparkles,
-  Play,
 } from 'lucide-react';
 import type { DriveDestChoice, DriveDestPickerState } from './DriveDestinationPicker';
 import { DriveDestinationPicker } from './DriveDestinationPicker';
@@ -34,6 +33,7 @@ import { nativeReadClipboardText } from '../../../lib/tauri/desktopClipboard';
 import {
   resolveRemoteMediaUrl,
   type ResolvedMediaInfo,
+  type StreamQualityFormat,
 } from '../../../lib/telegram/linkResolvers';
 import {
   type DriveTransferSettings,
@@ -182,6 +182,8 @@ export function RemoteUploadModal({
   const [resolvedMedia, setResolvedMedia] = useState<ResolvedMediaInfo | null>(null);
   const [selectedFormatId, setSelectedFormatId] = useState<string>('');
 
+  const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0);
+
   const [selectedDest, setSelectedDest] = useState<DriveDestChoice>(
     currentDestination || { id: null, label: 'Saved Messages', kind: 'saved' }
   );
@@ -192,7 +194,6 @@ export function RemoteUploadModal({
   const inspectAbortRef = useRef<AbortController | null>(null);
   const inspectTimerRef = useRef<number | null>(null);
 
-  // Track opening transition so state is only initialized once upon opening
   const prevIsOpenRef = useRef(false);
   useEffect(() => {
     if (isOpen && !prevIsOpenRef.current) {
@@ -204,6 +205,7 @@ export function RemoteUploadModal({
       setInspection(null);
       setResolvedMedia(null);
       setSelectedFormatId('');
+      setActiveSlideIndex(0);
       setSelectedDest(currentDestination || { id: null, label: 'Saved Messages', kind: 'saved' });
       setErrorMsg('');
       setPickerOpen(false);
@@ -211,7 +213,6 @@ export function RemoteUploadModal({
     prevIsOpenRef.current = isOpen;
   }, [isOpen, currentDestination, transferSettings]);
 
-  // Handle Escape key to close modal (only if inner destination picker is not open)
   useEffect(() => {
     if (!isOpen || pickerOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -224,7 +225,6 @@ export function RemoteUploadModal({
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, pickerOpen, onClose]);
 
-  // Live URL & Media inspection engine (debounced)
   const probeUrl = useCallback(async (rawUrl: string) => {
     if (inspectAbortRef.current) {
       inspectAbortRef.current.abort();
@@ -243,7 +243,6 @@ export function RemoteUploadModal({
     const ext = dotIdx > 0 ? baseName.slice(dotIdx + 1) : '';
     const inferredKind = inferKindFromExt(ext);
 
-    // Initial instant preview before network resolve
     setInspection({
       url: trimmed,
       status: 'inspecting',
@@ -257,11 +256,11 @@ export function RemoteUploadModal({
     inspectAbortRef.current = controller;
 
     try {
-      // 1. Run through Modular Smart Link Resolver
       const resolved = await resolveRemoteMediaUrl(trimmed, controller.signal);
       if (resolved) {
         setResolvedMedia(resolved);
         setSelectedFormatId(resolved.selectedFormatId || resolved.formats[0]?.id || '');
+        setActiveSlideIndex(0);
 
         const bestFmt =
           resolved.formats.find((f) => f.id === resolved.selectedFormatId) || resolved.formats[0];
@@ -297,59 +296,95 @@ export function RemoteUploadModal({
       /* fallback */
     }
 
-    // Direct stream fallback inspection
-    setInspection({
-      url: trimmed,
-      status: 'direct_stream',
-      filename: baseName,
-      size: null,
-      mimeType: null,
-      kind: inferredKind,
-    });
+    try {
+      const resp = await fetch(trimmed, {
+        method: 'HEAD',
+        signal: controller.signal,
+      });
+
+      if (resp.ok) {
+        const ctype = resp.headers.get('content-type') || '';
+        const clen = resp.headers.get('content-length');
+        const sizeNum = clen ? parseInt(clen, 10) : null;
+        const cd = resp.headers.get('content-disposition') || '';
+
+        let fname = baseName;
+        const cdMatch = cd.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i);
+        if (cdMatch && cdMatch[1]) {
+          fname = decodeURIComponent(cdMatch[1]);
+        }
+
+        let kind = inferredKind;
+        if (ctype.startsWith('video/')) kind = 'video';
+        else if (ctype.startsWith('image/')) kind = 'image';
+        else if (ctype.startsWith('audio/')) kind = 'audio';
+        else if (ctype.includes('zip') || ctype.includes('compressed')) kind = 'zip';
+        else if (ctype.includes('pdf') || ctype.includes('document')) kind = 'doc';
+
+        setInspection({
+          url: trimmed,
+          status: 'valid',
+          filename: fname,
+          size: sizeNum && !isNaN(sizeNum) ? sizeNum : null,
+          mimeType: ctype || null,
+          kind,
+        });
+      } else {
+        setInspection({
+          url: trimmed,
+          status: 'direct_stream',
+          filename: baseName,
+          size: null,
+          mimeType: null,
+          kind: inferredKind,
+        });
+      }
+    } catch {
+      setInspection({
+        url: trimmed,
+        status: 'direct_stream',
+        filename: baseName,
+        size: null,
+        mimeType: null,
+        kind: inferredKind,
+      });
+    }
   }, []);
 
   const handleUrlChange = (val: string) => {
     setUrl(val);
     if (errorMsg) setErrorMsg('');
-    if (inspectTimerRef.current) window.clearTimeout(inspectTimerRef.current);
+
+    if (inspectTimerRef.current) {
+      window.clearTimeout(inspectTimerRef.current);
+    }
     inspectTimerRef.current = window.setTimeout(() => {
-      void probeUrl(val);
+      probeUrl(val);
     }, 280);
   };
 
   const handlePasteClipboard = async () => {
-    const text = await nativeReadClipboardText();
-    if (text) {
+    try {
+      const text = await nativeReadClipboardText();
+      if (!text || !text.trim()) return;
+      const clean = text.trim();
       if (tab === 'single') {
-        handleUrlChange(text);
+        handleUrlChange(clean);
       } else {
-        setBatchUrlsText((prev) => (prev ? `${prev}\n${text}` : text));
+        setBatchUrlsText((prev) => (prev ? `${prev}\n${clean}` : clean));
       }
+    } catch {
+      /* clipboard read fallback */
     }
   };
 
-  // Extract valid URLs from batch text
   const batchUrls = useMemo(() => {
     return batchUrlsText
       .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.startsWith('http://') || line.startsWith('https://'));
+      .map((s) => s.trim())
+      .filter((s) => s.startsWith('http://') || s.startsWith('https://'));
   }, [batchUrlsText]);
 
-  // Clean target label presentation (stripping awkward prefix duplication)
-  const cleanTargetDisplay = useMemo(() => {
-    const raw = selectedDest.label || 'Saved Messages';
-    let cleanLabel = raw;
-    if (cleanLabel.startsWith('#') && selectedDest.topicId) {
-      cleanLabel = cleanLabel.replace(/^#\s*/, '');
-    }
-    return {
-      title: cleanLabel,
-      topicPill: selectedDest.topicId ? `# Topik ${selectedDest.topicId}` : null,
-    };
-  }, [selectedDest]);
-
-  // Stable destination picker state to prevent re-instantiation
   const pickerState = useMemo<DriveDestPickerState | null>(() => {
     if (!pickerOpen) return null;
     return {
@@ -357,14 +392,60 @@ export function RemoteUploadModal({
       detail: t('speedtest.remote_upload_select_target_desc'),
       choices: destinations,
       creds,
-      onConfirm: (choice) => {
+      onConfirm: (choice: DriveDestChoice) => {
         setSelectedDest(choice);
         setPickerOpen(false);
       },
     };
   }, [pickerOpen, destinations, creds, t]);
 
-  if (!isOpen) return null;
+  const cleanTargetDisplay = useMemo(() => {
+    const raw = selectedDest.label || 'Saved Messages';
+    const parts = raw.split(' › ');
+    if (parts.length > 1) {
+      return {
+        title: parts[0].trim(),
+        topicPill: parts.slice(1).join(' › ').trim(),
+      };
+    }
+    return {
+      title: raw,
+      topicPill: null,
+    };
+  }, [selectedDest.label]);
+
+  const handleSelectSlide = (idx: number) => {
+    setActiveSlideIndex(idx);
+    const matchingFormat = resolvedMedia?.formats.find(
+      (f) => f.id === `tiktok_photo_${idx + 1}`
+    );
+    if (matchingFormat) {
+      setSelectedFormatId(matchingFormat.id);
+    }
+  };
+
+  const handleSelectFormat = (fmt: StreamQualityFormat) => {
+    setSelectedFormatId(fmt.id);
+    if (fmt.filesizeBytes) {
+      setInspection((prev) => (prev ? { ...prev, size: fmt.filesizeBytes } : prev));
+    }
+    const match = fmt.id.match(/photo_(\d+)/);
+    if (match && match[1]) {
+      const photoIdx = parseInt(match[1], 10) - 1;
+      if (photoIdx >= 0 && (!resolvedMedia?.albumImages || photoIdx < resolvedMedia.albumImages.length)) {
+        setActiveSlideIndex(photoIdx);
+      }
+    }
+  };
+
+  const activeSlideUrl = useMemo(() => {
+    if (resolvedMedia?.albumImages && resolvedMedia.albumImages.length > 0) {
+      return resolvedMedia.albumImages[activeSlideIndex] || resolvedMedia.albumImages[0];
+    }
+    return resolvedMedia?.thumbnailUrl || null;
+  }, [resolvedMedia, activeSlideIndex]);
+
+  const isSplitActive = Boolean(resolvedMedia || (inspection && url.trim().length > 0)) && tab === 'single';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -478,7 +559,7 @@ export function RemoteUploadModal({
     <div className="td-confirm-overlay" role="presentation" onClick={handleOverlayClick}>
       <form
         onSubmit={handleSubmit}
-        className="td-confirm-panel input-dialog td-remote-upload-panel"
+        className={`td-confirm-panel input-dialog td-remote-upload-panel ${isSplitActive ? 'td-remote-split-active' : ''}`}
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
@@ -502,7 +583,6 @@ export function RemoteUploadModal({
           </button>
         </header>
 
-        {/* Tab Switcher: Single File vs Batch URLs */}
         <div className="td-remote-tabs" role="tablist">
           <button
             type="button"
@@ -531,20 +611,86 @@ export function RemoteUploadModal({
           </button>
         </div>
 
-        <div className="td-input-body td-remote-body">
-          {errorMsg && (
-            <div className="td-input-error td-remote-error-box" role="alert">
-              {errorMsg}
-            </div>
-          )}
+        <div className={`td-input-body td-remote-body ${isSplitActive ? 'td-remote-split-body' : ''}`}>
+          <div className="td-remote-left-pane">
+            {errorMsg && (
+              <div className="td-input-error td-remote-error-box" role="alert">
+                {errorMsg}
+              </div>
+            )}
 
-          {tab === 'single' ? (
-            <>
-              {/* Single URL Input Row */}
+            {tab === 'single' ? (
+              <>
+                <div className="td-remote-field-group">
+                  <div className="td-remote-label-row">
+                    <label className="td-input-label" htmlFor="td-remote-url">
+                      {t('speedtest.source_url_label')}
+                    </label>
+                    <button
+                      type="button"
+                      className="td-remote-paste-action"
+                      onClick={handlePasteClipboard}
+                      disabled={submitting}
+                      title={t('speedtest.remote_paste_clipboard')}
+                    >
+                      <Clipboard size={12} />
+                      <span>{t('speedtest.remote_paste_clipboard')}</span>
+                    </button>
+                  </div>
+                  <div className="td-remote-input-wrap">
+                    <span className="td-remote-input-icon">
+                      <Link2 size={16} />
+                    </span>
+                    <input
+                      id="td-remote-url"
+                      className="td-input-field td-remote-url-input"
+                      type="text"
+                      placeholder="https://vt.tiktok.com/... atau https://youtube.com/..."
+                      value={url}
+                      onChange={(e) => handleUrlChange(e.target.value)}
+                      disabled={submitting}
+                      autoComplete="off"
+                      spellCheck={false}
+                      autoFocus
+                    />
+                    {url && (
+                      <button
+                        type="button"
+                        className="td-remote-clear-btn"
+                        onClick={() => handleUrlChange('')}
+                        disabled={submitting}
+                        aria-label={t('speedtest.remote_clear_input')}
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="td-remote-field-group">
+                  <label className="td-input-label" htmlFor="td-custom-filename">
+                    {t('speedtest.remote_custom_name_label')}
+                  </label>
+                  <input
+                    id="td-custom-filename"
+                    className="td-input-field td-custom-filename-input"
+                    type="text"
+                    placeholder={
+                      inspection?.filename || t('speedtest.remote_custom_name_placeholder')
+                    }
+                    value={customFilename}
+                    onChange={(e) => setCustomFilename(e.target.value)}
+                    disabled={submitting}
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                </div>
+              </>
+            ) : (
               <div className="td-remote-field-group">
                 <div className="td-remote-label-row">
-                  <label className="td-input-label" htmlFor="td-remote-url">
-                    {t('speedtest.source_url_label')}
+                  <label className="td-input-label" htmlFor="td-remote-batch-input">
+                    {t('speedtest.remote_tab_batch')}
                   </label>
                   <button
                     type="button"
@@ -557,61 +703,137 @@ export function RemoteUploadModal({
                     <span>{t('speedtest.remote_paste_clipboard')}</span>
                   </button>
                 </div>
-                <div className="td-remote-input-wrap">
-                  <span className="td-remote-input-icon">
-                    <Link2 size={16} />
+                <textarea
+                  id="td-remote-batch-input"
+                  className="td-input-field td-remote-batch-textarea"
+                  rows={5}
+                  placeholder={t('speedtest.remote_batch_placeholder')}
+                  value={batchUrlsText}
+                  onChange={(e) => {
+                    setBatchUrlsText(e.target.value);
+                    if (errorMsg) setErrorMsg('');
+                  }}
+                  disabled={submitting}
+                  spellCheck={false}
+                />
+                <div className="td-remote-batch-footer">
+                  <span className="td-remote-batch-hint">
+                    {batchUrls.length > 0
+                      ? t('speedtest.remote_batch_count', { count: batchUrls.length })
+                      : t('speedtest.remote_batch_empty_hint')}
                   </span>
-                  <input
-                    id="td-remote-url"
-                    className="td-input-field td-remote-url-input"
-                    type="text"
-                    placeholder="https://example.com/media.mp4"
-                    value={url}
-                    onChange={(e) => handleUrlChange(e.target.value)}
-                    disabled={submitting}
-                    autoComplete="off"
-                    spellCheck={false}
-                    autoFocus
-                  />
-                  {url && (
-                    <button
-                      type="button"
-                      className="td-remote-clear-btn"
-                      onClick={() => handleUrlChange('')}
-                      disabled={submitting}
-                      aria-label={t('speedtest.remote_clear_input')}
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
                 </div>
               </div>
+            )}
 
-              {/* Rich Streaming Media Preview Card (YouTube, TikTok, Terabox, Pinterest, etc.) */}
-              {resolvedMedia && (resolvedMedia.thumbnailUrl || resolvedMedia.platform !== 'direct') ? (
-                <div className="td-remote-media-card">
-                  {resolvedMedia.thumbnailUrl && (
-                    <div className="td-remote-media-thumb-wrap">
-                      <img
-                        src={resolvedMedia.thumbnailUrl}
-                        alt={resolvedMedia.title}
-                        className="td-remote-media-thumb"
-                        loading="lazy"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = 'none';
-                        }}
-                      />
-                      <div className="td-remote-media-play-overlay">
-                        <Play size={18} fill="currentColor" />
-                      </div>
-                      {resolvedMedia.durationSec ? (
-                        <span className="td-remote-media-duration">
-                          {formatMediaDuration(resolvedMedia.durationSec)}
+            <div className="td-remote-field-group">
+              <label className="td-input-label">{t('speedtest.remote_delivery_mode_label')}</label>
+              <div className="td-remote-mode-selector">
+                <button
+                  type="button"
+                  className={`td-remote-mode-btn ${deliveryMode === 'auto' ? 'active' : ''}`}
+                  onClick={() => setDeliveryMode('auto')}
+                  disabled={submitting}
+                >
+                  <Film size={14} />
+                  <div className="td-remote-mode-text">
+                    <span className="td-remote-mode-title">{t('speedtest.remote_mode_auto')}</span>
+                    <span className="td-remote-mode-desc">{t('speedtest.remote_mode_auto_hint')}</span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className={`td-remote-mode-btn ${deliveryMode === 'uncompressed' ? 'active' : ''}`}
+                  onClick={() => setDeliveryMode('uncompressed')}
+                  disabled={submitting}
+                >
+                  <Sparkles size={14} />
+                  <div className="td-remote-mode-text">
+                    <span className="td-remote-mode-title">{t('speedtest.remote_mode_uncompressed')}</span>
+                    <span className="td-remote-mode-desc">{t('speedtest.remote_mode_uncompressed_hint')}</span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className={`td-remote-mode-btn ${deliveryMode === 'document' ? 'active' : ''}`}
+                  onClick={() => setDeliveryMode('document')}
+                  disabled={submitting}
+                >
+                  <FileText size={14} />
+                  <div className="td-remote-mode-text">
+                    <span className="td-remote-mode-title">{t('speedtest.remote_mode_doc')}</span>
+                    <span className="td-remote-mode-desc">{t('speedtest.remote_mode_doc_hint')}</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <div className="td-remote-field-group">
+              <label className="td-input-label" htmlFor="td-remote-target">
+                {t('speedtest.destination_folder_label')}
+              </label>
+              <div className="td-remote-dest-wrap">
+                <button
+                  id="td-remote-target"
+                  type="button"
+                  className="td-remote-dest-card"
+                  onClick={() => setPickerOpen(true)}
+                  disabled={submitting}
+                  title={t('speedtest.btn_change_dest')}
+                >
+                  <div className="td-remote-dest-main">
+                    <span className="td-dest-ico" aria-hidden>
+                      {selectedDest.kind === 'saved' ? (
+                        <Home size={16} />
+                      ) : (
+                        <PeerAvatar
+                          peerId={selectedDest.id ?? 0}
+                          creds={creds}
+                          title={selectedDest.label}
+                          fallback={kindIcon(selectedDest)}
+                        />
+                      )}
+                    </span>
+                    <div className="td-remote-dest-info">
+                      <span className="td-remote-dest-title" title={cleanTargetDisplay.title}>
+                        {cleanTargetDisplay.title}
+                      </span>
+                      {cleanTargetDisplay.topicPill && (
+                        <span className="td-remote-dest-topic">
+                          <Hash size={11} style={{ display: 'inline', verticalAlign: '-1px' }} />
+                          {` ${cleanTargetDisplay.topicPill.replace(/^#\s*/, '')}`}
                         </span>
-                      ) : null}
+                      )}
                     </div>
-                  )}
-                  <div className="td-remote-media-details">
+                  </div>
+                  <div className="td-remote-dest-actions">
+                    {renderBadge(selectedDest, t)}
+                    <span className="td-remote-dest-change-tag">
+                      {t('speedtest.btn_change_dest')}
+                      <ChevronRight size={13} style={{ marginLeft: 3 }} />
+                    </span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {tab === 'single' && isSplitActive && (
+            <div className="td-remote-right-pane">
+              <div className="td-remote-preview-head-row">
+                <div className="td-remote-preview-head-titles">
+                  <h3 className="td-remote-preview-title">{t('speedtest.remote_split_preview_title')}</h3>
+                  <p className="td-remote-preview-subtitle">{t('speedtest.remote_split_preview_subtitle')}</p>
+                </div>
+                <span className="td-remote-live-canvas-pill">
+                  <span className="td-remote-live-canvas-dot" />
+                  <span>{t('speedtest.remote_split_live_canvas_badge')}</span>
+                </span>
+              </div>
+
+              {resolvedMedia ? (
+                <div className="td-remote-preview-content">
+                  <div className="td-remote-meta-card">
                     <div className="td-remote-media-badges">
                       <span className={`td-remote-platform-badge ${resolvedMedia.platform}`}>
                         {resolvedMedia.platformName}
@@ -632,270 +854,172 @@ export function RemoteUploadModal({
                       </div>
                     )}
                   </div>
+
+                  <div className="td-remote-big-canvas-wrap">
+                    {activeSlideUrl ? (
+                      <div className="td-remote-big-canvas-inner">
+                        <img
+                          src={activeSlideUrl}
+                          alt={resolvedMedia.title}
+                          className="td-remote-big-canvas-img"
+                          loading="lazy"
+                        />
+                        <div className="td-remote-canvas-badge-overlay">
+                          {resolvedMedia.albumImages && resolvedMedia.albumImages.length > 1 && (
+                            <span className="td-remote-canvas-slide-tag">
+                              <ImageIcon size={12} />
+                              <span>
+                                {t('speedtest.remote_split_slide_preview', {
+                                  idx: activeSlideIndex + 1,
+                                  total: resolvedMedia.albumImages.length,
+                                })}
+                              </span>
+                            </span>
+                          )}
+                          {resolvedMedia.durationSec ? (
+                            <span className="td-remote-canvas-duration-tag">
+                              {formatMediaDuration(resolvedMedia.durationSec)}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="td-remote-big-canvas-fallback">
+                        <Film size={36} className="td-remote-fallback-icon" />
+                        <span>{resolvedMedia.platformName} Stream</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {resolvedMedia.albumImages && resolvedMedia.albumImages.length > 1 && (
+                    <div className="td-remote-album-strip-container">
+                      <div className="td-remote-album-strip-header">
+                        <span className="td-remote-album-strip-count">
+                          <ImageIcon size={12} />
+                          <span>{t('speedtest.remote_album_strip_count', { count: resolvedMedia.albumImages.length })}</span>
+                        </span>
+                        <span className="td-remote-album-strip-active-note">
+                          {t('speedtest.remote_split_slide_preview', {
+                            idx: activeSlideIndex + 1,
+                            total: resolvedMedia.albumImages.length,
+                          })}
+                        </span>
+                      </div>
+                      <div className="td-remote-album-strip">
+                        {resolvedMedia.albumImages.map((imgUrl, idx) => {
+                          const isActive = idx === activeSlideIndex;
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              className={`td-remote-album-thumb-wrap ${isActive ? 'active' : ''}`}
+                              onClick={() => handleSelectSlide(idx)}
+                              title={t('speedtest.remote_photo_n', {
+                                idx: idx + 1,
+                                total: resolvedMedia.albumImages?.length || 0,
+                              })}
+                            >
+                              <img
+                                src={imgUrl}
+                                alt={`Slide ${idx + 1}`}
+                                className="td-remote-album-thumb"
+                                loading="lazy"
+                              />
+                              <span className="td-remote-album-thumb-idx">#{idx + 1}</span>
+                              {isActive && (
+                                <span className="td-remote-album-thumb-check">
+                                  <CheckCircle2 size={10} />
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {resolvedMedia.formats.length > 0 && (
+                    <div className="td-remote-formats-container">
+                      <label className="td-input-label">
+                        {t('speedtest.remote_split_select_format_hint')}
+                      </label>
+                      <div className="td-remote-quality-grid">
+                        {resolvedMedia.formats.map((fmt) => {
+                          const isSelected = selectedFormatId === fmt.id;
+                          return (
+                            <button
+                              key={fmt.id}
+                              type="button"
+                              className={`td-remote-quality-chip ${isSelected ? 'active' : ''} tier-${fmt.qualityTier} ${fmt.isAlbumPack ? 'album-pack' : ''}`}
+                              onClick={() => handleSelectFormat(fmt)}
+                              disabled={submitting}
+                            >
+                              <div className="td-remote-quality-chip-top">
+                                <span className="td-remote-quality-chip-title">{fmt.label}</span>
+                                {isSelected && <CheckCircle2 size={13} className="td-remote-chip-active-ico" />}
+                              </div>
+                              <div className="td-remote-quality-chip-meta">
+                                {fmt.badge && (
+                                  <span className="td-remote-quality-chip-badge">{fmt.badge}</span>
+                                )}
+                                {fmt.filesizeBytes ? (
+                                  <span className="td-remote-quality-chip-size">
+                                    ~{formatDriveBytes(fmt.filesizeBytes)}
+                                  </span>
+                                ) : null}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : inspection && url.trim() ? (
-                /* Standard File Inspector Card */
-                <div className={`td-remote-inspector-card kind-${inspection.kind}`}>
-                  <div className="td-remote-inspector-icon">
-                    {fileKindIcon(inspection.kind)}
-                  </div>
-                  <div className="td-remote-inspector-info">
-                    <div className="td-remote-inspector-name" title={inspection.filename}>
-                      {inspection.filename}
+                <div className="td-remote-preview-content">
+                  <div className={`td-remote-inspector-card kind-${inspection.kind}`}>
+                    <div className="td-remote-inspector-icon">
+                      {fileKindIcon(inspection.kind)}
                     </div>
-                    <div className="td-remote-inspector-meta">
-                      {inspection.size ? (
-                        <span className="td-remote-meta-badge size">
-                          {formatDriveBytes(inspection.size)}
-                        </span>
-                      ) : (
-                        <span className="td-remote-meta-badge stream">
-                          {t('speedtest.remote_inspect_size_unknown')}
-                        </span>
-                      )}
-                      <span className={`td-remote-meta-badge status ${inspection.status}`}>
-                        {inspection.status === 'inspecting' ? (
-                          <>
-                            <Loader2 size={11} className="spin" />
-                            <span>{t('speedtest.remote_inspecting')}</span>
-                          </>
-                        ) : inspection.status === 'valid' ? (
-                          <>
-                            <CheckCircle2 size={11} />
-                            <span>{t('speedtest.remote_inspect_valid')}</span>
-                          </>
+                    <div className="td-remote-inspector-info">
+                      <div className="td-remote-inspector-name" title={inspection.filename}>
+                        {inspection.filename}
+                      </div>
+                      <div className="td-remote-inspector-meta">
+                        {inspection.size ? (
+                          <span className="td-remote-meta-badge size">
+                            {formatDriveBytes(inspection.size)}
+                          </span>
                         ) : (
-                          <>
-                            <Sparkles size={11} />
-                            <span>{t('speedtest.remote_inspect_direct_stream')}</span>
-                          </>
+                          <span className="td-remote-meta-badge stream">
+                            {t('speedtest.remote_inspect_size_unknown')}
+                          </span>
                         )}
-                      </span>
+                        <span className={`td-remote-meta-badge status ${inspection.status}`}>
+                          {inspection.status === 'inspecting' ? (
+                            <>
+                              <Loader2 size={11} className="spin" />
+                              <span>{t('speedtest.remote_inspecting')}</span>
+                            </>
+                          ) : inspection.status === 'valid' ? (
+                            <>
+                              <CheckCircle2 size={11} />
+                              <span>{t('speedtest.remote_inspect_valid')}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles size={11} />
+                              <span>{t('speedtest.remote_inspect_direct_stream')}</span>
+                            </>
+                          )}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
               ) : null}
-
-              {/* Photo Slideshow Mini Carousel Strip */}
-              {resolvedMedia?.albumImages && resolvedMedia.albumImages.length > 1 && (
-                <div className="td-remote-album-strip-container">
-                  <div className="td-remote-album-strip-header">
-                    <span className="td-remote-album-strip-count">
-                      <ImageIcon size={12} />
-                      <span>{t('speedtest.remote_album_strip_count', { count: resolvedMedia.albumImages.length })}</span>
-                    </span>
-                  </div>
-                  <div className="td-remote-album-strip">
-                    {resolvedMedia.albumImages.map((imgUrl, idx) => (
-                      <div key={idx} className="td-remote-album-thumb-wrap" title={t('speedtest.remote_photo_n', { idx: idx + 1, total: resolvedMedia.albumImages?.length || 0 })}>
-                        <img
-                          src={imgUrl}
-                          alt={`Slide ${idx + 1}`}
-                          className="td-remote-album-thumb"
-                          loading="lazy"
-                        />
-                        <span className="td-remote-album-thumb-idx">#{idx + 1}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Stream Quality & Format Selector (YouTube 8K/4K/1080p, TikTok HD, Audio) */}
-              {resolvedMedia && resolvedMedia.formats.length > 1 && (
-                <div className="td-remote-field-group">
-                  <label className="td-input-label">
-                    {t('speedtest.remote_quality_selector_label')}
-                  </label>
-                  <div className="td-remote-quality-grid">
-                    {resolvedMedia.formats.map((fmt) => {
-                      const isSelected = selectedFormatId === fmt.id;
-                      return (
-                        <button
-                          key={fmt.id}
-                          type="button"
-                          className={`td-remote-quality-chip ${isSelected ? 'active' : ''} tier-${fmt.qualityTier}`}
-                          onClick={() => {
-                            setSelectedFormatId(fmt.id);
-                            if (fmt.filesizeBytes) {
-                              setInspection((prev) =>
-                                prev ? { ...prev, size: fmt.filesizeBytes } : prev
-                              );
-                            }
-                          }}
-                          disabled={submitting}
-                        >
-                          <span className="td-remote-quality-chip-title">{fmt.label}</span>
-                          <div className="td-remote-quality-chip-meta">
-                            {fmt.badge && (
-                              <span className="td-remote-quality-chip-badge">{fmt.badge}</span>
-                            )}
-                            {fmt.filesizeBytes ? (
-                              <span className="td-remote-quality-chip-size">
-                                ~{formatDriveBytes(fmt.filesizeBytes)}
-                              </span>
-                            ) : null}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Custom Filename Override (Optional) */}
-              <div className="td-remote-field-group">
-                <label className="td-input-label" htmlFor="td-custom-filename">
-                  {t('speedtest.remote_custom_name_label')}
-                </label>
-                <input
-                  id="td-custom-filename"
-                  className="td-input-field td-custom-filename-input"
-                  type="text"
-                  placeholder={
-                    inspection?.filename || t('speedtest.remote_custom_name_placeholder')
-                  }
-                  value={customFilename}
-                  onChange={(e) => setCustomFilename(e.target.value)}
-                  disabled={submitting}
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-              </div>
-            </>
-          ) : (
-            /* Batch URLs Textarea */
-            <div className="td-remote-field-group">
-              <div className="td-remote-label-row">
-                <label className="td-input-label" htmlFor="td-remote-batch-input">
-                  {t('speedtest.remote_tab_batch')}
-                </label>
-                <button
-                  type="button"
-                  className="td-remote-paste-action"
-                  onClick={handlePasteClipboard}
-                  disabled={submitting}
-                  title={t('speedtest.remote_paste_clipboard')}
-                >
-                  <Clipboard size={12} />
-                  <span>{t('speedtest.remote_paste_clipboard')}</span>
-                </button>
-              </div>
-              <textarea
-                id="td-remote-batch-input"
-                className="td-input-field td-remote-batch-textarea"
-                rows={5}
-                placeholder={t('speedtest.remote_batch_placeholder')}
-                value={batchUrlsText}
-                onChange={(e) => {
-                  setBatchUrlsText(e.target.value);
-                  if (errorMsg) setErrorMsg('');
-                }}
-                disabled={submitting}
-                spellCheck={false}
-              />
-              <div className="td-remote-batch-footer">
-                <span className="td-remote-batch-hint">
-                  {batchUrls.length > 0
-                    ? t('speedtest.remote_batch_count', { count: batchUrls.length })
-                    : t('speedtest.remote_batch_empty_hint')}
-                </span>
-              </div>
             </div>
           )}
-
-          {/* Delivery Format Option: Auto Media vs Uncompressed Stream vs Document */}
-          <div className="td-remote-field-group">
-            <label className="td-input-label">{t('speedtest.remote_delivery_mode_label')}</label>
-            <div className="td-remote-mode-selector">
-              <button
-                type="button"
-                className={`td-remote-mode-btn ${deliveryMode === 'auto' ? 'active' : ''}`}
-                onClick={() => setDeliveryMode('auto')}
-                disabled={submitting}
-              >
-                <Film size={14} />
-                <div className="td-remote-mode-text">
-                  <span className="td-remote-mode-title">{t('speedtest.remote_mode_auto')}</span>
-                  <span className="td-remote-mode-desc">{t('speedtest.remote_mode_auto_hint')}</span>
-                </div>
-              </button>
-              <button
-                type="button"
-                className={`td-remote-mode-btn ${deliveryMode === 'uncompressed' ? 'active' : ''}`}
-                onClick={() => setDeliveryMode('uncompressed')}
-                disabled={submitting}
-              >
-                <Sparkles size={14} />
-                <div className="td-remote-mode-text">
-                  <span className="td-remote-mode-title">{t('speedtest.remote_mode_uncompressed')}</span>
-                  <span className="td-remote-mode-desc">{t('speedtest.remote_mode_uncompressed_hint')}</span>
-                </div>
-              </button>
-              <button
-                type="button"
-                className={`td-remote-mode-btn ${deliveryMode === 'document' ? 'active' : ''}`}
-                onClick={() => setDeliveryMode('document')}
-                disabled={submitting}
-              >
-                <FileText size={14} />
-                <div className="td-remote-mode-text">
-                  <span className="td-remote-mode-title">{t('speedtest.remote_mode_doc')}</span>
-                  <span className="td-remote-mode-desc">{t('speedtest.remote_mode_doc_hint')}</span>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* Target Folder / Channel Destination Card */}
-          <div className="td-remote-field-group">
-            <label className="td-input-label" htmlFor="td-remote-target">
-              {t('speedtest.destination_folder_label')}
-            </label>
-            <div className="td-remote-dest-wrap">
-              <button
-                id="td-remote-target"
-                type="button"
-                className="td-remote-dest-card"
-                onClick={() => setPickerOpen(true)}
-                disabled={submitting}
-                title={t('speedtest.btn_change_dest')}
-              >
-                <div className="td-remote-dest-main">
-                  <span className="td-dest-ico" aria-hidden>
-                    {selectedDest.kind === 'saved' ? (
-                      <Home size={16} />
-                    ) : (
-                      <PeerAvatar
-                        peerId={selectedDest.id ?? 0}
-                        creds={creds}
-                        title={selectedDest.label}
-                        fallback={kindIcon(selectedDest)}
-                      />
-                    )}
-                  </span>
-                  <div className="td-remote-dest-info">
-                    <span className="td-remote-dest-title" title={cleanTargetDisplay.title}>
-                      {cleanTargetDisplay.title}
-                    </span>
-                    {cleanTargetDisplay.topicPill && (
-                      <span className="td-remote-dest-topic">
-                        <Hash size={11} style={{ display: 'inline', verticalAlign: '-1px' }} />
-                        {` ${cleanTargetDisplay.topicPill.replace(/^#\s*/, '')}`}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="td-remote-dest-actions">
-                  {renderBadge(selectedDest, t)}
-                  <span className="td-remote-dest-change-tag">
-                    {t('speedtest.btn_change_dest')}
-                    <ChevronRight size={13} style={{ marginLeft: 3 }} />
-                  </span>
-                </div>
-              </button>
-            </div>
-          </div>
         </div>
 
         <footer className="td-confirm-foot td-remote-foot">
