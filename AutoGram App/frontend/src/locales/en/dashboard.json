@@ -4,7 +4,7 @@
   "forwarder_card_title": "Forwarder",
   "forwarder_card_desc": "Chat -> chat migration: Fast forward or Clean Copy (download + re-upload, 4-level dedupe, resume, FloodWait). Ideal for long background jobs.",
   "drives_card_title": "Drives",
-  "drives_card_desc": "Media Studio: browse chats, [TD] folders, video/photo/document previews, upload & download. Designed fast with multi-active account switching.",
+  "drives_card_desc": "Drives Workspace: browse chats, [TD] folders, video/photo/document previews, upload & download. Designed fast with multi-active account switching.",
   "open_forwarder": "Open Forwarder",
   "open_drives": "Open Drives",
   "forwarder_step1": "Select active account in Accounts",

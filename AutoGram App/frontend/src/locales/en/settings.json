@@ -28,7 +28,7 @@
   "startup_mode_launcher": "Session Launcher Hub (Recommended)",
   "startup_mode_launcher_desc": "Show session selection hub to pick an account and workspace",
   "startup_mode_drives": "Direct to Drives Workspace",
-  "startup_mode_drives_desc": "Skip launcher and open Drives Media Studio using default account",
+  "startup_mode_drives_desc": "Skip launcher and open Drives Workspace using default account",
   "startup_mode_forwarder": "Direct to Forwarder Workspace",
   "startup_mode_forwarder_desc": "Skip launcher and open File Forwarder Suite using default account",
   "startup_mode_last": "Remember Last Active Workspace",

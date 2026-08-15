@@ -1609,5 +1609,21 @@
   "prevent_sticker_conversion_title": "Jangan Jadikan Stiker (Konversi Otomatis)",
   "prevent_sticker_conversion_formats": "(.webp, .tgs, .webm)",
   "prevent_sticker_conversion_desc": "Mengkonversi berkas format stiker Telegram (.webp, .tgs, .webm) menjadi foto atau video standar sebelum diunggah agar tidak menjadi stiker di chat.",
-  "prevent_sticker_conversion_doc_note": "Fitur ini hanya aktif pada Mode Delivery Auto & Media Native Telegram (Pada Mode Dokumen Asli, Telegram tidak memproses berkas sebagai stiker)."
+  "prevent_sticker_conversion_doc_note": "Fitur ini hanya aktif pada Mode Delivery Auto & Media Native Telegram (Pada Mode Dokumen Asli, Telegram tidak memproses berkas sebagai stiker).",
+  "remote_platform_stream_fallback": "Stream {{platform}}",
+  "remote_sample_tiktok": "TikTok Slideshow HD",
+  "remote_sample_youtube": "YouTube 4K/1080p",
+  "remote_sample_instagram": "Instagram Reels",
+  "remote_sample_audio": "Audio MP3",
+  "remote_sample_direct": "Direct Stream",
+  "peer_kind_channel": "Saluran",
+  "peer_kind_group": "Grup",
+  "peer_kind_chat": "Obrolan",
+  "message_id_label": "ID Pesan #{{id}}",
+  "shortcut_ctrl_v": "Tempel (Ctrl+V)",
+  "shortcut_esc": "Batal (Esc)",
+  "close": "Tutup",
+  "concurrency_badge_stable": "🐢 Stabil",
+  "concurrency_badge_balanced": "⚡ Seimbang (Rekomendasi)",
+  "concurrency_badge_high_speed": "🚀 Kecepatan Tinggi (Maks 10)"
 }

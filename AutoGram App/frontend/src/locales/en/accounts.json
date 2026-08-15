@@ -5,7 +5,7 @@
   "add_account": "Add New Telegram Account",
   "btn_add": "Add Session",
   "refresh_list": "Refresh Sessions List",
-  "multi_account_hint": "Select active sessions to use for transfers and media studio",
+  "multi_account_hint": "Select active sessions to use for transfers and Drives workspace",
   "active_count_suffix": "active",
   "no_active_targets": "No active sessions",
   "loading_sessions": "Loading sessions...",

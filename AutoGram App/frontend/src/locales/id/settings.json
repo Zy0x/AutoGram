@@ -28,7 +28,7 @@
   "startup_mode_launcher": "Pusat Session Launcher (Direkomendasikan)",
   "startup_mode_launcher_desc": "Tampilkan pusat pilihan sesi untuk memilih akun dan ruang kerja secara manual",
   "startup_mode_drives": "Langsung ke Ruang Kerja Drives",
-  "startup_mode_drives_desc": "Lewati launcher dan buka Drives Media Studio menggunakan akun default",
+  "startup_mode_drives_desc": "Lewati launcher dan buka Ruang Kerja Drives menggunakan akun default",
   "startup_mode_forwarder": "Langsung ke Ruang Kerja Forwarder",
   "startup_mode_forwarder_desc": "Lewati launcher dan buka File Forwarder Suite menggunakan akun default",
   "startup_mode_last": "Ingat Ruang Kerja Terakhir",

@@ -1609,5 +1609,21 @@
   "prevent_sticker_conversion_title": "Prevent Converting to Sticker (Auto Transcode)",
   "prevent_sticker_conversion_formats": "(.webp, .tgs, .webm)",
   "prevent_sticker_conversion_desc": "Converts Telegram sticker formats (.webp, .tgs, .webm) into standard photo or video media before uploading to prevent them from becoming stickers in chat.",
-  "prevent_sticker_conversion_doc_note": "This option is only available in Auto & Native Media Delivery Modes (In Original Document mode, Telegram does not process files as stickers)."
+  "prevent_sticker_conversion_doc_note": "This option is only available in Auto & Native Media Delivery Modes (In Original Document mode, Telegram does not process files as stickers).",
+  "remote_platform_stream_fallback": "{{platform}} Stream",
+  "remote_sample_tiktok": "TikTok Slideshow HD",
+  "remote_sample_youtube": "YouTube 4K/1080p",
+  "remote_sample_instagram": "Instagram Reels",
+  "remote_sample_audio": "Audio MP3",
+  "remote_sample_direct": "Direct Stream",
+  "peer_kind_channel": "Channel",
+  "peer_kind_group": "Group",
+  "peer_kind_chat": "Chat",
+  "message_id_label": "Message ID #{{id}}",
+  "shortcut_ctrl_v": "Paste (Ctrl+V)",
+  "shortcut_esc": "Cancel (Esc)",
+  "close": "Close",
+  "concurrency_badge_stable": "🐢 Stable",
+  "concurrency_badge_balanced": "⚡ Balanced (Recommended)",
+  "concurrency_badge_high_speed": "🚀 High Speed (Max 10)"
 }

@@ -5,7 +5,7 @@
   "add_account": "Tambah Akun Telegram Baru",
   "btn_add": "Tambah Sesi",
   "refresh_list": "Perbarui Daftar Sesi",
-  "multi_account_hint": "Pilih sesi aktif untuk digunakan pada transfer dan media studio",
+  "multi_account_hint": "Pilih sesi aktif untuk digunakan pada transfer dan ruang kerja Drives",
   "active_count_suffix": "aktif",
   "no_active_targets": "Belum ada sesi aktif",
   "loading_sessions": "Memuat sesi...",
