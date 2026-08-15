@@ -1,3 +1,15 @@
+## v3.5.47 Pure Binary Document Delivery & MTProto Octet-Stream Optimization
+ 
+### 1. Pure Binary Octet-Stream Format (`media_transfer.rs`)
+- **Penyesuaian MTProto Document Specification**:
+  - Mengubah penentuan `mime_type` pada mode Dokumen Asli (`as_document: true`) menjadi `"application/octet-stream"` dan mengaktifkan `force_file: true`.
+  - Mengatasi akar masalah di mana server Telegram menolak pengiriman berkas berekstensi video/gambar jika dikirim dengan `mime_type: video/mp4` namun tanpa atribut `Attribute::Video`.
+  - Mode Dokumen Asli kini 100% diterima oleh server Telegram di semua tipe obrolan (Saved Messages, Direct Messages, dan Forum Topics).
+
+### 2. Preservasi Thumbnail Pratinjau Mini (`media_transfer.rs`)
+- **Estetika Dokumen Tetap Terjaga**:
+  - Tetap menyertakan lampiran thumbnail cover mini sehingga tampilan berkas di antarmuka Telegram tampil estetik dengan gambar pratinjau mini di samping nama berkas dan ukuran byte aslinya.
+
 ## v3.5.46 Universal Dialog Title Search & Non-fatal SendAs Resolver
  
 ### 1. Universal Dialog Title Matching (`peer_resolver.rs`)

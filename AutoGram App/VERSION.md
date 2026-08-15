@@ -1,11 +1,12 @@
-AutoGram Version: v3.5.46
+AutoGram Version: v3.5.47
 
 Current State:
-v3.5.46 Universal Dialog Title Search & Non-fatal SendAs Resolver — membenahi `peer_resolver.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperluas resolusi peer dan ketahanan identitas pengirim:
-1. Universal Dialog Title Matching: Mengintegrasikan pencarian berbasis nama/judul obrolan (`first_name`, `last_name`, `channel title`, `group title`) di dalam `resolve_peer` sehingga ID numerik, alias Saved Messages, maupun nama grup berawalan `#` (seperti `#Gudang`) langsung teresolusi secara akurat dan tidak pernah melempar error `PeerNotFound`.
-2. Non-Fatal SendAs Identity: Menjadikan resolusi parameter `send_as` bersifat opsional dan aman (`.ok()`), mencegah kegagalan fatal pada proses transfer apabila alias `send_as` belum tersinkronisasi di dialog.
+v3.5.47 Pure Binary Document Delivery & MTProto Octet-Stream Optimization — membenahi `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki format biner dokumen asli pada MTProto:
+1. Pure Binary Octet-Stream Format: Menyetel `mime_type: "application/octet-stream"` dan `force_file: true` pada seluruh rantai pengiriman Dokumen Asli (single file dan album transfer). Mengeliminasi konflik validasi server Telegram yang terjadi ketika video/gambar dikirim sebagai dokumen tanpa `Attribute::Video`, sehingga mode Dokumen Asli terkirim 100% sukses sebagai berkas biner murni tanpa error `CHAT_WRITE_FORBIDDEN` / `MEDIA_INVALID`.
+2. Cover Preview Preservation: Mempertahankan lampiran thumbnail cover mini secara aman pada dokumen biner.
 
 Previous:
+v3.5.46 Universal Dialog Title Search & Non-fatal SendAs Resolver — membenahi `peer_resolver.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperluas resolusi peer dan ketahanan identitas pengirim.
 v3.5.45 Remote Media Magic Sniffer & Document Filename Formatter — membenahi `media_prep.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbarui penanganan stream URL dan pengiriman berkas dokumen.
 v3.5.44 Telegram MTProto Peer Resolver & SendMedia Fallback Engine — membenahi `peer_resolver.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyempurnakan resolusi peer dan ketahanan pengiriman MTProto.
 v3.5.43 Telegram MTProto Delivery Engine Revamp & True Document Pass — membenahi `media_transfer.rs`, `media_prep.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbarui arsitektur pengiriman MTProto Telegram.

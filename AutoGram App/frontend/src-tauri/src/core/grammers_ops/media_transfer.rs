@@ -699,7 +699,9 @@ pub fn upload_prepared_album_blocking_with_app(
                             spoiler: item.spoiler,
                             file: uploaded.raw,
                             thumb,
-                            mime_type: if is_video && !as_document {
+                            mime_type: if as_document {
+                                "application/octet-stream".into()
+                            } else if is_video {
                                 "video/mp4".into()
                             } else {
                                 mime.into()
@@ -1821,11 +1823,13 @@ pub fn upload_file_blocking_topic_with_delivery(
                     }
                     tl::types::InputMediaUploadedDocument {
                         nosound_video: false,
-                        force_file: false,
+                        force_file: as_document,
                         spoiler,
                         file: uploaded.raw,
                         thumb,
-                        mime_type: if is_video && !as_document {
+                        mime_type: if as_document {
+                            "application/octet-stream".into()
+                        } else if is_video {
                             "video/mp4".into()
                         } else {
                             mime.into()
