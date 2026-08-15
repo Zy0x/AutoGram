@@ -37,4 +37,8 @@ Dokumen ini berfungsi sebagai pelengkap untuk aturan pengembangan proyek AutoGra
      - Set `$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=9230"` saat mengaktifkan `frontend.exe`.
      - Hubungkan alat otomatisasi/Playwright menggunakan `chromium.connectOverCDP('http://127.0.0.1:9230')`.
    - Hal ini menjamin seluruh fungsionalitas backend Rust (IPC), SQLite, dan perilaku native aplikasi dieksekusi dan diuji secara real-time.
+9. **Batas Waktu Ketat Eksekusi Skrip Agen (*Strict Agent Script Execution Timeout*):**
+   - Setiap skrip pengujian, probe node, otomatisasi CDP, atau subproses yang dijalankan oleh agen **WAJIB** memiliki timer keluar keras (*hard exit timer*, misal: `setTimeout(() => process.exit(0), 10000)`).
+   - DILARANG membiarkan listener atau promise terbuka yang menggantung proses di latar belakang (*background task*).
+   - Agen wajib secara proaktif memeriksa dan menghentikan (*kill/cleanup*) task yang sudah selesai agar tidak terjadi *orphan task* atau loop tak berujung.
 </RULE[project_autogram]>

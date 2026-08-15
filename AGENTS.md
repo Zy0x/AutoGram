@@ -85,6 +85,10 @@ Do not claim done until:
   - Set `$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=9230"` and launch `frontend.exe` (or connect to an active CDP port if already running).
   - Connect Playwright or CDP tools using `chromium.connectOverCDP('http://127.0.0.1:9230')`.
 - This ensures all IPC Rust backend features, SQLite state, and native desktop behaviors are directly tested and controlled in real-time.
+- **Strict Agent Script Execution Timeout (Anti-Hanging Protection):**
+  - All test scripts, node probes, CDP scripts, or subprocesses run by agents MUST include a hard exit timer (e.g. `setTimeout(() => process.exit(0), 10000)` or explicit command timeout).
+  - Never leave open-ended event listeners or unresolved promises that keep background processes running indefinitely.
+  - Agents must always proactively check and terminate background tasks after execution to prevent orphan background loops.
 
 ## Safety & language
 
