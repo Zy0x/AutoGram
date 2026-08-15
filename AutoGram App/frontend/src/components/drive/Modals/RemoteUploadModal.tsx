@@ -450,7 +450,8 @@ export function RemoteUploadModal({
     return resolvedMedia?.thumbnailUrl || null;
   }, [resolvedMedia, activeSlideIndex]);
 
-  const isSplitActive = tab === 'single';
+  const isSplitActive =
+    Boolean(resolvedMedia || (inspection && url.trim().length > 0)) && tab === 'single';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,3 +1,4 @@
+import { invoke } from '@tauri-apps/api/core';
 import type { LinkResolverProvider, ResolvedMediaInfo, StreamQualityFormat, QualityTier } from '../types';
 
 /**
@@ -56,16 +57,13 @@ export const tiktokResolver: LinkResolverProvider = {
     // Try reliable lightweight TikWM API via native Rust IPC (zero CORS) with web fetch fallback
     try {
       let data: any = null;
-      if (typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window)) {
-        try {
-          const { invoke } = await import('@tauri-apps/api/core');
-          const json = await invoke<any>('fetch_remote_json_metadata', { url: cleanUrl });
-          if (json && json.data) {
-            data = json.data;
-          }
-        } catch (ipcErr) {
-          console.warn('[TikTokResolver] IPC fetch failed, falling back to web fetch:', ipcErr);
+      try {
+        const json = await invoke<any>('fetch_remote_json_metadata', { url: cleanUrl });
+        if (json && json.data) {
+          data = json.data;
         }
+      } catch (ipcErr) {
+        console.warn('[TikTokResolver] IPC fetch failed, trying direct web fetch:', ipcErr);
       }
 
       if (!data) {
