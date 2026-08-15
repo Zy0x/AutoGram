@@ -20,7 +20,9 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use tokio::runtime::Runtime;
 
-use crate::core::media_prep::{extract_video_thumbnail, probe_video_metadata};
+use crate::core::media_prep::{
+    extract_video_thumbnail, probe_audio_metadata, probe_video_metadata,
+};
 use crate::core::path_policy;
 use crate::core::session_guard;
 use crate::core::session_rate;
@@ -626,6 +628,10 @@ pub fn upload_prepared_album_blocking_with_app(
                         ext.as_str(),
                         "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "ts" | "flv"
                     );
+                    let is_audio = matches!(
+                        ext.as_str(),
+                        "mp3" | "m4a" | "aac" | "ogg" | "opus" | "flac" | "wav" | "wma"
+                    );
                     let is_photo = is_real_photo(&path, &ext);
                     let is_image = is_photo
                         || matches!(
@@ -650,7 +656,7 @@ pub fn upload_prepared_album_blocking_with_app(
                             file_name: filename.clone(),
                         })
                         .into()];
-                        if is_video {
+                        if !as_document && is_video {
                             let (width, height, duration) = probe_video_metadata(path_str);
                             attributes.push(
                                 Attribute::Video {
@@ -659,6 +665,16 @@ pub fn upload_prepared_album_blocking_with_app(
                                     duration: std::time::Duration::from_secs_f64(duration.max(0.0)),
                                     w: width as i32,
                                     h: height as i32,
+                                }
+                                .into(),
+                            );
+                        } else if !as_document && is_audio {
+                            let (duration, title, artist) = probe_audio_metadata(path_str);
+                            attributes.push(
+                                Attribute::Audio {
+                                    duration: std::time::Duration::from_secs_f64(duration.max(0.0)),
+                                    title,
+                                    performer: artist,
                                 }
                                 .into(),
                             );
@@ -679,7 +695,7 @@ pub fn upload_prepared_album_blocking_with_app(
                         }
                         tl::types::InputMediaUploadedDocument {
                             nosound_video: false,
-                            force_file: false,
+                            force_file: as_document,
                             spoiler: item.spoiler,
                             file: uploaded.raw,
                             thumb,
@@ -1034,6 +1050,10 @@ fn upload_prepared_album_blocking_with_app_legacy(
                         ext.as_str(),
                         "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "ts" | "flv"
                     );
+                    let is_audio = matches!(
+                        ext.as_str(),
+                        "mp3" | "m4a" | "aac" | "ogg" | "opus" | "flac" | "wav" | "wma"
+                    );
                     let is_photo = is_real_photo(path_buf, &ext);
                     let is_image = is_photo
                         || matches!(
@@ -1057,16 +1077,6 @@ fn upload_prepared_album_blocking_with_app_legacy(
                     let im = im.reply_to(reply_to);
                     let final_media = if as_document {
                         let mut doc_im = im.mime_type(mime).document(uploaded);
-                        if is_video {
-                            let (vid_w, vid_h, vid_dur) = probe_video_metadata(path_str);
-                            doc_im = doc_im.attribute(Attribute::Video {
-                                round_message: false,
-                                supports_streaming: true,
-                                duration: std::time::Duration::from_secs_f64(vid_dur.max(0.0)),
-                                w: vid_w as i32,
-                                h: vid_h as i32,
-                            });
-                        }
                         if is_video || is_image {
                             let thumb_path = extract_video_thumbnail(path_str);
                             if let Some(ref tp) = thumb_path {
@@ -1110,6 +1120,22 @@ fn upload_prepared_album_blocking_with_app_legacy(
                             let _ = std::fs::remove_file(tp);
                         }
                         video_im
+                    } else if is_audio {
+                        let (aud_dur, aud_title, aud_artist) = probe_audio_metadata(path_str);
+                        let mut audio_im = im.mime_type(mime).document(uploaded);
+                        audio_im = audio_im.attribute(Attribute::Audio {
+                            duration: std::time::Duration::from_secs_f64(aud_dur.max(0.0)),
+                            title: aud_title,
+                            performer: aud_artist,
+                        });
+                        let thumb_path = extract_video_thumbnail(path_str);
+                        if let Some(ref tp) = thumb_path {
+                            if let Ok(thumb_uploaded) = client.upload_file(tp).await {
+                                audio_im = audio_im.thumbnail(thumb_uploaded);
+                            }
+                            let _ = std::fs::remove_file(tp);
+                        }
+                        audio_im
                     } else {
                         let mut doc_im = im.mime_type(mime).document(uploaded);
                         let thumb_path = extract_video_thumbnail(path_str);
@@ -1466,6 +1492,10 @@ pub fn upload_file_blocking_topic_with_app(
                     ext.as_str(),
                     "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "ts" | "flv"
                 );
+                let is_audio = matches!(
+                    ext.as_str(),
+                    "mp3" | "m4a" | "aac" | "ogg" | "opus" | "flac" | "wav" | "wma"
+                );
                 let is_photo = is_real_photo(&path_buf, &ext);
                 let is_image = is_photo
                     || matches!(
@@ -1482,16 +1512,6 @@ pub fn upload_file_blocking_topic_with_app(
                 // Prefer document for fidelity; video gets thumbnail + video attributes
                 msg = if as_document {
                     let mut doc_msg = msg.mime_type(mime).document(uploaded);
-                    if is_video {
-                        let (vid_w, vid_h, vid_dur) = probe_video_metadata(path_str);
-                        doc_msg = doc_msg.attribute(Attribute::Video {
-                            round_message: false,
-                            supports_streaming: true,
-                            duration: std::time::Duration::from_secs_f64(vid_dur.max(0.0)),
-                            w: vid_w as i32,
-                            h: vid_h as i32,
-                        });
-                    }
                     if is_video || is_image {
                         let thumb_path = extract_video_thumbnail(path_str);
                         if let Some(ref tp) = thumb_path {
@@ -1535,6 +1555,22 @@ pub fn upload_file_blocking_topic_with_app(
                         let _ = std::fs::remove_file(tp);
                     }
                     video_msg
+                } else if is_audio {
+                    let (aud_dur, aud_title, aud_artist) = probe_audio_metadata(path_str);
+                    let mut audio_msg = msg.mime_type(mime).document(uploaded);
+                    audio_msg = audio_msg.attribute(Attribute::Audio {
+                        duration: std::time::Duration::from_secs_f64(aud_dur.max(0.0)),
+                        title: aud_title,
+                        performer: aud_artist,
+                    });
+                    let thumb_path = extract_video_thumbnail(path_str);
+                    if let Some(ref tp) = thumb_path {
+                        if let Ok(thumb_uploaded) = client.upload_file(tp).await {
+                            audio_msg = audio_msg.thumbnail(thumb_uploaded);
+                        }
+                        let _ = std::fs::remove_file(tp);
+                    }
+                    audio_msg
                 } else {
                     let mut doc_msg = msg.mime_type(mime).document(uploaded);
                     let thumb_path = extract_video_thumbnail(path_str);
@@ -1736,7 +1772,7 @@ pub fn upload_file_blocking_topic_with_delivery(
                         file_name: filename,
                     })
                     .into()];
-                    if is_video {
+                    if !as_document && is_video {
                         let (width, height, duration) = probe_video_metadata(path_str);
                         attributes.push(
                             Attribute::Video {
@@ -1760,7 +1796,7 @@ pub fn upload_file_blocking_topic_with_delivery(
                     }
                     tl::types::InputMediaUploadedDocument {
                         nosound_video: false,
-                        force_file: false,
+                        force_file: as_document,
                         spoiler,
                         file: uploaded.raw,
                         thumb,

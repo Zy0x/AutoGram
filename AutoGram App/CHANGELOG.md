@@ -1,3 +1,26 @@
+## v3.5.43 Telegram MTProto Delivery Engine Revamp & True Document Pass
+ 
+### 1. True Document Clean Pass (`media_transfer.rs`)
+- **Penghapusan Atribut Video pada Mode Dokumen**:
+  - Menghapus penyisipan `Attribute::Video` (`supports_streaming: true`, resolusi, durasi) ketika berkas dikirim dengan opsi `as_document: true` (Dokumen Asli).
+  - Mengaktifkan `force_file: true` pada MTProto `InputMediaUploadedDocument`. Hal ini menjamin bahwa server Telegram memperlakukan berkas 100% sebagai **Dokumen Asli Biner (RAW Uncompressed)** tanpa kompresi visual/streaming Telegram.
+- **Preservasi Thumbnail Pratinjau Dokumen**:
+  - Tetap menyertakan lampiran thumbnail cover sehingga tampilan berkas di antarmuka Telegram tampil estetik dengan gambar pratinjau mini di samping nama berkas dan ukuran byte aslinya.
+
+### 2. Peningkatan Streaming UHD 4K & Bitrate Dinamis (`media_prep.rs`)
+- **Dukungan Penuh Resolusi Tinggi (2K/4K/8K)**:
+  - Memperbarui parameter resolusi `resolve_quality_preset` pada FFmpeg:
+    - Mode `HIGH` / `4K` / `UHD`: Mendukung resolusi hingga 4K UHD (`scale='min(3840,iw)':'-2'`), CRF 18, dan batas bitrate hingga 35.000 kbps (35 Mbps) serta audio 320 kbps.
+    - Mode `SMART` / `BALANCED`: Mendukung resolusi hingga 2K/QHD (`scale='min(2560,iw)':'-2'`), CRF 21, dan bitrate 15.000 kbps (15 Mbps).
+- **Direct Passthrough**:
+  - Mempertahankan 0% re-encode untuk Mode Media Stream Asli dan kontainer MP4 valid pada Mode Otomatis, menjaga integritas kualitas master sumber.
+
+### 3. Dukungan Pemutar Musik Bawaan Telegram (`media_prep.rs`, `media_transfer.rs`)
+- **Ekstraksi Metadata Audio Cerdas**:
+  - Menambahkan fungsi `probe_audio_metadata` untuk mengekstrak tag ID3/Vorbis (judul lagu, nama pembuat/artis, dan durasi audio presisi).
+- **Penyematan `Attribute::Audio`**:
+  - Berkas berkategori audio (`.mp3`, `.m4a`, `.flac`, `.ogg`, `.opus`, `.wav`, `.wma`) pada mode media otomatis dikirim dengan atribut audio native Telegram sehingga otomatis memicu **Telegram Built-in Music Player**.
+
 ## v3.5.42 Drive Settings Harmonization & Remote Upload Override Engine
 
 ### Sinkronisasi Drive Settings & Remote Upload Override (`transferSettingsModel.ts`, `RemoteUploadModal.tsx`)

@@ -1,10 +1,13 @@
-AutoGram Version: v3.5.42
+AutoGram Version: v3.5.43
 
 Current State:
-v3.5.42 Drive Settings Harmonization & Remote Upload Override Engine — membenahi `transferSettingsModel.ts`, `RemoteUploadModal.tsx`, `MediaStudioModalsContainer.tsx`, `MediaStudio/index.tsx`, `speedtest.json` (ID/EN), `VERSION.md`, dan `CHANGELOG.md`. Menyelaraskan format pengiriman media antara Drive Settings (Tab Upload) dengan modal Remote Upload. Modal Remote Upload kini secara otomatis mewarisi (*inherit*) konfigurasi default dari Drive Settings pengguna (Otomatis/Adaptif, Media Stream Asli, atau Dokumen Asli), sambil tetap menyediakan 3 tombol independen untuk *one-time override* per-unggahan tanpa mengubah pengaturan global.
+v3.5.43 Telegram MTProto Delivery Engine Revamp & True Document Pass — membenahi `media_transfer.rs`, `media_prep.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbarui arsitektur pengiriman MTProto Telegram:
+1. True Document Clean Pass: Menghapus penyisipan `Attribute::Video` dan mengaktifkan `force_file: true` pada Mode Dokumen Asli, sehingga Telegram memperlakukan berkas murni sebagai dokumen biner asli (RAW Uncompressed) tanpa kompresi visual/streaming Telegram sambil tetap menyertakan pratinjau thumbnail cover yang estetik.
+2. UHD/4K/8K High-Bitrate Streaming: Memperbarui preset kualitas FFmpeg dengan dukungan penuh hingga 4K UHD (3840px) dan bitrate dinamis 15–35 Mbps pada mode Otomatis/Adaptif dan Direct Passthrough pada Media Stream Asli.
+3. Native Music Player Support: Menambahkan ekstraksi metadata ID3/Vorbis (`probe_audio_metadata`) dan menyematkan `Attribute::Audio` sehingga berkas audio/musik otomatis memicu pemutar musik bawaan Telegram (*Telegram Built-in Music Player*).
 
 Previous:
-v3.5.41 Spacious & Mobile-First Remote Upload Modal Redesign — membenahi `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperlebar modal Remote Upload ke dimensi ideal `640px` dengan padding lega, typography proporsional, touch targets luas (≥44px), penataan 3 kartu Delivery Format yang lega tanpa terpotong (*text wrap clean*), serta dukungan penuh responsif di perangkat mobile dan tablet.
+v3.5.42 Drive Settings Harmonization & Remote Upload Override Engine — membenahi `transferSettingsModel.ts`, `RemoteUploadModal.tsx`, `MediaStudioModalsContainer.tsx`, `MediaStudio/index.tsx`, `speedtest.json` (ID/EN), `VERSION.md`, dan `CHANGELOG.md`. Menyelaraskan format pengiriman media antara Drive Settings (Tab Upload) dengan modal Remote Upload. Modal Remote Upload kini secara otomatis mewarisi (*inherit*) konfigurasi default dari Drive Settings pengguna (Otomatis/Adaptif, Media Stream Asli, atau Dokumen Asli), sambil tetap menyediakan 3 tombol independen untuk *one-time override* per-unggahan tanpa mengubah pengaturan global.
 
 Previous:
 v3.5.40 Delivery Format Symmetrical Layout Polish — membenahi `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperhalus tata letak grid pemilih format pengiriman (*Delivery Format Selector*) pada Remote Upload Modal menjadi 3 kolom simetris yang responsif dan rapi di semua resolusi.

@@ -257,26 +257,27 @@ fn resolve_quality_preset(mode: &str) -> QualityPreset {
         QualityPreset {
             vf_scale: "scale='min(854,iw)':'-2'",
             crf: "28",
-            max_rate: "600k",
-            buf_size: "1200k",
+            max_rate: "800k",
+            buf_size: "1600k",
             audio_bitrate: "96k",
         }
-    } else if m.contains("JELAS") || m.contains("HIGH") || m.contains("HD") {
+    } else if m.contains("JELAS") || m.contains("HIGH") || m.contains("HD") || m.contains("4K") || m.contains("UHD") {
         QualityPreset {
-            vf_scale: "scale='min(1920,iw)':'-2'",
-            crf: "20",
-            max_rate: "3500k",
-            buf_size: "7000k",
-            audio_bitrate: "192k",
+            // Full UHD 4K support up to 3840px width with master bitrate cap
+            vf_scale: "scale='min(3840,iw)':'-2'",
+            crf: "18",
+            max_rate: "35000k",
+            buf_size: "70000k",
+            audio_bitrate: "320k",
         }
     } else {
-        // Default: SEIMBANG / BALANCED / 720p
+        // Default: SMART / BALANCED / HQ Telegram (up to 2560px QHD/2K without downscaling 1080p/4K master)
         QualityPreset {
-            vf_scale: "scale='min(1280,iw)':'-2'",
-            crf: "23",
-            max_rate: "1500k",
-            buf_size: "3000k",
-            audio_bitrate: "128k",
+            vf_scale: "scale='min(2560,iw)':'-2'",
+            crf: "21",
+            max_rate: "15000k",
+            buf_size: "30000k",
+            audio_bitrate: "192k",
         }
     }
 }
@@ -422,6 +423,63 @@ fn probe_video_metadata_ffmpeg_fallback(path: &str, ff: &Path) -> (u32, u32, f64
     }
 
     (width, height, duration)
+}
+
+/// Extract basic audio metadata (duration in seconds, title, artist) using ffprobe.
+pub fn probe_audio_metadata(path: &str) -> (f64, Option<String>, Option<String>) {
+    let Some(ff) = find_ffmpeg_binary() else {
+        return (0.0, None, None);
+    };
+    let ffprobe = ff
+        .parent()
+        .map(|p| p.join("ffprobe"))
+        .unwrap_or_else(|| PathBuf::from("ffprobe"));
+
+    let mut cmd = Command::new(&ffprobe);
+    cmd.args([
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration:format_tags=title,artist,performer",
+        "-of",
+        "default=noprint_wrappers=1:nokey=0",
+        path,
+    ]);
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000);
+    }
+
+    let Ok(output) = cmd.output() else {
+        return (0.0, None, None);
+    };
+
+    let text = String::from_utf8_lossy(&output.stdout);
+    let mut duration = 0.0f64;
+    let mut title: Option<String> = None;
+    let mut artist: Option<String> = None;
+
+    for line in text.lines() {
+        if let Some(val) = line.strip_prefix("duration=") {
+            if val.trim() != "N/A" {
+                duration = val.trim().parse().unwrap_or(0.0);
+            }
+        } else if let Some(val) = line.strip_prefix("TAG:title=") {
+            let t = val.trim();
+            if !t.is_empty() {
+                title = Some(t.to_string());
+            }
+        } else if let Some(val) = line.strip_prefix("TAG:artist=").or_else(|| line.strip_prefix("TAG:performer=")) {
+            let a = val.trim();
+            if !a.is_empty() {
+                artist = Some(a.to_string());
+            }
+        }
+    }
+
+    (duration, title, artist)
 }
 
 /// Extract a single JPEG thumbnail frame from a video file for use as Telegram thumbnail.
