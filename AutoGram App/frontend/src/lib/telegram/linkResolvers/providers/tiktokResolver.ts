@@ -16,6 +16,43 @@ export const tiktokResolver: LinkResolverProvider = {
   async resolve(url: string, signal?: AbortSignal): Promise<ResolvedMediaInfo | null> {
     const cleanUrl = url.trim();
 
+    // 0. Profile URL handler (e.g. https://www.tiktok.com/@tokyo.prompt)
+    const profileMatch = cleanUrl.match(/tiktok\.com\/@([a-zA-Z0-9_.-]+)(?:\/)?(?:[?#].*)?$/);
+    if (profileMatch && !cleanUrl.includes('/video/') && !cleanUrl.includes('/photo/') && !cleanUrl.includes('/story/')) {
+      const uniqueId = profileMatch[1];
+      try {
+        const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(cleanUrl)}`;
+        const resp = await fetch(oembedUrl, { signal: signal || AbortSignal.timeout(6000) });
+        if (resp.ok) {
+          const odata = await resp.json();
+          const authorName = odata.author_name || `@${uniqueId}`;
+          const title = `${authorName} - Profil TikTok`;
+          return {
+            url: cleanUrl,
+            platform: 'tiktok',
+            platformName: 'TikTok (Creator Profile)',
+            title,
+            author: `@${uniqueId}`,
+            formats: [
+              {
+                id: 'tiktok_profile_link',
+                label: `Informasi Profil (@${uniqueId})`,
+                qualityTier: 'original',
+                resolution: 'Creator Profile',
+                ext: 'txt',
+                directUrl: cleanUrl,
+                badge: 'PROFIL AKUN',
+              },
+            ],
+            selectedFormatId: 'tiktok_profile_link',
+            resolvedAt: Date.now(),
+          };
+        }
+      } catch {
+        /* fallback */
+      }
+    }
+
     // Try reliable lightweight TikWM API via native Rust IPC (zero CORS) with web fetch fallback
     try {
       let data: any = null;
