@@ -1,12 +1,12 @@
-AutoGram Version: v3.5.45
+AutoGram Version: v3.5.46
 
 Current State:
-v3.5.45 Remote Media Magic Sniffer & Document Filename Formatter — membenahi `media_prep.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbarui penanganan stream URL dan pengiriman berkas dokumen:
-1. Remote Media Magic Byte & Stream Sniffer: Menambahkan deteksi kontainer otomatis (`sniff_actual_media_extension`) berbasis *magic bytes* dan `probe_video_metadata` pada berkas sementara URL remote. Mengonversi berkas `.bin` dari CDN dinamis (misal TikTok, Instagram, Twitter/X, streaming URLs) menjadi format aslinya (`.mp4`, `.webm`, `.jpg`, `.png`, `.mp3`) sebelum dikirim, sehingga Mode Media Stream Asli tidak lagi terkirim sebagai `.bin`.
-2. Intelligent Document Filename Formatter: Menformat nama berkas dokumen biner asli (*True Document*) secara rapi menggunakan *Custom Filename* atau judul caption bersih daripada nama hash sementara `remote_...bin`.
-3. Broad Document Compatibility: Mengoptimalkan `force_file: false` dengan tetap meniadakan `Attribute::Video` pada mode Dokumen Asli, menjamin server Telegram menerima dokumen tanpa penolakan protokol di seluruh DC cluster.
+v3.5.46 Universal Dialog Title Search & Non-fatal SendAs Resolver — membenahi `peer_resolver.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperluas resolusi peer dan ketahanan identitas pengirim:
+1. Universal Dialog Title Matching: Mengintegrasikan pencarian berbasis nama/judul obrolan (`first_name`, `last_name`, `channel title`, `group title`) di dalam `resolve_peer` sehingga ID numerik, alias Saved Messages, maupun nama grup berawalan `#` (seperti `#Gudang`) langsung teresolusi secara akurat dan tidak pernah melempar error `PeerNotFound`.
+2. Non-Fatal SendAs Identity: Menjadikan resolusi parameter `send_as` bersifat opsional dan aman (`.ok()`), mencegah kegagalan fatal pada proses transfer apabila alias `send_as` belum tersinkronisasi di dialog.
 
 Previous:
+v3.5.45 Remote Media Magic Sniffer & Document Filename Formatter — membenahi `media_prep.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbarui penanganan stream URL dan pengiriman berkas dokumen.
 v3.5.44 Telegram MTProto Peer Resolver & SendMedia Fallback Engine — membenahi `peer_resolver.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyempurnakan resolusi peer dan ketahanan pengiriman MTProto.
 v3.5.43 Telegram MTProto Delivery Engine Revamp & True Document Pass — membenahi `media_transfer.rs`, `media_prep.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbarui arsitektur pengiriman MTProto Telegram.
 v3.5.42 Drive Settings Harmonization & Remote Upload Override Engine — membenahi `transferSettingsModel.ts`, `RemoteUploadModal.tsx`, `MediaStudioModalsContainer.tsx`, `MediaStudio/index.tsx`, `speedtest.json` (ID/EN), `VERSION.md`, dan `CHANGELOG.md`. Menyelaraskan format pengiriman media antara Drive Settings (Tab Upload) dengan modal Remote Upload. Modal Remote Upload kini secara otomatis mewarisi (*inherit*) konfigurasi default dari Drive Settings pengguna (Otomatis/Adaptif, Media Stream Asli, atau Dokumen Asli), sambil tetap menyediakan 3 tombol independen untuk *one-time override* per-unggahan tanpa mengubah pengaturan global.

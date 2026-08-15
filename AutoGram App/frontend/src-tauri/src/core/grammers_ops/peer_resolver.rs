@@ -317,17 +317,8 @@ pub(crate) async fn resolve_peer(
         ));
     }
 
-    let want: i64 = s
-        .parse()
-        .map_err(|_| TgError::new(TgErrorCode::PeerNotFound, format!("invalid chat_id: {s}")))?;
-
-    let s_clean = s.trim_start_matches('-');
-    let s_bare = if s_clean.starts_with("100") && s_clean.len() > 3 {
-        &s_clean[3..]
-    } else {
-        s_clean
-    };
-    let want_bare: i64 = s_bare.parse().unwrap_or(want.abs());
+    let want_opt: Option<i64> = s.parse().ok();
+    let clean_title = s.trim_start_matches('#').trim().to_lowercase();
 
     // Fast path: check in-memory cache scoped by active user identity
     if owner_id != 0 {
@@ -335,16 +326,27 @@ pub(crate) async fn resolve_peer(
             if let Some(peer_ref) = guard.get(&ckey(s)) {
                 return Ok(*peer_ref);
             }
-            if let Some(peer_ref) = guard.get(&ckey(s_bare)) {
+            if let Some(peer_ref) = guard.get(&ckey(&clean_title)) {
                 return Ok(*peer_ref);
             }
-            let alt1 = format!("-100{s_bare}");
-            if let Some(peer_ref) = guard.get(&ckey(&alt1)) {
-                return Ok(*peer_ref);
-            }
-            let alt2 = format!("-{s_bare}");
-            if let Some(peer_ref) = guard.get(&ckey(&alt2)) {
-                return Ok(*peer_ref);
+            if let Some(want) = want_opt {
+                let s_clean = s.trim_start_matches('-');
+                let s_bare = if s_clean.starts_with("100") && s_clean.len() > 3 {
+                    &s_clean[3..]
+                } else {
+                    s_clean
+                };
+                if let Some(peer_ref) = guard.get(&ckey(s_bare)) {
+                    return Ok(*peer_ref);
+                }
+                let alt1 = format!("-100{s_bare}");
+                if let Some(peer_ref) = guard.get(&ckey(&alt1)) {
+                    return Ok(*peer_ref);
+                }
+                let alt2 = format!("-{s_bare}");
+                if let Some(peer_ref) = guard.get(&ckey(&alt2)) {
+                    return Ok(*peer_ref);
+                }
             }
         }
     }
@@ -355,10 +357,38 @@ pub(crate) async fn resolve_peer(
         let pid = peer_id_i64(peer.id());
         let bid = peer.id().bare_id();
 
-        if pid == want
-            || pid == -want
-            || (bid.is_some() && (bid.unwrap() == want_bare || bid.unwrap() == want.abs()))
-        {
+        let id_match = match want_opt {
+            Some(want) => {
+                let s_clean = s.trim_start_matches('-');
+                let s_bare = if s_clean.starts_with("100") && s_clean.len() > 3 {
+                    &s_clean[3..]
+                } else {
+                    s_clean
+                };
+                let want_bare: i64 = s_bare.parse().unwrap_or(want.abs());
+                pid == want
+                    || pid == -want
+                    || (bid.is_some() && (bid.unwrap() == want_bare || bid.unwrap() == want.abs()))
+            }
+            None => false,
+        };
+
+        let title_match = if !clean_title.is_empty() {
+            let peer_name = match &peer {
+                grammers_client::peer::Peer::User(u) => {
+                    let first = u.first_name().unwrap_or("");
+                    let last = u.last_name().unwrap_or("");
+                    format!("{first} {last}").trim().to_lowercase()
+                }
+                grammers_client::peer::Peer::Channel(c) => c.title().to_lowercase(),
+                grammers_client::peer::Peer::Group(g) => g.title().unwrap_or("").to_lowercase(),
+            };
+            peer_name == clean_title || peer_name == s.to_lowercase()
+        } else {
+            false
+        };
+
+        if id_match || title_match {
             let res = peer_to_ref(&peer).await;
             if let Ok(ref pref) = res {
                 let peer_type_str = match &peer {
@@ -377,9 +407,18 @@ pub(crate) async fn resolve_peer(
                 if owner_id != 0 {
                     if let Ok(mut guard) = peer_cache().write() {
                         guard.insert(ckey(s), *pref);
-                        guard.insert(ckey(s_bare), *pref);
-                        guard.insert(ckey(&format!("-100{s_bare}")), *pref);
-                        guard.insert(ckey(&format!("-{s_bare}")), *pref);
+                        guard.insert(ckey(&clean_title), *pref);
+                        if let Some(want) = want_opt {
+                            let s_clean = s.trim_start_matches('-');
+                            let s_bare = if s_clean.starts_with("100") && s_clean.len() > 3 {
+                                &s_clean[3..]
+                            } else {
+                                s_clean
+                            };
+                            guard.insert(ckey(s_bare), *pref);
+                            guard.insert(ckey(&format!("-100{s_bare}")), *pref);
+                            guard.insert(ckey(&format!("-{s_bare}")), *pref);
+                        }
                     }
                 }
             }
@@ -395,6 +434,6 @@ pub(crate) async fn resolve_peer(
     );
     Err(TgError::new(
         TgErrorCode::PeerNotFound,
-        format!("peer {want} not in dialogs — open the chat in Telegram once, then retry"),
+        format!("peer '{s}' not in dialogs — open the chat in Telegram once, then retry"),
     ))
 }

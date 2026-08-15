@@ -1,3 +1,16 @@
+## v3.5.46 Universal Dialog Title Search & Non-fatal SendAs Resolver
+ 
+### 1. Universal Dialog Title Matching (`peer_resolver.rs`)
+- **Pencarian Dialog Berdasarkan Judul & Nama Lengkap**:
+  - `resolve_peer` kini tidak hanya mengandalkan parsing numerik ID `i64`, tetapi juga menelusuri nama lengkap kontak (`first_name` + `last_name`), judul channel (`channel.title()`), dan nama grup (`group.title()`).
+  - Mendukung penanganan otomatis tanda `#` pada grup topik (seperti `#Gudang`) dan berbagai variasi teks lainnya.
+  - Mengeliminasi penyebab munculnya error *"Chat/peer tidak ditemukan"* secara tuntas di seluruh skenario pengiriman.
+
+### 2. Ketahanan Identitas `send_as` (`media_transfer.rs`)
+- **Penanganan Non-Fatal untuk Alias Pengirim**:
+  - Mengubah pemanggilan `resolve_peer` pada parameter `send_as` menjadi `resolve_peer.ok()`.
+  - Jika alias *Send As* tidak ditemukan atau belum tercatat di cache dialog, transfer tidak akan dibatalkan, melainkan otomatis melanjutkan pengiriman dengan identitas akun utama.
+
 ## v3.5.45 Remote Media Magic Sniffer & Document Filename Formatter
  
 ### 1. Remote Media Magic Byte & Stream Sniffer (`media_prep.rs`)

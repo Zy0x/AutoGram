@@ -555,7 +555,7 @@ pub fn upload_prepared_album_blocking_with_app(
                 }
                 let peer = resolve_peer(client, &chat).await?;
                 let send_as_peer = match send_as.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
-                    Some(value) => Some(resolve_peer(client, value).await?.into()),
+                    Some(value) => resolve_peer(client, value).await.ok().map(|p| p.into()),
                     None => None,
                 };
                 let expected_indices: Vec<usize> = items.iter().map(|item| item.index).collect();
@@ -1712,7 +1712,7 @@ pub fn upload_file_blocking_topic_with_delivery(
                 let peer = resolve_peer(client, &chat).await?;
                 let send_as_peer = match send_as.as_deref().map(str::trim).filter(|v| !v.is_empty())
                 {
-                    Some(value) => Some(resolve_peer(client, value).await?.into()),
+                    Some(value) => resolve_peer(client, value).await.ok().map(|p| p.into()),
                     None => None,
                 };
                 let uploaded = if let Ok(file) = tokio::fs::File::open(&path).await {
