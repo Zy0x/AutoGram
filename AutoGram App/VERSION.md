@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.40
+AutoGram Version: v3.5.41
 
 Current State:
+v3.5.41 Spacious & Mobile-First Remote Upload Modal Redesign — membenahi `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperlebar modal Remote Upload ke dimensi ideal `640px` dengan padding lega, typography proporsional, touch targets luas (≥44px), penataan 3 kartu Delivery Format yang lega tanpa terpotong (*text wrap clean*), serta dukungan penuh responsif di perangkat mobile dan tablet.
+
+Previous:
 v3.5.40 Delivery Format Symmetrical Layout Polish — membenahi `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperhalus tata letak grid pemilih format pengiriman (*Delivery Format Selector*) pada Remote Upload Modal menjadi 3 kolom simetris yang responsif dan rapi di semua resolusi.
 
 Previous:

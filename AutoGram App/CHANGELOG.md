@@ -1,3 +1,13 @@
+## v3.5.41 Spacious & Mobile-First Remote Upload Modal Redesign
+
+### Redesain Modal Remote Upload Lebih Lebar & Responsif (`App.css`)
+- **Pelebaran Dimensi Dialog Modal (`640px`)**:
+  - Memperluas lebar modal Remote Upload dari sebelumnya 520px menjadi **640px** (`width: min(640px, calc(100vw - 24px))`), memberikan ruang pandang yang jauh lebih lega, lapang, dan nyaman dibaca.
+- **Penyempurnaan 3 Kartu Delivery Format**:
+  - Setiap kartu format pengiriman (*Optimized Stream*, *Uncompressed Media*, *As Document*) kini memiliki lebar yang cukup sehingga seluruh judul dan teks deskripsi tampil utuh tanpa terpotong (*no awkward word breaks*).
+- **Pendekatan Mobile-First & Touch-Friendly**:
+  - Pada layar smartphone/tablet (`<= 540px`), susunan 3 kartu secara cerdas bertransisi menjadi tumpukan vertikal dengan target sentuh tinggi (≥48px), padding nyaman, dan font yang terbaca jelas tanpa distorsi layout.
+
 ## v3.5.40 Delivery Format Symmetrical Layout Polish
 
 ### Penyempurnaan Tata Letak Delivery Format Modal (`App.css`)
