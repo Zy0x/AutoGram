@@ -622,7 +622,17 @@ export function DriveSidebar({
 
   // Active tab for Model A / B (saved|recent|drives|chats|home|pins)
   type SidebarTab = 'saved' | 'recent' | 'drives' | 'chats' | 'home' | 'pins';
-  const [activeTab, setActiveTab] = useState<SidebarTab>('recent');
+  const [activeTab, setActiveTab] = useState<SidebarTab>('drives');
+
+  // Keep sidebar tab in sync when location changes
+  useEffect(() => {
+    if (locationKind === 'drive') {
+      setActiveTab('drives');
+    } else if (locationKind === 'chat') {
+      setActiveTab('chats');
+    }
+  }, [locationKind, activePeerId]);
+
   const [manualSpin, setManualSpin] = useState(false);
   const handleRefreshClick = () => {
     setManualSpin(true);

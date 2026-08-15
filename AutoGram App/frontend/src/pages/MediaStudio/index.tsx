@@ -2458,7 +2458,7 @@ function MediaDriveDesktop({
     };
   }, [creds, chatsHasMore, chatsLoadingMore, chats.length, loadMoreChats]);
 
-  // After chats for THIS session arrive, restore last peer only if known here.
+  // After chats for THIS session arrive, restore last peer only if it was a Drive folder and known here.
   useEffect(() => {
     const pending = pendingRestorePeerRef.current;
     if (!pending || !creds) return;
@@ -2466,23 +2466,21 @@ function MediaDriveDesktop({
     // leaves the new peer selected with the old root rows. Wait until boot has
     // completed, then the peer-change effect can clear and fetch atomically.
     if (!bootDone.current) return;
-    if (pending.kind === 'saved' || pending.id == null) {
+    if (pending.kind !== 'drive' || pending.id == null) {
       pendingRestorePeerRef.current = null;
       return;
     }
     // Wait until we have some dialog signal for this session
     if (chats.length === 0 && folders.length === 0 && loadingChats) return;
     const id = pending.id;
-    const known =
-      chats.some((c) => c.id === id) ||
-      folders.some((f) => f.id === id);
+    const known = folders.some((f) => f.id === id);
     pendingRestorePeerRef.current = null;
     if (!known) {
       // Stale peer from another life of this session name — clear storage.
       saveDrivePeer(creds.session, { kind: 'saved', id: null });
       return;
     }
-    setLocationKind(pending.kind);
+    setLocationKind('drive');
     setActivePeerId(id);
   }, [creds, chats, folders, loadingChats, bootRevision]);
 

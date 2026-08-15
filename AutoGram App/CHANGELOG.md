@@ -1,3 +1,17 @@
+## v3.6.7 Fix Initial Drive Workspace Landing & Navigation
+
+### 1. Perbaikan Pendaratan Awal Drives Workspace (`driveRecents.ts` & `MediaStudio/index.tsx`)
+- **Pencegahan Redireksi ke Chat Standar Telegram**:
+  - `loadDrivePeer` dan efek pemulihan lokasi awal kini hanya memulihkan folder Drive (`kind === 'drive'`) atau menetapkan pendaratan default di Pesan Tersimpan (`Saved Messages` / `kind === 'saved'`).
+  - Menghilangkan sepenuhnya masalah di mana pengguna yang baru membuka Drives Workspace langsung diarahkan / diloncatkan ke chat/grup percakapan Telegram sebelumnya.
+
+### 2. Penataan Tab Default Sidebar Drives (`DriveSidebarIndex.tsx`)
+- **Tampilan Langsung Daftar Drives [TD]**:
+  - Mengubah inisialisasi default `activeTab` pada bilah sisi menjadi `'drives'` (sebelumnya `'recent'`).
+  - Menampilkan hierarki pohon folder Drive secara langsung saat masuk ke Drives Workspace tanpa perlu berpindah tab secara manual.
+- **Sinkronisasi Otomatis Tab & Lokasi**:
+  - Menambahkan pengikatan reaktif antara `locationKind` dan `activeTab` sehingga pemilihan Drive folder atau chat Telegram otomatis menyelaraskan tab navigasi bilah sisi yang relevan.
+
 ## v3.5.54 Real-Time Filesize Estimation Badges on Quality Resolution Grid
  
 ### 1. Indikator Ukuran Berkas Real-Time (`RemoteUploadModal.tsx` & `App.css`)
