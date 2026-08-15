@@ -201,14 +201,105 @@ pub fn download_remote_url(
         return Err("remote file empty or connection closed prematurely".into());
     }
 
-    path_policy::assert_safe_transfer_path(dest.to_str().unwrap_or(""))
+    let detected_ext = if ext == "bin" || ext.is_empty() {
+        if let Some(sniffed) = sniff_actual_media_extension(&dest) {
+            sniffed.to_string()
+        } else {
+            let (w, h, _) = probe_video_metadata(dest.to_str().unwrap_or(""));
+            if w > 0 && h > 0 {
+                "mp4".to_string()
+            } else {
+                let (dur, _, _) = probe_audio_metadata(dest.to_str().unwrap_or(""));
+                if dur > 0.0 {
+                    "mp3".to_string()
+                } else {
+                    ext
+                }
+            }
+        }
+    } else {
+        ext
+    };
+
+    let final_dest = if detected_ext != "bin" && !dest.to_string_lossy().ends_with(&format!(".{detected_ext}")) {
+        let new_dest = unique_name("remote", &detected_ext);
+        if fs::rename(&dest, &new_dest).is_ok() {
+            new_dest
+        } else {
+            dest
+        }
+    } else {
+        dest
+    };
+
+    path_policy::assert_safe_transfer_path(final_dest.to_str().unwrap_or(""))
         .map_err(|e| e.to_string())?;
     tg_log::info(
         BACKEND,
         "remote_download_ok",
-        format!("bytes={written} path={}", dest.display()),
+        format!("bytes={written} path={}", final_dest.display()),
     );
-    Ok(dest)
+    Ok(final_dest)
+}
+
+fn sniff_actual_media_extension(path: &Path) -> Option<&'static str> {
+    if let Ok(mut file) = fs::File::open(path) {
+        use std::io::Read;
+        let mut magic = [0u8; 64];
+        if let Ok(n) = file.read(&mut magic) {
+            if n >= 4 {
+                // JPEG
+                if magic.starts_with(&[0xFF, 0xD8, 0xFF]) {
+                    return Some("jpg");
+                }
+                // PNG
+                if magic.starts_with(&[0x89, b'P', b'N', b'G']) {
+                    return Some("png");
+                }
+                // GIF
+                if magic.starts_with(b"GIF87a") || magic.starts_with(b"GIF89a") {
+                    return Some("gif");
+                }
+                // WEBP / RIFF
+                if n >= 12 && magic.starts_with(b"RIFF") && &magic[8..12] == b"WEBP" {
+                    return Some("webp");
+                }
+                // WAV / RIFF
+                if n >= 12 && magic.starts_with(b"RIFF") && &magic[8..12] == b"WAVE" {
+                    return Some("wav");
+                }
+                // MP4 / MOV / M4V / 3GP (ftyp / moov / mdat)
+                if n >= 12 && (&magic[4..8] == b"ftyp" || &magic[4..8] == b"moov" || &magic[4..8] == b"mdat") {
+                    return Some("mp4");
+                }
+                // Matroska / WebM
+                if magic.starts_with(&[0x1A, 0x45, 0xDF, 0xA3]) {
+                    return Some("mp4");
+                }
+                // MP3 (ID3 or sync frame)
+                if magic.starts_with(b"ID3") || (magic[0] == 0xFF && (magic[1] & 0xE0) == 0xE0) {
+                    return Some("mp3");
+                }
+                // FLAC
+                if magic.starts_with(b"fLaC") {
+                    return Some("flac");
+                }
+                // OGG / Opus / Vorbis
+                if magic.starts_with(b"OggS") {
+                    return Some("ogg");
+                }
+                // PDF
+                if magic.starts_with(b"%PDF") {
+                    return Some("pdf");
+                }
+                // ZIP
+                if magic.starts_with(&[0x50, 0x4B, 0x03, 0x04]) {
+                    return Some("zip");
+                }
+            }
+        }
+    }
+    None
 }
 
 fn ext_from_url_or_ctype(url: &str, ctype: &str) -> String {

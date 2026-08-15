@@ -1,3 +1,19 @@
+## v3.5.45 Remote Media Magic Sniffer & Document Filename Formatter
+ 
+### 1. Remote Media Magic Byte & Stream Sniffer (`media_prep.rs`)
+- **Deteksi Otomatis Kontainer Stream URL**:
+  - Menambahkan fungsi `sniff_actual_media_extension` yang memeriksa header biner (*magic bytes*) untuk MP4/MOV (`ftyp`/`moov`), WebM/MKV, JPEG, PNG, GIF, WebP, WAV, MP3, FLAC, OGG, PDF, dan ZIP.
+  - Jika URL CDN dinamis (seperti TikTok, Instagram, Twitter/X, atau direct stream) tidak memiliki ekstensi pada string URL-nya, sistem otomatis mengidentifikasi payload dan menamainya dengan ekstensi yang tepat (`.mp4`, `.mp3`, `.jpg`, dll).
+  - Mengatasi masalah di mana Mode Media Stream Asli (*Direct Passthrough*) sebelumnya terkirim sebagai berkas `.bin`.
+
+### 2. Intelligent Document Filename Formatter (`media_transfer.rs`)
+- **Format Nama Berkas Bersih untuk Dokumen Asli**:
+  - Mengubah penamaan berkas pada `tl::types::DocumentAttributeFilename` sehingga saat dikirim sebagai Dokumen Asli, Telegram menampilkan nama berkas yang bersih (*clean filename*) dari *Custom Filename* atau judul caption, bukan nama hash sementara `remote_...bin`.
+
+### 3. Kompatibilitas Dokumen Asli Universal (`media_transfer.rs`)
+- **Peniadaan `force_file` Conflict**:
+  - Mengatur `force_file: false` sambil tetap meniadakan `Attribute::Video` pada mode Dokumen Asli. Hal ini membuat server Telegram memperlakukan berkas sebagai dokumen murni tanpa memicu penolakan *InputMediaUploadedDocument* di berbagai kluster DC Telegram.
+
 ## v3.5.44 Telegram MTProto Peer Resolver & SendMedia Fallback Engine
  
 ### 1. Omnipresent Saved Messages Resolution (`peer_resolver.rs`)

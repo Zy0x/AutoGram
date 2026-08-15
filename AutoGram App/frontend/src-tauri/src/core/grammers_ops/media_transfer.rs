@@ -1777,8 +1777,24 @@ pub fn upload_file_blocking_topic_with_delivery(
                     }
                     .into()
                 } else {
+                    let display_filename = if filename.starts_with("remote_")
+                        || filename.starts_with("reenc_")
+                        || filename.starts_with("remux_")
+                    {
+                        if !caption.is_empty() && !caption.contains('\n') && caption.len() <= 60 {
+                            if caption.contains('.') {
+                                caption.clone()
+                            } else {
+                                format!("{caption}.{ext}")
+                            }
+                        } else {
+                            format!("Media_Stream.{ext}")
+                        }
+                    } else {
+                        filename.clone()
+                    };
                     let mut attributes = vec![(tl::types::DocumentAttributeFilename {
-                        file_name: filename,
+                        file_name: display_filename,
                     })
                     .into()];
                     if !as_document && is_video {
@@ -1805,7 +1821,7 @@ pub fn upload_file_blocking_topic_with_delivery(
                     }
                     tl::types::InputMediaUploadedDocument {
                         nosound_video: false,
-                        force_file: as_document,
+                        force_file: false,
                         spoiler,
                         file: uploaded.raw,
                         thumb,
