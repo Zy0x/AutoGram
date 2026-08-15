@@ -1,11 +1,12 @@
-AutoGram Version: v3.5.47
+AutoGram Version: v3.5.48
 
 Current State:
-v3.5.47 Pure Binary Document Delivery & MTProto Octet-Stream Optimization — membenahi `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki format biner dokumen asli pada MTProto:
-1. Pure Binary Octet-Stream Format: Menyetel `mime_type: "application/octet-stream"` dan `force_file: true` pada seluruh rantai pengiriman Dokumen Asli (single file dan album transfer). Mengeliminasi konflik validasi server Telegram yang terjadi ketika video/gambar dikirim sebagai dokumen tanpa `Attribute::Video`, sehingga mode Dokumen Asli terkirim 100% sukses sebagai berkas biner murni tanpa error `CHAT_WRITE_FORBIDDEN` / `MEDIA_INVALID`.
-2. Cover Preview Preservation: Mempertahankan lampiran thumbnail cover mini secara aman pada dokumen biner.
+v3.5.48 Native Grammers SendMessage Unification & Zero-Rejection Document Delivery — membenahi `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyatukan pengiriman berkas ke engine native Grammers:
+1. Native Grammers SendMessage Pipeline: Mengganti eksekusi raw TL `messages.SendMedia` pada `upload_file_blocking_topic_with_delivery` dengan metode native `client.send_message(peer, msg)`. Mengeliminasi kesalahan penataan struct TL dan `send_as` payload yang memicu penolakan server Telegram (`PEER_ID_INVALID` / `TgErrorCode::PeerNotFound`).
+2. Robust True Document Dispatch: Mengirimkan dokumen asli secara mulus via `msg.mime_type("application/octet-stream").document(uploaded)` dengan preservasi thumbnail yang valid di seluruh chat, grup, dan Saved Messages.
 
 Previous:
+v3.5.47 Pure Binary Document Delivery & MTProto Octet-Stream Optimization — membenahi `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki format biner dokumen asli pada MTProto.
 v3.5.46 Universal Dialog Title Search & Non-fatal SendAs Resolver — membenahi `peer_resolver.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperluas resolusi peer dan ketahanan identitas pengirim.
 v3.5.45 Remote Media Magic Sniffer & Document Filename Formatter — membenahi `media_prep.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbarui penanganan stream URL dan pengiriman berkas dokumen.
 v3.5.44 Telegram MTProto Peer Resolver & SendMedia Fallback Engine — membenahi `peer_resolver.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyempurnakan resolusi peer dan ketahanan pengiriman MTProto.

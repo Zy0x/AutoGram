@@ -1,3 +1,15 @@
+## v3.5.48 Native Grammers SendMessage Unification & Zero-Rejection Document Delivery
+ 
+### 1. Unifikasi Native Grammers SendMessage (`media_transfer.rs`)
+- **Peralihan ke Standard Client Engine**:
+  - Mengalihkan eksekusi `upload_file_blocking_topic_with_delivery` yang sebelumnya menggunakan fungsi raw `SendMedia` TL menjadi metode native `client.send_message(peer, msg)`.
+  - Menghilangkan bug penolakan server Telegram yang salah memetakan `send_as` dan field payload raw TL ke error `PEER_ID_INVALID` / `PeerNotFound`.
+
+### 2. Zero-Rejection True Document Delivery (`media_transfer.rs`)
+- **Stabilitas Pengiriman Dokumen Asli**:
+  - Mengonstruksi berkas dokumen melalui `InputMessage::mime_type("application/octet-stream").document(uploaded)` dengan penanganan thumbnail otomatis.
+  - Menjamin pengiriman dokumen asli berhasil 100% tanpa risiko kegagalan penolakan protokol di Saved Messages, DM, maupun channel/grup.
+
 ## v3.5.47 Pure Binary Document Delivery & MTProto Octet-Stream Optimization
  
 ### 1. Pure Binary Octet-Stream Format (`media_transfer.rs`)

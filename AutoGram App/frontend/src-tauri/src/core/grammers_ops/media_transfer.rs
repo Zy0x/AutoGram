@@ -1712,11 +1712,7 @@ pub fn upload_file_blocking_topic_with_delivery(
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }
                 let peer = resolve_peer(client, &chat).await?;
-                let send_as_peer = match send_as.as_deref().map(str::trim).filter(|v| !v.is_empty())
-                {
-                    Some(value) => resolve_peer(client, value).await.ok().map(|p| p.into()),
-                    None => None,
-                };
+                let _ = send_as;
                 let uploaded = if let Ok(file) = tokio::fs::File::open(&path).await {
                     let mut reader = ProgressAsyncReader {
                         inner: file,
@@ -1750,6 +1746,10 @@ pub fn upload_file_blocking_topic_with_delivery(
                     ext.as_str(),
                     "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "ts" | "flv"
                 );
+                let is_audio = matches!(
+                    ext.as_str(),
+                    "mp3" | "m4a" | "aac" | "ogg" | "opus" | "flac" | "wav" | "wma"
+                );
                 let is_photo = is_real_photo(&path, &ext);
                 let is_image = is_photo
                     || matches!(
@@ -1768,174 +1768,75 @@ pub fn upload_file_blocking_topic_with_delivery(
                     );
                 let mime = infer_mime_type(&ext, is_image, is_video);
                 let path_str = path.to_str().unwrap_or("");
-                let media: tl::enums::InputMedia = if !as_document && is_photo {
-                    tl::types::InputMediaUploadedPhoto {
-                        spoiler,
-                        live_photo: false,
-                        file: uploaded.raw,
-                        stickers: None,
-                        ttl_seconds: None,
-                        video: None,
-                    }
-                    .into()
-                } else {
-                    let display_filename = if filename.starts_with("remote_")
-                        || filename.starts_with("reenc_")
-                        || filename.starts_with("remux_")
-                    {
-                        if !caption.is_empty() && !caption.contains('\n') && caption.len() <= 60 {
-                            if caption.contains('.') {
-                                caption.clone()
-                            } else {
-                                format!("{caption}.{ext}")
-                            }
-                        } else {
-                            format!("Media_Stream.{ext}")
-                        }
-                    } else {
-                        filename.clone()
-                    };
-                    let mut attributes = vec![(tl::types::DocumentAttributeFilename {
-                        file_name: display_filename,
-                    })
-                    .into()];
-                    if !as_document && is_video {
-                        let (width, height, duration) = probe_video_metadata(path_str);
-                        attributes.push(
-                            Attribute::Video {
-                                round_message: false,
-                                supports_streaming: true,
-                                duration: std::time::Duration::from_secs_f64(duration.max(0.0)),
-                                w: width as i32,
-                                h: height as i32,
-                            }
-                            .into(),
-                        );
-                    }
-                    let mut thumb = None;
+                let mut msg = InputMessage::new()
+                    .text(caption.clone())
+                    .silent(silent);
+                if let Some(r) = reply_to {
+                    msg = msg.reply_to(Some(r));
+                }
+
+                msg = if as_document {
+                    let mut doc_msg = msg.mime_type("application/octet-stream").document(uploaded);
                     if is_video || is_image {
-                        if let Some(thumb_path) = extract_video_thumbnail(path_str) {
-                            if let Ok(uploaded_thumb) = client.upload_file(&thumb_path).await {
-                                thumb = Some(uploaded_thumb.raw);
+                        let thumb_path = extract_video_thumbnail(path_str);
+                        if let Some(ref tp) = thumb_path {
+                            if let Ok(thumb_uploaded) = client.upload_file(tp).await {
+                                doc_msg = doc_msg.thumbnail(thumb_uploaded);
                             }
-                            let _ = std::fs::remove_file(thumb_path);
+                            let _ = std::fs::remove_file(tp);
                         }
                     }
-                    tl::types::InputMediaUploadedDocument {
-                        nosound_video: false,
-                        force_file: as_document,
-                        spoiler,
-                        file: uploaded.raw,
-                        thumb,
-                        mime_type: if as_document {
-                            "application/octet-stream".into()
-                        } else if is_video {
-                            "video/mp4".into()
-                        } else {
-                            mime.into()
-                        },
-                        attributes,
-                        stickers: None,
-                        video_cover: None,
-                        video_timestamp: None,
-                        ttl_seconds: None,
-                    }
-                    .into()
-                };
-                let reply_to = reply_to.map(|reply_to_msg_id| {
-                    tl::types::InputReplyToMessage {
-                        reply_to_msg_id,
-                        top_msg_id: Some(reply_to_msg_id),
-                        reply_to_peer_id: None,
-                        quote_text: None,
-                        quote_entities: None,
-                        quote_offset: None,
-                        monoforum_peer_id: None,
-                        todo_item_id: None,
-                        poll_option: None,
-                    }
-                    .into()
-                });
-                let schedule_date = schedule_date
-                    .filter(|value| *value > 0)
-                    .and_then(|value| i32::try_from(value).ok());
-                let random_id = rand::random::<i64>();
-                let sent = match client
-                    .invoke(&tl::functions::messages::SendMedia {
-                        silent,
-                        background: false,
-                        clear_draft: false,
-                        peer: peer.into(),
-                        reply_to: reply_to.clone(),
-                        media: media.clone(),
-                        message: caption.clone(),
-                        random_id,
-                        reply_markup: None,
-                        entities: None,
-                        schedule_date,
-                        schedule_repeat_period: None,
-                        send_as: send_as_peer.clone(),
-                        noforwards: false,
-                        update_stickersets_order: false,
-                        invert_media: false,
-                        quick_reply_shortcut: None,
-                        effect: None,
-                        allow_paid_floodskip: false,
-                        allow_paid_stars: None,
-                        suggested_post: None,
-                    })
-                    .await
-                {
-                    Ok(res) => Ok(res),
-                    Err(e) if send_as_peer.is_some() || reply_to.is_some() => {
-                        let err_str = e.to_string();
-                        if err_str.contains("CHAT_WRITE_FORBIDDEN")
-                            || err_str.contains("FORBIDDEN")
-                            || err_str.contains("TOPIC_CLOSED")
-                            || err_str.contains("REPLY_TO_INVALID")
-                        {
-                            tg_log::warn(
-                                BACKEND,
-                                "send_media_retry_fallback",
-                                format!("Retrying SendMedia without send_as / topic reply_to due to: {err_str}"),
-                            );
-                            let random_id2 = rand::random::<i64>();
-                            client
-                                .invoke(&tl::functions::messages::SendMedia {
-                                    silent,
-                                    background: false,
-                                    clear_draft: false,
-                                    peer: peer.into(),
-                                    reply_to: None,
-                                    media,
-                                    message: caption.clone(),
-                                    random_id: random_id2,
-                                    reply_markup: None,
-                                    entities: None,
-                                    schedule_date,
-                                    schedule_repeat_period: None,
-                                    send_as: None,
-                                    noforwards: false,
-                                    update_stickersets_order: false,
-                                    invert_media: false,
-                                    quick_reply_shortcut: None,
-                                    effect: None,
-                                    allow_paid_floodskip: false,
-                                    allow_paid_stars: None,
-                                    suggested_post: None,
-                                })
-                                .await
-                        } else {
-                            Err(e)
+                    doc_msg
+                } else if is_photo {
+                    msg.photo(uploaded)
+                } else if is_video {
+                    let (vid_w, vid_h, vid_dur) = probe_video_metadata(path_str);
+                    let mut video_msg = msg.mime_type("video/mp4").document(uploaded);
+                    video_msg = video_msg.attribute(Attribute::Video {
+                        round_message: false,
+                        supports_streaming: true,
+                        duration: std::time::Duration::from_secs_f64(vid_dur.max(0.0)),
+                        w: vid_w as i32,
+                        h: vid_h as i32,
+                    });
+                    let thumb_path = extract_video_thumbnail(path_str);
+                    if let Some(ref tp) = thumb_path {
+                        if let Ok(thumb_uploaded) = client.upload_file(tp).await {
+                            video_msg = video_msg.thumbnail(thumb_uploaded);
                         }
+                        let _ = std::fs::remove_file(tp);
                     }
-                    Err(e) => Err(e),
+                    video_msg
+                } else if is_audio {
+                    let (aud_dur, aud_title, aud_artist) = probe_audio_metadata(path_str);
+                    let mut audio_msg = msg.mime_type(mime).document(uploaded);
+                    audio_msg = audio_msg.attribute(Attribute::Audio {
+                        duration: std::time::Duration::from_secs_f64(aud_dur.max(0.0)),
+                        title: aud_title,
+                        performer: aud_artist,
+                    });
+                    let thumb_path = extract_video_thumbnail(path_str);
+                    if let Some(ref tp) = thumb_path {
+                        if let Ok(thumb_uploaded) = client.upload_file(tp).await {
+                            audio_msg = audio_msg.thumbnail(thumb_uploaded);
+                        }
+                        let _ = std::fs::remove_file(tp);
+                    }
+                    audio_msg
+                } else {
+                    let mut doc_msg = msg.mime_type(mime).document(uploaded);
+                    let thumb_path = extract_video_thumbnail(path_str);
+                    if let Some(ref tp) = thumb_path {
+                        if let Ok(thumb_uploaded) = client.upload_file(tp).await {
+                            doc_msg = doc_msg.thumbnail(thumb_uploaded);
+                        }
+                        let _ = std::fs::remove_file(tp);
+                    }
+                    doc_msg
                 };
-                let message_id = match sent {
-                    Ok(updates) => map_album_random_ids(&[random_id], updates)
-                        .into_iter()
-                        .next()
-                        .flatten(),
+
+                let sent = match client.send_message(peer, msg).await {
+                    Ok(m) => Ok(m.id() as i64),
                     Err(error) => {
                         let mapped = map_invocation(&error);
                         if let Some(recovered) = try_recover_single_file_from_history(
@@ -1945,29 +1846,24 @@ pub fn upload_file_blocking_topic_with_delivery(
                         {
                             return Ok(recovered);
                         }
-                        return Err(mapped);
+                        Err(mapped)
                     }
                 };
-                if message_id.is_none() {
-                    if let Some(recovered) = try_recover_single_file_from_history(
-                        client, peer, &chat, topic_id, &caption, index,
-                    )
-                    .await
-                    {
-                        return Ok(recovered);
-                    }
-                }
+
+                let mid = match sent {
+                    Ok(id) => Some(id),
+                    Err(err) => return Err(err),
+                };
+
                 Ok(UploadStepResult {
-                    status: if message_id.is_some() {
+                    status: if mid.is_some() {
                         "done"
                     } else {
                         "failed"
                     }
                     .into(),
-                    message_id,
-                    error: message_id
-                        .is_none()
-                        .then(|| "single media commit missing".into()),
+                    message_id: mid,
+                    error: None,
                     index,
                     backend: Some(BACKEND.into()),
                 })
