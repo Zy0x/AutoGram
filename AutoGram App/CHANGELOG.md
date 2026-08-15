@@ -1,3 +1,22 @@
+## v3.6.8 Modern Aesthetic Dual-Panel Studio Canvas Revamp
+
+### 1. Desain Visual Modern Dual-Panel Studio (`RemoteUploadModal.tsx` & `App.css`)
+- **Struktur Shell & Glassmorphism Mewah**:
+  - Merekonstruksi modal 2-panel dengan gradien obsidian gelap transparan berkelas (`backdrop-filter: blur(28px) saturate(190%)`), border luminous berpendar halus, serta sudut melengkung modern (`20px`).
+  - Menghilangkan kesan kaku dan kotak-kotak tajam pada kedua panel, menggantikannya dengan floating glass cards yang bernapas dan dinamis.
+- **Segmented Control Tab Pill**:
+  - Mengintegrasikan tab switcher (Single File vs Batch URLs) langsung di bawah header dengan active pill gradient halus dan badge terdeteksi yang rapi.
+- **Pengelompokan Form Konfigurasi Panel Kiri**:
+  - Membungkus setiap bagian formulir ke dalam kartu kaca terstruktur (`td-remote-form-card`).
+  - Opsi format pengiriman (*Media Delivery Format*) kini dilengkapi ikon modern (`Zap` untuk Otomatis/Adaptif, `Film` untuk Passthrough, `FileText` untuk Dokumen) dengan indikator aktif checkmark dan glowing accent.
+- **Studio Pratinjau Langsung (Right Panel Canvas)**:
+  - Header studio dengan status indicator berkedip hijau lembut (*Live Canvas*).
+  - Banner informasi media dengan platform brand badges (TikTok, YouTube, Instagram), watermark-free sparkle badge, nama pembuat, dan judul konten.
+  - Showcase media beresolusi tinggi dengan floating frosted glass overlay tags (indeks slide foto, durasi, dll).
+  - Ribbon thumbnail korsel foto yang lembut dengan efek hover lift dan glowing active ring.
+  - Selector format aliran yang terstruktur dengan badge resolusi warna-warni (8K, 4K, 1080p, MP3) dan estimasi kapasitas byte dinamis (`~8.45 MB`).
+  - Tampilan *Ready to Stream* dengan animated pulsing halo radar saat belum ada tautan yang dimasukkan.
+
 ## v3.6.7 Fix Initial Drive Workspace Landing & Navigation
 
 ### 1. Perbaikan Pendaratan Awal Drives Workspace (`driveRecents.ts` & `MediaStudio/index.tsx`)

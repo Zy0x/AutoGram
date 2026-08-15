@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   Layers,
   Sparkles,
+  Zap,
 } from 'lucide-react';
 import type { DriveDestChoice, DriveDestPickerState } from './DriveDestinationPicker';
 import { DriveDestinationPicker } from './DriveDestinationPicker';
@@ -628,7 +629,7 @@ export function RemoteUploadModal({
             )}
 
             {tab === 'single' ? (
-              <>
+              <div className="td-remote-form-card">
                 <div className="td-remote-field-group">
                   <div className="td-remote-label-row">
                     <label className="td-input-label" htmlFor="td-remote-url">
@@ -693,48 +694,50 @@ export function RemoteUploadModal({
                     spellCheck={false}
                   />
                 </div>
-              </>
+              </div>
             ) : (
-              <div className="td-remote-field-group">
-                <div className="td-remote-label-row">
-                  <label className="td-input-label" htmlFor="td-remote-batch-input">
-                    {t('speedtest.remote_tab_batch')}
-                  </label>
-                  <button
-                    type="button"
-                    className="td-remote-paste-action"
-                    onClick={handlePasteClipboard}
+              <div className="td-remote-form-card">
+                <div className="td-remote-field-group">
+                  <div className="td-remote-label-row">
+                    <label className="td-input-label" htmlFor="td-remote-batch-input">
+                      {t('speedtest.remote_tab_batch')}
+                    </label>
+                    <button
+                      type="button"
+                      className="td-remote-paste-action"
+                      onClick={handlePasteClipboard}
+                      disabled={submitting}
+                      title={t('speedtest.remote_paste_clipboard')}
+                    >
+                      <Clipboard size={12} />
+                      <span>{t('speedtest.remote_paste_clipboard')}</span>
+                    </button>
+                  </div>
+                  <textarea
+                    id="td-remote-batch-input"
+                    className="td-input-field td-remote-batch-textarea"
+                    rows={5}
+                    placeholder={t('speedtest.remote_batch_placeholder')}
+                    value={batchUrlsText}
+                    onChange={(e) => {
+                      setBatchUrlsText(e.target.value);
+                      if (errorMsg) setErrorMsg('');
+                    }}
                     disabled={submitting}
-                    title={t('speedtest.remote_paste_clipboard')}
-                  >
-                    <Clipboard size={12} />
-                    <span>{t('speedtest.remote_paste_clipboard')}</span>
-                  </button>
-                </div>
-                <textarea
-                  id="td-remote-batch-input"
-                  className="td-input-field td-remote-batch-textarea"
-                  rows={5}
-                  placeholder={t('speedtest.remote_batch_placeholder')}
-                  value={batchUrlsText}
-                  onChange={(e) => {
-                    setBatchUrlsText(e.target.value);
-                    if (errorMsg) setErrorMsg('');
-                  }}
-                  disabled={submitting}
-                  spellCheck={false}
-                />
-                <div className="td-remote-batch-footer">
-                  <span className="td-remote-batch-hint">
-                    {batchUrls.length > 0
-                      ? t('speedtest.remote_batch_count', { count: batchUrls.length })
-                      : t('speedtest.remote_batch_empty_hint')}
-                  </span>
+                    spellCheck={false}
+                  />
+                  <div className="td-remote-batch-footer">
+                    <span className="td-remote-batch-hint">
+                      {batchUrls.length > 0
+                        ? t('speedtest.remote_batch_count', { count: batchUrls.length })
+                        : t('speedtest.remote_batch_empty_hint')}
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
 
-            <div className="td-remote-field-group">
+            <div className="td-remote-field-group td-remote-form-card">
               <label className="td-input-label">{t('speedtest.remote_delivery_mode_label')}</label>
               <div className="td-remote-mode-selector">
                 <button
@@ -743,11 +746,18 @@ export function RemoteUploadModal({
                   onClick={() => setDeliveryMode('auto')}
                   disabled={submitting}
                 >
-                  <Film size={14} />
+                  <span className="td-remote-mode-icon auto">
+                    <Zap size={15} />
+                  </span>
                   <div className="td-remote-mode-text">
                     <span className="td-remote-mode-title">{t('speedtest.remote_mode_auto')}</span>
                     <span className="td-remote-mode-desc">{t('speedtest.remote_mode_auto_hint')}</span>
                   </div>
+                  {deliveryMode === 'auto' && (
+                    <span className="td-remote-mode-active-indicator">
+                      <CheckCircle2 size={13} />
+                    </span>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -755,11 +765,18 @@ export function RemoteUploadModal({
                   onClick={() => setDeliveryMode('uncompressed')}
                   disabled={submitting}
                 >
-                  <Sparkles size={14} />
+                  <span className="td-remote-mode-icon uncompressed">
+                    <Film size={15} />
+                  </span>
                   <div className="td-remote-mode-text">
                     <span className="td-remote-mode-title">{t('speedtest.remote_mode_uncompressed')}</span>
                     <span className="td-remote-mode-desc">{t('speedtest.remote_mode_uncompressed_hint')}</span>
                   </div>
+                  {deliveryMode === 'uncompressed' && (
+                    <span className="td-remote-mode-active-indicator">
+                      <CheckCircle2 size={13} />
+                    </span>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -767,16 +784,23 @@ export function RemoteUploadModal({
                   onClick={() => setDeliveryMode('document')}
                   disabled={submitting}
                 >
-                  <FileText size={14} />
+                  <span className="td-remote-mode-icon doc">
+                    <FileText size={15} />
+                  </span>
                   <div className="td-remote-mode-text">
                     <span className="td-remote-mode-title">{t('speedtest.remote_mode_doc')}</span>
                     <span className="td-remote-mode-desc">{t('speedtest.remote_mode_doc_hint')}</span>
                   </div>
+                  {deliveryMode === 'document' && (
+                    <span className="td-remote-mode-active-indicator">
+                      <CheckCircle2 size={13} />
+                    </span>
+                  )}
                 </button>
               </div>
             </div>
 
-            <div className="td-remote-field-group">
+            <div className="td-remote-field-group td-remote-form-card">
               <label className="td-input-label" htmlFor="td-remote-target">
                 {t('speedtest.destination_folder_label')}
               </label>
