@@ -1,3 +1,12 @@
+## v3.7.0 Architectural Alignment: Drive Tools Locale & Workspace Namespaces (Phase 1)
+
+### 1. Penyelarasan Namespace Locale & i18n (`drive_tools.json` & `locales/index.ts`)
+- **Migrasi Terarah `speedtest` ➔ `drive_tools`**:
+  - Membuat namespace resmi `drive_tools.json` (Bahasa Indonesia & English) yang memuat seluruh teks kamus untuk **Drive Tools & Settings**, **Transfer Manager Preferences**, **Remote Upload Modal**, dan **Destination Picker**.
+  - Mengintegrasikan fallback ganda (*dual namespace mapping*) di `src/locales/index.ts` agar seluruh kode pemanggil baru maupun referensi lama tetap berjalan 100% mulus tanpa risiko *broken translation* atau *missing keys*.
+- **Verifikasi & Remote CDP E2E Testing**:
+  - Menguji kelancaran startup aplikasi `frontend.exe` via CDP (port 9230) dan memastikan seluruh 146 unit test dan locale parity audit lulus 100%.
+
 ## v3.6.9 Direct Passthrough Native Media & Clean Filename Delivery
 
 ### 1. Optimalisasi Mode *Original Native Media* (`quality.rs` & `studio_orch.rs`)

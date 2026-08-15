@@ -1,7 +1,7 @@
 // Master Locale Aggregator for AutoGram (ID & EN)
 import navID from './id/nav.json';
 import dashboardID from './id/dashboard.json';
-import drivesID from './id/speedtest.json';
+import driveToolsID from './id/drive_tools.json';
 import settingsID from './id/settings.json';
 import accountsID from './id/accounts.json';
 import jobsID from './id/jobs.json';
@@ -15,7 +15,7 @@ import uiID from './id/ui.json';
 
 import navEN from './en/nav.json';
 import dashboardEN from './en/dashboard.json';
-import drivesEN from './en/speedtest.json';
+import driveToolsEN from './en/drive_tools.json';
 import settingsEN from './en/settings.json';
 import accountsEN from './en/accounts.json';
 import jobsEN from './en/jobs.json';
@@ -32,7 +32,8 @@ export const resources = {
     translation: {
       nav: navID,
       dashboard: dashboardID,
-      speedtest: drivesID,
+      drive_tools: driveToolsID,
+      speedtest: driveToolsID,
       settings: settingsID,
       accounts: accountsID,
       jobs: jobsID,
@@ -49,7 +50,8 @@ export const resources = {
     translation: {
       nav: navEN,
       dashboard: dashboardEN,
-      speedtest: drivesEN,
+      drive_tools: driveToolsEN,
+      speedtest: driveToolsEN,
       settings: settingsEN,
       accounts: accountsEN,
       jobs: jobsEN,
