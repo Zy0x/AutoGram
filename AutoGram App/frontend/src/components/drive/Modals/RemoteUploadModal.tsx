@@ -561,6 +561,8 @@ export function RemoteUploadModal({
     }
   };
 
+  if (!isOpen) return null;
+
   const node = (
     <div className="td-confirm-overlay" role="presentation" onClick={handleOverlayClick}>
       <form

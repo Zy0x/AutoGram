@@ -412,6 +412,7 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
       <DriveInputDialog state={inputDlg} onClose={() => setInputDlg(null)} />
       <DriveDestinationPicker state={destPicker} onClose={() => setDestPicker(null)} />
       {(() => {
+        if (!remoteUploadOpen) return null;
         const driveEntries: DriveDestChoice[] = folders.map((f) => {
           const match = chats.find((c) => c.id === f.id);
           return {

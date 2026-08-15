@@ -12,6 +12,11 @@
 - **Sinkronisasi Otomatis Tab & Lokasi**:
   - Menambahkan pengikatan reaktif antara `locationKind` dan `activeTab` sehingga pemilihan Drive folder atau chat Telegram otomatis menyelaraskan tab navigasi bilah sisi yang relevan.
 
+### 3. Perbaikan Render Modal Unggah Jarak Jauh / Remote URL (`RemoteUploadModal.tsx` & `MediaStudioModalsContainer.tsx`)
+- **Pemberian Guard `if (!isOpen) return null`**:
+  - Menambahkan guard render kondisional pada `RemoteUploadModal.tsx` yang sebelumnya hilang, sehingga modal `Upload file from URL (Remote)` tidak lagi otomatis muncul / menutupi layar saat pertama kali membuka ruang kerja Drives.
+  - Mengoptimasi `MediaStudioModalsContainer.tsx` agar tidak memproses daftar destinasi bila modal sedang tidak aktif.
+
 ## v3.5.54 Real-Time Filesize Estimation Badges on Quality Resolution Grid
  
 ### 1. Indikator Ukuran Berkas Real-Time (`RemoteUploadModal.tsx` & `App.css`)
