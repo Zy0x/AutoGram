@@ -1,3 +1,18 @@
+## v3.7.2 Architectural Alignment: Rust Core Backend Modules & Queue Aliases (Phase 3)
+
+### 1. Penyelarasan Modul Backend Rust Core (`src-tauri/src/core/mod.rs`)
+- **Semantic Module Aliasing & Clean Architecture**:
+  - Menambahkan alias modul semantik kanonikal di tingkat Rust `core`:
+    - `studio_orch` ➔ `drive_upload_orchestrator` (Orkestrator upload berkas, remote URL, streaming, dan album Drives).
+    - `media_bench` ➔ `network_latency_probe` (Probe uji latensi dan koneksi akun Telegram).
+    - `jobs_db` ➔ `migration_tasks_db` (Pengelolaan database riwayat dan konfigurasi tugas migrasi SQLite).
+    - `job_queue` ➔ `migration_queue` (Antrean eksekusi latar belakang transfer Telegram).
+  - Memastikan *backward compatibility* internal Rust dan Tauri IPC tetap 100% aman dan stabil.
+- **Pengujian & Verifikasi Menyeluruh**:
+  - Seluruh 115 unit test backend Rust (`cargo test --lib`) lulus 100%.
+  - 146 unit test frontend (Vitest) & paritas kamus i18n lulus 100%.
+  - Pengujian remote CDP WebView2 native pada port 9230 terverifikasi berjalan sempurna tanpa error runtime.
+
 ## v3.7.1 Architectural Alignment: Component & Database Modules (Phase 2)
 
 ### 1. Penyelarasan Modul Database & Komponen UI (`driveWorkspaceDb.ts` & `DriveToolsModal.tsx`)
