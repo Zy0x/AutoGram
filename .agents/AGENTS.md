@@ -33,10 +33,12 @@ Dokumen ini berfungsi sebagai pelengkap untuk aturan pengembangan proyek AutoGra
    - Gunakan hook `const { t } = useTranslation();` dari `react-i18next` di seluruh komponen UI.
 8. **Remote E2E & Executable Desktop Control Standard (Mandatory):**
    - Setiap kali pengguna meminta untuk melakukan "remote", "remote test", atau pengujian otomatisasi pada AutoGram, agen **WAJIB** mengendalikan langsung proses executable native (`frontend.exe`) via CDP (Chrome DevTools Protocol pada WebView2), **BUKAN** browser standalone.
-   - **Mekanisme Peluncuran & Remote Attach:**
-     - Set `$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=9230"` saat mengaktifkan `frontend.exe`.
-     - Hubungkan alat otomatisasi/Playwright menggunakan `chromium.connectOverCDP('http://127.0.0.1:9230')`.
-   - Hal ini menjamin seluruh fungsionalitas backend Rust (IPC), SQLite, dan perilaku native aplikasi dieksekusi dan diuji secara real-time.
+   - **Mekanisme Prioritas Live Attach (Zero Interruption Rule):**
+     - Selalu cek apakah port 9230 sudah aktif (misal saat pengguna membuka aplikasi via `Buka_AutoGram_LiveDev.bat`).
+     - Jika port 9230 aktif, **LANGSUNG ATTACH** menggunakan `chromium.connectOverCDP('http://127.0.0.1:9230')` tanpa mematikan, me-restart, atau menutup jendela pengguna yang sedang terbuka.
+     - **DILARANG KERAS:** Memanggil `Stop-Process`, `child.kill()`, atau `browser.close()` pada aplikasi aktif pengguna. Setelah pengujian/aksi selesai, hanya putus koneksi WebSocket CDP dan biarkan jendela aplikasi tetap berjalan.
+   - **Kemampuan Operasi UI Live (Real Remote Control):**
+     - Agen dapat mengoperasikan jendela aplikasi desktop secara real-time di layar pengguna: mengklik tombol/tab, mengisi formulir, membuka/menutup modal, scrolling daftar berkas, menekan shortcut (`Esc`, `Ctrl+V`), serta menginspeksi console log dan state DOM secara langsung.
 9. **Batas Waktu Ketat Eksekusi Skrip Agen (*Strict Agent Script Execution Timeout*):**
    - Setiap skrip pengujian, probe node, otomatisasi CDP, atau subproses yang dijalankan oleh agen **WAJIB** memiliki timer keluar keras (*hard exit timer*, misal: `setTimeout(() => process.exit(0), 10000)`).
    - DILARANG membiarkan listener atau promise terbuka yang menggantung proses di latar belakang (*background task*).

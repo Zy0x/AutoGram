@@ -81,14 +81,16 @@ Do not claim done until:
 ## Remote E2E & Executable Desktop Control Standard (Mandatory)
 
 - When asked to perform "remote", remote testing, or remote control on AutoGram, agents **MUST** target the actual running native executable (`frontend.exe`) via CDP over WebView2, **NOT** standalone browser testing.
-- **Launch / Attach Mechanism:**
-  - Set `$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=9230"` and launch `frontend.exe` (or connect to an active CDP port if already running).
-  - Connect Playwright or CDP tools using `chromium.connectOverCDP('http://127.0.0.1:9230')`.
-- This ensures all IPC Rust backend features, SQLite state, and native desktop behaviors are directly tested and controlled in real-time.
+- **Seamless Live Attach Priority (Zero Interruption Rule):**
+  - Always check if port 9230 is already open before attempting to launch any new process (e.g., when the user has launched the app via `Buka_AutoGram_LiveDev.bat`).
+  - If port 9230 is open, **DIRECTLY ATTACH** using `chromium.connectOverCDP('http://127.0.0.1:9230')` without closing, restarting, or interrupting the user's running window.
+  - **STRICTLY PROHIBITED:** Never run `Stop-Process`, `child.kill()`, or `browser.close()` on the user's active application. Upon completing a probe or automated action, only disconnect the Playwright CDP WebSocket connection, keeping the user's live window open and functional.
+- **Interactive Live UI Control Capabilities:**
+  - Agents are empowered to programmatically operate the live desktop window in real-time: clicking buttons/tabs, filling inputs/modals, scrolling views, triggering keyboard shortcuts (`Esc`, `Ctrl+V`), and inspecting DOM state or console logs live in front of the user.
 - **Strict Agent Script Execution Timeout (Anti-Hanging Protection):**
   - All test scripts, node probes, CDP scripts, or subprocesses run by agents MUST include a hard exit timer (e.g. `setTimeout(() => process.exit(0), 10000)` or explicit command timeout).
   - Never leave open-ended event listeners or unresolved promises that keep background processes running indefinitely.
-  - Agents must always proactively check and terminate background tasks after execution to prevent orphan background loops.
+  - Agents must always proactively check and terminate background probe tasks after execution to prevent orphan background loops.
 
 ## Safety & language
 
