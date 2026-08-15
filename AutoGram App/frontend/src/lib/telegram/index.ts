@@ -3,6 +3,7 @@ export * from './core/telegramBackend';
 export * from './core/sessionPicker';
 export * from './core/sessionGuard';
 export * from './core/studioOrch';
+export * from './core/driveUploadOrch';
 export * from './cache/driveLocationCache';
 export * from './cache/driveSidebarCache';
 export * from './cache/driveTopicsCache';

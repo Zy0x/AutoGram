@@ -48,3 +48,5 @@ export function isMediaStudioAvailable(runtime?: Runtime): boolean {
     hasCapability('media_studio.speed_lab', runtime)
   );
 }
+
+export const isDrivesAvailable = isMediaStudioAvailable;
