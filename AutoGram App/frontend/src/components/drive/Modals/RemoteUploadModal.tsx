@@ -415,11 +415,23 @@ export function RemoteUploadModal({
         topicPill: parts.slice(1).join(' › ').trim(),
       };
     }
+    if (selectedDest.topicName) {
+      return {
+        title: raw,
+        topicPill: selectedDest.topicName,
+      };
+    }
+    if (selectedDest.topicId != null && selectedDest.topicId > 0) {
+      return {
+        title: raw,
+        topicPill: `Topik #${selectedDest.topicId}`,
+      };
+    }
     return {
       title: raw,
       topicPill: null,
     };
-  }, [selectedDest.label]);
+  }, [selectedDest.label, selectedDest.topicName, selectedDest.topicId]);
 
   const handleSelectSlide = (idx: number) => {
     setActiveSlideIndex(idx);

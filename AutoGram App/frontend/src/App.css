@@ -25067,11 +25067,17 @@ button.td-confirm-icon.is-back-btn:active {
 
 .td-remote-dest-topic {
   font-size: 0.72rem;
+  font-weight: 600;
   color: #38bdf8;
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  margin-top: 1px;
+  gap: 3px;
+  margin-top: 3px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  width: fit-content;
 }
 
 .td-remote-dest-actions {

@@ -8,7 +8,7 @@ import { DriveDestinationPicker, type DriveDestChoice } from '../../components/d
 import { RemoteUploadModal } from '../../components/drive/Modals/RemoteUploadModal';
 import { SessionRelogModal } from '../../components/drive/Modals/SessionRelogModal';
 import type { DriveCredentials } from '../../lib/telegram/driveApi';
-import type { DriveChat, DriveFile, DriveFolder } from '../../lib/telegram/driveTypes';
+import type { DriveChat, DriveFile, DriveFolder, DriveTopic } from '../../lib/telegram/driveTypes';
 import type { DuplicateContextInfo } from '../../components/drive/DrivePreviewModal';
 import type { DriveTransferSettings } from '../../components/drive/Transfers/transferSettingsModel';
 import { getSessionMetadata } from '../../lib/telegram/core/sessionPicker';
@@ -27,6 +27,7 @@ export interface MediaStudioModalsContainerProps {
   creds: DriveCredentials | null;
   folders: DriveFolder[];
   chats: DriveChat[];
+  topics?: DriveTopic[];
   refreshFiles: () => Promise<void>;
   refreshLocations: () => Promise<void>;
   openTransferManager: (tab?: 'downloads' | 'uploads') => void;
@@ -98,6 +99,7 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
   transferSettings,
   folders,
   chats,
+  topics,
   refreshFiles,
   refreshLocations,
   openTransferManager,
@@ -439,6 +441,12 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
             })),
         ];
 
+        const activeTid = topicFilterRef?.current ?? null;
+        const matchTopic = (activeTid != null && topics) ? topics.find((x) => x.id === activeTid) : null;
+        const currentTopicName = matchTopic
+          ? (matchTopic.title || `Topik #${matchTopic.id}`)
+          : (activeTid != null ? `Topik #${activeTid}` : null);
+
         let currentDestChoice: DriveDestChoice = { id: null, label: 'Saved Messages', kind: 'saved' };
         if (locationKind === 'drive' && activePeerId != null) {
           const f = folders.find((x) => x.id === activePeerId);
@@ -448,7 +456,8 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
             label: f?.name || 'Drive',
             kind: 'drive',
             isForum: !!match?.is_forum,
-            topicId: topicFilterRef?.current ?? null,
+            topicId: activeTid,
+            topicName: currentTopicName,
           };
         } else if (locationKind === 'chat' && activePeerId != null) {
           const c = chats.find((x) => x.id === activePeerId);
@@ -458,7 +467,8 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
             kind: 'chat',
             type: c?.type,
             isForum: !!c?.is_forum,
-            topicId: topicFilterRef?.current ?? null,
+            topicId: activeTid,
+            topicName: currentTopicName,
           };
         }
 

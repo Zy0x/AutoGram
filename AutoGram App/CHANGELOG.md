@@ -1,3 +1,15 @@
+## v3.7.9 Dynamic Destination Topic Badge & Forum Integration (Phase 10)
+
+### 1. Penampilan & Integrasi Topik Forum pada Destinasi Unggah
+- **Forum Topic Resolution (`RemoteUploadModal.tsx`, `DriveDestinationPicker.tsx`, `MediaStudioModalsContainer.tsx`)**:
+  - Menambahkan dukungan atribut `topicName` pada model `DriveDestChoice` sehingga nama topik (misal: `#General`, `#Video`, atau `Topik #123`) diteruskan dan dirender secara otomatis.
+  - Memperbarui parser `cleanTargetDisplay` pada modal Remote Upload agar mendeteksi `topicName` dan `topicId` saat destinasi berada di dalam supergroup/forum Telegram.
+  - Menampilkan badge pill topik `# <Nama Topik>` berwarna aksen biru langit di samping/bawah nama kanal/grup tujuan.
+  - Menyelaraskan pemilihan topik di dalam modal pemilih destinasi (`DriveDestinationPicker.tsx`) agar langsung mengikat nama dan ID topik terpilih.
+- **Verifikasi Kualitas**:
+  - 146 unit test Vitest lulus 100%.
+  - 4.827 kunci kamus i18n sinkron sempurna (0 hardcoded, 0 missing).
+
 ## v3.7.8 Comprehensive Placeholder Internationalization & Harmonization (Phase 9)
 
 ### 1. Audit & Harmonisasi Seluruh Placeholder Antarmuka

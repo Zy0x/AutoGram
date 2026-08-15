@@ -20,6 +20,7 @@ export type DriveDestChoice = {
   kind?: 'saved' | 'drive' | 'chat';
   type?: 'user' | 'group' | 'channel' | 'bot' | 'unknown' | string;
   topicId?: number | null;
+  topicName?: string | null;
 };
 
 export type DriveDestPickerState = {
@@ -261,7 +262,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
                     role="option"
                     aria-selected="true"
                     className="td-dest-item is-active"
-                    onClick={() => pick({ ...topicSubView.choice, topicId: null })}
+                    onClick={() => pick({ ...topicSubView.choice, topicId: null, topicName: null })}
                   >
                     <span className="td-dest-ico" aria-hidden>
                       <Hash size={15} />
@@ -283,7 +284,13 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
                     role="option"
                     disabled={!!topic.closed}
                     className="td-dest-item"
-                    onClick={() => pick({ ...topicSubView.choice, topicId: topic.id })}
+                    onClick={() =>
+                      pick({
+                        ...topicSubView.choice,
+                        topicId: topic.id,
+                        topicName: topic.title || `Topik #${topic.id}`,
+                      })
+                    }
                   >
                     <span className="td-dest-ico" aria-hidden>
                       <Hash size={15} />

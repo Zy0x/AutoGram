@@ -8800,6 +8800,7 @@ function MediaDriveDesktop({
         creds={creds}
         folders={folders}
         chats={chats}
+        topics={topics}
         refreshFiles={refreshFiles}
         refreshLocations={refreshLocations}
         openTransferManager={openTransferManager}
