@@ -1222,23 +1222,8 @@ export function TransferSettingsWorkspace({
 
               {/* SUB-SECTION 1.2: FORMAT PENGIRIMAN MEDIA */}
               <div className="td-settings-subcard" style={{ marginTop: '16px' }}>
-                <label className="td-field-label">{t('ui.generated.format_pengiriman_media_9178a1d')}</label>
+                <label className="td-field-label">{t('speedtest.remote_delivery_mode_label')}</label>
                 <div className="td-radio-tiles-grid">
-                  <label className={`td-radio-tile ${currentDeliveryFormat === 'auto' ? 'is-selected' : ''}`}>
-                    <input
-                      type="radio"
-                      name="deliveryFormat"
-                      value="auto"
-                      checked={currentDeliveryFormat === 'auto'}
-                      disabled={!!transferActive}
-                      onChange={() => patch(applyDeliveryFormatMode(draft, 'auto'))}
-                    />
-                    <div>
-                      <strong>{t('ui.generated.otomatis_direkomendasikan_a36bb34')}</strong>
-                      <p>{t('ui.generated.telegram_secara_cerdas_menentukan_format_terbaik_f04cce6')}</p>
-                    </div>
-                  </label>
-
                   <label className={`td-radio-tile ${currentDeliveryFormat === 'telegram' ? 'is-selected' : ''}`}>
                     <input
                       type="radio"
@@ -1249,8 +1234,23 @@ export function TransferSettingsWorkspace({
                       onChange={() => patch(applyDeliveryFormatMode(draft, 'telegram'))}
                     />
                     <div>
-                      <strong>{t('ui.generated.media_native_telegram_ae34844')}</strong>
-                      <p>{t('ui.generated.kirim_sebagai_foto_video_yang_dapat_diputar_lang_0b95f36')}</p>
+                      <strong>{t('speedtest.remote_mode_uncompressed')}</strong>
+                      <p>{t('speedtest.remote_mode_uncompressed_hint')}</p>
+                    </div>
+                  </label>
+
+                  <label className={`td-radio-tile ${currentDeliveryFormat === 'auto' ? 'is-selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="deliveryFormat"
+                      value="auto"
+                      checked={currentDeliveryFormat === 'auto'}
+                      disabled={!!transferActive}
+                      onChange={() => patch(applyDeliveryFormatMode(draft, 'auto'))}
+                    />
+                    <div>
+                      <strong>{t('speedtest.remote_mode_auto')}</strong>
+                      <p>{t('speedtest.remote_mode_auto_hint')}</p>
                     </div>
                   </label>
 
@@ -1264,8 +1264,8 @@ export function TransferSettingsWorkspace({
                       onChange={() => patch(applyDeliveryFormatMode(draft, 'document'))}
                     />
                     <div>
-                      <strong>{t('ui.generated.dokumen_asli_uncompressed_e76e3a5')}</strong>
-                      <p>{t('ui.generated.kirim_berkas_mentah_tanpa_pemrosesan_pratinjau_m_432dcb8')}</p>
+                      <strong>{t('speedtest.remote_mode_doc')}</strong>
+                      <p>{t('speedtest.remote_mode_doc_hint')}</p>
                     </div>
                   </label>
                 </div>
