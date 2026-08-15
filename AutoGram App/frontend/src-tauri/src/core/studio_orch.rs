@@ -1934,17 +1934,31 @@ fn run_orchestrated_grammers(
             prepared_artifact.native_visual_validated,
         );
         delivery.transform = prepared_artifact.transform_action;
-        if rec
+        let pres_override = rec
             .options
             .get("presentation_override")
             .or_else(|| rec.options.get("presentationOverride"))
-            .and_then(|value| value.as_str())
-            .map(|value| value == "force_document" || value == "document")
-            .unwrap_or(false)
-        {
-            delivery.as_document = true;
+            .and_then(|value| value.as_str());
+        if let Some(pres) = pres_override {
+            if pres == "force_document" || pres == "document" {
+                delivery.as_document = true;
+            } else if pres == "original" || pres == "standard" {
+                if matches!(
+                    delivery.category,
+                    super::autogram_core::MediaCategory::Mp4Video
+                        | super::autogram_core::MediaCategory::JpegImage
+                        | super::autogram_core::MediaCategory::PngImage
+                        | super::autogram_core::MediaCategory::Audio
+                ) {
+                    delivery.as_document = false;
+                }
+            }
         }
-        let item_as_document = as_doc || delivery.as_document;
+        let item_as_document = if pres_override == Some("original") || pres_override == Some("standard") {
+            delivery.as_document
+        } else {
+            as_doc || delivery.as_document
+        };
         persist_prepared_decision(
             &rec,
             item.index,
