@@ -533,25 +533,6 @@ export function DriveTopBar({
 
         <div className="td-topbar-actions">
 
-          <div className="td-view-toggle" role="group" aria-label={t('speedtest.topbar_view_mode_aria')}>
-            <button
-              type="button"
-              className={`td-icon-btn ${viewMode === 'grid' ? 'active' : ''}`}
-              onClick={() => onViewMode('grid')}
-              title={t('speedtest.topbar_view_grid_title')}
-            >
-              <LayoutGrid size={16} />
-            </button>
-            <button
-              type="button"
-              className={`td-icon-btn ${viewMode === 'list' ? 'active' : ''}`}
-              onClick={() => onViewMode('list')}
-              title={t('speedtest.topbar_view_list_title')}
-            >
-              <List size={16} />
-            </button>
-          </div>
-
           {viewMode === 'grid' && (
             <div className="td-zoom-controls" role="group" aria-label={t('speedtest.topbar_zoom_grid_aria')}>
               <button
@@ -584,6 +565,25 @@ export function DriveTopBar({
               </button>
             </div>
           )}
+
+          <div className="td-view-toggle" role="group" aria-label={t('speedtest.topbar_view_mode_aria')}>
+            <button
+              type="button"
+              className={`td-icon-btn ${viewMode === 'grid' ? 'active' : ''}`}
+              onClick={() => onViewMode('grid')}
+              title={t('speedtest.topbar_view_grid_title')}
+            >
+              <LayoutGrid size={16} />
+            </button>
+            <button
+              type="button"
+              className={`td-icon-btn ${viewMode === 'list' ? 'active' : ''}`}
+              onClick={() => onViewMode('list')}
+              title={t('speedtest.topbar_view_list_title')}
+            >
+              <List size={16} />
+            </button>
+          </div>
 
 
           <button

@@ -1,3 +1,13 @@
+## v3.7.13 Drive TopBar View Controls Reordering (Phase 14)
+
+### 1. Penyesuaian Tata Letak Toolbar Navigasi Drives
+- **View Controls Reordering (`DriveTopBar.tsx`)**:
+  - Menukar posisi tombol pengatur ukuran grid (*Grid Zoom Controller* `[-] M [+]`) ke sisi kiri dan tombol pengubah mode tampilan (*Grid/List View Mode Switcher* `⊞ ≡`) ke sisi kanan.
+  - Mempertahankan aksesibilitas keyboard dan status interaksi pada seluruh resolusi layar.
+- **Verifikasi Kualitas**:
+  - 146 unit test Vitest lulus 100%.
+  - 4.835 kunci kamus i18n sinkron sempurna (0 hardcoded, 0 missing).
+
 ## v3.7.12 Universal Stream Format Internationalization & Harmonization (Phase 13)
 
 ### 1. Internasionalisasi Menyeluruh Format Stream & Avatar Kreator
