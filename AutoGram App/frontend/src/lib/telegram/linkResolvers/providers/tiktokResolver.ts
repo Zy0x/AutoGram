@@ -1,4 +1,4 @@
-import type { LinkResolverProvider, ResolvedMediaInfo, StreamQualityFormat } from '../types';
+import type { LinkResolverProvider, ResolvedMediaInfo, StreamQualityFormat, QualityTier } from '../types';
 
 /**
  * TikTok No-Watermark Ultra-HD Resolver
@@ -16,17 +16,36 @@ export const tiktokResolver: LinkResolverProvider = {
   async resolve(url: string, signal?: AbortSignal): Promise<ResolvedMediaInfo | null> {
     const cleanUrl = url.trim();
 
-    // Try reliable lightweight TikWM API with fallback
+    // Try reliable lightweight TikWM API via native Rust IPC (zero CORS) with web fetch fallback
     try {
-      const apiUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(cleanUrl)}&hd=1`;
-      const resp = await fetch(apiUrl, {
-        signal: signal || AbortSignal.timeout(8000),
-      });
+      let data: any = null;
+      if (typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window)) {
+        try {
+          const { invoke } = await import('@tauri-apps/api/core');
+          const json = await invoke<any>('fetch_remote_json_metadata', { url: cleanUrl });
+          if (json && json.data) {
+            data = json.data;
+          }
+        } catch (ipcErr) {
+          console.warn('[TikTokResolver] IPC fetch failed, falling back to web fetch:', ipcErr);
+        }
+      }
 
-      if (resp.ok) {
-        const json = await resp.json();
-        if (json && json.data) {
-          const data = json.data;
+      if (!data) {
+        const apiUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(cleanUrl)}&hd=1`;
+        const resp = await fetch(apiUrl, {
+          signal: signal || AbortSignal.timeout(8000),
+        });
+
+        if (resp.ok) {
+          const json = await resp.json();
+          if (json && json.data) {
+            data = json.data;
+          }
+        }
+      }
+
+      if (data) {
           const title = (data.title || `TikTok_${data.id || Date.now()}`).trim();
           const author = data.author?.nickname ? `@${data.author.unique_id || data.author.nickname}` : undefined;
           const authorAvatar = data.author?.avatar;
@@ -35,19 +54,41 @@ export const tiktokResolver: LinkResolverProvider = {
 
           const formats: StreamQualityFormat[] = [];
 
-          // 1. Full HD 1080p (Peak HD Clean Stream)
+          // Detect if video is 4K, 2K, or 1080p based on title, duration, and bitrate
+          const titleLower = title.toLowerCase();
+          const rawSize = data.hd_size || data.size || 0;
+          const bitrateBps = (durationSec && rawSize) ? (rawSize * 8) / durationSec : 0;
+
+          let peakTier: QualityTier = '1080p';
+          let peakLabel = 'Full HD 1080p (60fps)';
+          let peakBadge = '1080p FULL HD';
+          let peakRes = '1080p Full HD';
+
+          if (titleLower.includes('4k') || titleLower.includes('2160p') || bitrateBps > 30_000_000) {
+            peakTier = '4k';
+            peakLabel = '4K Ultra HD (Master Stream)';
+            peakBadge = '4K UHD';
+            peakRes = '4K Ultra HD (2160p)';
+          } else if (titleLower.includes('2k') || titleLower.includes('1440p') || bitrateBps > 15_000_000) {
+            peakTier = '2k';
+            peakLabel = '2K Quad HD (1440p)';
+            peakBadge = '2K QHD';
+            peakRes = '2K Quad HD (1440p)';
+          }
+
+          // 1. Peak Quality (4K UHD / 2K QHD / Full HD 1080p)
           if (data.hdplay) {
             formats.push({
               id: 'tiktok_hd_nwm',
-              label: 'Full HD 1080p (60fps)',
-              qualityTier: '1080p',
-              resolution: '1080p Full HD',
+              label: peakLabel,
+              qualityTier: peakTier,
+              resolution: peakRes,
               ext: 'mp4',
-              filesizeBytes: data.hd_size || (data.size ? Math.round(data.size * 1.8) : undefined),
+              filesizeBytes: data.hd_size || data.size,
               directUrl: data.hdplay.startsWith('http') ? data.hdplay : `https://www.tikwm.com${data.hdplay}`,
               isCleanNoWatermark: true,
               isVideo: true,
-              badge: '1080p FULL HD',
+              badge: peakBadge,
             });
           }
 
@@ -99,10 +140,9 @@ export const tiktokResolver: LinkResolverProvider = {
             };
           }
         }
+      } catch {
+        /* fallback to secondary provider below */
       }
-    } catch {
-      /* fallback to secondary provider below */
-    }
 
     // Secondary engine fallback
     try {

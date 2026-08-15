@@ -1834,6 +1834,36 @@ fn desktop_write_clipboard(text: String) -> Result<(), String> {
     }
 }
 
+#[tauri::command]
+fn fetch_remote_json_metadata(url: String) -> Result<serde_json::Value, String> {
+    let u_clean = url.trim();
+    if u_clean.is_empty() {
+        return Err("empty URL".into());
+    }
+    let agent = ureq::AgentBuilder::new()
+        .timeout_connect(std::time::Duration::from_secs(10))
+        .timeout_read(std::time::Duration::from_secs(15))
+        .build();
+
+    let api_url = if u_clean.contains("tiktok.com") || u_clean.contains("douyin.com") {
+        format!("https://www.tikwm.com/api/?url={}&hd=1", urlencoding::encode(u_clean))
+    } else {
+        u_clean.to_string()
+    };
+
+    let resp = agent
+        .get(&api_url)
+        .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 AutoGram/3.5")
+        .call()
+        .map_err(|e| format!("HTTP request failed: {e}"))?;
+
+    let val = resp
+        .into_json::<serde_json::Value>()
+        .map_err(|e| format!("parse JSON failed: {e}"))?;
+
+    Ok(val)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1843,6 +1873,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             greet,
+            fetch_remote_json_metadata,
             desktop_read_clipboard,
             desktop_write_clipboard,
             app_toggle_devtools,
