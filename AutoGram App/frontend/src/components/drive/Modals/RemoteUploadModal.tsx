@@ -918,7 +918,7 @@ export function RemoteUploadModal({
                     ) : (
                       <div className="td-remote-big-canvas-fallback">
                         <Film size={36} className="td-remote-fallback-icon" />
-                        <span>{resolvedMedia.platformName} Stream</span>
+                        <span>{t('drive_tools.remote_platform_stream_fallback', { platform: resolvedMedia.platformName })}</span>
                       </div>
                     )}
                   </div>
@@ -1058,11 +1058,11 @@ export function RemoteUploadModal({
                   <h4 className="td-remote-ready-title">{t('speedtest.remote_split_ready_title')}</h4>
                   <p className="td-remote-ready-desc">{t('speedtest.remote_split_ready_desc')}</p>
                   <div className="td-remote-ready-pill-grid">
-                    <span className="td-remote-ready-pill">TikTok Slideshow HD</span>
-                    <span className="td-remote-ready-pill">YouTube 4K/1080p</span>
-                    <span className="td-remote-ready-pill">Instagram Reels</span>
-                    <span className="td-remote-ready-pill">Audio MP3</span>
-                    <span className="td-remote-ready-pill">Direct Stream</span>
+                    <span className="td-remote-ready-pill">{t('drive_tools.remote_sample_tiktok')}</span>
+                    <span className="td-remote-ready-pill">{t('drive_tools.remote_sample_youtube')}</span>
+                    <span className="td-remote-ready-pill">{t('drive_tools.remote_sample_instagram')}</span>
+                    <span className="td-remote-ready-pill">{t('drive_tools.remote_sample_audio')}</span>
+                    <span className="td-remote-ready-pill">{t('drive_tools.remote_sample_direct')}</span>
                   </div>
                 </div>
               )}

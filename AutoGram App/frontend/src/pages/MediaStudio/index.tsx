@@ -8906,7 +8906,7 @@ function MediaDriveDesktop({
                   pasteMoveRef.current(clipboard);
                 }
               }}
-              title="Ctrl+V"
+              title={t('drive_tools.shortcut_ctrl_v')}
             >
               <ClipboardPaste size={14} />
               <span>{t('speedtest.clipboard_paste_here')}</span>
@@ -8915,7 +8915,7 @@ function MediaDriveDesktop({
               type="button"
               className="td-clipboard-cancel-btn"
               onClick={() => setDriveClipboard(null)}
-              title="Esc"
+              title={t('drive_tools.shortcut_esc')}
               aria-label={t('speedtest.clipboard_cancel')}
             >
               <X size={14} />

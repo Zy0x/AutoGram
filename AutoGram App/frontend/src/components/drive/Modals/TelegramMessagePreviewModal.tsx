@@ -349,15 +349,15 @@ export function TelegramMessagePreviewModal({
               </div>
               <div className="tg-msg-preview-chat-subtitle">
                 {isSavedMessages
-                  ? t('speedtest.account_saved_messages', { defaultValue: 'Saved Messages' })
+                  ? t('drive_tools.account_saved_messages')
                   : topicName
                     ? `#${topicName}`
                     : file.peer_kind === 'channel'
-                      ? 'channel'
+                      ? t('drive_tools.peer_kind_channel')
                       : file.peer_kind === 'supergroup' || file.peer_kind === 'basic_group'
-                        ? 'group'
-                        : 'chat'}
-                {file.id ? ` · Message ID #${file.id}` : ''}
+                        ? t('drive_tools.peer_kind_group')
+                        : t('drive_tools.peer_kind_chat')}
+                {file.id ? ` · ${t('drive_tools.message_id_label', { id: file.id })}` : ''}
               </div>
             </div>
           </div>
@@ -366,7 +366,7 @@ export function TelegramMessagePreviewModal({
               type="button"
               className="tg-msg-preview-close-btn"
               onClick={onClose}
-              aria-label="Close"
+              aria-label={t('drive_tools.close')}
             >
               <X size={18} />
             </button>
