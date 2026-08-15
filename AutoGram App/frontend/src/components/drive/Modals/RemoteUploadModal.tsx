@@ -25,6 +25,8 @@ import {
   Sparkles,
   Zap,
   User,
+  Info,
+  Cloud,
 } from 'lucide-react';
 import type { DriveDestChoice, DriveDestPickerState } from './DriveDestinationPicker';
 import { DriveDestinationPicker } from './DriveDestinationPicker';
@@ -219,6 +221,8 @@ export function RemoteUploadModal({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [showSupportedInfo, setShowSupportedInfo] = useState(false);
+  const infoRef = useRef<HTMLDivElement | null>(null);
 
   const inspectAbortRef = useRef<AbortController | null>(null);
   const inspectTimerRef = useRef<number | null>(null);
@@ -282,12 +286,27 @@ export function RemoteUploadModal({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
+        if (showSupportedInfo) {
+          setShowSupportedInfo(false);
+          return;
+        }
         onClose();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, pickerOpen, onClose]);
+  }, [isOpen, pickerOpen, showSupportedInfo, onClose]);
+
+  useEffect(() => {
+    if (!showSupportedInfo) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (infoRef.current && !infoRef.current.contains(e.target as Node)) {
+        setShowSupportedInfo(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [showSupportedInfo]);
 
   const probeUrl = useCallback(async (rawUrl: string) => {
     if (inspectAbortRef.current) {
@@ -665,6 +684,92 @@ export function RemoteUploadModal({
     }
   };
 
+  const renderSupportedLinksPopover = () => {
+    if (!showSupportedInfo) return null;
+    return (
+      <div
+        className="td-remote-info-popover"
+        role="dialog"
+        aria-modal="false"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="td-remote-info-popover-header">
+          <div className="td-remote-info-popover-title">
+            <Sparkles size={14} className="td-remote-info-title-icon" />
+            <span>{t('speedtest.remote_info_popover_title')}</span>
+          </div>
+          <button
+            type="button"
+            className="td-remote-info-close"
+            onClick={() => setShowSupportedInfo(false)}
+            aria-label={t('speedtest.preview_close_btn')}
+          >
+            <X size={13} />
+          </button>
+        </div>
+        <p className="td-remote-info-popover-desc">
+          {t('speedtest.remote_info_popover_desc')}
+        </p>
+        <div className="td-remote-info-section">
+          <div className="td-remote-info-cat-title">
+            <Film size={12} />
+            <span>{t('speedtest.remote_info_cat_social')}</span>
+          </div>
+          <ul className="td-remote-info-list">
+            <li>
+              <CheckCircle2 size={11} className="td-info-check" />
+              <span>{t('speedtest.remote_info_item_tiktok')}</span>
+            </li>
+            <li>
+              <CheckCircle2 size={11} className="td-info-check" />
+              <span>{t('speedtest.remote_info_item_youtube')}</span>
+            </li>
+            <li>
+              <CheckCircle2 size={11} className="td-info-check" />
+              <span>{t('speedtest.remote_info_item_instagram')}</span>
+            </li>
+            <li>
+              <CheckCircle2 size={11} className="td-info-check" />
+              <span>{t('speedtest.remote_info_item_pinterest')}</span>
+            </li>
+            <li>
+              <CheckCircle2 size={11} className="td-info-check" />
+              <span>{t('speedtest.remote_info_item_pixiv')}</span>
+            </li>
+            <li>
+              <CheckCircle2 size={11} className="td-info-check" />
+              <span>{t('speedtest.remote_info_item_terabox')}</span>
+            </li>
+          </ul>
+        </div>
+        <div className="td-remote-info-section">
+          <div className="td-remote-info-cat-title">
+            <Cloud size={12} />
+            <span>{t('speedtest.remote_info_cat_cloud')}</span>
+          </div>
+          <ul className="td-remote-info-list">
+            <li>
+              <CheckCircle2 size={11} className="td-info-check" />
+              <span>{t('speedtest.remote_info_item_gdrive')}</span>
+            </li>
+            <li>
+              <CheckCircle2 size={11} className="td-info-check" />
+              <span>{t('speedtest.remote_info_item_dropbox')}</span>
+            </li>
+            <li>
+              <CheckCircle2 size={11} className="td-info-check" />
+              <span>{t('speedtest.remote_info_item_direct')}</span>
+            </li>
+          </ul>
+        </div>
+        <div className="td-remote-info-footer">
+          <Zap size={11} />
+          <span>{t('speedtest.remote_info_footer_note')}</span>
+        </div>
+      </div>
+    );
+  };
+
   if (!isOpen) return null;
 
   const node = (
@@ -735,9 +840,22 @@ export function RemoteUploadModal({
               <div className="td-remote-form-card">
                 <div className="td-remote-field-group">
                   <div className="td-remote-label-row">
-                    <label className="td-input-label" htmlFor="td-remote-url">
-                      {t('speedtest.source_url_label')}
-                    </label>
+                    <div className="td-remote-label-left" ref={infoRef}>
+                      <label className="td-input-label" htmlFor="td-remote-url">
+                        {t('speedtest.source_url_label')}
+                      </label>
+                      <button
+                        type="button"
+                        className={`td-remote-info-trigger ${showSupportedInfo ? 'active' : ''}`}
+                        onClick={() => setShowSupportedInfo((prev) => !prev)}
+                        title={t('speedtest.remote_info_btn_aria')}
+                        aria-label={t('speedtest.remote_info_btn_aria')}
+                        aria-expanded={showSupportedInfo}
+                      >
+                        <Info size={12} />
+                      </button>
+                      {renderSupportedLinksPopover()}
+                    </div>
                     <button
                       type="button"
                       className="td-remote-paste-action"
@@ -802,9 +920,22 @@ export function RemoteUploadModal({
               <div className="td-remote-form-card">
                 <div className="td-remote-field-group">
                   <div className="td-remote-label-row">
-                    <label className="td-input-label" htmlFor="td-remote-batch-input">
-                      {t('speedtest.remote_tab_batch')}
-                    </label>
+                    <div className="td-remote-label-left" ref={infoRef}>
+                      <label className="td-input-label" htmlFor="td-remote-batch-input">
+                        {t('speedtest.remote_tab_batch')}
+                      </label>
+                      <button
+                        type="button"
+                        className={`td-remote-info-trigger ${showSupportedInfo ? 'active' : ''}`}
+                        onClick={() => setShowSupportedInfo((prev) => !prev)}
+                        title={t('speedtest.remote_info_btn_aria')}
+                        aria-label={t('speedtest.remote_info_btn_aria')}
+                        aria-expanded={showSupportedInfo}
+                      >
+                        <Info size={12} />
+                      </button>
+                      {renderSupportedLinksPopover()}
+                    </div>
                     <button
                       type="button"
                       className="td-remote-paste-action"
