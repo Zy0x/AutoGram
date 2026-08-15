@@ -59,21 +59,25 @@ export const tiktokResolver: LinkResolverProvider = {
           const rawSize = data.hd_size || data.size || 0;
           const bitrateBps = (durationSec && rawSize) ? (rawSize * 8) / durationSec : 0;
 
+          // Detect explicit FPS tag from title (e.g. 120fps, 90fps, 60fps, 144fps, 240fps)
+          const fpsMatch = titleLower.match(/\b(240|144|120|90|60)\s*fps\b/i);
+          const detectedFps = fpsMatch ? `${fpsMatch[1]}fps` : undefined;
+
           let peakTier: QualityTier = '1080p';
-          let peakLabel = 'Full HD 1080p (60fps)';
+          let peakLabel = detectedFps ? `Full HD 1080p (${detectedFps})` : 'Full HD 1080p (Master Stream)';
           let peakBadge = '1080p FULL HD';
-          let peakRes = '1080p Full HD';
+          let peakRes = detectedFps ? `1080p Full HD • ${detectedFps}` : '1080p Full HD';
 
           if (titleLower.includes('4k') || titleLower.includes('2160p') || bitrateBps > 30_000_000) {
             peakTier = '4k';
-            peakLabel = '4K Ultra HD (Master Stream)';
+            peakLabel = detectedFps ? `4K Ultra HD (${detectedFps} Master)` : '4K Ultra HD (Master Stream)';
             peakBadge = '4K UHD';
-            peakRes = '4K Ultra HD (2160p)';
+            peakRes = detectedFps ? `4K Ultra HD (2160p) • ${detectedFps}` : '4K Ultra HD (2160p)';
           } else if (titleLower.includes('2k') || titleLower.includes('1440p') || bitrateBps > 15_000_000) {
             peakTier = '2k';
-            peakLabel = '2K Quad HD (1440p)';
+            peakLabel = detectedFps ? `2K Quad HD (${detectedFps})` : '2K Quad HD (1440p)';
             peakBadge = '2K QHD';
-            peakRes = '2K Quad HD (1440p)';
+            peakRes = detectedFps ? `2K Quad HD (1440p) • ${detectedFps}` : '2K Quad HD (1440p)';
           }
 
           // 1. Peak Quality (4K UHD / 2K QHD / Full HD 1080p)
