@@ -24436,6 +24436,104 @@ button.td-confirm-icon.is-back-btn:active {
   flex-shrink: 0;
 }
 
+/* Ready Placeholder State in Live Preview Canvas */
+.td-remote-preview-ready {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 18px;
+  background: radial-gradient(circle at center, rgba(56, 189, 248, 0.08) 0%, rgba(15, 23, 42, 0.6) 80%);
+  border: 1px dashed rgba(56, 189, 248, 0.25);
+  border-radius: 12px;
+  gap: 12px;
+  min-height: 240px;
+}
+
+.td-remote-ready-icon-wrap {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(99, 102, 241, 0.2));
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38bdf8;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+  animation: td-glow-pulse 3s infinite ease-in-out;
+}
+
+@keyframes td-glow-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 16px rgba(56, 189, 248, 0.2); }
+  50% { transform: scale(1.08); box-shadow: 0 0 28px rgba(56, 189, 248, 0.45); }
+}
+
+.td-remote-ready-title {
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.td-remote-ready-desc {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  max-width: 320px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.td-remote-ready-pill-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.td-remote-ready-pill {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+
+.td-remote-preview-inspecting-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 36px 20px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 12px;
+  text-align: center;
+  min-height: 220px;
+}
+
+.td-remote-inspecting-spinner {
+  color: #38bdf8;
+  animation: spin 1s linear infinite;
+}
+
+.td-remote-inspecting-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.td-remote-inspecting-subtitle {
+  font-size: 0.76rem;
+  color: #94a3b8;
+}
+
 .td-remote-error-box {
   padding: 9px 13px;
   border-radius: 9px;

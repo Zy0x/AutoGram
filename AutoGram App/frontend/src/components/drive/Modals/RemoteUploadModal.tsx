@@ -365,7 +365,12 @@ export function RemoteUploadModal({
 
   const handlePasteClipboard = async () => {
     try {
-      const text = await nativeReadClipboardText();
+      let text = await nativeReadClipboardText();
+      if (!text || !text.trim()) {
+        if (typeof navigator !== 'undefined' && navigator.clipboard?.readText) {
+          text = await navigator.clipboard.readText();
+        }
+      }
       if (!text || !text.trim()) return;
       const clean = text.trim();
       if (tab === 'single') {
@@ -445,7 +450,7 @@ export function RemoteUploadModal({
     return resolvedMedia?.thumbnailUrl || null;
   }, [resolvedMedia, activeSlideIndex]);
 
-  const isSplitActive = Boolean(resolvedMedia || (inspection && url.trim().length > 0)) && tab === 'single';
+  const isSplitActive = tab === 'single';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -975,6 +980,12 @@ export function RemoteUploadModal({
                     </div>
                   )}
                 </div>
+              ) : inspection?.status === 'inspecting' ? (
+                <div className="td-remote-preview-inspecting-card">
+                  <Loader2 size={32} className="td-remote-inspecting-spinner" />
+                  <div className="td-remote-inspecting-title">{t('speedtest.remote_inspecting')}</div>
+                  <div className="td-remote-inspecting-subtitle">{t('speedtest.remote_split_inspecting_desc')}</div>
+                </div>
               ) : inspection && url.trim() ? (
                 <div className="td-remote-preview-content">
                   <div className={`td-remote-inspector-card kind-${inspection.kind}`}>
@@ -996,12 +1007,7 @@ export function RemoteUploadModal({
                           </span>
                         )}
                         <span className={`td-remote-meta-badge status ${inspection.status}`}>
-                          {inspection.status === 'inspecting' ? (
-                            <>
-                              <Loader2 size={11} className="spin" />
-                              <span>{t('speedtest.remote_inspecting')}</span>
-                            </>
-                          ) : inspection.status === 'valid' ? (
+                          {inspection.status === 'valid' ? (
                             <>
                               <CheckCircle2 size={11} />
                               <span>{t('speedtest.remote_inspect_valid')}</span>
@@ -1017,7 +1023,22 @@ export function RemoteUploadModal({
                     </div>
                   </div>
                 </div>
-              ) : null}
+              ) : (
+                <div className="td-remote-preview-ready">
+                  <div className="td-remote-ready-icon-wrap">
+                    <Sparkles size={24} />
+                  </div>
+                  <h4 className="td-remote-ready-title">{t('speedtest.remote_split_ready_title')}</h4>
+                  <p className="td-remote-ready-desc">{t('speedtest.remote_split_ready_desc')}</p>
+                  <div className="td-remote-ready-pill-grid">
+                    <span className="td-remote-ready-pill">TikTok Slideshow HD</span>
+                    <span className="td-remote-ready-pill">YouTube 4K/1080p</span>
+                    <span className="td-remote-ready-pill">Instagram Reels</span>
+                    <span className="td-remote-ready-pill">Audio MP3</span>
+                    <span className="td-remote-ready-pill">Direct Stream</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
