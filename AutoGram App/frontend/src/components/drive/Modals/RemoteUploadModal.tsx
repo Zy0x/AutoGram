@@ -742,25 +742,6 @@ export function RemoteUploadModal({
               <div className="td-remote-mode-selector">
                 <button
                   type="button"
-                  className={`td-remote-mode-btn ${deliveryMode === 'auto' ? 'active' : ''}`}
-                  onClick={() => setDeliveryMode('auto')}
-                  disabled={submitting}
-                >
-                  <span className="td-remote-mode-icon auto">
-                    <Zap size={15} />
-                  </span>
-                  <div className="td-remote-mode-text">
-                    <span className="td-remote-mode-title">{t('speedtest.remote_mode_auto')}</span>
-                    <span className="td-remote-mode-desc">{t('speedtest.remote_mode_auto_hint')}</span>
-                  </div>
-                  {deliveryMode === 'auto' && (
-                    <span className="td-remote-mode-active-indicator">
-                      <CheckCircle2 size={13} />
-                    </span>
-                  )}
-                </button>
-                <button
-                  type="button"
                   className={`td-remote-mode-btn ${deliveryMode === 'uncompressed' ? 'active' : ''}`}
                   onClick={() => setDeliveryMode('uncompressed')}
                   disabled={submitting}
@@ -773,6 +754,25 @@ export function RemoteUploadModal({
                     <span className="td-remote-mode-desc">{t('speedtest.remote_mode_uncompressed_hint')}</span>
                   </div>
                   {deliveryMode === 'uncompressed' && (
+                    <span className="td-remote-mode-active-indicator">
+                      <CheckCircle2 size={13} />
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className={`td-remote-mode-btn ${deliveryMode === 'auto' ? 'active' : ''}`}
+                  onClick={() => setDeliveryMode('auto')}
+                  disabled={submitting}
+                >
+                  <span className="td-remote-mode-icon auto">
+                    <Zap size={15} />
+                  </span>
+                  <div className="td-remote-mode-text">
+                    <span className="td-remote-mode-title">{t('speedtest.remote_mode_auto')}</span>
+                    <span className="td-remote-mode-desc">{t('speedtest.remote_mode_auto_hint')}</span>
+                  </div>
+                  {deliveryMode === 'auto' && (
                     <span className="td-remote-mode-active-indicator">
                       <CheckCircle2 size={13} />
                     </span>
