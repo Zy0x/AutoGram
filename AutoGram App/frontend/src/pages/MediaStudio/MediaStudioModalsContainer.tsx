@@ -10,6 +10,7 @@ import { SessionRelogModal } from '../../components/drive/Modals/SessionRelogMod
 import type { DriveCredentials } from '../../lib/telegram/driveApi';
 import type { DriveChat, DriveFile, DriveFolder } from '../../lib/telegram/driveTypes';
 import type { DuplicateContextInfo } from '../../components/drive/DrivePreviewModal';
+import type { DriveTransferSettings } from '../../components/drive/Transfers/transferSettingsModel';
 import { getSessionMetadata } from '../../lib/telegram/core/sessionPicker';
 import { buildMediaPathId } from '../../components/drive/utils/mediaPathId';
 import { nativeWriteClipboardText } from '../../lib/tauri/desktopClipboard';
@@ -76,6 +77,7 @@ export interface MediaStudioModalsContainerProps {
 
   remoteUploadOpen: boolean;
   setRemoteUploadOpen: (open: boolean) => void;
+  transferSettings?: DriveTransferSettings | null;
   handleRemoteUpload: (
     urls: string | string[],
     destination: DriveDestChoice,
@@ -93,6 +95,7 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
   duplicateContext,
   peerId,
   creds,
+  transferSettings,
   folders,
   chats,
   refreshFiles,
@@ -465,6 +468,7 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
             destinations={allDestinations}
             currentDestination={currentDestChoice}
             creds={creds}
+            transferSettings={transferSettings}
             onUpload={handleRemoteUpload}
           />
         );

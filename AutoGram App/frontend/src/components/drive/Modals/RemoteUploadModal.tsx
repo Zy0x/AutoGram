@@ -35,6 +35,10 @@ import {
   resolveRemoteMediaUrl,
   type ResolvedMediaInfo,
 } from '../../../lib/telegram/linkResolvers';
+import {
+  type DriveTransferSettings,
+  resolveDefaultDeliveryMode,
+} from '../Transfers/transferSettingsModel';
 
 interface RemoteUploadModalProps {
   isOpen: boolean;
@@ -42,6 +46,7 @@ interface RemoteUploadModalProps {
   destinations: DriveDestChoice[];
   currentDestination?: DriveDestChoice;
   creds?: DriveCredentials | null;
+  transferSettings?: DriveTransferSettings | null;
   onUpload: (
     urls: string | string[],
     destination: DriveDestChoice,
@@ -161,6 +166,7 @@ export function RemoteUploadModal({
   destinations,
   currentDestination,
   creds,
+  transferSettings,
   onUpload,
 }: RemoteUploadModalProps) {
   const { t } = useTranslation();
@@ -168,7 +174,9 @@ export function RemoteUploadModal({
   const [url, setUrl] = useState('');
   const [customFilename, setCustomFilename] = useState('');
   const [batchUrlsText, setBatchUrlsText] = useState('');
-  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>('auto');
+  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(() =>
+    resolveDefaultDeliveryMode(transferSettings)
+  );
   const [inspection, setInspection] = useState<UrlInspection | null>(null);
 
   const [resolvedMedia, setResolvedMedia] = useState<ResolvedMediaInfo | null>(null);
@@ -192,7 +200,7 @@ export function RemoteUploadModal({
       setUrl('');
       setCustomFilename('');
       setBatchUrlsText('');
-      setDeliveryMode('auto');
+      setDeliveryMode(resolveDefaultDeliveryMode(transferSettings));
       setInspection(null);
       setResolvedMedia(null);
       setSelectedFormatId('');
@@ -201,7 +209,7 @@ export function RemoteUploadModal({
       setPickerOpen(false);
     }
     prevIsOpenRef.current = isOpen;
-  }, [isOpen, currentDestination]);
+  }, [isOpen, currentDestination, transferSettings]);
 
   // Handle Escape key to close modal (only if inner destination picker is not open)
   useEffect(() => {

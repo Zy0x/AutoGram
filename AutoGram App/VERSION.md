@@ -1,6 +1,9 @@
-AutoGram Version: v3.5.41
+AutoGram Version: v3.5.42
 
 Current State:
+v3.5.42 Drive Settings Harmonization & Remote Upload Override Engine — membenahi `transferSettingsModel.ts`, `RemoteUploadModal.tsx`, `MediaStudioModalsContainer.tsx`, `MediaStudio/index.tsx`, `speedtest.json` (ID/EN), `VERSION.md`, dan `CHANGELOG.md`. Menyelaraskan format pengiriman media antara Drive Settings (Tab Upload) dengan modal Remote Upload. Modal Remote Upload kini secara otomatis mewarisi (*inherit*) konfigurasi default dari Drive Settings pengguna (Otomatis/Adaptif, Media Stream Asli, atau Dokumen Asli), sambil tetap menyediakan 3 tombol independen untuk *one-time override* per-unggahan tanpa mengubah pengaturan global.
+
+Previous:
 v3.5.41 Spacious & Mobile-First Remote Upload Modal Redesign — membenahi `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperlebar modal Remote Upload ke dimensi ideal `640px` dengan padding lega, typography proporsional, touch targets luas (≥44px), penataan 3 kartu Delivery Format yang lega tanpa terpotong (*text wrap clean*), serta dukungan penuh responsif di perangkat mobile dan tablet.
 
 Previous:

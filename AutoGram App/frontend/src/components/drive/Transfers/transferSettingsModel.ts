@@ -10,6 +10,8 @@ import {
 import type { HardwareCapabilities } from '../../../stores/transferProgressStore';
 import { isExplicitEncoderDevice } from './encoderHardwareOptions';
 
+export type { DriveTransferSettings };
+
 export type UnifiedEncodingMode = 'automatic' | 'hardware' | 'software' | 'disabled';
 
 export type AlbumFailurePreset = 'strict' | 'best_effort' | 'retry_separate';
@@ -17,6 +19,35 @@ export type AlbumFailurePreset = 'strict' | 'best_effort' | 'retry_separate';
 export type DeliveryFormatMode = 'auto' | 'telegram' | 'document';
 
 export type DuplicateCheckPreset = 'fast' | 'balanced' | 'strict' | 'custom';
+
+export type RemoteDeliveryMode = 'auto' | 'uncompressed' | 'document';
+
+export function resolveDefaultDeliveryMode(
+  settings?: Partial<DriveTransferSettings> | null
+): RemoteDeliveryMode {
+  if (!settings) return 'auto';
+  const pres = String(settings.presentationOverride || '').toLowerCase();
+  const qm = String(settings.qualityMode || '').toUpperCase();
+  if (
+    pres === 'force_document' ||
+    pres === 'document' ||
+    Boolean(settings.forceDocumentDefault) ||
+    qm === 'DOCUMENT'
+  ) {
+    return 'document';
+  }
+  if (
+    pres === 'force_native_media' ||
+    pres === 'original' ||
+    qm === 'ORIGINAL' ||
+    qm === 'UNCOMPRESSED' ||
+    qm === 'RAW' ||
+    qm === 'PASSTHROUGH'
+  ) {
+    return 'uncompressed';
+  }
+  return 'auto';
+}
 
 export function getDeliveryFormatMode(settings: Partial<DriveTransferSettings>): DeliveryFormatMode {
   if (settings.presentationOverride === 'force_document' || settings.forceDocumentDefault) {

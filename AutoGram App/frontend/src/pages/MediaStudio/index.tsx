@@ -8808,6 +8808,7 @@ function MediaDriveDesktop({
         setDestPicker={setDestPicker}
         remoteUploadOpen={remoteUploadOpen}
         setRemoteUploadOpen={setRemoteUploadOpen}
+        transferSettings={transferSettings}
         handleRemoteUpload={handleRemoteUpload}
       />
       <TransferPreflightDialog

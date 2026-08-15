@@ -1,3 +1,13 @@
+## v3.5.42 Drive Settings Harmonization & Remote Upload Override Engine
+
+### Sinkronisasi Drive Settings & Remote Upload Override (`transferSettingsModel.ts`, `RemoteUploadModal.tsx`)
+- **Pewarisan Otomatis (*Inherit Default*)**:
+  - Modal Remote Upload secara otomatis membaca konfigurasi aktif dari **Drive Settings (Tab Upload - Format Pengiriman)** pengguna (Otomatis/Adaptif, Media Stream Asli, atau Dokumen Asli) setiap kali modal dibuka.
+- **Override Independen (*Per-Upload Customization*)**:
+  - Pengguna tetap dapat secara bebas mengubah salah satu dari 3 opsi mode pengiriman pada modal Remote Upload khusus untuk berkas tautan yang sedang diunggah (*one-time override*) tanpa mengubah atau merusak konfigurasi Drive Settings global.
+- **Standarisasi Label & Bahasa Terpadu (`speedtest.json`)**:
+  - Menyelaraskan seluruh label dan deskripsi pada kedua antarmuka (*Otomatis (Adaptif)*, *Media Stream Asli*, dan *Dokumen Asli*) dengan 100% key parity (Bahasa Indonesia & English).
+
 ## v3.5.41 Spacious & Mobile-First Remote Upload Modal Redesign
 
 ### Redesain Modal Remote Upload Lebih Lebar & Responsif (`App.css`)
