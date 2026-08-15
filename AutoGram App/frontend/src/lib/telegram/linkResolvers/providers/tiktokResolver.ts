@@ -220,7 +220,7 @@ export const tiktokResolver: LinkResolverProvider = {
             return {
               url: cleanUrl,
               platform: 'tiktok',
-              platformName: 'TikTok (Clean No-Watermark)',
+              platformName: 'TikTok',
               title,
               author,
               authorAvatar,
@@ -250,7 +250,7 @@ export const tiktokResolver: LinkResolverProvider = {
           return {
             url: cleanUrl,
             platform: 'tiktok',
-            platformName: 'TikTok (Clean No-Watermark)',
+            platformName: 'TikTok',
             title: resJson.data?.title || resJson.title || `TikTok_${Date.now()}`,
             thumbnailUrl: resJson.data?.thumbnail || resJson.thumbnail,
             durationSec: resJson.data?.duration,

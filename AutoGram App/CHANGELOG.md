@@ -1,3 +1,15 @@
+## v3.7.7 Live Preview Canvas Metadata Styling & Platform Badge Polish (Phase 8)
+
+### 1. Perbaikan Visual Metadata Card & Platform Badges pada Remote Upload
+- **Visual Badge Refinement (`RemoteUploadModal.tsx` & `App.css`)**:
+  - Menambahkan styling lengkap untuk `.td-remote-media-badges`, `.td-remote-platform-badge`, `.td-remote-clean-badge`, `.td-remote-media-title`, dan `.td-remote-media-author`.
+  - Memisahkan platform badge (`TikTok`, `YouTube`, dll.) dengan clean badge (`✨ Bersih Tanpa Watermark` / `✨ No Watermark Clean Stream`) menjadi komponen pill terpisah yang elegan, alih-alih teks statis yang bertumpuk.
+  - Menghadirkan ikon profil `<User size={12} />` pada username kreator.
+  - Membersihkan nama platform di `tiktokResolver.ts` dari teks redundan (`TikTok (Clean No-Watermark)` ➔ `TikTok`).
+- **Verifikasi Kualitas**:
+  - 146 unit test Vitest lulus 100%.
+  - 4.825 kunci kamus i18n sinkron sempurna (0 hardcoded, 0 missing).
+
 ## v3.7.6 Full Locale Harmonization & Dynamic Versioning (Phase 7)
 
 ### 1. Penyelarasan Menyeluruh Kamus Locale & Terminologi Antarmuka

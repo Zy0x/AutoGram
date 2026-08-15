@@ -24334,12 +24334,76 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-meta-card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 11px 14px;
+  gap: 8px;
+  padding: 12px 16px;
   border-radius: 12px;
-  background: rgba(30, 41, 59, 0.55);
+  background: rgba(30, 41, 59, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.td-remote-media-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.td-remote-platform-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.16);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
+.td-remote-platform-badge.tiktok {
+  background: rgba(255, 0, 80, 0.15);
+  color: #ff3366;
+  border-color: rgba(255, 51, 102, 0.35);
+}
+
+.td-remote-platform-badge.youtube {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.td-remote-clean-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.td-remote-media-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f8fafc;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.td-remote-media-author {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #94a3b8;
 }
 
 .td-remote-big-canvas-wrap {

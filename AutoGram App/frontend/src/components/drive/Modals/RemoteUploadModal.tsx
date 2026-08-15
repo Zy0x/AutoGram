@@ -24,6 +24,7 @@ import {
   Layers,
   Sparkles,
   Zap,
+  User,
 } from 'lucide-react';
 import type { DriveDestChoice, DriveDestPickerState } from './DriveDestinationPicker';
 import { DriveDestinationPicker } from './DriveDestinationPicker';
@@ -882,6 +883,7 @@ export function RemoteUploadModal({
                     </div>
                     {resolvedMedia.author && (
                       <div className="td-remote-media-author">
+                        <User size={12} />
                         <span>{resolvedMedia.author}</span>
                       </div>
                     )}
