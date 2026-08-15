@@ -704,66 +704,97 @@ export function RemoteUploadModal({
             onClick={() => setShowSupportedInfo(false)}
             aria-label={t('speedtest.preview_close_btn')}
           >
-            <X size={13} />
+            <X size={14} />
           </button>
         </div>
         <p className="td-remote-info-popover-desc">
           {t('speedtest.remote_info_popover_desc')}
         </p>
+
+        {/* Section 1: Social Media */}
         <div className="td-remote-info-section">
           <div className="td-remote-info-cat-title">
             <Film size={12} />
             <span>{t('speedtest.remote_info_cat_social')}</span>
           </div>
-          <ul className="td-remote-info-list">
-            <li>
-              <CheckCircle2 size={11} className="td-info-check" />
-              <span>{t('speedtest.remote_info_item_tiktok')}</span>
-            </li>
-            <li>
-              <CheckCircle2 size={11} className="td-info-check" />
-              <span>{t('speedtest.remote_info_item_youtube')}</span>
-            </li>
-            <li>
-              <CheckCircle2 size={11} className="td-info-check" />
-              <span>{t('speedtest.remote_info_item_instagram')}</span>
-            </li>
-            <li>
-              <CheckCircle2 size={11} className="td-info-check" />
-              <span>{t('speedtest.remote_info_item_pinterest')}</span>
-            </li>
-            <li>
-              <CheckCircle2 size={11} className="td-info-check" />
-              <span>{t('speedtest.remote_info_item_pixiv')}</span>
-            </li>
-            <li>
-              <CheckCircle2 size={11} className="td-info-check" />
-              <span>{t('speedtest.remote_info_item_terabox')}</span>
-            </li>
-          </ul>
+          <div className="td-remote-info-grid">
+            <div className="td-remote-info-card">
+              <div className="td-remote-info-card-top">
+                <span className="td-remote-info-card-badge social">{t('speedtest.remote_info_badge_tiktok')}</span>
+                <span className="td-remote-info-card-name">{t('speedtest.remote_info_tiktok_title')}</span>
+              </div>
+              <div className="td-remote-info-card-desc">{t('speedtest.remote_info_tiktok_desc')}</div>
+            </div>
+
+            <div className="td-remote-info-card">
+              <div className="td-remote-info-card-top">
+                <span className="td-remote-info-card-badge social">{t('speedtest.remote_info_badge_youtube')}</span>
+                <span className="td-remote-info-card-name">{t('speedtest.remote_info_youtube_title')}</span>
+              </div>
+              <div className="td-remote-info-card-desc">{t('speedtest.remote_info_youtube_desc')}</div>
+            </div>
+
+            <div className="td-remote-info-card">
+              <div className="td-remote-info-card-top">
+                <span className="td-remote-info-card-badge social">{t('speedtest.remote_info_badge_instagram')}</span>
+                <span className="td-remote-info-card-name">{t('speedtest.remote_info_instagram_title')}</span>
+              </div>
+              <div className="td-remote-info-card-desc">{t('speedtest.remote_info_instagram_desc')}</div>
+            </div>
+
+            <div className="td-remote-info-card">
+              <div className="td-remote-info-card-top">
+                <span className="td-remote-info-card-badge social">{t('speedtest.remote_info_badge_pinterest')}</span>
+                <span className="td-remote-info-card-name">{t('speedtest.remote_info_pinterest_title')}</span>
+              </div>
+              <div className="td-remote-info-card-desc">{t('speedtest.remote_info_pinterest_desc')}</div>
+            </div>
+
+            <div className="td-remote-info-card full-span">
+              <div className="td-remote-info-card-top">
+                <span className="td-remote-info-card-badge social">{t('speedtest.remote_info_badge_terabox')}</span>
+                <span className="td-remote-info-card-name">{t('speedtest.remote_info_terabox_title')}</span>
+              </div>
+              <div className="td-remote-info-card-desc">{t('speedtest.remote_info_terabox_desc')}</div>
+            </div>
+          </div>
         </div>
+
+        {/* Section 2: Cloud Storage & Direct */}
         <div className="td-remote-info-section">
           <div className="td-remote-info-cat-title">
             <Cloud size={12} />
             <span>{t('speedtest.remote_info_cat_cloud')}</span>
           </div>
-          <ul className="td-remote-info-list">
-            <li>
-              <CheckCircle2 size={11} className="td-info-check" />
-              <span>{t('speedtest.remote_info_item_gdrive')}</span>
-            </li>
-            <li>
-              <CheckCircle2 size={11} className="td-info-check" />
-              <span>{t('speedtest.remote_info_item_dropbox')}</span>
-            </li>
-            <li>
-              <CheckCircle2 size={11} className="td-info-check" />
-              <span>{t('speedtest.remote_info_item_direct')}</span>
-            </li>
-          </ul>
+          <div className="td-remote-info-grid">
+            <div className="td-remote-info-card">
+              <div className="td-remote-info-card-top">
+                <span className="td-remote-info-card-badge cloud">{t('speedtest.remote_info_badge_gdrive')}</span>
+                <span className="td-remote-info-card-name">{t('speedtest.remote_info_gdrive_title')}</span>
+              </div>
+              <div className="td-remote-info-card-desc">{t('speedtest.remote_info_gdrive_desc')}</div>
+            </div>
+
+            <div className="td-remote-info-card">
+              <div className="td-remote-info-card-top">
+                <span className="td-remote-info-card-badge cloud">{t('speedtest.remote_info_badge_dropbox')}</span>
+                <span className="td-remote-info-card-name">{t('speedtest.remote_info_dropbox_title')}</span>
+              </div>
+              <div className="td-remote-info-card-desc">{t('speedtest.remote_info_dropbox_desc')}</div>
+            </div>
+
+            <div className="td-remote-info-card full-span">
+              <div className="td-remote-info-card-top">
+                <span className="td-remote-info-card-badge direct">{t('speedtest.remote_info_badge_direct')}</span>
+                <span className="td-remote-info-card-name">{t('speedtest.remote_info_direct_title')}</span>
+              </div>
+              <div className="td-remote-info-card-desc">{t('speedtest.remote_info_direct_desc')}</div>
+            </div>
+          </div>
         </div>
+
         <div className="td-remote-info-footer">
-          <Zap size={11} />
+          <Zap size={12} className="td-remote-info-footer-icon" />
           <span>{t('speedtest.remote_info_footer_note')}</span>
         </div>
       </div>

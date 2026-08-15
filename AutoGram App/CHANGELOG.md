@@ -3,12 +3,12 @@
 ### 1. Tombol Informasi & Popover Interaktif Platform yang Didukung
 - **Interactive Supported Links Directory (`RemoteUploadModal.tsx`, `App.css`)**:
   - Menambahkan tombol info `"i"` berdesain modern di samping label *Source File URL* dan *Batch URLs*.
-  - Menyediakan popover interaktif yang menampilkan daftar lengkap platform dan format media yang didukung:
-    - **Media Sosial & Aliran Video HD**: TikTok, Douyin, YouTube (8K/4K/1080p), Instagram, Pinterest, Pixiv, Terabox.
-    - **Cloud Storage & Unduhan Langsung**: Google Drive, Dropbox, Mediafire, dan Tautan Berkas Langsung HTTP/HTTPS (.mp4, .zip, .mkv, .pdf, dll.).
-  - Dilengkapi fitur *click-outside dismissal* dan penutupan via tombol `Esc`.
+  - Mengubah tampilan popover menjadi **Grid Platform Card Interaktif** dengan badge warna spesifik (`TIKTOK`, `YOUTUBE`, `INSTAGRAM`, `PINTEREST`, `TERABOX`, `GDRIVE`, `DROPBOX`, `DIRECT HTTP`).
+  - Menampilkan deskripsi kapabilitas resolusi tinggi secara terstruktur dan teratur per kartu tanpa teks bertumpuk.
+  - Menambahkan banner footer modern bernuansa *emerald glass* untuk jaminan ekstraksi bersih tanpa watermark.
+  - Dilengkapi fitur *click-outside dismissal*, penutupan via tombol `Esc`, dan *smooth custom scrollbar*.
 - **Verifikasi Kualitas**:
-  - **4.865 Kunci Kamus** tersinkronisasi 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
+  - **4.895 Kunci Kamus** tersinkronisasi 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
   - 146 unit test Vitest lulus 100%.
 
 ## v3.7.15 TopBar Row Height Zero-Jitter Stabilization (Phase 16)
