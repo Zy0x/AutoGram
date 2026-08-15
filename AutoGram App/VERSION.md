@@ -1,12 +1,13 @@
-AutoGram Version: v3.5.43
+AutoGram Version: v3.5.44
 
 Current State:
-v3.5.43 Telegram MTProto Delivery Engine Revamp & True Document Pass — membenahi `media_transfer.rs`, `media_prep.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbarui arsitektur pengiriman MTProto Telegram:
-1. True Document Clean Pass: Menghapus penyisipan `Attribute::Video` dan mengaktifkan `force_file: true` pada Mode Dokumen Asli, sehingga Telegram memperlakukan berkas murni sebagai dokumen biner asli (RAW Uncompressed) tanpa kompresi visual/streaming Telegram sambil tetap menyertakan pratinjau thumbnail cover yang estetik.
-2. UHD/4K/8K High-Bitrate Streaming: Memperbarui preset kualitas FFmpeg dengan dukungan penuh hingga 4K UHD (3840px) dan bitrate dinamis 15–35 Mbps pada mode Otomatis/Adaptif dan Direct Passthrough pada Media Stream Asli.
-3. Native Music Player Support: Menambahkan ekstraksi metadata ID3/Vorbis (`probe_audio_metadata`) dan menyematkan `Attribute::Audio` sehingga berkas audio/musik otomatis memicu pemutar musik bawaan Telegram (*Telegram Built-in Music Player*).
+v3.5.44 Telegram MTProto Peer Resolver & SendMedia Fallback Engine — membenahi `peer_resolver.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyempurnakan resolusi peer dan ketahanan pengiriman MTProto:
+1. Omnipresent Saved Messages Resolution: Menambahkan deteksi dan resolusi otomatis terhadap seluruh alias Saved Messages (`"saved"`, `"saved messages"`, `"saved_messages"`, `"pesan tersimpan"`, `"me"`, `"self"`, `"0"`, `""`) sehingga upload ke Pesan Tersimpan selalu 100% tersambung ke `InputPeerSelf` tanpa error `PeerNotFound`.
+2. Safe Private Chat Delivery: Menjamin obrolan pribadi dan Saved Messages tidak pernah menyematkan `InputReplyToMessage { top_msg_id }`, mencegah penolakan dari server Telegram.
+3. Resilient SendMedia Fallback: Menambahkan mekanisme fallback otomatis pada `messages.sendMedia` yang secara cerdas mendeteksi `CHAT_WRITE_FORBIDDEN`, `TOPIC_CLOSED`, atau `REPLY_TO_INVALID` dan melakukan percobaan ulang instan tanpa parameter pembatas.
 
 Previous:
+v3.5.43 Telegram MTProto Delivery Engine Revamp & True Document Pass — membenahi `media_transfer.rs`, `media_prep.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbarui arsitektur pengiriman MTProto Telegram.
 v3.5.42 Drive Settings Harmonization & Remote Upload Override Engine — membenahi `transferSettingsModel.ts`, `RemoteUploadModal.tsx`, `MediaStudioModalsContainer.tsx`, `MediaStudio/index.tsx`, `speedtest.json` (ID/EN), `VERSION.md`, dan `CHANGELOG.md`. Menyelaraskan format pengiriman media antara Drive Settings (Tab Upload) dengan modal Remote Upload. Modal Remote Upload kini secara otomatis mewarisi (*inherit*) konfigurasi default dari Drive Settings pengguna (Otomatis/Adaptif, Media Stream Asli, atau Dokumen Asli), sambil tetap menyediakan 3 tombol independen untuk *one-time override* per-unggahan tanpa mengubah pengaturan global.
 
 Previous:

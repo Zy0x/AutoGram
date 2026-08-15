@@ -1,3 +1,19 @@
+## v3.5.44 Telegram MTProto Peer Resolver & SendMedia Fallback Engine
+ 
+### 1. Omnipresent Saved Messages Resolution (`peer_resolver.rs`)
+- **Dukungan Penuh Berbagai Alias Pesan Tersimpan**:
+  - Menambahkan pengecekan menyeluruh terhadap alias string `"saved"`, `"saved messages"`, `"saved_messages"`, `"pesan tersimpan"`, `"me"`, `"self"`, `"0"`, dan string kosong `""`.
+  - Secara otomatis meresolusi obrolan ke `InputPeerSelf` / `PeerRef` pengguna aktif dengan pengisian multi-kunci pada memori cache dialog.
+  - Menghilangkan potensi kemunculan pesan error *"Chat/peer tidak ditemukan"* saat mengunggah berkas ke Saved Messages melalui Remote Upload maupun drag-and-drop.
+
+### 2. Pengamanan Pengiriman Obrolan Pribadi (`media_transfer.rs`)
+- **Pembersihan `InputReplyToMessage`**:
+  - Mengabaikan parameter `reply_to` / `topic_id` saat tujuan pengiriman adalah obrolan pribadi atau Saved Messages, mencegah pengiriman struktur thread yang tidak didukung oleh MTProto pada *direct message*.
+
+### 3. Ketahanan Pengiriman `messages.sendMedia` Fallback Engine (`media_transfer.rs`)
+- **Auto-Recovery Penolakan Izin & Topik Thread**:
+  - Menambahkan penanganan fallback otomatis pada `messages.sendMedia`. Jika server Telegram mengembalikan error `CHAT_WRITE_FORBIDDEN`, `TOPIC_CLOSED`, atau `REPLY_TO_INVALID` yang disebabkan oleh opsi *Send As* (kirim atas nama channel) atau ketidaksesuaian ID topik forum, engine secara instan mencoba ulang (*retry*) pengiriman tanpa atribut pembatas tersebut sehingga pengunggahan tetap berhasil 100%.
+
 ## v3.5.43 Telegram MTProto Delivery Engine Revamp & True Document Pass
  
 ### 1. True Document Clean Pass (`media_transfer.rs`)

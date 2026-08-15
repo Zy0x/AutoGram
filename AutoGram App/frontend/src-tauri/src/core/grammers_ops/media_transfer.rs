@@ -1683,9 +1683,18 @@ pub fn upload_file_blocking_topic_with_delivery(
         .to_string();
     let chat = chat_id.to_string();
     let caption = caption.to_string();
-    let reply_to = topic_id
-        .filter(|value| *value > 0)
-        .map(|value| value as i32);
+    let is_self_chat = chat.eq_ignore_ascii_case("me")
+        || chat.eq_ignore_ascii_case("self")
+        || chat.eq_ignore_ascii_case("saved")
+        || chat.eq_ignore_ascii_case("saved messages")
+        || chat.eq_ignore_ascii_case("saved_messages")
+        || chat.eq_ignore_ascii_case("pesan tersimpan")
+        || chat == "0";
+    let reply_to = if is_self_chat {
+        None
+    } else {
+        topic_id.filter(|value| *value > 0).map(|value| value as i32)
+    };
     let rt = runtime()?;
 
     rt.block_on(async {
@@ -1831,21 +1840,21 @@ pub fn upload_file_blocking_topic_with_delivery(
                     .filter(|value| *value > 0)
                     .and_then(|value| i32::try_from(value).ok());
                 let random_id = rand::random::<i64>();
-                let sent = client
+                let sent = match client
                     .invoke(&tl::functions::messages::SendMedia {
                         silent,
                         background: false,
                         clear_draft: false,
                         peer: peer.into(),
-                        reply_to,
-                        media,
+                        reply_to: reply_to.clone(),
+                        media: media.clone(),
                         message: caption.clone(),
                         random_id,
                         reply_markup: None,
                         entities: None,
                         schedule_date,
                         schedule_repeat_period: None,
-                        send_as: send_as_peer,
+                        send_as: send_as_peer.clone(),
                         noforwards: false,
                         update_stickersets_order: false,
                         invert_media: false,
@@ -1855,7 +1864,53 @@ pub fn upload_file_blocking_topic_with_delivery(
                         allow_paid_stars: None,
                         suggested_post: None,
                     })
-                    .await;
+                    .await
+                {
+                    Ok(res) => Ok(res),
+                    Err(e) if send_as_peer.is_some() || reply_to.is_some() => {
+                        let err_str = e.to_string();
+                        if err_str.contains("CHAT_WRITE_FORBIDDEN")
+                            || err_str.contains("FORBIDDEN")
+                            || err_str.contains("TOPIC_CLOSED")
+                            || err_str.contains("REPLY_TO_INVALID")
+                        {
+                            tg_log::warn(
+                                BACKEND,
+                                "send_media_retry_fallback",
+                                format!("Retrying SendMedia without send_as / topic reply_to due to: {err_str}"),
+                            );
+                            let random_id2 = rand::random::<i64>();
+                            client
+                                .invoke(&tl::functions::messages::SendMedia {
+                                    silent,
+                                    background: false,
+                                    clear_draft: false,
+                                    peer: peer.into(),
+                                    reply_to: None,
+                                    media,
+                                    message: caption.clone(),
+                                    random_id: random_id2,
+                                    reply_markup: None,
+                                    entities: None,
+                                    schedule_date,
+                                    schedule_repeat_period: None,
+                                    send_as: None,
+                                    noforwards: false,
+                                    update_stickersets_order: false,
+                                    invert_media: false,
+                                    quick_reply_shortcut: None,
+                                    effect: None,
+                                    allow_paid_floodskip: false,
+                                    allow_paid_stars: None,
+                                    suggested_post: None,
+                                })
+                                .await
+                        } else {
+                            Err(e)
+                        }
+                    }
+                    Err(e) => Err(e),
+                };
                 let message_id = match sent {
                     Ok(updates) => map_album_random_ids(&[random_id], updates)
                         .into_iter()

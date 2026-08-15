@@ -266,13 +266,26 @@ pub(crate) async fn resolve_peer(
         .unwrap_or(0);
     let ckey = |k: &str| format!("{owner_id}:{k}");
 
-    if s.eq_ignore_ascii_case("me") || s.eq_ignore_ascii_case("self") || s == "0" {
+    let is_saved_or_self = s.eq_ignore_ascii_case("me")
+        || s.eq_ignore_ascii_case("self")
+        || s.eq_ignore_ascii_case("saved")
+        || s.eq_ignore_ascii_case("saved messages")
+        || s.eq_ignore_ascii_case("saved_messages")
+        || s.eq_ignore_ascii_case("pesan tersimpan")
+        || s == "0"
+        || s.is_empty();
+
+    if is_saved_or_self {
         let me = client.get_me().await.map_err(|e| map_invocation(&e))?;
         let res = user_to_ref(&me).await;
         if let Ok(ref pref) = res {
             if owner_id != 0 {
                 if let Ok(mut guard) = peer_cache().write() {
                     guard.insert(ckey(s), *pref);
+                    guard.insert(ckey("me"), *pref);
+                    guard.insert(ckey("saved"), *pref);
+                    guard.insert(ckey("Saved Messages"), *pref);
+                    guard.insert(ckey("saved_messages"), *pref);
                 }
             }
         }
