@@ -1813,12 +1813,19 @@ pub fn upload_file_blocking_topic_with_delivery(
                 } else if is_photo {
                     msg.photo(uploaded)
                 } else if is_video {
-                    let (vid_w, vid_h, vid_dur) = probe_video_metadata(path_str);
+                    let (mut vid_w, mut vid_h, mut vid_dur) = probe_video_metadata(path_str);
+                    if vid_w == 0 || vid_h == 0 {
+                        vid_w = 720;
+                        vid_h = 1280;
+                    }
+                    if vid_dur <= 0.0 {
+                        vid_dur = 10.0;
+                    }
                     let mut video_msg = msg.mime_type("video/mp4").document(uploaded);
                     video_msg = video_msg.attribute(Attribute::Video {
                         round_message: false,
                         supports_streaming: true,
-                        duration: std::time::Duration::from_secs_f64(vid_dur.max(0.0)),
+                        duration: std::time::Duration::from_secs_f64(vid_dur),
                         w: vid_w as i32,
                         h: vid_h as i32,
                     });

@@ -1,11 +1,13 @@
-AutoGram Version: v3.5.49
+AutoGram Version: v3.5.50
 
 Current State:
-v3.5.49 Intelligent Remote Stream Link Extraction & Document Filename Preservation — membenahi `RemoteUploadModal.tsx`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyempurnakan pipeline unduhan tautan media dan penamaan berkas dokumen:
-1. Auto-Await Stream Link Extraction: Menyematkan mekanisme resolusi tautan otomatis pada `handleSubmit` di `RemoteUploadModal.tsx` sehingga URL halaman sosial media (TikTok, YouTube, Instagram, Douyin, dll) selalu diuraikan menjadi *Direct Video CDN Stream URL* lengkap dengan judul dan format aslinya (`.mp4`), mencegah pengunduhan mentah berkas HTML `.bin`.
-2. Pre-Upload Display Filename Preservation: Mengalkulasi ekstensi biner dan nama berkas bersih (`display_filename`) sebelum pemanggilan `upload_stream` pada Rust backend, menjamin berkas yang dikirim sebagai Dokumen Asli memiliki ekstensi yang benar (`.mp4`, `.mp3`, `.jpg`) dan tidak terunggah dengan nama hash `.bin`.
+v3.5.50 Native Video Player Streaming Attributes & Clean URL Caption Sanitization — membenahi `MediaStudio/index.tsx`, `analysis.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyempurnakan pemutaran video native dan sanitasi caption:
+1. Native Video Player Attributes: Memastikan pengiriman video pada Mode Otomatis (Adaptive) dan Media Stream Asli menyertakan atribut `Attribute::Video` lengkap dengan `supports_streaming: true`, dimensi piksel terkalibrasi (`vid_w`/`vid_h`), dan durasi valid, sehingga aplikasi Telegram resmi menampilkan gelembung video native interaktif (*in-app streaming player*) bukan lampiran berkas kotak dokumen.
+2. Clean URL Caption Sanitization: Menghilangkan query string URL CDN mentah (`?a=1233&bti=...`) dari teks caption saat mengunggah berkas via Remote URL.
+3. Permissive Native Video Validation: Mengizinkan berkas kontainer MP4 valid diproses sebagai video native tanpa terdegradasi menjadi dokumen saat inspeksi metadata ffprobe lokal tidak aktif.
 
 Previous:
+v3.5.49 Intelligent Remote Stream Link Extraction & Document Filename Preservation — membenahi `RemoteUploadModal.tsx`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyempurnakan pipeline unduhan tautan media dan penamaan berkas dokumen.
 v3.5.48 Native Grammers SendMessage Unification & Zero-Rejection Document Delivery — membenahi `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyatukan pengiriman berkas ke engine native Grammers.
 v3.5.47 Pure Binary Document Delivery & MTProto Octet-Stream Optimization — membenahi `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki format biner dokumen asli pada MTProto.
 v3.5.46 Universal Dialog Title Search & Non-fatal SendAs Resolver — membenahi `peer_resolver.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperluas resolusi peer dan ketahanan identitas pengirim.

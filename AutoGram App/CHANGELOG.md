@@ -1,3 +1,18 @@
+## v3.5.50 Native Video Player Streaming Attributes & Clean URL Caption Sanitization
+ 
+### 1. Integrasi Streaming Player Video Telegram Native (`media_transfer.rs`)
+- **Atribut Video Lengkap**:
+  - Mengirimkan `Attribute::Video` dengan `supports_streaming: true`, resolusi piksel non-nol terkalibrasi (`vid_w`/`vid_h`), dan durasi video valid.
+  - Memastikan Telegram Desktop, Web, dan Mobile langsung menampilkan video sebagai gelembung pemutar video streaming (*in-app playable video*) yang bisa langsung diputar di chat, bukan sekadar lampiran kotak dokumen file.
+
+### 2. Sanitasi Caption URL Remote (`MediaStudio/index.tsx`)
+- **Bebas dari Query String Sampah**:
+  - Menghilangkan parameter query string CDN (`?a=1233&bti=...`) dari teks caption saat mengunggah melalui Remote URL.
+
+### 3. Validasi Toleran Video Native (`analysis.rs`)
+- **Pencegahan Degradasi Dokumen**:
+  - Memastikan berkas berformat MP4 valid tetap diproses sebagai video native visual meskipun ffprobe lokal tidak aktif.
+
 ## v3.5.49 Intelligent Remote Stream Link Extraction & Document Filename Preservation
  
 ### 1. Auto-Await Stream Link Extraction (`RemoteUploadModal.tsx`)

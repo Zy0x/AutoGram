@@ -244,15 +244,18 @@ impl MediaAnalysis {
     }
 
     pub fn is_validated_native_video(&self) -> bool {
-        if self.category != MediaCategory::Mp4Video || self.probe_error.is_some() {
+        if self.category != MediaCategory::Mp4Video {
             return false;
+        }
+        if self.probe_error.is_some() || self.streams.is_empty() {
+            return true;
         }
         let Some(video) = self
             .streams
             .iter()
             .find(|stream| stream.codec_type == "video")
         else {
-            return false;
+            return true;
         };
         matches!(video.codec_name.as_str(), "h264" | "avc1")
             && video
