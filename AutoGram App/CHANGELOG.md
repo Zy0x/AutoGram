@@ -1,3 +1,14 @@
+## v3.7.15 TopBar Row Height Zero-Jitter Stabilization (Phase 16)
+
+### 1. Stabilisasi Presisi Tinggi Baris Toolbar Drive TopBar
+- **Zero Layout-Shift Height Locking (`App.css`)**:
+  - Mengunci tinggi kontainer shell kelompok tombol (`.td-view-toggle`, `.td-zoom-controls`, `.td-filter-pills`, `.td-thumb-quality-pills`, `.td-sort-group`) ke **36px tetap (`height: 36px !important`)**.
+  - Menyamakan dimensi seluruh tombol ikon dan label teks di dalam kelompok kontrol menjadi **30px (`30×30px`)** dengan `padding: 2px` seragam.
+  - Menghilangkan *layout shift* (perbedaan tinggi 2px) saat berpindah antara tampilan Grid dan List.
+- **Verifikasi Kualitas**:
+  - 146 unit test Vitest lulus 100%.
+  - 4.835 kunci kamus i18n sinkron sempurna (0 hardcoded, 0 missing).
+
 ## v3.7.14 Batch Remote Upload Peak Stream & Slideshow Auto-Expansion (Phase 15)
 
 ### 1. Otomatisasi Kualitas Puncak & Ekstraksi Full Album Slideshow pada Remote Batch

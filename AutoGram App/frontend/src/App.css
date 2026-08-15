@@ -9092,12 +9092,14 @@ body:has(.app-layout-drive-focus),
   display: inline-flex;
   align-items: center;
   gap: 1px;
-  min-height: calc(var(--td-ctrl-h) + 4px);
-  padding: 2px;
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  padding: 2px !important;
   border-radius: var(--td-group-r);
   background: var(--td-group-bg) !important;
   border: 1px solid var(--td-group-border) !important;
-  box-sizing: border-box;
+  box-sizing: border-box !important;
 }
 
 .td-topbar-tools {
@@ -9117,6 +9119,30 @@ body:has(.app-layout-drive-focus),
   color: var(--td-sub) !important;
   box-shadow: none !important;
 }
+
+/* View toggle & zoom controls icons sit inside group with matching 30px size */
+.td-topbar .td-view-toggle .td-icon-btn,
+.td-topbar .td-zoom-controls .td-icon-btn {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  min-height: 30px !important;
+  max-width: 30px !important;
+  max-height: 30px !important;
+  border-radius: calc(var(--td-ctrl-r) - 2px) !important;
+}
+
+.td-topbar .td-zoom-controls .td-zoom-label {
+  min-width: 32px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  max-height: 30px !important;
+  line-height: 30px !important;
+  padding: 0 6px !important;
+  box-sizing: border-box !important;
+  border: none !important;
+}
+
 .td-topbar .td-icon-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.06) !important;
   color: var(--td-text) !important;
