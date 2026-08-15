@@ -1,14 +1,15 @@
-## v3.7.16 Supported Links & Platforms Interactive Info Popover (Phase 17)
+## v3.7.16 Supported Links & Platforms Minimalist Info Popover (Phase 17)
 
-### 1. Tombol Informasi & Popover Interaktif Platform yang Didukung
-- **Interactive Supported Links Directory (`RemoteUploadModal.tsx`, `App.css`)**:
+### 1. Tombol Informasi & Popover Minimalis Platform yang Didukung
+- **Minimalist Supported Links Popover (`RemoteUploadModal.tsx`, `App.css`)**:
   - Menambahkan tombol info `"i"` berdesain modern di samping label *Source File URL* dan *Batch URLs*.
-  - Mengubah tampilan popover menjadi **Grid Platform Card Interaktif** dengan badge warna spesifik (`TIKTOK`, `YOUTUBE`, `INSTAGRAM`, `PINTEREST`, `TERABOX`, `GDRIVE`, `DROPBOX`, `DIRECT HTTP`).
-  - Menampilkan deskripsi kapabilitas resolusi tinggi secara terstruktur dan teratur per kartu tanpa teks bertumpuk.
-  - Menambahkan banner footer modern bernuansa *emerald glass* untuk jaminan ekstraksi bersih tanpa watermark.
-  - Dilengkapi fitur *click-outside dismissal*, penutupan via tombol `Esc`, dan *smooth custom scrollbar*.
+  - Mengadopsi desain **Minimalist Tag Pills / Badge Cloud** yang bersih, ringkas, dan langsung dapat dipahami tanpa distraksi visual.
+  - Mengelompokkan platform yang didukung ke dalam 2 kategori jelas:
+    - **Video & Media Sosial**: `TikTok`, `YouTube`, `Instagram`, `Pinterest`, `Pixiv`, `Terabox`.
+    - **Cloud & Berkas Langsung**: `Google Drive`, `Dropbox`, `Mediafire`, `Direct URL (.mp4, .zip, .mkv, dll.)`.
+  - Dilengkapi fitur *click-outside dismissal* dan penutupan via tombol `Esc`.
 - **Verifikasi Kualitas**:
-  - **4.895 Kunci Kamus** tersinkronisasi 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
+  - **4.865 Kunci Kamus** tersinkronisasi 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
   - 146 unit test Vitest lulus 100%.
 
 ## v3.7.15 TopBar Row Height Zero-Jitter Stabilization (Phase 16)

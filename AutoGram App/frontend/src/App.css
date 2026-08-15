@@ -24864,41 +24864,28 @@ button.td-confirm-icon.is-back-btn:active {
   transform: scale(1.08);
 }
 
-/* Floating Popover */
+/* Minimalist Info Popover */
 .td-remote-info-popover {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 6px);
   left: 0;
   z-index: 120;
-  width: 440px;
-  max-width: calc(100vw - 48px);
-  background: #080e1e;
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  border-radius: 14px;
-  padding: 13px 15px;
-  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.82), 0 0 24px rgba(56, 189, 248, 0.15);
-  backdrop-filter: blur(24px);
-  animation: tdInfoPopoverFadeIn 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  background: #0b1329;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 0 16px rgba(56, 189, 248, 0.1);
+  backdrop-filter: blur(16px);
+  animation: tdInfoPopoverFadeIn 140ms ease-out;
   box-sizing: border-box;
-  max-height: 520px;
-  overflow-y: auto;
-}
-
-.td-remote-info-popover::-webkit-scrollbar {
-  width: 4px;
-}
-.td-remote-info-popover::-webkit-scrollbar-track {
-  background: transparent;
-}
-.td-remote-info-popover::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
 }
 
 @keyframes tdInfoPopoverFadeIn {
   from {
     opacity: 0;
-    transform: translateY(-5px) scale(0.98);
+    transform: translateY(-4px) scale(0.98);
   }
   to {
     opacity: 1;
@@ -24910,19 +24897,18 @@ button.td-confirm-icon.is-back-btn:active {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 3px;
+  margin-bottom: 8px;
   padding-bottom: 6px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .td-remote-info-popover-title {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: 0.82rem;
-  font-weight: 800;
-  color: #f8fafc;
-  letter-spacing: -0.01em;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #f1f5f9;
 }
 
 .td-remote-info-title-icon {
@@ -24933,9 +24919,9 @@ button.td-confirm-icon.is-back-btn:active {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
   background: transparent;
   border: none;
   color: #94a3b8;
@@ -24948,120 +24934,54 @@ button.td-confirm-icon.is-back-btn:active {
   color: #ffffff;
 }
 
-.td-remote-info-popover-desc {
-  font-size: 0.71rem;
-  color: #94a3b8;
-  line-height: 1.35;
-  margin: 0 0 9px 0;
+.td-remote-info-group {
+  margin-bottom: 8px;
 }
 
-.td-remote-info-section {
-  margin-bottom: 9px;
-}
-
-.td-remote-info-cat-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.67rem;
-  font-weight: 800;
+.td-remote-info-group-title {
+  font-size: 0.64rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: #38bdf8;
   margin-bottom: 5px;
 }
 
-.td-remote-info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-
-.td-remote-info-card {
+.td-remote-info-tags {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 8px;
-  padding: 6px 8px;
-  transition: all 140ms ease;
-  min-width: 0;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 
-.td-remote-info-card:hover {
-  background: rgba(56, 189, 248, 0.08);
-  border-color: rgba(56, 189, 248, 0.35);
-  transform: translateY(-1px);
-}
-
-.td-remote-info-card.full-span {
-  grid-column: span 2;
-}
-
-.td-remote-info-card-top {
-  display: flex;
+.td-remote-info-tag {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 0.69rem;
+  font-weight: 500;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  padding: 3px 7px;
+  border-radius: 5px;
+  line-height: 1.2;
+  transition: all 120ms ease;
 }
 
-.td-remote-info-card-badge {
-  font-size: 0.58rem;
-  font-weight: 800;
-  padding: 1px 5px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  flex-shrink: 0;
-}
-
-.td-remote-info-card-badge.social {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-.td-remote-info-card-badge.cloud {
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.3);
-}
-
-.td-remote-info-card-badge.direct {
-  background: rgba(168, 85, 247, 0.15);
-  color: #c084fc;
-  border: 1px solid rgba(168, 85, 247, 0.3);
-}
-
-.td-remote-info-card-name {
-  font-size: 0.73rem;
-  font-weight: 700;
-  color: #f8fafc;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.td-remote-info-card-desc {
-  font-size: 0.65rem;
-  color: #94a3b8;
-  line-height: 1.28;
+.td-remote-info-tag:hover {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.3);
+  color: #f0f9ff;
 }
 
 .td-remote-info-footer {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 9px;
-  padding: 6px 9px;
-  background: rgba(16, 185, 129, 0.09);
-  border: 1px solid rgba(16, 185, 129, 0.22);
-  border-radius: 8px;
-  font-size: 0.67rem;
-  color: #6ee7b7;
-  font-weight: 600;
+  gap: 5px;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.65rem;
+  color: #94a3b8;
   line-height: 1.3;
 }
 
