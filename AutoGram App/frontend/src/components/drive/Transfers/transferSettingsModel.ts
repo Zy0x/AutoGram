@@ -39,6 +39,7 @@ export function resolveDefaultDeliveryMode(
   if (
     pres === 'force_native_media' ||
     pres === 'original' ||
+    qm === 'HIGH_QUALITY' ||
     qm === 'ORIGINAL' ||
     qm === 'UNCOMPRESSED' ||
     qm === 'RAW' ||
