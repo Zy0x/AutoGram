@@ -383,16 +383,25 @@ export function RemoteUploadModal({
 
       setSubmitting(true);
       try {
+        let activeResolved = resolvedMedia;
+        if (!activeResolved && (targetUrl.includes('tiktok.com') || targetUrl.includes('douyin.com') || targetUrl.includes('youtube.com') || targetUrl.includes('youtu.be') || targetUrl.includes('instagram.com') || targetUrl.includes('terabox') || targetUrl.includes('pinterest.com') || targetUrl.includes('pixiv.net'))) {
+          try {
+            activeResolved = await resolveRemoteMediaUrl(targetUrl);
+          } catch {
+            /* fallback */
+          }
+        }
+
         const activeFormat =
-          resolvedMedia?.formats.find((f) => f.id === selectedFormatId) ||
-          resolvedMedia?.formats[0];
+          activeResolved?.formats.find((f) => f.id === selectedFormatId) ||
+          activeResolved?.formats[0];
         const effectiveUrl = activeFormat?.directUrl || targetUrl;
         const effectiveFilename =
           customFilename.trim() ||
-          (resolvedMedia?.title
-            ? resolvedMedia.title.includes('.')
-              ? resolvedMedia.title
-              : `${resolvedMedia.title}.${activeFormat?.ext || 'mp4'}`
+          (activeResolved?.title
+            ? activeResolved.title.includes('.')
+              ? activeResolved.title
+              : `${activeResolved.title}.${activeFormat?.ext || 'mp4'}`
             : undefined);
 
         const effectiveQualityMode =

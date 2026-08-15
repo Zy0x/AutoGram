@@ -1713,30 +1713,6 @@ pub fn upload_file_blocking_topic_with_delivery(
                 }
                 let peer = resolve_peer(client, &chat).await?;
                 let _ = send_as;
-                let uploaded = if let Ok(file) = tokio::fs::File::open(&path).await {
-                    let mut reader = ProgressAsyncReader {
-                        inner: file,
-                        stage: "upload".into(),
-                        total_bytes: size,
-                        current_bytes: 0,
-                        last_emit_time: Instant::now(),
-                        last_emit_bytes: 0,
-                        app_handle,
-                        item_index: index,
-                        transfer_id,
-                    };
-                    client
-                        .upload_stream(&mut reader, size as usize, filename.clone())
-                        .await
-                        .map_err(|error| {
-                            TgError::new(TgErrorCode::Io, format!("upload_stream: {error}"))
-                        })?
-                } else {
-                    client.upload_file(&path).await.map_err(|error| {
-                        TgError::new(TgErrorCode::Io, format!("upload_file: {error}"))
-                    })?
-                };
-
                 let ext = path
                     .extension()
                     .and_then(|value| value.to_str())
@@ -1768,6 +1744,53 @@ pub fn upload_file_blocking_topic_with_delivery(
                     );
                 let mime = infer_mime_type(&ext, is_image, is_video);
                 let path_str = path.to_str().unwrap_or("");
+
+                let display_filename = if filename.starts_with("remote_")
+                    || filename.starts_with("reenc_")
+                    || filename.starts_with("remux_")
+                {
+                    if !caption.is_empty() && !caption.contains('\n') && caption.len() <= 60 {
+                        if caption.contains('.') {
+                            caption.clone()
+                        } else {
+                            format!("{caption}.{ext}")
+                        }
+                    } else if is_video {
+                        format!("Media_Stream.{ext}")
+                    } else if is_audio {
+                        format!("Audio_Track.{ext}")
+                    } else if is_image {
+                        format!("Photo.{ext}")
+                    } else {
+                        format!("Document.{ext}")
+                    }
+                } else {
+                    filename.clone()
+                };
+
+                let uploaded = if let Ok(file) = tokio::fs::File::open(&path).await {
+                    let mut reader = ProgressAsyncReader {
+                        inner: file,
+                        stage: "upload".into(),
+                        total_bytes: size,
+                        current_bytes: 0,
+                        last_emit_time: Instant::now(),
+                        last_emit_bytes: 0,
+                        app_handle,
+                        item_index: index,
+                        transfer_id,
+                    };
+                    client
+                        .upload_stream(&mut reader, size as usize, display_filename.clone())
+                        .await
+                        .map_err(|error| {
+                            TgError::new(TgErrorCode::Io, format!("upload_stream: {error}"))
+                        })?
+                } else {
+                    client.upload_file(&path).await.map_err(|error| {
+                        TgError::new(TgErrorCode::Io, format!("upload_file: {error}"))
+                    })?
+                };
                 let mut msg = InputMessage::new()
                     .text(caption.clone())
                     .silent(silent);

@@ -1,11 +1,12 @@
-AutoGram Version: v3.5.48
+AutoGram Version: v3.5.49
 
 Current State:
-v3.5.48 Native Grammers SendMessage Unification & Zero-Rejection Document Delivery — membenahi `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyatukan pengiriman berkas ke engine native Grammers:
-1. Native Grammers SendMessage Pipeline: Mengganti eksekusi raw TL `messages.SendMedia` pada `upload_file_blocking_topic_with_delivery` dengan metode native `client.send_message(peer, msg)`. Mengeliminasi kesalahan penataan struct TL dan `send_as` payload yang memicu penolakan server Telegram (`PEER_ID_INVALID` / `TgErrorCode::PeerNotFound`).
-2. Robust True Document Dispatch: Mengirimkan dokumen asli secara mulus via `msg.mime_type("application/octet-stream").document(uploaded)` dengan preservasi thumbnail yang valid di seluruh chat, grup, dan Saved Messages.
+v3.5.49 Intelligent Remote Stream Link Extraction & Document Filename Preservation — membenahi `RemoteUploadModal.tsx`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyempurnakan pipeline unduhan tautan media dan penamaan berkas dokumen:
+1. Auto-Await Stream Link Extraction: Menyematkan mekanisme resolusi tautan otomatis pada `handleSubmit` di `RemoteUploadModal.tsx` sehingga URL halaman sosial media (TikTok, YouTube, Instagram, Douyin, dll) selalu diuraikan menjadi *Direct Video CDN Stream URL* lengkap dengan judul dan format aslinya (`.mp4`), mencegah pengunduhan mentah berkas HTML `.bin`.
+2. Pre-Upload Display Filename Preservation: Mengalkulasi ekstensi biner dan nama berkas bersih (`display_filename`) sebelum pemanggilan `upload_stream` pada Rust backend, menjamin berkas yang dikirim sebagai Dokumen Asli memiliki ekstensi yang benar (`.mp4`, `.mp3`, `.jpg`) dan tidak terunggah dengan nama hash `.bin`.
 
 Previous:
+v3.5.48 Native Grammers SendMessage Unification & Zero-Rejection Document Delivery — membenahi `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyatukan pengiriman berkas ke engine native Grammers.
 v3.5.47 Pure Binary Document Delivery & MTProto Octet-Stream Optimization — membenahi `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki format biner dokumen asli pada MTProto.
 v3.5.46 Universal Dialog Title Search & Non-fatal SendAs Resolver — membenahi `peer_resolver.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperluas resolusi peer dan ketahanan identitas pengirim.
 v3.5.45 Remote Media Magic Sniffer & Document Filename Formatter — membenahi `media_prep.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbarui penanganan stream URL dan pengiriman berkas dokumen.

@@ -1,3 +1,15 @@
+## v3.5.49 Intelligent Remote Stream Link Extraction & Document Filename Preservation
+ 
+### 1. Auto-Await Stream Link Extraction (`RemoteUploadModal.tsx`)
+- **Ekstraksi Otomatis Link Streaming**:
+  - `handleSubmit` pada modal Remote Upload kini secara otomatis mengeksekusi `resolveRemoteMediaUrl` apabila pengguna menekan tombol Unggah sebelum pratinjau selesai dimuat.
+  - Menjamin tautan video TikTok, YouTube, Instagram, dan platform media lainnya selalu diubah menjadi URL direct CDN stream asli berkualitas tinggi (No-Watermark) dengan ekstensi `.mp4`, bukan berkas halaman web mentah (`.bin`).
+
+### 2. Preservasi Nama Berkas Dokumen Asli (`media_transfer.rs`)
+- **Ekstensi Format Asli Terjamin**:
+  - `upload_file_blocking_topic_with_delivery` kini menentukan `display_filename` dan ekstensi asli berkas (`.mp4`, `.mp3`, `.jpg`, dll) sebelum dialirkan ke `upload_stream`.
+  - Berkas yang diunggah dalam mode Dokumen Asli kini selalu tampil dengan nama dan ekstensi format aslinya yang benar (`Media_Stream.mp4` / judul caption), bukan `.bin` atau ID hash sementara.
+
 ## v3.5.48 Native Grammers SendMessage Unification & Zero-Rejection Document Delivery
  
 ### 1. Unifikasi Native Grammers SendMessage (`media_transfer.rs`)
