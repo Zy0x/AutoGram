@@ -581,7 +581,7 @@ export function DriveTopBar({
 
           <button
             type="button"
-            className={`td-icon-btn${loading || manualSpin ? ' is-refreshing' : ''}`}
+            className={`td-icon-btn td-topbar-btn-refresh${loading || manualSpin ? ' is-refreshing' : ''}`}
             onClick={handleRefreshClick}
             disabled={loading}
             title={t("speedtest.topbar_refresh_all")}
@@ -593,7 +593,7 @@ export function DriveTopBar({
           {(onOpenTools || onOpenTransferSettings) && (
             <button
               type="button"
-              className={`td-icon-btn ${toolsActive ? 'active' : ''}`}
+              className={`td-icon-btn td-topbar-btn-tools ${toolsActive ? 'active' : ''}`}
               onClick={onOpenTools || onOpenTransferSettings}
               disabled={!!actionsDisabled}
               title={t('speedtest.tools_title')}
@@ -636,7 +636,7 @@ export function DriveTopBar({
           {onDownloadAllClick && (
             <button
               type="button"
-              className="td-icon-btn"
+              className="td-icon-btn td-topbar-btn-zip"
               onClick={onDownloadAllClick}
               disabled={!!actionsDisabled}
               title={t("speedtest.topbar_download_zip")}
@@ -649,7 +649,7 @@ export function DriveTopBar({
           {onRemoteUploadClick && (
             <button
               type="button"
-              className="td-icon-btn"
+              className="td-icon-btn td-topbar-btn-remote"
               onClick={onRemoteUploadClick}
               disabled={!!actionsDisabled}
               title={t("speedtest.remote_upload_url_title")}

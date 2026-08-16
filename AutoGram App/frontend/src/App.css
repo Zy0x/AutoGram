@@ -10049,6 +10049,7 @@ body:has(.app-layout-drive-focus),
     flex-wrap: nowrap;
   }
   /* "Pilih semua" / Unggah → icon + tooltip before text gets clipped */
+  /* "Pilih semua" / Unggah -> icon + tooltip */
   .td-topbar-actions .td-chip-label,
   .td-topbar-actions .td-btn-label {
     display: none;
@@ -10064,11 +10065,6 @@ body:has(.app-layout-drive-focus),
   }
 }
 
-/*
- * Narrow / mobile drawer mode:
- * Keep breadcrumb + actions on ONE compact band (wrap if needed).
- * NEVER stack column with flex-basis height — that made ~200px empty void (SS 214504).
- */
 @media (max-width: 900px) {
   .td-topbar {
     padding: 6px 8px 8px !important;
@@ -10078,37 +10074,31 @@ body:has(.app-layout-drive-focus),
     gap: 6px;
   }
   .td-topbar-row-1 {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    row-gap: 6px;
-    column-gap: 6px;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 6px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
   }
   .td-topbar-left {
-    flex: 1 1 auto;
-    min-width: 0;
-    max-width: 100%;
-    overflow: hidden;
-    /* content-sized — no vertical grow */
-    align-self: center;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+    max-width: calc(100% - 170px) !important;
+    overflow: hidden !important;
   }
   .td-topbar-actions {
-    flex: 1 1 auto;
-    justify-content: flex-start;
-    width: auto;
-    max-width: 100%;
-    gap: 4px;
-    row-gap: 4px;
-  }
-  .td-topbar-actions .td-icon-btn,
-  .td-topbar-actions .td-chip-btn,
-  .td-topbar-actions .td-btn-primary {
-    width: 34px;
-    min-width: 34px;
-    height: 34px;
-    min-height: 34px;
-    padding: 0;
-    box-sizing: border-box;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex: 0 0 auto !important;
+    gap: 4px !important;
   }
   .td-topbar-actions .td-view-toggle,
   .td-topbar-actions .td-zoom-controls {
@@ -10143,18 +10133,7 @@ body:has(.app-layout-drive-focus),
   right: auto !important;
 }
 
-/* Only ultra-narrow: stack title above tools */
-@media (max-width: 420px) {
-  .td-topbar-row-1 {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .td-topbar-left,
-  .td-topbar-actions {
-    width: 100%;
-    max-width: 100%;
-  }
-}
+
 
 /* Cards: always-visible select on coarse pointers (touch) */
 @media (hover: none), (pointer: coarse) {
@@ -25820,7 +25799,7 @@ button.td-confirm-icon.is-back-btn:active {
 
 
 /* ══════════════════════════════════════════════════════════════════════════
-   STANDARD NATURAL DRIVE TOPBAR DESIGN SYSTEM (TIDY & BALANCED TOOLBAR)
+   STANDARD NATURAL DRIVE TOPBAR DESIGN SYSTEM (ROBUST & PERMANENT ACTIONS)
    ══════════════════════════════════════════════════════════════════════════ */
 
 .td-topbar {
@@ -25843,6 +25822,9 @@ button.td-confirm-icon.is-back-btn:active {
   flex-shrink: 0 !important;
   z-index: 30 !important;
   box-sizing: border-box !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
 }
 
 /* Row Base */
@@ -25869,7 +25851,7 @@ button.td-confirm-icon.is-back-btn:active {
 .td-topbar-left {
   display: flex !important;
   align-items: center !important;
-  gap: 8px !important;
+  gap: 6px !important;
   min-width: 0 !important;
   flex: 1 1 auto !important;
   overflow: hidden !important;
@@ -25879,8 +25861,9 @@ button.td-confirm-icon.is-back-btn:active {
 .td-topbar-actions {
   display: flex !important;
   align-items: center !important;
-  gap: 5px !important;
+  gap: 4px !important;
   flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
   flex-wrap: nowrap !important;
   justify-content: flex-end !important;
   height: 36px !important;
@@ -25905,6 +25888,7 @@ button.td-confirm-icon.is-back-btn:active {
   box-shadow: none !important;
   cursor: pointer !important;
   transition: all 0.14s ease !important;
+  flex-shrink: 0 !important;
 }
 
 .td-topbar .td-icon-btn:hover:not(:disabled) {
@@ -25933,6 +25917,7 @@ button.td-confirm-icon.is-back-btn:active {
   background: var(--td-group-bg) !important;
   border: 1px solid var(--td-group-border) !important;
   box-sizing: border-box !important;
+  flex-shrink: 0 !important;
 }
 
 .td-topbar .td-zoom-controls .td-icon-btn,
@@ -25978,6 +25963,7 @@ button.td-confirm-icon.is-back-btn:active {
   cursor: pointer !important;
   box-shadow: none !important;
   transition: all 0.14s ease !important;
+  flex-shrink: 0 !important;
 }
 
 .td-topbar .td-btn-primary:hover:not(:disabled) {
@@ -25989,7 +25975,7 @@ button.td-confirm-icon.is-back-btn:active {
 .td-breadcrumbs {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 6px !important;
+  gap: 4px !important;
   font-size: 0.88rem !important;
   overflow: hidden !important;
   min-width: 0 !important;
@@ -26166,6 +26152,8 @@ button.td-confirm-icon.is-back-btn:active {
 /* Row 4: Tools Row (Perspective + Filters + Sort + Thumb) */
 .td-topbar-row-tools {
   min-height: 32px !important;
+  height: auto !important;
+  max-height: none !important;
   overflow: visible !important;
 }
 
@@ -26184,8 +26172,18 @@ button.td-confirm-icon.is-back-btn:active {
   gap: 8px !important;
   min-width: 0 !important;
   flex: 1 1 auto !important;
-  overflow: hidden !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
   height: 32px !important;
+  flex-wrap: nowrap !important;
+}
+.td-tools-left-cluster::-webkit-scrollbar {
+  display: none !important;
+}
+
+.td-tools-left-cluster > * {
+  flex-shrink: 0 !important;
 }
 
 .td-tools-right-cluster {
@@ -26194,7 +26192,8 @@ button.td-confirm-icon.is-back-btn:active {
   gap: 10px !important;
   min-width: 0 !important;
   flex: 0 0 auto !important;
-  height: 32px !important;
+  height: auto !important;
+  max-height: none !important;
 }
 
 /* Perspective Switcher */
@@ -26211,6 +26210,7 @@ button.td-confirm-icon.is-back-btn:active {
   border: 1px solid var(--td-group-border) !important;
   box-sizing: border-box !important;
   box-shadow: none !important;
+  flex-shrink: 0 !important;
 }
 
 .td-perspective-btn {
@@ -26267,6 +26267,7 @@ button.td-confirm-icon.is-back-btn:active {
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
   box-sizing: border-box !important;
+  flex-shrink: 0 !important;
 }
 .td-filter-pills::-webkit-scrollbar {
   display: none !important;
@@ -26384,6 +26385,7 @@ button.td-confirm-icon.is-back-btn:active {
   font-weight: 700 !important;
 }
 
+/* Medium window breakpoint (< 1200px) */
 @media (max-width: 1199.98px) {
   .td-topbar-tools {
     flex-direction: column !important;
@@ -26403,12 +26405,20 @@ button.td-confirm-icon.is-back-btn:active {
     padding-top: 4px !important;
   }
 }
-@media (max-width: 639.98px) {
-  .td-tools-left-cluster {
-    overflow-x: auto !important;
-    scrollbar-width: none !important;
+
+/* Responsive Action Toolbar Rules (< 860px) */
+@media (max-width: 859.98px) {
+  .td-topbar .td-zoom-controls,
+  .td-topbar-btn-tools,
+  .td-topbar-btn-zip,
+  .td-topbar-btn-remote {
+    display: none !important;
   }
-  .td-tools-left-cluster::-webkit-scrollbar {
+}
+
+/* Compact / Split (< 640px) */
+@media (max-width: 639.98px) {
+  .td-topbar .td-count-pill {
     display: none !important;
   }
   .td-tools-right-cluster {
@@ -26422,202 +26432,108 @@ button.td-confirm-icon.is-back-btn:active {
   }
 }
 
-/* ─── Ultra-Compact Screen Refinements (< 520px) ─── */
-@media (max-width: 519.98px) {
-  .td-topbar .td-zoom-controls {
-    display: none !important;
-  }
-  .td-topbar .td-btn-secondary {
-    display: none !important;
-  }
-  .td-topbar .td-tool-label {
-    display: none !important;
-  }
-  .td-topbar .td-crumb-link,
-  .td-topbar .td-crumb-current {
-    max-width: 80px !important;
-  }
-  .td-topbar .td-count-pill {
-    display: none !important;
-  }
-  .td-tools-right-cluster {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 4px !important;
-    width: 100% !important;
-  }
-  .td-tools-right-cluster .td-sort-group,
-  .td-tools-right-cluster .td-thumb-quality-pills {
-    width: 100% !important;
-    justify-content: center !important;
-  }
-}
-
-
-/* ══════════════════════════════════════════════════════════════════════════
-   ULTRA-NARROW SMART ADAPTATIONS (< 480px / 1/4 WINDOW / SPLIT SCREEN)
-   ══════════════════════════════════════════════════════════════════════════ */
-
+/* Ultra-Compact & Narrow Split (< 480px) */
 @media (max-width: 479.98px) {
   .td-topbar {
     padding: 6px 8px !important;
-    gap: 5px !important;
+    gap: 4px !important;
   }
 
-  /* Row 1: Prioritize Menu button & essential actions */
-  .td-topbar-left {
-    flex: 0 0 auto !important;
-    max-width: 45% !important;
+  .td-crumb-link {
+    display: none !important;
   }
-
-  .td-breadcrumbs {
-    max-width: 100% !important;
+  .td-crumb-sep {
+    display: none !important;
   }
-
-  .td-crumb-link,
   .td-crumb-current {
-    max-width: 60px !important;
-  }
-
-  .td-topbar-actions {
-    flex: 1 1 auto !important;
-    gap: 3px !important;
-  }
-
-  /* Hide non-essential tertiary icons on ultra-narrow */
-  .td-topbar-actions .td-zoom-controls,
-  .td-topbar-actions button[title*="ZIP"],
-  .td-topbar-actions button[title*="Remote"],
-  .td-topbar-actions button[title*="Pengaturan Transfer"] {
-    display: none !important;
-  }
-
-  /* Tools Left Cluster: smooth scrollable without overlap */
-  .td-tools-left-cluster {
-    display: flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-    width: 100% !important;
-    overflow-x: auto !important;
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
-    flex-wrap: nowrap !important;
-  }
-  .td-tools-left-cluster::-webkit-scrollbar {
-    display: none !important;
-  }
-
-  .td-perspective-switcher {
-    flex-shrink: 0 !important;
-  }
-
-  .td-filter-pills {
-    flex-shrink: 0 !important;
-    display: inline-flex !important;
-    flex-wrap: nowrap !important;
-  }
-
-  /* Tools Right Cluster: 50/50 grid */
-  .td-tools-right-cluster {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 4px !important;
-    width: 100% !important;
-  }
-
-  .td-tools-right-cluster .td-sort-group,
-  .td-tools-right-cluster .td-thumb-quality-pills {
-    width: 100% !important;
-    justify-content: center !important;
-  }
-}
-
-.td-tools-left-cluster {
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  min-width: 0 !important;
-  overflow-x: auto !important;
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-  flex-wrap: nowrap !important;
-}
-.td-tools-left-cluster::-webkit-scrollbar {
-  display: none !important;
-}
-
-.td-tools-left-cluster > * {
-  flex-shrink: 0 !important;
-}
-
-.td-group-perspective,
-.td-group-filters {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  flex-shrink: 0 !important;
-}
-
-
-/* ─── Extreme Compact Window Refinements (<= 360px) ─── */
-@media (max-width: 360px) {
-  .td-topbar {
-    padding: 4px 6px !important;
-    gap: 4px !important;
-  }
-
-  .td-topbar-row-1 {
-    height: 32px !important;
-  }
-
-  .td-topbar-left {
-    gap: 4px !important;
-  }
-
-  .td-topbar-actions {
-    gap: 2px !important;
-  }
-
-  /* Keep essential 3 buttons on <= 360px */
-  .td-topbar-actions button:not(.td-btn-primary):not(.td-view-toggle button):not([title*="Refresh"]):not([aria-label*="refresh"]) {
-    display: none !important;
-  }
-
-  .td-topbar .td-btn-primary {
-    padding: 0 8px !important;
-    min-width: 32px !important;
+    max-width: 90px !important;
   }
 
   .td-topbar .td-btn-primary .td-btn-label {
     display: none !important;
   }
-
-  .td-tools-right-cluster {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 4px !important;
-    width: 100% !important;
-  }
-
-  .td-tools-right-cluster .td-sort-group,
-  .td-tools-right-cluster .td-thumb-quality-pills {
-    width: 100% !important;
+  .td-topbar .td-btn-primary {
+    padding: 0 !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
     justify-content: center !important;
   }
 }
 
-.td-topbar {
-  height: auto !important;
-  max-height: none !important;
-  overflow: visible !important;
+/* Extreme Compact (< 360px) */
+@media (max-width: 359.98px) {
+  .td-topbar-left {
+    max-width: 110px !important;
+  }
+  .td-crumb-current {
+    max-width: 60px !important;
+  }
+  .td-tools-right-cluster {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
 }
 
-.td-topbar-row-tools {
-  height: auto !important;
-  max-height: none !important;
+/* Ensure proper hiding of secondary buttons with higher specificity */
+@media (max-width: 859.98px) {
+  .td-topbar .td-zoom-controls,
+  .td-topbar .td-icon-btn.td-topbar-btn-tools,
+  .td-topbar .td-icon-btn.td-topbar-btn-zip,
+  .td-topbar .td-icon-btn.td-topbar-btn-remote {
+    display: none !important;
+  }
 }
 
-.td-tools-right-cluster {
-  height: auto !important;
-  max-height: none !important;
+@media (max-width: 479.98px) {
+  .td-topbar-left {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+  .td-topbar-actions {
+    flex: 0 0 auto !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HIGH-SPECIFICITY NARROW SCREEN SQUEEZE RULES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 679.98px) {
+  .td-topbar .td-count-pill,
+  .td-topbar-left .td-count-pill {
+    display: none !important;
+  }
+}
+
+@media (max-width: 499.98px) {
+  .td-topbar .td-breadcrumbs .td-crumb-wrap:not(:last-child),
+  .td-topbar .td-crumb-link,
+  .td-topbar .td-crumb-sep {
+    display: none !important;
+  }
+
+  .td-topbar .td-breadcrumbs .td-crumb-current {
+    max-width: 80px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .td-topbar-left {
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .td-topbar-actions {
+    flex: 0 0 auto !important;
+  }
+}
+
+@media (max-width: 359.98px) {
+  .td-topbar .td-breadcrumbs .td-crumb-current {
+    max-width: 50px !important;
+  }
 }
