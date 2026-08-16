@@ -26119,8 +26119,9 @@ button.td-confirm-icon.is-back-btn:active {
   background: linear-gradient(135deg, #e2a532 0%, #d97706 100%) !important;
   border-color: #f59e0b !important;
   color: #0f172a !important;
-  transform: scale(1.12) !important;
-  box-shadow: 0 0 10px rgba(226, 165, 50, 0.6) !important;
+  transform: scale(1.06) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+  outline: none !important;
 }
 
 .td-topic-nav-btn:active {
@@ -26730,4 +26731,106 @@ button.td-confirm-icon.is-back-btn:active {
     -ms-overflow-style: none !important;
     padding-bottom: 2px !important;
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   STRICT HOVER GEOMETRY CONTAINMENT (ZERO OUTER BLEED / GLOW LEAK)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Topic Nav Circular Arrow Buttons */
+.td-topic-nav-btn {
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  outline: none !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+}
+
+.td-topic-nav-btn:hover {
+  background: linear-gradient(135deg, #e2a532 0%, #d97706 100%) !important;
+  border-color: #f59e0b !important;
+  color: #0f172a !important;
+  transform: scale(1.05) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5) !important;
+  outline: none !important;
+}
+
+/* All Topbar Icon Buttons */
+.td-topbar .td-icon-btn,
+.td-icon-btn {
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  outline: none !important;
+}
+
+.td-topbar .td-icon-btn:hover,
+.td-icon-btn:hover {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Header Collapse/Expand Toggle Button */
+.td-topbar .td-topbar-toggle-btn {
+  border-radius: 6px !important;
+  overflow: hidden !important;
+  outline: none !important;
+}
+
+.td-topbar .td-topbar-toggle-btn:hover {
+  box-shadow: none !important;
+  outline: none !important;
+  transform: none !important;
+}
+
+/* Topic Pills (Capsule) */
+.td-topic-pill {
+  border-radius: 9999px !important;
+  overflow: hidden !important;
+  outline: none !important;
+}
+
+.td-topic-pill:hover {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Perspective Switcher Buttons */
+.td-perspective-btn {
+  border-radius: 7px !important;
+  overflow: hidden !important;
+  outline: none !important;
+}
+
+.td-perspective-btn:hover {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Filter Pills & Thumbnail Quality Pills */
+.td-filter-pills .td-pill,
+.td-thumb-pill,
+.td-pill {
+  border-radius: 6px !important;
+  overflow: hidden !important;
+  outline: none !important;
+}
+
+.td-filter-pills .td-pill:hover,
+.td-thumb-pill:hover,
+.td-pill:hover {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Primary & Secondary Action Buttons */
+.td-topbar .td-btn-primary,
+.td-topbar .td-btn-secondary {
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  outline: none !important;
+}
+
+.td-topbar .td-btn-primary:hover,
+.td-topbar .td-btn-secondary:hover {
+  box-shadow: none !important;
+  outline: none !important;
 }
