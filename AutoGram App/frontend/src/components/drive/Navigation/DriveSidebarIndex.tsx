@@ -595,6 +595,7 @@ export function DriveSidebar({
   pingState,
 }: Props) {
   const { t } = useTranslation();
+  const [isCompactSearchActive, setIsCompactSearchActive] = useState<boolean>(false);
 
   const getPingTooltip = () => {
     if (pingState?.status === 'transferring') return t('speedtest.ping_transferring');
@@ -1713,6 +1714,21 @@ export function DriveSidebar({
     >
       {/* Expand/collapse first (top) — users expect this control at the top of the rail */}
       <div className="td-rail-head">
+        {onExitToApp && (
+          <button
+            type="button"
+            className="td-rail-btn td-rail-back td-rail-back-compact"
+            onClick={() => {
+              onExitToApp();
+              onCloseDrawer?.();
+            }}
+            title={t("speedtest.sidebar_back_to_app")}
+            aria-label={t("speedtest.sidebar_back_to_app")}
+          >
+            <ArrowLeft size={18} />
+          </button>
+        )}
+
         <button
           type="button"
           className="td-rail-brand td-rail-brand-toggle"
@@ -1739,7 +1755,7 @@ export function DriveSidebar({
         {onExitToApp && (
           <button
             type="button"
-            className="td-rail-btn td-rail-back"
+            className="td-rail-btn td-rail-back td-rail-back-wide"
             onClick={() => {
               onExitToApp();
               onCloseDrawer?.();
@@ -1818,37 +1834,100 @@ export function DriveSidebar({
       </div>
 
       <div className="td-rail-actions td-rail-toolbar" role="toolbar" aria-label={t('ui.generated.aksi_drive_47b8b0c')}>
-        <button
-          type="button"
-          className="td-rail-btn td-rail-tool is-full-width"
-          title={
-            createIsSubfolder
-              ? `Buat folder di dalam “${activeDriveFolder?.name || 'lokasi ini'}” (folder dalam Drive/Folder)`
-              : 'Buat Drive baru (channel privat [TD] di root). Buka Drive/Folder dulu untuk membuat folder di dalamnya.'
-          }
-          aria-label={createIsSubfolder ? 'Buat folder di dalam Drive/Folder' : 'Buat Drive baru'}
-          onClick={() =>
-            onCreate(
-              createIsSubfolder && activePeerId != null
-                ? { parentId: activePeerId }
-                : { parentId: null }
-            )
-          }
-          onContextMenu={(e) => {
-            // Right-click toolbar button → always offer nested create via parent pick path
-            e.preventDefault();
-            if (createIsSubfolder && activePeerId != null) {
-              onCreate({ parentId: activePeerId });
-            } else {
-              onCreate({ parentId: null });
-            }
-          }}
-        >
-          <FolderPlus size={16} aria-hidden className="td-btn-add-icon" />
-          <span className="td-rail-btn-label">
-            {createIsSubfolder ? t('speedtest.btn_create_folder') : t('speedtest.btn_create_drive')}
-          </span>
-        </button>
+        {isCompactSearchActive || Boolean(locationQuery && locationQuery.trim().length > 0) ? (
+          <div className="td-location-search td-location-search-inline">
+            <Search size={14} aria-hidden className="td-location-search-ico" />
+            <input
+              ref={locationSearchRef}
+              type="text"
+              inputMode="search"
+              autoComplete="off"
+              spellCheck={false}
+              value={locationQuery}
+              onChange={(e) => onChatQuery(e.target.value)}
+              placeholder={t("speedtest.sidebar_search_location_ph")}
+              aria-label={t("speedtest.sidebar_search_aria")}
+              title={t("speedtest.sidebar_search_title")}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  if (!locationQuery) {
+                    setIsCompactSearchActive(false);
+                  } else {
+                    onChatQuery('');
+                  }
+                }
+              }}
+              onBlur={() => {
+                if (!locationQuery) {
+                  setIsCompactSearchActive(false);
+                }
+              }}
+              onDragOver={(e) => e.stopPropagation()}
+            />
+            <button
+              type="button"
+              className="td-location-search-clear"
+              title={t('speedtest.clear_search')}
+              aria-label={t("speedtest.sidebar_clear_search")}
+              onClick={() => {
+                onChatQuery('');
+                setIsCompactSearchActive(false);
+              }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <div className="td-sidebar-action-split-row">
+            <button
+              type="button"
+              className="td-rail-btn td-rail-tool td-btn-new-folder is-full-width"
+              title={
+                createIsSubfolder
+                  ? `Buat folder di dalam “${activeDriveFolder?.name || 'lokasi ini'}” (folder dalam Drive/Folder)`
+                  : 'Buat Drive baru (channel privat [TD] di root). Buka Drive/Folder dulu untuk membuat folder di dalamnya.'
+              }
+              aria-label={createIsSubfolder ? 'Buat folder di dalam Drive/Folder' : 'Buat Drive baru'}
+              onClick={() =>
+                onCreate(
+                  createIsSubfolder && activePeerId != null
+                    ? { parentId: activePeerId }
+                    : { parentId: null }
+                )
+              }
+              onContextMenu={(e) => {
+                // Right-click toolbar button → always offer nested create via parent pick path
+                e.preventDefault();
+                if (createIsSubfolder && activePeerId != null) {
+                  onCreate({ parentId: activePeerId });
+                } else {
+                  onCreate({ parentId: null });
+                }
+              }}
+            >
+              <FolderPlus size={16} aria-hidden className="td-btn-add-icon" />
+              <span className="td-rail-btn-label">
+                {createIsSubfolder ? t('speedtest.btn_create_folder') : t('speedtest.btn_create_drive')}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className="td-rail-btn td-sidebar-search-btn"
+              onClick={() => {
+                setIsCompactSearchActive(true);
+                setTimeout(() => {
+                  locationSearchRef.current?.focus();
+                  locationSearchRef.current?.select();
+                }, 30);
+              }}
+              title={t("speedtest.sidebar_search_title")}
+              aria-label={t("speedtest.sidebar_search_aria")}
+            >
+              <Search size={16} />
+            </button>
+          </div>
+        )}
       </div>
 
       {(channelLimitWarning ||
@@ -1870,7 +1949,7 @@ export function DriveSidebar({
       <div className="td-sidebar-fixed-controls">
           {/* Expanded mode: Search Bar */}
           {!anyDragLive && !collapsed && (
-            <div className="td-location-search">
+            <div className="td-location-search td-location-search-main">
               <Search size={14} aria-hidden className="td-location-search-ico" />
               <input
                 ref={locationSearchRef}

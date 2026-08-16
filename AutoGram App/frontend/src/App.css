@@ -26897,3 +26897,579 @@ button.td-confirm-icon.is-back-btn:active {
     display: none !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SIDEBAR COMPACT ADAPTATIONS (500px - 600px / DRAWER)
+   1. Compact Back Button (ArrowLeft only) side-by-side to the left of Cloud Drives brand
+   2. Shared New Folder + Search location button row that expands to full search bar
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Default wide screens (> 600px) */
+.td-rail-back-compact {
+  display: none !important;
+}
+
+.td-sidebar-search-btn {
+  display: none !important;
+}
+
+.td-location-search-inline {
+  display: none !important;
+}
+
+.td-location-search-main {
+  display: flex !important;
+}
+
+/* Compact screens (500px - 600px) and drawer view */
+@media (max-width: 600px) {
+  /* 1. Compact Header: [ <- Back ] [ Cloud Drives ] */
+  .td-rail-head {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    padding: 8px 10px !important;
+  }
+
+  .td-rail-back-compact {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(226, 165, 50, 0.4) !important;
+    color: #fbbf24 !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+    transition: all 0.15s ease !important;
+  }
+
+  .td-rail-back-compact:hover {
+    background: linear-gradient(135deg, #e2a532 0%, #d97706 100%) !important;
+    border-color: #f59e0b !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+  }
+
+  .td-rail-back-wide {
+    display: none !important;
+  }
+
+  .td-rail-brand {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* 2. New Folder & Search Location Shared Row */
+  .td-sidebar-action-split-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .td-sidebar-action-split-row .td-btn-new-folder {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    height: 38px !important;
+    min-height: 38px !important;
+  }
+
+  .td-sidebar-action-split-row .td-sidebar-search-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(226, 165, 50, 0.45) !important;
+    color: #fbbf24 !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+    transition: all 0.15s ease !important;
+  }
+
+  .td-sidebar-action-split-row .td-sidebar-search-btn:hover {
+    background: linear-gradient(135deg, #e2a532 0%, #d97706 100%) !important;
+    border-color: #f59e0b !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+  }
+
+  .td-location-search-inline {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 10px !important;
+    background: rgba(15, 23, 42, 0.85) !important;
+    border: 1.5px solid #e2a532 !important;
+    border-radius: 8px !important;
+    gap: 8px !important;
+    box-sizing: border-box !important;
+  }
+
+  .td-location-search-inline input {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    height: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    color: #f8fafc !important;
+    font-size: 0.875rem !important;
+  }
+
+  .td-location-search-inline .td-location-search-clear {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 24px !important;
+    height: 24px !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: none !important;
+    border-radius: 4px !important;
+    color: #94a3b8 !important;
+    cursor: pointer !important;
+    transition: all 0.12s ease !important;
+  }
+
+  .td-location-search-inline .td-location-search-clear:hover {
+    background: rgba(239, 68, 68, 0.25) !important;
+    color: #ef4444 !important;
+  }
+
+  .td-location-search-main {
+    display: none !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SIDEBAR 500px - 600px ADAPTATIONS (EXACT SPEC)
+   1. Compact Back Button (ArrowLeft only) to the LEFT of Cloud Drives Logo
+   2. New Folder & Search Location share the row; search expands to full row
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Default wide screens (> 600px) */
+.td-rail-back-compact {
+  display: none !important;
+}
+
+.td-sidebar-search-btn {
+  display: none !important;
+}
+
+.td-location-search-inline {
+  display: none !important;
+}
+
+.td-location-search-main {
+  display: flex !important;
+}
+
+/* Compact screens (500px - 600px) and drawer view */
+@media (max-width: 600px) {
+  /* 1. Compact Header: [ <- Back ] [ Cloud Drives ] */
+  .td-rail-head {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    padding: 8px 10px !important;
+    box-sizing: border-box !important;
+  }
+
+  .td-rail-head .td-rail-back-compact {
+    order: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(226, 165, 50, 0.4) !important;
+    color: #fbbf24 !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    transition: all 0.15s ease !important;
+  }
+
+  .td-rail-head .td-rail-back-compact:hover {
+    background: linear-gradient(135deg, #e2a532 0%, #d97706 100%) !important;
+    border-color: #f59e0b !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+  }
+
+  .td-rail-head .td-rail-back-wide {
+    display: none !important;
+  }
+
+  .td-rail-head .td-rail-brand-toggle {
+    order: 1 !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    padding: 4px 6px !important;
+    margin: 0 !important;
+    width: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  /* 2. New Folder & Search Location Shared Row */
+  .td-sidebar .td-rail-actions {
+    padding: 6px 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .td-sidebar-action-split-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .td-sidebar-action-split-row .td-btn-new-folder {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    padding: 0 12px !important;
+    border-radius: 8px !important;
+  }
+
+  .td-sidebar-action-split-row .td-sidebar-search-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(226, 165, 50, 0.45) !important;
+    color: #fbbf24 !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    transition: all 0.15s ease !important;
+  }
+
+  .td-sidebar-action-split-row .td-sidebar-search-btn:hover {
+    background: linear-gradient(135deg, #e2a532 0%, #d97706 100%) !important;
+    border-color: #f59e0b !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+  }
+
+  .td-location-search-inline {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 0 10px !important;
+    background: rgba(15, 23, 42, 0.95) !important;
+    border: 1.5px solid #e2a532 !important;
+    border-radius: 8px !important;
+    gap: 8px !important;
+    box-sizing: border-box !important;
+  }
+
+  .td-location-search-inline input {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    height: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    color: #f8fafc !important;
+    font-size: 0.875rem !important;
+  }
+
+  .td-location-search-inline .td-location-search-clear {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 24px !important;
+    height: 24px !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: none !important;
+    border-radius: 4px !important;
+    color: #94a3b8 !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+    transition: all 0.12s ease !important;
+  }
+
+  .td-location-search-inline .td-location-search-clear:hover {
+    background: rgba(239, 68, 68, 0.25) !important;
+    color: #ef4444 !important;
+  }
+
+  /* Hide separate fixed search bar on compact views */
+  .td-sidebar .td-sidebar-fixed-controls .td-location-search,
+  .td-sidebar .td-location-search-main {
+    display: none !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PRECISION SIDEBAR COMPACT (500px - 600px / DRAWER)
+   1. Compact Back Button (36x36) to the LEFT of Cloud Drives Logo + Text
+   2. Shared [ New Folder (flex: 1) ] + [ 🔍 Search (40x40) ] row
+   3. Search expands to full width & height of New Folder row when clicked
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Wide desktop (> 600px) */
+.td-rail-back-compact {
+  display: none !important;
+}
+
+.td-sidebar-search-btn {
+  display: none !important;
+}
+
+.td-location-search-inline {
+  display: none !important;
+}
+
+.td-location-search-main {
+  display: flex !important;
+}
+
+/* Compact screens (500px - 600px) and drawer view */
+@media (max-width: 600px) {
+  /* 1. Top Header: [ <- (36px) ] [ Logo (36px) | Cloud Drives / Telegram Storage ] */
+  .td-rail-head {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    padding: 8px 10px !important;
+    box-sizing: border-box !important;
+  }
+
+  .td-rail-head .td-rail-back-compact {
+    order: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    flex: 0 0 36px !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(226, 165, 50, 0.4) !important;
+    color: #fbbf24 !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    transition: all 0.15s ease !important;
+  }
+
+  .td-rail-head .td-rail-back-compact:hover {
+    background: linear-gradient(135deg, #e2a532 0%, #d97706 100%) !important;
+    border-color: #f59e0b !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+  }
+
+  .td-rail-head .td-rail-back-wide {
+    display: none !important;
+  }
+
+  .td-rail-head .td-rail-brand-toggle {
+    order: 1 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: 4px 6px !important;
+    margin: 0 !important;
+  }
+
+  .td-rail-head .td-rail-brand-toggle .td-sidebar-logo {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    flex: 0 0 36px !important;
+  }
+
+  .td-rail-head .td-rail-brand-toggle .td-sidebar-brand-text {
+    display: flex !important;
+    flex-direction: column !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    text-align: left !important;
+    overflow: hidden !important;
+  }
+
+  .td-rail-head .td-rail-brand-toggle .td-sidebar-brand-text strong {
+    font-size: 0.92rem !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    color: var(--td-text, #f8fafc) !important;
+  }
+
+  .td-rail-head .td-rail-brand-toggle .td-sidebar-brand-text span {
+    font-size: 0.72rem !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    color: var(--td-sub, #94a3b8) !important;
+  }
+
+  /* 2. Action Toolbar Row: [ New Folder ] + [ 🔍 Search ] */
+  .td-sidebar .td-rail-actions {
+    padding: 6px 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .td-sidebar-action-split-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .td-sidebar-action-split-row .td-btn-new-folder {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    padding: 0 12px !important;
+    border-radius: 8px !important;
+    margin: 0 !important;
+  }
+
+  .td-sidebar-action-split-row .td-sidebar-search-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    flex: 0 0 40px !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(226, 165, 50, 0.45) !important;
+    color: #fbbf24 !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    transition: all 0.15s ease !important;
+  }
+
+  .td-sidebar-action-split-row .td-sidebar-search-btn:hover {
+    background: linear-gradient(135deg, #e2a532 0%, #d97706 100%) !important;
+    border-color: #f59e0b !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+  }
+
+  /* 3. Inline Search Bar when active (fills entire row matching New Folder height) */
+  .td-location-search-inline {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    flex: 1 1 100% !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 0 10px !important;
+    background: rgba(15, 23, 42, 0.95) !important;
+    border: 1.5px solid #e2a532 !important;
+    border-radius: 8px !important;
+    gap: 8px !important;
+    box-sizing: border-box !important;
+  }
+
+  .td-location-search-inline input {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    height: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    color: #f8fafc !important;
+    font-size: 0.875rem !important;
+  }
+
+  .td-location-search-inline .td-location-search-clear {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 24px !important;
+    height: 24px !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: none !important;
+    border-radius: 4px !important;
+    color: #94a3b8 !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+    transition: all 0.12s ease !important;
+  }
+
+  .td-location-search-inline .td-location-search-clear:hover {
+    background: rgba(239, 68, 68, 0.25) !important;
+    color: #ef4444 !important;
+  }
+
+  /* Hide separate fixed search bar on compact views */
+  .td-sidebar .td-sidebar-fixed-controls .td-location-search,
+  .td-sidebar .td-location-search-main {
+    display: none !important;
+  }
+}
