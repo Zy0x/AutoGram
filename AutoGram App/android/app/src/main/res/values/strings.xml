@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AutoGram</string>
+    <string name="nav_drive">Drive</string>
+    <string name="nav_transfer">Transfer</string>
+    <string name="nav_studio">Studio</string>
+    <string name="nav_settings">Pengaturan</string>
+
+    <string name="drive_search_placeholder">Cari berkas atau folder…</string>
+    <string name="drive_empty_title">Belum Ada Berkas</string>
+    <string name="drive_empty_subtitle">Unggah atau sinkronkan berkas dari akun Telegram Anda.</string>
+    <string name="drive_action_upload">Unggah</string>
+    <string name="drive_action_remote">Remote</string>
+    <string name="drive_action_download_zip">Unduh ZIP</string>
+    <string name="drive_action_refresh">Segarkan</string>
+    <string name="drive_action_tools">Alat</string>
+    <string name="drive_selected_count">%1$d berkas dipilih</string>
+    <string name="drive_action_cancel">Batal</string>
+    <string name="drive_action_move">Pindahkan</string>
+    <string name="drive_action_download">Unduh</string>
+    <string name="drive_action_delete">Hapus</string>
+
+    <string name="transfer_title">Manajer Transfer</string>
+    <string name="transfer_active_tasks">Tugas Aktif</string>
+    <string name="transfer_completed_tasks">Selesai</string>
+    <string name="transfer_speed">%1$s/dtk</string>
+    <string name="transfer_eta">Sisa: %1$s</string>
+    <string name="transfer_smart_rate">Smart Rate Controller Aktif</string>
+
+    <string name="settings_title">Pengaturan AutoGram</string>
+    <string name="settings_telegram_accounts">Akun Telegram</string>
+    <string name="settings_hardware_encoder">Encoder Perangkat Keras</string>
+    <string name="settings_storage_budget">Batas Penyimpanan Sementara</string>
+    <string name="settings_version">Versi 3.7.32 (Native Android Core)</string>
+</resources>

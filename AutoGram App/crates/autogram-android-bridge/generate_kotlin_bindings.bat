@@ -1,4 +1,5 @@
 @echo off
+cd /d "%~dp0"
 echo ========================================================
 echo   AutoGram UniFFI Kotlin Bindings Generator
 echo ========================================================

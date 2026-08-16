@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AutoGram</string>
+    <string name="nav_drive">Drive</string>
+    <string name="nav_transfer">Transfers</string>
+    <string name="nav_studio">Studio</string>
+    <string name="nav_settings">Settings</string>
+
+    <string name="drive_search_placeholder">Search files or folders…</string>
+    <string name="drive_empty_title">No Files Yet</string>
+    <string name="drive_empty_subtitle">Upload or sync files from your Telegram accounts.</string>
+    <string name="drive_action_upload">Upload</string>
+    <string name="drive_action_remote">Remote</string>
+    <string name="drive_action_download_zip">Download ZIP</string>
+    <string name="drive_action_refresh">Refresh</string>
+    <string name="drive_action_tools">Tools</string>
+    <string name="drive_selected_count">%1$d files selected</string>
+    <string name="drive_action_cancel">Cancel</string>
+    <string name="drive_action_move">Move</string>
+    <string name="drive_action_download">Download</string>
+    <string name="drive_action_delete">Delete</string>
+
+    <string name="transfer_title">Transfer Manager</string>
+    <string name="transfer_active_tasks">Active Tasks</string>
+    <string name="transfer_completed_tasks">Completed</string>
+    <string name="transfer_speed">%1$s/s</string>
+    <string name="transfer_eta">ETA: %1$s</string>
+    <string name="transfer_smart_rate">Smart Rate Controller Active</string>
+
+    <string name="settings_title">AutoGram Settings</string>
+    <string name="settings_telegram_accounts">Telegram Accounts</string>
+    <string name="settings_hardware_encoder">Hardware Encoder</string>
+    <string name="settings_storage_budget">Temporary Storage Budget</string>
+    <string name="settings_version">Version 3.7.32 (Native Android Core)</string>
+</resources>
