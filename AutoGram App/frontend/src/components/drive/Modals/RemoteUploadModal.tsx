@@ -539,11 +539,15 @@ export function RemoteUploadModal({
   };
 
   const activeSlideUrl = useMemo(() => {
+    const selFormat = resolvedMedia?.formats?.find((f) => f.id === selectedFormatId);
+    if (selFormat?.isImage && selFormat.directUrl) {
+      return selFormat.directUrl;
+    }
     if (resolvedMedia?.albumImages && resolvedMedia.albumImages.length > 0) {
       return resolvedMedia.albumImages[activeSlideIndex] || resolvedMedia.albumImages[0];
     }
-    return resolvedMedia?.thumbnailUrl || null;
-  }, [resolvedMedia, activeSlideIndex]);
+    return resolvedMedia?.thumbnailUrl || resolvedMedia?.authorAvatar || null;
+  }, [resolvedMedia, selectedFormatId, activeSlideIndex]);
 
   const isSplitActive =
     Boolean(resolvedMedia || (inspection && url.trim().length > 0)) && tab === 'single';
@@ -1090,7 +1094,16 @@ export function RemoteUploadModal({
                     </div>
                     {resolvedMedia.author && (
                       <div className="td-remote-media-author">
-                        <User size={12} />
+                        {resolvedMedia.authorAvatar ? (
+                          <img
+                            src={resolvedMedia.authorAvatar}
+                            alt={resolvedMedia.author}
+                            className="td-remote-author-avatar-img"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <User size={12} />
+                        )}
                         <span>{resolvedMedia.author}</span>
                       </div>
                     )}

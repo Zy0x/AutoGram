@@ -17,38 +17,163 @@ export const tiktokResolver: LinkResolverProvider = {
   async resolve(url: string, signal?: AbortSignal): Promise<ResolvedMediaInfo | null> {
     const cleanUrl = url.trim();
 
-    // 0. Profile URL handler (e.g. https://www.tiktok.com/@tokyo.prompt)
+    // 0. Profile URL handler (e.g. https://www.tiktok.com/@tokyo.prompt or https://www.tiktok.com/@izuru.01)
     const profileMatch = cleanUrl.match(/tiktok\.com\/@([a-zA-Z0-9_.-]+)(?:\/)?(?:[?#].*)?$/);
     if (profileMatch && !cleanUrl.includes('/video/') && !cleanUrl.includes('/photo/') && !cleanUrl.includes('/story/')) {
       const uniqueId = profileMatch[1];
       try {
-        const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(cleanUrl)}`;
-        const resp = await fetch(oembedUrl, { signal: signal || AbortSignal.timeout(6000) });
-        if (resp.ok) {
-          const odata = await resp.json();
-          const authorName = odata.author_name || `@${uniqueId}`;
-          const title = `${authorName} - Profil TikTok`;
-          return {
-            url: cleanUrl,
-            platform: 'tiktok',
-            platformName: 'TikTok (Creator Profile)',
-            title,
-            author: `@${uniqueId}`,
-            formats: [
-              {
-                id: 'tiktok_profile_link',
-                label: `Profile Information (@${uniqueId})`,
-                qualityTier: 'original',
-                resolution: 'Creator Profile',
-                ext: 'txt',
-                directUrl: cleanUrl,
-                badge: 'PROFILE',
-              },
-            ],
-            selectedFormatId: 'tiktok_profile_link',
-            resolvedAt: Date.now(),
-          };
+        let nickname: string | undefined;
+        let avatarLarger: string | undefined;
+        let avatarMedium: string | undefined;
+        let signature: string | undefined;
+
+        // 1. Try native Rust IPC for rich profile metadata (zero CORS, custom mobile UA)
+        try {
+          const jsonMeta = await invoke<any>('fetch_remote_json_metadata', { url: cleanUrl });
+          if (jsonMeta?.data?.user) {
+            const u = jsonMeta.data.user;
+            nickname = u.nickname;
+            avatarLarger = u.avatarLarger;
+            avatarMedium = u.avatarMedium;
+            signature = u.signature;
+          } else if (jsonMeta?.html) {
+            const html = jsonMeta.html;
+            const universalMatch = html.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/);
+            if (universalMatch) {
+              try {
+                const ujson = JSON.parse(universalMatch[1]);
+                const userDetail = ujson['__DEFAULT_SCOPE__']?.['webapp.user-detail']?.userInfo;
+                if (userDetail?.user) {
+                  nickname = userDetail.user.nickname;
+                  avatarLarger = userDetail.user.avatarLarger;
+                  avatarMedium = userDetail.user.avatarMedium;
+                  signature = userDetail.user.signature;
+                }
+              } catch {
+                /* parse fallback */
+              }
+            }
+            if (!avatarLarger) {
+              const avatarMatch = html.match(/"avatarLarger":"(https:[^"]+)"/i);
+              if (avatarMatch) {
+                avatarLarger = avatarMatch[1].replace(/\\u0026/g, '&').replace(/\\u002F/g, '/').replace(/\\/g, '');
+              }
+            }
+          }
+        } catch (ipcErr) {
+          console.warn('[TikTokResolver] IPC fetch failed, falling back to direct web:', ipcErr);
         }
+
+        // 2. Try native text fetch if not resolved
+        if (!avatarLarger) {
+          try {
+            const html = await invoke<string>('fetch_remote_text_content', {
+              url: `https://www.tiktok.com/@${uniqueId}`,
+              userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+            });
+            if (html) {
+              const universalMatch = html.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/);
+              if (universalMatch) {
+                try {
+                  const ujson = JSON.parse(universalMatch[1]);
+                  const userDetail = ujson['__DEFAULT_SCOPE__']?.['webapp.user-detail']?.userInfo;
+                  if (userDetail?.user) {
+                    nickname = userDetail.user.nickname;
+                    avatarLarger = userDetail.user.avatarLarger;
+                    avatarMedium = userDetail.user.avatarMedium;
+                    signature = userDetail.user.signature;
+                  }
+                } catch {
+                  /* parse fallback */
+                }
+              }
+              if (!avatarLarger) {
+                const avatarMatch = html.match(/"avatarLarger":"(https:[^"]+)"/i);
+                if (avatarMatch) {
+                  avatarLarger = avatarMatch[1].replace(/\\u0026/g, '&').replace(/\\u002F/g, '/').replace(/\\/g, '');
+                }
+              }
+            }
+          } catch {
+            /* text IPC fallback */
+          }
+        }
+
+        // 3. Fallback to direct web fetch
+        if (!avatarLarger) {
+          try {
+            const pageResp = await fetch(`https://www.tiktok.com/@${uniqueId}`, {
+              signal: signal || AbortSignal.timeout(6000),
+            });
+            if (pageResp.ok) {
+              const html = await pageResp.text();
+              const avatarMatch = html.match(/"avatarLarger":"(https:[^"]+)"/i);
+              if (avatarMatch) {
+                avatarLarger = avatarMatch[1].replace(/\\u0026/g, '&').replace(/\\u002F/g, '/').replace(/\\/g, '');
+              }
+            }
+          } catch {
+            /* web fetch fallback */
+          }
+        }
+
+        // 4. Fallback to oEmbed if nickname not resolved yet
+        if (!nickname) {
+          try {
+            const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(cleanUrl)}`;
+            const oresp = await fetch(oembedUrl, { signal: signal || AbortSignal.timeout(5000) });
+            if (oresp.ok) {
+              const odata = await oresp.json();
+              nickname = odata.author_name;
+            }
+          } catch {
+            /* oembed fallback */
+          }
+        }
+
+        const authorName = nickname || `@${uniqueId}`;
+        const title = `${authorName} (@${uniqueId}) - Profil TikTok`;
+        const formats: StreamQualityFormat[] = [];
+
+        // 1. Creator Profile Avatar (Highest Resolution Master)
+        const effectiveAvatar = avatarLarger || avatarMedium;
+        if (effectiveAvatar) {
+          formats.push({
+            id: 'tiktok_profile_avatar',
+            label: 'Creator Profile Photo (HD Avatar)',
+            qualityTier: 'original',
+            resolution: '1080×1080 HD',
+            ext: 'jpg',
+            directUrl: effectiveAvatar,
+            isImage: true,
+            isCleanNoWatermark: true,
+            badge: 'AVATAR HD',
+          });
+        }
+
+        // 2. Profile Link / Summary
+        formats.push({
+          id: 'tiktok_profile_link',
+          label: `Profile Information (@${uniqueId})`,
+          qualityTier: 'original',
+          resolution: 'Creator Profile',
+          ext: 'txt',
+          directUrl: cleanUrl,
+          badge: 'PROFILE',
+        });
+
+        return {
+          url: cleanUrl,
+          platform: 'tiktok',
+          platformName: 'TikTok (Creator Profile)',
+          title,
+          author: `@${uniqueId}`,
+          authorAvatar: effectiveAvatar,
+          thumbnailUrl: effectiveAvatar,
+          formats,
+          selectedFormatId: formats[0].id,
+          resolvedAt: Date.now(),
+        };
       } catch {
         /* fallback */
       }

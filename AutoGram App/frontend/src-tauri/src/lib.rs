@@ -1835,6 +1835,36 @@ fn desktop_write_clipboard(text: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn fetch_remote_text_content(url: String, user_agent: Option<String>) -> Result<String, String> {
+    let u_clean = url.trim();
+    if u_clean.is_empty() {
+        return Err("empty URL".into());
+    }
+    let agent = ureq::AgentBuilder::new()
+        .timeout_connect(std::time::Duration::from_secs(10))
+        .timeout_read(std::time::Duration::from_secs(15))
+        .build();
+
+    let ua = user_agent.unwrap_or_else(|| {
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1".to_string()
+    });
+
+    let resp = agent
+        .get(u_clean)
+        .set("User-Agent", &ua)
+        .set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+        .set("Accept-Language", "en-US,en;q=0.9")
+        .call()
+        .map_err(|e| format!("HTTP request failed: {e}"))?;
+
+    let text = resp
+        .into_string()
+        .map_err(|e| format!("read body failed: {e}"))?;
+
+    Ok(text)
+}
+
+#[tauri::command]
 fn fetch_remote_json_metadata(url: String) -> Result<serde_json::Value, String> {
     let u_clean = url.trim();
     if u_clean.is_empty() {
@@ -1844,6 +1874,50 @@ fn fetch_remote_json_metadata(url: String) -> Result<serde_json::Value, String> 
         .timeout_connect(std::time::Duration::from_secs(10))
         .timeout_read(std::time::Duration::from_secs(15))
         .build();
+
+    let is_tiktok_profile = (u_clean.contains("tiktok.com/@") || u_clean.contains("douyin.com/@"))
+        && !u_clean.contains("/video/")
+        && !u_clean.contains("/photo/")
+        && !u_clean.contains("/story/");
+
+    if is_tiktok_profile {
+        let resp = agent
+            .get(u_clean)
+            .set("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1")
+            .set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+            .set("Accept-Language", "en-US,en;q=0.9")
+            .call()
+            .map_err(|e| format!("HTTP request failed: {e}"))?;
+
+        let html = resp
+            .into_string()
+            .map_err(|e| format!("read body failed: {e}"))?;
+
+        if let Some(start) = html.find("<script id=\"__UNIVERSAL_DATA_FOR_REHYDRATION__\"") {
+            if let Some(tag_end) = html[start..].find('>') {
+                let content_start = start + tag_end + 1;
+                if let Some(end) = html[content_start..].find("</script>") {
+                    let json_str = &html[content_start..content_start + end];
+                    if let Ok(val) = serde_json::from_str::<serde_json::Value>(json_str) {
+                        if let Some(user_info) = val.get("__DEFAULT_SCOPE__")
+                            .and_then(|s| s.get("webapp.user-detail"))
+                            .and_then(|d| d.get("userInfo")) {
+                            return Ok(serde_json::json!({
+                                "code": 0,
+                                "msg": "success",
+                                "data": user_info
+                            }));
+                        }
+                    }
+                }
+            }
+        }
+        return Ok(serde_json::json!({
+            "code": 0,
+            "msg": "html_fetched",
+            "html": html
+        }));
+    }
 
     let api_url = if u_clean.contains("tiktok.com") || u_clean.contains("douyin.com") {
         format!("https://www.tikwm.com/api/?url={}&hd=1", urlencoding::encode(u_clean))
@@ -1874,6 +1948,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             fetch_remote_json_metadata,
+            fetch_remote_text_content,
             desktop_read_clipboard,
             desktop_write_clipboard,
             app_toggle_devtools,

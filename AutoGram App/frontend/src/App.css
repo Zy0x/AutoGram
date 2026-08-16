@@ -24432,6 +24432,15 @@ button.td-confirm-icon.is-back-btn:active {
   color: #94a3b8;
 }
 
+.td-remote-author-avatar-img {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+}
+
 .td-remote-big-canvas-wrap {
   width: 100%;
   border-radius: 14px;

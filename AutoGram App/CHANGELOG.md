@@ -1,3 +1,17 @@
+## v3.7.17 Creator Profile HD Avatar Extraction & Live Preview Canvas (Phase 18)
+
+### 1. Ekstraksi Foto Profil HD & Live Preview Profil Kreator
+- **Multi-Tier Creator Profile Resolver (`tiktokResolver.ts`, `lib.rs`)**:
+  - Mengimplementasikan parser metadata profil kreator TikTok (`@username`) berbasis IPC native Rust dan mobile web scrape untuk mengekstrak avatar resolusi master **1080×1080 HD**.
+  - Mengotomatiskan ekstraksi foto profil asli (HD Avatar), nickname, username unik, dan bio kreator.
+  - Menyediakan opsi unduhan stream format `Creator Profile Photo (HD Avatar)` langsung beresolusi penuh tanpa kompresi.
+- **Live Preview Canvas Enhancement (`RemoteUploadModal.tsx`, `App.css`)**:
+  - Mengintegrasikan preview visual foto profil langsung di dalam *Live Preview Canvas* saat tautan profil kreator dimasukkan.
+  - Menampilkan thumbnail avatar melingkar elegan di samping nama kreator pada kartu metadata media.
+- **Verifikasi Kualitas**:
+  - **4.865 Kunci Kamus** tersinkronisasi 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
+  - 146 unit test Vitest lulus 100%.
+
 ## v3.7.16 Supported Links & Platforms Minimalist Info Popover (Phase 17)
 
 ### 1. Tombol Informasi & Popover Minimalis Platform yang Didukung
