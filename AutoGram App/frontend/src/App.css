@@ -26200,3 +26200,115 @@ button.td-confirm-icon.is-back-btn:active {
   min-height: 0 !important;
   -webkit-overflow-scrolling: touch !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CONSISTENT ROW HEIGHTS (ZERO TRIMMING ACROSS ALL VIEWPORT WIDTHS)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Row 2: Search Input Bar */
+.td-topbar-row-2,
+.td-topbar-row-2 .td-search,
+.td-topbar .td-search {
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  box-sizing: border-box !important;
+  font-size: 0.85rem !important;
+}
+
+.td-topbar .td-search input,
+.td-topbar-row-2 .td-search input {
+  height: 36px !important;
+  min-height: 36px !important;
+  font-size: 0.85rem !important;
+}
+
+/* Row 3: Forum Topics Carousel */
+.td-topbar-row-topics {
+  min-height: 34px !important;
+  box-sizing: border-box !important;
+}
+
+.td-topic-pill {
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  font-size: 0.74rem !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+/* Row 4: Perspective Switcher & Filter Pills */
+.td-topbar-row-tools {
+  min-height: 34px !important;
+}
+
+.td-perspective-switcher {
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  padding: 3px !important;
+  box-sizing: border-box !important;
+}
+
+.td-perspective-btn {
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  font-size: 0.76rem !important;
+  padding: 0 11px !important;
+  box-sizing: border-box !important;
+}
+
+.td-filter-pills {
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  padding: 3px !important;
+  box-sizing: border-box !important;
+}
+
+.td-filter-pills .td-pill {
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  font-size: 0.74rem !important;
+  padding: 0 10px !important;
+  box-sizing: border-box !important;
+}
+
+/* Row 4 Right: Sort & Thumbnail Quality */
+.td-sort-group {
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  padding: 2px 6px !important;
+  box-sizing: border-box !important;
+}
+
+.td-sort-group .td-sort,
+.td-sort-group .td-modern-select {
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  font-size: 0.76rem !important;
+  box-sizing: border-box !important;
+}
+
+.td-thumb-quality-pills {
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  padding: 3px !important;
+  box-sizing: border-box !important;
+}
+
+.td-thumb-pill {
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  font-size: 0.74rem !important;
+  padding: 0 10px !important;
+  box-sizing: border-box !important;
+}
