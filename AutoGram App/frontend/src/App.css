@@ -26135,21 +26135,70 @@ button.td-confirm-icon.is-back-btn:active {
    COMPACT & MOBILE RESPONSIVE WRAP: GUARANTEED HAMBURGER & ACTION ROW
    ══════════════════════════════════════════════════════════════════════════ */
 
-@media (max-width: 767.98px) {
+/* Keep Row 1 on a single row as long as there is room (down to 480px) */
+.td-topbar-row-1 {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  width: 100% !important;
+  overflow: visible !important;
+}
+
+.td-topbar-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.td-topbar-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex: 0 0 auto !important;
+  gap: 4px !important;
+  overflow: visible !important;
+}
+
+/* Only drop down into 2 rows when truly narrow (< 480px) */
+@media (max-width: 479.98px) {
   .td-topbar {
-    padding: 8px 10px !important;
-    gap: 6px !important;
+    padding: 6px 8px !important;
+    gap: 4px !important;
   }
 
-  /* Row 1 splits into Navigation Row (Top) + Action Toolbar (Below) */
   .td-topbar-row-1 {
     height: auto !important;
     min-height: 0 !important;
     max-height: none !important;
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: 6px !important;
+    gap: 4px !important;
     overflow: visible !important;
+  }
+
+  .td-topbar-left {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 1 auto !important;
+  }
+
+  .td-topbar-actions {
+    width: 100% !important;
+    max-width: 100% !important;
+    justify-content: flex-start !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    padding-bottom: 2px !important;
   }
 
   .td-topbar-left {
