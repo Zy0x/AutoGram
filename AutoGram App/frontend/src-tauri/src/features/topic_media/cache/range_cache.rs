@@ -22,7 +22,16 @@ impl RangeCache {
 
     pub fn put(&self, offset: u64, length: usize, data: Bytes) {
         if let Ok(mut guard) = self.ranges.lock() {
+            if guard.len() >= 64 {
+                guard.clear();
+            }
             guard.insert((offset, length), data);
+        }
+    }
+
+    pub fn clear(&self) {
+        if let Ok(mut guard) = self.ranges.lock() {
+            guard.clear();
         }
     }
 }

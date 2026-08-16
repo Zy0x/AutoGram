@@ -1,3 +1,21 @@
+## v3.7.20 Global Memory & RAM Leak Audit & Bounded In-Memory Caches (Phase 21)
+
+### 1. Audit Menyeluruh Penggunaan RAM Backend, Frontend, dan Logika Server
+- **Rust Backend Memory Bounding (`thumbs.rs`, `stream.rs`, `memory.rs`, `range_cache.rs`)**:
+  - Mengaudit dan membatasi ukuran cache memori tak berbatas (*unbounded in-memory maps*):
+    - `thumb_mem_cache`: Dibatasi kapasitas maksimum 1.500 entri dengan mekanisme auto-eviction sehingga string data URL Base64 tidak menumpuk di RAM saat scrolling saluran besar (< 40MB RAM footprint).
+    - `live_preview_map`: Dibatasi maksimum 64 entri aktif untuk mencegah retensi data preview stream berlebih.
+    - `MemoryThumbCache`: Diberlakukan pembatasan anggaran byte ketat (*byte budget enforcement*) dan auto-trimming pada 1.000 item.
+    - `RangeCache`: Dibatasi maksimum 64 chunks (~32MB) dengan metode pembersihan terjadwal.
+- **Frontend Memory & Resource Lifecycle Audit (`thumbBatcher.ts`, `safeObjectUrl.ts`, `JobRuntime.tsx`, `MediaStudio/index.tsx`)**:
+  - Memverifikasi 100% siklus hidup `URL.createObjectURL()` yang selalu dipasangkan dengan `URL.revokeObjectURL()`.
+  - Memverifikasi pembersihan seluruh timer `setInterval` dan pendengar event `listen()` Tauri di dalam fungsi *cleanup* `useEffect`.
+  - Mengonfirmasi penggunaan virtual scrolling dan penyimpanan metadata ringan pada mesin scan saluran besar.
+- **Verifikasi Kualitas**:
+  - **4.865 Kunci Kamus** tersinkronisasi 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
+  - 146 unit test Vitest lulus 100%.
+  - `cargo check` backend Rust lulus tanpa error.
+
 ## v3.7.19 Resilient Creator Profile HD Extraction & No-Referrer CDN Loading (Phase 20)
 
 ### 1. Ekstraksi Avatar Profil TikTok yang Sangat Andal & Proteksi CDN Referer

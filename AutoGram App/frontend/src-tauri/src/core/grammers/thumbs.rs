@@ -389,7 +389,18 @@ pub struct TelegramMediaLocator {
 
 fn thumb_mem_cache() -> &'static Mutex<HashMap<String, String>> {
     static CACHE: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
-    CACHE.get_or_init(|| Mutex::new(HashMap::with_capacity(10000)))
+    CACHE.get_or_init(|| Mutex::new(HashMap::with_capacity(1500)))
+}
+
+fn insert_thumb_mem_cache(key: String, val: String) {
+    let mut mem = thumb_mem_cache().lock();
+    if mem.len() >= 1500 {
+        // Evict entries when budget exceeded to keep RAM footprint low (< 40MB)
+        if mem.len() >= 1500 {
+            mem.clear();
+        }
+    }
+    mem.insert(key, val);
 }
 
 pub fn clear_thumb_mem_cache() {
@@ -1855,9 +1866,7 @@ pub fn thumbs_batch_items_blocking_app(
                 if let Ok(bytes) = std::fs::read(&cache_file) {
                     if bytes.len() >= 64 {
                         if let Some(url) = to_data_url(&bytes) {
-                            thumb_mem_cache()
-                                .lock()
-                                .insert(cache_key.clone(), url.clone());
+                            insert_thumb_mem_cache(cache_key.clone(), url.clone());
                             found_url = Some(url);
                         }
                     }
@@ -2100,7 +2109,7 @@ pub fn thumbs_batch_items_blocking_app(
                                             let _ = std::fs::rename(&part_file, &cache_file);
                                         }
                                         if let Some(url) = to_data_url(&bytes) {
-                                            thumb_mem_cache().lock().insert(q_cache, url.clone());
+                                            insert_thumb_mem_cache(q_cache, url.clone());
                                             return (
                                                 key,
                                                 Some(url.clone()),

@@ -533,6 +533,14 @@ fn live_preview_map() -> &'static Mutex<HashMap<String, PreviewStreamResult>> {
     MAP.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
+fn insert_live_preview(key: String, val: PreviewStreamResult) {
+    let mut map = live_preview_map().lock();
+    if map.len() >= 64 {
+        map.clear();
+    }
+    map.insert(key, val);
+}
+
 fn preview_cache_generation() -> &'static AtomicU64 {
     static GENERATION: AtomicU64 = AtomicU64::new(1);
     &GENERATION
@@ -690,7 +698,7 @@ pub fn start_preview_stream_blocking(
             if preview_cache_generation().load(Ordering::SeqCst) == cache_generation
                 && (usable_live_preview(r) || r.streaming || !r.path.is_empty())
             {
-                live_preview_map().lock().insert(key, r.clone());
+                insert_live_preview(key, r.clone());
             }
         } else if let Err(e) = &result {
             session_rate::note_error(&identity.session, e);
@@ -706,7 +714,7 @@ pub fn start_preview_stream_blocking(
             if preview_cache_generation().load(Ordering::SeqCst) == cache_generation
                 && (usable_live_preview(r) || r.streaming || !r.path.is_empty()) =>
         {
-            live_preview_map().lock().insert(key.clone(), r.clone());
+            insert_live_preview(key.clone(), r.clone());
         }
         Err(e) => session_rate::note_error(&identity.session, e),
         _ => {}
