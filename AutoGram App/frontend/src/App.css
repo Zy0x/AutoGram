@@ -30764,3 +30764,51 @@ button.td-confirm-icon.is-back-btn:active {
   color: #ffffff !important;
   box-shadow: 0 0 10px rgba(59, 130, 246, 0.25) !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   FLUSH RIGHT-ALIGNED TOPBAR ACTION TOOLBAR
+   Ensures Upload, Settings, and Tools are always anchored to the far right,
+   aligned perfectly with right-hand elements in rows below
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-topbar .td-topbar-row-1 {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  padding-right: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.td-topbar .td-topbar-actions-wrapper {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  margin-left: auto !important;
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  overflow: hidden !important;
+  position: relative !important;
+  height: 42px !important;
+  gap: 4px !important;
+  padding-right: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.td-topbar .td-topbar-actions-wrapper .td-topbar-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  margin-left: auto !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none !important;
+  gap: 6px !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
