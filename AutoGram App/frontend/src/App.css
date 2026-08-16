@@ -28325,3 +28325,176 @@ button.td-confirm-icon.is-back-btn:active {
     display: inline !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TOPBAR ROW 1: INLINE SINGLE-ROW (> 600px) WITH HORIZONTAL SCROLL
+   - Left: [ ≡ ] [ 📌 ] Start / #Gudang (Protected, never squished)
+   - Right: All action tools on the same row with horizontal scroll
+   - Strict 42px row height consistency
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Screen width <= 600px: 2-row layout */
+@media (max-width: 600px) {
+  .td-topbar .td-topbar-row-1 {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    gap: 6px !important;
+    padding: 4px 0 !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+  }
+
+  .td-topbar .td-topbar-row-1 .td-topbar-left {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+  }
+
+  .td-topbar .td-topbar-row-1 .td-topbar-left .td-breadcrumbs {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: calc(100% - 90px) !important;
+  }
+
+  .td-topbar .td-topbar-row-1 .td-topbar-actions {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 6px !important;
+    box-sizing: border-box !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    margin-top: 2px !important;
+  }
+}
+
+/* Screen width > 600px: Single inline row with horizontal scroll for actions */
+@media (min-width: 601px) {
+  .td-topbar .td-topbar-row-1 {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    gap: 10px !important;
+    width: 100% !important;
+    padding: 0 2px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  .td-topbar .td-topbar-row-1 .td-topbar-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+    max-width: 45% !important;
+    overflow: hidden !important;
+  }
+
+  .td-topbar .td-topbar-row-1 .td-topbar-left .td-breadcrumbs {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .td-topbar .td-topbar-row-1 .td-topbar-left .td-crumb-current {
+    font-weight: 700 !important;
+    color: #f8fafc !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    min-width: 0 !important;
+    max-width: 160px !important;
+  }
+
+  .td-topbar .td-topbar-row-1 .td-topbar-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 6px !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    white-space: nowrap !important;
+    height: 42px !important;
+    box-sizing: border-box !important;
+  }
+
+  .td-topbar .td-topbar-row-1 .td-topbar-actions::-webkit-scrollbar {
+    display: none !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BREADCRUMB FULL VISIBILITY & ACTION ROW HARMONY (> 600px)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Hide verbose count pill on <= 800px so full folder name 'Start / #Gudang' is always readable */
+@media (max-width: 800px) {
+  .td-topbar .td-count-pill {
+    display: none !important;
+  }
+}
+
+@media (min-width: 601px) {
+  .td-topbar .td-topbar-row-1 .td-topbar-left {
+    flex: 0 0 auto !important;
+    max-width: 50% !important;
+    min-width: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  .td-topbar .td-topbar-row-1 .td-topbar-left .td-breadcrumbs {
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .td-topbar .td-topbar-row-1 .td-topbar-left .td-crumb-current {
+    max-width: 220px !important;
+    font-weight: 700 !important;
+    color: #f8fafc !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .td-topbar .td-topbar-row-1 .td-topbar-actions {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 6px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    height: 42px !important;
+  }
+}
