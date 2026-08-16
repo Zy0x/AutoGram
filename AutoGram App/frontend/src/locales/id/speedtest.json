@@ -1587,6 +1587,8 @@
   "sidebar_expand_tooltip": "Perluas sidebar",
   "sidebar_collapse_tooltip": "Ciutkan sidebar",
   "sidebar_close_tooltip": "Tutup sidebar",
+  "scroll_tools_left": "Gulir alat ke kiri",
+  "scroll_tools_right": "Gulir alat ke kanan",
   "header_drive_title": "Cloud Drives",
   "header_drive_subtitle": "Penyimpanan Telegram",
   "time_recently": "Diakses baru-baru ini",

@@ -295,6 +295,48 @@ export function DriveTopBar({
   });
 
   const topbarActionsRef = useRef<HTMLDivElement>(null);
+  const [canScrollActionsLeft, setCanScrollActionsLeft] = useState(false);
+  const [canScrollActionsRight, setCanScrollActionsRight] = useState(false);
+
+  const updateActionsScrollState = useCallback(() => {
+    const el = topbarActionsRef.current;
+    if (!el) {
+      setCanScrollActionsLeft(false);
+      setCanScrollActionsRight(false);
+      return;
+    }
+    setCanScrollActionsLeft(el.scrollLeft > 2);
+    setCanScrollActionsRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  }, []);
+
+  const scrollActionsBy = useCallback((delta: number) => {
+    const el = topbarActionsRef.current;
+    if (!el) return;
+    el.scrollBy({ left: delta, behavior: 'smooth' });
+  }, []);
+
+  useEffect(() => {
+    const el = topbarActionsRef.current;
+    if (!el) return;
+    updateActionsScrollState();
+    el.addEventListener('scroll', updateActionsScrollState, { passive: true });
+    window.addEventListener('resize', updateActionsScrollState, { passive: true });
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => updateActionsScrollState());
+      ro.observe(el);
+    }
+
+    const t = setTimeout(updateActionsScrollState, 80);
+    return () => {
+      clearTimeout(t);
+      el.removeEventListener('scroll', updateActionsScrollState);
+      window.removeEventListener('resize', updateActionsScrollState);
+      if (ro) ro.disconnect();
+    };
+  }, [updateActionsScrollState, viewMode, gridZoom]);
+
   const handleActionsWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
     if (!topbarActionsRef.current) return;
     if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
@@ -573,166 +615,191 @@ export function DriveTopBar({
         </div>
 
         {!isToolsCollapsed && (
-          <div
-            ref={topbarActionsRef}
-            onWheel={handleActionsWheel}
-            className="td-topbar-actions"
-          >
+          <div className="td-topbar-actions-wrapper">
+            {canScrollActionsLeft && (
+              <button
+                type="button"
+                className="td-action-nav-btn left"
+                onClick={() => scrollActionsBy(-150)}
+                title={t('speedtest.scroll_tools_left')}
+                aria-label={t('speedtest.scroll_tools_left')}
+              >
+                <ChevronLeft size={13} strokeWidth={2.5} />
+              </button>
+            )}
 
-          {viewMode === 'grid' && (
-            <div className="td-zoom-controls" role="group" aria-label={t('speedtest.topbar_zoom_grid_aria')}>
+            <div
+              ref={topbarActionsRef}
+              onWheel={handleActionsWheel}
+              className="td-topbar-actions"
+            >
+              {viewMode === 'grid' && (
+                <div className="td-zoom-controls" role="group" aria-label={t('speedtest.topbar_zoom_grid_aria')}>
+                  <button
+                    type="button"
+                    className="td-icon-btn"
+                    disabled={!canZoomOut}
+                    onClick={() => onGridZoom((gridZoom - 1) as DriveGridZoom)}
+                    title={t("speedtest.topbar_zoom_out")}
+                    aria-label={t('speedtest.topbar_zoom_out_aria')}
+                  >
+                    <ZoomOut size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    className="td-zoom-label"
+                    onClick={() => onGridZoom(2 as DriveGridZoom)}
+                    title={t("speedtest.topbar_zoom_reset_hint", { label: zoomLevel.label })}
+                  >
+                    {zoomLevel.short}
+                  </button>
+                  <button
+                    type="button"
+                    className="td-icon-btn"
+                    disabled={!canZoomIn}
+                    onClick={() => onGridZoom((gridZoom + 1) as DriveGridZoom)}
+                    title={t("speedtest.topbar_zoom_in")}
+                    aria-label={t('speedtest.topbar_zoom_in_aria')}
+                  >
+                    <ZoomIn size={16} />
+                  </button>
+                </div>
+              )}
+
+              <div className="td-view-toggle" role="group" aria-label={t('speedtest.topbar_view_mode_aria')}>
+                <button
+                  type="button"
+                  className={`td-icon-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                  onClick={() => onViewMode('grid')}
+                  title={t('speedtest.topbar_view_grid_title')}
+                >
+                  <LayoutGrid size={16} />
+                </button>
+                <button
+                  type="button"
+                  className={`td-icon-btn ${viewMode === 'list' ? 'active' : ''}`}
+                  onClick={() => onViewMode('list')}
+                  title={t('speedtest.topbar_view_list_title')}
+                >
+                  <List size={16} />
+                </button>
+              </div>
+
               <button
                 type="button"
-                className="td-icon-btn"
-                disabled={!canZoomOut}
-                onClick={() => onGridZoom((gridZoom - 1) as DriveGridZoom)}
-                title={t("speedtest.topbar_zoom_out")}
-                aria-label={t('speedtest.topbar_zoom_out_aria')}
+                className={`td-icon-btn td-topbar-btn-refresh${loading || manualSpin ? ' is-refreshing' : ''}`}
+                onClick={handleRefreshClick}
+                disabled={loading}
+                title={t("speedtest.topbar_refresh_all")}
+                aria-label={t('speedtest.sidebar_btn_refresh')}
               >
-                <ZoomOut size={16} />
+                <RefreshCw size={16} className={loading || manualSpin ? 'spin' : undefined} />
               </button>
+
+              {onOpenTransferManager && (
+                <button
+                  type="button"
+                  className={`td-icon-btn td-transfer-open-btn ${transferBusy ? 'is-busy' : ''} ${
+                    transferHasHistory ? 'has-history' : ''
+                  } badge-${transferBadgeKind}`}
+                  onClick={onOpenTransferManager}
+                  title={
+                    transferBusy
+                      ? t('speedtest.topbar_tm_running', { count: transferBadgeCount })
+                      : transferBadgeKind === 'error'
+                        ? t('speedtest.topbar_tm_failed', { count: transferBadgeCount })
+                        : transferBadgeKind === 'done'
+                          ? t('speedtest.topbar_tm_done', { count: transferBadgeCount })
+                          : t('speedtest.topbar_open_transfer_manager')
+                  }
+                  aria-label={t('speedtest.topbar_tm_aria')}
+                >
+                  <ListTodo size={16} />
+                  {transferBadgeCount > 0 && transferBadgeKind !== 'none' && (
+                    <span
+                      className={`td-transfer-badge kind-${transferBadgeKind}`}
+                      aria-hidden
+                    >
+                      {transferBadgeCount > 99 ? '99+' : transferBadgeCount}
+                    </span>
+                  )}
+                </button>
+              )}
+
+              {onDownloadAllClick && (
+                <button
+                  type="button"
+                  className="td-icon-btn td-topbar-btn-zip"
+                  onClick={onDownloadAllClick}
+                  disabled={!!actionsDisabled}
+                  title={t("speedtest.topbar_download_zip")}
+                  aria-label={t("speedtest.topbar_download_zip")}
+                >
+                  <FolderArchive size={16} />
+                </button>
+              )}
+
+              {(onOpenTools || onOpenTransferSettings) && (
+                <button
+                  type="button"
+                  className={`td-btn-secondary td-topbar-btn-tools ${toolsActive ? 'active' : ''}`}
+                  onClick={onOpenTools || onOpenTransferSettings}
+                  disabled={!!actionsDisabled}
+                  title={t('speedtest.tools_title')}
+                  aria-label={t('speedtest.tools_title')}
+                >
+                  <Settings size={15} />
+                  <span className="td-btn-label">{t('speedtest.topbar_settings_btn')}</span>
+                </button>
+              )}
+
+              {onRemoteUploadClick && (
+                <button
+                  type="button"
+                  className="td-btn-secondary td-topbar-btn-remote"
+                  onClick={onRemoteUploadClick}
+                  disabled={!!actionsDisabled}
+                  title={t("speedtest.remote_upload_url_title")}
+                  aria-label={t("speedtest.remote_upload_url_title")}
+                >
+                  <Globe size={15} />
+                  <span className="td-btn-label">{t("speedtest.remote_url_btn")}</span>
+                </button>
+              )}
+
               <button
                 type="button"
-                className="td-zoom-label"
-                onClick={() => onGridZoom(2 as DriveGridZoom)}
-                title={t("speedtest.topbar_zoom_reset_hint", { label: zoomLevel.label })}
+                className="td-btn-primary"
+                onClick={onUpload}
+                disabled={!!actionsDisabled}
+                title={
+                  actionsDisabled
+                    ? t('speedtest.topbar_upload_wait_title')
+                    : t('speedtest.upload_file_to_loc')
+                }
+                aria-label={
+                  actionsDisabled
+                    ? t('speedtest.topbar_upload_wait_title')
+                    : t('speedtest.upload_file_to_loc')
+                }
               >
-                {zoomLevel.short}
-              </button>
-              <button
-                type="button"
-                className="td-icon-btn"
-                disabled={!canZoomIn}
-                onClick={() => onGridZoom((gridZoom + 1) as DriveGridZoom)}
-                title={t("speedtest.topbar_zoom_in")}
-                aria-label={t('speedtest.topbar_zoom_in_aria')}
-              >
-                <ZoomIn size={16} />
+                <Upload size={16} />
+                <span className="td-btn-label">{t('speedtest.btn_upload')}</span>
               </button>
             </div>
-          )}
 
-          <div className="td-view-toggle" role="group" aria-label={t('speedtest.topbar_view_mode_aria')}>
-            <button
-              type="button"
-              className={`td-icon-btn ${viewMode === 'grid' ? 'active' : ''}`}
-              onClick={() => onViewMode('grid')}
-              title={t('speedtest.topbar_view_grid_title')}
-            >
-              <LayoutGrid size={16} />
-            </button>
-            <button
-              type="button"
-              className={`td-icon-btn ${viewMode === 'list' ? 'active' : ''}`}
-              onClick={() => onViewMode('list')}
-              title={t('speedtest.topbar_view_list_title')}
-            >
-              <List size={16} />
-            </button>
+            {canScrollActionsRight && (
+              <button
+                type="button"
+                className="td-action-nav-btn right"
+                onClick={() => scrollActionsBy(150)}
+                title={t('speedtest.scroll_tools_right')}
+                aria-label={t('speedtest.scroll_tools_right')}
+              >
+                <ChevronRight size={13} strokeWidth={2.5} />
+              </button>
+            )}
           </div>
-
-          <button
-            type="button"
-            className={`td-icon-btn td-topbar-btn-refresh${loading || manualSpin ? ' is-refreshing' : ''}`}
-            onClick={handleRefreshClick}
-            disabled={loading}
-            title={t("speedtest.topbar_refresh_all")}
-            aria-label={t('speedtest.sidebar_btn_refresh')}
-          >
-            <RefreshCw size={16} className={loading || manualSpin ? 'spin' : undefined} />
-          </button>
-
-          {onOpenTransferManager && (
-            <button
-              type="button"
-              className={`td-icon-btn td-transfer-open-btn ${transferBusy ? 'is-busy' : ''} ${
-                transferHasHistory ? 'has-history' : ''
-              } badge-${transferBadgeKind}`}
-              onClick={onOpenTransferManager}
-              title={
-                transferBusy
-                  ? t('speedtest.topbar_tm_running', { count: transferBadgeCount })
-                  : transferBadgeKind === 'error'
-                    ? t('speedtest.topbar_tm_failed', { count: transferBadgeCount })
-                    : transferBadgeKind === 'done'
-                      ? t('speedtest.topbar_tm_done', { count: transferBadgeCount })
-                      : t('speedtest.topbar_open_transfer_manager')
-              }
-              aria-label={t('speedtest.topbar_tm_aria')}
-            >
-              <ListTodo size={16} />
-              {transferBadgeCount > 0 && transferBadgeKind !== 'none' && (
-                <span
-                  className={`td-transfer-badge kind-${transferBadgeKind}`}
-                  aria-hidden
-                >
-                  {transferBadgeCount > 99 ? '99+' : transferBadgeCount}
-                </span>
-              )}
-            </button>
-          )}
-
-          {onDownloadAllClick && (
-            <button
-              type="button"
-              className="td-icon-btn td-topbar-btn-zip"
-              onClick={onDownloadAllClick}
-              disabled={!!actionsDisabled}
-              title={t("speedtest.topbar_download_zip")}
-              aria-label={t("speedtest.topbar_download_zip")}
-            >
-              <FolderArchive size={16} />
-            </button>
-          )}
-
-          {(onOpenTools || onOpenTransferSettings) && (
-            <button
-              type="button"
-              className={`td-btn-secondary td-topbar-btn-tools ${toolsActive ? 'active' : ''}`}
-              onClick={onOpenTools || onOpenTransferSettings}
-              disabled={!!actionsDisabled}
-              title={t('speedtest.tools_title')}
-              aria-label={t('speedtest.tools_title')}
-            >
-              <Settings size={15} />
-              <span className="td-btn-label">{t('speedtest.topbar_settings_btn')}</span>
-            </button>
-          )}
-
-          {onRemoteUploadClick && (
-            <button
-              type="button"
-              className="td-btn-secondary td-topbar-btn-remote"
-              onClick={onRemoteUploadClick}
-              disabled={!!actionsDisabled}
-              title={t("speedtest.remote_upload_url_title")}
-              aria-label={t("speedtest.remote_upload_url_title")}
-            >
-              <Globe size={15} />
-              <span className="td-btn-label">{t("speedtest.remote_url_btn")}</span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            className="td-btn-primary"
-            onClick={onUpload}
-            disabled={!!actionsDisabled}
-            title={
-              actionsDisabled
-                ? t('speedtest.topbar_upload_wait_title')
-                : t('speedtest.upload_file_to_loc')
-            }
-            aria-label={
-              actionsDisabled
-                ? t('speedtest.topbar_upload_wait_title')
-                : t('speedtest.upload_file_to_loc')
-            }
-          >
-            <Upload size={16} />
-            <span className="td-btn-label">{t('speedtest.btn_upload')}</span>
-          </button>
-        </div>
         )}
       </div>
 
