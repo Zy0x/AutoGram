@@ -26034,3 +26034,23 @@ button.td-confirm-icon.is-back-btn:active {
   min-height: 28px !important;
   border-radius: 6px !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE MENU DRAWER BUTTON VISIBILITY
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 901px) {
+  .td-topbar .td-icon-btn.td-menu-btn,
+  .td-topbar .td-menu-btn,
+  .td-menu-btn {
+    display: none !important;
+  }
+}
+
+@media (max-width: 900.98px) {
+  .td-topbar .td-icon-btn.td-menu-btn,
+  .td-topbar .td-menu-btn,
+  .td-menu-btn {
+    display: inline-flex !important;
+  }
+}
