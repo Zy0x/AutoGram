@@ -25820,23 +25820,23 @@ button.td-confirm-icon.is-back-btn:active {
 
 
 /* ══════════════════════════════════════════════════════════════════════════
-   PRECISION COMPACT DRIVE TOPBAR DESIGN SYSTEM (LINEAR / APPLE GRADE)
+   STANDARD NATURAL DRIVE TOPBAR DESIGN SYSTEM (COMFORTABLE DESKTOP SIZING)
    ══════════════════════════════════════════════════════════════════════════ */
 
 .td-topbar {
-  --td-ctrl-h: 28px !important;
-  --td-ctrl-r: 6px !important;
-  --td-group-r: 7px !important;
+  --td-ctrl-h: 34px !important;
+  --td-ctrl-r: 8px !important;
+  --td-group-r: 8px !important;
   --td-group-bg: rgba(15, 23, 42, 0.65) !important;
-  --td-group-border: rgba(255, 255, 255, 0.09) !important;
+  --td-group-border: rgba(255, 255, 255, 0.1) !important;
   --td-active-bg: color-mix(in srgb, var(--td-primary, #e2a532) 18%, transparent) !important;
   --td-active-fg: var(--td-primary, #e2a532) !important;
   --td-active-border: color-mix(in srgb, var(--td-primary, #e2a532) 45%, transparent) !important;
 
   display: flex !important;
   flex-direction: column !important;
-  gap: 3px !important;
-  padding: 4px 10px !important;
+  gap: 6px !important;
+  padding: 8px 12px !important;
   border-bottom: 1px solid var(--td-border) !important;
   background: color-mix(in srgb, var(--td-surface, #0f172a) 94%, transparent) !important;
   backdrop-filter: blur(16px) !important;
@@ -25849,18 +25849,18 @@ button.td-confirm-icon.is-back-btn:active {
 .td-topbar-row {
   display: flex !important;
   align-items: center !important;
-  gap: 6px !important;
+  gap: 8px !important;
   min-width: 0 !important;
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
 }
 
-/* Row 1: Header Bar (30px) */
+/* Row 1: Header Bar (36px) */
 .td-topbar-row-1 {
-  height: 30px !important;
-  min-height: 30px !important;
-  max-height: 30px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
   justify-content: space-between !important;
   flex-wrap: nowrap !important;
   overflow: hidden !important;
@@ -25869,33 +25869,33 @@ button.td-confirm-icon.is-back-btn:active {
 .td-topbar-left {
   display: flex !important;
   align-items: center !important;
-  gap: 5px !important;
+  gap: 6px !important;
   min-width: 0 !important;
   flex: 1 1 auto !important;
   overflow: hidden !important;
-  height: 28px !important;
+  height: 36px !important;
 }
 
 .td-topbar-actions {
   display: flex !important;
   align-items: center !important;
-  gap: 4px !important;
+  gap: 5px !important;
   flex: 0 0 auto !important;
   flex-wrap: nowrap !important;
   justify-content: flex-end !important;
-  height: 28px !important;
+  height: 36px !important;
 }
 
 /* Icon Buttons in Topbar */
 .td-topbar .td-icon-btn {
-  width: 28px !important;
-  height: 28px !important;
-  min-width: 28px !important;
-  min-height: 28px !important;
-  max-width: 28px !important;
-  max-height: 28px !important;
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  max-width: 34px !important;
+  max-height: 34px !important;
   padding: 0 !important;
-  border-radius: 6px !important;
+  border-radius: 7px !important;
   border: 1px solid transparent !important;
   background: transparent !important;
   color: var(--td-sub, #94a3b8) !important;
@@ -25904,7 +25904,7 @@ button.td-confirm-icon.is-back-btn:active {
   justify-content: center !important;
   box-shadow: none !important;
   cursor: pointer !important;
-  transition: all 0.12s ease !important;
+  transition: all 0.14s ease !important;
 }
 
 .td-topbar .td-icon-btn:hover:not(:disabled) {
@@ -25924,12 +25924,12 @@ button.td-confirm-icon.is-back-btn:active {
 .td-topbar .td-view-toggle {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 1px !important;
-  height: 26px !important;
-  min-height: 26px !important;
-  max-height: 26px !important;
-  padding: 1px !important;
-  border-radius: 6px !important;
+  gap: 2px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  padding: 2px !important;
+  border-radius: 7px !important;
   background: var(--td-group-bg) !important;
   border: 1px solid var(--td-group-border) !important;
   box-sizing: border-box !important;
@@ -25937,24 +25937,24 @@ button.td-confirm-icon.is-back-btn:active {
 
 .td-topbar .td-zoom-controls .td-icon-btn,
 .td-topbar .td-view-toggle .td-icon-btn {
-  width: 22px !important;
-  height: 22px !important;
-  min-width: 22px !important;
-  min-height: 22px !important;
-  max-width: 22px !important;
-  max-height: 22px !important;
-  border-radius: 4px !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  max-width: 28px !important;
+  max-height: 28px !important;
+  border-radius: 5px !important;
 }
 
 .td-topbar .td-zoom-controls .td-zoom-label {
-  min-width: 22px !important;
-  height: 22px !important;
-  min-height: 22px !important;
-  max-height: 22px !important;
-  line-height: 22px !important;
-  font-size: 0.68rem !important;
+  min-width: 28px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  line-height: 28px !important;
+  font-size: 0.74rem !important;
   font-weight: 700 !important;
-  padding: 0 4px !important;
+  padding: 0 6px !important;
   background: transparent !important;
   border: none !important;
   color: var(--td-sub, #94a3b8) !important;
@@ -25962,22 +25962,22 @@ button.td-confirm-icon.is-back-btn:active {
 
 /* Primary CTA Button (Upload) */
 .td-topbar .td-btn-primary {
-  height: 26px !important;
-  min-height: 26px !important;
-  max-height: 26px !important;
-  padding: 0 10px !important;
-  font-size: 0.74rem !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  padding: 0 12px !important;
+  font-size: 0.78rem !important;
   font-weight: 700 !important;
-  border-radius: 6px !important;
+  border-radius: 7px !important;
   border: 1px solid var(--td-active-border) !important;
   background: var(--td-active-bg) !important;
   color: var(--td-active-fg) !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 5px !important;
+  gap: 6px !important;
   cursor: pointer !important;
   box-shadow: none !important;
-  transition: all 0.12s ease !important;
+  transition: all 0.14s ease !important;
 }
 
 .td-topbar .td-btn-primary:hover:not(:disabled) {
@@ -25986,27 +25986,27 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-topbar .td-btn-secondary {
-  height: 26px !important;
-  min-height: 26px !important;
-  max-height: 26px !important;
-  padding: 0 8px !important;
-  font-size: 0.74rem !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  padding: 0 10px !important;
+  font-size: 0.78rem !important;
   font-weight: 600 !important;
-  border-radius: 6px !important;
+  border-radius: 7px !important;
   border: 1px solid var(--td-group-border) !important;
   background: var(--td-group-bg) !important;
   color: var(--td-sub, #94a3b8) !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 5px !important;
+  gap: 6px !important;
 }
 
 /* Breadcrumbs & Count Badge */
 .td-breadcrumbs {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 3px !important;
-  font-size: 0.8rem !important;
+  gap: 4px !important;
+  font-size: 0.88rem !important;
   overflow: hidden !important;
   min-width: 0 !important;
 }
@@ -26014,8 +26014,8 @@ button.td-confirm-icon.is-back-btn:active {
 .td-crumb-link,
 .td-crumb-current,
 .td-crumb-muted {
-  font-size: 0.8rem !important;
-  line-height: 1.2 !important;
+  font-size: 0.88rem !important;
+  line-height: 1.3 !important;
   white-space: nowrap !important;
   min-height: 0 !important;
   min-width: 0 !important;
@@ -26024,13 +26024,13 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-count-pill {
-  height: 20px !important;
-  min-height: 20px !important;
-  max-height: 20px !important;
-  padding: 0 7px !important;
-  font-size: 0.68rem !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
+  padding: 0 9px !important;
+  font-size: 0.74rem !important;
   font-weight: 700 !important;
-  line-height: 20px !important;
+  line-height: 24px !important;
   border-radius: 999px !important;
   background: rgba(255, 255, 255, 0.07) !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
@@ -26041,46 +26041,46 @@ button.td-confirm-icon.is-back-btn:active {
   flex-shrink: 0 !important;
 }
 
-/* Row 2: Forum Topics Row (26px height) */
+/* Row 2: Forum Topics Row (32px height) */
 .td-topbar-row-topics {
-  height: 26px !important;
-  min-height: 26px !important;
-  max-height: 26px !important;
-  gap: 6px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  gap: 8px !important;
   overflow: hidden !important;
 }
 
 .td-topics-label {
-  font-size: 0.65rem !important;
+  font-size: 0.72rem !important;
   font-weight: 700 !important;
   letter-spacing: 0.04em !important;
   color: var(--td-sub, #94a3b8) !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 4px !important;
+  gap: 5px !important;
   flex-shrink: 0 !important;
 }
 
 .td-topics-scroll-container {
   display: flex !important;
   align-items: center !important;
-  gap: 4px !important;
+  gap: 6px !important;
   min-width: 0 !important;
   flex: 1 1 auto !important;
   overflow: hidden !important;
-  height: 24px !important;
+  height: 30px !important;
 }
 
 .td-topic-pills {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 4px !important;
+  gap: 6px !important;
   overflow-x: auto !important;
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
   padding: 0 !important;
   margin: 0 !important;
-  height: 24px !important;
+  height: 30px !important;
 }
 .td-topic-pills::-webkit-scrollbar {
   display: none !important;
@@ -26089,11 +26089,11 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-topic-pill {
-  height: 22px !important;
-  min-height: 22px !important;
-  max-height: 22px !important;
-  padding: 0 8px !important;
-  font-size: 0.69rem !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  padding: 0 11px !important;
+  font-size: 0.76rem !important;
   font-weight: 600 !important;
   border-radius: 999px !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
@@ -26113,22 +26113,22 @@ button.td-confirm-icon.is-back-btn:active {
   font-weight: 700 !important;
 }
 
-/* Row 3: Search Input (28px) */
+/* Row 3: Search Input (34px) */
 .td-topbar-row-2 {
-  height: 28px !important;
-  min-height: 28px !important;
-  max-height: 28px !important;
-  gap: 6px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  gap: 8px !important;
   overflow: hidden !important;
 }
 
 .td-topbar .td-search {
-  height: 26px !important;
-  min-height: 26px !important;
-  max-height: 26px !important;
-  padding: 2px 8px !important;
-  font-size: 0.75rem !important;
-  border-radius: 6px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  padding: 4px 12px !important;
+  font-size: 0.82rem !important;
+  border-radius: 7px !important;
   background: rgba(0, 0, 0, 0.25) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   color: #f8fafc !important;
@@ -26142,7 +26142,7 @@ button.td-confirm-icon.is-back-btn:active {
 
 /* Row 4: Tools Row (Perspective + Filters + Sort + Thumb) */
 .td-topbar-row-tools {
-  min-height: 26px !important;
+  min-height: 32px !important;
   overflow: visible !important;
 }
 
@@ -26150,7 +26150,7 @@ button.td-confirm-icon.is-back-btn:active {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  gap: 6px 10px !important;
+  gap: 8px 14px !important;
   width: 100% !important;
   box-sizing: border-box !important;
 }
@@ -26158,32 +26158,32 @@ button.td-confirm-icon.is-back-btn:active {
 .td-tools-left-cluster {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 6px !important;
+  gap: 8px !important;
   min-width: 0 !important;
   flex: 1 1 auto !important;
   overflow: hidden !important;
-  height: 26px !important;
+  height: 32px !important;
 }
 
 .td-tools-right-cluster {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 6px !important;
+  gap: 10px !important;
   min-width: 0 !important;
   flex: 0 0 auto !important;
-  height: 26px !important;
+  height: 32px !important;
 }
 
-/* Perspective Switcher (Segmented, crisp & flat) */
+/* Perspective Switcher (Segmented, comfortable desktop size) */
 .td-perspective-switcher {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 1px !important;
-  padding: 1px !important;
-  height: 24px !important;
-  min-height: 24px !important;
-  max-height: 24px !important;
-  border-radius: 6px !important;
+  gap: 2px !important;
+  padding: 2px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  max-height: 30px !important;
+  border-radius: 7px !important;
   background: var(--td-group-bg) !important;
   border: 1px solid var(--td-group-border) !important;
   box-sizing: border-box !important;
@@ -26191,13 +26191,13 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-perspective-btn {
-  height: 20px !important;
-  min-height: 20px !important;
-  max-height: 20px !important;
-  padding: 0 7px !important;
-  font-size: 0.68rem !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  max-height: 26px !important;
+  padding: 0 10px !important;
+  font-size: 0.76rem !important;
   font-weight: 600 !important;
-  border-radius: 4px !important;
+  border-radius: 5px !important;
   border: none !important;
   background: transparent !important;
   color: var(--td-sub, #94a3b8) !important;
@@ -26211,12 +26211,12 @@ button.td-confirm-icon.is-back-btn:active {
   background: var(--td-active-bg) !important;
   color: var(--td-active-fg) !important;
   font-weight: 700 !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25) !important;
 }
 
 /* Tool Labels: Filter, Sort, Thumb */
 .td-tool-label {
-  font-size: 0.63rem !important;
+  font-size: 0.7rem !important;
   font-weight: 700 !important;
   letter-spacing: 0.04em !important;
   color: var(--td-sub, #94a3b8) !important;
@@ -26225,19 +26225,19 @@ button.td-confirm-icon.is-back-btn:active {
   align-items: center !important;
   flex-shrink: 0 !important;
   line-height: 1 !important;
-  padding: 0 1px !important;
+  padding: 0 3px !important;
 }
 
 /* Filter Pills Group */
 .td-filter-pills {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 2px !important;
-  height: 24px !important;
-  min-height: 24px !important;
-  max-height: 24px !important;
-  padding: 1px 2px !important;
-  border-radius: 6px !important;
+  gap: 4px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  max-height: 30px !important;
+  padding: 2px !important;
+  border-radius: 7px !important;
   background: var(--td-group-bg) !important;
   border: 1px solid var(--td-group-border) !important;
   overflow-x: auto !important;
@@ -26252,26 +26252,26 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-filter-pills .td-pill {
-  height: 20px !important;
-  min-height: 20px !important;
-  max-height: 20px !important;
-  padding: 0 6px !important;
-  font-size: 0.68rem !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  max-height: 26px !important;
+  padding: 0 9px !important;
+  font-size: 0.75rem !important;
   font-weight: 600 !important;
-  border-radius: 4px !important;
+  border-radius: 5px !important;
   border: 1px solid transparent !important;
   background: transparent !important;
   color: var(--td-sub, #94a3b8) !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 3px !important;
+  gap: 4px !important;
   cursor: pointer !important;
   white-space: nowrap !important;
   flex-shrink: 0 !important;
 }
 
 .td-filter-pills .td-pill:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
   color: #f1f5f9 !important;
 }
 
@@ -26283,11 +26283,11 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-filter-count {
-  font-size: 0.6rem !important;
+  font-size: 0.68rem !important;
   font-weight: 700 !important;
-  opacity: 0.8 !important;
-  padding: 0 2px !important;
-  border-radius: 2px !important;
+  opacity: 0.85 !important;
+  padding: 1px 4px !important;
+  border-radius: 3px !important;
   background: rgba(255, 255, 255, 0.08) !important;
 }
 
@@ -26295,12 +26295,12 @@ button.td-confirm-icon.is-back-btn:active {
 .td-sort-group {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 2px !important;
-  height: 24px !important;
-  min-height: 24px !important;
-  max-height: 24px !important;
-  padding: 1px 3px !important;
-  border-radius: 6px !important;
+  gap: 4px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  max-height: 30px !important;
+  padding: 2px 6px !important;
+  border-radius: 7px !important;
   background: var(--td-group-bg) !important;
   border: 1px solid var(--td-group-border) !important;
   box-sizing: border-box !important;
@@ -26308,11 +26308,11 @@ button.td-confirm-icon.is-back-btn:active {
 
 .td-sort-group .td-sort,
 .td-sort-group .td-modern-select {
-  height: 20px !important;
-  min-height: 20px !important;
-  max-height: 20px !important;
-  font-size: 0.69rem !important;
-  padding: 0 3px !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  max-height: 26px !important;
+  font-size: 0.76rem !important;
+  padding: 0 4px !important;
   border: none !important;
   background: transparent !important;
 }
@@ -26321,25 +26321,25 @@ button.td-confirm-icon.is-back-btn:active {
 .td-thumb-quality-pills {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 1px !important;
-  height: 24px !important;
-  min-height: 24px !important;
-  max-height: 24px !important;
-  padding: 1px !important;
-  border-radius: 6px !important;
+  gap: 2px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  max-height: 30px !important;
+  padding: 2px !important;
+  border-radius: 7px !important;
   background: var(--td-group-bg) !important;
   border: 1px solid var(--td-group-border) !important;
   box-sizing: border-box !important;
 }
 
 .td-thumb-pill {
-  height: 20px !important;
-  min-height: 20px !important;
-  max-height: 20px !important;
-  padding: 0 6px !important;
-  font-size: 0.68rem !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  max-height: 26px !important;
+  padding: 0 9px !important;
+  font-size: 0.74rem !important;
   font-weight: 600 !important;
-  border-radius: 4px !important;
+  border-radius: 5px !important;
   border: 1px solid transparent !important;
   background: transparent !important;
   color: var(--td-sub, #94a3b8) !important;
@@ -26350,7 +26350,7 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-thumb-pill:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
   color: #f1f5f9 !important;
 }
 
@@ -26365,7 +26365,7 @@ button.td-confirm-icon.is-back-btn:active {
   .td-topbar-tools {
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: 4px !important;
+    gap: 6px !important;
   }
   .td-tools-left-cluster {
     width: 100% !important;
@@ -26377,7 +26377,7 @@ button.td-confirm-icon.is-back-btn:active {
     justify-content: space-between !important;
     align-items: center !important;
     border-top: 1px solid rgba(255, 255, 255, 0.04) !important;
-    padding-top: 3px !important;
+    padding-top: 4px !important;
   }
 }
 @media (max-width: 639.98px) {
@@ -26398,7 +26398,6 @@ button.td-confirm-icon.is-back-btn:active {
     justify-content: space-between !important;
   }
 }
-
 
 /* ─── Ultra-Compact Screen Refinements (< 520px) ─── */
 @media (max-width: 519.98px) {
