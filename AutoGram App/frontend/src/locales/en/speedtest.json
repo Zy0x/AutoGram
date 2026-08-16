@@ -72,6 +72,8 @@
   "save_file": "Save File",
   "tools_title": "Transfer & Engine Settings",
   "topbar_settings_btn": "Settings",
+  "expand_toolbar": "Expand Toolbar",
+  "collapse_toolbar": "Collapse Toolbar",
   "walk_media_notice": "Background media scan — count will finalize when done. Grid remains usable.",
   "walk_grid_notice": "From loaded grid / lower-bound. Opening this tab triggers accurate background calculation.",
   "skip_dup_name_size": "Skip duplicates (matching name + size at target)",

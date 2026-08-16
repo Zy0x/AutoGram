@@ -26,6 +26,8 @@ import {
   FolderArchive,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -215,6 +217,42 @@ export function DriveTopBar({
 }: Props) {
   const { t } = useTranslation();
   const [manualSpin, setManualSpin] = useState(false);
+  const [isToolsCollapsed, setIsToolsCollapsed] = useState<boolean>(false);
+  const userInteractedRef = useRef<boolean>(false);
+
+  // Auto-collapse after 3 seconds on narrow / smallest screen (<= 600px)
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+
+    const handleResize = () => {
+      if (typeof window === 'undefined') return;
+      const isNarrow = window.innerWidth <= 600;
+      if (!isNarrow) {
+        userInteractedRef.current = false;
+        setIsToolsCollapsed(false);
+      }
+    };
+
+    if (typeof window !== 'undefined' && window.innerWidth <= 600) {
+      if (!userInteractedRef.current) {
+        timer = setTimeout(() => {
+          setIsToolsCollapsed(true);
+        }, 3000);
+      }
+    }
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      if (timer) clearTimeout(timer);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  const handleToggleCollapse = () => {
+    userInteractedRef.current = true;
+    setIsToolsCollapsed((prev) => !prev);
+  };
+
   const handleRefreshClick = () => {
     setManualSpin(true);
     setTimeout(() => setManualSpin(false), 800);
@@ -525,9 +563,20 @@ export function DriveTopBar({
             {spaceLabel ? <span className="td-count-space"> · {spaceLabel}</span> : null}
           </span>
 
+          {/* Toggle Button to Collapse / Expand Header Tools Panel */}
+          <button
+            type="button"
+            className={`td-icon-btn td-topbar-toggle-btn ${isToolsCollapsed ? 'is-collapsed' : ''}`}
+            onClick={handleToggleCollapse}
+            title={isToolsCollapsed ? t('speedtest.expand_toolbar') : t('speedtest.collapse_toolbar')}
+            aria-label={isToolsCollapsed ? t('speedtest.expand_toolbar') : t('speedtest.collapse_toolbar')}
+          >
+            {isToolsCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+          </button>
         </div>
 
-        <div className="td-topbar-actions">
+        {!isToolsCollapsed && (
+          <div className="td-topbar-actions">
 
           {viewMode === 'grid' && (
             <div className="td-zoom-controls" role="group" aria-label={t('speedtest.topbar_zoom_grid_aria')}>
@@ -683,11 +732,14 @@ export function DriveTopBar({
             <span className="td-btn-label">{t('speedtest.btn_upload')}</span>
           </button>
         </div>
+        )}
       </div>
 
-      {/* Forum topics — Semua media + per-topic filter */}
-      {showTopics && (
-        <div className="td-topbar-row td-topbar-row-topics" role="group" aria-label={t("speedtest.label_topic")}>
+      {!isToolsCollapsed && (
+        <>
+          {/* Forum topics — Semua media + per-topic filter */}
+          {showTopics && (
+            <div className="td-topbar-row td-topbar-row-topics" role="group" aria-label={t("speedtest.label_topic")}>
           <span className="td-topics-label">
             <MessagesSquare size={14} />
             {t('speedtest.label_topic')}
@@ -950,6 +1002,8 @@ export function DriveTopBar({
           </div>
         </div>
       </div>
+      </>
+      )}
       {topicContextMenu &&
         createPortal(
           <div

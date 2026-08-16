@@ -26642,3 +26642,92 @@ button.td-confirm-icon.is-back-btn:active {
   display: inline-flex !important;
   align-items: center !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   COLLAPSIBLE HEADER TOOLS PANEL & FLUID FULL-WIDTH BREADCRUMBS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-topbar .td-topbar-toggle-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  border-radius: 6px !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #fbbf24 !important;
+  cursor: pointer !important;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
+  z-index: 10 !important;
+}
+
+.td-topbar .td-topbar-toggle-btn:hover {
+  background: rgba(226, 165, 50, 0.2) !important;
+  border-color: #fbbf24 !important;
+  color: #ffffff !important;
+  transform: scale(1.08) !important;
+}
+
+.td-topbar .td-topbar-toggle-btn.is-collapsed {
+  background: color-mix(in srgb, #e2a532 20%, transparent) !important;
+  border-color: rgba(226, 165, 50, 0.45) !important;
+  color: #f59e0b !important;
+}
+
+/* Responsive Wrap for Action Toolbar (< 600px) */
+@media (max-width: 600px) {
+  .td-topbar-row-1 {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    gap: 6px !important;
+    overflow: visible !important;
+  }
+
+  .td-topbar-left {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+  }
+
+  .td-topbar-left .td-breadcrumbs {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .td-topbar-left .td-crumb-current {
+    max-width: none !important;
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .td-topbar-actions {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 4px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    padding-bottom: 2px !important;
+  }
+}
