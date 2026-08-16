@@ -1720,10 +1720,10 @@ export function DriveSidebar({
     >
       {/* Expand/collapse first (top) — users expect this control at the top of the rail */}
       <div className="td-rail-head">
-        {onExitToApp && effectiveCollapsed && (
+        {onExitToApp && (
           <button
             type="button"
-            className="td-rail-btn td-rail-back td-rail-back-compact"
+            className="td-rail-btn td-rail-back td-rail-back-btn"
             onClick={() => {
               onExitToApp();
               onCloseDrawer?.();
@@ -1771,24 +1771,6 @@ export function DriveSidebar({
             <span>{t('speedtest.header_drive_subtitle')}</span>
           </div>
         </button>
-
-        {onExitToApp && !effectiveCollapsed && (
-          <button
-            type="button"
-            className="td-rail-btn td-rail-back td-rail-back-wide"
-            onClick={() => {
-              onExitToApp();
-              onCloseDrawer?.();
-            }}
-            title={t("speedtest.sidebar_back_to_app")}
-          >
-            <ArrowLeft size={18} />
-            <span className="td-rail-btn-label">
-              <Rocket size={14} />
-              {t('nav.title')}
-            </span>
-          </button>
-        )}
       </div>
 
       <div className="td-sidebar-session td-only-expanded">

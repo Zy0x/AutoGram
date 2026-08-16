@@ -30628,3 +30628,139 @@ button.td-confirm-icon.is-back-btn:active {
 .td-topbar .td-topbar-left > .td-menu-btn:first-of-type {
   margin-left: 0 !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   UNIFIED BACK TO AUTOGRAM BUTTON IN SIDEBAR (EXPANDED & COLLAPSED)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Expanded Mode Header (Back Button on left + Brand Logo/Title on right) */
+.td-sidebar:not(.is-collapsed) .td-rail-head {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  padding: 12px 14px !important;
+  box-sizing: border-box !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.td-sidebar:not(.is-collapsed) .td-rail-head .td-rail-back-btn,
+.td-sidebar:not(.is-collapsed) .td-rail-head .td-rail-back,
+.td-sidebar:not(.is-collapsed) .td-rail-head .td-rail-back-compact {
+  order: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  flex: 0 0 36px !important;
+  border-radius: 9px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #94a3b8 !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25) !important;
+  outline: none !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-sidebar:not(.is-collapsed) .td-rail-head .td-rail-back-btn:hover,
+.td-sidebar:not(.is-collapsed) .td-rail-head .td-rail-back:hover,
+.td-sidebar:not(.is-collapsed) .td-rail-head .td-rail-back-compact:hover {
+  background: rgba(59, 130, 246, 0.2) !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.25) !important;
+  transform: none !important;
+}
+
+.td-sidebar:not(.is-collapsed) .td-rail-head .td-rail-brand-toggle {
+  order: 1 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  text-align: left !important;
+}
+
+/* Collapsed Mode Header (Centered Brand Toggle at top + Centered Back Button below) */
+.td-sidebar.is-collapsed .td-rail-head,
+.td-sidebar.collapsed .td-rail-head {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 10px 0 6px 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.td-sidebar.is-collapsed .td-rail-head .td-rail-brand-toggle,
+.td-sidebar.collapsed .td-rail-head .td-rail-brand-toggle {
+  order: 0 !important;
+  width: 40px !important;
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 auto !important;
+}
+
+.td-sidebar.is-collapsed .td-rail-head .td-rail-back-btn,
+.td-sidebar.is-collapsed .td-rail-head .td-rail-back,
+.td-sidebar.is-collapsed .td-rail-head .td-rail-back-compact,
+.td-sidebar.collapsed .td-rail-head .td-rail-back-btn,
+.td-sidebar.collapsed .td-rail-head .td-rail-back,
+.td-sidebar.collapsed .td-rail-head .td-rail-back-compact {
+  order: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  border-radius: 9px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #94a3b8 !important;
+  cursor: pointer !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-sidebar.is-collapsed .td-rail-head .td-rail-back-btn:hover,
+.td-sidebar.is-collapsed .td-rail-head .td-rail-back:hover,
+.td-sidebar.is-collapsed .td-rail-head .td-rail-back-compact:hover,
+.td-sidebar.collapsed .td-rail-head .td-rail-back-btn:hover,
+.td-sidebar.collapsed .td-rail-head .td-rail-back:hover,
+.td-sidebar.collapsed .td-rail-head .td-rail-back-compact:hover {
+  background: rgba(59, 130, 246, 0.2) !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.25) !important;
+}
