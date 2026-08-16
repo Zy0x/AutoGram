@@ -248,15 +248,17 @@ export function SessionLauncher({
           </div>
         </div>
 
-        <div className="ag-launcher-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="ag-launcher-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button
             type="button"
             onClick={onOpenAccounts}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '6px',
-              padding: '8px 14px',
+              padding: '0 13px',
+              height: '36px',
               borderRadius: '10px',
               background: 'rgba(56, 189, 248, 0.12)',
               border: '1px solid rgba(56, 189, 248, 0.3)',
@@ -264,11 +266,14 @@ export function SessionLauncher({
               fontSize: '0.82rem',
               fontWeight: 600,
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
               transition: 'all 0.15s ease',
             }}
+            title={t('nav.add_session')}
+            aria-label={t('nav.add_session')}
           >
             <Plus size={15} />
-            <span>{t('nav.add_session')}</span>
+            <span style={{ whiteSpace: 'nowrap' }}>{t('nav.add_session')}</span>
           </button>
 
           <button
@@ -278,13 +283,15 @@ export function SessionLauncher({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '6px',
-              padding: '0 12px',
+              padding: '0 13px',
               height: '36px',
               borderRadius: '10px',
               fontSize: '0.82rem',
               fontWeight: 600,
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
               transition: 'all 0.15s ease',
               ...(hasApiError
                 ? {}
@@ -298,7 +305,7 @@ export function SessionLauncher({
             aria-label={t('settings.api_config')}
           >
             <Key size={15} />
-            <span>{t('nav.api_credentials_btn')}</span>
+            <span style={{ whiteSpace: 'nowrap' }}>{t('nav.api_credentials_btn')}</span>
           </button>
 
           <button
@@ -307,8 +314,9 @@ export function SessionLauncher({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '6px',
-              padding: '0 12px',
+              padding: '0 13px',
               height: '36px',
               borderRadius: '10px',
               background: 'rgba(255, 255, 255, 0.05)',
@@ -317,12 +325,14 @@ export function SessionLauncher({
               fontSize: '0.82rem',
               fontWeight: 500,
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.15s ease',
             }}
             title={t('nav.general_settings')}
             aria-label={t('nav.general_settings')}
           >
             <Settings size={15} />
-            <span>{t('nav.settings')}</span>
+            <span style={{ whiteSpace: 'nowrap' }}>{t('nav.settings')}</span>
           </button>
         </div>
       </header>

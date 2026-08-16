@@ -31711,3 +31711,85 @@ button.td-confirm-icon.is-back-btn:active {
     font-size: 0.68rem !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TELEGRAM WORKSPACE HUB HEADER & ACTION BUTTONS COMPACT VIEWPORT FIX
+   Prevents buttons from expanding vertically or wrapping text on small screens.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.ag-launcher-header {
+  height: 60px !important;
+  min-height: 60px !important;
+  max-height: 60px !important;
+  padding: 0 24px !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.ag-launcher-header-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.ag-launcher-header-actions button {
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  padding: 0 13px !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+  border-radius: 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.ag-launcher-header-actions button span {
+  white-space: nowrap !important;
+}
+
+/* Tablet & Compact Viewports (<= 768px): Icon-only compact header buttons */
+@media (max-width: 768px) {
+  .ag-launcher-header {
+    height: 54px !important;
+    min-height: 54px !important;
+    max-height: 54px !important;
+    padding: 0 14px !important;
+  }
+
+  .ag-launcher-brand > div:last-child span {
+    display: none !important;
+  }
+
+  .ag-launcher-brand > div:last-child {
+    height: auto !important;
+  }
+
+  .ag-launcher-brand h2 {
+    font-size: 1.05rem !important;
+  }
+
+  .ag-launcher-header-actions {
+    gap: 6px !important;
+  }
+
+  .ag-launcher-header-actions button {
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    padding: 0 !important;
+    border-radius: 9px !important;
+    justify-content: center !important;
+  }
+
+  .ag-launcher-header-actions button span {
+    display: none !important;
+  }
+}
