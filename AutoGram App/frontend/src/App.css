@@ -29856,3 +29856,229 @@ button.td-confirm-icon.is-back-btn:active {
 .td-sidebar.is-collapsed .td-section-label {
   display: none !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PERFECT VERTICAL ALIGNMENT & SYMMETRY FOR COLLAPSED SIDEBAR RAIL
+   - Every single button, tab, avatar, and quick item is 40x40px
+   - Precisely centered along the exact vertical centerline (X = 32px)
+   - Zero horizontal offset or leaning to the left/right
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-sidebar.is-collapsed,
+.td-sidebar.collapsed {
+  width: 64px !important;
+  min-width: 64px !important;
+  max-width: 64px !important;
+  background: #0b1120 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+
+/* 1. All Rail Head & Action Containers */
+.td-sidebar.is-collapsed .td-rail-head,
+.td-sidebar.is-collapsed .td-rail-actions,
+.td-sidebar.is-collapsed .td-sidebar-collapsed-tabs,
+.td-sidebar.is-collapsed .td-sidebar-quick-bar,
+.td-sidebar.is-collapsed .td-folder-nav,
+.td-sidebar.is-collapsed .td-dnd-folder-stack,
+.td-sidebar.collapsed .td-rail-head,
+.td-sidebar.collapsed .td-rail-actions,
+.td-sidebar.collapsed .td-sidebar-collapsed-tabs,
+.td-sidebar.collapsed .td-sidebar-quick-bar,
+.td-sidebar.collapsed .td-folder-nav,
+.td-sidebar.collapsed .td-dnd-folder-stack {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.td-sidebar.is-collapsed .td-rail-head,
+.td-sidebar.collapsed .td-rail-head {
+  padding: 10px 0 6px 0 !important;
+  gap: 6px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.td-sidebar.is-collapsed .td-rail-actions,
+.td-sidebar.collapsed .td-rail-actions {
+  padding: 6px 0 !important;
+  gap: 6px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.td-sidebar.is-collapsed .td-sidebar-collapsed-tabs,
+.td-sidebar.collapsed .td-sidebar-collapsed-tabs {
+  padding: 6px 0 !important;
+  gap: 6px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.td-sidebar.is-collapsed .td-folder-nav,
+.td-sidebar.collapsed .td-folder-nav {
+  padding: 6px 0 12px 0 !important;
+  gap: 4px !important;
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* 2. Uniform 40x40 Centered Sizing for ALL Rail Elements */
+.td-sidebar.is-collapsed .td-rail-brand,
+.td-sidebar.is-collapsed .td-rail-btn,
+.td-sidebar.is-collapsed .td-rail-back-compact,
+.td-sidebar.is-collapsed .td-rail-tool,
+.td-sidebar.is-collapsed .td-btn-new-folder,
+.td-sidebar.is-collapsed .td-sidebar-search-btn,
+.td-sidebar.is-collapsed .td-collapsed-tab-icon,
+.td-sidebar.is-collapsed .td-quick-item,
+.td-sidebar.is-collapsed .td-folder-row,
+.td-sidebar.collapsed .td-rail-brand,
+.td-sidebar.collapsed .td-rail-btn,
+.td-sidebar.collapsed .td-rail-back-compact,
+.td-sidebar.collapsed .td-rail-tool,
+.td-sidebar.collapsed .td-btn-new-folder,
+.td-sidebar.collapsed .td-sidebar-search-btn,
+.td-sidebar.collapsed .td-collapsed-tab-icon,
+.td-sidebar.collapsed .td-quick-item,
+.td-sidebar.collapsed .td-folder-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  margin: 2px auto !important;
+  padding: 0 !important;
+  border-radius: 10px !important;
+  box-sizing: border-box !important;
+  flex: 0 0 40px !important;
+  position: relative !important;
+  outline: none !important;
+}
+
+/* 3. Logo, Avatar & Icon Glyph Centering */
+.td-sidebar.is-collapsed .td-sidebar-logo,
+.td-sidebar.collapsed .td-sidebar-logo {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  color: #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35) !important;
+  position: relative !important;
+  margin: 0 auto !important;
+}
+
+.td-sidebar.is-collapsed .td-folder-ico,
+.td-sidebar.collapsed .td-folder-ico {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  flex: 0 0 32px !important;
+}
+
+.td-sidebar.is-collapsed .td-peer-avatar,
+.td-sidebar.is-collapsed .td-peer-avatar-fallback,
+.td-sidebar.collapsed .td-peer-avatar,
+.td-sidebar.collapsed .td-peer-avatar-fallback {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  max-width: 30px !important;
+  min-height: 30px !important;
+  max-height: 30px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  display: block !important;
+  margin: 0 auto !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
+  box-sizing: border-box !important;
+}
+
+/* 4. Active & Hover Highlights */
+.td-sidebar.is-collapsed .td-quick-item,
+.td-sidebar.is-collapsed .td-folder-row,
+.td-sidebar.is-collapsed .td-collapsed-tab-icon,
+.td-sidebar.is-collapsed .td-rail-tool,
+.td-sidebar.is-collapsed .td-rail-back-compact,
+.td-sidebar.collapsed .td-quick-item,
+.td-sidebar.collapsed .td-folder-row,
+.td-sidebar.collapsed .td-collapsed-tab-icon,
+.td-sidebar.collapsed .td-rail-tool,
+.td-sidebar.collapsed .td-rail-back-compact {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #94a3b8;
+  transition: all 0.15s ease;
+}
+
+.td-sidebar.is-collapsed .td-quick-item:hover,
+.td-sidebar.is-collapsed .td-folder-row:hover,
+.td-sidebar.is-collapsed .td-collapsed-tab-icon:hover,
+.td-sidebar.is-collapsed .td-rail-tool:hover,
+.td-sidebar.is-collapsed .td-rail-back-compact:hover,
+.td-sidebar.collapsed .td-quick-item:hover,
+.td-sidebar.collapsed .td-folder-row:hover,
+.td-sidebar.collapsed .td-collapsed-tab-icon:hover,
+.td-sidebar.collapsed .td-rail-tool:hover,
+.td-sidebar.collapsed .td-rail-back-compact:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #f8fafc !important;
+}
+
+.td-sidebar.is-collapsed .td-folder-row.active,
+.td-sidebar.is-collapsed .td-collapsed-tab-icon.is-active,
+.td-sidebar.collapsed .td-folder-row.active,
+.td-sidebar.collapsed .td-collapsed-tab-icon.is-active {
+  background: rgba(59, 130, 246, 0.18) !important;
+  border: 1px solid rgba(59, 130, 246, 0.5) !important;
+  color: #60a5fa !important;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.25) !important;
+}
+
+.td-sidebar.is-collapsed .td-folder-row.active .td-peer-avatar,
+.td-sidebar.collapsed .td-folder-row.active .td-peer-avatar {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.4) !important;
+}
+
+.td-sidebar.is-collapsed .td-quick-item.active,
+.td-sidebar.collapsed .td-quick-item.active {
+  background: rgba(245, 158, 11, 0.16) !important;
+  border: 1px solid rgba(245, 158, 11, 0.5) !important;
+  color: #fbbf24 !important;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.2) !important;
+}
