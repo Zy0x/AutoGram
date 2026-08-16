@@ -30997,3 +30997,74 @@ button.td-confirm-icon.is-back-btn:active {
   width: 0 !important;
   height: 0 !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PERFECT RIGHT-ALIGNED ACTION TOOLBAR (FLUSH RIGHT ON ALL SCREEN SIZES)
+   Ensures the entire action strip (Upload, Remote URL, Settings, Zoom, etc.)
+   is strictly aligned to the FAR RIGHT edge, never clinging to the drive name.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-topbar .td-topbar-row-1 {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  padding-right: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.td-topbar .td-topbar-left {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+  max-width: 48% !important;
+  overflow: hidden !important;
+}
+
+.td-topbar .td-topbar-actions-wrapper {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  margin-left: auto !important;
+  flex: 0 1 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: calc(100% - 140px) !important;
+  overflow: hidden !important;
+  position: relative !important;
+  height: 42px !important;
+  gap: 4px !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.td-topbar .td-topbar-actions-wrapper .td-topbar-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-x: contain !important;
+  gap: 6px !important;
+  padding: 0 2px !important;
+  margin: 0 0 0 auto !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  max-width: 100% !important;
+  flex: 0 1 auto !important;
+}
+
+.td-topbar .td-topbar-actions-wrapper .td-topbar-actions::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
