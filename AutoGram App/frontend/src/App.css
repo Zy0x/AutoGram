@@ -30082,3 +30082,525 @@ button.td-confirm-icon.is-back-btn:active {
   color: #fbbf24 !important;
   box-shadow: 0 0 8px rgba(245, 158, 11, 0.2) !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PREMIUM SLATE GLASS THEME & ELEVATION HIERARCHY
+   - Body Canvas: #090d16 (Deep Midnight Obsidian)
+   - Sidebar: #0d1527 (Slate Navy 950) + border-right 1px solid rgba(255,255,255,0.07)
+   - Topbar Header & Toolbars: rgba(13, 21, 39, 0.88) + blur(12px)
+   - Media Card Surfaces: rgba(22, 32, 54, 0.65) + hover rgba(30, 41, 59, 0.9)
+   - Functional Accents: Royal Azure Blue (#3b82f6) & Warm Amber Gold (#f59e0b)
+   - Readability: #f8fafc (Primary Text), #94a3b8 (Secondary Sub)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Root tokens override */
+:root {
+  --td-bg: #090d16;
+  --td-surface: #0d1527;
+  --td-surface-2: rgba(22, 32, 54, 0.65);
+  --td-card-bg: rgba(22, 32, 54, 0.65);
+  --td-card-hover: rgba(30, 41, 59, 0.9);
+  --td-topbar-bg: rgba(13, 21, 39, 0.88);
+  --td-primary: #3b82f6;
+  --td-accent-gold: #f59e0b;
+  --td-text: #f8fafc;
+  --td-sub: #94a3b8;
+  --td-border: rgba(255, 255, 255, 0.08);
+  --td-hover: rgba(255, 255, 255, 0.06);
+}
+
+/* 1. Body Canvas & Main Container */
+.td-page,
+.td-shell,
+.td-main,
+.td-explorer-wrapper,
+.td-grid-virtual,
+.td-list-virtual {
+  background: #090d16 !important;
+  color: #f8fafc;
+}
+
+/* 2. Sidebar Navigation (Expanded & Collapsed) */
+.td-sidebar,
+.td-sidebar.is-collapsed,
+.td-sidebar.collapsed,
+.td-sidebar:not(.is-collapsed),
+.td-sidebar-inner {
+  background: #0d1527 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
+}
+
+.td-sidebar-session {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 10px !important;
+}
+
+/* 3. Topbar Header & Floating Toolbars */
+.td-topbar {
+  background: rgba(13, 21, 39, 0.88) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+}
+
+.td-tools-panel {
+  background: rgba(13, 21, 39, 0.95) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* 4. Media Card Surfaces (Grid & List) */
+.td-file-card-inner {
+  background: rgba(22, 32, 54, 0.65) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.td-file-card:hover .td-file-card-inner {
+  background: rgba(30, 41, 59, 0.9) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+  transform: translateY(-2px) !important;
+}
+
+.td-file-card.selected .td-file-card-inner {
+  border-color: #3b82f6 !important;
+  background: rgba(30, 41, 59, 0.95) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.45), 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+.td-list-row {
+  background: rgba(22, 32, 54, 0.45) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 8px !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-list-row:hover {
+  background: rgba(30, 41, 59, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
+}
+
+.td-list-row.selected {
+  background: rgba(59, 130, 246, 0.16) !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.25) !important;
+}
+
+/* 5. Filter Chips, Tab Segments & Interactive Elements */
+.td-filter-chip,
+.td-topic-chip,
+.td-view-btn,
+.td-btn-secondary {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #94a3b8 !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-filter-chip:hover,
+.td-topic-chip:hover,
+.td-view-btn:hover,
+.td-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  color: #f8fafc !important;
+}
+
+.td-filter-chip.active,
+.td-topic-chip.active,
+.td-view-btn.active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.28) 0%, rgba(37, 99, 235, 0.18) 100%) !important;
+  border: 1px solid rgba(59, 130, 246, 0.5) !important;
+  color: #60a5fa !important;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.2) !important;
+}
+
+.td-btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.35) !important;
+  font-weight: 600 !important;
+}
+
+.td-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%) !important;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.5) !important;
+}
+
+/* 6. Text & Subtitle Contrast */
+.td-topbar-crumb,
+.td-drive-name,
+.td-section-title,
+.td-file-card-title,
+.td-list-name {
+  color: #f8fafc !important;
+}
+
+.td-topbar-meta,
+.td-item-count,
+.td-file-card-meta,
+.td-list-size,
+.td-list-date,
+.td-session-subtitle {
+  color: #94a3b8 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PREMIUM SLATE GLASS THEME & ELEVATION HIERARCHY (FINAL HARMONY)
+   - Body Canvas: #090d16 (Deep Midnight Obsidian)
+   - Sidebar: #0d1527 (Slate Navy 950) + border-right 1px solid rgba(255,255,255,0.07)
+   - Topbar Header & Toolbars: rgba(13, 21, 39, 0.88) + blur(12px)
+   - Media Card Surfaces: rgba(22, 32, 54, 0.65) + hover rgba(30, 41, 59, 0.9)
+   - Functional Accents: Royal Azure Blue (#3b82f6) & Warm Amber Gold (#f59e0b)
+   - Readability: #f8fafc (Primary Text), #94a3b8 (Secondary Sub)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Root tokens override */
+:root {
+  --td-bg: #090d16;
+  --td-surface: #0d1527;
+  --td-surface-2: rgba(22, 32, 54, 0.65);
+  --td-card-bg: rgba(22, 32, 54, 0.65);
+  --td-card-hover: rgba(30, 41, 59, 0.9);
+  --td-topbar-bg: rgba(13, 21, 39, 0.88);
+  --td-primary: #3b82f6;
+  --td-accent-gold: #f59e0b;
+  --td-text: #f8fafc;
+  --td-sub: #94a3b8;
+  --td-border: rgba(255, 255, 255, 0.08);
+  --td-hover: rgba(255, 255, 255, 0.06);
+}
+
+/* 1. Body Canvas & Main Container */
+.td-page,
+.td-shell,
+.td-main,
+.td-explorer-wrapper,
+.td-grid-virtual,
+.td-list-virtual {
+  background: #090d16 !important;
+  color: #f8fafc;
+}
+
+/* 2. Sidebar Navigation (Expanded & Collapsed) */
+.td-sidebar,
+.td-sidebar.is-collapsed,
+.td-sidebar.collapsed,
+.td-sidebar:not(.is-collapsed),
+.td-sidebar-inner {
+  background: #0d1527 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
+}
+
+.td-sidebar-session {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 10px !important;
+}
+
+/* Sidebar Action Buttons */
+.td-btn-new-folder {
+  background: rgba(59, 130, 246, 0.12) !important;
+  border: 1px solid rgba(59, 130, 246, 0.35) !important;
+  color: #93c5fd !important;
+  border-radius: 9px !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-btn-new-folder:hover {
+  background: rgba(59, 130, 246, 0.22) !important;
+  border-color: rgba(59, 130, 246, 0.55) !important;
+  color: #ffffff !important;
+}
+
+.td-sidebar-search-btn {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #94a3b8 !important;
+  border-radius: 9px !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-sidebar-search-btn:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  color: #f8fafc !important;
+}
+
+/* Sidebar Tabs */
+.td-sidebar-tab-btn {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: #94a3b8 !important;
+  border-radius: 8px !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-sidebar-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #f8fafc !important;
+}
+
+.td-sidebar-tab-btn.is-active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(37, 99, 235, 0.15) 100%) !important;
+  border: 1px solid rgba(59, 130, 246, 0.5) !important;
+  color: #60a5fa !important;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.2) !important;
+}
+
+.td-sidebar-tab-btn .td-tab-badge {
+  background: rgba(59, 130, 246, 0.25) !important;
+  color: #93c5fd !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+.td-sidebar-tab-btn.is-active .td-tab-badge {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+/* Sidebar Folder/Drive Rows */
+.td-folder-row {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: #cbd5e1 !important;
+  border-radius: 9px !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-folder-row:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #f8fafc !important;
+}
+
+.td-folder-row.active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.1) 100%) !important;
+  border: 1px solid rgba(59, 130, 246, 0.45) !important;
+  color: #60a5fa !important;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.15) !important;
+}
+
+.td-folder-row.active .td-folder-label {
+  color: #60a5fa !important;
+  font-weight: 600 !important;
+}
+
+/* Saved Messages (Warm Amber Accent) */
+.td-quick-item {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: #cbd5e1 !important;
+  border-radius: 9px !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-quick-item:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #f8fafc !important;
+}
+
+.td-quick-item.active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.1) 100%) !important;
+  border: 1px solid rgba(245, 158, 11, 0.45) !important;
+  color: #fbbf24 !important;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.15) !important;
+}
+
+.td-quick-item.active .td-folder-label {
+  color: #fbbf24 !important;
+  font-weight: 600 !important;
+}
+
+/* 3. Topbar Header & Floating Toolbars */
+.td-topbar {
+  background: rgba(13, 21, 39, 0.88) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+}
+
+.td-tools-panel {
+  background: rgba(13, 21, 39, 0.95) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* 4. Media Card Surfaces (Grid & List) */
+.td-file-card-inner {
+  background: rgba(22, 32, 54, 0.65) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.td-file-card:hover .td-file-card-inner {
+  background: rgba(30, 41, 59, 0.9) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+  transform: translateY(-2px) !important;
+}
+
+.td-file-card.selected .td-file-card-inner {
+  border-color: #3b82f6 !important;
+  background: rgba(30, 41, 59, 0.95) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.45), 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+.td-list-row {
+  background: rgba(22, 32, 54, 0.45) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 8px !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-list-row:hover {
+  background: rgba(30, 41, 59, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
+}
+
+.td-list-row.selected {
+  background: rgba(59, 130, 246, 0.16) !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.25) !important;
+}
+
+/* 5. Filter Chips, Tab Segments & Interactive Elements */
+.td-filter-chip,
+.td-topic-chip,
+.td-view-btn,
+.td-btn-secondary {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #94a3b8 !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-filter-chip:hover,
+.td-topic-chip:hover,
+.td-view-btn:hover,
+.td-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  color: #f8fafc !important;
+}
+
+.td-filter-chip.active,
+.td-topic-chip.active,
+.td-view-btn.active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.28) 0%, rgba(37, 99, 235, 0.18) 100%) !important;
+  border: 1px solid rgba(59, 130, 246, 0.5) !important;
+  color: #60a5fa !important;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.2) !important;
+}
+
+.td-btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.35) !important;
+  font-weight: 600 !important;
+}
+
+.td-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%) !important;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.5) !important;
+}
+
+/* 6. Text & Subtitle Contrast */
+.td-topbar-crumb,
+.td-drive-name,
+.td-section-title,
+.td-file-card-title,
+.td-list-name {
+  color: #f8fafc !important;
+}
+
+.td-topbar-meta,
+.td-item-count,
+.td-file-card-meta,
+.td-list-size,
+.td-list-date,
+.td-session-subtitle {
+  color: #94a3b8 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   UNIFIED PALETTE POLISH & HARMONIOUS ACCENTS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Topbar Buttons Polish */
+.td-topbar .td-icon-btn:hover,
+.td-topbar .td-menu-btn:hover,
+.td-topbar .td-btn-secondary:hover {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border-color: rgba(59, 130, 246, 0.45) !important;
+  color: #60a5fa !important;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Sidebar Action Buttons Polish */
+.td-sidebar:not(.is-collapsed) .td-sidebar-action-split-row .td-btn-new-folder,
+.td-sidebar .td-btn-new-folder {
+  background: rgba(59, 130, 246, 0.14) !important;
+  border: 1px solid rgba(59, 130, 246, 0.35) !important;
+  color: #93c5fd !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25) !important;
+}
+
+.td-sidebar:not(.is-collapsed) .td-sidebar-action-split-row .td-btn-new-folder:hover,
+.td-sidebar .td-btn-new-folder:hover {
+  background: rgba(59, 130, 246, 0.24) !important;
+  border-color: rgba(59, 130, 246, 0.6) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35) !important;
+}
+
+.td-sidebar:not(.is-collapsed) .td-sidebar-action-split-row .td-sidebar-search-btn,
+.td-sidebar .td-sidebar-search-btn {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #94a3b8 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25) !important;
+}
+
+.td-sidebar:not(.is-collapsed) .td-sidebar-action-split-row .td-sidebar-search-btn:hover,
+.td-sidebar .td-sidebar-search-btn:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  color: #f8fafc !important;
+}
+
+/* Sidebar Active Drive Row (Clean Royal Blue) */
+.td-folder-row.active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.1) 100%) !important;
+  border: 1px solid rgba(59, 130, 246, 0.45) !important;
+  color: #60a5fa !important;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.15) !important;
+}
+
+.td-folder-row.active .td-folder-label,
+.td-folder-row.active .td-folder-title {
+  color: #60a5fa !important;
+}
+
+/* Location Header Icon Badge */
+.td-location-badge,
+.td-crumb-icon {
+  border-radius: 8px !important;
+}
