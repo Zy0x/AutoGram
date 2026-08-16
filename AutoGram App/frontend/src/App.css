@@ -28092,3 +28092,120 @@ button.td-confirm-icon.is-back-btn:active {
     display: inline !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DRIVE NAME VISIBILITY & TOPBAR RESPONSIVE WRAP PROTECTION (<= 850px)
+   Guarantees Drive name (Start / #Gudang) is ALWAYS 100% visible & readable
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Protect breadcrumbs and drive title across all screen sizes */
+.td-topbar .td-topbar-left {
+  display: flex !important;
+  align-items: center !important;
+  min-width: 140px !important;
+  flex: 0 1 auto !important;
+  gap: 8px !important;
+  overflow: hidden !important;
+}
+
+.td-topbar .td-breadcrumbs {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-width: 80px !important;
+  flex: 0 1 auto !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.td-topbar .td-crumb-current {
+  font-weight: 700 !important;
+  color: #f8fafc !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  min-width: 0 !important;
+  max-width: 260px !important;
+}
+
+/* 2-Row Topbar separation active up to 850px (Row 1: Nav/Title, Row 2: Action Toolbar) */
+@media (max-width: 850px) {
+  .td-topbar .td-topbar-row-1 {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    gap: 6px !important;
+    padding: 4px 0 !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+  }
+
+  .td-topbar .td-topbar-row-1 .td-topbar-left {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+  }
+
+  .td-topbar .td-topbar-row-1 .td-topbar-left .td-breadcrumbs {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: calc(100% - 100px) !important;
+  }
+
+  .td-topbar .td-topbar-row-1 .td-topbar-left .td-crumb-current {
+    max-width: none !important;
+    flex: 0 1 auto !important;
+  }
+
+  .td-topbar .td-topbar-row-1 .td-topbar-actions {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 6px !important;
+    box-sizing: border-box !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    margin-top: 2px !important;
+  }
+
+  .td-topbar .td-topbar-row-1 .td-topbar-actions::-webkit-scrollbar {
+    display: none !important;
+  }
+}
+
+/* Widescreen Desktop (> 850px): Side-by-side single row */
+@media (min-width: 851px) {
+  .td-topbar .td-topbar-row-1 {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    gap: 12px !important;
+    overflow: visible !important;
+  }
+
+  .td-topbar .td-topbar-row-1 .td-topbar-left {
+    flex: 0 1 auto !important;
+    min-width: 180px !important;
+    max-width: 45% !important;
+  }
+
+  .td-topbar .td-topbar-row-1 .td-topbar-actions {
+    flex: 1 1 auto !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+  }
+}
