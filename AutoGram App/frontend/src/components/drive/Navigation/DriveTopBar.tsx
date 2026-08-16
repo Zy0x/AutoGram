@@ -649,13 +649,14 @@ export function DriveTopBar({
           {onRemoteUploadClick && (
             <button
               type="button"
-              className="td-icon-btn td-topbar-btn-remote"
+              className="td-btn-secondary td-topbar-btn-remote"
               onClick={onRemoteUploadClick}
               disabled={!!actionsDisabled}
               title={t("speedtest.remote_upload_url_title")}
               aria-label={t("speedtest.remote_upload_url_title")}
             >
-              <Globe size={16} />
+              <Globe size={15} />
+              <span className="td-btn-label">{t("speedtest.remote_url_btn")}</span>
             </button>
           )}
 
