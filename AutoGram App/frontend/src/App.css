@@ -26557,3 +26557,67 @@ button.td-confirm-icon.is-back-btn:active {
   gap: 6px !important;
   flex-shrink: 0 !important;
 }
+
+
+/* ─── Extreme Compact Window Refinements (<= 360px) ─── */
+@media (max-width: 360px) {
+  .td-topbar {
+    padding: 4px 6px !important;
+    gap: 4px !important;
+  }
+
+  .td-topbar-row-1 {
+    height: 32px !important;
+  }
+
+  .td-topbar-left {
+    gap: 4px !important;
+  }
+
+  .td-topbar-actions {
+    gap: 2px !important;
+  }
+
+  /* Keep essential 3 buttons on <= 360px */
+  .td-topbar-actions button:not(.td-btn-primary):not(.td-view-toggle button):not([title*="Refresh"]):not([aria-label*="refresh"]) {
+    display: none !important;
+  }
+
+  .td-topbar .td-btn-primary {
+    padding: 0 8px !important;
+    min-width: 32px !important;
+  }
+
+  .td-topbar .td-btn-primary .td-btn-label {
+    display: none !important;
+  }
+
+  .td-tools-right-cluster {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    width: 100% !important;
+  }
+
+  .td-tools-right-cluster .td-sort-group,
+  .td-tools-right-cluster .td-thumb-quality-pills {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+.td-topbar {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.td-topbar-row-tools {
+  height: auto !important;
+  max-height: none !important;
+}
+
+.td-tools-right-cluster {
+  height: auto !important;
+  max-height: none !important;
+}
