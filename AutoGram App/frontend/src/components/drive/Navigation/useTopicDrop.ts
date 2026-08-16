@@ -11,9 +11,10 @@ import {
 export interface UseTopicDropOpts {
   onDropOnTopic?: (topicId: number | null, topicTitle: string, e: React.DragEvent) => void;
   topicPillsRef?: React.RefObject<HTMLDivElement | null>;
+  topicsCount?: number;
 }
 
-export function useTopicDrop({ onDropOnTopic, topicPillsRef }: UseTopicDropOpts = {}) {
+export function useTopicDrop({ onDropOnTopic, topicPillsRef, topicsCount }: UseTopicDropOpts = {}) {
   const [activeDragTopicId, setActiveDragTopicId] = useState<number | 'all' | null>(null);
   const [pointerHoverKey, setPointerHoverKey] = useState<string | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -37,16 +38,30 @@ export function useTopicDrop({ onDropOnTopic, topicPillsRef }: UseTopicDropOpts 
     if (!el) return;
     updateScrollState();
     el.addEventListener('scroll', updateScrollState, { passive: true });
+    window.addEventListener('resize', updateScrollState, { passive: true });
+
     let ro: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined') {
       ro = new ResizeObserver(() => updateScrollState());
       ro.observe(el);
     }
+
+    let mo: MutationObserver | null = null;
+    if (typeof MutationObserver !== 'undefined') {
+      mo = new MutationObserver(() => updateScrollState());
+      mo.observe(el, { childList: true, subtree: true, characterData: true });
+    }
+
+    const t = setTimeout(updateScrollState, 80);
+
     return () => {
+      clearTimeout(t);
       el.removeEventListener('scroll', updateScrollState);
+      window.removeEventListener('resize', updateScrollState);
       ro?.disconnect();
+      mo?.disconnect();
     };
-  }, [topicPillsRef, updateScrollState]);
+  }, [topicPillsRef, updateScrollState, topicsCount]);
 
   useEffect(() => {
     const unsub = subscribeDriveDragUi(() => {

@@ -252,6 +252,7 @@ export function DriveTopBar({
   } = useTopicDrop({
     onDropOnTopic,
     topicPillsRef,
+    topicsCount: topics?.length ?? 0,
   });
 
   const [topicContextMenu, setTopicContextMenu] = useState<{

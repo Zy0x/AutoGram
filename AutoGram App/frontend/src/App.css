@@ -26054,3 +26054,48 @@ button.td-confirm-icon.is-back-btn:active {
     display: inline-flex !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TOPIC NAVIGATION ARROW BUTTONS POLISH
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-topics-scroll-container {
+  display: flex !important;
+  align-items: center !important;
+  position: relative !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.td-topic-nav-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  border-radius: 50% !important;
+  background: color-mix(in srgb, #0f172a 90%, #e2a532) !important;
+  border: 1px solid rgba(226, 165, 50, 0.45) !important;
+  color: #fbbf24 !important;
+  cursor: pointer !important;
+  z-index: 10 !important;
+  flex-shrink: 0 !important;
+  transition: all 140ms ease !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45) !important;
+  margin: 0 3px !important;
+}
+
+.td-topic-nav-btn:hover {
+  background: linear-gradient(135deg, #e2a532 0%, #d97706 100%) !important;
+  border-color: #f59e0b !important;
+  color: #0f172a !important;
+  transform: scale(1.12) !important;
+  box-shadow: 0 0 10px rgba(226, 165, 50, 0.6) !important;
+}
+
+.td-topic-nav-btn:active {
+  transform: scale(0.94) !important;
+}
