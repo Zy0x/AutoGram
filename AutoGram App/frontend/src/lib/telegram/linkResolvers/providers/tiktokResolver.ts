@@ -32,31 +32,27 @@ export const tiktokResolver: LinkResolverProvider = {
           const jsonMeta = await invoke<any>('fetch_remote_json_metadata', { url: cleanUrl });
           if (jsonMeta?.data?.user) {
             const u = jsonMeta.data.user;
-            nickname = u.nickname;
-            avatarLarger = u.avatarLarger;
-            avatarMedium = u.avatarMedium;
-            signature = u.signature;
-          } else if (jsonMeta?.html) {
+            nickname = u.nickname || nickname;
+            avatarLarger = u.avatarLarger || avatarLarger;
+            avatarMedium = u.avatarMedium || avatarMedium;
+            signature = u.signature || signature;
+          }
+          if (!avatarLarger && jsonMeta?.html) {
             const html = jsonMeta.html;
-            const universalMatch = html.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/);
-            if (universalMatch) {
-              try {
-                const ujson = JSON.parse(universalMatch[1]);
-                const userDetail = ujson['__DEFAULT_SCOPE__']?.['webapp.user-detail']?.userInfo;
-                if (userDetail?.user) {
-                  nickname = userDetail.user.nickname;
-                  avatarLarger = userDetail.user.avatarLarger;
-                  avatarMedium = userDetail.user.avatarMedium;
-                  signature = userDetail.user.signature;
-                }
-              } catch {
-                /* parse fallback */
+            const pos = html.indexOf('"avatarLarger":"');
+            if (pos !== -1) {
+              const start = pos + 16;
+              const end = html.indexOf('"', start);
+              if (end !== -1) {
+                avatarLarger = html.slice(start, end).replace(/\\u0026/g, '&').replace(/\\u002F/g, '/').replace(/\\/g, '');
               }
             }
-            if (!avatarLarger) {
-              const avatarMatch = html.match(/"avatarLarger":"(https:[^"]+)"/i);
-              if (avatarMatch) {
-                avatarLarger = avatarMatch[1].replace(/\\u0026/g, '&').replace(/\\u002F/g, '/').replace(/\\/g, '');
+            const nickPos = html.indexOf('"nickname":"');
+            if (nickPos !== -1) {
+              const start = nickPos + 12;
+              const end = html.indexOf('"', start);
+              if (end !== -1) {
+                nickname = html.slice(start, end).replace(/\\u0026/g, '&').replace(/\\u002F/g, '/').replace(/\\/g, '');
               }
             }
           }

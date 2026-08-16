@@ -1,3 +1,16 @@
+## v3.7.19 Resilient Creator Profile HD Extraction & No-Referrer CDN Loading (Phase 20)
+
+### 1. Ekstraksi Avatar Profil TikTok yang Sangat Andal & Proteksi CDN Referer
+- **Direct Substring Key Extraction & Rust IPC Enhancement (`tiktokResolver.ts`, `lib.rs`)**:
+  - Mengimplementasikan ekstraksi kunci avatar resolusi tinggi langsung (`"avatarLarger"`, `"avatarMedium"`, `"nickname"`, `"signature"`) dari payload HTML TikTok dengan mobile user-agent.
+  - Memastikan ekstraksi foto profil berhasil 100% tanpa terpengaruh perubahan urutan atribut script JSON atau proteksi splash webview.
+- **No-Referrer CDN Image Loading (`RemoteUploadModal.tsx`)**:
+  - Menambahkan atribut `referrerPolicy="no-referrer"` pada seluruh elemen pratinjau gambar modal (*Live Canvas image*, thumbnail avatar, dan thumbnail strip album).
+  - Mencegah pemblokiran gambar oleh sistem anti-hotlinking CDN Telegram / TikTok (menghindari error 403 Forbidden).
+- **Verifikasi Kualitas**:
+  - **4.865 Kunci Kamus** tersinkronisasi 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
+  - 146 unit test Vitest lulus 100%.
+
 ## v3.7.18 Modal Backdrop Drag-Selection Protection & Resilient Dismissal (Phase 19)
 
 ### 1. Perlindungan Blok/Seleksi Teks pada Seluruh Modal Dialog

@@ -1893,28 +1893,55 @@ fn fetch_remote_json_metadata(url: String) -> Result<serde_json::Value, String> 
             .into_string()
             .map_err(|e| format!("read body failed: {e}"))?;
 
-        if let Some(start) = html.find("<script id=\"__UNIVERSAL_DATA_FOR_REHYDRATION__\"") {
-            if let Some(tag_end) = html[start..].find('>') {
-                let content_start = start + tag_end + 1;
-                if let Some(end) = html[content_start..].find("</script>") {
-                    let json_str = &html[content_start..content_start + end];
-                    if let Ok(val) = serde_json::from_str::<serde_json::Value>(json_str) {
-                        if let Some(user_info) = val.get("__DEFAULT_SCOPE__")
-                            .and_then(|s| s.get("webapp.user-detail"))
-                            .and_then(|d| d.get("userInfo")) {
-                            return Ok(serde_json::json!({
-                                "code": 0,
-                                "msg": "success",
-                                "data": user_info
-                            }));
-                        }
-                    }
-                }
+        let mut avatar_larger = None;
+        let mut avatar_medium = None;
+        let mut nickname = None;
+        let mut signature = None;
+
+        // 1. Direct key extraction (robust against attribute ordering or minification changes)
+        if let Some(pos) = html.find("\"avatarLarger\":\"") {
+            let start = pos + 16;
+            if let Some(end) = html[start..].find('"') {
+                let raw = &html[start..start + end];
+                avatar_larger = Some(raw.replace("\\u0026", "&").replace("\\u002F", "/").replace("\\", ""));
             }
         }
+
+        if let Some(pos) = html.find("\"avatarMedium\":\"") {
+            let start = pos + 16;
+            if let Some(end) = html[start..].find('"') {
+                let raw = &html[start..start + end];
+                avatar_medium = Some(raw.replace("\\u0026", "&").replace("\\u002F", "/").replace("\\", ""));
+            }
+        }
+
+        if let Some(pos) = html.find("\"nickname\":\"") {
+            let start = pos + 12;
+            if let Some(end) = html[start..].find('"') {
+                let raw = &html[start..start + end];
+                nickname = Some(raw.replace("\\u0026", "&").replace("\\u002F", "/").replace("\\", ""));
+            }
+        }
+
+        if let Some(pos) = html.find("\"signature\":\"") {
+            let start = pos + 13;
+            if let Some(end) = html[start..].find('"') {
+                let raw = &html[start..start + end];
+                signature = Some(raw.replace("\\u0026", "&").replace("\\u002F", "/").replace("\\", ""));
+            }
+        }
+
         return Ok(serde_json::json!({
             "code": 0,
-            "msg": "html_fetched",
+            "msg": "success",
+            "data": {
+                "user": {
+                    "nickname": nickname,
+                    "avatarLarger": avatar_larger,
+                    "avatarMedium": avatar_medium,
+                    "signature": signature
+                }
+            },
             "html": html
         }));
     }

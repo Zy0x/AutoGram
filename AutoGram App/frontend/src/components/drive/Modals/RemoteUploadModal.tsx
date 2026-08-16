@@ -1119,6 +1119,7 @@ export function RemoteUploadModal({
                             alt={resolvedMedia.author}
                             className="td-remote-author-avatar-img"
                             loading="lazy"
+                            referrerPolicy="no-referrer"
                           />
                         ) : (
                           <User size={12} />
@@ -1136,6 +1137,7 @@ export function RemoteUploadModal({
                           alt={resolvedMedia.title}
                           className="td-remote-big-canvas-img"
                           loading="lazy"
+                          referrerPolicy="no-referrer"
                         />
                         <div className="td-remote-canvas-badge-overlay">
                           {resolvedMedia.albumImages && resolvedMedia.albumImages.length > 1 && (
@@ -1197,6 +1199,7 @@ export function RemoteUploadModal({
                                 alt={`Slide ${idx + 1}`}
                                 className="td-remote-album-thumb"
                                 loading="lazy"
+                                referrerPolicy="no-referrer"
                               />
                               <span className="td-remote-album-thumb-idx">#{idx + 1}</span>
                               {isActive && (
