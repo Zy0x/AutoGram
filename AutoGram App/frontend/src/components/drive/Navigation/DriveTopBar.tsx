@@ -43,6 +43,7 @@ import type {
   DriveViewMode,
 } from '../../../lib/telegram/driveTypes';
 import { MediaSelect } from './MediaSelect';
+import { DriveStorageInfoBadge } from './DriveStorageInfoBadge';
 import { copyTextWithFallback } from '../../../lib/utils/debugMode';
 import {
   DRIVE_GRID_ZOOM_LEVELS,
@@ -562,56 +563,17 @@ export function DriveTopBar({
               </>
             )}
           </nav>
-          <span
-            className={`td-count-pill${statsLoading && !isFinal ? ' is-counting' : ''}${
-              isFinal ? ' is-accurate is-final' : ''
-            }`}
-            title={
-              statsLoading && !isFinal
-                ? t('speedtest.count_pill_counting_title', {
-                    count: effectiveTotalCount,
-                    space: spaceLabel ? ` · ${spaceLabel}` : '',
-                    defaultValue: `Menghitung total media unik di lokasi… (${fileCount}${spaceLabel ? ` · ${spaceLabel}` : ''})`,
-                  })
-                : statsAccurate
-                ? t('speedtest.count_pill_accurate_title', {
-                    count: fileCount,
-                    space: spaceLabel ? ` · ${spaceLabel}` : '',
-                    defaultValue: `Total akurat (unik) di lokasi ini: ${fileCount} file${spaceLabel ? ` · ${spaceLabel}` : ''}`,
-                  })
-                : isFinal
-                ? t('speedtest.count_pill_final_title', {
-                    count: fileCount,
-                    space: spaceLabel ? ` · ${spaceLabel}` : '',
-                    defaultValue: `Total final (selesai dimuat): ${fileCount} media${spaceLabel ? ` · ${spaceLabel}` : ''}`,
-                  })
-                : spaceLabel
-                ? t('speedtest.count_pill_estimate_title', {
-                    count: effectiveTotalCount,
-                    space: spaceLabel,
-                    defaultValue: `${fileCount} item · ${spaceLabel} (perkiraan / belum final)`,
-                  })
-                : t('speedtest.count_pill_simple_title', {
-                    count: effectiveTotalCount,
-                    defaultValue: `${fileCount} item di lokasi ini`,
-                  })
-            }
-          >
-            {!isFinal && totalCount != null
-              ? t('speedtest.items_total_estimate', {
-                  count: effectiveTotalCount.toLocaleString(),
-                })
-              : t('speedtest.items_total_simple', {
-                  count: effectiveTotalCount.toLocaleString(),
-                  defaultValue: `${effectiveTotalCount.toLocaleString()} Items`,
-                })}
-            {statsLoading && !isFinal ? (
-              <span className="td-count-ellip" aria-hidden>
-                …
-              </span>
-            ) : null}
-            {spaceLabel ? <span className="td-count-space"> · {spaceLabel}</span> : null}
-          </span>
+          <DriveStorageInfoBadge
+            fileCount={fileCount}
+            totalCount={totalCount}
+            spaceLabel={spaceLabel}
+            statsLoading={statsLoading}
+            statsAccurate={statsAccurate}
+            isFinal={isFinal}
+            transferBusy={transferBusy}
+            categoryCounts={categoryCounts}
+            locationKey={folderName || 'root'}
+          />
         </div>
 
         {!isToolsCollapsed && (
