@@ -31091,3 +31091,73 @@ button.td-confirm-icon.is-back-btn:active {
   padding-right: 0 !important;
   box-sizing: border-box !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CONSISTENT & FLUSH-ALIGNED NAVIGATION ARROWS (ROW 1 & ROW 2)
+   Ensures Row 1 action arrows and Row 2 topic arrows are visually identical,
+   and their rightmost edge aligns 100% FLUSH with the Search Bar input box (Row 3).
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-topbar .td-action-nav-btn,
+.td-topbar .td-topic-nav-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  max-width: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
+  border-radius: 50% !important;
+  background: rgba(13, 21, 39, 0.95) !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.7) !important;
+  color: #fbbf24 !important;
+  cursor: pointer !important;
+  flex: 0 0 24px !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+  z-index: 25 !important;
+  padding: 0 !important;
+  outline: none !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-topbar .td-action-nav-btn:hover,
+.td-topbar .td-topic-nav-btn:hover {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  border-color: #fbbf24 !important;
+  color: #0d1527 !important;
+  transform: scale(1.1) !important;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5) !important;
+}
+
+.td-topbar .td-action-nav-btn:active,
+.td-topbar .td-topic-nav-btn:active {
+  transform: scale(0.92) !important;
+}
+
+/* Flush Left Placement */
+.td-topbar .td-action-nav-btn.left,
+.td-topbar .td-topic-nav-btn.left {
+  margin-left: 0 !important;
+  margin-right: 4px !important;
+}
+
+/* Flush Right Placement (aligned perfectly with Search Input right edge) */
+.td-topbar .td-action-nav-btn.right,
+.td-topbar .td-topic-nav-btn.right {
+  margin-left: 4px !important;
+  margin-right: 0 !important;
+}
+
+/* Topic scroll container flush styling */
+.td-topbar .td-topbar-row-topics .td-topics-scroll-container {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  margin-right: 0 !important;
+  padding-right: 0 !important;
+}
