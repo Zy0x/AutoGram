@@ -29394,3 +29394,38 @@ button.td-confirm-icon.is-back-btn:active {
   color: #fbbf24 !important;
   box-shadow: inset 0 0 0 1px rgba(226, 165, 50, 0.3), 0 2px 6px rgba(0, 0, 0, 0.4) !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SIDEBAR COLLAPSE STRICTLY RESTRICTED TO >= 900px
+   Below 900px: Sidebar is exclusively an off-canvas overlay drawer (always 100% expanded)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 899.98px), (max-height: 499.98px) {
+  /* Prevent mini-rail crushed rendering below 900px */
+  .td-sidebar {
+    width: 280px !important;
+    max-width: 280px !important;
+    min-width: 280px !important;
+  }
+
+  .td-sidebar.is-collapsed {
+    width: 280px !important;
+    max-width: 280px !important;
+    min-width: 280px !important;
+  }
+
+  .td-sidebar .td-only-expanded,
+  .td-sidebar.is-collapsed .td-only-expanded {
+    display: block !important;
+  }
+
+  .td-sidebar .td-only-collapsed,
+  .td-sidebar.is-collapsed .td-only-collapsed {
+    display: none !important;
+  }
+
+  .td-sidebar .td-rail-brand,
+  .td-sidebar .td-rail-brand-toggle {
+    cursor: pointer !important;
+  }
+}

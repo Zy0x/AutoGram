@@ -871,9 +871,9 @@ function MediaDriveDesktop({
     }
   }, [preflightReport]);
 
-  // Default expanded; only collapse if user previously chose so (and screen is >= 750x500)
+  // Default expanded; only collapse if user previously chose so (and screen is >= 900x500)
   const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window !== 'undefined' && (window.innerWidth < 750 || window.innerHeight < 500)) {
+    if (typeof window !== 'undefined' && (window.innerWidth < 900 || window.innerHeight < 500)) {
       return false;
     }
     return localStorage.getItem(LS_COLLAPSE) === '1';
@@ -881,7 +881,7 @@ function MediaDriveDesktop({
 
   useEffect(() => {
     const handleWindowResize = () => {
-      if (typeof window !== 'undefined' && (window.innerWidth < 750 || window.innerHeight < 500)) {
+      if (typeof window !== 'undefined' && (window.innerWidth < 900 || window.innerHeight < 500)) {
         if (collapsed) setCollapsed(false);
       }
     };
@@ -8256,7 +8256,7 @@ function MediaDriveDesktop({
           pingState={pingState}
           collapsed={collapsed}
           onToggleCollapse={() => {
-            if (typeof window !== 'undefined' && (window.innerWidth < 750 || window.innerHeight < 500)) {
+            if (typeof window !== 'undefined' && (window.innerWidth < 900 || window.innerHeight < 500)) {
               return;
             }
             setCollapsed((c) => !c);
