@@ -876,7 +876,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
           {onBackToLauncher && (
             <button type="button" className="btn btn-secondary settings-back-button" onClick={onBackToLauncher}>
               <ArrowLeft size={17} />
-              {t('settings.back_to_session_hub')}
+              <span style={{ whiteSpace: 'nowrap' }}>{t('settings.back_to_session_hub')}</span>
             </button>
           )}
         </div>

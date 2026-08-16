@@ -856,29 +856,13 @@
     padding-inline: max(0.75rem, env(safe-area-inset-left, 0px));
   }
 
-  .settings-header {
-    align-items: stretch;
-    flex-direction: column;
-  }
+  /* .settings-header remains flex-row across all viewports */
 
-  .settings-header-actions,
-  .settings-back-button {
-    width: 100%;
-  }
+  /* .settings-header-actions width auto */
 
-  .settings-header-actions {
-    order: initial;
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr);
-    align-items: stretch !important;
-  }
+  /* .settings-header-actions single line */
 
-  .settings-header-actions .btn,
-  .settings-header-actions > button {
-    width: 100%;
-    min-width: 0;
-    justify-content: center;
-  }
+  /* .settings-header-actions button auto width */
 
   .settings-page .glass-panel.card,
   .settings-card {
@@ -1151,4 +1135,236 @@
   background: linear-gradient(90deg, #38bdf8 0%, #818cf8 50%, #38bdf8 100%);
   background-size: 200% 100%;
   animation: cacheShimmer 1.5s infinite linear;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SETTINGS PAGE MODERN STITCH REDESIGN & MULTI-VIEWPORT RESPONSIVE SYSTEM
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.settings-page {
+  width: min(100%, 88rem) !important;
+  margin: 0 auto !important;
+  padding: min(2.5vh, 24px) max(1rem, 2.5vw) min(4vh, 40px) !important;
+}
+
+.settings-header {
+  height: 60px !important;
+  min-height: 60px !important;
+  max-height: 60px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 16px !important;
+  border-radius: 14px !important;
+  background: rgba(13, 20, 32, 0.88) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(16px) !important;
+  margin-bottom: min(2vh, 18px) !important;
+  box-sizing: border-box !important;
+}
+
+.settings-header-copy {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+}
+
+.settings-header-icon {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  border-radius: 10px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.settings-header .title {
+  font-size: 1.15rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+  margin: 0 !important;
+  line-height: 1.1 !important;
+}
+
+.settings-header .subtitle {
+  font-size: 0.76rem !important;
+  color: #94a3b8 !important;
+  margin: 2px 0 0 0 !important;
+  line-height: 1.15 !important;
+}
+
+.settings-header-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-shrink: 0 !important;
+  width: auto !important;
+}
+
+.settings-header-actions button,
+.settings-header-actions .btn {
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  padding: 0 13px !important;
+  border-radius: 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  width: auto !important;
+  min-width: auto !important;
+  flex-shrink: 0 !important;
+  transition: all 0.15s ease !important;
+}
+
+.settings-header-actions button span {
+  white-space: nowrap !important;
+}
+
+/* Sidebar Navigation Layout */
+.settings-layout-sidebar {
+  display: flex !important;
+  gap: min(2.5vw, 20px) !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+}
+
+.settings-sidebar-nav {
+  width: 220px !important;
+  min-width: 220px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  background: rgba(13, 20, 32, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 14px !important;
+  padding: 6px !important;
+  backdrop-filter: blur(16px) !important;
+  position: sticky !important;
+  top: 1rem !important;
+  box-sizing: border-box !important;
+}
+
+.settings-sidebar-nav-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  padding: 0 12px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  border-radius: 9px !important;
+  color: #94a3b8 !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  font-size: 0.83rem !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.settings-sidebar-nav-item:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: #f8fafc !important;
+}
+
+.settings-sidebar-nav-item.active {
+  background: rgba(56, 189, 248, 0.12) !important;
+  border-color: rgba(56, 189, 248, 0.3) !important;
+  color: #38bdf8 !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Content Surface Card */
+.settings-page .glass-panel.card,
+.settings-card {
+  border-radius: 16px !important;
+  background: rgba(13, 20, 32, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+  padding: min(2.5vh, 22px) min(2.5vw, 24px) !important;
+  backdrop-filter: blur(16px) !important;
+}
+
+/* Modern Stitch Responsive Breakpoints */
+@media (max-width: 840px) {
+  .settings-layout-sidebar {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .settings-sidebar-nav {
+    width: 100% !important;
+    min-width: 100% !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    position: relative !important;
+    top: 0 !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    padding: 5px !important;
+    border-radius: 12px !important;
+    gap: 4px !important;
+  }
+
+  .settings-sidebar-nav::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .settings-sidebar-nav-item {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: max-content !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 12px !important;
+    font-size: 0.8rem !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .settings-header {
+    height: 54px !important;
+    min-height: 54px !important;
+    max-height: 54px !important;
+    padding: 0 12px !important;
+  }
+
+  .settings-header .subtitle {
+    display: none !important;
+  }
+
+  .settings-header-actions {
+    gap: 6px !important;
+  }
+
+  .settings-header-actions button,
+  .settings-header-actions .btn {
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    padding: 0 !important;
+    border-radius: 9px !important;
+    justify-content: center !important;
+  }
+
+  .settings-header-actions button span,
+  .settings-header-actions .btn span {
+    display: none !important;
+  }
 }
