@@ -26452,3 +26452,108 @@ button.td-confirm-icon.is-back-btn:active {
     justify-content: center !important;
   }
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ULTRA-NARROW SMART ADAPTATIONS (< 480px / 1/4 WINDOW / SPLIT SCREEN)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 479.98px) {
+  .td-topbar {
+    padding: 6px 8px !important;
+    gap: 5px !important;
+  }
+
+  /* Row 1: Prioritize Menu button & essential actions */
+  .td-topbar-left {
+    flex: 0 0 auto !important;
+    max-width: 45% !important;
+  }
+
+  .td-breadcrumbs {
+    max-width: 100% !important;
+  }
+
+  .td-crumb-link,
+  .td-crumb-current {
+    max-width: 60px !important;
+  }
+
+  .td-topbar-actions {
+    flex: 1 1 auto !important;
+    gap: 3px !important;
+  }
+
+  /* Hide non-essential tertiary icons on ultra-narrow */
+  .td-topbar-actions .td-zoom-controls,
+  .td-topbar-actions button[title*="ZIP"],
+  .td-topbar-actions button[title*="Remote"],
+  .td-topbar-actions button[title*="Pengaturan Transfer"] {
+    display: none !important;
+  }
+
+  /* Tools Left Cluster: smooth scrollable without overlap */
+  .td-tools-left-cluster {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    flex-wrap: nowrap !important;
+  }
+  .td-tools-left-cluster::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .td-perspective-switcher {
+    flex-shrink: 0 !important;
+  }
+
+  .td-filter-pills {
+    flex-shrink: 0 !important;
+    display: inline-flex !important;
+    flex-wrap: nowrap !important;
+  }
+
+  /* Tools Right Cluster: 50/50 grid */
+  .td-tools-right-cluster {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 4px !important;
+    width: 100% !important;
+  }
+
+  .td-tools-right-cluster .td-sort-group,
+  .td-tools-right-cluster .td-thumb-quality-pills {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+.td-tools-left-cluster {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  flex-wrap: nowrap !important;
+}
+.td-tools-left-cluster::-webkit-scrollbar {
+  display: none !important;
+}
+
+.td-tools-left-cluster > * {
+  flex-shrink: 0 !important;
+}
+
+.td-group-perspective,
+.td-group-filters {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex-shrink: 0 !important;
+}
