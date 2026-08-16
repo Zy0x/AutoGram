@@ -25,12 +25,10 @@ import {
   FolderArchive,
   ChevronLeft,
   ChevronRight,
-  MoreVertical,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useModalBackHandler } from '../../../lib/platform/modalBackStack';
 import { useTopicDrop } from './useTopicDrop';
 import type {
   DriveGridZoom,
@@ -215,8 +213,6 @@ export function DriveTopBar({
   onBackToLauncher: _onBackToLauncher,
 }: Props) {
   const { t } = useTranslation();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  useModalBackHandler(mobileMenuOpen, () => setMobileMenuOpen(false), 'drive-topbar-mobile-menu');
   const [manualSpin, setManualSpin] = useState(false);
   const handleRefreshClick = () => {
     setManualSpin(true);
@@ -538,7 +534,7 @@ export function DriveTopBar({
         <div className="td-topbar-actions">
 
           {viewMode === 'grid' && (
-            <div className="td-zoom-controls td-desktop-action" role="group" aria-label={t('speedtest.topbar_zoom_grid_aria')}>
+            <div className="td-zoom-controls" role="group" aria-label={t('speedtest.topbar_zoom_grid_aria')}>
               <button
                 type="button"
                 className="td-icon-btn"
@@ -570,7 +566,7 @@ export function DriveTopBar({
             </div>
           )}
 
-          <div className="td-view-toggle td-desktop-action" role="group" aria-label={t('speedtest.topbar_view_mode_aria')}>
+          <div className="td-view-toggle" role="group" aria-label={t('speedtest.topbar_view_mode_aria')}>
             <button
               type="button"
               className={`td-icon-btn ${viewMode === 'grid' ? 'active' : ''}`}
@@ -592,7 +588,7 @@ export function DriveTopBar({
 
           <button
             type="button"
-            className={`td-icon-btn td-desktop-action${loading || manualSpin ? ' is-refreshing' : ''}`}
+            className={`td-icon-btn${loading || manualSpin ? ' is-refreshing' : ''}`}
             onClick={handleRefreshClick}
             disabled={loading}
             title={t("speedtest.topbar_refresh_all")}
@@ -604,7 +600,7 @@ export function DriveTopBar({
           {(onOpenTools || onOpenTransferSettings) && (
             <button
               type="button"
-              className={`td-icon-btn td-desktop-action ${toolsActive ? 'active' : ''}`}
+              className={`td-icon-btn ${toolsActive ? 'active' : ''}`}
               onClick={onOpenTools || onOpenTransferSettings}
               disabled={!!actionsDisabled}
               title={t('speedtest.tools_title')}
@@ -647,7 +643,7 @@ export function DriveTopBar({
           {onDownloadAllClick && (
             <button
               type="button"
-              className="td-icon-btn td-desktop-action text-[var(--primary,#e2a532)]"
+              className="td-icon-btn text-[var(--primary,#e2a532)]"
               onClick={onDownloadAllClick}
               disabled={!!actionsDisabled}
               title={t("speedtest.topbar_download_zip")}
@@ -656,17 +652,6 @@ export function DriveTopBar({
               <FolderArchive size={16} />
             </button>
           )}
-
-          {/* Mobile More Actions Menu Trigger */}
-          <button
-            type="button"
-            className="td-icon-btn td-mobile-action"
-            onClick={() => setMobileMenuOpen(true)}
-            title={t('speedtest.tools_title')}
-            aria-label={t('speedtest.tools_title')}
-          >
-            <MoreVertical size={16} />
-          </button>
 
           {onRemoteUploadClick && (
             <button
@@ -1050,152 +1035,6 @@ export function DriveTopBar({
                 >
                   <Trash2 size={14} />
                   <span>{t('speedtest.delete_topic')}</span>
-                </button>
-              )}
-            </div>
-          </div>,
-          document.body
-        )}
-      {mobileMenuOpen &&
-        createPortal(
-          <div
-            className="context-menu-overlay"
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              width: '100vw',
-              height: '100dvh',
-              zIndex: 99999,
-              background: 'rgba(0, 0, 0, 0.6)',
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'center',
-            }}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <div
-              className="td-mobile-action-sheet"
-              style={{
-                width: '100%',
-                maxWidth: '540px',
-                background: 'var(--td-surface, #17212b)',
-                borderTopLeftRadius: '20px',
-                borderTopRightRadius: '20px',
-                padding: '16px 16px max(20px, env(safe-area-inset-bottom, 20px))',
-                border: '1px solid var(--td-border, rgba(255, 255, 255, 0.12))',
-                boxShadow: '0 -10px 35px rgba(0, 0, 0, 0.7)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px',
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid var(--td-border, rgba(255,255,255,0.08))' }}>
-                <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--td-text, #fff)' }}>
-                  {t('speedtest.tools_title')}
-                </span>
-                <button
-                  type="button"
-                  className="td-icon-btn"
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{ width: '36px', height: '36px' }}
-                >
-                  <SquareX size={18} />
-                </button>
-              </div>
-
-              {/* View mode toggle */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
-                <span style={{ fontSize: '0.88rem', color: 'var(--td-sub, #8e9fb3)' }}>
-                  {t('speedtest.topbar_view_mode_aria')}
-                </span>
-                <div className="td-view-toggle">
-                  <button
-                    type="button"
-                    className={`td-icon-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                    onClick={() => { onViewMode('grid'); setMobileMenuOpen(false); }}
-                  >
-                    <LayoutGrid size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    className={`td-icon-btn ${viewMode === 'list' ? 'active' : ''}`}
-                    onClick={() => { onViewMode('list'); setMobileMenuOpen(false); }}
-                  >
-                    <List size={16} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Zoom controls for grid */}
-              {viewMode === 'grid' && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
-                  <span style={{ fontSize: '0.88rem', color: 'var(--td-sub, #8e9fb3)' }}>
-                    {t('speedtest.topbar_zoom_grid_aria')}
-                  </span>
-                  <div className="td-zoom-controls">
-                    <button
-                      type="button"
-                      className="td-icon-btn"
-                      disabled={!canZoomOut}
-                      onClick={() => onGridZoom((gridZoom - 1) as DriveGridZoom)}
-                    >
-                      <ZoomOut size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      className="td-zoom-label"
-                      onClick={() => onGridZoom(2 as DriveGridZoom)}
-                    >
-                      {zoomLevel.short}
-                    </button>
-                    <button
-                      type="button"
-                      className="td-icon-btn"
-                      disabled={!canZoomIn}
-                      onClick={() => onGridZoom((gridZoom + 1) as DriveGridZoom)}
-                    >
-                      <ZoomIn size={16} />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Refresh */}
-              <button
-                type="button"
-                className="td-chip-btn"
-                style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', minHeight: '44px', padding: '0 14px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', border: '1px solid var(--td-border, rgba(255,255,255,0.1))', color: 'inherit' }}
-                onClick={() => { handleRefreshClick(); setMobileMenuOpen(false); }}
-              >
-                <RefreshCw size={16} className={loading || manualSpin ? 'spin' : undefined} />
-                <span>{t('speedtest.topbar_refresh_all')}</span>
-              </button>
-
-              {/* Download all as zip */}
-              {onDownloadAllClick && (
-                <button
-                  type="button"
-                  className="td-chip-btn"
-                  style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', minHeight: '44px', padding: '0 14px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', border: '1px solid var(--td-border, rgba(255,255,255,0.1))', color: 'inherit' }}
-                  onClick={() => { onDownloadAllClick(); setMobileMenuOpen(false); }}
-                >
-                  <FolderArchive size={16} color="var(--primary, #e2a532)" />
-                  <span>{t('speedtest.topbar_download_zip')}</span>
-                </button>
-              )}
-
-              {/* Settings / Tools */}
-              {(onOpenTools || onOpenTransferSettings) && (
-                <button
-                  type="button"
-                  className="td-chip-btn"
-                  style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', minHeight: '44px', padding: '0 14px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', border: '1px solid var(--td-border, rgba(255,255,255,0.1))', color: 'inherit' }}
-                  onClick={() => { (onOpenTools || onOpenTransferSettings)?.(); setMobileMenuOpen(false); }}
-                >
-                  <SlidersHorizontal size={16} />
-                  <span>{t('speedtest.tools_title')}</span>
                 </button>
               )}
             </div>

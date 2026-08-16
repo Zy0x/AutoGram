@@ -1,3 +1,17 @@
+## v3.7.29 Desktop Dedicated Toolbar & Selection Strip Overlap Fix (Phase 30)
+
+### 1. Pemisahan Jalur Tampilan Desktop & Perbaikan Tumpang-Tindih Toolbar Seleksi
+- **Pemulihan Penuh Toolbar Desktop (`DriveTopBar.tsx`, `App.css`)**:
+  - Mengembalikan seluruh tombol kontrol di baris atas Desktop (Zoom Controls, Mode Tampilan Grid/List, Refresh Lokasi, Tools Panel, Unduh ZIP, Remote Upload, dan Upload Primer) agar selalu tampil dan dapat diakses langsung dengan 1 klik mouse tanpa disembunyikan ke dalam menu titik tiga `⋯`.
+- **Perbaikan Tumpang-Tindih Tombol Seleksi (*Selection Strip Zero-Collision*) (`DriveTopBar.tsx`, `App.css`)**:
+  - Memperbaiki layout flex pada toolbar seleksi baris ke-2 (`td-selection-strip`) dengan menerapkan `inline-flex`, `gap: 8px`, `flex-shrink: 0`, dan `white-space: nowrap`.
+  - Mengatasi tumpang-tindih teks dan ikon antara tombol Batal/Cancel (`SquareX`) dengan tombol Pindah/Move (`SendHorizontal`), Unduh (`Download`), dan Hapus (`Delete`).
+  - Menetapkan pembagian ruang dinamis antara Search Bar (`flex: 1 1 180px`) dan Selection Strip (`flex: 0 0 auto`) tanpa layout break.
+- **Verifikasi Kualitas**:
+  - `cargo check` kompilasi backend Rust lulus 100%.
+  - **4.865 Kunci Kamus** tersinkronisasi 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
+  - 146 unit test Vitest lulus 100%.
+
 ## v3.7.28 Hardware Capability & Cross-Platform Re-Encoder Audit (Phase 29)
 
 ### 1. Audit Menyeluruh Hardware Capability & Re-Encoder Engine
