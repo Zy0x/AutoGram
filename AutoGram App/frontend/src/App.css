@@ -26121,3 +26121,82 @@ button.td-confirm-icon.is-back-btn:active {
     justify-content: center !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   COMPACT & MOBILE RESPONSIVE WRAP: GUARANTEED HAMBURGER & ACTION ROW
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 767.98px) {
+  .td-topbar {
+    padding: 8px 10px !important;
+    gap: 6px !important;
+  }
+
+  /* Row 1 splits into Navigation Row (Top) + Action Toolbar (Below) */
+  .td-topbar-row-1 {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+    overflow: visible !important;
+  }
+
+  .td-topbar-left {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 1 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .td-topbar .td-icon-btn.td-menu-btn,
+  .td-topbar .td-menu-btn {
+    display: inline-flex !important;
+    flex-shrink: 0 !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+  }
+
+  .td-topbar-left .td-breadcrumbs {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .td-topbar-actions {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    padding-bottom: 2px !important;
+  }
+  .td-topbar-actions::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .td-topbar-actions > * {
+    flex-shrink: 0 !important;
+  }
+}
+
+/* Ensure the main workstation container is smoothly scrollable vertically */
+.td-main {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  -webkit-overflow-scrolling: touch !important;
+}
