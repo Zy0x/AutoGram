@@ -26403,3 +26403,224 @@ button.td-confirm-icon.is-back-btn:active {
   min-width: 0 !important;
   max-width: 100% !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ZERO CLIPPING & NO-SCROLLBAR ROW SPACING ENGINE (FULL HEIGHT PRESERVATION)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Eliminate scrollbar height intrusion completely across all toolbar elements */
+.td-topbar,
+.td-topbar *,
+.td-topic-pills,
+.td-topics-scroll-container,
+.td-tools-left-cluster,
+.td-tools-right-cluster,
+.td-topbar-actions,
+.td-filter-pills,
+.td-perspective-switcher,
+.td-thumb-quality-pills {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.td-topbar *::-webkit-scrollbar,
+.td-topbar::-webkit-scrollbar,
+.td-topbar-row::-webkit-scrollbar,
+.td-topic-pills::-webkit-scrollbar,
+.td-topics-scroll-container::-webkit-scrollbar,
+.td-tools-left-cluster::-webkit-scrollbar,
+.td-tools-right-cluster::-webkit-scrollbar,
+.td-topbar-actions::-webkit-scrollbar,
+.td-filter-pills::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+/* Master Topbar Container: generous vertical padding and gap on all screens */
+.td-topbar {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  padding: 10px 14px 12px !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+/* Row 1: Nav Header & Tools */
+.td-topbar-row-1 {
+  min-height: 36px !important;
+  height: auto !important;
+  max-height: none !important;
+  gap: 8px !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+/* Row 2 (Search Bar): full height, clean vertical margin */
+.td-topbar-row-2 {
+  min-height: 38px !important;
+  height: auto !important;
+  max-height: none !important;
+  margin: 1px 0 !important;
+  overflow: visible !important;
+}
+
+.td-topbar-row-2 .td-search,
+.td-topbar .td-search {
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  box-sizing: border-box !important;
+}
+
+.td-topbar .td-search input,
+.td-topbar-row-2 .td-search input {
+  height: 38px !important;
+  min-height: 38px !important;
+  font-size: 0.85rem !important;
+  box-sizing: border-box !important;
+}
+
+/* Row 3 (Topics): full height without scrollbar clipping */
+.td-topbar-row-topics {
+  min-height: 36px !important;
+  height: auto !important;
+  max-height: none !important;
+  padding: 2px 0 !important;
+  margin: 1px 0 !important;
+  overflow: visible !important;
+}
+
+.td-topic-pills {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 2px 0 !important;
+  overflow-x: auto !important;
+}
+
+.td-topic-pill {
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  font-size: 0.74rem !important;
+  line-height: 1.2 !important;
+  padding: 0 12px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+/* Row 4 (Perspective Switcher + Filter Pills): full height without scrollbar clipping */
+.td-topbar-row-tools {
+  min-height: 36px !important;
+  height: auto !important;
+  max-height: none !important;
+  padding: 2px 0 !important;
+  margin: 1px 0 !important;
+  overflow: visible !important;
+}
+
+.td-tools-left-cluster {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-height: 36px !important;
+  padding: 1px 0 !important;
+  overflow-x: auto !important;
+}
+
+.td-perspective-switcher {
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  padding: 3px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+}
+
+.td-perspective-btn {
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  font-size: 0.76rem !important;
+  padding: 0 11px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.td-filter-pills {
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  padding: 3px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+}
+
+.td-filter-pills .td-pill {
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  font-size: 0.74rem !important;
+  padding: 0 10px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+/* Row 5: Sort & Thumbnail Quality Pills */
+.td-tools-right-cluster {
+  min-height: 36px !important;
+  padding: 1px 0 !important;
+}
+
+.td-sort-group {
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  padding: 2px 6px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.td-sort-group .td-sort,
+.td-sort-group .td-modern-select {
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  font-size: 0.76rem !important;
+  box-sizing: border-box !important;
+}
+
+.td-thumb-quality-pills {
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  padding: 3px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.td-thumb-pill {
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  font-size: 0.74rem !important;
+  padding: 0 10px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
