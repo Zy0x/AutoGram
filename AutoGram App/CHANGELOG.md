@@ -1,3 +1,14 @@
+## v3.7.23 Unified Creator Profile Format & Embedded Caption Metadata (Phase 24)
+
+### 1. Penggabungan Format Profil Tunggal Tanpa Redundansi
+- **Unified Creator Profile Format (`tiktokResolver.ts`)**:
+  - Menggabungkan pilihan format profil kreator menjadi satu format tunggal yang bersih dan efisien: **`Creator Profile Photo (HD Avatar)`** (`AVATAR HD`).
+  - Menghilangkan tombol terpisah `.txt` yang redundan; seluruh metadata akun (Nama, Username `@uniqueId`, Bio/Signature, dan URL profil) secara otomatis terintegrasi ke dalam judul/caption berkas foto profil yang diunggah (`.jpg`).
+  - Menjaga antarmuka pemilihan format tetap minimalis, rapi, dan intuitif.
+- **Verifikasi Kualitas**:
+  - **4.865 Kunci Kamus** tersinkronisasi 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
+  - 146 unit test Vitest lulus 100%.
+
 ## v3.7.22 Dual-Tier Hybrid Profile Extraction & Live Dev Canvas Verification (Phase 23)
 
 ### 1. Ekstraksi Profil Hibrida Dual-Tier & Pengujian Otomatis Langsung (Remote CDP)

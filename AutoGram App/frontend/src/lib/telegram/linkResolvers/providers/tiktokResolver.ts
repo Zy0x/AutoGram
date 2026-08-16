@@ -146,7 +146,7 @@ export const tiktokResolver: LinkResolverProvider = {
         const title = `${authorName} (@${uniqueId}) - Profil TikTok`;
         const formats: StreamQualityFormat[] = [];
 
-        // 1. Creator Profile Avatar (Highest Resolution Master)
+        // Unified Creator Profile Photo with embedded metadata caption
         const effectiveAvatar = avatarLarger || avatarMedium;
         if (effectiveAvatar) {
           formats.push({
@@ -160,18 +160,18 @@ export const tiktokResolver: LinkResolverProvider = {
             isCleanNoWatermark: true,
             badge: 'AVATAR HD',
           });
+        } else {
+          // Fallback only if avatar image could not be retrieved
+          formats.push({
+            id: 'tiktok_profile_link',
+            label: `Profile Information (@${uniqueId})`,
+            qualityTier: 'original',
+            resolution: 'Creator Profile',
+            ext: 'txt',
+            directUrl: cleanUrl,
+            badge: 'PROFILE',
+          });
         }
-
-        // 2. Profile Link / Summary
-        formats.push({
-          id: 'tiktok_profile_link',
-          label: `Profile Information (@${uniqueId})`,
-          qualityTier: 'original',
-          resolution: 'Creator Profile',
-          ext: 'txt',
-          directUrl: cleanUrl,
-          badge: 'PROFILE',
-        });
 
         return {
           url: cleanUrl,
