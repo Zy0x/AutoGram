@@ -31549,3 +31549,61 @@ button.td-confirm-icon.is-back-btn:active {
   backdrop-filter: blur(16px) !important;
 }
 
+
+/* ══════════════════════════════════════════════════════════════════════════
+   FIX INFO BUTTON HOVER CLIPPING & PADDING BUFFER
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-topbar-row-1,
+.td-topbar .td-topbar-row-1 {
+  overflow: visible !important;
+}
+
+.td-topbar-left,
+.td-topbar .td-topbar-left,
+.td-topbar .td-topbar-row-1 .td-topbar-left {
+  overflow: visible !important;
+  max-width: 50% !important;
+}
+
+.td-storage-info-wrapper {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  overflow: visible !important;
+  padding: 2px 4px !important;
+  margin-right: 4px !important;
+  flex-shrink: 0 !important;
+  z-index: 50 !important;
+}
+
+.td-storage-info-btn {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  max-width: 26px !important;
+  min-height: 26px !important;
+  max-height: 26px !important;
+  border-radius: 50% !important;
+  background: rgba(15, 23, 42, 0.85) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.14) !important;
+  color: #94a3b8 !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  outline: none !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35) !important;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease !important;
+  flex-shrink: 0 !important;
+}
+
+.td-storage-info-btn:hover,
+.td-storage-info-btn.active {
+  transform: scale(1.1) !important;
+  z-index: 60 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6) !important;
+}
