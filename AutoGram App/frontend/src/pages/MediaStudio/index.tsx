@@ -871,6 +871,24 @@ function MediaDriveDesktop({
     }
   }, [preflightReport]);
 
+  const [viewportDims, setViewportDims] = useState(() => ({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1200,
+    height: typeof window !== 'undefined' ? window.innerHeight : 800,
+  }));
+
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportDims({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isDesktopDualPane = viewportDims.width >= 900 && viewportDims.height >= 600;
+
   // Default expanded; only collapse if user previously chose so (and screen is >= 900x600)
   const [collapsed, setCollapsed] = useState(() => {
     if (typeof window !== 'undefined' && (window.innerWidth < 900 || window.innerHeight < 600)) {
@@ -879,19 +897,16 @@ function MediaDriveDesktop({
     return localStorage.getItem(LS_COLLAPSE) === '1';
   });
 
+  const effectiveCollapsed = isDesktopDualPane && collapsed;
+
   useEffect(() => {
-    const handleWindowResize = () => {
-      if (typeof window !== 'undefined' && (window.innerWidth < 900 || window.innerHeight < 600)) {
-        if (collapsed) setCollapsed(false);
-      }
-    };
-    handleWindowResize();
-    window.addEventListener('resize', handleWindowResize);
-    return () => window.removeEventListener('resize', handleWindowResize);
-  }, [collapsed]);
+    if (!isDesktopDualPane && collapsed) {
+      setCollapsed(false);
+    }
+  }, [isDesktopDualPane, collapsed]);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
-  /** Mobile drawer: always open at full panel width (never icon-rail 72px). */
+  /** Mobile/drawer: always open at full panel width (never icon-rail 72px). */
   const openDrawer = useCallback(() => {
     setCollapsed(false);
     setDrawerOpen(true);
@@ -6513,11 +6528,11 @@ function MediaDriveDesktop({
     handleRename,
   ]);
 
-  // Desktop: drawer is unused — clear sticky open/collapsed clash after resize
+  // Desktop: drawer is unused in dual-pane mode (>= 900x600) — clear sticky open after resize
   useEffect(() => {
     const onResize = () => {
       if (typeof window === 'undefined') return;
-      if (window.innerWidth > 900 && drawerOpen) {
+      if (window.innerWidth >= 900 && window.innerHeight >= 600 && drawerOpen) {
         setDrawerOpen(false);
       }
     };
@@ -8160,9 +8175,9 @@ function MediaDriveDesktop({
         </div>
       )}
       <div
-        className={`td-shell ${collapsed ? 'rail-collapsed' : ''}${
-          mediaDragActive ? ' is-media-dnd' : ''
-        }${dragActive ? ' is-os-dnd' : ''}`}
+        className={`td-shell ${isDesktopDualPane ? 'is-docked-mode' : 'is-drawer-mode'} ${
+          effectiveCollapsed ? 'rail-collapsed' : ''
+        }${mediaDragActive ? ' is-media-dnd' : ''}${dragActive ? ' is-os-dnd' : ''}`}
       >
         <DriveSidebar
           folders={folders}
@@ -8242,6 +8257,8 @@ function MediaDriveDesktop({
           }}
           channelLimitWarning={channelLimitWarning}
           onRefresh={refreshLocations}
+          onDelete={handleDeleteFolder}
+          onRename={handleRenameFolder}
           loadingFolders={loadingFolders}
           loadingChats={loadingChats}
           session={session}
@@ -8254,11 +8271,9 @@ function MediaDriveDesktop({
           }
           connected={driveReady || isDriveSessionReady()}
           pingState={pingState}
-          collapsed={collapsed}
+          collapsed={effectiveCollapsed}
           onToggleCollapse={() => {
-            if (typeof window !== 'undefined' && (window.innerWidth < 900 || window.innerHeight < 600)) {
-              return;
-            }
+            if (!isDesktopDualPane) return;
             setCollapsed((c) => !c);
           }}
           chatQuery={chatQuery}

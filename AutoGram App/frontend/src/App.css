@@ -29536,3 +29536,51 @@ button.td-confirm-icon.is-back-btn:active {
     display: block !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   UNIFIED DRAWER OVERLAY SYSTEM (Width < 900px OR Height < 600px)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 899.98px), (max-height: 599.98px) {
+  .td-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: -320px !important;
+    width: 280px !important;
+    max-width: 280px !important;
+    min-width: 280px !important;
+    height: 100vh !important;
+    z-index: 10000 !important;
+    background: #0b1120 !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.75) !important;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), left 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .td-sidebar.is-drawer-open {
+    left: 0 !important;
+    transform: translateX(0) !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+
+  .td-drawer-backdrop {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0, 0, 0, 0.65) !important;
+    backdrop-filter: blur(3px) !important;
+    z-index: 9999 !important;
+    display: block !important;
+    animation: td-backdrop-fade 0.2s ease forwards !important;
+  }
+}
+
+@keyframes td-backdrop-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
