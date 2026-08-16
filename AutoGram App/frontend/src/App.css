@@ -31068,3 +31068,26 @@ button.td-confirm-icon.is-back-btn:active {
   width: 0 !important;
   height: 0 !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PERFECT VISUAL SYMMETRY (COMPENSATING FOR VERTICAL SCROLLBAR GUTTER)
+   Ensures the physical distance from leftmost button to left edge (14px)
+   is 100% IDENTICAL to the physical distance from rightmost button to right edge (14px)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-topbar {
+  padding-left: 14px !important;
+  padding-right: 4px !important; /* 4px padding + 10px scrollbar gutter = exactly 14px from window right edge */
+  box-sizing: border-box !important;
+}
+
+.td-topbar .td-topbar-row-1,
+.td-topbar .td-topbar-row-2,
+.td-topbar .td-topbar-row-3,
+.td-topbar .td-topbar-row-topics,
+.td-topbar .td-topbar-row-filters,
+.td-topbar .td-topbar-row-sort {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  box-sizing: border-box !important;
+}
