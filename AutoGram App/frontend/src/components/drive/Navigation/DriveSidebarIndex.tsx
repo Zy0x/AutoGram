@@ -1705,12 +1705,18 @@ export function DriveSidebar({
     return () => window.removeEventListener('keydown', onKey, true);
   }, [collapsed]);
 
+  // Collapse sidebar is strictly disabled below 750x500 (drawer mode stays clean & expanded)
+  const isCollapseAllowed = typeof window !== 'undefined'
+    ? window.innerWidth >= 750 && window.innerHeight >= 500
+    : true;
+  const effectiveCollapsed = isCollapseAllowed ? collapsed : false;
+
   return (
     <aside
       ref={sidebarRef as React.RefObject<HTMLElement>}
-      className={`td-sidebar ${collapsed ? 'is-collapsed' : ''} ${drawerOpen ? 'is-drawer-open' : ''} ${anyDragLive ? 'media-dnd' : ''}`}
+      className={`td-sidebar ${effectiveCollapsed ? 'is-collapsed' : ''} ${drawerOpen ? 'is-drawer-open' : ''} ${anyDragLive ? 'media-dnd' : ''}`}
       aria-label={t('ui.generated.drive_locations_e6fade5')}
-      data-collapsed={collapsed ? 'true' : 'false'}
+      data-collapsed={effectiveCollapsed ? 'true' : 'false'}
     >
       {/* Expand/collapse first (top) — users expect this control at the top of the rail */}
       <div className="td-rail-head">
@@ -1731,15 +1737,15 @@ export function DriveSidebar({
 
         <button
           type="button"
-          className="td-rail-brand td-rail-brand-toggle"
-          onClick={onToggleCollapse}
-          title={collapsed ? t('speedtest.sidebar_expand_tooltip') : t('speedtest.sidebar_collapse_tooltip')}
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? t('speedtest.sidebar_expand_tooltip') : t('speedtest.sidebar_collapse_tooltip')}
+          className={`td-rail-brand td-rail-brand-toggle ${!isCollapseAllowed ? 'is-static-brand' : ''}`}
+          onClick={isCollapseAllowed ? onToggleCollapse : undefined}
+          title={isCollapseAllowed ? (effectiveCollapsed ? t('speedtest.sidebar_expand_tooltip') : t('speedtest.sidebar_collapse_tooltip')) : undefined}
+          aria-expanded={isCollapseAllowed ? !effectiveCollapsed : undefined}
+          aria-label={isCollapseAllowed ? (effectiveCollapsed ? t('speedtest.sidebar_expand_tooltip') : t('speedtest.sidebar_collapse_tooltip')) : t('speedtest.header_drive_title')}
         >
           <div className="td-sidebar-logo">
             <HardDrive size={20} />
-            {collapsed && (
+            {effectiveCollapsed && (
               <span
                 className={`td-sidebar-logo-dot td-rail-conn-dot ${pingState?.status || (connected ? 'excellent' : 'disconnected')} pulse`}
                 title={getPingTooltip()}

@@ -871,8 +871,25 @@ function MediaDriveDesktop({
     }
   }, [preflightReport]);
 
-  // Default expanded; only collapse if user previously chose so
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(LS_COLLAPSE) === '1');
+  // Default expanded; only collapse if user previously chose so (and screen is >= 750x500)
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window !== 'undefined' && (window.innerWidth < 750 || window.innerHeight < 500)) {
+      return false;
+    }
+    return localStorage.getItem(LS_COLLAPSE) === '1';
+  });
+
+  useEffect(() => {
+    const handleWindowResize = () => {
+      if (typeof window !== 'undefined' && (window.innerWidth < 750 || window.innerHeight < 500)) {
+        if (collapsed) setCollapsed(false);
+      }
+    };
+    handleWindowResize();
+    window.addEventListener('resize', handleWindowResize);
+    return () => window.removeEventListener('resize', handleWindowResize);
+  }, [collapsed]);
+
   const [drawerOpen, setDrawerOpen] = useState(false);
   /** Mobile drawer: always open at full panel width (never icon-rail 72px). */
   const openDrawer = useCallback(() => {
@@ -8238,7 +8255,12 @@ function MediaDriveDesktop({
           connected={driveReady || isDriveSessionReady()}
           pingState={pingState}
           collapsed={collapsed}
-          onToggleCollapse={() => setCollapsed((c) => !c)}
+          onToggleCollapse={() => {
+            if (typeof window !== 'undefined' && (window.innerWidth < 750 || window.innerHeight < 500)) {
+              return;
+            }
+            setCollapsed((c) => !c);
+          }}
           chatQuery={chatQuery}
           onChatQuery={setChatQuery}
           drawerOpen={drawerOpen}

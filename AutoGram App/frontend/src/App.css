@@ -27727,3 +27727,28 @@ button.td-confirm-icon.is-back-btn:active {
     display: none !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   STATIC BRAND HEADER WHEN COLLAPSE IS DISABLED (< 750x500)
+   ══════════════════════════════════════════════════════════════════════════ */
+.td-rail-brand.is-static-brand,
+.td-rail-brand-toggle.is-static-brand {
+  cursor: default !important;
+  pointer-events: auto !important;
+}
+
+.td-rail-brand.is-static-brand:hover,
+.td-rail-brand-toggle.is-static-brand:hover {
+  background: transparent !important;
+}
+
+@media (max-width: 749px), (max-height: 499px) {
+  .td-sidebar .td-rail-brand,
+  .td-sidebar .td-rail-brand-toggle {
+    cursor: default !important;
+  }
+  .td-sidebar .td-rail-brand:hover,
+  .td-sidebar .td-rail-brand-toggle:hover {
+    background: transparent !important;
+  }
+}
