@@ -27,7 +27,6 @@ import {
   Zap,
   User,
   Info,
-  Cloud,
 } from 'lucide-react';
 import type { DriveDestChoice, DriveDestPickerState } from './DriveDestinationPicker';
 import { DriveDestinationPicker } from './DriveDestinationPicker';

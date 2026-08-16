@@ -828,125 +828,130 @@ export function DriveTopBar({
       {/* Row 3: filters/sort/thumb — labeled groups so controls stay self-explanatory */}
       <div className="td-topbar-row td-topbar-row-tools">
         <div className="td-topbar-tools" role="toolbar" aria-label={t("speedtest.topbar_tools_aria")}>
-          {/* Perspective View Switcher */}
-          {onViewPerspective && (
-            <div className="td-tool-group" role="group" aria-label={t("speedtest.perspective_telegram")}>
-              <div className="td-perspective-switcher">
-                <button
-                  type="button"
-                  className={`td-perspective-btn ${viewPerspective === 'telegram' ? 'active' : ''}`}
-                  onClick={() => onViewPerspective('telegram')}
-                  title={t("speedtest.perspective_telegram")}
-                >
-                  {t("speedtest.perspective_telegram_short")}
-                </button>
-                <button
-                  type="button"
-                  className={`td-perspective-btn ${viewPerspective === 'drive' ? 'active' : ''}`}
-                  onClick={() => onViewPerspective('drive')}
-                  title={t("speedtest.perspective_drive")}
-                >
-                  {t("speedtest.perspective_drive_short")}
-                </button>
+          <div className="td-tools-left-cluster">
+            {/* Perspective View Switcher */}
+            {onViewPerspective && (
+              <div className="td-tool-group td-group-perspective" role="group" aria-label={t("speedtest.perspective_telegram")}>
+                <div className="td-perspective-switcher">
+                  <button
+                    type="button"
+                    className={`td-perspective-btn ${viewPerspective === 'telegram' ? 'active' : ''}`}
+                    onClick={() => onViewPerspective('telegram')}
+                    title={t("speedtest.perspective_telegram")}
+                  >
+                    {t("speedtest.perspective_telegram_short")}
+                  </button>
+                  <button
+                    type="button"
+                    className={`td-perspective-btn ${viewPerspective === 'drive' ? 'active' : ''}`}
+                    onClick={() => onViewPerspective('drive')}
+                    title={t("speedtest.perspective_drive")}
+                  >
+                    {t("speedtest.perspective_drive_short")}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="td-tool-group td-group-filters" role="group" aria-labelledby="td-label-filter">
+              <span id="td-label-filter" className="td-tool-label" title={t("speedtest.topbar_filter_media_type")}>
+                {t("speedtest.topbar_label_filter")}
+              </span>
+              <div className="td-filter-pills">
+                {(
+                  viewPerspective === 'telegram'
+                    ? [
+                        ['all', t("speedtest.filter_all"), t("speedtest.filter_all_tip")],
+                        ['media', t("speedtest.tab_telegram_media"), t("speedtest.tab_telegram_media")],
+                        ['files', t("speedtest.tab_telegram_files"), t("speedtest.tab_telegram_files")],
+                        ['links', t("speedtest.tab_telegram_links"), t("speedtest.tab_telegram_links")],
+                        ['gifs', t("speedtest.tab_telegram_gifs"), t("speedtest.tab_telegram_gifs")],
+                        ['audio', t("speedtest.tab_telegram_audio"), t("speedtest.tab_telegram_audio")],
+                      ]
+                    : [
+                        ['all', t("speedtest.filter_all"), t("speedtest.filter_all_tip")],
+                        ['images', t("speedtest.tab_drive_images"), t("speedtest.tab_drive_images")],
+                        ['videos', t("speedtest.tab_drive_videos"), t("speedtest.tab_drive_videos")],
+                        ['audio', t("speedtest.tab_drive_audio"), t("speedtest.tab_drive_audio")],
+                        ['documents', t("speedtest.tab_drive_documents"), t("speedtest.tab_drive_documents")],
+                        ['archives', t("speedtest.tab_drive_archives"), t("speedtest.tab_drive_archives")],
+                      ]
+                ).map(([id, label, tip]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`td-pill ${mediaFilter === id ? 'active' : ''}`}
+                    onClick={() => onMediaFilter(id as DriveMediaFilter)}
+                    title={tip}
+                    aria-label={`${t("speedtest.topbar_label_filter")}: ${tip}`}
+                    aria-pressed={mediaFilter === id}
+                  >
+                    <span className="td-pill-label">{label}</span>
+                    {categoryCounts && categoryCounts[id] != null && (
+                      <span className="td-filter-count" aria-hidden>
+                        {categoryCounts[id].toLocaleString()}
+                      </span>
+                    )}
+                  </button>
+                ))}
               </div>
             </div>
-          )}
-
-          <div className="td-tool-group" role="group" aria-labelledby="td-label-filter">
-            <span id="td-label-filter" className="td-tool-label" title={t("speedtest.topbar_filter_media_type")}>
-              {t("speedtest.topbar_label_filter")}
-            </span>
-            <div className="td-filter-pills">
-              {(
-                viewPerspective === 'telegram'
-                  ? [
-                      ['all', t("speedtest.filter_all"), t("speedtest.filter_all_tip")],
-                      ['media', t("speedtest.tab_telegram_media"), t("speedtest.tab_telegram_media")],
-                      ['files', t("speedtest.tab_telegram_files"), t("speedtest.tab_telegram_files")],
-                      ['links', t("speedtest.tab_telegram_links"), t("speedtest.tab_telegram_links")],
-                      ['gifs', t("speedtest.tab_telegram_gifs"), t("speedtest.tab_telegram_gifs")],
-                      ['audio', t("speedtest.tab_telegram_audio"), t("speedtest.tab_telegram_audio")],
-                    ]
-                  : [
-                      ['all', t("speedtest.filter_all"), t("speedtest.filter_all_tip")],
-                      ['images', t("speedtest.tab_drive_images"), t("speedtest.tab_drive_images")],
-                      ['videos', t("speedtest.tab_drive_videos"), t("speedtest.tab_drive_videos")],
-                      ['audio', t("speedtest.tab_drive_audio"), t("speedtest.tab_drive_audio")],
-                      ['documents', t("speedtest.tab_drive_documents"), t("speedtest.tab_drive_documents")],
-                      ['archives', t("speedtest.tab_drive_archives"), t("speedtest.tab_drive_archives")],
-                    ]
-              ).map(([id, label, tip]) => (
-                <button
-                  key={id}
-                  type="button"
-                  className={`td-pill ${mediaFilter === id ? 'active' : ''}`}
-                  onClick={() => onMediaFilter(id as DriveMediaFilter)}
-                  title={tip}
-                  aria-label={`${t("speedtest.topbar_label_filter")}: ${tip}`}
-                  aria-pressed={mediaFilter === id}
-                >
-                  <span className="td-pill-label">{label}</span>
-                  {categoryCounts && categoryCounts[id] != null && (
-                    <span className="td-filter-count" aria-hidden>
-                      {categoryCounts[id].toLocaleString()}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
           </div>
 
-          <div className="td-tool-group" title={t("speedtest.topbar_sort_order")}>
-            <span className="td-tool-label" id="td-label-sort" title={t("speedtest.topbar_sort_order")}>
-              {t("speedtest.topbar_label_sort")}
-            </span>
-            <div className="td-sort-group">
-              <ArrowUpDown size={14} className="td-sort-ico" aria-hidden />
-              <MediaSelect
-                value={sortMode}
-                onChange={(value) => onSortMode(value as DriveSortMode)}
-                ariaLabel={t("speedtest.topbar_sort_media_aria")}
-                compact
-                className="td-sort"
-                options={DRIVE_SORT_OPTIONS.map((opt: any) => ({
-                  value: opt.id,
-                  label: String(t(`speedtest.sort_${opt.id}_label`, opt.label)),
-                  description: String(t(`speedtest.sort_${opt.id}_desc`, opt.description)),
-                }))}
-              />
+          <div className="td-tools-right-cluster">
+            <div className="td-tool-group td-group-sort" title={t("speedtest.topbar_sort_order")}>
+              <span className="td-tool-label" id="td-label-sort" title={t("speedtest.topbar_sort_order")}>
+                {t("speedtest.topbar_label_sort")}
+              </span>
+              <div className="td-sort-group">
+                <ArrowUpDown size={14} className="td-sort-ico" aria-hidden />
+                <MediaSelect
+                  value={sortMode}
+                  onChange={(value) => onSortMode(value as DriveSortMode)}
+                  ariaLabel={t("speedtest.topbar_sort_media_aria")}
+                  compact
+                  className="td-sort"
+                  options={DRIVE_SORT_OPTIONS.map((opt: any) => ({
+                    value: opt.id,
+                    label: String(t(`speedtest.sort_${opt.id}_label`, opt.label)),
+                    description: String(t(`speedtest.sort_${opt.id}_desc`, opt.description)),
+                  }))}
+                />
+              </div>
             </div>
-          </div>
 
-          <div
-            className="td-tool-group td-thumb-quality"
-            role="group"
-            aria-labelledby="td-label-thumb"
-            title={t("speedtest.topbar_thumb_quality")}
-          >
-            <span id="td-label-thumb" className="td-tool-label" title={t("speedtest.topbar_preview_quality")}>
-              {t("speedtest.topbar_label_thumb")}
-            </span>
-            <div className="td-thumb-quality-pills">
-              {DRIVE_THUMB_QUALITY_OPTIONS.map((opt: any) => {
-                const label = String(t(`speedtest.thumb_${opt.id}_label`, opt.label));
-                const short = String(t(`speedtest.thumb_${opt.id}_short`, opt.short));
-                const description = String(t(`speedtest.thumb_${opt.id}_desc`, opt.description));
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    className={`td-pill td-thumb-pill ${thumbQuality === opt.id ? 'active' : ''}`}
-                    onClick={() => onThumbQuality(opt.id)}
-                    title={`${t('speedtest.thumb_prefix')}: ${description}`}
-                    aria-label={`${t('speedtest.thumb_prefix')}: ${label}`}
-                    aria-pressed={thumbQuality === opt.id}
-                  >
-                    {short}
-                  </button>
-                );
-              })}
+            <div
+              className="td-tool-group td-thumb-quality td-group-thumb"
+              role="group"
+              aria-labelledby="td-label-thumb"
+              title={t("speedtest.topbar_thumb_quality")}
+            >
+              <span id="td-label-thumb" className="td-tool-label" title={t("speedtest.topbar_preview_quality")}>
+                {t("speedtest.topbar_label_thumb")}
+              </span>
+              <div className="td-thumb-quality-pills">
+                {DRIVE_THUMB_QUALITY_OPTIONS.map((opt: any) => {
+                  const label = String(t(`speedtest.thumb_${opt.id}_label`, opt.label));
+                  const short = String(t(`speedtest.thumb_${opt.id}_short`, opt.short));
+                  const description = String(t(`speedtest.thumb_${opt.id}_desc`, opt.description));
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      className={`td-pill td-thumb-pill ${thumbQuality === opt.id ? 'active' : ''}`}
+                      onClick={() => onThumbQuality(opt.id)}
+                      title={`${t('speedtest.thumb_prefix')}: ${description}`}
+                      aria-label={`${t('speedtest.thumb_prefix')}: ${label}`}
+                      aria-pressed={thumbQuality === opt.id}
+                    >
+                      {short}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
+        </div>
       </div>
       {topicContextMenu &&
         createPortal(
@@ -1041,7 +1046,6 @@ export function DriveTopBar({
           </div>,
           document.body
         )}
-      </div>
     </header>
   );
 }
