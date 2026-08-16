@@ -34,7 +34,9 @@
   --fs-3xl: clamp(1.75rem, 1.4rem + 1.5vw, 2.5rem);
 }
 
-html, body {
+html, body, #root {
+  min-width: 320px;
+  min-height: 320px;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
