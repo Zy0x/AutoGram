@@ -27852,3 +27852,243 @@ button.td-confirm-icon.is-back-btn:active {
     white-space: nowrap !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   INTELLIGENT PROGRESSIVE BUTTON LABELS (RESPONSIVE STEP-BY-STEP DISCLOSURE)
+   - <= 460px: All buttons icon-only
+   - 461px - 540px: Upload gains label [ ⬆ Upload ]
+   - 541px - 640px: Remote URL also gains label [ 🌐 Remote URL ]
+   - >= 641px: Settings also gains label [ ⚙ Settings ]
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Base button label setup */
+.td-topbar .td-btn-primary .td-btn-label,
+.td-topbar .td-topbar-btn-remote .td-btn-label,
+.td-topbar .td-topbar-btn-tools .td-btn-label {
+  white-space: nowrap !important;
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+}
+
+/* Tier 1: Ultra Compact (<= 460px) -> all icon-only */
+@media (max-width: 460px) {
+  .td-topbar .td-btn-primary .td-btn-label,
+  .td-topbar .td-topbar-btn-remote .td-btn-label,
+  .td-topbar .td-topbar-btn-tools .td-btn-label {
+    display: none !important;
+  }
+
+  .td-topbar .td-btn-primary,
+  .td-topbar .td-topbar-btn-remote,
+  .td-topbar .td-topbar-btn-tools {
+    width: 32px !important;
+    min-width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+    border-radius: 8px !important;
+  }
+}
+
+/* Tier 2: Compact (461px - 540px) -> Upload button reveals label */
+@media (min-width: 461px) and (max-width: 540px) {
+  .td-topbar .td-btn-primary {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 0 12px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    width: auto !important;
+    border-radius: 8px !important;
+  }
+
+  .td-topbar .td-btn-primary .td-btn-label {
+    display: inline !important;
+  }
+
+  .td-topbar .td-topbar-btn-remote .td-btn-label,
+  .td-topbar .td-topbar-btn-tools .td-btn-label {
+    display: none !important;
+  }
+
+  .td-topbar .td-topbar-btn-remote,
+  .td-topbar .td-topbar-btn-tools {
+    width: 32px !important;
+    min-width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+    border-radius: 8px !important;
+  }
+}
+
+/* Tier 3: Medium Compact (541px - 640px) -> Upload + Remote URL reveal labels */
+@media (min-width: 541px) and (max-width: 640px) {
+  .td-topbar .td-btn-primary,
+  .td-topbar .td-topbar-btn-remote {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 0 10px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    width: auto !important;
+    border-radius: 8px !important;
+  }
+
+  .td-topbar .td-btn-primary .td-btn-label,
+  .td-topbar .td-topbar-btn-remote .td-btn-label {
+    display: inline !important;
+  }
+
+  .td-topbar .td-topbar-btn-tools .td-btn-label {
+    display: none !important;
+  }
+
+  .td-topbar .td-topbar-btn-tools {
+    width: 32px !important;
+    min-width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+    border-radius: 8px !important;
+  }
+}
+
+/* Tier 4: Expanded (>= 641px) -> Upload + Remote URL + Settings ALL reveal labels */
+@media (min-width: 641px) {
+  .td-topbar .td-btn-primary,
+  .td-topbar .td-topbar-btn-remote,
+  .td-topbar .td-topbar-btn-tools {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 0 10px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    width: auto !important;
+    border-radius: 8px !important;
+  }
+
+  .td-topbar .td-btn-primary .td-btn-label,
+  .td-topbar .td-topbar-btn-remote .td-btn-label,
+  .td-topbar .td-topbar-btn-tools .td-btn-label {
+    display: inline !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   INTELLIGENT PROGRESSIVE DISCLOSURE FOR ACTION BUTTONS (CLEAN & AUTO-SIZED)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-topbar .td-topbar-actions .td-btn-secondary,
+.td-topbar .td-topbar-actions .td-btn-primary {
+  height: 32px !important;
+  min-height: 32px !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Tier 1: <= 460px -> All icon-only */
+@media (max-width: 460px) {
+  .td-topbar .td-topbar-actions .td-btn-primary .td-btn-label,
+  .td-topbar .td-topbar-actions .td-topbar-btn-remote .td-btn-label,
+  .td-topbar .td-topbar-actions .td-topbar-btn-tools .td-btn-label {
+    display: none !important;
+  }
+
+  .td-topbar .td-topbar-actions .td-btn-primary,
+  .td-topbar .td-topbar-actions .td-topbar-btn-remote,
+  .td-topbar .td-topbar-actions .td-topbar-btn-tools {
+    width: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    padding: 0 !important;
+  }
+}
+
+/* Tier 2: 461px - 540px -> Upload button expands with label */
+@media (min-width: 461px) and (max-width: 540px) {
+  .td-topbar .td-topbar-actions .td-btn-primary {
+    width: auto !important;
+    min-width: auto !important;
+    max-width: none !important;
+    padding: 0 12px !important;
+    gap: 6px !important;
+  }
+
+  .td-topbar .td-topbar-actions .td-btn-primary .td-btn-label {
+    display: inline !important;
+  }
+
+  .td-topbar .td-topbar-actions .td-topbar-btn-remote .td-btn-label,
+  .td-topbar .td-topbar-actions .td-topbar-btn-tools .td-btn-label {
+    display: none !important;
+  }
+
+  .td-topbar .td-topbar-actions .td-topbar-btn-remote,
+  .td-topbar .td-topbar-actions .td-topbar-btn-tools {
+    width: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    padding: 0 !important;
+  }
+}
+
+/* Tier 3: 541px - 640px -> Upload + Remote URL both expand with labels */
+@media (min-width: 541px) and (max-width: 640px) {
+  .td-topbar .td-topbar-actions .td-btn-primary,
+  .td-topbar .td-topbar-actions .td-topbar-btn-remote {
+    width: auto !important;
+    min-width: auto !important;
+    max-width: none !important;
+    padding: 0 10px !important;
+    gap: 6px !important;
+  }
+
+  .td-topbar .td-topbar-actions .td-btn-primary .td-btn-label,
+  .td-topbar .td-topbar-actions .td-topbar-btn-remote .td-btn-label {
+    display: inline !important;
+  }
+
+  .td-topbar .td-topbar-actions .td-topbar-btn-tools .td-btn-label {
+    display: none !important;
+  }
+
+  .td-topbar .td-topbar-actions .td-topbar-btn-tools {
+    width: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    padding: 0 !important;
+  }
+}
+
+/* Tier 4: >= 641px -> Upload + Remote URL + Settings ALL expand with labels */
+@media (min-width: 641px) {
+  .td-topbar .td-topbar-actions .td-btn-primary,
+  .td-topbar .td-topbar-actions .td-topbar-btn-remote,
+  .td-topbar .td-topbar-actions .td-topbar-btn-tools {
+    width: auto !important;
+    min-width: auto !important;
+    max-width: none !important;
+    padding: 0 10px !important;
+    gap: 6px !important;
+  }
+
+  .td-topbar .td-topbar-actions .td-btn-primary .td-btn-label,
+  .td-topbar .td-topbar-actions .td-topbar-btn-remote .td-btn-label,
+  .td-topbar .td-topbar-actions .td-topbar-btn-tools .td-btn-label {
+    display: inline !important;
+  }
+}
