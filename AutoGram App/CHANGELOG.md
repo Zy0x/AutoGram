@@ -1,3 +1,20 @@
+## v3.7.22 Dual-Tier Hybrid Profile Extraction & Live Dev Canvas Verification (Phase 23)
+
+### 1. Ekstraksi Profil Hibrida Dual-Tier & Pengujian Otomatis Langsung (Remote CDP)
+- **Local Dev Server Proxy Middleware (`vite.config.ts`, `tiktokResolver.ts`)**:
+  - Mengimplementasikan endpoint middleware proxy internal `/__autogram_remote_meta` pada server Vite.
+  - Memastikan ekstraksi metadata profil TikTok dan foto avatar resolusi master (1080×1080) berfungsi seketika secara seamless baik di lingkungan *Live Development* maupun build *Desktop Native Binary*.
+  - Menghubungkan pelacakan cascade resolusi: Rust IPC native → Local Dev Proxy → Native Text Fetch → oEmbed.
+- **Pengujian Remot CDP pada Aplikasi Aktif Pengguna**:
+  - Melakukan pengujian real-time via Chrome DevTools Protocol pada jendela native yang sedang aktif tanpa mematikan atau mengganggu sesi pengguna.
+  - Memverifikasi secara langsung di DOM:
+    - Judul profil: `꒒α𝗶 𝗳𝗹𝘆 𝗵𝗶𝗴𝗵 (@kosonghoi) - Profil TikTok`
+    - Pratinjau Kanvas: Gambar avatar HD ter-render sempurna (`width: 583, height: 583, complete: true`).
+    - Kartu format stream: `Creator Profile Photo (HD Avatar)` (`AVATAR HD`) dan `Profile Information` (`PROFILE`).
+- **Verifikasi Kualitas**:
+  - **4.865 Kunci Kamus** tersinkronisasi 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
+  - 146 unit test Vitest lulus 100%.
+
 ## v3.7.21 Native Remote Metadata IPC Handler Registration & Live Profile Preview (Phase 22)
 
 ### 1. Pendaftaran Perintah IPC Remote Metadata di Tauri Handler

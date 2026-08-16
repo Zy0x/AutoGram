@@ -57,10 +57,30 @@ export const tiktokResolver: LinkResolverProvider = {
             }
           }
         } catch (ipcErr) {
-          console.warn('[TikTokResolver] IPC fetch failed, falling back to direct web:', ipcErr);
+          console.warn('[TikTokResolver] IPC fetch failed:', ipcErr);
         }
 
-        // 2. Try native text fetch if not resolved
+        // 2. Try local dev server proxy (always available in dev mode)
+        if (!avatarLarger) {
+          try {
+            const proxyResp = await fetch(`/__autogram_remote_meta?url=${encodeURIComponent(cleanUrl)}`, {
+              signal: signal || AbortSignal.timeout(6000),
+            });
+            if (proxyResp.ok) {
+              const pdata = await proxyResp.json();
+              if (pdata?.data?.user) {
+                nickname = pdata.data.user.nickname || nickname;
+                avatarLarger = pdata.data.user.avatarLarger || avatarLarger;
+                avatarMedium = pdata.data.user.avatarMedium || avatarMedium;
+                signature = pdata.data.user.signature || signature;
+              }
+            }
+          } catch {
+            /* dev proxy fallback */
+          }
+        }
+
+        // 3. Try native text fetch if not resolved
         if (!avatarLarger) {
           try {
             const html = await invoke<string>('fetch_remote_text_content', {
@@ -68,25 +88,20 @@ export const tiktokResolver: LinkResolverProvider = {
               userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
             });
             if (html) {
-              const universalMatch = html.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/);
-              if (universalMatch) {
-                try {
-                  const ujson = JSON.parse(universalMatch[1]);
-                  const userDetail = ujson['__DEFAULT_SCOPE__']?.['webapp.user-detail']?.userInfo;
-                  if (userDetail?.user) {
-                    nickname = userDetail.user.nickname;
-                    avatarLarger = userDetail.user.avatarLarger;
-                    avatarMedium = userDetail.user.avatarMedium;
-                    signature = userDetail.user.signature;
-                  }
-                } catch {
-                  /* parse fallback */
+              const pos = html.indexOf('"avatarLarger":"');
+              if (pos !== -1) {
+                const start = pos + 16;
+                const end = html.indexOf('"', start);
+                if (end !== -1) {
+                  avatarLarger = html.slice(start, end).replace(/\\u0026/g, '&').replace(/\\u002F/g, '/').replace(/\\/g, '');
                 }
               }
-              if (!avatarLarger) {
-                const avatarMatch = html.match(/"avatarLarger":"(https:[^"]+)"/i);
-                if (avatarMatch) {
-                  avatarLarger = avatarMatch[1].replace(/\\u0026/g, '&').replace(/\\u002F/g, '/').replace(/\\/g, '');
+              const nickPos = html.indexOf('"nickname":"');
+              if (nickPos !== -1) {
+                const start = nickPos + 12;
+                const end = html.indexOf('"', start);
+                if (end !== -1) {
+                  nickname = html.slice(start, end).replace(/\\u0026/g, '&').replace(/\\u002F/g, '/').replace(/\\/g, '');
                 }
               }
             }
@@ -95,7 +110,7 @@ export const tiktokResolver: LinkResolverProvider = {
           }
         }
 
-        // 3. Fallback to direct web fetch
+        // 4. Fallback to direct web fetch
         if (!avatarLarger) {
           try {
             const pageResp = await fetch(`https://www.tiktok.com/@${uniqueId}`, {
