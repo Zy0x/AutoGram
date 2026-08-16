@@ -1,3 +1,23 @@
+## v3.7.33 Move/Copy Confirmation Dialog Locale Parity & Telegram Album Delivery Fix (Phase 34)
+
+### 1. Perbaikan Menyeluruh Locale & Dialog Konfirmasi Pindah/Salin (`DriveConfirmDialog.tsx`)
+- **100% Ekstraksi String & Paritas Kamus (Zero Hardcoded Strings)**:
+  - Mengaudit dan mengganti seluruh string hardcoded pada dialog konfirmasi (`DriveConfirmDialog.tsx`), mencakup judul aksi (*Title*), deskripsi dampak (*Lead*), peringatan risiko (*Warning*), label tombol mode Pindah/Salin, opsi pengiriman album, pemilih topik forum, hingga tombol eksekusi footer.
+  - Memperbaiki ketidakcocokan bahasa di mana sebelumnya dialog menampilkan kombinasi sebagian teks Bahasa Indonesia dan Bahasa Inggris dalam mode tampilan yang sama.
+  - Menambahkan 45 kunci kamus baru ke dalam `drive_tools.json` (`id/` dan `en/`) dengan paritas 1:1 sempurna (4.910 total kunci kamus, 0 missing, 0 hardcoded).
+
+### 2. Implementasi Pengiriman Album Sejati Saat Pemindahan/Penyalinan Media (`SendMultiMedia`)
+- **MTProto Native Album Aggregation pada Move/Copy (`drive_rpc.rs`, `telegram_ops.rs`, `driveFilesApi.ts`)**:
+  - Memperbaiki bug di mana opsi format pengiriman "Gabung Album (Maks 10)" / "Group as Album" tidak mengelompokkan media menjadi kolase album di chat tujuan.
+  - Sebelumnya, perintah pindah/salin hanya mengandalkan `ForwardMessages` Telegram yang mempertahankan status pesan terpisah jika berkas aslinya diunggah satuan.
+  - Kini, backend Rust (`move_messages_blocking`) mengidentifikasi permintaan `group_as_album` dan memanfaatkan `tl::functions::messages::SendMultiMedia` dengan referensi media Telegram yang ada (`InputPhoto` / `InputDocument`), mengirimkan berkas media secara langsung sebagai kolase album resmi Telegram (hingga 10 media per batch) tanpa perlu mengunduh ulang berkas.
+  - Menyediakan *graceful fallback* ke `ForwardMessages` secara otomatis jika format berkas media bersifat heterogen atau tidak mendukung grouping album.
+
+### 3. Verifikasi Kualitas & Pengujian Sistem
+- `cargo check` pada seluruh crate backend Rust (`frontend/src-tauri` dan `crates/autogram-core`) lulus 100% (0 error).
+- **4.910 Kunci Kamus** terverifikasi sinkron 1:1 antara Bahasa Indonesia dan English via `locale-audit.mjs`.
+- Seluruh 146 unit test Vitest (`npm test -- --run`) lulus 100%.
+
 ## v3.7.32 Phase 3: Native Android Jetpack Compose UI Scaffolding (`android/`) (Phase 33)
 
 ### 1. Inisialisasi Proyek Native Android Murni (Kotlin & Jetpack Compose)

@@ -1133,6 +1133,7 @@ pub struct MoveMessagesRequest {
     pub dest_topic_id: Option<i64>,
     pub message_ids: Vec<i64>,
     pub delete_source: Option<bool>,
+    pub group_as_album: Option<bool>,
 }
 
 pub fn tg_move_messages(
@@ -1148,6 +1149,7 @@ pub fn tg_move_messages(
         req.dest_topic_id,
         &req.message_ids,
         req.delete_source.unwrap_or(true),
+        req.group_as_album.unwrap_or(true),
     ) {
         Ok(r) => ok_result("grammers", r),
         Err(e) => err_result("grammers", e),

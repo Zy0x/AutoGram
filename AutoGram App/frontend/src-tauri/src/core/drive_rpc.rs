@@ -929,7 +929,7 @@ pub struct MoveMessagesResult {
     pub backend: String,
 }
 
-/// Forward messages to destination (including group topics), then delete from source when requested.
+/// Forward or group-as-album messages to destination (including group topics), then delete from source when requested.
 pub fn move_messages_blocking(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
@@ -938,6 +938,7 @@ pub fn move_messages_blocking(
     dest_topic_id: Option<i64>,
     message_ids: &[i64],
     delete_source: bool,
+    group_as_album: bool,
 ) -> Result<MoveMessagesResult, TgError> {
     let rt = runtime()?;
     let src = source_chat.to_string();
@@ -969,6 +970,79 @@ pub fn move_messages_blocking(
                 let dest = resolve_peer(client, &dst).await?;
                 let to_peer: tl::enums::InputPeer = dest.into();
                 let from_peer: tl::enums::InputPeer = source.into();
+
+                // If group_as_album is requested and we have 2-10 items, attempt SendMultiMedia with existing media
+                if group_as_album && ids.len() >= 2 && ids.len() <= 10 {
+                    if let Ok(msgs) = client.get_messages_by_id(source, &ids).await {
+                        let mut multi_media = Vec::new();
+                        for msg in msgs.into_iter().flatten() {
+                            if let Some(input_media) = msg.media().and_then(|m| m.to_raw_input_media()) {
+                                multi_media.push(tl::enums::InputSingleMedia::Media(
+                                    tl::types::InputSingleMedia {
+                                        media: input_media,
+                                        random_id: rand::random(),
+                                        message: msg.text().to_string(),
+                                        entities: None,
+                                    },
+                                ));
+                            }
+                        }
+                        if multi_media.len() == ids.len() {
+                            let reply_to = dest_topic_id.filter(|&t| t > 0).map(|t| {
+                                tl::types::InputReplyToMessage {
+                                    reply_to_msg_id: t as i32,
+                                    top_msg_id: Some(t as i32),
+                                    reply_to_peer_id: None,
+                                    quote_text: None,
+                                    quote_entities: None,
+                                    quote_offset: None,
+                                    monoforum_peer_id: None,
+                                    todo_item_id: None,
+                                    poll_option: None,
+                                }
+                                .into()
+                            });
+                            let album_req = tl::functions::messages::SendMultiMedia {
+                                silent: false,
+                                background: false,
+                                clear_draft: false,
+                                peer: to_peer.clone(),
+                                reply_to,
+                                schedule_date: None,
+                                multi_media,
+                                send_as: None,
+                                noforwards: false,
+                                update_stickersets_order: false,
+                                invert_media: false,
+                                quick_reply_shortcut: None,
+                                effect: None,
+                                allow_paid_floodskip: false,
+                                allow_paid_stars: None,
+                            };
+                            match client.invoke(&album_req).await {
+                                Ok(_) => {
+                                    let moved = ids.len();
+                                    if delete_source && moved > 0 {
+                                        let _ = client.delete_messages(source, &ids).await;
+                                    }
+                                    return Ok(MoveMessagesResult {
+                                        status: "success".into(),
+                                        moved,
+                                        backend: BACKEND.into(),
+                                    });
+                                }
+                                Err(e) => {
+                                    tg_log::warn(
+                                        BACKEND,
+                                        "move_album_send_fallback",
+                                        format!("SendMultiMedia album send failed, falling back to forward: {:?}", e),
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+
                 let random_ids: Vec<i64> = (0..ids.len()).map(|_| rand::random()).collect();
                 let top_msg_id = dest_topic_id.filter(|&t| t > 0).map(|t| t as i32);
                 let req = tl::functions::messages::ForwardMessages {

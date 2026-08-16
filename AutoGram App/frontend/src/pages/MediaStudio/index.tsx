@@ -6607,6 +6607,7 @@ function MediaDriveDesktop({
           await driveMove(creds, batchIds, fromFolderId, toFolderId, {
             deleteSource,
             topicId,
+            groupAsAlbum: shouldGroup,
           });
           done += batchIds.length;
           setTransfer((t) => {

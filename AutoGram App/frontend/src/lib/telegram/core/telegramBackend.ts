@@ -930,6 +930,7 @@ export async function tgMoveMessages(args: {
   destTopicId?: number | null;
   messageIds: number[];
   deleteSource?: boolean;
+  groupAsAlbum?: boolean;
 }) {
   return tgInvoke<{ status: string; moved: number; backend: string }>('tg_move_messages', {
     ...identity(args),
@@ -938,6 +939,7 @@ export async function tgMoveMessages(args: {
     destTopicId: args.destTopicId ?? null,
     messageIds: args.messageIds,
     deleteSource: args.deleteSource !== false,
+    groupAsAlbum: args.groupAsAlbum ?? true,
   });
 }
 

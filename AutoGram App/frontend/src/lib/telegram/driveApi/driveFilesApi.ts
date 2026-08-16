@@ -383,6 +383,10 @@ export type DriveMoveOpts = {
    * false: keep source (forward/copy only).
    */
   deleteSource?: boolean;
+  /**
+   * Group media messages as an album when moving/copying multiple items
+   */
+  groupAsAlbum?: boolean;
 };
 
 export async function driveMove(
@@ -408,6 +412,7 @@ export async function driveMove(
     destTopicId: topicId,
     messageIds: ids,
     deleteSource,
+    groupAsAlbum: opts?.groupAsAlbum,
   });
   if (!gr?.ok) {
     throw new Error(gr?.userMessage || gr?.error?.message || 'Pindah media Grammers gagal.');

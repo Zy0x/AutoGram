@@ -126,74 +126,74 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
   const isFolderReparent = isMove && isFolder;
   const title = isDelete
     ? isTopic
-      ? 'Hapus Topik?'
+      ? t('drive_tools.confirm_delete_topic_title')
       : isFolder
         ? isDriveItem
           ? n === 1
-            ? 'Hapus Drive?'
-            : `Hapus ${n} Drive?`
+            ? t('drive_tools.confirm_delete_drive_title_single')
+            : t('drive_tools.confirm_delete_drive_title', { count: n })
           : n === 1
-            ? 'Hapus Folder?'
-            : `Hapus ${n} Folder?`
+            ? t('drive_tools.confirm_delete_folder_title_single')
+            : t('drive_tools.confirm_delete_folder_title', { count: n })
         : n === 1
-          ? 'Hapus file?'
-          : `Hapus ${n} file?`
+          ? t('drive_tools.confirm_delete_file_title_single')
+          : t('drive_tools.confirm_delete_file_title', { count: n })
     : isFolderReparent
-      ? 'Pindah Drive/Folder?'
+      ? t('drive_tools.confirm_move_folder_title')
       : isMove
         ? n === 1
-          ? 'Kirim media ke chat?'
-          : `Kirim ${n} file ke chat?`
+          ? t('drive_tools.confirm_send_to_chat_title_single')
+          : t('drive_tools.confirm_send_to_chat_title', { count: n })
         : n === 1
-          ? 'Unduh file?'
-          : `Unduh ${n} file?`;
+          ? t('drive_tools.confirm_download_file_title_single')
+          : t('drive_tools.confirm_download_file_title', { count: n });
 
   const lead = isDelete
     ? isTopic
-      ? `Topik "${state.names[0] || ''}" beserta seluruh riwayat pesan dan media di dalamnya akan dihapus secara permanen.`
+      ? t('drive_tools.confirm_delete_topic_lead', { name: state.names[0] || '' })
       : isFolder
         ? isDriveItem
           ? n === 1
-            ? 'Drive ini beserta seluruh isinya (folder dan file di dalamnya) akan dihapus permanen dari Telegram.'
-            : `${n} Drive beserta seluruh isinya akan dihapus permanen dari Telegram.`
+            ? t('drive_tools.confirm_delete_drive_lead_single')
+            : t('drive_tools.confirm_delete_drive_lead', { count: n })
           : n === 1
-            ? 'Folder ini akan dihapus dari Drive, termasuk semua file dan subfolder di dalamnya.'
-            : `${n} folder akan dihapus dari Drive beserta isinya.`
+            ? t('drive_tools.confirm_delete_folder_lead_single')
+            : t('drive_tools.confirm_delete_folder_lead', { count: n })
         : n === 1
-          ? 'File akan dihapus dari Telegram (lokasi ini).'
-          : `${n} file akan dihapus dari Telegram.`
+          ? t('drive_tools.confirm_delete_file_lead_single')
+          : t('drive_tools.confirm_delete_file_lead', { count: n })
     : isFolderReparent
-      ? `Item akan dipindah dalam tree Drives${state.detail ? ` ${state.detail}` : ''}. File di dalam channel tidak disalin.`
+      ? t('drive_tools.confirm_reparent_lead', { detail: state.detail ? ` ${state.detail}` : '' })
       : isMove
         ? n === 1
-          ? `File akan dikirim${state.detail ? ` ${state.detail}` : ''}.`
-          : `${n} file akan dikirim${state.detail ? ` ${state.detail}` : ''}.`
+          ? t('drive_tools.confirm_send_lead_single', { detail: state.detail ? ` ${state.detail}` : '' })
+          : t('drive_tools.confirm_send_lead', { count: n, detail: state.detail ? ` ${state.detail}` : '' })
         : n === 1
-          ? 'File akan diunduh ke perangkat Anda.'
-          : `${n} file akan diunduh ke folder yang Anda pilih.`;
+          ? t('drive_tools.confirm_download_lead_single')
+          : t('drive_tools.confirm_download_lead', { count: n });
 
   const childCount = state.childFolderCount ?? state.childFolderNames?.length ?? 0;
   const hasChildFolders = isDelete && isFolder && childCount > 0;
 
   const warning = isDelete
     ? isTopic
-      ? 'Tindakan ini tidak dapat dibatalkan.'
+      ? t('drive_tools.confirm_warn_irreversible')
       : isFolder
         ? isDriveItem
           ? hasChildFolders
-          ? `Termasuk ${childCount} folder di dalamnya dan semua media. Tidak bisa dibatalkan.`
-          : 'Semua media di Drive ini ikut terhapus. Tidak bisa dibatalkan.'
-        : hasChildFolders
-          ? `Termasuk ${childCount} subfolder dan semua media di dalamnya. Tidak bisa dibatalkan.`
-          : 'Semua media di folder ini ikut terhapus. Tidak bisa dibatalkan.'
-      : 'Tindakan ini tidak bisa dibatalkan. Pastikan Anda tidak membutuhkan file ini lagi di Telegram.'
+            ? t('drive_tools.confirm_warn_children_drive', { count: childCount })
+            : t('drive_tools.confirm_warn_all_media_drive')
+          : hasChildFolders
+            ? t('drive_tools.confirm_warn_children_folder', { count: childCount })
+            : t('drive_tools.confirm_warn_all_media_folder')
+        : t('drive_tools.confirm_warn_delete_files')
     : isFolderReparent
-      ? 'Hanya metadata parent= di about channel yang diubah. Root tanpa induk = Drive; bersarang = Folder.'
+      ? t('drive_tools.confirm_warn_reparent')
       : isMove
         ? moveMode === 'move'
-          ? 'Mode Pindah: sumber dihapus setelah berhasil terkirim. Pilih Salin untuk mempertahankan file di sumber.'
-          : 'Mode Salin: file sumber tetap ada. Forward diblokir → salin media otomatis.'
-        : 'Pastikan ruang penyimpanan cukup dan folder tujuan benar.';
+          ? t('drive_tools.confirm_warn_move_mode')
+          : t('drive_tools.confirm_warn_copy_mode')
+        : t('drive_tools.confirm_warn_download');
 
   const panelClass = isDelete ? 'danger' : isMove || isFolderReparent ? 'move' : 'download';
   const Icon = isDelete ? Trash2 : isMove || isFolderReparent ? FolderInput : Download;
@@ -308,41 +308,41 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
                 className={`td-confirm-mode-btn ${moveMode === 'move' ? 'active' : ''}`}
                 onClick={() => setMoveMode('move')}
               >
-                <FolderInput size={14} /> {t('speedtest.topbar_move')}
-                <span className="td-confirm-mode-hint">{t('speedtest.action_delete_source')}</span>
+                <FolderInput size={14} /> {t('drive_tools.confirm_btn_move')}
+                <span className="td-confirm-mode-hint">{t('drive_tools.confirm_hint_delete_source')}</span>
               </button>
               <button
                 type="button"
                 className={`td-confirm-mode-btn ${moveMode === 'copy' ? 'active' : ''}`}
                 onClick={() => setMoveMode('copy')}
               >
-                <Copy size={14} /> {t('settings.debug_copy_logs')}
-                <span className="td-confirm-mode-hint">{t('speedtest.action_keep_source')}</span>
+                <Copy size={14} /> {t('drive_tools.confirm_btn_copy')}
+                <span className="td-confirm-mode-hint">{t('drive_tools.confirm_hint_keep_source')}</span>
               </button>
             </div>
 
             {n > 1 && (
               <div className="td-confirm-group-section">
                 <div className="td-confirm-section-label">
-                  <span>{t('speedtest.confirm_format_title', { defaultValue: 'Format Pengiriman' })}</span>
-                  <span className="td-confirm-section-badge">{t('speedtest.confirm_sync_drive_settings', { defaultValue: 'Tersinkron Drive Settings' })}</span>
+                  <span>{t('drive_tools.confirm_format_title')}</span>
+                  <span className="td-confirm-section-badge">{t('drive_tools.confirm_sync_drive_settings')}</span>
                 </div>
-                <div className="td-confirm-mode group-mode" role="group" aria-label={t('speedtest.confirm_format_title', { defaultValue: 'Format Pengiriman' })}>
+                <div className="td-confirm-mode group-mode" role="group" aria-label={t('drive_tools.confirm_format_title')}>
                   <button
                     type="button"
                     className={`td-confirm-mode-btn ${groupAsAlbum ? 'active' : ''}`}
                     onClick={() => setGroupAsAlbum(true)}
                   >
-                    <LayoutGrid size={14} /> {t('speedtest.confirm_group_album', { size: state.albumGroupSize || 10, defaultValue: `Gabung Album (Maks ${state.albumGroupSize || 10})` })}
-                    <span className="td-confirm-mode-hint">{t('speedtest.confirm_group_album_hint', { defaultValue: 'Kolase media rapi & 1 notifikasi' })}</span>
+                    <LayoutGrid size={14} /> {t('drive_tools.confirm_group_album', { size: state.albumGroupSize || 10 })}
+                    <span className="td-confirm-mode-hint">{t('drive_tools.confirm_group_album_hint')}</span>
                   </button>
                   <button
                     type="button"
                     className={`td-confirm-mode-btn ${!groupAsAlbum ? 'active' : ''}`}
                     onClick={() => setGroupAsAlbum(false)}
                   >
-                    <Layers size={14} /> {t('speedtest.confirm_send_individual', { defaultValue: 'Kirim Satuan (Terpisah)' })}
-                    <span className="td-confirm-mode-hint">{t('speedtest.confirm_send_individual_hint', { defaultValue: 'Pesan individual per berkas' })}</span>
+                    <Layers size={14} /> {t('drive_tools.confirm_send_individual')}
+                    <span className="td-confirm-mode-hint">{t('drive_tools.confirm_send_individual_hint')}</span>
                   </button>
                 </div>
               </div>
@@ -350,7 +350,7 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
 
             {(state.isForum || state.isTopicLoading) && (
               <label className="td-confirm-topic">
-                <span>{t('speedtest.forum_topic_optional')}</span>
+                <span>{t('drive_tools.confirm_topic_label')}</span>
                 {state.isTopicLoading ? (
                   <div className="td-confirm-topic-loading" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', fontSize: '13px', color: 'var(--td-text-muted, #94a3b8)' }}>
                     <span className="td-spinner-sm" />
@@ -361,9 +361,9 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
                     className="td-confirm-topic-select"
                     value={topicId == null ? '' : String(topicId)}
                     onChange={(value) => setTopicId(value ? Number(value) : null)}
-                    ariaLabel="Topik tujuan"
+                    ariaLabel={t('drive_tools.confirm_topic_label')}
                     options={[
-                      { value: '', label: t('speedtest.forum_topic_general_all', { defaultValue: 'General / Semua media (Chat Utama)' }) },
+                      { value: '', label: t('drive_tools.confirm_topic_general') },
                       ...topics.map((topic) => ({
                         value: String(topic.id),
                         label: topic.title || `Topik ${topic.id}`,
@@ -375,7 +375,7 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
                 )}
                 {!state.isTopicLoading && !topics.length && (
                   <span className="td-confirm-topic-empty">
-                    {t('ui.generated.daftar_topik_kosong_kirim_ke_general_chat_5e58443')}
+                    {t('drive_tools.confirm_topic_empty')}
                   </span>
                 )}
               </label>
@@ -400,25 +400,25 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
           >
             {isDelete ? (
               <>
-                <Trash2 size={15} /> {t('speedtest.preview_delete_btn')}
+                <Trash2 size={15} /> {t('drive_tools.confirm_action_delete')}
               </>
             ) : isFolderReparent ? (
               <>
-                <FolderInput size={15} /> {t('ui.generated.pindahkan_34ea0c0')}
+                <FolderInput size={15} /> {t('drive_tools.confirm_action_move')}
               </>
             ) : isMove ? (
               moveMode === 'copy' ? (
                 <>
-                  <Copy size={15} /> {t('ui.generated.salin_ke_chat_f92194a')}
+                  <Copy size={15} /> {t('drive_tools.confirm_action_copy')}
                 </>
               ) : (
                 <>
-                  <FolderInput size={15} /> {t('ui.generated.pindahkan_34ea0c0')}
+                  <FolderInput size={15} /> {t('drive_tools.confirm_action_move')}
                 </>
               )
             ) : (
               <>
-                <Download size={15} /> {t('ui.generated.lanjut_unduh_a8ff5db')}
+                <Download size={15} /> {t('drive_tools.confirm_action_download')}
               </>
             )}
           </button>
