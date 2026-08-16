@@ -30,7 +30,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useTopicDrop } from './useTopicDrop';
 import type {
@@ -293,6 +293,14 @@ export function DriveTopBar({
     topicPillsRef,
     topicsCount: topics?.length ?? 0,
   });
+
+  const topbarActionsRef = useRef<HTMLDivElement>(null);
+  const handleActionsWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    if (!topbarActionsRef.current) return;
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      topbarActionsRef.current.scrollLeft += e.deltaY;
+    }
+  }, []);
 
   const [topicContextMenu, setTopicContextMenu] = useState<{
     x: number;
@@ -565,7 +573,11 @@ export function DriveTopBar({
         </div>
 
         {!isToolsCollapsed && (
-          <div className="td-topbar-actions">
+          <div
+            ref={topbarActionsRef}
+            onWheel={handleActionsWheel}
+            className="td-topbar-actions"
+          >
 
           {viewMode === 'grid' && (
             <div className="td-zoom-controls" role="group" aria-label={t('speedtest.topbar_zoom_grid_aria')}>

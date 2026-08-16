@@ -28498,3 +28498,79 @@ button.td-confirm-icon.is-back-btn:active {
     height: 42px !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   NO-CLIPPING & SMOOTH HORIZONTAL SCROLL FOR TOPBAR ACTIONS
+   - justify-content: flex-start prevents scroll clipping bugs
+   - flex-shrink: 0 preserves all button shapes
+   - padding: 0 6px ensures last button (Upload) is never cut off
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-topbar .td-topbar-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-x: contain !important;
+  gap: 6px !important;
+  padding: 0 8px 0 4px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  height: 42px !important;
+  min-height: 42px !important;
+}
+
+.td-topbar .td-topbar-actions::-webkit-scrollbar {
+  display: none !important;
+}
+
+.td-topbar .td-topbar-actions > * {
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+}
+
+/* Ensure Upload button is not cut off by margin-left: auto */
+.td-topbar .td-topbar-actions .td-btn-primary {
+  margin-left: 0 !important;
+  margin-right: 2px !important;
+  flex-shrink: 0 !important;
+}
+
+@media (min-width: 601px) {
+  .td-topbar .td-topbar-row-1 {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    gap: 10px !important;
+    width: 100% !important;
+    padding: 0 4px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  .td-topbar .td-topbar-row-1 .td-topbar-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+    max-width: 45% !important;
+    overflow: hidden !important;
+  }
+
+  .td-topbar .td-topbar-row-1 .td-topbar-actions {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    justify-content: flex-start !important;
+  }
+}
