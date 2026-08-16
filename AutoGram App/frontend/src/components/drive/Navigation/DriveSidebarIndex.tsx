@@ -1705,9 +1705,9 @@ export function DriveSidebar({
     return () => window.removeEventListener('keydown', onKey, true);
   }, [collapsed]);
 
-  // Collapse sidebar is strictly disabled below 900x500 (drawer mode stays clean & expanded)
+  // Collapse sidebar is strictly disabled below 900x600 (drawer mode stays clean & expanded)
   const isCollapseAllowed = typeof window !== 'undefined'
-    ? window.innerWidth >= 900 && window.innerHeight >= 500
+    ? window.innerWidth >= 900 && window.innerHeight >= 600
     : true;
   const effectiveCollapsed = isCollapseAllowed ? collapsed : false;
 

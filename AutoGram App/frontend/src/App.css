@@ -29429,3 +29429,110 @@ button.td-confirm-icon.is-back-btn:active {
     cursor: pointer !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE DUAL-PANE vs OVERLAY DRAWER BREAKPOINTS
+   - Strict Desktop Mode: width >= 900px AND height >= 600px
+     * Hamburger [≡] is HIDDEN (sidebar is docked)
+     * Sidebar collapse/expand is ENABLED
+   - Drawer Mode: width < 900px OR height < 600px
+     * Hamburger [≡] is VISIBLE (sidebar is off-canvas drawer)
+     * Sidebar is ALWAYS 100% full panel width (collapse disabled)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* 1. Desktop Dual-Pane Mode (width >= 900px AND height >= 600px) */
+@media (min-width: 900px) and (min-height: 600px) {
+  .td-topbar .td-icon-btn.td-menu-btn,
+  .td-topbar .td-menu-btn,
+  .td-menu-btn {
+    display: none !important;
+  }
+
+  .td-shell {
+    display: grid !important;
+    grid-template-columns: 240px 1fr !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .td-shell.rail-collapsed,
+  .td-shell:has(.td-sidebar.is-collapsed) {
+    grid-template-columns: 64px 1fr !important;
+  }
+
+  .td-sidebar {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    z-index: 10 !important;
+    box-shadow: none !important;
+  }
+
+  .td-drawer-backdrop {
+    display: none !important;
+  }
+}
+
+/* 2. Drawer Mode (width < 900px OR height < 600px) */
+@media (max-width: 899.98px), (max-height: 599.98px) {
+  .td-topbar .td-icon-btn.td-menu-btn,
+  .td-topbar .td-menu-btn,
+  .td-menu-btn {
+    display: inline-flex !important;
+  }
+
+  .td-shell,
+  .td-shell.rail-collapsed {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .td-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: -100% !important;
+    width: 280px !important;
+    max-width: 280px !important;
+    min-width: 280px !important;
+    z-index: 9999 !important;
+    background: #0b1120 !important;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.7) !important;
+    transition: left 0.22s ease-in-out !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  .td-sidebar.is-drawer-open {
+    left: 0 !important;
+  }
+
+  .td-sidebar.is-collapsed {
+    width: 280px !important;
+    max-width: 280px !important;
+    min-width: 280px !important;
+  }
+
+  .td-sidebar .td-only-expanded,
+  .td-sidebar.is-collapsed .td-only-expanded {
+    display: block !important;
+  }
+
+  .td-sidebar .td-only-collapsed,
+  .td-sidebar.is-collapsed .td-only-collapsed {
+    display: none !important;
+  }
+
+  .td-drawer-backdrop {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: blur(2px) !important;
+    z-index: 9998 !important;
+    display: block !important;
+  }
+}
