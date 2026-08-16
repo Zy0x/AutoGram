@@ -1,3 +1,15 @@
+## v3.7.21 Native Remote Metadata IPC Handler Registration & Live Profile Preview (Phase 22)
+
+### 1. Pendaftaran Perintah IPC Remote Metadata di Tauri Handler
+- **Tauri IPC Command Dispatch Registration (`lib.rs`)**:
+  - Mendaftarkan `fetch_remote_json_metadata` dan `fetch_remote_text_content` ke dalam macro `tauri::generate_handler![...]`.
+  - Memperbaiki kegagalan resolusi gambar pratinjau profil TikTok (`@username`) yang sebelumnya memicu error *"Command not found"* pada layer IPC.
+  - Memastikan ekstraksi avatar 1080×1080 HD, nickname, dan bio profil kreator tampil secara visual seketika di *Live Preview Canvas*.
+- **Verifikasi Kualitas**:
+  - **4.865 Kunci Kamus** tersinkronisasi 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
+  - 146 unit test Vitest lulus 100%.
+  - `cargo check` Rust lulus tanpa error.
+
 ## v3.7.20 Global Memory & RAM Leak Audit & Bounded In-Memory Caches (Phase 21)
 
 ### 1. Audit Menyeluruh Penggunaan RAM Backend, Frontend, dan Logika Server

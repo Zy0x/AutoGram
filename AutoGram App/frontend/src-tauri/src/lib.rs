@@ -2117,6 +2117,8 @@ pub fn run() {
             get_custom_cache_dir,
             set_custom_cache_dir,
             reset_custom_cache_dir,
+            fetch_remote_json_metadata,
+            fetch_remote_text_content,
         ])
         .setup(|app| {
             // Best-effort: create sessions/cache/temp + tighten ACLs + seed API from .env
