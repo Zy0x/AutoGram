@@ -25871,7 +25871,10 @@ button.td-confirm-icon.is-back-btn:active {
   }
 
   .td-topbar .td-breadcrumbs .td-crumb-current {
-    max-width: 90px !important;
+    max-width: none !important;
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+    white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
   }
@@ -25884,10 +25887,16 @@ button.td-confirm-icon.is-back-btn:active {
 /* Extreme Compact (< 360px) */
 @media (max-width: 359.98px) {
   .td-topbar-left {
-    max-width: 100px !important;
+    max-width: 100% !important;
+    flex: 1 1 auto !important;
   }
   .td-topbar .td-breadcrumbs .td-crumb-current {
-    max-width: 50px !important;
+    max-width: none !important;
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 }
 
@@ -26311,4 +26320,37 @@ button.td-confirm-icon.is-back-btn:active {
   font-size: 0.74rem !important;
   padding: 0 10px !important;
   box-sizing: border-box !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   NATURAL FOLDER BREADCRUMB EXPANSION (NO ARTIFICIAL PREMATURE TRUNCATION)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-topbar .td-breadcrumbs {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+.td-topbar .td-breadcrumbs .td-crumb-current {
+  max-width: none !important;
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: inline-block !important;
+}
+
+.td-topbar-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
 }
