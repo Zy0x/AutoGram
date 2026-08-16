@@ -25799,26 +25799,27 @@ button.td-confirm-icon.is-back-btn:active {
 
 
 /* ══════════════════════════════════════════════════════════════════════════
-   STANDARD NATURAL DRIVE TOPBAR DESIGN SYSTEM (ROBUST & PERMANENT ACTIONS)
+   PREMIUM UNIFIED DRIVE TOPBAR SYSTEM (PIXEL-PERFECT ON ALL RESOLUTIONS)
    ══════════════════════════════════════════════════════════════════════════ */
 
 .td-topbar {
-  --td-ctrl-h: 34px !important;
-  --td-ctrl-r: 7px !important;
-  --td-group-r: 7px !important;
-  --td-group-bg: rgba(15, 23, 42, 0.65) !important;
-  --td-group-border: rgba(255, 255, 255, 0.09) !important;
-  --td-active-bg: color-mix(in srgb, var(--td-primary, #e2a532) 16%, transparent) !important;
-  --td-active-fg: var(--td-primary, #e2a532) !important;
-  --td-active-border: color-mix(in srgb, var(--td-primary, #e2a532) 40%, transparent) !important;
+  --td-ctrl-h: 32px;
+  --td-ctrl-r: 8px;
+  --td-group-bg: rgba(255, 255, 255, 0.04);
+  --td-group-border: rgba(255, 255, 255, 0.08);
+  --td-hover-bg: rgba(255, 255, 255, 0.08);
+  --td-active-bg: rgba(226, 165, 50, 0.14);
+  --td-active-fg: #e2a532;
+  --td-active-border: rgba(226, 165, 50, 0.35);
 
   display: flex !important;
   flex-direction: column !important;
   gap: 6px !important;
   padding: 8px 12px !important;
-  border-bottom: 1px solid var(--td-border) !important;
-  background: color-mix(in srgb, var(--td-surface, #0f172a) 94%, transparent) !important;
-  backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  background: rgba(15, 23, 42, 0.88) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
   flex-shrink: 0 !important;
   z-index: 30 !important;
   box-sizing: border-box !important;
@@ -25827,7 +25828,7 @@ button.td-confirm-icon.is-back-btn:active {
   overflow: visible !important;
 }
 
-/* Row Base */
+/* Base Topbar Rows */
 .td-topbar-row {
   display: flex !important;
   align-items: center !important;
@@ -25838,12 +25839,15 @@ button.td-confirm-icon.is-back-btn:active {
   box-sizing: border-box !important;
 }
 
-/* Row 1: Header Bar (36px) */
+/* Row 1: Header / Location Bar (34px) */
 .td-topbar-row-1 {
-  height: 36px !important;
-  min-height: 36px !important;
-  max-height: 36px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  display: flex !important;
+  align-items: center !important;
   justify-content: space-between !important;
+  gap: 6px !important;
   flex-wrap: nowrap !important;
   overflow: hidden !important;
 }
@@ -25855,63 +25859,61 @@ button.td-confirm-icon.is-back-btn:active {
   min-width: 0 !important;
   flex: 1 1 auto !important;
   overflow: hidden !important;
-  height: 36px !important;
+  height: 34px !important;
 }
 
 .td-topbar-actions {
   display: flex !important;
   align-items: center !important;
+  justify-content: flex-end !important;
   gap: 4px !important;
   flex: 0 0 auto !important;
   flex-shrink: 0 !important;
   flex-wrap: nowrap !important;
-  justify-content: flex-end !important;
-  height: 36px !important;
+  height: 34px !important;
 }
 
 /* Icon Buttons in Topbar */
 .td-topbar .td-icon-btn {
-  width: 34px !important;
-  height: 34px !important;
-  min-width: 34px !important;
-  min-height: 34px !important;
-  max-width: 34px !important;
-  max-height: 34px !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  max-width: 32px !important;
+  max-height: 32px !important;
   padding: 0 !important;
   border-radius: 7px !important;
   border: 1px solid transparent !important;
   background: transparent !important;
-  color: var(--td-sub, #94a3b8) !important;
+  color: #94a3b8 !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  box-shadow: none !important;
   cursor: pointer !important;
-  transition: all 0.14s ease !important;
+  transition: all 0.12s ease !important;
   flex-shrink: 0 !important;
 }
 
 .td-topbar .td-icon-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.08) !important;
-  color: #f1f5f9 !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: var(--td-hover-bg) !important;
+  color: #f8fafc !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 .td-topbar .td-icon-btn.active {
-  background: rgba(226, 165, 50, 0.14) !important;
-  color: #e2a532 !important;
-  border: 1px solid rgba(226, 165, 50, 0.35) !important;
+  background: var(--td-active-bg) !important;
+  color: var(--td-active-fg) !important;
+  border: 1px solid var(--td-active-border) !important;
 }
 
-/* Zoom controls & View toggle */
-.td-topbar .td-zoom-controls,
+/* View Mode Toggle */
 .td-topbar .td-view-toggle {
   display: inline-flex !important;
   align-items: center !important;
   gap: 2px !important;
-  height: 34px !important;
-  min-height: 34px !important;
-  max-height: 34px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
   padding: 2px !important;
   border-radius: 7px !important;
   background: var(--td-group-bg) !important;
@@ -25920,38 +25922,59 @@ button.td-confirm-icon.is-back-btn:active {
   flex-shrink: 0 !important;
 }
 
-.td-topbar .td-zoom-controls .td-icon-btn,
 .td-topbar .td-view-toggle .td-icon-btn {
-  width: 28px !important;
-  height: 28px !important;
-  min-width: 28px !important;
-  min-height: 28px !important;
-  max-width: 28px !important;
-  max-height: 28px !important;
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+  max-width: 26px !important;
+  max-height: 26px !important;
+  border-radius: 5px !important;
+}
+
+/* Zoom Controls */
+.td-topbar .td-zoom-controls {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  padding: 2px !important;
+  border-radius: 7px !important;
+  background: var(--td-group-bg) !important;
+  border: 1px solid var(--td-group-border) !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+}
+
+.td-topbar .td-zoom-controls .td-icon-btn {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
   border-radius: 5px !important;
 }
 
 .td-topbar .td-zoom-controls .td-zoom-label {
-  min-width: 28px !important;
-  height: 28px !important;
-  min-height: 28px !important;
-  max-height: 28px !important;
-  line-height: 28px !important;
-  font-size: 0.74rem !important;
+  min-width: 24px !important;
+  height: 26px !important;
+  line-height: 26px !important;
+  font-size: 0.72rem !important;
   font-weight: 700 !important;
-  padding: 0 6px !important;
+  padding: 0 4px !important;
   background: transparent !important;
   border: none !important;
-  color: var(--td-sub, #94a3b8) !important;
+  color: #94a3b8 !important;
 }
 
 /* Primary CTA Button (Upload) */
 .td-topbar .td-btn-primary {
-  height: 34px !important;
-  min-height: 34px !important;
-  max-height: 34px !important;
-  padding: 0 12px !important;
-  font-size: 0.78rem !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  padding: 0 10px !important;
+  font-size: 0.76rem !important;
   font-weight: 700 !important;
   border-radius: 7px !important;
   border: 1px solid var(--td-active-border) !important;
@@ -25959,24 +25982,23 @@ button.td-confirm-icon.is-back-btn:active {
   color: var(--td-active-fg) !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 6px !important;
+  gap: 5px !important;
   cursor: pointer !important;
-  box-shadow: none !important;
-  transition: all 0.14s ease !important;
+  transition: all 0.12s ease !important;
   flex-shrink: 0 !important;
 }
 
 .td-topbar .td-btn-primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--td-primary, #e2a532) 28%, transparent) !important;
-  border-color: var(--td-primary, #e2a532) !important;
+  background: rgba(226, 165, 50, 0.25) !important;
+  border-color: var(--td-active-fg) !important;
 }
 
-/* Breadcrumbs & Count Badge */
+/* Breadcrumbs */
 .td-breadcrumbs {
   display: inline-flex !important;
   align-items: center !important;
   gap: 4px !important;
-  font-size: 0.88rem !important;
+  font-size: 0.86rem !important;
   overflow: hidden !important;
   min-width: 0 !important;
 }
@@ -25990,7 +26012,7 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-crumb-sep {
-  color: rgba(148, 163, 184, 0.4) !important;
+  color: rgba(148, 163, 184, 0.35) !important;
   font-size: 0.8rem !important;
   margin: 0 1px !important;
 }
@@ -25998,11 +26020,11 @@ button.td-confirm-icon.is-back-btn:active {
 .td-crumb-link {
   color: #94a3b8 !important;
   font-weight: 600 !important;
-  font-size: 0.88rem !important;
+  font-size: 0.86rem !important;
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
-  max-width: 140px !important;
+  max-width: 120px !important;
   background: transparent !important;
   border: none !important;
   cursor: pointer !important;
@@ -26017,31 +26039,24 @@ button.td-confirm-icon.is-back-btn:active {
 .td-crumb-current {
   color: #f8fafc !important;
   font-weight: 700 !important;
-  font-size: 0.88rem !important;
+  font-size: 0.86rem !important;
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   max-width: 160px !important;
 }
 
-.td-crumb-muted {
-  color: #64748b !important;
-  font-weight: 500 !important;
-  font-size: 0.88rem !important;
-  white-space: nowrap !important;
-}
-
 .td-count-pill {
-  height: 24px !important;
-  min-height: 24px !important;
-  max-height: 24px !important;
-  padding: 0 9px !important;
-  font-size: 0.74rem !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  padding: 0 8px !important;
+  font-size: 0.72rem !important;
   font-weight: 700 !important;
-  line-height: 24px !important;
+  line-height: 22px !important;
   border-radius: 999px !important;
-  background: rgba(255, 255, 255, 0.07) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   color: #cbd5e1 !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -26050,63 +26065,61 @@ button.td-confirm-icon.is-back-btn:active {
   margin-left: 2px !important;
 }
 
-/* Row 2: Forum Topics Row (32px height) */
+/* Row 2: Forum Topics Row (28px height) */
 .td-topbar-row-topics {
-  height: 32px !important;
-  min-height: 32px !important;
-  max-height: 32px !important;
-  gap: 8px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  gap: 6px !important;
   overflow: hidden !important;
 }
 
 .td-topics-label {
-  font-size: 0.72rem !important;
+  font-size: 0.7rem !important;
   font-weight: 700 !important;
   letter-spacing: 0.04em !important;
-  color: var(--td-sub, #94a3b8) !important;
+  color: #94a3b8 !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 5px !important;
+  gap: 4px !important;
   flex-shrink: 0 !important;
 }
 
 .td-topics-scroll-container {
   display: flex !important;
   align-items: center !important;
-  gap: 6px !important;
+  gap: 4px !important;
   min-width: 0 !important;
   flex: 1 1 auto !important;
   overflow: hidden !important;
-  height: 30px !important;
+  height: 28px !important;
 }
 
 .td-topic-pills {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 6px !important;
+  gap: 5px !important;
   overflow-x: auto !important;
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
   padding: 0 !important;
   margin: 0 !important;
-  height: 30px !important;
+  height: 28px !important;
 }
 .td-topic-pills::-webkit-scrollbar {
   display: none !important;
-  width: 0 !important;
-  height: 0 !important;
 }
 
 .td-topic-pill {
-  height: 28px !important;
-  min-height: 28px !important;
-  max-height: 28px !important;
-  padding: 0 11px !important;
-  font-size: 0.76rem !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
+  padding: 0 9px !important;
+  font-size: 0.72rem !important;
   font-weight: 600 !important;
   border-radius: 999px !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
   color: #cbd5e1 !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -26122,36 +26135,36 @@ button.td-confirm-icon.is-back-btn:active {
   font-weight: 700 !important;
 }
 
-/* Row 3: Search Input (34px) */
+/* Row 3: Search Input (32px) */
 .td-topbar-row-2 {
-  height: 34px !important;
-  min-height: 34px !important;
-  max-height: 34px !important;
-  gap: 8px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  gap: 6px !important;
   overflow: hidden !important;
 }
 
 .td-topbar .td-search {
-  height: 34px !important;
-  min-height: 34px !important;
-  max-height: 34px !important;
-  padding: 4px 12px !important;
-  font-size: 0.82rem !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  padding: 4px 10px !important;
+  font-size: 0.8rem !important;
   border-radius: 7px !important;
-  background: rgba(0, 0, 0, 0.25) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   color: #f8fafc !important;
   box-sizing: border-box !important;
 }
 
 .td-topbar .td-search:focus {
-  border-color: var(--td-primary, #e2a532) !important;
-  box-shadow: 0 0 0 1px var(--td-primary, #e2a532) inset !important;
+  border-color: var(--td-active-fg) !important;
+  box-shadow: 0 0 0 1px var(--td-active-fg) inset !important;
 }
 
 /* Row 4: Tools Row (Perspective + Filters + Sort + Thumb) */
 .td-topbar-row-tools {
-  min-height: 32px !important;
+  min-height: 30px !important;
   height: auto !important;
   max-height: none !important;
   overflow: visible !important;
@@ -26161,7 +26174,7 @@ button.td-confirm-icon.is-back-btn:active {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  gap: 8px 14px !important;
+  gap: 6px 10px !important;
   width: 100% !important;
   box-sizing: border-box !important;
 }
@@ -26169,13 +26182,13 @@ button.td-confirm-icon.is-back-btn:active {
 .td-tools-left-cluster {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 8px !important;
+  gap: 6px !important;
   min-width: 0 !important;
   flex: 1 1 auto !important;
   overflow-x: auto !important;
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
-  height: 32px !important;
+  height: 30px !important;
   flex-wrap: nowrap !important;
 }
 .td-tools-left-cluster::-webkit-scrollbar {
@@ -26189,7 +26202,7 @@ button.td-confirm-icon.is-back-btn:active {
 .td-tools-right-cluster {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 10px !important;
+  gap: 6px !important;
   min-width: 0 !important;
   flex: 0 0 auto !important;
   height: auto !important;
@@ -26202,28 +26215,27 @@ button.td-confirm-icon.is-back-btn:active {
   align-items: center !important;
   gap: 2px !important;
   padding: 2px !important;
-  height: 30px !important;
-  min-height: 30px !important;
-  max-height: 30px !important;
-  border-radius: 7px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  border-radius: 6px !important;
   background: var(--td-group-bg) !important;
   border: 1px solid var(--td-group-border) !important;
   box-sizing: border-box !important;
-  box-shadow: none !important;
   flex-shrink: 0 !important;
 }
 
 .td-perspective-btn {
-  height: 26px !important;
-  min-height: 26px !important;
-  max-height: 26px !important;
-  padding: 0 10px !important;
-  font-size: 0.76rem !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  padding: 0 8px !important;
+  font-size: 0.74rem !important;
   font-weight: 600 !important;
-  border-radius: 5px !important;
+  border-radius: 4px !important;
   border: none !important;
   background: transparent !important;
-  color: var(--td-sub, #94a3b8) !important;
+  color: #94a3b8 !important;
   display: inline-flex !important;
   align-items: center !important;
   cursor: pointer !important;
@@ -26234,33 +26246,18 @@ button.td-confirm-icon.is-back-btn:active {
   background: var(--td-active-bg) !important;
   color: var(--td-active-fg) !important;
   font-weight: 700 !important;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25) !important;
-}
-
-/* Tool Labels: Filter, Sort, Thumb */
-.td-tool-label {
-  font-size: 0.7rem !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.04em !important;
-  color: var(--td-sub, #94a3b8) !important;
-  text-transform: uppercase !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  flex-shrink: 0 !important;
-  line-height: 1 !important;
-  padding: 0 3px !important;
 }
 
 /* Filter Pills Group */
 .td-filter-pills {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 4px !important;
-  height: 30px !important;
-  min-height: 30px !important;
-  max-height: 30px !important;
+  gap: 3px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
   padding: 2px !important;
-  border-radius: 7px !important;
+  border-radius: 6px !important;
   background: var(--td-group-bg) !important;
   border: 1px solid var(--td-group-border) !important;
   overflow-x: auto !important;
@@ -26271,24 +26268,22 @@ button.td-confirm-icon.is-back-btn:active {
 }
 .td-filter-pills::-webkit-scrollbar {
   display: none !important;
-  width: 0 !important;
-  height: 0 !important;
 }
 
 .td-filter-pills .td-pill {
-  height: 26px !important;
-  min-height: 26px !important;
-  max-height: 26px !important;
-  padding: 0 9px !important;
-  font-size: 0.75rem !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  padding: 0 8px !important;
+  font-size: 0.73rem !important;
   font-weight: 600 !important;
-  border-radius: 5px !important;
+  border-radius: 4px !important;
   border: 1px solid transparent !important;
   background: transparent !important;
-  color: var(--td-sub, #94a3b8) !important;
+  color: #94a3b8 !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 4px !important;
+  gap: 3px !important;
   cursor: pointer !important;
   white-space: nowrap !important;
   flex-shrink: 0 !important;
@@ -26307,10 +26302,10 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-filter-count {
-  font-size: 0.68rem !important;
+  font-size: 0.66rem !important;
   font-weight: 700 !important;
   opacity: 0.85 !important;
-  padding: 1px 4px !important;
+  padding: 0 3px !important;
   border-radius: 3px !important;
   background: rgba(255, 255, 255, 0.08) !important;
 }
@@ -26319,12 +26314,12 @@ button.td-confirm-icon.is-back-btn:active {
 .td-sort-group {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 4px !important;
-  height: 30px !important;
-  min-height: 30px !important;
-  max-height: 30px !important;
-  padding: 2px 6px !important;
-  border-radius: 7px !important;
+  gap: 3px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  padding: 2px 5px !important;
+  border-radius: 6px !important;
   background: var(--td-group-bg) !important;
   border: 1px solid var(--td-group-border) !important;
   box-sizing: border-box !important;
@@ -26332,11 +26327,11 @@ button.td-confirm-icon.is-back-btn:active {
 
 .td-sort-group .td-sort,
 .td-sort-group .td-modern-select {
-  height: 26px !important;
-  min-height: 26px !important;
-  max-height: 26px !important;
-  font-size: 0.76rem !important;
-  padding: 0 4px !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  font-size: 0.74rem !important;
+  padding: 0 2px !important;
   border: none !important;
   background: transparent !important;
 }
@@ -26346,27 +26341,27 @@ button.td-confirm-icon.is-back-btn:active {
   display: inline-flex !important;
   align-items: center !important;
   gap: 2px !important;
-  height: 30px !important;
-  min-height: 30px !important;
-  max-height: 30px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
   padding: 2px !important;
-  border-radius: 7px !important;
+  border-radius: 6px !important;
   background: var(--td-group-bg) !important;
   border: 1px solid var(--td-group-border) !important;
   box-sizing: border-box !important;
 }
 
 .td-thumb-pill {
-  height: 26px !important;
-  min-height: 26px !important;
-  max-height: 26px !important;
-  padding: 0 9px !important;
-  font-size: 0.74rem !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  padding: 0 7px !important;
+  font-size: 0.72rem !important;
   font-weight: 600 !important;
-  border-radius: 5px !important;
+  border-radius: 4px !important;
   border: 1px solid transparent !important;
   background: transparent !important;
-  color: var(--td-sub, #94a3b8) !important;
+  color: #94a3b8 !important;
   display: inline-flex !important;
   align-items: center !important;
   cursor: pointer !important;
@@ -26409,26 +26404,34 @@ button.td-confirm-icon.is-back-btn:active {
 /* Responsive Action Toolbar Rules (< 860px) */
 @media (max-width: 859.98px) {
   .td-topbar .td-zoom-controls,
-  .td-topbar-btn-tools,
-  .td-topbar-btn-zip,
-  .td-topbar-btn-remote {
+  .td-topbar .td-icon-btn.td-topbar-btn-tools,
+  .td-topbar .td-icon-btn.td-topbar-btn-zip,
+  .td-topbar .td-icon-btn.td-topbar-btn-remote {
     display: none !important;
   }
 }
 
 /* Compact / Split (< 640px) */
 @media (max-width: 639.98px) {
-  .td-topbar .td-count-pill {
+  .td-topbar .td-count-pill,
+  .td-topbar-left .td-count-pill {
+    display: none !important;
+  }
+  .td-topbar .td-tool-label {
     display: none !important;
   }
   .td-tools-right-cluster {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
     gap: 6px !important;
   }
-  .td-tools-right-cluster .td-tool-group {
-    width: 100% !important;
-    justify-content: space-between !important;
+  .td-tools-right-cluster .td-sort-group {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+  .td-tools-right-cluster .td-thumb-quality-pills {
+    flex: 0 0 auto !important;
   }
 }
 
@@ -26439,76 +26442,6 @@ button.td-confirm-icon.is-back-btn:active {
     gap: 4px !important;
   }
 
-  .td-crumb-link {
-    display: none !important;
-  }
-  .td-crumb-sep {
-    display: none !important;
-  }
-  .td-crumb-current {
-    max-width: 90px !important;
-  }
-
-  .td-topbar .td-btn-primary .td-btn-label {
-    display: none !important;
-  }
-  .td-topbar .td-btn-primary {
-    padding: 0 !important;
-    width: 34px !important;
-    height: 34px !important;
-    min-width: 34px !important;
-    min-height: 34px !important;
-    justify-content: center !important;
-  }
-}
-
-/* Extreme Compact (< 360px) */
-@media (max-width: 359.98px) {
-  .td-topbar-left {
-    max-width: 110px !important;
-  }
-  .td-crumb-current {
-    max-width: 60px !important;
-  }
-  .td-tools-right-cluster {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 4px !important;
-  }
-}
-
-/* Ensure proper hiding of secondary buttons with higher specificity */
-@media (max-width: 859.98px) {
-  .td-topbar .td-zoom-controls,
-  .td-topbar .td-icon-btn.td-topbar-btn-tools,
-  .td-topbar .td-icon-btn.td-topbar-btn-zip,
-  .td-topbar .td-icon-btn.td-topbar-btn-remote {
-    display: none !important;
-  }
-}
-
-@media (max-width: 479.98px) {
-  .td-topbar-left {
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
-  }
-  .td-topbar-actions {
-    flex: 0 0 auto !important;
-  }
-}
-
-/* ══════════════════════════════════════════════════════════════════════════
-   HIGH-SPECIFICITY NARROW SCREEN SQUEEZE RULES
-   ══════════════════════════════════════════════════════════════════════════ */
-
-@media (max-width: 679.98px) {
-  .td-topbar .td-count-pill,
-  .td-topbar-left .td-count-pill {
-    display: none !important;
-  }
-}
-
-@media (max-width: 499.98px) {
   .td-topbar .td-breadcrumbs .td-crumb-wrap:not(:last-child),
   .td-topbar .td-crumb-link,
   .td-topbar .td-crumb-sep {
@@ -26516,24 +26449,127 @@ button.td-confirm-icon.is-back-btn:active {
   }
 
   .td-topbar .td-breadcrumbs .td-crumb-current {
-    max-width: 80px !important;
+    max-width: 90px !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
   }
 
-  .td-topbar-left {
-    flex: 0 1 auto !important;
-    min-width: 0 !important;
-    overflow: hidden !important;
+  .td-topbar .td-btn-primary .td-btn-label {
+    display: none !important;
   }
-
-  .td-topbar-actions {
-    flex: 0 0 auto !important;
+  .td-topbar .td-btn-primary {
+    padding: 0 !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    justify-content: center !important;
   }
 }
 
+/* Extreme Compact (< 360px) */
 @media (max-width: 359.98px) {
+  .td-topbar-left {
+    max-width: 100px !important;
+  }
   .td-topbar .td-breadcrumbs .td-crumb-current {
     max-width: 50px !important;
+  }
+  .td-tools-right-cluster {
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+  .td-tools-right-cluster .td-sort-group,
+  .td-tools-right-cluster .td-thumb-quality-pills {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RIGHT CLUSTER ZERO-OVERLAP & CLEAN BALANCED TOOLS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-tools-right-cluster {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+
+.td-tools-right-cluster > .td-tool-group {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
+.td-tools-right-cluster .td-group-sort {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+.td-tools-right-cluster .td-group-sort .td-sort-group {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.td-tools-right-cluster .td-group-thumb {
+  flex: 0 0 auto !important;
+}
+
+.td-tools-right-cluster .td-group-thumb .td-thumb-quality-pills {
+  display: inline-flex !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+}
+
+@media (max-width: 1199.98px) {
+  .td-topbar-tools {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+  }
+  .td-tools-left-cluster {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    flex-wrap: nowrap !important;
+  }
+  .td-tools-left-cluster::-webkit-scrollbar {
+    display: none !important;
+  }
+  .td-tools-right-cluster {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+}
+
+@media (max-width: 639.98px) {
+  .td-topbar .td-tool-label {
+    display: none !important;
+  }
+  .td-tools-right-cluster {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+  .td-tools-right-cluster .td-group-sort {
+    flex: 1 1 auto !important;
+  }
+  .td-tools-right-cluster .td-group-thumb {
+    flex: 0 0 auto !important;
   }
 }
