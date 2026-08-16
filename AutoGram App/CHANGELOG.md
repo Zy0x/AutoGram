@@ -1,3 +1,17 @@
+## v3.7.31 Phase 2: Android Mozilla UniFFI Bridge & Kotlin Generator (Phase 32)
+
+### 1. Pembangunan Lapisan Bridge UniFFI untuk Native Android
+- **Crate Mozilla UniFFI (`crates/autogram-android-bridge`)**:
+  - Membangun crate penghubung berbasis Mozilla UniFFI 0.28 untuk mentranslasikan seluruh antarmuka logika bisnis `autogram-core` ke bahasa Kotlin murni.
+  - Menyediakan penanganan error terstruktur (`AutoGramBridgeError` / `AutoGramBridgeException`), data classes native (`AccountScoreResult`, `RepairSummary`, `HardwareProfileSummary`, `StorageBudgetResult`), dan antarmuka callback listener `AutoGramEventListener`.
+  - Mengimplementasikan ekspor fungsi utama: `init_autogram_runtime`, `register_event_listener`, `emit_bridge_event`, `get_account_scores`, `run_container_repair`, `get_hardware_profiles`, `get_storage_budget`, dan `plan_batch_execution_summary`.
+- **Generator Binding Kotlin Otomatis (`generate_kotlin_bindings.bat`)**:
+  - Menyediakan skrip dan biner generator `uniffi-bindgen` yang menghasilkan file Kotlin binding (`bindings/kotlin/uniffi/autogram_android_bridge/autogram_android_bridge.kt`) siap pakai untuk Jetpack Compose.
+- **Verifikasi Kualitas**:
+  - `cargo check` pada ketiga crate Rust (`crates/autogram-core`, `crates/autogram-android-bridge`, dan `frontend/src-tauri`) lulus 100% (0 error).
+  - **4.865 Kunci Kamus** tersinkronisasi 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
+  - 146 unit test Vitest lulus 100%.
+
 ## v3.7.30 Phase 1: Shared Rust Core Extraction (`crates/autogram-core`) (Phase 31)
 
 ### 1. Ekstraksi Shared Pure-Rust Core Crate
