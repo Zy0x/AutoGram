@@ -27473,3 +27473,257 @@ button.td-confirm-icon.is-back-btn:active {
     display: none !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PIXEL-PERFECT SIDEBAR HEADER & ACTIONS (500px - 600px / DRAWER)
+   Ultra-clean alignment, identical geometric heights, premium aesthetic
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Standard Desktop (> 600px) */
+.td-rail-back-compact {
+  display: none !important;
+}
+
+.td-sidebar-search-btn {
+  display: none !important;
+}
+
+.td-location-search-inline {
+  display: none !important;
+}
+
+.td-location-search-main {
+  display: flex !important;
+}
+
+/* Compact Sidebar & Drawer Mode (<= 600px) */
+@media (max-width: 600px) {
+  /* 1. Header: [ ← (38x38) ] [ 💻 Logo (38x38) | Cloud Drives & Telegram Storage ] */
+  .td-sidebar .td-rail-head {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: 100% !important;
+    padding: 12px 14px !important;
+    box-sizing: border-box !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .td-sidebar .td-rail-head .td-rail-back-compact {
+    order: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+    min-height: 38px !important;
+    flex: 0 0 38px !important;
+    border-radius: 10px !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(226, 165, 50, 0.45) !important;
+    color: #fbbf24 !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35) !important;
+    outline: none !important;
+    transition: all 0.15s ease !important;
+  }
+
+  .td-sidebar .td-rail-head .td-rail-back-compact:hover {
+    background: linear-gradient(135deg, #e2a532 0%, #d97706 100%) !important;
+    border-color: #f59e0b !important;
+    color: #0f172a !important;
+    transform: scale(1.04) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  .td-sidebar .td-rail-head .td-rail-back-wide {
+    display: none !important;
+  }
+
+  .td-sidebar .td-rail-head .td-rail-brand-toggle {
+    order: 1 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 10px !important;
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    cursor: pointer !important;
+    text-align: left !important;
+  }
+
+  .td-sidebar .td-rail-head .td-rail-brand-toggle .td-sidebar-logo {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+    min-height: 38px !important;
+    flex: 0 0 38px !important;
+    border-radius: 10px !important;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 10px rgba(37, 99, 235, 0.35) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: relative !important;
+  }
+
+  .td-sidebar .td-rail-head .td-rail-brand-toggle .td-sidebar-brand-text {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    gap: 2px !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    overflow: hidden !important;
+  }
+
+  .td-sidebar .td-rail-head .td-rail-brand-toggle .td-sidebar-brand-text strong {
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+    letter-spacing: -0.01em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    color: #f8fafc !important;
+  }
+
+  .td-sidebar .td-rail-head .td-rail-brand-toggle .td-sidebar-brand-text span {
+    font-size: 0.72rem !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    color: #94a3b8 !important;
+  }
+
+  /* 2. Action Toolbar: [ New Folder (flex: 1) ] + [ 🔍 Search (38x38) ] */
+  .td-sidebar .td-rail-actions {
+    padding: 8px 14px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .td-sidebar-action-split-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .td-sidebar-action-split-row .td-btn-new-folder {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    padding: 0 12px !important;
+    border-radius: 8px !important;
+    margin: 0 !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .td-sidebar-action-split-row .td-sidebar-search-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+    min-height: 38px !important;
+    flex: 0 0 38px !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(226, 165, 50, 0.45) !important;
+    color: #fbbf24 !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+    transition: all 0.15s ease !important;
+  }
+
+  .td-sidebar-action-split-row .td-sidebar-search-btn:hover {
+    background: linear-gradient(135deg, #e2a532 0%, #d97706 100%) !important;
+    border-color: #f59e0b !important;
+    color: #0f172a !important;
+    transform: scale(1.04) !important;
+  }
+
+  /* 3. Inline Search Bar when active (fills entire New Folder row matching 38px height) */
+  .td-location-search-inline {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    flex: 1 1 100% !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 10px !important;
+    background: rgba(15, 23, 42, 0.95) !important;
+    border: 1.5px solid #e2a532 !important;
+    border-radius: 8px !important;
+    gap: 8px !important;
+    box-sizing: border-box !important;
+  }
+
+  .td-location-search-inline input {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    height: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    color: #f8fafc !important;
+    font-size: 0.85rem !important;
+  }
+
+  .td-location-search-inline .td-location-search-clear {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 22px !important;
+    height: 22px !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: none !important;
+    border-radius: 4px !important;
+    color: #94a3b8 !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+    transition: all 0.12s ease !important;
+  }
+
+  .td-location-search-inline .td-location-search-clear:hover {
+    background: rgba(239, 68, 68, 0.25) !important;
+    color: #ef4444 !important;
+  }
+
+  /* Hide separate fixed search bar on compact views */
+  .td-sidebar .td-sidebar-fixed-controls .td-location-search,
+  .td-sidebar .td-location-search-main {
+    display: none !important;
+  }
+}
