@@ -30883,3 +30883,117 @@ button.td-confirm-icon.is-back-btn:active {
 .td-sidebar-logo .td-rail-conn-dot.pulse {
   animation: conn-pulse 2s infinite ease-in-out !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PROPER SCROLLABLE & RIGHT-ANCHORED TOPBAR ACTION TOOLBAR
+   - .td-topbar-actions-wrapper: anchored to the right (margin-left: auto)
+   - .td-topbar-actions: flex-start scroll container (preserves scrollLeft and arrow triggers)
+   - .td-action-nav-btn: beautiful navigation arrows for horizontal scrolling
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-topbar .td-topbar-row-1 {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  padding-right: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.td-topbar .td-topbar-left {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  max-width: 48% !important;
+  overflow: hidden !important;
+}
+
+.td-topbar .td-topbar-actions-wrapper {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  margin-left: auto !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: calc(100% - 140px) !important;
+  overflow: hidden !important;
+  position: relative !important;
+  height: 42px !important;
+  gap: 4px !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.td-topbar .td-action-nav-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  max-width: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  border-radius: 50% !important;
+  background: rgba(13, 21, 39, 0.95) !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.7) !important;
+  color: #fbbf24 !important;
+  cursor: pointer !important;
+  flex: 0 0 22px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+  z-index: 25 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  outline: none !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-topbar .td-action-nav-btn:hover {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  border-color: #fbbf24 !important;
+  color: #0d1527 !important;
+  transform: scale(1.1) !important;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5) !important;
+}
+
+.td-topbar .td-action-nav-btn:active {
+  transform: scale(0.92) !important;
+}
+
+.td-topbar .td-action-nav-btn.left {
+  margin-right: 2px !important;
+}
+
+.td-topbar .td-action-nav-btn.right {
+  margin-left: 2px !important;
+}
+
+.td-topbar .td-topbar-actions-wrapper .td-topbar-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-x: contain !important;
+  gap: 6px !important;
+  padding: 0 2px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  max-width: 100% !important;
+}
+
+.td-topbar .td-topbar-actions-wrapper .td-topbar-actions::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
