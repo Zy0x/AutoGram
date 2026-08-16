@@ -80,7 +80,7 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
   const [moveMode, setMoveMode] = useState<'move' | 'copy'>('move');
   const [topicId, setTopicId] = useState<number | null>(state?.initialTopicId ?? null);
   const [groupAsAlbum, setGroupAsAlbum] = useState<boolean>(state?.initialGroupAsAlbum ?? true);
-
+  const overlayMouseDownTargetRef = useRef<EventTarget | null>(null);
   const isFirstOpen = useRef(true);
 
   useEffect(() => {
@@ -222,8 +222,6 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
       }
     }, 0);
   };
-
-  const overlayMouseDownTargetRef = useRef<EventTarget | null>(null);
 
   const handleOverlayMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     overlayMouseDownTargetRef.current = e.target;

@@ -116,6 +116,7 @@ export function TelegramMessagePreviewModal({
   const [copiedLink, setCopiedLink] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const overlayMouseDownTargetRef = useRef<EventTarget | null>(null);
 
   const scopedFolderId = file?.folder_id ?? folderId ?? null;
   const itemPeerId = scopedFolderId != null && scopedFolderId !== 0 ? String(scopedFolderId) : (file?.peer_id || 'me');
@@ -320,8 +321,6 @@ export function TelegramMessagePreviewModal({
       console.error('[TelegramMessagePreviewModal] Open Telegram link failed:', err);
     }
   };
-
-  const overlayMouseDownTargetRef = useRef<EventTarget | null>(null);
 
   const handleOverlayMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     overlayMouseDownTargetRef.current = e.target;

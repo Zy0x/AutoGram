@@ -55,6 +55,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [topicSubView, setTopicSubView] = useState<{ choice: DriveDestChoice; topics: DriveTopic[] } | null>(null);
+  const overlayMouseDownTargetRef = useRef<EventTarget | null>(null);
 
   // Keep refs for unstable values/callbacks to prevent useEffect re-runs on every parent render.
   const topicSubViewRef = useRef(topicSubView);
@@ -193,8 +194,6 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
     }
     return <span className="td-dest-badge user">{t('speedtest.dest_badge_user')}</span>;
   };
-
-  const overlayMouseDownTargetRef = useRef<EventTarget | null>(null);
 
   const handleOverlayMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     overlayMouseDownTargetRef.current = e.target;

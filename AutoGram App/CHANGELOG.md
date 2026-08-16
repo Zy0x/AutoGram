@@ -1,3 +1,20 @@
+## v3.7.24 Global React Hook Order Audit & Modal Ref Relocation (Phase 25)
+
+### 1. Audit Menyeluruh Aturan Hook React & Pemindahan Ref Modal
+- **Pembersihan Pelanggaran *Rules of Hooks***:
+  - Melakukan audit AST parser mendalam di seluruh komponen UI frontend (`src/`) untuk mendeteksi pemanggilan hook yang berada di bawah *early return* (`if (!state) return null;` / `if (!open) return null;`).
+  - Memperbaiki penempatan `overlayMouseDownTargetRef = useRef(...)` di 5 modal yang sempat memicu error *"Rendered more hooks than during the previous render"*:
+    1. [`TelegramMessagePreviewModal.tsx`](file:///f:/AutoGram/AutoGram%20App/frontend/src/components/drive/Modals/TelegramMessagePreviewModal.tsx)
+    2. [`DriveDestinationPicker.tsx`](file:///f:/AutoGram/AutoGram%20App/frontend/src/components/drive/Modals/DriveDestinationPicker.tsx)
+    3. [`DriveInputDialog.tsx`](file:///f:/AutoGram/AutoGram%20App/frontend/src/components/drive/Modals/DriveInputDialog.tsx)
+    4. [`DriveConfirmDialog.tsx`](file:///f:/AutoGram/AutoGram%20App/frontend/src/components/drive/Modals/DriveConfirmDialog.tsx)
+    5. [`SessionRelogModal.tsx`](file:///f:/AutoGram/AutoGram%20App/frontend/src/components/drive/Modals/SessionRelogModal.tsx)
+  - Seluruh hook dipindahkan ke baris paling atas di masing-masing komponen sebelum kondisi `return` dieksekusi.
+- **Verifikasi Kualitas**:
+  - **0 Hook Violations** di seluruh kode frontend.
+  - **4.865 Kunci Kamus** tersinkronisasi 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
+  - 146 unit test Vitest lulus 100%.
+
 ## v3.7.23 Unified Creator Profile Format & Embedded Caption Metadata (Phase 24)
 
 ### 1. Penggabungan Format Profil Tunggal Tanpa Redundansi

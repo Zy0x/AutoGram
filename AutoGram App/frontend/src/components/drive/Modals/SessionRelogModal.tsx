@@ -23,6 +23,7 @@ export const SessionRelogModal: React.FC<SessionRelogModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
+  const overlayMouseDownTargetRef = React.useRef<EventTarget | null>(null);
 
   if (!open) return null;
 
@@ -56,8 +57,6 @@ export const SessionRelogModal: React.FC<SessionRelogModalProps> = ({
     onClose();
     onNavigateToAccounts?.();
   };
-
-  const overlayMouseDownTargetRef = React.useRef<EventTarget | null>(null);
 
   const handleOverlayMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     overlayMouseDownTargetRef.current = e.target;

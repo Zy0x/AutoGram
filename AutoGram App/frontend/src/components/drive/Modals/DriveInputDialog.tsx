@@ -33,6 +33,7 @@ export function DriveInputDialog({ state, onClose }: Props) {
   const open = !!state;
   const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const overlayMouseDownTargetRef = useRef<EventTarget | null>(null);
 
   useEffect(() => {
     if (!open || !state) return;
@@ -79,8 +80,6 @@ export function DriveInputDialog({ state, onClose }: Props) {
     onClose();
     window.setTimeout(() => fn(v), 0);
   };
-
-  const overlayMouseDownTargetRef = useRef<EventTarget | null>(null);
 
   const handleOverlayMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     overlayMouseDownTargetRef.current = e.target;
