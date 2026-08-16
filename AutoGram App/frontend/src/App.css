@@ -31607,3 +31607,107 @@ button.td-confirm-icon.is-back-btn:active {
   z-index: 60 !important;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6) !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TELEGRAM WORKSPACE HUB (SESSION LAUNCHER) RESPONSIVE & AESTHETIC POLISH
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.ag-launcher-shell {
+  background: radial-gradient(circle at 50% 20%, #0d1527 0%, #080c15 100%) !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+.ag-launcher-main {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  max-width: 1080px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  padding: min(3vh, 28px) max(1rem, 2.5vw) min(3.5vh, 36px) !important;
+  box-sizing: border-box !important;
+}
+
+.ag-launcher-hero {
+  text-align: center !important;
+  margin-bottom: min(2.5vh, 22px) !important;
+}
+
+.ag-launcher-hero h1 {
+  font-size: clamp(1.75rem, 3.5vw, 2.25rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.025em !important;
+  color: #f8fafc !important;
+  margin: 0 0 6px 0 !important;
+}
+
+.ag-launcher-hero p {
+  font-size: 0.88rem !important;
+  color: #94a3b8 !important;
+  max-width: 560px !important;
+  margin: 0 auto !important;
+}
+
+.ag-launcher-session-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr)) !important;
+  gap: min(2.5vh, 22px) !important;
+  max-width: 1060px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+}
+
+.ag-launcher-session-card {
+  border-radius: 18px !important;
+  background: linear-gradient(155deg, rgba(22, 30, 46, 0.9) 0%, rgba(13, 19, 31, 0.96) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  padding: min(2.8vh, 20px) min(2.8vw, 22px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: min(2.2vh, 16px) !important;
+  backdrop-filter: blur(16px) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.ag-launcher-session-card:hover {
+  transform: translateY(-3px) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 22px 48px -12px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Tablet & Mobile Breakpoints for Launcher */
+@media (max-width: 768px) {
+  .ag-launcher-main {
+    padding: 1.25rem 1rem 1.5rem !important;
+    justify-content: flex-start !important;
+  }
+  .ag-launcher-session-grid {
+    grid-template-columns: 1fr !important;
+    max-width: 520px !important;
+  }
+}
+
+@media (max-width: 540px) {
+  .ag-launcher-header {
+    padding: 0.6rem 0.8rem !important;
+  }
+  .ag-launcher-hero h1 {
+    font-size: 1.55rem !important;
+  }
+  .ag-launcher-mode-grid button {
+    padding: 12px 10px !important;
+    min-height: 48px !important;
+  }
+  .ag-launcher-mode-grid button strong {
+    font-size: 0.86rem !important;
+  }
+  .ag-launcher-mode-grid button span {
+    font-size: 0.68rem !important;
+  }
+}

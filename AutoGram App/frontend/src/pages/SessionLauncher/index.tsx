@@ -900,7 +900,7 @@ export function SessionLauncher({
                       style={{
                         padding: '14px 16px',
                         borderRadius: '14px',
-                        background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(3, 105, 161, 0.25) 100%)',
+                        background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.14) 0%, rgba(3, 105, 161, 0.22) 100%)',
                         border: '1px solid rgba(56, 189, 248, 0.35)',
                         color: '#bae6fd',
                         display: 'flex',
@@ -938,9 +938,9 @@ export function SessionLauncher({
                       style={{
                         padding: '14px 16px',
                         borderRadius: '14px',
-                        background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(67, 56, 202, 0.25) 100%)',
-                        border: '1px solid rgba(99, 102, 241, 0.35)',
-                        color: '#c7d2fe',
+                        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.14) 0%, rgba(180, 83, 9, 0.22) 100%)',
+                        border: '1px solid rgba(245, 158, 11, 0.35)',
+                        color: '#fde68a',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
@@ -951,16 +951,16 @@ export function SessionLauncher({
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.borderColor = '#818cf8';
-                        e.currentTarget.style.boxShadow = '0 8px 20px rgba(99, 102, 241, 0.25)';
+                        e.currentTarget.style.borderColor = '#fbbf24';
+                        e.currentTarget.style.boxShadow = '0 8px 20px rgba(245, 158, 11, 0.25)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.35)';
+                        e.currentTarget.style.borderColor = 'rgba(245, 158, 11, 0.35)';
                         e.currentTarget.style.boxShadow = 'none';
                       }}
                     >
-                      <ArrowRightLeft size={22} style={{ color: '#818cf8' }} />
+                      <ArrowRightLeft size={22} style={{ color: '#fbbf24' }} />
                       <div>
                         <strong style={{ display: 'block', fontSize: '0.92rem', color: '#f8fafc' }}>
                           {t('nav.open_forwarder')}
