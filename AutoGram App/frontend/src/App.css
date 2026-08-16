@@ -35,10 +35,26 @@
 }
 
 html, body, #root {
-  min-width: 500px;
-  min-height: 400px;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  width: 100%;
+  height: 100%;
+}
+
+/* Desktop Window: Enforce 500x400 minimum workspace */
+@media screen and (min-width: 500px) {
+  html, body, #root {
+    min-width: 500px;
+    min-height: 400px;
+  }
+}
+
+/* Mobile & Android: 100% fluid responsive viewport without horizontal overflow */
+@media screen and (max-width: 499.98px) {
+  html, body, #root {
+    min-width: 100%;
+    min-height: 100%;
+  }
 }
 
 /* ---------- Wrong Input Shake Animation ---------- */
