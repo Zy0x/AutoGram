@@ -30604,3 +30604,27 @@ button.td-confirm-icon.is-back-btn:active {
 .td-crumb-icon {
   border-radius: 8px !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   FLUSH ALIGNMENT FOR PIN BUTTON / TOPBAR FIRST CHILD
+   Aligns Pin Button precisely with TOPICS, search bar, and card grid
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-topbar .td-topbar-row-1 {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
+
+.td-topbar .td-topbar-left {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.td-topbar .td-topbar-left > :first-child,
+.td-topbar .td-topbar-left > .td-icon-btn:first-of-type,
+.td-topbar .td-topbar-left > .td-menu-btn:first-of-type {
+  margin-left: 0 !important;
+}
