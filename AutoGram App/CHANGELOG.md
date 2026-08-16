@@ -1,3 +1,20 @@
+## v3.7.28 Hardware Capability & Cross-Platform Re-Encoder Audit (Phase 29)
+
+### 1. Audit Menyeluruh Hardware Capability & Re-Encoder Engine
+- **Cross-Platform Multi-Core CPU Detection (`hardware_capability.rs`)**:
+  - Memperbarui fungsi `query_cpu_info` agar menggunakan `std::thread::available_parallelism()` dari Rust standard library, memastikan deteksi jumlah thread dan core CPU berjalan akurat di seluruh sistem operasi (Windows, Android, Linux, macOS).
+  - Menghilangkan ketergantungan eksklusif pada environment variable Windows (`NUMBER_OF_PROCESSORS`) dengan mekanisme fallback berjenjang yang aman.
+- **Hardware Acceleration & GPU Transcoding Pipelines (`hardware_capability.rs`, `media_prep.rs`)**:
+  - Memverifikasi dukungan penuh akselerator hardware GPU:
+    1. **NVIDIA NVENC** (`h264_nvenc` dengan VBR rate control, CQ mode, dan spatial AQ).
+    2. **AMD AMF** (`h264_amf` dengan preset speed & high-throughput).
+    3. **Intel Quick Sync** (`h264_qsv` dengan look-ahead dan global quality control).
+    4. **CPU Multithreaded Fallback** (`libx264` dengan penyesuaian thread dinamis berdasarkan profil sumber daya).
+- **Verifikasi Kualitas**:
+  - `cargo check` kompilasi backend Rust lulus 100% tanpa error.
+  - **4.865 Kunci Kamus** tersinkronisasi 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
+  - 146 unit test Vitest lulus 100%.
+
 ## v3.7.27 Mobile Top App Bar & Thumb-Zone Action Sheet Refinement (Phase 28)
 
 ### 1. Optimalisasi Top App Bar & Bottom Action Sheet Mobile

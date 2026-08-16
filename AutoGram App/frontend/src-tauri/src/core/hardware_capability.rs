@@ -178,10 +178,17 @@ struct ProcessorWmi {
 }
 
 fn query_cpu_info() -> (String, u32, u32) {
-    let name = std::env::var("PROCESSOR_IDENTIFIER").unwrap_or_else(|_| "Generic CPU".to_string());
-    let logical = std::env::var("NUMBER_OF_PROCESSORS")
+    let name = std::env::var("PROCESSOR_IDENTIFIER")
+        .or_else(|_| std::env::var("PROCESSOR_MODEL"))
+        .unwrap_or_else(|_| "Generic Multi-Core CPU".to_string());
+    let logical = std::thread::available_parallelism()
         .ok()
-        .and_then(|n| n.parse::<u32>().ok())
+        .map(|p| p.get() as u32)
+        .or_else(|| {
+            std::env::var("NUMBER_OF_PROCESSORS")
+                .ok()
+                .and_then(|n| n.parse::<u32>().ok())
+        })
         .unwrap_or(1);
     let cores = Math_max_u32(1, logical / 2);
     (name, cores, logical)
