@@ -1586,6 +1586,7 @@
   "discard_changes": "Discard & Load Profile",
   "sidebar_expand_tooltip": "Expand sidebar",
   "sidebar_collapse_tooltip": "Collapse sidebar",
+  "sidebar_close_tooltip": "Close sidebar",
   "header_drive_title": "Cloud Drives",
   "header_drive_subtitle": "Telegram Storage",
   "time_recently": "Accessed recently",

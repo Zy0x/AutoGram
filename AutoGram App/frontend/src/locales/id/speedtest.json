@@ -1586,6 +1586,7 @@
   "discard_changes": "Buang & Muat Profil",
   "sidebar_expand_tooltip": "Perluas sidebar",
   "sidebar_collapse_tooltip": "Ciutkan sidebar",
+  "sidebar_close_tooltip": "Tutup sidebar",
   "header_drive_title": "Cloud Drives",
   "header_drive_subtitle": "Penyimpanan Telegram",
   "time_recently": "Diakses baru-baru ini",

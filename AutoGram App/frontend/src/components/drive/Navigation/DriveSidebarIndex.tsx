@@ -1737,11 +1737,25 @@ export function DriveSidebar({
 
         <button
           type="button"
-          className={`td-rail-brand td-rail-brand-toggle ${!isCollapseAllowed ? 'is-static-brand' : ''}`}
-          onClick={isCollapseAllowed ? onToggleCollapse : undefined}
-          title={isCollapseAllowed ? (effectiveCollapsed ? t('speedtest.sidebar_expand_tooltip') : t('speedtest.sidebar_collapse_tooltip')) : undefined}
+          className="td-rail-brand td-rail-brand-toggle"
+          onClick={() => {
+            if (!isCollapseAllowed) {
+              onCloseDrawer?.();
+            } else {
+              onToggleCollapse?.();
+            }
+          }}
+          title={
+            isCollapseAllowed
+              ? (effectiveCollapsed ? t('speedtest.sidebar_expand_tooltip') : t('speedtest.sidebar_collapse_tooltip'))
+              : t('speedtest.sidebar_close_tooltip')
+          }
           aria-expanded={isCollapseAllowed ? !effectiveCollapsed : undefined}
-          aria-label={isCollapseAllowed ? (effectiveCollapsed ? t('speedtest.sidebar_expand_tooltip') : t('speedtest.sidebar_collapse_tooltip')) : t('speedtest.header_drive_title')}
+          aria-label={
+            isCollapseAllowed
+              ? (effectiveCollapsed ? t('speedtest.sidebar_expand_tooltip') : t('speedtest.sidebar_collapse_tooltip'))
+              : t('speedtest.sidebar_close_tooltip')
+          }
         >
           <div className="td-sidebar-logo">
             <HardDrive size={20} />
