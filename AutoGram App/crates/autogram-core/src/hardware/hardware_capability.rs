@@ -1,7 +1,7 @@
 //! Quality Profiles & Hardware Capability Integration
 
 use super::encoder_detector::HardwareEncoderType;
-use crate::core::autogram_core::platform::EncoderQualityProfile;
+use crate::platform::EncoderQualityProfile;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

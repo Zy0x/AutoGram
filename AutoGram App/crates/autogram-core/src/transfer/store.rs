@@ -3,7 +3,7 @@ use serde::Serialize;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const SCHEMA: &str =
-    include_str!("../../../../../../database/migrations/015_transfer_control_plane_v4.sql");
+    include_str!("../../../../database/migrations/015_transfer_control_plane_v4.sql");
 
 fn now_ms() -> i64 {
     SystemTime::now()
@@ -13,7 +13,7 @@ fn now_ms() -> i64 {
 }
 
 fn open() -> Result<Connection, String> {
-    let path = crate::core::jobs_db::resolve_migrator_db();
+    let path = crate::storage::resolve_migrator_db();
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| format!("create database dir: {e}"))?;
     }

@@ -1,6 +1,6 @@
 //! Lossless Stream Copy Container Remuxer
 
-use crate::core::grammers::ffmpeg::find_ffmpeg_binary;
+use crate::platform::find_ffmpeg_binary;
 use std::path::Path;
 use std::process::Command;
 

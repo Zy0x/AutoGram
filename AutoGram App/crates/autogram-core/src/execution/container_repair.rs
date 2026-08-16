@@ -1,7 +1,7 @@
 //! Container Repair Engine
 //! Fixes corrupted MP4 headers, MOOV atom position, and broken index tables using FFmpeg faststart stream copy.
 
-use crate::core::grammers::ffmpeg::find_ffmpeg_binary;
+use crate::platform::find_ffmpeg_binary;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::process::Command;

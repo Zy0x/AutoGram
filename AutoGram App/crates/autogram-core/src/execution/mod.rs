@@ -1,7 +1,7 @@
 //! File Processing & Transcoding Pipeline
 
 pub mod container_repair;
-pub mod encoder;
+mod encoder;
 pub mod remuxer;
 pub mod split_engine;
 

@@ -1,6 +1,6 @@
 //! Transcoding Worker Engine with Encoder Quality Profiles & OutputContract Validation
 
-use crate::core::autogram_core::platform::EncoderQualityProfile;
+use crate::platform::EncoderQualityProfile;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};

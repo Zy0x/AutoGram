@@ -91,7 +91,7 @@ impl AutoGramSplitManifest {
         let original_size = std::fs::metadata(input)
             .map_err(|e| format!("manifest input metadata: {e}"))?
             .len();
-        let original_sha256 = crate::core::autogram_core::reliability::calculate_file_sha256(input)
+        let original_sha256 = crate::reliability::calculate_file_sha256(input)
             .map_err(|e| format!("hash original input: {e}"))?;
         let glob = format!("{original_filename}.agpart.*");
         Ok(Self {

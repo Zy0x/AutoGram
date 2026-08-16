@@ -57,7 +57,10 @@ struct ProbeFormat {
 }
 
 fn ffprobe_path() -> Option<PathBuf> {
-    if let Some(ffmpeg) = crate::core::grammers_media::find_ffmpeg_binary() {
+    if let Some(ffprobe) = crate::platform::find_ffprobe_binary() {
+        return Some(ffprobe);
+    }
+    if let Some(ffmpeg) = crate::platform::find_ffmpeg_binary() {
         if let Some(parent) = ffmpeg.parent() {
             let candidate = parent.join(if cfg!(windows) {
                 "ffprobe.exe"

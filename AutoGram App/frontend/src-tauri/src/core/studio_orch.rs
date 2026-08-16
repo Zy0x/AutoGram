@@ -1960,10 +1960,10 @@ fn run_orchestrated_grammers(
             } else if pres == "original" || pres == "standard" {
                 if matches!(
                     delivery.category,
-                    super::autogram_core::MediaCategory::Mp4Video
-                        | super::autogram_core::MediaCategory::JpegImage
-                        | super::autogram_core::MediaCategory::PngImage
-                        | super::autogram_core::MediaCategory::Audio
+                    super::autogram_core::transfer::MediaCategory::Mp4Video
+                        | super::autogram_core::transfer::MediaCategory::JpegImage
+                        | super::autogram_core::transfer::MediaCategory::PngImage
+                        | super::autogram_core::transfer::MediaCategory::Audio
                 ) {
                     delivery.as_document = false;
                 }

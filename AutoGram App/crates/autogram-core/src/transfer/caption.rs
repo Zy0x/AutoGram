@@ -223,7 +223,7 @@ pub fn apply_album_caption_policy(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::autogram_core::transfer::{AlbumCompatibilityKey, PayloadClass};
+    use crate::transfer::{AlbumCompatibilityKey, PayloadClass};
 
     fn item(index: usize, caption: &str) -> PreparedAlbumItem {
         PreparedAlbumItem {

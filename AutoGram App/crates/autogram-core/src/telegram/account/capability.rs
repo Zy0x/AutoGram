@@ -7,7 +7,7 @@ pub const MAX_TELEGRAM_PART_SIZE: u32 = 512 * 1024;
 pub const CAPABILITY_TTL_MS: i64 = 15 * 60 * 1_000;
 
 fn default_caption_limit() -> u32 {
-    crate::core::autogram_core::transfer::FALLBACK_CAPTION_LIMIT
+    crate::transfer::FALLBACK_CAPTION_LIMIT
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

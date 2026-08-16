@@ -1,3 +1,18 @@
+## v3.7.30 Phase 1: Shared Rust Core Extraction (`crates/autogram-core`) (Phase 31)
+
+### 1. Ekstraksi Shared Pure-Rust Core Crate
+- **Struktur Cargo Workspace & Crate Mandiri (`crates/autogram-core`)**:
+  - Berhasil mengekstrak dan memindahkan seluruh modul logika inti (`engine`, `execution`, `hardware`, `intelligence`, `network`, `platform`, `reliability`, `storage`, `telegram`, `transfer`) ke dalam crate independen `crates/autogram-core`.
+  - Menghilangkan ketergantungan langsung pada Tauri UI runtime di lapisan core, memungkinkan library di-reuse 100% oleh desktop maupun target Android native (UniFFI).
+  - Menyediakan database resolver cross-platform (`resolve_migrator_db`) dan abstraksi pemanggilan utilitas media (`find_ffmpeg_binary`, `find_ffprobe_binary`).
+- **Integrasi Desktop Adapter (`frontend/src-tauri`)**:
+  - Mengonfigurasi `frontend/src-tauri/Cargo.toml` agar mengonsumsi `autogram-core = { path = "../../crates/autogram-core" }`.
+  - Menghubungkan seluruh perintah Tauri command langsung ke shared core crate dengan nol duplikasi kode.
+- **Verifikasi Kualitas**:
+  - `cargo check` pada `crates/autogram-core` dan `frontend/src-tauri` lulus 100% tanpa error.
+  - **4.865 Kunci Kamus** tersinkronisasi 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
+  - 146 unit test Vitest lulus 100%.
+
 ## v3.7.29 Desktop Dedicated Toolbar & Selection Strip Overlap Fix (Phase 30)
 
 ### 1. Pemisahan Jalur Tampilan Desktop & Perbaikan Tumpang-Tindih Toolbar Seleksi
