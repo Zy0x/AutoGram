@@ -29182,3 +29182,55 @@ button.td-confirm-icon.is-back-btn:active {
 .td-sidebar:not(.is-collapsed) .td-location-search-main {
   display: none !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CONSISTENT TOPBAR HAMBURGER MENU BUTTON (PIXEL-PERFECT SYMMETRY)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-topbar .td-topbar-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+  height: 42px !important;
+  padding-left: 2px !important;
+}
+
+.td-topbar .td-icon-btn.td-menu-btn,
+.td-topbar .td-menu-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  max-width: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  border-radius: 8px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #e2e8f0 !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25) !important;
+  outline: none !important;
+  transition: all 0.15s ease !important;
+  flex-shrink: 0 !important;
+}
+
+.td-topbar .td-icon-btn.td-menu-btn:hover,
+.td-topbar .td-menu-btn:hover {
+  background: linear-gradient(135deg, rgba(226, 165, 50, 0.2) 0%, rgba(217, 119, 6, 0.2) 100%) !important;
+  border-color: rgba(226, 165, 50, 0.6) !important;
+  color: #fbbf24 !important;
+  transform: scale(1.04) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+}
+
+.td-topbar .td-icon-btn.td-menu-btn:active,
+.td-topbar .td-menu-btn:active {
+  transform: scale(0.95) !important;
+}
