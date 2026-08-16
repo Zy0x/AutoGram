@@ -25820,18 +25820,18 @@ button.td-confirm-icon.is-back-btn:active {
 
 
 /* ══════════════════════════════════════════════════════════════════════════
-   STANDARD NATURAL DRIVE TOPBAR DESIGN SYSTEM (COMFORTABLE DESKTOP SIZING)
+   STANDARD NATURAL DRIVE TOPBAR DESIGN SYSTEM (TIDY & BALANCED TOOLBAR)
    ══════════════════════════════════════════════════════════════════════════ */
 
 .td-topbar {
   --td-ctrl-h: 34px !important;
-  --td-ctrl-r: 8px !important;
-  --td-group-r: 8px !important;
+  --td-ctrl-r: 7px !important;
+  --td-group-r: 7px !important;
   --td-group-bg: rgba(15, 23, 42, 0.65) !important;
-  --td-group-border: rgba(255, 255, 255, 0.1) !important;
-  --td-active-bg: color-mix(in srgb, var(--td-primary, #e2a532) 18%, transparent) !important;
+  --td-group-border: rgba(255, 255, 255, 0.09) !important;
+  --td-active-bg: color-mix(in srgb, var(--td-primary, #e2a532) 16%, transparent) !important;
   --td-active-fg: var(--td-primary, #e2a532) !important;
-  --td-active-border: color-mix(in srgb, var(--td-primary, #e2a532) 45%, transparent) !important;
+  --td-active-border: color-mix(in srgb, var(--td-primary, #e2a532) 40%, transparent) !important;
 
   display: flex !important;
   flex-direction: column !important;
@@ -25869,7 +25869,7 @@ button.td-confirm-icon.is-back-btn:active {
 .td-topbar-left {
   display: flex !important;
   align-items: center !important;
-  gap: 6px !important;
+  gap: 8px !important;
   min-width: 0 !important;
   flex: 1 1 auto !important;
   overflow: hidden !important;
@@ -25914,9 +25914,9 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-topbar .td-icon-btn.active {
-  background: var(--td-active-bg) !important;
-  color: var(--td-active-fg) !important;
-  border-color: var(--td-active-border) !important;
+  background: rgba(226, 165, 50, 0.14) !important;
+  color: #e2a532 !important;
+  border: 1px solid rgba(226, 165, 50, 0.35) !important;
 }
 
 /* Zoom controls & View toggle */
@@ -25925,9 +25925,9 @@ button.td-confirm-icon.is-back-btn:active {
   display: inline-flex !important;
   align-items: center !important;
   gap: 2px !important;
-  height: 32px !important;
-  min-height: 32px !important;
-  max-height: 32px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
   padding: 2px !important;
   border-radius: 7px !important;
   background: var(--td-group-bg) !important;
@@ -25962,9 +25962,9 @@ button.td-confirm-icon.is-back-btn:active {
 
 /* Primary CTA Button (Upload) */
 .td-topbar .td-btn-primary {
-  height: 32px !important;
-  min-height: 32px !important;
-  max-height: 32px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
   padding: 0 12px !important;
   font-size: 0.78rem !important;
   font-weight: 700 !important;
@@ -25985,42 +25985,64 @@ button.td-confirm-icon.is-back-btn:active {
   border-color: var(--td-primary, #e2a532) !important;
 }
 
-.td-topbar .td-btn-secondary {
-  height: 32px !important;
-  min-height: 32px !important;
-  max-height: 32px !important;
-  padding: 0 10px !important;
-  font-size: 0.78rem !important;
-  font-weight: 600 !important;
-  border-radius: 7px !important;
-  border: 1px solid var(--td-group-border) !important;
-  background: var(--td-group-bg) !important;
-  color: var(--td-sub, #94a3b8) !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-}
-
 /* Breadcrumbs & Count Badge */
 .td-breadcrumbs {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 4px !important;
+  gap: 6px !important;
   font-size: 0.88rem !important;
   overflow: hidden !important;
   min-width: 0 !important;
 }
 
-.td-crumb-link,
-.td-crumb-current,
-.td-crumb-muted {
-  font-size: 0.88rem !important;
-  line-height: 1.3 !important;
-  white-space: nowrap !important;
-  min-height: 0 !important;
+.td-crumb-wrap {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
   min-width: 0 !important;
-  height: auto !important;
+  flex-shrink: 1 !important;
+}
+
+.td-crumb-sep {
+  color: rgba(148, 163, 184, 0.4) !important;
+  font-size: 0.8rem !important;
+  margin: 0 1px !important;
+}
+
+.td-crumb-link {
+  color: #94a3b8 !important;
+  font-weight: 600 !important;
+  font-size: 0.88rem !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 140px !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
   padding: 0 !important;
+}
+
+.td-crumb-link:hover {
+  color: #f1f5f9 !important;
+  text-decoration: underline !important;
+}
+
+.td-crumb-current {
+  color: #f8fafc !important;
+  font-weight: 700 !important;
+  font-size: 0.88rem !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 160px !important;
+}
+
+.td-crumb-muted {
+  color: #64748b !important;
+  font-weight: 500 !important;
+  font-size: 0.88rem !important;
+  white-space: nowrap !important;
 }
 
 .td-count-pill {
@@ -26039,6 +26061,7 @@ button.td-confirm-icon.is-back-btn:active {
   align-items: center !important;
   white-space: nowrap !important;
   flex-shrink: 0 !important;
+  margin-left: 2px !important;
 }
 
 /* Row 2: Forum Topics Row (32px height) */
@@ -26174,7 +26197,7 @@ button.td-confirm-icon.is-back-btn:active {
   height: 32px !important;
 }
 
-/* Perspective Switcher (Segmented, comfortable desktop size) */
+/* Perspective Switcher */
 .td-perspective-switcher {
   display: inline-flex !important;
   align-items: center !important;

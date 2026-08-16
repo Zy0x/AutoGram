@@ -471,12 +471,6 @@ export function DriveTopBar({
                 </span>
               </>
             )}
-            {isForum && (
-              <span className="td-forum-badge" title={t("speedtest.topbar_forum_group")}>
-                <MessagesSquare size={12} />
-                {t("speedtest.label_topic")}
-              </span>
-            )}
           </nav>
           <span
             className={`td-count-pill${statsLoading && !isFinal ? ' is-counting' : ''}${
@@ -585,7 +579,6 @@ export function DriveTopBar({
             </button>
           </div>
 
-
           <button
             type="button"
             className={`td-icon-btn${loading || manualSpin ? ' is-refreshing' : ''}`}
@@ -643,7 +636,7 @@ export function DriveTopBar({
           {onDownloadAllClick && (
             <button
               type="button"
-              className="td-icon-btn text-[var(--primary,#e2a532)]"
+              className="td-icon-btn"
               onClick={onDownloadAllClick}
               disabled={!!actionsDisabled}
               title={t("speedtest.topbar_download_zip")}
@@ -656,16 +649,16 @@ export function DriveTopBar({
           {onRemoteUploadClick && (
             <button
               type="button"
-              className="td-btn-secondary"
+              className="td-icon-btn"
               onClick={onRemoteUploadClick}
               disabled={!!actionsDisabled}
               title={t("speedtest.remote_upload_url_title")}
               aria-label={t("speedtest.remote_upload_url_title")}
             >
-              <Globe size={15} />
-              <span className="td-btn-label">{t("speedtest.remote_url_btn")}</span>
+              <Globe size={16} />
             </button>
           )}
+
           <button
             type="button"
             className="td-btn-primary"
@@ -678,12 +671,12 @@ export function DriveTopBar({
             }
             aria-label={
               actionsDisabled
-                ? t('speedtest.topbar_upload_wait_aria')
+                ? t('speedtest.topbar_upload_wait_title')
                 : t('speedtest.upload_file_to_loc')
             }
           >
-            <Upload size={15} />
-            <span className="td-btn-label">{t("speedtest.btn_upload")}</span>
+            <Upload size={16} />
+            <span className="td-btn-label">{t('speedtest.btn_upload')}</span>
           </button>
         </div>
       </div>
