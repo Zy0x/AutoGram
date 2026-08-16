@@ -29279,3 +29279,60 @@ button.td-confirm-icon.is-back-btn:active {
   transition: all 0.15s ease !important;
   flex-shrink: 0 !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   NON-CLIPPED CRISP HOVER STATES ACROSS ALL TOPBAR & SIDEBAR BUTTONS
+   - Eliminates transform: scale() on buttons inside overflow-constrained containers
+   - Uses rich in-bounds lighting, border highlights, and inset glows
+   - Guarantees 0% clipping on all 4 sides (top, right, bottom, left)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-topbar .td-icon-btn,
+.td-topbar .td-menu-btn,
+.td-topbar .td-btn-secondary,
+.td-topbar .td-btn-primary,
+.td-topbar .td-action-nav-btn,
+.td-sidebar .td-rail-back-compact,
+.td-sidebar .td-sidebar-search-btn {
+  transform: none !important;
+  box-sizing: border-box !important;
+}
+
+.td-topbar .td-icon-btn:hover,
+.td-topbar .td-menu-btn:hover {
+  transform: none !important;
+  background: linear-gradient(135deg, rgba(226, 165, 50, 0.22) 0%, rgba(217, 119, 6, 0.22) 100%) !important;
+  border-color: rgba(226, 165, 50, 0.75) !important;
+  color: #fbbf24 !important;
+  box-shadow: inset 0 0 0 1px rgba(226, 165, 50, 0.25), 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+.td-topbar .td-action-nav-btn:hover {
+  transform: none !important;
+  background: linear-gradient(135deg, #e2a532 0%, #d97706 100%) !important;
+  border-color: #f59e0b !important;
+  color: #0f172a !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+}
+
+.td-topbar .td-btn-secondary:hover {
+  transform: none !important;
+  border-color: rgba(226, 165, 50, 0.6) !important;
+  color: #f8fafc !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+.td-topbar .td-btn-primary:hover {
+  transform: none !important;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4) !important;
+}
+
+.td-sidebar .td-rail-back-compact:hover,
+.td-sidebar .td-sidebar-search-btn:hover {
+  transform: none !important;
+  background: linear-gradient(135deg, #e2a532 0%, #d97706 100%) !important;
+  border-color: #f59e0b !important;
+  color: #0f172a !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+}
