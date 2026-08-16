@@ -30812,3 +30812,74 @@ button.td-confirm-icon.is-back-btn:active {
   padding: 0 !important;
   box-sizing: border-box !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ELEVATED PROMINENT PING STATUS DOT OVER LOGO ICON
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-sidebar-logo,
+.td-rail-brand,
+.td-rail-brand-toggle,
+.td-sidebar .td-rail-head {
+  overflow: visible !important;
+  position: relative !important;
+}
+
+.td-sidebar.is-collapsed .td-sidebar-logo,
+.td-sidebar.collapsed .td-sidebar-logo {
+  overflow: visible !important;
+  position: relative !important;
+}
+
+.td-sidebar-logo-dot,
+.td-sidebar-logo .td-rail-conn-dot {
+  position: absolute !important;
+  bottom: -2px !important;
+  right: -2px !important;
+  width: 12px !important;
+  height: 12px !important;
+  min-width: 12px !important;
+  max-width: 12px !important;
+  min-height: 12px !important;
+  max-height: 12px !important;
+  border-radius: 50% !important;
+  border: 2px solid #0d1527 !important;
+  z-index: 50 !important;
+  box-sizing: border-box !important;
+  pointer-events: none !important;
+}
+
+.td-sidebar-logo-dot.excellent,
+.td-sidebar-logo .td-rail-conn-dot.excellent {
+  background-color: #10b981 !important;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.8) !important;
+}
+
+.td-sidebar-logo-dot.good,
+.td-sidebar-logo .td-rail-conn-dot.good {
+  background-color: #84cc16 !important;
+  box-shadow: 0 0 8px rgba(132, 204, 22, 0.8) !important;
+}
+
+.td-sidebar-logo-dot.fair,
+.td-sidebar-logo .td-rail-conn-dot.fair {
+  background-color: #eab308 !important;
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.8) !important;
+}
+
+.td-sidebar-logo-dot.poor,
+.td-sidebar-logo .td-rail-conn-dot.poor {
+  background-color: #f97316 !important;
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.8) !important;
+}
+
+.td-sidebar-logo-dot.disconnected,
+.td-sidebar-logo .td-rail-conn-dot.disconnected {
+  background-color: #ef4444 !important;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.8) !important;
+}
+
+.td-sidebar-logo-dot.pulse,
+.td-sidebar-logo .td-rail-conn-dot.pulse {
+  animation: conn-pulse 2s infinite ease-in-out !important;
+}
