@@ -17,6 +17,7 @@ import {
   SendHorizontal,
   MousePointerClick,
   SlidersHorizontal,
+  Settings,
   Pin,
   PinOff,
   Copy,
@@ -594,13 +595,14 @@ export function DriveTopBar({
           {(onOpenTools || onOpenTransferSettings) && (
             <button
               type="button"
-              className={`td-icon-btn td-topbar-btn-tools ${toolsActive ? 'active' : ''}`}
+              className={`td-btn-secondary td-topbar-btn-tools ${toolsActive ? 'active' : ''}`}
               onClick={onOpenTools || onOpenTransferSettings}
               disabled={!!actionsDisabled}
               title={t('speedtest.tools_title')}
               aria-label={t('speedtest.tools_title')}
             >
-              <SlidersHorizontal size={16} />
+              <Settings size={15} />
+              <span className="td-btn-label">{t('speedtest.topbar_settings_btn')}</span>
             </button>
           )}
 

@@ -26099,3 +26099,25 @@ button.td-confirm-icon.is-back-btn:active {
 .td-topic-nav-btn:active {
   transform: scale(0.94) !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SETTINGS BUTTON & SECONDARY ACTIONS RESPONSIVE LABEL COLLAPSE
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-topbar .td-topbar-btn-tools {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+@media (max-width: 1279.98px) {
+  .td-topbar .td-topbar-btn-tools .td-btn-label {
+    display: none !important;
+  }
+  .td-topbar .td-topbar-btn-tools {
+    padding: 0 !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    justify-content: center !important;
+  }
+}
