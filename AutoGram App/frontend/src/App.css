@@ -27752,3 +27752,103 @@ button.td-confirm-icon.is-back-btn:active {
     background: transparent !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BALANCED ACTIONS ROW ON COMPACT SCREENS (<= 600px)
+   Eliminate empty right gap by distributing tools and showing Upload label
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 600px) {
+  .td-topbar .td-topbar-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    gap: 6px !important;
+    padding: 2px 0 !important;
+    margin-top: 4px !important;
+    box-sizing: border-box !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+  }
+
+  .td-topbar .td-topbar-actions::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  /* Zoom controls cluster */
+  .td-topbar .td-topbar-actions .td-zoom-controls {
+    display: inline-flex !important;
+    align-items: center !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    border-radius: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .td-topbar .td-topbar-actions .td-zoom-controls .td-icon-btn {
+    width: 26px !important;
+    min-width: 26px !important;
+    height: 32px !important;
+  }
+
+  .td-topbar .td-topbar-actions .td-zoom-controls .td-zoom-label {
+    min-width: 24px !important;
+    height: 32px !important;
+    font-size: 0.72rem !important;
+  }
+
+  /* View toggle (Grid / List) */
+  .td-topbar .td-topbar-actions .td-view-toggle {
+    display: inline-flex !important;
+    align-items: center !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    border-radius: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .td-topbar .td-topbar-actions .td-view-toggle .td-icon-btn {
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 32px !important;
+    border-radius: 6px !important;
+  }
+
+  /* Action buttons (Refresh, Transfer Manager, Settings, Remote) */
+  .td-topbar .td-topbar-actions .td-icon-btn,
+  .td-topbar .td-topbar-actions .td-btn-secondary {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    border-radius: 8px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Primary Upload Button: shows label and anchors the right side */
+  .td-topbar .td-topbar-actions .td-btn-primary {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 0 12px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    border-radius: 8px !important;
+    flex-shrink: 0 !important;
+    margin-left: auto !important;
+  }
+
+  .td-topbar .td-topbar-actions .td-btn-primary .td-btn-label {
+    display: inline !important;
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+  }
+}
