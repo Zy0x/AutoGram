@@ -57,9 +57,22 @@ export const SessionRelogModal: React.FC<SessionRelogModalProps> = ({
     onNavigateToAccounts?.();
   };
 
+  const overlayMouseDownTargetRef = React.useRef<EventTarget | null>(null);
+
+  const handleOverlayMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    overlayMouseDownTargetRef.current = e.target;
+  };
+
+  const handleOverlayMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (overlayMouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+      onClose();
+    }
+    overlayMouseDownTargetRef.current = null;
+  };
+
   return createPortal(
     <div
-      className="modal-overlay"
+      className="td-confirm-overlay"
       style={{
         position: 'fixed',
         inset: 0,
@@ -71,7 +84,8 @@ export const SessionRelogModal: React.FC<SessionRelogModalProps> = ({
         justifyContent: 'center',
         padding: '1rem',
       }}
-      onClick={onClose}
+      onMouseDown={handleOverlayMouseDown}
+      onMouseUp={handleOverlayMouseUp}
     >
       <div
         className="glass-panel card"
@@ -87,6 +101,8 @@ export const SessionRelogModal: React.FC<SessionRelogModalProps> = ({
           position: 'relative',
         }}
         onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
       >

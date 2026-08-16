@@ -1,3 +1,15 @@
+## v3.7.18 Modal Backdrop Drag-Selection Protection & Resilient Dismissal (Phase 19)
+
+### 1. Perlindungan Blok/Seleksi Teks pada Seluruh Modal Dialog
+- **Safe Overlay MouseDown/MouseUp Target Tracking (`RemoteUploadModal.tsx`, `DriveConfirmDialog.tsx`, `DriveDestinationPicker.tsx`, `DriveInputDialog.tsx`, `ReUploadBatchModal.tsx`, `SessionRelogModal.tsx`, `TelegramMessagePreviewModal.tsx`)**:
+  - Memperbaiki *bug* penutupan modal tak disengaja saat pengguna memblok/menyeleksi teks dari dalam modal hingga kursor mouse terlepas (*mouseup*) di luar kotak dialog / area *backdrop*.
+  - Mengganti handler `onClick` *backdrop* sederhana dengan pelacakan target `onMouseDown` dan `onMouseUp` yang ketat.
+  - Memastikan modal hanya tertutup jika *mousedown* DAN *mouseup* dilakukan secara murni pada area latar belakang kosong (*backdrop overlay*).
+  - Melindungi integritas seleksi teks, input formulir, dan mencegah kehilangan data saat berinteraksi dengan dialog.
+- **Verifikasi Kualitas**:
+  - **4.865 Kunci Kamus** tersinkronisasi 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
+  - 146 unit test Vitest lulus 100%.
+
 ## v3.7.17 Creator Profile HD Avatar Extraction & Live Preview Canvas (Phase 18)
 
 ### 1. Ekstraksi Foto Profil HD & Live Preview Profil Kreator

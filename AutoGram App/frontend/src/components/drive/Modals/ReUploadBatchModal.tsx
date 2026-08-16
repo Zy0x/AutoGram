@@ -16,7 +16,7 @@
  *   />
  */
 import { useTranslation } from 'react-i18next';
-import { useState, useEffect, useId } from 'react';
+import { useState, useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { RotateCcw, AlertTriangle, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -39,7 +39,6 @@ type Props = {
 };
 
 function formatBytes(n?: number): string {
-
   if (!n || n <= 0) return '';
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
@@ -48,7 +47,6 @@ function formatBytes(n?: number): string {
 }
 
 function formatTimestamp(ts?: number): string {
-
   if (!ts) return '';
   try {
     return new Date(ts * 1000).toLocaleString('id-ID', {
@@ -88,6 +86,19 @@ export function ReUploadBatchModal({
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
+  const overlayMouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  const handleOverlayMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    overlayMouseDownTargetRef.current = e.target;
+  };
+
+  const handleOverlayMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (overlayMouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+      onClose();
+    }
+    overlayMouseDownTargetRef.current = null;
+  };
+
   if (!open || items.length === 0) return null;
 
   const allSelected = selected.size === items.length;
@@ -114,12 +125,20 @@ export function ReUploadBatchModal({
   const displayItems = expanded ? items : items.slice(0, 5);
 
   const node = (
-    <div className="rub-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div
+      className="rub-overlay"
+      role="presentation"
+      onMouseDown={handleOverlayMouseDown}
+      onMouseUp={handleOverlayMouseUp}
+    >
       <div
         className="rub-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <header className="rub-head">

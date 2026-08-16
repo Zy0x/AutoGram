@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -321,15 +321,31 @@ export function TelegramMessagePreviewModal({
     }
   };
 
+  const overlayMouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  const handleOverlayMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    overlayMouseDownTargetRef.current = e.target;
+  };
+
+  const handleOverlayMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (overlayMouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+      onClose();
+    }
+    overlayMouseDownTargetRef.current = null;
+  };
+
   const modalNode = (
     <div
       className="tg-msg-preview-backdrop"
-      onClick={onClose}
+      onMouseDown={handleOverlayMouseDown}
+      onMouseUp={handleOverlayMouseUp}
       onContextMenu={(e) => e.preventDefault()}
     >
       <div
         className="tg-msg-preview-dialog"
         onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-label={t('speedtest.tg_preview_title')}

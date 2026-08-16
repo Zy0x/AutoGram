@@ -223,12 +223,26 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
     }, 0);
   };
 
+  const overlayMouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  const handleOverlayMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    overlayMouseDownTargetRef.current = e.target;
+  };
+
+  const handleOverlayMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (overlayMouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+      onClose();
+    }
+    overlayMouseDownTargetRef.current = null;
+  };
+
   const node = (
     <div
       className="td-confirm-overlay"
       role="presentation"
       data-dialog-kind={state.kind}
-      onClick={onClose}
+      onMouseDown={handleOverlayMouseDown}
+      onMouseUp={handleOverlayMouseUp}
       onKeyDown={(e) => {
         if (e.key === 'Escape') onClose();
       }}
@@ -241,6 +255,8 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
         data-testid="drive-confirm-dialog"
         data-dialog-layout="card"
         onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
       >
         <header className="td-confirm-head">
           <span className={`td-confirm-icon ${panelClass}`} aria-hidden>

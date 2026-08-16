@@ -682,10 +682,22 @@ export function RemoteUploadModal({
     }
   };
 
-  const handleOverlayClick = () => {
-    if (!pickerOpen && !submitting) {
+  const overlayMouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  const handleOverlayMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    overlayMouseDownTargetRef.current = e.target;
+  };
+
+  const handleOverlayMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (
+      overlayMouseDownTargetRef.current === e.currentTarget &&
+      e.target === e.currentTarget &&
+      !pickerOpen &&
+      !submitting
+    ) {
       onClose();
     }
+    overlayMouseDownTargetRef.current = null;
   };
 
   const renderSupportedLinksPopover = () => {
@@ -751,13 +763,20 @@ export function RemoteUploadModal({
   if (!isOpen) return null;
 
   const node = (
-    <div className="td-confirm-overlay" role="presentation" onClick={handleOverlayClick}>
+    <div
+      className="td-confirm-overlay"
+      role="presentation"
+      onMouseDown={handleOverlayMouseDown}
+      onMouseUp={handleOverlayMouseUp}
+    >
       <form
         onSubmit={handleSubmit}
         className={`td-confirm-panel input-dialog td-remote-upload-panel ${isSplitActive ? 'td-remote-split-active' : ''}`}
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
       >
         <header className="td-confirm-head">
           <span className="td-confirm-icon input td-remote-head-icon" aria-hidden>
