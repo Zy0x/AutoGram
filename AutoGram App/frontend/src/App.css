@@ -28634,3 +28634,315 @@ button.td-confirm-icon.is-back-btn:active {
 .td-action-nav-btn.right {
   margin-left: 2px !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SEAMLESS NON-CLIPPING ACTION NAV BUTTONS & TOPBAR ROW CONTAINER
+   Guarantees left/right chevron buttons are fully visible, never clipped or overlapping
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-topbar .td-topbar-row-1 {
+  padding-left: 6px !important;
+  padding-right: 8px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.td-topbar-actions-wrapper {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.td-topbar-actions-wrapper .td-action-nav-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  max-width: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
+  border-radius: 50% !important;
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1.5px solid rgba(226, 165, 50, 0.6) !important;
+  color: #fbbf24 !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+  z-index: 10 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  outline: none !important;
+  overflow: hidden !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-topbar-actions-wrapper .td-action-nav-btn:hover {
+  background: linear-gradient(135deg, #e2a532 0%, #d97706 100%) !important;
+  border-color: #f59e0b !important;
+  color: #0f172a !important;
+  transform: scale(1.08) !important;
+}
+
+.td-topbar-actions-wrapper .td-action-nav-btn:active {
+  transform: scale(0.94) !important;
+}
+
+.td-topbar-actions-wrapper .td-action-nav-btn.left {
+  margin-right: 6px !important;
+}
+
+.td-topbar-actions-wrapper .td-action-nav-btn.right {
+  margin-left: 6px !important;
+  margin-right: 2px !important;
+}
+
+.td-topbar-actions-wrapper .td-topbar-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-x: contain !important;
+  gap: 6px !important;
+  padding: 0 4px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+.td-topbar-actions-wrapper .td-topbar-actions::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CLEAN & ROBUST TOPBAR ACTIONS WRAPPER WITH EMBEDDED NAV CHEVRONS
+   - .td-topbar-left: Breadcrumbs & Pin strictly preserved on left
+   - .td-topbar-actions-wrapper: Contains [‹] [ Actions Strip ] [›] with zero cut-off
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-topbar .td-topbar-row-1 {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  width: 100% !important;
+  padding: 0 8px 0 6px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.td-topbar .td-topbar-row-1 .td-topbar-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+  max-width: 42% !important;
+  overflow: hidden !important;
+}
+
+.td-topbar .td-topbar-row-1 .td-topbar-left .td-breadcrumbs {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.td-topbar .td-topbar-row-1 .td-topbar-left .td-crumb-current {
+  font-weight: 700 !important;
+  color: #f8fafc !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  min-width: 0 !important;
+  max-width: 160px !important;
+}
+
+.td-topbar .td-topbar-actions-wrapper {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: 58% !important;
+  overflow: hidden !important;
+  position: relative !important;
+  height: 42px !important;
+  gap: 4px !important;
+  padding: 0 2px !important;
+  box-sizing: border-box !important;
+}
+
+.td-topbar .td-action-nav-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  max-width: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  border-radius: 50% !important;
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1.5px solid rgba(226, 165, 50, 0.6) !important;
+  color: #fbbf24 !important;
+  cursor: pointer !important;
+  flex: 0 0 22px !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+  z-index: 15 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  outline: none !important;
+  overflow: hidden !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-topbar .td-action-nav-btn:hover {
+  background: linear-gradient(135deg, #e2a532 0%, #d97706 100%) !important;
+  border-color: #f59e0b !important;
+  color: #0f172a !important;
+  transform: scale(1.08) !important;
+}
+
+.td-topbar .td-action-nav-btn:active {
+  transform: scale(0.92) !important;
+}
+
+.td-topbar .td-action-nav-btn.left {
+  margin-right: 2px !important;
+}
+
+.td-topbar .td-action-nav-btn.right {
+  margin-left: 2px !important;
+}
+
+.td-topbar .td-topbar-actions-wrapper .td-topbar-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-x: contain !important;
+  gap: 6px !important;
+  padding: 0 4px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+.td-topbar .td-topbar-actions-wrapper .td-topbar-actions::-webkit-scrollbar {
+  display: none !important;
+}
+
+.td-topbar .td-topbar-actions-wrapper .td-topbar-actions > * {
+  flex-shrink: 0 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   IDENTICAL TOPIC-STYLE ACTION NAV CONTROLS (NO OVERLAP, ZERO CLIPPING)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-topbar-actions-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  position: relative !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.td-action-nav-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  max-width: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  border-radius: 50% !important;
+  background: color-mix(in srgb, var(--td-surface-2, #1e293b) 80%, #000) !important;
+  border: 1px solid var(--td-border, rgba(255, 255, 255, 0.15)) !important;
+  color: var(--td-text, #f8fafc) !important;
+  cursor: pointer !important;
+  z-index: 5 !important;
+  flex-shrink: 0 !important;
+  margin: 0 4px !important;
+  padding: 0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+  transition: all 120ms ease !important;
+}
+
+.td-action-nav-btn:hover {
+  background: color-mix(in srgb, var(--td-accent, #38bdf8) 25%, #1e293b) !important;
+  border-color: var(--td-accent, #38bdf8) !important;
+  color: #fff !important;
+  transform: scale(1.08) !important;
+}
+
+.td-action-nav-btn:active {
+  transform: scale(0.92) !important;
+}
+
+.td-topbar-actions-wrapper .td-topbar-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-x: contain !important;
+  gap: 6px !important;
+  padding: 0 2px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  height: 42px !important;
+}
+
+.td-topbar-actions-wrapper .td-topbar-actions::-webkit-scrollbar {
+  display: none !important;
+}
