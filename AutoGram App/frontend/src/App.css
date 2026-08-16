@@ -29584,3 +29584,275 @@ button.td-confirm-icon.is-back-btn:active {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PRISTINE COLLAPSED SIDEBAR RAIL (DESKTOP >= 900x600)
+   Pixel-perfect centered icons, clean contrast, zero button distortion
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-sidebar.is-collapsed {
+  width: 64px !important;
+  min-width: 64px !important;
+  max-width: 64px !important;
+  background: #0b1120 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+
+/* 1. Collapsed Rail Head */
+.td-sidebar.is-collapsed .td-rail-head {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 12px 0 8px 0 !important;
+  width: 100% !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-sizing: border-box !important;
+}
+
+.td-sidebar.is-collapsed .td-rail-head .td-rail-back-compact {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  border-radius: 8px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #94a3b8 !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-sidebar.is-collapsed .td-rail-head .td-rail-back-compact:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #f8fafc !important;
+}
+
+.td-sidebar.is-collapsed .td-rail-head .td-rail-back-wide {
+  display: none !important;
+}
+
+.td-sidebar.is-collapsed .td-rail-head .td-rail-brand-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+}
+
+.td-sidebar.is-collapsed .td-rail-head .td-rail-brand-toggle .td-sidebar-logo {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  color: #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35) !important;
+  position: relative !important;
+}
+
+.td-sidebar.is-collapsed .td-rail-head .td-rail-brand-toggle .td-sidebar-brand-text {
+  display: none !important;
+}
+
+/* 2. Collapsed Rail Actions (New Folder & Search buttons) */
+.td-sidebar.is-collapsed .td-rail-actions.td-rail-toolbar {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 8px 0 !important;
+  width: 100% !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-sizing: border-box !important;
+}
+
+.td-sidebar.is-collapsed .td-rail-actions .td-rail-btn,
+.td-sidebar.is-collapsed .td-rail-actions .td-btn-new-folder,
+.td-sidebar.is-collapsed .td-rail-actions .td-sidebar-search-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  border-radius: 8px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #94a3b8 !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-sidebar.is-collapsed .td-rail-actions .td-rail-btn:hover,
+.td-sidebar.is-collapsed .td-rail-actions .td-btn-new-folder:hover,
+.td-sidebar.is-collapsed .td-rail-actions .td-sidebar-search-btn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #f8fafc !important;
+  transform: none !important;
+}
+
+.td-sidebar.is-collapsed .td-rail-actions .td-rail-btn-label {
+  display: none !important;
+}
+
+/* 3. Collapsed 3-Tab Bar (Recent, Drives, Telegram) */
+.td-sidebar.is-collapsed .td-sidebar-collapsed-tabs {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 8px 0 !important;
+  width: 100% !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-sizing: border-box !important;
+}
+
+.td-sidebar.is-collapsed .td-collapsed-tab-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: #94a3b8 !important;
+  cursor: pointer !important;
+  position: relative !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-sidebar.is-collapsed .td-collapsed-tab-icon:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #f8fafc !important;
+}
+
+.td-sidebar.is-collapsed .td-collapsed-tab-icon.is-active {
+  background: rgba(59, 130, 246, 0.18) !important;
+  border: 1px solid rgba(59, 130, 246, 0.5) !important;
+  color: #60a5fa !important;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.25) !important;
+}
+
+.td-sidebar.is-collapsed .td-collapsed-tab-icon .td-collapsed-badge {
+  position: absolute !important;
+  top: -3px !important;
+  right: -3px !important;
+  font-size: 0.55rem !important;
+  font-weight: 700 !important;
+  padding: 1px 4px !important;
+  border-radius: 6px !important;
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  border: none !important;
+  line-height: 1 !important;
+}
+
+/* 4. Collapsed Quick Items & Folder Rows */
+.td-sidebar.is-collapsed .td-sidebar-quick-bar,
+.td-sidebar.is-collapsed .td-folder-nav {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  width: 100% !important;
+  padding: 6px 0 !important;
+  box-sizing: border-box !important;
+}
+
+.td-sidebar.is-collapsed .td-quick-item,
+.td-sidebar.is-collapsed .td-folder-row {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: #94a3b8 !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  margin: 3px auto !important;
+  box-shadow: none !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-sidebar.is-collapsed .td-quick-item:hover,
+.td-sidebar.is-collapsed .td-folder-row:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #f8fafc !important;
+}
+
+.td-sidebar.is-collapsed .td-quick-item.active,
+.td-sidebar.is-collapsed .td-folder-row.active {
+  background: rgba(59, 130, 246, 0.18) !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+  color: #60a5fa !important;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.25) !important;
+}
+
+.td-sidebar.is-collapsed .td-quick-item.active .td-folder-ico,
+.td-sidebar.is-collapsed .td-folder-row.active .td-folder-ico {
+  color: #60a5fa !important;
+}
+
+.td-sidebar.is-collapsed .td-folder-label,
+.td-sidebar.is-collapsed .td-sidebar-brand-text,
+.td-sidebar.is-collapsed .td-badge-td,
+.td-sidebar.is-collapsed .td-badge-forum,
+.td-sidebar.is-collapsed .td-chat-type,
+.td-sidebar.is-collapsed .td-section-label {
+  display: none !important;
+}

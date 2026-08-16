@@ -1720,7 +1720,7 @@ export function DriveSidebar({
     >
       {/* Expand/collapse first (top) — users expect this control at the top of the rail */}
       <div className="td-rail-head">
-        {onExitToApp && (
+        {onExitToApp && effectiveCollapsed && (
           <button
             type="button"
             className="td-rail-btn td-rail-back td-rail-back-compact"
@@ -1772,7 +1772,7 @@ export function DriveSidebar({
           </div>
         </button>
 
-        {onExitToApp && (
+        {onExitToApp && !effectiveCollapsed && (
           <button
             type="button"
             className="td-rail-btn td-rail-back td-rail-back-wide"
@@ -1854,7 +1854,47 @@ export function DriveSidebar({
       </div>
 
       <div className="td-rail-actions td-rail-toolbar" role="toolbar" aria-label={t('ui.generated.aksi_drive_47b8b0c')}>
-        {isCompactSearchActive || Boolean(locationQuery && locationQuery.trim().length > 0) ? (
+        {effectiveCollapsed ? (
+          <>
+            <button
+              type="button"
+              className="td-rail-btn td-rail-tool td-btn-new-folder"
+              title={
+                createIsSubfolder
+                  ? `Buat folder di dalam “${activeDriveFolder?.name || 'lokasi ini'}” (folder dalam Drive/Folder)`
+                  : 'Buat Drive baru (channel privat [TD] di root). Buka Drive/Folder dulu untuk membuat folder di dalamnya.'
+              }
+              aria-label={createIsSubfolder ? 'Buat folder di dalam Drive/Folder' : 'Buat Drive baru'}
+              onClick={() =>
+                onCreate(
+                  createIsSubfolder && activePeerId != null
+                    ? { parentId: activePeerId }
+                    : { parentId: null }
+                )
+              }
+            >
+              <FolderPlus size={18} aria-hidden className="td-btn-add-icon" />
+            </button>
+
+            <button
+              type="button"
+              className="td-rail-btn td-rail-tool td-sidebar-search-btn"
+              onClick={() => {
+                if (isCollapseAllowed) {
+                  onToggleCollapse?.();
+                }
+                setTimeout(() => {
+                  setIsCompactSearchActive(true);
+                  locationSearchRef.current?.focus();
+                }, 100);
+              }}
+              title={t("speedtest.sidebar_search_title")}
+              aria-label={t("speedtest.sidebar_search_aria")}
+            >
+              <Search size={18} />
+            </button>
+          </>
+        ) : isCompactSearchActive || Boolean(locationQuery && locationQuery.trim().length > 0) ? (
           <div className="td-location-search td-location-search-inline">
             <Search size={14} aria-hidden className="td-location-search-ico" />
             <input
@@ -1916,7 +1956,6 @@ export function DriveSidebar({
                 )
               }
               onContextMenu={(e) => {
-                // Right-click toolbar button → always offer nested create via parent pick path
                 e.preventDefault();
                 if (createIsSubfolder && activePeerId != null) {
                   onCreate({ parentId: activePeerId });
