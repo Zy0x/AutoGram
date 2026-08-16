@@ -592,20 +592,6 @@ export function DriveTopBar({
             <RefreshCw size={16} className={loading || manualSpin ? 'spin' : undefined} />
           </button>
 
-          {(onOpenTools || onOpenTransferSettings) && (
-            <button
-              type="button"
-              className={`td-btn-secondary td-topbar-btn-tools ${toolsActive ? 'active' : ''}`}
-              onClick={onOpenTools || onOpenTransferSettings}
-              disabled={!!actionsDisabled}
-              title={t('speedtest.tools_title')}
-              aria-label={t('speedtest.tools_title')}
-            >
-              <Settings size={15} />
-              <span className="td-btn-label">{t('speedtest.topbar_settings_btn')}</span>
-            </button>
-          )}
-
           {onOpenTransferManager && (
             <button
               type="button"
@@ -646,6 +632,20 @@ export function DriveTopBar({
               aria-label={t("speedtest.topbar_download_zip")}
             >
               <FolderArchive size={16} />
+            </button>
+          )}
+
+          {(onOpenTools || onOpenTransferSettings) && (
+            <button
+              type="button"
+              className={`td-btn-secondary td-topbar-btn-tools ${toolsActive ? 'active' : ''}`}
+              onClick={onOpenTools || onOpenTransferSettings}
+              disabled={!!actionsDisabled}
+              title={t('speedtest.tools_title')}
+              aria-label={t('speedtest.tools_title')}
+            >
+              <Settings size={15} />
+              <span className="td-btn-label">{t('speedtest.topbar_settings_btn')}</span>
             </button>
           )}
 
