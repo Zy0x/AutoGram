@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useModalBackHandler } from '../../../lib/platform/modalBackStack';
 import {
   Link2,
   X,
@@ -213,6 +214,7 @@ export function RemoteUploadModal({
   onUpload,
 }: RemoteUploadModalProps) {
   const { t } = useTranslation();
+  useModalBackHandler(isOpen, onClose, 'remote-upload-modal');
   const [tab, setTab] = useState<RemoteUploadTab>('single');
   const [url, setUrl] = useState('');
   const [customFilename, setCustomFilename] = useState('');

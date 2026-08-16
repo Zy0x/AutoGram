@@ -14,6 +14,15 @@
   --card-pad: clamp(1rem, 2.5vw, 1.5rem);
   --radius-fluid: clamp(10px, 1.5vw, 16px);
 
+  /* Safe Area Insets (Mobile Notch / Home Bar / Punch Hole) */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+
+  /* Touch-first target size standard */
+  --touch-target-min: 44px;
+
   /* Fluid type scale */
   --fs-xs: clamp(0.7rem, 0.65rem + 0.2vw, 0.75rem);
   --fs-sm: clamp(0.8rem, 0.75rem + 0.25vw, 0.875rem);
@@ -23,6 +32,11 @@
   --fs-xl: clamp(1.35rem, 1.15rem + 0.8vw, 1.75rem);
   --fs-2xl: clamp(1.5rem, 1.25rem + 1.2vw, 2rem);
   --fs-3xl: clamp(1.75rem, 1.4rem + 1.5vw, 2.5rem);
+}
+
+html, body {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* ---------- Wrong Input Shake Animation ---------- */
@@ -10047,11 +10061,50 @@ body:has(.app-layout-drive-focus),
   }
 }
 
+/* Cards: always-visible select on coarse pointers (touch) */
+@media (hover: none), (pointer: coarse) {
+  .td-select-check {
+    opacity: 0.92 !important;
+    transform: none !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+  }
+  .td-file-card-actions {
+    opacity: 1 !important;
+  }
+  .td-file-act {
+    min-width: 36px !important;
+    min-height: 36px !important;
+    padding: 8px !important;
+  }
+  .td-file-card:hover .td-file-card-inner {
+    transform: none; /* avoid hover-lift jank on touch */
+  }
+  .td-icon-btn,
+  .td-rail-btn,
+  .td-sidebar-tab-btn,
+  .td-crumb-link,
+  .td-perspective-btn {
+    min-height: 40px !important;
+    touch-action: manipulation;
+  }
+  .td-input-field,
+  .td-search,
+  input[type="text"],
+  input[type="search"] {
+    font-size: 16px !important; /* Prevents unwanted auto-zoom on mobile focus */
+  }
+  .drive-context-menu button {
+    min-height: 42px !important;
+    padding: 10px 14px !important;
+    font-size: 0.95rem !important;
+  }
+}
+
 /* Transfer dock: full-width friendly */
 .td-transfer-label {
   flex: 1 1 auto;
-  min-width: min(100%, 12rem);
-  max-width: 100%;
+  width: 100%;
 }
 .td-transfer-label-text {
   flex-shrink: 0;

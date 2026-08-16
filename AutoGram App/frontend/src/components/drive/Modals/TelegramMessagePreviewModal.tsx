@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import { useModalBackHandler } from '../../../lib/platform/modalBackStack';
 import {
   X,
   Copy,
@@ -112,6 +113,7 @@ export function TelegramMessagePreviewModal({
   folderId,
 }: TelegramMessagePreviewModalProps) {
   const { t } = useTranslation();
+  useModalBackHandler(isOpen, onClose, 'telegram-message-preview-modal');
   const [copiedCaption, setCopiedCaption] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [imgError, setImgError] = useState(false);

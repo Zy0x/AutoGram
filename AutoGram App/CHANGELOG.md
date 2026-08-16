@@ -1,3 +1,23 @@
+## v3.7.26 Mobile-First Frontend & Android Native Integration (Phase 27)
+
+### 1. Fondasi Mobile-First & Integrasi Android Native
+- **Safe Area Insets & Modern Mobile Viewport (`index.html`, `App.css`)**:
+  - Memperbarui konfigurasi viewport dengan `viewport-fit=cover`, `user-scalable=no`, dan `maximum-scale=1.0`.
+  - Menambahkan token Safe Area Inset CSS (`--sat`, `--sab`, `--sal`, `--sar`) untuk melindungi antarmuka dari punch hole kamera, notch, dan home gesture indicator pada perangkat Android / iOS modern.
+  - Menerapkan `touch-action: manipulation` dan `-webkit-tap-highlight-color: transparent` untuk menghilangkan tap delay 300ms.
+- **Standarisasi Target Sentuh Minimal 44px (`App.css`)**:
+  - Mengonfigurasi `@media (hover: none), (pointer: coarse)` untuk memastikan semua tombol aksi, tombol ikon, tab navigasi, chip, dan menu konteks memiliki ukuran sentuh minimal $\ge 44 \times 44\text{ px}$.
+  - Mengatur ukuran font input $\ge 16\text{ px}$ pada mobile untuk mencegah peramban melakukan auto-zoom saat fokus form.
+- **Touch-First Long-Press Context Menu (`pointerDragPrime.ts`, `DriveFileCard.tsx`, `DriveFileListItem.tsx`)**:
+  - Menambahkan deteksi sentuh dan tahan (*Long Press* 450ms) dengan feedback haptik `navigator.vibrate(35)` pada kartu berkas dan daftar item.
+  - Memungkinkan pengguna Android membuka menu konteks berkas / tindakan tanpa memerlukan klik kanan mouse.
+- **Manajemen Hardware / Gesture Back Button Android (`modalBackStack.ts`)**:
+  - Mengembangkan modul LIFO *Modal Back-Stack* yang terintegrasi dengan event `popstate` browser dan `tauri://back-button` native.
+  - Menghubungkan seluruh modal utama (`RemoteUploadModal`, `TelegramMessagePreviewModal`, `DriveInputDialog`, `DriveConfirmDialog`, `DriveDestinationPicker`, `SessionRelogModal`) sehingga penekanan tombol Back fisik/gesture di Android akan menutup modal aktif secara berjenjang tanpa keluar aplikasi.
+- **Verifikasi Kualitas**:
+  - **4.865 Kunci Kamus** tersinkronisasi 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
+  - 146 unit test Vitest lulus 100%.
+
 ## v3.7.25 Format-Specific Metadata Caption & Profile Avatar Isolation (Phase 26)
 
 ### 1. Resolusi Caption & Nama Berkas Sesuai Format Media yang Dipilih

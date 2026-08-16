@@ -1,4 +1,4 @@
-import { memo, useEffect } from 'react';
+import { memo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Scissors, Copy } from 'lucide-react';
 import { driveFileDisplayName, formatDriveBytes, type DriveFile } from '../../../lib/telegram/driveTypes';
@@ -38,6 +38,19 @@ function DriveFileListItemInner({
   const isCopy = clipboard?.mode === 'copy' && clipboard.messageIds.includes(file.id);
   const date = file.created_at ? new Date(file.created_at).toLocaleString() : '—';
   const displayName = driveFileDisplayName(file);
+
+  const handleLongPress = useCallback(
+    (_f: DriveFile, coords: { x: number; y: number }) => {
+      onContextMenu({
+        clientX: coords.x,
+        clientY: coords.y,
+        preventDefault: () => {},
+        stopPropagation: () => {},
+      } as unknown as React.MouseEvent);
+    },
+    [onContextMenu]
+  );
+
   const {
     suppressClick,
     movedPastThreshold,
@@ -46,7 +59,7 @@ function DriveFileListItemInner({
     onPointerUp,
     onPointerCancel,
     resetAfterDrag,
-  } = usePointerDragPrime(file, onMediaDragPrime);
+  } = usePointerDragPrime(file, onMediaDragPrime, handleLongPress);
 
   useEffect(() => {
     if (!isDragSource) resetAfterDrag();

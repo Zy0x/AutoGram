@@ -6,6 +6,7 @@
 import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useModalBackHandler } from '../../../lib/platform/modalBackStack';
 import { FolderPlus, MessagesSquare, Pencil, X } from 'lucide-react';
 
 export type DriveInputKind = 'create-folder' | 'rename' | 'text' | 'create-topic';
@@ -29,8 +30,9 @@ type Props = {
 
 export function DriveInputDialog({ state, onClose }: Props) {
   const { t } = useTranslation();
-  const inputRef = useRef<HTMLInputElement>(null);
   const open = !!state;
+  useModalBackHandler(open, onClose, 'drive-input-dialog');
+  const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
   const overlayMouseDownTargetRef = useRef<EventTarget | null>(null);

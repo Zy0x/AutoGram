@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useModalBackHandler } from '../../../lib/platform/modalBackStack';
 import { ArrowLeft, Bot, Folder, FolderInput, Hash, Home, Megaphone, MessageSquare, Search, Users, X } from 'lucide-react';
 
 import type { DriveCredentials } from '../../../lib/telegram/driveApi/driveApiUtils';
@@ -48,6 +49,8 @@ function kindIcon(c: DriveDestChoice) {
 
 export function DriveDestinationPicker({ state, onClose }: Props) {
   const { t } = useTranslation();
+  const isPickerOpen = Boolean(state);
+  useModalBackHandler(isPickerOpen, onClose, 'drive-destination-picker');
   const searchRef = useRef<HTMLInputElement>(null);
   const topicSearchRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
@@ -63,7 +66,6 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
-  const isPickerOpen = Boolean(state);
   const prevOpenRef = useRef(false);
 
   useEffect(() => {

@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
  */
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useModalBackHandler } from '../../../lib/platform/modalBackStack';
 import {
   AlertTriangle,
   Download,
@@ -75,8 +76,9 @@ type Props = {
 
 export function DriveConfirmDialog({ state, onClose }: Props) {
   const { t } = useTranslation();
-  const confirmRef = useRef<HTMLButtonElement>(null);
   const open = !!state;
+  useModalBackHandler(open, onClose, 'drive-confirm-dialog');
+  const confirmRef = useRef<HTMLButtonElement>(null);
   const [moveMode, setMoveMode] = useState<'move' | 'copy'>('move');
   const [topicId, setTopicId] = useState<number | null>(state?.initialTopicId ?? null);
   const [groupAsAlbum, setGroupAsAlbum] = useState<boolean>(state?.initialGroupAsAlbum ?? true);

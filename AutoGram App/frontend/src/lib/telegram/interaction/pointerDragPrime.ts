@@ -11,18 +11,29 @@ import { DRAG_THRESHOLD_PX } from '../interaction/driveDrag';
 import type { DriveFile } from '../driveTypes';
 
 type PrimeFn = (file: DriveFile, e: React.PointerEvent) => void;
+type LongPressFn = (file: DriveFile, coords: { x: number; y: number }) => void;
 
 export function usePointerDragPrime(
   file: DriveFile,
-  onMediaDragPrime?: PrimeFn
+  onMediaDragPrime?: PrimeFn,
+  onLongPress?: LongPressFn
 ) {
   const suppressClick = useRef(false);
   const pointerDown = useRef<{ x: number; y: number; id: number } | null>(null);
   const movedPastThreshold = useRef(false);
   const primed = useRef(false);
   const docCleanup = useRef<(() => void) | null>(null);
+  const longPressTimerRef = useRef<number | null>(null);
+
+  const clearLongPress = useCallback(() => {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
 
   const detachDoc = useCallback(() => {
+    clearLongPress();
     if (docCleanup.current) {
       try {
         docCleanup.current();
@@ -31,20 +42,24 @@ export function usePointerDragPrime(
       }
       docCleanup.current = null;
     }
-  }, []);
+  }, [clearLongPress]);
 
   useEffect(() => () => detachDoc(), [detachDoc]);
 
   const tryPrime = useCallback(
     (clientX: number, clientY: number, nativeEv: PointerEvent | React.PointerEvent) => {
-      if (!pointerDown.current || primed.current || !onMediaDragPrime) return;
+      if (!pointerDown.current || primed.current) return;
+      const dx = clientX - pointerDown.current.x;
+      const dy = clientY - pointerDown.current.y;
+      if (Math.hypot(dx, dy) >= 8) {
+        clearLongPress();
+      }
+      if (!onMediaDragPrime) return;
       if (document.body.classList.contains('td-marquee-active')) {
         pointerDown.current = null;
         detachDoc();
         return;
       }
-      const dx = clientX - pointerDown.current.x;
-      const dy = clientY - pointerDown.current.y;
       if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
       movedPastThreshold.current = true;
       primed.current = true;
@@ -52,7 +67,7 @@ export function usePointerDragPrime(
       // Parent attaches window listeners + ghost; keep capture on the card
       onMediaDragPrime(file, nativeEv as React.PointerEvent);
     },
-    [detachDoc, file, onMediaDragPrime]
+    [clearLongPress, detachDoc, file, onMediaDragPrime]
   );
 
   const onPointerDown = useCallback(
@@ -78,6 +93,23 @@ export function usePointerDragPrime(
       pointerDown.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
       movedPastThreshold.current = false;
       primed.current = false;
+
+      // Arm long-press on touch / pointer hold
+      if (onLongPress) {
+        const startX = e.clientX;
+        const startY = e.clientY;
+        longPressTimerRef.current = window.setTimeout(() => {
+          if (pointerDown.current && !movedPastThreshold.current && !primed.current) {
+            try {
+              navigator.vibrate?.(35);
+            } catch {
+              /* ignore */
+            }
+            suppressClick.current = true;
+            onLongPress(file, { x: startX, y: startY });
+          }
+        }, 450);
+      }
 
       // Capture ASAP so moves outside the card still hit this element (and React).
       try {

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { memo, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { Eye, Download, Trash2, Check, Loader2, Play, Scissors, Copy } from 'lucide-react';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import {
@@ -103,6 +103,19 @@ function DriveFileCardInner({
   const [recentlyUploaded, setRecentlyUploaded] = useState(
     () => !!file.recently_uploaded_at && Date.now() - file.recently_uploaded_at < 4_000
   );
+
+  const handleLongPress = useCallback(
+    (_f: DriveFile, coords: { x: number; y: number }) => {
+      onContextMenu({
+        clientX: coords.x,
+        clientY: coords.y,
+        preventDefault: () => {},
+        stopPropagation: () => {},
+      } as unknown as React.MouseEvent);
+    },
+    [onContextMenu]
+  );
+
   const {
     suppressClick,
     movedPastThreshold,
@@ -111,7 +124,7 @@ function DriveFileCardInner({
     onPointerUp,
     onPointerCancel,
     resetAfterDrag,
-  } = usePointerDragPrime(file, onMediaDragPrime);
+  } = usePointerDragPrime(file, onMediaDragPrime, handleLongPress);
 
   // Pointer path: parent owns isDragSource. Never leave local `dragging` stuck
   // when parent clears mediaDragActive (onDragEnd never fires without HTML5).

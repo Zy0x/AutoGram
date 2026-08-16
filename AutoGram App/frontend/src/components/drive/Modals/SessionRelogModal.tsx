@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import { useModalBackHandler } from '../../../lib/platform/modalBackStack';
 import { AlertCircle, LogIn, RefreshCw, X, CheckCircle, ExternalLink } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -20,6 +21,7 @@ export const SessionRelogModal: React.FC<SessionRelogModalProps> = ({
   onSuccess,
 }) => {
   const { t } = useTranslation();
+  useModalBackHandler(open, onClose, 'session-relog-modal');
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);

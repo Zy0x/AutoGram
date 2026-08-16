@@ -1,0 +1,105 @@
+/**
+ * Cross-Platform Modal Back-Stack Manager
+ * Handles Android Hardware / Gesture Back Button and Browser popstate
+ * to gracefully dismiss top-most modals, dialogs, drawers, and menus.
+ */
+import { useEffect } from 'react';
+import { isTauri } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
+
+type ModalEntry = {
+  id: string;
+  onClose: () => void;
+};
+
+const backStack: ModalEntry[] = [];
+let isInitialized = false;
+let isPoppingInternally = false;
+
+function initBackStackListeners() {
+  if (typeof window === 'undefined' || isInitialized) return;
+  isInitialized = true;
+
+  // 1. Web / PWA / Android WebView popstate
+  window.addEventListener('popstate', () => {
+    if (isPoppingInternally) {
+      isPoppingInternally = false;
+      return;
+    }
+    if (backStack.length > 0) {
+      const top = backStack.pop();
+      if (top) {
+        try {
+          top.onClose();
+        } catch (err) {
+          console.warn('[ModalBackStack] Error closing modal on back:', err);
+        }
+      }
+    }
+  });
+
+  // 2. Tauri Mobile native back-button event
+  if (isTauri()) {
+    try {
+      void listen('tauri://back-button', () => {
+        if (backStack.length > 0) {
+          const top = backStack.pop();
+          if (top) {
+            try {
+              top.onClose();
+            } catch (err) {
+              console.warn('[ModalBackStack] Error closing modal on tauri back:', err);
+            }
+          }
+        }
+      });
+    } catch {
+      /* ignore if tauri event listener not supported in this runtime */
+    }
+  }
+}
+
+/**
+ * Register a modal onto the back-stack when it opens.
+ * Returns a cleanup function to call when the modal closes normally.
+ */
+export function registerModalBackHandler(id: string, onClose: () => void): () => void {
+  initBackStackListeners();
+
+  // Push history state if on browser/webview
+  try {
+    window.history.pushState({ autogramModal: id }, '');
+  } catch {
+    /* ignore */
+  }
+
+  const entry: ModalEntry = { id, onClose };
+  backStack.push(entry);
+
+  return () => {
+    const idx = backStack.findIndex((m) => m.id === id);
+    if (idx !== -1) {
+      backStack.splice(idx, 1);
+      // Clean up the dummy history entry if this was closed by UI button rather than back gesture
+      try {
+        if (window.history.state?.autogramModal === id) {
+          isPoppingInternally = true;
+          window.history.back();
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+  };
+}
+
+/**
+ * Hook to automatically bind a modal's open state to the Android back-stack.
+ */
+export function useModalBackHandler(isOpen: boolean, onClose: () => void, modalId: string) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const cleanup = registerModalBackHandler(modalId, onClose);
+    return cleanup;
+  }, [isOpen, onClose, modalId]);
+}
