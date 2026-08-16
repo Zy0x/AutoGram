@@ -1786,11 +1786,12 @@ function DupTab({
           }}
           style={{
             flex: 1,
+            minWidth: 0,
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '8px',
-            padding: '10px 18px',
+            padding: '10px 14px',
             borderRadius: '9px',
             background: idsToDelete.length
               ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
@@ -1798,15 +1799,17 @@ function DupTab({
             border: idsToDelete.length ? '1px solid #f87171' : '1px solid rgba(255, 255, 255, 0.08)',
             color: idsToDelete.length ? '#ffffff' : '#64748b',
             fontWeight: 800,
-            fontSize: '0.85rem',
-            letterSpacing: '0.3px',
+            fontSize: '0.84rem',
+            letterSpacing: '0.2px',
             cursor: idsToDelete.length && !busy ? 'pointer' : 'not-allowed',
             boxShadow: idsToDelete.length ? '0 4px 16px rgba(239, 68, 68, 0.4)' : 'none',
             transition: 'all 0.15s ease',
           }}
         >
-          <Trash2 size={15} style={{ color: idsToDelete.length ? '#ffffff' : '#64748b' }} />
-          <span>{t('speedtest.preview_delete_btn')} {idsToDelete.length.toLocaleString('id-ID')} {t('ui.generated.berkas_duplikat_terpilih_548987c')}{formatDriveBytes(selectedWaste)})</span>
+          <Trash2 size={15} style={{ color: idsToDelete.length ? '#ffffff' : '#64748b', flexShrink: 0 }} />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {t('speedtest.preview_delete_btn')} {idsToDelete.length.toLocaleString('id-ID')} {t('ui.generated.berkas_duplikat_terpilih_548987c')}{formatDriveBytes(selectedWaste)})
+          </span>
         </button>
       </div>
     </div>
