@@ -1,3 +1,18 @@
+## v3.7.27 Mobile Top App Bar & Thumb-Zone Action Sheet Refinement (Phase 28)
+
+### 1. Optimalisasi Top App Bar & Bottom Action Sheet Mobile
+- **Responsive Mobile Action Collapsing (`DriveTopBar.tsx`, `App.css`)**:
+  - Menyederhanakan baris atas (*Top App Bar*) pada layar sempit ($\le 768\text{px}$) dengan mengelompokkan tombol utilitas sekunder (Zoom Level, Mode Grid/List, Refresh Lokasi, Unduh ZIP, dan Panel Tools) ke dalam pemicu menu ringkas `MoreVertical` (`⋯`).
+  - Mencegah tombol navigasi horizontal terpotong atau saling tumpuk (*horizontal overcrowding*) pada layar smartphone 360px - 412px.
+  - Membatasi lebar teks breadcrumb pada mobile (`clamp(110px, 38vw, 240px)`) dengan pemotongan ellipsis otomatis agar tidak mendorong tombol aksi keluar layar.
+- **Thumb-Zone Bottom Action Sheet (`DriveTopBar.tsx`, `App.css`)**:
+  - Mengembangkan lembar aksi modal bawah (*Bottom Action Sheet*) yang meluncur mulus dari bawah layar saat menu `⋯` ditekan.
+  - Menghubungkan *Action Sheet* ke modul *Modal Back-Stack* (`useModalBackHandler`) sehingga dapat ditutup instan via hardware / gesture Back button Android.
+  - Mengadopsi target sentuh ergonomis $\ge 44\text{px}$ dengan padding aman terhadap indikator gestur bawah (`--sab`).
+- **Verifikasi Kualitas**:
+  - **4.865 Kunci Kamus** tersinkronisasi 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
+  - 146 unit test Vitest lulus 100%.
+
 ## v3.7.26 Mobile-First Frontend & Android Native Integration (Phase 27)
 
 ### 1. Fondasi Mobile-First & Integrasi Android Native
