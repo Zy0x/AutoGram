@@ -335,6 +335,10 @@ export const tiktokResolver: LinkResolverProvider = {
           // 4. Hi-Res Audio Track (MP3)
           if (data.music) {
             const estimatedAudioSize = durationSec ? Math.round(durationSec * (320 * 1024 / 8)) : (data.size ? Math.round(data.size * 0.15) : undefined);
+            const musicTitle = data.music_info?.title || data.music_info?.author
+              ? `${data.music_info.title || 'Audio'} - ${data.music_info.author || 'TikTok Music'}`
+              : `${title} (Audio Track)`;
+
             formats.push({
               id: 'tiktok_audio',
               label: 'Hi-Res Audio (320 kbps MP3)',
@@ -345,12 +349,24 @@ export const tiktokResolver: LinkResolverProvider = {
               directUrl: data.music.startsWith('http') ? data.music : `https://www.tikwm.com${data.music}`,
               isAudio: true,
               badge: 'HI-RES AUDIO',
+              customTitle: musicTitle,
+              customFilename: `${musicTitle}.mp3`,
             });
           }
 
-          // 5. Creator Profile Avatar (Highest Resolution Master)
+          // 5. Creator Profile Avatar (Highest Resolution Master with Profile Identity Caption)
           const highestAvatar = data.author?.avatar_larger || data.author?.avatar_medium || data.author?.avatar;
           if (highestAvatar) {
+            const authorNickname = data.author?.nickname;
+            const authorUniqueId = data.author?.unique_id;
+            const profileTitle = authorNickname && authorUniqueId
+              ? `${authorNickname} (@${authorUniqueId}) - Profil TikTok`
+              : authorUniqueId
+                ? `@${authorUniqueId} - Profil TikTok`
+                : authorNickname
+                  ? `${authorNickname} - Profil TikTok`
+                  : 'Creator Profile Photo';
+
             formats.push({
               id: 'tiktok_profile_avatar',
               label: 'Creator Profile Photo (HD Avatar)',
@@ -360,6 +376,8 @@ export const tiktokResolver: LinkResolverProvider = {
               directUrl: highestAvatar.startsWith('http') ? highestAvatar : `https://www.tikwm.com${highestAvatar}`,
               isImage: true,
               badge: 'AVATAR HD',
+              customTitle: profileTitle,
+              customFilename: `${profileTitle}.jpg`,
             });
           }
 

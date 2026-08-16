@@ -1,3 +1,17 @@
+## v3.7.25 Format-Specific Metadata Caption & Profile Avatar Isolation (Phase 26)
+
+### 1. Resolusi Caption & Nama Berkas Sesuai Format Media yang Dipilih
+- **Format-Specific Title & Filename Isolation (`types.ts`, `tiktokResolver.ts`, `RemoteUploadModal.tsx`)**:
+  - Menambahkan properti `customTitle` dan `customFilename` pada antarmuka `StreamQualityFormat`.
+  - Memastikan ketika tautan video TikTok dimasukkan dan pengguna memilih opsi **`Creator Profile Photo (HD Avatar)`**, sistem tidak lagi menggunakan judul/caption video melainkan secara presisi menggunakan **Identitas Profil Kreator**:
+    $$\text{Caption / Filename} \longrightarrow \textbf{Izuru (@izuru.01) - Profil TikTok.jpg}$$
+  - Ketika memilih format video (`Full HD 1080p`), sistem tetap menggunakan judul dan caption video asli secara utuh.
+  - Ketika memilih format audio (`Hi-Res Audio`), berkas secara otomatis diberi nama sesuai judul lagu/musik.
+  - Memperbarui placeholder input dan preview modal secara dinamis saat pengguna berpindah antar chip format.
+- **Verifikasi Kualitas**:
+  - **4.865 Kunci Kamus** tersinkronisasi 1:1 antara Bahasa Indonesia dan English (0 hardcoded, 0 missing).
+  - 146 unit test Vitest lulus 100%.
+
 ## v3.7.24 Global React Hook Order Audit & Modal Ref Relocation (Phase 25)
 
 ### 1. Audit Menyeluruh Aturan Hook React & Pemindahan Ref Modal

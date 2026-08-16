@@ -191,6 +191,18 @@ function getFormatDisplayLabel(
   return fmt.label;
 }
 
+function getEffectiveFormatFilename(
+  fmt?: StreamQualityFormat,
+  resolved?: ResolvedMediaInfo | null,
+  fallbackExt?: string
+): string {
+  if (!resolved && !fmt) return '';
+  if (fmt?.customFilename) return fmt.customFilename;
+  const rawTitle = fmt?.customTitle || resolved?.title || '';
+  if (!rawTitle) return `remote_file.${fmt?.ext || fallbackExt || 'mp4'}`;
+  return rawTitle.includes('.') ? rawTitle : `${rawTitle}.${fmt?.ext || fallbackExt || 'mp4'}`;
+}
+
 export function RemoteUploadModal({
   isOpen,
   onClose,
@@ -347,11 +359,7 @@ export function RemoteUploadModal({
 
         const bestFmt =
           resolved.formats.find((f) => f.id === resolved.selectedFormatId) || resolved.formats[0];
-        const resName = resolved.title
-          ? resolved.title.includes('.')
-            ? resolved.title
-            : `${resolved.title}.${bestFmt?.ext || ext || 'mp4'}`
-          : baseName;
+        const resName = getEffectiveFormatFilename(bestFmt, resolved, ext) || baseName;
 
         setInspection({
           url: trimmed,
@@ -526,9 +534,23 @@ export function RemoteUploadModal({
 
   const handleSelectFormat = (fmt: StreamQualityFormat) => {
     setSelectedFormatId(fmt.id);
-    if (fmt.filesizeBytes) {
-      setInspection((prev) => (prev ? { ...prev, size: fmt.filesizeBytes } : prev));
-    }
+    const newFilename = getEffectiveFormatFilename(fmt, resolvedMedia);
+    setInspection((prev) =>
+      prev
+        ? {
+            ...prev,
+            filename: newFilename || prev.filename,
+            size: fmt.filesizeBytes || prev.size,
+            kind: fmt.isVideo
+              ? 'video'
+              : fmt.isAudio
+                ? 'audio'
+                : fmt.isImage
+                  ? 'image'
+                  : prev.kind,
+          }
+        : prev
+    );
     const match = fmt.id.match(/photo_(\d+)/);
     if (match && match[1]) {
       const photoIdx = parseInt(match[1], 10) - 1;
@@ -588,11 +610,7 @@ export function RemoteUploadModal({
 
         const effectiveFilename =
           customFilename.trim() ||
-          (activeResolved?.title
-            ? activeResolved.title.includes('.')
-              ? activeResolved.title
-              : `${activeResolved.title}.${activeFormat?.ext || 'mp4'}`
-            : undefined);
+          getEffectiveFormatFilename(activeFormat, activeResolved);
 
         const effectiveQualityMode =
           deliveryMode === 'uncompressed'
@@ -903,7 +921,13 @@ export function RemoteUploadModal({
                     className="td-input-field td-custom-filename-input"
                     type="text"
                     placeholder={
-                      inspection?.filename || t('speedtest.remote_custom_name_placeholder')
+                      getEffectiveFormatFilename(
+                        resolvedMedia?.formats.find((f) => f.id === selectedFormatId) ||
+                          resolvedMedia?.formats[0],
+                        resolvedMedia
+                      ) ||
+                      inspection?.filename ||
+                      t('speedtest.remote_custom_name_placeholder')
                     }
                     value={customFilename}
                     onChange={(e) => setCustomFilename(e.target.value)}

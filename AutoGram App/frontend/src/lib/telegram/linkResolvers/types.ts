@@ -36,6 +36,8 @@ export interface StreamQualityFormat {
   isAlbumPack?: boolean;
   allAlbumUrls?: string[];
   badge?: string; // e.g. "8K ULTRA", "4K UHD", "NO WATERMARK", "320 KBPS"
+  customTitle?: string;
+  customFilename?: string;
 }
 
 export interface ResolvedMediaInfo {
