@@ -1,3 +1,15 @@
+## v3.7.43 All-in-One Compact Smart Sort Pill-Chip with Internal Fluid Load-Fill Progress (Phase 35.9)
+
+### 1. Desain Terpadu Smart Pill-Chip All-in-One (`DriveTopBar.tsx`, `App.css`)
+- **Peleburan UI Redundan ke Satu Pill-Chip Samping Sortir**:
+  - Menghapus floating card overlay pojok kanan atas yang berpotensi menutupi berkas, dan memusatkan seluruh informasi serta aksi ke dalam satu Pill-Chip ramping (`.td-sort-scope-chip.is-loading`) persis di sebelah dropdown sortir.
+- **Internal Dynamic Fluid Fill Progress**:
+  - Background chip otomatis menjadi bar progres linier yang terisi dari $0\% \rightarrow 100\%$ dengan gradien cyan-indigo bercahaya halus dan animasi *linear shimmer wave*.
+- **Integrated Live Metrics & Speedometer**:
+  - Menampilkan angka berkas, persentase tanpa getaran visual (*tabular nums*), dan speedometer live (`⚡ 903/s`).
+- **Dual Micro Action Controls (Pause / Resume & Stop)**:
+  - Tombol Pause (`[⏸️]`) / Resume (`[▶️]`) dan Stop (`[✕]`) terintegrasi langsung di ujung kanan chip. Saat dijeda, chip bertransisi ke status amber hangat.
+
 ## v3.7.42 High-Legibility Balanced Card Text Contrast & Bottom Gradient Refinement (Phase 35.8)
 
 ### 1. Tipografi Kartu Berkas Presisi & Keterbacaan Seimbang (`App.css`)

@@ -8538,7 +8538,15 @@ function MediaDriveDesktop({
             onIndexAll={handleIndexAllMetadata}
             onStopIndex={handleStopIndexing}
             indexingAllActive={indexingAllActive}
-            indexingProgress={indexingProgress}
+            indexingProgress={{
+              processed: indexingJob.processed || indexingProgress.processed,
+              total: indexingJob.total || indexingProgress.total,
+              speed: indexingJob.speed,
+              eta: indexingJob.eta,
+              tier: indexingJob.tier,
+              isPaused: indexingJob.isPaused,
+            }}
+            onTogglePauseIndex={handleTogglePauseIndexing}
           />
 
           <DriveTransferManager
@@ -8787,83 +8795,6 @@ function MediaDriveDesktop({
           )}
 
           <div className="td-explorer-wrapper" style={{ position: 'relative', flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            {indexingJob.active && (
-              <div
-                className={`td-sort-index-card tier-${indexingJob.tier || 'medium'} ${indexingJob.isPaused ? 'is-paused' : ''}`}
-                role="status"
-                aria-live="polite"
-              >
-                <div className="td-sort-index-head">
-                  <div className="td-sort-index-icon-wrap">
-                    <Sparkles size={14} className="td-sort-index-icon" />
-                  </div>
-                  <div className="td-sort-index-info">
-                    <div className="td-sort-index-title-row">
-                      <span className="td-sort-index-title">
-                        {t('speedtest.index_progress_title')}
-                      </span>
-                      {indexingJob.tier && (
-                        <span className="td-sort-index-tier-badge">
-                          {t('speedtest.index_tier_badge', { tier: indexingJob.tier.toUpperCase() })}
-                        </span>
-                      )}
-                    </div>
-                    <span className="td-sort-index-sub">
-                      {indexingJob.text}
-                      {indexingJob.speed && indexingJob.speed > 0 && !indexingJob.isPaused && (
-                        <span className="td-sort-index-speed">
-                          {' • '}{t('speedtest.index_progress_speed', { speed: indexingJob.speed.toLocaleString() })}
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                  <div className="td-sort-index-actions">
-                    <button
-                      type="button"
-                      className="td-sort-index-pause-btn"
-                      onClick={handleTogglePauseIndexing}
-                      title={indexingJob.isPaused ? t('speedtest.index_btn_resume') : t('speedtest.index_btn_pause')}
-                      aria-label={indexingJob.isPaused ? t('speedtest.index_btn_resume') : t('speedtest.index_btn_pause')}
-                    >
-                      {indexingJob.isPaused ? <Play size={12} /> : <Pause size={12} />}
-                    </button>
-                    <button
-                      type="button"
-                      className="td-sort-index-close-btn"
-                      onClick={handleStopIndexing}
-                      title={t('speedtest.index_all_stop')}
-                      aria-label={t('speedtest.index_all_stop')}
-                    >
-                      <X size={13} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="td-sort-index-track">
-                  <div
-                    className="td-sort-index-fill"
-                    style={{
-                      width: `${Math.min(100, Math.max(0, indexingJob.total > 0 ? (indexingJob.processed / indexingJob.total) * 100 : (indexingJob.processed > 0 ? 30 : 5)))}%`,
-                    }}
-                  />
-                </div>
-
-                <div className="td-sort-index-footer">
-                  <span className="td-sort-index-hint">
-                    {indexingJob.isPaused
-                      ? t('speedtest.index_progress_paused')
-                      : indexingJob.eta
-                      ? t('speedtest.index_progress_eta', { eta: indexingJob.eta })
-                      : t('speedtest.index_progress_safe_hint')}
-                  </span>
-                  {indexingJob.total > 0 && (
-                    <span className="td-sort-index-pct">
-                      {Math.min(100, Math.max(0, Math.round((indexingJob.processed / indexingJob.total) * 100)))}%
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
 
             {dragActive && !mediaDragActive && (
               <div className="td-drop-overlay" data-dnd="os-upload">

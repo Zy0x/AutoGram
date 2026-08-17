@@ -30,6 +30,8 @@ import {
   ChevronDown,
   Sparkles,
   X,
+  Pause,
+  Play,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -142,8 +144,17 @@ type Props = {
   viewPerspective?: 'telegram' | 'drive';
   onIndexAll?: () => void;
   onStopIndex?: () => void;
+  onTogglePauseIndex?: () => void;
   indexingAllActive?: boolean;
-  indexingProgress?: { processed: number; total: number | null } | null;
+  indexingProgress?: {
+    processed: number;
+    total: number | null;
+    percent?: number;
+    speed?: number;
+    eta?: string | null;
+    tier?: string;
+    isPaused?: boolean;
+  } | null;
   onViewPerspective?: (perspective: 'telegram' | 'drive') => void;
   /** Total item count from Telegram query metadata */
   totalCount?: number | null;
@@ -221,6 +232,7 @@ export function DriveTopBar({
   categoryCounts,
   onIndexAll,
   onStopIndex,
+  onTogglePauseIndex,
   indexingAllActive,
   indexingProgress,
   onSwitchMode: _onSwitchMode,
@@ -1072,31 +1084,95 @@ export function DriveTopBar({
                 />
                 {sortMode !== 'newest' && (
                   indexingAllActive ? (
-                    <button
-                      type="button"
-                      className="td-sort-scope-chip is-loading"
-                      onClick={onStopIndex}
-                      title={t('speedtest.index_all_stop')}
+                    <div
+                      className={`td-sort-scope-chip is-loading ${indexingProgress?.isPaused ? 'is-paused' : ''}`}
+                      title={
+                        indexingProgress?.isPaused
+                          ? t('speedtest.index_progress_paused')
+                          : indexingProgress?.eta
+                          ? `${t('speedtest.index_progress_eta', { eta: indexingProgress.eta })} • ${indexingProgress.speed ? t('speedtest.index_progress_speed', { speed: indexingProgress.speed.toLocaleString() }) : ''} • ${t('speedtest.index_progress_safe_hint')}`
+                          : t('speedtest.index_progress_safe_hint')
+                      }
+                      role="status"
+                      aria-live="polite"
                     >
-                      <RefreshCw size={11} className="td-spin" />
-                      <span className="td-sort-scope-text">
-                        {indexingProgress?.total && indexingProgress.total > 0
-                          ? t('speedtest.index_all_progress', {
-                              processed: (indexingProgress.processed || fileCount).toLocaleString(),
-                              total: indexingProgress.total.toLocaleString(),
-                              percent: Math.min(
-                                100,
-                                Math.round(
-                                  ((indexingProgress.processed || fileCount) / indexingProgress.total) * 100
-                                )
-                              ),
-                            })
-                          : t('speedtest.index_all_progress_count', {
-                              processed: (indexingProgress?.processed || fileCount).toLocaleString(),
-                            })}
-                      </span>
-                      {onStopIndex && <X size={10} className="td-sort-scope-stop-icon" />}
-                    </button>
+                      <div
+                        className="td-sort-scope-fill"
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            Math.max(
+                              0,
+                              indexingProgress?.total && indexingProgress.total > 0
+                                ? ((indexingProgress.processed || fileCount) / indexingProgress.total) * 100
+                                : indexingProgress?.processed && indexingProgress.processed > 0
+                                ? 35
+                                : 8
+                            )
+                          )}%`,
+                        }}
+                      />
+
+                      <div className="td-sort-scope-content">
+                        {indexingProgress?.isPaused ? (
+                          <Pause size={11} className="td-sort-scope-status-icon is-paused" />
+                        ) : (
+                          <RefreshCw size={11} className="td-spin td-sort-scope-status-icon" />
+                        )}
+                        <span className="td-sort-scope-text">
+                          {indexingProgress?.total && indexingProgress.total > 0
+                            ? t('speedtest.index_all_progress', {
+                                processed: (indexingProgress.processed || fileCount).toLocaleString(),
+                                total: indexingProgress.total.toLocaleString(),
+                                percent: Math.min(
+                                  100,
+                                  Math.round(
+                                    ((indexingProgress.processed || fileCount) / indexingProgress.total) * 100
+                                  )
+                                ),
+                              })
+                            : t('speedtest.index_all_progress_count', {
+                                processed: (indexingProgress?.processed || fileCount).toLocaleString(),
+                              })}
+                        </span>
+                        {indexingProgress?.speed && indexingProgress.speed > 0 && !indexingProgress.isPaused && (
+                          <span className="td-sort-scope-speed">
+                            ⚡{indexingProgress.speed >= 1000 ? `${(indexingProgress.speed / 1000).toFixed(1)}k` : indexingProgress.speed}/s
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="td-sort-scope-actions">
+                        {onTogglePauseIndex && (
+                          <button
+                            type="button"
+                            className="td-sort-scope-btn td-sort-scope-pause-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onTogglePauseIndex();
+                            }}
+                            title={indexingProgress?.isPaused ? t('speedtest.index_btn_resume') : t('speedtest.index_btn_pause')}
+                            aria-label={indexingProgress?.isPaused ? t('speedtest.index_btn_resume') : t('speedtest.index_btn_pause')}
+                          >
+                            {indexingProgress?.isPaused ? <Play size={10} /> : <Pause size={10} />}
+                          </button>
+                        )}
+                        {onStopIndex && (
+                          <button
+                            type="button"
+                            className="td-sort-scope-btn td-sort-scope-stop-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onStopIndex();
+                            }}
+                            title={t('speedtest.index_all_stop')}
+                            aria-label={t('speedtest.index_all_stop')}
+                          >
+                            <X size={11} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   ) : hasMore && onIndexAll ? (
                     <button
                       type="button"

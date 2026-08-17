@@ -1,12 +1,13 @@
-AutoGram Version: v3.7.42
+AutoGram Version: v3.7.43
 
 Current State:
-v3.7.42 High-Legibility Balanced Card Text Contrast & Bottom Gradient Refinement — membenahi `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Balanced High-Legibility Card Typography: Mengganti warna teks pudar/kusam dengan Slate-100 (`#f1f5f9`) untuk judul berkas dan Slate-300 (`#cbd5e1`) untuk metadata ukuran/format di seluruh kartu berkas (media & non-media) serta tampilan list view.
-2. Layered Text Shadow & Protection: Menerapkan drop-shadow lembut bertingkat (`rgba(0,0,0,0.9)` + `rgba(0,0,0,0.6)`) yang menjamin keterbacaan 100% jelas di atas gambar terang, gelap, maupun pastel tanpa menyilaukan mata.
-3. Enhanced Bottom Media Gradient: Memperdalam gradien dasar (`rgba(0,0,0,0.88)` -> `rgba(0,0,0,0.58)` -> `transparent`) untuk melindungi teks judul dari kontras latar belakang foto/video.
+v3.7.43 All-in-One Compact Smart Sort Pill-Chip with Internal Fluid Load-Fill Progress — membenahi `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. All-in-One Smart Pill-Chip: Menggabungkan seluruh fungsi pengindeksan ke dalam satu Pill-Chip ramping di samping dropdown sortir, dengan internal load-fill progress bar dinamis (`0% -> 100%`) dan animasi linear shimmer wave.
+2. Complete Viewport Freedom: Menghapus kartu overlay pojok kanan atas yang redundan sehingga area explorer dan file list 100% lapang, bersih, dan bebas hambatan visual.
+3. Integrated Micro-Controls & Live Speedometer: Tombol Pause/Resume (`[⏸️]` / `[▶️]`) dan Stop (`[✕]`) terpadu langsung di ujung kanan chip dengan indikator kecepatan live (`⚡ 903/s`) dan transisi status dijeda beraksen amber.
 
 Previous:
+v3.7.42 High-Legibility Balanced Card Text Contrast & Bottom Gradient Refinement — membenahi `App.css`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.41 Adaptive Multi-Tier Indexing Engine, Dynamic Flood-Shield & Real-Time Performance Dashboard — membenahi `adaptiveIndexer.ts`, `adaptiveIndexer.test.ts`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.40 Interactive Top-Right Glassmorphic Indexing Progress Card & Fluid Shimmer Load-Fill Bar — membenahi `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.39 Real-Time Live Indexing Progress Indicator & Interactive Stop Control — membenahi `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
