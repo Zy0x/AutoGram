@@ -29,6 +29,7 @@ import {
   ChevronUp,
   ChevronDown,
   Sparkles,
+  X,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -140,7 +141,9 @@ type Props = {
   /** Dual perspective mode: 'telegram' (Nekogram/Telegram style) vs 'drive' (MIME/file style) */
   viewPerspective?: 'telegram' | 'drive';
   onIndexAll?: () => void;
+  onStopIndex?: () => void;
   indexingAllActive?: boolean;
+  indexingProgress?: { processed: number; total: number | null } | null;
   onViewPerspective?: (perspective: 'telegram' | 'drive') => void;
   /** Total item count from Telegram query metadata */
   totalCount?: number | null;
@@ -217,7 +220,9 @@ export function DriveTopBar({
   totalCount,
   categoryCounts,
   onIndexAll,
+  onStopIndex,
   indexingAllActive,
+  indexingProgress,
   onSwitchMode: _onSwitchMode,
   onBackToLauncher: _onBackToLauncher,
 }: Props) {
@@ -1067,10 +1072,31 @@ export function DriveTopBar({
                 />
                 {sortMode !== 'newest' && (
                   indexingAllActive ? (
-                    <span className="td-sort-scope-chip is-loading">
+                    <button
+                      type="button"
+                      className="td-sort-scope-chip is-loading"
+                      onClick={onStopIndex}
+                      title={t('speedtest.index_all_stop')}
+                    >
                       <RefreshCw size={11} className="td-spin" />
-                      <span>{t('speedtest.index_all_running')}</span>
-                    </span>
+                      <span className="td-sort-scope-text">
+                        {indexingProgress?.total && indexingProgress.total > 0
+                          ? t('speedtest.index_all_progress', {
+                              processed: (indexingProgress.processed || fileCount).toLocaleString(),
+                              total: indexingProgress.total.toLocaleString(),
+                              percent: Math.min(
+                                100,
+                                Math.round(
+                                  ((indexingProgress.processed || fileCount) / indexingProgress.total) * 100
+                                )
+                              ),
+                            })
+                          : t('speedtest.index_all_progress_count', {
+                              processed: (indexingProgress?.processed || fileCount).toLocaleString(),
+                            })}
+                      </span>
+                      {onStopIndex && <X size={10} className="td-sort-scope-stop-icon" />}
+                    </button>
                   ) : hasMore && onIndexAll ? (
                     <button
                       type="button"

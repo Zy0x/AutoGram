@@ -33645,7 +33645,30 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-sort-scope-chip.is-loading {
-  background: rgba(234, 179, 8, 0.12);
-  border: 1px solid rgba(234, 179, 8, 0.3);
+  background: rgba(234, 179, 8, 0.14);
+  border: 1px solid rgba(234, 179, 8, 0.4);
   color: #fbbf24;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+  position: relative;
+  overflow: hidden;
+}
+
+.td-sort-scope-chip.is-loading:hover {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #f87171;
+}
+
+.td-sort-scope-stop-icon {
+  margin-left: 3px;
+  opacity: 0.7;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.td-sort-scope-chip.is-loading:hover .td-sort-scope-stop-icon {
+  opacity: 1;
+  transform: scale(1.15);
 }

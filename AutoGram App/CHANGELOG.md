@@ -1,3 +1,15 @@
+## v3.7.39 Real-Time Live Indexing Progress Indicator & Interactive Stop Control (Phase 35.5)
+
+### 1. Indikator Kemajuan Pengindeksan Real-Time (`DriveTopBar.tsx`, `MediaStudio/index.tsx`)
+- **Progres Dinamis & Persentase Presisi**:
+  - Menggantikan teks statis (*"Indexing..."*) dengan kalkulasi kemajuan berkas dan persentase langsung (`⟳ 1.450 / 43.060 (3%)` atau `⟳ X berkas terindeks...`).
+  - Nilai progres diperbarui secara live setiap kali satu batch metadata 200 pesan berhasil di-fetch dan disinkronkan ke memori/database.
+
+### 2. Tombol Pembatalan / Penghentian Cepat (*Interactive Stop Control*) (`DriveTopBar.tsx`, `App.css`)
+- **Kontrol Pembatalan On-Demand**:
+  - Menyediakan tombol pembatalan instan (`✕`) pada chip status saat pengindeksan berjalan.
+  - Hover state berubah dinamis menjadi merah lembut (*amber to red transition*) untuk memperjelas aksi penghentian proses tanpa merusak data yang telah terindeks.
+
 ## v3.7.38 Floating Top-Item Notification Pill, Anchor Scroll Retention & Safe Background Metadata Indexer (Phase 35.4)
 
 ### 1. Floating Top-Update Notification Pill (`DriveExplorer.tsx`, `App.css`)

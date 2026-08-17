@@ -1726,5 +1726,8 @@
   "sort_partial_badge": "{{count}} terurut (sebagian)",
   "sort_complete_badge": "✓ Semua {{count}} terurut",
   "index_all_action": "Indeks Semua",
-  "index_all_running": "Mengindeks..."
+  "index_all_running": "Mengindeks...",
+  "index_all_progress": "{{processed}} / {{total}} ({{percent}}%)",
+  "index_all_progress_count": "{{processed}} berkas terindeks...",
+  "index_all_stop": "Klik untuk menghentikan indeks"
 }

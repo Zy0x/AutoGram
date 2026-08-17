@@ -3152,11 +3152,24 @@ function MediaDriveDesktop({
 
   const indexingActiveRef = useRef(false);
   const [indexingAllActive, setIndexingAllActive] = useState(false);
+  const [indexingProgress, setIndexingProgress] = useState<{
+    processed: number;
+    total: number | null;
+  }>({ processed: 0, total: null });
+
+  const handleStopIndexing = useCallback(() => {
+    indexingActiveRef.current = false;
+    setIndexingAllActive(false);
+  }, []);
 
   const handleIndexAllMetadata = useCallback(async () => {
     if (indexingActiveRef.current || !filesHasMore || loadingMoreFiles) return;
     indexingActiveRef.current = true;
     setIndexingAllActive(true);
+    setIndexingProgress({
+      processed: liveFilesRef.current.length,
+      total: totalFileCount || null,
+    });
     setStatusText(t('speedtest.index_all_running'));
 
     const gen = peerGen.current;
@@ -3198,10 +3211,18 @@ function MediaDriveDesktop({
           break;
         }
 
+        let newTotalLoaded = liveFilesRef.current.length;
         setFiles((prev) => {
           if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
           const seen = new Set(prev.map((f) => f.id));
-          return [...prev, ...page.filter((f) => !seen.has(f.id))];
+          const merged = [...prev, ...page.filter((f) => !seen.has(f.id))];
+          newTotalLoaded = merged.length;
+          return merged;
+        });
+
+        setIndexingProgress({
+          processed: newTotalLoaded,
+          total: totalFileCount || null,
         });
 
         nextOffsetIdRef.current = res.next_offset_id;
@@ -3217,7 +3238,7 @@ function MediaDriveDesktop({
       setIndexingAllActive(false);
       setStatusText(t('ui.generated.semua_media_dimuat_2310a13'));
     }
-  }, [filesHasMore, loadingMoreFiles, creds, peerId, session, getDriveCacheKey, t]);
+  }, [filesHasMore, loadingMoreFiles, creds, peerId, session, getDriveCacheKey, totalFileCount, t]);
 
   const syncActiveLocationLive = useCallback(
     async (reason: 'interval' | 'focus') => {
@@ -8414,7 +8435,9 @@ function MediaDriveDesktop({
             hasMore={filesHasMore}
             scaleHint={scaleHint}
             onIndexAll={handleIndexAllMetadata}
+            onStopIndex={handleStopIndexing}
             indexingAllActive={indexingAllActive}
+            indexingProgress={indexingProgress}
           />
 
           <DriveTransferManager

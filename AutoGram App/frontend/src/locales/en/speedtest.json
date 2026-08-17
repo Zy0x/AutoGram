@@ -1726,5 +1726,8 @@
   "sort_partial_badge": "{{count}} sorted (partial)",
   "sort_complete_badge": "✓ All {{count}} sorted",
   "index_all_action": "Index All",
-  "index_all_running": "Indexing..."
+  "index_all_running": "Indexing...",
+  "index_all_progress": "{{processed}} / {{total}} ({{percent}}%)",
+  "index_all_progress_count": "{{processed}} files indexed...",
+  "index_all_stop": "Click to stop indexing"
 }
