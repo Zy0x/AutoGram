@@ -25199,6 +25199,38 @@ button.td-confirm-icon.is-back-btn:active {
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2) !important;
 }
 
+.td-remote-upload-panel .td-remote-batch-textarea {
+  min-height: 84px !important;
+  max-height: 180px !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.82rem !important;
+  line-height: 1.45;
+  padding: 8px 12px !important;
+  background: rgba(10, 15, 29, 0.7) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 10px !important;
+  box-sizing: border-box !important;
+  resize: vertical;
+}
+
+.td-remote-batch-textarea:focus {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2) !important;
+}
+
+.td-remote-batch-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.td-remote-batch-hint {
+  font-size: 0.73rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
 .td-remote-clear-btn {
   position: absolute;
   right: 11px;
@@ -25553,6 +25585,11 @@ button.td-confirm-icon.is-back-btn:active {
   }
 
   .td-remote-upload-panel .td-custom-filename-input {
+    padding: 6px 10px !important;
+  }
+
+  .td-remote-upload-panel .td-remote-batch-textarea {
+    min-height: 64px !important;
     padding: 6px 10px !important;
   }
 
