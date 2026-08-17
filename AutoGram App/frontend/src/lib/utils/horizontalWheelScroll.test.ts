@@ -7,19 +7,11 @@ import {
 
 describe('horizontalWheelScroll utility (node env compatible)', () => {
   let mockContainer: any;
-  let mockChild: any;
+  let mockButton: any;
+  let mockSvg: any;
+  let mockPath: any;
 
   beforeEach(() => {
-    mockChild = {
-      parentElement: null,
-      scrollWidth: 100,
-      clientWidth: 100,
-      scrollHeight: 40,
-      clientHeight: 40,
-      scrollLeft: 0,
-      dataset: {},
-    };
-
     mockContainer = {
       parentElement: null,
       scrollWidth: 600,
@@ -30,7 +22,25 @@ describe('horizontalWheelScroll utility (node env compatible)', () => {
       dataset: {},
     };
 
-    mockChild.parentElement = mockContainer;
+    mockButton = {
+      parentElement: mockContainer,
+      scrollWidth: 80,
+      clientWidth: 80,
+      scrollHeight: 36,
+      clientHeight: 36,
+      scrollLeft: 0,
+      dataset: {},
+    };
+
+    mockSvg = {
+      parentElement: mockButton,
+      dataset: {},
+    };
+
+    mockPath = {
+      parentElement: mockSvg,
+      dataset: {},
+    };
 
     // Mock window and getComputedStyle
     (globalThis as any).window = {
@@ -58,18 +68,28 @@ describe('horizontalWheelScroll utility (node env compatible)', () => {
     expect(isHorizontallyScrollable(mockContainer as any, -100)).toBe(true);
   });
 
-  it('finds closest horizontal scroll container from child target', () => {
-    const found = findHorizontalScrollContainer(mockChild as any, 50);
+  it('finds closest horizontal scroll container from button child target', () => {
+    const found = findHorizontalScrollContainer(mockButton as any, 50);
     expect(found).toBe(mockContainer);
   });
 
-  it('handles mouse wheel deltaY by scrolling scrollLeft', () => {
+  it('finds closest horizontal scroll container when hovering directly over an SVG icon (<svg>)', () => {
+    const found = findHorizontalScrollContainer(mockSvg as any, 50);
+    expect(found).toBe(mockContainer);
+  });
+
+  it('finds closest horizontal scroll container when hovering directly over an SVG path (<path>)', () => {
+    const found = findHorizontalScrollContainer(mockPath as any, 50);
+    expect(found).toBe(mockContainer);
+  });
+
+  it('handles mouse wheel deltaY when hovering over an SVG icon', () => {
     const initialScroll = mockContainer.scrollLeft;
     const preventDefault = vi.fn();
 
     const event = {
-      target: mockChild,
-      deltaY: 40,
+      target: mockPath,
+      deltaY: 60,
       deltaX: 0,
       deltaMode: 0,
       ctrlKey: false,
@@ -82,13 +102,13 @@ describe('horizontalWheelScroll utility (node env compatible)', () => {
 
     const handled = handleHorizontalWheel(event);
     expect(handled).toBe(true);
-    expect(mockContainer.scrollLeft).toBe(initialScroll + 40);
+    expect(mockContainer.scrollLeft).toBe(initialScroll + 60);
     expect(preventDefault).toHaveBeenCalled();
   });
 
   it('bypasses when shiftKey or ctrlKey is pressed', () => {
     const eventShift = {
-      target: mockChild,
+      target: mockPath,
       deltaY: 40,
       deltaX: 0,
       deltaMode: 0,
@@ -100,7 +120,7 @@ describe('horizontalWheelScroll utility (node env compatible)', () => {
     expect(handleHorizontalWheel(eventShift)).toBe(false);
 
     const eventCtrl = {
-      target: mockChild,
+      target: mockPath,
       deltaY: 40,
       deltaX: 0,
       deltaMode: 0,

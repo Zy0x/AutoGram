@@ -3,6 +3,7 @@
  * Translates vertical mouse wheel rotation (deltaY) into horizontal scrolling (scrollLeft)
  * when hovering over any horizontally scrollable container across the app.
  *
+ * Full support for HTML elements, SVG icons (<svg>, <path>), and nested controls.
  * Designed for mouse users without a trackpad / horizontal tilt wheel.
  */
 
@@ -60,22 +61,34 @@ export function isHorizontallyScrollable(el: HTMLElement, deltaY: number): boole
 
 /**
  * Finds the closest horizontally scrollable ancestor starting from target element.
+ * Seamlessly handles SVG elements (<svg>, <path>, <g>), buttons, spans, and HTML elements.
  */
 export function findHorizontalScrollContainer(target: EventTarget | null, deltaY: number): HTMLElement | null {
   if (!target) return null;
-  const isHtmlElement = typeof HTMLElement !== 'undefined'
-    ? target instanceof HTMLElement
-    : Boolean(target && typeof target === 'object' && 'scrollWidth' in target);
 
-  let curr: HTMLElement | null = isHtmlElement ? (target as HTMLElement) : null;
+  let curr: Element | null = null;
+  if (typeof Element !== 'undefined' && target instanceof Element) {
+    curr = target;
+  } else if (typeof Node !== 'undefined' && target instanceof Node) {
+    curr = target.parentElement;
+  } else if (target && typeof target === 'object' && 'parentElement' in target) {
+    curr = target as Element;
+  }
 
   while (curr) {
     if (typeof document !== 'undefined') {
       if (curr === document.body || curr === document.documentElement) break;
     }
-    if (isHorizontallyScrollable(curr, deltaY)) {
-      return curr;
+
+    if (
+      (typeof HTMLElement !== 'undefined' && curr instanceof HTMLElement) ||
+      (typeof (curr as any).scrollWidth === 'number' && typeof (curr as any).clientWidth === 'number')
+    ) {
+      if (isHorizontallyScrollable(curr as HTMLElement, deltaY)) {
+        return curr as HTMLElement;
+      }
     }
+
     curr = curr.parentElement;
   }
 

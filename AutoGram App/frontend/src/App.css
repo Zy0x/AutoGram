@@ -32154,3 +32154,21 @@ button.td-confirm-icon.is-back-btn:active {
 .settings-sidebar-tab {
   scroll-snap-align: none !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ICON POINTER-EVENTS TRANSPARENCY FOR HORIZONTAL WHEEL SCROLL
+   Ensures mouse wheel events over icons cleanly propagate to tab buttons
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-tools-sidebar-tab svg,
+.td-tools-sidebar-tab svg path,
+.settings-sidebar-tab svg,
+.settings-sidebar-tab svg path,
+.td-tools-dup-category svg,
+.td-tools-dup-category svg path,
+.td-topbar-actions svg,
+.td-topbar-actions svg path,
+.td-crumb-trail svg,
+.td-crumb-trail svg path {
+  pointer-events: none !important;
+}
