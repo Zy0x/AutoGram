@@ -326,6 +326,8 @@ export type DriveSortMode =
   | 'oldest'
   | 'name_asc'
   | 'name_desc'
+  | 'type_asc'
+  | 'type_desc'
   | 'size_desc'
   | 'size_asc';
 
@@ -362,6 +364,18 @@ export const DRIVE_SORT_OPTIONS: DriveSortOption[] = [
     description: 'Urut nama turun',
   },
   {
+    id: 'type_asc',
+    label: 'Tipe (A → Z)',
+    short: 'Tipe A–Z',
+    description: 'Urut berdasarkan tipe/format berkas',
+  },
+  {
+    id: 'type_desc',
+    label: 'Tipe (Z → A)',
+    short: 'Tipe Z–A',
+    description: 'Urut berdasarkan tipe/format berkas terbalik',
+  },
+  {
     id: 'size_desc',
     label: 'Ukuran terbesar',
     short: 'Terbesar',
@@ -383,15 +397,48 @@ export function isDriveSortMode(v: unknown): v is DriveSortMode {
     v === 'oldest' ||
     v === 'name_asc' ||
     v === 'name_desc' ||
+    v === 'type_asc' ||
+    v === 'type_desc' ||
     v === 'size_desc' ||
     v === 'size_asc'
   );
 }
 
-function fileTimeMs(f: DriveFile): number {
-  if (!f.created_at) return 0;
-  const t = Date.parse(f.created_at);
-  return Number.isFinite(t) ? t : 0;
+export function fileTimeMs(f: DriveFile): number {
+  const raw = f.created_at || (f as any).createdAt || (f as any).date;
+  if (raw != null) {
+    if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) {
+      return raw > 1e11 ? raw : raw * 1000;
+    }
+    if (typeof raw === 'string') {
+      const num = Number(raw);
+      if (Number.isFinite(num) && num > 0) {
+        return num > 1e11 ? num : num * 1000;
+      }
+      const parsed = Date.parse(raw);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return (f.id || 0) * 1000;
+}
+
+export function getFileSortType(f: DriveFile): string {
+  if (f.icon_type === 'folder') return ' 00_folder';
+  if (f.icon_type === 'link') return ' 01_link';
+  const ext = (f.file_ext || f.name?.split('.').pop() || '').toLowerCase();
+  const icon = (f.icon_type || '').toLowerCase();
+  const mime = (f.mime_type || '').toLowerCase();
+
+  if (icon === 'video' || mime.startsWith('video/')) return `video_${ext || 'mp4'}`;
+  if (icon === 'image' || icon === 'photo' || mime.startsWith('image/')) return `image_${ext || 'jpg'}`;
+  if (icon === 'audio' || icon === 'voice' || mime.startsWith('audio/')) return `audio_${ext || 'mp3'}`;
+  if (['zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz', 'iso'].includes(ext)) return `archive_${ext}`;
+  if (ext === 'pdf' || mime === 'application/pdf') return 'doc_pdf';
+  if (['doc', 'docx', 'txt', 'rtf', 'odt'].includes(ext)) return `doc_${ext}`;
+  if (['xls', 'xlsx', 'csv'].includes(ext)) return `sheet_${ext}`;
+  if (['ppt', 'pptx'].includes(ext)) return `presentation_${ext}`;
+  if (['exe', 'msi', 'apk', 'dmg'].includes(ext)) return `app_${ext}`;
+  return ext ? `ext_${ext}` : 'zzz_unknown';
 }
 
 /**
@@ -446,6 +493,11 @@ const DRIVE_NAME_COLLATOR = new Intl.Collator(undefined, {
 /** Compare two files for the given sort preset (stable ties via message id). */
 export function compareDriveFiles(a: DriveFile, b: DriveFile, mode: DriveSortMode): number {
   let c = 0;
+  const nameA = driveFileDisplayName(a);
+  const nameB = driveFileDisplayName(b);
+  const sizeA = Number(a.size) || 0;
+  const sizeB = Number(b.size) || 0;
+
   switch (mode) {
     case 'newest':
       c = fileTimeMs(b) - fileTimeMs(a);
@@ -456,19 +508,29 @@ export function compareDriveFiles(a: DriveFile, b: DriveFile, mode: DriveSortMod
       if (c === 0) c = (a.id || 0) - (b.id || 0);
       return c;
     case 'name_asc':
-      c = DRIVE_NAME_COLLATOR.compare(a.name, b.name);
+      c = DRIVE_NAME_COLLATOR.compare(nameA, nameB);
       if (c === 0) c = (b.id || 0) - (a.id || 0);
       return c;
     case 'name_desc':
-      c = DRIVE_NAME_COLLATOR.compare(b.name, a.name);
+      c = DRIVE_NAME_COLLATOR.compare(nameB, nameA);
+      if (c === 0) c = (b.id || 0) - (a.id || 0);
+      return c;
+    case 'type_asc':
+      c = DRIVE_NAME_COLLATOR.compare(getFileSortType(a), getFileSortType(b));
+      if (c === 0) c = DRIVE_NAME_COLLATOR.compare(nameA, nameB);
+      if (c === 0) c = (b.id || 0) - (a.id || 0);
+      return c;
+    case 'type_desc':
+      c = DRIVE_NAME_COLLATOR.compare(getFileSortType(b), getFileSortType(a));
+      if (c === 0) c = DRIVE_NAME_COLLATOR.compare(nameA, nameB);
       if (c === 0) c = (b.id || 0) - (a.id || 0);
       return c;
     case 'size_desc':
-      c = (b.size || 0) - (a.size || 0);
+      c = sizeB - sizeA;
       if (c === 0) c = (b.id || 0) - (a.id || 0);
       return c;
     case 'size_asc':
-      c = (a.size || 0) - (b.size || 0);
+      c = sizeA - sizeB;
       if (c === 0) c = (b.id || 0) - (a.id || 0);
       return c;
     default:

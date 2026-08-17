@@ -192,6 +192,7 @@ export function DriveExplorer({
     };
   }
   const [width, setWidth] = useState(800);
+  const listContainerRef = useRef<HTMLDivElement>(null);
 
   // Resizable column widths with localStorage persistence
   const [colWidths, setColWidths] = useState<typeof DEFAULT_COL_WIDTHS>(() => {
@@ -214,35 +215,44 @@ export function DriveExplorer({
 
       const startX = e.clientX;
       const startWidth = colWidths[col];
+      const container = listContainerRef.current;
 
       const minLimits: Record<ColKey, number> = {
-        name: 140,
-        date: 110,
-        type: 80,
-        size: 70,
+        name: 160,
+        date: 120,
+        type: 90,
+        size: 75,
       };
       const maxLimits: Record<ColKey, number> = {
-        name: 900,
-        date: 360,
-        type: 280,
-        size: 240,
+        name: 1200,
+        date: 400,
+        type: 320,
+        size: 260,
       };
+
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+
+      let currentWidth = startWidth;
 
       const handlePointerMove = (moveEvent: PointerEvent) => {
         const delta = moveEvent.clientX - startX;
-        const newWidth = Math.max(minLimits[col], Math.min(maxLimits[col], startWidth + delta));
-        setColWidths((prev) => ({ ...prev, [col]: newWidth }));
+        currentWidth = Math.max(minLimits[col], Math.min(maxLimits[col], startWidth + delta));
+        if (container) {
+          container.style.setProperty(`--td-col-${col}`, `${currentWidth}px`);
+        }
       };
 
-      const handlePointerUp = (upEvent: PointerEvent) => {
+      const handlePointerUp = () => {
         window.removeEventListener('pointermove', handlePointerMove);
         window.removeEventListener('pointerup', handlePointerUp);
         window.removeEventListener('pointercancel', handlePointerUp);
 
-        const delta = upEvent.clientX - startX;
-        const finalWidth = Math.max(minLimits[col], Math.min(maxLimits[col], startWidth + delta));
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+
         setColWidths((prev) => {
-          const next = { ...prev, [col]: finalWidth };
+          const next = { ...prev, [col]: currentWidth };
           try {
             localStorage.setItem('autogram_list_col_widths', JSON.stringify(next));
           } catch {
@@ -252,7 +262,7 @@ export function DriveExplorer({
         });
       };
 
-      window.addEventListener('pointermove', handlePointerMove);
+      window.addEventListener('pointermove', handlePointerMove, { passive: true });
       window.addEventListener('pointerup', handlePointerUp);
       window.addEventListener('pointercancel', handlePointerUp);
     },
@@ -260,12 +270,14 @@ export function DriveExplorer({
   );
 
   const handleHeaderSortClick = useCallback(
-    (col: 'name' | 'date' | 'size') => {
+    (col: 'name' | 'date' | 'type' | 'size') => {
       if (!onSortMode) return;
       if (col === 'name') {
         onSortMode(sortMode === 'name_asc' ? 'name_desc' : 'name_asc');
       } else if (col === 'date') {
         onSortMode(sortMode === 'newest' ? 'oldest' : 'newest');
+      } else if (col === 'type') {
+        onSortMode(sortMode === 'type_asc' ? 'type_desc' : 'type_asc');
       } else if (col === 'size') {
         onSortMode(sortMode === 'size_desc' ? 'size_asc' : 'size_desc');
       }
@@ -1042,11 +1054,13 @@ export function DriveExplorer({
 
       {displayed.length > 0 && viewMode === 'list' && (
         <div
+          ref={listContainerRef}
           className="td-list td-list-virtual"
           style={
             {
-              height: listVirtualizer.getTotalSize() + LIST_HEAD_H + LIST_PAD_TOP + LIST_PAD_BOTTOM,
+              height: listVirtualizer.getTotalSize() + LIST_HEAD_H + LIST_PAD_BOTTOM,
               position: 'relative',
+              width: '100%',
               '--td-col-icon': '36px',
               '--td-col-name': `${colWidths.name}px`,
               '--td-col-date': `${colWidths.date}px`,
@@ -1058,7 +1072,7 @@ export function DriveExplorer({
           <div
             className="td-list-head"
             role="row"
-            style={{ top: LIST_PAD_TOP }}
+            style={{ top: 0 }}
           >
             <div className="td-list-ico" />
             
@@ -1102,11 +1116,14 @@ export function DriveExplorer({
 
             {/* 3. Type Column */}
             <div
-              className="td-col-header td-list-type"
+              className={`td-col-header td-list-type${sortMode.startsWith('type_') ? ' is-sorted' : ''}`}
               role="columnheader"
+              onClick={() => handleHeaderSortClick('type')}
               title={t('speedtest.col_type')}
             >
               <span className="td-col-header-text">{t('speedtest.col_type')}</span>
+              {sortMode === 'type_asc' && <ArrowUp size={12} className="td-col-sort-icon" />}
+              {sortMode === 'type_desc' && <ArrowDown size={12} className="td-col-sort-icon" />}
               <div
                 className="td-col-resizer"
                 role="separator"
@@ -1148,7 +1165,7 @@ export function DriveExplorer({
                   }}
                   style={{
                     position: 'absolute',
-                    top: v.start + LIST_HEAD_H + LIST_PAD_TOP,
+                    top: v.start + LIST_HEAD_H,
                     left: 0,
                     width: '100%',
                     padding: '6px 16px',
@@ -1269,7 +1286,7 @@ export function DriveExplorer({
                 data-display-index={v.index}
                 style={{
                   position: 'absolute',
-                  top: v.start + LIST_HEAD_H + LIST_PAD_TOP,
+                  top: v.start + LIST_HEAD_H,
                   left: 0,
                   width: '100%',
                   height: v.size,

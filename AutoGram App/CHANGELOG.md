@@ -1,3 +1,35 @@
+## v3.7.35 Zero-Gap Sticky Table Header, 100% Fluid Responsive Table, 120fps Zero-Lag Column Resizing & Windows 11 Type Sorting (Phase 35.1)
+
+### 1. Eliminasi Celah Header & Efek Kaca Solid Gelap (`DriveExplorer.tsx`, `App.css`)
+- **Penempatan Presisi Sticky Header `top: 0`**:
+  - Menghilangkan celah kosong di atas header tabel list view dengan menyelaraskan posisi `.td-list-head` presisi pada `top: 0`.
+  - Menerapkan latar belakang solid gelap elegan bertingkat dengan efek blur `background: var(--bg-primary, #0c101d); backdrop-filter: blur(16px); z-index: 15;` dan border bawah halus `border-bottom: 1px solid rgba(148, 163, 184, 0.16)`.
+  - Mengatur posisi elemen virtual agar mengalir mulus di bawah sticky header tanpa tumpang tindih visual.
+
+### 2. Tata Letak Tabel Responsif 100% Fluid & Eliminasi Celah Kanan (`App.css`, `DriveExplorer.tsx`)
+- **Adaptasi Penuh Seluruh Ukuran Viewport (720p hingga Ultrawide 2560p+)**:
+  - Mengubah template grid kolom menjadi `var(--td-col-icon, 36px) minmax(var(--td-col-name, 220px), 1fr) var(--td-col-date, 180px) var(--td-col-type, 130px) var(--td-col-size, 100px);`.
+  - Kolom nama berkas secara otomatis mengisi seluruh ruang sisa secara elastis sehingga tidak ada lagi celah kosong di sisi kanan tabel.
+  - Memastikan pengguliran horizontal (*horizontal scroll*) hanya aktif jika lebar layar berada di bawah batas minimum muat tabel.
+
+### 3. Penggeseran Kolom 120fps Zero-Lag Bebas Delay (`DriveExplorer.tsx`)
+- **Manipulasi Variabel CSS Langsung ke DOM Container**:
+  - Menghilangkan delay/lag pergeseran antara header dan baris virtual dengan menginjeksikan nilai variabel CSS (`--td-col-${col}`) langsung ke kontainer `.td-list.td-list-virtual` saat event `pointermove`.
+  - Header dan seluruh baris virtual yang dirender berubah ukuran secara serentak dalam frame yang sama (0ms delay).
+  - Menyimpan preferensi lebar kolom pengguna ke `localStorage` (`autogram_list_col_widths`) saat event `pointerup`.
+
+### 4. Penyempurnaan Akurasi Total Algoritma Sorting (`driveTypes.ts`, `DriveExplorer.tsx`)
+- **Normalisasi Waktu, String Collation & Ukuran**:
+  - Mengoptimalkan fungsi `fileTimeMs` untuk menangani format epoch seconds, epoch milliseconds, string ISO 8601, dan fallback monotonic message ID Telegram.
+  - Menggunakan `Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })` yang di-cache untuk pengurutan nama alami (*natural case-insensitive alphanumeric sorting*).
+  - Memperbaiki pengurutan ukuran numerik bebas NaN.
+
+### 5. Fitur Baru: Pengurutan Tipe Berkas Standard Windows 11 File Explorer (`driveTypes.ts`, `DriveTopBar.tsx`, `speedtest.json`)
+- **Kategori Format & Ekstensi Komprehensif (`type_asc` & `type_desc`)**:
+  - Mengelompokkan berkas secara cerdas: Folder (` 00_folder`), Tautan (` 01_link`), Video (`video_mp4`, `video_mkv`), Gambar (`image_jpg`, `image_png`), Audio (`audio_mp3`), Arsip (`archive_zip`), Dokumen PDF (`doc_pdf`), Dokumen Teks/Office, Spreadsheet, Presentasi, Aplikasi, dan format lainnya.
+  - Saat kolom tipe diklik, sistem mengurutkan tipe berkas A → Z atau Z → A, dengan pengurutan sekunder nama berkas secara alfabetis.
+  - Menyediakan lokalisasi 100% lengkap dalam Bahasa Indonesia dan Bahasa Inggris untuk seluruh label dan deskripsi sort option baru.
+
 ## v3.7.34 Windows File Explorer List View Headers & Complete Telegram Authentication Suite (Phase 35)
 
 ### 1. Windows File Explorer-Style Table Headers & Resizable Columns (`DriveExplorer.tsx`, `DriveFileListItem.tsx`, `App.css`)

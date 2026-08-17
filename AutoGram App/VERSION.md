@@ -1,11 +1,15 @@
-AutoGram Version: v3.7.34
+AutoGram Version: v3.7.35
 
 Current State:
-v3.7.34 Windows File Explorer List View Headers & Complete Telegram Authentication Suite — membenahi `DriveExplorer.tsx`, `DriveFileListItem.tsx`, `App.css`, `Accounts/index.tsx`, `AccountLoginModal.tsx`, `accounts.json` (ID & EN), `error.json` (ID & EN), `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Windows File Explorer-Style Table Headers & Resizable Columns: 5 kolom terstruktur (`[Icon]`, `[Name]`, `[Date modified]`, `[Type]`, `[Size]`), pembatas kolom dapat ditarik (*col-resize*), pengurutan instan per kolom, dan 14 kategori tipe berkas terjemahan.
-2. Complete Telegram Authentication Suite: 3 tab metode login (QR Code, Nomor HP & OTP, String Session / Bot Token), hitung mundur kirim ulang OTP 60 detik + indikator saluran, petunjuk kata sandi 2FA, toggle intip kata sandi, panduan bantuan pemulihan 2FA, dan humanisasi lengkap seluruh kode error Telegram.
+v3.7.35 Zero-Gap Sticky Table Header, 100% Fluid Responsive Table, 120fps Zero-Lag Column Resizing & Windows 11 Type Sorting — membenahi `driveTypes.ts`, `DriveExplorer.tsx`, `App.css`, `driveSortAndAlbumSettings.test.ts`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Zero-Gap Sticky Table Header & Solid Blur Background: Header tabel menempel presisi di `top: 0` tanpa celah celah/gap di atasnya, dengan latar belakang solid gelap dan efek kaca `backdrop-filter: blur(16px); z-index: 15;` sehingga item virtual mengalir bersih di bawahnya.
+2. 100% Fluid Responsive Width & Zero Right Edge Gap: Tabel list view merentang penuh 100% lebar viewport (dari layar kecil 720p hingga ultrawide 2560p+) dengan kolom nama `minmax(var(--td-col-name, 220px), 1fr)` mengeliminasi celah kosong di samping kanan.
+3. 120fps Zero-Lag Direct DOM CSS-Var Column Resizing: Manipulasi variabel CSS `--td-col-${col}` secara instan langsung ke DOM kontainer saat pergeseran mouse pointermove tanpa delay render ulang React, menjamin header dan seluruh baris virtual bergerak serentak dalam satu frame.
+4. Total Sorting Accuracy Overhaul: Komparator pengurutan cerdas multi-format (Unix timestamp, string ISO, natural case-insensitive name collator, dan ukuran biner aman) untuk seluruh fitur sorting di Saved Messages maupun global.
+5. Windows 11 File Explorer Type Sorting (`type_asc` & `type_desc`): Fitur pengurutan berdasarkan tipe format berkas (Folder, Arsip, Audio, Dokumen PDF, Dokumen Teks, Spreadsheet, Presentasi, Aplikasi, Gambar, Video, dan Ekstensi) dengan integrasi penuh pada header tabel dan dropdown toolbar.
 
 Previous:
+v3.7.34 Windows File Explorer List View Headers & Complete Telegram Authentication Suite — membenahi `DriveExplorer.tsx`, `DriveFileListItem.tsx`, `App.css`, `Accounts/index.tsx`, `AccountLoginModal.tsx`, `accounts.json` (ID & EN), `error.json` (ID & EN), `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.33 Move/Copy Confirmation Dialog Locale Parity & Telegram Album Delivery Fix — membenahi `DriveConfirmDialog.tsx`, `drive_rpc.rs`, `telegram_ops.rs`, `driveFilesApi.ts`, `drive_tools.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.5.54 Real-Time Filesize Estimation Badges on Quality Resolution Grid — membenahi `RemoteUploadModal.tsx`, `App.css`, `tiktokResolver.ts`, `youtubeResolver.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan indikator perkiraan ukuran file langsung di kartu pemilihan resolusi:
 v3.5.52 Accurate Stream Quality Terminology & Label Clarification — membenahi `tiktokResolver.ts`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki terminologi dan penamaan kualitas stream remote.

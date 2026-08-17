@@ -23,6 +23,8 @@ describe('Drive global sort contracts', () => {
     oldest: [10, 20, 30],
     name_asc: [10, 20, 30],
     name_desc: [30, 20, 10],
+    type_asc: [10, 20, 30],
+    type_desc: [10, 20, 30],
     size_desc: [30, 20, 10],
     size_asc: [10, 20, 30],
   };
@@ -35,6 +37,24 @@ describe('Drive global sort contracts', () => {
         .toEqual(expected[mode]);
     });
   }
+
+  it('correctly sorts different file types like Windows 11 File Explorer', () => {
+    const mixedFiles: DriveFile[] = [
+      { id: 1, name: 'Report.pdf', file_ext: 'pdf', icon_type: 'document' },
+      { id: 2, name: 'Backup.zip', file_ext: 'zip', icon_type: 'archive' },
+      { id: 3, name: 'Photo.png', file_ext: 'png', icon_type: 'image' },
+      { id: 4, name: 'Folder A', icon_type: 'folder' },
+      { id: 5, name: 'Music.mp3', file_ext: 'mp3', icon_type: 'audio' },
+      { id: 6, name: 'Video.mp4', file_ext: 'mp4', icon_type: 'video' },
+    ] as DriveFile[];
+
+    const sortedAsc = filterAndSortDriveFiles(mixedFiles, { sortMode: 'type_asc' });
+    // Folders come first ( 00_folder), then archives, audio, doc_pdf, image, video
+    expect(sortedAsc.map((f) => f.id)).toEqual([4, 2, 5, 1, 3, 6]);
+
+    const sortedDesc = filterAndSortDriveFiles(mixedFiles, { sortMode: 'type_desc' });
+    expect(sortedDesc.map((f) => f.id)).toEqual([6, 3, 1, 5, 2, 4]);
+  });
 });
 
 describe('album and Telegram grid settings', () => {
