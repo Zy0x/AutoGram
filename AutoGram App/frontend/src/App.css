@@ -32510,3 +32510,122 @@ button.td-confirm-icon.is-back-btn:active {
   box-sizing: border-box !important;
   padding-bottom: 24px !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MODERN STITCH ACTION BAR REDESIGN (RESET SUB-MENU & DONE BUTTONS)
+   Ultra-compact, space-efficient, non-blocking inline footer across all viewports
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-xfer-focused-panel {
+  padding-bottom: 8px !important;
+}
+
+.td-xfer-footer {
+  position: static !important;
+  margin-top: 16px !important;
+  margin-bottom: 6px !important;
+  padding: 12px 0 4px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.07) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+}
+
+.td-xfer-footer .td-footer-right {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+/* Modern Stitch Reset Sub-menu Button */
+.td-xfer-footer button.td-chip-btn:not(.td-chip-primary) {
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 12px !important;
+  font-size: 0.78rem !important;
+  font-weight: 500 !important;
+  color: #38bdf8 !important;
+  background: rgba(56, 189, 248, 0.07) !important;
+  border: 1px solid rgba(56, 189, 248, 0.22) !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  cursor: pointer !important;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-sizing: border-box !important;
+}
+
+.td-xfer-footer button.td-chip-btn:not(.td-chip-primary):hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.15) !important;
+  border-color: rgba(56, 189, 248, 0.45) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.15) !important;
+}
+
+.td-xfer-footer button.td-chip-btn:not(.td-chip-primary):disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Modern Stitch Done / Close Primary Button */
+.td-xfer-footer button.td-chip-btn.td-chip-primary {
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 16px !important;
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  cursor: pointer !important;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25) !important;
+  box-sizing: border-box !important;
+}
+
+.td-xfer-footer button.td-chip-btn.td-chip-primary:hover {
+  background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%) !important;
+  border-color: rgba(56, 189, 248, 0.6) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4) !important;
+}
+
+/* Mobile & Compact Screen Responsive Layout (<= 600px) */
+@media (max-width: 600px) {
+  .td-xfer-footer {
+    margin-top: 12px !important;
+    padding: 10px 0 2px !important;
+  }
+  
+  .td-xfer-footer .td-footer-right {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .td-xfer-footer button.td-chip-btn:not(.td-chip-primary),
+  .td-xfer-footer button.td-chip-btn.td-chip-primary {
+    width: 100% !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    font-size: 0.8rem !important;
+  }
+}
