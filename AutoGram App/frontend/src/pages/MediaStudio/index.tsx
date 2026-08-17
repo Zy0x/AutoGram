@@ -2593,19 +2593,29 @@ function MediaDriveDesktop({
       setTotalBytes(null);
       setFilesHasMore(false);
       setNextOffsetId(null);
-      // Fast Stale-While-Revalidate: load IndexedDB records immediately for 0ms paint
-      const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
-      void getMediaPageByContext(mediaContext, 'newest', 0, 100)
-        .then((dbRecords: MediaRecord[]) => {
-          if (gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey && dbRecords && dbRecords.length > 0) {
-            let filtered = dbRecords;
+      // Fast Stale-While-Revalidate: load IndexedDB deep snapshot immediately for 0ms paint
+      const tid = topicFilterRef.current;
+      void loadDeepIndexSnapshot(creds.session, peerId, tid)
+        .then((snapshot) => {
+          if (gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey && snapshot && snapshot.files.length > 0) {
+            let filtered = snapshot.files;
             if (tid != null && tid > 0) {
-              filtered = dbRecords.filter((r: any) => Number(r.topic_id ?? r.topicId) === Number(tid));
+              filtered = snapshot.files.filter((r: any) => Number(r.topic_id ?? r.topicId) === Number(tid));
             }
             if (filtered.length > 0) {
               const deduped = dedupeByMsgId(filtered);
               setFiles(deduped);
               filesCacheRef.current.set(cacheKey, deduped);
+              setFilesHasMore(snapshot.hasMore);
+              setNextOffsetId(snapshot.nextOffsetId);
+              if (snapshot.totalCount != null) {
+                setTotalFileCount(snapshot.totalCount);
+                filesTotalCountRef.current.set(cacheKey, snapshot.totalCount);
+              }
+              if (snapshot.totalBytes != null) {
+                setTotalBytes(snapshot.totalBytes);
+                filesTotalBytesRef.current.set(cacheKey, snapshot.totalBytes);
+              }
               setLoadingFiles(false);
             }
           }
@@ -3322,13 +3332,34 @@ function MediaDriveDesktop({
         await new Promise((r) => setTimeout(r, delayMs));
       }
 
-      // Final flush of accumulated files
+      // Final flush of accumulated files & persist deep index snapshot
       if (accumulatedNewFiles.length > 0) {
         setFiles((prev) => {
           if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
           const seen = new Set(prev.map((f) => f.id));
-          return [...prev, ...accumulatedNewFiles.filter((f) => !seen.has(f.id))];
+          const merged = [...prev, ...accumulatedNewFiles.filter((f) => !seen.has(f.id))];
+          if (creds?.session) {
+            void saveDeepIndexSnapshot(creds.session, peerId, tid, {
+              files: merged,
+              hasMore: filesHasMoreRef.current,
+              nextOffsetId: nextOffsetIdRef.current,
+              totalCount: totalFileCount || initialTotal || merged.length,
+              totalBytes: totalBytes || null,
+            }).catch(() => {});
+          }
+          return merged;
         });
+      } else {
+        const curFiles = liveFilesRef.current;
+        if (curFiles.length > 0 && creds?.session) {
+          void saveDeepIndexSnapshot(creds.session, peerId, tid, {
+            files: curFiles,
+            hasMore: filesHasMoreRef.current,
+            nextOffsetId: nextOffsetIdRef.current,
+            totalCount: totalFileCount || initialTotal || curFiles.length,
+            totalBytes: totalBytes || null,
+          }).catch(() => {});
+        }
       }
     } catch (err: any) {
       console.warn('[Indexer] Adaptive background indexer caught error:', err);

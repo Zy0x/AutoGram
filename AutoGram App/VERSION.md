@@ -1,12 +1,13 @@
-AutoGram Version: v3.7.43
+AutoGram Version: v3.7.44
 
 Current State:
-v3.7.43 All-in-One Compact Smart Sort Pill-Chip with Internal Fluid Load-Fill Progress — membenahi `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. All-in-One Smart Pill-Chip: Menggabungkan seluruh fungsi pengindeksan ke dalam satu Pill-Chip ramping di samping dropdown sortir, dengan internal load-fill progress bar dinamis (`0% -> 100%`) dan animasi linear shimmer wave.
-2. Complete Viewport Freedom: Menghapus kartu overlay pojok kanan atas yang redundan sehingga area explorer dan file list 100% lapang, bersih, dan bebas hambatan visual.
-3. Integrated Micro-Controls & Live Speedometer: Tombol Pause/Resume (`[⏸️]` / `[▶️]`) dan Stop (`[✕]`) terpadu langsung di ujung kanan chip dengan indikator kecepatan live (`⚡ 903/s`) dan transisi status dijeda beraksen amber.
+v3.7.44 Persistent Deep-Index Cache Database, Gapless Monotonic Reconciliation & Instant 0ms Paint — membenahi `driveLiveSync.ts`, `driveLiveSync.test.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Persistent Deep-Index Snapshot DB: Menyimpan seluruh hasil pengindeksan parsial maupun lengkap ke IndexedDB `deepIndex` store secara otomatis dan aman (idempotent).
+2. Instant 0ms Location Revisit: Saat berpindah folder atau membuka kembali aplikasi, ribuan berkas yang telah terindeks langsung tampil seketika (0ms) tanpa menunggu request jaringan Telegram.
+3. Gapless Head-Tail Reconciliation Engine: Menggabungkan jendela pesan terbaru dari server dengan riwayat deep-index tersimpan tanpa menghilangkan data lama (*tail retention*), membuang ID yang telah terhapus, dan menyisipkan berkas baru secara mulus.
 
 Previous:
+v3.7.43 All-in-One Compact Smart Sort Pill-Chip with Internal Fluid Load-Fill Progress — membenahi `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.42 High-Legibility Balanced Card Text Contrast & Bottom Gradient Refinement — membenahi `App.css`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.41 Adaptive Multi-Tier Indexing Engine, Dynamic Flood-Shield & Real-Time Performance Dashboard — membenahi `adaptiveIndexer.ts`, `adaptiveIndexer.test.ts`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.40 Interactive Top-Right Glassmorphic Indexing Progress Card & Fluid Shimmer Load-Fill Bar — membenahi `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.

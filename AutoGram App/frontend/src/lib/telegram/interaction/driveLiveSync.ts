@@ -53,12 +53,9 @@ export function reconcileDriveLiveHead(
   if (opts?.knownDeletedIds && opts.knownDeletedIds.length) {
     previous = purgeDeletedMsgIds(previous, opts.knownDeletedIds);
   }
-  // On explicit location refresh (bypassing cache), trust the live head page from Telegram
-  if (opts?.isExplicitRefresh && liveHead.length > 0) {
-    return dedupeByMsgId(liveHead);
-  }
-  if (!serverHasMore) return dedupeByMsgId(liveHead);
   if (!liveHead.length) return dedupeByMsgId(previous);
+  if (!serverHasMore && previous.length <= liveHead.length) return dedupeByMsgId(liveHead);
+
   const liveIds = new Set(liveHead.map((file) => file.id));
   const oldestLiveId = Math.min(...liveHead.map((file) => file.id));
   const retainedTail = previous.filter(

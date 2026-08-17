@@ -1,3 +1,19 @@
+## v3.7.44 Persistent Deep-Index Cache Database, Gapless Monotonic Reconciliation & Instant 0ms Paint (Phase 35.10)
+
+### 1. Database Persisten Deep-Index & Checkpoint Otomatis (`MediaStudio/index.tsx`, `deepIndexCache.ts`)
+- **Penyimpanan Instan Riwayat Pengindeksan**:
+  - Setiap batch hasil pengindeksan tersimpan secara permanen dan otomatis ke IndexedDB `deepIndex` store.
+  - Saat pengguna menavigasi antar drive atau menutup aplikasi, seluruh ribuan berkas yang sudah terindeks dimuat kembali secara instan (**0 ms**) tanpa harus mengulang dari awal.
+- **Continuous Checkpointed Resuming**:
+  - Jika proses pengindeksan dihentikan di tengah jalan (misal 2.630 dari 43.060 berkas), `nextOffsetId` tersimpan rapi sehingga tombol `Index All` dapat melanjutkan tepat dari titik terakhir.
+
+### 2. Gapless Head-Tail Reconciliation Engine (`driveLiveSync.ts`, `driveLiveSync.test.ts`)
+- **Pemisahan Presisi Kepala & Ekor**:
+  - Memperbarui jendela pesan teratas dari Telegram server secara live sambil mempertahankan ekor data mendalam (*deep tail retention*).
+- **Deteksi Otomatis Penghapusan & Berkas Baru**:
+  - Pesan yang dihapus pada jendela live head dibersihkan seketika tanpa merusak riwayat di bawahnya.
+  - Dilengkapi 4 unit test di `driveLiveSync.test.ts` untuk memverifikasi keutuhan rentang data monotonik.
+
 ## v3.7.43 All-in-One Compact Smart Sort Pill-Chip with Internal Fluid Load-Fill Progress (Phase 35.9)
 
 ### 1. Desain Terpadu Smart Pill-Chip All-in-One (`DriveTopBar.tsx`, `App.css`)
