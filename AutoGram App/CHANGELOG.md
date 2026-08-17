@@ -1,3 +1,23 @@
+## v3.7.41 Adaptive Multi-Tier Indexing Engine, Dynamic Flood-Shield & Real-Time Performance Dashboard (Phase 35.7)
+
+### 1. Engine Pengindeksan Adaptif Bertingkat (*Multi-Tier Indexing Engine*) (`adaptiveIndexer.ts`, `adaptiveIndexer.test.ts`, `MediaStudio/index.tsx`)
+- **Deteksi Skala Otomatis (Taraf 1 s/d Taraf 5)**:
+  - Mengelompokkan beban kerja ke dalam 5 taraf: *Micro* ($< 1.5\text{k}$), *Medium* ($1.5\text{k} - 15\text{k}$), *Massive* ($15\text{k} - 100\text{k}$), *Colossal* ($100\text{k} - 500\text{k}$), dan *Galactic* ($> 500\text{k}$).
+  - Menerapkan *2-Phase Pipeline* pada Taraf Masif/Kolosal: Fase 1 ($< 2.000$ item) berjalan cepat pada jeda $25\text{ms}$ untuk mengisi *viewport* seketika, dilanjutkan Fase 2 dengan jeda stabil $60\text{ms}$ + persistensi database bertahap.
+  - Menerapkan *Micro-Breath Pausing* ($200\text{ms}$ per $5.000$ item) pada taraf kolosal untuk merelaksasi socket MTProto Telegram.
+
+### 2. Dashboard Metrik Performa Real-Time & Live ETA (`MediaStudio/index.tsx`, `App.css`)
+- **Indikator Kecepatan & Estimasi Waktu Selesai**:
+  - Menghitung kecepatan pemindaian secara langsung dalam satuan pesan per detik (contoh: `⚡ 1.098 berkas/dtk`).
+  - Menampilkan estimasi waktu selesai yang akurat (contoh: `⏱️ ~39s tersisa` / `⏱️ ~1m 15s tersisa`).
+  - Menampilkan badge taraf aktif (contoh: `TARAF MASIF` / `MASSIVE TIER`).
+
+### 3. Kontrol Jeda/Lanjutkan & Render Debouncing 60 FPS (`MediaStudio/index.tsx`, `App.css`)
+- **Interactive Pause / Resume (`[⏸️]` / `[▶️]`)**:
+  - Memungkinkan pengguna menjeda sementara dan melanjutkan proses pengindeksan kapan saja.
+- **Debounced Table Rendering**:
+  - Sinkronisasi daftar tabel berkas ke React state di-*throttle* per $250\text{ms}$ agar CPU browser tetap dingin dan rendering UI desktop stabil pada 60/120 FPS.
+
 ## v3.7.40 Interactive Top-Right Glassmorphic Indexing Progress Card & Fluid Shimmer Load-Fill Bar (Phase 35.6)
 
 ### 1. Kartu Overlay Progres Pengindeksan Pojok Kanan Atas (`MediaStudio/index.tsx`, `App.css`)

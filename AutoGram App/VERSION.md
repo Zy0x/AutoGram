@@ -1,12 +1,13 @@
-AutoGram Version: v3.7.40
+AutoGram Version: v3.7.41
 
 Current State:
-v3.7.40 Interactive Top-Right Glassmorphic Indexing Progress Card & Fluid Shimmer Load-Fill Bar — membenahi `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Top-Right Glassmorphic Indexing Progress Card: Menghadirkan kembali dan memodernisasi overlay kartu progres pengindeksan di pojok kanan atas explorer (`.td-sort-index-card`) dengan efek blur glassmorphism, border aksen cyan bercahaya, dan animasi slide-in halus.
-2. Fluid Shimmer Load-Fill Progress Bar: Bar kemajuan gradien dinamis (`#38bdf8` -> `#818cf8` -> `#3b82f6`) dengan animasi shimmer linier, menghitung persentase presisi serta menampilkan jumlah berkas dan persentase secara real-time.
-3. Dual Interactive Stop Controls: Pengguna dapat membatalkan atau menghentikan pengindeksan kapan saja baik melalui tombol silang (`✕`) pada kartu overlay pojok kanan atas maupun melalui chip di topbar.
+v3.7.41 Adaptive Multi-Tier Indexing Engine, Dynamic Flood-Shield & Real-Time Performance Dashboard — membenahi `adaptiveIndexer.ts`, `adaptiveIndexer.test.ts`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Adaptive Multi-Tier Engine (Tiers 1-5): Pengindeksan cerdas berbasis skala data secara dinamis mengalokasikan strategi delay (15ms untuk Micro hingga 2-Phase Viewport Pipeline untuk Massive/Colossal) menyesuaikan ukuran drive/topik (<1.5k s/d >500k+ file).
+2. Real-Time Performance Metrics & Dynamic ETA: Menghitung kecepatan pemindaian pesan secara live (`⚡ 1.098 berkas/dtk`), perkiraan waktu selesai presisi (`⏱️ ~39s tersisa`), serta badge indikator taraf aktif (`TARAF MASIF` / `MASSIVE TIER`).
+3. Interactive Pause/Resume & Debounced Table Rendering: Kontrol jeda/lanjutkan instan (`[⏸️]` / `[▶️]`) dan pembaruan render tabel 250ms debounced untuk menjamin 60fps tanpa frame-drop.
 
 Previous:
+v3.7.40 Interactive Top-Right Glassmorphic Indexing Progress Card & Fluid Shimmer Load-Fill Bar — membenahi `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.39 Real-Time Live Indexing Progress Indicator & Interactive Stop Control — membenahi `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.38 Floating Top-Item Notification Pill, Anchor Scroll Retention & Safe Background Metadata Indexer — membenahi `DriveExplorer.tsx`, `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.37 Per-Location Sort Isolation & Default Newest First Across All Drives — membenahi `MediaStudio/index.tsx`, `driveSortAndAlbumSettings.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.

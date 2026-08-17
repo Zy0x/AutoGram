@@ -28,7 +28,13 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import { HardDrive, Upload, Scissors, Copy, ClipboardPaste, X, Sparkles } from 'lucide-react';
+import { HardDrive, Upload, Scissors, Copy, ClipboardPaste, X, Sparkles, Pause, Play } from 'lucide-react';
+import {
+  determineIndexingTier,
+  getAdaptiveDelay,
+  calculateIndexingMetrics,
+  type IndexingTier,
+} from '../../lib/telegram/adaptiveIndexer';
 import { canUseLocalTelegramWorker, detectTauriRuntime } from '../../lib/tauri/platform';
 import {
   openDriveMoveConfirm,
@@ -685,6 +691,10 @@ function MediaDriveDesktop({
     processed: number;
     total: number;
     text: string;
+    speed?: number;
+    eta?: string | null;
+    tier?: IndexingTier;
+    isPaused?: boolean;
   }>({ active: false, processed: 0, total: 0, text: '' });
   const sortIndexGenerationRef = useRef(0);
   const [thumbQuality, setThumbQualityState] = useState<DriveThumbQuality>(() => {
@@ -3151,6 +3161,7 @@ function MediaDriveDesktop({
   ]);
 
   const indexingActiveRef = useRef(false);
+  const indexingPausedRef = useRef(false);
   const [indexingAllActive, setIndexingAllActive] = useState(false);
   const [indexingProgress, setIndexingProgress] = useState<{
     processed: number;
@@ -3159,18 +3170,33 @@ function MediaDriveDesktop({
 
   const handleStopIndexing = useCallback(() => {
     indexingActiveRef.current = false;
+    indexingPausedRef.current = false;
     setIndexingAllActive(false);
-    setIndexingJob({ active: false, processed: 0, total: 0, text: '' });
+    setIndexingJob({ active: false, processed: 0, total: 0, text: '', isPaused: false });
+  }, []);
+
+  const handleTogglePauseIndexing = useCallback(() => {
+    if (!indexingActiveRef.current) return;
+    const nextPaused = !indexingPausedRef.current;
+    indexingPausedRef.current = nextPaused;
+    setIndexingJob((prev) => ({
+      ...prev,
+      isPaused: nextPaused,
+    }));
   }, []);
 
   const handleIndexAllMetadata = useCallback(async () => {
     if (indexingActiveRef.current || !filesHasMore || loadingMoreFiles) return;
     indexingActiveRef.current = true;
+    indexingPausedRef.current = false;
     setIndexingAllActive(true);
 
     const initialTotal = totalFileCount || 0;
     const initialProcessed = liveFilesRef.current.length;
-    const initialPercent = initialTotal > 0 ? Math.min(100, Math.round((initialProcessed / initialTotal) * 100)) : 0;
+    const initialTier = determineIndexingTier(initialTotal, initialProcessed);
+    const startTimeMs = Date.now();
+
+    const initialMetrics = calculateIndexingMetrics(initialProcessed, initialTotal, startTimeMs);
 
     setIndexingProgress({
       processed: initialProcessed,
@@ -3180,8 +3206,16 @@ function MediaDriveDesktop({
       active: true,
       processed: initialProcessed,
       total: initialTotal,
+      tier: initialTier,
+      speed: initialMetrics.speedMsgPerSec,
+      eta: initialMetrics.etaFormatted,
+      isPaused: false,
       text: initialTotal > 0
-        ? t('speedtest.index_progress_detail', { processed: initialProcessed.toLocaleString(), total: initialTotal.toLocaleString(), percent: initialPercent })
+        ? t('speedtest.index_progress_detail', {
+            processed: initialProcessed.toLocaleString(),
+            total: initialTotal.toLocaleString(),
+            percent: initialMetrics.percent,
+          })
         : t('speedtest.index_progress_count_only', { processed: initialProcessed.toLocaleString() }),
     });
     setStatusText(t('speedtest.index_all_running'));
@@ -3189,6 +3223,9 @@ function MediaDriveDesktop({
     const gen = peerGen.current;
     const tid = topicFilterRef.current;
     const cacheKey = getDriveCacheKey(creds?.session || session, peerId, tid);
+
+    let lastRenderTime = Date.now();
+    let accumulatedNewFiles: DriveFile[] = [];
 
     try {
       while (
@@ -3198,15 +3235,28 @@ function MediaDriveDesktop({
         gen === peerGen.current &&
         activeFilesCacheKeyRef.current === cacheKey
       ) {
+        // Safe pause loop: sleep in 100ms chunks while paused
+        while (indexingPausedRef.current && indexingActiveRef.current) {
+          await new Promise((r) => setTimeout(r, 100));
+        }
+        if (!indexingActiveRef.current || gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) {
+          break;
+        }
+
         const offset = nextOffsetIdRef.current;
+        const currentTotalLoaded = liveFilesRef.current.length + accumulatedNewFiles.length;
+        const currentTier = determineIndexingTier(totalFileCount || initialTotal, currentTotalLoaded);
+
+        const reqStart = Date.now();
         const res = await driveListFiles(creds, peerId, {
           pageSize: 200,
           offsetId: offset,
           topicId: tid,
           quickStats: false,
           sortMode: 'newest',
-          localOffset: liveFilesRef.current.length,
+          localOffset: currentTotalLoaded,
         });
+        const reqLatency = Date.now() - reqStart;
 
         if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) break;
 
@@ -3225,43 +3275,68 @@ function MediaDriveDesktop({
           break;
         }
 
-        let newTotalLoaded = liveFilesRef.current.length;
-        setFiles((prev) => {
-          if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
-          const seen = new Set(prev.map((f) => f.id));
-          const merged = [...prev, ...page.filter((f) => !seen.has(f.id))];
-          newTotalLoaded = merged.length;
-          return merged;
-        });
-
+        accumulatedNewFiles.push(...page);
+        const curLoaded = liveFilesRef.current.length + accumulatedNewFiles.length;
         const curTotal = totalFileCount || initialTotal;
-        const curPercent = curTotal > 0 ? Math.min(100, Math.round((newTotalLoaded / curTotal) * 100)) : 0;
+        const metrics = calculateIndexingMetrics(curLoaded, curTotal, startTimeMs);
+
+        // Debounced table rendering: flush to React state every 250ms or on micro tier
+        const now = Date.now();
+        if (now - lastRenderTime >= 250 || currentTier === 'micro') {
+          setFiles((prev) => {
+            if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
+            const seen = new Set(prev.map((f) => f.id));
+            const merged = [...prev, ...accumulatedNewFiles.filter((f) => !seen.has(f.id))];
+            accumulatedNewFiles = [];
+            return merged;
+          });
+          lastRenderTime = now;
+        }
 
         setIndexingProgress({
-          processed: newTotalLoaded,
+          processed: curLoaded,
           total: curTotal || null,
         });
         setIndexingJob({
           active: true,
-          processed: newTotalLoaded,
+          processed: curLoaded,
           total: curTotal,
+          tier: currentTier,
+          speed: metrics.speedMsgPerSec,
+          eta: metrics.etaFormatted,
+          isPaused: false,
           text: curTotal > 0
-            ? t('speedtest.index_progress_detail', { processed: newTotalLoaded.toLocaleString(), total: curTotal.toLocaleString(), percent: curPercent })
-            : t('speedtest.index_progress_count_only', { processed: newTotalLoaded.toLocaleString() }),
+            ? t('speedtest.index_progress_detail', {
+                processed: curLoaded.toLocaleString(),
+                total: curTotal.toLocaleString(),
+                percent: metrics.percent,
+              })
+            : t('speedtest.index_progress_count_only', { processed: curLoaded.toLocaleString() }),
         });
 
         nextOffsetIdRef.current = res.next_offset_id;
         setNextOffsetId(res.next_offset_id);
 
-        // Safe throttle 150ms to prevent floodwait
-        await new Promise((r) => setTimeout(r, 150));
+        // Adaptive Delay Calculation (tier + network latency aware)
+        const { delayMs } = getAdaptiveDelay(currentTier, curLoaded, reqLatency);
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
+
+      // Final flush of accumulated files
+      if (accumulatedNewFiles.length > 0) {
+        setFiles((prev) => {
+          if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
+          const seen = new Set(prev.map((f) => f.id));
+          return [...prev, ...accumulatedNewFiles.filter((f) => !seen.has(f.id))];
+        });
       }
     } catch (err: any) {
-      console.warn('[Indexer] Background indexer caught error:', err);
+      console.warn('[Indexer] Adaptive background indexer caught error:', err);
     } finally {
       indexingActiveRef.current = false;
+      indexingPausedRef.current = false;
       setIndexingAllActive(false);
-      setIndexingJob({ active: false, processed: 0, total: 0, text: '' });
+      setIndexingJob({ active: false, processed: 0, total: 0, text: '', isPaused: false });
       setStatusText(t('ui.generated.semua_media_dimuat_2310a13'));
     }
   }, [filesHasMore, loadingMoreFiles, creds, peerId, session, getDriveCacheKey, totalFileCount, t]);
@@ -8714,7 +8789,7 @@ function MediaDriveDesktop({
           <div className="td-explorer-wrapper" style={{ position: 'relative', flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             {indexingJob.active && (
               <div
-                className="td-sort-index-card"
+                className={`td-sort-index-card tier-${indexingJob.tier || 'medium'} ${indexingJob.isPaused ? 'is-paused' : ''}`}
                 role="status"
                 aria-live="polite"
               >
@@ -8723,22 +8798,45 @@ function MediaDriveDesktop({
                     <Sparkles size={14} className="td-sort-index-icon" />
                   </div>
                   <div className="td-sort-index-info">
-                    <span className="td-sort-index-title">
-                      {t('speedtest.index_progress_title')}
-                    </span>
+                    <div className="td-sort-index-title-row">
+                      <span className="td-sort-index-title">
+                        {t('speedtest.index_progress_title')}
+                      </span>
+                      {indexingJob.tier && (
+                        <span className="td-sort-index-tier-badge">
+                          {t('speedtest.index_tier_badge', { tier: indexingJob.tier.toUpperCase() })}
+                        </span>
+                      )}
+                    </div>
                     <span className="td-sort-index-sub">
                       {indexingJob.text}
+                      {indexingJob.speed && indexingJob.speed > 0 && !indexingJob.isPaused && (
+                        <span className="td-sort-index-speed">
+                          {' • '}{t('speedtest.index_progress_speed', { speed: indexingJob.speed.toLocaleString() })}
+                        </span>
+                      )}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    className="td-sort-index-close-btn"
-                    onClick={handleStopIndexing}
-                    title={t('speedtest.index_all_stop')}
-                    aria-label={t('speedtest.index_all_stop')}
-                  >
-                    <X size={13} />
-                  </button>
+                  <div className="td-sort-index-actions">
+                    <button
+                      type="button"
+                      className="td-sort-index-pause-btn"
+                      onClick={handleTogglePauseIndexing}
+                      title={indexingJob.isPaused ? t('speedtest.index_btn_resume') : t('speedtest.index_btn_pause')}
+                      aria-label={indexingJob.isPaused ? t('speedtest.index_btn_resume') : t('speedtest.index_btn_pause')}
+                    >
+                      {indexingJob.isPaused ? <Play size={12} /> : <Pause size={12} />}
+                    </button>
+                    <button
+                      type="button"
+                      className="td-sort-index-close-btn"
+                      onClick={handleStopIndexing}
+                      title={t('speedtest.index_all_stop')}
+                      aria-label={t('speedtest.index_all_stop')}
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="td-sort-index-track">
@@ -8752,7 +8850,11 @@ function MediaDriveDesktop({
 
                 <div className="td-sort-index-footer">
                   <span className="td-sort-index-hint">
-                    {t('speedtest.index_progress_safe_hint')}
+                    {indexingJob.isPaused
+                      ? t('speedtest.index_progress_paused')
+                      : indexingJob.eta
+                      ? t('speedtest.index_progress_eta', { eta: indexingJob.eta })
+                      : t('speedtest.index_progress_safe_hint')}
                   </span>
                   {indexingJob.total > 0 && (
                     <span className="td-sort-index-pct">

@@ -33749,6 +33749,12 @@ button.td-confirm-icon.is-back-btn:active {
   gap: 2px;
 }
 
+.td-sort-index-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .td-sort-index-title {
   font-size: 0.76rem;
   font-weight: 700;
@@ -33757,6 +33763,19 @@ button.td-confirm-icon.is-back-btn:active {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.td-sort-index-tier-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.18);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  letter-spacing: 0.03em;
+  line-height: 1.1;
+  text-transform: uppercase;
 }
 
 .td-sort-index-sub {
@@ -33770,6 +33789,20 @@ button.td-confirm-icon.is-back-btn:active {
   text-overflow: ellipsis;
 }
 
+.td-sort-index-speed {
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+.td-sort-index-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.td-sort-index-pause-btn,
 .td-sort-index-close-btn {
   width: 22px;
   height: 22px;
@@ -33785,10 +33818,26 @@ button.td-confirm-icon.is-back-btn:active {
   transition: all 0.15s ease;
 }
 
+.td-sort-index-pause-btn:hover {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.16);
+  transform: scale(1.1);
+}
+
 .td-sort-index-close-btn:hover {
   color: #f87171;
   background: rgba(239, 68, 68, 0.18);
   transform: scale(1.1);
+}
+
+.td-sort-index-card.is-paused {
+  border-color: rgba(251, 191, 36, 0.5);
+  box-shadow: 0 10px 32px -4px rgba(0, 0, 0, 0.7), 0 0 20px rgba(251, 191, 36, 0.2);
+}
+
+.td-sort-index-card.is-paused .td-sort-index-fill {
+  animation: none;
+  background: #fbbf24;
 }
 
 .td-sort-index-track {

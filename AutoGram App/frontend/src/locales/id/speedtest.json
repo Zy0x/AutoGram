@@ -1733,5 +1733,11 @@
   "index_progress_title": "Mengindeks Metadata Drive",
   "index_progress_safe_hint": "Mode aman Anti-FloodWait aktif",
   "index_progress_detail": "{{processed}} dari {{total}} berkas ({{percent}}%)",
-  "index_progress_count_only": "{{processed}} berkas terindeks"
+  "index_progress_count_only": "{{processed}} berkas terindeks",
+  "index_progress_eta": "⏱️ ~{{eta}} tersisa",
+  "index_progress_speed": "⚡ {{speed}} berkas/dtk",
+  "index_progress_paused": "Pengindeksan Dijeda",
+  "index_btn_pause": "Jeda pengindeksan",
+  "index_btn_resume": "Lanjutkan pengindeksan",
+  "index_tier_badge": "Taraf {{tier}}"
 }

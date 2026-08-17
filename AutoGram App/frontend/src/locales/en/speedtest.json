@@ -1733,5 +1733,11 @@
   "index_progress_title": "Indexing Drive Metadata",
   "index_progress_safe_hint": "Safe Anti-FloodWait mode active",
   "index_progress_detail": "{{processed}} of {{total}} files ({{percent}}%)",
-  "index_progress_count_only": "{{processed}} files indexed"
+  "index_progress_count_only": "{{processed}} files indexed",
+  "index_progress_eta": "⏱️ ~{{eta}} remaining",
+  "index_progress_speed": "⚡ {{speed}} files/sec",
+  "index_progress_paused": "Indexing Paused",
+  "index_btn_pause": "Pause indexing",
+  "index_btn_resume": "Resume indexing",
+  "index_tier_badge": "{{tier}} Tier"
 }
