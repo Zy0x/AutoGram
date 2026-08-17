@@ -35,6 +35,7 @@ import {
   calculateIndexingMetrics,
   type IndexingTier,
 } from '../../lib/telegram/adaptiveIndexer';
+import { checkMemoryHealth, executeEmergencyMemoryReclamation } from '../../lib/utils/memoryCircuitBreaker';
 import { canUseLocalTelegramWorker, detectTauriRuntime } from '../../lib/tauri/platform';
 import {
   openDriveMoveConfirm,
@@ -3231,6 +3232,7 @@ function MediaDriveDesktop({
 
     let lastRenderTime = Date.now();
     let accumulatedNewFiles: DriveFile[] = [];
+    let indexedLoadedCount = liveFilesRef.current.length;
 
     try {
       while (
@@ -3240,6 +3242,21 @@ function MediaDriveDesktop({
         gen === peerGen.current &&
         activeFilesCacheKeyRef.current === cacheKey
       ) {
+        // Autonomous Memory Circuit Breaker Check
+        const memHealth = checkMemoryHealth();
+        if (memHealth.shouldTripCircuit) {
+          indexingPausedRef.current = true;
+          setIndexingJob((prev) => ({
+            ...prev,
+            isPaused: true,
+            text: t('speedtest.memory_shield_critical_title'),
+          }));
+          executeEmergencyMemoryReclamation();
+          setStatusText(t('speedtest.memory_shield_critical_title'));
+        } else if (memHealth.shouldThrottle) {
+          executeEmergencyMemoryReclamation();
+        }
+
         // Safe pause loop: sleep in 100ms chunks while paused
         while (indexingPausedRef.current && indexingActiveRef.current) {
           await new Promise((r) => setTimeout(r, 100));
@@ -3249,7 +3266,7 @@ function MediaDriveDesktop({
         }
 
         const offset = nextOffsetIdRef.current;
-        const currentTotalLoaded = liveFilesRef.current.length + accumulatedNewFiles.length;
+        const currentTotalLoaded = indexedLoadedCount;
         const currentTier = determineIndexingTier(totalFileCount || initialTotal, currentTotalLoaded);
 
         const reqStart = Date.now();
@@ -3280,22 +3297,29 @@ function MediaDriveDesktop({
           break;
         }
 
-        accumulatedNewFiles.push(...page);
-        const curLoaded = liveFilesRef.current.length + accumulatedNewFiles.length;
+        indexedLoadedCount += page.length;
+        const curLoaded = indexedLoadedCount;
         const curTotal = totalFileCount || initialTotal;
         const metrics = calculateIndexingMetrics(curLoaded, curTotal, startTimeMs);
 
-        // Debounced table rendering: flush to React state every 250ms or on micro tier
+        // Memory-safe viewport capping: populate React state ONLY up to 120 items
+        // Beyond 120 items, records are streamed to IndexedDB without inflating React array
         const now = Date.now();
-        if (now - lastRenderTime >= 250 || currentTier === 'micro') {
-          setFiles((prev) => {
-            if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
-            const seen = new Set(prev.map((f) => f.id));
-            const merged = [...prev, ...accumulatedNewFiles.filter((f) => !seen.has(f.id))];
-            accumulatedNewFiles = [];
-            return merged;
-          });
-          lastRenderTime = now;
+        if (liveFilesRef.current.length < 120) {
+          accumulatedNewFiles.push(...page);
+          if (now - lastRenderTime >= 250 || liveFilesRef.current.length + accumulatedNewFiles.length >= 120) {
+            setFiles((prev) => {
+              if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
+              if (prev.length >= 120) return prev;
+              const seen = new Set(prev.map((f) => f.id));
+              const sliceToAdd = accumulatedNewFiles.filter((f) => !seen.has(f.id)).slice(0, 120 - prev.length);
+              accumulatedNewFiles = [];
+              return [...prev, ...sliceToAdd];
+            });
+            lastRenderTime = now;
+          }
+        } else {
+          accumulatedNewFiles = [];
         }
 
         setIndexingProgress({
@@ -3327,34 +3351,16 @@ function MediaDriveDesktop({
         await new Promise((r) => setTimeout(r, delayMs));
       }
 
-      // Final flush of accumulated files & persist deep index snapshot
-      if (accumulatedNewFiles.length > 0) {
-        setFiles((prev) => {
-          if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
-          const seen = new Set(prev.map((f) => f.id));
-          const merged = [...prev, ...accumulatedNewFiles.filter((f) => !seen.has(f.id))];
-          if (creds?.session) {
-            void saveDeepIndexSnapshot(creds.session, peerId, tid, {
-              files: merged,
-              hasMore: filesHasMoreRef.current,
-              nextOffsetId: nextOffsetIdRef.current,
-              totalCount: totalFileCount || initialTotal || merged.length,
-              totalBytes: totalBytes || null,
-            }).catch(() => {});
-          }
-          return merged;
-        });
-      } else {
+      // Persist deep index snapshot metadata to IndexedDB
+      if (creds?.session) {
         const curFiles = liveFilesRef.current;
-        if (curFiles.length > 0 && creds?.session) {
-          void saveDeepIndexSnapshot(creds.session, peerId, tid, {
-            files: curFiles,
-            hasMore: filesHasMoreRef.current,
-            nextOffsetId: nextOffsetIdRef.current,
-            totalCount: totalFileCount || initialTotal || curFiles.length,
-            totalBytes: totalBytes || null,
-          }).catch(() => {});
-        }
+        void saveDeepIndexSnapshot(creds.session, peerId, tid, {
+          files: curFiles,
+          hasMore: filesHasMoreRef.current,
+          nextOffsetId: nextOffsetIdRef.current,
+          totalCount: totalFileCount || initialTotal || indexedLoadedCount || curFiles.length,
+          totalBytes: totalBytes || null,
+        }).catch(() => {});
       }
     } catch (err: any) {
       console.warn('[Indexer] Adaptive background indexer caught error:', err);

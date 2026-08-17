@@ -1739,5 +1739,8 @@
   "index_progress_paused": "Indexing Paused",
   "index_btn_pause": "Pause indexing",
   "index_btn_resume": "Resume indexing",
-  "index_tier_badge": "{{tier}} Tier"
+  "index_tier_badge": "{{tier}} Tier",
+  "memory_shield_critical_title": "RAM Protection Shield Active",
+  "memory_shield_critical_desc": "Indexing automatically paused to protect device stability (Heap Usage: {{used}} MB). Click Resume when RAM stabilizes.",
+  "memory_shield_elevated_toast": "Optimizing device memory..."
 }

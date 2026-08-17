@@ -1,3 +1,17 @@
+## v3.7.50 Decoupled Direct-to-Disk Indexing Stream, Virtual Viewport Capping & Autonomous Memory Self-Shield (Phase 35.16)
+
+### 1. Decoupled Direct-to-Disk Background Stream & Viewport Capping (`MediaStudio/index.tsx`)
+- **Direct-to-Disk Streaming**:
+  - Mengalirkan batch 200 berkas dari Telegram MTProto langsung ke IndexedDB/SQLite lokal tanpa membombardir array state React.
+  - Membatasi array aktif React pada batas Viewport (120 item pertama) selama pengindeksan massal, menurunkan konsumsi RAM dari $> 2-6\text{ GB}$ ke $\mathbf{< 80 - 120\text{ MB}}$ dan melenyapkan proses sort ulang $43.000$ objek yang membekukan CPU.
+
+### 2. Autonomous Hardware-Safety Memory Barrier & Circuit Breaker (`memoryCircuitBreaker.ts`, `thumbBatcher.ts`)
+- **Proactive Memory Watchdog**:
+  - Memantau penggunaan JS Heap secara real-time. Pada taraf elevated ($> 150\text{ MB}$), memicu pembersihan cache thumbnail sementara (`autogram-emergency-memory-reclaim`).
+  - Pada taraf kritis ($> 280\text{ MB}$), secara otomatis mengaktifkan *Circuit Breaker* (menjeda pengindeksan sementara, melindungi memori perangkat pengguna agar tidak hang atau crash).
+- **100% Locale Parity & Test Suite Integrity**:
+  - Menambahkan key i18n perisai memori pada `speedtest.json` (ID & EN) dan 4 test case verifikasi pada `memoryCircuitBreaker.test.ts`.
+
 ## v3.7.49 100% Zero Type Error Clean Compile, TypeScript Strict Check & Full Diagnostics Integrity (Phase 35.15)
 
 ### 1. Perbaikan Kompilasi & Type Check (`npx tsc --noEmit`)

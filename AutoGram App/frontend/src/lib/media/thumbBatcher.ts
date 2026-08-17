@@ -64,7 +64,6 @@ export type ThumbSchedulerMetrics = {
   permanentFailureCount: number;
 };
 
-
 function toOptimizedBlobUrl(url: string): string {
   // Pass URLs directly to avoid CPU-heavy atob array allocation during scroll frames
   return url;
@@ -126,7 +125,7 @@ class LRUThumbnailCache {
     const firstKey = this.cache.keys().next().value;
     if (firstKey !== undefined) {
       const oldUrl = this.cache.get(firstKey)!;
-      if (oldUrl.startsWith('blob:')) {
+      if (oldUrl && oldUrl.startsWith('blob:')) {
         URL.revokeObjectURL(oldUrl);
       }
       this.cache.delete(firstKey);
@@ -140,11 +139,18 @@ const errorFailAt = new Map<string, number>();
 /** In-flight promise per cache key — collapses race after await loadPersistentThumb. */
 const inflightByKey = new Map<string, Promise<string | null>>();
 
+if (typeof window !== 'undefined') {
+  window.addEventListener('autogram-emergency-memory-reclaim', () => {
+    memCache.clear();
+    softFailAt.clear();
+    errorFailAt.clear();
+  });
+}
+
 const ERROR_COOLDOWN_MS = 800;
 
 const queue = new Map<string, Task>();
 let timer: ReturnType<typeof setTimeout> | null = null;
-/** Parallel in-flight flush count (high tier > 1) */
 let flushInFlight = 0;
 let lastFlushStartMs = Date.now();
 let activeQuality: DriveThumbQuality = DEFAULT_THUMB_QUALITY;

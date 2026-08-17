@@ -1739,5 +1739,8 @@
   "index_progress_paused": "Pengindeksan Dijeda",
   "index_btn_pause": "Jeda pengindeksan",
   "index_btn_resume": "Lanjutkan pengindeksan",
-  "index_tier_badge": "Taraf {{tier}}"
+  "index_tier_badge": "Taraf {{tier}}",
+  "memory_shield_critical_title": "Perisai Perlindungan RAM Aktif",
+  "memory_shield_critical_desc": "Pengindeksan dijeda otomatis untuk melindungi stabilitas perangkat (Penggunaan Heap: {{used}} MB). Tekan Lanjutkan saat RAM stabil.",
+  "memory_shield_elevated_toast": "Mengoptimalkan memori perangkat..."
 }
