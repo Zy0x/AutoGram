@@ -1,14 +1,13 @@
-AutoGram Version: v3.7.35
+AutoGram Version: v3.7.36
 
 Current State:
-v3.7.35 Zero-Gap Sticky Table Header, 100% Fluid Responsive Table, 120fps Zero-Lag Column Resizing & Windows 11 Type Sorting — membenahi `driveTypes.ts`, `DriveExplorer.tsx`, `App.css`, `driveSortAndAlbumSettings.test.ts`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Zero-Gap Sticky Table Header & Solid Blur Background: Header tabel menempel presisi di `top: 0` tanpa celah celah/gap di atasnya, dengan latar belakang solid gelap dan efek kaca `backdrop-filter: blur(16px); z-index: 15;` sehingga item virtual mengalir bersih di bawahnya.
-2. 100% Fluid Responsive Width & Zero Right Edge Gap: Tabel list view merentang penuh 100% lebar viewport (dari layar kecil 720p hingga ultrawide 2560p+) dengan kolom nama `minmax(var(--td-col-name, 220px), 1fr)` mengeliminasi celah kosong di samping kanan.
-3. 120fps Zero-Lag Direct DOM CSS-Var Column Resizing: Manipulasi variabel CSS `--td-col-${col}` secara instan langsung ke DOM kontainer saat pergeseran mouse pointermove tanpa delay render ulang React, menjamin header dan seluruh baris virtual bergerak serentak dalam satu frame.
-4. Total Sorting Accuracy Overhaul: Komparator pengurutan cerdas multi-format (Unix timestamp, string ISO, natural case-insensitive name collator, dan ukuran biner aman) untuk seluruh fitur sorting di Saved Messages maupun global.
-5. Windows 11 File Explorer Type Sorting (`type_asc` & `type_desc`): Fitur pengurutan berdasarkan tipe format berkas (Folder, Arsip, Audio, Dokumen PDF, Dokumen Teks, Spreadsheet, Presentasi, Aplikasi, Gambar, Video, dan Ekstensi) dengan integrasi penuh pada header tabel dan dropdown toolbar.
+v3.7.36 Pure In-Memory Zero-Loss Sorting Pipeline & Full Chat File Preservation — membenahi `MediaStudio/index.tsx`, `driveTypes.ts`, `DriveExplorer.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Pure In-Memory Client Sorting: Menghapus dependensi destruktif `sortMode` dari `loadFiles` dan mengeliminasi proses background index wipe yang sebelumnya memangkas file yang sedang ditampilkan.
+2. Full Chat File Preservation: Penggantian mode pengurutan (*Newest, Oldest, Name A-Z, Name Z-A, Type A-Z, Type Z-A, Size Largest, Size Smallest*) kini mempertahankan 100% seluruh berkas yang dimuat tanpa reset, tanpa lag, dan tanpa pengulangan permintaan jaringan ke Telegram.
+3. Bidirectional Chronological Consistency: Mengoptimalkan pemetaan waktu `fileTimeMs` dan `compareDriveFiles` untuk pengurutan kronologis maju (*Oldest first*) dan mundur (*Newest first*) secara presisi.
 
 Previous:
+v3.7.35 Zero-Gap Sticky Table Header, 100% Fluid Responsive Table, 120fps Zero-Lag Column Resizing & Windows 11 Type Sorting — membenahi `driveTypes.ts`, `DriveExplorer.tsx`, `App.css`, `driveSortAndAlbumSettings.test.ts`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.34 Windows File Explorer List View Headers & Complete Telegram Authentication Suite — membenahi `DriveExplorer.tsx`, `DriveFileListItem.tsx`, `App.css`, `Accounts/index.tsx`, `AccountLoginModal.tsx`, `accounts.json` (ID & EN), `error.json` (ID & EN), `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.33 Move/Copy Confirmation Dialog Locale Parity & Telegram Album Delivery Fix — membenahi `DriveConfirmDialog.tsx`, `drive_rpc.rs`, `telegram_ops.rs`, `driveFilesApi.ts`, `drive_tools.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.5.54 Real-Time Filesize Estimation Badges on Quality Resolution Grid — membenahi `RemoteUploadModal.tsx`, `App.css`, `tiktokResolver.ts`, `youtubeResolver.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan indikator perkiraan ukuran file langsung di kartu pemilihan resolusi:

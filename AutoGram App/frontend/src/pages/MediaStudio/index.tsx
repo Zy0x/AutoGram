@@ -2575,7 +2575,7 @@ function MediaDriveDesktop({
       setNextOffsetId(null);
       // Fast Stale-While-Revalidate: load IndexedDB records immediately for 0ms paint
       const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
-      void getMediaPageByContext(mediaContext, String(sortMode), 0, 100)
+      void getMediaPageByContext(mediaContext, 'newest', 0, 100)
         .then((dbRecords: MediaRecord[]) => {
           if (gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey && dbRecords && dbRecords.length > 0) {
             let filtered = dbRecords;
@@ -2600,7 +2600,7 @@ function MediaDriveDesktop({
         pageSize: stagedInitialPageSize(perf.tier, perf.filePage),
         topicId: tid,
         quickStats: false,
-        sortMode: sortMode,
+        sortMode: 'newest',
         localOffset: 0,
         bypassCache: false,
       });
@@ -2620,7 +2620,7 @@ function MediaDriveDesktop({
           pageSize: stagedInitialPageSize(perf.tier, perf.filePage),
           topicId: null,
           quickStats: false,
-          sortMode: sortMode,
+          sortMode: 'newest',
           localOffset: 0,
           bypassCache: false,
         });
@@ -2639,7 +2639,7 @@ function MediaDriveDesktop({
             topicId: tid,
             offsetId: currentOffset,
             quickStats: false,
-            sortMode: sortMode,
+            sortMode: 'newest',
             localOffset: 0,
             bypassCache: true,
           });
@@ -2846,7 +2846,6 @@ function MediaDriveDesktop({
     scheduleMediaStats,
     loadTopicsForPeer,
     recoverInvalidPeerLocation,
-    sortMode,
     getDriveCacheKey,
     thumbLocationOptions,
   ]);
@@ -2928,140 +2927,6 @@ function MediaDriveDesktop({
     };
   }, [creds, peerId, refreshFiles]);
 
-  const prevSortAndPeerRef = useRef<{ sortMode: string; peerId: number | null; topicId: number | null }>({
-    sortMode: String(sortMode),
-    peerId,
-    topicId: topicFilter,
-  });
-
-  // Global sort index: paint the current/saved set immediately, then complete
-  // a Grammers walk in the background. The explorer sorts the merged set, so
-  // switching perspective or sort never blocks the grid behind an overlay.
-  useEffect(() => {
-    if (!creds) return;
-    const sortModeStr = String(sortMode);
-    if (
-      prevSortAndPeerRef.current.sortMode === sortModeStr &&
-      prevSortAndPeerRef.current.peerId === peerId &&
-      prevSortAndPeerRef.current.topicId === topicFilter
-    ) {
-      return;
-    }
-    prevSortAndPeerRef.current = { sortMode: sortModeStr, peerId, topicId: topicFilter };
-    const generation = ++sortIndexGenerationRef.current;
-    if (sortModeStr === 'newest') {
-      setIndexingJob({ active: false, processed: 0, total: 0, text: '' });
-      void refreshFilesRef.current?.();
-      return;
-    }
-
-    const topicId = topicFilterRef.current;
-    const cacheKey = getDriveCacheKey(creds.session, peerId, topicId);
-    const run = async () => {
-      let snapshot = await loadDeepIndexSnapshot(creds.session, peerId, topicId);
-      if (generation !== sortIndexGenerationRef.current) return;
-      let indexed = dedupeByMsgId(snapshot?.files?.length ? snapshot.files : liveFilesRef.current);
-      if (indexed.length) {
-        liveFilesRef.current = indexed;
-        setFiles(indexed);
-        filesCacheRef.current.set(cacheKey, indexed);
-      }
-      if (snapshot && !snapshot.hasMore) {
-        const bytes = loadedMediaBytes(indexed);
-        setTotalFileCount(indexed.length);
-        setTotalBytes(bytes);
-        setStatsAccurate(true);
-        setIndexingJob({ active: false, processed: indexed.length, total: indexed.length, text: '' });
-        return;
-      }
-
-      let cursor = snapshot?.nextOffsetId ?? null;
-      let hasMore = snapshot?.hasMore ?? true;
-      let totalHint = snapshot?.totalCount ?? filesTotalCountRef.current.get(cacheKey) ?? indexed.length;
-      setIndexingJob({
-        active: true,
-        processed: indexed.length,
-        total: Math.max(totalHint || 0, indexed.length),
-        text: t('speedtest.sort_index_progress', { count: indexed.length }),
-      });
-
-      while (hasMore && generation === sortIndexGenerationRef.current) {
-        try {
-          const response = await driveListFiles(creds, peerId, {
-            pageSize: 250,
-            offsetId: cursor,
-            topicId,
-            quickStats: false,
-            sortMode: 'newest',
-            bypassCache: true,
-          });
-          if (generation !== sortIndexGenerationRef.current) return;
-          const page = dedupeByMsgId(response.files || []);
-          const seen = new Set(indexed.map((file) => file.id));
-          indexed = [...indexed, ...page.filter((file) => !seen.has(file.id))];
-          const next = response.next_offset_id ?? null;
-          hasMore = Boolean(response.has_more && next != null && Number(next) !== Number(cursor));
-          cursor = hasMore ? next : null;
-          totalHint = Math.max(Number(response.total_count || 0), totalHint || 0, indexed.length);
-
-          liveFilesRef.current = indexed;
-          setFiles(indexed);
-          filesCacheRef.current.set(cacheKey, indexed);
-          setIndexingJob({
-            active: hasMore,
-            processed: indexed.length,
-            total: totalHint,
-            text: t('speedtest.sort_index_progress', { count: indexed.length }),
-          });
-          const context = buildDriveMediaContext(creds.session, peerId, topicId);
-          void saveMediaRecords(scopeMediaRecords(page, context, peerId || 0)).catch(() => undefined);
-          await saveDeepIndexSnapshot(creds.session, peerId, topicId, {
-            files: indexed,
-            hasMore,
-            nextOffsetId: cursor,
-            totalCount: hasMore ? totalHint : indexed.length,
-            totalBytes: hasMore ? null : loadedMediaBytes(indexed),
-          });
-          if (!page.length) hasMore = false;
-          if (hasMore) await new Promise((resolve) => window.setTimeout(resolve, 120));
-        } catch (err) {
-          const message = String((err as Error)?.message || err || '');
-          const wait = message.match(/FLOOD_WAIT_?(\d+)/i) || message.match(/wait\s*(\d+)\s*s/i);
-          if (wait && generation === sortIndexGenerationRef.current) {
-            const seconds = Math.max(1, Number(wait[1]) || 1);
-            setIndexingJob((current) => ({
-              ...current,
-              text: t('speedtest.sort_index_rate_wait', { seconds }),
-            }));
-            await new Promise((resolve) => window.setTimeout(resolve, seconds * 1000));
-            continue;
-          }
-          throw err;
-        }
-      }
-      if (generation !== sortIndexGenerationRef.current) return;
-      const exactBytes = loadedMediaBytes(indexed);
-      filesHasMoreRef.current = false;
-      nextOffsetIdRef.current = null;
-      setFilesHasMore(false);
-      setNextOffsetId(null);
-      setTotalFileCount(indexed.length);
-      setTotalBytes(exactBytes);
-      setStatsAccurate(true);
-      setIndexingJob({ active: false, processed: indexed.length, total: indexed.length, text: '' });
-    };
-
-    void run().catch((err) => {
-      if (generation !== sortIndexGenerationRef.current) return;
-      console.error('[SortIndex] Grammers walk failed:', err);
-      setIndexingJob({ active: false, processed: 0, total: 0, text: '' });
-      setError(t('speedtest.sort_index_failed', { error: friendlyDriveError(err) }));
-    });
-    return () => {
-      if (sortIndexGenerationRef.current === generation) sortIndexGenerationRef.current += 1;
-    };
-  }, [sortMode, peerId, topicFilter, creds, getDriveCacheKey, t]);
-
   const processPendingActions = useCallback(async () => {
     if (!creds || !navigator.onLine) return;
     try {
@@ -3130,7 +2995,7 @@ function MediaDriveDesktop({
         offsetId: offsetAtStart,
         topicId: tid,
         quickStats: false,
-        sortMode: sortMode,
+        sortMode: 'newest',
         localOffset: files.length,
       });
       if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return;
@@ -3270,7 +3135,6 @@ function MediaDriveDesktop({
     nextOffsetId,
     scheduleMediaStats,
     statsAccurate,
-    sortMode,
     files,
     getDriveCacheKey,
     thumbLocationOptions,
@@ -8718,7 +8582,7 @@ function MediaDriveDesktop({
           )}
 
           <div className="td-explorer-wrapper" style={{ position: 'relative', flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            {indexingJob.active && sortMode !== 'newest' && (
+            {indexingJob.active && (
               <div
                 className="td-sort-index-status"
                 role="status"

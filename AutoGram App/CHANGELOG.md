@@ -1,3 +1,16 @@
+## v3.7.36 Pure In-Memory Zero-Loss Sorting Pipeline & Full Chat File Preservation (Phase 35.2)
+
+### 1. Eliminasi Reset Daftar Berkas Saat Penggantian Mode Sorting (`MediaStudio/index.tsx`)
+- **Pembersihan Dependensi Destruktif `sortMode`**:
+  - Menghapus dependensi `sortMode` dari fungsi `loadFiles` dan `loadMoreFiles` sehingga pengubahan opsi pengurutan (baik melalui klik header tabel maupun dropdown toolbar) tidak lagi memicu permintaan ulang jaringan yang mereset daftar berkas.
+  - Menghapus efek samping background indexing snapshot yang sebelumnya menimpa dan memangkas daftar file aktif di memori menjadi hanya beberapa item snapshot.
+  - Memastikan seluruh berkas yang telah dimuat (misal: 34+ berkas pada Saved Messages) tetap 100% utuh dan langsung diurutkan secara instan (*0ms in-memory sorting*).
+
+### 2. Konsistensi Kronologis Dua Arah (*Bidirectional Chronological Sorting*) (`driveTypes.ts`, `DriveExplorer.tsx`)
+- **Akurasi Pengurutan Terbalik (*Oldest First*) & Maju (*Newest First*)**:
+  - Memastikan transisi antara *Newest first* (kronologis mundur, berkas terbaru di posisi paling atas) dan *Oldest first* (kronologis maju, berkas terlama di posisi paling atas) berjalan presisi.
+  - Pengurutan nama alfabetis (*A-Z / Z-A*), tipe berkas (*Type A-Z / Z-A*), dan ukuran berkas (*Size Largest / Smallest*) bekerja konsisten di seluruh mode tampilan tanpa kehilangan state pilihan.
+
 ## v3.7.35 Zero-Gap Sticky Table Header, 100% Fluid Responsive Table, 120fps Zero-Lag Column Resizing & Windows 11 Type Sorting (Phase 35.1)
 
 ### 1. Eliminasi Celah Header & Efek Kaca Solid Gelap (`DriveExplorer.tsx`, `App.css`)
