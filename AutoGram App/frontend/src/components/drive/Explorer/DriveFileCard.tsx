@@ -168,9 +168,10 @@ function DriveFileCardInner({
     return null;
   });
   const [isPlaceholderImg, setIsPlaceholderImg] = useState<boolean>(() => {
+    if (thumbQuality === 'saver') return false; // In saver mode, inline/saver thumb is the final thumb
     if (cached) return false;
     if (inlineThumb.startsWith('data:image/')) return true;
-    if (saverFallback) return true; // blur placeholder until balanced arrives
+    if (saverFallback) return true; // subtle placeholder until balanced/sharp arrives
     return false;
   });
   const [thumbLoading, setThumbLoading] = useState(false);
@@ -186,6 +187,15 @@ function DriveFileCardInner({
     }
     const hit = getCachedThumb(folderId, file.id, thumbLocator);
     const inline = file.thumb_data_url || file.thumbDataUrl;
+
+    if (thumbQuality === 'saver') {
+      const src = hit || (inline && String(inline).startsWith('data:image/') ? String(inline) : null) || saverFallback;
+      setThumb(src);
+      setIsPlaceholderImg(false);
+      setThumbLoading(false);
+      return;
+    }
+
     if (hit) {
       setThumb(hit);
       setIsPlaceholderImg(false);
@@ -193,24 +203,36 @@ function DriveFileCardInner({
     } else if (inline && String(inline).startsWith('data:image/')) {
       setThumb(String(inline));
       setIsPlaceholderImg(true);
-      setThumbLoading(thumbQuality !== 'saver');
+      setThumbLoading(true);
     } else {
-      // No balanced cache, no inline thumb.
-      // Try saver cache as immediate blur placeholder (progressive loading like Telegram app).
-      const saver = (thumbQuality !== 'saver' && canThumb)
-        ? getCachedSaverThumb(folderId, file.id, creds?.session, thumbLocator)
-        : null;
+      const saver = getCachedSaverThumb(folderId, file.id, creds?.session, thumbLocator);
       if (saver) {
         setThumb(saver);
-        setIsPlaceholderImg(true);  // blurred until sharp arrives
-        setThumbLoading(true);       // still request balanced in background
+        setIsPlaceholderImg(true);
+        setThumbLoading(true);
       } else {
         setThumb(null);
         setIsPlaceholderImg(false);
         setThumbLoading(true);
       }
     }
-  }, [canThumb, folderId, file.id, file.peer_id, file.topic_id, creds?.session, thumbQuality, file.thumb_data_url, file.thumbDataUrl]);
+
+    if (!hit && visible && canThumb && creds) {
+      void requestThumb(creds, folderId, file.id, {
+        priority: 'visible',
+        peerId: itemPeerId,
+        topicId: itemTopicId,
+        locationType: itemLocationType,
+      }).then((url) => {
+        if (url) {
+          setThumb(url);
+          setIsPlaceholderImg(false);
+          setThumbLoading(false);
+          setImgError(false);
+        }
+      });
+    }
+  }, [canThumb, folderId, file.id, file.peer_id, file.topic_id, creds?.session, thumbQuality, file.thumb_data_url, file.thumbDataUrl, visible]);
 
   // Safety Timeout: Prevent permanent stuck spinner when thumb request returns null or is evicted
   useEffect(() => {

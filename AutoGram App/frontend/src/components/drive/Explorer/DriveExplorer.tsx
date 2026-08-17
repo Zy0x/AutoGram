@@ -341,14 +341,16 @@ export function DriveExplorer({
     document.body.classList.remove('td-marquee-active');
   }, []);
 
+  const lastPrimedLengthRef = useRef(0);
   useEffect(() => {
     if (creds) {
       switchThumbContext(creds, folderId, topicId);
     }
-    if (creds && contextFiles.length) {
+    if (creds && contextFiles.length && contextFiles.length !== lastPrimedLengthRef.current) {
+      lastPrimedLengthRef.current = contextFiles.length;
       primeThumbsFromFileList(creds, folderId, contextFiles, thumbContextOptions);
     }
-  }, [creds, folderId, contextFiles, thumbQuality, thumbPeerId, topicId, thumbContextOptions]);
+  }, [creds, folderId, contextFiles.length, thumbPeerId, topicId, thumbContextOptions]);
 
   useEffect(() => {
     const el = parentRef.current;

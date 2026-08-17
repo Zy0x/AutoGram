@@ -569,42 +569,11 @@ export function primeThumbCache(
 ): void {
   if (!dataUrl || !dataUrl.startsWith('data:image/')) return;
   const session = creds.session;
-  // ONLY prime "saver" (stripped). Never poison balanced/jelas keys with blur
-  // mini-thumbs — that made quality switch look like a no-op.
+  // ONLY prime "saver" (stripped) in memory for instant card paints
   const saverKey = cacheKey(folderId, messageId, 'saver', session, opts?.peerId, opts?.topicId);
   memCache.set(saverKey, dataUrl);
   softFailAt.delete(saverKey);
   errorFailAt.delete(saverKey);
-  void savePersistentThumb(saverKey, dataUrl);
-  // If UI is currently on saver, paint now. Other qualities must fetch properly.
-  if (activeQuality === 'saver') {
-    notifyThumbReady(saverKey, dataUrl, false);
-  } else {
-    // Paint instant blur placeholder on non-saver modes while high-res thumb downloads (Telegram progressive loading parity)
-    const activeKey = cacheKey(folderId, messageId, activeQuality, session, opts?.peerId, opts?.topicId);
-    notifyThumbReady(activeKey, dataUrl, true);
-  }
-}
-
-/**
- * Inject video frame captured from media player into memory/disk cache & update UI cards instantly.
- */
-export function cacheCapturedThumb(
-  folderId: number | null,
-  messageId: number,
-  dataUrl: string,
-  session = activeSession
-): void {
-  if (!messageId || !dataUrl || !dataUrl.startsWith('data:image/')) return;
-  const qualities: DriveThumbQuality[] = ['saver', 'balanced', 'sharp'];
-  for (const q of qualities) {
-    const k = cacheKey(folderId, messageId, q, session);
-    memCache.set(k, dataUrl);
-    softFailAt.delete(k);
-    errorFailAt.delete(k);
-    void savePersistentThumb(k, dataUrl);
-    notifyThumbReady(k, dataUrl, false);
-  }
 }
 
 /**

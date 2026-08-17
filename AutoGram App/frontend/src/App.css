@@ -3196,8 +3196,8 @@ body.td-dnd-external {
 }
 
 .td-file-thumb-full img.td-thumb-is-placeholder {
-  filter: blur(10px);
-  transform: scale(1.12);
+  filter: blur(1.5px);
+  opacity: 0.95;
 }
 
 /* XL/XXL tiles: keep high-quality resampling (never pixelated) */

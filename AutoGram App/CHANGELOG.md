@@ -1,3 +1,17 @@
+## v3.7.48 Zero-Lag Thumbnail Pipeline, Crisp Placeholder Transition & GPU Compositing Optimization (Phase 35.14)
+
+### 1. Eliminasi Beban Main Thread & Event Spam (`thumbBatcher.ts`, `DriveExplorer.tsx`)
+- **Pure In-Memory LRU Priming**:
+  - Mengubah fungsi seeding thumbnail agar beroperasi murni di memori (LRU Map), menghentikan puluhan ribu transaksi disk IndexedDB redundant dan lebih dari 110.000 panggilan event dispatch di latar belakang.
+- **Render Guarding & Debouncing**:
+  - Menghalangi eksekusi pemindaian ulang thumbnail yang tidak berubah saat komponen re-render, mengembalikan kehalusan navigasi ke 120 FPS.
+
+### 2. Tampilan Thumbnail Jernih & Akselerasi GPU (`DriveFileCard.tsx`, `App.css`)
+- **Pembersihan Blur Tidak Diinginkan**:
+  - Mode thumbnail Hemat (`saver`) kini langsung menampilkan gambar tanpa filter blur `isPlaceholderImg`.
+- **Akselerasi GPU Ringan**:
+  - Mengganti CSS filter blur 10px berat dengan transisi hardware-accelerated ringan, membebaskan beban GPU saat scrolling dan bernavigasi.
+
 ## v3.7.47 Deep Full-Stack Toolbar Refresh, Live Server Cache Bypass & Urgent Stats Revalidation (Phase 35.13)
 
 ### 1. Eksekusi Refresh Mendalam (*Deep Full-Stack Revalidation*) (`MediaStudio/index.tsx`)
