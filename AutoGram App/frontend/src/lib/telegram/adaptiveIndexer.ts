@@ -36,44 +36,49 @@ export function determineIndexingTier(totalCount: number | null | undefined, loa
 
 /**
  * Calculate adaptive delay based on tier, loaded count, and network latency.
+ * Pacing targets ~1,800 - 2,200 msgs/sec in healthy conditions while auto-throttling
+ * if network latency rises to protect MTProto sockets from flood limits.
  */
 export function getAdaptiveDelay(
   tier: IndexingTier,
   loadedCount: number,
   networkLatencyMs: number = 0
 ): AdaptiveDelayResult {
-  let baseDelay = 35;
+  let baseDelay = 20;
   let isMicroBreath = false;
 
   switch (tier) {
     case 'micro':
-      baseDelay = 15;
+      baseDelay = 10;
       break;
     case 'medium':
-      baseDelay = 30;
+      baseDelay = 15;
       break;
     case 'massive':
-      // Phase 1 (first 2,000 files): Fast viewport fill
-      // Phase 2: Sustained background pacing with anti-flood protection
-      baseDelay = loadedCount < 2000 ? 25 : 60;
+      // Phase 1 (first 2,000 files): Fast viewport burst (15ms)
+      // Phase 2: High-speed sustained turbo sweet-spot (20ms)
+      baseDelay = loadedCount < 2000 ? 15 : 20;
       break;
     case 'colossal':
     case 'galactic':
-      baseDelay = 50;
-      // Micro-breath pause every 5,000 items to relax Telegram socket connection
+      baseDelay = 25;
+      // Micro-breath pause every 5,000 items (120ms) to relax Telegram socket connection
       if (loadedCount > 0 && loadedCount % 5000 < 200) {
-        baseDelay = 200;
+        baseDelay = 120;
         isMicroBreath = true;
       }
       break;
   }
 
-  // Latency compensation: if network latency is high (>350ms), backoff by 40%
+  // Dynamic Flood-Shield Latency Compensation:
+  // If network latency is elevated (> 200ms), increase backoff proportionally
   if (networkLatencyMs > 350) {
-    baseDelay = Math.round(baseDelay * 1.4);
+    baseDelay = Math.round(baseDelay * 2.2);
+  } else if (networkLatencyMs > 200) {
+    baseDelay = Math.round(baseDelay * 1.5);
   }
 
-  return { delayMs: Math.max(10, baseDelay), isMicroBreath };
+  return { delayMs: Math.max(8, baseDelay), isMicroBreath };
 }
 
 /**

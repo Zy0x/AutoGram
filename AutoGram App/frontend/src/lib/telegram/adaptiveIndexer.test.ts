@@ -41,31 +41,31 @@ describe('adaptiveIndexer', () => {
   describe('getAdaptiveDelay', () => {
     it('returns fast delay for micro tier', () => {
       const res = getAdaptiveDelay('micro', 200, 50);
-      expect(res.delayMs).toBe(15);
+      expect(res.delayMs).toBe(10);
       expect(res.isMicroBreath).toBe(false);
     });
 
     it('handles massive tier 2-phase transition (fast phase 1 vs sustained phase 2)', () => {
       const phase1 = getAdaptiveDelay('massive', 500, 50);
-      expect(phase1.delayMs).toBe(25);
+      expect(phase1.delayMs).toBe(15);
 
       const phase2 = getAdaptiveDelay('massive', 4500, 50);
-      expect(phase2.delayMs).toBe(60);
+      expect(phase2.delayMs).toBe(20);
     });
 
     it('triggers micro-breath pause at 5,000 items boundary in colossal tier', () => {
       const normal = getAdaptiveDelay('colossal', 3000, 50);
       expect(normal.isMicroBreath).toBe(false);
-      expect(normal.delayMs).toBe(50);
+      expect(normal.delayMs).toBe(25);
 
       const pause = getAdaptiveDelay('colossal', 5050, 50);
       expect(pause.isMicroBreath).toBe(true);
-      expect(pause.delayMs).toBe(200);
+      expect(pause.delayMs).toBe(120);
     });
 
     it('applies latency compensation when network ping > 350ms', () => {
       const laggy = getAdaptiveDelay('medium', 2000, 400);
-      expect(laggy.delayMs).toBe(Math.round(30 * 1.4));
+      expect(laggy.delayMs).toBe(Math.round(15 * 2.2));
     });
   });
 
