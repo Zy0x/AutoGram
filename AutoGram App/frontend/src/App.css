@@ -25154,21 +25154,27 @@ button.td-confirm-icon.is-back-btn:active {
 
 .td-remote-input-icon {
   position: absolute;
-  left: 13px;
-  color: #64748b;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #38bdf8;
   pointer-events: none;
   display: flex;
   align-items: center;
+  justify-content: center;
+  z-index: 2;
 }
 
-.td-remote-url-input {
+.td-remote-upload-panel .td-remote-url-input {
   padding-left: 38px !important;
   padding-right: 36px !important;
-  height: 42px !important;
-  font-size: 0.88rem !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  font-size: 0.86rem !important;
   border-radius: 10px !important;
   background: rgba(10, 15, 29, 0.7) !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-sizing: border-box !important;
 }
 
 .td-remote-url-input:focus {
@@ -25176,12 +25182,16 @@ button.td-confirm-icon.is-back-btn:active {
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2) !important;
 }
 
-.td-custom-filename-input {
-  height: 42px !important;
-  font-size: 0.88rem !important;
+.td-remote-upload-panel .td-custom-filename-input {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  font-size: 0.86rem !important;
   border-radius: 10px !important;
   background: rgba(10, 15, 29, 0.7) !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-sizing: border-box !important;
 }
 
 .td-custom-filename-input:focus {
@@ -25192,6 +25202,8 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-clear-btn {
   position: absolute;
   right: 11px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -25203,6 +25215,7 @@ button.td-confirm-icon.is-back-btn:active {
   color: #94a3b8;
   cursor: pointer;
   transition: all 120ms ease;
+  z-index: 2;
 }
 
 .td-remote-clear-btn:hover {
@@ -25228,16 +25241,16 @@ button.td-confirm-icon.is-back-btn:active {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 6px;
+  padding: 8px 10px;
   background: rgba(10, 15, 29, 0.65);
   border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 12px;
+  border-radius: 11px;
   cursor: pointer;
   text-align: left;
   transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
   color: #94a3b8;
-  min-height: 80px;
+  min-height: 64px;
 }
 
 .td-remote-mode-btn:hover:not(:disabled) {
@@ -25258,9 +25271,9 @@ button.td-confirm-icon.is-back-btn:active {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
   background: rgba(255, 255, 255, 0.06);
   color: #94a3b8;
   flex-shrink: 0;
@@ -25282,8 +25295,8 @@ button.td-confirm-icon.is-back-btn:active {
 
 .td-remote-mode-active-indicator {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 7px;
+  right: 7px;
   color: #38bdf8;
 }
 
@@ -25294,17 +25307,17 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-remote-mode-title {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: inherit;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .td-remote-mode-desc {
-  font-size: 0.7rem;
+  font-size: 0.67rem;
   color: #64748b;
-  margin-top: 3px;
-  line-height: 1.35;
+  margin-top: 2px;
+  line-height: 1.25;
 }
 
 .td-remote-mode-btn.active .td-remote-mode-desc {
@@ -25322,15 +25335,15 @@ button.td-confirm-icon.is-back-btn:active {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 10px 14px;
+  padding: 8px 12px;
   background: rgba(10, 15, 29, 0.65);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  border-radius: 11px;
   color: var(--td-text, #fff);
   cursor: pointer;
   text-align: left;
   transition: all 140ms ease;
-  min-height: 52px;
+  min-height: 48px;
   box-sizing: border-box;
 }
 
@@ -25529,9 +25542,18 @@ button.td-confirm-icon.is-back-btn:active {
   }
 
   .td-remote-upload-panel .td-input-field {
+    font-size: 0.82rem !important;
+    min-height: 34px !important;
+    height: 34px !important;
+  }
+
+  .td-remote-upload-panel .td-remote-url-input {
+    padding-left: 36px !important;
+    padding-right: 32px !important;
+  }
+
+  .td-remote-upload-panel .td-custom-filename-input {
     padding: 6px 10px !important;
-    font-size: 0.8rem !important;
-    min-height: 32px !important;
   }
 
   .td-remote-upload-panel .td-remote-mode-selector {
