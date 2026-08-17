@@ -4295,6 +4295,9 @@ function MediaDriveDesktop({
         const usedArchiveNames = new Map<string, number>();
         const totalCount = task.selectedIds!.length;
         try {
+          const { exists, stat } = await import('@tauri-apps/plugin-fs');
+          const { join } = await import('@tauri-apps/api/path');
+
           await runWithConcurrency(totalCount, Number(task.options?.concurrency), async (i) => {
             await waitWhileDriveTransferPaused();
             const messageId = task.selectedIds![i];
@@ -4305,39 +4308,92 @@ function MediaDriveDesktop({
             const archiveName = seenCount === 0
               ? safeName
               : safeName.replace(/(\.[^.]+)?$/, ` (${seenCount + 1})$1`);
-            const { join } = await import('@tauri-apps/api/path');
             const stagePath = await join(task.saveDir!, `${String(i + 1).padStart(8, '0')}_${safeName}`);
             const itemIdx = task.startIndex + i;
+
+            // 1. Staging Checkpoint: Skip re-downloading if already present and valid
+            let alreadyDone = false;
+            try {
+              if (await exists(stagePath)) {
+                const info = await stat(stagePath);
+                if (info && info.size > 0) {
+                  alreadyDone = true;
+                }
+              }
+            } catch {
+              alreadyDone = false;
+            }
+
+            if (alreadyDone) {
+              completedEntries.push({ sourcePath: stagePath, archiveName });
+              setTransfer((state) => ({
+                ...state,
+                items: state.items.map((item, index) => index === itemIdx
+                  ? { ...item, status: 'done' as const, percent: 100 }
+                  : item),
+              }));
+              return;
+            }
+
             setTransfer((state) => ({
               ...state,
               items: state.items.map((item, index) => index === itemIdx
                 ? { ...item, status: 'active' as const, percent: 15 }
                 : item),
             }));
-            const result = await tgDownloadFile({
-              session: creds!.session,
-              apiId: Number(creds!.apiId) || 0,
-              apiHash: creds!.apiHash,
-              chatId: String(task.targetFolderId ?? peerId ?? 'me'),
-              messageId,
-              destPath: stagePath,
-              conflictPolicy: 'overwrite',
-              resumePartial: true,
-              integrity: transferSettings.downloadIntegrity,
-              transferId: `zip:${task.id}`,
-              itemIndex: itemIdx,
-            });
-            if (!result?.ok) {
-              throw new Error(result?.userMessage || result?.error?.message || t('speedtest.download_failed'));
+
+            // 2. Fault-Tolerant Download Loop (3 Retries with Backoff & FloodWait safety)
+            let success = false;
+            let lastErr: string | null = null;
+            for (let attempt = 1; attempt <= 3; attempt++) {
+              await waitWhileDriveTransferPaused();
+              try {
+                const result = await tgDownloadFile({
+                  session: creds!.session,
+                  apiId: Number(creds!.apiId) || 0,
+                  apiHash: creds!.apiHash,
+                  chatId: String(task.targetFolderId ?? peerId ?? 'me'),
+                  messageId,
+                  destPath: stagePath,
+                  conflictPolicy: 'overwrite',
+                  resumePartial: true,
+                  integrity: transferSettings.downloadIntegrity,
+                  transferId: `zip:${task.id}`,
+                  itemIndex: itemIdx,
+                });
+
+                if (result?.ok) {
+                  completedEntries.push({ sourcePath: stagePath, archiveName });
+                  setTransfer((state) => ({
+                    ...state,
+                    items: state.items.map((item, index) => index === itemIdx
+                      ? { ...item, status: 'done' as const, percent: 100 }
+                      : item),
+                  }));
+                  success = true;
+                  break;
+                } else {
+                  lastErr = result?.userMessage || result?.error?.message || t('speedtest.download_failed');
+                  const floodMatch = lastErr.match(/flood[_\s]wait[_\s](\d+)/i) || lastErr.match(/wait\s+(\d+)\s+seconds/i);
+                  if (floodMatch) {
+                    const waitSec = Math.min(60, parseInt(floodMatch[1], 10) || 5);
+                    setStatusText(t('speedtest.zip_floodwait_pause_notice', { seconds: waitSec }));
+                    await new Promise((r) => setTimeout(r, waitSec * 1000));
+                  } else {
+                    await new Promise((r) => setTimeout(r, attempt * 1500));
+                  }
+                }
+              } catch (e: any) {
+                lastErr = String(e?.message || e);
+                await new Promise((r) => setTimeout(r, attempt * 1500));
+              }
             }
-            completedEntries.push({ sourcePath: stagePath, archiveName });
-            setTransfer((state) => ({
-              ...state,
-              items: state.items.map((item, index) => index === itemIdx
-                ? { ...item, status: 'done' as const, percent: 100 }
-                : item),
-            }));
+
+            if (!success) {
+              throw new Error(lastErr || t('speedtest.download_failed'));
+            }
           });
+
           if (!completedEntries.length) throw new Error(t('speedtest.zip_no_completed_files'));
           const { invoke } = await import('@tauri-apps/api/core');
           await invoke('zip_create_from_files', {
@@ -4353,7 +4409,7 @@ function MediaDriveDesktop({
             const { remove } = await import('@tauri-apps/plugin-fs');
             await remove(task.saveDir!, { recursive: true });
           } catch {
-            /* cleanup is retried by the cache maintenance path */
+            /* cleanup */
           }
           isDownloadingZipRef.current = false;
         }
@@ -5465,16 +5521,18 @@ function MediaDriveDesktop({
 
   const handleDownloadAll = () => {
     if (!creds || isDownloadingZipRef.current) return;
+    const isAlreadyFullyScanned = !filesHasMoreRef.current && liveFilesRef.current.length > 0;
+    const currentCount = loadedUniqueMediaCount(liveFilesRef.current);
+    const indexedFiles = isAlreadyFullyScanned ? dedupeByMsgId(liveFilesRef.current) : [];
     setZipPreflight({
       open: true,
       indexing: false,
-      ready: false,
-      scannedCount: loadedUniqueMediaCount(liveFilesRef.current),
-      expectedCount: totalFileCount,
-      indexedFiles: [],
+      ready: isAlreadyFullyScanned,
+      scannedCount: isAlreadyFullyScanned ? indexedFiles.length : currentCount,
+      expectedCount: totalFileCount || currentCount,
+      indexedFiles,
       error: null,
     });
-    window.setTimeout(() => void runZipFullIndex(), 0);
   };
 
   const createIndexedZip = async (category: ZipCategory) => {
@@ -8905,6 +8963,7 @@ function MediaDriveDesktop({
         scannedCount={zipPreflight.scannedCount}
         expectedCount={zipPreflight.expectedCount}
         indexedFiles={zipPreflight.indexedFiles}
+        totalBytes={totalBytes}
         error={zipPreflight.error}
         onIndex={() => void runZipFullIndex()}
         onCreate={(category) => void createIndexedZip(category)}
