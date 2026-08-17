@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { Info, CheckCircle2, Loader2, HardDrive, X, Radio, ArrowUpRight, Database } from 'lucide-react';
+import { CheckCircle2, Loader2, X, Radio, ArrowUpRight, Database } from 'lucide-react';
 
 export type DriveStorageInfoBadgeProps = {
   fileCount: number;
@@ -49,19 +49,32 @@ export function DriveStorageInfoBadge({
     return 'normal';
   }, [transferBusy, statsLoading, statsAccurate, isFinal]);
 
+  const startAutoDismissTimer = useCallback((durationMs = 5000) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      setIsAutoSplashVisible(false);
+    }, durationMs);
+  }, []);
+
   // 5-second initial splash timer on location switch
   useEffect(() => {
     setIsAutoSplashVisible(true);
-    if (timerRef.current) clearTimeout(timerRef.current);
-
-    timerRef.current = setTimeout(() => {
-      setIsAutoSplashVisible(false);
-    }, 5000);
+    startAutoDismissTimer(5000);
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [locationKey]);
+  }, [locationKey, startAutoDismissTimer]);
+
+  const handleMouseEnter = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    if (!isPopoverOpen) {
+      startAutoDismissTimer(3000);
+    }
+  }, [isPopoverOpen, startAutoDismissTimer]);
 
   // Update popover position based on button rect
   const updateCoords = useCallback(() => {
@@ -86,6 +99,7 @@ export function DriveStorageInfoBadge({
         !btnRef.current.contains(target)
       ) {
         setIsPopoverOpen(false);
+        setIsAutoSplashVisible(false);
       }
     };
 
@@ -115,14 +129,22 @@ export function DriveStorageInfoBadge({
 
   const handleToggleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsAutoSplashVisible(false);
+    if (timerRef.current) clearTimeout(timerRef.current);
     updateCoords();
-    setIsPopoverOpen((prev) => !prev);
+    setIsPopoverOpen((prev) => {
+      const next = !prev;
+      if (!next) {
+        setIsAutoSplashVisible(false);
+      }
+      return next;
+    });
   }, [updateCoords]);
 
   const handleDismissSplash = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
+    if (timerRef.current) clearTimeout(timerRef.current);
     setIsAutoSplashVisible(false);
+    setIsPopoverOpen(false);
   }, []);
 
   const statusLabel = useMemo(() => {
@@ -147,53 +169,44 @@ export function DriveStorageInfoBadge({
     return `${countPart}${spacePart}`;
   }, [effectiveTotalCount, isFinal, totalCount, spaceLabel, t]);
 
+  if (!isAutoSplashVisible && !isPopoverOpen) {
+    return null;
+  }
+
   return (
     <div
       className={`td-storage-info-wrapper td-status-${statusMode}${isPopoverOpen ? ' is-open' : ''}`}
-      onMouseEnter={() => {
-        if (timerRef.current) clearTimeout(timerRef.current);
-      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
-      {/* 5-Second Splash Micro-Pill */}
-      {isAutoSplashVisible && !isPopoverOpen && (
-        <div
-          className="td-storage-splash-pill animate-fade-in"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsAutoSplashVisible(false);
-            updateCoords();
-            setIsPopoverOpen(true);
-          }}
-          title={t('speedtest.storage_info_tooltip_hint')}
-          role="status"
-          aria-live="polite"
-        >
-          <span className={`td-splash-dot td-dot-${statusMode}`} />
-          <span className="td-splash-text">{summaryText}</span>
-          <button
-            type="button"
-            className="td-splash-dismiss-btn"
-            onClick={handleDismissSplash}
-            title={t('speedtest.storage_info_close')}
-            aria-label={t('speedtest.storage_info_close')}
-          >
-            <X size={12} />
-          </button>
-        </div>
-      )}
-
-      {/* Interactive [ ⓘ ] Info Badge Button */}
+      {/* 5-Second Interactive Storage Info Pill & Button */}
       <button
         ref={btnRef}
         type="button"
-        className={`td-storage-info-btn td-btn-${statusMode}${isPopoverOpen ? ' active' : ''}`}
+        className={`td-storage-splash-pill animate-fade-in ${isPopoverOpen ? 'active' : ''}`}
         onClick={handleToggleClick}
         title={t('speedtest.storage_info_tooltip_hint')}
         aria-label={t('speedtest.storage_info_badge_aria')}
         aria-expanded={isPopoverOpen}
       >
-        <Info size={14} strokeWidth={2.2} />
-        {statusMode === 'counting' && <span className="td-btn-pulse-glow" />}
+        <span className={`td-splash-dot td-dot-${statusMode}`} />
+        <span className="td-splash-text">{summaryText}</span>
+        <span
+          className="td-splash-dismiss-btn"
+          role="button"
+          tabIndex={0}
+          onClick={handleDismissSplash}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleDismissSplash(e as any);
+            }
+          }}
+          title={t('speedtest.storage_info_close')}
+          aria-label={t('speedtest.storage_info_close')}
+        >
+          <X size={12} />
+        </span>
       </button>
 
       {/* Rich Popover Details Card Portal */}
@@ -267,7 +280,10 @@ export function DriveStorageInfoBadge({
             <button
               type="button"
               className="td-popover-close-btn"
-              onClick={() => setIsPopoverOpen(false)}
+              onClick={() => {
+                setIsPopoverOpen(false);
+                setIsAutoSplashVisible(false);
+              }}
             >
               {t('speedtest.storage_info_close')}
             </button>
