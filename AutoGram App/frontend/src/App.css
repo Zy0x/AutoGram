@@ -26837,65 +26837,52 @@ button.td-confirm-icon.is-back-btn:active {
 
 /* ══════════════════════════════════════════════════════════════════════════
    COLLAPSIBLE HEADER HANDLE AT BOUNDARY BETWEEN HEADER TOOLS & MEDIA GRID
-   (ONLY VISIBLE ON NARROW VIEWPORTS <= 600px, NEVER ON > 600px)
+/* ══════════════════════════════════════════════════════════════════════════
+   INTEGRATED TOPBAR COLLAPSE TOGGLE (CLEAN ROW 1 HEADER BUTTON)
+   Zero negative margins, zero floating over cards, 100% clean hover
    ══════════════════════════════════════════════════════════════════════════ */
 
-.td-topbar {
-  position: relative !important;
-}
-
-.td-topbar-collapse-handle {
-  display: flex !important;
-  justify-content: flex-end !important;
-  align-items: center !important;
-  position: absolute !important;
-  bottom: -11px !important;
-  right: 14px !important;
-  z-index: 50 !important;
-  pointer-events: auto !important;
-}
-
-.td-topbar-collapse-handle .td-topbar-toggle-btn {
+.td-topbar-collapse-toggle {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 26px !important;
-  height: 20px !important;
-  min-width: 26px !important;
-  min-height: 20px !important;
-  border-radius: 6px !important;
-  background: #1e293b !important;
-  border: 1px solid rgba(226, 165, 50, 0.5) !important;
-  color: #fbbf24 !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  border-radius: 8px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #94a3b8 !important;
   cursor: pointer !important;
-  transition: all 0.15s ease !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6) !important;
-  outline: none !important;
-  overflow: hidden !important;
+  flex-shrink: 0 !important;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
   padding: 0 !important;
-  margin: 0 !important;
+  margin-left: 2px !important;
 }
 
-.td-topbar-collapse-handle .td-topbar-toggle-btn:hover {
-  background: linear-gradient(135deg, #e2a532 0%, #d97706 100%) !important;
-  border-color: #f59e0b !important;
-  color: #0f172a !important;
-  transform: scale(1.08) !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7) !important;
+.td-topbar-collapse-toggle:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #f8fafc !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  transform: scale(1.04) !important;
 }
 
-.td-topbar-collapse-handle .td-topbar-toggle-btn.is-collapsed {
-  background: #0f172a !important;
-  border-color: rgba(226, 165, 50, 0.7) !important;
+.td-topbar-collapse-toggle.is-collapsed {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
   color: #fbbf24 !important;
 }
 
-/* Strictly hide the collapse handle on windows wider than 600px */
-@media (min-width: 601px) {
-  .td-topbar-collapse-handle,
-  .td-topbar-toggle-btn {
-    display: none !important;
-  }
+.td-topbar-collapse-toggle.is-collapsed:hover {
+  background: rgba(245, 158, 11, 0.22) !important;
+  border-color: rgba(245, 158, 11, 0.6) !important;
+  color: #fef3c7 !important;
+  transform: scale(1.05) !important;
+}
+
+.td-topbar-collapse-handle {
+  display: none !important;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

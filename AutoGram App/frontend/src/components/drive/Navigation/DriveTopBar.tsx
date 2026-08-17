@@ -816,6 +816,17 @@ export function DriveTopBar({
             )}
           </div>
         )}
+
+        {/* Integrated Header Toggle Button (Always inside Row 1 — zero card overlap) */}
+        <button
+          type="button"
+          className={`td-icon-btn td-topbar-collapse-toggle ${isToolsCollapsed ? 'is-collapsed' : ''}`}
+          onClick={handleToggleCollapse}
+          title={isToolsCollapsed ? t('speedtest.expand_toolbar') : t('speedtest.collapse_toolbar')}
+          aria-label={isToolsCollapsed ? t('speedtest.expand_toolbar') : t('speedtest.collapse_toolbar')}
+        >
+          {isToolsCollapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
+        </button>
       </div>
 
       {!isToolsCollapsed && (
@@ -1089,19 +1100,6 @@ export function DriveTopBar({
       </div>
       </>
       )}
-
-      {/* Collapse / Expand Handle at the bottom boundary between Header Tools & Media Grid */}
-      <div className="td-topbar-collapse-handle">
-        <button
-          type="button"
-          className={`td-topbar-toggle-btn ${isToolsCollapsed ? 'is-collapsed' : ''}`}
-          onClick={handleToggleCollapse}
-          title={isToolsCollapsed ? t('speedtest.expand_toolbar') : t('speedtest.collapse_toolbar')}
-          aria-label={isToolsCollapsed ? t('speedtest.expand_toolbar') : t('speedtest.collapse_toolbar')}
-        >
-          {isToolsCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-        </button>
-      </div>
 
       {topicContextMenu &&
         createPortal(
