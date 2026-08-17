@@ -685,12 +685,17 @@ pub fn login_blocking(sessions_dir: &Path, req: &LoginRequest) -> Result<LoginRe
                 .filter(|s| !s.is_empty())
                 .is_none()
             {
-                let pw_token = take_password_token(&identity.session).ok_or_else(|| {
-                    TgError::new(
-                        TgErrorCode::Auth,
-                        "2FA challenge expired — start login again",
-                    )
-                })?;
+                let pw_token = if let Some(token) = take_password_token(&identity.session) {
+                    token
+                } else {
+                    let pwd_tl: grammers_client::tl::types::account::Password = client
+                        .invoke(&grammers_client::tl::functions::account::GetPassword {})
+                        .await
+                        .map_err(|e| map_invocation(&e))?
+                        .into();
+                    PasswordToken::new(pwd_tl)
+                };
+
                 match client.check_password(pw_token, password.as_bytes()).await {
                     Ok(u) => {
                         let prof = user_profile_from(&u);
