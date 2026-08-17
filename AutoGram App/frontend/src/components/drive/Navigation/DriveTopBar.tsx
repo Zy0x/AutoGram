@@ -638,8 +638,7 @@ export function DriveTopBar({
           />
         </div>
 
-        {!isToolsCollapsed && (
-          <div className="td-topbar-actions-wrapper">
+        <div className="td-topbar-actions-wrapper">
             {canScrollActionsLeft && (
               <button
                 type="button"
@@ -824,8 +823,7 @@ export function DriveTopBar({
               </button>
             )}
           </div>
-        )}
-      </div>
+        </div>
 
       {!isToolsCollapsed && (
         <>
