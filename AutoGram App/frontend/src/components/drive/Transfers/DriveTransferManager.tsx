@@ -633,16 +633,17 @@ export function DriveTransferManager({
         </>
       )}
 
-      <div className="tm-debug">
-        <button
-          type="button"
-          className="tm-debug-toggle"
-          onClick={() => setShowLogs((v) => !v)}
-          aria-expanded={showLogs}
-        >
-          {showLogs ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          {t("speedtest.tm_log_debug", { count: debugLogs.length })}
-        </button>
+      {!isEmptyShell && debugLogs.length > 0 && (
+        <div className="tm-debug">
+          <button
+            type="button"
+            className="tm-debug-toggle"
+            onClick={() => setShowLogs((v) => !v)}
+            aria-expanded={showLogs}
+          >
+            {showLogs ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            {t("speedtest.tm_log_debug", { count: debugLogs.length })}
+          </button>
         {showLogs && (
           <div className="tm-debug-body">
             <div className="tm-debug-actions">
@@ -676,6 +677,7 @@ export function DriveTransferManager({
           </div>
         )}
       </div>
-    </div>
-  );
+    )}
+  </div>
+);
 }

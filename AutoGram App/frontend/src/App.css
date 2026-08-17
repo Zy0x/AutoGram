@@ -32629,3 +32629,141 @@ button.td-confirm-icon.is-back-btn:active {
     font-size: 0.8rem !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TRANSFER MANAGER MODERN STITCH REDESIGN (SMALL & MEDIUM VIEWPORT PRECISION)
+   Ultra-compact, space-efficient docked card that never dominates the screen
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.tm-panel {
+  position: fixed !important;
+  right: clamp(10px, 2vw, 16px) !important;
+  bottom: clamp(10px, 2vw, 16px) !important;
+  left: auto !important;
+  z-index: 13000 !important;
+  width: min(360px, calc(100vw - 20px)) !important;
+  max-width: 360px !important;
+  max-height: min(46vh, 420px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(11, 17, 30, 0.94) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05) inset !important;
+  backdrop-filter: blur(20px) saturate(1.3) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.3) !important;
+  color: #f1f5f9 !important;
+  overflow: hidden !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Compact Header */
+.tm-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  padding: 8px 10px 8px 12px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  background: rgba(15, 23, 42, 0.5) !important;
+  flex-shrink: 0 !important;
+}
+
+.tm-head-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+
+.tm-dir-badge {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 7px !important;
+  display: grid !important;
+  place-items: center !important;
+  flex-shrink: 0 !important;
+  font-size: 0.75rem !important;
+}
+
+.tm-head-text strong {
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  color: #f8fafc !important;
+  line-height: 1.2 !important;
+}
+
+.tm-head-sub {
+  font-size: 0.68rem !important;
+  color: #94a3b8 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 190px !important;
+}
+
+.tm-icon-btn {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 6px !important;
+  padding: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+}
+
+/* Ultra-Compact Empty State */
+.tm-empty {
+  padding: 10px 14px 12px !important;
+  text-align: center !important;
+  background: transparent !important;
+}
+
+.tm-empty p {
+  margin: 0 0 3px !important;
+  font-size: 0.78rem !important;
+  font-weight: 650 !important;
+  color: #e2e8f0 !important;
+  line-height: 1.25 !important;
+}
+
+.tm-empty .tm-hint {
+  margin: 0 auto !important;
+  max-width: 260px !important;
+  font-size: 0.68rem !important;
+  color: #94a3b8 !important;
+  line-height: 1.3 !important;
+}
+
+/* Compact Active Summary */
+.tm-summary {
+  padding: 8px 12px 6px !important;
+}
+
+.tm-summary-pct {
+  font-size: 1.05rem !important;
+  font-weight: 800 !important;
+}
+
+.tm-summary-stats {
+  font-size: 0.68rem !important;
+  gap: 4px 8px !important;
+}
+
+/* Compact Items List */
+.tm-items {
+  max-height: min(28vh, 220px) !important;
+  overflow-y: auto !important;
+}
+
+/* Mobile Screen Precision (<= 520px) */
+@media (max-width: 520px) {
+  .tm-panel {
+    right: 8px !important;
+    left: 8px !important;
+    bottom: 8px !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: min(40vh, 300px) !important;
+  }
+}
