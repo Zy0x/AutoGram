@@ -26387,11 +26387,17 @@ button.td-confirm-icon.is-back-btn:active {
 
 /* Responsive Action Toolbar Rules (< 860px) */
 @media (max-width: 859.98px) {
-  .td-topbar .td-zoom-controls,
-  .td-topbar .td-icon-btn.td-topbar-btn-tools,
-  .td-topbar .td-icon-btn.td-topbar-btn-zip,
-  .td-topbar .td-icon-btn.td-topbar-btn-remote {
+  .td-topbar .td-zoom-controls {
     display: none !important;
+  }
+  .td-topbar .td-topbar-actions .td-btn-label {
+    display: none !important;
+  }
+  .td-topbar .td-topbar-actions .td-btn-secondary,
+  .td-topbar .td-topbar-actions .td-btn-primary {
+    padding: 0 9px !important;
+    min-width: 36px !important;
+    justify-content: center !important;
   }
 }
 
@@ -28533,15 +28539,21 @@ button.td-confirm-icon.is-back-btn:active {
 
 /* Tier 1: <= 460px -> All icon-only */
 @media (max-width: 460px) {
+  .td-topbar .td-topbar-actions .td-zoom-controls {
+    display: none !important;
+  }
+
   .td-topbar .td-topbar-actions .td-btn-primary .td-btn-label,
   .td-topbar .td-topbar-actions .td-topbar-btn-remote .td-btn-label,
-  .td-topbar .td-topbar-actions .td-topbar-btn-tools .td-btn-label {
+  .td-topbar .td-topbar-actions .td-topbar-btn-tools .td-btn-label,
+  .td-topbar .td-topbar-actions .td-topbar-btn-zip .td-btn-label {
     display: none !important;
   }
 
   .td-topbar .td-topbar-actions .td-btn-primary,
   .td-topbar .td-topbar-actions .td-topbar-btn-remote,
-  .td-topbar .td-topbar-actions .td-topbar-btn-tools {
+  .td-topbar .td-topbar-actions .td-topbar-btn-tools,
+  .td-topbar .td-topbar-actions .td-topbar-btn-zip {
     width: 32px !important;
     min-width: 32px !important;
     max-width: 32px !important;
@@ -28551,6 +28563,10 @@ button.td-confirm-icon.is-back-btn:active {
 
 /* Tier 2: 461px - 540px -> Upload button expands with label */
 @media (min-width: 461px) and (max-width: 540px) {
+  .td-topbar .td-topbar-actions .td-zoom-controls {
+    display: none !important;
+  }
+
   .td-topbar .td-topbar-actions .td-btn-primary {
     width: auto !important;
     min-width: auto !important;
@@ -28564,12 +28580,14 @@ button.td-confirm-icon.is-back-btn:active {
   }
 
   .td-topbar .td-topbar-actions .td-topbar-btn-remote .td-btn-label,
-  .td-topbar .td-topbar-actions .td-topbar-btn-tools .td-btn-label {
+  .td-topbar .td-topbar-actions .td-topbar-btn-tools .td-btn-label,
+  .td-topbar .td-topbar-actions .td-topbar-btn-zip .td-btn-label {
     display: none !important;
   }
 
   .td-topbar .td-topbar-actions .td-topbar-btn-remote,
-  .td-topbar .td-topbar-actions .td-topbar-btn-tools {
+  .td-topbar .td-topbar-actions .td-topbar-btn-tools,
+  .td-topbar .td-topbar-actions .td-topbar-btn-zip {
     width: 32px !important;
     min-width: 32px !important;
     max-width: 32px !important;
@@ -28579,6 +28597,10 @@ button.td-confirm-icon.is-back-btn:active {
 
 /* Tier 3: 541px - 640px -> Upload + Remote URL both expand with labels */
 @media (min-width: 541px) and (max-width: 640px) {
+  .td-topbar .td-topbar-actions .td-zoom-controls {
+    display: none !important;
+  }
+
   .td-topbar .td-topbar-actions .td-btn-primary,
   .td-topbar .td-topbar-actions .td-topbar-btn-remote {
     width: auto !important;
@@ -28593,11 +28615,13 @@ button.td-confirm-icon.is-back-btn:active {
     display: inline !important;
   }
 
-  .td-topbar .td-topbar-actions .td-topbar-btn-tools .td-btn-label {
+  .td-topbar .td-topbar-actions .td-topbar-btn-tools .td-btn-label,
+  .td-topbar .td-topbar-actions .td-topbar-btn-zip .td-btn-label {
     display: none !important;
   }
 
-  .td-topbar .td-topbar-actions .td-topbar-btn-tools {
+  .td-topbar .td-topbar-actions .td-topbar-btn-tools,
+  .td-topbar .td-topbar-actions .td-topbar-btn-zip {
     width: 32px !important;
     min-width: 32px !important;
     max-width: 32px !important;
@@ -28605,11 +28629,12 @@ button.td-confirm-icon.is-back-btn:active {
   }
 }
 
-/* Tier 4: >= 641px -> Upload + Remote URL + Settings ALL expand with labels */
+/* Tier 4: >= 641px -> Upload + Remote URL + Settings + ZIP ALL expand with labels */
 @media (min-width: 641px) {
   .td-topbar .td-topbar-actions .td-btn-primary,
   .td-topbar .td-topbar-actions .td-topbar-btn-remote,
-  .td-topbar .td-topbar-actions .td-topbar-btn-tools {
+  .td-topbar .td-topbar-actions .td-topbar-btn-tools,
+  .td-topbar .td-topbar-actions .td-topbar-btn-zip {
     width: auto !important;
     min-width: auto !important;
     max-width: none !important;
@@ -28619,7 +28644,8 @@ button.td-confirm-icon.is-back-btn:active {
 
   .td-topbar .td-topbar-actions .td-btn-primary .td-btn-label,
   .td-topbar .td-topbar-actions .td-topbar-btn-remote .td-btn-label,
-  .td-topbar .td-topbar-actions .td-topbar-btn-tools .td-btn-label {
+  .td-topbar .td-topbar-actions .td-topbar-btn-tools .td-btn-label,
+  .td-topbar .td-topbar-actions .td-topbar-btn-zip .td-btn-label {
     display: inline !important;
   }
 }

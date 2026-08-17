@@ -733,6 +733,7 @@
   "topbar_zoom_in": "Perbesar thumbnail (Ctrl + scroll naik)",
   "topbar_refresh_all": "Muat ulang folder & chat",
   "topbar_download_zip": "Unduh Semua (ZIP)",
+  "topbar_download_zip_short": "Unduh ZIP",
   "topbar_upload_file": "Unggah file ke lokasi ini",
   "topbar_upload_busy": "Transfer masih berjalan — Hentikan dulu di Transfer Manager",
   "ctx_menu_preview": "Pratinjau",

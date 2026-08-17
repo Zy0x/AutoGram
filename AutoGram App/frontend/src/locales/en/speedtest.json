@@ -733,6 +733,7 @@
   "topbar_zoom_in": "Zoom in thumbnails (Ctrl + scroll up)",
   "topbar_refresh_all": "Reload folders & chats",
   "topbar_download_zip": "Download All (ZIP)",
+  "topbar_download_zip_short": "Download ZIP",
   "topbar_upload_file": "Upload files to this location",
   "topbar_upload_busy": "Transfer in progress — Stop first in Transfer Manager",
   "ctx_menu_preview": "Preview",

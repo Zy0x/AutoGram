@@ -752,13 +752,14 @@ export function DriveTopBar({
               {onDownloadAllClick && (
                 <button
                   type="button"
-                  className="td-icon-btn td-topbar-btn-zip"
+                  className="td-btn-secondary td-topbar-btn-zip"
                   onClick={onDownloadAllClick}
                   disabled={!!actionsDisabled}
                   title={t("speedtest.topbar_download_zip")}
                   aria-label={t("speedtest.topbar_download_zip")}
                 >
-                  <FolderArchive size={16} />
+                  <FolderArchive size={15} />
+                  <span className="td-btn-label">{t("speedtest.topbar_download_zip_short")}</span>
                 </button>
               )}
 
