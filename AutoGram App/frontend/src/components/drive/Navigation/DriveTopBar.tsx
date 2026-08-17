@@ -220,8 +220,13 @@ export function DriveTopBar({
   const [manualSpin, setManualSpin] = useState(false);
   const [isToolsCollapsed, setIsToolsCollapsed] = useState<boolean>(false);
   const collapseTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isHoveredRef = useRef<boolean>(false);
-  const isInputFocusedRef = useRef<boolean>(false);
+  const headerRef = useRef<HTMLElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  const isToolsCollapsedRef = useRef<boolean>(false);
+  useEffect(() => {
+    isToolsCollapsedRef.current = isToolsCollapsed;
+  }, [isToolsCollapsed]);
 
   // Auto-collapse condition: only applies for compact window height (400px - 550px)
   const checkShouldAutoCollapse = useCallback(() => {
@@ -236,7 +241,9 @@ export function DriveTopBar({
     if (!checkShouldAutoCollapse()) return;
 
     collapseTimerRef.current = setTimeout(() => {
-      if (!isHoveredRef.current && !isInputFocusedRef.current && checkShouldAutoCollapse()) {
+      const isHovered = Boolean(headerRef.current && headerRef.current.matches(':hover'));
+      const isInputFocused = Boolean(searchInputRef.current && document.activeElement === searchInputRef.current);
+      if (!isHovered && !isInputFocused && checkShouldAutoCollapse()) {
         setIsToolsCollapsed(true);
       }
     }, durationMs);
@@ -261,7 +268,7 @@ export function DriveTopBar({
       if (!should) {
         if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current);
         setIsToolsCollapsed(false);
-      } else if (!isToolsCollapsed) {
+      } else if (!isToolsCollapsedRef.current) {
         startAutoCollapseTimer(5000);
       }
     };
@@ -280,10 +287,10 @@ export function DriveTopBar({
 
   const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
-    if (!isToolsCollapsed && checkShouldAutoCollapse()) {
+    if (!isToolsCollapsedRef.current && checkShouldAutoCollapse()) {
       startAutoCollapseTimer(3000);
     }
-  }, [isToolsCollapsed, checkShouldAutoCollapse, startAutoCollapseTimer]);
+  }, [checkShouldAutoCollapse, startAutoCollapseTimer]);
 
   const handleSearchFocus = useCallback(() => {
     isInputFocusedRef.current = true;
@@ -292,21 +299,19 @@ export function DriveTopBar({
 
   const handleSearchBlur = useCallback(() => {
     isInputFocusedRef.current = false;
-    if (!isToolsCollapsed && checkShouldAutoCollapse()) {
+    if (!isToolsCollapsedRef.current && checkShouldAutoCollapse()) {
       startAutoCollapseTimer(3000);
     }
-  }, [isToolsCollapsed, checkShouldAutoCollapse, startAutoCollapseTimer]);
+  }, [checkShouldAutoCollapse, startAutoCollapseTimer]);
 
   const handleToggleCollapse = useCallback(() => {
     if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current);
-    setIsToolsCollapsed((prev) => {
-      const next = !prev;
-      if (!next && checkShouldAutoCollapse()) {
-        startAutoCollapseTimer(5000);
-      }
-      return next;
-    });
-  }, [checkShouldAutoCollapse, startAutoCollapseTimer]);
+    const nextCollapsed = !isToolsCollapsed;
+    setIsToolsCollapsed(nextCollapsed);
+    if (!nextCollapsed && checkShouldAutoCollapse()) {
+      startAutoCollapseTimer(5000);
+    }
+  }, [isToolsCollapsed, checkShouldAutoCollapse, startAutoCollapseTimer]);
 
   const handleRefreshClick = () => {
     setManualSpin(true);
@@ -515,6 +520,7 @@ export function DriveTopBar({
 
   return (
     <header
+      ref={headerRef}
       className={`td-topbar${hasSelection ? ' has-selection' : ''}${isToolsCollapsed ? ' is-tools-collapsed' : ''}`}
       data-perspective={viewPerspective}
       data-stats-exact={isFinal ? 'true' : 'false'}
@@ -946,6 +952,7 @@ export function DriveTopBar({
         className={`td-topbar-row td-topbar-row-2${hasSelection ? ' has-selection-tools' : ''}`}
       >
         <input
+          ref={searchInputRef}
           type="text"
           inputMode="search"
           autoComplete="off"
