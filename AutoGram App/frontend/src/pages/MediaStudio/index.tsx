@@ -5535,11 +5535,14 @@ function MediaDriveDesktop({
     });
   };
 
-  const createIndexedZip = async (category: ZipCategory) => {
+  const createIndexedZip = async (categories: ZipCategory[]) => {
     if (!creds || !zipPreflight.ready || isDownloadingZipRef.current) return;
-    const selectedFiles = category === 'all'
+    const isAll = categories.includes('all');
+    const selectedFiles = isAll
       ? zipPreflight.indexedFiles
-      : zipPreflight.indexedFiles.filter((file) => matchesMediaFilter(file, category, 'drive'));
+      : zipPreflight.indexedFiles.filter((file) =>
+          categories.some((cat) => matchesMediaFilter(file, cat, 'drive'))
+        );
     if (!selectedFiles.length) return;
     try {
       const { save } = await import('@tauri-apps/plugin-dialog');
@@ -8966,7 +8969,7 @@ function MediaDriveDesktop({
         totalBytes={totalBytes}
         error={zipPreflight.error}
         onIndex={() => void runZipFullIndex()}
-        onCreate={(category) => void createIndexedZip(category)}
+        onCreate={(categories) => void createIndexedZip(categories)}
         onClose={() => {
           if (zipPreflight.indexing) return;
           setZipPreflight((state) => ({ ...state, open: false }));

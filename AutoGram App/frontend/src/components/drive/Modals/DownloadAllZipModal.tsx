@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Archive,
   CheckCircle2,
+  CheckSquare,
   Clock,
   Database,
   FileArchive,
@@ -11,13 +12,19 @@ import {
   RefreshCw,
   ShieldCheck,
   Sparkles,
+  Square,
   X,
   Zap,
 } from 'lucide-react';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
+import { matchesMediaFilter } from '../../../lib/telegram/driveTypes';
 import { countPerspectiveMedia } from '../utils/mediaStatistics';
 
 export type ZipCategory = 'all' | 'images' | 'videos' | 'audio' | 'documents' | 'archives';
+export type ZipSpecificCategory = 'images' | 'videos' | 'audio' | 'documents' | 'archives';
+
+const SPECIFIC_CATEGORIES: ZipSpecificCategory[] = ['images', 'videos', 'audio', 'documents', 'archives'];
+const ALL_CATEGORIES: ZipCategory[] = ['all', 'images', 'videos', 'audio', 'documents', 'archives'];
 
 type Props = {
   open: boolean;
@@ -30,7 +37,7 @@ type Props = {
   totalBytes?: number | null;
   error?: string | null;
   onIndex: () => void;
-  onCreate: (category: ZipCategory) => void;
+  onCreate: (categories: ZipCategory[]) => void;
   onClose: () => void;
 };
 
@@ -57,27 +64,80 @@ export function DownloadAllZipModal({
   onClose,
 }: Props) {
   const { t } = useTranslation();
-  const [category, setCategory] = useState<ZipCategory>('all');
+  // Multi-select categories state. Default is 'all'.
+  const [selectedCategories, setSelectedCategories] = useState<Set<ZipCategory>>(new Set(['all']));
   const counts = useMemo(() => countPerspectiveMedia(indexedFiles, 'drive'), [indexedFiles]);
-  const selectedCount = category === 'all' ? indexedFiles.length : counts[category] || 0;
 
-  // Selected files byte calculation
-  const selectedBytes = useMemo(() => {
-    if (!ready || !indexedFiles.length) return totalBytes || 0;
-    if (category === 'all') {
-      return indexedFiles.reduce((sum, f) => sum + (f.size || 0), 0);
+  // List of specific categories that have > 0 files
+  const availableNonEmptyCategories = useMemo(() => {
+    return SPECIFIC_CATEGORIES.filter((id) => (counts[id] || 0) > 0);
+  }, [counts]);
+
+  const isAllActive = selectedCategories.has('all');
+
+  // Toggle category with intelligent multi-choice handling
+  const handleToggleCategory = (id: ZipCategory) => {
+    setSelectedCategories((prev) => {
+      // 1. If clicking "All files"
+      if (id === 'all') {
+        // Resets to full All Files selection
+        return new Set(['all']);
+      }
+
+      // 2. If 'all' was active and user clicks a specific category (e.g. 'images')
+      if (prev.has('all')) {
+        // Switch from ALL to selecting ONLY that category
+        return new Set([id]);
+      }
+
+      // 3. Multi-select toggle
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+
+      // If user unselected all categories, leave empty
+      if (next.size === 0) {
+        return next;
+      }
+
+      // If user manually selected all non-empty categories, normalize to 'all'
+      if (
+        availableNonEmptyCategories.length > 0 &&
+        availableNonEmptyCategories.every((cat) => next.has(cat))
+      ) {
+        return new Set(['all']);
+      }
+
+      return next;
+    });
+  };
+
+  // Selected files calculation based on active categories
+  const selectedFiles = useMemo(() => {
+    if (!ready || !indexedFiles.length) return [];
+    if (selectedCategories.has('all')) {
+      return indexedFiles;
     }
-    return indexedFiles
-      .filter((f) => {
-        const countsObj = countPerspectiveMedia([f], 'drive');
-        return (countsObj[category] || 0) > 0;
-      })
-      .reduce((sum, f) => sum + (f.size || 0), 0);
-  }, [ready, indexedFiles, category, totalBytes]);
+    if (selectedCategories.size === 0) {
+      return [];
+    }
+    return indexedFiles.filter((file) => {
+      return Array.from(selectedCategories).some((cat) =>
+        matchesMediaFilter(file, cat, 'drive')
+      );
+    });
+  }, [ready, indexedFiles, selectedCategories]);
+
+  const selectedCount = selectedFiles.length;
+  const selectedBytes = useMemo(() => {
+    return selectedFiles.reduce((sum, f) => sum + (f.size || 0), 0);
+  }, [selectedFiles]);
 
   if (!open) return null;
 
-  const categories: ZipCategory[] = ['all', 'images', 'videos', 'audio', 'documents', 'archives'];
   const progress = expectedCount && expectedCount > 0
     ? Math.min(100, Math.round((scannedCount / expectedCount) * 100))
     : indexing ? 15 : ready ? 100 : 0;
@@ -94,8 +154,8 @@ export function DownloadAllZipModal({
     ? `~${estIndexSeconds}s`
     : `~${Math.ceil(estIndexSeconds / 60)} min`;
 
-  const estTotalSizeFormatted = selectedBytes > 0
-    ? formatBytes(selectedBytes)
+  const estTotalSizeFormatted = totalBytes && totalBytes > 0
+    ? formatBytes(totalBytes)
     : formatBytes(totalFilesEstimate * 1.8 * 1024 * 1024);
 
   return (
@@ -193,7 +253,7 @@ export function DownloadAllZipModal({
             </div>
           )}
 
-          {/* 3. Category Filter Selection (Visible when ready) */}
+          {/* 3. Category Filter Selection (Multi-select enabled when ready) */}
           {ready && (
             <div className="td-zip-options" aria-disabled={!ready}>
               <div className="td-zip-options-heading">
@@ -203,21 +263,36 @@ export function DownloadAllZipModal({
                   {selectedBytes > 0 ? ` · ${formatBytes(selectedBytes)}` : ''}
                 </span>
               </div>
-              <div className="td-zip-category-grid" role="radiogroup" aria-label={t('speedtest.zip_include_heading')}>
-                {categories.map((id) => (
-                  <button
-                    key={id}
-                    type="button"
-                    role="radio"
-                    aria-checked={category === id}
-                    className={category === id ? 'is-active' : ''}
-                    disabled={!ready}
-                    onClick={() => setCategory(id)}
-                  >
-                    <span>{t(`speedtest.zip_category_${id}`)}</span>
-                    <b>{(id === 'all' ? indexedFiles.length : counts[id] || 0).toLocaleString()}</b>
-                  </button>
-                ))}
+              <div className="td-zip-category-grid" role="group" aria-label={t('speedtest.zip_include_heading')}>
+                {ALL_CATEGORIES.map((id) => {
+                  const itemCount = id === 'all' ? indexedFiles.length : counts[id] || 0;
+                  const isChecked = id === 'all'
+                    ? isAllActive
+                    : isAllActive || selectedCategories.has(id);
+                  const isDisabled = !ready || (id !== 'all' && itemCount === 0);
+
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      role="checkbox"
+                      aria-checked={isChecked}
+                      className={`td-zip-cat-btn${isChecked ? ' is-active' : ''}${isDisabled ? ' is-disabled' : ''}`}
+                      disabled={isDisabled}
+                      onClick={() => handleToggleCategory(id)}
+                    >
+                      <span className="td-zip-cat-label-wrap">
+                        {isChecked ? (
+                          <CheckSquare size={14} className="td-zip-cat-check" />
+                        ) : (
+                          <Square size={14} className="td-zip-cat-uncheck" />
+                        )}
+                        <span>{t(`speedtest.zip_category_${id}`)}</span>
+                      </span>
+                      <b>{itemCount.toLocaleString()}</b>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -246,7 +321,7 @@ export function DownloadAllZipModal({
                 type="button"
                 className="td-btn-primary"
                 disabled={!ready || indexing || selectedCount === 0}
-                onClick={() => onCreate(category)}
+                onClick={() => onCreate(Array.from(selectedCategories))}
               >
                 <FileArchive size={16} />
                 {t('speedtest.zip_create_button', { count: selectedCount.toLocaleString() })}
