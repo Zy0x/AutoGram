@@ -32441,3 +32441,72 @@ button.td-confirm-icon.is-back-btn:active {
   justify-content: flex-end !important;
   gap: 10px !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   UNBLOCK EMBEDDED WORKSPACE VERTICAL SCROLLING
+   Allows .td-tools-main to naturally compute scrollHeight and scroll smoothly
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-tools-panel.is-unified .td-tools-layout {
+  display: flex !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.td-tools-panel.is-unified .td-tools-main {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  min-width: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 16px !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+}
+
+.td-xfer-single-workspace.is-embedded {
+  display: flex !important;
+  flex-direction: column !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  flex: 0 0 auto !important;
+  overflow: visible !important;
+  position: relative !important;
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.td-xfer-single-workspace.is-embedded .td-xfer-panel-viewport {
+  display: flex !important;
+  flex-direction: column !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  flex: 0 0 auto !important;
+  padding: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.td-xfer-single-workspace.is-embedded .td-xfer-focused-panel {
+  display: flex !important;
+  flex-direction: column !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  flex: 0 0 auto !important;
+  gap: 12px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding-bottom: 24px !important;
+}
