@@ -1,12 +1,13 @@
-AutoGram Version: v3.7.39
+AutoGram Version: v3.7.40
 
 Current State:
-v3.7.39 Real-Time Live Indexing Progress Indicator & Interactive Stop Control — membenahi `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Real-Time Live Indexing Progress: Menampilkan kemajuan pemindaian metadata secara langsung dan dinamis (`⟳ 1.450 / 43.060 (3%)` atau `⟳ X berkas terindeks...`), menggantikan label statis.
-2. Interactive Stop / Cancel Control: Menyediakan tombol pembatalan instan (`✕`) dengan hover styling yang jelas saat proses pengindeksan berjalan di latar belakang.
-3. Tabular Numerical Formatting: Tipografi angka tabular yang stabil tanpa jitter visual selama pembaruan progres di topbar.
+v3.7.40 Interactive Top-Right Glassmorphic Indexing Progress Card & Fluid Shimmer Load-Fill Bar — membenahi `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Top-Right Glassmorphic Indexing Progress Card: Menghadirkan kembali dan memodernisasi overlay kartu progres pengindeksan di pojok kanan atas explorer (`.td-sort-index-card`) dengan efek blur glassmorphism, border aksen cyan bercahaya, dan animasi slide-in halus.
+2. Fluid Shimmer Load-Fill Progress Bar: Bar kemajuan gradien dinamis (`#38bdf8` -> `#818cf8` -> `#3b82f6`) dengan animasi shimmer linier, menghitung persentase presisi serta menampilkan jumlah berkas dan persentase secara real-time.
+3. Dual Interactive Stop Controls: Pengguna dapat membatalkan atau menghentikan pengindeksan kapan saja baik melalui tombol silang (`✕`) pada kartu overlay pojok kanan atas maupun melalui chip di topbar.
 
 Previous:
+v3.7.39 Real-Time Live Indexing Progress Indicator & Interactive Stop Control — membenahi `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.38 Floating Top-Item Notification Pill, Anchor Scroll Retention & Safe Background Metadata Indexer — membenahi `DriveExplorer.tsx`, `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.37 Per-Location Sort Isolation & Default Newest First Across All Drives — membenahi `MediaStudio/index.tsx`, `driveSortAndAlbumSettings.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.36 Pure In-Memory Zero-Loss Sorting Pipeline & Full Chat File Preservation — membenahi `MediaStudio/index.tsx`, `driveTypes.ts`, `DriveExplorer.tsx`, `VERSION.md`, dan `CHANGELOG.md`.

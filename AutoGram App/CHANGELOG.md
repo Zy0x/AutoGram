@@ -1,3 +1,17 @@
+## v3.7.40 Interactive Top-Right Glassmorphic Indexing Progress Card & Fluid Shimmer Load-Fill Bar (Phase 35.6)
+
+### 1. Kartu Overlay Progres Pengindeksan Pojok Kanan Atas (`MediaStudio/index.tsx`, `App.css`)
+- **Desain Glassmorphism Modern & Responsif**:
+  - Menghadirkan kembali dan memodernisasi kartu progres pengindeksan di pojok kanan atas area explorer (`.td-sort-index-card`).
+  - Dilengkapi ikon `Sparkles` berdenyut lembut, judul informatif (*"Mengindeks Metadata Drive"*), subjudul jumlah & persentase presisi, serta status proteksi Anti-FloodWait.
+- **Fluid Shimmer Load-Fill Progress Bar**:
+  - Progress bar dengan gradien cyan-ke-indigo (`#38bdf8` -> `#818cf8` -> `#3b82f6`) dan efek animasi *continuous shimmer* linier.
+  - Lebar persentase bar bergerak mulus (*cubic-bezier transition*) mengikuti jumlah metadata pesan yang masuk.
+
+### 2. Integrasi Penghentian Ganda (*Dual Interactive Stop Controls*) (`MediaStudio/index.tsx`, `DriveTopBar.tsx`)
+- **Kontrol Pembatalan Fleksibel**:
+  - Pengguna dapat menghentikan atau membatalkan proses pemindaian metadata kapan saja langsung dari tombol `✕` pada kartu overlay pojok kanan atas maupun dari chip di topbar.
+
 ## v3.7.39 Real-Time Live Indexing Progress Indicator & Interactive Stop Control (Phase 35.5)
 
 ### 1. Indikator Kemajuan Pengindeksan Real-Time (`DriveTopBar.tsx`, `MediaStudio/index.tsx`)

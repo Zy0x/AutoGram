@@ -1729,5 +1729,9 @@
   "index_all_running": "Mengindeks...",
   "index_all_progress": "{{processed}} / {{total}} ({{percent}}%)",
   "index_all_progress_count": "{{processed}} berkas terindeks...",
-  "index_all_stop": "Klik untuk menghentikan indeks"
+  "index_all_stop": "Klik untuk menghentikan indeks",
+  "index_progress_title": "Mengindeks Metadata Drive",
+  "index_progress_safe_hint": "Mode aman Anti-FloodWait aktif",
+  "index_progress_detail": "{{processed}} dari {{total}} berkas ({{percent}}%)",
+  "index_progress_count_only": "{{processed}} berkas terindeks"
 }

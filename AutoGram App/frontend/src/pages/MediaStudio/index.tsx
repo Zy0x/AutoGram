@@ -28,7 +28,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import { HardDrive, Upload, Scissors, Copy, ClipboardPaste, X } from 'lucide-react';
+import { HardDrive, Upload, Scissors, Copy, ClipboardPaste, X, Sparkles } from 'lucide-react';
 import { canUseLocalTelegramWorker, detectTauriRuntime } from '../../lib/tauri/platform';
 import {
   openDriveMoveConfirm,
@@ -3160,15 +3160,29 @@ function MediaDriveDesktop({
   const handleStopIndexing = useCallback(() => {
     indexingActiveRef.current = false;
     setIndexingAllActive(false);
+    setIndexingJob({ active: false, processed: 0, total: 0, text: '' });
   }, []);
 
   const handleIndexAllMetadata = useCallback(async () => {
     if (indexingActiveRef.current || !filesHasMore || loadingMoreFiles) return;
     indexingActiveRef.current = true;
     setIndexingAllActive(true);
+
+    const initialTotal = totalFileCount || 0;
+    const initialProcessed = liveFilesRef.current.length;
+    const initialPercent = initialTotal > 0 ? Math.min(100, Math.round((initialProcessed / initialTotal) * 100)) : 0;
+
     setIndexingProgress({
-      processed: liveFilesRef.current.length,
-      total: totalFileCount || null,
+      processed: initialProcessed,
+      total: initialTotal || null,
+    });
+    setIndexingJob({
+      active: true,
+      processed: initialProcessed,
+      total: initialTotal,
+      text: initialTotal > 0
+        ? t('speedtest.index_progress_detail', { processed: initialProcessed.toLocaleString(), total: initialTotal.toLocaleString(), percent: initialPercent })
+        : t('speedtest.index_progress_count_only', { processed: initialProcessed.toLocaleString() }),
     });
     setStatusText(t('speedtest.index_all_running'));
 
@@ -3220,9 +3234,20 @@ function MediaDriveDesktop({
           return merged;
         });
 
+        const curTotal = totalFileCount || initialTotal;
+        const curPercent = curTotal > 0 ? Math.min(100, Math.round((newTotalLoaded / curTotal) * 100)) : 0;
+
         setIndexingProgress({
           processed: newTotalLoaded,
-          total: totalFileCount || null,
+          total: curTotal || null,
+        });
+        setIndexingJob({
+          active: true,
+          processed: newTotalLoaded,
+          total: curTotal,
+          text: curTotal > 0
+            ? t('speedtest.index_progress_detail', { processed: newTotalLoaded.toLocaleString(), total: curTotal.toLocaleString(), percent: curPercent })
+            : t('speedtest.index_progress_count_only', { processed: newTotalLoaded.toLocaleString() }),
         });
 
         nextOffsetIdRef.current = res.next_offset_id;
@@ -3236,6 +3261,7 @@ function MediaDriveDesktop({
     } finally {
       indexingActiveRef.current = false;
       setIndexingAllActive(false);
+      setIndexingJob({ active: false, processed: 0, total: 0, text: '' });
       setStatusText(t('ui.generated.semua_media_dimuat_2310a13'));
     }
   }, [filesHasMore, loadingMoreFiles, creds, peerId, session, getDriveCacheKey, totalFileCount, t]);
@@ -8688,46 +8714,51 @@ function MediaDriveDesktop({
           <div className="td-explorer-wrapper" style={{ position: 'relative', flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             {indexingJob.active && (
               <div
-                className="td-sort-index-status"
+                className="td-sort-index-card"
                 role="status"
-                style={{
-                  zIndex: 20,
-                  position: 'absolute',
-                  top: '10px',
-                  right: '12px',
-                  background: 'rgba(15, 23, 42, 0.92)',
-                  backdropFilter: 'blur(8px)',
-                  display: 'flex',
-                  gap: '8px',
-                  alignItems: 'center',
-                  padding: '8px 10px',
-                  border: '1px solid rgba(56, 189, 248, 0.28)',
-                  borderRadius: '10px',
-                  color: '#fff',
-                  pointerEvents: 'none',
-                }}
+                aria-live="polite"
               >
-                <HardDrive size={16} className="text-blue-500" />
-                <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>
-                  {indexingJob.text}
-                </span>
-                <div
-                  style={{
-                    width: '72px',
-                    height: '4px',
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    borderRadius: '3px',
-                    overflow: 'hidden',
-                  }}
-                >
+                <div className="td-sort-index-head">
+                  <div className="td-sort-index-icon-wrap">
+                    <Sparkles size={14} className="td-sort-index-icon" />
+                  </div>
+                  <div className="td-sort-index-info">
+                    <span className="td-sort-index-title">
+                      {t('speedtest.index_progress_title')}
+                    </span>
+                    <span className="td-sort-index-sub">
+                      {indexingJob.text}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="td-sort-index-close-btn"
+                    onClick={handleStopIndexing}
+                    title={t('speedtest.index_all_stop')}
+                    aria-label={t('speedtest.index_all_stop')}
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+
+                <div className="td-sort-index-track">
                   <div
+                    className="td-sort-index-fill"
                     style={{
-                      width: `${Math.min(100, Math.max(0, indexingJob.total > 0 ? (indexingJob.processed / indexingJob.total) * 100 : 0))}%`,
-                      height: '100%',
-                      background: '#3b82f6',
-                      transition: 'width 0.3s ease',
+                      width: `${Math.min(100, Math.max(0, indexingJob.total > 0 ? (indexingJob.processed / indexingJob.total) * 100 : (indexingJob.processed > 0 ? 30 : 5)))}%`,
                     }}
                   />
+                </div>
+
+                <div className="td-sort-index-footer">
+                  <span className="td-sort-index-hint">
+                    {t('speedtest.index_progress_safe_hint')}
+                  </span>
+                  {indexingJob.total > 0 && (
+                    <span className="td-sort-index-pct">
+                      {Math.min(100, Math.max(0, Math.round((indexingJob.processed / indexingJob.total) * 100)))}%
+                    </span>
+                  )}
                 </div>
               </div>
             )}
