@@ -70,7 +70,7 @@ export function DownloadAllZipModal({
     return indexedFiles
       .filter((f) => {
         const countsObj = countPerspectiveMedia([f], 'drive');
-        return countsObj[category] > 0;
+        return (countsObj[category] || 0) > 0;
       })
       .reduce((sum, f) => sum + (f.size || 0), 0);
   }, [ready, indexedFiles, category, totalBytes]);
@@ -109,114 +109,118 @@ export function DownloadAllZipModal({
       >
         <header className="td-zip-preflight-header">
           <div className="td-zip-preflight-icon"><FileArchive size={22} /></div>
-          <div>
+          <div className="td-zip-preflight-title-wrap">
             <h2 id="td-zip-preflight-title">{t('speedtest.zip_preflight_title')}</h2>
             <p>{t('speedtest.zip_preflight_location', { location: locationLabel })}</p>
           </div>
-          <button type="button" className="td-icon-btn" onClick={onClose} aria-label={t('speedtest.close_aria')}>
+          <button type="button" className="td-icon-btn td-zip-close-btn" onClick={onClose} aria-label={t('speedtest.close_aria')}>
             <X size={17} />
           </button>
         </header>
 
-        {/* 1. Pre-Scan Estimation Summary Card (Visible when idle / not yet indexed) */}
-        {!ready && !indexing && (
-          <div className="td-zip-pre-card">
-            <div className="td-zip-pre-header">
-              <span className="td-zip-pre-badge">
-                <Sparkles size={14} />
-                <strong>{t('speedtest.zip_pre_estimation_heading')}</strong>
-              </span>
-              <span className="td-zip-pre-location">{locationLabel}</span>
-            </div>
+        <div className="td-zip-preflight-body">
+          {/* 1. Pre-Scan Estimation Summary Card (Visible when idle / not yet indexed) */}
+          {!ready && !indexing && (
+            <div className="td-zip-pre-card">
+              <div className="td-zip-pre-header">
+                <span className="td-zip-pre-badge">
+                  <Sparkles size={14} />
+                  <strong>{t('speedtest.zip_pre_estimation_heading')}</strong>
+                </span>
+                <span className="td-zip-pre-location" title={locationLabel}>{locationLabel}</span>
+              </div>
 
-            <div className="td-zip-est-grid">
-              <div className="td-zip-est-box">
-                <div className="td-zip-est-label">
-                  <Database size={13} />
-                  <span>{t('speedtest.zip_pre_files_est')}</span>
+              <div className="td-zip-est-grid">
+                <div className="td-zip-est-box">
+                  <div className="td-zip-est-label">
+                    <Database size={13} />
+                    <span>{t('speedtest.zip_pre_files_est')}</span>
+                  </div>
+                  <div className="td-zip-est-val">
+                    {totalFilesEstimate.toLocaleString()}
+                    <span className="td-zip-est-unit">{t('speedtest.zip_pre_items_unit')}</span>
+                  </div>
                 </div>
-                <div className="td-zip-est-val">
-                  {totalFilesEstimate.toLocaleString()}
-                  <span className="td-zip-est-unit">{t('speedtest.zip_pre_items_unit')}</span>
+
+                <div className="td-zip-est-box">
+                  <div className="td-zip-est-label">
+                    <Clock size={13} />
+                    <span>{t('speedtest.zip_pre_time_est')}</span>
+                  </div>
+                  <div className="td-zip-est-val">
+                    {estTimeFormatted}
+                    <span className="td-zip-est-unit-safe" title={t('speedtest.zip_pre_flood_safe')}>
+                      <Zap size={10} /> {t('speedtest.zip_pre_safe_pace')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="td-zip-est-box">
+                  <div className="td-zip-est-label">
+                    <HardDrive size={13} />
+                    <span>{t('speedtest.zip_pre_size_est')}</span>
+                  </div>
+                  <div className="td-zip-est-val">
+                    {estTotalSizeFormatted}
+                  </div>
                 </div>
               </div>
 
-              <div className="td-zip-est-box">
-                <div className="td-zip-est-label">
-                  <Clock size={13} />
-                  <span>{t('speedtest.zip_pre_time_est')}</span>
-                </div>
-                <div className="td-zip-est-val">
-                  {estTimeFormatted}
-                  <span className="td-zip-est-unit-safe" title={t('speedtest.zip_pre_flood_safe')}>
-                    <Zap size={10} /> {t('speedtest.zip_pre_safe_pace')}
-                  </span>
-                </div>
-              </div>
-
-              <div className="td-zip-est-box">
-                <div className="td-zip-est-label">
-                  <HardDrive size={13} />
-                  <span>{t('speedtest.zip_pre_size_est')}</span>
-                </div>
-                <div className="td-zip-est-val">
-                  {estTotalSizeFormatted}
-                </div>
+              <div className="td-zip-resilience-banner">
+                <ShieldCheck size={16} className="td-zip-resilience-icon" />
+                <p>{t('speedtest.zip_pre_resilience_badge')}</p>
               </div>
             </div>
+          )}
 
-            <div className="td-zip-resilience-banner">
-              <ShieldCheck size={16} className="td-zip-resilience-icon" />
-              <p>{t('speedtest.zip_pre_resilience_badge')}</p>
+          {/* 2. Live Indexing Progress or Ready Card */}
+          {(indexing || ready) && (
+            <div className={`td-zip-index-card${ready ? ' is-ready' : ''}`} data-index-ready={ready ? 'true' : 'false'}>
+              <div className="td-zip-index-row">
+                <span className="td-zip-index-status">
+                  {indexing ? <Loader2 size={16} className="spin" /> : ready ? <CheckCircle2 size={16} /> : <Archive size={16} />}
+                  <strong>{indexing ? t('speedtest.zip_indexing') : ready ? t('speedtest.zip_ready_all_scanned') : t('speedtest.zip_index_required')}</strong>
+                </span>
+                <span className="td-zip-index-count">
+                  {expectedCount != null ? `${scannedCount.toLocaleString()} / ${expectedCount.toLocaleString()}` : scannedCount.toLocaleString()}
+                </span>
+              </div>
+              <div className="td-zip-progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress} role="progressbar">
+                <span style={{ width: `${progress}%` }} />
+              </div>
+              <p>{t('speedtest.zip_index_explain')}</p>
+              {error && <div className="td-zip-error" role="alert">{error}</div>}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* 2. Live Indexing Progress or Ready Card */}
-        {(indexing || ready) && (
-          <div className={`td-zip-index-card${ready ? ' is-ready' : ''}`} data-index-ready={ready ? 'true' : 'false'}>
-            <div className="td-zip-index-row">
-              <span className="td-zip-index-status">
-                {indexing ? <Loader2 size={16} className="spin" /> : ready ? <CheckCircle2 size={16} /> : <Archive size={16} />}
-                <strong>{indexing ? t('speedtest.zip_indexing') : ready ? t('speedtest.zip_ready_all_scanned') : t('speedtest.zip_index_required')}</strong>
-              </span>
-              <span className="td-zip-index-count">
-                {expectedCount != null ? `${scannedCount.toLocaleString()} / ${expectedCount.toLocaleString()}` : scannedCount.toLocaleString()}
-              </span>
+          {/* 3. Category Filter Selection (Visible when ready) */}
+          {ready && (
+            <div className="td-zip-options" aria-disabled={!ready}>
+              <div className="td-zip-options-heading">
+                <strong>{t('speedtest.zip_include_heading')}</strong>
+                <span>
+                  {t('speedtest.zip_selected_count', { count: selectedCount.toLocaleString() })}
+                  {selectedBytes > 0 ? ` · ${formatBytes(selectedBytes)}` : ''}
+                </span>
+              </div>
+              <div className="td-zip-category-grid" role="radiogroup" aria-label={t('speedtest.zip_include_heading')}>
+                {categories.map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="radio"
+                    aria-checked={category === id}
+                    className={category === id ? 'is-active' : ''}
+                    disabled={!ready}
+                    onClick={() => setCategory(id)}
+                  >
+                    <span>{t(`speedtest.zip_category_${id}`)}</span>
+                    <b>{(id === 'all' ? indexedFiles.length : counts[id] || 0).toLocaleString()}</b>
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="td-zip-progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress} role="progressbar">
-              <span style={{ width: `${progress}%` }} />
-            </div>
-            <p>{t('speedtest.zip_index_explain')}</p>
-            {error && <div className="td-zip-error" role="alert">{error}</div>}
-          </div>
-        )}
-
-        {/* 3. Category Filter Selection (Active when ready) */}
-        <div className="td-zip-options" aria-disabled={!ready}>
-          <div className="td-zip-options-heading">
-            <strong>{t('speedtest.zip_include_heading')}</strong>
-            <span>
-              {t('speedtest.zip_selected_count', { count: selectedCount.toLocaleString() })}
-              {ready && selectedBytes > 0 ? ` · ${formatBytes(selectedBytes)}` : ''}
-            </span>
-          </div>
-          <div className="td-zip-category-grid" role="radiogroup" aria-label={t('speedtest.zip_include_heading')}>
-            {categories.map((id) => (
-              <button
-                key={id}
-                type="button"
-                role="radio"
-                aria-checked={category === id}
-                className={category === id ? 'is-active' : ''}
-                disabled={!ready}
-                onClick={() => setCategory(id)}
-              >
-                <span>{t(`speedtest.zip_category_${id}`)}</span>
-                <b>{(id === 'all' ? indexedFiles.length : counts[id] || 0).toLocaleString()}</b>
-              </button>
-            ))}
-          </div>
+          )}
         </div>
 
         <footer className="td-zip-preflight-actions">
