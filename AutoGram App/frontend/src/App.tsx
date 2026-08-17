@@ -12,6 +12,7 @@ import { Accounts } from './pages/Accounts';
 import { isMediaStudioAvailable } from './lib/tauri/capabilities';
 import { bootstrapSecureCredentials, notifyApiCredentialsChanged, notifyApiError } from './lib/tauri/secureCredentials';
 import { bootstrapDebugMode, debugLog } from './lib/utils/debugMode';
+import { initGlobalHorizontalWheelScroll } from './lib/utils/horizontalWheelScroll';
 import { checkAndAutoPruneCache } from './lib/db/autoCachePruner';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
@@ -60,6 +61,11 @@ function App() {
       'Lavender'
     );
   });
+
+  // Universal horizontal mouse wheel scroll listener for all horizontal scrollable strips
+  useEffect(() => {
+    return initGlobalHorizontalWheelScroll();
+  }, []);
 
   // Check Telegram API Credentials & Startup Behavior on boot
   useEffect(() => {
