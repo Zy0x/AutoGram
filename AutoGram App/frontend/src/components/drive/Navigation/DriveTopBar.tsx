@@ -223,42 +223,45 @@ export function DriveTopBar({
   const isHoveredRef = useRef<boolean>(false);
   const isInputFocusedRef = useRef<boolean>(false);
 
+  // Auto-collapse condition: only applies for compact window height (400px - 550px)
+  const checkShouldAutoCollapse = useCallback(() => {
+    if (typeof window === 'undefined') return false;
+    const isTargetHeight = window.innerHeight >= 400 && window.innerHeight <= 550;
+    const isShortHeight = window.innerHeight <= 550;
+    return (isTargetHeight || isShortHeight) && !isPinned;
+  }, [isPinned]);
+
   const startAutoCollapseTimer = useCallback((durationMs = 5000) => {
     if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current);
-    if (typeof window === 'undefined') return;
-
-    const isSmallScreen = window.innerWidth <= 850;
-    if (!isSmallScreen || isPinned) return;
+    if (!checkShouldAutoCollapse()) return;
 
     collapseTimerRef.current = setTimeout(() => {
-      if (!isHoveredRef.current && !isInputFocusedRef.current && !isPinned) {
+      if (!isHoveredRef.current && !isInputFocusedRef.current && checkShouldAutoCollapse()) {
         setIsToolsCollapsed(true);
       }
     }, durationMs);
-  }, [isPinned]);
+  }, [checkShouldAutoCollapse]);
 
-  // Auto-collapse after 5 seconds on small/medium screen (<= 850px) when unpinned
+  // Auto-collapse after 5 seconds when screen height is in 400px-550px range and unpinned
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const isSmallScreen = window.innerWidth <= 850;
+    const shouldCollapse = checkShouldAutoCollapse();
 
-    if (isSmallScreen && !isPinned) {
+    if (shouldCollapse) {
       setIsToolsCollapsed(false);
       startAutoCollapseTimer(5000);
     } else {
       if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current);
-      if (!isSmallScreen) {
-        setIsToolsCollapsed(false);
-      }
+      setIsToolsCollapsed(false);
     }
 
     const handleResize = () => {
       if (typeof window === 'undefined') return;
-      const small = window.innerWidth <= 850;
-      if (!small) {
+      const should = checkShouldAutoCollapse();
+      if (!should) {
         if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current);
         setIsToolsCollapsed(false);
-      } else if (!isPinned && !isToolsCollapsed) {
+      } else if (!isToolsCollapsed) {
         startAutoCollapseTimer(5000);
       }
     };
@@ -268,7 +271,7 @@ export function DriveTopBar({
       if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current);
       window.removeEventListener('resize', handleResize);
     };
-  }, [folderName, isPinned, startAutoCollapseTimer]);
+  }, [folderName, isPinned, checkShouldAutoCollapse, startAutoCollapseTimer]);
 
   const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
@@ -277,10 +280,10 @@ export function DriveTopBar({
 
   const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
-    if (!isToolsCollapsed && !isPinned && typeof window !== 'undefined' && window.innerWidth <= 850) {
+    if (!isToolsCollapsed && checkShouldAutoCollapse()) {
       startAutoCollapseTimer(3000);
     }
-  }, [isToolsCollapsed, isPinned, startAutoCollapseTimer]);
+  }, [isToolsCollapsed, checkShouldAutoCollapse, startAutoCollapseTimer]);
 
   const handleSearchFocus = useCallback(() => {
     isInputFocusedRef.current = true;
@@ -289,21 +292,21 @@ export function DriveTopBar({
 
   const handleSearchBlur = useCallback(() => {
     isInputFocusedRef.current = false;
-    if (!isToolsCollapsed && !isPinned && typeof window !== 'undefined' && window.innerWidth <= 850) {
+    if (!isToolsCollapsed && checkShouldAutoCollapse()) {
       startAutoCollapseTimer(3000);
     }
-  }, [isToolsCollapsed, isPinned, startAutoCollapseTimer]);
+  }, [isToolsCollapsed, checkShouldAutoCollapse, startAutoCollapseTimer]);
 
   const handleToggleCollapse = useCallback(() => {
     if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current);
     setIsToolsCollapsed((prev) => {
       const next = !prev;
-      if (!next && typeof window !== 'undefined' && window.innerWidth <= 850 && !isPinned) {
+      if (!next && checkShouldAutoCollapse()) {
         startAutoCollapseTimer(5000);
       }
       return next;
     });
-  }, [isPinned, startAutoCollapseTimer]);
+  }, [checkShouldAutoCollapse, startAutoCollapseTimer]);
 
   const handleRefreshClick = () => {
     setManualSpin(true);

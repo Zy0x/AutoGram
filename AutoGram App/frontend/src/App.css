@@ -26890,8 +26890,8 @@ button.td-confirm-icon.is-back-btn:active {
   color: #fbbf24 !important;
 }
 
-/* Strictly hide the collapse handle on windows wider than 850px */
-@media (min-width: 851px) {
+/* Strictly hide the collapse handle on windows wider than 850px AND taller than 550px */
+@media (min-width: 851px) and (min-height: 551px) {
   .td-topbar-collapse-handle,
   .td-topbar-toggle-btn {
     display: none !important;
