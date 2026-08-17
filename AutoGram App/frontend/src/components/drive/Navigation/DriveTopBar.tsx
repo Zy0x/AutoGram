@@ -222,6 +222,7 @@ export function DriveTopBar({
   const collapseTimerRef = useRef<NodeJS.Timeout | null>(null);
   const headerRef = useRef<HTMLElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const hasAutoCollapsedForDriveRef = useRef<boolean>(false);
 
   const isToolsCollapsedRef = useRef<boolean>(false);
   useEffect(() => {
@@ -238,19 +239,22 @@ export function DriveTopBar({
 
   const startAutoCollapseTimer = useCallback((durationMs = 5000) => {
     if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current);
-    if (!checkShouldAutoCollapse()) return;
+    if (!checkShouldAutoCollapse() || hasAutoCollapsedForDriveRef.current) return;
 
     collapseTimerRef.current = setTimeout(() => {
       const isHovered = Boolean(headerRef.current && headerRef.current.matches(':hover'));
       const isInputFocused = Boolean(searchInputRef.current && document.activeElement === searchInputRef.current);
-      if (!isHovered && !isInputFocused && checkShouldAutoCollapse()) {
+      if (!isHovered && !isInputFocused && checkShouldAutoCollapse() && !hasAutoCollapsedForDriveRef.current) {
         setIsToolsCollapsed(true);
+        hasAutoCollapsedForDriveRef.current = true;
       }
     }, durationMs);
   }, [checkShouldAutoCollapse]);
 
-  // Auto-collapse after 5 seconds when screen height is in 400px-550px range and unpinned
+  // Auto-collapse runs ONCE after 5 seconds on initial drive/folder load (400px-550px height)
   useEffect(() => {
+    hasAutoCollapsedForDriveRef.current = false;
+
     if (typeof window === 'undefined') return;
     const shouldCollapse = checkShouldAutoCollapse();
 
@@ -268,7 +272,7 @@ export function DriveTopBar({
       if (!should) {
         if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current);
         setIsToolsCollapsed(false);
-      } else if (!isToolsCollapsedRef.current) {
+      } else if (!isToolsCollapsedRef.current && !hasAutoCollapsedForDriveRef.current) {
         startAutoCollapseTimer(5000);
       }
     };
@@ -281,37 +285,33 @@ export function DriveTopBar({
   }, [folderName, isPinned, checkShouldAutoCollapse, startAutoCollapseTimer]);
 
   const handleMouseEnter = useCallback(() => {
-    isHoveredRef.current = true;
     if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current);
   }, []);
 
   const handleMouseLeave = useCallback(() => {
-    isHoveredRef.current = false;
-    if (!isToolsCollapsedRef.current && checkShouldAutoCollapse()) {
+    // Only resume timer during initial entry countdown (never if user manually expanded)
+    if (!isToolsCollapsedRef.current && !hasAutoCollapsedForDriveRef.current && checkShouldAutoCollapse()) {
       startAutoCollapseTimer(3000);
     }
   }, [checkShouldAutoCollapse, startAutoCollapseTimer]);
 
   const handleSearchFocus = useCallback(() => {
-    isInputFocusedRef.current = true;
     if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current);
   }, []);
 
   const handleSearchBlur = useCallback(() => {
-    isInputFocusedRef.current = false;
-    if (!isToolsCollapsedRef.current && checkShouldAutoCollapse()) {
+    // Only resume timer during initial entry countdown (never if user manually expanded)
+    if (!isToolsCollapsedRef.current && !hasAutoCollapsedForDriveRef.current && checkShouldAutoCollapse()) {
       startAutoCollapseTimer(3000);
     }
   }, [checkShouldAutoCollapse, startAutoCollapseTimer]);
 
   const handleToggleCollapse = useCallback(() => {
+    // When user manually toggles/expands, cancel any auto-collapse permanently for this drive session
     if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current);
-    const nextCollapsed = !isToolsCollapsed;
-    setIsToolsCollapsed(nextCollapsed);
-    if (!nextCollapsed && checkShouldAutoCollapse()) {
-      startAutoCollapseTimer(5000);
-    }
-  }, [isToolsCollapsed, checkShouldAutoCollapse, startAutoCollapseTimer]);
+    hasAutoCollapsedForDriveRef.current = true;
+    setIsToolsCollapsed((prev) => !prev);
+  }, []);
 
   const handleRefreshClick = () => {
     setManualSpin(true);
