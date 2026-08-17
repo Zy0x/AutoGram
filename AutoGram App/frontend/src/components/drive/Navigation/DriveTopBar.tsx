@@ -825,10 +825,8 @@ export function DriveTopBar({
           </div>
         </div>
 
-      {!isToolsCollapsed && (
-        <>
-          {/* Forum topics — Semua media + per-topic filter */}
-          {showTopics && (
+      {/* Forum topics — Semua media + per-topic filter (Always visible if topics exist) */}
+      {showTopics && (
             <div className="td-topbar-row td-topbar-row-topics" role="group" aria-label={t("speedtest.label_topic")}>
           <span className="td-topics-label">
             <MessagesSquare size={14} />
@@ -943,9 +941,11 @@ export function DriveTopBar({
         </div>
       )}
 
-      {/*
-        Row 2: search input AND selection tools side-by-side (strict 1-row height -> zero layout shift).
-      */}
+      {!isToolsCollapsed && (
+        <>
+          {/*
+            Row 2: search input AND selection tools side-by-side (strict 1-row height -> zero layout shift).
+          */}
       <div
         className={`td-topbar-row td-topbar-row-2${hasSelection ? ' has-selection-tools' : ''}`}
       >
