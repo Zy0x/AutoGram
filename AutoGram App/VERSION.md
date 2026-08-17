@@ -1,12 +1,13 @@
-AutoGram Version: v3.7.41
+AutoGram Version: v3.7.42
 
 Current State:
-v3.7.41 Adaptive Multi-Tier Indexing Engine, Dynamic Flood-Shield & Real-Time Performance Dashboard — membenahi `adaptiveIndexer.ts`, `adaptiveIndexer.test.ts`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Adaptive Multi-Tier Engine (Tiers 1-5): Pengindeksan cerdas berbasis skala data secara dinamis mengalokasikan strategi delay (15ms untuk Micro hingga 2-Phase Viewport Pipeline untuk Massive/Colossal) menyesuaikan ukuran drive/topik (<1.5k s/d >500k+ file).
-2. Real-Time Performance Metrics & Dynamic ETA: Menghitung kecepatan pemindaian pesan secara live (`⚡ 1.098 berkas/dtk`), perkiraan waktu selesai presisi (`⏱️ ~39s tersisa`), serta badge indikator taraf aktif (`TARAF MASIF` / `MASSIVE TIER`).
-3. Interactive Pause/Resume & Debounced Table Rendering: Kontrol jeda/lanjutkan instan (`[⏸️]` / `[▶️]`) dan pembaruan render tabel 250ms debounced untuk menjamin 60fps tanpa frame-drop.
+v3.7.42 High-Legibility Balanced Card Text Contrast & Bottom Gradient Refinement — membenahi `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Balanced High-Legibility Card Typography: Mengganti warna teks pudar/kusam dengan Slate-100 (`#f1f5f9`) untuk judul berkas dan Slate-300 (`#cbd5e1`) untuk metadata ukuran/format di seluruh kartu berkas (media & non-media) serta tampilan list view.
+2. Layered Text Shadow & Protection: Menerapkan drop-shadow lembut bertingkat (`rgba(0,0,0,0.9)` + `rgba(0,0,0,0.6)`) yang menjamin keterbacaan 100% jelas di atas gambar terang, gelap, maupun pastel tanpa menyilaukan mata.
+3. Enhanced Bottom Media Gradient: Memperdalam gradien dasar (`rgba(0,0,0,0.88)` -> `rgba(0,0,0,0.58)` -> `transparent`) untuk melindungi teks judul dari kontras latar belakang foto/video.
 
 Previous:
+v3.7.41 Adaptive Multi-Tier Indexing Engine, Dynamic Flood-Shield & Real-Time Performance Dashboard — membenahi `adaptiveIndexer.ts`, `adaptiveIndexer.test.ts`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.40 Interactive Top-Right Glassmorphic Indexing Progress Card & Fluid Shimmer Load-Fill Bar — membenahi `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.39 Real-Time Live Indexing Progress Indicator & Interactive Stop Control — membenahi `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.38 Floating Top-Item Notification Pill, Anchor Scroll Retention & Safe Background Metadata Indexer — membenahi `DriveExplorer.tsx`, `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.

@@ -1,3 +1,14 @@
+## v3.7.42 High-Legibility Balanced Card Text Contrast & Bottom Gradient Refinement (Phase 35.8)
+
+### 1. Tipografi Kartu Berkas Presisi & Keterbacaan Seimbang (`App.css`)
+- **Peningkatan Kontras Judul & Metadata Berkas**:
+  - Mengganti teks yang sebelumnya tampak pudar/abu-abu kusam dengan palet Slate-100 (`#f1f5f9`) untuk judul berkas dan Slate-300 (`#cbd5e1`) untuk metadata ukuran dan format.
+  - Teks kini memiliki kontras yang seimbang (*balanced*): sangat jelas dan mudah dibaca tanpa menyilaukan mata.
+- **Layered Drop-Shadow Protection**:
+  - Menambahkan *text-shadow* halus berlapis (`rgba(0,0,0,0.9) 0px 1px 3px` dan `rgba(0,0,0,0.6) 0px 0px 8px`) pada thumbnail media sehingga teks tetap 100% terbaca di atas gambar anime, foto terang, gelap, maupun pastel.
+- **Refined Bottom Media Gradient**:
+  - Memperkaya gradien bawah (`rgba(0,0,0,0.88)` -> `rgba(0,0,0,0.58)` -> `transparent`) untuk memastikan pemisahan visual yang tajam dan nyaman antara gambar dan teks.
+
 ## v3.7.41 Adaptive Multi-Tier Indexing Engine, Dynamic Flood-Shield & Real-Time Performance Dashboard (Phase 35.7)
 
 ### 1. Engine Pengindeksan Adaptif Bertingkat (*Multi-Tier Indexing Engine*) (`adaptiveIndexer.ts`, `adaptiveIndexer.test.ts`, `MediaStudio/index.tsx`)

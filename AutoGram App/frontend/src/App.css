@@ -3357,12 +3357,23 @@ body.td-dnd-external {
 
 /* Meta bar always legible */
 .td-file-card-meta.on-empty {
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.35) 70%, transparent 100%);
-  color: #e2e8f0;
+  background: linear-gradient(
+    to top,
+    rgba(15, 23, 42, 0.94) 0%,
+    rgba(15, 23, 42, 0.75) 55%,
+    rgba(15, 23, 42, 0.25) 85%,
+    transparent 100%
+  );
+  color: #f1f5f9;
+}
+.td-file-card-meta.on-empty .td-file-card-name {
+  color: #f1f5f9;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 .td-file-card-meta.on-empty .td-file-card-sub {
-  color: #94a3b8;
+  color: #cbd5e1;
   opacity: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 /* Actions: top-right only on hover, no center clash */
 .td-file-card-actions {
@@ -3377,10 +3388,12 @@ body.td-dnd-external {
   /* Covers duration row + name + size without washing out the frame */
   background: linear-gradient(
     to top,
-    rgba(0, 0, 0, 0.82) 0%,
-    rgba(0, 0, 0, 0.45) 28%,
-    transparent 58%
+    rgba(0, 0, 0, 0.88) 0%,
+    rgba(0, 0, 0, 0.58) 26%,
+    rgba(0, 0, 0, 0.18) 48%,
+    transparent 68%
   );
+  pointer-events: none;
 }
 
 .td-file-card-meta {
@@ -3403,7 +3416,16 @@ body.td-dnd-external {
 }
 
 .td-file-card-meta.on-media {
-  color: #fff;
+  color: #f1f5f9;
+}
+.td-file-card-meta.on-media .td-file-card-name {
+  color: #f1f5f9;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.6);
+}
+.td-file-card-meta.on-media .td-file-card-sub {
+  color: #cbd5e1;
+  opacity: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
 }
 
 /* Name: full row width under duration — never squeezed by badge */
@@ -3412,16 +3434,20 @@ body.td-dnd-external {
   min-width: 0;
   font-size: 0.82rem;
   font-weight: 600;
+  color: #f1f5f9;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.25;
+  letter-spacing: 0.01em;
 }
 
 .td-file-card-sub {
   width: 100%;
   font-size: 0.72rem;
-  opacity: 0.8;
+  font-weight: 500;
+  color: #cbd5e1;
+  opacity: 1;
   margin-top: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3431,7 +3457,7 @@ body.td-dnd-external {
 }
 
 .td-file-card-meta:not(.on-media) .td-file-card-sub {
-  color: var(--td-sub);
+  color: #cbd5e1;
   opacity: 1;
 }
 
@@ -3765,7 +3791,7 @@ body.td-dnd-external {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #94a3b8;
+  color: #cbd5e1;
   font-size: 0.8rem;
   min-width: 0;
 }
