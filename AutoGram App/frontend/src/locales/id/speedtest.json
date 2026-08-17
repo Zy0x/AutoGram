@@ -1742,5 +1742,7 @@
   "index_tier_badge": "Taraf {{tier}}",
   "memory_shield_critical_title": "Perisai Perlindungan RAM Aktif",
   "memory_shield_critical_desc": "Pengindeksan dijeda otomatis untuk melindungi stabilitas perangkat (Penggunaan Heap: {{used}} MB). Tekan Lanjutkan saat RAM stabil.",
-  "memory_shield_elevated_toast": "Mengoptimalkan memori perangkat..."
+  "memory_shield_elevated_toast": "Mengoptimalkan memori perangkat...",
+  "lag_shield_aborted_title": "Perisai Anti-Lag Otomatis Dipicu",
+  "lag_shield_aborted_desc": "Pengindeksan diputus seketika karena terdeteksi frame lag ({{lagMs}} ms) demi menjaga perangkat tetap ringan dan lancar."
 }

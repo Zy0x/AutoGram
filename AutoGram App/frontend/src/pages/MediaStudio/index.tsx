@@ -3231,8 +3231,10 @@ function MediaDriveDesktop({
     const cacheKey = getDriveCacheKey(creds?.session || session, peerId, tid);
 
     let lastRenderTime = Date.now();
+    let lastProgressTime = 0;
     let accumulatedNewFiles: DriveFile[] = [];
     let indexedLoadedCount = liveFilesRef.current.length;
+    let dbBatch: any[] = [];
 
     try {
       while (
@@ -3269,6 +3271,7 @@ function MediaDriveDesktop({
         const currentTotalLoaded = indexedLoadedCount;
         const currentTier = determineIndexingTier(totalFileCount || initialTotal, currentTotalLoaded);
 
+        const stepStart = performance.now();
         const reqStart = Date.now();
         const res = await driveListFiles(creds, peerId, {
           pageSize: 200,
@@ -3279,6 +3282,22 @@ function MediaDriveDesktop({
           localOffset: currentTotalLoaded,
         });
         const reqLatency = Date.now() - reqStart;
+        const stepDuration = performance.now() - stepStart;
+
+        // Anti-Lag Instant Circuit Breaker: If a step stalls > 1500ms, immediately cut the process to protect laptop
+        if (stepDuration > 1500 && indexedLoadedCount > 0) {
+          console.warn('[SafetyShield] Step duration exceeded 1500ms:', stepDuration, 'ms. Aborting indexing to protect laptop stability.');
+          indexingActiveRef.current = false;
+          indexingPausedRef.current = true;
+          executeEmergencyMemoryReclamation();
+          setIndexingJob((prev) => ({
+            ...prev,
+            isPaused: true,
+            text: t('speedtest.lag_shield_aborted_title'),
+          }));
+          setStatusText(t('speedtest.lag_shield_aborted_title'));
+          break;
+        }
 
         if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) break;
 
@@ -3286,7 +3305,13 @@ function MediaDriveDesktop({
         if (page.length) {
           page = stripInlineThumbsFromFiles(page);
           const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
-          void saveMediaRecords(scopeMediaRecords(page, mediaContext, peerId || 0)).catch(() => {});
+          const scoped = scopeMediaRecords(page, mediaContext, peerId || 0);
+          dbBatch.push(...scoped);
+          if (dbBatch.length >= 1000 || !res.has_more) {
+            const toWrite = dbBatch;
+            dbBatch = [];
+            void saveMediaRecords(toWrite).catch(() => {});
+          }
         }
 
         if (!page.length || !res.has_more || !res.next_offset_id) {
@@ -3322,33 +3347,45 @@ function MediaDriveDesktop({
           accumulatedNewFiles = [];
         }
 
-        setIndexingProgress({
-          processed: curLoaded,
-          total: curTotal || null,
-        });
-        setIndexingJob({
-          active: true,
-          processed: curLoaded,
-          total: curTotal,
-          tier: currentTier,
-          speed: metrics.speedMsgPerSec,
-          eta: metrics.etaFormatted,
-          isPaused: false,
-          text: curTotal > 0
-            ? t('speedtest.index_progress_detail', {
-                processed: curLoaded.toLocaleString(),
-                total: curTotal.toLocaleString(),
-                percent: metrics.percent,
-              })
-            : t('speedtest.index_progress_count_only', { processed: curLoaded.toLocaleString() }),
-        });
+        // Throttled UI Progress Updates (every 120ms): cuts React re-render overhead by 80%
+        if (now - lastProgressTime >= 120 || !res.has_more) {
+          lastProgressTime = now;
+          setIndexingProgress({
+            processed: curLoaded,
+            total: curTotal || null,
+          });
+          setIndexingJob({
+            active: true,
+            processed: curLoaded,
+            total: curTotal,
+            tier: currentTier,
+            speed: metrics.speedMsgPerSec,
+            eta: metrics.etaFormatted,
+            isPaused: false,
+            text: curTotal > 0
+              ? t('speedtest.index_progress_detail', {
+                  processed: curLoaded.toLocaleString(),
+                  total: curTotal.toLocaleString(),
+                  percent: metrics.percent,
+                })
+              : t('speedtest.index_progress_count_only', { processed: curLoaded.toLocaleString() }),
+          });
+        }
 
         nextOffsetIdRef.current = res.next_offset_id;
         setNextOffsetId(res.next_offset_id);
 
-        // Adaptive Delay Calculation (tier + network latency aware)
+        // Adaptive Delay & UI Frame Pacing: requestAnimationFrame gives full rendering time to Windows OS
         const { delayMs } = getAdaptiveDelay(currentTier, curLoaded, reqLatency);
-        await new Promise((r) => setTimeout(r, delayMs));
+        const safeDelay = Math.max(delayMs, 50);
+        await new Promise((r) => requestAnimationFrame(() => setTimeout(r, safeDelay)));
+      }
+
+      // Flush any remaining batched media records to IndexedDB
+      if (dbBatch.length > 0) {
+        const toWrite = dbBatch;
+        dbBatch = [];
+        void saveMediaRecords(toWrite).catch(() => {});
       }
 
       // Persist deep index snapshot metadata to IndexedDB

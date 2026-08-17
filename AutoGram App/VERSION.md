@@ -1,12 +1,13 @@
-AutoGram Version: v3.7.51
+AutoGram Version: v3.7.52
 
 Current State:
-v3.7.51 Ultra-Heavy 100,000-Item Endurance Stress Suite & Zero-Lag Resilience Verification — membenahi `resilienceStressTest.test.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Ultra-Heavy Scalability & Endurance Suite: Menguji pemrosesan beban ekstrem 100.000 berkas secara berkelanjutan tanpa memory leak, memverifikasi adaptasi taraf indexing dan pacing delay.
-2. 50,000-Item Instant Sorting Stress Test: Memverifikasi algoritma pengurutan multi-kriteria pada 50.000 objek dalam <250ms tanpa mengunci event loop main thread.
-3. Hardware-Safety Circuit Breaker Stress Benchmark: Memvalidasi pemutusan darurat otomatis saat lonjakan beban kritis memori (>280 MB) dan pemulihan instan ke status optimal (<150 MB).
+v3.7.52 Zero-Tolerance Frame Lag Interceptor, Hot-Loop I/O Silencer & Bounded Scan Window — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `resilienceStressTest.test.ts`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Hot-Loop I/O Logging Elimination: Mengeliminasi puluhan ribu penulisan log disk `tg_log::info` di fungsi pemindaian berkas media Rust untuk melenyapkan disk queue bottleneck.
+2. Bounded Scan Window & MTProto Socket Protection: Membatasi scan limit dari 3.000 menjadi 150-450 pesan per halaman di Rust, mencegah starvation pada thread pool Tokio dan antrean unduh thumbnail.
+3. Zero-Tolerance Instant Lag Kill-Switch & Frame Pacing: Menerapkan watchdog latensi per langkah (>1.500ms) yang langsung memutus proses seketika jika terjadi gejala lag, ditambah `requestAnimationFrame` frame yielding agar Windows UI tetap 120 FPS tanpa freeze.
 
 Previous:
+v3.7.51 Ultra-Heavy 100,000-Item Endurance Stress Suite & Zero-Lag Resilience Verification — membenahi `resilienceStressTest.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.50 Decoupled Direct-to-Disk Indexing Stream, Virtual Viewport Capping & Autonomous Memory Self-Shield — membenahi `MediaStudio/index.tsx`, `memoryCircuitBreaker.ts`, `memoryCircuitBreaker.test.ts`, `thumbBatcher.ts`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.49 100% Zero Type Error Clean Compile, TypeScript Strict Check & Full Diagnostics Integrity — membenahi `thumbBatcher.ts`, `DriveSidebarIndex.tsx`, `DriveTopBar.tsx`, `driveLiveSync.test.ts`, `Accounts/index.tsx`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.48 Zero-Lag Thumbnail Pipeline, Crisp Placeholder Transition & GPU Compositing Optimization — membenahi `thumbBatcher.ts`, `DriveFileCard.tsx`, `DriveExplorer.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`.

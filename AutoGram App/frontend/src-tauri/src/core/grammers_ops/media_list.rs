@@ -114,15 +114,6 @@ pub fn media_to_row(
     let created = Some(msg.date().to_rfc3339());
     let caption = msg.text().trim();
     let Some(media) = msg.media() else {
-        crate::core::tg_log::info(
-            BACKEND,
-            "MediaListingRejectedNoMedia",
-            format!(
-                "op=MediaListingRejectedNoMedia peer_id={} telegram_message_id={}",
-                folder_id.unwrap_or(0),
-                id
-            ),
-        );
         return None;
     };
 
@@ -662,11 +653,11 @@ pub fn list_media_blocking_topic(
         chat.parse().ok()
     };
     let topic_filter = topic_id.filter(|t| *t > 0);
-    // Over-fetch when scanning so a page fills even in chats with many text messages
+    // Bounded scan limit: prevents MTProto socket starvation and Tokio thread blocking
     let scan_limit = if topic_filter.is_some() {
-        (limit * 100).clamp(1000, 10000)
+        (limit * 4).clamp(150, 600)
     } else {
-        (limit * 20).clamp(500, 3000)
+        (limit * 3).clamp(100, 450)
     };
     let session_name = identity.session.clone();
 

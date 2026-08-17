@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { checkMemoryHealth, executeEmergencyMemoryReclamation } from '../utils/memoryCircuitBreaker';
+import { describe, it, expect, afterEach } from 'vitest';
+import { checkMemoryHealth } from '../utils/memoryCircuitBreaker';
 import { determineIndexingTier, calculateIndexingMetrics, getAdaptiveDelay } from '../telegram/adaptiveIndexer';
 import { reconcileDriveLiveHead } from '../telegram/interaction/driveLiveSync';
 import { filterAndSortDriveFilesPower } from '../telegram/interaction/drivePower';
@@ -73,7 +73,7 @@ describe('AutoGram Ultra-Heavy Resilience & Stress Endurance Test', () => {
     expect(sortedNewest[0].id).toBeGreaterThan(sortedNewest[sortedNewest.length - 1].id);
 
     // Sort Size Largest
-    const sortedSize = filterAndSortDriveFilesPower(dataset, { sortMode: 'size' });
+    const sortedSize = filterAndSortDriveFilesPower(dataset, { sortMode: 'size_desc' });
     expect(sortedSize.length).toBe(50000);
     expect(sortedSize[0].size).toBeGreaterThanOrEqual(sortedSize[sortedSize.length - 1].size);
 

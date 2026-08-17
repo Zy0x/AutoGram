@@ -1742,5 +1742,7 @@
   "index_tier_badge": "{{tier}} Tier",
   "memory_shield_critical_title": "RAM Protection Shield Active",
   "memory_shield_critical_desc": "Indexing automatically paused to protect device stability (Heap Usage: {{used}} MB). Click Resume when RAM stabilizes.",
-  "memory_shield_elevated_toast": "Optimizing device memory..."
+  "memory_shield_elevated_toast": "Optimizing device memory...",
+  "lag_shield_aborted_title": "Auto Anti-Lag Shield Triggered",
+  "lag_shield_aborted_desc": "Indexing was instantly aborted due to detected frame lag ({{lagMs}} ms) to ensure your device stays completely responsive and smooth."
 }

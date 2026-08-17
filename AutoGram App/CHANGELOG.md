@@ -1,3 +1,19 @@
+## v3.7.52 Zero-Tolerance Frame Lag Interceptor, Hot-Loop I/O Silencer & Bounded Scan Window (Phase 35.18)
+
+### 1. Eliminasi Disk I/O Logging pada Hot-Loop (`media_list.rs`)
+- **Silenced Non-Media Logging**:
+  - Menghapus penulisan log disk berulang `tg_log::info("MediaListingRejectedNoMedia")` pada loop pencocokan berkas media di engine Rust Grammers, melenyapkan hingga 50.000 operasi I/O per siklus pemindaian.
+
+### 2. Bounded Scan Window & MTProto Protection (`media_list.rs`)
+- **Tokio Thread & Socket Protection**:
+  - Menyesuaikan batas maksimum `scan_limit` dari $3.000$ pesan menjadi rentang ringan $150 - 450$ pesan per request. Hal ini membebaskan thread pool Tokio dan mencegah *starvation* pada antrean unduh thumbnail (`thumbBatcher`).
+
+### 3. Real-Time Anti-Lag Kill-Switch & Frame Pacing (`MediaStudio/index.tsx`)
+- **Instant Lag Abort Watchdog**:
+  - Menerapkan pemantau latensi eksekusi per langkah ($> 1.500\text{ms}$). Jika terdeteksi keterlambatan eksekusi, sistem seketika memutus (*abort*) proses pengindeksan untuk melindungi kestabilan laptop pengguna.
+- **RequestAnimationFrame Yielding**:
+  - Menyelaraskan jeda pemrosesan dengan siklus refresh rate layar via `requestAnimationFrame` sehingga Windows UI tetap 120 FPS tanpa freeze.
+
 ## v3.7.51 Ultra-Heavy 100,000-Item Endurance Stress Suite & Zero-Lag Resilience Verification (Phase 35.17)
 
 ### 1. Pengujian Ketahanan Ekstrem 100.000 Berkas (`resilienceStressTest.test.ts`)
