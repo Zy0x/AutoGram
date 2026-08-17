@@ -24262,9 +24262,15 @@ button.td-confirm-icon.is-back-btn:active {
    ========================================================================== */
 .td-confirm-panel.td-remote-upload-panel,
 .td-remote-upload-panel {
+  display: flex !important;
+  flex-direction: column !important;
   max-width: min(620px, calc(100vw - 28px)) !important;
   width: min(620px, calc(100vw - 28px)) !important;
-  min-width: min(320px, calc(100vw - 28px)) !important;
+  min-width: min(300px, calc(100vw - 28px)) !important;
+  max-height: calc(100vh - 24px) !important;
+  max-height: calc(100dvh - 24px) !important;
+  height: auto !important;
+  min-height: 0 !important;
   border-radius: 20px !important;
   background: linear-gradient(160deg, rgba(13, 20, 36, 0.96) 0%, rgba(8, 12, 24, 0.98) 100%) !important;
   backdrop-filter: blur(28px) saturate(190%) !important;
@@ -24274,6 +24280,7 @@ button.td-confirm-icon.is-back-btn:active {
     0 0 0 1px rgba(255, 255, 255, 0.08) inset,
     0 1px 0 rgba(255, 255, 255, 0.16) inset !important;
   overflow: hidden !important;
+  box-sizing: border-box !important;
   transition: max-width 240ms cubic-bezier(0.16, 1, 0.3, 1), width 240ms cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
@@ -24281,6 +24288,10 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-upload-panel.td-remote-split-active {
   max-width: min(1080px, calc(100vw - 32px)) !important;
   width: min(1080px, calc(100vw - 32px)) !important;
+}
+
+.td-remote-upload-panel .td-confirm-head {
+  flex: 0 0 auto !important;
 }
 
 .td-remote-head-icon {
@@ -24291,6 +24302,7 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-remote-tabs {
+  flex: 0 0 auto !important;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -24342,12 +24354,15 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-remote-body {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  max-height: none !important;
   padding: 4px 24px 20px !important;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  max-height: min(65vh, 600px);
-  overflow-y: auto;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
@@ -25434,8 +25449,8 @@ button.td-confirm-icon.is-back-btn:active {
   filter: brightness(1.08) !important;
 }
 
-/* Responsive Breakpoint for Split Overlay Layout */
-@media (max-width: 900px) {
+/* Responsive Breakpoints for Remote Upload (Viewport Width & Height Adaptive) */
+@media (max-width: 900px), (max-height: 540px) {
   .td-confirm-panel.td-remote-upload-panel.td-remote-split-active,
   .td-remote-upload-panel.td-remote-split-active {
     max-width: min(620px, calc(100vw - 20px)) !important;
@@ -25443,7 +25458,7 @@ button.td-confirm-icon.is-back-btn:active {
   }
 
   .td-remote-body.td-remote-split-body {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
     gap: 16px;
   }
 
@@ -25452,7 +25467,113 @@ button.td-confirm-icon.is-back-btn:active {
   }
 
   .td-remote-big-canvas-inner {
-    max-height: 210px;
+    max-height: 180px;
+  }
+}
+
+/* Compact viewport height rules (e.g. 400px - 580px height or landscape mobile/compact window) */
+@media (max-height: 580px) {
+  .td-confirm-panel.td-remote-upload-panel,
+  .td-remote-upload-panel {
+    max-height: calc(100vh - 16px) !important;
+    max-height: calc(100dvh - 16px) !important;
+    border-radius: 14px !important;
+  }
+
+  .td-remote-upload-panel .td-confirm-head {
+    padding: 10px 18px 8px !important;
+  }
+
+  .td-remote-upload-panel .td-confirm-head-icon {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
+  }
+
+  .td-remote-upload-panel .td-confirm-head h2 {
+    font-size: 0.96rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .td-remote-upload-panel .td-confirm-desc {
+    font-size: 0.72rem !important;
+    margin-top: 1px !important;
+  }
+
+  .td-remote-upload-panel .td-remote-tabs {
+    margin: 0 18px 8px !important;
+    padding: 3px !important;
+    gap: 4px !important;
+  }
+
+  .td-remote-upload-panel .td-remote-tab {
+    padding: 5px 10px !important;
+    min-height: 30px !important;
+    font-size: 0.78rem !important;
+  }
+
+  .td-remote-upload-panel .td-remote-body {
+    padding: 2px 18px 12px !important;
+    gap: 8px !important;
+  }
+
+  .td-remote-upload-panel .td-remote-form-card {
+    padding: 8px 10px !important;
+    gap: 5px !important;
+    border-radius: 10px !important;
+  }
+
+  .td-remote-upload-panel .td-input-label {
+    font-size: 0.74rem !important;
+    margin-bottom: 2px !important;
+  }
+
+  .td-remote-upload-panel .td-input-field {
+    padding: 6px 10px !important;
+    font-size: 0.8rem !important;
+    min-height: 32px !important;
+  }
+
+  .td-remote-upload-panel .td-remote-mode-selector {
+    gap: 6px !important;
+  }
+
+  .td-remote-upload-panel .td-remote-mode-btn {
+    padding: 6px 8px !important;
+    min-height: 38px !important;
+    border-radius: 8px !important;
+  }
+
+  .td-remote-upload-panel .td-remote-mode-title {
+    font-size: 0.76rem !important;
+  }
+
+  .td-remote-upload-panel .td-remote-mode-desc {
+    font-size: 0.66rem !important;
+  }
+
+  .td-remote-upload-panel .td-remote-foot {
+    padding: 8px 18px 10px !important;
+  }
+
+  .td-remote-upload-panel .td-confirm-btn {
+    padding: 6px 14px !important;
+    font-size: 0.82rem !important;
+    min-height: 32px !important;
+    border-radius: 8px !important;
+  }
+}
+
+/* Compact viewport width rules (e.g. <= 550px mobile/narrow window) */
+@media (max-width: 550px) {
+  .td-confirm-panel.td-remote-upload-panel,
+  .td-remote-upload-panel {
+    max-width: calc(100vw - 16px) !important;
+    width: calc(100vw - 16px) !important;
+  }
+
+  .td-remote-upload-panel .td-remote-mode-selector {
+    grid-template-columns: 1fr !important;
   }
 }
 
