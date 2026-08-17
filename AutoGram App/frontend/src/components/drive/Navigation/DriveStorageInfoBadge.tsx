@@ -49,17 +49,17 @@ export function DriveStorageInfoBadge({
     return 'normal';
   }, [transferBusy, statsLoading, statsAccurate, isFinal]);
 
-  const startAutoDismissTimer = useCallback((durationMs = 4000) => {
+  const startAutoDismissTimer = useCallback((durationMs = 3000) => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       setIsAutoSplashVisible(false);
     }, durationMs);
   }, []);
 
-  // 4-second initial splash timer on location switch
+  // 3-second initial splash timer on location switch
   useEffect(() => {
     setIsAutoSplashVisible(true);
-    startAutoDismissTimer(4000);
+    startAutoDismissTimer(3000);
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -72,7 +72,7 @@ export function DriveStorageInfoBadge({
 
   const handleMouseLeave = useCallback(() => {
     if (!isPopoverOpen) {
-      startAutoDismissTimer(3000);
+      startAutoDismissTimer(2000);
     }
   }, [isPopoverOpen, startAutoDismissTimer]);
 
