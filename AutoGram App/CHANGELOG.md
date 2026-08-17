@@ -1,3 +1,13 @@
+## v3.7.45 Live Sync Lifecycle Invalidation Shield & Reactive Upload/Delete Snapshot Continuity (Phase 35.11)
+
+### 1. Sinkronisasi Real-Time Siklus Hidup & Snapshot Database (`MediaStudio/index.tsx`)
+- **Integrasi Unggah Berkas Reaktif**:
+  - Setiap kali ada berkas baru yang selesai diunggah via *Transfer Manager* / *Drag-and-Drop*, fungsi `uploadSoftRefresh` langsung memasukkan berkas baru tersebut ke urutan teratas database snapshot `deepIndex` tanpa perlu melakukan scanning ulang.
+- **Auto-Update Snapshot pada Background Live-Sync**:
+  - Saat timer periodik atau fokus jendela mendeteksi adanya perubahan pesan teratas (`headChanged`), database snapshot langsung disinkronkan secara atomik sehingga data lokal selalu sama persis dengan server Telegram.
+- **Isolasi Mutlak Kunci Antar-Folder & Topik**:
+  - Menjamin pemisahan partisi IndexedDB (`${session}:${peerId}:${topicId}`) sehingga perpindahan antar akun, grup, dan sub-topik tidak akan pernah menyebabkan kontaminasi data atau tumpang tindih berkas.
+
 ## v3.7.44 Persistent Deep-Index Cache Database, Gapless Monotonic Reconciliation & Instant 0ms Paint (Phase 35.10)
 
 ### 1. Database Persisten Deep-Index & Checkpoint Otomatis (`MediaStudio/index.tsx`, `deepIndexCache.ts`)

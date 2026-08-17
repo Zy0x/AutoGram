@@ -1,12 +1,13 @@
-AutoGram Version: v3.7.44
+AutoGram Version: v3.7.45
 
 Current State:
-v3.7.44 Persistent Deep-Index Cache Database, Gapless Monotonic Reconciliation & Instant 0ms Paint — membenahi `driveLiveSync.ts`, `driveLiveSync.test.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Persistent Deep-Index Snapshot DB: Menyimpan seluruh hasil pengindeksan parsial maupun lengkap ke IndexedDB `deepIndex` store secara otomatis dan aman (idempotent).
-2. Instant 0ms Location Revisit: Saat berpindah folder atau membuka kembali aplikasi, ribuan berkas yang telah terindeks langsung tampil seketika (0ms) tanpa menunggu request jaringan Telegram.
-3. Gapless Head-Tail Reconciliation Engine: Menggabungkan jendela pesan terbaru dari server dengan riwayat deep-index tersimpan tanpa menghilangkan data lama (*tail retention*), membuang ID yang telah terhapus, dan menyisipkan berkas baru secara mulus.
+v3.7.45 Live Sync Lifecycle Invalidation Shield & Reactive Upload/Delete Snapshot Continuity — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Reactive Upload Snapshot Integration: Mengikat event upload berkas baru ke database `deepIndex` secara real-time sehingga berkas yang baru diunggah langsung tersimpan ke snapshot persisten tanpa menunggu full scan.
+2. Background Live-Sync Head Invalidation: Memperbarui cache snapshot IndexedDB secara otomatis saat terjadi deteksi perubahan di jendela live-sync (`headChanged`).
+3. Strict Cross-Peer & Multi-Topic Key Isolation: Memastikan identitas kunci composite (`${session}:${peerId}:${topicId}`) 100% terisolasi agar data antar topik dan folder tidak pernah saling menimpa.
 
 Previous:
+v3.7.44 Persistent Deep-Index Cache Database, Gapless Monotonic Reconciliation & Instant 0ms Paint — membenahi `driveLiveSync.ts`, `driveLiveSync.test.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.43 All-in-One Compact Smart Sort Pill-Chip with Internal Fluid Load-Fill Progress — membenahi `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.42 High-Legibility Balanced Card Text Contrast & Bottom Gradient Refinement — membenahi `App.css`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.41 Adaptive Multi-Tier Indexing Engine, Dynamic Flood-Shield & Real-Time Performance Dashboard — membenahi `adaptiveIndexer.ts`, `adaptiveIndexer.test.ts`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.

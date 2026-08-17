@@ -3463,6 +3463,16 @@ function MediaDriveDesktop({
           /* live data remains authoritative even if cache persistence fails */
         }
 
+        if (headChanged && merged.length > 0 && creds?.session) {
+          void saveDeepIndexSnapshot(creds.session, peerId, tid, {
+            files: merged,
+            hasMore: keptExtendedPages ? hasMoreBefore || !!res.has_more : !!res.has_more,
+            nextOffsetId: keptExtendedPages ? cursorBefore : res.next_offset_id ?? null,
+            totalCount: filesTotalCountRef.current.get(cacheKey) ?? merged.length,
+            totalBytes: filesTotalBytesRef.current.get(cacheKey) ?? null,
+          }).catch(() => {});
+        }
+
         liveSyncLastAtRef.current.set(cacheKey, Date.now());
         liveSyncFailuresRef.current = 0;
         liveSyncBackoffUntilRef.current = 0;
@@ -3981,6 +3991,16 @@ function MediaDriveDesktop({
           totalBytes: filesTotalBytesRef.current.get(cacheKey) ?? null,
         });
       } catch { /* cache is best-effort */ }
+
+      if (merged.length > 0 && creds?.session) {
+        void saveDeepIndexSnapshot(creds.session, peerId, tid, {
+          files: merged,
+          hasMore: keptExtendedPages ? hasMoreBefore || !!res.has_more : !!res.has_more,
+          nextOffsetId: keptExtendedPages ? cursorBefore : res.next_offset_id ?? null,
+          totalCount: filesTotalCountRef.current.get(cacheKey) ?? merged.length,
+          totalBytes: filesTotalBytesRef.current.get(cacheKey) ?? null,
+        }).catch(() => {});
+      }
       // Stamp live-sync so the periodic timer skips a redundant fetch right after
       liveSyncLastAtRef.current.set(cacheKey, Date.now());
       liveSyncFailuresRef.current = 0;
