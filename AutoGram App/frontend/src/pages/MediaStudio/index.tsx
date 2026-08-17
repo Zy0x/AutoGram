@@ -3037,6 +3037,11 @@ function MediaDriveDesktop({
       }
       // Avoid stuck pagination if API returned empty but claimed has_more
       if (!page.length) {
+        if (res.has_more && res.next_offset_id && res.next_offset_id !== offsetAtStart) {
+          nextOffsetIdRef.current = res.next_offset_id;
+          setNextOffsetId(res.next_offset_id);
+          return;
+        }
         const exactFiles = liveFilesRef.current;
         const exactCount = loadedUniqueMediaCount(exactFiles);
         const exactBytes = loadedMediaBytes(exactFiles);
@@ -3271,7 +3276,6 @@ function MediaDriveDesktop({
         const currentTotalLoaded = indexedLoadedCount;
         const currentTier = determineIndexingTier(totalFileCount || initialTotal, currentTotalLoaded);
 
-        const stepStart = performance.now();
         const reqStart = Date.now();
         const res = await driveListFiles(creds, peerId, {
           pageSize: 200,
@@ -3282,22 +3286,6 @@ function MediaDriveDesktop({
           localOffset: currentTotalLoaded,
         });
         const reqLatency = Date.now() - reqStart;
-        const stepDuration = performance.now() - stepStart;
-
-        // Anti-Lag Instant Circuit Breaker: If a step stalls > 1500ms, immediately cut the process to protect laptop
-        if (stepDuration > 1500 && indexedLoadedCount > 0) {
-          console.warn('[SafetyShield] Step duration exceeded 1500ms:', stepDuration, 'ms. Aborting indexing to protect laptop stability.');
-          indexingActiveRef.current = false;
-          indexingPausedRef.current = true;
-          executeEmergencyMemoryReclamation();
-          setIndexingJob((prev) => ({
-            ...prev,
-            isPaused: true,
-            text: t('speedtest.lag_shield_aborted_title'),
-          }));
-          setStatusText(t('speedtest.lag_shield_aborted_title'));
-          break;
-        }
 
         if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) break;
 
@@ -3314,7 +3302,7 @@ function MediaDriveDesktop({
           }
         }
 
-        if (!page.length || !res.has_more || !res.next_offset_id) {
+        if (!res.has_more || !res.next_offset_id) {
           filesHasMoreRef.current = false;
           setFilesHasMore(false);
           nextOffsetIdRef.current = null;
@@ -3327,24 +3315,19 @@ function MediaDriveDesktop({
         const curTotal = totalFileCount || initialTotal;
         const metrics = calculateIndexingMetrics(curLoaded, curTotal, startTimeMs);
 
-        // Memory-safe viewport capping: populate React state ONLY up to 120 items
-        // Beyond 120 items, records are streamed to IndexedDB without inflating React array
+        // Continuous Live Card Sync: stream batches into UI with non-blocking startTransition every 400ms
+        accumulatedNewFiles.push(...page);
         const now = Date.now();
-        if (liveFilesRef.current.length < 120) {
-          accumulatedNewFiles.push(...page);
-          if (now - lastRenderTime >= 250 || liveFilesRef.current.length + accumulatedNewFiles.length >= 120) {
+        if (now - lastRenderTime >= 400 || !res.has_more) {
+          const batchToAdd = accumulatedNewFiles;
+          accumulatedNewFiles = [];
+          startTransition(() => {
             setFiles((prev) => {
               if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
-              if (prev.length >= 120) return prev;
-              const seen = new Set(prev.map((f) => f.id));
-              const sliceToAdd = accumulatedNewFiles.filter((f) => !seen.has(f.id)).slice(0, 120 - prev.length);
-              accumulatedNewFiles = [];
-              return [...prev, ...sliceToAdd];
+              return dedupeByMsgId([...prev, ...batchToAdd]);
             });
-            lastRenderTime = now;
-          }
-        } else {
-          accumulatedNewFiles = [];
+          });
+          lastRenderTime = now;
         }
 
         // Throttled UI Progress Updates (every 120ms): cuts React re-render overhead by 80%
@@ -3377,11 +3360,24 @@ function MediaDriveDesktop({
 
         // Adaptive Delay & UI Frame Pacing: requestAnimationFrame gives full rendering time to Windows OS
         const { delayMs } = getAdaptiveDelay(currentTier, curLoaded, reqLatency);
-        const safeDelay = Math.max(delayMs, 50);
+        const safeDelay = Math.max(delayMs, 40);
         await new Promise((r) => requestAnimationFrame(() => setTimeout(r, safeDelay)));
       }
 
-      // Flush any remaining batched media records to IndexedDB
+      // Flush any remaining batched media records to IndexedDB and UI
+      if (accumulatedNewFiles.length > 0) {
+        const batchToAdd = accumulatedNewFiles;
+        accumulatedNewFiles = [];
+        startTransition(() => {
+          setFiles((prev) => {
+            if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
+            const allFiles = dedupeByMsgId([...prev, ...batchToAdd]);
+            filesCacheRef.current.set(cacheKey, allFiles);
+            return allFiles;
+          });
+        });
+      }
+
       if (dbBatch.length > 0) {
         const toWrite = dbBatch;
         dbBatch = [];

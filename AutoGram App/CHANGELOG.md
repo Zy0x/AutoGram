@@ -1,3 +1,15 @@
+## v3.7.54 Continuous Live Card Sorting Sync, Non-Media Gap Traversal & Unbounded Indexing Pipeline (Phase 35.20)
+
+### 1. Sinkronisasi Kartu Sorting Dinamis Saat Indexing (`MediaStudio/index.tsx`)
+- **Real-Time 400ms Throttled Card Transition**:
+  - Mengalirkan berkas baru ke React state via `startTransition` secara berkala (setiap 400ms), sehingga kartu antarmuka langsung menyusun dirinya sesuai mode sorting yang dipilih (misal: berkas terlama langsung naik ke atas ketika mode *oldest first* aktif).
+
+### 2. Penanganan Celah Non-Media & Pemindaian Tak Terputus (`MediaStudio/index.tsx`)
+- **Non-Media Gap Traversal**:
+  - Menghapus pembatasan `!page.length` yang sebelumnya menyebabkan pemindaian berhenti di angka ~2.330 - 4.000 berkas saat menemukan rentetan pesan non-media. Sistem kini memeriksa `res.has_more && res.next_offset_id` dan terus memindai hingga 100% tuntas (43.060+ berkas).
+- **Eliminasi Network Timeout Abort**:
+  - Menghapus pembatalan otomatis berbasis durasi request jaringan, membiarkan MTProto menyelesaikan panggilan dengan andal tanpa memutus proses pengindeksan.
+
 ## v3.7.53 Deep-Offset Next ID Continuity & Per-File Log Disk Suppression (Phase 35.19)
 
 ### 1. Deep Continuous Next-Offset ID Resolution (`media_list.rs`)
