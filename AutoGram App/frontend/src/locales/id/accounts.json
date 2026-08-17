@@ -96,5 +96,21 @@
   "btn_reload_qr": "Reload QR Code",
   "qr_expired_hint": "QR Code telah kedaluwarsa. Klik Reload QR Code di bawah untuk memperbarui.",
   "flood_wait_notice": "Telegram membatasi pemintaan QR Code sementara. Silakan tunggu {{seconds}} detik sebelum mencoba lagi.",
-  "session_menu": "Menu akun"
+  "session_menu": "Menu akun",
+  "tab_string_session": "String Session / Bot Token",
+  "string_session_label": "String Session atau Bot Token Telegram",
+  "string_session_ph": "Tempel Telethon String Session, Pyrogram String Session, atau Bot Token (123456:ABC...)",
+  "btn_import_session": "Impor & Masuk",
+  "string_session_desc": "Impor sesi Telegram langsung tanpa perlu verifikasi kode OTP.",
+  "resend_code_in": "Kirim ulang kode dalam {{seconds}}d",
+  "resend_code_now": "Kirim Ulang Kode",
+  "resend_code_success": "Kode verifikasi baru berhasil dikirim!",
+  "code_delivery_info": "Kode dikirim via Aplikasi Telegram resmi Anda (atau via SMS jika tidak dibuka).",
+  "password_hint_badge": "Petunjuk Sandi: {{hint}}",
+  "forgot_password_btn": "Lupa Kata Sandi 2FA?",
+  "forgot_password_title": "Bantuan Pemulihan Kata Sandi 2FA",
+  "forgot_password_desc": "Telegram mengamankan akun Anda dengan enkripsi end-to-end. Jika Anda lupa kata sandi 2FA dan memiliki email pemulihan terhubung, silakan buka aplikasi Telegram di HP Anda untuk melakukan reset kata sandi melalui email, atau tunggu masa reset 7 hari resmi dari Telegram.",
+  "btn_got_it": "Saya Mengerti",
+  "show_password": "Tampilkan kata sandi",
+  "hide_password": "Sembunyikan kata sandi"
 }

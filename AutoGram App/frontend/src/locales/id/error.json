@@ -5,5 +5,14 @@
   "timeout": "Koneksi ke Telegram habis waktu. Periksa jaringan lalu coba lagi.",
   "db_locked": "Database sesi sedang digunakan. Tutup proses AutoGram lain lalu coba lagi.",
   "invalid_otp": "Kode OTP tidak valid.",
-  "invalid_password": "Kata sandi verifikasi dua langkah tidak valid."
+  "invalid_password": "Kata sandi verifikasi dua langkah tidak valid.",
+  "phone_banned": "Nomor telepon ini telah diblokir oleh Telegram.",
+  "password_flood": "Terlalu banyak percobaan kata sandi salah. Silakan coba lagi beberapa saat lagi.",
+  "auth_key_unregistered": "Sesi tidak valid atau telah dicabut di perangkat lain.",
+  "signup_required": "Nomor ini belum terdaftar di Telegram. Silakan daftar melalui aplikasi resmi Telegram terlebih dahulu.",
+  "phone_number_unoccupied": "Nomor ini belum terdaftar di Telegram.",
+  "phone_number_invalid": "Format nomor telepon tidak valid. Pastikan menyertakan kode negara (contoh: +62812...).",
+  "session_password_needed": "Akun ini dilindungi oleh kata sandi 2FA. Silakan masukkan kata sandi Anda.",
+  "bot_token_invalid": "Token bot Telegram tidak valid.",
+  "string_session_invalid": "String session tidak valid atau format salah."
 }

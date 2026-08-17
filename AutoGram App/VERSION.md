@@ -1,11 +1,13 @@
-AutoGram Version: v3.5.54
+AutoGram Version: v3.7.34
 
 Current State:
-v3.5.54 Real-Time Filesize Estimation Badges on Quality Resolution Grid — membenahi `RemoteUploadModal.tsx`, `App.css`, `tiktokResolver.ts`, `youtubeResolver.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan indikator perkiraan ukuran file langsung di kartu pemilihan resolusi:
-1. Live Filesize Badges (`RemoteUploadModal.tsx` & `App.css`): Setiap kartu resolusi (1080p, 720p, 4K, 8K, Audio MP3) kini menampilkan badge ukuran berkas aktual/estimasi (misal: `~4.41 MB`, `~8.45 MB`, `~640 KB`) yang informatif dan elegan.
-2. Smart Bitrate/Duration Extrapolator (`tiktokResolver.ts` & `youtubeResolver.ts`): Menghitung estimasi kapasitas byte secara dinamis berdasarkan durasi media dan profil bitrate masing-masing tier stream.
+v3.7.34 Windows File Explorer List View Headers & Complete Telegram Authentication Suite — membenahi `DriveExplorer.tsx`, `DriveFileListItem.tsx`, `App.css`, `Accounts/index.tsx`, `AccountLoginModal.tsx`, `accounts.json` (ID & EN), `error.json` (ID & EN), `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Windows File Explorer-Style Table Headers & Resizable Columns: 5 kolom terstruktur (`[Icon]`, `[Name]`, `[Date modified]`, `[Type]`, `[Size]`), pembatas kolom dapat ditarik (*col-resize*), pengurutan instan per kolom, dan 14 kategori tipe berkas terjemahan.
+2. Complete Telegram Authentication Suite: 3 tab metode login (QR Code, Nomor HP & OTP, String Session / Bot Token), hitung mundur kirim ulang OTP 60 detik + indikator saluran, petunjuk kata sandi 2FA, toggle intip kata sandi, panduan bantuan pemulihan 2FA, dan humanisasi lengkap seluruh kode error Telegram.
 
 Previous:
+v3.7.33 Move/Copy Confirmation Dialog Locale Parity & Telegram Album Delivery Fix — membenahi `DriveConfirmDialog.tsx`, `drive_rpc.rs`, `telegram_ops.rs`, `driveFilesApi.ts`, `drive_tools.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
+v3.5.54 Real-Time Filesize Estimation Badges on Quality Resolution Grid — membenahi `RemoteUploadModal.tsx`, `App.css`, `tiktokResolver.ts`, `youtubeResolver.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan indikator perkiraan ukuran file langsung di kartu pemilihan resolusi:
 v3.5.52 Accurate Stream Quality Terminology & Label Clarification — membenahi `tiktokResolver.ts`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki terminologi dan penamaan kualitas stream remote.
 v3.5.51 Rust Server-Side Stream Resolver & Three-Tier Remote Delivery Standard — membenahi `media_prep.rs`, `Cargo.toml`, `VERSION.md`, dan `CHANGELOG.md`. Membangun arsitektur pengunduhan remote anti-fail dengan standar 3 mode.
 v3.5.50 Native Video Player Streaming Attributes & Clean URL Caption Sanitization — membenahi `MediaStudio/index.tsx`, `analysis.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyempurnakan pemutaran video native dan sanitasi caption.

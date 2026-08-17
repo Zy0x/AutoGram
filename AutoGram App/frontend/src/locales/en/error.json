@@ -5,5 +5,14 @@
   "timeout": "The Telegram connection timed out. Check your network and try again.",
   "db_locked": "The session database is in use. Close other AutoGram processes and try again.",
   "invalid_otp": "The OTP code is invalid.",
-  "invalid_password": "The two-step verification password is invalid."
+  "invalid_password": "The two-step verification password is invalid.",
+  "phone_banned": "This phone number has been banned by Telegram.",
+  "password_flood": "Too many incorrect password attempts. Please try again later.",
+  "auth_key_unregistered": "Session is invalid or was revoked on another device.",
+  "signup_required": "This phone number is not registered on Telegram. Please sign up using the official Telegram app first.",
+  "phone_number_unoccupied": "This phone number is not registered on Telegram.",
+  "phone_number_invalid": "Invalid phone number format. Please include country code (e.g. +62812...).",
+  "session_password_needed": "This account is protected by a 2FA password. Please enter your password.",
+  "bot_token_invalid": "Invalid Telegram bot token.",
+  "string_session_invalid": "Invalid string session or incorrect format."
 }

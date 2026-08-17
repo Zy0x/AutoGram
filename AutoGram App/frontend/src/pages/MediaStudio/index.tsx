@@ -8802,6 +8802,7 @@ function MediaDriveDesktop({
               onViewPerspective={setViewPerspective}
               totalCount={totalFileCount}
               sortMode={sortMode}
+              onSortMode={setSortMode}
               advFilter={advFilter}
               gridZoom={gridZoom}
               onGridZoom={handleGridZoom}

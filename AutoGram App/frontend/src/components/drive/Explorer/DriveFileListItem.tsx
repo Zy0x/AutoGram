@@ -20,6 +20,74 @@ type Props = {
   onWarmPreview?: () => void;
 };
 
+export function getDriveFileTypeLabel(file: DriveFile, t: (key: string, opts?: any) => string): string {
+  if (file.icon_type === 'folder') {
+    return t('speedtest.file_type_folder');
+  }
+  if (file.icon_type === 'link') {
+    return t('speedtest.file_type_link');
+  }
+  const mime = (file.mime_type || '').toLowerCase();
+  const name = (file.name || file.original_name || '').toLowerCase();
+  const ext = (file.file_ext || name.split('.').pop() || '').toLowerCase();
+  const icon = (file.icon_type || '').toLowerCase();
+
+  // Images
+  if (icon === 'image' || icon === 'photo' || mime.startsWith('image/')) {
+    const format = ext ? ext.toUpperCase() : 'Image';
+    return t('speedtest.file_type_image_fmt', { format });
+  }
+
+  // Videos
+  if (icon === 'video' || mime.startsWith('video/')) {
+    const format = ext ? ext.toUpperCase() : 'Video';
+    return t('speedtest.file_type_video_fmt', { format });
+  }
+
+  // Audio / Voice
+  if (icon === 'audio' || icon === 'voice' || mime.startsWith('audio/')) {
+    const format = ext ? ext.toUpperCase() : 'Audio';
+    return t('speedtest.file_type_audio_fmt', { format });
+  }
+
+  // Archives
+  if (['zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz', 'iso'].includes(ext)) {
+    const format = ext ? ext.toUpperCase() : 'ZIP';
+    return t('speedtest.file_type_archive_fmt', { format });
+  }
+
+  // PDF
+  if (ext === 'pdf' || mime === 'application/pdf') {
+    return t('speedtest.file_type_pdf');
+  }
+
+  // Documents
+  if (['txt', 'log', 'md', 'rtf'].includes(ext) || mime.startsWith('text/')) {
+    return t('speedtest.file_type_text');
+  }
+  if (['doc', 'docx'].includes(ext)) {
+    return t('speedtest.file_type_word');
+  }
+  if (['xls', 'xlsx', 'csv'].includes(ext)) {
+    return t('speedtest.file_type_excel');
+  }
+  if (['ppt', 'pptx'].includes(ext)) {
+    return t('speedtest.file_type_ppt');
+  }
+
+  // Executables
+  if (['exe', 'msi', 'apk', 'app', 'dmg'].includes(ext)) {
+    return t('speedtest.file_type_app');
+  }
+
+  // Generic extension fallback
+  if (ext) {
+    return t('speedtest.file_type_ext_fmt', { ext: ext.toUpperCase() });
+  }
+
+  return t('speedtest.file_type_generic');
+}
+
 function DriveFileListItemInner({
   file,
   selected,
@@ -38,6 +106,7 @@ function DriveFileListItemInner({
   const isCopy = clipboard?.mode === 'copy' && clipboard.messageIds.includes(file.id);
   const date = file.created_at ? new Date(file.created_at).toLocaleString() : '—';
   const displayName = driveFileDisplayName(file);
+  const typeLabel = getDriveFileTypeLabel(file, t);
 
   const handleLongPress = useCallback(
     (_f: DriveFile, coords: { x: number; y: number }) => {
@@ -165,8 +234,9 @@ function DriveFileListItemInner({
         )}
         <span>{displayName}</span>
       </div>
-      <div className="td-list-size">{formatDriveBytes(file.size)}</div>
       <div className="td-list-date">{date}</div>
+      <div className="td-list-type" title={typeLabel}>{typeLabel}</div>
+      <div className="td-list-size">{formatDriveBytes(file.size)}</div>
     </div>
   );
 }
@@ -177,6 +247,8 @@ export const DriveFileListItem = memo(DriveFileListItemInner, (prev, next) => {
     prev.file.size === next.file.size &&
     prev.file.name === next.file.name &&
     prev.file.icon_type === next.file.icon_type &&
+    prev.file.mime_type === next.file.mime_type &&
+    prev.file.file_ext === next.file.file_ext &&
     prev.selected === next.selected &&
     prev.isDragSource === next.isDragSource
   );

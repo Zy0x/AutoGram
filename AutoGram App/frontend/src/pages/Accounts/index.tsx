@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Users, Phone, Key, Plus, RefreshCcw, Lock, Trash2, ArrowLeft, QrCode, Smartphone, Pencil, X } from 'lucide-react';
+import { Users, Phone, Key, Plus, RefreshCcw, Lock, Trash2, ArrowLeft, QrCode, Smartphone, Pencil, X, Eye, EyeOff, KeyRound, HelpCircle, FileText, Bot, Send, ShieldAlert, Sparkles } from 'lucide-react';
 import 'react-phone-number-input/style.css';
 import PhoneInput, { getCountryCallingCode } from 'react-phone-number-input';
 import { useTranslation } from 'react-i18next';
@@ -197,8 +197,14 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
   const [passwordHint, setPasswordHint] = useState("");
   const [authNotice, setAuthNotice] = useState("");
   
-  // QR Login State
-  const [loginMethod, setLoginMethod] = useState<'qr' | 'phone'>('qr');
+  // QR & Method Login State
+  const [loginMethod, setLoginMethod] = useState<'qr' | 'phone' | 'string_session'>('qr');
+  const [stringSessionInput, setStringSessionInput] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const resendTimerRef = useRef<any>(null);
+
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [qrExpiresIn, setQrExpiresIn] = useState<number>(0);
   const unlistenQrRef = useRef<(() => void) | null>(null);
@@ -232,6 +238,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
   useEffect(() => {
     return () => {
       stopQrTimers();
+      if (resendTimerRef.current) clearInterval(resendTimerRef.current);
     };
   }, []);
 
@@ -269,6 +276,25 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
       }
     }
   }, [isWizardOpen, step, loginMethod]);
+
+  useEffect(() => {
+    if (isWizardOpen && step === 2) {
+      setResendCooldown(60);
+      if (resendTimerRef.current) clearInterval(resendTimerRef.current);
+      resendTimerRef.current = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(resendTimerRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (resendTimerRef.current) clearInterval(resendTimerRef.current);
+    };
+  }, [isWizardOpen, step]);
 
   const loadSessions = async () => {
     setIsLoading(true);
@@ -465,6 +491,9 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
     setCode("");
     setPassword("");
     setPasswordHint("");
+    setStringSessionInput("");
+    setShowPassword(false);
+    setIsForgotPasswordOpen(false);
     setErrorMsg("");
     setAuthNotice("");
     setIsWizardOpen(true);
@@ -656,25 +685,94 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
   };
 
   const handleError = (data: any) => {
-    if (data.error === 'flood_wait') {
-      const minutes = Math.ceil(data.seconds / 60);
-      const waitTime = minutes > 60 ? `${Math.ceil(minutes/60)} jam` : `${minutes} menit`;
+    const raw = String(data?.error || data?.message || data || '').trim();
+    const rawLower = raw.toLowerCase();
+
+    const floodMatch = raw.match(/FLOOD_WAIT_?(\d+)/i) || raw.match(/wait (?:for )?(\d+) sec/i);
+    if (data.error === 'flood_wait' || floodMatch) {
+      const sec = data.seconds || (floodMatch ? Number(floodMatch[1]) : 60);
+      const minutes = Math.ceil(sec / 60);
+      const waitTime = minutes > 60 ? `${Math.ceil(minutes / 60)} jam` : `${minutes} menit`;
       setErrorMsg(t('error.flood_wait', { time: waitTime }));
-    } else if (data.error === 'code_expired') {
+    } else if (rawLower.includes('code_expired') || rawLower.includes('phone_code_expired')) {
       setErrorMsg(t('error.code_expired'));
       setStep(1);
-    } else if (data.error === 'invalid_api_id') {
+    } else if (rawLower.includes('invalid_api_id') || rawLower.includes('api_id_invalid')) {
       setErrorMsg(t('error.invalid_api_id'));
-    } else if (data.error === 'timeout') {
+    } else if (rawLower.includes('phone_banned') || rawLower.includes('phone_number_banned')) {
+      setErrorMsg(t('error.phone_banned'));
+    } else if (rawLower.includes('password_flood') || rawLower.includes('phone_password_flood')) {
+      setErrorMsg(t('error.password_flood'));
+    } else if (rawLower.includes('auth_key_unregistered')) {
+      setErrorMsg(t('error.auth_key_unregistered'));
+    } else if (rawLower.includes('signup_required') || rawLower.includes('sign_up_required')) {
+      setErrorMsg(t('error.signup_required'));
+    } else if (rawLower.includes('phone_number_unoccupied')) {
+      setErrorMsg(t('error.phone_number_unoccupied'));
+    } else if (rawLower.includes('phone_number_invalid')) {
+      setErrorMsg(t('error.phone_number_invalid'));
+    } else if (rawLower.includes('session_password_needed')) {
+      setErrorMsg(t('error.session_password_needed'));
+      setStep(3);
+    } else if (rawLower.includes('timeout')) {
       setErrorMsg(t('error.timeout'));
-    } else if (data.error === 'db_locked') {
+    } else if (rawLower.includes('db_locked')) {
       setErrorMsg(t('error.db_locked'));
-    } else if (data.error === 'invalid_otp') {
+    } else if (rawLower.includes('invalid_otp') || rawLower.includes('phone_code_invalid')) {
       setErrorMsg(t('error.invalid_otp'));
-    } else if (data.error === 'invalid_password') {
+    } else if (rawLower.includes('invalid_password') || rawLower.includes('password_hash_invalid')) {
       setErrorMsg(t('error.invalid_password'));
     } else {
-      setErrorMsg(data.error);
+      setErrorMsg(raw || t('accounts.status_error'));
+    }
+  };
+
+  const handleImportStringSession = async () => {
+    if (!stringSessionInput.trim()) {
+      setErrorMsg(t('accounts.error_fields_required'));
+      return;
+    }
+    if (!(await checkApiCredentials())) return;
+
+    setIsProcessing(true);
+    setErrorMsg('');
+    try {
+      const val = stringSessionInput.trim();
+      let targetSession = sessionName.trim();
+      if (!targetSession) {
+        targetSession = `session_${Math.floor(Date.now() / 1000)}`;
+        setSessionName(targetSession);
+      }
+
+      // Check if it's a Bot Token
+      if (/^\d+:[A-Za-z0-9_-]{35,}$/.test(val)) {
+        const { apiId, apiHash } = await getApiCredentials();
+        const result = await invoke<any>('tg_login_bot', {
+          request: {
+            session: targetSession,
+            apiId: Number(apiId),
+            apiHash,
+            botToken: val,
+          },
+        }).catch(() => null);
+
+        if (result?.ok) {
+          await finishAuthorization(targetSession);
+          return;
+        }
+      }
+
+      // Standard Telethon/Grammers Session Import
+      const result = await invoke<any>('tg_import_telethon_session', { session: val }).catch((e) => ({ ok: false, error: String(e) }));
+      if (result?.ok) {
+        await finishAuthorization(targetSession);
+      } else {
+        setErrorMsg(result?.userMessage || result?.error || t('error.string_session_invalid'));
+      }
+    } catch (e: any) {
+      setErrorMsg(String(e?.message || e));
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -855,46 +953,69 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                     onClick={() => { setLoginMethod('qr'); }}
                     style={{
                       flex: 1,
-                      padding: '8px 12px',
+                      padding: '8px 10px',
                       borderRadius: '8px',
                       border: 'none',
                       background: loginMethod === 'qr' ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : 'transparent',
                       color: loginMethod === 'qr' ? '#ffffff' : '#94a3b8',
                       fontWeight: '600',
-                      fontSize: '0.82rem',
+                      fontSize: '0.8rem',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '8px',
+                      gap: '6px',
                       boxShadow: loginMethod === 'qr' ? '0 4px 14px rgba(2, 132, 199, 0.35)' : 'none',
                       transition: 'all 0.2s ease',
                     }}
                   >
-                    <QrCode size={15} /> {t('accounts.tab_qr')}
+                    <QrCode size={14} /> {t('accounts.tab_qr')}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setLoginMethod('phone'); }}
                     style={{
                       flex: 1,
-                      padding: '8px 12px',
+                      padding: '8px 10px',
                       borderRadius: '8px',
                       border: 'none',
                       background: loginMethod === 'phone' ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : 'transparent',
                       color: loginMethod === 'phone' ? '#ffffff' : '#94a3b8',
                       fontWeight: '600',
-                      fontSize: '0.82rem',
+                      fontSize: '0.8rem',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '8px',
+                      gap: '6px',
                       boxShadow: loginMethod === 'phone' ? '0 4px 14px rgba(2, 132, 199, 0.35)' : 'none',
                       transition: 'all 0.2s ease',
                     }}
                   >
-                    <Phone size={15} /> {t('accounts.tab_phone')}
+                    <Phone size={14} /> {t('accounts.tab_phone')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setLoginMethod('string_session'); }}
+                    style={{
+                      flex: 1,
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: loginMethod === 'string_session' ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : 'transparent',
+                      color: loginMethod === 'string_session' ? '#ffffff' : '#94a3b8',
+                      fontWeight: '600',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      boxShadow: loginMethod === 'string_session' ? '0 4px 14px rgba(2, 132, 199, 0.35)' : 'none',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <KeyRound size={14} /> {t('accounts.tab_string_session')}
                   </button>
                 </div>
 
@@ -1013,7 +1134,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                       </div>
                     )}
                   </div>
-                ) : (
+                ) : loginMethod === 'phone' ? (
                   <>
                     <div className="input-group" style={{ marginBottom: 0 }}>
                       <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1041,46 +1162,244 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                         />
                       </div>
                     </div>
-                    <button className="btn btn-primary" onClick={handleSendCode} disabled={isProcessing || !sessionName || !phone}>
+                    <button className="btn btn-primary" onClick={handleSendCode} disabled={isProcessing || !phone}>
                       {isProcessing ? <RefreshCcw className="spin" size={18} /> : t('accounts.send_code')}
                     </button>
                   </>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div className="input-group" style={{ marginBottom: 0 }}>
+                      <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <KeyRound size={14} /> {t('accounts.string_session_label')}
+                      </label>
+                      <textarea
+                        className="input-field"
+                        rows={3}
+                        placeholder={t('accounts.string_session_ph')}
+                        value={stringSessionInput}
+                        onChange={(e) => setStringSessionInput(e.target.value)}
+                        disabled={isProcessing}
+                        style={{
+                          width: '100%',
+                          fontFamily: 'monospace',
+                          fontSize: '0.8rem',
+                          resize: 'vertical',
+                          padding: '10px 12px',
+                        }}
+                      />
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '8px',
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        background: 'rgba(56, 189, 248, 0.06)',
+                        border: '1px solid rgba(56, 189, 248, 0.15)',
+                        fontSize: '0.78rem',
+                        color: '#94a3b8',
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      <Sparkles size={16} style={{ color: '#38bdf8', flexShrink: 0, marginTop: '2px' }} />
+                      <span>{t('accounts.string_session_desc')}</span>
+                    </div>
+
+                    <button
+                      className="btn btn-primary"
+                      onClick={handleImportStringSession}
+                      disabled={isProcessing || !stringSessionInput.trim()}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                    >
+                      {isProcessing ? <RefreshCcw className="spin" size={18} /> : (
+                        <>
+                          <KeyRound size={16} /> {t('accounts.btn_import_session')}
+                        </>
+                      )}
+                    </button>
+                  </div>
                 )}
               </div>
             )}
 
             {step === 2 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                  {t('accounts.verify_desc')}
-                </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '10px 14px',
+                    borderRadius: '12px',
+                    background: 'rgba(56, 189, 248, 0.08)',
+                    border: '1px solid rgba(56, 189, 248, 0.2)',
+                  }}
+                >
+                  <Send size={18} style={{ color: '#38bdf8', flexShrink: 0 }} />
+                  <span style={{ fontSize: '0.82rem', color: '#e2e8f0', lineHeight: 1.4 }}>
+                    {t('accounts.code_delivery_info')}
+                  </span>
+                </div>
+
                 <div className="input-group" style={{ marginBottom: 0 }}>
                   <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Key size={14} /> {t('accounts.otp_code')}
                   </label>
-                  <input type="text" className="input-field" placeholder={t('accounts.ph_code_example')} value={code} onChange={e => setCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && code && !isProcessing) handleSignIn() }} disabled={isProcessing} />
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder={t('accounts.ph_code_example')}
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && code && !isProcessing) handleSignIn();
+                    }}
+                    disabled={isProcessing}
+                    autoFocus
+                    style={{ letterSpacing: '0.2em', textAlign: 'center', fontSize: '1.2rem', fontWeight: 700 }}
+                  />
                 </div>
-                <button className="btn btn-primary" onClick={handleSignIn} disabled={isProcessing || !code}>
+
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSignIn}
+                  disabled={isProcessing || !code.trim()}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                >
                   {isProcessing ? <RefreshCcw className="spin" size={18} /> : t('accounts.verify_code')}
                 </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '4px' }}>
+                  {resendCooldown > 0 ? (
+                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                      {t('accounts.resend_code_in', { seconds: resendCooldown })}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendCode}
+                      disabled={isProcessing}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#38bdf8',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        padding: '4px 8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        textDecoration: 'underline',
+                      }}
+                    >
+                      <RefreshCcw size={13} /> {t('accounts.resend_code_now')}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
             {step === 3 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.88rem', lineHeight: 1.45 }}>
                   {t('accounts.2fa_desc')}
-                  {passwordHint ? ` Hint: ${passwordHint}` : ''}
                 </p>
+
+                {passwordHint && (
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      background: 'rgba(245, 158, 11, 0.12)',
+                      border: '1px solid rgba(245, 158, 11, 0.25)',
+                      color: '#fbbf24',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      width: 'fit-content',
+                    }}
+                  >
+                    <Sparkles size={14} />
+                    {t('accounts.password_hint_badge', { hint: passwordHint })}
+                  </div>
+                )}
+
                 <div className="input-group" style={{ marginBottom: 0 }}>
                   <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Lock size={14} /> {t('accounts.2fa_password')}
                   </label>
-                  <input type="password" className="input-field" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && password && !isProcessing) handleSignIn2FA() }} disabled={isProcessing} />
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      className="input-field"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && password && !isProcessing) handleSignIn2FA();
+                      }}
+                      disabled={isProcessing}
+                      autoFocus
+                      style={{ width: '100%', paddingRight: '40px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted, #94a3b8)',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      title={showPassword ? t('accounts.hide_password') : t('accounts.show_password')}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
-                <button className="btn btn-primary" onClick={handleSignIn2FA} disabled={isProcessing || !password}>
+
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSignIn2FA}
+                  disabled={isProcessing || !password.trim()}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                >
                   {isProcessing ? <RefreshCcw className="spin" size={18} /> : t('accounts.submit_password')}
                 </button>
+
+                <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '2px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotPasswordOpen(true)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#94a3b8',
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      transition: 'color 0.2s',
+                    }}
+                    onMouseOver={(e) => (e.currentTarget.style.color = '#38bdf8')}
+                    onMouseOut={(e) => (e.currentTarget.style.color = '#94a3b8')}
+                  >
+                    <HelpCircle size={14} /> {t('accounts.forgot_password_btn')}
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -1360,7 +1679,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
               )}
               
               {step === 1 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   {/* Method Tabs */}
                   <div style={{ display: 'flex', gap: '8px', background: 'rgba(255, 255, 255, 0.04)', padding: '5px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
                     <button
@@ -1368,7 +1687,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                       onClick={() => { setLoginMethod('qr'); }}
                       style={{
                         flex: 1,
-                        padding: '10px 14px',
+                        padding: '10px 12px',
                         borderRadius: '8px',
                         border: 'none',
                         background: loginMethod === 'qr' ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : 'transparent',
@@ -1391,7 +1710,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                       onClick={() => { setLoginMethod('phone'); }}
                       style={{
                         flex: 1,
-                        padding: '10px 14px',
+                        padding: '10px 12px',
                         borderRadius: '8px',
                         border: 'none',
                         background: loginMethod === 'phone' ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : 'transparent',
@@ -1408,6 +1727,29 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                       }}
                     >
                       <Phone size={16} /> {t('accounts.tab_phone')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setLoginMethod('string_session'); }}
+                      style={{
+                        flex: 1,
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: loginMethod === 'string_session' ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : 'transparent',
+                        color: loginMethod === 'string_session' ? '#ffffff' : '#94a3b8',
+                        fontWeight: '600',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        boxShadow: loginMethod === 'string_session' ? '0 4px 14px rgba(2, 132, 199, 0.35)' : 'none',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <KeyRound size={16} /> {t('accounts.tab_string_session')}
                     </button>
                   </div>
 
@@ -1526,7 +1868,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                         </div>
                       )}
                     </div>
-                  ) : (
+                  ) : loginMethod === 'phone' ? (
                     <>
                       <div className="input-group" style={{ marginBottom: 0 }}>
                         <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1554,49 +1896,299 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                           />
                         </div>
                       </div>
-                      <button className="btn btn-primary" onClick={handleSendCode} disabled={isProcessing || !sessionName || !phone}>
+                      <button className="btn btn-primary" onClick={handleSendCode} disabled={isProcessing || !phone}>
                         {isProcessing ? <RefreshCcw className="spin" size={18} /> : t('accounts.send_code')}
                       </button>
                     </>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div className="input-group" style={{ marginBottom: 0 }}>
+                        <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <KeyRound size={14} /> {t('accounts.string_session_label')}
+                        </label>
+                        <textarea
+                          className="input-field"
+                          rows={3}
+                          placeholder={t('accounts.string_session_ph')}
+                          value={stringSessionInput}
+                          onChange={(e) => setStringSessionInput(e.target.value)}
+                          disabled={isProcessing}
+                          style={{
+                            width: '100%',
+                            fontFamily: 'monospace',
+                            fontSize: '0.8rem',
+                            resize: 'vertical',
+                            padding: '10px 12px',
+                          }}
+                        />
+                      </div>
+
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '8px',
+                          padding: '10px 12px',
+                          borderRadius: '10px',
+                          background: 'rgba(56, 189, 248, 0.06)',
+                          border: '1px solid rgba(56, 189, 248, 0.15)',
+                          fontSize: '0.78rem',
+                          color: '#94a3b8',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        <Sparkles size={16} style={{ color: '#38bdf8', flexShrink: 0, marginTop: '2px' }} />
+                        <span>{t('accounts.string_session_desc')}</span>
+                      </div>
+
+                      <button
+                        className="btn btn-primary"
+                        onClick={handleImportStringSession}
+                        disabled={isProcessing || !stringSessionInput.trim()}
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                      >
+                        {isProcessing ? <RefreshCcw className="spin" size={18} /> : (
+                          <>
+                            <KeyRound size={16} /> {t('accounts.btn_import_session')}
+                          </>
+                        )}
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
 
               {step === 2 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                    {t('accounts.verify_desc')}
-                  </p>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '12px 16px',
+                      borderRadius: '12px',
+                      background: 'rgba(56, 189, 248, 0.08)',
+                      border: '1px solid rgba(56, 189, 248, 0.2)',
+                    }}
+                  >
+                    <Send size={20} style={{ color: '#38bdf8', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.85rem', color: '#e2e8f0', lineHeight: 1.4 }}>
+                      {t('accounts.code_delivery_info')}
+                    </span>
+                  </div>
+
                   <div className="input-group" style={{ marginBottom: 0 }}>
                     <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Key size={14} /> {t('accounts.otp_code')}
                     </label>
-                    <input type="text" className="input-field" placeholder={t('accounts.ph_code_example')} value={code} onChange={e => setCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && code && !isProcessing) handleSignIn() }} disabled={isProcessing} />
+                    <input
+                      type="text"
+                      className="input-field"
+                      placeholder={t('accounts.ph_code_example')}
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && code && !isProcessing) handleSignIn();
+                      }}
+                      disabled={isProcessing}
+                      autoFocus
+                      style={{ letterSpacing: '0.2em', textAlign: 'center', fontSize: '1.25rem', fontWeight: 700 }}
+                    />
                   </div>
-                  <button className="btn btn-primary" onClick={handleSignIn} disabled={isProcessing || !code}>
+
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleSignIn}
+                    disabled={isProcessing || !code.trim()}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  >
                     {isProcessing ? <RefreshCcw className="spin" size={18} /> : t('accounts.verify_code')}
                   </button>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '4px' }}>
+                    {resendCooldown > 0 ? (
+                      <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                        {t('accounts.resend_code_in', { seconds: resendCooldown })}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleSendCode}
+                        disabled={isProcessing}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#38bdf8',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          padding: '4px 8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          textDecoration: 'underline',
+                        }}
+                      >
+                        <RefreshCcw size={14} /> {t('accounts.resend_code_now')}
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
               {step === 3 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                  <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.45 }}>
                     {t('accounts.2fa_desc')}
-                    {passwordHint ? ` Hint: ${passwordHint}` : ''}
                   </p>
+
+                  {passwordHint && (
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        background: 'rgba(245, 158, 11, 0.12)',
+                        border: '1px solid rgba(245, 158, 11, 0.25)',
+                        color: '#fbbf24',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        width: 'fit-content',
+                      }}
+                    >
+                      <Sparkles size={14} />
+                      {t('accounts.password_hint_badge', { hint: passwordHint })}
+                    </div>
+                  )}
+
                   <div className="input-group" style={{ marginBottom: 0 }}>
                     <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Lock size={14} /> {t('accounts.2fa_password')}
                     </label>
-                    <input type="password" className="input-field" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && password && !isProcessing) handleSignIn2FA() }} disabled={isProcessing} />
+                    <div style={{ position: 'relative', width: '100%' }}>
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        className="input-field"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && password && !isProcessing) handleSignIn2FA();
+                        }}
+                        disabled={isProcessing}
+                        autoFocus
+                        style={{ width: '100%', paddingRight: '40px' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        style={{
+                          position: 'absolute',
+                          right: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-muted, #94a3b8)',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                        title={showPassword ? t('accounts.hide_password') : t('accounts.show_password')}
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
                   </div>
-                  <button className="btn btn-primary" onClick={handleSignIn2FA} disabled={isProcessing || !password}>
+
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleSignIn2FA}
+                    disabled={isProcessing || !password.trim()}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  >
                     {isProcessing ? <RefreshCcw className="spin" size={18} /> : t('accounts.submit_password')}
                   </button>
+
+                  <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '2px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setIsForgotPasswordOpen(true)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#94a3b8',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        transition: 'color 0.2s',
+                      }}
+                      onMouseOver={(e) => (e.currentTarget.style.color = '#38bdf8')}
+                      onMouseOut={(e) => (e.currentTarget.style.color = '#94a3b8')}
+                    >
+                      <HelpCircle size={14} /> {t('accounts.forgot_password_btn')}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {isForgotPasswordOpen && (
+        <div className="modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 15000, padding: '16px' }} onClick={() => setIsForgotPasswordOpen(false)}>
+          <div
+            className="glass-panel"
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: '100%', maxWidth: '440px', padding: '24px', borderRadius: '16px', background: 'var(--bg-secondary, #1a1b23)', border: '1px solid var(--border)', boxShadow: '0 20px 50px rgba(0,0,0,0.7)' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: 'rgba(56, 189, 248, 0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#38bdf8',
+                  }}
+                >
+                  <ShieldAlert size={20} />
+                </div>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>
+                  {t('accounts.forgot_password_title')}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsForgotPasswordOpen(false)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p style={{ color: '#cbd5e1', fontSize: '0.85rem', lineHeight: 1.55, margin: '0 0 20px' }}>
+              {t('accounts.forgot_password_desc')}
+            </p>
+
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setIsForgotPasswordOpen(false)}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              {t('accounts.btn_got_it')}
+            </button>
           </div>
         </div>
       )}

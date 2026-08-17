@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Upload, FolderOpen, FolderPlus, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Upload, FolderOpen, FolderPlus, Loader2, AlertTriangle, CheckCircle2, ArrowUp, ArrowDown } from 'lucide-react';
 import { DriveGridSkeleton, DriveListSkeleton, CenteredGlassmorphicProgress } from './DriveSkeleton';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import {
@@ -55,6 +55,7 @@ type Props = {
   query: string;
   mediaFilter: DriveMediaFilter;
   sortMode: DriveSortMode;
+  onSortMode?: (mode: DriveSortMode) => void;
   /** Optional advanced filters (size/date/ext) */
   advFilter?: DriveAdvFilter | null;
   gridZoom?: DriveGridZoom;
@@ -117,6 +118,15 @@ const LIST_PAD_TOP = 12;
 const LIST_PAD_BOTTOM = 8;
 const MARQUEE_THRESHOLD = 5;
 
+const DEFAULT_COL_WIDTHS = {
+  name: 340,
+  date: 180,
+  type: 130,
+  size: 100,
+};
+
+type ColKey = 'name' | 'date' | 'type' | 'size';
+
 export function DriveExplorer({
   files,
   loading,
@@ -133,6 +143,7 @@ export function DriveExplorer({
   query,
   mediaFilter,
   sortMode,
+  onSortMode,
   advFilter = null,
   gridZoom = DEFAULT_GRID_ZOOM,
   onGridZoom,
@@ -181,6 +192,86 @@ export function DriveExplorer({
     };
   }
   const [width, setWidth] = useState(800);
+
+  // Resizable column widths with localStorage persistence
+  const [colWidths, setColWidths] = useState<typeof DEFAULT_COL_WIDTHS>(() => {
+    try {
+      const raw = localStorage.getItem('autogram_list_col_widths');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return { ...DEFAULT_COL_WIDTHS, ...parsed };
+      }
+    } catch {
+      /* ignore */
+    }
+    return DEFAULT_COL_WIDTHS;
+  });
+
+  const handleResizerPointerDown = useCallback(
+    (col: ColKey, e: React.PointerEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const startX = e.clientX;
+      const startWidth = colWidths[col];
+
+      const minLimits: Record<ColKey, number> = {
+        name: 140,
+        date: 110,
+        type: 80,
+        size: 70,
+      };
+      const maxLimits: Record<ColKey, number> = {
+        name: 900,
+        date: 360,
+        type: 280,
+        size: 240,
+      };
+
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        const delta = moveEvent.clientX - startX;
+        const newWidth = Math.max(minLimits[col], Math.min(maxLimits[col], startWidth + delta));
+        setColWidths((prev) => ({ ...prev, [col]: newWidth }));
+      };
+
+      const handlePointerUp = (upEvent: PointerEvent) => {
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
+        window.removeEventListener('pointercancel', handlePointerUp);
+
+        const delta = upEvent.clientX - startX;
+        const finalWidth = Math.max(minLimits[col], Math.min(maxLimits[col], startWidth + delta));
+        setColWidths((prev) => {
+          const next = { ...prev, [col]: finalWidth };
+          try {
+            localStorage.setItem('autogram_list_col_widths', JSON.stringify(next));
+          } catch {
+            /* ignore */
+          }
+          return next;
+        });
+      };
+
+      window.addEventListener('pointermove', handlePointerMove);
+      window.addEventListener('pointerup', handlePointerUp);
+      window.addEventListener('pointercancel', handlePointerUp);
+    },
+    [colWidths]
+  );
+
+  const handleHeaderSortClick = useCallback(
+    (col: 'name' | 'date' | 'size') => {
+      if (!onSortMode) return;
+      if (col === 'name') {
+        onSortMode(sortMode === 'name_asc' ? 'name_desc' : 'name_asc');
+      } else if (col === 'date') {
+        onSortMode(sortMode === 'newest' ? 'oldest' : 'newest');
+      } else if (col === 'size') {
+        onSortMode(sortMode === 'size_desc' ? 'size_asc' : 'size_desc');
+      }
+    },
+    [onSortMode, sortMode]
+  );
   const thumbPeerId = folderId == null ? 'me' : String(folderId);
   const thumbContextOptions = useMemo(
     () => ({ peerId: thumbPeerId, topicId, locationType }),
@@ -716,7 +807,7 @@ export function DriveExplorer({
     const el = t as HTMLElement | null;
     if (!el?.closest) return { overCard: false, overControl: false };
     const card = el.closest('.td-file-card, .td-list-row');
-    const control = el.closest('button, a, input, textarea, select, [role="button"]');
+    const control = el.closest('button, a, input, textarea, select, [role="button"], [role="columnheader"], .td-list-head, .td-col-resizer');
     return {
       overCard: Boolean(card),
       // Cards expose role="button" for keyboard semantics; only nested controls
@@ -952,10 +1043,17 @@ export function DriveExplorer({
       {displayed.length > 0 && viewMode === 'list' && (
         <div
           className="td-list td-list-virtual"
-          style={{
-            height: listVirtualizer.getTotalSize() + LIST_HEAD_H + LIST_PAD_TOP + LIST_PAD_BOTTOM,
-            position: 'relative',
-          }}
+          style={
+            {
+              height: listVirtualizer.getTotalSize() + LIST_HEAD_H + LIST_PAD_TOP + LIST_PAD_BOTTOM,
+              position: 'relative',
+              '--td-col-icon': '36px',
+              '--td-col-name': `${colWidths.name}px`,
+              '--td-col-date': `${colWidths.date}px`,
+              '--td-col-type': `${colWidths.type}px`,
+              '--td-col-size': `${colWidths.size}px`,
+            } as React.CSSProperties
+          }
         >
           <div
             className="td-list-head"
@@ -963,9 +1061,79 @@ export function DriveExplorer({
             style={{ top: LIST_PAD_TOP }}
           >
             <div className="td-list-ico" />
-            <div className="td-list-name">{t('speedtest.col_name')}</div>
-            <div className="td-list-size">{t('speedtest.media_size')}</div>
-            <div className="td-list-date">{t('speedtest.col_date')}</div>
+            
+            {/* 1. Name Column */}
+            <div
+              className={`td-col-header td-list-name${sortMode.startsWith('name_') ? ' is-sorted' : ''}`}
+              role="columnheader"
+              onClick={() => handleHeaderSortClick('name')}
+              title={t('speedtest.col_name')}
+            >
+              <span className="td-col-header-text">{t('speedtest.col_name')}</span>
+              {sortMode === 'name_asc' && <ArrowUp size={12} className="td-col-sort-icon" />}
+              {sortMode === 'name_desc' && <ArrowDown size={12} className="td-col-sort-icon" />}
+              <div
+                className="td-col-resizer"
+                role="separator"
+                aria-orientation="vertical"
+                onPointerDown={(e) => handleResizerPointerDown('name', e)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+
+            {/* 2. Date Modified Column */}
+            <div
+              className={`td-col-header td-list-date${sortMode === 'newest' || sortMode === 'oldest' ? ' is-sorted' : ''}`}
+              role="columnheader"
+              onClick={() => handleHeaderSortClick('date')}
+              title={t('speedtest.col_date_modified')}
+            >
+              <span className="td-col-header-text">{t('speedtest.col_date_modified')}</span>
+              {sortMode === 'newest' && <ArrowDown size={12} className="td-col-sort-icon" />}
+              {sortMode === 'oldest' && <ArrowUp size={12} className="td-col-sort-icon" />}
+              <div
+                className="td-col-resizer"
+                role="separator"
+                aria-orientation="vertical"
+                onPointerDown={(e) => handleResizerPointerDown('date', e)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+
+            {/* 3. Type Column */}
+            <div
+              className="td-col-header td-list-type"
+              role="columnheader"
+              title={t('speedtest.col_type')}
+            >
+              <span className="td-col-header-text">{t('speedtest.col_type')}</span>
+              <div
+                className="td-col-resizer"
+                role="separator"
+                aria-orientation="vertical"
+                onPointerDown={(e) => handleResizerPointerDown('type', e)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+
+            {/* 4. Size Column */}
+            <div
+              className={`td-col-header td-list-size${sortMode.startsWith('size_') ? ' is-sorted' : ''}`}
+              role="columnheader"
+              onClick={() => handleHeaderSortClick('size')}
+              title={t('speedtest.col_size')}
+            >
+              <span className="td-col-header-text">{t('speedtest.col_size')}</span>
+              {sortMode === 'size_desc' && <ArrowDown size={12} className="td-col-sort-icon" />}
+              {sortMode === 'size_asc' && <ArrowUp size={12} className="td-col-sort-icon" />}
+              <div
+                className="td-col-resizer"
+                role="separator"
+                aria-orientation="vertical"
+                onPointerDown={(e) => handleResizerPointerDown('size', e)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
           </div>
           {listItems.map((v) => {
             if (v.index >= displayed.length) {

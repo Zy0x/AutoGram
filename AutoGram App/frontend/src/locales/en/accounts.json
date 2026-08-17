@@ -96,5 +96,21 @@
   "btn_reload_qr": "Reload QR Code",
   "qr_expired_hint": "QR Code expired. Click Reload QR Code below to refresh.",
   "flood_wait_notice": "Telegram is temporarily rate-limiting QR Code requests. Please wait {{seconds}} seconds before trying again.",
-  "session_menu": "Account menu"
+  "session_menu": "Account menu",
+  "tab_string_session": "String Session / Bot Token",
+  "string_session_label": "Telegram String Session or Bot Token",
+  "string_session_ph": "Paste Telethon String Session, Pyrogram String Session, or Bot Token (123456:ABC...)",
+  "btn_import_session": "Import & Sign In",
+  "string_session_desc": "Import Telegram session directly without requiring an OTP verification code.",
+  "resend_code_in": "Resend code in {{seconds}}s",
+  "resend_code_now": "Resend Code",
+  "resend_code_success": "A new verification code has been sent!",
+  "code_delivery_info": "Code sent via your official Telegram App (or via SMS if not active).",
+  "password_hint_badge": "Password Hint: {{hint}}",
+  "forgot_password_btn": "Forgot 2FA Password?",
+  "forgot_password_title": "2FA Password Recovery Help",
+  "forgot_password_desc": "Telegram secures your account with end-to-end encryption. If you forgot your 2FA password and have a linked recovery email, please open the Telegram app on your phone to reset your password via email, or wait for Telegram's official 7-day reset period.",
+  "btn_got_it": "Got It",
+  "show_password": "Show password",
+  "hide_password": "Hide password"
 }

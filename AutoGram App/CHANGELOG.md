@@ -1,3 +1,35 @@
+## v3.7.34 Windows File Explorer List View Headers & Complete Telegram Authentication Suite (Phase 35)
+
+### 1. Windows File Explorer-Style Table Headers & Resizable Columns (`DriveExplorer.tsx`, `DriveFileListItem.tsx`, `App.css`)
+- **Struktur Kolom 5 Bagian Otentik File Explorer**:
+  - Menyusun tata letak baris list view menjadi 5 kolom terstruktur: `[Icon]`, `[Name]`, `[Date modified]`, `[Type]`, dan `[Size]`.
+  - Mengimplementasikan pengenalan tipe berkas cerdas (`getDriveFileTypeLabel`) dengan dukungan terjemahan 14 kategori berkas (Video MP4/MKV, Foto JPG/PNG, GIF, Dokumen PDF/Word/Excel, Audio MP3/FLAC, Arsip ZIP/RAR, Kode Sumber, Berkas Biner, dsb).
+- **Kolom Tabel Interaktif & Dapat Diatur Lebarnya (Resizable Columns)**:
+  - Menambahkan pembatas kolom interaktif (`.td-col-resizer`) dengan kursor `col-resize` dan pendaran hover.
+  - Pengguna dapat menarik garis pembatas kolom untuk memperkecil atau memperbesar lebar kolom secara dinamis dengan proteksi batas minimum/maksimum (`minWidth` & `maxWidth`).
+  - Menyimpan preferensi lebar kolom pengguna secara persisten di penyimpanan lokal (`autogram_list_col_widths`).
+  - Mendukung pengurutan instan (*column sorting*) saat judul kolom diklik dengan indikator panah naik/turun (`ArrowUp`/`ArrowDown`).
+  - Mengisolasi interaksi penyeretan marquee selection agar tidak memblokir klik atau pengaturan ukuran header kolom.
+
+### 2. Suite Lengkap Otentikasi & Penyempurnaan Login Telegram (`Accounts/index.tsx`, `AccountLoginModal.tsx`)
+- **Metode Login Tiga Tab (QR Code, Nomor HP & OTP, String Session / Bot Token)**:
+  - Menyediakan 3 tab metode login independen dalam wizard tambah sesi akun Telegram.
+  - Menambahkan dukungan impor langsung Telethon String Session, Pyrogram String Session, dan Bot Token Telegram (`123456:ABC-DEF...`) tanpa perlu verifikasi kode OTP.
+- **Timer Hitung Mundur Kirim Ulang OTP & Indikator Saluran Pengiriman**:
+  - Mengimplementasikan timer hitung mundur 60 detik (`resendCooldown`) saat kode OTP dikirim.
+  - Menampilkan tombol aktif "Kirim Ulang Kode" setelah waktu hitung mundur selesai.
+  - Menyediakan banner informatif: "Kode dikirim via Aplikasi Telegram resmi Anda (atau via SMS jika tidak dibuka)".
+- **Verifikasi Dua Langkah (2FA / Cloud Password) & Bantuan Pemulihan**:
+  - Menampilkan petunjuk kata sandi (*Password Hint*) jika akun Telegram pengguna memiliki petunjuk yang disetel di Telegram.
+  - Menambahkan tombol visibilitas kata sandi (*Show/Hide Password*) dengan ikon `Eye` / `EyeOff`.
+  - Menyediakan modal bantuan "Lupa Kata Sandi 2FA?" dengan panduan pemulihan email terenkripsi resmi dari Telegram.
+- **Humanisasi Pesan Error RPC Telegram Menyeluruh**:
+  - Memetakan dan menerjemahkan seluruh kode error Telegram (`PHONE_NUMBER_BANNED`, `PHONE_CODE_EXPIRED`, `SIGN_UP_REQUIRED`, `PHONE_PASSWORD_FLOOD`, `AUTH_KEY_UNREGISTERED`, `PHONE_NUMBER_INVALID`, `PHONE_NUMBER_UNOCCUPIED`, `SESSION_PASSWORD_NEEDED`) ke dalam pesan ramah pengguna.
+
+### 3. Kepatuhan Paritas Bahasa & Verifikasi Kualitas
+- **100% Zero Hardcoded Strings**: Menambahkan 25 kunci kamus baru ke dalam `accounts.json`, `error.json`, dan `speedtest.json` dengan paritas 1:1 sempurna antara Bahasa Indonesia dan English (5.063 total kunci, 0 missing, 0 hardcoded).
+- Seluruh 153 unit test Vitest (`npm test -- --run`) lulus 100%.
+
 ## v3.7.33 Move/Copy Confirmation Dialog Locale Parity & Telegram Album Delivery Fix (Phase 34)
 
 ### 1. Perbaikan Menyeluruh Locale & Dialog Konfirmasi Pindah/Salin (`DriveConfirmDialog.tsx`)

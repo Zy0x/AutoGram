@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import React from 'react';
-import { X, Phone, ShieldCheck, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Phone, ShieldCheck, Loader2, Eye, EyeOff, Sparkles } from 'lucide-react';
 
 export interface AccountLoginModalProps {
   open: boolean;
@@ -11,6 +11,7 @@ export interface AccountLoginModalProps {
   setCode: (c: string) => void;
   password2FA: string;
   setPassword2FA: (p: string) => void;
+  passwordHint?: string;
   step: 'phone' | 'code' | '2fa';
   onSendPhone: () => void;
   onSendCode: () => void;
@@ -28,6 +29,7 @@ export const AccountLoginModal: React.FC<AccountLoginModalProps> = ({
   setCode,
   password2FA,
   setPassword2FA,
+  passwordHint,
   step,
   onSendPhone,
   onSendCode,
@@ -36,6 +38,7 @@ export const AccountLoginModal: React.FC<AccountLoginModalProps> = ({
   error,
 }) => {
   const { t } = useTranslation();
+  const [showPassword, setShowPassword] = useState(false);
   if (!open) return null;
 
   return (
@@ -113,13 +116,29 @@ export const AccountLoginModal: React.FC<AccountLoginModalProps> = ({
               <ShieldCheck size={14} className="text-amber-400" />
               {t('ui.generated.password_2fa_cloud_password_59a3bd2')}
             </label>
-            <input
-              type="password"
-              value={password2FA}
-              onChange={(e) => setPassword2FA(e.target.value)}
-              placeholder={t('accounts.passcode_ph')}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:ring-1 focus:ring-indigo-500"
-            />
+            {passwordHint && (
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs font-medium">
+                <Sparkles size={13} />
+                {t('accounts.password_hint_badge', { hint: passwordHint })}
+              </div>
+            )}
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password2FA}
+                onChange={(e) => setPassword2FA(e.target.value)}
+                placeholder={t('accounts.passcode_ph')}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3.5 pr-10 py-2.5 text-sm text-slate-100 focus:ring-1 focus:ring-indigo-500"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
+                title={showPassword ? t('accounts.hide_password') : t('accounts.show_password')}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
             <button
               type="button"
               disabled={loading || !password2FA.trim()}
