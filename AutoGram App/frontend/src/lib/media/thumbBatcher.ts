@@ -577,6 +577,27 @@ export function primeThumbCache(
 }
 
 /**
+ * Inject video frame captured from media player into memory/disk cache & update UI cards instantly.
+ */
+export function cacheCapturedThumb(
+  folderId: number | null,
+  messageId: number,
+  dataUrl: string,
+  session = activeSession
+): void {
+  if (!messageId || !dataUrl || !dataUrl.startsWith('data:image/')) return;
+  const qualities: DriveThumbQuality[] = ['saver', 'balanced', 'sharp'];
+  for (const q of qualities) {
+    const k = cacheKey(folderId, messageId, q, session);
+    memCache.set(k, dataUrl);
+    softFailAt.delete(k);
+    errorFailAt.delete(k);
+    void savePersistentThumb(k, dataUrl);
+    notifyThumbReady(k, dataUrl, false);
+  }
+}
+
+/**
  * Force-refresh visible tiles after quality switch (bypass mem for new quality).
  */
 export function refreshVisibleThumbsForQuality(

@@ -11,7 +11,6 @@ import {
   Bot,
   Search,
   ArrowLeft,
-  Rocket,
   ChevronDown,
   ChevronRight,
   X,

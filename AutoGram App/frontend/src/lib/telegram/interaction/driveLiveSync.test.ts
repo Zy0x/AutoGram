@@ -5,10 +5,11 @@ import type { DriveFile } from '../driveTypes';
 function makeFile(id: number, name = `file_${id}`): DriveFile {
   return {
     id,
+    folder_id: null,
     name,
     size: 1024,
-    date: '2026-08-17',
-    created_at: 1700000000 + id,
+    icon_type: 'file',
+    created_at: String(1700000000 + id),
   };
 }
 

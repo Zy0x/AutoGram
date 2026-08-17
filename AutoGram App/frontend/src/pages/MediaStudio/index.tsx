@@ -28,7 +28,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import { HardDrive, Upload, Scissors, Copy, ClipboardPaste, X, Sparkles, Pause, Play } from 'lucide-react';
+import { HardDrive, Upload, Scissors, Copy, ClipboardPaste, X } from 'lucide-react';
 import {
   determineIndexingTier,
   getAdaptiveDelay,
@@ -97,10 +97,8 @@ import {
 import {
   saveCheckpoint,
   saveMediaRecords,
-  getMediaPageByContext,
   buildDriveMediaContext,
   scopeMediaRecords,
-  type MediaRecord,
   deleteMediaRecordsForPeer,
   enqueueAction,
   getPendingActions,
@@ -173,7 +171,6 @@ import type {
 } from '../../lib/telegram/driveTypes';
 import {
   DEFAULT_TRANSFER_SETTINGS,
-  DEFAULT_DRIVE_SORT,
   DRIVE_FOLDER_SOFT_LIMIT,
   canShowDriveThumb,
   driveFileDisplayName,
@@ -183,7 +180,6 @@ import {
   clampGridZoom,
   formatDriveBytes,
   isDriveGridZoom,
-  isDriveSortMode,
   isDriveThumbQuality,
   matchesMediaFilter,
   loadTransferSettings,
@@ -320,7 +316,6 @@ import {
 
 const LS_VIEW = 'autogram_drive_view';
 const LS_COLLAPSE = 'autogram_drive_rail';
-const LS_SORT = 'autogram_drive_sort';
 const LS_THUMB_Q = 'autogram_drive_thumb_q';
 const LS_GRID_ZOOM = 'autogram_drive_grid_zoom';
 const LS_TM_MIN = 'autogram_transfer_minimized';
@@ -696,7 +691,6 @@ function MediaDriveDesktop({
     tier?: IndexingTier;
     isPaused?: boolean;
   }>({ active: false, processed: 0, total: 0, text: '' });
-  const sortIndexGenerationRef = useRef(0);
   const [thumbQuality, setThumbQualityState] = useState<DriveThumbQuality>(() => {
     try {
       const raw = localStorage.getItem(LS_THUMB_Q);
@@ -3250,7 +3244,7 @@ function MediaDriveDesktop({
         while (indexingPausedRef.current && indexingActiveRef.current) {
           await new Promise((r) => setTimeout(r, 100));
         }
-        if (!indexingActiveRef.current || gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) {
+        if (!creds || !indexingActiveRef.current || gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) {
           break;
         }
 
@@ -8435,8 +8429,6 @@ function MediaDriveDesktop({
           }}
           channelLimitWarning={channelLimitWarning}
           onRefresh={refreshLocations}
-          onDelete={handleDeleteFolder}
-          onRename={handleRenameFolder}
           loadingFolders={loadingFolders}
           loadingChats={loadingChats}
           session={session}

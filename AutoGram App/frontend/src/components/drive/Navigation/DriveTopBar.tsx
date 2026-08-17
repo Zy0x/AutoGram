@@ -16,7 +16,6 @@ import {
   ArrowLeftRight,
   SendHorizontal,
   MousePointerClick,
-  SlidersHorizontal,
   Settings,
   Pin,
   PinOff,
@@ -34,7 +33,7 @@ import {
   Play,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useTopicDrop } from './useTopicDrop';
 import type {
@@ -341,15 +340,6 @@ export function DriveTopBar({
     onRefresh();
   };
   const isFinal = Boolean(statsAccurate || (!loading && hasMore === false));
-  const effectiveTotalCount = useMemo(() => {
-    if (hasMore === false && fileCount > 0) {
-      return fileCount;
-    }
-    if (totalCount != null && totalCount >= 0) {
-      return Math.max(totalCount, fileCount);
-    }
-    return fileCount;
-  }, [hasMore, fileCount, totalCount]);
   const hasTopicSegment = breadcrumbSegs?.some((s) => s.kind === 'topic');
   const showTopics =
     !!isForum ||

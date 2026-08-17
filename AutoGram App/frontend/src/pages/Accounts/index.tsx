@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Users, Phone, Key, Plus, RefreshCcw, Lock, Trash2, ArrowLeft, QrCode, Smartphone, Pencil, X, Eye, EyeOff, KeyRound, HelpCircle, FileText, Bot, Send, ShieldAlert, Sparkles } from 'lucide-react';
+import { Users, Phone, Key, Plus, RefreshCcw, Lock, Trash2, ArrowLeft, QrCode, Smartphone, Pencil, X, Eye, EyeOff, KeyRound, HelpCircle, Send, ShieldAlert, Sparkles } from 'lucide-react';
 import 'react-phone-number-input/style.css';
 import PhoneInput, { getCountryCallingCode } from 'react-phone-number-input';
 import { useTranslation } from 'react-i18next';
