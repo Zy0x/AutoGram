@@ -2536,13 +2536,14 @@ function MediaDriveDesktop({
     setActivePeerId(id);
   }, [creds, chats, folders, loadingChats, bootRevision]);
 
-  const refreshFiles = useCallback(async (retryCount = 0, opts?: { preserveError?: boolean }) => {
+  const refreshFiles = useCallback(async (retryCount = 0, opts?: { preserveError?: boolean; bypassCache?: boolean }) => {
     if (!creds) return;
     if (isTransferJobActive()) {
       setStatusText(t('ui.generated.transfer_aktif_refresh_ditunda_099d58a'));
       return;
     }
     const gen = ++peerGen.current;
+    const shouldBypassCache = opts?.bypassCache !== false; // Default true on explicit refresh
     // Allow thumb re-fetch after manual refresh (soft-fails cleared; success cache kept)
     invalidateThumbFailures();
     setThumbsPaused(false);
@@ -2632,7 +2633,7 @@ function MediaDriveDesktop({
         quickStats: false,
         sortMode: 'newest',
         localOffset: 0,
-        bypassCache: false,
+        bypassCache: shouldBypassCache,
       });
       if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return;
       if (res?.invalid_topic && tid != null) {
@@ -2652,7 +2653,7 @@ function MediaDriveDesktop({
           quickStats: false,
           sortMode: 'newest',
           localOffset: 0,
-          bypassCache: false,
+          bypassCache: shouldBypassCache,
         });
         if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return;
         if (peerId != null) void loadTopicsForPeer(peerId);

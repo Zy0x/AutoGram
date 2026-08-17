@@ -1,3 +1,13 @@
+## v3.7.47 Deep Full-Stack Toolbar Refresh, Live Server Cache Bypass & Urgent Stats Revalidation (Phase 35.13)
+
+### 1. Eksekusi Refresh Mendalam (*Deep Full-Stack Revalidation*) (`MediaStudio/index.tsx`)
+- **Pembersihan Cache & Bypass ke Server Nyata**:
+  - Tombol Refresh di Toolbar kini secara eksplisit memicu `bypassCache: true`, memaksa query riwayat pesan baru langsung ke server Telegram MTProto tanpa menggunakan cache lokal lama.
+- **Pemulihan Thumbnail & Pemindaian Ulang**:
+  - Menghapus kegagalan thumbnail sementara (*soft failures*) via `invalidateThumbFailures()` dan memicu *prefetching* thumbnail kartu terlihat secara proaktif.
+- **Sinkronisasi Statistik & Topik Mendesak**:
+  - Memicu kalkulasi ulang statistik media mendalam (`scheduleMediaStats` dengan mode `urgent: true`) dan memperbarui daftar topik chat forum secara paralel.
+
 ## v3.7.46 Turbo-Pacing Indexing Engine, 2.3k msg/s Throughput & Dynamic Multi-Stage Flood-Shield (Phase 35.12)
 
 ### 1. Optimalisasi Throughput Turbo-Pacing (`adaptiveIndexer.ts`, `adaptiveIndexer.test.ts`)
