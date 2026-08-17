@@ -1,12 +1,13 @@
-AutoGram Version: v3.7.37
+AutoGram Version: v3.7.38
 
 Current State:
-v3.7.37 Per-Location Sort Isolation & Default Newest First Across All Drives — membenahi `MediaStudio/index.tsx`, `driveSortAndAlbumSettings.test.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Per-Location Sort Isolation: Pengurutan pada salah satu drive (misal Drive A disortir berdasarkan ukuran terbesar) tidak akan mempengaruhi drive lain. Saat berpindah ke Drive B atau folder lain, drive tujuan akan menggunakan pengurutan independennya sendiri.
-2. Global Default Newest First: Seluruh drive/lokasi baru secara otomatis menggunakan default *Newest First* (kronologis mundur).
-3. Persistent Location Sort Cache: Mengingat kustomisasi sort pada setiap drive secara presisi saat pengguna kembali ke drive tersebut.
+v3.7.38 Floating Top-Item Notification Pill, Anchor Scroll Retention & Safe Background Metadata Indexer — membenahi `DriveExplorer.tsx`, `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Floating Top-Update Notification Pill: Menampilkan pill mengambang yang elegan (`↑ X berkas baru/teratas masuk • [Lihat ke Atas]`) saat berkas baru terselip di posisi atas hasil sorting non-kronologis ketika pengguna sedang membaca di bawah.
+2. Anchor Scroll Retention: Mengeliminasi efek lonjakan viewport (*zero scroll jump*) saat berkas baru disisipkan di atas posisi scroll pengguna.
+3. Sort Scope Status Chip & Safe Anti-FloodWait Background Indexer: Menyediakan badge status cakupan pengurutan (`✓ Semua X terurut` / `⚡ X terurut (sebagian)`) beserta tombol on-demand `[Indeks Semua]` dengan batching aman 200 item / 150ms delay yang terbukti stabil pada grup besar seperti `#Gudang` (43.000+ item).
 
 Previous:
+v3.7.37 Per-Location Sort Isolation & Default Newest First Across All Drives — membenahi `MediaStudio/index.tsx`, `driveSortAndAlbumSettings.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.36 Pure In-Memory Zero-Loss Sorting Pipeline & Full Chat File Preservation — membenahi `MediaStudio/index.tsx`, `driveTypes.ts`, `DriveExplorer.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.35 Zero-Gap Sticky Table Header, 100% Fluid Responsive Table, 120fps Zero-Lag Column Resizing & Windows 11 Type Sorting — membenahi `driveTypes.ts`, `DriveExplorer.tsx`, `App.css`, `driveSortAndAlbumSettings.test.ts`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.34 Windows File Explorer List View Headers & Complete Telegram Authentication Suite — membenahi `DriveExplorer.tsx`, `DriveFileListItem.tsx`, `App.css`, `Accounts/index.tsx`, `AccountLoginModal.tsx`, `accounts.json` (ID & EN), `error.json` (ID & EN), `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.

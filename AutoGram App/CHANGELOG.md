@@ -1,3 +1,22 @@
+## v3.7.38 Floating Top-Item Notification Pill, Anchor Scroll Retention & Safe Background Metadata Indexer (Phase 35.4)
+
+### 1. Floating Top-Update Notification Pill (`DriveExplorer.tsx`, `App.css`)
+- **Deteksi Otomatis Berkas Baru di Atas Viewport**:
+  - Mendeteksi secara dinamis saat berkas baru ditarik dari Telegram (melalui scroll atau background indexing) dan menempati posisi indeks di atas posisi viewport scroll pengguna saat ini.
+  - Menampilkan floating notification pill yang elegan (`↑ X berkas baru/teratas masuk • [Lihat ke Atas]`).
+  - Mengklik pill memicu *smooth scroll* instan ke posisi paling atas daftar untuk melihat berkas terbesar/teratas yang baru masuk, dan otomatis hilang saat pengguna menggulir ke atas.
+
+### 2. Anchor Scroll Retention (*Zero Scroll Jump*) (`DriveExplorer.tsx`)
+- **Stabilitas Viewport Saat Penyisipan Data**:
+  - Mengompensasi pergeseran scroll (`parentRef.current.scrollTop += shiftPx`) ketika data baru disisipkan di posisi atas, sehingga item yang sedang dilihat atau dibaca pengguna tidak terlempar atau melompat-lompat (*rock-solid scroll retention*).
+
+### 3. Sort Scope Status Chip & Safe Anti-FloodWait Background Indexer (`DriveTopBar.tsx`, `MediaStudio/index.tsx`)
+- **Indikator Transparansi Status Cakupan Pengurutan**:
+  - Menampilkan status cakupan pengurutan di samping dropdown sort:
+    - *Full Index*: `✓ Semua X terurut`
+    - *Partial Index*: `⚡ X terurut (sebagian)` dengan tombol interaktif `[Indeks Semua]`
+  - Implementasi *Safe Chunked Background Indexer* (batch 200 item / 150ms safe delay) yang kebal terhadap `FloodWaitError` dan terbukti mulus pada supergroup `#Gudang` (43.000+ item).
+
 ## v3.7.37 Per-Location Sort Isolation & Default Newest First Across All Drives (Phase 35.3)
 
 ### 1. Isolasi Pengurutan Antar Drive / Folder (`MediaStudio/index.tsx`, `driveSortAndAlbumSettings.test.ts`)

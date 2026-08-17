@@ -425,6 +425,64 @@ export function DriveExplorer({
   const rowHeight = layout.rowHeight;
   const rowCount = Math.ceil(displayed.length / cols) || 0;
 
+  // Floating top update indicator and anchor scroll retention
+  const [newItemsAboveCount, setNewItemsAboveCount] = useState<number>(0);
+  const prevDisplayedSetRef = useRef<Set<number>>(new Set());
+  const prevLocationKeyRef = useRef<string>(activeScrollKey);
+
+  // Clear pill when switching locations
+  useEffect(() => {
+    if (prevLocationKeyRef.current !== activeScrollKey) {
+      prevLocationKeyRef.current = activeScrollKey;
+      setNewItemsAboveCount(0);
+      prevDisplayedSetRef.current = new Set(displayed.map((f: any) => f.id));
+    }
+  }, [activeScrollKey, displayed]);
+
+  // Track insertion above current viewport anchor & preserve scroll stability
+  useEffect(() => {
+    const prevSet = prevDisplayedSetRef.current;
+    const currentIds = displayed.map((f: any) => f.id);
+    const currentSet = new Set(currentIds);
+    prevDisplayedSetRef.current = currentSet;
+
+    if (prevSet.size > 0 && currentSet.size > prevSet.size) {
+      const el = parentRef.current;
+      const scrollTop = el ? el.scrollTop : 0;
+      if (scrollTop > 80) {
+        let visibleStartIndex = 0;
+        if (viewMode === 'list') {
+          visibleStartIndex = Math.floor(scrollTop / LIST_ROW_H);
+        } else {
+          const rowIdx = Math.floor(scrollTop / (rowHeight || 180));
+          visibleStartIndex = rowIdx * (cols || 1);
+        }
+
+        const sliceAbove = displayed.slice(0, visibleStartIndex);
+        const newAbove = sliceAbove.filter((f: any) => !prevSet.has(f.id)).length;
+
+        if (newAbove > 0) {
+          if (el) {
+            const shiftPx =
+              viewMode === 'list'
+                ? newAbove * LIST_ROW_H
+                : Math.ceil(newAbove / (cols || 1)) * (rowHeight || 180);
+            el.scrollTop += shiftPx;
+          }
+          setNewItemsAboveCount((prev) => prev + newAbove);
+        }
+      }
+    }
+  }, [displayed, viewMode, cols, rowHeight]);
+
+  const handleScrollToTopPill = useCallback(() => {
+    const el = parentRef.current;
+    if (el) {
+      el.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    setNewItemsAboveCount(0);
+  }, []);
+
   useEffect(() => {
     console.debug('[GRID_DIAG] Explorer Mount', {
       locationKey: activeScrollKey,
@@ -517,6 +575,9 @@ export function DriveExplorer({
     let saveTimer: number | undefined;
     const save = () => onScrollPositionChange(targetKey, el.scrollTop);
     const onScroll = () => {
+      if (parentRef.current && parentRef.current.scrollTop <= 40) {
+        setNewItemsAboveCount(0);
+      }
       if (saveTimer != null) window.clearTimeout(saveTimer);
       saveTimer = window.setTimeout(save, 180);
     };
@@ -1021,6 +1082,23 @@ export function DriveExplorer({
             zIndex: 50,
           }}
         />
+      )}
+
+      {newItemsAboveCount > 0 && (
+        <button
+          type="button"
+          className="td-floating-top-pill"
+          onClick={handleScrollToTopPill}
+          title={t('speedtest.scroll_to_top_title')}
+        >
+          <ArrowUp size={13} className="td-floating-top-icon" />
+          <span className="td-floating-top-text">
+            {t('speedtest.new_items_above_banner', { count: newItemsAboveCount })}
+          </span>
+          <span className="td-floating-top-action">
+            {t('speedtest.view_top_action')}
+          </span>
+        </button>
       )}
 
       {!loading && !error && displayed.length === 0 && (

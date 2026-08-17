@@ -3150,6 +3150,75 @@ function MediaDriveDesktop({
     thumbLocationOptions,
   ]);
 
+  const indexingActiveRef = useRef(false);
+  const [indexingAllActive, setIndexingAllActive] = useState(false);
+
+  const handleIndexAllMetadata = useCallback(async () => {
+    if (indexingActiveRef.current || !filesHasMore || loadingMoreFiles) return;
+    indexingActiveRef.current = true;
+    setIndexingAllActive(true);
+    setStatusText(t('speedtest.index_all_running'));
+
+    const gen = peerGen.current;
+    const tid = topicFilterRef.current;
+    const cacheKey = getDriveCacheKey(creds?.session || session, peerId, tid);
+
+    try {
+      while (
+        indexingActiveRef.current &&
+        filesHasMoreRef.current &&
+        nextOffsetIdRef.current &&
+        gen === peerGen.current &&
+        activeFilesCacheKeyRef.current === cacheKey
+      ) {
+        const offset = nextOffsetIdRef.current;
+        const res = await driveListFiles(creds, peerId, {
+          pageSize: 200,
+          offsetId: offset,
+          topicId: tid,
+          quickStats: false,
+          sortMode: 'newest',
+          localOffset: liveFilesRef.current.length,
+        });
+
+        if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) break;
+
+        let page: DriveFile[] = res?.files || [];
+        if (page.length) {
+          page = stripInlineThumbsFromFiles(page);
+          const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
+          void saveMediaRecords(scopeMediaRecords(page, mediaContext, peerId || 0)).catch(() => {});
+        }
+
+        if (!page.length || !res.has_more || !res.next_offset_id) {
+          filesHasMoreRef.current = false;
+          setFilesHasMore(false);
+          nextOffsetIdRef.current = null;
+          setNextOffsetId(null);
+          break;
+        }
+
+        setFiles((prev) => {
+          if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
+          const seen = new Set(prev.map((f) => f.id));
+          return [...prev, ...page.filter((f) => !seen.has(f.id))];
+        });
+
+        nextOffsetIdRef.current = res.next_offset_id;
+        setNextOffsetId(res.next_offset_id);
+
+        // Safe throttle 150ms to prevent floodwait
+        await new Promise((r) => setTimeout(r, 150));
+      }
+    } catch (err: any) {
+      console.warn('[Indexer] Background indexer caught error:', err);
+    } finally {
+      indexingActiveRef.current = false;
+      setIndexingAllActive(false);
+      setStatusText(t('ui.generated.semua_media_dimuat_2310a13'));
+    }
+  }, [filesHasMore, loadingMoreFiles, creds, peerId, session, getDriveCacheKey, t]);
+
   const syncActiveLocationLive = useCallback(
     async (reason: 'interval' | 'focus') => {
       if (!creds || loadingFiles || loadingMoreFiles || liveSyncLockRef.current) return;
@@ -8344,6 +8413,8 @@ function MediaDriveDesktop({
             statsAccurate={statsAccurate}
             hasMore={filesHasMore}
             scaleHint={scaleHint}
+            onIndexAll={handleIndexAllMetadata}
+            indexingAllActive={indexingAllActive}
           />
 
           <DriveTransferManager

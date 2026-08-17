@@ -28,6 +28,7 @@ import {
   ChevronRight,
   ChevronUp,
   ChevronDown,
+  Sparkles,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -138,6 +139,8 @@ type Props = {
   scaleHint?: string | null;
   /** Dual perspective mode: 'telegram' (Nekogram/Telegram style) vs 'drive' (MIME/file style) */
   viewPerspective?: 'telegram' | 'drive';
+  onIndexAll?: () => void;
+  indexingAllActive?: boolean;
   onViewPerspective?: (perspective: 'telegram' | 'drive') => void;
   /** Total item count from Telegram query metadata */
   totalCount?: number | null;
@@ -213,6 +216,8 @@ export function DriveTopBar({
   onViewPerspective,
   totalCount,
   categoryCounts,
+  onIndexAll,
+  indexingAllActive,
   onSwitchMode: _onSwitchMode,
   onBackToLauncher: _onBackToLauncher,
 }: Props) {
@@ -1060,6 +1065,33 @@ export function DriveTopBar({
                     description: String(t(`speedtest.sort_${opt.id}_desc`, opt.description)),
                   }))}
                 />
+                {sortMode !== 'newest' && (
+                  indexingAllActive ? (
+                    <span className="td-sort-scope-chip is-loading">
+                      <RefreshCw size={11} className="td-spin" />
+                      <span>{t('speedtest.index_all_running')}</span>
+                    </span>
+                  ) : hasMore && onIndexAll ? (
+                    <button
+                      type="button"
+                      className="td-sort-scope-chip is-partial"
+                      onClick={onIndexAll}
+                      title={t('speedtest.index_all_action')}
+                    >
+                      <Sparkles size={11} className="td-sort-scope-icon" />
+                      <span className="td-sort-scope-text">
+                        {t('speedtest.sort_partial_badge', { count: fileCount })}
+                      </span>
+                      <span className="td-sort-scope-btn-label">
+                        {t('speedtest.index_all_action')}
+                      </span>
+                    </button>
+                  ) : fileCount > 0 && !hasMore ? (
+                    <span className="td-sort-scope-chip is-complete">
+                      <span>{t('speedtest.sort_complete_badge', { count: fileCount })}</span>
+                    </span>
+                  ) : null
+                )}
               </div>
             </div>
 

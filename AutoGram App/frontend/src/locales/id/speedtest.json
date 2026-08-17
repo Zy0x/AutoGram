@@ -1719,5 +1719,12 @@
   "confirm_action_download": "Lanjut Unduh",
   "confirm_topic_label": "Topik tujuan",
   "confirm_topic_general": "General / Semua media (Chat Utama)",
-  "confirm_topic_empty": "Daftar topik kosong. Berkas akan dikirim ke general chat."
+  "confirm_topic_empty": "Daftar topik kosong. Berkas akan dikirim ke general chat.",
+  "new_items_above_banner": "{{count}} berkas baru/teratas masuk",
+  "view_top_action": "Lihat ke Atas",
+  "scroll_to_top_title": "Gulir ke berkas paling atas",
+  "sort_partial_badge": "{{count}} terurut (sebagian)",
+  "sort_complete_badge": "✓ Semua {{count}} terurut",
+  "index_all_action": "Indeks Semua",
+  "index_all_running": "Mengindeks..."
 }

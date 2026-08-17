@@ -1719,5 +1719,12 @@
   "confirm_action_download": "Download",
   "confirm_topic_label": "Destination Topic",
   "confirm_topic_general": "General / All media (Main Chat)",
-  "confirm_topic_empty": "Topic list is empty. Media will be sent to general chat."
+  "confirm_topic_empty": "Topic list is empty. Media will be sent to general chat.",
+  "new_items_above_banner": "{{count}} new/top items added above",
+  "view_top_action": "View at Top",
+  "scroll_to_top_title": "Scroll to top items",
+  "sort_partial_badge": "{{count}} sorted (partial)",
+  "sort_complete_badge": "✓ All {{count}} sorted",
+  "index_all_action": "Index All",
+  "index_all_running": "Indexing..."
 }
