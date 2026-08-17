@@ -15,7 +15,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 describe('DriveStorageInfoBadge', () => {
-  it('renders interactive [ ⓘ ] button and initial 5s splash pill', () => {
+  it('renders interactive storage info pill and auto-hides after 4s', () => {
     vi.useFakeTimers();
     const { container } = render(
       <DriveStorageInfoBadge
@@ -36,9 +36,9 @@ describe('DriveStorageInfoBadge', () => {
     const splash = container.querySelector('.td-storage-splash-pill');
     expect(splash).not.toBeNull();
 
-    // Fast forward 5.5 seconds
+    // Fast forward 4.5 seconds
     act(() => {
-      vi.advanceTimersByTime(5500);
+      vi.advanceTimersByTime(4500);
     });
 
     // Splash pill should now be removed from view

@@ -49,17 +49,17 @@ export function DriveStorageInfoBadge({
     return 'normal';
   }, [transferBusy, statsLoading, statsAccurate, isFinal]);
 
-  const startAutoDismissTimer = useCallback((durationMs = 5000) => {
+  const startAutoDismissTimer = useCallback((durationMs = 4000) => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       setIsAutoSplashVisible(false);
     }, durationMs);
   }, []);
 
-  // 5-second initial splash timer on location switch
+  // 4-second initial splash timer on location switch
   useEffect(() => {
     setIsAutoSplashVisible(true);
-    startAutoDismissTimer(5000);
+    startAutoDismissTimer(4000);
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
