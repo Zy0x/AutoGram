@@ -15,7 +15,9 @@ export function isHorizontallyScrollable(el: HTMLElement, deltaY: number): boole
     if (el === document.body || el === document.documentElement) return false;
   }
 
-  const hasHorizontalOverflow = (el.scrollWidth || 0) > (el.clientWidth || 0) + 2;
+  const scrollWidth = el.scrollWidth || 0;
+  const clientWidth = el.clientWidth || 0;
+  const hasHorizontalOverflow = scrollWidth > clientWidth + 2;
   if (!hasHorizontalOverflow) return false;
 
   if (typeof window === 'undefined' || !window.getComputedStyle) return false;
@@ -28,23 +30,28 @@ export function isHorizontallyScrollable(el: HTMLElement, deltaY: number): boole
 
   // Check if it is a single-axis horizontal container or has no significant vertical scroll
   const overflowY = style.overflowY;
+  const scrollHeight = el.scrollHeight || 0;
+  const clientHeight = el.clientHeight || 0;
   const isVerticalScrollable = (overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay') &&
-    ((el.scrollHeight || 0) > (el.clientHeight || 0) + 4);
+    (scrollHeight > clientHeight + 4);
 
   // If both X and Y are scrollable and it's a large 2D pane (not a compact horizontal strip),
-  // let standard 2D scroll apply unless marked with data-horizontal-scroll
-  if (isVerticalScrollable && (el.clientHeight || 0) > 140 && !el.dataset?.horizontalScroll) {
+  // let standard 2D scroll apply unless explicitly marked with data-horizontal-scroll
+  if (isVerticalScrollable && clientHeight > 140 && !el.dataset?.horizontalScroll) {
     return false;
   }
 
+  const currentScrollLeft = el.scrollLeft || 0;
+  const maxScrollLeft = scrollWidth - clientWidth;
+
   // Check direction boundaries:
-  // Scrolling right (deltaY > 0): must not already be at maximum right
-  if (deltaY > 0 && el.scrollLeft < el.scrollWidth - el.clientWidth - 1) {
+  // Scrolling right (deltaY > 0): must not already be at maximum right (with 1px threshold)
+  if (deltaY > 0 && currentScrollLeft < maxScrollLeft - 1) {
     return true;
   }
 
-  // Scrolling left (deltaY < 0): must not already be at maximum left (0)
-  if (deltaY < 0 && el.scrollLeft > 0) {
+  // Scrolling left (deltaY < 0): must not already be at maximum left (0, with 1px threshold)
+  if (deltaY < 0 && currentScrollLeft > 0.5) {
     return true;
   }
 
@@ -109,13 +116,17 @@ export function handleHorizontalWheel(e: WheelEvent): boolean {
     deltaPx = deltaY * container.clientWidth;
   }
 
-  // Prevent vertical page scroll bounce while hovering over horizontal strip
+  // Prevent vertical page scroll bounce / jitter while hovering over horizontal strip
   if (e.cancelable && typeof e.preventDefault === 'function') {
     e.preventDefault();
   }
 
   // Smoothly scroll container horizontally
-  container.scrollLeft += deltaPx;
+  if (typeof container.scrollBy === 'function') {
+    container.scrollBy({ left: deltaPx, behavior: 'auto' });
+  } else {
+    container.scrollLeft += deltaPx;
+  }
   return true;
 }
 

@@ -23908,7 +23908,7 @@ input[type="search"]::-webkit-search-decoration {
     border-right: 0 !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
     white-space: nowrap !important;
-    scroll-snap-type: x proximity;
+    scroll-snap-type: none !important;
   }
 
   .td-tools-panel.is-unified .td-tools-sidebar-group {
@@ -23944,7 +23944,7 @@ input[type="search"]::-webkit-search-decoration {
     flex-wrap: nowrap !important;
     max-width: 100% !important;
     overflow-x: auto !important;
-    scroll-snap-type: x proximity;
+    scroll-snap-type: none !important;
   }
 
   .td-tools-dup-category {
@@ -32127,4 +32127,30 @@ button.td-confirm-icon.is-back-btn:active {
     width: 100% !important;
     justify-content: center !important;
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   FRICTIONLESS HORIZONTAL WHEEL SCROLLING STANDARD
+   Remove layout snapping resistance for silky smooth mouse wheel scroll
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.td-tools-sidebar,
+.td-tools-panel.is-unified .td-tools-sidebar,
+.td-tools-dup-category-bar,
+.td-tools-filter-tag-list,
+.td-topbar-actions,
+.td-crumb-trail,
+.td-topic-bar-inner,
+.settings-sidebar-nav,
+.td-xfer-settings-tabs,
+.td-xfer-preset-strip {
+  scroll-snap-type: none !important;
+  overscroll-behavior-x: contain !important;
+  touch-action: pan-x !important;
+}
+
+.td-tools-sidebar-tab,
+.td-tools-dup-category,
+.settings-sidebar-tab {
+  scroll-snap-align: none !important;
 }
