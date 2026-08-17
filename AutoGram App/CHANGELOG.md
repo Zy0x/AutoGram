@@ -1,3 +1,12 @@
+## v3.7.37 Per-Location Sort Isolation & Default Newest First Across All Drives (Phase 35.3)
+
+### 1. Isolasi Pengurutan Antar Drive / Folder (`MediaStudio/index.tsx`, `driveSortAndAlbumSettings.test.ts`)
+- **Independensi Sort Mode Per Lokasi**:
+  - Mengimplementasikan peta preferensi sort independen per-lokasi (`locationSortPrefsRef`) yang di-index berdasarkan kunci unik lokasi (`session::peerId::topicFilter`).
+  - Pengubahan sort mode pada satu drive (misalnya memilih *Size largest* atau *Name A-Z* pada Drive A) kini terisolasi sepenuhnya dan tidak akan menular/mempengaruhi drive lain.
+  - Saat berpindah ke Drive B atau lokasi lain, sistem secara otomatis menerapkan mode default **`Newest first`** (kronologis mundur), kecuali jika lokasi tersebut telah dikustomisasi sebelumnya.
+  - Ketika pengguna kembali ke Drive A, kustomisasi sort pada Drive A otomatis dipulihkan tanpa intervensi manual.
+
 ## v3.7.36 Pure In-Memory Zero-Loss Sorting Pipeline & Full Chat File Preservation (Phase 35.2)
 
 ### 1. Eliminasi Reset Daftar Berkas Saat Penggantian Mode Sorting (`MediaStudio/index.tsx`)

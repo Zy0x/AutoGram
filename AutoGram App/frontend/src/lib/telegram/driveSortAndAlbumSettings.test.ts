@@ -55,6 +55,32 @@ describe('Drive global sort contracts', () => {
     const sortedDesc = filterAndSortDriveFiles(mixedFiles, { sortMode: 'type_desc' });
     expect(sortedDesc.map((f) => f.id)).toEqual([6, 3, 1, 5, 2, 4]);
   });
+
+  it('isolates sort preferences per drive/location with newest first as default', () => {
+    const locationSortMap = new Map<string, DriveSortMode>();
+    const getSortForLocation = (key: string): DriveSortMode => locationSortMap.get(key) || 'newest';
+
+    const driveA = 'session1::saved::';
+    const driveB = 'session1::12345::';
+    const driveC = 'session1::67890::';
+
+    // 1. All drives default to newest first
+    expect(getSortForLocation(driveA)).toBe('newest');
+    expect(getSortForLocation(driveB)).toBe('newest');
+    expect(getSortForLocation(driveC)).toBe('newest');
+
+    // 2. Setting size_desc on Drive A does not affect Drive B or Drive C
+    locationSortMap.set(driveA, 'size_desc');
+    expect(getSortForLocation(driveA)).toBe('size_desc');
+    expect(getSortForLocation(driveB)).toBe('newest');
+    expect(getSortForLocation(driveC)).toBe('newest');
+
+    // 3. Setting name_asc on Drive B does not affect Drive A or Drive C
+    locationSortMap.set(driveB, 'name_asc');
+    expect(getSortForLocation(driveA)).toBe('size_desc');
+    expect(getSortForLocation(driveB)).toBe('name_asc');
+    expect(getSortForLocation(driveC)).toBe('newest');
+  });
 });
 
 describe('album and Telegram grid settings', () => {

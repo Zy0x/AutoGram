@@ -676,17 +676,10 @@ function MediaDriveDesktop({
   const [viewPerspective, setViewPerspective] = useState<ViewPerspective>('telegram');
   const perspectivePrefsRef = useRef<Record<ViewPerspective, { filter: DriveMediaFilter; sort: DriveSortMode }>>({
     telegram: { filter: 'all', sort: 'newest' },
-    drive: { filter: 'all', sort: 'name_asc' },
+    drive: { filter: 'all', sort: 'newest' },
   });
-  const [sortMode, setSortMode] = useState<DriveSortMode>(() => {
-    try {
-      const raw = localStorage.getItem(LS_SORT);
-      if (isDriveSortMode(raw)) return raw;
-    } catch {
-      /* ignore */
-    }
-    return DEFAULT_DRIVE_SORT;
-  });
+  const locationSortPrefsRef = useRef<Map<string, DriveSortMode>>(new Map());
+  const [sortMode, setSortMode] = useState<DriveSortMode>('newest');
   const [indexingJob, setIndexingJob] = useState<{
     active: boolean;
     processed: number;
@@ -1084,9 +1077,26 @@ function MediaDriveDesktop({
     setGridZoom(clampGridZoom(z));
   };
 
+  const activeLocationKey = getDriveCacheKey(creds?.session || session, peerId, topicFilter);
+  const activeLocationKeyRef = useRef(activeLocationKey);
+
   useEffect(() => {
-    localStorage.setItem(LS_SORT, sortMode);
-  }, [sortMode]);
+    const currentKey = getDriveCacheKey(creds?.session || session, peerId, topicFilter);
+    if (activeLocationKeyRef.current !== currentKey) {
+      activeLocationKeyRef.current = currentKey;
+      const targetSort = locationSortPrefsRef.current.get(currentKey) || 'newest';
+      setSortMode(targetSort);
+    }
+  }, [creds?.session, session, peerId, topicFilter, getDriveCacheKey]);
+
+  const handleSortModeChange = useCallback(
+    (newSort: DriveSortMode) => {
+      const currentKey = getDriveCacheKey(creds?.session || session, peerId, topicFilter);
+      locationSortPrefsRef.current.set(currentKey, newSort);
+      setSortMode(newSort);
+    },
+    [creds?.session, session, peerId, topicFilter, getDriveCacheKey]
+  );
 
   useEffect(() => {
     localStorage.setItem(LS_THUMB_Q, thumbQuality);
@@ -8245,7 +8255,7 @@ function MediaDriveDesktop({
             mediaFilter={mediaFilter}
             onMediaFilter={setMediaFilter}
             sortMode={sortMode}
-            onSortMode={setSortMode}
+            onSortMode={handleSortModeChange}
             thumbQuality={thumbQuality}
             onThumbQuality={handleThumbQuality}
             gridZoom={gridZoom}
@@ -8666,7 +8676,7 @@ function MediaDriveDesktop({
               onViewPerspective={setViewPerspective}
               totalCount={totalFileCount}
               sortMode={sortMode}
-              onSortMode={setSortMode}
+              onSortMode={handleSortModeChange}
               advFilter={advFilter}
               gridZoom={gridZoom}
               onGridZoom={handleGridZoom}

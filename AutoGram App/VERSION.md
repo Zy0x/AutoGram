@@ -1,12 +1,13 @@
-AutoGram Version: v3.7.36
+AutoGram Version: v3.7.37
 
 Current State:
-v3.7.36 Pure In-Memory Zero-Loss Sorting Pipeline & Full Chat File Preservation — membenahi `MediaStudio/index.tsx`, `driveTypes.ts`, `DriveExplorer.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Pure In-Memory Client Sorting: Menghapus dependensi destruktif `sortMode` dari `loadFiles` dan mengeliminasi proses background index wipe yang sebelumnya memangkas file yang sedang ditampilkan.
-2. Full Chat File Preservation: Penggantian mode pengurutan (*Newest, Oldest, Name A-Z, Name Z-A, Type A-Z, Type Z-A, Size Largest, Size Smallest*) kini mempertahankan 100% seluruh berkas yang dimuat tanpa reset, tanpa lag, dan tanpa pengulangan permintaan jaringan ke Telegram.
-3. Bidirectional Chronological Consistency: Mengoptimalkan pemetaan waktu `fileTimeMs` dan `compareDriveFiles` untuk pengurutan kronologis maju (*Oldest first*) dan mundur (*Newest first*) secara presisi.
+v3.7.37 Per-Location Sort Isolation & Default Newest First Across All Drives — membenahi `MediaStudio/index.tsx`, `driveSortAndAlbumSettings.test.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Per-Location Sort Isolation: Pengurutan pada salah satu drive (misal Drive A disortir berdasarkan ukuran terbesar) tidak akan mempengaruhi drive lain. Saat berpindah ke Drive B atau folder lain, drive tujuan akan menggunakan pengurutan independennya sendiri.
+2. Global Default Newest First: Seluruh drive/lokasi baru secara otomatis menggunakan default *Newest First* (kronologis mundur).
+3. Persistent Location Sort Cache: Mengingat kustomisasi sort pada setiap drive secara presisi saat pengguna kembali ke drive tersebut.
 
 Previous:
+v3.7.36 Pure In-Memory Zero-Loss Sorting Pipeline & Full Chat File Preservation — membenahi `MediaStudio/index.tsx`, `driveTypes.ts`, `DriveExplorer.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.35 Zero-Gap Sticky Table Header, 100% Fluid Responsive Table, 120fps Zero-Lag Column Resizing & Windows 11 Type Sorting — membenahi `driveTypes.ts`, `DriveExplorer.tsx`, `App.css`, `driveSortAndAlbumSettings.test.ts`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.34 Windows File Explorer List View Headers & Complete Telegram Authentication Suite — membenahi `DriveExplorer.tsx`, `DriveFileListItem.tsx`, `App.css`, `Accounts/index.tsx`, `AccountLoginModal.tsx`, `accounts.json` (ID & EN), `error.json` (ID & EN), `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.33 Move/Copy Confirmation Dialog Locale Parity & Telegram Album Delivery Fix — membenahi `DriveConfirmDialog.tsx`, `drive_rpc.rs`, `telegram_ops.rs`, `driveFilesApi.ts`, `drive_tools.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
