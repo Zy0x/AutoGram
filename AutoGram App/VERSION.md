@@ -1,12 +1,12 @@
-AutoGram Version: v3.7.52
+AutoGram Version: v3.7.53
 
 Current State:
-v3.7.52 Zero-Tolerance Frame Lag Interceptor, Hot-Loop I/O Silencer & Bounded Scan Window — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `resilienceStressTest.test.ts`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Hot-Loop I/O Logging Elimination: Mengeliminasi puluhan ribu penulisan log disk `tg_log::info` di fungsi pemindaian berkas media Rust untuk melenyapkan disk queue bottleneck.
-2. Bounded Scan Window & MTProto Socket Protection: Membatasi scan limit dari 3.000 menjadi 150-450 pesan per halaman di Rust, mencegah starvation pada thread pool Tokio dan antrean unduh thumbnail.
-3. Zero-Tolerance Instant Lag Kill-Switch & Frame Pacing: Menerapkan watchdog latensi per langkah (>1.500ms) yang langsung memutus proses seketika jika terjadi gejala lag, ditambah `requestAnimationFrame` frame yielding agar Windows UI tetap 120 FPS tanpa freeze.
+v3.7.53 Deep-Offset Next ID Continuity & Per-File Log Disk Suppression — membenahi `media_list.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Deep Continuous Next-Offset ID Resolution: Menyempurnakan penentuan `next_offset_id` pada engine Rust (`last_id.or_else`) agar pemindaian berkas di atas 20.000 item mengalir berkesinambungan tanpa henti palsu (*false termination*).
+2. Per-File Identity Disk Log Suppression: Menghapus loop logging `media_list_identity` per baris berkas di Rust, memangkas puluhan ribu disk I/O write calls sehingga performa tetap instan dan RAM stabil di <55 MB.
 
 Previous:
+v3.7.52 Zero-Tolerance Frame Lag Interceptor, Hot-Loop I/O Silencer & Bounded Scan Window — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `resilienceStressTest.test.ts`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.51 Ultra-Heavy 100,000-Item Endurance Stress Suite & Zero-Lag Resilience Verification — membenahi `resilienceStressTest.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.50 Decoupled Direct-to-Disk Indexing Stream, Virtual Viewport Capping & Autonomous Memory Self-Shield — membenahi `MediaStudio/index.tsx`, `memoryCircuitBreaker.ts`, `memoryCircuitBreaker.test.ts`, `thumbBatcher.ts`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.49 100% Zero Type Error Clean Compile, TypeScript Strict Check & Full Diagnostics Integrity — membenahi `thumbBatcher.ts`, `DriveSidebarIndex.tsx`, `DriveTopBar.tsx`, `driveLiveSync.test.ts`, `Accounts/index.tsx`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.

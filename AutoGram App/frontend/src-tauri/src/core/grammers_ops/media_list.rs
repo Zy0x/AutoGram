@@ -785,31 +785,10 @@ pub fn list_media_blocking_topic(
                     }
                     let has_more = files.len() >= limit || (scanned > 0 && last_id.map_or(false, |id| id > 1));
                     let next_offset_id = if has_more {
-                        files.last().map(|f| f.id).or(last_id)
+                        last_id.or_else(|| files.last().map(|f| f.id))
                     } else {
                         None
                     };
-                    for f in &files {
-                        tg_log::info(
-                            BACKEND,
-                            "media_list_identity",
-                            format!(
-                                "op=media_list_identity account_id={} peer_id={} topic_id={:?} message_id={} media_kind={} has_media=true icon_type={}",
-                                session_name, chat, topic_filter, f.id, f.icon_type, f.icon_type
-                            ),
-                        );
-                    }
-                    tg_log::info(
-                        BACKEND,
-                        "list_media",
-                        format!(
-                            "chat={} n={} has_more={} topic={:?}",
-                            chat,
-                            files.len(),
-                            has_more,
-                            topic_filter
-                        ),
-                    );
                     Ok(ListMediaResult {
                         status: "success".into(),
                         folder_id,

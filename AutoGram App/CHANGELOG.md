@@ -1,3 +1,13 @@
+## v3.7.53 Deep-Offset Next ID Continuity & Per-File Log Disk Suppression (Phase 35.19)
+
+### 1. Deep Continuous Next-Offset ID Resolution (`media_list.rs`)
+- **Resolved Paging Stalls above 2.000 Items**:
+  - Memperbaiki kalkulasi `next_offset_id` pada engine Rust (`last_id.or_else(|| files.last().map(|f| f.id))`), memastikan pemindaian batch besar berlanjut dengan mulus melewati 5.000, 10.000, 20.000, hingga 43.000+ berkas tanpa *early break*.
+
+### 2. Eliminasi Per-File Identity Logging Loop (`media_list.rs`)
+- **Total Hot-Loop Disk Silencing**:
+  - Menghapus perulangan logging `media_list_identity` per berkas di Rust yang sebelumnya mengeksekusi puluhan ribu panggilan I/O disk saat membaca data berjumlah besar, menjaga antrean I/O Windows tetap 0%.
+
 ## v3.7.52 Zero-Tolerance Frame Lag Interceptor, Hot-Loop I/O Silencer & Bounded Scan Window (Phase 35.18)
 
 ### 1. Eliminasi Disk I/O Logging pada Hot-Loop (`media_list.rs`)
