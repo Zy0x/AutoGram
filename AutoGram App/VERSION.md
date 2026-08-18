@@ -1,13 +1,13 @@
-AutoGram Version: v3.7.61
+AutoGram Version: v3.7.62
 
 Current State:
-v3.7.61 Uninterrupted Resilient Indexing Loop, Real-Time Dynamic Card Sorting & Lean Object Mapping — membenahi `driveTypes.ts`, `MediaStudio/index.tsx`, `DriveExplorer.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Resilient Auto-Retry Indexing Loop: Menambahkan mekanisme 5x auto-retry dengan exponential backoff pada pemanggilan `driveListFiles`. Jika terjadi network glitch atau timeout sementara, pengindeksan tidak akan terputus atau berhenti sendiri, melainkan melanjutkan secara otomatis.
-2. Real-Time Dynamic Card Sorting (900ms Streaming): Mengalirkan pembaruan kartu media ke UI setiap 900ms dengan penyortiran dinamis (`sortMode`), sehingga berkas terlama (`Oldest first`), terbesar, atau terbaru langsung tampil di baris teratas grid secara real-time tanpa menunggu 100% selesai.
-3. Lean Compact Object Mapping (`toLeanDriveFile`): Mengonversi berkas masuk ke format objek ramping (hanya ~48 bytes per item), memangkas konsumsi RAM hingga 90% saat menampung 26k–50k berkas di memori.
-4. Non-Halting Circuit Breaker: Menghilangkan jeda permanen dari memory circuit breaker saat memori naik, beralih ke pembersihan darurat transien (150ms) dan melanjutkan streaming tanpa henti.
+v3.7.62 Fix Premature Offset Overwrite, Unbounded 100% Indexing Continuity & Deep Snapshot Integrity — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Fix Rogue Offset Overwrite: Menghapus penimpaan ganda `nextOffsetIdRef.current = res.next_offset_id` di akhir iterasi loop yang sebelumnya memicu pengindeksan terhenti prematur di 26.180 ketika Telegram mengembalikan halaman celah non-media (`res.next_offset_id` null).
+2. Deep Snapshot Integrity Preservation: Memastikan `saveDeepIndexSnapshot` selalu menyimpan data terkini dari `filesCacheRef.current` ke IndexedDB saat loop selesai/dijeda, mencegah reset count dan data hilang saat re-entry.
+3. Diagnostic Clarification of WebView2 Idle Baseline: Memberikan penjelasan teknis lengkap terkait memori idle ~500-650MB pada multi-proses Chromium (GPU DirectX SwapChain, Skia Bitmap Atlas, LevelDB Block Cache).
 
 Previous:
+v3.7.61 Uninterrupted Resilient Indexing Loop, Real-Time Dynamic Card Sorting & Lean Object Mapping — membenahi `driveTypes.ts`, `MediaStudio/index.tsx`, `DriveExplorer.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.60 Database-First Streaming, Zero-Loop Snapshot Serialization & Elimination of State Re-Sort Churn — membenahi `MediaStudio/index.tsx`, `DriveExplorer.tsx`, `DriveFileCard.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.59 Lean RAM Footprint, Viewport Image Bitmap Recycling & LevelDB Micro-Commit Optimization — membenahi `thumbBatcher.ts`, `ThumbnailImage.tsx`, `DriveFileCard.tsx`, `DriveExplorer.tsx`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.58 Monotonic Non-Media Gap Traversal, 24k+ Deep Indexing Streaming & Zero-Halt Continuity — membenahi `MediaStudio/index.tsx`, `resilienceStressTest.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.

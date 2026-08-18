@@ -3468,11 +3468,6 @@ function MediaDriveDesktop({
                 })
               : t('speedtest.index_progress_count_only', { processed: curLoaded.toLocaleString() }),
           });
-        }
-
-        nextOffsetIdRef.current = res.next_offset_id;
-        setNextOffsetId(res.next_offset_id);
-
         // Adaptive Delay & UI Frame Pacing: requestAnimationFrame gives full rendering time to Windows OS
         const { delayMs } = getAdaptiveDelay(currentTier, curLoaded, reqLatency);
         const safeDelay = Math.max(delayMs, 40);
@@ -3501,14 +3496,16 @@ function MediaDriveDesktop({
 
       // Persist deep index snapshot metadata to IndexedDB
       if (creds?.session) {
-        const curFiles = liveFilesRef.current;
-        void saveDeepIndexSnapshot(creds.session, peerId, tid, {
-          files: curFiles,
-          hasMore: filesHasMoreRef.current,
-          nextOffsetId: nextOffsetIdRef.current,
-          totalCount: totalFileCount || initialTotal || indexedLoadedCount || curFiles.length,
-          totalBytes: totalBytes || null,
-        }).catch(() => {});
+        const curFiles = filesCacheRef.current.get(cacheKey) || liveFilesRef.current;
+        if (curFiles.length > 0) {
+          void saveDeepIndexSnapshot(creds.session, peerId, tid, {
+            files: curFiles,
+            hasMore: filesHasMoreRef.current,
+            nextOffsetId: nextOffsetIdRef.current,
+            totalCount: totalFileCount || initialTotal || indexedLoadedCount || curFiles.length,
+            totalBytes: totalBytes || null,
+          }).catch(() => {});
+        }
       }
     } catch (err: any) {
       console.warn('[Indexer] Adaptive background indexer caught error:', err);

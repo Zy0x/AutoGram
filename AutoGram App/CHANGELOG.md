@@ -1,3 +1,14 @@
+## v3.7.62 Fix Premature Offset Overwrite, Unbounded 100% Indexing Continuity & Deep Snapshot Integrity (Phase 35.28)
+
+### 1. Perbaikan Bug Penimpaan Offset (`MediaStudio/index.tsx`)
+- **Fix Rogue `res.next_offset_id` Overwrite**:
+  - Menghapus baris penimpaan ganda `nextOffsetIdRef.current = res.next_offset_id` di akhir iterasi. Sebelumnya, jika Telegram mengembalikan halaman celah teks non-media (`res.next_offset_id` bernilai `null`), penimpaan ini membatalkan nilai `nextOffset` (gap traversal) sehingga loop mengira riwayat sudah habis dan berhenti di 26.180.
+  - Memastikan proses indexing terus memindai tanpa terputus hingga menembus 100% (43.060 berkas).
+
+### 2. Penyelamatan Snapshot Saat Selesai/Jeda (`MediaStudio/index.tsx`)
+- **Deep Snapshot Integrity**:
+  - Mengambil data dari `filesCacheRef.current` sebelum menyimpan snapshot ke IndexedDB, memastikan snapshot persisten berisi seluruh berkas yang berhasil diindeks, sehingga tidak terjadi reset angka saat pengguna keluar dan masuk kembali.
+
 ## v3.7.61 Uninterrupted Resilient Indexing Loop, Real-Time Dynamic Card Sorting & Lean Object Mapping (Phase 35.27)
 
 ### 1. Resilient Auto-Retry Indexing Loop (`MediaStudio/index.tsx`)
