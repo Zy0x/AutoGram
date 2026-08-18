@@ -240,5 +240,13 @@
   "refresh_cache_btn": "Perbarui penggunaan cache",
   "cache_breakdown_download": "Unduhan",
   "update_timeout_error": "Pemeriksaan pembaruan kehabisan waktu. Periksa koneksi internet Anda.",
-  "update_network_error": "GitHub tidak dapat dijangkau. Periksa koneksi internet Anda."
+  "update_network_error": "GitHub tidak dapat dijangkau. Periksa koneksi internet Anda.",
+  "cache_media_db_title": "Database Indeks Media & Snapshot (IndexedDB)",
+  "cache_media_db_desc": "Hapus seluruh metadata indeks berkas, riwayat scan, dan snapshot penjelajah di disk SSD lokal.",
+  "cache_media_db_btn": "Hapus Indeks Media",
+  "cache_media_db_cleared": "Database indeks media & snapshot penjelajah berhasil dibersihkan!",
+  "cache_session_media_db_title": "Indeks Media Sesi Ini",
+  "cache_session_media_db_desc": "Hapus seluruh metadata berkas dan snapshot penjelajah yang diindeks khusus untuk akun ini.",
+  "cache_session_media_db_btn": "Hapus Indeks Sesi",
+  "cache_session_media_db_cleared": "Indeks media untuk sesi ini berhasil dibersihkan!"
 }

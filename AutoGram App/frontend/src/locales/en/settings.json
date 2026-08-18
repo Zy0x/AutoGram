@@ -240,5 +240,13 @@
   "refresh_cache_btn": "Refresh cache usage",
   "cache_breakdown_download": "Downloads",
   "update_timeout_error": "Update check timed out. Check your internet connection.",
-  "update_network_error": "Could not reach GitHub. Check your internet connection."
+  "update_network_error": "Could not reach GitHub. Check your internet connection.",
+  "cache_media_db_title": "Media Index & Snapshot Database (IndexedDB)",
+  "cache_media_db_desc": "Clear all indexed file metadata, scan history, and explorer snapshots in local SSD storage.",
+  "cache_media_db_btn": "Clear Media Index",
+  "cache_media_db_cleared": "Media index database & explorer snapshots cleared successfully!",
+  "cache_session_media_db_title": "Media Index for this Session",
+  "cache_session_media_db_desc": "Clear all indexed file metadata and explorer snapshots for this specific account.",
+  "cache_session_media_db_btn": "Clear Session Index",
+  "cache_session_media_db_cleared": "Media index for this session cleared successfully!"
 }

@@ -393,6 +393,48 @@ export async function clearMediaCache(): Promise<void> {
   await requestToPromise(tx.objectStore('media').clear());
 }
 
+export async function deleteMediaRecordsBySession(session: string): Promise<void> {
+  if (!session) return;
+  const s = String(session).trim();
+  const db = await initDb();
+
+  // 1. Delete from media store
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction('media', 'readwrite');
+    const store = tx.objectStore('media');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error('Failed to delete session media records'));
+    const request = store.openCursor();
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) return;
+      const record = cursor.value as MediaRecord;
+      if (record.accountId === s) {
+        cursor.delete();
+      }
+      cursor.continue();
+    };
+  });
+
+  // 2. Delete from deepIndex store
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction('deepIndex', 'readwrite');
+    const store = tx.objectStore('deepIndex');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error('Failed to delete session deep index'));
+    const request = store.openCursor();
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) return;
+      const record = cursor.value as DeepIndexRecord;
+      if (record.session === s || record.key?.startsWith(`${s}:`)) {
+        cursor.delete();
+      }
+      cursor.continue();
+    };
+  });
+}
+
 // ── LRU EVICTION ──
 
 // ── THUMBNAILS API ──

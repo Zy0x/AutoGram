@@ -1,11 +1,13 @@
-AutoGram Version: v3.7.66
+AutoGram Version: v3.7.67
 
 Current State:
-v3.7.66 Accurate Storage Status & Snapshot Completion Synchronization — membenahi `DriveStorageInfoBadge.tsx`, `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Fix Bounded RAM vs Total Count Discrepancy: Memperbaiki logika `effectiveHasMore` di mana pembatasan RAM (2.500 berkas) sebelumnya keliru dianggap sebagai data parsial/belum selesai. Kini sistem memeriksa status penyelesaian snapshot sesungguhnya (`snapshot.hasMore === false`), memastikan folder yang sudah 100% terindeks langsung ditandai sebagai `✓ Accurate` (tanpa tanda `≈` dan `+`).
-2. Seamless Index Completion State: Saat pengindeksan selesai, `statsAccurate` otomatis diaktifkan (`setStatsAccurate(true)`), dan chip badge beralih ke mode lengkap `✓ All [total] sorted`.
+v3.7.67 Dedicated Media Index Database & Snapshot Cache Management — membenahi `mediaStudioDb.ts`, `SpecificCacheModal.tsx`, `settings.json` (ID/EN), `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Media Database Cache Controls in Cache Management: Menghadirkan kartu kontrol pembersihan khusus untuk **Database Indeks Media & Snapshot (IndexedDB)** di *Cache & Storage Management* (Tab 1: Sistem Global & Tab 2: Per-Sesi Akun).
+2. Per-Session Media Index Purging: Menambahkan fungsi `deleteMediaRecordsBySession` untuk menghapus seluruh metadata indeks dan snapshot penjelajah khusus dari akun tertentu tanpa mempengaruhi data akun lain.
+3. Full Cache & Storage Integration: Pembersihan cache total (baik global maupun per-sesi) kini secara terintegrasi membersihkan riwayat pengindeksan media dan snapshot dari SSD lokal.
 
 Previous:
+v3.7.66 Accurate Storage Status & Snapshot Completion Synchronization — membenahi `DriveStorageInfoBadge.tsx`, `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.65 Permanent Header Info Icon (ⓘ) & Storage Popover Persistence — membenahi `DriveStorageInfoBadge.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.64 Universal Indexing Trigger & Progress Persistence next to SORT — membenahi `DriveTopBar.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.63 Database-First Direct SSD Ingestion & Bounded RAM Buffer Architecture (Scalable to 1,000,000+ Files) — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.

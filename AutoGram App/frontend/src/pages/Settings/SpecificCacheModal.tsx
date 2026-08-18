@@ -25,7 +25,7 @@ import { clearAvatarCache } from '../../lib/media/avatarBatcher';
 import { clearPreviewCache } from '../../lib/media/previewCache';
 import { clearZipBrowserCache } from '../../components/drive/DriveZipBrowser/zipUtils';
 import { clearPersistentThumbs } from '../../lib/media/thumbPersistentCache';
-import { clearMediaStudioCache } from '../../lib/db/mediaStudioDb';
+import { clearMediaStudioCache, deleteMediaRecordsBySession } from '../../lib/db/mediaStudioDb';
 import { clearClientCacheStorage } from '../../lib/db/clientCacheStorage';
 import { tgListSessions } from '../../lib/telegram/core/telegramBackend';
 import { getSessionMetadata } from '../../lib/telegram/core/sessionPicker';
@@ -214,6 +214,17 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
     }
   };
 
+  const handleClearMediaStudioDatabase = async () => {
+    setClearingItem('media_db');
+    try {
+      await clearMediaStudioCache();
+      showToast(t('settings.cache_media_db_cleared'));
+      triggerCacheRefresh();
+    } finally {
+      setClearingItem(null);
+    }
+  };
+
   const handleClearGlobalLocations = () => {
     setClearingItem('locs_global');
     try {
@@ -394,24 +405,43 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
   const handleClearSessionScroll = () =>
     handleClearBucket(sessionBuckets.state, t('ui.generated.cache_scroll_state_workspace_sesi_e123a45'));
 
-  const handleClearSessionCache = () => {
+  const handleClearSessionMediaIndex = async () => {
     if (!selectedSession) return;
-    const allBucketKeys = [
-      ...sessionBuckets.locations,
-      ...sessionBuckets.sidebar,
-      ...sessionBuckets.topics,
-      ...sessionBuckets.peer,
-      ...sessionBuckets.chatFolder,
-      ...sessionBuckets.state,
-    ];
+    setClearingItem('session_media_db');
+    try {
+      await deleteMediaRecordsBySession(selectedSession);
+      showToast(t('settings.cache_session_media_db_cleared'));
+      triggerCacheRefresh();
+    } finally {
+      setClearingItem(null);
+    }
+  };
 
-    allBucketKeys.forEach((key) => {
-      localStorage.removeItem(key);
-      sessionStorage.removeItem(key);
-    });
+  const handleClearSessionCache = async () => {
+    if (!selectedSession) return;
+    setClearingItem('all_session');
+    try {
+      const allBucketKeys = [
+        ...sessionBuckets.locations,
+        ...sessionBuckets.sidebar,
+        ...sessionBuckets.topics,
+        ...sessionBuckets.peer,
+        ...sessionBuckets.chatFolder,
+        ...sessionBuckets.state,
+      ];
 
-    showToast(t('ui.generated.cache_sesi_berhasil_dibersihkan_e567a89'));
-    triggerCacheRefresh();
+      allBucketKeys.forEach((key) => {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+      });
+
+      await deleteMediaRecordsBySession(selectedSession);
+
+      showToast(t('ui.generated.cache_sesi_berhasil_dibersihkan_e567a89'));
+      triggerCacheRefresh();
+    } finally {
+      setClearingItem(null);
+    }
   };
 
   // --- DYNAMIC CACHE PRESENCE CHECKS (TAB 1 GLOBAL) ---
@@ -1193,6 +1223,48 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                       </span>
                     </button>
                   </div>
+
+                  {/* Media Indexing & Explorer Snapshot Database */}
+                  <div
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(255, 255, 255, 0.07)',
+                      borderRadius: '12px',
+                      padding: '14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                        <HardDrive size={16} style={{ color: '#38bdf8' }} />
+                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                          {t('settings.cache_media_db_title')}
+                        </strong>
+                      </div>
+                      <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                        {t('settings.cache_media_db_desc')}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleClearMediaStudioDatabase}
+                      disabled={clearingItem === 'media_db'}
+                      style={getBtnStyle(
+                        true,
+                        '#38bdf8',
+                        'rgba(56, 189, 248, 0.15)',
+                        '1px solid rgba(56, 189, 248, 0.3)'
+                      )}
+                    >
+                      <Trash2 size={13} />
+                      <span>
+                        {clearingItem === 'media_db' ? '...' : t('settings.cache_media_db_btn')}
+                      </span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1558,6 +1630,45 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                       >
                         <RotateCcw size={13} />
                         <span>{t('ui.generated.hapus_state_d789e01')}</span>
+                      </button>
+                    </div>
+
+                    {/* 7. Media Index & Explorer Snapshots (Session) */}
+                    <div
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.07)',
+                        borderRadius: '12px',
+                        padding: '14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                          <HardDrive size={16} style={{ color: '#38bdf8' }} />
+                          <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                            {t('settings.cache_session_media_db_title')}
+                          </strong>
+                        </div>
+                        <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                          {t('settings.cache_session_media_db_desc')}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearSessionMediaIndex}
+                        disabled={!selectedSession || clearingItem === 'session_media_db'}
+                        style={getBtnStyle(
+                          !!selectedSession,
+                          '#38bdf8',
+                          'rgba(56, 189, 248, 0.15)',
+                          '1px solid rgba(56, 189, 248, 0.3)'
+                        )}
+                      >
+                        <Trash2 size={13} />
+                        <span>{clearingItem === 'session_media_db' ? '...' : t('settings.cache_session_media_db_btn')}</span>
                       </button>
                     </div>
                   </div>

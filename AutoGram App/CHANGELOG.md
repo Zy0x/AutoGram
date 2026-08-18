@@ -1,3 +1,11 @@
+## v3.7.67 Dedicated Media Index Database & Snapshot Cache Management (Phase 35.33)
+
+### 1. Integrasi Penuh Pembersihan Indeks Media di Cache & Storage Management
+- **Kontrol Pembersihan Database Indeks Media (`SpecificCacheModal.tsx`, `mediaStudioDb.ts`)**:
+  - Menambahkan kartu **Database Indeks Media & Snapshot (IndexedDB)** di *Manajemen Cache Spesifik Sistem* (Tab 1) yang memungkinkan pengguna membersihkan seluruh riwayat pemindaian dan metadata media tanpa menghapus pengaturan lainnya.
+  - Menambahkan opsi **Indeks Media Sesi Ini** di *Manajemen Cache Per-Sesi Akun* (Tab 2) dengan fungsi `deleteMediaRecordsBySession` untuk menghapus cache pengindeksan akun terpilih secara terisolasi.
+  - Memastikan tombol pembersihan total (baik global maupun per-sesi) turut membersihkan tabel `media` dan `deepIndex` di IndexedDB SSD.
+
 ## v3.7.66 Accurate Storage Status & Snapshot Completion Synchronization (Phase 35.32)
 
 ### 1. Sinkronisasi Status Akurasi Data Berkas (`MediaStudio/index.tsx`, `DriveStorageInfoBadge.tsx`)
