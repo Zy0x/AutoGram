@@ -1172,16 +1172,25 @@ export function DriveTopBar({
                     >
                       <Sparkles size={11} className="td-sort-scope-icon" />
                       <span className="td-sort-scope-text">
-                        {t('speedtest.sort_partial_badge', { count: fileCount })}
+                        {t('speedtest.sort_partial_badge', { count: totalCount || fileCount })}
                       </span>
                       <span className="td-sort-scope-btn-label">
                         {t('speedtest.index_all_action')}
                       </span>
                     </button>
-                  ) : fileCount > 0 && !hasMore ? (
-                    <span className="td-sort-scope-chip is-complete">
-                      <span>{t('speedtest.sort_complete_badge', { count: fileCount })}</span>
-                    </span>
+                  ) : fileCount > 0 ? (
+                    <button
+                      type="button"
+                      className="td-sort-scope-chip is-complete cursor-pointer"
+                      onClick={onIndexAll}
+                      title={t('speedtest.index_all_action')}
+                    >
+                      <Sparkles size={11} className="td-sort-scope-icon" />
+                      <span>{t('speedtest.sort_complete_badge', { count: totalCount || fileCount })}</span>
+                      <span className="td-sort-scope-btn-label">
+                        {t('speedtest.index_all_action')}
+                      </span>
+                    </button>
                   ) : null
                 )}
               </div>
