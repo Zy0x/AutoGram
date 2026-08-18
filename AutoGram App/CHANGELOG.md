@@ -1,3 +1,11 @@
+## v3.7.74 Maximum Safe Indexing Throughput (Phase 35.40)
+
+### 1. Kapasitas Batch Maksimal & Perlindungan Otomatis FloodWait (`MediaStudio/index.tsx`, `speedtest.json`)
+- **Kapasitas Batch 500 Berkas per Permintaan**:
+  - Mengoptimalkan `pageSize` menjadi 500 berkas per RPC MTProto, meminimalkan round-trip jaringan hingga hanya butuh 86 putaran untuk 43.060 berkas.
+- **Intersepsi & Auto-Resume FloodWait**:
+  - Menambahkan pendeteksi otomatis pesan `FLOOD_WAIT_X` dari Telegram. Jika server Telegram meminta waktu jeda, sistem otomatis mem-pause proses, menghitung mundur detik yang diminta, dan melanjutkan pengindeksan secara mandiri tanpa membuat proses gagal.
+
 ## v3.7.73 Extreme Ultra-Speed Indexing Pipeline (Phase 35.39)
 
 ### 1. Peningkatan Ekstrem Throughput Indeks (`adaptiveIndexer.ts`, `MediaStudio/index.tsx`)

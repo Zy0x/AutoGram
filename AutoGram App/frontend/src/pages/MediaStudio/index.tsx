@@ -3400,7 +3400,7 @@ function MediaDriveDesktop({
         while (retries < 5 && indexingActiveRef.current) {
           try {
             res = await driveListFiles(creds, peerId, {
-              pageSize: 400,
+              pageSize: 500,
               offsetId: offset,
               topicId: tid,
               quickStats: false,
@@ -3410,9 +3410,22 @@ function MediaDriveDesktop({
             break;
           } catch (err: any) {
             retries++;
-            console.warn(`[Indexer] driveListFiles attempt ${retries} failed:`, err);
-            if (retries >= 5) break;
-            await new Promise((r) => setTimeout(r, 500 * retries));
+            const errMsg = String(err?.message || err || '');
+            const floodMatch = errMsg.match(/FLOOD_WAIT_?(\d+)/i) || errMsg.match(/wait\s*(\d+)\s*s/i);
+            const waitSeconds = floodMatch ? parseInt(floodMatch[1], 10) : 0;
+
+            if (waitSeconds > 0) {
+              console.warn(`[Indexer] Telegram FloodWait detected: waiting ${waitSeconds}s before auto-resuming`);
+              setIndexingJob((prev: any) => prev ? {
+                ...prev,
+                text: t('speedtest.floodwait_countdown', { seconds: waitSeconds }) || `FloodWait: menunggu ${waitSeconds}s...`
+              } : prev);
+              await new Promise((r) => setTimeout(r, (waitSeconds + 1) * 1000));
+            } else {
+              console.warn(`[Indexer] driveListFiles attempt ${retries} failed:`, err);
+              if (retries >= 5) break;
+              await new Promise((r) => setTimeout(r, 350 * retries));
+            }
           }
         }
         const reqLatency = Date.now() - reqStart;
@@ -3425,7 +3438,7 @@ function MediaDriveDesktop({
           const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
           const scoped = scopeMediaRecords(page, mediaContext, peerId || 0);
           dbBatch.push(...scoped);
-          if (dbBatch.length >= 3500 || !res?.has_more) {
+          if (dbBatch.length >= 4000 || !res?.has_more) {
             const toWrite = dbBatch;
             dbBatch = [];
             void saveMediaRecords(toWrite).catch(() => {});

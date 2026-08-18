@@ -1,12 +1,12 @@
-AutoGram Version: v3.7.73
+AutoGram Version: v3.7.74
 
 Current State:
-v3.7.73 Extreme Ultra-Speed Indexing Pipeline (400 items / 2-6ms delay) — membenahi `adaptiveIndexer.ts`, `adaptiveIndexer.test.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Boosted RPC Batch to 400 Items: Meningkatkan kapasitas batch `pageSize` menjadi 400 berkas per round-trip permintaan.
-2. Ultra-Low Sub-Millisecond Adaptive Delay: Menurunkan jeda adaptif ke 2ms - 6ms (dan 0ms saat kondisi jaringan optimal), serta memperbesar batch commit database ke 3.500 berkas per transaksi IndexedDB.
-3. Extreme Indexing Throughput: Kecepatan pemindaian meningkat hingga ~12.000 - 20.000 berkas/detik pada jaringan stabil.
+v3.7.74 Maximum Safe Indexing Throughput (500 items / Auto FloodWait Protection) — membenahi `MediaStudio/index.tsx`, `speedtest.json` (ID/EN), `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Maximum Safe Batch of 500 Items: Kapasitas batch permintaan MTProto dinaikkan ke batas optimal 500 berkas per RPC (`pageSize: 500`), hanya membutuhkan 86 total round-trip untuk memindai 43.060 berkas.
+2. Auto FloodWait Interception & Resumption: Menghadirkan deteksi dan penanganan otomatis terhadap respon `FLOOD_WAIT_X` dari Telegram. Sistem membaca durasi tunggu secara presisi, menampilkan countdown di status bar, dan otomatis melanjutkan pengindeksan saat limit selesai tanpa error atau interupsi manual.
 
 Previous:
+v3.7.73 Extreme Ultra-Speed Indexing Pipeline (400 items / 2-6ms delay) — membenahi `adaptiveIndexer.ts`, `adaptiveIndexer.test.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.72 Language Server Memory Optimization & Watcher Exclusions — membenahi `tsconfig.json`, `.vscode/settings.json`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.71 Hyper-Turbo Indexing Speed & Expanded Batch Capacity — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.70 Ultra-Concise Ratio Action Format in Sort Scope Chip — membenahi `speedtest.json` (ID/EN), `VERSION.md`, dan `CHANGELOG.md`.
