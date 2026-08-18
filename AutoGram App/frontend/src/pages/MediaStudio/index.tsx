@@ -2632,16 +2632,19 @@ function MediaDriveDesktop({
       setTotalBytes(null);
       setFilesHasMore(false);
       setNextOffsetId(null);
-      // Fast Stale-While-Revalidate: load IndexedDB deep snapshot immediately for 0ms paint
-      const tid = topicFilterRef.current;
-      void loadDeepIndexSnapshot(creds.session, peerId, tid)
-        .then((snapshot) => {
-          if (gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey && snapshot && snapshot.files.length > 0) {
-            let filtered = snapshot.files;
-            if (tid != null && tid > 0) {
-              filtered = snapshot.files.filter((r: any) => Number(r.topic_id ?? r.topicId) === Number(tid));
-            }
-            if (filtered.length > 0) {
+    }
+
+    // Fast Stale-While-Revalidate: ALWAYS check IndexedDB deep snapshot to ensure complete dataset restoration
+    void loadDeepIndexSnapshot(creds.session, peerId, tid)
+      .then((snapshot) => {
+        if (gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey && snapshot && snapshot.files.length > 0) {
+          let filtered = snapshot.files;
+          if (tid != null && tid > 0) {
+            filtered = snapshot.files.filter((r: any) => Number(r.topic_id ?? r.topicId) === Number(tid));
+          }
+          if (filtered.length > 0) {
+            const currentInMemory = filesCacheRef.current.get(cacheKey) || [];
+            if (filtered.length >= currentInMemory.length) {
               const deduped = dedupeByMsgId(filtered);
               setFiles(deduped);
               filesCacheRef.current.set(cacheKey, deduped);
@@ -2658,9 +2661,9 @@ function MediaDriveDesktop({
               setLoadingFiles(false);
             }
           }
-        })
-        .catch(() => undefined);
-    }
+        }
+      })
+      .catch(() => undefined);
 
     try {
       setStatusText(tid != null ? t('ui.generated.listing_files_topik_3ccdf69') : t('ui.generated.listing_files_8ddd84f'));
@@ -3367,10 +3370,26 @@ function MediaDriveDesktop({
           startTransition(() => {
             setFiles((prev) => {
               if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
-              return dedupeByMsgId([...prev, ...batchToAdd]);
+              const allFiles = dedupeByMsgId([...prev, ...batchToAdd]);
+              filesCacheRef.current.set(cacheKey, allFiles);
+              return allFiles;
             });
           });
           lastRenderTime = now;
+        }
+
+        // Periodic Deep Snapshot Persistence every 2000 items
+        if (creds?.session && curLoaded % 2000 < 200) {
+          const curFiles = filesCacheRef.current.get(cacheKey) || liveFilesRef.current;
+          if (curFiles.length > 0) {
+            void saveDeepIndexSnapshot(creds.session, peerId, tid, {
+              files: curFiles,
+              hasMore: filesHasMoreRef.current,
+              nextOffsetId: nextOffsetIdRef.current,
+              totalCount: totalFileCount || initialTotal || indexedLoadedCount || curFiles.length,
+              totalBytes: totalBytes || null,
+            }).catch(() => {});
+          }
         }
 
         // Throttled UI Progress Updates (every 120ms): cuts React re-render overhead by 80%
