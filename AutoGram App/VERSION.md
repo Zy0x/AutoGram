@@ -1,12 +1,12 @@
-AutoGram Version: v3.7.67
+AutoGram Version: v3.7.68
 
 Current State:
-v3.7.67 Dedicated Media Index Database & Snapshot Cache Management — membenahi `mediaStudioDb.ts`, `SpecificCacheModal.tsx`, `settings.json` (ID/EN), `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Media Database Cache Controls in Cache Management: Menghadirkan kartu kontrol pembersihan khusus untuk **Database Indeks Media & Snapshot (IndexedDB)** di *Cache & Storage Management* (Tab 1: Sistem Global & Tab 2: Per-Sesi Akun).
-2. Per-Session Media Index Purging: Menambahkan fungsi `deleteMediaRecordsBySession` untuk menghapus seluruh metadata indeks dan snapshot penjelajah khusus dari akun tertentu tanpa mempengaruhi data akun lain.
-3. Full Cache & Storage Integration: Pembersihan cache total (baik global maupun per-sesi) kini secara terintegrasi membersihkan riwayat pengindeksan media dan snapshot dari SSD lokal.
+v3.7.68 Real-Time Workspace Reactivity on Global Cache Clearance — membenahi `MediaStudio/index.tsx`, `Settings/index.tsx`, `SpecificCacheModal.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Real-Time Workspace In-Memory Cache Purging: Menghubungkan event broadcast `autogram-cache-cleared` dari menu Settings ke komponen `MediaStudio`. Saat pengguna membersihkan cache (sebagian maupun total), seluruh memori RAM aktif (`filesCacheRef`, `filesTotalCountRef`, `liveFilesRef`) langsung di-purge seketika.
+2. Immediate Fresh State Reload: Tampilan toolbar dan chip penyortiran langsung di-reset dari memori lama dan otomatis memuat ulang data segar dari Telegram (80 berkas awal) tanpa perlu me-reload atau restart aplikasi secara manual.
 
 Previous:
+v3.7.67 Dedicated Media Index Database & Snapshot Cache Management — membenahi `mediaStudioDb.ts`, `SpecificCacheModal.tsx`, `settings.json` (ID/EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.66 Accurate Storage Status & Snapshot Completion Synchronization — membenahi `DriveStorageInfoBadge.tsx`, `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.65 Permanent Header Info Icon (ⓘ) & Storage Popover Persistence — membenahi `DriveStorageInfoBadge.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.64 Universal Indexing Trigger & Progress Persistence next to SORT — membenahi `DriveTopBar.tsx`, `VERSION.md`, dan `CHANGELOG.md`.

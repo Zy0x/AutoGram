@@ -68,9 +68,14 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
     }
   }, [isOpen, activeTab, selectedSession]);
 
-  const triggerCacheRefresh = () => {
+  const triggerCacheRefresh = (session?: string) => {
     setCacheVersion((v) => v + 1);
     onRefreshGlobalSize?.();
+    window.dispatchEvent(
+      new CustomEvent('autogram-cache-cleared', {
+        detail: { scope: session ? 'session' : 'all', session },
+      })
+    );
   };
 
   useEffect(() => {

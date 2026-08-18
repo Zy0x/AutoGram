@@ -2956,6 +2956,38 @@ function MediaDriveDesktop({
     refreshFilesRef.current = refreshFiles;
   }, [refreshFiles]);
 
+  // Global cache cleared listener: purge in-memory cache and re-fetch fresh state
+  useEffect(() => {
+    const onCacheCleared = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      const targetSession = detail?.session;
+      const curSession = creds?.session ? String(creds.session).trim() : null;
+
+      if (!targetSession || (curSession && targetSession === curSession)) {
+        console.log('[MediaStudio] Cache cleared event received: purging in-memory RAM cache and reloading fresh state');
+        filesCacheRef.current.clear();
+        filesTotalCountRef.current.clear();
+        filesTotalBytesRef.current.clear();
+        liveFilesRef.current = [];
+
+        setFiles([]);
+        setTotalFileCount(null);
+        setTotalBytes(null);
+        setStatsAccurate(false);
+        setStatsLoading(true);
+        setNextOffsetId(null);
+        setFilesHasMore(true);
+        filesHasMoreRef.current = true;
+        nextOffsetIdRef.current = null;
+
+        void refreshFiles(0, { bypassCache: true });
+      }
+    };
+
+    window.addEventListener('autogram-cache-cleared', onCacheCleared);
+    return () => window.removeEventListener('autogram-cache-cleared', onCacheCleared);
+  }, [creds, refreshFiles]);
+
   // Real-time updates event listener
   useEffect(() => {
     if (!creds) return;

@@ -1,3 +1,10 @@
+## v3.7.68 Real-Time Workspace Reactivity on Global Cache Clearance (Phase 35.34)
+
+### 1. Sinkronisasi Instan Ruang Kerja saat Cache Dihapus (`MediaStudio/index.tsx`, `Settings/index.tsx`)
+- **Pembersihan Cache In-Memory RAM**:
+  - Menghubungkan event `autogram-cache-cleared` sehingga saat pengguna menekan "Hapus Semua Cache" di Pengaturan, ruang kerja yang sedang terbuka otomatis me-reset memori RAM (`filesCacheRef`, `filesTotalCountRef`, `filesTotalBytesRef`).
+  - Menghilangkan sisa angka indeks lama (misal: `43060 sorted partial`) dan langsung memuat ulang data segar dari Telegram (80 berkas awal) seketika tanpa perlu restart aplikasi.
+
 ## v3.7.67 Dedicated Media Index Database & Snapshot Cache Management (Phase 35.33)
 
 ### 1. Integrasi Penuh Pembersihan Indeks Media di Cache & Storage Management

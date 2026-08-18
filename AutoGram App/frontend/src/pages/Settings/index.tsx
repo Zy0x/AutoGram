@@ -677,6 +677,9 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
         resetAllConfigAndPreferences();
       }
 
+      // Broadcast global cache cleared event to all mounted workspaces (MediaStudio, DriveExplorer)
+      window.dispatchEvent(new CustomEvent('autogram-cache-cleared', { detail: { scope: 'all' } }));
+
       // Recalculate size
       await calculateCacheSize();
       setClearSummary({
