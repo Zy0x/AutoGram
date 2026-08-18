@@ -645,7 +645,7 @@ pub fn list_media_blocking_topic(
     topic_id: Option<i64>,
 ) -> Result<ListMediaResult, TgError> {
     let rt = runtime()?;
-    let limit = limit.clamp(1, 150);
+    let limit = limit.clamp(1, 500);
     let chat = chat_id.to_string();
     let folder_id: Option<i64> = if chat.eq_ignore_ascii_case("me") || chat == "0" {
         None
@@ -653,11 +653,11 @@ pub fn list_media_blocking_topic(
         chat.parse().ok()
     };
     let topic_filter = topic_id.filter(|t| *t > 0);
-    // Bounded scan limit: prevents MTProto socket starvation and Tokio thread blocking
+    // Bounded scan limit: allows full 500-item batches while maintaining high throughput
     let scan_limit = if topic_filter.is_some() {
-        (limit * 4).clamp(150, 600)
+        (limit * 4).clamp(150, 2500)
     } else {
-        (limit * 3).clamp(100, 450)
+        (limit * 3).clamp(100, 2000)
     };
     let session_name = identity.session.clone();
 
@@ -739,7 +739,7 @@ pub fn list_media_blocking_topic(
                                 }
                             }
 
-                            if files.len() >= limit || batch_len < 100 || scanned >= 2000 {
+                            if files.len() >= limit || batch_len < 100 || scanned >= 10000 {
                                 break;
                             }
                         }

@@ -1,3 +1,12 @@
+## v3.7.75 Uncapped Rust Backend Scan Limits & 8,000-Item SSD Batch Commit (Phase 35.41)
+
+### 1. Pembongkaran Batas Keras Rust Backend & Peningkatan Batch Database (`media_list.rs`, `MediaStudio/index.tsx`)
+- **Pelepasan Batas Keras Rust Backend**:
+  - Mengubah `limit.clamp(1, 150)` menjadi `limit.clamp(1, 500)` dan `scan_limit` menjadi 2.500 di `media_list.rs`, serta batas pemindaian topik dari 2.000 menjadi 10.000 berkas.
+  - Memastikan backend Rust Grammers benar-benar menyuplai 500 berkas penuh per panggilan RPC ke antarmuka frontend.
+- **Batch Database SSD 8.000 Berkas**:
+  - Menaikkan batch commit IndexedDB ke 8.000 berkas per transaksi disk, memangkas beban disk I/O.
+
 ## v3.7.74 Maximum Safe Indexing Throughput (Phase 35.40)
 
 ### 1. Kapasitas Batch Maksimal & Perlindungan Otomatis FloodWait (`MediaStudio/index.tsx`, `speedtest.json`)

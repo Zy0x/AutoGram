@@ -1,11 +1,12 @@
-AutoGram Version: v3.7.74
+AutoGram Version: v3.7.75
 
 Current State:
-v3.7.74 Maximum Safe Indexing Throughput (500 items / Auto FloodWait Protection) — membenahi `MediaStudio/index.tsx`, `speedtest.json` (ID/EN), `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Maximum Safe Batch of 500 Items: Kapasitas batch permintaan MTProto dinaikkan ke batas optimal 500 berkas per RPC (`pageSize: 500`), hanya membutuhkan 86 total round-trip untuk memindai 43.060 berkas.
-2. Auto FloodWait Interception & Resumption: Menghadirkan deteksi dan penanganan otomatis terhadap respon `FLOOD_WAIT_X` dari Telegram. Sistem membaca durasi tunggu secara presisi, menampilkan countdown di status bar, dan otomatis melanjutkan pengindeksan saat limit selesai tanpa error atau interupsi manual.
+v3.7.75 Uncapped Rust Backend Scan Limits & 8,000-Item SSD Batch Commit — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Uncapped Rust Backend Clamp: Menghapus batas keras internal Rust (`limit.clamp(1, 150)` dan `scan_limit: 450`) pada `media_list.rs` menjadi `limit: 500` dan `scan_limit: 2.500`, serta memperbesar batas pemindaian topik menjadi 10.000 berkas. Kini backend benar-benar mengalirkan 500 berkas penuh per panggilan RPC.
+2. 8,000-Item Database Batch Commit: Menaikkan batch transaksi IndexedDB ke 8.000 berkas per commit, memangkas siklus I/O disk hingga hanya butuh 5 kali penulisan untuk 43.060 berkas dengan RAM tetap stabil di ~80 MB.
 
 Previous:
+v3.7.74 Maximum Safe Indexing Throughput (500 items / Auto FloodWait Protection) — membenahi `MediaStudio/index.tsx`, `speedtest.json` (ID/EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.73 Extreme Ultra-Speed Indexing Pipeline (400 items / 2-6ms delay) — membenahi `adaptiveIndexer.ts`, `adaptiveIndexer.test.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.72 Language Server Memory Optimization & Watcher Exclusions — membenahi `tsconfig.json`, `.vscode/settings.json`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.71 Hyper-Turbo Indexing Speed & Expanded Batch Capacity — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.

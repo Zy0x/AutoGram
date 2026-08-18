@@ -3438,7 +3438,7 @@ function MediaDriveDesktop({
           const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
           const scoped = scopeMediaRecords(page, mediaContext, peerId || 0);
           dbBatch.push(...scoped);
-          if (dbBatch.length >= 4000 || !res?.has_more) {
+          if (dbBatch.length >= 8000 || !res?.has_more) {
             const toWrite = dbBatch;
             dbBatch = [];
             void saveMediaRecords(toWrite).catch(() => {});
