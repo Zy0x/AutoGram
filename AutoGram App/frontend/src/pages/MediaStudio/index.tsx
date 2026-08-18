@@ -1869,8 +1869,45 @@ function MediaDriveDesktop({
       );
     };
 
+    // Self-Healing Connection Recovery: reset circuit breaker & verify MTProto session connectivity
+    if (creds) {
+      try {
+        resetDriveSessionCircuit(creds);
+      } catch {
+        /* ignore */
+      }
+    }
+
     try {
       setStatusText(t('ui.generated.memuat_drives_780fc8f'));
+
+      // Actively verify session authorization and socket health before fetching lists
+      const { tgAuthStatus } = await import('../../lib/telegram');
+      const authStartedAt = performance.now();
+      const native = await tgAuthStatus({
+        session: creds.session,
+        apiId: Number(creds.apiId),
+        apiHash: creds.apiHash,
+      });
+
+      if (gen !== peerGen.current) return;
+      const nativeConnected = !!native?.ok && !!native.data?.authorized;
+      reportNativeLatency(performance.now() - authStartedAt, nativeConnected);
+
+      if (!nativeConnected) {
+        setDriveReady(false);
+        nativeDriveReadyRef.current = false;
+        setLoadingFolders(false);
+        setLoadingChats(false);
+        setLoadingFiles(false);
+        const errMsg = native?.userMessage || t('accounts.status_disconnected');
+        setError(errMsg);
+        return;
+      }
+
+      setDriveReady(true);
+      nativeDriveReadyRef.current = true;
+      setError(null);
 
       // Prefer staged RPCs when warm session is ready (true progressive UI).
       // The first file page gets exclusive network priority; secondary panels
@@ -2539,6 +2576,12 @@ function MediaDriveDesktop({
     }
     const gen = ++peerGen.current;
     const shouldBypassCache = opts?.bypassCache !== false; // Default true on explicit refresh
+    // Self-Healing Connection Recovery: reset circuit breaker on manual refresh
+    try {
+      resetDriveSessionCircuit(creds);
+    } catch {
+      /* ignore */
+    }
     // Allow thumb re-fetch after manual refresh (soft-fails cleared; success cache kept)
     invalidateThumbFailures();
     setThumbsPaused(false);

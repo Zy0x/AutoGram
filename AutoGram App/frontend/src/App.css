@@ -22233,6 +22233,80 @@ input[type="search"]::-webkit-search-decoration {
   cursor: not-allowed;
 }
 
+/* Responsive Session Reconnect Bar - 100% Anti-Truncation across all viewports */
+.td-session-reconnect-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 5px;
+  padding: 6px 8px;
+  background: color-mix(in srgb, var(--danger, #ef4444) 12%, rgba(15, 23, 42, 0.7));
+  border: 1px solid color-mix(in srgb, var(--danger, #ef4444) 28%, transparent);
+  border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.td-reconnect-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.td-reconnect-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: 1 1 0%;
+  min-width: 76px;
+  min-height: 32px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 150ms ease;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+
+.td-reconnect-check-btn {
+  background: color-mix(in srgb, var(--td-primary, #3b82f6) 18%, rgba(30, 41, 59, 0.8));
+  color: var(--td-primary, #60a5fa);
+  border: 1px solid color-mix(in srgb, var(--td-primary, #3b82f6) 35%, transparent);
+}
+
+.td-reconnect-check-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--td-primary, #3b82f6) 30%, rgba(30, 41, 59, 0.9));
+  color: #ffffff;
+}
+
+.td-reconnect-check-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.td-reconnect-login-btn {
+  background: var(--primary, #3b82f6);
+  color: #ffffff;
+}
+
+.td-reconnect-login-btn:hover {
+  background: color-mix(in srgb, var(--primary, #3b82f6) 85%, #000);
+  filter: brightness(1.1);
+}
+
+@media (max-width: 640px) {
+  .td-reconnect-action-btn {
+    min-height: 38px;
+    font-size: 0.75rem;
+  }
+}
+
 .td-rail-toolbar .td-rail-tool.is-full-width {
   flex: 1;
   width: 100%;

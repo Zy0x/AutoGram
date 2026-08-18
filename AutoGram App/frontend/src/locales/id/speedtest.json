@@ -710,6 +710,8 @@
   "ping_good": "Kuat",
   "ping_fair": "Sedang",
   "ping_poor": "Lemah",
+  "btn_check_connection": "Cek Koneksi",
+  "btn_reconnect_session": "Hubungkan Ulang",
   "btn_add_drive": "+ Drive Baru",
   "btn_create_drive": "Drive Baru",
   "btn_create_folder": "Folder Baru",

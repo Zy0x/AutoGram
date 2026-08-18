@@ -22,6 +22,7 @@ import {
   Radio,
   MessagesSquare,
   Check,
+  LogIn,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -1789,37 +1790,15 @@ export function DriveSidebar({
           </div>
           <div className={`td-conn-indicator status-${pingState?.status || (connected ? 'excellent' : 'disconnected')}`}>
             <span className={`td-conn-dot ${pingState?.status || (connected ? 'excellent' : 'disconnected')} pulse`} />
-            <span className="td-conn-text" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-              <span>
-                {pingState?.status === 'offline' && 'Internet Terputus (Device Offline)'}
-                {pingState?.status === 'disconnected' && 'Terputus'}
-                {pingState?.status === 'transferring' && 'Sedang mentransfer...'}
-                {pingState?.status === 'excellent' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_excellent')}`}
-                {pingState?.status === 'good' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_good')}`}
-                {pingState?.status === 'fair' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_fair')}`}
-                {pingState?.status === 'poor' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_poor')}`}
-                {!pingState && (connected ? t('speedtest.ping_drive_connected') : t('speedtest.ping_not_connected'))}
-              </span>
-              {(!connected || pingState?.status === 'disconnected') && onOpenRelogModal && (
-                <button
-                  type="button"
-                  className="td-chip-btn"
-                  onClick={onOpenRelogModal}
-                  style={{
-                    background: 'var(--primary, #3b82f6)',
-                    color: '#fff',
-                    border: 'none',
-                    fontSize: '0.68rem',
-                    padding: '1px 6px',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    marginLeft: '4px',
-                  }}
-                >
-                  {t('accounts.btn_relog')}
-                </button>
-              )}
+            <span className="td-conn-text">
+              {pingState?.status === 'offline' && t('speedtest.ping_offline')}
+              {pingState?.status === 'disconnected' && t('speedtest.ping_disconnected')}
+              {pingState?.status === 'transferring' && t('speedtest.ping_transferring')}
+              {pingState?.status === 'excellent' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_excellent')}`}
+              {pingState?.status === 'good' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_good')}`}
+              {pingState?.status === 'fair' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_fair')}`}
+              {pingState?.status === 'poor' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_poor')}`}
+              {!pingState && (connected ? t('speedtest.ping_drive_connected') : t('speedtest.ping_not_connected'))}
             </span>
           </div>
         </div>
@@ -1832,6 +1811,33 @@ export function DriveSidebar({
             ? sessions.map((name) => ({ value: name, label: getSessionDisplayName(name) }))
             : [{ value: '', label: 'Belum ada session', disabled: true }]}
         />
+        {(!connected || pingState?.status === 'disconnected' || pingState?.status === 'offline') && (
+          <div className="td-session-reconnect-bar" role="status">
+            <div className="td-reconnect-actions">
+              <button
+                type="button"
+                className="td-reconnect-action-btn td-reconnect-check-btn"
+                onClick={handleRefreshClick}
+                disabled={busy || manualSpin}
+                title={t('speedtest.sidebar_refresh_tooltip')}
+              >
+                <RefreshCw size={12} className={busy || manualSpin ? 'spin' : ''} />
+                <span>{busy || manualSpin ? t('accounts.status_checking') : t('speedtest.btn_check_connection')}</span>
+              </button>
+              {onOpenRelogModal && (
+                <button
+                  type="button"
+                  className="td-reconnect-action-btn td-reconnect-login-btn"
+                  onClick={onOpenRelogModal}
+                  title={t('accounts.btn_relog')}
+                >
+                  <LogIn size={12} />
+                  <span>{t('accounts.btn_relog')}</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="td-rail-actions td-rail-toolbar" role="toolbar" aria-label={t('ui.generated.aksi_drive_47b8b0c')}>

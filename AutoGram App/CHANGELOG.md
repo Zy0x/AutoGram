@@ -1,3 +1,15 @@
+## v3.7.55 In-Drive Live Session Reconnection, Self-Healing Circuit Reset & Responsive Anti-Truncation Relogin Bar (Phase 35.21)
+
+### 1. In-Drive Active Session Reconnection (`MediaStudio/index.tsx`)
+- **Self-Healing Connection Recovery**:
+  - Tombol reload / refresh session di dalam Cloud Drives kini secara aktif mereset circuit breaker (`resetDriveSessionCircuit`) dan menguji koneksi langsung ke MTProto Telegram via `tgAuthStatus`.
+  - Jika internet sebelumnya terputus lalu kembali terhubung, menekan tombol reload/refresh di dalam Cloud Drives langsung memulihkan status sesi menjadi terhubung (*connected*), mengukur latensi RTT socket, dan memuat ulang berkas secara instan tanpa perlu keluar ke menu utama.
+
+### 2. Responsive Anti-Truncation Relogin Bar (`DriveSidebarIndex.tsx`, `App.css`)
+- **Modul Reconnect Responsif Multi-Viewport**:
+  - Memperbaiki tombol relogin yang sebelumnya terpotong pada baris header yang sempit. Menghadirkan modul `.td-session-reconnect-bar` dengan tata letak adaptif (auto flex-wrap, tombol terpisah "Cek Koneksi" dan "Login Ulang" dengan ukuran target sentuh nyaman $\ge 38\text{px}$).
+  - Teruji presisi di seluruh ukuran viewport: Mobile kecil (375px), Tablet (768px), Desktop standar (1280px), Full HD (1920px), hingga Ultrawide (2560px - 4K).
+
 ## v3.7.54 Continuous Live Card Sorting Sync, Non-Media Gap Traversal & Unbounded Indexing Pipeline (Phase 35.20)
 
 ### 1. Sinkronisasi Kartu Sorting Dinamis Saat Indexing (`MediaStudio/index.tsx`)

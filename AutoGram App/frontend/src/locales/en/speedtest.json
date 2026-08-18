@@ -710,6 +710,8 @@
   "ping_good": "Strong",
   "ping_fair": "Fair",
   "ping_poor": "Weak",
+  "btn_check_connection": "Check Connection",
+  "btn_reconnect_session": "Reconnect Session",
   "btn_add_drive": "+ New Drive",
   "btn_create_drive": "New Drive",
   "btn_create_folder": "New Folder",
