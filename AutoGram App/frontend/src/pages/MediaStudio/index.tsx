@@ -183,6 +183,7 @@ import {
   isDriveGridZoom,
   isDriveThumbQuality,
   matchesMediaFilter,
+  toLeanDriveFile,
   loadTransferSettings,
   saveTransferSettings,
   type DriveTransferSettings as TransferSettingsState,
@@ -3339,17 +3340,7 @@ function MediaDriveDesktop({
         const memHealth = checkMemoryHealth();
         if (memHealth.shouldTripCircuit) {
           executeEmergencyMemoryReclamation();
-          await new Promise((r) => setTimeout(r, 250));
-          const postHealth = checkMemoryHealth();
-          if (postHealth.shouldTripCircuit) {
-            indexingPausedRef.current = true;
-            setIndexingJob((prev) => ({
-              ...prev,
-              isPaused: true,
-              text: t('speedtest.memory_shield_critical_title'),
-            }));
-            setStatusText(t('speedtest.memory_shield_critical_title'));
-          }
+          await new Promise((r) => setTimeout(r, 150));
         } else if (memHealth.shouldThrottle) {
           executeEmergencyMemoryReclamation();
         }
@@ -3367,25 +3358,37 @@ function MediaDriveDesktop({
         const currentTier = determineIndexingTier(totalFileCount || initialTotal, currentTotalLoaded);
 
         const reqStart = Date.now();
-        const res = await driveListFiles(creds, peerId, {
-          pageSize: 200,
-          offsetId: offset,
-          topicId: tid,
-          quickStats: false,
-          sortMode: 'newest',
-          localOffset: currentTotalLoaded,
-        });
+        let res: any = null;
+        let retries = 0;
+        while (retries < 5 && indexingActiveRef.current) {
+          try {
+            res = await driveListFiles(creds, peerId, {
+              pageSize: 200,
+              offsetId: offset,
+              topicId: tid,
+              quickStats: false,
+              sortMode: 'newest',
+              localOffset: currentTotalLoaded,
+            });
+            break;
+          } catch (err: any) {
+            retries++;
+            console.warn(`[Indexer] driveListFiles attempt ${retries} failed:`, err);
+            if (retries >= 5) break;
+            await new Promise((r) => setTimeout(r, 500 * retries));
+          }
+        }
         const reqLatency = Date.now() - reqStart;
 
         if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) break;
 
         let page: DriveFile[] = res?.files || [];
         if (page.length) {
-          page = stripInlineThumbsFromFiles(page);
+          page = stripInlineThumbsFromFiles(page).map(toLeanDriveFile);
           const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
           const scoped = scopeMediaRecords(page, mediaContext, peerId || 0);
           dbBatch.push(...scoped);
-          if (dbBatch.length >= 2500 || !res.has_more) {
+          if (dbBatch.length >= 2500 || !res?.has_more) {
             const toWrite = dbBatch;
             dbBatch = [];
             void saveMediaRecords(toWrite).catch(() => {});
@@ -3397,10 +3400,10 @@ function MediaDriveDesktop({
         const curTotal = totalFileCount || initialTotal;
         const metrics = calculateIndexingMetrics(curLoaded, curTotal, startTimeMs);
 
-        // Database-First Indexing: Stream batches to UI with a lean 2.5s throttle to eliminate React GC churn
+        // Real-Time Live Card Sync with sorting: stream batches into UI every 900ms
         accumulatedNewFiles.push(...page);
         const now = Date.now();
-        if (now - lastRenderTime >= 2500 || !res.has_more) {
+        if (now - lastRenderTime >= 900 || !res?.has_more) {
           const batchToAdd = accumulatedNewFiles;
           accumulatedNewFiles = [];
           startTransition(() => {
@@ -3419,7 +3422,7 @@ function MediaDriveDesktop({
           : null;
 
         let nextOffset: number | null = null;
-        if (res.next_offset_id && res.next_offset_id > 0 && (offset == null || res.next_offset_id < offset)) {
+        if (res?.next_offset_id && res.next_offset_id > 0 && (offset == null || res.next_offset_id < offset)) {
           nextOffset = res.next_offset_id;
         } else if (lowestMsgIdInPage && lowestMsgIdInPage > 1 && (offset == null || lowestMsgIdInPage < offset)) {
           nextOffset = lowestMsgIdInPage;

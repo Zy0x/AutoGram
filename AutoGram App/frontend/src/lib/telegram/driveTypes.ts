@@ -538,6 +538,26 @@ export function compareDriveFiles(a: DriveFile, b: DriveFile, mode: DriveSortMod
   }
 }
 
+/** Strip transient, bloated properties to keep RAM memory under 100MB for 50k+ datasets */
+export function toLeanDriveFile(f: any): DriveFile {
+  return {
+    id: typeof f.id === 'number' ? f.id : parseInt(String(f.id), 10),
+    folder_id: f.folder_id ?? f.folderId ?? null,
+    name: f.name || '',
+    size: typeof f.size === 'number' ? f.size : parseInt(String(f.size || 0), 10) || 0,
+    mime_type: f.mime_type ?? f.mimeType ?? null,
+    file_ext: f.file_ext ?? f.fileExt ?? undefined,
+    icon_type: f.icon_type || f.iconType || 'file',
+    created_at: f.created_at ?? f.createdAt ?? undefined,
+    has_thumb: !!f.has_thumb || !!f.hasThumb,
+    as_document: !!f.as_document || !!f.asDocument,
+    topic_id: f.topic_id ?? f.topicId ?? null,
+    peer_id: f.peer_id ?? f.peerId ?? '',
+    is_saved_messages: !!f.is_saved_messages,
+    duration: f.duration ?? f.duration_s ?? undefined,
+  };
+}
+
 export type DriveMediaFilter =
   | 'all'
   | 'media'
