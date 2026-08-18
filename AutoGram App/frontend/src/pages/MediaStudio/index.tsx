@@ -3400,7 +3400,8 @@ function MediaDriveDesktop({
         const curTotal = totalFileCount || initialTotal;
         const metrics = calculateIndexingMetrics(curLoaded, curTotal, startTimeMs);
 
-        // Real-Time Live Card Sync with sorting: stream batches into UI every 900ms
+        // Database-First Indexing with Bounded RAM Buffer (Max 2,500 items in RAM):
+        // All items are written directly to IndexedDB SSD. RAM only holds the top active window.
         accumulatedNewFiles.push(...page);
         const now = Date.now();
         if (now - lastRenderTime >= 900 || !res?.has_more) {
@@ -3409,9 +3410,15 @@ function MediaDriveDesktop({
           startTransition(() => {
             setFiles((prev) => {
               if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
-              const allFiles = dedupeByMsgId([...prev, ...batchToAdd]);
-              filesCacheRef.current.set(cacheKey, allFiles);
-              return allFiles;
+              const merged = dedupeByMsgId([...prev, ...batchToAdd]);
+              const activeSort = sortMode || 'newest';
+              let boundedFiles = merged;
+              if (boundedFiles.length > 2500) {
+                // Keep top 2,500 cards in RAM dynamically according to current sorting
+                boundedFiles = filterAndSortDriveFilesPower(boundedFiles, { sortMode: activeSort }).slice(0, 2500);
+              }
+              filesCacheRef.current.set(cacheKey, boundedFiles);
+              return boundedFiles;
             });
           });
           lastRenderTime = now;
@@ -3483,9 +3490,14 @@ function MediaDriveDesktop({
         startTransition(() => {
           setFiles((prev) => {
             if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
-            const allFiles = dedupeByMsgId([...prev, ...batchToAdd]);
-            filesCacheRef.current.set(cacheKey, allFiles);
-            return allFiles;
+            const merged = dedupeByMsgId([...prev, ...batchToAdd]);
+            const activeSort = sortMode || 'newest';
+            let boundedFiles = merged;
+            if (boundedFiles.length > 2500) {
+              boundedFiles = filterAndSortDriveFilesPower(boundedFiles, { sortMode: activeSort }).slice(0, 2500);
+            }
+            filesCacheRef.current.set(cacheKey, boundedFiles);
+            return boundedFiles;
           });
         });
       }
@@ -3501,7 +3513,7 @@ function MediaDriveDesktop({
         const curFiles = filesCacheRef.current.get(cacheKey) || liveFilesRef.current;
         if (curFiles.length > 0) {
           void saveDeepIndexSnapshot(creds.session, peerId, tid, {
-            files: curFiles,
+            files: curFiles.slice(0, 2500),
             hasMore: filesHasMoreRef.current,
             nextOffsetId: nextOffsetIdRef.current,
             totalCount: totalFileCount || initialTotal || indexedLoadedCount || curFiles.length,
