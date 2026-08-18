@@ -32013,6 +32013,21 @@ button.td-confirm-icon.is-back-btn:active {
   }
 }
 
+.td-storage-splash-pill.is-compact {
+  padding: 3px 6px 3px 8px !important;
+  gap: 5px !important;
+  border-radius: 999px !important;
+}
+
+.td-storage-splash-pill.is-compact .td-storage-info-icon {
+  color: #94a3b8 !important;
+  transition: color 0.15s ease !important;
+}
+
+.td-storage-splash-pill.is-compact:hover .td-storage-info-icon {
+  color: #38bdf8 !important;
+}
+
 .td-storage-splash-pill:hover {
   border-color: rgba(59, 130, 246, 0.4) !important;
   background: rgba(15, 23, 42, 0.98) !important;

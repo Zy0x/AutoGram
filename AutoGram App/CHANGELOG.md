@@ -1,3 +1,11 @@
+## v3.7.65 Permanent Header Info Icon (ⓘ) & Storage Popover Persistence (Phase 35.31)
+
+### 1. Ikon Info "i" Permanen di Header Toolbar (`DriveStorageInfoBadge.tsx`, `App.css`)
+- **Restorasi Visibilitas Ikon "i"**:
+  - Memperbaiki komponen `DriveStorageInfoBadge` agar tidak lagi mengembalikan `null` saat auto-splash 3 detik selesai.
+  - Ikon "i" (`<Info size={13} />`) kini **selalu tampil permanen** di samping judul folder / breadcrumbs di header toolbar.
+  - Memiliki mode kompak (`is-compact`) saat idle dan dapat diklik sewaktu-waktu untuk membuka kartu popover rincian penyimpanan media.
+
 ## v3.7.64 Universal Indexing Trigger & Progress Persistence next to SORT (Phase 35.30)
 
 ### 1. Tombol Pengindeksan Permanen di Sebelah SORT (`DriveTopBar.tsx`)

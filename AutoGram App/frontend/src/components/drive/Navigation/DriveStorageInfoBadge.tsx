@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle2, Loader2, X, Radio, ArrowUpRight, Database } from 'lucide-react';
+import { CheckCircle2, Loader2, X, Radio, ArrowUpRight, Database, Info } from 'lucide-react';
 
 export type DriveStorageInfoBadgeProps = {
   fileCount: number;
@@ -116,13 +116,17 @@ export function DriveStorageInfoBadge({
 
     window.addEventListener('resize', updateCoords);
     window.addEventListener('scroll', handleScroll, true);
-    document.addEventListener('click', handleOutsideClick);
-    document.addEventListener('keydown', handleKeyDown);
+
+    const timer = setTimeout(() => {
+      document.addEventListener('pointerdown', handleOutsideClick);
+      document.addEventListener('keydown', handleKeyDown);
+    }, 50);
 
     return () => {
+      clearTimeout(timer);
       window.removeEventListener('resize', updateCoords);
       window.removeEventListener('scroll', handleScroll, true);
-      document.removeEventListener('click', handleOutsideClick);
+      document.removeEventListener('pointerdown', handleOutsideClick);
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isPopoverOpen, updateCoords]);
@@ -169,44 +173,46 @@ export function DriveStorageInfoBadge({
     return `${countPart}${spacePart}`;
   }, [effectiveTotalCount, isFinal, totalCount, spaceLabel, t]);
 
-  if (!isAutoSplashVisible && !isPopoverOpen) {
-    return null;
-  }
-
   return (
     <div
       className={`td-storage-info-wrapper td-status-${statusMode}${isPopoverOpen ? ' is-open' : ''}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* 5-Second Interactive Storage Info Pill & Button */}
+      {/* Interactive Storage Info Pill / Permanent Info Button */}
       <button
         ref={btnRef}
         type="button"
-        className={`td-storage-splash-pill animate-fade-in ${isPopoverOpen ? 'active' : ''}`}
+        className={`td-storage-splash-pill ${isAutoSplashVisible ? 'is-expanded' : 'is-compact'} ${isPopoverOpen ? 'active' : ''}`}
         onClick={handleToggleClick}
         title={t('speedtest.storage_info_tooltip_hint')}
         aria-label={t('speedtest.storage_info_badge_aria')}
         aria-expanded={isPopoverOpen}
       >
         <span className={`td-splash-dot td-dot-${statusMode}`} />
-        <span className="td-splash-text">{summaryText}</span>
-        <span
-          className="td-splash-dismiss-btn"
-          role="button"
-          tabIndex={0}
-          onClick={handleDismissSplash}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleDismissSplash(e as any);
-            }
-          }}
-          title={t('speedtest.storage_info_close')}
-          aria-label={t('speedtest.storage_info_close')}
-        >
-          <X size={12} />
-        </span>
+        {isAutoSplashVisible ? (
+          <>
+            <span className="td-splash-text">{summaryText}</span>
+            <span
+              className="td-splash-dismiss-btn"
+              role="button"
+              tabIndex={0}
+              onClick={handleDismissSplash}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleDismissSplash(e as any);
+                }
+              }}
+              title={t('speedtest.storage_info_close')}
+              aria-label={t('speedtest.storage_info_close')}
+            >
+              <X size={12} />
+            </span>
+          </>
+        ) : (
+          <Info size={13} className="td-storage-info-icon" />
+        )}
       </button>
 
       {/* Rich Popover Details Card Portal */}
