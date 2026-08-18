@@ -1,3 +1,10 @@
+## v3.7.72 Language Server Memory Optimization & Watcher Exclusions (Phase 35.38)
+
+### 1. Optimalisasi Watcher & Pembatasan Memori Language Server (`tsconfig.json`, `.vscode/settings.json`)
+- **Eksklusi Direktori Build Raksasa**:
+  - Menambahkan aturan eksklusi pada `tsconfig.json` dan `.vscode/settings.json` agar Language Server tidak memindai direktori `target/` (14.7 GB build cache Rust), `node_modules/`, `dist/`, `.webview2_data/`, dan `graphify-out/`.
+  - Membatasi memori kerja Language Server (`maxTsServerMemory: 2048`) untuk mencegah kebocoran memori RAM berkepanjangan pada sesi editing panjang.
+
 ## v3.7.71 Hyper-Turbo Indexing Speed & Expanded Batch Capacity (Phase 35.37)
 
 ### 1. Peningkatan Kecepatan & Kapasitas Pengindeksan (`MediaStudio/index.tsx`)

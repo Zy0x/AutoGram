@@ -1,19 +1,33 @@
-{
+﻿{
   "files.watcherExclude": {
     "**/.git/objects/**": true,
     "**/.git/subtree-cache/**": true,
     "**/node_modules/**": true,
     "**/target/**": true,
+    "**/AutoGram App/frontend/src-tauri/target/**": true,
     "**/dist/**": true,
-    "**/scratch/**": true,
-    "**/.gemini/**": true
+    "**/build/**": true,
+    "**/.webview2_data/**": true,
+    "**/worker/cache/**": true,
+    "**/worker/sessions/**": true,
+    "**/worker/temp/**": true,
+    "**/graphify-out/**": true
   },
-  "typescript.tsserver.maxTsServerMemory": 512,
-  "rust-analyzer.check.command": "check",
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/target": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/.webview2_data": true,
+    "**/worker/cache": true,
+    "**/graphify-out": true
+  },
+  "typescript.tsserver.maxTsServerMemory": 2048,
+  "typescript.tsserver.experimental.enableProjectDiagnostics": false,
   "rust-analyzer.files.excludeDirs": [
     "target",
+    "AutoGram App/frontend/src-tauri/target",
     "node_modules",
-    "scratch",
-    ".gemini"
+    "dist"
   ]
 }

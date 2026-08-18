@@ -1,11 +1,12 @@
-AutoGram Version: v3.7.71
+AutoGram Version: v3.7.72
 
 Current State:
-v3.7.71 Hyper-Turbo Indexing Speed & Expanded Batch Capacity — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Increased Batch Fetching Capacity: Menaikkan kapasitas muat pemindaian menjadi 250 berkas per RPC batch (`pageSize: 250`), memperbanyak jumlah item yang diambil per putaran jaringan.
-2. Uncapped True Hardware-Adaptive Delay: Menghapus batas artificial delay (sebelumnya terkunci minimal 40ms) dan menerapkan adaptive pacing murni 10ms - 20ms. Meningkatkan kecepatan indeks dari ~2.000 berkas/detik menjadi hingga ~5.000 - 8.000 berkas/detik saat kondisi jaringan stabil.
+v3.7.72 Language Server Memory Optimization & Watcher Exclusions — membenahi `tsconfig.json`, `.vscode/settings.json`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Language Server Watcher Exclusions: Menambahkan konfigurasi eksklusi ketat untuk direktori build raksasa (`target/`, `node_modules/`, `dist/`, `.webview2_data/`, `graphify-out/`) pada `tsconfig.json` dan `.vscode/settings.json`.
+2. Memory Cap & AST Isolation: Membatasi alokasi memori TypeScript LSP (`maxTsServerMemory: 2048`) dan mengecualikan folder artefak kompilasi Rust (14.7 GB) dari pengindeksan Language Server agar memori RAM tidak membengkak.
 
 Previous:
+v3.7.71 Hyper-Turbo Indexing Speed & Expanded Batch Capacity — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.70 Ultra-Concise Ratio Action Format in Sort Scope Chip — membenahi `speedtest.json` (ID/EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.69 Explicit Loaded / Total Ratio Display in Sort Scope Chip — membenahi `DriveTopBar.tsx`, `speedtest.json` (ID/EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.68 Real-Time Workspace Reactivity on Global Cache Clearance — membenahi `MediaStudio/index.tsx`, `Settings/index.tsx`, `SpecificCacheModal.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
