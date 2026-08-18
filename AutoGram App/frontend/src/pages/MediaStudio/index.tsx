@@ -3400,7 +3400,7 @@ function MediaDriveDesktop({
         while (retries < 5 && indexingActiveRef.current) {
           try {
             res = await driveListFiles(creds, peerId, {
-              pageSize: 200,
+              pageSize: 250,
               offsetId: offset,
               topicId: tid,
               quickStats: false,
@@ -3516,7 +3516,7 @@ function MediaDriveDesktop({
 
         // Adaptive Delay & UI Frame Pacing: requestAnimationFrame gives full rendering time to Windows OS
         const { delayMs } = getAdaptiveDelay(currentTier, curLoaded, reqLatency);
-        const safeDelay = Math.max(delayMs, 40);
+        const safeDelay = Math.max(delayMs, 10);
         await new Promise((r) => requestAnimationFrame(() => setTimeout(r, safeDelay)));
       }
 

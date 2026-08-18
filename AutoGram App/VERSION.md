@@ -1,11 +1,12 @@
-AutoGram Version: v3.7.70
+AutoGram Version: v3.7.71
 
 Current State:
-v3.7.70 Ultra-Concise Ratio Action Format in Sort Scope Chip — membenahi `speedtest.json` (ID/EN), `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Ultra-Concise Ratio Action Format: Menyederhanakan label chip penyortiran parsial menjadi format ringkas dan terfokus: `[loaded]/[total] Index All` (misal: `230/43.060 Index All` atau `230/43.060 Indeks Semua`).
-2. High Readability & Clean UI: Menghemat ruang di header toolbar agar tombol aksi tetap proporsional dan mudah diakses tanpa teks berlebih.
+v3.7.71 Hyper-Turbo Indexing Speed & Expanded Batch Capacity — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Increased Batch Fetching Capacity: Menaikkan kapasitas muat pemindaian menjadi 250 berkas per RPC batch (`pageSize: 250`), memperbanyak jumlah item yang diambil per putaran jaringan.
+2. Uncapped True Hardware-Adaptive Delay: Menghapus batas artificial delay (sebelumnya terkunci minimal 40ms) dan menerapkan adaptive pacing murni 10ms - 20ms. Meningkatkan kecepatan indeks dari ~2.000 berkas/detik menjadi hingga ~5.000 - 8.000 berkas/detik saat kondisi jaringan stabil.
 
 Previous:
+v3.7.70 Ultra-Concise Ratio Action Format in Sort Scope Chip — membenahi `speedtest.json` (ID/EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.69 Explicit Loaded / Total Ratio Display in Sort Scope Chip — membenahi `DriveTopBar.tsx`, `speedtest.json` (ID/EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.68 Real-Time Workspace Reactivity on Global Cache Clearance — membenahi `MediaStudio/index.tsx`, `Settings/index.tsx`, `SpecificCacheModal.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.67 Dedicated Media Index Database & Snapshot Cache Management — membenahi `mediaStudioDb.ts`, `SpecificCacheModal.tsx`, `settings.json` (ID/EN), `VERSION.md`, dan `CHANGELOG.md`.

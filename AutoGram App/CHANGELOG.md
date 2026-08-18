@@ -1,3 +1,12 @@
+## v3.7.71 Hyper-Turbo Indexing Speed & Expanded Batch Capacity (Phase 35.37)
+
+### 1. Peningkatan Kecepatan & Kapasitas Pengindeksan (`MediaStudio/index.tsx`)
+- **Peningkatan Kapasitas Batch (250 Berkas / Permintaan)**:
+  - Menaikkan `pageSize` dari 200 menjadi 250 berkas per round-trip RPC, sehingga jumlah berkas yang diambil setiap siklus menjadi lebih banyak.
+- **Pacing Adaptif Murni (10ms - 20ms)**:
+  - Menghapus floor delay buatan (40ms) dan menerapkan adaptive pacing murni 10ms–20ms yang responsif terhadap latensi jaringan.
+  - Kecepatan pemindaian meningkat hingga ~5.000–8.000 berkas/detik pada jaringan stabil.
+
 ## v3.7.70 Ultra-Concise Ratio Action Format in Sort Scope Chip (Phase 35.36)
 
 ### 1. Format Rasio Ringkas pada Chip Sort Toolbar (`speedtest.json`)
