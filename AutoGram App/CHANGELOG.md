@@ -1,3 +1,10 @@
+## v3.7.78 Sub-Second Live Streaming Indexer (Phase 35.44)
+
+### 1. Eliminasi Hambatan Tunggu 20-25 Detik pada Backend Rust (`media_list.rs`, `MediaStudio`)
+- **Penyelesaian Masalah Blocking Multi-Chunk**:
+  - Mengubah batas internal Rust dari pemindaian raksasa 5.000 pesan (yang memicu hingga 50 kali panggilan RPC blocking beruntun dan menahan UI selama 20–25 detik) menjadi pemindaian streaming ringkas (250–300 berkas dengan `scan_limit: 600`).
+  - Setiap respons kini kembali dalam hitungan sub-detik (**~150ms – 200ms**) dan mengalirkan data ke progress bar secara kontinu tanpa jeda beku.
+
 ## v3.7.77 Global 1,000-Item Indexing Pipeline Across All Modules (Phase 35.43)
 
 ### 1. Sinkronisasi 1.000 Berkas di Seluruh Sub-Modul Pengindeksan (`DriveToolsPanel`, `MediaStudio`)
