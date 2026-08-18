@@ -406,10 +406,6 @@ export function DriveExplorer({
   }, [contextFiles, query, mediaFilter, sortMode, advFilter, viewPerspective]);
 
   const displayedIds = useMemo(() => displayed.map((f: any) => f.id), [displayed]);
-  const thumbableDisplayedIds = useMemo(
-    () => new Set(displayed.filter(canShowDriveThumb).map((file) => String(file.id))),
-    [displayed]
-  );
 
   useEffect(() => {
     onDisplayedIdsChange?.(displayedIds);
@@ -429,7 +425,8 @@ export function DriveExplorer({
 
   // Floating top update indicator and anchor scroll retention
   const [newItemsAboveCount, setNewItemsAboveCount] = useState<number>(0);
-  const prevDisplayedSetRef = useRef<Set<number>>(new Set());
+  const prevDisplayedCountRef = useRef<number>(displayed.length);
+  const prevFirstIdRef = useRef<number | null>(displayed[0]?.id ?? null);
   const prevLocationKeyRef = useRef<string>(activeScrollKey);
 
   // Clear pill when switching locations
@@ -437,18 +434,22 @@ export function DriveExplorer({
     if (prevLocationKeyRef.current !== activeScrollKey) {
       prevLocationKeyRef.current = activeScrollKey;
       setNewItemsAboveCount(0);
-      prevDisplayedSetRef.current = new Set(displayed.map((f: any) => f.id));
+      prevDisplayedCountRef.current = displayed.length;
+      prevFirstIdRef.current = displayed[0]?.id ?? null;
     }
-  }, [activeScrollKey, displayed]);
+  }, [activeScrollKey, displayed.length]);
 
-  // Track insertion above current viewport anchor & preserve scroll stability
+  // Track insertion above current viewport anchor & preserve scroll stability without full dataset Set allocation
   useEffect(() => {
-    const prevSet = prevDisplayedSetRef.current;
-    const currentIds = displayed.map((f: any) => f.id);
-    const currentSet = new Set(currentIds);
-    prevDisplayedSetRef.current = currentSet;
+    const prevCount = prevDisplayedCountRef.current;
+    const currentCount = displayed.length;
+    const prevFirstId = prevFirstIdRef.current;
+    const currentFirstId = displayed[0]?.id ?? null;
 
-    if (prevSet.size > 0 && currentSet.size > prevSet.size) {
+    prevDisplayedCountRef.current = currentCount;
+    prevFirstIdRef.current = currentFirstId;
+
+    if (prevCount > 0 && currentCount > prevCount && prevFirstId !== currentFirstId) {
       const el = parentRef.current;
       const scrollTop = el ? el.scrollTop : 0;
       if (scrollTop > 80) {
@@ -687,7 +688,7 @@ export function DriveExplorer({
       const visibleIds = [...scroller.querySelectorAll<HTMLElement>('[data-drive-file="1"][data-msg-id]')]
         .filter((card) => {
           const id = card.dataset.msgId;
-          if (!id || !thumbableDisplayedIds.has(id)) return false;
+          if (!id || card.dataset.canThumb === '0') return false;
           const rect = card.getBoundingClientRect();
           return rect.bottom > viewportRect.top && rect.top < viewportRect.bottom;
         })
@@ -719,7 +720,6 @@ export function DriveExplorer({
     progressiveReady,
     perf.tier,
     thumbQuality,
-    thumbableDisplayedIds,
     thumbContextOptions,
     onVisibleIdsChange,
   ]);
@@ -734,7 +734,7 @@ export function DriveExplorer({
       const visibleIds = [...scroller.querySelectorAll<HTMLElement>('[data-drive-file="1"][data-msg-id]')]
         .filter((card) => {
           const id = card.dataset.msgId;
-          if (!id || !thumbableDisplayedIds.has(id)) return false;
+          if (!id || card.dataset.canThumb === '0') return false;
           const rect = card.getBoundingClientRect();
           return rect.bottom > viewportRect.top && rect.top < viewportRect.bottom;
         })
@@ -754,7 +754,7 @@ export function DriveExplorer({
     }
     window.addEventListener('autogram-cache-cleared', handleCacheCleared);
     return () => window.removeEventListener('autogram-cache-cleared', handleCacheCleared);
-  }, [creds, folderId, displayed.length, viewMode, thumbContextOptions, thumbableDisplayedIds]);
+  }, [creds, folderId, displayed.length, viewMode, thumbContextOptions]);
 
   const warmFile = useCallback(
     (_file: DriveFile) => {

@@ -990,6 +990,20 @@ function MediaDriveDesktop({
   }, [creds]);
 
   useEffect(() => {
+    const onMemoryReclaim = () => {
+      // Memory Hygiene: Purge inactive location caches from filesCacheRef
+      const currentActiveKey = activeFilesCacheKeyRef.current;
+      for (const key of Array.from(filesCacheRef.current.keys())) {
+        if (key !== currentActiveKey) {
+          filesCacheRef.current.delete(key);
+        }
+      }
+    };
+    window.addEventListener('autogram-emergency-memory-reclaim', onMemoryReclaim);
+    return () => window.removeEventListener('autogram-emergency-memory-reclaim', onMemoryReclaim);
+  }, []);
+
+  useEffect(() => {
     if (!creds) return;
     let cancelled = false;
     const timer = window.setTimeout(() => void driveListChatFolders(creds)
@@ -3383,10 +3397,10 @@ function MediaDriveDesktop({
         const curTotal = totalFileCount || initialTotal;
         const metrics = calculateIndexingMetrics(curLoaded, curTotal, startTimeMs);
 
-        // Continuous Live Card Sync: stream batches into UI with non-blocking startTransition every 400ms
+        // Database-First Indexing: Stream batches to UI with a lean 2.5s throttle to eliminate React GC churn
         accumulatedNewFiles.push(...page);
         const now = Date.now();
-        if (now - lastRenderTime >= 400 || !res.has_more) {
+        if (now - lastRenderTime >= 2500 || !res.has_more) {
           const batchToAdd = accumulatedNewFiles;
           accumulatedNewFiles = [];
           startTransition(() => {
@@ -3428,21 +3442,7 @@ function MediaDriveDesktop({
         nextOffsetIdRef.current = nextOffset;
         setNextOffsetId(nextOffset);
 
-        // Periodic Deep Snapshot Persistence every 2000 items
-        if (creds?.session && curLoaded % 2000 < 200) {
-          const curFiles = filesCacheRef.current.get(cacheKey) || liveFilesRef.current;
-          if (curFiles.length > 0) {
-            void saveDeepIndexSnapshot(creds.session, peerId, tid, {
-              files: curFiles,
-              hasMore: filesHasMoreRef.current,
-              nextOffsetId: nextOffsetIdRef.current,
-              totalCount: totalFileCount || initialTotal || indexedLoadedCount || curFiles.length,
-              totalBytes: totalBytes || null,
-            }).catch(() => {});
-          }
-        }
-
-        // Throttled UI Progress Updates (every 120ms): cuts React re-render overhead by 80%
+        // Throttled UI Progress Updates (every 120ms): smooth progress bar without re-rendering card list
         if (now - lastProgressTime >= 120 || !res.has_more) {
           lastProgressTime = now;
           setIndexingProgress({

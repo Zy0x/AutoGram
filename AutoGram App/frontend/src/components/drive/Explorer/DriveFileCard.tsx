@@ -345,6 +345,7 @@ function DriveFileCardInner({
     <div
       data-msg-id={file.id}
       data-drive-file="1"
+      data-can-thumb={canThumb ? '1' : '0'}
       data-session={creds?.session || ''}
       data-peer-id={itemPeerId}
       data-topic-id={itemTopicId ?? 'all'}

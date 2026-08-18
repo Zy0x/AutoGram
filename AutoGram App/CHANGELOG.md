@@ -1,3 +1,20 @@
+## v3.7.60 Database-First Streaming, Zero-Loop Snapshot Serialization & Elimination of State Re-Sort Churn (Phase 35.26)
+
+### 1. Penghapusan Serialisasi Snapshot Monolitik di Hot Loop (`MediaStudio/index.tsx`)
+- **Direct Database Ingestion**:
+  - Menghapus pemanggilan `saveDeepIndexSnapshot` dari dalam loop pemindaian yang sebelumnya menulis string JSON raksasa (~25 MB) setiap 2.000 item ke LevelDB.
+  - Berkas ditulis langsung secara efisien ke store `media` IndexedDB, sementara snapshot agregat hanya disimpan satu kali saat proses indeks selesai atau dijeda.
+
+### 2. Eliminasi GC Churn & Alokasi Objek di Explorer (`DriveExplorer.tsx`, `DriveFileCard.tsx`)
+- **Pembersihan Alokasi Berulang**:
+  - Menghapus pembuatan `Set` 26.000 item pada `thumbableDisplayedIds` dan menggantikannya dengan atribut DOM langsung `data-can-thumb`.
+  - Mengganti pelacakan scroll retention berbasis `new Set(currentIds)` dengan perbandingan ringan `prevFirstId` dan `count`.
+  - Menurunkan frekuensi `setFiles` selama streaming cepat dari 400ms ke 2.500ms untuk mencegah React me-reclone dan me-resort puluhan ribu berkas berkali-kali per detik.
+
+### 3. Pembersihan Cache Inaktif & Penurunan DOM Footprint
+- Menurunkan jumlah elemen DOM aktif dari 2.746 ke **1.379 elemen**.
+- Menurunkan penggunaan JS Heap murni ke **76.08 MB**.
+
 ## v3.7.59 Lean RAM Footprint, Viewport Image Bitmap Recycling & LevelDB Micro-Commit Optimization (Phase 35.25)
 
 ### 1. Viewport Image Bitmap Recycling & Native Async Decoding (`ThumbnailImage.tsx`, `DriveFileCard.tsx`)
