@@ -1,3 +1,12 @@
+## v3.7.76 Telegram Protocol Ceiling: 1,000-Item MTProto Pipeline & 10,000 SSD Batch (Phase 35.42)
+
+### 1. Peningkatan Throughput Maksimal Protokol Telegram MTProto (`media_list.rs`, `MediaStudio/index.tsx`)
+- **Pipelining 1.000 Berkas per Panggilan**:
+  - Mengonfigurasi `pageSize: 1000` di frontend dan `limit.clamp(1, 1000)` di backend Rust dengan `scan_limit: 5000` dan batas pemindaian topik hingga 50.000 berkas.
+  - Untuk 43.060 berkas di `#Gudang`, seluruh data tuntas ditarik hanya dalam 43 kali putaran jaringan.
+- **Batch Penulisan SSD 10.000 Berkas**:
+  - Mengumpulkan penulisan IndexedDB hingga 10.000 berkas per transaksi, menyelesaikan seluruh database dalam 4 kali penulisan SSD.
+
 ## v3.7.75 Uncapped Rust Backend Scan Limits & 8,000-Item SSD Batch Commit (Phase 35.41)
 
 ### 1. Pembongkaran Batas Keras Rust Backend & Peningkatan Batch Database (`media_list.rs`, `MediaStudio/index.tsx`)

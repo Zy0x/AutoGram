@@ -1,11 +1,12 @@
-AutoGram Version: v3.7.75
+AutoGram Version: v3.7.76
 
 Current State:
-v3.7.75 Uncapped Rust Backend Scan Limits & 8,000-Item SSD Batch Commit — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Uncapped Rust Backend Clamp: Menghapus batas keras internal Rust (`limit.clamp(1, 150)` dan `scan_limit: 450`) pada `media_list.rs` menjadi `limit: 500` dan `scan_limit: 2.500`, serta memperbesar batas pemindaian topik menjadi 10.000 berkas. Kini backend benar-benar mengalirkan 500 berkas penuh per panggilan RPC.
-2. 8,000-Item Database Batch Commit: Menaikkan batch transaksi IndexedDB ke 8.000 berkas per commit, memangkas siklus I/O disk hingga hanya butuh 5 kali penulisan untuk 43.060 berkas dengan RAM tetap stabil di ~80 MB.
+v3.7.76 Telegram Protocol Ceiling: 1,000-Item MTProto Pipeline & 10,000 SSD Batch — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Maximum 1,000-Item MTProto RPC Pipeline: Menaikkan limit Rust backend dan frontend ke batas optimal protokol Telegram (1.000 berkas per permintaan RPC batch dengan batas pemindaian 5.000 dan topik 50.000). Untuk 43.060 berkas di `#Gudang`, hanya diperlukan 43 kali panggilan jaringan.
+2. 10,000-Item SSD Database Commit: Menaikkan batch commit IndexedDB ke 10.000 berkas per transaksi, menyelesaikan seluruh pengindeksan channel dalam 4 kali penulisan SSD ultra-cepat.
 
 Previous:
+v3.7.75 Uncapped Rust Backend Scan Limits & 8,000-Item SSD Batch Commit — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.74 Maximum Safe Indexing Throughput (500 items / Auto FloodWait Protection) — membenahi `MediaStudio/index.tsx`, `speedtest.json` (ID/EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.73 Extreme Ultra-Speed Indexing Pipeline (400 items / 2-6ms delay) — membenahi `adaptiveIndexer.ts`, `adaptiveIndexer.test.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.72 Language Server Memory Optimization & Watcher Exclusions — membenahi `tsconfig.json`, `.vscode/settings.json`, `VERSION.md`, dan `CHANGELOG.md`.

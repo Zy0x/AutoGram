@@ -3400,7 +3400,7 @@ function MediaDriveDesktop({
         while (retries < 5 && indexingActiveRef.current) {
           try {
             res = await driveListFiles(creds, peerId, {
-              pageSize: 500,
+              pageSize: 1000,
               offsetId: offset,
               topicId: tid,
               quickStats: false,
@@ -3438,7 +3438,7 @@ function MediaDriveDesktop({
           const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
           const scoped = scopeMediaRecords(page, mediaContext, peerId || 0);
           dbBatch.push(...scoped);
-          if (dbBatch.length >= 8000 || !res?.has_more) {
+          if (dbBatch.length >= 10000 || !res?.has_more) {
             const toWrite = dbBatch;
             dbBatch = [];
             void saveMediaRecords(toWrite).catch(() => {});
