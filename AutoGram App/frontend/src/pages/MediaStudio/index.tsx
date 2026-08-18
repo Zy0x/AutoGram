@@ -3371,7 +3371,7 @@ function MediaDriveDesktop({
           const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
           const scoped = scopeMediaRecords(page, mediaContext, peerId || 0);
           dbBatch.push(...scoped);
-          if (dbBatch.length >= 1000 || !res.has_more) {
+          if (dbBatch.length >= 2500 || !res.has_more) {
             const toWrite = dbBatch;
             dbBatch = [];
             void saveMediaRecords(toWrite).catch(() => {});
@@ -3515,6 +3515,11 @@ function MediaDriveDesktop({
       setIndexingAllActive(false);
       setIndexingJob({ active: false, processed: 0, total: 0, text: '', isPaused: false });
       setStatusText(t('ui.generated.semua_media_dimuat_2310a13'));
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(() => {
+          executeEmergencyMemoryReclamation();
+        }, { timeout: 1500 });
+      }
     }
   }, [filesHasMore, loadingMoreFiles, creds, peerId, session, getDriveCacheKey, totalFileCount, t]);
 

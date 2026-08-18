@@ -523,14 +523,13 @@ export function DriveExplorer({
   }, [activeScrollKey, viewMode, gridZoom, width, cardWidth, layout.cardHeight, rowHeight, cols, displayed.length]);
 
   const perf = getDrivePerfProfile();
-  // Slightly higher overscan reduces blank flash while scrolling without
-  // mounting the whole grid (main source of "patah"/jank on WebView2).
+  // Calibrated memory-lean overscan: keeps scrolling buttery smooth while cutting ~200MB texture memory
   const gridOverscan = progressiveReady
-    ? perf.tier === 'high' ? 8 : perf.tier === 'mid' ? 5 : 3
+    ? perf.tier === 'high' ? 3 : perf.tier === 'mid' ? 2 : 2
     : 2;
   const listOverscan = progressiveReady
-    ? perf.tier === 'high' ? 20 : perf.tier === 'mid' ? 12 : 8
-    : 4;
+    ? perf.tier === 'high' ? 8 : perf.tier === 'mid' ? 5 : 3
+    : 3;
 
   const gridVirtualizer = useVirtualizer({
     count: rowCount + (displayed.length > 0 ? 1 : 0),

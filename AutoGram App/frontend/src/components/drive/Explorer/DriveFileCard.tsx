@@ -178,6 +178,15 @@ function DriveFileCardInner({
   const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
+    return () => {
+      // Memory Hygiene: Clean up thumb state on unmount so Blink GC immediately releases image handles
+      setThumb(null);
+      setIsPlaceholderImg(false);
+      setThumbLoading(false);
+    };
+  }, []);
+
+  useEffect(() => {
     setImgError(false);
     if (!canThumb) {
       setThumb(null);

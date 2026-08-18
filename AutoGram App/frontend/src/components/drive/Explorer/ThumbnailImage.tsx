@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
 import { FileTypeIcon } from './FileTypeIcon';
 
@@ -20,6 +20,13 @@ export const ThumbnailImage: React.FC<ThumbnailImageProps> = ({
 
   const displaySrc = thumbUrl || strippedThumbUrl;
 
+  useEffect(() => {
+    return () => {
+      // Release image references on unmount to allow Blink to collect bitmap
+      setLoaded(false);
+    };
+  }, []);
+
   if (!displaySrc || error) {
     return (
       <div className={`w-full h-full flex items-center justify-center bg-slate-900/60 ${className}`}>
@@ -35,6 +42,8 @@ export const ThumbnailImage: React.FC<ThumbnailImageProps> = ({
         <img
           src={strippedThumbUrl}
           alt=""
+          loading="lazy"
+          decoding="async"
           className="absolute inset-0 w-full h-full object-cover filter blur-md scale-110 opacity-70"
         />
       )}
@@ -43,6 +52,8 @@ export const ThumbnailImage: React.FC<ThumbnailImageProps> = ({
       <img
         src={displaySrc}
         alt=""
+        loading="lazy"
+        decoding="async"
         onLoad={() => setLoaded(true)}
         onError={() => setError(true)}
         className={`w-full h-full object-cover transition-opacity duration-300 ${

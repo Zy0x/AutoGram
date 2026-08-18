@@ -71,7 +71,7 @@ function toOptimizedBlobUrl(url: string): string {
 
 class LRUThumbnailCache {
   private cache = new Map<string, string>();
-  private readonly MAX_SIZE = 1200;
+  private readonly MAX_SIZE = 350; // Optimized memory-lean threshold (40+ rows)
 
   get(key: string): string | undefined {
     const value = this.cache.get(key);

@@ -1,12 +1,14 @@
-AutoGram Version: v3.7.58
+AutoGram Version: v3.7.59
 
 Current State:
-v3.7.58 Monotonic Non-Media Gap Traversal, 24k+ Deep Indexing Streaming & Zero-Halt Continuity — membenahi `MediaStudio/index.tsx`, `resilienceStressTest.test.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Monotonic Non-Media Gap Traversal: Mengatasi terhentinya pengindeksan akibat blok pesan non-media (teks, stiker, log event) di Telegram. Sistem secara otomatis memajukan offset mundur (`offset - 400`) melompati celah kosong dan terus memindai secara kontinu hingga seluruh berkas terindeks.
-2. 24.080+ Continuous Live Streaming Passed: Teruji penuh via CDP pada desktop native hingga menembus 24.080 dari 43.060 berkas (56%) tanpa pernah berhenti atau jeda prematur di tengah jalan.
-3. 4-Step E2E Multi-Location Integrity Verified: Teruji bahwa data 24.080 berkas tetap tersimpan utuh di IndexedDB, pulih instan dalam 0ms saat berpindah ke drive lain dan kembali, serta bertahan saat keluar ke Workspace Hub dan re-login.
+v3.7.59 Lean RAM Footprint, Viewport Image Bitmap Recycling & LevelDB Micro-Commit Optimization — membenahi `thumbBatcher.ts`, `ThumbnailImage.tsx`, `DriveFileCard.tsx`, `DriveExplorer.tsx`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Viewport-Only Bitmap Eviction & Native Async Decoding: Menerapkan `loading="lazy"` dan `decoding="async"` serta pembersihan referensi gambar saat kartu keluar dari viewport (unmount), memicu Chromium Skia untuk segera mendaur ulang alokasi uncompressed RGBA bitmap di RAM C++.
+2. Calibrated LRU Thumbnail Memory: Mengoptimasi batas memori `LRUThumbnailCache` ke 350 kartu (~40 baris viewport), memangkas konsumsi RAM tanpa mengorbankan kecepatan preview instan (didukung IndexedDB persistent cache).
+3. Batched LevelDB Micro-Commit & Idle Memory Reclamation: Memperbesar batch transaksi IndexedDB ke 2.500 item dan menjadwalkan `requestIdleCallback` untuk membersihkan buffer memori saat pengindeksan selesai/jeda.
+4. Tight Virtual Overscan Tuning: Mengkalibrasi overscan grid ke 2-3 baris, menjaga jumlah elemen gambar aktif di DOM tetap minimal.
 
 Previous:
+v3.7.58 Monotonic Non-Media Gap Traversal, 24k+ Deep Indexing Streaming & Zero-Halt Continuity — membenahi `MediaStudio/index.tsx`, `resilienceStressTest.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.57 Dynamic Heap Calibration, Unbounded Indexing Continuity & Lowest-ID Resumption Engine — membenahi `memoryCircuitBreaker.ts`, `memoryCircuitBreaker.test.ts`, `resilienceStressTest.test.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.56 Persistent Deep-Snapshot Auto-Reconciliation & 4-Step E2E Remote Restoration Integrity — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.55 In-Drive Live Session Reconnection, Self-Healing Circuit Reset & Responsive Anti-Truncation Relogin Bar — membenahi `DriveSidebarIndex.tsx`, `MediaStudio/index.tsx`, `App.css`, `speedtest.json` (ID & EN), `VERSION.md`, dan `CHANGELOG.md`.
