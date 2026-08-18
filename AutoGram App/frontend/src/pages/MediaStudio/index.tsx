@@ -536,6 +536,7 @@ function MediaDriveDesktop({
   >(null);
   const [cachedMediaBreakdown, setCachedMediaBreakdown] = useState<ExactMediaBreakdown | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [totalIndexedCount, setTotalIndexedCount] = useState<number>(0);
   const [nextOffsetId, setNextOffsetId] = useState<number | null>(
     () => initialLocationCache?.nextOffsetId ?? null
   );
@@ -3327,7 +3328,7 @@ function MediaDriveDesktop({
     setIndexingAllActive(true);
 
     const initialTotal = totalFileCount || 0;
-    const initialProcessed = liveFilesRef.current.length;
+    const initialProcessed = Math.max(liveFilesRef.current.length, totalIndexedCount);
     const initialTier = determineIndexingTier(initialTotal, initialProcessed);
     const startTimeMs = Date.now();
 
@@ -3362,7 +3363,7 @@ function MediaDriveDesktop({
     let lastRenderTime = Date.now();
     let lastProgressTime = 0;
     let accumulatedNewFiles: DriveFile[] = [];
-    let indexedLoadedCount = liveFilesRef.current.length;
+    let indexedLoadedCount = initialProcessed;
     let dbBatch: any[] = [];
 
     try {
@@ -3446,6 +3447,7 @@ function MediaDriveDesktop({
         }
 
         indexedLoadedCount += page.length;
+        setTotalIndexedCount(indexedLoadedCount);
         const curLoaded = indexedLoadedCount;
         const curTotal = totalFileCount || initialTotal;
         const metrics = calculateIndexingMetrics(curLoaded, curTotal, startTimeMs);
@@ -3590,6 +3592,7 @@ function MediaDriveDesktop({
       indexingPausedRef.current = false;
       setIndexingAllActive(false);
       setIndexingJob({ active: false, processed: 0, total: 0, text: '', isPaused: false });
+      setTotalIndexedCount(indexedLoadedCount);
       setStatusText(t('ui.generated.semua_media_dimuat_2310a13'));
       if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
         (window as any).requestIdleCallback(() => {
@@ -8761,7 +8764,7 @@ function MediaDriveDesktop({
             transferBadgeKind={transferBadge(transfer).kind}
             onOpenLocations={openDrawer}
             loading={loadingFiles}
-            fileCount={files.length}
+            fileCount={Math.max(files.length, totalIndexedCount)}
             totalCount={totalFileCount}
             viewPerspective={viewPerspective}
             onViewPerspective={(p) => {

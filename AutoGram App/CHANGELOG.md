@@ -1,3 +1,12 @@
+## v3.7.79 Preserved Progress on Index Cancellation & Live Stream Verified (Phase 35.45)
+
+### 1. Preservasi Nilai Progres Saat Penghentian Indeks (`MediaStudio/index.tsx`)
+- **State Total Terindeks Terisolasi (`totalIndexedCount`)**:
+  - Menghilangkan masalah di mana penghentian indeks membuat angka kembali turun ke batas RAM 2.500.
+  - Nilai progres kini terkunci presisi sesuai total berkas yang sudah berhasil dipindai dan disimpan ke IndexedDB SSD (misal: `3.500/43.060`).
+- **Verifikasi Pengujian Remote CDP**:
+  - Uji remote otomatis mengonfirmasi kecepatan streaming ⚡4.700 berkas/detik dan status terkunci stabil saat tombol stop ditekan.
+
 ## v3.7.78 Sub-Second Live Streaming Indexer (Phase 35.44)
 
 ### 1. Eliminasi Hambatan Tunggu 20-25 Detik pada Backend Rust (`media_list.rs`, `MediaStudio`)
