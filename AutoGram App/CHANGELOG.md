@@ -1,3 +1,10 @@
+## v3.7.83 Fix Index Button Activation Guard & Re-Trigger Pipeline (Phase 35.49)
+
+### 1. Perbaikan Tombol Index All yang Tidak Merespons (`MediaStudio/index.tsx`)
+- **Penanganan Guard State Re-Trigger**:
+  - Memperbaiki kondisi guard di mana `filesHasMoreRef` yang sebelumnya bernilai `false` atau `nextOffsetIdRef` bernilai `null` menyebabkan fungsi langsung keluar sebelum menjalankan loop.
+  - Menginisialisasi `filesHasMoreRef.current = true` saat tombol ditekan agar pemindaian selalu berjalan seketika saat tombol diklik.
+
 ## v3.7.82 Mega-Scale 10,000-Item Single-Batch Queries & 15,000-Item SSD Commit (Phase 35.48)
 
 ### 1. Peningkatan Kapasitas Mega-Batch 10.000 Berkas (`media_list.rs`, `MediaStudio`)

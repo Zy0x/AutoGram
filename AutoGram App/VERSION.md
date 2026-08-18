@@ -1,12 +1,12 @@
-AutoGram Version: v3.7.82
+AutoGram Version: v3.7.83
 
 Current State:
-v3.7.82 Mega-Scale 10,000-Item Single-Batch Queries & 15,000-Item SSD Commit — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Mega-Scale 10,000-Item Single-Batch Queries: Meningkatkan kapasitas tarikan backend Rust dan frontend ke 10.000–15.000 berkas per panggilan tunggal dengan batas scan 30.000 pesan. Seluruh 43.060 berkas di `#Gudang` tuntas diproses hanya dalam 4–5 siklus panggilan mega.
-2. 15,000-Item SSD Database Commit: Mengumpulkan data hingga 15.000 berkas per transaksi IndexedDB SSD, meminimalkan operasi I/O disk ke level paling efisien.
-3. 10,000-Message Monotonic Gap Jumps: Melewati area pesan non-media dengan lonjakan 10.000 pesan per lompatan.
+v3.7.83 Fix Index Button Activation Guard & Re-Trigger Pipeline — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Fixed Index Button Activation Guard: Memperbaiki guard condition pada `handleIndexAllMetadata` di mana status `filesHasMore` atau `nextOffsetId` yang sebelumnya false/null mencegah tombol "Index All" berjalan saat diklik. Kini tombol selalu aktif dan menginisialisasi loop pemindaian secara andal.
+2. Direct Stream Initialization: Memungkinkan pemindaian pertama langsung berjalan dari pesan terbaru jika offset awal belum tercatat.
 
 Previous:
+v3.7.82 Mega-Scale 10,000-Item Single-Batch Queries & 15,000-Item SSD Commit — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.81 Hyper-Scale 750-Item Pipelining & 10,000-Item SSD Commit — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.80 500-Item Batch Pacing with 5,000-Item SSD Commit & Sub-Second Pauses — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.79 Preserved Progress on Index Cancellation & Live Stream Verified — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.

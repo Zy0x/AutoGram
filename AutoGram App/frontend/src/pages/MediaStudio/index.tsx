@@ -3320,8 +3320,8 @@ function MediaDriveDesktop({
       }
     }
 
-    const hasMore = (totalFileCount != null && liveFilesRef.current.length < totalFileCount) || filesHasMoreRef.current || (nextOffsetIdRef.current != null && nextOffsetIdRef.current > 0);
-    if (!hasMore) return;
+    filesHasMoreRef.current = true;
+    setFilesHasMore(true);
 
     indexingActiveRef.current = true;
     indexingPausedRef.current = false;
@@ -3370,7 +3370,6 @@ function MediaDriveDesktop({
       while (
         indexingActiveRef.current &&
         filesHasMoreRef.current &&
-        nextOffsetIdRef.current &&
         gen === peerGen.current &&
         activeFilesCacheKeyRef.current === cacheKey
       ) {
