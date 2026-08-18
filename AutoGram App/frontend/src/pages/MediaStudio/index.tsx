@@ -3400,7 +3400,7 @@ function MediaDriveDesktop({
         while (retries < 5 && indexingActiveRef.current) {
           try {
             res = await driveListFiles(creds, peerId, {
-              pageSize: 250,
+              pageSize: 400,
               offsetId: offset,
               topicId: tid,
               quickStats: false,
@@ -3425,7 +3425,7 @@ function MediaDriveDesktop({
           const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
           const scoped = scopeMediaRecords(page, mediaContext, peerId || 0);
           dbBatch.push(...scoped);
-          if (dbBatch.length >= 2500 || !res?.has_more) {
+          if (dbBatch.length >= 3500 || !res?.has_more) {
             const toWrite = dbBatch;
             dbBatch = [];
             void saveMediaRecords(toWrite).catch(() => {});
@@ -3516,8 +3516,12 @@ function MediaDriveDesktop({
 
         // Adaptive Delay & UI Frame Pacing: requestAnimationFrame gives full rendering time to Windows OS
         const { delayMs } = getAdaptiveDelay(currentTier, curLoaded, reqLatency);
-        const safeDelay = Math.max(delayMs, 10);
-        await new Promise((r) => requestAnimationFrame(() => setTimeout(r, safeDelay)));
+        const safeDelay = Math.max(delayMs, 0);
+        if (safeDelay > 0) {
+          await new Promise((r) => setTimeout(r, safeDelay));
+        } else {
+          await new Promise((r) => requestAnimationFrame(r));
+        }
       }
 
       // Flush any remaining batched media records to IndexedDB and UI

@@ -44,41 +44,41 @@ export function getAdaptiveDelay(
   loadedCount: number,
   networkLatencyMs: number = 0
 ): AdaptiveDelayResult {
-  let baseDelay = 20;
+  let baseDelay = 6;
   let isMicroBreath = false;
 
   switch (tier) {
     case 'micro':
-      baseDelay = 10;
+      baseDelay = 2;
       break;
     case 'medium':
-      baseDelay = 15;
+      baseDelay = 4;
       break;
     case 'massive':
-      // Phase 1 (first 2,000 files): Fast viewport burst (15ms)
-      // Phase 2: High-speed sustained turbo sweet-spot (20ms)
-      baseDelay = loadedCount < 2000 ? 15 : 20;
+      // Phase 1 (first 2,000 files): Fast viewport burst (3ms)
+      // Phase 2: High-speed sustained turbo sweet-spot (6ms)
+      baseDelay = loadedCount < 2000 ? 3 : 6;
       break;
     case 'colossal':
     case 'galactic':
-      baseDelay = 25;
-      // Micro-breath pause every 5,000 items (120ms) to relax Telegram socket connection
-      if (loadedCount > 0 && loadedCount % 5000 < 200) {
-        baseDelay = 120;
+      baseDelay = 8;
+      // Micro-breath pause every 10,000 items (60ms) to relax socket buffers
+      if (loadedCount > 0 && loadedCount % 10000 < 350) {
+        baseDelay = 60;
         isMicroBreath = true;
       }
       break;
   }
 
   // Dynamic Flood-Shield Latency Compensation:
-  // If network latency is elevated (> 200ms), increase backoff proportionally
-  if (networkLatencyMs > 350) {
-    baseDelay = Math.round(baseDelay * 2.2);
-  } else if (networkLatencyMs > 200) {
-    baseDelay = Math.round(baseDelay * 1.5);
+  // If network latency is elevated (> 300ms), increase backoff proportionally
+  if (networkLatencyMs > 400) {
+    baseDelay = Math.round(baseDelay * 2.0);
+  } else if (networkLatencyMs > 250) {
+    baseDelay = Math.round(baseDelay * 1.4);
   }
 
-  return { delayMs: Math.max(8, baseDelay), isMicroBreath };
+  return { delayMs: Math.max(0, baseDelay), isMicroBreath };
 }
 
 /**
