@@ -1,3 +1,10 @@
+## v3.7.70 Ultra-Concise Ratio Action Format in Sort Scope Chip (Phase 35.36)
+
+### 1. Format Rasio Ringkas pada Chip Sort Toolbar (`speedtest.json`)
+- **Penyederhanaan Teks Chip**:
+  - Mengubah label chip pengurutan parsial menjadi format ringkas: `[loaded]/[total] Index All` (misalnya: `230/43.060 Index All` atau `230/43.060 Indeks Semua`).
+  - Menghilangkan teks berulang agar antarmuka lebih bersih, elegan, dan langsung mengarah pada tindakan (*action-oriented*).
+
 ## v3.7.69 Explicit Loaded / Total Ratio Display in Sort Scope Chip (Phase 35.35)
 
 ### 1. Tampilan Rasio Terurut Sebagian yang Transparan (`DriveTopBar.tsx`, `speedtest.json`)
