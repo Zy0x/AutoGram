@@ -3485,7 +3485,7 @@ function MediaDriveDesktop({
           nextOffset = lowestMsgIdInPage;
         } else if (offset != null && offset > 1) {
           // Monotonic gap traversal: jump backwards past non-media blocks
-          nextOffset = Math.max(1, offset - 400);
+          nextOffset = Math.max(1, offset - 1000);
         }
 
         const reachedTotal = (curTotal > 0 && curLoaded >= curTotal);
@@ -5807,7 +5807,7 @@ function MediaDriveDesktop({
     let stalled = 0;
     try {
       while (filesHasMoreRef.current) {
-        await loadMoreFiles({ pageSize: 250 });
+        await loadMoreFiles({ pageSize: 1000 });
         await new Promise((resolve) => window.setTimeout(resolve, 80));
         const currentCount = loadedUniqueMediaCount(liveFilesRef.current);
         setZipPreflight((state) => ({ ...state, scannedCount: currentCount }));

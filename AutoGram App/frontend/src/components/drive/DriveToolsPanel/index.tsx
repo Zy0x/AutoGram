@@ -964,8 +964,8 @@ function DupTab({
       }
       while (!scanStopRef.stop && filesHasMoreRef.current) {
         try {
-          // Request Turbo Page Size (250 items per page for 5x-10x faster scan!)
-          await onLoadMoreFiles({ pageSize: 250 });
+          // Request Turbo Page Size (1,000 items per page for ultra-fast deep scan)
+          await onLoadMoreFiles({ pageSize: 1000 });
           setFloodWaitSeconds(null);
           // Wait briefly for React state batching to propagate loadedCount
           await new Promise((r) => setTimeout(r, 60));

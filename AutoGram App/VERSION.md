@@ -1,11 +1,12 @@
-AutoGram Version: v3.7.76
+AutoGram Version: v3.7.77
 
 Current State:
-v3.7.76 Telegram Protocol Ceiling: 1,000-Item MTProto Pipeline & 10,000 SSD Batch — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Maximum 1,000-Item MTProto RPC Pipeline: Menaikkan limit Rust backend dan frontend ke batas optimal protokol Telegram (1.000 berkas per permintaan RPC batch dengan batas pemindaian 5.000 dan topik 50.000). Untuk 43.060 berkas di `#Gudang`, hanya diperlukan 43 kali panggilan jaringan.
-2. 10,000-Item SSD Database Commit: Menaikkan batch commit IndexedDB ke 10.000 berkas per transaksi, menyelesaikan seluruh pengindeksan channel dalam 4 kali penulisan SSD ultra-cepat.
+v3.7.77 Global 1,000-Item Indexing Pipeline Across All Modules — membenahi `DriveToolsPanel/index.tsx`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Universal 1,000-Item Page Size: Menerapkan kapasitas tarikan 1.000 berkas per RPC di seluruh sub-modul pemindaian dan pengindeksan (`handleIndexAllMetadata`, `loadMoreFiles`, `Zip preflight indexer`, dan `DriveToolsPanel deep scan`).
+2. Synchronized 1,000-Offset Monotonic Leaps: Memperbesar lonjakan offset gap traversal menjadi 1.000 pesan untuk memangkas waktu pemindaian area kosong tanpa berkas media.
 
 Previous:
+v3.7.76 Telegram Protocol Ceiling: 1,000-Item MTProto Pipeline & 10,000 SSD Batch — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.75 Uncapped Rust Backend Scan Limits & 8,000-Item SSD Batch Commit — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.74 Maximum Safe Indexing Throughput (500 items / Auto FloodWait Protection) — membenahi `MediaStudio/index.tsx`, `speedtest.json` (ID/EN), `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.73 Extreme Ultra-Speed Indexing Pipeline (400 items / 2-6ms delay) — membenahi `adaptiveIndexer.ts`, `adaptiveIndexer.test.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
