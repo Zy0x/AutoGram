@@ -1,3 +1,13 @@
+## v3.7.82 Mega-Scale 10,000-Item Single-Batch Queries & 15,000-Item SSD Commit (Phase 35.48)
+
+### 1. Peningkatan Kapasitas Mega-Batch 10.000 Berkas (`media_list.rs`, `MediaStudio`)
+- **Query Mega-Batch 10.000 Berkas per Siklus**:
+  - Mengonfigurasi `pageSize: 10000` di frontend dan `limit.clamp(1, 15000)` di backend Rust dengan batas scan `30.000` pesan.
+  - Seluruh 43.060 berkas di `#Gudang` tuntas diproses hanya dalam 4–5 siklus panggilan mega.
+- **Batch Database 15.000 Berkas per Commit**:
+  - Mengumpulkan penulisan database IndexedDB SSD hingga blok raksasa 15.000 berkas per transaksi.
+  - Lonjakan celah pesan non-media diperbesar menjadi 10.000 pesan per lonjakan.
+
 ## v3.7.81 Hyper-Scale 750-Item Pipelining & 10,000-Item SSD Commit (Phase 35.47)
 
 ### 1. Peningkatan Throughput Hyper-Scale (`media_list.rs`, `MediaStudio`)

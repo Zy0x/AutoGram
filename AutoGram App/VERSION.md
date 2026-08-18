@@ -1,12 +1,13 @@
-AutoGram Version: v3.7.81
+AutoGram Version: v3.7.82
 
 Current State:
-v3.7.81 Hyper-Scale 750-Item Pipelining & 10,000-Item SSD Commit — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. 750-Item Hyper-Scale Pipelining: Meningkatkan tarikan RPC menjadi 750 berkas per request dan scan limit 2.000 berkas di Rust backend. Memangkas total putaran jaringan untuk 43.060 berkas di `#Gudang` menjadi hanya ~55 kali panggilan jaringan super cepat.
-2. 10,000-Item SSD Database Commit: Mengumpulkan data hingga 10.000 berkas per transaksi IndexedDB SSD, menyelesaikan seluruh pengindeksan channel dalam 4 kali penulisan SSD ultra-ringan.
-3. 750-Message Monotonic Gap Jumps: Melewati area pesan non-media dengan lonjakan 750 pesan dan pembaruan live progres 60fps yang sangat halus.
+v3.7.82 Mega-Scale 10,000-Item Single-Batch Queries & 15,000-Item SSD Commit — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Mega-Scale 10,000-Item Single-Batch Queries: Meningkatkan kapasitas tarikan backend Rust dan frontend ke 10.000–15.000 berkas per panggilan tunggal dengan batas scan 30.000 pesan. Seluruh 43.060 berkas di `#Gudang` tuntas diproses hanya dalam 4–5 siklus panggilan mega.
+2. 15,000-Item SSD Database Commit: Mengumpulkan data hingga 15.000 berkas per transaksi IndexedDB SSD, meminimalkan operasi I/O disk ke level paling efisien.
+3. 10,000-Message Monotonic Gap Jumps: Melewati area pesan non-media dengan lonjakan 10.000 pesan per lompatan.
 
 Previous:
+v3.7.81 Hyper-Scale 750-Item Pipelining & 10,000-Item SSD Commit — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.80 500-Item Batch Pacing with 5,000-Item SSD Commit & Sub-Second Pauses — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.79 Preserved Progress on Index Cancellation & Live Stream Verified — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.78 Sub-Second Live Streaming Indexer (Eliminated 25s Multi-Chunk Blocking Delay) — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
