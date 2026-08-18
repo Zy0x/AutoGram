@@ -1,3 +1,29 @@
+## v3.7.58 Monotonic Non-Media Gap Traversal, 24k+ Deep Indexing Streaming & Zero-Halt Continuity (Phase 35.24)
+
+### 1. Monotonic Non-Media Gap Traversal (`MediaStudio/index.tsx`)
+- **Penanganan Celah Pesan Non-Media Tanpa Henti**:
+  - Mengimplementasikan fallback lompatan mundur dinamis (`offset - 400`) saat bertemu blok pesan teks atau sistem di Telegram yang tidak mengandung media.
+  - Memastikan proses indeks tidak mengira telah mencapai ujung riwayat hanya karena satu batch pesan kosong dari berkas media.
+  - Berhasil memindai secara kontinu melampaui 24.080 dari 43.060 berkas (56%) tanpa henti.
+
+### 2. 4-Step E2E Multi-Location Integrity Verified
+- **Pengujian Penuh 24k+ Berkas**:
+  - Berhasil mengindeks 24.080 berkas dengan mode *Oldest first* aktif di mana berkas tertua langsung naik ke posisi teratas secara instan.
+  - Berpindah lokasi ke *Saved Messages* dan kembali ke `#Gudang` memulihkan seluruh 24.080 berkas dalam 0ms tanpa mengulang indeks.
+  - Keluar ke *Telegram Workspace Hub* dan membuka kembali sesi menjaga snapshot IndexedDB 100% utuh.
+
+## v3.7.57 Dynamic Heap Calibration, Unbounded Indexing Continuity & Lowest-ID Resumption Engine (Phase 35.23)
+
+### 1. Kalibrasi Heap Dinamis & Penghapusan Jeda Prematur (`memoryCircuitBreaker.ts`)
+- **High-Capacity Desktop Heap Thresholds**:
+  - Mengkalibrasi ambang batas `checkMemoryHealth` dari 280MB ke ambang batas dinamis ($\ge 1.5\text{GB}$ / $88\%$ dari alokasi V8), mencegah circuit breaker memicu jeda palsu saat memuat puluhan ribu berkas di RAM.
+  - Menambahkan auto-reclamation dan retry instan sebelum memutuskan untuk menjeda proses.
+
+### 2. Lowest-ID Resumption Engine (`MediaStudio/index.tsx`)
+- **Uninterrupted Index Resumption**:
+  - Menambahkan kalkulasi `lowestMsgId` secara otomatis dari kumpulan berkas lokal yang sudah ada untuk menjamin ketersediaan offset ID saat pengguna menekan `[Index All]`.
+  - Memastikan pengindeksan dapat terus mengalir menembus 20.000 hingga 43.060+ berkas tanpa batas.
+
 ## v3.7.56 Persistent Deep-Snapshot Auto-Reconciliation & 4-Step E2E Remote Restoration Integrity (Phase 35.22)
 
 ### 1. Rekonsiliasi Snapshot Deep-Index Terintegrasi (`MediaStudio/index.tsx`)

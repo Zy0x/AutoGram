@@ -94,12 +94,12 @@ describe('AutoGram Ultra-Heavy Resilience & Stress Endurance Test', () => {
     expect(reconciled[0].id).toBe(liveHead[0].id);
   });
 
-  it('4. Hardware-Safety Circuit Breaker: Auto-Trip on critical memory spike (>280MB)', () => {
-    // Simulate memory climbing from 60MB -> 180MB -> 350MB
+  it('4. Hardware-Safety Circuit Breaker: Auto-Trip on critical memory spike (above critical threshold)', () => {
+    // Simulate memory climbing near exhaustion
     Object.defineProperty(globalThis, 'performance', {
       value: {
         memory: {
-          usedJSHeapSize: 310 * 1024 * 1024, // 310 MB (above 280MB threshold)
+          usedJSHeapSize: 1950 * 1024 * 1024, // 1950 MB (above critical threshold for 2048MB heap)
           jsHeapSizeLimit: 2048 * 1024 * 1024,
         },
       },
@@ -111,7 +111,7 @@ describe('AutoGram Ultra-Heavy Resilience & Stress Endurance Test', () => {
     expect(status.status).toBe('critical');
     expect(status.shouldThrottle).toBe(true);
     expect(status.shouldTripCircuit).toBe(true);
-    expect(status.heapUsedMb).toBe(310);
+    expect(status.heapUsedMb).toBe(1950);
   });
 
   it('5. Circuit Breaker Recovery: Returns to optimal when memory drops back (<150MB)', () => {

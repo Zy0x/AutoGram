@@ -13,9 +13,9 @@ export interface MemoryHealthStatus {
   shouldTripCircuit: boolean;
 }
 
-// Memory thresholds (tuned for lightweight desktop operation)
-const ELEVATED_HEAP_MB = 150;
-const CRITICAL_HEAP_MB = 280;
+// Memory thresholds (tuned for high-capacity desktop indexing without premature halts)
+const DEFAULT_ELEVATED_HEAP_MB = 850;
+const DEFAULT_CRITICAL_HEAP_MB = 1500;
 
 /**
  * Inspect current JavaScript Heap memory and event loop health.
@@ -35,7 +35,15 @@ export function checkMemoryHealth(): MemoryHealthStatus {
   const heapUsedMb = Math.round(memory.usedJSHeapSize / (1024 * 1024));
   const heapLimitMb = Math.round((memory.jsHeapSizeLimit || 0) / (1024 * 1024));
 
-  if (heapUsedMb >= CRITICAL_HEAP_MB) {
+  const criticalThreshold = heapLimitMb > 0 
+    ? Math.max(DEFAULT_CRITICAL_HEAP_MB, Math.round(heapLimitMb * 0.88))
+    : DEFAULT_CRITICAL_HEAP_MB;
+
+  const elevatedThreshold = heapLimitMb > 0
+    ? Math.max(DEFAULT_ELEVATED_HEAP_MB, Math.round(heapLimitMb * 0.65))
+    : DEFAULT_ELEVATED_HEAP_MB;
+
+  if (heapUsedMb >= criticalThreshold) {
     return {
       heapUsedMb,
       heapLimitMb,
@@ -45,7 +53,7 @@ export function checkMemoryHealth(): MemoryHealthStatus {
     };
   }
 
-  if (heapUsedMb >= ELEVATED_HEAP_MB) {
+  if (heapUsedMb >= elevatedThreshold) {
     return {
       heapUsedMb,
       heapLimitMb,

@@ -2648,8 +2648,18 @@ function MediaDriveDesktop({
               const deduped = dedupeByMsgId(filtered);
               setFiles(deduped);
               filesCacheRef.current.set(cacheKey, deduped);
-              setFilesHasMore(snapshot.hasMore);
-              setNextOffsetId(snapshot.nextOffsetId);
+              
+              const lowestMsgId = deduped.length > 0
+                ? Math.min(...deduped.map((f: any) => typeof f.id === 'number' ? f.id : parseInt(String(f.id), 10)).filter((n: number) => !isNaN(n) && n > 0))
+                : null;
+              const effectiveHasMore = (snapshot.totalCount != null && deduped.length < snapshot.totalCount) || snapshot.hasMore;
+              const effectiveOffset = snapshot.nextOffsetId || lowestMsgId;
+
+              setFilesHasMore(effectiveHasMore);
+              filesHasMoreRef.current = effectiveHasMore;
+              setNextOffsetId(effectiveOffset);
+              nextOffsetIdRef.current = effectiveOffset;
+
               if (snapshot.totalCount != null) {
                 setTotalFileCount(snapshot.totalCount);
                 filesTotalCountRef.current.set(cacheKey, snapshot.totalCount);
@@ -3243,7 +3253,23 @@ function MediaDriveDesktop({
   }, []);
 
   const handleIndexAllMetadata = useCallback(async () => {
-    if (indexingActiveRef.current || !filesHasMore || loadingMoreFiles) return;
+    if (indexingActiveRef.current || loadingMoreFiles) return;
+
+    if (!nextOffsetIdRef.current && liveFilesRef.current.length > 0) {
+      const lowest = Math.min(
+        ...liveFilesRef.current
+          .map((f: any) => typeof f.id === 'number' ? f.id : parseInt(String(f.id), 10))
+          .filter((n: number) => !isNaN(n) && n > 0)
+      );
+      if (lowest && lowest > 0) {
+        nextOffsetIdRef.current = lowest;
+        setNextOffsetId(lowest);
+      }
+    }
+
+    const hasMore = (totalFileCount != null && liveFilesRef.current.length < totalFileCount) || filesHasMoreRef.current || (nextOffsetIdRef.current != null && nextOffsetIdRef.current > 0);
+    if (!hasMore) return;
+
     indexingActiveRef.current = true;
     indexingPausedRef.current = false;
     setIndexingAllActive(true);
@@ -3298,14 +3324,18 @@ function MediaDriveDesktop({
         // Autonomous Memory Circuit Breaker Check
         const memHealth = checkMemoryHealth();
         if (memHealth.shouldTripCircuit) {
-          indexingPausedRef.current = true;
-          setIndexingJob((prev) => ({
-            ...prev,
-            isPaused: true,
-            text: t('speedtest.memory_shield_critical_title'),
-          }));
           executeEmergencyMemoryReclamation();
-          setStatusText(t('speedtest.memory_shield_critical_title'));
+          await new Promise((r) => setTimeout(r, 250));
+          const postHealth = checkMemoryHealth();
+          if (postHealth.shouldTripCircuit) {
+            indexingPausedRef.current = true;
+            setIndexingJob((prev) => ({
+              ...prev,
+              isPaused: true,
+              text: t('speedtest.memory_shield_critical_title'),
+            }));
+            setStatusText(t('speedtest.memory_shield_critical_title'));
+          }
         } else if (memHealth.shouldThrottle) {
           executeEmergencyMemoryReclamation();
         }
@@ -3348,14 +3378,6 @@ function MediaDriveDesktop({
           }
         }
 
-        if (!res.has_more || !res.next_offset_id) {
-          filesHasMoreRef.current = false;
-          setFilesHasMore(false);
-          nextOffsetIdRef.current = null;
-          setNextOffsetId(null);
-          break;
-        }
-
         indexedLoadedCount += page.length;
         const curLoaded = indexedLoadedCount;
         const curTotal = totalFileCount || initialTotal;
@@ -3377,6 +3399,34 @@ function MediaDriveDesktop({
           });
           lastRenderTime = now;
         }
+
+        const lowestMsgIdInPage = (page.length > 0)
+          ? Math.min(...page.map((f: any) => typeof f.id === 'number' ? f.id : parseInt(String(f.id), 10)).filter((n: number) => !isNaN(n) && n > 0))
+          : null;
+
+        let nextOffset: number | null = null;
+        if (res.next_offset_id && res.next_offset_id > 0 && (offset == null || res.next_offset_id < offset)) {
+          nextOffset = res.next_offset_id;
+        } else if (lowestMsgIdInPage && lowestMsgIdInPage > 1 && (offset == null || lowestMsgIdInPage < offset)) {
+          nextOffset = lowestMsgIdInPage;
+        } else if (offset != null && offset > 1) {
+          // Monotonic gap traversal: jump backwards past non-media blocks
+          nextOffset = Math.max(1, offset - 400);
+        }
+
+        const reachedTotal = (curTotal > 0 && curLoaded >= curTotal);
+        const hasMoreWork = !reachedTotal && nextOffset != null && nextOffset > 1;
+
+        if (!hasMoreWork || !nextOffset || nextOffset <= 1) {
+          filesHasMoreRef.current = false;
+          setFilesHasMore(false);
+          nextOffsetIdRef.current = null;
+          setNextOffsetId(null);
+          break;
+        }
+
+        nextOffsetIdRef.current = nextOffset;
+        setNextOffsetId(nextOffset);
 
         // Periodic Deep Snapshot Persistence every 2000 items
         if (creds?.session && curLoaded % 2000 < 200) {
