@@ -1,12 +1,12 @@
-AutoGram Version: v3.7.63
+AutoGram Version: v3.7.64
 
 Current State:
-v3.7.63 Database-First Direct SSD Ingestion & Bounded RAM Buffer Architecture (Scalable to 1,000,000+ Files) — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Database-First Direct SSD Ingestion: Seluruh berkas yang masuk dari pemindaian Telegram ditulis langsung ke database lokal IndexedDB pada SSD via `saveMediaRecords`. Tidak ada penumpukan berkas tak terbatas di memori RAM.
-2. Bounded In-Memory Window (Max 2,500 Items): Membatasi buffer kartu visual aktif di memori RAM hingga maksimal 2.500 berkas teratas berdasarkan `sortMode` aktif. Berkas lama/tambahan otomatis dialokasikan ke SSD, menjaga JS Heap stabil di bawah 85MB bahkan saat mengindeks 15k, 50k, 100k, hingga 1.000.000 berkas.
-3. Zero-Growth RAM Scale: Menghilangkan memory leak / ballooning di mana RAM sebelumnya menumpuk lebih dari 1GB saat mencapai 15k berkas.
+v3.7.64 Universal Indexing Trigger & Progress Persistence next to SORT — membenahi `DriveTopBar.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Universal Index Button: Tombol / Chip pengindeksan (`Index All` / Progress Bar) kini selalu tampil permanen di sebelah dropdown `SORT` di semua mode pengurutan (`Newest first`, `Oldest first`, `Largest size`, `Name A-Z`, dll).
+2. One-Click Quick Indexing: Memungkinkan pengguna memulai pengindeksan atau sinkronisasi ulang kapan saja langsung dari toolbar tanpa perlu berpindah mode sort terlebih dahulu.
 
 Previous:
+v3.7.63 Database-First Direct SSD Ingestion & Bounded RAM Buffer Architecture (Scalable to 1,000,000+ Files) — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.62 Fix Premature Offset Overwrite, Unbounded 100% Indexing Continuity & Deep Snapshot Integrity — membenahi `MediaStudio/index.tsx`, `DriveExplorer.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.61 Uninterrupted Resilient Indexing Loop, Real-Time Dynamic Card Sorting & Lean Object Mapping — membenahi `driveTypes.ts`, `MediaStudio/index.tsx`, `DriveExplorer.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.60 Database-First Streaming, Zero-Loop Snapshot Serialization & Elimination of State Re-Sort Churn — membenahi `MediaStudio/index.tsx`, `DriveExplorer.tsx`, `DriveFileCard.tsx`, `VERSION.md`, dan `CHANGELOG.md`.

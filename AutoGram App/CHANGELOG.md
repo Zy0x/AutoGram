@@ -1,3 +1,11 @@
+## v3.7.64 Universal Indexing Trigger & Progress Persistence next to SORT (Phase 35.30)
+
+### 1. Tombol Pengindeksan Permanen di Sebelah SORT (`DriveTopBar.tsx`)
+- **Universal Visibility Across All Sort Modes**:
+  - Tombol / Chip pengindeksan (`Index All` / status progress bar / badge data terurut) kini **selalu tampil permanen di sebelah kanan kontrol SORT**.
+  - Tampil aktif di semua mode sortir (`Newest first`, `Oldest first`, `Largest size`, `Smallest size`, `Name A→Z`, dll) tanpa syarat.
+  - Memungkinkan pengguna memicu atau melanjutkan pengindeksan sewaktu-waktu dengan 1 kali klik.
+
 ## v3.7.63 Database-First Direct SSD Ingestion & Bounded RAM Buffer Architecture (Phase 35.29)
 
 ### 1. Direct-to-SSD Database Ingestion (`MediaStudio/index.tsx`)
