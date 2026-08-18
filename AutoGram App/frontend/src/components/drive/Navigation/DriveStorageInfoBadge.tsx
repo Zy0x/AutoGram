@@ -11,6 +11,7 @@ export type DriveStorageInfoBadgeProps = {
   statsAccurate?: boolean;
   isFinal: boolean;
   transferBusy?: boolean;
+  hasMore?: boolean;
   categoryCounts?: Record<string, number> | null;
   locationKey?: string;
 };
@@ -23,6 +24,7 @@ export function DriveStorageInfoBadge({
   statsAccurate = false,
   isFinal = false,
   transferBusy = false,
+  hasMore,
   categoryCounts = null,
   locationKey = 'root',
 }: DriveStorageInfoBadgeProps) {
@@ -45,9 +47,9 @@ export function DriveStorageInfoBadge({
   const statusMode = useMemo<'counting' | 'syncing' | 'accurate' | 'normal'>(() => {
     if (transferBusy) return 'syncing';
     if (statsLoading && !isFinal) return 'counting';
-    if (statsAccurate || isFinal) return 'accurate';
+    if (statsAccurate || isFinal || (hasMore === false && effectiveTotalCount > 0)) return 'accurate';
     return 'normal';
-  }, [transferBusy, statsLoading, statsAccurate, isFinal]);
+  }, [transferBusy, statsLoading, statsAccurate, isFinal, hasMore, effectiveTotalCount]);
 
   const startAutoDismissTimer = useCallback((durationMs = 3000) => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -165,13 +167,14 @@ export function DriveStorageInfoBadge({
   }, [statusMode, t]);
 
   const summaryText = useMemo(() => {
+    const isAccurate = statusMode === 'accurate' || statsAccurate || isFinal || hasMore === false;
     const countFormatted = effectiveTotalCount.toLocaleString();
-    const countPart = !isFinal && totalCount != null
-      ? t('speedtest.items_total_estimate', { count: countFormatted })
-      : t('speedtest.items_total_simple', { count: countFormatted, defaultValue: `${countFormatted} Items` });
-    const spacePart = spaceLabel ? ` · ${spaceLabel}` : '';
+    const countPart = isAccurate
+      ? t('speedtest.items_total_simple', { count: countFormatted, defaultValue: `${countFormatted} Items` })
+      : t('speedtest.items_total_estimate', { count: countFormatted });
+    const spacePart = spaceLabel ? ` · ${isAccurate ? spaceLabel.replace(/\+$/, '') : spaceLabel}` : '';
     return `${countPart}${spacePart}`;
-  }, [effectiveTotalCount, isFinal, totalCount, spaceLabel, t]);
+  }, [effectiveTotalCount, isFinal, statsAccurate, statusMode, hasMore, spaceLabel, t]);
 
   return (
     <div

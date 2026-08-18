@@ -2667,7 +2667,7 @@ function MediaDriveDesktop({
               const lowestMsgId = deduped.length > 0
                 ? Math.min(...deduped.map((f: any) => typeof f.id === 'number' ? f.id : parseInt(String(f.id), 10)).filter((n: number) => !isNaN(n) && n > 0))
                 : null;
-              const effectiveHasMore = (snapshot.totalCount != null && deduped.length < snapshot.totalCount) || snapshot.hasMore;
+              const effectiveHasMore = snapshot.hasMore === true && snapshot.nextOffsetId != null && snapshot.nextOffsetId > 1;
               const effectiveOffset = snapshot.nextOffsetId || lowestMsgId;
 
               setFilesHasMore(effectiveHasMore);
@@ -2682,6 +2682,11 @@ function MediaDriveDesktop({
               if (snapshot.totalBytes != null) {
                 setTotalBytes(snapshot.totalBytes);
                 filesTotalBytesRef.current.set(cacheKey, snapshot.totalBytes);
+              }
+
+              if (!effectiveHasMore && snapshot.totalCount != null && snapshot.totalCount > 0) {
+                setStatsAccurate(true);
+                setStatsLoading(false);
               }
               setLoadingFiles(false);
             }
@@ -3511,14 +3516,22 @@ function MediaDriveDesktop({
       // Persist deep index snapshot metadata to IndexedDB
       if (creds?.session) {
         const curFiles = filesCacheRef.current.get(cacheKey) || liveFilesRef.current;
+        const finalCount = totalFileCount || initialTotal || indexedLoadedCount || curFiles.length;
         if (curFiles.length > 0) {
           void saveDeepIndexSnapshot(creds.session, peerId, tid, {
             files: curFiles.slice(0, 2500),
             hasMore: filesHasMoreRef.current,
             nextOffsetId: nextOffsetIdRef.current,
-            totalCount: totalFileCount || initialTotal || indexedLoadedCount || curFiles.length,
+            totalCount: finalCount,
             totalBytes: totalBytes || null,
           }).catch(() => {});
+        }
+
+        if (!filesHasMoreRef.current) {
+          setStatsAccurate(true);
+          setStatsLoading(false);
+          setTotalFileCount(finalCount);
+          filesTotalCountRef.current.set(cacheKey, finalCount);
         }
       }
     } catch (err: any) {

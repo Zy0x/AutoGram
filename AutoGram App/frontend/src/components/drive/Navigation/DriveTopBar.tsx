@@ -645,6 +645,7 @@ export function DriveTopBar({
             statsAccurate={statsAccurate}
             isFinal={isFinal}
             transferBusy={transferBusy}
+            hasMore={hasMore}
             categoryCounts={categoryCounts}
             locationKey={folderName || 'root'}
           />

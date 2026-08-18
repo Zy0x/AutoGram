@@ -1,12 +1,12 @@
-AutoGram Version: v3.7.65
+AutoGram Version: v3.7.66
 
 Current State:
-v3.7.65 Permanent Header Info Icon (ⓘ) & Storage Popover Persistence — membenahi `DriveStorageInfoBadge.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Permanent Header Info Icon (ⓘ): Memperbaiki masalah hilangnya ikon info setelah 3 detik auto-splash; kini ikon "i" (dengan dot status koneksi/database) selalu hadir permanen di samping breadcrumbs / judul folder di header toolbar.
-2. Compact & Expanded States: Menampilkan pill ringkasan yang melebar saat berganti folder, dan beralih mulus ke ikon kompak `ⓘ` saat idle sehingga antarmuka tetap bersih dan rapi.
-3. Interactive Storage Details Popover: Memungkinkan pengguna membuka popover rincian penyimpanan, kategori media, dan status akurasi kapan saja dengan sekali klik.
+v3.7.66 Accurate Storage Status & Snapshot Completion Synchronization — membenahi `DriveStorageInfoBadge.tsx`, `DriveTopBar.tsx`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Fix Bounded RAM vs Total Count Discrepancy: Memperbaiki logika `effectiveHasMore` di mana pembatasan RAM (2.500 berkas) sebelumnya keliru dianggap sebagai data parsial/belum selesai. Kini sistem memeriksa status penyelesaian snapshot sesungguhnya (`snapshot.hasMore === false`), memastikan folder yang sudah 100% terindeks langsung ditandai sebagai `✓ Accurate` (tanpa tanda `≈` dan `+`).
+2. Seamless Index Completion State: Saat pengindeksan selesai, `statsAccurate` otomatis diaktifkan (`setStatsAccurate(true)`), dan chip badge beralih ke mode lengkap `✓ All [total] sorted`.
 
 Previous:
+v3.7.65 Permanent Header Info Icon (ⓘ) & Storage Popover Persistence — membenahi `DriveStorageInfoBadge.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.64 Universal Indexing Trigger & Progress Persistence next to SORT — membenahi `DriveTopBar.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.63 Database-First Direct SSD Ingestion & Bounded RAM Buffer Architecture (Scalable to 1,000,000+ Files) — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.62 Fix Premature Offset Overwrite, Unbounded 100% Indexing Continuity & Deep Snapshot Integrity — membenahi `MediaStudio/index.tsx`, `DriveExplorer.tsx`, `VERSION.md`, dan `CHANGELOG.md`.

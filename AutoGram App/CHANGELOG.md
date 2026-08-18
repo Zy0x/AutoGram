@@ -1,3 +1,11 @@
+## v3.7.66 Accurate Storage Status & Snapshot Completion Synchronization (Phase 35.32)
+
+### 1. Sinkronisasi Status Akurasi Data Berkas (`MediaStudio/index.tsx`, `DriveStorageInfoBadge.tsx`)
+- **Penyelesaian Bug `Initial Estimate` & `(partial)`**:
+  - Memperbaiki pengecekan `effectiveHasMore`: pembatasan buffer memori RAM (2.500 berkas) sebelumnya keliru membuat sistem mengira data masih belum selesai diindeks (`deduped.length < totalCount`).
+  - Kini sistem memverifikasi status indeks riil dari database/snapshot (`snapshot.hasMore === false`).
+  - Folder yang telah selesai diindeks otomatis beralih ke status **`✓ Accurate`** (menghilangkan tanda estimasi `≈` dan `+`), dan chip toolbar menampilkan status **`✓ All [total] sorted`**.
+
 ## v3.7.65 Permanent Header Info Icon (ⓘ) & Storage Popover Persistence (Phase 35.31)
 
 ### 1. Ikon Info "i" Permanen di Header Toolbar (`DriveStorageInfoBadge.tsx`, `App.css`)
