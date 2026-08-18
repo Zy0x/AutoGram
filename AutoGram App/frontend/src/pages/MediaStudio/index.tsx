@@ -3401,7 +3401,7 @@ function MediaDriveDesktop({
         while (retries < 5 && indexingActiveRef.current) {
           try {
             res = await driveListFiles(creds, peerId, {
-              pageSize: 250,
+              pageSize: 500,
               offsetId: offset,
               topicId: tid,
               quickStats: false,
@@ -3487,7 +3487,7 @@ function MediaDriveDesktop({
           nextOffset = lowestMsgIdInPage;
         } else if (offset != null && offset > 1) {
           // Monotonic gap traversal: jump backwards past non-media blocks
-          nextOffset = Math.max(1, offset - 250);
+          nextOffset = Math.max(1, offset - 500);
         }
 
         const reachedTotal = (curTotal > 0 && curLoaded >= curTotal);

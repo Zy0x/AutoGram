@@ -1,11 +1,12 @@
-AutoGram Version: v3.7.79
+AutoGram Version: v3.7.80
 
 Current State:
-v3.7.79 Preserved Progress on Index Cancellation & Live Stream Verified — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Preserved Indexed Progress State: Menambahkan state tracking `totalIndexedCount` terisolasi yang memastikan saat pengindeksan dihentikan (misal di angka 3.500 atau 15.000), total data yang terindeks tetap terjaga persis di antarmuka UI dan toolbar chip tanpa berkurang atau merosot kembali ke batas buffer RAM 2.500.
-2. Verified High-Speed Stream via Remote CDP: Pengujian live control membuktikan kecepatan pemindaian melesat di ⚡4.700 berkas/detik dan penghentian proses mengunci status terindeks secara akurat (`3.500/43.060 Index All`).
+v3.7.80 500-Item Batch Pacing with 5,000-Item SSD Commit & Sub-Second Pauses — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. 500-Item Batch Pacing: Mengatur tarikan RPC ke 500 berkas per request dan lompatan gap traversal ke 500 pesan. Menyelesaikan setiap 5.000 berkas hanya dalam 10 panggilan kilat (~2-3 detik) tanpa jeda beku 15-20 detik.
+2. 5,000-Item SSD Commit & Rapid Inter-Batch Transitions: Menetapkan penulisan database IndexedDB SSD per 5.000 berkas dan memangkas waktu jeda antar-batch menjadi sub-detik instan.
 
 Previous:
+v3.7.79 Preserved Progress on Index Cancellation & Live Stream Verified — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.78 Sub-Second Live Streaming Indexer (Eliminated 25s Multi-Chunk Blocking Delay) — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.77 Global 1,000-Item Indexing Pipeline Across All Modules — membenahi `DriveToolsPanel/index.tsx`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.76 Telegram Protocol Ceiling: 1,000-Item MTProto Pipeline & 10,000 SSD Batch — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.

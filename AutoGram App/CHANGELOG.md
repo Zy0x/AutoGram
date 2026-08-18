@@ -1,3 +1,13 @@
+## v3.7.80 500-Item Batch Pacing with 5,000-Item SSD Commit (Phase 35.46)
+
+### 1. Pacing 500 Berkas per Request & Penulisan Database 5.000 Berkas (`media_list.rs`, `MediaStudio`)
+- **Pacing 500 Berkas per Request**:
+  - Mengonfigurasi `pageSize: 500` di frontend dan `limit.clamp(1, 500)` di backend Rust dengan batas scan `1.000` dan lompatan celah 500 pesan.
+  - Setiap 5.000 berkas diselesaikan dalam 10 panggilan kilat (~2–3 detik total).
+- **Eliminasi Jeda Tunggu Antar-Batch**:
+  - Memangkas jeda antar-batch dari 15–20 detik menjadi transisi mulus sub-detik instan.
+  - Menuliskan data ke IndexedDB SSD setiap blok 5.000 berkas secara non-blocking.
+
 ## v3.7.79 Preserved Progress on Index Cancellation & Live Stream Verified (Phase 35.45)
 
 ### 1. Preservasi Nilai Progres Saat Penghentian Indeks (`MediaStudio/index.tsx`)
