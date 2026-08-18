@@ -6,7 +6,6 @@ import { DriveGridSkeleton, DriveListSkeleton, CenteredGlassmorphicProgress } fr
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import {
   DEFAULT_GRID_ZOOM,
-  canShowDriveThumb,
   computeDriveGridLayout,
   type DriveFile,
   type DriveGridZoom,
@@ -462,7 +461,8 @@ export function DriveExplorer({
         }
 
         const sliceAbove = displayed.slice(0, visibleStartIndex);
-        const newAbove = sliceAbove.filter((f: any) => !prevSet.has(f.id)).length;
+        const prevFirstIndex = sliceAbove.findIndex((f: any) => f.id === prevFirstId);
+        const newAbove = prevFirstIndex >= 0 ? prevFirstIndex : (currentCount - prevCount);
 
         if (newAbove > 0) {
           if (el) {

@@ -3468,6 +3468,8 @@ function MediaDriveDesktop({
                 })
               : t('speedtest.index_progress_count_only', { processed: curLoaded.toLocaleString() }),
           });
+        }
+
         // Adaptive Delay & UI Frame Pacing: requestAnimationFrame gives full rendering time to Windows OS
         const { delayMs } = getAdaptiveDelay(currentTier, curLoaded, reqLatency);
         const safeDelay = Math.max(delayMs, 40);
