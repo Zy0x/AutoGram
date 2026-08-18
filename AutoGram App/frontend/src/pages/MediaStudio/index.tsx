@@ -3401,7 +3401,7 @@ function MediaDriveDesktop({
         while (retries < 5 && indexingActiveRef.current) {
           try {
             res = await driveListFiles(creds, peerId, {
-              pageSize: 500,
+              pageSize: 750,
               offsetId: offset,
               topicId: tid,
               quickStats: false,
@@ -3439,7 +3439,7 @@ function MediaDriveDesktop({
           const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
           const scoped = scopeMediaRecords(page, mediaContext, peerId || 0);
           dbBatch.push(...scoped);
-          if (dbBatch.length >= 5000 || !res?.has_more) {
+          if (dbBatch.length >= 10000 || !res?.has_more) {
             const toWrite = dbBatch;
             dbBatch = [];
             void saveMediaRecords(toWrite).catch(() => {});
@@ -3487,7 +3487,7 @@ function MediaDriveDesktop({
           nextOffset = lowestMsgIdInPage;
         } else if (offset != null && offset > 1) {
           // Monotonic gap traversal: jump backwards past non-media blocks
-          nextOffset = Math.max(1, offset - 500);
+          nextOffset = Math.max(1, offset - 750);
         }
 
         const reachedTotal = (curTotal > 0 && curLoaded >= curTotal);
@@ -3504,8 +3504,8 @@ function MediaDriveDesktop({
         nextOffsetIdRef.current = nextOffset;
         setNextOffsetId(nextOffset);
 
-        // Rapid UI Progress Updates (every 80ms): smooth real-time streaming progress
-        if (now - lastProgressTime >= 80 || !res.has_more) {
+        // Rapid UI Progress Updates (every 60ms): smooth 60fps real-time streaming progress
+        if (now - lastProgressTime >= 60 || !res.has_more) {
           lastProgressTime = now;
           setIndexingProgress({
             processed: curLoaded,

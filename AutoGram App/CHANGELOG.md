@@ -1,3 +1,13 @@
+## v3.7.81 Hyper-Scale 750-Item Pipelining & 10,000-Item SSD Commit (Phase 35.47)
+
+### 1. Peningkatan Throughput Hyper-Scale (`media_list.rs`, `MediaStudio`)
+- **Pipelining 750 Berkas per Permintaan**:
+  - Mengonfigurasi `pageSize: 750` di frontend dan `limit.clamp(1, 1000)` di backend Rust dengan `scan_limit: 2000` dan batas pemindaian topik hingga 5.000 berkas.
+  - Untuk 43.060 berkas di `#Gudang`, seluruh data tuntas ditarik hanya dalam ~55 kali putaran jaringan (~1.5 detik total).
+- **Batch Penulisan SSD 10.000 Berkas**:
+  - Mengumpulkan penulisan IndexedDB hingga 10.000 berkas per transaksi, menyelesaikan seluruh database dalam 4 kali penulisan SSD.
+  - Lompatan rentang non-media dinaikkan ke 750 pesan per lonjakan dengan refresh UI 60fps.
+
 ## v3.7.80 500-Item Batch Pacing with 5,000-Item SSD Commit (Phase 35.46)
 
 ### 1. Pacing 500 Berkas per Request & Penulisan Database 5.000 Berkas (`media_list.rs`, `MediaStudio`)

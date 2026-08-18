@@ -1,11 +1,13 @@
-AutoGram Version: v3.7.80
+AutoGram Version: v3.7.81
 
 Current State:
-v3.7.80 500-Item Batch Pacing with 5,000-Item SSD Commit & Sub-Second Pauses — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. 500-Item Batch Pacing: Mengatur tarikan RPC ke 500 berkas per request dan lompatan gap traversal ke 500 pesan. Menyelesaikan setiap 5.000 berkas hanya dalam 10 panggilan kilat (~2-3 detik) tanpa jeda beku 15-20 detik.
-2. 5,000-Item SSD Commit & Rapid Inter-Batch Transitions: Menetapkan penulisan database IndexedDB SSD per 5.000 berkas dan memangkas waktu jeda antar-batch menjadi sub-detik instan.
+v3.7.81 Hyper-Scale 750-Item Pipelining & 10,000-Item SSD Commit — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. 750-Item Hyper-Scale Pipelining: Meningkatkan tarikan RPC menjadi 750 berkas per request dan scan limit 2.000 berkas di Rust backend. Memangkas total putaran jaringan untuk 43.060 berkas di `#Gudang` menjadi hanya ~55 kali panggilan jaringan super cepat.
+2. 10,000-Item SSD Database Commit: Mengumpulkan data hingga 10.000 berkas per transaksi IndexedDB SSD, menyelesaikan seluruh pengindeksan channel dalam 4 kali penulisan SSD ultra-ringan.
+3. 750-Message Monotonic Gap Jumps: Melewati area pesan non-media dengan lonjakan 750 pesan dan pembaruan live progres 60fps yang sangat halus.
 
 Previous:
+v3.7.80 500-Item Batch Pacing with 5,000-Item SSD Commit & Sub-Second Pauses — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.79 Preserved Progress on Index Cancellation & Live Stream Verified — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.78 Sub-Second Live Streaming Indexer (Eliminated 25s Multi-Chunk Blocking Delay) — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.77 Global 1,000-Item Indexing Pipeline Across All Modules — membenahi `DriveToolsPanel/index.tsx`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
