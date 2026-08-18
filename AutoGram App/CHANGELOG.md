@@ -1,3 +1,10 @@
+## v3.7.69 Explicit Loaded / Total Ratio Display in Sort Scope Chip (Phase 35.35)
+
+### 1. Tampilan Rasio Terurut Sebagian yang Transparan (`DriveTopBar.tsx`, `speedtest.json`)
+- **Tampilan Rasio Dimuat / Total**:
+  - Memperbarui chip status pengurutan di samping dropdown SORT agar menampilkan rasio yang jelas: `{{loaded}} / {{total}} terurut (sebagian)` (contoh: `80 / 43.060 terurut (sebagian)` atau `230 / 43.060 terurut (sebagian)`).
+  - Menghilangkan kebingungan angka total server dengan menampilkan jumlah berkas yang sebenarnya sudah dimuat saat ini.
+
 ## v3.7.68 Real-Time Workspace Reactivity on Global Cache Clearance (Phase 35.34)
 
 ### 1. Sinkronisasi Instan Ruang Kerja saat Cache Dihapus (`MediaStudio/index.tsx`, `Settings/index.tsx`)

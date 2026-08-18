@@ -1172,7 +1172,14 @@ export function DriveTopBar({
                   >
                     <Sparkles size={11} className="td-sort-scope-icon" />
                     <span className="td-sort-scope-text">
-                      {t('speedtest.sort_partial_badge', { count: totalCount || fileCount })}
+                      {totalCount != null && totalCount > fileCount
+                        ? t('speedtest.sort_partial_badge', {
+                            loaded: fileCount.toLocaleString(),
+                            total: totalCount.toLocaleString(),
+                          })
+                        : t('speedtest.sort_partial_badge_single', {
+                            count: fileCount.toLocaleString(),
+                          })}
                     </span>
                     <span className="td-sort-scope-btn-label">
                       {t('speedtest.index_all_action')}
@@ -1186,7 +1193,7 @@ export function DriveTopBar({
                     title={t('speedtest.index_all_action')}
                   >
                     <Sparkles size={11} className="td-sort-scope-icon" />
-                    <span>{t('speedtest.sort_complete_badge', { count: totalCount || fileCount })}</span>
+                    <span>{t('speedtest.sort_complete_badge', { count: (totalCount || fileCount).toLocaleString() })}</span>
                     <span className="td-sort-scope-btn-label">
                       {t('speedtest.index_all_action')}
                     </span>
