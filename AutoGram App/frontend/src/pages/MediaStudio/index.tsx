@@ -234,13 +234,14 @@ import {
   useDriveClipboard,
   type DriveAdvFilter,
   type DriveNavHistory,
+  scanAllAuthoritativePeerMedia,
 } from '../../lib/telegram';
 import {
   DriveToolsPanel,
   type DriveToolsTab,
 } from '../../components/drive/DriveToolsPanel';
 import { useChannelSync } from './hooks/useChannelSync';
-import type { MediaMutation } from '../../lib/db/mediaStudioDb';
+import { commitAuthoritativeReconciliation, type MediaMutation } from '../../lib/db/mediaStudioDb';
 import {
   clearThumbCache,
   primeThumbsFromFileList,
@@ -1178,14 +1179,28 @@ function MediaDriveDesktop({
     }, []),
     onAuthoritativeReconcileRequired: useCallback(async (latestPts: number) => {
       try {
-        await refreshFilesRef.current?.(0, { bypassCache: true });
+        if (!creds || !peerId) return;
+        // 1. Authoritative full multi-page server scan across all Telegram pages
+        const serverFiles = await scanAllAuthoritativePeerMedia(creds, peerId);
+
+        // 2. Commit reconciliation to IndexedDB (prune stale IDs, upsert current server files, commit target PTS)
+        await commitAuthoritativeReconciliation(creds.session, String(peerId), serverFiles, latestPts);
+
+        // 3. Complete Rust worker reconcile barrier handshake
         if (rebaselineAfterReconcileRef.current) {
           await rebaselineAfterReconcileRef.current(latestPts);
         }
+
+        // 4. Update in-memory files view with topic awareness
+        const currentTopic = topicFilterRef.current;
+        const visibleFiles = currentTopic != null
+          ? serverFiles.filter((f) => f.topic_id === currentTopic)
+          : serverFiles;
+        setFiles(visibleFiles);
       } catch (err) {
         console.error('[MediaStudio] Authoritative reconcile error:', err);
       }
-    }, []),
+    }, [creds, peerId]),
   });
 
   useEffect(() => {

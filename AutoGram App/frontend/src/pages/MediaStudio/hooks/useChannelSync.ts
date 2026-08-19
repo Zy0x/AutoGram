@@ -73,7 +73,10 @@ export function useChannelSync({
   // Synchronize active-view foreground state with document visibility + short polling
   useEffect(() => {
     const updateActive = () => {
-      const isVisible = typeof document !== 'undefined' ? !document.hidden : true;
+      const isVisible =
+        typeof document !== 'undefined'
+          ? !document.hidden && (typeof document.hasFocus !== 'function' || document.hasFocus())
+          : true;
       const effectiveActive = isActivelyViewed && isVisible;
       if (activeSyncIdRef.current != null) {
         setChannelSyncActiveView(activeSyncIdRef.current, effectiveActive).catch(() => {});

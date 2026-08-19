@@ -1,4 +1,5 @@
 import { detectTauriRuntime } from '../../tauri/platform';
+import type { DriveFile } from '../driveTypes';
 import {
   DEFAULT_FILE_PAGE,
   DriveCredentials,
@@ -246,6 +247,53 @@ export async function driveGetFile(
   if (hit) return { status: 'success', file: hit, backend: 'grammers' };
   return { status: 'success', file: null, backend: 'grammers' };
 }
+
+/**
+ * P2.5.3 Authoritative Full Server Scan.
+ * Paginates through all media records on Telegram server for the given peer across all pages until exhausted.
+ */
+export async function scanAllAuthoritativePeerMedia(
+  creds: DriveCredentials,
+  folderId: number | null
+): Promise<DriveFile[]> {
+  const allFiles: DriveFile[] = [];
+  const seenIds = new Set<number>();
+  let currentCursor: TgScopedMediaSearchCursor | null = null;
+  let hasMore = true;
+  let pageCount = 0;
+  const MAX_PAGES = 500; // supports up to 50,000 files
+
+  while (hasMore && pageCount < MAX_PAGES) {
+    pageCount++;
+    const res = await driveListFiles(creds, folderId, {
+      pageSize: 100,
+      searchCursor: currentCursor,
+      quickStats: false,
+      sortMode: 'newest',
+      bypassCache: true,
+    });
+
+    if (!res || !res.files || res.files.length === 0) {
+      break;
+    }
+
+    for (const f of res.files) {
+      if (!seenIds.has(f.id)) {
+        seenIds.add(f.id);
+        allFiles.push(f);
+      }
+    }
+
+    if (!res.has_more || !res.search_cursor) {
+      hasMore = false;
+    } else {
+      currentCursor = res.search_cursor;
+    }
+  }
+
+  return allFiles;
+}
+
 
 /**
  * Media stats — pending until full Grammers walk is ported.

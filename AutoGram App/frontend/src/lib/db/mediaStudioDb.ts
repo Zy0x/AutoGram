@@ -1168,6 +1168,97 @@ export async function saveChannelMutationsAndPts(
   });
 }
 
+/**
+ * Reads all unique message IDs cached in IndexedDB for a given (accountId, peerId).
+ */
+export async function getAllCachedPeerMessageIds(
+  accountId: string,
+  peerId: string
+): Promise<Set<number>> {
+  if (typeof indexedDB === 'undefined') return new Set();
+  const db = await initDb();
+  return new Promise<Set<number>>((resolve, reject) => {
+    const tx = db.transaction('media', 'readonly');
+    const store = tx.objectStore('media');
+    const index = store.index('byPeer');
+    const acc = String(accountId).trim();
+    const p = String(peerId).trim();
+    const req = index.openCursor(IDBKeyRange.only([acc, p]));
+    const ids = new Set<number>();
+
+    req.onsuccess = () => {
+      const cursor = req.result;
+      if (cursor) {
+        const item = cursor.value as MediaRecord;
+        if (item?.id && typeof item.id === 'number' && item.id > 0) {
+          ids.add(item.id);
+        }
+        cursor.continue();
+      } else {
+        resolve(ids);
+      }
+    };
+    req.onerror = () => reject(req.error || new Error('getAllCachedPeerMessageIds failed'));
+  });
+}
+
+/**
+ * P2.5.3 Authoritative Peer Reconciliation Commit.
+ * Compares current local cached IDs with complete server scanned files.
+ * Atomically deletes all stale local IDs, upserts all server files, and commits target PTS with baselineReconciled = true.
+ */
+export async function commitAuthoritativeReconciliation(
+  accountId: string,
+  peerId: string,
+  serverFiles: DriveFile[],
+  targetPts: number
+): Promise<ChannelSyncState> {
+  const acc = String(accountId).trim();
+  const p = String(peerId).trim();
+
+  const localIds = await getAllCachedPeerMessageIds(acc, p);
+  const serverIdSet = new Set(serverFiles.map((f) => f.id));
+
+  const staleIds: number[] = [];
+  for (const lid of localIds) {
+    if (!serverIdSet.has(lid)) {
+      staleIds.push(lid);
+    }
+  }
+
+  const mutations: MediaMutation[] = [];
+  if (staleIds.length > 0) {
+    mutations.push({
+      action: 'delete',
+      peer_id: p,
+      message_ids: staleIds,
+    });
+  }
+
+  for (const sf of serverFiles) {
+    mutations.push({
+      action: 'upsert',
+      peer_id: p,
+      message_id: sf.id,
+      topic_id: sf.topic_id ?? null,
+      row: sf,
+    });
+  }
+
+  const nextState: ChannelSyncState = {
+    accountId: acc,
+    peerId: p,
+    pts: targetPts,
+    baselineReady: true,
+    baselineReconciled: true,
+    lastAppliedAt: Date.now(),
+    lastDifferenceAt: Date.now(),
+    schemaVersion: CHANNEL_SYNC_SCHEMA_VERSION,
+  };
+
+  return await saveChannelMutationsAndPts(mutations, nextState, { allowRebaseline: true });
+}
+
 export async function clearMediaStudioCache(): Promise<void> {
   try {
     const db = await initDb();
@@ -1181,3 +1272,4 @@ export async function clearMediaStudioCache(): Promise<void> {
     }
   } catch {}
 }
+

@@ -197,6 +197,8 @@ impl ChannelSyncManager {
             next_subscriber_id: AtomicU64::new(1),
             subscriber_generation: AtomicU64::new(0),
             subscriber_notify: Arc::new(Notify::new()),
+            reconcile_target_pts: AtomicI32::new(0),
+            reconcile_notify: Arc::new(Notify::new()),
             pending_batch: RwLock::new(None),
             status: Arc::new(RwLock::new(ChannelSyncStatus::Preparing)),
             is_actively_viewed: AtomicBool::new(is_viewed_init),
@@ -519,6 +521,8 @@ mod tests {
             next_subscriber_id: AtomicU64::new(1),
             subscriber_generation: AtomicU64::new(1),
             subscriber_notify: Arc::new(Notify::new()),
+            reconcile_target_pts: AtomicI32::new(0),
+            reconcile_notify: Arc::new(Notify::new()),
             pending_batch: RwLock::new(None),
             status: Arc::new(RwLock::new(ChannelSyncStatus::WaitingAck)),
             is_actively_viewed: AtomicBool::new(true),
@@ -608,6 +612,8 @@ mod tests {
             next_subscriber_id: AtomicU64::new(1),
             subscriber_generation: AtomicU64::new(1),
             subscriber_notify: Arc::new(Notify::new()),
+            reconcile_target_pts: AtomicI32::new(450), // Target is 450
+            reconcile_notify: Arc::new(Notify::new()),
             pending_batch: RwLock::new(None),
             status: Arc::new(RwLock::new(ChannelSyncStatus::ReconcileRequired)),
             is_actively_viewed: AtomicBool::new(true),
@@ -631,13 +637,20 @@ mod tests {
             next_sync_id: AtomicU64::new(100),
         };
 
-        let completed = manager.complete_reconcile(99, 450).await;
-        assert!(completed);
+        // 1. Wrong target PTS (400 != 450) is rejected
+        assert!(!manager.complete_reconcile(99, 400).await);
+
+        // 2. Correct target PTS (450) is accepted
+        assert!(manager.complete_reconcile(99, 450).await);
 
         assert_eq!(control.current_pts.load(Ordering::Acquire), 450);
         let st = *control.status.read().await;
         assert_eq!(st, ChannelSyncStatus::LiveSynced);
+        assert_eq!(control.reconcile_target_pts.load(Ordering::Acquire), 0);
         assert_eq!(control.expected_batch_id.load(Ordering::Acquire), 0);
+
+        // 3. Second call is rejected because state is no longer ReconcileRequired
+        assert!(!manager.complete_reconcile(99, 450).await);
     }
 
     #[tokio::test]
@@ -662,6 +675,8 @@ mod tests {
             next_subscriber_id: AtomicU64::new(1),
             subscriber_generation: AtomicU64::new(1),
             subscriber_notify: Arc::new(Notify::new()),
+            reconcile_target_pts: AtomicI32::new(0),
+            reconcile_notify: Arc::new(Notify::new()),
             pending_batch: RwLock::new(None),
             status: Arc::new(RwLock::new(ChannelSyncStatus::Stopped)),
             is_actively_viewed: AtomicBool::new(false),
