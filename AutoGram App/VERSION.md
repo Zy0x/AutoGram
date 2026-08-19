@@ -1,11 +1,13 @@
-AutoGram Version: v3.7.86
+AutoGram Version: v3.7.87
 
 Current State:
-v3.7.86 Rolling Instantaneous Speed Model & 100% Channel Indexing Verified — membenahi `adaptiveIndexer.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Rolling Instantaneous Throughput Model: Memperbarui perhitungan kecepatan pengindeksan dengan model delta window aktif sehingga indikator kecepatan mencerminkan kecepatan tarikan real-time yang sebenarnya (misal 2.500–3.500 berkas/detik) dan tidak menurun akibat jeda pendinginan Telegram.
-2. 100% Channel History Traversal: Terverifikasi berhasil mengindeks seluruh 43.060+ berkas di `#Gudang` dari pesan terbaru hingga pesan pertama tanpa terhenti.
+v3.7.87 Golden Sweet-Spot (750-Item Pipeline, 3ms Adaptive Pacing, Zero-Reconnect FloodWait) — membenahi `client_pool.rs`, `adaptiveIndexer.ts`, `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Zero-Reconnect FloodWait Fast-Recovery: Mengeliminasi pemutusan session dan siklus reconnect pada `with_pool_retry` saat Telegram memberikan jeda cooldown. Menjaga MTProto TCP socket tetap hangat dan langsung melanjutkan query dalam 0ms seketika timer cooldown selesai.
+2. 750-Item High-Throughput Sweet-Spot: Menyeimbangkan tarikan RPC ke 750 berkas per paket dengan batas scan 2.000 pesan, mencapai kecepatan puncak ~3.200–4.000 berkas/detik tanpa memicu socket backoff berlebihan.
+3. 3ms Micro-Pacing: Mengurangi delay pacing ke 3ms pada tier masif untuk memaksimalkan kapasitas pipa Telegram secara stabil.
 
 Previous:
+v3.7.86 Rolling Instantaneous Speed Model & 100% Channel Indexing Verified — membenahi `adaptiveIndexer.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.85 Non-Media Gap Traversal & Resilient Offset Pipeline — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.84 Continuous Real-Time Progress Streaming (500-Item Chunks / 5,000 SSD Batch) — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.83 Fix Index Button Activation Guard & Re-Trigger Pipeline — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.

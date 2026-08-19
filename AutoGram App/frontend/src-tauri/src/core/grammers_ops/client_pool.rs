@@ -328,28 +328,29 @@ where
                         BACKEND,
                         "flood_wait_sleep",
                         format!(
-                            "{} attempt={}/{} flood_wait={flood}s before reconnect",
+                            "{} attempt={}/{} flood_wait={flood}s before fast retry",
                             tg_log::session_label(session_name),
                             attempt,
                             MAX_ATTEMPTS,
                         ),
                     );
-                    tokio::time::sleep(Duration::from_secs((flood + 1) as u64)).await;
+                    tokio::time::sleep(Duration::from_millis((flood as u64) * 1000 + 50)).await;
+                } else {
+                    disconnect_cached_session(session_name);
+                    tg_log::warn(
+                        BACKEND,
+                        "client_reconnect",
+                        format!(
+                            "{} attempt={}/{} err={}",
+                            tg_log::session_label(session_name),
+                            attempt,
+                            MAX_ATTEMPTS,
+                            e
+                        ),
+                    );
+                    tokio::time::sleep(Duration::from_millis(80 * u64::from(attempt))).await;
                 }
-                disconnect_cached_session(session_name);
-                tg_log::warn(
-                    BACKEND,
-                    "client_reconnect",
-                    format!(
-                        "{} attempt={}/{} err={}",
-                        tg_log::session_label(session_name),
-                        attempt,
-                        MAX_ATTEMPTS,
-                        e
-                    ),
-                );
                 last_err = Some(e);
-                tokio::time::sleep(Duration::from_millis(80 * u64::from(attempt))).await;
             }
             Err(e) => return Err(e),
         }
