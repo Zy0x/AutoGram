@@ -119,7 +119,34 @@ export interface MediaIndexState {
 }
 
 const DB_NAME = 'autogram-media-studio-v4';
-const DB_VERSION = 7;
+const DB_VERSION = 8;
+
+export const CHANNEL_SYNC_SCHEMA_VERSION = 1;
+
+export interface ChannelSyncState {
+  accountId: string;
+  peerId: string;
+  pts: number;
+  baselineReady: boolean;
+  baselineReconciled: boolean;
+  lastAppliedAt: number;
+  lastDifferenceAt: number;
+  schemaVersion: number;
+}
+
+export type MediaMutation =
+  | {
+      action: 'upsert';
+      peer_id: string;
+      message_id: number;
+      topic_id?: number | null;
+      row: DriveFile;
+    }
+  | {
+      action: 'delete';
+      peer_id: string;
+      message_ids: number[];
+    };
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -173,6 +200,11 @@ function createMediaStore(db: IDBDatabase): IDBObjectStore {
     'byContextMessage',
     ['accountId', 'peerId', 'scopeKind', 'topicIdNormalized', 'id'],
     { unique: true }
+  );
+  store.createIndex(
+    'byPeerMessage',
+    ['accountId', 'peerId', 'id'],
+    { unique: false }
   );
   return store;
 }
@@ -232,6 +264,22 @@ export function initDb(): Promise<IDBDatabase> {
         db.createObjectStore('mediaIndexState', {
           keyPath: ['accountId', 'peerId', 'scopeKind', 'topicIdNormalized'],
         });
+      }
+
+      // 8. P2.5 Channel Sync State store and byPeerMessage index migration
+      if (oldVersion < 8) {
+        const tx = req.transaction;
+        if (tx && db.objectStoreNames.contains('media')) {
+          const mediaStore = tx.objectStore('media');
+          if (!mediaStore.indexNames.contains('byPeerMessage')) {
+            mediaStore.createIndex('byPeerMessage', ['accountId', 'peerId', 'id'], { unique: false });
+          }
+        }
+        if (!db.objectStoreNames.contains('channelSyncState')) {
+          db.createObjectStore('channelSyncState', {
+            keyPath: ['accountId', 'peerId'],
+          });
+        }
       }
     };
 
@@ -927,6 +975,159 @@ export async function deleteDeepIndexRecord(key: string): Promise<void> {
   const db = await initDb();
   const tx = db.transaction('deepIndex', 'readwrite');
   await requestToPromise(tx.objectStore('deepIndex').delete(key));
+}
+
+// ── P2.5 CHANNEL SYNC STATE & ATOMIC MUTATION API ──
+
+export async function getChannelSyncState(
+  accountId: string,
+  peerId: string
+): Promise<ChannelSyncState | null> {
+  const db = await initDb();
+  const tx = db.transaction('channelSyncState', 'readonly');
+  const store = tx.objectStore('channelSyncState');
+  const req = store.get([String(accountId).trim(), String(peerId).trim()]);
+  const res = await requestToPromise<ChannelSyncState | undefined>(req);
+  return res ?? null;
+}
+
+export async function resetChannelSyncState(
+  accountId: string,
+  peerId: string
+): Promise<void> {
+  const db = await initDb();
+  const tx = db.transaction('channelSyncState', 'readwrite');
+  const store = tx.objectStore('channelSyncState');
+  await requestToPromise(store.delete([String(accountId).trim(), String(peerId).trim()]));
+}
+
+/**
+ * Atomically commits a batch of media mutations and updates the durable channel PTS in a single IndexedDB transaction.
+ * Guarantees all-or-nothing atomicity: PTS never advances if mutations fail, and mutations are rolled back if PTS fails.
+ */
+export async function saveChannelMutationsAndPts(
+  mutations: MediaMutation[],
+  nextState: ChannelSyncState,
+  options?: { allowRebaseline?: boolean }
+): Promise<ChannelSyncState> {
+  const accId = String(nextState.accountId || '').trim();
+  const peer = String(nextState.peerId || '').trim();
+
+  if (!accId || !peer || typeof nextState.pts !== 'number' || nextState.pts <= 0) {
+    throw new Error(`Invalid channelSyncState: accountId, peerId and positive pts (> 0) are required`);
+  }
+
+  const db = await initDb();
+  return new Promise<ChannelSyncState>((resolve, reject) => {
+    const tx = db.transaction(['media', 'channelSyncState'], 'readwrite');
+    const mediaStore = tx.objectStore('media');
+    const stateStore = tx.objectStore('channelSyncState');
+    const now = Date.now();
+
+    tx.oncomplete = () => resolve(nextState);
+    tx.onerror = () => reject(tx.error || new Error('saveChannelMutationsAndPts transaction failed'));
+    tx.onabort = () => reject(tx.error || new Error('saveChannelMutationsAndPts transaction aborted'));
+
+    // Check monotonic PTS guard
+    const stateGetReq = stateStore.get([accId, peer]);
+    stateGetReq.onsuccess = () => {
+      const existing = stateGetReq.result as ChannelSyncState | undefined;
+      if (existing && existing.pts > nextState.pts && !options?.allowRebaseline) {
+        tx.abort();
+        reject(new Error(`PTS regression rejected: existing ${existing.pts} > candidate ${nextState.pts}`));
+        return;
+      }
+
+      // Process mutations
+      for (const mut of mutations) {
+        if (mut.action === 'upsert') {
+          const { peer_id, message_id, topic_id, row } = mut;
+          const targetPeer = String(peer_id || peer).trim();
+          if (!row || !message_id || message_id <= 0) continue;
+
+          // 1. Check existing cached records for this message via byPeerMessage
+          const peerIndex = mediaStore.index('byPeerMessage');
+          const cursorReq = peerIndex.openCursor(IDBKeyRange.only([accId, targetPeer, message_id]));
+
+          cursorReq.onsuccess = () => {
+            const cursor = cursorReq.result;
+            if (cursor) {
+              const prev = cursor.value as MediaRecord;
+              const updatedRecord: MediaRecord = {
+                ...row,
+                id: message_id,
+                accountId: accId,
+                peerId: targetPeer,
+                scopeKind: prev.scopeKind,
+                topicIdNormalized: prev.topicIdNormalized,
+                folderId: prev.folderId || Number(targetPeer) || 0,
+                lastAccessed: now,
+                accessCount: (prev.accessCount || 0) + 1,
+              };
+              cursor.update(updatedRecord);
+              cursor.continue();
+            } else {
+              // 2. Always ensure canonical 'all' record exists
+              const allRecord: MediaRecord = {
+                ...row,
+                id: message_id,
+                accountId: accId,
+                peerId: targetPeer,
+                scopeKind: 'all',
+                topicIdNormalized: -1,
+                folderId: Number(targetPeer) || 0,
+                lastAccessed: now,
+                accessCount: 1,
+              };
+              mediaStore.put(allRecord);
+
+              // 3. If forum topic specified, ensure topic-specific record exists
+              if (topic_id != null) {
+                const scopeKind: MediaScopeKind = topic_id === 0 ? 'general' : 'topic';
+                const normTopic = topic_id === 0 ? 0 : topic_id;
+                const topicRecord: MediaRecord = {
+                  ...row,
+                  id: message_id,
+                  accountId: accId,
+                  peerId: targetPeer,
+                  scopeKind,
+                  topicIdNormalized: normTopic,
+                  folderId: Number(targetPeer) || 0,
+                  lastAccessed: now,
+                  accessCount: 1,
+                };
+                mediaStore.put(topicRecord);
+              }
+            }
+          };
+        } else if (mut.action === 'delete') {
+          const { peer_id, message_ids } = mut;
+          const targetPeer = String(peer_id || peer).trim();
+          if (!message_ids?.length) continue;
+
+          const peerIndex = mediaStore.index('byPeerMessage');
+          for (const mid of message_ids) {
+            const cursorReq = peerIndex.openCursor(IDBKeyRange.only([accId, targetPeer, Number(mid)]));
+            cursorReq.onsuccess = () => {
+              const cursor = cursorReq.result;
+              if (cursor) {
+                cursor.delete();
+                cursor.continue();
+              }
+            };
+          }
+        }
+      }
+
+      // Commit next channel sync state
+      stateStore.put({
+        ...nextState,
+        accountId: accId,
+        peerId: peer,
+        lastAppliedAt: now,
+      });
+    };
+  });
 }
 
 export async function clearMediaStudioCache(): Promise<void> {

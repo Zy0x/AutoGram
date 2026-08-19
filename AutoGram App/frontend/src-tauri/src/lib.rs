@@ -1487,6 +1487,90 @@ async fn tg_get_media_index_job_status(
     Ok(manager.get_job_status(job_id).await)
 }
 
+// ── P2.5 CHANNEL SYNC TAURI COMMANDS ──
+
+#[tauri::command]
+async fn tg_start_channel_sync(
+    app: AppHandle,
+    manager: tauri::State<'_, core::channel_sync_manager::ChannelSyncManager>,
+    request: core::channel_sync_types::StartChannelSyncRequest,
+    on_event: tauri::ipc::Channel<core::channel_sync_types::ChannelSyncEvent>,
+) -> Result<core::channel_sync_types::StartChannelSyncResponse, core::tg_error::TgErrorPublic> {
+    ensure_sessions_dir_env(&app);
+    manager
+        .start_sync(
+            request,
+            core::channel_sync_worker::FnChannelSyncEventSink(move |evt| on_event.send(evt).is_ok()),
+        )
+        .await
+}
+
+#[tauri::command]
+async fn tg_attach_channel_sync(
+    manager: tauri::State<'_, core::channel_sync_manager::ChannelSyncManager>,
+    sync_id: u64,
+    on_event: tauri::ipc::Channel<core::channel_sync_types::ChannelSyncEvent>,
+) -> Result<core::channel_sync_types::AttachChannelSyncResponse, core::tg_error::TgErrorPublic> {
+    manager
+        .attach_channel(
+            sync_id,
+            core::channel_sync_worker::FnChannelSyncEventSink(move |evt| on_event.send(evt).is_ok()),
+        )
+        .await
+}
+
+#[tauri::command]
+async fn tg_detach_channel_sync(
+    manager: tauri::State<'_, core::channel_sync_manager::ChannelSyncManager>,
+    sync_id: u64,
+    subscriber_id: u64,
+    generation: u64,
+) -> Result<core::channel_sync_types::DetachChannelSyncResponse, String> {
+    Ok(manager.detach_channel(sync_id, subscriber_id, generation).await)
+}
+
+#[tauri::command]
+async fn tg_ack_channel_sync_batch(
+    manager: tauri::State<'_, core::channel_sync_manager::ChannelSyncManager>,
+    ack: core::channel_sync_types::ChannelSyncAck,
+) -> Result<core::channel_sync_types::ChannelSyncAckResult, String> {
+    Ok(manager.process_ack(ack).await)
+}
+
+#[tauri::command]
+async fn tg_pause_channel_sync(
+    manager: tauri::State<'_, core::channel_sync_manager::ChannelSyncManager>,
+    sync_id: u64,
+) -> Result<core::channel_sync_types::ChannelSyncControlResponse, String> {
+    Ok(manager.pause_sync(sync_id).await)
+}
+
+#[tauri::command]
+async fn tg_resume_channel_sync(
+    manager: tauri::State<'_, core::channel_sync_manager::ChannelSyncManager>,
+    sync_id: u64,
+) -> Result<core::channel_sync_types::ChannelSyncControlResponse, String> {
+    Ok(manager.resume_sync(sync_id).await)
+}
+
+#[tauri::command]
+async fn tg_stop_channel_sync(
+    manager: tauri::State<'_, core::channel_sync_manager::ChannelSyncManager>,
+    sync_id: u64,
+) -> Result<core::channel_sync_types::ChannelSyncControlResponse, String> {
+    Ok(manager.stop_sync(sync_id).await)
+}
+
+#[tauri::command]
+async fn tg_set_channel_sync_active_view(
+    manager: tauri::State<'_, core::channel_sync_manager::ChannelSyncManager>,
+    sync_id: u64,
+    is_active: bool,
+) -> Result<(), String> {
+    manager.set_active_view(sync_id, is_active).await;
+    Ok(())
+}
+
 #[tauri::command]
 async fn tg_upload_file(
     app: AppHandle,
@@ -2051,6 +2135,9 @@ pub fn run() {
         .manage(core::media_index_worker::MediaIndexJobManager::new(
             core::grammers_ops::resolve_sessions_dir(None),
         ))
+        .manage(core::channel_sync_manager::ChannelSyncManager::new(
+            core::grammers_ops::resolve_sessions_dir(None),
+        ))
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
@@ -2117,6 +2204,14 @@ pub fn run() {
             tg_resume_media_index_job,
             tg_cancel_media_index_job,
             tg_get_media_index_job_status,
+            tg_start_channel_sync,
+            tg_attach_channel_sync,
+            tg_detach_channel_sync,
+            tg_ack_channel_sync_batch,
+            tg_pause_channel_sync,
+            tg_resume_channel_sync,
+            tg_stop_channel_sync,
+            tg_set_channel_sync_active_view,
             tg_start_folder_stream,
             tg_cancel_folder_stream,
             tg_upload_file,

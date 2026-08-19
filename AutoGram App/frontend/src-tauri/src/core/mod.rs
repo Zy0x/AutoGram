@@ -2,6 +2,9 @@
 
 pub use autogram_core;
 pub mod capability;
+pub mod channel_sync_manager;
+pub mod channel_sync_types;
+pub mod channel_sync_worker;
 pub mod config_normalize;
 pub mod doc_preview;
 pub mod drive_rpc;
@@ -28,6 +31,7 @@ pub mod media_counter;
 pub mod media_index_types;
 pub mod media_index_worker;
 pub mod media_meta;
+pub mod media_mutation;
 pub mod media_prep;
 pub mod media_statistics;
 pub mod migration_run;
@@ -40,6 +44,7 @@ pub mod profiles_db;
 pub mod progress_rate;
 pub mod session_guard;
 pub mod session_rate;
+pub mod session_update_router;
 pub mod smart_scanner;
 pub mod smart_throttle;
 pub mod stats_db;

@@ -315,4 +315,30 @@ describe('Media Studio IndexedDB context isolation & MediaIndexState Contract', 
       expect(finalState.deltaDocCommittedOffset).toBe(0);
     });
   });
+
+  describe('P2.5 ChannelSyncState & Atomic Mutation Contract', () => {
+    it('1. Defines CHANNEL_SYNC_SCHEMA_VERSION as 1', async () => {
+      const { CHANNEL_SYNC_SCHEMA_VERSION } = await import('./mediaStudioDb');
+      expect(CHANNEL_SYNC_SCHEMA_VERSION).toBe(1);
+    });
+
+    it('2. Enforces positive PTS and non-empty accountId & peerId', async () => {
+      const { saveChannelMutationsAndPts } = await import('./mediaStudioDb');
+      
+      const invalidState = {
+        accountId: '',
+        peerId: '100123',
+        pts: 0,
+        baselineReady: false,
+        baselineReconciled: false,
+        lastAppliedAt: 0,
+        lastDifferenceAt: 0,
+        schemaVersion: 1,
+      };
+
+      await expect(
+        saveChannelMutationsAndPts([], invalidState)
+      ).rejects.toThrow('Invalid channelSyncState');
+    });
+  });
 });
