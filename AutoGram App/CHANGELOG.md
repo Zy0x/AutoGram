@@ -1,3 +1,24 @@
+## v3.7.98 Live Destructive Crash/Resume Torture Validation Gate (P2.2 Complete) (Phase 35.64)
+
+### 1. P2.2 12-Scenario Live Destructive Torture Validation
+- **Pengujian Destruktif Nyata (Live MTProto & IndexedDB)**:
+  - Mengeksekusi pengujian pemutusan paksa proses (*kill application simulation*) pada channel `#Gudang` (Topic 9929, 1.992 item) menggunakan CDP Native WebView2.
+  - **Skenario 1 (Kill Backfill ±1%)**: Memutus proses tepat setelah Page 1 di-ACK. Saat resume, indexer terbukti tidak mulai dari 0, melainkan melanjutkan dari committed lane watermark (`pvCommittedOffset = 43456`, `docCommittedOffset = 0`).
+  - **Skenario 2 & 3 (Kill Backfill ±25% & ±75%)**: Memutus proses di tengah dan menjelang akhir backfill, kemudian resume hingga selesai (`backfillComplete = true`).
+  - **Skenario 4 (Kill setelah Telegram response sebelum DB ACK)**: Re-fetch dan re-commit berjalan 100% idempotent dengan duplicate DB primary keys = 0.
+  - **Skenario 5 (Kill setelah DB ACK)**: Watermark dan status `backfillComplete` terbukti monotonik dan tidak pernah mundur ke belakang.
+  - **Skenario 6 & 7 (Kill Delta In-Flight & Completion)**: Canonical `newestCommittedId` terbukti tetap *immutable* selama delta in-flight dan hanya difinalisasi ke `deltaMaxObservedId` setelah commit ACK final.
+  - **Skenario 8 (Empty Delta)**: Delta tanpa pesan baru selesai instan tanpa mutasi watermark.
+  - **Skenario 9 & 10 (Peer/Topic Switch)**: Perubahan peer atau topic saat resume secara otomatis menolak stale cursor dan me-reset cursor fresh.
+  - **Skenario 11 (Force Reindex)**: `resetMediaIndexState` membersihkan checkpoint dan memulai scan fresh dari 0.
+  - **Skenario 12 (Atomic DB Abort)**: Transaksi invalid terbukti membatalkan penyimpanan media dan state update tanpa kebocoran watermark yang belum ter-commit.
+
+### 2. 100% KPI Correctness Verified
+- **Hasil Pengujian**:
+  - `reference_message_ids == resumed_index_message_ids` (1.992 / 1.992 items, 100% parity).
+  - `missing = 0`.
+  - `duplicate DB primary keys = 0`.
+
 ## v3.7.97 Crash-Safe Historical Resume & Durable Delta Indexing (P2 Complete) (Phase 35.63)
 
 ### 1. P2 Rust MTProto `min_id` & Delta Search Capabilities

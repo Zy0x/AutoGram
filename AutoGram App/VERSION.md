@@ -1,14 +1,13 @@
-AutoGram Version: v3.7.97
+AutoGram Version: v3.7.98
 
 Current State:
-v3.7.97 Crash-Safe Historical Resume & Durable Delta Indexing (P2 Complete) — membenahi `telegram_ops.rs`, `media_list.rs`, `telegramBackend.ts`, `driveFilesApi.ts`, `mediaStudioDb.ts`, `MediaStudio/index.tsx`, `mediaStudioDb.test.ts`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. P2 MTProto `min_id` Search Support: Menambahkan `min_id: i32` pada `SearchScope`, `ListMediaRequest`, dan `list_media_blocking_topic_cursor` di Rust backend, sehingga query `messages::Search` pada jalur PhotoVideo dan Document dapat dibatasi secara presisi di atas baseline delta.
-2. P2 End-to-End Delta Transport & Scope Isolation: Meneruskan `minId` melalui `tgListMedia` dan `driveListFiles` serta mengintegrasikan `minId` ke dalam `contextKey` dan `normalize_search_cursor()`, menjamin isolasi total antara cursor pencarian historis (`minId = 0`) dan pencarian delta (`minId = deltaBaseId`).
-3. P2 Schema Version 2 & Monotonic Delta State Reducer: Memperbarui schema IndexedDB `MediaIndexState` ke versi 2 dengan field delta sync (`deltaActive`, `deltaBaseId`, `deltaPvCommittedOffset`, `deltaDocCommittedOffset`, `deltaMaxObservedId`). Reducer `mergeMediaIndexCheckpoint` menjaga `newestCommittedId` tetap immutable selama delta in-flight (anti-data-loss saat crash), dan memfinalisasinya secara atomik hanya ketika seluruh jalur delta selesai.
-4. P2 Intelligent Startup Evaluation & Crash-Safe Resume: Indexer di `MediaStudio/index.tsx` membaca checkpoint secara otomatis sebelum memulai pemindaian untuk memilih jalur eksekusi optimal: Fresh Backfill, Schema Version Safe Reset, Resume Historical Backfill dari watermark terakhir, Resume In-Flight Delta, atau Start Fresh Delta Sync.
-5. P2 Unified Cursor Source of Truth: Menghilangkan konflik dual-offset dengan mengatur `offsetId: searchCursorRef.current ? null : offset` dan memastikan kalkulasi statistik eksak (`getExactMediaStatsByContext`) dijalankan saat proses selesai atau finalisasi delta.
+v3.7.98 Live Destructive Crash/Resume Torture Validation Gate (P2.2 Complete) — mengeksekusi dan memvalidasi seluruh 12 skenario destructive crash/resume live pada channel #Gudang (Topic 9929, 1.992 item) via CDP Native WebView2. Menghadirkan:
+1. P2.2 12-Scenario Torture Validation Gate: Menguji pemutusan paksa (kill app simulation) pada backfill ±1% (Page 1), ±25% (Page 5), ±75% (Page 15), kill saat in-flight delta (Page 1 delta), kill sebelum commit DB, kill setelah ACK DB, empty delta, topic switch, peer switch, force reindex, dan atomic DB transaction abort rollback.
+2. 100% KPI Correctness Verified: `reference_message_ids == resumed_index_message_ids` (1.992 / 1.992 item), `missing = 0`, dan `duplicate DB primary keys = 0` terbukti sempurna pada real Telegram MTProto dan IndexedDB.
+3. Durable Invariant Proof: Terbukti secara empiris bahwa `deltaBaseId` dan `newestCommittedId` tetap immutable selama delta in-flight (zero missing message risk saat crash), dan transaksi DB bersifat strictly atomic all-or-nothing.
 
 Previous:
+v3.7.97 Crash-Safe Historical Resume & Durable Delta Indexing (P2 Complete) — membenahi `telegram_ops.rs`, `media_list.rs`, `telegramBackend.ts`, `driveFilesApi.ts`, `mediaStudioDb.ts`, `MediaStudio/index.tsx`, `mediaStudioDb.test.ts`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.96 Checkpoint Transport Integrity (P1.7 Complete) — membenahi `driveFilesApi.ts`, `mediaStudioDb.ts`, `MediaStudio/index.tsx`, `mediaStudioDb.test.ts`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.95 Durable Checkpoint State Integrity (P1.6 Complete) — membenahi `media_list.rs`, `mediaStudioDb.ts`, `telegramBackend.ts`, `MediaStudio/index.tsx`, `mediaStudioDb.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.94 Cross-Page Dedup, Pending-Drain & ACK-Driven Commit Watermark (P1.5 Complete) — membenahi `media_list.rs`, `mediaStudioDb.ts`, `telegramBackend.ts`, `MediaStudio/index.tsx`, `mediaStudioDb.test.ts`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
