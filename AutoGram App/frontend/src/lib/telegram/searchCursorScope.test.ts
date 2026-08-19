@@ -18,8 +18,8 @@ describe('ScopedMediaSearchCursor, Watermark & Buffered Merge Contract', () => {
     // Scope mismatch -> reject stale cursor and initialize fresh for current scope
     return {
       scope: currentScope,
-      photoVideo: { fetchOffsetId: initialOffset, committedOffsetId: initialOffset, exhausted: false },
-      document: { fetchOffsetId: initialOffset, committedOffsetId: initialOffset, exhausted: false },
+      photoVideo: { fetchOffsetId: initialOffset, exhausted: false },
+      document: { fetchOffsetId: initialOffset, exhausted: false },
       pendingPhotoVideo: [],
       pendingDocument: [],
     };
@@ -32,8 +32,8 @@ describe('ScopedMediaSearchCursor, Watermark & Buffered Merge Contract', () => {
         peerId: '1001234567', // #Gudang
         topicId: null,
       },
-      photoVideo: { fetchOffsetId: 15000, committedOffsetId: 15500, exhausted: false },
-      document: { fetchOffsetId: 12000, committedOffsetId: 12500, exhausted: false },
+      photoVideo: { fetchOffsetId: 15000, exhausted: false },
+      document: { fetchOffsetId: 12000, exhausted: false },
       pendingPhotoVideo: [{ id: 14990, name: 'stale_gudang.jpg', size: 100, iconType: 'photo' } as any],
       pendingDocument: [{ id: 11990, name: 'stale_gudang.zip', size: 200, iconType: 'file' } as any],
     };
@@ -59,8 +59,8 @@ describe('ScopedMediaSearchCursor, Watermark & Buffered Merge Contract', () => {
         peerId: '1001234567',
         topicId: 42,
       },
-      photoVideo: { fetchOffsetId: 9500, committedOffsetId: 9500, exhausted: false },
-      document: { fetchOffsetId: 8100, committedOffsetId: 8100, exhausted: false },
+      photoVideo: { fetchOffsetId: 9500, exhausted: false },
+      document: { fetchOffsetId: 8100, exhausted: false },
       pendingPhotoVideo: [],
       pendingDocument: [],
     };
@@ -84,8 +84,8 @@ describe('ScopedMediaSearchCursor, Watermark & Buffered Merge Contract', () => {
         peerId: '1001234567',
         topicId: null,
       },
-      photoVideo: { fetchOffsetId: 5000, committedOffsetId: 5000, exhausted: false },
-      document: { fetchOffsetId: 4000, committedOffsetId: 4000, exhausted: false },
+      photoVideo: { fetchOffsetId: 5000, exhausted: false },
+      document: { fetchOffsetId: 4000, exhausted: false },
       pendingPhotoVideo: [],
       pendingDocument: [],
     };
@@ -108,8 +108,8 @@ describe('ScopedMediaSearchCursor, Watermark & Buffered Merge Contract', () => {
         peerId: '1001234567',
         topicId: null,
       },
-      photoVideo: { fetchOffsetId: 901, committedOffsetId: 950, exhausted: false },
-      document: { fetchOffsetId: 701, committedOffsetId: 750, exhausted: false },
+      photoVideo: { fetchOffsetId: 901, exhausted: false },
+      document: { fetchOffsetId: 701, exhausted: false },
       pendingPhotoVideo: [{ id: 900, name: 'valid.jpg', size: 100, iconType: 'photo' } as any],
       pendingDocument: [{ id: 700, name: 'valid.pdf', size: 200, iconType: 'file' } as any],
     };
@@ -139,8 +139,8 @@ describe('ScopedMediaSearchCursor, Watermark & Buffered Merge Contract', () => {
     // Both lanes exhausted but pending buffer still has items
     const cursorWithBufferedItems: TgScopedMediaSearchCursor = {
       scope: { accountId: 's1', peerId: 'p1', topicId: null },
-      photoVideo: { fetchOffsetId: 1, committedOffsetId: 1, exhausted: true },
-      document: { fetchOffsetId: 1, committedOffsetId: 1, exhausted: true },
+      photoVideo: { fetchOffsetId: 1, exhausted: true },
+      document: { fetchOffsetId: 1, exhausted: true },
       pendingPhotoVideo: [{ id: 50, name: 'buffered.jpg', size: 10, iconType: 'photo' } as any],
       pendingDocument: [],
     };
@@ -149,8 +149,8 @@ describe('ScopedMediaSearchCursor, Watermark & Buffered Merge Contract', () => {
     // Both exhausted and no pending items
     const fullyExhaustedCursor: TgScopedMediaSearchCursor = {
       scope: { accountId: 's1', peerId: 'p1', topicId: null },
-      photoVideo: { fetchOffsetId: 1, committedOffsetId: 1, exhausted: true },
-      document: { fetchOffsetId: 1, committedOffsetId: 1, exhausted: true },
+      photoVideo: { fetchOffsetId: 1, exhausted: true },
+      document: { fetchOffsetId: 1, exhausted: true },
       pendingPhotoVideo: [],
       pendingDocument: [],
     };

@@ -100,8 +100,10 @@ import {
 import {
   saveCheckpoint,
   saveMediaRecords,
+  saveMediaBatchAndCheckpoint,
   getExactMediaStatsByContext,
   buildDriveMediaContext,
+  normalizeTopicId,
   scopeMediaRecords,
   deleteMediaRecordsForPeer,
   enqueueAction,
@@ -3395,7 +3397,6 @@ function MediaDriveDesktop({
     let lastMetricTime = startTimeMs;
     let accumulatedNewFiles: DriveFile[] = [];
     let indexedLoadedCount = initialProcessed;
-    let dbBatch: any[] = [];
     let hasPersistFailure = false;
     const rateController = new AimdRateController(3, 0, 150);
 
@@ -3464,26 +3465,34 @@ function MediaDriveDesktop({
           page = stripInlineThumbsFromFiles(page).map(toLeanDriveFile);
           const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
           const scoped = scopeMediaRecords(page, mediaContext, peerId || 0);
-          dbBatch.push(...scoped);
-          if (dbBatch.length >= 250 || !res?.has_more) {
-            const toWrite = dbBatch;
-            dbBatch = [];
-            try {
-              await saveMediaRecords(toWrite);
-            } catch (dbErr) {
-              console.error('[Indexer] Fatal error persisting media batch to database:', dbErr);
-              hasPersistFailure = true;
-              setIndexingJob((prev: any) => prev ? {
-                ...prev,
-                text: t('speedtest.db_error_paused') || 'Kesalahan database: pengindeksan dijeda demi menjaga integritas data'
-              } : prev);
-              // CRITICAL: Stop and do NOT advance cursor if DB write fails!
-              break;
-            }
+
+          const checkpointUpdate = {
+            accountId: mediaContext.accountId,
+            peerId: mediaContext.peerId,
+            scopeKind: mediaContext.scopeKind,
+            topicIdNormalized: normalizeTopicId(mediaContext.scopeKind, mediaContext.topicId),
+            pvCommittedOffset: res.emitted_watermark?.photoVideo || 0,
+            docCommittedOffset: res.emitted_watermark?.document || 0,
+            pvExhausted: res.search_cursor?.photoVideo.exhausted ?? false,
+            docExhausted: res.search_cursor?.document.exhausted ?? false,
+            backfillComplete: !res.has_more,
+          };
+
+          try {
+            await saveMediaBatchAndCheckpoint(scoped, checkpointUpdate);
+          } catch (dbErr) {
+            console.error('[Indexer] Fatal error persisting media batch to database:', dbErr);
+            hasPersistFailure = true;
+            setIndexingJob((prev: any) => prev ? {
+              ...prev,
+              text: t('speedtest.db_error_paused') || 'Kesalahan database: pengindeksan dijeda demi menjaga integritas data'
+            } : prev);
+            // CRITICAL: Stop and do NOT advance cursor if DB write fails!
+            break;
           }
         }
 
-        // Update independent multi-lane search cursor
+        // Update independent multi-lane search cursor ONLY AFTER DB commit ACK
         if (res?.search_cursor) {
           searchCursorRef.current = res.search_cursor;
           setSearchCursor(res.search_cursor);
@@ -3532,10 +3541,8 @@ function MediaDriveDesktop({
           nextOffset = lowestMsgIdInPage;
         }
 
-        // Authoritative termination: only when both lanes are exhausted (never stop early on estimated total)
-        const hasMoreWork = res?.search_cursor
-          ? (!res.search_cursor.photoVideo.exhausted || !res.search_cursor.document.exhausted)
-          : (nextOffset != null && nextOffset > 1);
+        // Authoritative completion: strictly governed by Rust (true only when both lanes AND pending buffers are exhausted)
+        const hasMoreWork = res?.has_more === true;
 
         if (!hasMoreWork || (!res?.search_cursor && (!nextOffset || nextOffset <= 1))) {
           filesHasMoreRef.current = false;
@@ -3601,21 +3608,6 @@ function MediaDriveDesktop({
             return boundedFiles;
           });
         });
-      }
-
-      if (dbBatch.length > 0) {
-        const toWrite = dbBatch;
-        dbBatch = [];
-        try {
-          await saveMediaRecords(toWrite);
-        } catch (dbErr) {
-          console.error('[Indexer] Fatal error persisting final batch to database:', dbErr);
-          hasPersistFailure = true;
-          setIndexingJob((prev: any) => prev ? {
-            ...prev,
-            text: t('speedtest.db_error_paused') || 'Kesalahan database: pengindeksan dijeda demi menjaga integritas data'
-          } : prev);
-        }
       }
 
       // Persist deep index snapshot metadata to IndexedDB ONLY if no persist failure occurred

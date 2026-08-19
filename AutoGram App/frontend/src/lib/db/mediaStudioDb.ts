@@ -86,8 +86,28 @@ export interface DeepIndexRecord {
   scannedAt: number;
 }
 
+export interface MediaIndexState {
+  accountId: string;
+  peerId: string;
+  scopeKind: MediaScopeKind;
+  topicIdNormalized: number;
+  pvCommittedOffset: number;
+  docCommittedOffset: number;
+  pvExhausted: boolean;
+  docExhausted: boolean;
+  newestCommittedId: number;
+  oldestCommittedId: number;
+  backfillComplete: boolean;
+  exactMediaCount: number | null;
+  exactBytes: number | null;
+  pts: number | null;
+  schemaVersion: number;
+  startedAt: number;
+  updatedAt: number;
+}
+
 const DB_NAME = 'autogram-media-studio-v4';
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -193,6 +213,13 @@ export function initDb(): Promise<IDBDatabase> {
       // 6. Persistent Location Deep Index store
       if (!db.objectStoreNames.contains('deepIndex')) {
         db.createObjectStore('deepIndex', { keyPath: 'key' });
+      }
+
+      // 7. P1.5 / P2 Media Index State store (Atomic dual-lane commit watermark)
+      if (!db.objectStoreNames.contains('mediaIndexState')) {
+        db.createObjectStore('mediaIndexState', {
+          keyPath: ['accountId', 'peerId', 'scopeKind', 'topicIdNormalized'],
+        });
       }
     };
 
@@ -340,6 +367,93 @@ export async function saveMediaRecords(records: Omit<MediaRecord, 'lastAccessed'
       store.put(fullRecord);
     }
   });
+}
+
+/**
+ * P1.5 / P2 Atomic batch persistence and durable watermark commit.
+ * Both media rows and index checkpoint state are committed inside a SINGLE readwrite transaction.
+ * If anything fails, the entire transaction rolls back atomically, preventing phantom cursor advancements.
+ */
+export async function saveMediaBatchAndCheckpoint(
+  records: Omit<MediaRecord, 'lastAccessed' | 'accessCount'>[],
+  checkpoint?: Partial<MediaIndexState> & {
+    accountId: string;
+    peerId: string;
+    scopeKind: MediaScopeKind;
+    topicIdNormalized: number;
+  }
+): Promise<void> {
+  const db = await initDb();
+  return new Promise<void>((resolve, reject) => {
+    const stores = checkpoint ? ['media', 'mediaIndexState'] : ['media'];
+    const tx = db.transaction(stores, 'readwrite');
+    const mediaStore = tx.objectStore('media');
+    const now = Date.now();
+
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error('saveMediaBatchAndCheckpoint transaction failed'));
+
+    for (const rec of records) {
+      if (!rec.accountId || !rec.peerId || !rec.scopeKind) continue;
+      const fullRecord: MediaRecord = {
+        ...rec,
+        name: (rec.name || '').trim(),
+        lastAccessed: now,
+        accessCount: 1,
+      };
+      mediaStore.put(fullRecord);
+    }
+
+    if (checkpoint) {
+      const stateStore = tx.objectStore('mediaIndexState');
+      const getReq = stateStore.get([
+        checkpoint.accountId,
+        checkpoint.peerId,
+        checkpoint.scopeKind,
+        checkpoint.topicIdNormalized,
+      ]);
+      getReq.onsuccess = () => {
+        const existing: MediaIndexState = (getReq.result as MediaIndexState | undefined) || {
+          accountId: checkpoint.accountId,
+          peerId: checkpoint.peerId,
+          scopeKind: checkpoint.scopeKind,
+          topicIdNormalized: checkpoint.topicIdNormalized,
+          pvCommittedOffset: 0,
+          docCommittedOffset: 0,
+          pvExhausted: false,
+          docExhausted: false,
+          newestCommittedId: 0,
+          oldestCommittedId: 0,
+          backfillComplete: false,
+          exactMediaCount: null,
+          exactBytes: null,
+          pts: null,
+          schemaVersion: 1,
+          startedAt: now,
+          updatedAt: now,
+        };
+
+        const merged: MediaIndexState = {
+          ...existing,
+          ...checkpoint,
+          updatedAt: now,
+        };
+        stateStore.put(merged);
+      };
+    }
+  });
+}
+
+export async function getMediaIndexState(
+  context: DriveMediaContext
+): Promise<MediaIndexState | null> {
+  const db = await initDb();
+  const tx = db.transaction('mediaIndexState', 'readonly');
+  const store = tx.objectStore('mediaIndexState');
+  const topicNorm = normalizeTopicId(context.scopeKind, context.topicId);
+  const req = store.get([context.accountId, context.peerId, context.scopeKind, topicNorm]);
+  const result = await requestToPromise<MediaIndexState | undefined>(req);
+  return result ?? null;
 }
 
 export function scopeMediaRecords(

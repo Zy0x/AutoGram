@@ -1,3 +1,27 @@
+## v3.7.94 Cross-Page Dedup, Pending-Drain & ACK-Driven Commit Watermark (P1.5 Complete) (Phase 35.60)
+
+### 1. P1.5 Inherent Dual-Lane Head Pop & Zero Cross-Page Duplicates
+- **Deduplikasi Inherent Tanpa Ketergantungan State**:
+  - Menggantikan pelacakan `HashSet` per-page di `buffered_k_way_merge` dengan pembandingan langsung head kedua buffer (`pending_pv.first()` dan `pending_doc.first()`).
+  - Jika `pv.id == doc.id`, kedua item langsung di-pop bersamaan dan dipancarkan sekali dengan `SearchLane::Both`.
+  - Mengeliminasi duplicate cross-page boundary bahkan pada pagination $limit = 1$. Lolos uji regresi `test_overlap_exactly_at_page_boundary`.
+
+### 2. P1.5 Single Rust Authoritative Completion Invariant
+- **Penghapusan Evaluasi Mandiri Frontend**:
+  - Menggantikan kondisi loop frontend dengan `res?.has_more === true` dari Rust sebagai otoritas tunggal.
+  - Menjamin pemindaian tidak berhenti prematur jika server Telegram sudah exhausted namun buffer merger masih memegang berkas pending.
+
+### 3. P1.5 Atomic Batch & Checkpoint Transaction (`mediaIndexState` Store)
+- **Object Store Baru `mediaIndexState` (DB v7)**:
+  - Menyimpan status checkpoint ber-skop: `[accountId, peerId, scopeKind, topicIdNormalized]`.
+  - Fungsi `saveMediaBatchAndCheckpoint` mengeksekusi penyimpanan batch media dan pembaruan watermark dalam SATU transaksi IndexedDB atomic `readwrite`.
+  - Kegagalan transaksi langsung me-rollback semua perubahan dan mencegah `searchCursorRef` maju (anti-phantom commit).
+
+### 4. P1.5 Lane Origin & Emitted Watermark Isolation
+- **Pemisahan Jalur Watermark**:
+  - Merged rows membawa label `SearchLane` (`PhotoVideo`, `Document`, `Both`).
+  - Watermark PhotoVideo hanya dimajukan oleh berkas PhotoVideo/Both, dan watermark Document hanya dimajukan oleh berkas Document/Both.
+
 ## v3.7.93 Lossless Buffered Merge & Commit-Watermark Integrity (P1.4 Complete) (Phase 35.59)
 
 ### 1. P1.4 Lossless Buffered K-Way Merge & Exact Global Page Size ($\le \text{limit}$)

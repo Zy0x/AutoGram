@@ -234,9 +234,13 @@ export type TgSearchScope = {
 
 export type TgLaneCursor = {
   fetchOffsetId?: number;
-  committedOffsetId?: number;
   offsetId?: number;
   exhausted: boolean;
+};
+
+export type TgLaneWatermark = {
+  photoVideo: number;
+  document: number;
 };
 
 export type TgScopedMediaSearchCursor = {
@@ -262,6 +266,7 @@ export type TgListMediaResult = {
   nextOffsetId?: number | null;
   searchCursor?: TgScopedMediaSearchCursor | null;
   laneCounts?: TgLaneCounts | null;
+  emittedWatermark?: TgLaneWatermark | null;
   totalCount?: number | null;
   backend: string;
   cached: boolean;

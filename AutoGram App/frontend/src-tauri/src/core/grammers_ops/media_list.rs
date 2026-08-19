@@ -90,9 +90,29 @@ pub struct SearchScope {
 pub struct LaneCursor {
     #[serde(alias = "offset_id")]
     pub fetch_offset_id: i32,
-    #[serde(default)]
-    pub committed_offset_id: i32,
     pub exhausted: bool,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LaneWatermark {
+    pub photo_video: i32,
+    pub document: i32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SearchLane {
+    PhotoVideo,
+    Document,
+    Both,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MergedMediaRow {
+    pub row: MediaFileRow,
+    pub lane: SearchLane,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -118,12 +138,10 @@ pub fn normalize_search_cursor(
             scope: scope.clone(),
             photo_video: LaneCursor {
                 fetch_offset_id: initial_offset,
-                committed_offset_id: initial_offset,
                 exhausted: false,
             },
             document: LaneCursor {
                 fetch_offset_id: initial_offset,
-                committed_offset_id: initial_offset,
                 exhausted: false,
             },
             pending_photo_video: Vec::new(),
@@ -133,35 +151,61 @@ pub fn normalize_search_cursor(
 }
 
 /// Merges two descending streams of `MediaFileRow` (pending_photo_video and pending_document),
-/// extracts up to `limit` unique items descending by `message_id`, and retains any surplus
-/// items in their respective pending buffers without losing any data.
+/// extracts up to `limit` unique items descending by `message_id`, inherently pops matching
+/// duplicates from both lane heads simultaneously to guarantee zero duplicate across page boundaries,
+/// and retains any surplus items in their respective pending buffers without losing any data.
 pub fn buffered_k_way_merge(
     pending_pv: &mut Vec<MediaFileRow>,
     pending_doc: &mut Vec<MediaFileRow>,
     limit: usize,
-) -> Vec<MediaFileRow> {
+) -> Vec<MergedMediaRow> {
     let mut emitted = Vec::with_capacity(limit);
-    let mut seen_ids = std::collections::HashSet::new();
 
+    // Keep pending buffers sorted descending by id
     pending_pv.sort_by(|a, b| b.id.cmp(&a.id));
     pending_doc.sort_by(|a, b| b.id.cmp(&a.id));
 
     while emitted.len() < limit && (!pending_pv.is_empty() || !pending_doc.is_empty()) {
-        let next_from_pv = match (pending_pv.first(), pending_doc.first()) {
-            (Some(pv), Some(doc)) => pv.id >= doc.id,
-            (Some(_), None) => true,
-            (None, Some(_)) => false,
+        match (pending_pv.first(), pending_doc.first()) {
+            (Some(pv), Some(doc)) if pv.id == doc.id => {
+                // Inherent dual-lane pop: consume both heads at once so identical ID is NEVER
+                // retained in the secondary buffer across page boundaries!
+                let pv_row = pending_pv.remove(0);
+                let _doc_row = pending_doc.remove(0);
+                emitted.push(MergedMediaRow {
+                    row: pv_row,
+                    lane: SearchLane::Both,
+                });
+            }
+            (Some(pv), Some(doc)) if pv.id > doc.id => {
+                let pv_row = pending_pv.remove(0);
+                emitted.push(MergedMediaRow {
+                    row: pv_row,
+                    lane: SearchLane::PhotoVideo,
+                });
+            }
+            (Some(_), Some(_)) => {
+                let doc_row = pending_doc.remove(0);
+                emitted.push(MergedMediaRow {
+                    row: doc_row,
+                    lane: SearchLane::Document,
+                });
+            }
+            (Some(_), None) => {
+                let pv_row = pending_pv.remove(0);
+                emitted.push(MergedMediaRow {
+                    row: pv_row,
+                    lane: SearchLane::PhotoVideo,
+                });
+            }
+            (None, Some(_)) => {
+                let doc_row = pending_doc.remove(0);
+                emitted.push(MergedMediaRow {
+                    row: doc_row,
+                    lane: SearchLane::Document,
+                });
+            }
             (None, None) => break,
-        };
-
-        let candidate = if next_from_pv {
-            pending_pv.remove(0)
-        } else {
-            pending_doc.remove(0)
-        };
-
-        if seen_ids.insert(candidate.id) {
-            emitted.push(candidate);
         }
     }
 
@@ -187,6 +231,7 @@ pub struct ListMediaResult {
     pub next_offset_id: Option<i64>,
     pub search_cursor: Option<ScopedMediaSearchCursor>,
     pub lane_counts: Option<LaneCounts>,
+    pub emitted_watermark: Option<LaneWatermark>,
     pub total_count: Option<usize>,
     pub backend: String,
     pub cached: bool,
@@ -934,21 +979,41 @@ pub fn list_media_blocking_topic_cursor(
                     }
 
                     // 3. Lossless Buffered K-Way Merge & Exact Page Size
-                    let emitted_files = buffered_k_way_merge(
+                    let merged_items = buffered_k_way_merge(
                         &mut cursor.pending_photo_video,
                         &mut cursor.pending_document,
                         limit,
                     );
 
-                    // Update committed watermark
-                    for f in &emitted_files {
-                        let id_i32 = f.id as i32;
-                        if cursor.photo_video.committed_offset_id == 0 || id_i32 < cursor.photo_video.committed_offset_id {
-                            cursor.photo_video.committed_offset_id = id_i32;
+                    let mut emitted_watermark = LaneWatermark {
+                        photo_video: 0,
+                        document: 0,
+                    };
+                    let mut emitted_files = Vec::with_capacity(merged_items.len());
+
+                    for item in &merged_items {
+                        let id_i32 = item.row.id as i32;
+                        match item.lane {
+                            SearchLane::PhotoVideo => {
+                                if emitted_watermark.photo_video == 0 || id_i32 < emitted_watermark.photo_video {
+                                    emitted_watermark.photo_video = id_i32;
+                                }
+                            }
+                            SearchLane::Document => {
+                                if emitted_watermark.document == 0 || id_i32 < emitted_watermark.document {
+                                    emitted_watermark.document = id_i32;
+                                }
+                            }
+                            SearchLane::Both => {
+                                if emitted_watermark.photo_video == 0 || id_i32 < emitted_watermark.photo_video {
+                                    emitted_watermark.photo_video = id_i32;
+                                }
+                                if emitted_watermark.document == 0 || id_i32 < emitted_watermark.document {
+                                    emitted_watermark.document = id_i32;
+                                }
+                            }
                         }
-                        if cursor.document.committed_offset_id == 0 || id_i32 < cursor.document.committed_offset_id {
-                            cursor.document.committed_offset_id = id_i32;
-                        }
+                        emitted_files.push(item.row.clone());
                     }
 
                     let has_more = !cursor.photo_video.exhausted
@@ -967,6 +1032,7 @@ pub fn list_media_blocking_topic_cursor(
                         next_offset_id,
                         search_cursor: Some(cursor),
                         lane_counts: Some(lane_counts),
+                        emitted_watermark: Some(emitted_watermark),
                         total_count: if candidate_estimate > 0 { Some(candidate_estimate) } else { None },
                         backend: BACKEND.to_string(),
                         cached: false,
@@ -1063,12 +1129,10 @@ mod tests {
             },
             photo_video: LaneCursor {
                 fetch_offset_id: 15000,
-                committed_offset_id: 15000,
                 exhausted: false,
             },
             document: LaneCursor {
                 fetch_offset_id: 12000,
-                committed_offset_id: 12000,
                 exhausted: false,
             },
             pending_photo_video: vec![dummy_row(14999)],
@@ -1099,12 +1163,10 @@ mod tests {
             },
             photo_video: LaneCursor {
                 fetch_offset_id: 9000,
-                committed_offset_id: 9000,
                 exhausted: false,
             },
             document: LaneCursor {
                 fetch_offset_id: 8000,
-                committed_offset_id: 8000,
                 exhausted: false,
             },
             pending_photo_video: vec![],
@@ -1133,12 +1195,10 @@ mod tests {
             },
             photo_video: LaneCursor {
                 fetch_offset_id: 5000,
-                committed_offset_id: 5000,
                 exhausted: false,
             },
             document: LaneCursor {
                 fetch_offset_id: 4000,
-                committed_offset_id: 4000,
                 exhausted: false,
             },
             pending_photo_video: vec![],
@@ -1166,12 +1226,10 @@ mod tests {
             },
             photo_video: LaneCursor {
                 fetch_offset_id: 901,
-                committed_offset_id: 901,
                 exhausted: false,
             },
             document: LaneCursor {
                 fetch_offset_id: 701,
-                committed_offset_id: 701,
                 exhausted: false,
             },
             pending_photo_video: vec![dummy_row(900)],
@@ -1201,21 +1259,21 @@ mod tests {
 
         // Page 1 with limit = 4
         let page1 = buffered_k_way_merge(&mut pv, &mut doc, 4);
-        let ids1: Vec<i64> = page1.iter().map(|f| f.id).collect();
+        let ids1: Vec<i64> = page1.iter().map(|f| f.row.id).collect();
         assert_eq!(ids1, vec![1000, 995, 990, 985]);
         assert_eq!(pv.len(), 3); // 980, 970, 960
         assert_eq!(doc.len(), 3); // 975, 965, 955
 
         // Page 2 with limit = 4
         let page2 = buffered_k_way_merge(&mut pv, &mut doc, 4);
-        let ids2: Vec<i64> = page2.iter().map(|f| f.id).collect();
+        let ids2: Vec<i64> = page2.iter().map(|f| f.row.id).collect();
         assert_eq!(ids2, vec![980, 975, 970, 965]);
         assert_eq!(pv.len(), 1); // 960
         assert_eq!(doc.len(), 1); // 955
 
         // Page 3 with limit = 4
         let page3 = buffered_k_way_merge(&mut pv, &mut doc, 4);
-        let ids3: Vec<i64> = page3.iter().map(|f| f.id).collect();
+        let ids3: Vec<i64> = page3.iter().map(|f| f.row.id).collect();
         assert_eq!(ids3, vec![960, 955]);
         assert_eq!(pv.len(), 0);
         assert_eq!(doc.len(), 0);
@@ -1236,10 +1294,56 @@ mod tests {
         let mut doc = vec![dummy_row(995), dummy_row(990), dummy_row(985)];
 
         let page = buffered_k_way_merge(&mut pv, &mut doc, 10);
-        let ids: Vec<i64> = page.iter().map(|f| f.id).collect();
+        let ids: Vec<i64> = page.iter().map(|f| f.row.id).collect();
         assert_eq!(ids, vec![1000, 995, 990, 985, 980]);
         // Message ID 990 appears only once!
         assert_eq!(ids.iter().filter(|&&id| id == 990).count(), 1);
+        assert_eq!(page.iter().find(|item| item.row.id == 990).unwrap().lane, SearchLane::Both);
+    }
+
+    #[test]
+    fn test_overlap_exactly_at_page_boundary() {
+        // PV = [1000, 900]
+        // DOC = [1000, 800]
+        // limit = 1
+        let mut pv = vec![dummy_row(1000), dummy_row(900)];
+        let mut doc = vec![dummy_row(1000), dummy_row(800)];
+
+        // Page 1: Must pop both 1000 from PV and DOC simultaneously and emit only once with SearchLane::Both
+        let p1 = buffered_k_way_merge(&mut pv, &mut doc, 1);
+        assert_eq!(p1.len(), 1);
+        assert_eq!(p1[0].row.id, 1000);
+        assert_eq!(p1[0].lane, SearchLane::Both);
+        assert_eq!(pv.len(), 1); // 900
+        assert_eq!(doc.len(), 1); // 800
+
+        // Page 2: Must emit 900 from PV
+        let p2 = buffered_k_way_merge(&mut pv, &mut doc, 1);
+        assert_eq!(p2.len(), 1);
+        assert_eq!(p2[0].row.id, 900);
+        assert_eq!(p2[0].lane, SearchLane::PhotoVideo);
+        assert_eq!(pv.len(), 0);
+        assert_eq!(doc.len(), 1); // 800
+
+        // Page 3: Must emit 800 from DOC
+        let p3 = buffered_k_way_merge(&mut pv, &mut doc, 1);
+        assert_eq!(p3.len(), 1);
+        assert_eq!(p3[0].row.id, 800);
+        assert_eq!(p3[0].lane, SearchLane::Document);
+        assert_eq!(pv.len(), 0);
+        assert_eq!(doc.len(), 0);
+
+        // Page 4: Exhausted
+        let p4 = buffered_k_way_merge(&mut pv, &mut doc, 1);
+        assert!(p4.is_empty());
+
+        let mut all_ids = Vec::new();
+        all_ids.extend(p1.iter().map(|f| f.row.id));
+        all_ids.extend(p2.iter().map(|f| f.row.id));
+        all_ids.extend(p3.iter().map(|f| f.row.id));
+        assert_eq!(all_ids, vec![1000, 900, 800]);
+        // 1000 appeared strictly once across page boundaries!
+        assert_eq!(all_ids.iter().filter(|&&id| id == 1000).count(), 1);
     }
 
     #[test]
@@ -1250,11 +1354,11 @@ mod tests {
         let mut doc = vec![dummy_row(5000)];
 
         let page1 = buffered_k_way_merge(&mut pv, &mut doc, 2);
-        let ids1: Vec<i64> = page1.iter().map(|f| f.id).collect();
+        let ids1: Vec<i64> = page1.iter().map(|f| f.row.id).collect();
         assert_eq!(ids1, vec![5000, 1000]);
 
         let page2 = buffered_k_way_merge(&mut pv, &mut doc, 10);
-        let ids2: Vec<i64> = page2.iter().map(|f| f.id).collect();
+        let ids2: Vec<i64> = page2.iter().map(|f| f.row.id).collect();
         assert_eq!(ids2, vec![900, 800, 700, 600]);
     }
 
@@ -1264,13 +1368,13 @@ mod tests {
         let mut doc = vec![dummy_row(200)];
 
         let p1 = buffered_k_way_merge(&mut pv, &mut doc, 1);
-        assert_eq!(p1[0].id, 300);
+        assert_eq!(p1[0].row.id, 300);
 
         let p2 = buffered_k_way_merge(&mut pv, &mut doc, 1);
-        assert_eq!(p2[0].id, 200);
+        assert_eq!(p2[0].row.id, 200);
 
         let p3 = buffered_k_way_merge(&mut pv, &mut doc, 1);
-        assert_eq!(p3[0].id, 100);
+        assert_eq!(p3[0].row.id, 100);
 
         let p4 = buffered_k_way_merge(&mut pv, &mut doc, 1);
         assert!(p4.is_empty());
@@ -1286,12 +1390,10 @@ mod tests {
             },
             photo_video: LaneCursor {
                 fetch_offset_id: 100,
-                committed_offset_id: 100,
                 exhausted: false,
             },
             document: LaneCursor {
                 fetch_offset_id: 1,
-                committed_offset_id: 1,
                 exhausted: true,
             },
             pending_photo_video: vec![],
@@ -1312,12 +1414,10 @@ mod tests {
             },
             photo_video: LaneCursor {
                 fetch_offset_id: 1,
-                committed_offset_id: 1,
                 exhausted: true,
             },
             document: LaneCursor {
                 fetch_offset_id: 1,
-                committed_offset_id: 1,
                 exhausted: true,
             },
             pending_photo_video: vec![],
