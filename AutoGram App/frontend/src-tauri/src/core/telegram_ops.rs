@@ -341,6 +341,7 @@ pub struct ListMediaRequest {
     pub limit: Option<usize>,
     pub offset_id: Option<i64>,
     pub topic_id: Option<i64>,
+    pub search_cursor: Option<super::grammers_ops::MediaSearchCursor>,
 }
 
 use std::collections::HashMap;
@@ -472,13 +473,14 @@ pub fn tg_list_media(req: ListMediaRequest) -> OpResult<super::grammers_ops::Lis
         api_hash: req.api_hash,
     };
     let limit = req.limit.unwrap_or(40);
-    match super::grammers_ops::list_media_blocking_topic(
+    match super::grammers_ops::list_media_blocking_topic_cursor(
         &dir,
         &identity,
         &req.chat_id,
         limit,
         req.offset_id,
         req.topic_id,
+        req.search_cursor,
     ) {
         Ok(v) => ok_result("grammers", v),
         Err(e) => {

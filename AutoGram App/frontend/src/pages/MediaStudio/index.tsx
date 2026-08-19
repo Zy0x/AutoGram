@@ -547,6 +547,15 @@ function MediaDriveDesktop({
     nextOffsetIdRef.current = nextOffsetId;
   }, [nextOffsetId]);
 
+  const [searchCursor, setSearchCursor] = useState<{
+    photoVideo: { offsetId: number; exhausted: boolean };
+    document: { offsetId: number; exhausted: boolean };
+  } | null>(null);
+  const searchCursorRef = useRef<typeof searchCursor>(searchCursor);
+  useEffect(() => {
+    searchCursorRef.current = searchCursor;
+  }, [searchCursor]);
+
   const filesHasMoreRef = useRef<boolean>(filesHasMore);
   useEffect(() => {
     filesHasMoreRef.current = filesHasMore;
@@ -3031,7 +3040,11 @@ function MediaDriveDesktop({
         const eventContext = buildDriveMediaContext(creds.session, eventPeerId, eventTopicId);
         
         if (evt.action === 'new' && evt.file) {
-          await saveMediaRecords(scopeMediaRecords([evt.file], eventContext, folderKey)).catch(() => null);
+          try {
+            await saveMediaRecords(scopeMediaRecords([evt.file], eventContext, folderKey));
+          } catch (e) {
+            console.error('[LiveSync] Error saving new media record:', e);
+          }
           if (folderKey === currentActiveFolder) {
             setFiles(prev => {
               if (prev.some(f => f.id === evt.file.id)) return prev;
@@ -3041,17 +3054,25 @@ function MediaDriveDesktop({
             });
           }
         } else if (evt.action === 'delete' && Array.isArray(evt.message_ids)) {
-          await deleteMediaRecordsForPeer(
-            creds.session,
-            eventPeerId == null ? 'me' : String(eventPeerId),
-            evt.message_ids
-          ).catch(() => null);
+          try {
+            await deleteMediaRecordsForPeer(
+              creds.session,
+              eventPeerId == null ? 'me' : String(eventPeerId),
+              evt.message_ids
+            );
+          } catch (e) {
+            console.error('[LiveSync] Error deleting media records:', e);
+          }
           if (folderKey === currentActiveFolder) {
             const idsToDelete = new Set(evt.message_ids);
             setFiles(prev => prev.filter(f => !idsToDelete.has(f.id)));
           }
         } else if (evt.action === 'edit' && evt.file) {
-          await saveMediaRecords(scopeMediaRecords([evt.file], eventContext, folderKey)).catch(() => null);
+          try {
+            await saveMediaRecords(scopeMediaRecords([evt.file], eventContext, folderKey));
+          } catch (e) {
+            console.error('[LiveSync] Error saving edited media record:', e);
+          }
           if (folderKey === currentActiveFolder) {
             setFiles(prev => prev.map(f => f.id === evt.file.id ? evt.file : f));
           }
@@ -3405,6 +3426,7 @@ function MediaDriveDesktop({
           res = await driveListFiles(creds, peerId, {
             pageSize: 100,
             offsetId: offset,
+            searchCursor: searchCursorRef.current,
             topicId: tid,
             quickStats: false,
             sortMode: 'newest',
@@ -3441,9 +3463,21 @@ function MediaDriveDesktop({
             try {
               await saveMediaRecords(toWrite);
             } catch (dbErr) {
-              console.error('[Indexer] Error persisting media batch to database:', dbErr);
+              console.error('[Indexer] Fatal error persisting media batch to database:', dbErr);
+              setIndexingJob((prev: any) => prev ? {
+                ...prev,
+                text: t('speedtest.db_error_paused') || 'Database error: pengindeksan dijeda'
+              } : prev);
+              // CRITICAL: Stop and do NOT advance cursor if DB write fails!
+              break;
             }
           }
+        }
+
+        // Update independent multi-lane search cursor
+        if (res?.search_cursor) {
+          searchCursorRef.current = res.search_cursor;
+          setSearchCursor(res.search_cursor);
         }
 
         indexedLoadedCount += page.length;
@@ -3490,9 +3524,13 @@ function MediaDriveDesktop({
         }
 
         const reachedTotal = (curTotal > 0 && curLoaded >= curTotal);
-        const hasMoreWork = !reachedTotal && nextOffset != null && nextOffset > 1;
+        const hasMoreWork = !reachedTotal && (
+          res?.search_cursor
+            ? (!res.search_cursor.photoVideo.exhausted || !res.search_cursor.document.exhausted)
+            : (nextOffset != null && nextOffset > 1)
+        );
 
-        if (!hasMoreWork || !nextOffset || nextOffset <= 1) {
+        if (!hasMoreWork || (!res?.search_cursor && (!nextOffset || nextOffset <= 1))) {
           filesHasMoreRef.current = false;
           setFilesHasMore(false);
           nextOffsetIdRef.current = null;
@@ -3561,7 +3599,11 @@ function MediaDriveDesktop({
       if (dbBatch.length > 0) {
         const toWrite = dbBatch;
         dbBatch = [];
-        void saveMediaRecords(toWrite).catch(() => {});
+        try {
+          await saveMediaRecords(toWrite);
+        } catch (dbErr) {
+          console.error('[Indexer] Fatal error persisting final batch to database:', dbErr);
+        }
       }
 
       // Persist deep index snapshot metadata to IndexedDB

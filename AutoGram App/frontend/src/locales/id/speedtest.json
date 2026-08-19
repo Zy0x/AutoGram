@@ -1736,6 +1736,7 @@
   "index_progress_title": "Mengindeks Metadata Drive",
   "index_progress_safe_hint": "Mode aman Anti-FloodWait aktif",
   "floodwait_countdown": "Telegram FloodWait: menunggu {{seconds}} dtk sebelum melanjutkan...",
+  "db_error_paused": "Kesalahan database: pengindeksan dijeda demi menjaga integritas data",
   "index_progress_detail": "{{processed}} dari {{total}} berkas ({{percent}}%)",
   "index_progress_count_only": "{{processed}} berkas terindeks",
   "index_progress_eta": "⏱️ ~{{eta}} tersisa",

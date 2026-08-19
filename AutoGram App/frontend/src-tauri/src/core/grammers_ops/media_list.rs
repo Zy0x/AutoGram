@@ -77,6 +77,20 @@ pub struct MediaFileRow {
     pub drive_format: Option<String>,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LaneCursor {
+    pub offset_id: i32,
+    pub exhausted: bool,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaSearchCursor {
+    pub photo_video: LaneCursor,
+    pub document: LaneCursor,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListMediaResult {
@@ -87,6 +101,7 @@ pub struct ListMediaResult {
     pub page_size: usize,
     pub has_more: bool,
     pub next_offset_id: Option<i64>,
+    pub search_cursor: Option<MediaSearchCursor>,
     pub total_count: Option<usize>,
     pub backend: String,
     pub cached: bool,
@@ -633,7 +648,7 @@ pub fn list_media_blocking(
     limit: usize,
     offset_id: Option<i64>,
 ) -> Result<ListMediaResult, TgError> {
-    list_media_blocking_topic(sessions_dir, identity, chat_id, limit, offset_id, None)
+    list_media_blocking_topic_cursor(sessions_dir, identity, chat_id, limit, offset_id, None, None)
 }
 
 pub fn list_media_blocking_topic(
@@ -643,6 +658,18 @@ pub fn list_media_blocking_topic(
     limit: usize,
     offset_id: Option<i64>,
     topic_id: Option<i64>,
+) -> Result<ListMediaResult, TgError> {
+    list_media_blocking_topic_cursor(sessions_dir, identity, chat_id, limit, offset_id, topic_id, None)
+}
+
+pub fn list_media_blocking_topic_cursor(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    chat_id: &str,
+    limit: usize,
+    offset_id: Option<i64>,
+    topic_id: Option<i64>,
+    search_cursor: Option<MediaSearchCursor>,
 ) -> Result<ListMediaResult, TgError> {
     let rt = runtime()?;
     let limit = limit.clamp(1, 100);
@@ -659,6 +686,7 @@ pub fn list_media_blocking_topic(
         with_pool_retry(&identity.session, || {
             let chat = chat.clone();
             let session_name = session_name.clone();
+            let initial_cursor = search_cursor.clone();
             with_client(sessions_dir, identity, true, |client| {
                 Box::pin(async move {
                     ensure_authorized(client, &session_name).await?;
@@ -675,27 +703,27 @@ pub fn list_media_blocking_topic(
                     }
                     let peer = peer_res?;
                     let input_peer: grammers_client::tl::enums::InputPeer = (&peer).into();
-                    let cur_offset_id = offset_id.unwrap_or(0) as i32;
 
-                    // Real Multi-Lane Server-Side Media Search (InputMessagesFilterPhotoVideo + InputMessagesFilterDocument)
-                    let lanes = vec![
-                        (
-                            "photo_video",
-                            grammers_client::tl::enums::MessagesFilter::InputMessagesFilterPhotoVideo,
-                        ),
-                        (
-                            "document",
-                            grammers_client::tl::enums::MessagesFilter::InputMessagesFilterDocument,
-                        ),
-                    ];
+                    let mut cursor = initial_cursor.unwrap_or_else(|| {
+                        let init_offset = offset_id.unwrap_or(0) as i32;
+                        MediaSearchCursor {
+                            photo_video: LaneCursor {
+                                offset_id: init_offset,
+                                exhausted: false,
+                            },
+                            document: LaneCursor {
+                                offset_id: init_offset,
+                                exhausted: false,
+                            },
+                        }
+                    });
 
                     let mut combined_files: Vec<MediaFileRow> = Vec::new();
                     let mut seen_ids = std::collections::HashSet::new();
-                    let mut any_has_more = false;
-                    let mut min_msg_id: Option<i64> = None;
                     let mut total_count_sum = 0usize;
 
-                    for (_lane_name, filter) in lanes {
+                    // 1. Lane: PhotoVideo (Native Photos & Videos)
+                    if !cursor.photo_video.exhausted {
                         let req = grammers_client::tl::functions::messages::Search {
                             peer: input_peer.clone(),
                             q: String::new(),
@@ -703,10 +731,10 @@ pub fn list_media_blocking_topic(
                             saved_peer_id: None,
                             saved_reaction: None,
                             top_msg_id,
-                            filter,
+                            filter: grammers_client::tl::enums::MessagesFilter::InputMessagesFilterPhotoVideo,
                             min_date: 0,
                             max_date: 0,
-                            offset_id: cur_offset_id,
+                            offset_id: cursor.photo_video.offset_id,
                             add_offset: 0,
                             limit: limit as i32,
                             max_id: 0,
@@ -717,7 +745,7 @@ pub fn list_media_blocking_topic(
                         let res = crate::core::telegram_rpc_guard::invoke_guarded(
                             &session_name,
                             crate::core::session_rate::RpcClass::IndexSearch,
-                            "messages.search",
+                            "messages.search.photo_video",
                             || client.invoke(&req),
                         )
                         .await?;
@@ -736,12 +764,11 @@ pub fn list_media_blocking_topic(
                         };
 
                         let raw_len = raw_msgs.len();
-                        let mut lane_last_id = None;
+                        let mut lowest_id = None;
 
                         for tl_msg in raw_msgs {
                             if let grammers_client::tl::enums::Message::Message(ref m) = tl_msg {
-                                lane_last_id = Some(m.id as i64);
-                                min_msg_id = Some(min_msg_id.map_or(m.id as i64, |prev| prev.min(m.id as i64)));
+                                lowest_id = Some(lowest_id.map_or(m.id, |prev: i32| prev.min(m.id)));
                             }
                             if let Some(row) = tl_message_to_row(&tl_msg, folder_id) {
                                 if seen_ids.insert(row.id) {
@@ -750,16 +777,86 @@ pub fn list_media_blocking_topic(
                             }
                         }
 
-                        if raw_len >= limit && lane_last_id.map_or(false, |id| id > 1) {
-                            any_has_more = true;
+                        if let Some(last_id) = lowest_id {
+                            cursor.photo_video.offset_id = last_id;
+                            if raw_len < limit || last_id <= 1 {
+                                cursor.photo_video.exhausted = true;
+                            }
+                        } else {
+                            cursor.photo_video.exhausted = true;
                         }
                     }
 
-                    // Sort combined items descending by Message ID
+                    // 2. Lane: Document (Files, Document Videos, Audio, Archives)
+                    if !cursor.document.exhausted {
+                        let req = grammers_client::tl::functions::messages::Search {
+                            peer: input_peer.clone(),
+                            q: String::new(),
+                            from_id: None,
+                            saved_peer_id: None,
+                            saved_reaction: None,
+                            top_msg_id,
+                            filter: grammers_client::tl::enums::MessagesFilter::InputMessagesFilterDocument,
+                            min_date: 0,
+                            max_date: 0,
+                            offset_id: cursor.document.offset_id,
+                            add_offset: 0,
+                            limit: limit as i32,
+                            max_id: 0,
+                            min_id: 0,
+                            hash: 0,
+                        };
+
+                        let res = crate::core::telegram_rpc_guard::invoke_guarded(
+                            &session_name,
+                            crate::core::session_rate::RpcClass::IndexSearch,
+                            "messages.search.document",
+                            || client.invoke(&req),
+                        )
+                        .await?;
+
+                        let raw_msgs = match res.value {
+                            grammers_client::tl::enums::messages::Messages::Messages(m) => m.messages,
+                            grammers_client::tl::enums::messages::Messages::Slice(m) => {
+                                total_count_sum += m.count as usize;
+                                m.messages
+                            }
+                            grammers_client::tl::enums::messages::Messages::ChannelMessages(m) => {
+                                total_count_sum += m.count as usize;
+                                m.messages
+                            }
+                            grammers_client::tl::enums::messages::Messages::NotModified(_) => Vec::new(),
+                        };
+
+                        let raw_len = raw_msgs.len();
+                        let mut lowest_id = None;
+
+                        for tl_msg in raw_msgs {
+                            if let grammers_client::tl::enums::Message::Message(ref m) = tl_msg {
+                                lowest_id = Some(lowest_id.map_or(m.id, |prev: i32| prev.min(m.id)));
+                            }
+                            if let Some(row) = tl_message_to_row(&tl_msg, folder_id) {
+                                if seen_ids.insert(row.id) {
+                                    combined_files.push(row);
+                                }
+                            }
+                        }
+
+                        if let Some(last_id) = lowest_id {
+                            cursor.document.offset_id = last_id;
+                            if raw_len < limit || last_id <= 1 {
+                                cursor.document.exhausted = true;
+                            }
+                        } else {
+                            cursor.document.exhausted = true;
+                        }
+                    }
+
+                    // 3. K-Way Merge & Exact Page Size Enforcement
                     combined_files.sort_by(|a, b| b.id.cmp(&a.id));
 
-                    let has_more = any_has_more && min_msg_id.map_or(false, |id| id > 1);
-                    let next_offset_id = if has_more { min_msg_id } else { None };
+                    let has_more = !cursor.photo_video.exhausted || !cursor.document.exhausted;
+                    let next_offset_id = combined_files.last().map(|f| f.id);
 
                     Ok(ListMediaResult {
                         status: "ok".to_string(),
@@ -768,6 +865,7 @@ pub fn list_media_blocking_topic(
                         page_size: limit,
                         has_more,
                         next_offset_id,
+                        search_cursor: Some(cursor),
                         total_count: if total_count_sum > 0 { Some(total_count_sum) } else { None },
                         backend: BACKEND.to_string(),
                         cached: false,

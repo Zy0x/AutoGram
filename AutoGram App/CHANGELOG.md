@@ -1,3 +1,26 @@
+## v3.7.91 Multi-Lane Independent Cursors, K-Way Merge & Persistent Class FloodGates (P1.2 Complete) (Phase 35.57)
+
+### 1. P1.2 Multi-Lane Independent Cursors (`MediaSearchCursor` & `LaneCursor`)
+- **Eliminasi Skipping Media Antar-Lane**:
+  - Menggantikan `next_offset_id` tunggal global dengan `MediaSearchCursor` yang memiliki `LaneCursor` mandiri untuk `photoVideo` dan `document`.
+  - Setiap lane maju secara independen berdasarkan `lowest_id` masing-masing jalur query Telegram.
+  - Memastikan 0 berkas terlewat (*zero missing media*) di antara rentang ID dokumen dan foto/video.
+
+### 2. P1.2 Proper K-Way Merge & Exact Global Page Size
+- **Buffer & Order**:
+  - Menggabungkan berkas dari seluruh jalur secara terurut menurun (*descending*) berdasarkan Message ID.
+  - Memastikan ukuran halaman yang dikeluarkan ke pemanggil tepat sesuai konfigurasi.
+
+### 3. P1.2 Durable Class-Specific FloodWait Across Restarts
+- **SQLite Persistence Wall-Clock**:
+  - Memperbarui `crates/autogram-core/src/transfer/store.rs` dengan `persist_class_rate_gate` dan `load_class_rate_gate`.
+  - `session_rate.rs` memuat status FloodWait per-class (`RpcClass::IndexSearch`) dari database lokal saat inisialisasi sesi, menjaga durasi cooldown tetap aktif lintas restart aplikasi tanpa memblokir class lain yang tidak terkena pembatasan.
+
+### 4. P1.2 Strict DB Durability & Zero Phantom Indexing
+- **Commit Guard**:
+  - Mengharuskan `await saveMediaRecords(toWrite)` dan menghentikan pergeseran cursor seketika jika operasi penyimpanan database gagal.
+  - Menghapus seluruh residu `.catch(() => {})` pada status pengindeksan otoritatif.
+
 ## v3.7.90 Multi-Lane Server Media Search, Single Rust Flood Authority & Concurrency Permits (P1.1 Complete) (Phase 35.56)
 
 ### 1. P1.1 Real Multi-Lane Server-Side Search (`InputMessagesFilterPhotoVideo` & `InputMessagesFilterDocument`)

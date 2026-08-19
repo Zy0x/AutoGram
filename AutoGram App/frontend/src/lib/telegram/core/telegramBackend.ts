@@ -226,6 +226,16 @@ export type TgMediaFileRow = {
   backend?: string;
 };
 
+export type TgLaneCursor = {
+  offsetId: number;
+  exhausted: boolean;
+};
+
+export type TgMediaSearchCursor = {
+  photoVideo: TgLaneCursor;
+  document: TgLaneCursor;
+};
+
 export type TgListMediaResult = {
   status: string;
   folderId?: number | null;
@@ -234,6 +244,7 @@ export type TgListMediaResult = {
   pageSize: number;
   hasMore: boolean;
   nextOffsetId?: number | null;
+  searchCursor?: TgMediaSearchCursor | null;
   totalCount?: number | null;
   backend: string;
   cached: boolean;
@@ -248,6 +259,7 @@ export async function tgListMedia(args: {
   limit?: number;
   offsetId?: number | null;
   topicId?: number | null;
+  searchCursor?: TgMediaSearchCursor | null;
 }): Promise<TgOpResult<TgListMediaResult> | null> {
   if (!detectTauriRuntime()) return null;
   try {
@@ -260,6 +272,7 @@ export async function tgListMedia(args: {
         limit: args.limit,
         offsetId: args.offsetId ?? null,
         topicId: args.topicId ?? null,
+        searchCursor: args.searchCursor ?? null,
       },
     });
     debugLogLayer('rust', 'tg', 'list_media', {

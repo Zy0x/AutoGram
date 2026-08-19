@@ -1,13 +1,14 @@
-AutoGram Version: v3.7.90
+AutoGram Version: v3.7.91
 
 Current State:
-v3.7.90 Multi-Lane Server Media Search, Single Rust Flood Authority & Concurrency Permits (P1.1 Complete) — membenahi `session_rate.rs`, `telegram_rpc_guard.rs`, `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. P1.1 Real Multi-Lane Server-Filtered Search: Menggunakan filter native Telegram `InputMessagesFilterPhotoVideo` dan `InputMessagesFilterDocument` secara paralel per-lane, menghasilkan 100% media terfilter murni di sisi server Telegram Data Center tanpa mengunduh pesan teks/stiker.
-2. P1.1 Single Flood Authority in Rust: Menghapus dual control plane. Regex parsing FLOOD_WAIT dan sleep Telegram-specific di React telah dihapus 100%. Rust menjadi satu-satunya otoritas pengatur FloodWait, permit semaphore, dan retry backoff.
-3. P1.1 Strict Index Concurrency & Permit Enforcement: `telegram_rpc_guard` kini secara aktif mengakuisisi `acquire_index_slot` (basis 1 inflight, maks 2) sebelum melakukan eksekusi RPC.
-4. P1.1 Awaited Durable Database Writes: Operasi `saveMediaRecords` kini di-`await` secara aman sebelum cursor dipindahkan, mencegah terjadinya phantom index data loss.
+v3.7.91 Multi-Lane Independent Cursors, K-Way Merge & Persistent Class FloodGates (P1.2 Complete) — membenahi `store.rs`, `session_rate.rs`, `media_list.rs`, `telegram_ops.rs`, `driveFilesApi.ts`, `telegramBackend.ts`, `MediaStudio/index.tsx`, `speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. P1.2 Multi-Lane Independent Cursors: Menggantikan cursor tunggal bersama dengan `MediaSearchCursor` + `LaneCursor` (`photoVideo` dan `document`). Setiap jalur pencarian maju berdasarkan last ID jalurnya sendiri sehingga tidak ada lagi berkas media di antara rentang ID yang terlewat (*zero missing items*).
+2. P1.2 Proper K-Way Merge & Exact Global Page Size: Menggabungkan buffer kedua jalur pencarian secara terurut menurun (*descending*) berdasarkan Message ID, memastikan ukuran halaman global tepat sesuai konfigurasi.
+3. P1.2 Durable Class-Specific FloodWait Across Restarts: Menyimpan status *FloodWait* per-class (`RpcClass::IndexSearch`, dll.) ke database SQLite lokal dengan waktu kedaluwarsa absolut (*wall-clock*), sehingga jeda pendinginan tetap aktif dan tidak hilang saat aplikasi ditutup dan dibuka kembali.
+4. P1.2 Strict DB Durability & Zero Phantom Indexing: Mengharuskan `await saveMediaRecords(toWrite)` dan menghentikan pergeseran cursor seketika jika penyimpanan database gagal. Menghapus seluruh residu `.catch(() => {})` pada status pengindeksan otoritatif.
 
 Previous:
+v3.7.90 Multi-Lane Server Media Search, Single Rust Flood Authority & Concurrency Permits (P1.1 Complete) — membenahi `session_rate.rs`, `telegram_rpc_guard.rs`, `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.89 Server-Filtered MTProto Search & Guarded Control Plane (P0 & P1 Complete) — membenahi `session_rate.rs`, `telegram_rpc_guard.rs`, `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.88 AIMD Adaptive Rate Controller & Architectural Limiter Decoupling — membenahi `adaptiveIndexer.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.87 Golden Sweet-Spot (750-Item Pipeline, 3ms Adaptive Pacing, Zero-Reconnect FloodWait) — membenahi `client_pool.rs`, `adaptiveIndexer.ts`, `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.

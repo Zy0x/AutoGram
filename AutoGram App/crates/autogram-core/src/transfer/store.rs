@@ -432,7 +432,48 @@ pub fn load_account_rate_gate(account_id: &str) -> Result<Option<u32>, String> {
     if remaining_ms <= 0 {
         return Ok(None);
     }
-    Ok(Some(((remaining_ms + 999) / 1_000).min(3_600) as u32))
+    Ok(Some(((remaining_ms + 999) / 1_000) as u32))
+}
+
+pub fn persist_class_rate_gate(
+    account_id: &str,
+    rpc_class: &str,
+    wait_seconds: u32,
+    reason: &str,
+) -> Result<(), String> {
+    let key = format!("{account_id}:{rpc_class}");
+    let now = now_ms();
+    let blocked_until = now.saturating_add(i64::from(wait_seconds) * 1_000);
+    open()?
+        .execute(
+            "INSERT INTO account_rate_gates (account_id, blocked_until, reason, consecutive_flood_waits, updated_at)
+             VALUES (?1, ?2, ?3, 1, ?4)
+             ON CONFLICT(account_id) DO UPDATE SET blocked_until=MAX(account_rate_gates.blocked_until, excluded.blocked_until),
+             reason=excluded.reason, consecutive_flood_waits=account_rate_gates.consecutive_flood_waits+1, updated_at=excluded.updated_at",
+            params![key, blocked_until, reason, now],
+        )
+        .map_err(|e| format!("persist class rate gate: {e}"))?;
+    Ok(())
+}
+
+pub fn load_class_rate_gate(account_id: &str, rpc_class: &str) -> Result<Option<u32>, String> {
+    let key = format!("{account_id}:{rpc_class}");
+    let conn = open()?;
+    let result = conn.query_row(
+        "SELECT blocked_until FROM account_rate_gates WHERE account_id=?1",
+        params![key],
+        |row| row.get::<_, Option<i64>>(0),
+    );
+    let blocked_until = match result {
+        Ok(value) => value,
+        Err(rusqlite::Error::QueryReturnedNoRows) => return Ok(None),
+        Err(error) => return Err(format!("load class rate gate: {error}")),
+    };
+    let remaining_ms = blocked_until.unwrap_or(0).saturating_sub(now_ms());
+    if remaining_ms <= 0 {
+        return Ok(None);
+    }
+    Ok(Some(((remaining_ms + 999) / 1_000) as u32))
 }
 
 pub fn persist_account_capability<T: Serialize>(

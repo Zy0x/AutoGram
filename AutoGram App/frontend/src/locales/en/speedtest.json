@@ -1736,6 +1736,7 @@
   "index_progress_title": "Indexing Drive Metadata",
   "index_progress_safe_hint": "Safe Anti-FloodWait mode active",
   "floodwait_countdown": "Telegram FloodWait: waiting {{seconds}}s before resuming...",
+  "db_error_paused": "Database error: indexing paused to preserve data integrity",
   "index_progress_detail": "{{processed}} of {{total}} files ({{percent}}%)",
   "index_progress_count_only": "{{processed}} files indexed",
   "index_progress_eta": "⏱️ ~{{eta}} remaining",

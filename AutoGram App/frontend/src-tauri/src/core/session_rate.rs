@@ -56,10 +56,29 @@ fn with_rate<R>(session: &str, f: impl FnOnce(&mut SessionRate) -> R) -> R {
         let restored_wait = crate::core::autogram_core::transfer::load_account_rate_gate(session)
             .ok()
             .flatten();
+
+        let mut class_flood_until = HashMap::new();
+        let classes = [
+            (RpcClass::IndexSearch, "IndexSearch"),
+            (RpcClass::IndexCounters, "IndexCounters"),
+            (RpcClass::IndexRepair, "IndexRepair"),
+            (RpcClass::MediaDownload, "MediaDownload"),
+            (RpcClass::MediaPreview, "MediaPreview"),
+            (RpcClass::WriteOperation, "WriteOperation"),
+            (RpcClass::GeneralRead, "GeneralRead"),
+        ];
+        for (cls, cls_name) in classes {
+            if let Ok(Some(secs)) = crate::core::autogram_core::transfer::load_class_rate_gate(session, cls_name) {
+                if secs > 0 {
+                    class_flood_until.insert(cls, Instant::now() + Duration::from_secs(u64::from(secs)));
+                }
+            }
+        }
+
         SessionRate {
             flood_until: restored_wait
                 .map(|seconds| Instant::now() + Duration::from_secs(u64::from(seconds))),
-            class_flood_until: HashMap::new(),
+            class_flood_until,
             index_sem: std::sync::Arc::new(Semaphore::new(MAX_INDEX_CONCURRENCY)),
             media_sem: std::sync::Arc::new(Semaphore::new(MAX_MEDIA_DOWNLOADS)),
             preview_sem: std::sync::Arc::new(Semaphore::new(MAX_PREVIEW_CONCURRENCY)),
@@ -90,7 +109,7 @@ pub fn note_flood_wait(session: &str, secs: u32) {
     );
 }
 
-/// Record a class-specific FLOOD_WAIT without needlessly freezing unrelated operations.
+/// Record a class-specific FLOOD_WAIT with persistent disk backing across restarts.
 pub fn note_flood_wait_class(session: &str, class: RpcClass, secs: u32) {
     let secs = secs.max(1);
     let until = Instant::now() + Duration::from_secs(u64::from(secs));
@@ -100,6 +119,21 @@ pub fn note_flood_wait_class(session: &str, class: RpcClass, secs: u32) {
             e.class_flood_until.insert(class, until);
         }
     });
+    let cls_name = match class {
+        RpcClass::IndexSearch => "IndexSearch",
+        RpcClass::IndexCounters => "IndexCounters",
+        RpcClass::IndexRepair => "IndexRepair",
+        RpcClass::MediaDownload => "MediaDownload",
+        RpcClass::MediaPreview => "MediaPreview",
+        RpcClass::WriteOperation => "WriteOperation",
+        RpcClass::GeneralRead => "GeneralRead",
+    };
+    let _ = crate::core::autogram_core::transfer::persist_class_rate_gate(
+        session,
+        cls_name,
+        secs,
+        "telegram_flood_wait",
+    );
 }
 
 /// Parse FLOOD_WAIT or FLOOD_PREMIUM_WAIT seconds from Telegram RPC error text if present.

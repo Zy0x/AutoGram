@@ -118,6 +118,10 @@ export async function driveListFiles(
     offsetId?: number | null;
     topicId?: number | null;
     context?: DriveMediaContext;
+    searchCursor?: {
+      photoVideo: { offsetId: number; exhausted: boolean };
+      document: { offsetId: number; exhausted: boolean };
+    } | null;
     /** Skip aggregate counters on the latency-critical first page. */
     quickStats?: boolean;
     sortMode?: string;
@@ -156,6 +160,7 @@ export async function driveListFiles(
         limit: pageSize,
         offsetId: opts?.offsetId ?? null,
         topicId: topicId != null && topicId > 0 ? topicId : null,
+        searchCursor: opts?.searchCursor ?? null,
       });
       if (gr?.ok && gr.data?.files) {
         let files = gr.data.files.map((f: any) => ({
@@ -196,6 +201,7 @@ export async function driveListFiles(
           page_size: pageSize,
           has_more: !!gr.data.hasMore,
           next_offset_id: gr.data.nextOffsetId ?? null,
+          search_cursor: gr.data.searchCursor ?? null,
           total_count: gr.data.totalCount ?? null,
           total_bytes: null,
           stats_accurate: false,
