@@ -26,9 +26,22 @@ pub enum ChannelSyncStatus {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ChannelMutationSource {
+    Bootstrap,
     Passive,
     Difference,
     DifferenceEmpty,
+}
+
+/// Outcome of a getChannelDifference pagination loop.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DifferenceRecoveryOutcome {
+    Synced {
+        next_short_poll_secs: Option<u32>,
+    },
+    ReconcileRequired {
+        latest_pts: i32,
+    },
+    TerminalFailed(String),
 }
 
 /// Reason triggering a getChannelDifference invocation.
@@ -39,6 +52,7 @@ pub enum DifferenceReason {
     ChannelTooLong,
     ActiveShortPoll,
     ExplicitReconcile,
+    Overflow,
 }
 
 /// Batch of media mutations delivered to the frontend for atomic IndexedDB commit alongside candidate PTS.

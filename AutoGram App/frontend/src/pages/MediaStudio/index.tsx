@@ -239,6 +239,8 @@ import {
   DriveToolsPanel,
   type DriveToolsTab,
 } from '../../components/drive/DriveToolsPanel';
+import { useChannelSync } from './hooks/useChannelSync';
+import type { MediaMutation } from '../../lib/db/mediaStudioDb';
 import {
   clearThumbCache,
   primeThumbsFromFileList,
@@ -1123,6 +1125,45 @@ function MediaDriveDesktop({
   const handleGridZoom = (z: DriveGridZoom) => {
     setGridZoom(clampGridZoom(z));
   };
+
+  const isChannelOrSupergroup = Boolean(peerId != null && peerId !== 0);
+  const channelSync = useChannelSync({
+    identity: creds,
+    peerId: peerId || 0,
+    isChannelOrSupergroup,
+    isActivelyViewed: true,
+    onMutationsCommitted: useCallback((mutations: MediaMutation[]) => {
+      setFiles((prev) => {
+        let updated = [...prev];
+        for (const mut of mutations) {
+          if (mut.action === 'upsert') {
+            const idx = updated.findIndex((f) => f.id === mut.row.id);
+            const matchesTopic =
+              topicFilterRef.current === undefined ||
+              topicFilterRef.current === null ||
+              mut.row.topic_id === topicFilterRef.current;
+            if (idx >= 0) {
+              if (matchesTopic) {
+                updated[idx] = mut.row;
+              } else {
+                updated.splice(idx, 1);
+              }
+            } else if (matchesTopic) {
+              updated.unshift(mut.row);
+            }
+          } else if (mut.action === 'delete') {
+            const delSet = new Set(mut.message_ids);
+            updated = updated.filter((f) => !delSet.has(f.id));
+          }
+        }
+        return updated;
+      });
+    }, []),
+    onAuthoritativeReconcileRequired: useCallback((_latestPts: number) => {
+      void refreshFilesRef.current?.();
+    }, []),
+  });
+  void channelSync;
 
   const activeLocationKey = getDriveCacheKey(creds?.session || session, peerId, topicFilter);
   const activeLocationKeyRef = useRef(activeLocationKey);
@@ -3051,17 +3092,20 @@ function MediaDriveDesktop({
       } else if (evt.type === 'update') {
         const folderKey = evt.folder_id || 0;
         const currentActiveFolder = peerId || 0;
-        const eventPeerId = folderKey || null;
-        const eventTopicId = folderKey === currentActiveFolder ? topicFilterRef.current : null;
-        const eventContext = buildDriveMediaContext(creds.session, eventPeerId, eventTopicId);
+        const isChannelSyncManaged = isChannelOrSupergroup && (folderKey === currentActiveFolder || folderKey === peerId);
         
         if (evt.action === 'new' && evt.file) {
-          try {
-            await saveMediaRecords(scopeMediaRecords([evt.file], eventContext, folderKey));
-          } catch (e) {
-            console.error('[LiveSync] Error saving new media record:', e);
+          if (!isChannelSyncManaged) {
+            const eventPeerId = folderKey || null;
+            const eventTopicId = folderKey === currentActiveFolder ? topicFilterRef.current : null;
+            const eventContext = buildDriveMediaContext(creds.session, eventPeerId, eventTopicId);
+            try {
+              await saveMediaRecords(scopeMediaRecords([evt.file], eventContext, folderKey));
+            } catch (e) {
+              console.error('[LiveSync] Error saving new media record:', e);
+            }
           }
-          if (folderKey === currentActiveFolder) {
+          if (folderKey === currentActiveFolder && !isChannelSyncManaged) {
             setFiles(prev => {
               if (prev.some(f => f.id === evt.file.id)) return prev;
               const matchesTopic = topicFilterRef.current === undefined || topicFilterRef.current === null || evt.file.topic_id === topicFilterRef.current;
@@ -3070,26 +3114,34 @@ function MediaDriveDesktop({
             });
           }
         } else if (evt.action === 'delete' && Array.isArray(evt.message_ids)) {
-          try {
-            await deleteMediaRecordsForPeer(
-              creds.session,
-              eventPeerId == null ? 'me' : String(eventPeerId),
-              evt.message_ids
-            );
-          } catch (e) {
-            console.error('[LiveSync] Error deleting media records:', e);
+          if (!isChannelSyncManaged) {
+            const eventPeerId = folderKey || null;
+            try {
+              await deleteMediaRecordsForPeer(
+                creds.session,
+                eventPeerId == null ? 'me' : String(eventPeerId),
+                evt.message_ids
+              );
+            } catch (e) {
+              console.error('[LiveSync] Error deleting media records:', e);
+            }
           }
-          if (folderKey === currentActiveFolder) {
+          if (folderKey === currentActiveFolder && !isChannelSyncManaged) {
             const idsToDelete = new Set(evt.message_ids);
             setFiles(prev => prev.filter(f => !idsToDelete.has(f.id)));
           }
         } else if (evt.action === 'edit' && evt.file) {
-          try {
-            await saveMediaRecords(scopeMediaRecords([evt.file], eventContext, folderKey));
-          } catch (e) {
-            console.error('[LiveSync] Error saving edited media record:', e);
+          if (!isChannelSyncManaged) {
+            const eventPeerId = folderKey || null;
+            const eventTopicId = folderKey === currentActiveFolder ? topicFilterRef.current : null;
+            const eventContext = buildDriveMediaContext(creds.session, eventPeerId, eventTopicId);
+            try {
+              await saveMediaRecords(scopeMediaRecords([evt.file], eventContext, folderKey));
+            } catch (e) {
+              console.error('[LiveSync] Error saving edited media record:', e);
+            }
           }
-          if (folderKey === currentActiveFolder) {
+          if (folderKey === currentActiveFolder && !isChannelSyncManaged) {
             setFiles(prev => prev.map(f => f.id === evt.file.id ? evt.file : f));
           }
         }

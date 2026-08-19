@@ -24,10 +24,15 @@ fn now_epoch_ms() -> u64 {
         .unwrap_or(0)
 }
 
+struct ChannelSyncManagerInner {
+    workers: HashMap<u64, Arc<ChannelSyncControl>>,
+    active_channel_syncs: HashMap<String, u64>,
+    client_request_map: HashMap<String, u64>,
+}
+
 /// Global thread-safe manager for all active ChannelSyncWorker instances in Tauri application state.
 pub struct ChannelSyncManager {
-    pub workers: Arc<RwLock<HashMap<u64, Arc<ChannelSyncControl>>>>,
-    pub active_channel_syncs: Arc<RwLock<HashMap<String, u64>>>,
+    inner: Arc<RwLock<ChannelSyncManagerInner>>,
     pub router_manager: Arc<SessionUpdateRouterManager>,
     pub sessions_dir: PathBuf,
     pub difference_source: Arc<dyn ChannelDifferenceSource>,
@@ -53,8 +58,11 @@ impl ChannelSyncManager {
         difference_source: Arc<dyn ChannelDifferenceSource>,
     ) -> Self {
         Self {
-            workers: Arc::new(RwLock::new(HashMap::new())),
-            active_channel_syncs: Arc::new(RwLock::new(HashMap::new())),
+            inner: Arc::new(RwLock::new(ChannelSyncManagerInner {
+                workers: HashMap::new(),
+                active_channel_syncs: HashMap::new(),
+                client_request_map: HashMap::new(),
+            })),
             router_manager: Arc::new(SessionUpdateRouterManager::new()),
             sessions_dir,
             difference_source,
@@ -62,7 +70,7 @@ impl ChannelSyncManager {
         }
     }
 
-    /// Starts a new or reattaches to an existing active ChannelSyncWorker for (accountId, peerId).
+    /// Starts a new or reattaches to an existing active ChannelSyncWorker for (accountId, peerId) atomically.
     pub async fn start_sync<S>(
         &self,
         request: StartChannelSyncRequest,
@@ -85,40 +93,65 @@ impl ChannelSyncManager {
         let peer_id = request.peer_id.trim().to_string();
         let parsed_channel_id: i64 = peer_id.parse().unwrap_or(0);
         let scope_key = format!("{}:{}", session_key, peer_id);
+        let client_req_id = request.client_request_id.clone();
 
         let sink_arc: Arc<dyn ChannelSyncEventSink> = Arc::new(event_sink);
 
-        // Check if an existing worker is already active for this channel
-        {
-            let active_map = self.active_channel_syncs.read().await;
-            if let Some(&existing_id) = active_map.get(&scope_key) {
-                let workers_guard = self.workers.read().await;
-                if let Some(ctrl) = workers_guard.get(&existing_id) {
-                    let term_at = ctrl.terminal_at_ms.load(Ordering::Acquire);
-                    if term_at == 0 {
-                        let ctrl_clone = ctrl.clone();
-                        drop(workers_guard);
-                        drop(active_map);
+        let mut inner = self.inner.write().await;
 
-                        let snapshot = ctrl_clone.attach_primary_and_snapshot(sink_arc).await;
-                        if let Some(is_viewed) = request.is_actively_viewed {
-                            ctrl_clone.is_actively_viewed.store(is_viewed, Ordering::Release);
-                        }
+        // 1. Client Request Idempotency Check
+        if let Some(&existing_sync_id) = inner.client_request_map.get(&client_req_id) {
+            if let Some(ctrl) = inner.workers.get(&existing_sync_id) {
+                let term_at = ctrl.terminal_at_ms.load(Ordering::Acquire);
+                if term_at == 0 {
+                    let ctrl_clone = ctrl.clone();
+                    drop(inner);
 
-                        return Ok(StartChannelSyncResponse {
-                            sync_id: existing_id,
-                            state: snapshot.state,
-                            reused_existing_sync: true,
-                            subscriber_id: snapshot.subscriber_id,
-                            generation: snapshot.generation,
-                            current_pts: snapshot.current_pts,
-                        });
+                    let snapshot = ctrl_clone.attach_primary_and_snapshot(sink_arc).await;
+                    if let Some(is_viewed) = request.is_actively_viewed {
+                        ctrl_clone.is_actively_viewed.store(is_viewed, Ordering::Release);
                     }
+
+                    return Ok(StartChannelSyncResponse {
+                        sync_id: existing_sync_id,
+                        state: snapshot.state,
+                        reused_existing_sync: true,
+                        subscriber_id: snapshot.subscriber_id,
+                        generation: snapshot.generation,
+                        current_pts: snapshot.current_pts,
+                    });
                 }
             }
         }
 
-        // Allocate new ChannelSyncWorker
+        // 2. Active Channel Scope Check (Single Active Worker per Session + Peer)
+        if let Some(&existing_id) = inner.active_channel_syncs.get(&scope_key) {
+            if let Some(ctrl) = inner.workers.get(&existing_id) {
+                let term_at = ctrl.terminal_at_ms.load(Ordering::Acquire);
+                if term_at == 0 {
+                    let ctrl_clone = ctrl.clone();
+                    drop(inner);
+
+                    let snapshot = ctrl_clone.attach_primary_and_snapshot(sink_arc).await;
+                    if let Some(is_viewed) = request.is_actively_viewed {
+                        ctrl_clone.is_actively_viewed.store(is_viewed, Ordering::Release);
+                    }
+
+                    return Ok(StartChannelSyncResponse {
+                        sync_id: existing_id,
+                        state: snapshot.state,
+                        reused_existing_sync: true,
+                        subscriber_id: snapshot.subscriber_id,
+                        generation: snapshot.generation,
+                        current_pts: snapshot.current_pts,
+                    });
+                } else {
+                    inner.active_channel_syncs.remove(&scope_key);
+                }
+            }
+        }
+
+        // 3. Allocate new ChannelSyncWorker atomically under write lock
         let sync_id = self.next_sync_id.fetch_add(1, Ordering::SeqCst);
         let (state_tx, _) = watch::channel(ChannelSyncDesiredState::Running);
         let (ack_tx, ack_rx) = mpsc::channel(1);
@@ -135,7 +168,7 @@ impl ChannelSyncManager {
         let control = Arc::new(ChannelSyncControl {
             sync_id,
             session_key: session_key.clone(),
-            client_request_id: request.client_request_id.clone(),
+            client_request_id: client_req_id.clone(),
             peer_id: peer_id.clone(),
             created_at_ms: now_epoch_ms(),
             current_pts: AtomicI32::new(initial_pts),
@@ -157,16 +190,16 @@ impl ChannelSyncManager {
 
         // Register with SessionUpdateRouter
         let router = self.router_manager.get_or_create(self.sessions_dir.clone(), &request.identity).await;
-        let update_rx = router.register_channel(parsed_channel_id).await;
+        let (update_rx, mailbox_overflowed) = router.register_channel(parsed_channel_id).await;
 
-        {
-            let mut workers_guard = self.workers.write().await;
-            let mut active_map = self.active_channel_syncs.write().await;
-            workers_guard.insert(sync_id, control.clone());
-            active_map.insert(scope_key, sync_id);
-        }
+        inner.workers.insert(sync_id, control.clone());
+        inner.active_channel_syncs.insert(scope_key.clone(), sync_id);
+        inner.client_request_map.insert(client_req_id, sync_id);
 
-        // Spawn background worker
+        drop(inner);
+
+        // Spawn background worker with scope-cleanup on completion
+        let inner_ref = self.inner.clone();
         let worker = ChannelSyncWorker {
             sync_id,
             request,
@@ -175,10 +208,18 @@ impl ChannelSyncManager {
             router,
             ack_rx,
             update_rx,
+            mailbox_overflowed,
         };
 
         tokio::spawn(async move {
             worker.run().await;
+            // Clean up active scope map
+            let mut guard = inner_ref.write().await;
+            if let Some(&active_id) = guard.active_channel_syncs.get(&scope_key) {
+                if active_id == sync_id {
+                    guard.active_channel_syncs.remove(&scope_key);
+                }
+            }
         });
 
         Ok(StartChannelSyncResponse {
@@ -201,8 +242,8 @@ impl ChannelSyncManager {
         S: ChannelSyncEventSink + 'static,
     {
         let worker = {
-            let workers = self.workers.read().await;
-            workers.get(&sync_id).cloned()
+            let inner = self.inner.read().await;
+            inner.workers.get(&sync_id).cloned()
         };
 
         let Some(worker) = worker else {
@@ -251,113 +292,69 @@ impl ChannelSyncManager {
         generation: u64,
     ) -> DetachChannelSyncResponse {
         let worker = {
-            let workers = self.workers.read().await;
-            workers.get(&sync_id).cloned()
+            let inner = self.inner.read().await;
+            inner.workers.get(&sync_id).cloned()
         };
 
-        let Some(worker) = worker else {
-            return DetachChannelSyncResponse {
-                sync_id,
-                detached: false,
-            };
-        };
-
-        let detached = {
-            let mut primary = worker.primary_subscriber.write().await;
-            if let Some(ref sub) = *primary {
-                if sub.subscriber_id == subscriber_id && sub.generation == generation {
-                    *primary = None;
-                    true
-                } else {
-                    false
-                }
-            } else {
-                false
-            }
-        };
-
-        if detached {
-            if worker.expected_batch_id.load(Ordering::Acquire) > 0 {
-                let mut st = worker.status.write().await;
-                if *st == ChannelSyncStatus::WaitingAck {
-                    *st = ChannelSyncStatus::WaitingFrontend;
-                }
-            }
-            worker.subscriber_notify.notify_waiters();
-        }
-
-        DetachChannelSyncResponse {
-            sync_id,
-            detached,
+        if let Some(w) = worker {
+            let detached = w.detach_primary(subscriber_id, generation).await;
+            DetachChannelSyncResponse { sync_id, detached }
+        } else {
+            DetachChannelSyncResponse { sync_id, detached: false }
         }
     }
 
-    /// Dispatches a storage ACK from the frontend with atomic single-winner claim.
+    /// Processes an incoming storage ACK with three-stage atomic claim validation.
     pub async fn process_ack(&self, ack: ChannelSyncAck) -> ChannelSyncAckResult {
         let worker = {
-            let workers = self.workers.read().await;
-            workers.get(&ack.sync_id).cloned()
+            let inner = self.inner.read().await;
+            inner.workers.get(&ack.sync_id).cloned()
         };
 
-        let Some(worker) = worker else {
+        let Some(control) = worker else {
             return ChannelSyncAckResult::SyncTerminal;
         };
 
-        let processed = worker.last_processed_batch_id.load(Ordering::Acquire);
-        if ack.batch_id == processed && processed != 0 {
-            return ChannelSyncAckResult::AlreadyAcked;
-        }
-        if ack.batch_id < processed {
-            return ChannelSyncAckResult::Stale;
-        }
-
-        let expected = worker.expected_batch_id.load(Ordering::Acquire);
+        let expected = control.expected_batch_id.load(Ordering::Acquire);
         if expected == 0 {
-            let claimed = worker.claimed_batch_id.load(Ordering::Acquire);
-            if ack.batch_id == claimed && claimed != 0 {
+            let last_processed = control.last_processed_batch_id.load(Ordering::Acquire);
+            if ack.batch_id <= last_processed && ack.batch_id > 0 {
                 return ChannelSyncAckResult::AlreadyAcked;
             }
-            return ChannelSyncAckResult::SyncTerminal;
-        }
-
-        if ack.batch_id < expected {
-            return ChannelSyncAckResult::Stale;
-        }
-        if ack.batch_id > expected {
             return ChannelSyncAckResult::Unexpected;
         }
 
-        let claimed = worker.claimed_batch_id.load(Ordering::Acquire);
-        if claimed == ack.batch_id {
-            return ChannelSyncAckResult::AlreadyAcked;
-        }
-        if claimed > ack.batch_id {
-            return ChannelSyncAckResult::Stale;
+        if ack.batch_id != expected {
+            if ack.batch_id < expected {
+                return ChannelSyncAckResult::Stale;
+            }
+            return ChannelSyncAckResult::Unexpected;
         }
 
-        match worker.claimed_batch_id.compare_exchange(
-            claimed,
-            ack.batch_id,
-            Ordering::AcqRel,
-            Ordering::Acquire,
-        ) {
-            Ok(_) => {
-                match worker.ack_tx.send(ack).await {
-                    Ok(()) => ChannelSyncAckResult::Accepted,
-                    Err(_) => ChannelSyncAckResult::SyncTerminal,
-                }
-            }
-            Err(actual) if actual == ack.batch_id => ChannelSyncAckResult::AlreadyAcked,
-            Err(actual) if actual > ack.batch_id => ChannelSyncAckResult::Stale,
-            Err(_) => ChannelSyncAckResult::Unexpected,
+        // Atomic claim
+        if control
+            .claimed_batch_id
+            .compare_exchange(0, ack.batch_id, Ordering::SeqCst, Ordering::Relaxed)
+            .is_err()
+        {
+            return ChannelSyncAckResult::AlreadyAcked;
+        }
+
+        let sent = control.ack_tx.try_send(ack).is_ok();
+        control.claimed_batch_id.store(0, Ordering::Release);
+
+        if sent {
+            ChannelSyncAckResult::Accepted
+        } else {
+            ChannelSyncAckResult::Unexpected
         }
     }
 
-    /// Sets whether this channel is actively viewed in the foreground UI (governing short polling).
+    /// Sets foreground/background active-view state for a channel sync.
     pub async fn set_active_view(&self, sync_id: u64, is_active: bool) {
         let worker = {
-            let workers = self.workers.read().await;
-            workers.get(&sync_id).cloned()
+            let inner = self.inner.read().await;
+            inner.workers.get(&sync_id).cloned()
         };
         if let Some(w) = worker {
             w.is_actively_viewed.store(is_active, Ordering::Release);
@@ -367,79 +364,73 @@ impl ChannelSyncManager {
     /// Pauses an active channel synchronization stream.
     pub async fn pause_sync(&self, sync_id: u64) -> ChannelSyncControlResponse {
         let worker = {
-            let workers = self.workers.read().await;
-            workers.get(&sync_id).cloned()
+            let inner = self.inner.read().await;
+            inner.workers.get(&sync_id).cloned()
         };
 
-        let Some(worker) = worker else {
-            return ChannelSyncControlResponse {
+        if let Some(w) = worker {
+            let _ = w.state_tx.send(ChannelSyncDesiredState::Paused);
+            let st = *w.status.read().await;
+            ChannelSyncControlResponse {
+                sync_id,
+                accepted: true,
+                state: st,
+            }
+        } else {
+            ChannelSyncControlResponse {
                 sync_id,
                 accepted: false,
                 state: ChannelSyncStatus::Failed,
-            };
-        };
-
-        let _ = worker.state_tx.send(ChannelSyncDesiredState::Paused);
-        let mut st = worker.status.write().await;
-        *st = ChannelSyncStatus::Paused;
-
-        ChannelSyncControlResponse {
-            sync_id,
-            accepted: true,
-            state: *st,
+            }
         }
     }
 
     /// Resumes a paused channel synchronization stream.
     pub async fn resume_sync(&self, sync_id: u64) -> ChannelSyncControlResponse {
         let worker = {
-            let workers = self.workers.read().await;
-            workers.get(&sync_id).cloned()
+            let inner = self.inner.read().await;
+            inner.workers.get(&sync_id).cloned()
         };
 
-        let Some(worker) = worker else {
-            return ChannelSyncControlResponse {
+        if let Some(w) = worker {
+            let _ = w.state_tx.send(ChannelSyncDesiredState::Running);
+            let st = *w.status.read().await;
+            ChannelSyncControlResponse {
+                sync_id,
+                accepted: true,
+                state: st,
+            }
+        } else {
+            ChannelSyncControlResponse {
                 sync_id,
                 accepted: false,
                 state: ChannelSyncStatus::Failed,
-            };
-        };
-
-        let _ = worker.state_tx.send(ChannelSyncDesiredState::Running);
-        let mut st = worker.status.write().await;
-        *st = ChannelSyncStatus::LiveSynced;
-
-        ChannelSyncControlResponse {
-            sync_id,
-            accepted: true,
-            state: *st,
+            }
         }
     }
 
-    /// Stops and terminates a channel synchronization worker.
+    /// Stops and terminates a channel synchronization stream.
     pub async fn stop_sync(&self, sync_id: u64) -> ChannelSyncControlResponse {
         let worker = {
-            let workers = self.workers.read().await;
-            workers.get(&sync_id).cloned()
+            let inner = self.inner.read().await;
+            inner.workers.get(&sync_id).cloned()
         };
 
-        let Some(worker) = worker else {
-            return ChannelSyncControlResponse {
+        if let Some(w) = worker {
+            w.cancel.cancel();
+            let mut st = w.status.write().await;
+            *st = ChannelSyncStatus::Stopped;
+            ChannelSyncControlResponse {
+                sync_id,
+                accepted: true,
+                state: ChannelSyncStatus::Stopped,
+            }
+        } else {
+            ChannelSyncControlResponse {
                 sync_id,
                 accepted: false,
                 state: ChannelSyncStatus::Stopped,
-            };
-        };
-
-        worker.cancel.cancel();
-        worker.subscriber_notify.notify_waiters();
-        let mut st = worker.status.write().await;
-        *st = ChannelSyncStatus::Stopped;
-
-        ChannelSyncControlResponse {
-            sync_id,
-            accepted: true,
-            state: *st,
+            }
         }
     }
 }

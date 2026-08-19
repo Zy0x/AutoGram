@@ -248,6 +248,7 @@ pub(crate) struct LiveClient {
     pub client: Client,
     pub session: Arc<MemorySession>,
     pub session_path: PathBuf,
+    pub updates_rx: Arc<tokio::sync::Mutex<Option<tokio::sync::mpsc::UnboundedReceiver<grammers_session::updates::UpdatesLike>>>>,
     /// Keep runner task alive
     pub _runner: tokio::task::JoinHandle<()>,
 }

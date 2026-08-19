@@ -21,9 +21,8 @@ use super::grammers_ops::channel_updates::{
 use super::media_mutation::MediaMutation;
 use super::session_update_router::{ChannelUpdateType, PendingChannelUpdate, SessionUpdateRouter};
 use super::telegram_ops::TelegramIdentity;
-use super::telegram_rpc_guard::{RpcGuardControl, RpcObserver};
-use super::tg_error::{TgError, TgErrorCode, TgErrorPublic};
-use super::tg_log;
+use super::telegram_rpc_guard::RpcGuardControl;
+use super::tg_error::TgError;
 
 const DEFAULT_ACK_TIMEOUT: Duration = Duration::from_secs(120);
 const FRONTEND_REATTACH_TIMEOUT: Duration = Duration::from_secs(120);
@@ -201,18 +200,16 @@ impl ChannelSyncControl {
             state: st,
         });
 
-        let mut replayed_batch_id = None;
-        let expected = self.expected_batch_id.load(Ordering::Acquire);
-        let claimed = self.claimed_batch_id.load(Ordering::Acquire);
+        // Instant Replay of pending unacked batch if any
+        let mut replayed_id = None;
+        let pending = {
+            let pb = self.pending_batch.read().await;
+            pb.clone()
+        };
 
-        if expected > 0 && claimed < expected {
-            let pending_guard = self.pending_batch.read().await;
-            if let Some(ref p) = *pending_guard {
-                if p.batch_id == expected {
-                    sink.send_event(ChannelSyncEvent::Batch(p.event.clone()));
-                    replayed_batch_id = Some(p.batch_id);
-                }
-            }
+        if let Some(p) = pending {
+            replayed_id = Some(p.batch_id);
+            sink.send_event(ChannelSyncEvent::Batch(p.event));
         }
 
         self.subscriber_notify.notify_waiters();
@@ -222,12 +219,27 @@ impl ChannelSyncControl {
             generation: gen,
             state: st,
             current_pts: self.current_pts.load(Ordering::Acquire),
-            replayed_batch_id,
+            replayed_batch_id: replayed_id,
         }
+    }
+
+    pub async fn detach_primary(&self, subscriber_id: u64, generation: u64) -> bool {
+        let mut primary = self.primary_subscriber.write().await;
+        if let Some(ref current) = *primary {
+            if current.subscriber_id == subscriber_id && current.generation == generation {
+                *primary = None;
+                let mut st = self.status.write().await;
+                if *st == ChannelSyncStatus::WaitingAck {
+                    *st = ChannelSyncStatus::WaitingFrontend;
+                }
+                return true;
+            }
+        }
+        false
     }
 }
 
-/// Long-running Tokio worker instance for a single channel synchronization stream.
+/// Long-running async worker driving channel synchronization.
 pub struct ChannelSyncWorker {
     pub sync_id: u64,
     pub request: StartChannelSyncRequest,
@@ -236,22 +248,24 @@ pub struct ChannelSyncWorker {
     pub router: Arc<SessionUpdateRouter>,
     pub ack_rx: mpsc::Receiver<ChannelSyncAck>,
     pub update_rx: mpsc::Receiver<PendingChannelUpdate>,
+    pub mailbox_overflowed: Arc<AtomicBool>,
 }
 
 impl ChannelSyncWorker {
     pub async fn run(mut self) {
-        let sync_id = self.sync_id;
-        let cancel = self.control.cancel.clone();
         let session_key = self.request.identity.session.clone();
         let peer_id = self.request.peer_id.clone();
         let parsed_channel_id: i64 = peer_id.parse().unwrap_or(0);
-
-        let mut batch_counter = 0u64;
-        let mut reorder_buffer: BTreeMap<i32, PendingChannelUpdate> = BTreeMap::new();
+        let sync_id = self.sync_id;
+        let cancel = self.control.cancel.clone();
         let mut state_rx = self.control.state_tx.subscribe();
 
-        // 1. Initial PTS Bootstrap
+        let mut batch_counter: u64 = 0;
+        let mut reorder_buffer: BTreeMap<i32, PendingChannelUpdate> = BTreeMap::new();
+
+        // 1. Initial PTS Bootstrap & Durable Baseline Persistence
         let initial_pts = if let Some(pts) = self.request.initial_pts {
+            self.control.current_pts.store(pts, Ordering::Release);
             pts
         } else {
             {
@@ -268,11 +282,8 @@ impl ChannelSyncWorker {
                 observer: None,
             };
 
-            match self.difference_source.fetch_pts(&self.request.identity, &peer_id, guard_ctrl).await {
-                Ok(pts) => {
-                    self.control.current_pts.store(pts, Ordering::Release);
-                    pts
-                }
+            let fetched_pts = match self.difference_source.fetch_pts(&self.request.identity, &peer_id, guard_ctrl).await {
+                Ok(pts) => pts,
                 Err(e) => {
                     {
                         let mut st = self.control.status.write().await;
@@ -287,10 +298,85 @@ impl ChannelSyncWorker {
                     self.router.unregister_channel(parsed_channel_id).await;
                     return;
                 }
+            };
+
+            // Emit Bootstrap Batch with empty mutations and candidate PTS to persist durable state
+            batch_counter += 1;
+            let batch_id = batch_counter;
+            let bootstrap_batch = ChannelSyncMutationBatchEvent {
+                sync_id,
+                batch_id,
+                account_id: session_key.clone(),
+                peer_id: peer_id.clone(),
+                previous_pts: 0,
+                candidate_pts: fetched_pts,
+                source: ChannelMutationSource::Bootstrap,
+                mutations: Vec::new(),
+                is_final: true,
+            };
+
+            {
+                let mut pb = self.control.pending_batch.write().await;
+                *pb = Some(PendingMutationBatch {
+                    batch_id,
+                    event: bootstrap_batch.clone(),
+                    emitted_at_ms: now_epoch_ms(),
+                });
+            }
+            self.control.expected_batch_id.store(batch_id, Ordering::Release);
+
+            let sent_ok = self.control.emit_to_primary(ChannelSyncEvent::Batch(bootstrap_batch)).await;
+            if sent_ok {
+                let mut st = self.control.status.write().await;
+                *st = ChannelSyncStatus::WaitingAck;
+            } else {
+                let mut st = self.control.status.write().await;
+                *st = ChannelSyncStatus::WaitingFrontend;
+            }
+
+            let ack = Self::wait_for_ack(&self.control, &mut self.ack_rx, batch_id, &cancel).await;
+            match ack {
+                Ok(a) if a.outcome == ChannelSyncAckOutcome::Committed => {
+                    self.control.current_pts.store(fetched_pts, Ordering::Release);
+                    self.control.last_processed_batch_id.store(batch_id, Ordering::Release);
+                    self.control.expected_batch_id.store(0, Ordering::Release);
+                    {
+                        let mut pb = self.control.pending_batch.write().await;
+                        *pb = None;
+                    }
+                    fetched_pts
+                }
+                Ok(a) => {
+                    let err_msg = a.error_code.unwrap_or_else(|| "Bootstrap storage ACK failed".into());
+                    {
+                        let mut st = self.control.status.write().await;
+                        *st = ChannelSyncStatus::Failed;
+                    }
+                    let _ = self.control.emit_to_primary(ChannelSyncEvent::Failed {
+                        sync_id,
+                        code: "bootstrap_storage_error".into(),
+                        message: err_msg,
+                        recoverable: true,
+                    }).await;
+                    self.router.unregister_channel(parsed_channel_id).await;
+                    return;
+                }
+                Err(e) => {
+                    {
+                        let mut st = self.control.status.write().await;
+                        *st = ChannelSyncStatus::Failed;
+                    }
+                    let _ = self.control.emit_to_primary(ChannelSyncEvent::Failed {
+                        sync_id,
+                        code: "bootstrap_ack_error".into(),
+                        message: e,
+                        recoverable: true,
+                    }).await;
+                    self.router.unregister_channel(parsed_channel_id).await;
+                    return;
+                }
             }
         };
-
-        self.control.current_pts.store(initial_pts, Ordering::Release);
 
         {
             let mut st = self.control.status.write().await;
@@ -304,6 +390,8 @@ impl ChannelSyncWorker {
         let control_ref = self.control.clone();
         let diff_source_ref = self.difference_source.clone();
         let request_identity = self.request.identity.clone();
+
+        let mut next_short_poll_at = Instant::now() + DEFAULT_SHORT_POLL_TIMEOUT;
 
         // 2. Main Event & Sequencing Loop
         let loop_result: Result<(), String> = async {
@@ -342,9 +430,40 @@ impl ChannelSyncWorker {
                     return Err("Cancelled".into());
                 }
 
-                // Wait for next update or active-view short poll tick
+                // Check mailbox overflow flag
+                if self.mailbox_overflowed.swap(false, Ordering::AcqRel) {
+                    let outcome = Self::run_difference_recovery(
+                        &control_ref,
+                        &diff_source_ref,
+                        &request_identity,
+                        &peer_id,
+                        &session_key,
+                        &mut self.ack_rx,
+                        &mut batch_counter,
+                        &cancel,
+                    ).await?;
+                    match outcome {
+                        DifferenceRecoveryOutcome::Synced { next_short_poll_secs } => {
+                            next_short_poll_at = Instant::now()
+                                + Duration::from_secs(next_short_poll_secs.unwrap_or(2).clamp(1, 60) as u64);
+                        }
+                        DifferenceRecoveryOutcome::ReconcileRequired { .. } => {}
+                        DifferenceRecoveryOutcome::TerminalFailed(e) => return Err(e),
+                    }
+                }
+
+                // Calculate sleep duration for active short polling
                 let is_active = control_ref.is_actively_viewed.load(Ordering::Acquire);
-                let poll_duration = if is_active { DEFAULT_SHORT_POLL_TIMEOUT } else { Duration::from_secs(3600) };
+                let poll_duration = if is_active {
+                    let now = Instant::now();
+                    if now >= next_short_poll_at {
+                        Duration::from_millis(0)
+                    } else {
+                        next_short_poll_at - now
+                    }
+                } else {
+                    Duration::from_secs(3600)
+                };
 
                 tokio::select! {
                     _ = cancel.cancelled() => return Err("Cancelled".into()),
@@ -502,7 +621,7 @@ impl ChannelSyncWorker {
 
                             if !gap_closed && !reorder_buffer.is_empty() {
                                 // Gap still persists: trigger getChannelDifference recovery
-                                Self::run_difference_recovery(
+                                let outcome = Self::run_difference_recovery(
                                     &control_ref,
                                     &diff_source_ref,
                                     &request_identity,
@@ -512,13 +631,21 @@ impl ChannelSyncWorker {
                                     &mut batch_counter,
                                     &cancel,
                                 ).await?;
+                                match outcome {
+                                    DifferenceRecoveryOutcome::Synced { next_short_poll_secs } => {
+                                        next_short_poll_at = Instant::now()
+                                            + Duration::from_secs(next_short_poll_secs.unwrap_or(2).clamp(1, 60) as u64);
+                                    }
+                                    DifferenceRecoveryOutcome::ReconcileRequired { .. } => {}
+                                    DifferenceRecoveryOutcome::TerminalFailed(e) => return Err(e),
+                                }
                             }
                         }
                     }
 
                     // Active short polling tick
                     _ = tokio::time::sleep(poll_duration), if is_active => {
-                        Self::run_difference_recovery(
+                        let outcome = Self::run_difference_recovery(
                             &control_ref,
                             &diff_source_ref,
                             &request_identity,
@@ -528,6 +655,14 @@ impl ChannelSyncWorker {
                             &mut batch_counter,
                             &cancel,
                         ).await?;
+                        match outcome {
+                            DifferenceRecoveryOutcome::Synced { next_short_poll_secs } => {
+                                next_short_poll_at = Instant::now()
+                                    + Duration::from_secs(next_short_poll_secs.unwrap_or(2).clamp(1, 60) as u64);
+                            }
+                            DifferenceRecoveryOutcome::ReconcileRequired { .. } => {}
+                            DifferenceRecoveryOutcome::TerminalFailed(e) => return Err(e),
+                        }
                     }
                 }
             }
@@ -687,7 +822,7 @@ impl ChannelSyncWorker {
         ack_rx: &mut mpsc::Receiver<ChannelSyncAck>,
         batch_counter: &mut u64,
         cancel: &CancellationToken,
-    ) -> Result<(), String> {
+    ) -> Result<DifferenceRecoveryOutcome, String> {
         {
             let mut st = control.status.write().await;
             *st = ChannelSyncStatus::RecoveringDifference;
@@ -701,6 +836,8 @@ impl ChannelSyncWorker {
             cancel: Some(cancel.clone()),
             observer: None,
         };
+
+        let mut final_timeout_secs = None;
 
         loop {
             let current_pts = control.current_pts.load(Ordering::Acquire);
@@ -721,7 +858,11 @@ impl ChannelSyncWorker {
             };
 
             match diff {
-                ChannelDifferenceResult::Empty { pts, .. } => {
+                ChannelDifferenceResult::Empty { pts, timeout } => {
+                    if let Some(t) = timeout {
+                        final_timeout_secs = Some(t as u32);
+                    }
+
                     *batch_counter += 1;
                     let batch_id = *batch_counter;
 
@@ -762,7 +903,11 @@ impl ChannelSyncWorker {
                     break;
                 }
 
-                ChannelDifferenceResult::Difference { pts, is_final, new_messages, other_mutations, .. } => {
+                ChannelDifferenceResult::Difference { pts, is_final, new_messages, other_mutations, timeout } => {
+                    if let Some(t) = timeout {
+                        final_timeout_secs = Some(t as u32);
+                    }
+
                     let mut muts = other_mutations;
                     for row in new_messages {
                         let mid = row.id;
@@ -825,7 +970,9 @@ impl ChannelSyncWorker {
                         latest_pts,
                         reason: "channelDifferenceTooLong received from server".into(),
                     }).await;
-                    break;
+
+                    // Stop loop immediately without emitting LiveSynced
+                    return Ok(DifferenceRecoveryOutcome::ReconcileRequired { latest_pts });
                 }
             }
         }
@@ -841,7 +988,9 @@ impl ChannelSyncWorker {
             state: ChannelSyncStatus::LiveSynced,
         }).await;
 
-        Ok(())
+        Ok(DifferenceRecoveryOutcome::Synced {
+            next_short_poll_secs: final_timeout_secs,
+        })
     }
 }
 
@@ -881,7 +1030,7 @@ mod tests {
             } else {
                 Ok(ChannelDifferenceResult::Empty {
                     pts: self.pts,
-                    timeout: None,
+                    timeout: Some(2),
                 })
             }
         }
@@ -889,74 +1038,70 @@ mod tests {
 
     #[tokio::test]
     async fn test_drain_reorder_buffer_advances_pts() {
+        let (ack_tx, mut ack_rx) = mpsc::channel(1);
         let (state_tx, _) = watch::channel(ChannelSyncDesiredState::Running);
         let cancel = CancellationToken::new();
-        let (ack_tx, mut ack_rx) = mpsc::channel(1);
 
         let control = Arc::new(ChannelSyncControl {
             sync_id: 1,
-            session_key: "sess".into(),
-            client_request_id: "req".into(),
+            session_key: "test_session".into(),
+            client_request_id: "req_1".into(),
             peer_id: "-100123".into(),
             created_at_ms: now_epoch_ms(),
             current_pts: AtomicI32::new(100),
             state_tx,
             cancel: cancel.clone(),
-            ack_tx,
+            ack_tx: ack_tx.clone(),
             expected_batch_id: AtomicU64::new(0),
             claimed_batch_id: AtomicU64::new(0),
             last_processed_batch_id: AtomicU64::new(0),
-            primary_subscriber: RwLock::new(Some(PrimaryChannelSubscriber {
-                subscriber_id: 1,
-                generation: 1,
-                sink: Arc::new(FnChannelSyncEventSink(|_| true)),
-            })),
-            next_subscriber_id: AtomicU64::new(2),
+            primary_subscriber: RwLock::new(None),
+            next_subscriber_id: AtomicU64::new(1),
             subscriber_generation: AtomicU64::new(1),
             subscriber_notify: Arc::new(Notify::new()),
             pending_batch: RwLock::new(None),
             status: Arc::new(RwLock::new(ChannelSyncStatus::LiveSynced)),
-            is_actively_viewed: AtomicBool::new(false),
+            is_actively_viewed: AtomicBool::new(true),
             terminal_at_ms: AtomicU64::new(0),
         });
 
         let mut reorder_buffer = BTreeMap::new();
-        reorder_buffer.insert(101, PendingChannelUpdate {
-            channel_id: 100123,
-            pts: 101,
-            pts_count: 1,
-            update_type: ChannelUpdateType::DeleteMessages(vec![42]),
-        });
+        // Insert update for pts 101
+        reorder_buffer.insert(
+            101,
+            PendingChannelUpdate {
+                channel_id: -100123,
+                pts: 101,
+                pts_count: 1,
+                update_type: ChannelUpdateType::DeleteMessages(vec![10]),
+            },
+        );
 
-        // Spawn mock ACK respondent
-        let ctrl_clone = control.clone();
+        // Spawn mock ACK responder
+        let ack_tx_clone = ack_tx.clone();
         tokio::spawn(async move {
-            for _ in 0..50 {
-                let exp = ctrl_clone.expected_batch_id.load(Ordering::Acquire);
-                if exp > 0 {
-                    let _ = ctrl_clone.ack_tx.send(ChannelSyncAck {
-                        sync_id: 1,
-                        batch_id: exp,
-                        outcome: ChannelSyncAckOutcome::Committed,
-                        committed_pts: Some(101),
-                        error_code: None,
-                    }).await;
-                    break;
-                }
-                tokio::time::sleep(Duration::from_millis(5)).await;
-            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+            let _ = ack_tx_clone.send(ChannelSyncAck {
+                sync_id: 1,
+                batch_id: 1,
+                outcome: ChannelSyncAckOutcome::Committed,
+                committed_pts: Some(101),
+                error_code: None,
+            }).await;
         });
 
-        let mut batch_counter = 0u64;
+        let mut batch_counter = 0;
         let drained = ChannelSyncWorker::drain_reorder_buffer(
             &control,
             &mut ack_rx,
             &mut reorder_buffer,
             &mut batch_counter,
-            "sess",
+            "test_session",
             "-100123",
             &cancel,
-        ).await.unwrap();
+        )
+        .await
+        .unwrap();
 
         assert!(drained);
         assert_eq!(control.current_pts.load(Ordering::Acquire), 101);
@@ -965,80 +1110,135 @@ mod tests {
 
     #[tokio::test]
     async fn test_difference_recovery_empty_advances_pts() {
+        let (ack_tx, mut ack_rx) = mpsc::channel(1);
         let (state_tx, _) = watch::channel(ChannelSyncDesiredState::Running);
         let cancel = CancellationToken::new();
-        let (ack_tx, mut ack_rx) = mpsc::channel(1);
 
         let control = Arc::new(ChannelSyncControl {
-            sync_id: 2,
-            session_key: "sess".into(),
-            client_request_id: "req".into(),
+            sync_id: 1,
+            session_key: "test_session".into(),
+            client_request_id: "req_1".into(),
             peer_id: "-100123".into(),
             created_at_ms: now_epoch_ms(),
-            current_pts: AtomicI32::new(200),
+            current_pts: AtomicI32::new(100),
             state_tx,
             cancel: cancel.clone(),
-            ack_tx,
+            ack_tx: ack_tx.clone(),
             expected_batch_id: AtomicU64::new(0),
             claimed_batch_id: AtomicU64::new(0),
             last_processed_batch_id: AtomicU64::new(0),
-            primary_subscriber: RwLock::new(Some(PrimaryChannelSubscriber {
-                subscriber_id: 1,
-                generation: 1,
-                sink: Arc::new(FnChannelSyncEventSink(|_| true)),
-            })),
-            next_subscriber_id: AtomicU64::new(2),
+            primary_subscriber: RwLock::new(None),
+            next_subscriber_id: AtomicU64::new(1),
             subscriber_generation: AtomicU64::new(1),
             subscriber_notify: Arc::new(Notify::new()),
             pending_batch: RwLock::new(None),
-            status: Arc::new(RwLock::new(ChannelSyncStatus::LiveSynced)),
-            is_actively_viewed: AtomicBool::new(false),
+            status: Arc::new(RwLock::new(ChannelSyncStatus::RecoveringDifference)),
+            is_actively_viewed: AtomicBool::new(true),
             terminal_at_ms: AtomicU64::new(0),
         });
 
-        let diff_source: Arc<dyn ChannelDifferenceSource> = Arc::new(MockDifferenceSource {
-            pts: 250,
-            difference_pages: vec![ChannelDifferenceResult::Empty { pts: 250, timeout: None }],
+        let mock_source: Arc<dyn ChannelDifferenceSource> = Arc::new(MockDifferenceSource {
+            pts: 105,
+            difference_pages: vec![ChannelDifferenceResult::Empty {
+                pts: 105,
+                timeout: Some(2),
+            }],
             call_count: AtomicUsize::new(0),
         });
 
-        // Spawn mock ACK respondent
-        let ctrl_clone = control.clone();
+        // Spawn mock ACK responder
+        let ack_tx_clone = ack_tx.clone();
         tokio::spawn(async move {
-            for _ in 0..50 {
-                let exp = ctrl_clone.expected_batch_id.load(Ordering::Acquire);
-                if exp > 0 {
-                    let _ = ctrl_clone.ack_tx.send(ChannelSyncAck {
-                        sync_id: 2,
-                        batch_id: exp,
-                        outcome: ChannelSyncAckOutcome::Committed,
-                        committed_pts: Some(250),
-                        error_code: None,
-                    }).await;
-                    break;
-                }
-                tokio::time::sleep(Duration::from_millis(5)).await;
-            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+            let _ = ack_tx_clone.send(ChannelSyncAck {
+                sync_id: 1,
+                batch_id: 1,
+                outcome: ChannelSyncAckOutcome::Committed,
+                committed_pts: Some(105),
+                error_code: None,
+            }).await;
         });
 
-        let mut batch_counter = 0u64;
-        let ident = TelegramIdentity {
-            session: "sess".into(),
-            api_id: 12345,
-            api_hash: "hash".into(),
-        };
-
-        ChannelSyncWorker::run_difference_recovery(
+        let mut batch_counter = 0;
+        let outcome = ChannelSyncWorker::run_difference_recovery(
             &control,
-            &diff_source,
-            &ident,
+            &mock_source,
+            &TelegramIdentity {
+                session: "test".into(),
+                api_id: 123,
+                api_hash: "abc".into(),
+            },
             "-100123",
-            "sess",
+            "test_session",
             &mut ack_rx,
             &mut batch_counter,
             &cancel,
-        ).await.unwrap();
+        )
+        .await
+        .unwrap();
 
-        assert_eq!(control.current_pts.load(Ordering::Acquire), 250);
+        assert_eq!(outcome, DifferenceRecoveryOutcome::Synced { next_short_poll_secs: Some(2) });
+        assert_eq!(control.current_pts.load(Ordering::Acquire), 105);
+    }
+
+    #[tokio::test]
+    async fn test_difference_recovery_too_long_returns_reconcile_required() {
+        let (ack_tx, mut ack_rx) = mpsc::channel(1);
+        let (state_tx, _) = watch::channel(ChannelSyncDesiredState::Running);
+        let cancel = CancellationToken::new();
+
+        let control = Arc::new(ChannelSyncControl {
+            sync_id: 1,
+            session_key: "test_session".into(),
+            client_request_id: "req_1".into(),
+            peer_id: "-100123".into(),
+            created_at_ms: now_epoch_ms(),
+            current_pts: AtomicI32::new(100),
+            state_tx,
+            cancel: cancel.clone(),
+            ack_tx: ack_tx.clone(),
+            expected_batch_id: AtomicU64::new(0),
+            claimed_batch_id: AtomicU64::new(0),
+            last_processed_batch_id: AtomicU64::new(0),
+            primary_subscriber: RwLock::new(None),
+            next_subscriber_id: AtomicU64::new(1),
+            subscriber_generation: AtomicU64::new(1),
+            subscriber_notify: Arc::new(Notify::new()),
+            pending_batch: RwLock::new(None),
+            status: Arc::new(RwLock::new(ChannelSyncStatus::RecoveringDifference)),
+            is_actively_viewed: AtomicBool::new(true),
+            terminal_at_ms: AtomicU64::new(0),
+        });
+
+        let mock_source: Arc<dyn ChannelDifferenceSource> = Arc::new(MockDifferenceSource {
+            pts: 200,
+            difference_pages: vec![ChannelDifferenceResult::TooLong {
+                latest_pts: 200,
+                timeout: Some(5),
+            }],
+            call_count: AtomicUsize::new(0),
+        });
+
+        let mut batch_counter = 0;
+        let outcome = ChannelSyncWorker::run_difference_recovery(
+            &control,
+            &mock_source,
+            &TelegramIdentity {
+                session: "test".into(),
+                api_id: 123,
+                api_hash: "abc".into(),
+            },
+            "-100123",
+            "test_session",
+            &mut ack_rx,
+            &mut batch_counter,
+            &cancel,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(outcome, DifferenceRecoveryOutcome::ReconcileRequired { latest_pts: 200 });
+        let st = *control.status.read().await;
+        assert_eq!(st, ChannelSyncStatus::ReconcileRequired);
     }
 }

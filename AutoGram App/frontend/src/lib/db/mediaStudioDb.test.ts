@@ -340,5 +340,63 @@ describe('Media Studio IndexedDB context isolation & MediaIndexState Contract', 
         saveChannelMutationsAndPts([], invalidState)
       ).rejects.toThrow('Invalid channelSyncState');
     });
+
+    it('3. Rejects invalid upsert mutations with non-positive message_id or missing row', async () => {
+      const { saveChannelMutationsAndPts } = await import('./mediaStudioDb');
+
+      const validState = {
+        accountId: 'test_acc',
+        peerId: 'test_peer',
+        pts: 100,
+        baselineReady: true,
+        baselineReconciled: true,
+        lastAppliedAt: Date.now(),
+        lastDifferenceAt: 0,
+        schemaVersion: 1,
+      };
+
+      const invalidUpsertMutation = {
+        action: 'upsert' as const,
+        peer_id: 'test_peer',
+        message_id: 0,
+        topic_id: null,
+        row: null as any,
+      };
+
+      await expect(
+        saveChannelMutationsAndPts([invalidUpsertMutation], validState)
+      ).rejects.toThrow('Invalid upsert mutation');
+    });
+
+    it('4. Rejects invalid delete mutations with empty message_ids', async () => {
+      const { saveChannelMutationsAndPts } = await import('./mediaStudioDb');
+
+      const validState = {
+        accountId: 'test_acc',
+        peerId: 'test_peer',
+        pts: 100,
+        baselineReady: true,
+        baselineReconciled: true,
+        lastAppliedAt: Date.now(),
+        lastDifferenceAt: 0,
+        schemaVersion: 1,
+      };
+
+      const invalidDeleteMutation = {
+        action: 'delete' as const,
+        peer_id: 'test_peer',
+        message_ids: [],
+      };
+
+      await expect(
+        saveChannelMutationsAndPts([invalidDeleteMutation], validState)
+      ).rejects.toThrow('Invalid delete mutation');
+    });
+
+    it('5. hasCachedMediaRecords returns boolean without throwing', async () => {
+      const { hasCachedMediaRecords } = await import('./mediaStudioDb');
+      const exists = await hasCachedMediaRecords('test_acc', 'test_peer_empty');
+      expect(typeof exists).toBe('boolean');
+    });
   });
 });

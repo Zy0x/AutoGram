@@ -10,7 +10,7 @@ import type { MediaMutation } from '../db/mediaStudioDb';
 
 export interface TgTelegramIdentity {
   session: string;
-  apiId: number;
+  apiId: number | string;
   apiHash: string;
 }
 
@@ -29,6 +29,7 @@ export type ChannelSyncStatus =
   | 'failed';
 
 export type ChannelMutationSource =
+  | 'bootstrap'
   | 'passive'
   | 'difference'
   | 'difference_empty';
@@ -140,8 +141,22 @@ export async function startChannelSync(
     }
   };
 
+  const rawApiId = request.identity?.apiId;
+  const parsedApiId =
+    typeof rawApiId === 'string'
+      ? parseInt(rawApiId, 10) || 0
+      : Number(rawApiId || 0);
+
+  const normalizedRequest = {
+    ...request,
+    identity: {
+      ...request.identity,
+      apiId: parsedApiId,
+    },
+  };
+
   return invoke<StartChannelSyncResponse>('tg_start_channel_sync', {
-    request,
+    request: normalizedRequest,
     onEvent: channel,
   });
 }

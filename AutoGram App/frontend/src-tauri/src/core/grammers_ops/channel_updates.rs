@@ -12,7 +12,6 @@ use crate::core::tg_error::{TgError, TgErrorCode};
 use super::client_pool::{with_client, with_pool_retry};
 use super::media_list::{tl_message_to_row, MediaFileRow};
 use super::peer_resolver::resolve_peer;
-use super::session_auth::runtime;
 
 const BACKEND: &str = "grammers";
 
@@ -61,16 +60,15 @@ pub async fn fetch_channel_pts(
     chat_id: &str,
     guard_control: &RpcGuardControl,
 ) -> Result<i32, TgError> {
-    let rt = runtime()?;
     let peer_str = chat_id.to_string();
     let session_name = identity.session.clone();
     let active_guard = guard_control.clone();
 
-    rt.block_on(async {
-        with_pool_retry(&session_name, || {
-            let p_str = peer_str.clone();
-            let s_name = session_name.clone();
-            let guard = active_guard.clone();
+    with_pool_retry(&session_name, || {
+        let p_str = peer_str.clone();
+        let s_name = session_name.clone();
+        let guard = active_guard.clone();
+        async move {
             with_client(sessions_dir, identity, true, move |client| {
                 let p_inner = p_str.clone();
                 let g_inner = guard.clone();
@@ -101,9 +99,10 @@ pub async fn fetch_channel_pts(
                     }
                 })
             })
-        })
-        .await
+            .await
+        }
     })
+    .await
 }
 
 /// Retrieves a page of channel difference updates via `updates.getChannelDifference`.
@@ -115,16 +114,15 @@ pub async fn get_channel_difference_page(
     limit: i32,
     guard_control: &RpcGuardControl,
 ) -> Result<ChannelDifferenceResult, TgError> {
-    let rt = runtime()?;
     let peer_str = chat_id.to_string();
     let session_name = identity.session.clone();
     let active_guard = guard_control.clone();
 
-    rt.block_on(async {
-        with_pool_retry(&session_name, || {
-            let p_str = peer_str.clone();
-            let s_name = session_name.clone();
-            let guard = active_guard.clone();
+    with_pool_retry(&session_name, || {
+        let p_str = peer_str.clone();
+        let s_name = session_name.clone();
+        let guard = active_guard.clone();
+        async move {
             with_client(sessions_dir, identity, true, move |client| {
                 let p_inner = p_str.clone();
                 let g_inner = guard.clone();
@@ -227,7 +225,8 @@ pub async fn get_channel_difference_page(
                     }
                 })
             })
-        })
-        .await
+            .await
+        }
     })
+    .await
 }

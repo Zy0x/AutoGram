@@ -1,13 +1,15 @@
 /**
- * useChannelSync.ts — React Hook for Telegram Channel Synchronization (P2.5)
+ * useChannelSync.ts — React Hook for Telegram Channel Synchronization (P2.5 Hardened)
  *
  * Connects foreground MediaStudio view to Rust ChannelSyncWorker, applies mutation batches
- * atomically with channel PTS to IndexedDB, and sends typed post-commit Storage ACKs.
+ * atomically with channel PTS to IndexedDB, manages bootstrap baseline durability,
+ * and coordinates authoritative reconciliation.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   getChannelSyncState,
+  hasCachedMediaRecords,
   saveChannelMutationsAndPts,
   CHANNEL_SYNC_SCHEMA_VERSION,
   type ChannelSyncState,
@@ -29,6 +31,7 @@ export interface UseChannelSyncOptions {
   isChannelOrSupergroup?: boolean;
   isActivelyViewed?: boolean;
   onMutationsCommitted?: (mutations: MediaMutation[]) => void;
+  onAuthoritativeReconcileRequired?: (latestPts: number) => void;
 }
 
 export interface UseChannelSyncResult {
@@ -38,6 +41,7 @@ export interface UseChannelSyncResult {
   isLiveSynced: boolean;
   error: string | null;
   reconcileRequired: boolean;
+  rebaselineAfterReconcile: (reconciledPts: number) => Promise<void>;
 }
 
 export function useChannelSync({
@@ -46,6 +50,7 @@ export function useChannelSync({
   isChannelOrSupergroup = false,
   isActivelyViewed = true,
   onMutationsCommitted,
+  onAuthoritativeReconcileRequired,
 }: UseChannelSyncOptions): UseChannelSyncResult {
   const [syncId, setSyncId] = useState<number | null>(null);
   const [status, setStatus] = useState<ChannelSyncStatus>('preparing');
@@ -57,6 +62,8 @@ export function useChannelSync({
   const activeSyncIdRef = useRef<number | null>(null);
   const onMutationsCommittedRef = useRef(onMutationsCommitted);
   onMutationsCommittedRef.current = onMutationsCommitted;
+  const onReconcileRef = useRef(onAuthoritativeReconcileRequired);
+  onReconcileRef.current = onAuthoritativeReconcileRequired;
 
   const targetPeerStr = peerId != null ? String(peerId).trim() : '';
   const sessionKey = identity?.session?.trim() || '';
@@ -67,6 +74,24 @@ export function useChannelSync({
       setChannelSyncActiveView(activeSyncIdRef.current, isActivelyViewed).catch(() => {});
     }
   }, [isActivelyViewed]);
+
+  const rebaselineAfterReconcile = useCallback(async (reconciledPts: number) => {
+    if (!sessionKey || !targetPeerStr) return;
+    const nextState: ChannelSyncState = {
+      accountId: sessionKey,
+      peerId: targetPeerStr,
+      pts: reconciledPts,
+      baselineReady: true,
+      baselineReconciled: true,
+      lastAppliedAt: Date.now(),
+      lastDifferenceAt: Date.now(),
+      schemaVersion: CHANNEL_SYNC_SCHEMA_VERSION,
+    };
+    await saveChannelMutationsAndPts([], nextState, { allowRebaseline: true });
+    setCurrentPts(reconciledPts);
+    setReconcileRequired(false);
+    setStatus('live_synced');
+  }, [sessionKey, targetPeerStr]);
 
   useEffect(() => {
     if (!sessionKey || !targetPeerStr || !isChannelOrSupergroup || !identity) {
@@ -91,6 +116,9 @@ export function useChannelSync({
 
         if (existingState?.pts) {
           setCurrentPts(existingState.pts);
+          if (!existingState.baselineReconciled) {
+            setReconcileRequired(true);
+          }
         }
 
         const activeIdentity = identity;
@@ -112,13 +140,21 @@ export function useChannelSync({
             setStatus(event.state);
           } else if (event.type === 'batch') {
             try {
+              let isReconciled = existingState?.baselineReconciled ?? true;
+
+              // Check bootstrap baseline condition
+              if (event.source === 'bootstrap') {
+                const hasExistingCache = await hasCachedMediaRecords(sessionKey, targetPeerStr);
+                isReconciled = !hasExistingCache;
+              }
+
               // Construct next durable state
               const nextState: ChannelSyncState = {
                 accountId: sessionKey,
                 peerId: targetPeerStr,
                 pts: event.candidatePts,
                 baselineReady: true,
-                baselineReconciled: true,
+                baselineReconciled: isReconciled,
                 lastAppliedAt: Date.now(),
                 lastDifferenceAt:
                   event.source === 'difference' || event.source === 'difference_empty'
@@ -128,7 +164,9 @@ export function useChannelSync({
               };
 
               // Commit atomically to IndexedDB alongside mutations
-              await saveChannelMutationsAndPts(event.mutations, nextState);
+              await saveChannelMutationsAndPts(event.mutations, nextState, {
+                allowRebaseline: event.source === 'bootstrap',
+              });
 
               // Send post-commit storage ACK to Rust
               await sendChannelSyncStorageAck(
@@ -140,7 +178,16 @@ export function useChannelSync({
 
               if (isSubscribed) {
                 setCurrentPts(event.candidatePts);
-                setStatus('live_synced');
+                if (isReconciled) {
+                  setStatus('live_synced');
+                  setReconcileRequired(false);
+                } else {
+                  setStatus('reconcile_required');
+                  setReconcileRequired(true);
+                  if (onReconcileRef.current) {
+                    onReconcileRef.current(event.candidatePts);
+                  }
+                }
                 if (event.mutations.length > 0 && onMutationsCommittedRef.current) {
                   onMutationsCommittedRef.current(event.mutations);
                 }
@@ -163,6 +210,9 @@ export function useChannelSync({
           } else if (event.type === 'reconcile_required') {
             setStatus('reconcile_required');
             setReconcileRequired(true);
+            if (onReconcileRef.current) {
+              onReconcileRef.current(event.latestPts);
+            }
           } else if (event.type === 'failed') {
             setStatus('failed');
             setError(event.message);
@@ -214,8 +264,9 @@ export function useChannelSync({
     syncId,
     status,
     currentPts,
-    isLiveSynced: status === 'live_synced',
+    isLiveSynced: status === 'live_synced' && !reconcileRequired,
     error,
     reconcileRequired,
+    rebaselineAfterReconcile,
   };
 }

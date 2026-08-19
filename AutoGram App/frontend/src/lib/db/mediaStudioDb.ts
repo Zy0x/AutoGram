@@ -1001,6 +1001,24 @@ export async function resetChannelSyncState(
   await requestToPromise(store.delete([String(accountId).trim(), String(peerId).trim()]));
 }
 
+export async function hasCachedMediaRecords(
+  accountId: string,
+  peerId: string
+): Promise<boolean> {
+  if (typeof indexedDB === 'undefined') {
+    return false;
+  }
+  const db = await initDb();
+  return new Promise<boolean>((resolve, reject) => {
+    const tx = db.transaction('media', 'readonly');
+    const store = tx.objectStore('media');
+    const index = store.index('byPeer');
+    const req = index.getKey(IDBKeyRange.only([String(accountId).trim(), String(peerId).trim()]));
+    req.onsuccess = () => resolve(req.result !== undefined);
+    req.onerror = () => reject(req.error);
+  });
+}
+
 /**
  * Atomically commits a batch of media mutations and updates the durable channel PTS in a single IndexedDB transaction.
  * Guarantees all-or-nothing atomicity: PTS never advances if mutations fail, and mutations are rolled back if PTS fails.
@@ -1015,6 +1033,18 @@ export async function saveChannelMutationsAndPts(
 
   if (!accId || !peer || typeof nextState.pts !== 'number' || nextState.pts <= 0) {
     throw new Error(`Invalid channelSyncState: accountId, peerId and positive pts (> 0) are required`);
+  }
+
+  for (const mut of mutations) {
+    if (mut.action === 'upsert') {
+      if (!mut.row || !mut.message_id || mut.message_id <= 0) {
+        throw new Error(`Invalid upsert mutation: missing row or non-positive message_id (${mut.message_id})`);
+      }
+    } else if (mut.action === 'delete') {
+      if (!mut.message_ids || !Array.isArray(mut.message_ids) || mut.message_ids.length === 0 || mut.message_ids.some((id) => !id || id <= 0)) {
+        throw new Error(`Invalid delete mutation: empty or invalid message_ids list`);
+      }
+    }
   }
 
   const db = await initDb();
@@ -1043,7 +1073,11 @@ export async function saveChannelMutationsAndPts(
         if (mut.action === 'upsert') {
           const { peer_id, message_id, topic_id, row } = mut;
           const targetPeer = String(peer_id || peer).trim();
-          if (!row || !message_id || message_id <= 0) continue;
+          if (!row || !message_id || message_id <= 0) {
+            tx.abort();
+            reject(new Error(`Invalid upsert mutation: missing row or non-positive message_id (${message_id})`));
+            return;
+          }
 
           // 1. Check existing cached records for this message via byPeerMessage
           const peerIndex = mediaStore.index('byPeerMessage');
@@ -1103,7 +1137,11 @@ export async function saveChannelMutationsAndPts(
         } else if (mut.action === 'delete') {
           const { peer_id, message_ids } = mut;
           const targetPeer = String(peer_id || peer).trim();
-          if (!message_ids?.length) continue;
+          if (!message_ids || !Array.isArray(message_ids) || message_ids.length === 0 || message_ids.some((id) => !id || id <= 0)) {
+            tx.abort();
+            reject(new Error(`Invalid delete mutation: empty or invalid message_ids list`));
+            return;
+          }
 
           const peerIndex = mediaStore.index('byPeerMessage');
           for (const mid of message_ids) {
