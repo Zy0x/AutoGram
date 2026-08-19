@@ -13,6 +13,7 @@ import {
 import { cancelledPreflightDecision } from '../../lib/transfer/preflightDuplicateDecision';
 import { MediaStudioProps, readSessionsCache, writeSessionsCache } from './mediaStudioUtils';
 import { isDriveSessionCircuitTripped, resetDriveSessionCircuit } from '../../lib/telegram';
+import type { TgScopedMediaSearchCursor } from '../../lib/telegram/core/telegramBackend';
 /**
  * Media Studio → AutoGram Drive (Telegram-Drive model)
  * Tab id remains `speedtest`. Desktop only.
@@ -547,10 +548,7 @@ function MediaDriveDesktop({
     nextOffsetIdRef.current = nextOffsetId;
   }, [nextOffsetId]);
 
-  const [searchCursor, setSearchCursor] = useState<{
-    photoVideo: { offsetId: number; exhausted: boolean };
-    document: { offsetId: number; exhausted: boolean };
-  } | null>(null);
+  const [searchCursor, setSearchCursor] = useState<TgScopedMediaSearchCursor | null>(null);
   const searchCursorRef = useRef<typeof searchCursor>(searchCursor);
   useEffect(() => {
     searchCursorRef.current = searchCursor;
@@ -1095,6 +1093,14 @@ function MediaDriveDesktop({
   useEffect(() => {
     topicFilterRef.current = topicFilter;
   }, [topicFilter]);
+
+  // Scope Invariant: Reset pagination cursors on peer, topic, or session change to prevent cross-scope pollution
+  useEffect(() => {
+    searchCursorRef.current = null;
+    setSearchCursor(null);
+    nextOffsetIdRef.current = null;
+    setNextOffsetId(null);
+  }, [peerId, topicFilter, session]);
 
   useEffect(() => {
     localStorage.setItem(LS_VIEW, viewMode);
@@ -3389,6 +3395,7 @@ function MediaDriveDesktop({
     let accumulatedNewFiles: DriveFile[] = [];
     let indexedLoadedCount = initialProcessed;
     let dbBatch: any[] = [];
+    let hasPersistFailure = false;
     const rateController = new AimdRateController(3, 0, 150);
 
     try {
@@ -3464,9 +3471,10 @@ function MediaDriveDesktop({
               await saveMediaRecords(toWrite);
             } catch (dbErr) {
               console.error('[Indexer] Fatal error persisting media batch to database:', dbErr);
+              hasPersistFailure = true;
               setIndexingJob((prev: any) => prev ? {
                 ...prev,
-                text: t('speedtest.db_error_paused') || 'Database error: pengindeksan dijeda'
+                text: t('speedtest.db_error_paused') || 'Kesalahan database: pengindeksan dijeda demi menjaga integritas data'
               } : prev);
               // CRITICAL: Stop and do NOT advance cursor if DB write fails!
               break;
@@ -3523,12 +3531,10 @@ function MediaDriveDesktop({
           nextOffset = lowestMsgIdInPage;
         }
 
-        const reachedTotal = (curTotal > 0 && curLoaded >= curTotal);
-        const hasMoreWork = !reachedTotal && (
-          res?.search_cursor
-            ? (!res.search_cursor.photoVideo.exhausted || !res.search_cursor.document.exhausted)
-            : (nextOffset != null && nextOffset > 1)
-        );
+        // Authoritative termination: only when both lanes are exhausted (never stop early on estimated total)
+        const hasMoreWork = res?.search_cursor
+          ? (!res.search_cursor.photoVideo.exhausted || !res.search_cursor.document.exhausted)
+          : (nextOffset != null && nextOffset > 1);
 
         if (!hasMoreWork || (!res?.search_cursor && (!nextOffset || nextOffset <= 1))) {
           filesHasMoreRef.current = false;
@@ -3603,11 +3609,16 @@ function MediaDriveDesktop({
           await saveMediaRecords(toWrite);
         } catch (dbErr) {
           console.error('[Indexer] Fatal error persisting final batch to database:', dbErr);
+          hasPersistFailure = true;
+          setIndexingJob((prev: any) => prev ? {
+            ...prev,
+            text: t('speedtest.db_error_paused') || 'Kesalahan database: pengindeksan dijeda demi menjaga integritas data'
+          } : prev);
         }
       }
 
-      // Persist deep index snapshot metadata to IndexedDB
-      if (creds?.session) {
+      // Persist deep index snapshot metadata to IndexedDB ONLY if no persist failure occurred
+      if (creds?.session && !hasPersistFailure) {
         const curFiles = filesCacheRef.current.get(cacheKey) || liveFilesRef.current;
         const finalCount = totalFileCount || initialTotal || indexedLoadedCount || curFiles.length;
         if (curFiles.length > 0) {

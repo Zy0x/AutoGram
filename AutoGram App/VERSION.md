@@ -1,13 +1,14 @@
-AutoGram Version: v3.7.91
+AutoGram Version: v3.7.92
 
 Current State:
-v3.7.91 Multi-Lane Independent Cursors, K-Way Merge & Persistent Class FloodGates (P1.2 Complete) — membenahi `store.rs`, `session_rate.rs`, `media_list.rs`, `telegram_ops.rs`, `driveFilesApi.ts`, `telegramBackend.ts`, `MediaStudio/index.tsx`, `speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. P1.2 Multi-Lane Independent Cursors: Menggantikan cursor tunggal bersama dengan `MediaSearchCursor` + `LaneCursor` (`photoVideo` dan `document`). Setiap jalur pencarian maju berdasarkan last ID jalurnya sendiri sehingga tidak ada lagi berkas media di antara rentang ID yang terlewat (*zero missing items*).
-2. P1.2 Proper K-Way Merge & Exact Global Page Size: Menggabungkan buffer kedua jalur pencarian secara terurut menurun (*descending*) berdasarkan Message ID, memastikan ukuran halaman global tepat sesuai konfigurasi.
-3. P1.2 Durable Class-Specific FloodWait Across Restarts: Menyimpan status *FloodWait* per-class (`RpcClass::IndexSearch`, dll.) ke database SQLite lokal dengan waktu kedaluwarsa absolut (*wall-clock*), sehingga jeda pendinginan tetap aktif dan tidak hilang saat aplikasi ditutup dan dibuka kembali.
-4. P1.2 Strict DB Durability & Zero Phantom Indexing: Mengharuskan `await saveMediaRecords(toWrite)` dan menghentikan pergeseran cursor seketika jika penyimpanan database gagal. Menghapus seluruh residu `.catch(() => {})` pada status pengindeksan otoritatif.
+v3.7.92 Cursor Scope Isolation, Exact Pagination & Completion Correctness (P1.3 Complete) — membenahi `media_list.rs`, `telegram_ops.rs`, `telegramBackend.ts`, `driveFilesApi.ts`, `MediaStudio/index.tsx`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. P1.3 Cursor Scope Isolation (`ScopedMediaSearchCursor` & Invariant Enforcement): Setiap cursor kini mengikat `SearchScope` (`accountId`, `peerId`, `topicId`). Baik di backend Rust maupun di frontend React, perpindahan peer/topic/akun akan secara ketat me-reject cursor lama dan menginisialisasi fresh cursor, mencegah terjadinya *cross-scope cursor pollution*.
+2. P1.3 Authoritative Completion Invariant: Menghapus `reachedTotal` dari syarat penghentian indeks. Satu-satunya otoritas penyelesaian pemindaian adalah saat kedua jalur query (`photoVideo` dan `document`) berstatus `exhausted: true`.
+3. P1.3 Honest Estimate & Lane Counts: Menggantikan anggapan bahwa `photo_video_count + document_count` adalah unique total dengan `lane_counts: { photoVideo, document }` dan `candidate_estimate`.
+4. P1.3 Final DB Flush Fail-Stop: Kegagalan penyimpanan batch final ke IndexedDB akan langsung menghentikan dan menandai status indeks sebagai tertunda/gagal tanpa meng-commit snapshot selesai palsu.
 
 Previous:
+v3.7.91 Multi-Lane Independent Cursors, K-Way Merge & Persistent Class FloodGates (P1.2 Complete) — membenahi `store.rs`, `session_rate.rs`, `media_list.rs`, `telegram_ops.rs`, `driveFilesApi.ts`, `telegramBackend.ts`, `MediaStudio/index.tsx`, `speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.90 Multi-Lane Server Media Search, Single Rust Flood Authority & Concurrency Permits (P1.1 Complete) — membenahi `session_rate.rs`, `telegram_rpc_guard.rs`, `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.89 Server-Filtered MTProto Search & Guarded Control Plane (P0 & P1 Complete) — membenahi `session_rate.rs`, `telegram_rpc_guard.rs`, `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.88 AIMD Adaptive Rate Controller & Architectural Limiter Decoupling — membenahi `adaptiveIndexer.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.

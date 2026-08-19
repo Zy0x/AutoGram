@@ -226,14 +226,26 @@ export type TgMediaFileRow = {
   backend?: string;
 };
 
+export type TgSearchScope = {
+  accountId: string;
+  peerId: string;
+  topicId?: number | null;
+};
+
 export type TgLaneCursor = {
   offsetId: number;
   exhausted: boolean;
 };
 
-export type TgMediaSearchCursor = {
+export type TgScopedMediaSearchCursor = {
+  scope: TgSearchScope;
   photoVideo: TgLaneCursor;
   document: TgLaneCursor;
+};
+
+export type TgLaneCounts = {
+  photoVideo?: number | null;
+  document?: number | null;
 };
 
 export type TgListMediaResult = {
@@ -244,7 +256,8 @@ export type TgListMediaResult = {
   pageSize: number;
   hasMore: boolean;
   nextOffsetId?: number | null;
-  searchCursor?: TgMediaSearchCursor | null;
+  searchCursor?: TgScopedMediaSearchCursor | null;
+  laneCounts?: TgLaneCounts | null;
   totalCount?: number | null;
   backend: string;
   cached: boolean;
@@ -259,7 +272,7 @@ export async function tgListMedia(args: {
   limit?: number;
   offsetId?: number | null;
   topicId?: number | null;
-  searchCursor?: TgMediaSearchCursor | null;
+  searchCursor?: TgScopedMediaSearchCursor | null;
 }): Promise<TgOpResult<TgListMediaResult> | null> {
   if (!detectTauriRuntime()) return null;
   try {

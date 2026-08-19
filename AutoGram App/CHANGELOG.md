@@ -1,3 +1,24 @@
+## v3.7.92 Cursor Scope Isolation, Exact Pagination & Completion Correctness (P1.3 Complete) (Phase 35.58)
+
+### 1. P1.3 Scope-Bound Cursors (`ScopedMediaSearchCursor` & Invariant Enforcement)
+- **Eliminasi Stale Cursor Lintas Peer/Topic**:
+  - Mengikat identitas scope (`SearchScope: { account_id, peer_id, topic_id }`) ke setiap search cursor.
+  - Rust backend memvalidasi `cursor.scope == current_scope`. Jika tidak cocok, cursor lama seketika di-reject dan fresh cursor diinisialisasi untuk scope baru.
+  - React frontend mereset cursor dan pagination state saat terjadi pergantian `peerId`, `topicFilter`, atau `session`.
+
+### 2. P1.3 Authoritative Completion Invariant
+- **Penghapusan `reachedTotal`**:
+  - Menghapus asumsi bahwa indeks selesai jika `processed >= expectedTotal`.
+  - Satu-satunya syarat penghentian sah adalah saat kedua jalur query (`photoVideo` dan `document`) berstatus `exhausted: true`.
+
+### 3. P1.3 Honest Lane Counts & Candidate Estimate
+- **Pemisahan Semantik Counter**:
+  - Mengembalikan `lane_counts: { photo_video, document }` dan `candidate_estimate`, alih-alih mengklaim penjumlahan count dua filter sebagai exact unique media count.
+
+### 4. P1.3 Final DB Flush Fail-Stop
+- **Proteksi Integritas Data**:
+  - Penolakan commit batch final ke IndexedDB akan langsung menghentikan proses dan tidak akan menandai status indeks sebagai selesai atau menyimpan snapshot akurat palsu.
+
 ## v3.7.91 Multi-Lane Independent Cursors, K-Way Merge & Persistent Class FloodGates (P1.2 Complete) (Phase 35.57)
 
 ### 1. P1.2 Multi-Lane Independent Cursors (`MediaSearchCursor` & `LaneCursor`)

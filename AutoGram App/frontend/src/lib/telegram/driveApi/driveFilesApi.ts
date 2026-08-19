@@ -110,6 +110,8 @@ import { buildDriveMediaContext } from '../../db/mediaStudioDb';
 
 const inFlightPages = new Map<string, Promise<any>>();
 
+import type { TgScopedMediaSearchCursor } from '../core/telegramBackend';
+
 export async function driveListFiles(
   creds: DriveCredentials,
   folderId: number | null,
@@ -118,10 +120,7 @@ export async function driveListFiles(
     offsetId?: number | null;
     topicId?: number | null;
     context?: DriveMediaContext;
-    searchCursor?: {
-      photoVideo: { offsetId: number; exhausted: boolean };
-      document: { offsetId: number; exhausted: boolean };
-    } | null;
+    searchCursor?: TgScopedMediaSearchCursor | null;
     /** Skip aggregate counters on the latency-critical first page. */
     quickStats?: boolean;
     sortMode?: string;
@@ -202,6 +201,7 @@ export async function driveListFiles(
           has_more: !!gr.data.hasMore,
           next_offset_id: gr.data.nextOffsetId ?? null,
           search_cursor: gr.data.searchCursor ?? null,
+          lane_counts: gr.data.laneCounts ?? null,
           total_count: gr.data.totalCount ?? null,
           total_bytes: null,
           stats_accurate: false,

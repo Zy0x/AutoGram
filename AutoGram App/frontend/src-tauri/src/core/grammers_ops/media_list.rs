@@ -77,18 +77,34 @@ pub struct MediaFileRow {
     pub drive_format: Option<String>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchScope {
+    pub account_id: String,
+    pub peer_id: String,
+    pub topic_id: Option<i64>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LaneCursor {
     pub offset_id: i32,
     pub exhausted: bool,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct MediaSearchCursor {
+pub struct ScopedMediaSearchCursor {
+    pub scope: SearchScope,
     pub photo_video: LaneCursor,
     pub document: LaneCursor,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LaneCounts {
+    pub photo_video: Option<usize>,
+    pub document: Option<usize>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -101,7 +117,8 @@ pub struct ListMediaResult {
     pub page_size: usize,
     pub has_more: bool,
     pub next_offset_id: Option<i64>,
-    pub search_cursor: Option<MediaSearchCursor>,
+    pub search_cursor: Option<ScopedMediaSearchCursor>,
+    pub lane_counts: Option<LaneCounts>,
     pub total_count: Option<usize>,
     pub backend: String,
     pub cached: bool,
@@ -669,7 +686,7 @@ pub fn list_media_blocking_topic_cursor(
     limit: usize,
     offset_id: Option<i64>,
     topic_id: Option<i64>,
-    search_cursor: Option<MediaSearchCursor>,
+    search_cursor: Option<ScopedMediaSearchCursor>,
 ) -> Result<ListMediaResult, TgError> {
     let rt = runtime()?;
     let limit = limit.clamp(1, 100);
@@ -704,23 +721,35 @@ pub fn list_media_blocking_topic_cursor(
                     let peer = peer_res?;
                     let input_peer: grammers_client::tl::enums::InputPeer = (&peer).into();
 
-                    let mut cursor = initial_cursor.unwrap_or_else(|| {
-                        let init_offset = offset_id.unwrap_or(0) as i32;
-                        MediaSearchCursor {
-                            photo_video: LaneCursor {
-                                offset_id: init_offset,
-                                exhausted: false,
-                            },
-                            document: LaneCursor {
-                                offset_id: init_offset,
-                                exhausted: false,
-                            },
+                    let current_scope = SearchScope {
+                        account_id: session_name.clone(),
+                        peer_id: chat.clone(),
+                        topic_id,
+                    };
+
+                    // Scope Invariant: If cursor does not match current peer/topic scope, initialize fresh cursor
+                    let mut cursor = match initial_cursor {
+                        Some(ref c) if c.scope == current_scope => c.clone(),
+                        _ => {
+                            let init_offset = offset_id.unwrap_or(0) as i32;
+                            ScopedMediaSearchCursor {
+                                scope: current_scope.clone(),
+                                photo_video: LaneCursor {
+                                    offset_id: init_offset,
+                                    exhausted: false,
+                                },
+                                document: LaneCursor {
+                                    offset_id: init_offset,
+                                    exhausted: false,
+                                },
+                            }
                         }
-                    });
+                    };
 
                     let mut combined_files: Vec<MediaFileRow> = Vec::new();
                     let mut seen_ids = std::collections::HashSet::new();
-                    let mut total_count_sum = 0usize;
+                    let mut lane_counts = LaneCounts::default();
+                    let mut candidate_estimate = 0usize;
 
                     // 1. Lane: PhotoVideo (Native Photos & Videos)
                     if !cursor.photo_video.exhausted {
@@ -753,11 +782,13 @@ pub fn list_media_blocking_topic_cursor(
                         let raw_msgs = match res.value {
                             grammers_client::tl::enums::messages::Messages::Messages(m) => m.messages,
                             grammers_client::tl::enums::messages::Messages::Slice(m) => {
-                                total_count_sum += m.count as usize;
+                                lane_counts.photo_video = Some(m.count as usize);
+                                candidate_estimate += m.count as usize;
                                 m.messages
                             }
                             grammers_client::tl::enums::messages::Messages::ChannelMessages(m) => {
-                                total_count_sum += m.count as usize;
+                                lane_counts.photo_video = Some(m.count as usize);
+                                candidate_estimate += m.count as usize;
                                 m.messages
                             }
                             grammers_client::tl::enums::messages::Messages::NotModified(_) => Vec::new(),
@@ -818,11 +849,13 @@ pub fn list_media_blocking_topic_cursor(
                         let raw_msgs = match res.value {
                             grammers_client::tl::enums::messages::Messages::Messages(m) => m.messages,
                             grammers_client::tl::enums::messages::Messages::Slice(m) => {
-                                total_count_sum += m.count as usize;
+                                lane_counts.document = Some(m.count as usize);
+                                candidate_estimate += m.count as usize;
                                 m.messages
                             }
                             grammers_client::tl::enums::messages::Messages::ChannelMessages(m) => {
-                                total_count_sum += m.count as usize;
+                                lane_counts.document = Some(m.count as usize);
+                                candidate_estimate += m.count as usize;
                                 m.messages
                             }
                             grammers_client::tl::enums::messages::Messages::NotModified(_) => Vec::new(),
@@ -852,7 +885,7 @@ pub fn list_media_blocking_topic_cursor(
                         }
                     }
 
-                    // 3. K-Way Merge & Exact Page Size Enforcement
+                    // 3. K-Way Merge & Exact Page Ordering
                     combined_files.sort_by(|a, b| b.id.cmp(&a.id));
 
                     let has_more = !cursor.photo_video.exhausted || !cursor.document.exhausted;
@@ -866,7 +899,8 @@ pub fn list_media_blocking_topic_cursor(
                         has_more,
                         next_offset_id,
                         search_cursor: Some(cursor),
-                        total_count: if total_count_sum > 0 { Some(total_count_sum) } else { None },
+                        lane_counts: Some(lane_counts),
+                        total_count: if candidate_estimate > 0 { Some(candidate_estimate) } else { None },
                         backend: BACKEND.to_string(),
                         cached: false,
                         files: combined_files,

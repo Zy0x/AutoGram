@@ -341,7 +341,7 @@ pub struct ListMediaRequest {
     pub limit: Option<usize>,
     pub offset_id: Option<i64>,
     pub topic_id: Option<i64>,
-    pub search_cursor: Option<super::grammers_ops::MediaSearchCursor>,
+    pub search_cursor: Option<super::grammers_ops::ScopedMediaSearchCursor>,
 }
 
 use std::collections::HashMap;
