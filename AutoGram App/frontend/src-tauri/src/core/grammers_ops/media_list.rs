@@ -214,7 +214,7 @@ pub fn buffered_k_way_merge(
     emitted
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LaneCounts {
     pub photo_video: Option<usize>,
@@ -813,6 +813,28 @@ pub fn list_media_blocking_topic_cursor(
     search_cursor: Option<ScopedMediaSearchCursor>,
 ) -> Result<ListMediaResult, TgError> {
     let rt = runtime()?;
+    rt.block_on(list_media_page_async(
+        sessions_dir,
+        identity,
+        chat_id,
+        limit,
+        offset_id,
+        min_id,
+        topic_id,
+        search_cursor,
+    ))
+}
+
+pub async fn list_media_page_async(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    chat_id: &str,
+    limit: usize,
+    offset_id: Option<i64>,
+    min_id: Option<i64>,
+    topic_id: Option<i64>,
+    search_cursor: Option<ScopedMediaSearchCursor>,
+) -> Result<ListMediaResult, TgError> {
     let limit = limit.clamp(1, 100);
     let chat = chat_id.to_string();
     let folder_id: Option<i64> = if chat.eq_ignore_ascii_case("me") || chat == "0" {
@@ -824,27 +846,26 @@ pub fn list_media_blocking_topic_cursor(
     let session_name = identity.session.clone();
     let min_id_i32 = min_id.unwrap_or(0) as i32;
 
-    rt.block_on(async {
-        with_pool_retry(&identity.session, || {
-            let chat = chat.clone();
-            let session_name = session_name.clone();
-            let initial_cursor = search_cursor.clone();
-            with_client(sessions_dir, identity, true, |client| {
-                Box::pin(async move {
-                    ensure_authorized(client, &session_name).await?;
-                    let mut peer_res = resolve_peer(client, &chat).await;
-                    if let Err(ref e) = peer_res {
-                        let err_str = e.to_string();
-                        if err_str.contains("CHANNEL_INVALID")
-                            || err_str.contains("CHANNEL_PRIVATE")
-                            || err_str.contains("PEER_ID_INVALID")
-                        {
-                            clear_peer_cache_for_all(&chat);
-                            peer_res = resolve_peer(client, &chat).await;
-                        }
+    with_pool_retry(&identity.session, || {
+        let chat = chat.clone();
+        let session_name = session_name.clone();
+        let initial_cursor = search_cursor.clone();
+        with_client(sessions_dir, identity, true, |client| {
+            Box::pin(async move {
+                ensure_authorized(client, &session_name).await?;
+                let mut peer_res = resolve_peer(client, &chat).await;
+                if let Err(ref e) = peer_res {
+                    let err_str = e.to_string();
+                    if err_str.contains("CHANNEL_INVALID")
+                        || err_str.contains("CHANNEL_PRIVATE")
+                        || err_str.contains("PEER_ID_INVALID")
+                    {
+                        clear_peer_cache_for_all(&chat);
+                        peer_res = resolve_peer(client, &chat).await;
                     }
-                    let peer = peer_res?;
-                    let input_peer: grammers_client::tl::enums::InputPeer = (&peer).into();
+                }
+                let peer = peer_res?;
+                let input_peer: grammers_client::tl::enums::InputPeer = (&peer).into();
 
                     let current_scope = SearchScope {
                         account_id: session_name.clone(),
@@ -1061,7 +1082,6 @@ pub fn list_media_blocking_topic_cursor(
             })
         })
         .await
-    })
 }
 
 pub fn start_folder_stream_blocking(

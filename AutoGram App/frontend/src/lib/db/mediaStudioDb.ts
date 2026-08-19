@@ -503,17 +503,20 @@ export function mergeMediaIndexCheckpoint(
  * If any single record is invalid or any operation fails, the entire transaction rolls back atomically.
  */
 export async function saveMediaBatchAndCheckpoint(
-  records: Omit<MediaRecord, 'lastAccessed' | 'accessCount'>[],
+  records: readonly Omit<MediaRecord, 'lastAccessed' | 'accessCount'>[],
   checkpoint?: MediaIndexCheckpointUpdate
-): Promise<void> {
+): Promise<MediaIndexState | null> {
   const db = await initDb();
-  return new Promise<void>((resolve, reject) => {
-    const stores = checkpoint ? ['media', 'mediaIndexState'] : ['media'];
+  return new Promise((resolve, reject) => {
+    const stores: ('media' | 'mediaIndexState')[] = checkpoint ? ['media', 'mediaIndexState'] : ['media'];
     const tx = db.transaction(stores, 'readwrite');
     const mediaStore = tx.objectStore('media');
     const now = Date.now();
+    let committedState: MediaIndexState | null = null;
 
-    tx.oncomplete = () => resolve();
+    tx.oncomplete = () => {
+      resolve(committedState);
+    };
     tx.onerror = () => reject(tx.error || new Error('saveMediaBatchAndCheckpoint transaction failed'));
     tx.onabort = () => reject(tx.error || new Error('Atomic index transaction aborted'));
 
@@ -570,6 +573,7 @@ export async function saveMediaBatchAndCheckpoint(
         };
 
         const merged = mergeMediaIndexCheckpoint(existing, checkpoint, records, now);
+        committedState = merged;
         stateStore.put(merged);
       };
     }

@@ -25,6 +25,8 @@ pub mod media_bench;
 pub use media_bench as network_latency_probe;
 pub mod media_classifier;
 pub mod media_counter;
+pub mod media_index_types;
+pub mod media_index_worker;
 pub mod media_meta;
 pub mod media_prep;
 pub mod media_statistics;

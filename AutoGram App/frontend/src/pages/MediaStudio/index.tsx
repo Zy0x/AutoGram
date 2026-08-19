@@ -32,12 +32,9 @@ import {
 import { HardDrive, Upload, Scissors, Copy, ClipboardPaste, X } from 'lucide-react';
 import {
   determineIndexingTier,
-  getAdaptiveDelay,
   calculateIndexingMetrics,
-  AimdRateController,
   type IndexingTier,
 } from '../../lib/telegram/adaptiveIndexer';
-import { checkMemoryHealth, executeEmergencyMemoryReclamation } from '../../lib/utils/memoryCircuitBreaker';
 import { canUseLocalTelegramWorker, detectTauriRuntime } from '../../lib/tauri/platform';
 import {
   openDriveMoveConfirm,
@@ -101,13 +98,11 @@ import {
   saveCheckpoint,
   saveMediaRecords,
   saveMediaBatchAndCheckpoint,
-  type MediaIndexCheckpointUpdate,
   getExactMediaStatsByContext,
   getMediaIndexState,
   resetMediaIndexState,
   MEDIA_INDEX_SCHEMA_VERSION,
   buildDriveMediaContext,
-  normalizeTopicId,
   scopeMediaRecords,
   deleteMediaRecordsForPeer,
   enqueueAction,
@@ -115,6 +110,14 @@ import {
   updateActionStatus,
   deleteAction,
 } from '../../lib/db/mediaStudioDb';
+import {
+  startMediaIndexJob,
+  ackMediaIndexPage,
+  pauseMediaIndexJob,
+  resumeMediaIndexJob,
+  cancelMediaIndexJob,
+  type TgMediaIndexEvent,
+} from '../../lib/telegram/mediaIndexWorkerApi';
 import {
   cancelScheduledDriveSessionStop,
   ensureDriveSession,
@@ -3317,6 +3320,7 @@ function MediaDriveDesktop({
 
   const indexingActiveRef = useRef(false);
   const indexingPausedRef = useRef(false);
+  const activeIndexingJobIdRef = useRef<number | null>(null);
   const [indexingAllActive, setIndexingAllActive] = useState(false);
   const [indexingProgress, setIndexingProgress] = useState<{
     processed: number;
@@ -3326,6 +3330,10 @@ function MediaDriveDesktop({
   const handleStopIndexing = useCallback(() => {
     indexingActiveRef.current = false;
     indexingPausedRef.current = false;
+    const currentJobId = activeIndexingJobIdRef.current;
+    if (currentJobId) {
+      void cancelMediaIndexJob(currentJobId);
+    }
     setIndexingAllActive(false);
     setIndexingJob({ active: false, processed: 0, total: 0, text: '', isPaused: false });
   }, []);
@@ -3334,6 +3342,14 @@ function MediaDriveDesktop({
     if (!indexingActiveRef.current) return;
     const nextPaused = !indexingPausedRef.current;
     indexingPausedRef.current = nextPaused;
+    const currentJobId = activeIndexingJobIdRef.current;
+    if (currentJobId) {
+      if (nextPaused) {
+        void pauseMediaIndexJob(currentJobId);
+      } else {
+        void resumeMediaIndexJob(currentJobId);
+      }
+    }
     setIndexingJob((prev) => ({
       ...prev,
       isPaused: nextPaused,
@@ -3343,17 +3359,14 @@ function MediaDriveDesktop({
   const handleIndexAllMetadata = useCallback(async () => {
     if (indexingActiveRef.current || loadingMoreFiles) return;
 
-    if (!nextOffsetIdRef.current && liveFilesRef.current.length > 0) {
-      const lowest = Math.min(
-        ...liveFilesRef.current
-          .map((f: any) => typeof f.id === 'number' ? f.id : parseInt(String(f.id), 10))
-          .filter((n: number) => !isNaN(n) && n > 0)
-      );
-      if (lowest && lowest > 0) {
-        nextOffsetIdRef.current = lowest;
-        setNextOffsetId(lowest);
-      }
-    }
+    const tid = topicFilterRef.current;
+    const cacheKey = getDriveCacheKey(creds?.session || session, peerId, tid);
+    const mediaContext = buildDriveMediaContext(creds?.session || session, peerId, tid);
+
+    if (!creds?.session && !session) return;
+    const sessionKey = creds?.session || session || '';
+    const apiId = creds?.apiId || Number(import.meta.env.VITE_TELEGRAM_API_ID) || 0;
+    const apiHash = creds?.apiHash || String(import.meta.env.VITE_TELEGRAM_API_HASH) || '';
 
     filesHasMoreRef.current = true;
     setFilesHasMore(true);
@@ -3392,11 +3405,8 @@ function MediaDriveDesktop({
     setStatusText(t('speedtest.index_all_running'));
 
     const gen = peerGen.current;
-    const tid = topicFilterRef.current;
-    const cacheKey = getDriveCacheKey(creds?.session || session, peerId, tid);
-    const mediaContext = buildDriveMediaContext(creds?.session || session, peerId, tid);
 
-    // ── P2 STARTUP DECISION & DURABLE CHECKPOINT RESTORE ──
+    // Read durable checkpoint from IndexedDB
     let indexState = await getMediaIndexState(mediaContext);
     if (indexState && indexState.schemaVersion !== MEDIA_INDEX_SCHEMA_VERSION) {
       console.warn('[Indexer] Schema version mismatch, performing safe reset of mediaIndexState');
@@ -3404,373 +3414,213 @@ function MediaDriveDesktop({
       indexState = null;
     }
 
-    let isDeltaMode = false;
-    let currentMinId: number = 0;
-
-    if (!indexState) {
-      // Case A: Fresh historical backfill
-      isDeltaMode = false;
-      currentMinId = 0;
-      searchCursorRef.current = null;
-      setSearchCursor(null);
-    } else if (!indexState.backfillComplete) {
-      // Case C: Resume incomplete historical backfill from last durable committed lane watermarks
-      isDeltaMode = false;
-      currentMinId = 0;
-      const restoredCursor: TgScopedMediaSearchCursor = {
-        scope: {
-          accountId: mediaContext.accountId,
-          peerId: mediaContext.peerId,
-          topicId: tid,
-          minId: 0,
-        },
-        photoVideo: {
-          fetchOffsetId: indexState.pvCommittedOffset,
-          exhausted: indexState.pvExhausted,
-        },
-        document: {
-          fetchOffsetId: indexState.docCommittedOffset,
-          exhausted: indexState.docExhausted,
-        },
-        pendingPhotoVideo: [],
-        pendingDocument: [],
-      };
-      searchCursorRef.current = restoredCursor;
-      setSearchCursor(restoredCursor);
-    } else if (indexState.deltaActive) {
-      // Case D: Resume in-flight delta sync from last committed delta watermarks
-      isDeltaMode = true;
-      currentMinId = indexState.deltaBaseId;
-      const restoredDeltaCursor: TgScopedMediaSearchCursor = {
-        scope: {
-          accountId: mediaContext.accountId,
-          peerId: mediaContext.peerId,
-          topicId: tid,
-          minId: indexState.deltaBaseId,
-        },
-        photoVideo: {
-          fetchOffsetId: indexState.deltaPvCommittedOffset,
-          exhausted: indexState.deltaPvExhausted,
-        },
-        document: {
-          fetchOffsetId: indexState.deltaDocCommittedOffset,
-          exhausted: indexState.deltaDocExhausted,
-        },
-        pendingPhotoVideo: [],
-        pendingDocument: [],
-      };
-      searchCursorRef.current = restoredDeltaCursor;
-      setSearchCursor(restoredDeltaCursor);
-    } else {
-      // Case E: Start fresh delta sync against canonical newestCommittedId
-      isDeltaMode = true;
-      currentMinId = indexState.newestCommittedId;
-      const freshDeltaCursor: TgScopedMediaSearchCursor = {
-        scope: {
-          accountId: mediaContext.accountId,
-          peerId: mediaContext.peerId,
-          topicId: tid,
-          minId: currentMinId,
-        },
-        photoVideo: { fetchOffsetId: 0, exhausted: false },
-        document: { fetchOffsetId: 0, exhausted: false },
-        pendingPhotoVideo: [],
-        pendingDocument: [],
-      };
-      searchCursorRef.current = freshDeltaCursor;
-      setSearchCursor(freshDeltaCursor);
-    }
-
-    // CRITICAL: Ensure while loop condition is explicitly active on startup
-    filesHasMoreRef.current = true;
-    setFilesHasMore(true);
-
-    let lastRenderTime = Date.now();
-    let lastProgressTime = 0;
-    let lastMetricCount = initialProcessed;
-    let lastMetricTime = startTimeMs;
     let accumulatedNewFiles: DriveFile[] = [];
+    let lastRenderTime = Date.now();
     let indexedLoadedCount = initialProcessed;
     let hasPersistFailure = false;
-    const rateController = new AimdRateController(3, 0, 150);
+
+    const clientRequestId = `index_${sessionKey}_${peerId}_${tid ?? -1}_${Date.now()}`;
 
     try {
-      while (
-        indexingActiveRef.current &&
-        filesHasMoreRef.current &&
-        gen === peerGen.current &&
-        activeFilesCacheKeyRef.current === cacheKey
-      ) {
-        // Autonomous Memory Circuit Breaker Check
-        const memHealth = checkMemoryHealth();
-        if (memHealth.shouldTripCircuit) {
-          executeEmergencyMemoryReclamation();
-          await new Promise((r) => setTimeout(r, 150));
-        } else if (memHealth.shouldThrottle) {
-          executeEmergencyMemoryReclamation();
-        }
+      const startRes = await startMediaIndexJob(
+        {
+          clientRequestId,
+          identity: {
+            session: sessionKey,
+            apiId: Number(apiId),
+            apiHash,
+          },
+          peerId: String(peerId),
+          topicId: tid ?? null,
+          pageSize: 100,
+          initialState: indexState,
+          forceMode: null,
+        },
+        async (event: TgMediaIndexEvent) => {
+          if (!indexingActiveRef.current || gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) {
+            return;
+          }
 
-        // Safe pause loop: sleep in 100ms chunks while paused
-        while (indexingPausedRef.current && indexingActiveRef.current) {
-          await new Promise((r) => setTimeout(r, 100));
-        }
-        if (!creds || !indexingActiveRef.current || gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) {
-          break;
-        }
+          if (event.type === 'page') {
+            const page = event.rows || [];
+            const leanPage = page.length ? stripInlineThumbsFromFiles(page).map(toLeanDriveFile) : [];
+            const parsedPeerId = typeof peerId === 'number' ? peerId : (parseInt(String(peerId), 10) || 0);
+            const scoped = scopeMediaRecords(leanPage, mediaContext, parsedPeerId);
 
-        const offset = nextOffsetIdRef.current;
-        const currentTotalLoaded = indexedLoadedCount;
-        const currentTier = determineIndexingTier(totalFileCount || initialTotal, currentTotalLoaded);
+            try {
+              const committedState = await saveMediaBatchAndCheckpoint(
+                scoped,
+                {
+                  ...event.candidateCheckpoint,
+                  scopeKind: event.candidateCheckpoint.scopeKind === 'topic' ? 'topic' : 'all',
+                  mode: event.candidateCheckpoint.mode === 'delta' ? 'delta' : 'backfill',
+                }
+              );
 
-        const reqStart = Date.now();
-        let res: any = null;
-        let reqLatency = 0;
-        try {
-          res = await driveListFiles(creds, peerId, {
-            pageSize: 100,
-            offsetId: searchCursorRef.current ? null : offset,
-            minId: currentMinId,
-            searchCursor: searchCursorRef.current,
-            topicId: tid,
-            quickStats: false,
-            sortMode: 'newest',
-            localOffset: currentTotalLoaded,
-          });
-          reqLatency = Date.now() - reqStart;
-          rateController.onSuccess(reqLatency);
-        } catch (err: any) {
-          console.warn('[Indexer] driveListFiles guarded error:', err);
-          // When Rust encounters a long FloodWait or unrecoverable error, pause indexing gracefully
-          const isFlood = err?.code === 'flood_wait' || String(err?.message || '').toLowerCase().includes('flood');
-          if (isFlood) {
-            const waitSec = err?.flood_wait_secs || 30;
+              await ackMediaIndexPage({
+                jobId: event.jobId,
+                ackId: event.ackId,
+                outcome: 'committed',
+                committedState,
+              });
+            } catch (dbErr) {
+              console.error('[Indexer] Fatal error persisting media batch to database:', dbErr);
+              hasPersistFailure = true;
+              await ackMediaIndexPage({
+                jobId: event.jobId,
+                ackId: event.ackId,
+                outcome: 'failed',
+                errorCode: String((dbErr as any)?.message || dbErr),
+              });
+              setIndexingJob((prev: any) => prev ? {
+                ...prev,
+                text: t('speedtest.db_error_paused') || 'Kesalahan database: pengindeksan dijeda demi menjaga integritas data'
+              } : prev);
+              return;
+            }
+
+            indexedLoadedCount += page.length;
+            setTotalIndexedCount(indexedLoadedCount);
+            const curLoaded = indexedLoadedCount;
+            const curTotal = totalFileCount || initialTotal;
+            const now = Date.now();
+            const metrics = calculateIndexingMetrics(curLoaded, curTotal, startTimeMs, now, curLoaded, now);
+
+            accumulatedNewFiles.push(...page);
+            if (now - lastRenderTime >= 900 || !event.hasMore) {
+              const batchToAdd = accumulatedNewFiles;
+              accumulatedNewFiles = [];
+              startTransition(() => {
+                setFiles((prev) => {
+                  if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
+                  const merged = dedupeByMsgId([...prev, ...batchToAdd]);
+                  const activeSort = sortMode || 'newest';
+                  let boundedFiles = merged;
+                  if (boundedFiles.length > 2500) {
+                    boundedFiles = filterAndSortDriveFilesPower(boundedFiles, { sortMode: activeSort }).slice(0, 2500);
+                  }
+                  filesCacheRef.current.set(cacheKey, boundedFiles);
+                  return boundedFiles;
+                });
+              });
+              lastRenderTime = now;
+            }
+
+            setIndexingProgress({
+              processed: curLoaded,
+              total: curTotal || null,
+            });
+            setIndexingJob({
+              active: true,
+              processed: curLoaded,
+              total: curTotal,
+              tier: determineIndexingTier(curTotal, curLoaded),
+              speed: metrics.speedMsgPerSec,
+              eta: metrics.etaFormatted,
+              isPaused: false,
+              text: curTotal > 0
+                ? t('speedtest.index_progress_detail', {
+                    processed: curLoaded.toLocaleString(),
+                    total: curTotal.toLocaleString(),
+                    percent: metrics.percent,
+                  })
+                : t('speedtest.index_progress_count_only', { processed: curLoaded.toLocaleString() }),
+            });
+          } else if (event.type === 'progress') {
+            const curLoaded = indexedLoadedCount;
+            const curTotal = totalFileCount || initialTotal;
+            setIndexingProgress({
+              processed: curLoaded,
+              total: curTotal || null,
+            });
+          } else if (event.type === 'flood') {
             setIndexingJob((prev: any) => prev ? {
               ...prev,
-              text: t('speedtest.floodwait_countdown', { seconds: waitSec }) || `FloodWait: menunggu ${waitSec}s...`
+              text: t('speedtest.floodwait_countdown', { seconds: event.waitSecs }) || `FloodWait: menunggu ${event.waitSecs}s...`
             } : prev);
-            break;
-          }
-          break;
-        }
+          } else if (event.type === 'complete') {
+            filesHasMoreRef.current = false;
+            setFilesHasMore(false);
+            nextOffsetIdRef.current = null;
+            setNextOffsetId(null);
+            indexingActiveRef.current = false;
+            setIndexingAllActive(false);
 
-        if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) break;
+            if (accumulatedNewFiles.length > 0) {
+              const batchToAdd = accumulatedNewFiles;
+              accumulatedNewFiles = [];
+              startTransition(() => {
+                setFiles((prev) => {
+                  if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
+                  const merged = dedupeByMsgId([...prev, ...batchToAdd]);
+                  const activeSort = sortMode || 'newest';
+                  let boundedFiles = merged;
+                  if (boundedFiles.length > 2500) {
+                    boundedFiles = filterAndSortDriveFilesPower(boundedFiles, { sortMode: activeSort }).slice(0, 2500);
+                  }
+                  filesCacheRef.current.set(cacheKey, boundedFiles);
+                  return boundedFiles;
+                });
+              });
+            }
 
-        let page: DriveFile[] = res?.files || [];
-        const leanPage = page.length ? stripInlineThumbsFromFiles(page).map(toLeanDriveFile) : [];
-        const scoped = scopeMediaRecords(leanPage, mediaContext, peerId || 0);
+            if (creds?.session && !hasPersistFailure) {
+              const curFiles = filesCacheRef.current.get(cacheKey) || liveFilesRef.current;
+              try {
+                const exactStats = await getExactMediaStatsByContext(mediaContext);
+                const exactCount = exactStats.count;
+                const exactBytes = exactStats.totalBytes;
+                setStatsAccurate(true);
+                setStatsLoading(false);
+                setTotalFileCount(exactCount);
+                setTotalBytes(exactBytes);
+                filesTotalCountRef.current.set(cacheKey, exactCount);
 
-        const pvDrained = res.lane_durability?.photoVideoDrained ?? (Boolean(res.search_cursor?.photoVideo.exhausted) && (res.search_cursor?.pendingPhotoVideo?.length ?? 0) === 0);
-        const docDrained = res.lane_durability?.documentDrained ?? (Boolean(res.search_cursor?.document.exhausted) && (res.search_cursor?.pendingDocument?.length ?? 0) === 0);
-        const isFinished = !res.has_more;
-
-        const checkpointUpdate: MediaIndexCheckpointUpdate = {
-          accountId: mediaContext.accountId,
-          peerId: mediaContext.peerId,
-          scopeKind: mediaContext.scopeKind,
-          topicIdNormalized: normalizeTopicId(mediaContext.scopeKind, mediaContext.topicId),
-          mode: isDeltaMode ? 'delta' : 'backfill',
-          // Backfill mode fields
-          pvCommittedOffset: isDeltaMode ? undefined : (res.emitted_watermark?.photoVideo || 0),
-          docCommittedOffset: isDeltaMode ? undefined : (res.emitted_watermark?.document || 0),
-          pvCommittedExhausted: isDeltaMode ? undefined : pvDrained,
-          docCommittedExhausted: isDeltaMode ? undefined : docDrained,
-          backfillComplete: isDeltaMode ? undefined : isFinished,
-          // Delta mode fields
-          deltaActive: isDeltaMode ? !isFinished : undefined,
-          deltaBaseId: isDeltaMode ? currentMinId : undefined,
-          deltaPvCommittedOffset: isDeltaMode ? (res.emitted_watermark?.photoVideo || 0) : undefined,
-          deltaDocCommittedOffset: isDeltaMode ? (res.emitted_watermark?.document || 0) : undefined,
-          deltaPvCommittedExhausted: isDeltaMode ? pvDrained : undefined,
-          deltaDocCommittedExhausted: isDeltaMode ? docDrained : undefined,
-          deltaComplete: isDeltaMode ? isFinished : undefined,
-        };
-
-        try {
-          await saveMediaBatchAndCheckpoint(scoped, checkpointUpdate);
-        } catch (dbErr) {
-          console.error('[Indexer] Fatal error persisting media batch to database:', dbErr);
-          hasPersistFailure = true;
-          setIndexingJob((prev: any) => prev ? {
-            ...prev,
-            text: t('speedtest.db_error_paused') || 'Kesalahan database: pengindeksan dijeda demi menjaga integritas data'
-          } : prev);
-          // CRITICAL: Stop and do NOT advance cursor if DB write fails!
-          break;
-        }
-
-        // Update independent multi-lane search cursor ONLY AFTER DB commit ACK
-        if (res?.search_cursor) {
-          searchCursorRef.current = res.search_cursor;
-          setSearchCursor(res.search_cursor);
-        }
-
-        indexedLoadedCount += page.length;
-        setTotalIndexedCount(indexedLoadedCount);
-        const curLoaded = indexedLoadedCount;
-        const curTotal = totalFileCount || initialTotal;
-        const now = Date.now();
-        const metrics = calculateIndexingMetrics(curLoaded, curTotal, startTimeMs, now, lastMetricCount, lastMetricTime);
-        lastMetricCount = curLoaded;
-        lastMetricTime = now;
-
-        // Database-First Indexing with Bounded RAM Buffer (Max 2,500 items in RAM):
-        // All items are written directly to IndexedDB SSD. RAM only holds the top active window.
-        accumulatedNewFiles.push(...page);
-        if (now - lastRenderTime >= 900 || !res?.has_more) {
-          const batchToAdd = accumulatedNewFiles;
-          accumulatedNewFiles = [];
-          startTransition(() => {
-            setFiles((prev) => {
-              if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
-              const merged = dedupeByMsgId([...prev, ...batchToAdd]);
-              const activeSort = sortMode || 'newest';
-              let boundedFiles = merged;
-              if (boundedFiles.length > 2500) {
-                // Keep top 2,500 cards in RAM dynamically according to current sorting
-                boundedFiles = filterAndSortDriveFilesPower(boundedFiles, { sortMode: activeSort }).slice(0, 2500);
+                if (curFiles.length > 0) {
+                  void saveDeepIndexSnapshot(creds.session, peerId, tid, {
+                    files: curFiles.slice(0, 2500),
+                    hasMore: false,
+                    nextOffsetId: null,
+                    totalCount: exactCount,
+                    totalBytes: exactBytes,
+                  }).catch(() => {});
+                }
+              } catch (statErr) {
+                console.warn('[Indexer] Could not load exact stats from DB:', statErr);
               }
-              filesCacheRef.current.set(cacheKey, boundedFiles);
-              return boundedFiles;
-            });
-          });
-          lastRenderTime = now;
-        }
-
-        const lowestMsgIdInPage = (page.length > 0)
-          ? Math.min(...page.map((f: any) => typeof f.id === 'number' ? f.id : parseInt(String(f.id), 10)).filter((n: number) => !isNaN(n) && n > 0))
-          : null;
-
-        let nextOffset: number | null = null;
-        if (res?.next_offset_id && res.next_offset_id > 0 && (offset == null || res.next_offset_id < offset)) {
-          nextOffset = res.next_offset_id;
-        } else if (lowestMsgIdInPage && lowestMsgIdInPage > 1 && (offset == null || lowestMsgIdInPage < offset)) {
-          nextOffset = lowestMsgIdInPage;
-        }
-
-        // Authoritative completion: strictly governed by Rust (true only when both lanes AND pending buffers are exhausted)
-        const hasMoreWork = res?.has_more === true;
-
-        if (!hasMoreWork || (!res?.search_cursor && (!nextOffset || nextOffset <= 1))) {
-          filesHasMoreRef.current = false;
-          setFilesHasMore(false);
-          nextOffsetIdRef.current = null;
-          setNextOffsetId(null);
-          break;
-        }
-
-        nextOffsetIdRef.current = nextOffset;
-        setNextOffsetId(nextOffset);
-
-        // Rapid UI Progress Updates (every 60ms): smooth 60fps real-time streaming progress
-        if (now - lastProgressTime >= 60 || !res.has_more) {
-          lastProgressTime = now;
-          setIndexingProgress({
-            processed: curLoaded,
-            total: curTotal || null,
-          });
-          setIndexingJob({
-            active: true,
-            processed: curLoaded,
-            total: curTotal,
-            tier: currentTier,
-            speed: metrics.speedMsgPerSec,
-            eta: metrics.etaFormatted,
-            isPaused: false,
-            text: curTotal > 0
-              ? t('speedtest.index_progress_detail', {
-                  processed: curLoaded.toLocaleString(),
-                  total: curTotal.toLocaleString(),
-                  percent: metrics.percent,
-                })
-              : t('speedtest.index_progress_count_only', { processed: curLoaded.toLocaleString() }),
-          });
-        }
-
-        // Dynamic AIMD Delay & UI Frame Pacing
-        const aimdDelay = rateController.getDelay();
-        const { delayMs } = getAdaptiveDelay(currentTier, curLoaded, reqLatency);
-        const safeDelay = Math.max(aimdDelay, delayMs, 0);
-        if (safeDelay > 0) {
-          await new Promise((r) => setTimeout(r, safeDelay));
-        } else {
-          await new Promise((r) => requestAnimationFrame(r));
-        }
-      }
-
-      // Flush any remaining batched media records to IndexedDB and UI
-      if (accumulatedNewFiles.length > 0) {
-        const batchToAdd = accumulatedNewFiles;
-        accumulatedNewFiles = [];
-        startTransition(() => {
-          setFiles((prev) => {
-            if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
-            const merged = dedupeByMsgId([...prev, ...batchToAdd]);
-            const activeSort = sortMode || 'newest';
-            let boundedFiles = merged;
-            if (boundedFiles.length > 2500) {
-              boundedFiles = filterAndSortDriveFilesPower(boundedFiles, { sortMode: activeSort }).slice(0, 2500);
             }
-            filesCacheRef.current.set(cacheKey, boundedFiles);
-            return boundedFiles;
-          });
-        });
-      }
 
-      // Persist deep index snapshot metadata to IndexedDB ONLY if no persist failure occurred
-      if (creds?.session && !hasPersistFailure) {
-        const curFiles = filesCacheRef.current.get(cacheKey) || liveFilesRef.current;
-        const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
-
-        if (!filesHasMoreRef.current) {
-          try {
-            const exactStats = await getExactMediaStatsByContext(mediaContext);
-            const exactCount = exactStats.count;
-            const exactBytes = exactStats.totalBytes;
-            setStatsAccurate(true);
-            setStatsLoading(false);
-            setTotalFileCount(exactCount);
-            setTotalBytes(exactBytes);
-            filesTotalCountRef.current.set(cacheKey, exactCount);
-
-            if (curFiles.length > 0) {
-              void saveDeepIndexSnapshot(creds.session, peerId, tid, {
-                files: curFiles.slice(0, 2500),
-                hasMore: false,
-                nextOffsetId: null,
-                totalCount: exactCount,
-                totalBytes: exactBytes,
-              }).catch(() => {});
-            }
-          } catch (statErr) {
-            console.warn('[Indexer] Could not load exact stats from DB:', statErr);
+            setIndexingJob({ active: false, processed: 0, total: 0, text: '', isPaused: false });
+            setTotalIndexedCount(indexedLoadedCount);
+            setStatusText(t('ui.generated.semua_media_dimuat_2310a13'));
+          } else if (event.type === 'failed') {
+            console.warn('[Indexer] Job failed:', event.message);
+            indexingActiveRef.current = false;
+            setIndexingAllActive(false);
+            setIndexingJob({ active: false, processed: 0, total: 0, text: '', isPaused: false });
           }
-        } else if (curFiles.length > 0) {
-          const interimCount = totalFileCount || initialTotal || indexedLoadedCount || curFiles.length;
-          void saveDeepIndexSnapshot(creds.session, peerId, tid, {
-            files: curFiles.slice(0, 2500),
-            hasMore: filesHasMoreRef.current,
-            nextOffsetId: nextOffsetIdRef.current,
-            totalCount: interimCount,
-            totalBytes: totalBytes || null,
-          }).catch(() => {});
         }
-      }
+      );
+
+      activeIndexingJobIdRef.current = startRes.jobId;
     } catch (err: any) {
-      console.warn('[Indexer] Adaptive background indexer caught error:', err);
-    } finally {
+      console.warn('[Indexer] startMediaIndexJob caught error:', err);
       indexingActiveRef.current = false;
       indexingPausedRef.current = false;
       setIndexingAllActive(false);
       setIndexingJob({ active: false, processed: 0, total: 0, text: '', isPaused: false });
-      setTotalIndexedCount(indexedLoadedCount);
-      setStatusText(t('ui.generated.semua_media_dimuat_2310a13'));
-      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-        (window as any).requestIdleCallback(() => {
-          executeEmergencyMemoryReclamation();
-        }, { timeout: 1500 });
-      }
     }
-  }, [filesHasMore, loadingMoreFiles, creds, peerId, session, getDriveCacheKey, totalFileCount, t]);
+  }, [
+    creds,
+    session,
+    peerId,
+    totalFileCount,
+    totalIndexedCount,
+    sortMode,
+    loadingMoreFiles,
+    getDriveCacheKey,
+    t,
+  ]);
 
   const syncActiveLocationLive = useCallback(
     async (reason: 'interval' | 'focus') => {

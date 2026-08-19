@@ -1408,6 +1408,59 @@ async fn tg_cancel_folder_stream(
 }
 
 #[tauri::command]
+async fn tg_start_media_index_job(
+    app: AppHandle,
+    manager: tauri::State<'_, core::media_index_worker::MediaIndexJobManager>,
+    request: core::media_index_types::StartMediaIndexJobRequest,
+    on_event: tauri::ipc::Channel<core::media_index_types::MediaIndexEvent>,
+) -> Result<core::media_index_types::StartMediaIndexJobResponse, core::tg_error::TgErrorPublic> {
+    ensure_sessions_dir_env(&app);
+    manager
+        .start_job(request, move |evt| on_event.send(evt).is_ok())
+        .await
+}
+
+#[tauri::command]
+async fn tg_ack_media_index_page(
+    manager: tauri::State<'_, core::media_index_worker::MediaIndexJobManager>,
+    ack: core::media_index_types::MediaIndexPageAck,
+) -> Result<core::media_index_types::MediaIndexAckResult, String> {
+    Ok(manager.process_ack(ack).await)
+}
+
+#[tauri::command]
+async fn tg_pause_media_index_job(
+    manager: tauri::State<'_, core::media_index_worker::MediaIndexJobManager>,
+    job_id: u64,
+) -> Result<core::media_index_types::MediaIndexControlResponse, String> {
+    Ok(manager.pause_job(job_id).await)
+}
+
+#[tauri::command]
+async fn tg_resume_media_index_job(
+    manager: tauri::State<'_, core::media_index_worker::MediaIndexJobManager>,
+    job_id: u64,
+) -> Result<core::media_index_types::MediaIndexControlResponse, String> {
+    Ok(manager.resume_job(job_id).await)
+}
+
+#[tauri::command]
+async fn tg_cancel_media_index_job(
+    manager: tauri::State<'_, core::media_index_worker::MediaIndexJobManager>,
+    job_id: u64,
+) -> Result<core::media_index_types::MediaIndexControlResponse, String> {
+    Ok(manager.cancel_job(job_id).await)
+}
+
+#[tauri::command]
+async fn tg_get_media_index_job_status(
+    manager: tauri::State<'_, core::media_index_worker::MediaIndexJobManager>,
+    job_id: u64,
+) -> Result<Option<core::media_index_types::MediaIndexJobStatus>, String> {
+    Ok(manager.get_job_status(job_id).await)
+}
+
+#[tauri::command]
 async fn tg_upload_file(
     app: AppHandle,
     request: core::telegram_ops::UploadFileRequest,
@@ -1968,6 +2021,9 @@ fn fetch_remote_json_metadata(url: String) -> Result<serde_json::Value, String> 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(core::media_index_worker::MediaIndexJobManager::new(
+            core::grammers_ops::resolve_sessions_dir(None),
+        ))
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
@@ -2026,6 +2082,12 @@ pub fn run() {
             tg_get_media_statistics,
             tg_save_exact_media_statistics,
             tg_list_media,
+            tg_start_media_index_job,
+            tg_ack_media_index_page,
+            tg_pause_media_index_job,
+            tg_resume_media_index_job,
+            tg_cancel_media_index_job,
+            tg_get_media_index_job_status,
             tg_start_folder_stream,
             tg_cancel_folder_stream,
             tg_upload_file,
