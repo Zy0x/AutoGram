@@ -1416,8 +1416,35 @@ async fn tg_start_media_index_job(
 ) -> Result<core::media_index_types::StartMediaIndexJobResponse, core::tg_error::TgErrorPublic> {
     ensure_sessions_dir_env(&app);
     manager
-        .start_job(request, move |evt| on_event.send(evt).is_ok())
+        .start_job(
+            request,
+            core::media_index_worker::FnEventSink(move |evt| on_event.send(evt).is_ok()),
+        )
         .await
+}
+
+#[tauri::command]
+async fn tg_attach_media_index_job_channel(
+    manager: tauri::State<'_, core::media_index_worker::MediaIndexJobManager>,
+    job_id: u64,
+    on_event: tauri::ipc::Channel<core::media_index_types::MediaIndexEvent>,
+) -> Result<core::media_index_types::AttachMediaIndexJobResponse, core::tg_error::TgErrorPublic> {
+    manager
+        .attach_channel(
+            job_id,
+            core::media_index_worker::FnEventSink(move |evt| on_event.send(evt).is_ok()),
+        )
+        .await
+}
+
+#[tauri::command]
+async fn tg_detach_media_index_job_channel(
+    manager: tauri::State<'_, core::media_index_worker::MediaIndexJobManager>,
+    job_id: u64,
+    subscriber_id: u64,
+    generation: u64,
+) -> Result<core::media_index_types::DetachMediaIndexJobResponse, String> {
+    Ok(manager.detach_channel(job_id, subscriber_id, generation).await)
 }
 
 #[tauri::command]
@@ -2083,6 +2110,8 @@ pub fn run() {
             tg_save_exact_media_statistics,
             tg_list_media,
             tg_start_media_index_job,
+            tg_attach_media_index_job_channel,
+            tg_detach_media_index_job_channel,
             tg_ack_media_index_page,
             tg_pause_media_index_job,
             tg_resume_media_index_job,

@@ -15,6 +15,7 @@ pub enum MediaIndexJobState {
     Preparing,
     Running,
     WaitingAck,
+    WaitingFrontend,
     FloodPaused,
     UserPaused,
     Completed,
@@ -231,6 +232,26 @@ pub struct StartMediaIndexJobResponse {
     pub job_id: u64,
     pub state: MediaIndexJobState,
     pub reused_existing_job: bool,
+}
+
+/// Response returned when attaching a new primary persistence Channel to an existing job.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AttachMediaIndexJobResponse {
+    pub job_id: u64,
+    pub attached: bool,
+    pub subscriber_id: u64,
+    pub generation: u64,
+    pub state: MediaIndexJobState,
+    pub replayed_ack_id: Option<u64>,
+}
+
+/// Response returned when explicitly detaching a Channel from an indexing job.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DetachMediaIndexJobResponse {
+    pub job_id: u64,
+    pub detached: bool,
 }
 
 /// Response returned from lifecycle control commands (pause, resume, cancel).

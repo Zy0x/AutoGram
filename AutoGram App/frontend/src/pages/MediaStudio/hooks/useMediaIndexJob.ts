@@ -1,5 +1,5 @@
 /**
- * useMediaIndexJob.ts — React Controller Hook for Long-Running Rust Media Index Worker (P3)
+ * useMediaIndexJob.ts — React Controller Hook for Long-Running Rust Media Index Worker (P3.1 Hardened)
  *
  * Connects the MediaStudio UI to Rust via Tauri Channel, handles candidate checkpoints,
  * persists media batches atomically to IndexedDB, and sends typed ACK backpressure responses.
@@ -9,7 +9,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
 import {
   ackMediaIndexPage,
+  attachMediaIndexJobChannel,
   cancelMediaIndexJob,
+  detachMediaIndexJobChannel,
   pauseMediaIndexJob,
   resumeMediaIndexJob,
   startMediaIndexJob,
@@ -32,7 +34,7 @@ export interface UseMediaIndexJobOptions {
   peerId?: string | number | null;
   topicId?: number | null;
   onNewPage?: (files: DriveFile[]) => void;
-  onComplete?: () => void;
+  onComplete?: (exactStats?: { count: number; totalBytes: number }) => void;
   onError?: (error: string) => void;
 }
 
@@ -43,11 +45,13 @@ export interface UseMediaIndexJobReturn {
   isPaused: boolean;
   floodWaitRemaining: number | null;
   metrics: TgMediaIndexMetricsSnapshot | null;
+  exactStats: { count: number; totalBytes: number } | null;
   error: string | null;
   start: (forceMode?: 'historical_backfill' | 'delta_sync') => Promise<void>;
   pause: () => Promise<void>;
   resume: () => Promise<void>;
   cancel: () => Promise<void>;
+  attach: (jobId: number) => Promise<void>;
 }
 
 export function useMediaIndexJob(options: UseMediaIndexJobOptions): UseMediaIndexJobReturn {
@@ -56,23 +60,17 @@ export function useMediaIndexJob(options: UseMediaIndexJobOptions): UseMediaInde
   const [jobId, setJobId] = useState<number | null>(null);
   const [state, setState] = useState<TgMediaIndexJobState | 'idle'>('idle');
   const [metrics, setMetrics] = useState<TgMediaIndexMetricsSnapshot | null>(null);
+  const [exactStats, setExactStats] = useState<{
+    count: number;
+    totalBytes: number;
+  } | null>(null);
   const [floodWaitRemaining, setFloodWaitRemaining] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const activeJobIdRef = useRef<number | null>(null);
+  const subscriberRef = useRef<{ subscriberId: number; generation: number } | null>(null);
   const floodTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isMountedRef = useRef(true);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-      if (floodTimerRef.current) {
-        clearInterval(floodTimerRef.current);
-        floodTimerRef.current = null;
-      }
-    };
-  }, []);
 
   const clearFloodTimer = () => {
     if (floodTimerRef.current) {
@@ -178,9 +176,14 @@ export function useMediaIndexJob(options: UseMediaIndexJobOptions): UseMediaInde
           const context = buildDriveMediaContext(curSession, curPeer, topicId ?? null);
 
           // Perform authoritative exact count refresh
-          void getExactMediaStatsByContext(context);
-
-          if (onComplete) onComplete();
+          void getExactMediaStatsByContext(context).then((stats) => {
+            if (isMountedRef.current && stats) {
+              setExactStats(stats);
+              if (onComplete) onComplete(stats);
+            } else if (onComplete) {
+              onComplete();
+            }
+          });
           break;
         }
 
@@ -194,6 +197,45 @@ export function useMediaIndexJob(options: UseMediaIndexJobOptions): UseMediaInde
       }
     },
     [session, peerId, topicId, onNewPage, onComplete, onError]
+  );
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (floodTimerRef.current) {
+        clearInterval(floodTimerRef.current);
+        floodTimerRef.current = null;
+      }
+      const curJobId = activeJobIdRef.current;
+      const curSub = subscriberRef.current;
+      if (curJobId && curSub) {
+        void detachMediaIndexJobChannel(curJobId, curSub.subscriberId, curSub.generation);
+      }
+    };
+  }, []);
+
+  const attach = useCallback(
+    async (targetJobId: number) => {
+      try {
+        const res = await attachMediaIndexJobChannel(targetJobId, (evt: TgMediaIndexEvent) => {
+          void handleChannelEvent(evt);
+        });
+
+        if (res.attached) {
+          setJobId(targetJobId);
+          activeJobIdRef.current = targetJobId;
+          subscriberRef.current = {
+            subscriberId: res.subscriberId,
+            generation: res.generation,
+          };
+          setState(res.state);
+        }
+      } catch (err) {
+        console.error('[P3.1 Indexer] Attach channel failed:', err);
+      }
+    },
+    [handleChannelEvent]
   );
 
   const start = useCallback(
@@ -216,7 +258,8 @@ export function useMediaIndexJob(options: UseMediaIndexJobOptions): UseMediaInde
         // Read initial durable checkpoint from IndexedDB
         const initialState = await getMediaIndexState(context);
 
-        const clientRequestId = `index_${session}_${curPeer}_${topicId ?? -1}_${Date.now()}`;
+        // Cryptographically secure UUID per invocation (never contain session string)
+        const clientRequestId = crypto.randomUUID();
 
         const res = await startMediaIndexJob(
           {
@@ -239,6 +282,10 @@ export function useMediaIndexJob(options: UseMediaIndexJobOptions): UseMediaInde
 
         setJobId(res.jobId);
         activeJobIdRef.current = res.jobId;
+        subscriberRef.current = {
+          subscriberId: 1,
+          generation: 1,
+        };
         setState(res.state);
       } catch (err: any) {
         console.error('[P3 Indexer] Start job failed:', err);
@@ -285,7 +332,12 @@ export function useMediaIndexJob(options: UseMediaIndexJobOptions): UseMediaInde
     }
   }, [jobId]);
 
-  const isIndexing = state === 'preparing' || state === 'running' || state === 'waiting_ack' || state === 'flood_paused';
+  const isIndexing =
+    state === 'preparing' ||
+    state === 'running' ||
+    state === 'waiting_ack' ||
+    state === 'waiting_frontend' ||
+    state === 'flood_paused';
   const isPaused = state === 'user_paused';
 
   return {
@@ -295,10 +347,12 @@ export function useMediaIndexJob(options: UseMediaIndexJobOptions): UseMediaInde
     isPaused,
     floodWaitRemaining,
     metrics,
+    exactStats,
     error,
     start,
     pause,
     resume,
     cancel,
+    attach,
   };
 }

@@ -822,6 +822,7 @@ pub fn list_media_blocking_topic_cursor(
         min_id,
         topic_id,
         search_cursor,
+        None,
     ))
 }
 
@@ -834,6 +835,7 @@ pub async fn list_media_page_async(
     min_id: Option<i64>,
     topic_id: Option<i64>,
     search_cursor: Option<ScopedMediaSearchCursor>,
+    guard_control: Option<&crate::core::telegram_rpc_guard::RpcGuardControl>,
 ) -> Result<ListMediaResult, TgError> {
     let limit = limit.clamp(1, 100);
     let chat = chat_id.to_string();
@@ -845,12 +847,16 @@ pub async fn list_media_page_async(
     let top_msg_id = topic_id.filter(|t| *t > 0).map(|t| t as i32);
     let session_name = identity.session.clone();
     let min_id_i32 = min_id.unwrap_or(0) as i32;
+    let default_guard = crate::core::telegram_rpc_guard::RpcGuardControl::default();
+    let active_guard = guard_control.cloned().unwrap_or(default_guard);
 
     with_pool_retry(&identity.session, || {
         let chat = chat.clone();
         let session_name = session_name.clone();
         let initial_cursor = search_cursor.clone();
-        with_client(sessions_dir, identity, true, |client| {
+        let active_guard = active_guard.clone();
+        with_client(sessions_dir, identity, true, move |client| {
+            let active_guard = active_guard.clone();
             Box::pin(async move {
                 ensure_authorized(client, &session_name).await?;
                 let mut peer_res = resolve_peer(client, &chat).await;
@@ -901,10 +907,11 @@ pub async fn list_media_page_async(
                             hash: 0,
                         };
 
-                        let res = crate::core::telegram_rpc_guard::invoke_guarded(
+                        let res = crate::core::telegram_rpc_guard::invoke_guarded_with_control(
                             &session_name,
                             crate::core::session_rate::RpcClass::IndexSearch,
                             "messages.search.photo_video",
+                            &active_guard,
                             || client.invoke(&req),
                         )
                         .await?;
@@ -967,10 +974,11 @@ pub async fn list_media_page_async(
                             hash: 0,
                         };
 
-                        let res = crate::core::telegram_rpc_guard::invoke_guarded(
+                        let res = crate::core::telegram_rpc_guard::invoke_guarded_with_control(
                             &session_name,
                             crate::core::session_rate::RpcClass::IndexSearch,
                             "messages.search.document",
+                            &active_guard,
                             || client.invoke(&req),
                         )
                         .await?;

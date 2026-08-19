@@ -18,6 +18,7 @@ export type TgMediaIndexJobState =
   | 'preparing'
   | 'running'
   | 'waiting_ack'
+  | 'waiting_frontend'
   | 'flood_paused'
   | 'user_paused'
   | 'completed'
@@ -158,6 +159,20 @@ export interface TgStartMediaIndexJobResponse {
   reusedExistingJob: boolean;
 }
 
+export interface TgAttachMediaIndexJobResponse {
+  jobId: number;
+  attached: boolean;
+  subscriberId: number;
+  generation: number;
+  state: TgMediaIndexJobState;
+  replayedAckId?: number | null;
+}
+
+export interface TgDetachMediaIndexJobResponse {
+  jobId: number;
+  detached: boolean;
+}
+
 export interface TgMediaIndexControlResponse {
   jobId: number;
   accepted: boolean;
@@ -185,19 +200,67 @@ export interface TgMediaIndexJobStatus {
 }
 
 /**
+ * Creates a typed Channel instance for streaming media index events.
+ */
+export function createMediaIndexChannel(
+  onEvent: (event: TgMediaIndexEvent) => void
+): Channel<TgMediaIndexEvent> {
+  const channel = new Channel<TgMediaIndexEvent>();
+  channel.onmessage = onEvent;
+  return channel;
+}
+
+/**
  * Starts a new or re-attaches to an existing long-running media index job via Tauri Channel.
  */
 export async function startMediaIndexJob(
   request: TgStartMediaIndexJobRequest,
-  onEvent: (event: TgMediaIndexEvent) => void
+  onEvent: ((event: TgMediaIndexEvent) => void) | Channel<TgMediaIndexEvent>
 ): Promise<TgStartMediaIndexJobResponse> {
-  const channel = new Channel<TgMediaIndexEvent>();
-  channel.onmessage = onEvent;
+  const channel =
+    typeof onEvent === 'function' ? createMediaIndexChannel(onEvent) : onEvent;
 
   return await invoke<TgStartMediaIndexJobResponse>('tg_start_media_index_job', {
     request,
     onEvent: channel,
   });
+}
+
+/**
+ * Attaches a replacement primary persistence Channel to an existing active job.
+ */
+export async function attachMediaIndexJobChannel(
+  jobId: number,
+  onEvent: ((event: TgMediaIndexEvent) => void) | Channel<TgMediaIndexEvent>
+): Promise<TgAttachMediaIndexJobResponse> {
+  const channel =
+    typeof onEvent === 'function' ? createMediaIndexChannel(onEvent) : onEvent;
+
+  return await invoke<TgAttachMediaIndexJobResponse>(
+    'tg_attach_media_index_job_channel',
+    {
+      jobId,
+      onEvent: channel,
+    }
+  );
+}
+
+/**
+ * Detaches a primary persistence subscriber if subscriberId and generation still match.
+ */
+export async function detachMediaIndexJobChannel(
+  jobId: number,
+  subscriberId: number,
+  generation: number
+): Promise<TgDetachMediaIndexJobResponse> {
+  return await invoke<TgDetachMediaIndexJobResponse>(
+    'tg_detach_media_index_job_channel',
+    {
+      jobId,
+      subscriberId,
+      generation,
+    }
+  );
 }
 
 /**

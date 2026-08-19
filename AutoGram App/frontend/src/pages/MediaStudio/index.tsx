@@ -3419,7 +3419,7 @@ function MediaDriveDesktop({
     let indexedLoadedCount = initialProcessed;
     let hasPersistFailure = false;
 
-    const clientRequestId = `index_${sessionKey}_${peerId}_${tid ?? -1}_${Date.now()}`;
+    const clientRequestId = crypto.randomUUID();
 
     try {
       const startRes = await startMediaIndexJob(

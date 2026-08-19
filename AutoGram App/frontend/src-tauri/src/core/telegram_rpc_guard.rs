@@ -5,10 +5,11 @@
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::OnceLock;
-use std::time::{Duration, Instant};
+use std::sync::{Arc, OnceLock};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use parking_lot::Mutex;
+use tokio_util::sync::CancellationToken;
 
 use crate::core::session_rate::{
     acquire_index_slot, acquire_media_slot, acquire_preview_slot, note_error, note_flood_wait_class,
@@ -16,6 +17,26 @@ use crate::core::session_rate::{
 };
 use crate::core::tg_error::{map_invocation, TgError, TgErrorCode};
 use crate::core::tg_log;
+
+/// Trait for observing guard-owned internal FloodWait retries and backoff states.
+#[async_trait::async_trait]
+pub trait RpcObserver: Send + Sync {
+    async fn on_guard_backoff_start(
+        &self,
+        wait_secs: u32,
+        resume_at_ms: u64,
+        attempt: u32,
+        max_attempts: u32,
+    );
+    async fn on_guard_backoff_end(&self, attempt: u32);
+}
+
+/// Optional control handles passed to guarded RPC invocations (cancellation + telemetry observers).
+#[derive(Clone, Default)]
+pub struct RpcGuardControl {
+    pub cancel: Option<CancellationToken>,
+    pub observer: Option<Arc<dyn RpcObserver>>,
+}
 
 /// Rolling telemetry metrics per RPC class and operation.
 #[derive(Default, Debug, Clone)]
@@ -64,13 +85,53 @@ where
     F: Fn() -> Fut,
     Fut: std::future::Future<Output = Result<T, grammers_client::InvocationError>>,
 {
-    // 1. Acquire appropriate semaphore permit based on RPC class
+    invoke_guarded_with_control(session, class, op_name, &RpcGuardControl::default(), call).await
+}
+
+/// Invokes a guarded RPC with explicit cancellation and observer control handles.
+pub async fn invoke_guarded_with_control<T, F, Fut>(
+    session: &str,
+    class: RpcClass,
+    op_name: &'static str,
+    control: &RpcGuardControl,
+    call: F,
+) -> Result<GuardedRpcResult<T>, TgError>
+where
+    F: Fn() -> Fut,
+    Fut: std::future::Future<Output = Result<T, grammers_client::InvocationError>>,
+{
+    // 1. Acquire appropriate semaphore permit based on RPC class with cancellation awareness
     let _permit = match class {
         RpcClass::IndexSearch | RpcClass::IndexCounters | RpcClass::IndexRepair => {
-            Some(acquire_index_slot(session).await?)
+            if let Some(ref c) = control.cancel {
+                tokio::select! {
+                    _ = c.cancelled() => return Err(TgError::new(TgErrorCode::Cancelled, "guarded index slot acquisition cancelled")),
+                    res = acquire_index_slot(session) => Some(res?),
+                }
+            } else {
+                Some(acquire_index_slot(session).await?)
+            }
         }
-        RpcClass::MediaDownload => Some(acquire_media_slot(session).await?),
-        RpcClass::MediaPreview => Some(acquire_preview_slot(session).await?),
+        RpcClass::MediaDownload => {
+            if let Some(ref c) = control.cancel {
+                tokio::select! {
+                    _ = c.cancelled() => return Err(TgError::new(TgErrorCode::Cancelled, "guarded media slot acquisition cancelled")),
+                    res = acquire_media_slot(session) => Some(res?),
+                }
+            } else {
+                Some(acquire_media_slot(session).await?)
+            }
+        }
+        RpcClass::MediaPreview => {
+            if let Some(ref c) = control.cancel {
+                tokio::select! {
+                    _ = c.cancelled() => return Err(TgError::new(TgErrorCode::Cancelled, "guarded preview slot acquisition cancelled")),
+                    res = acquire_preview_slot(session) => Some(res?),
+                }
+            } else {
+                Some(acquire_preview_slot(session).await?)
+            }
+        }
         _ => None,
     };
 
@@ -78,14 +139,34 @@ where
     let max_attempts = 3u32;
 
     loop {
+        if let Some(ref c) = control.cancel {
+            if c.is_cancelled() {
+                return Err(TgError::new(TgErrorCode::Cancelled, "guarded operation cancelled"));
+            }
+        }
+
         attempts += 1;
 
         // 2. Wait for any active FloodGate cooldown for this specific RPC class
-        wait_if_flooded_class(session, class).await?;
+        if let Some(ref c) = control.cancel {
+            tokio::select! {
+                _ = c.cancelled() => return Err(TgError::new(TgErrorCode::Cancelled, "guarded flood gate wait cancelled")),
+                res = wait_if_flooded_class(session, class) => res?,
+            }
+        } else {
+            wait_if_flooded_class(session, class).await?;
+        }
 
         // 3. Measure invocation latency
         let start = Instant::now();
-        let result = call().await;
+        let result = if let Some(ref c) = control.cancel {
+            tokio::select! {
+                _ = c.cancelled() => return Err(TgError::new(TgErrorCode::Cancelled, "guarded rpc invocation cancelled")),
+                res = call() => res,
+            }
+        } else {
+            call().await
+        };
         let latency = start.elapsed();
         let latency_ms = latency.as_millis().min(u64::MAX as u128) as u64;
 
@@ -174,7 +255,35 @@ where
 
                     // Auto-retry in Rust for reasonable flood waits (e.g. <= 45 seconds)
                     if wait_secs <= 45 && attempts < max_attempts {
-                        tokio::time::sleep(Duration::from_secs(u64::from(wait_secs)) + Duration::from_millis(50)).await;
+                        let now_ms = SystemTime::now()
+                            .duration_since(UNIX_EPOCH)
+                            .map(|d| d.as_millis() as u64)
+                            .unwrap_or(0);
+                        let resume_at_ms = now_ms + (u64::from(wait_secs) * 1000);
+
+                        if let Some(ref obs) = control.observer {
+                            obs.on_guard_backoff_start(wait_secs, resume_at_ms, attempts, max_attempts).await;
+                        }
+
+                        let sleep_duration = Duration::from_secs(u64::from(wait_secs)) + Duration::from_millis(50);
+                        let interrupted = if let Some(ref c) = control.cancel {
+                            tokio::select! {
+                                _ = c.cancelled() => true,
+                                _ = tokio::time::sleep(sleep_duration) => false,
+                            }
+                        } else {
+                            tokio::time::sleep(sleep_duration).await;
+                            false
+                        };
+
+                        if let Some(ref obs) = control.observer {
+                            obs.on_guard_backoff_end(attempts).await;
+                        }
+
+                        if interrupted {
+                            return Err(TgError::new(TgErrorCode::Cancelled, "guarded flood wait cancelled"));
+                        }
+
                         continue;
                     }
                 } else {
