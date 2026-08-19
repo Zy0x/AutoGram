@@ -83,6 +83,8 @@ pub struct SearchScope {
     pub account_id: String,
     pub peer_id: String,
     pub topic_id: Option<i64>,
+    #[serde(default)]
+    pub min_id: i32,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -786,7 +788,7 @@ pub fn list_media_blocking(
     limit: usize,
     offset_id: Option<i64>,
 ) -> Result<ListMediaResult, TgError> {
-    list_media_blocking_topic_cursor(sessions_dir, identity, chat_id, limit, offset_id, None, None)
+    list_media_blocking_topic_cursor(sessions_dir, identity, chat_id, limit, offset_id, None, None, None)
 }
 
 pub fn list_media_blocking_topic(
@@ -797,7 +799,7 @@ pub fn list_media_blocking_topic(
     offset_id: Option<i64>,
     topic_id: Option<i64>,
 ) -> Result<ListMediaResult, TgError> {
-    list_media_blocking_topic_cursor(sessions_dir, identity, chat_id, limit, offset_id, topic_id, None)
+    list_media_blocking_topic_cursor(sessions_dir, identity, chat_id, limit, offset_id, None, topic_id, None)
 }
 
 pub fn list_media_blocking_topic_cursor(
@@ -806,6 +808,7 @@ pub fn list_media_blocking_topic_cursor(
     chat_id: &str,
     limit: usize,
     offset_id: Option<i64>,
+    min_id: Option<i64>,
     topic_id: Option<i64>,
     search_cursor: Option<ScopedMediaSearchCursor>,
 ) -> Result<ListMediaResult, TgError> {
@@ -819,6 +822,7 @@ pub fn list_media_blocking_topic_cursor(
     };
     let top_msg_id = topic_id.filter(|t| *t > 0).map(|t| t as i32);
     let session_name = identity.session.clone();
+    let min_id_i32 = min_id.unwrap_or(0) as i32;
 
     rt.block_on(async {
         with_pool_retry(&identity.session, || {
@@ -846,6 +850,7 @@ pub fn list_media_blocking_topic_cursor(
                         account_id: session_name.clone(),
                         peer_id: chat.clone(),
                         topic_id,
+                        min_id: min_id_i32,
                     };
 
                     let init_offset = offset_id.unwrap_or(0) as i32;
@@ -871,7 +876,7 @@ pub fn list_media_blocking_topic_cursor(
                             add_offset: 0,
                             limit: limit as i32,
                             max_id: 0,
-                            min_id: 0,
+                            min_id: min_id_i32,
                             hash: 0,
                         };
 
@@ -937,7 +942,7 @@ pub fn list_media_blocking_topic_cursor(
                             add_offset: 0,
                             limit: limit as i32,
                             max_id: 0,
-                            min_id: 0,
+                            min_id: min_id_i32,
                             hash: 0,
                         };
 
@@ -1140,6 +1145,7 @@ mod tests {
                 account_id: "user_a".to_string(),
                 peer_id: "100111111".to_string(),
                 topic_id: None,
+                min_id: 0,
             },
             photo_video: LaneCursor {
                 fetch_offset_id: 15000,
@@ -1157,6 +1163,7 @@ mod tests {
             account_id: "user_a".to_string(),
             peer_id: "100222222".to_string(),
             topic_id: None,
+            min_id: 0,
         };
 
         let normalized = normalize_search_cursor(Some(stale), &new_scope, 0);
@@ -1174,6 +1181,7 @@ mod tests {
                 account_id: "user_a".to_string(),
                 peer_id: "100111111".to_string(),
                 topic_id: Some(42),
+                min_id: 0,
             },
             photo_video: LaneCursor {
                 fetch_offset_id: 9000,
@@ -1191,6 +1199,7 @@ mod tests {
             account_id: "user_a".to_string(),
             peer_id: "100111111".to_string(),
             topic_id: Some(99),
+            min_id: 0,
         };
 
         let normalized = normalize_search_cursor(Some(stale), &new_scope, 0);
@@ -1206,6 +1215,7 @@ mod tests {
                 account_id: "account_1".to_string(),
                 peer_id: "100111111".to_string(),
                 topic_id: None,
+                min_id: 0,
             },
             photo_video: LaneCursor {
                 fetch_offset_id: 5000,
@@ -1223,11 +1233,47 @@ mod tests {
             account_id: "account_2".to_string(),
             peer_id: "100111111".to_string(),
             topic_id: None,
+            min_id: 0,
         };
 
         let normalized = normalize_search_cursor(Some(stale), &new_scope, 0);
         assert_eq!(normalized.scope.account_id, "account_2");
         assert_eq!(normalized.photo_video.fetch_offset_id, 0);
+    }
+
+    #[test]
+    fn test_normalize_search_cursor_scope_rejection_min_id() {
+        // Delta baseline change (e.g. historical min_id 0 -> delta min_id 10000)
+        let stale = ScopedMediaSearchCursor {
+            scope: SearchScope {
+                account_id: "user_a".to_string(),
+                peer_id: "100111111".to_string(),
+                topic_id: None,
+                min_id: 0,
+            },
+            photo_video: LaneCursor {
+                fetch_offset_id: 5000,
+                exhausted: false,
+            },
+            document: LaneCursor {
+                fetch_offset_id: 4000,
+                exhausted: false,
+            },
+            pending_photo_video: vec![],
+            pending_document: vec![],
+        };
+
+        let delta_scope = SearchScope {
+            account_id: "user_a".to_string(),
+            peer_id: "100111111".to_string(),
+            topic_id: None,
+            min_id: 10000,
+        };
+
+        let normalized = normalize_search_cursor(Some(stale), &delta_scope, 0);
+        assert_eq!(normalized.scope.min_id, 10000);
+        assert_eq!(normalized.photo_video.fetch_offset_id, 0);
+        assert_eq!(normalized.document.fetch_offset_id, 0);
     }
 
     #[test]
@@ -1237,6 +1283,7 @@ mod tests {
                 account_id: "user_a".to_string(),
                 peer_id: "100111111".to_string(),
                 topic_id: None,
+                min_id: 0,
             },
             photo_video: LaneCursor {
                 fetch_offset_id: 901,
@@ -1254,6 +1301,7 @@ mod tests {
             account_id: "user_a".to_string(),
             peer_id: "100111111".to_string(),
             topic_id: None,
+            min_id: 0,
         };
 
         let normalized = normalize_search_cursor(Some(valid), &scope, 0);
@@ -1401,6 +1449,7 @@ mod tests {
                 account_id: "a".to_string(),
                 peer_id: "p".to_string(),
                 topic_id: None,
+                min_id: 0,
             },
             photo_video: LaneCursor {
                 fetch_offset_id: 100,
@@ -1425,6 +1474,7 @@ mod tests {
                 account_id: "a".to_string(),
                 peer_id: "p".to_string(),
                 topic_id: None,
+                min_id: 0,
             },
             photo_video: LaneCursor {
                 fetch_offset_id: 1,

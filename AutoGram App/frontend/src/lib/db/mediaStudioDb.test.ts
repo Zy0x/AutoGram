@@ -4,6 +4,7 @@ import {
   normalizeTopicId,
   advanceBackfillOffset,
   mergeMediaIndexCheckpoint,
+  MEDIA_INDEX_SCHEMA_VERSION,
   type MediaIndexState,
   type MediaIndexCheckpointUpdate,
 } from './mediaStudioDb';
@@ -57,7 +58,7 @@ describe('Media Studio IndexedDB context isolation & MediaIndexState Contract', 
     });
   });
 
-  describe('P1.6 mergeMediaIndexCheckpoint Reducer Invariants', () => {
+  describe('P1.6 & P2 mergeMediaIndexCheckpoint Reducer & Delta Sync Invariants', () => {
     const baseState: MediaIndexState = {
       accountId: 'session_user_1',
       peerId: '1001234567',
@@ -70,10 +71,17 @@ describe('Media Studio IndexedDB context isolation & MediaIndexState Contract', 
       newestCommittedId: 15000,
       oldestCommittedId: 11000,
       backfillComplete: false,
+      deltaActive: false,
+      deltaBaseId: 0,
+      deltaPvCommittedOffset: 0,
+      deltaDocCommittedOffset: 0,
+      deltaPvExhausted: false,
+      deltaDocExhausted: false,
+      deltaMaxObservedId: 0,
       exactMediaCount: null,
       exactBytes: null,
       pts: null,
-      schemaVersion: 1,
+      schemaVersion: MEDIA_INDEX_SCHEMA_VERSION,
       startedAt: 1700000000000,
       updatedAt: 1700000000000,
     };
@@ -84,6 +92,7 @@ describe('Media Studio IndexedDB context isolation & MediaIndexState Contract', 
         peerId: '1001234567',
         scopeKind: 'all',
         topicIdNormalized: -1,
+        mode: 'backfill',
         pvCommittedOffset: 10500,
         docCommittedOffset: 10000,
         pvCommittedExhausted: false, // pending not empty!
@@ -103,6 +112,7 @@ describe('Media Studio IndexedDB context isolation & MediaIndexState Contract', 
         peerId: '1001234567',
         scopeKind: 'all',
         topicIdNormalized: -1,
+        mode: 'backfill',
         pvCommittedOffset: 1,
         docCommittedOffset: 1,
         pvCommittedExhausted: true,
@@ -130,6 +140,7 @@ describe('Media Studio IndexedDB context isolation & MediaIndexState Contract', 
         peerId: '1001234567',
         scopeKind: 'all',
         topicIdNormalized: -1,
+        mode: 'backfill',
         pvCommittedOffset: 8500,
         docCommittedOffset: 8500,
       };
@@ -154,6 +165,7 @@ describe('Media Studio IndexedDB context isolation & MediaIndexState Contract', 
         peerId: '1001234567',
         scopeKind: 'all',
         topicIdNormalized: -1,
+        mode: 'backfill',
         backfillComplete: false, // attempt to degrade
       };
 
@@ -174,10 +186,17 @@ describe('Media Studio IndexedDB context isolation & MediaIndexState Contract', 
         newestCommittedId: 0,
         oldestCommittedId: 0,
         backfillComplete: false,
+        deltaActive: false,
+        deltaBaseId: 0,
+        deltaPvCommittedOffset: 0,
+        deltaDocCommittedOffset: 0,
+        deltaPvExhausted: false,
+        deltaDocExhausted: false,
+        deltaMaxObservedId: 0,
         exactMediaCount: null,
         exactBytes: null,
         pts: null,
-        schemaVersion: 1,
+        schemaVersion: MEDIA_INDEX_SCHEMA_VERSION,
         startedAt: 1700000000000,
         updatedAt: 1700000000000,
       };
@@ -187,6 +206,7 @@ describe('Media Studio IndexedDB context isolation & MediaIndexState Contract', 
         peerId: '999999',
         scopeKind: 'all',
         topicIdNormalized: -1,
+        mode: 'backfill',
         pvCommittedOffset: 0,
         docCommittedOffset: 0,
         pvCommittedExhausted: true,
@@ -200,6 +220,99 @@ describe('Media Studio IndexedDB context isolation & MediaIndexState Contract', 
       expect(nextState.docExhausted).toBe(true);
       expect(nextState.newestCommittedId).toBe(0);
       expect(nextState.oldestCommittedId).toBe(0);
+    });
+
+    it('6. P2 Delta Mode: In-flight delta does NOT advance newestCommittedId prematurely (anti-data-loss)', () => {
+      const completedHistoricalState: MediaIndexState = {
+        ...baseState,
+        backfillComplete: true,
+        newestCommittedId: 10000,
+        oldestCommittedId: 100,
+        pvCommittedOffset: 1,
+        docCommittedOffset: 1,
+        pvExhausted: true,
+        docExhausted: true,
+      };
+
+      // Page 1 of delta: contains messages 10500..10401
+      const deltaPage1Rows = [
+        { id: 10500 } as any,
+        { id: 10450 } as any,
+        { id: 10401 } as any,
+      ];
+
+      const deltaPage1Update: MediaIndexCheckpointUpdate = {
+        accountId: 'session_user_1',
+        peerId: '1001234567',
+        scopeKind: 'all',
+        topicIdNormalized: -1,
+        mode: 'delta',
+        deltaActive: true,
+        deltaBaseId: 10000,
+        deltaPvCommittedOffset: 10401,
+        deltaDocCommittedOffset: 10401,
+        deltaPvCommittedExhausted: false,
+        deltaDocCommittedExhausted: false,
+        deltaComplete: false,
+      };
+
+      const stateAfterPage1 = mergeMediaIndexCheckpoint(completedHistoricalState, deltaPage1Update, deltaPage1Rows, 1700000060000);
+
+      // CRITICAL: Canonical newestCommittedId remains 10000 during in-flight delta!
+      expect(stateAfterPage1.newestCommittedId).toBe(10000);
+      // Historical offsets remain untouched
+      expect(stateAfterPage1.pvCommittedOffset).toBe(1);
+      expect(stateAfterPage1.docCommittedOffset).toBe(1);
+      // Delta state tracks in-flight progress
+      expect(stateAfterPage1.deltaActive).toBe(true);
+      expect(stateAfterPage1.deltaBaseId).toBe(10000);
+      expect(stateAfterPage1.deltaMaxObservedId).toBe(10500);
+      expect(stateAfterPage1.deltaPvCommittedOffset).toBe(10401);
+      expect(stateAfterPage1.deltaDocCommittedOffset).toBe(10401);
+    });
+
+    it('7. P2 Delta Mode: Finalizes newestCommittedId only upon delta completion ACK', () => {
+      const stateInFlight: MediaIndexState = {
+        ...baseState,
+        backfillComplete: true,
+        newestCommittedId: 10000,
+        deltaActive: true,
+        deltaBaseId: 10000,
+        deltaPvCommittedOffset: 10401,
+        deltaDocCommittedOffset: 10401,
+        deltaMaxObservedId: 10500,
+      };
+
+      // Final page of delta: messages 10400..10001
+      const deltaFinalRows = [
+        { id: 10400 } as any,
+        { id: 10001 } as any,
+      ];
+
+      const deltaFinalUpdate: MediaIndexCheckpointUpdate = {
+        accountId: 'session_user_1',
+        peerId: '1001234567',
+        scopeKind: 'all',
+        topicIdNormalized: -1,
+        mode: 'delta',
+        deltaActive: false,
+        deltaBaseId: 10000,
+        deltaPvCommittedOffset: 10001,
+        deltaDocCommittedOffset: 10001,
+        deltaPvCommittedExhausted: true,
+        deltaDocCommittedExhausted: true,
+        deltaComplete: true,
+      };
+
+      const finalState = mergeMediaIndexCheckpoint(stateInFlight, deltaFinalUpdate, deltaFinalRows, 1700000070000);
+
+      // Now canonical newestCommittedId is updated to the maximum observed ID 10500!
+      expect(finalState.newestCommittedId).toBe(10500);
+      expect(finalState.deltaActive).toBe(false);
+      expect(finalState.deltaBaseId).toBe(0);
+      expect(finalState.deltaMaxObservedId).toBe(0);
+      expect(finalState.deltaPvCommittedOffset).toBe(0);
+      expect(finalState.deltaDocCommittedOffset).toBe(0);
     });
   });
 });

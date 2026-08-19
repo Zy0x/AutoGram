@@ -1,13 +1,15 @@
-AutoGram Version: v3.7.96
+AutoGram Version: v3.7.97
 
 Current State:
-v3.7.96 Checkpoint Transport Integrity (P1.7 Complete) — membenahi `driveFilesApi.ts`, `mediaStudioDb.ts`, `MediaStudio/index.tsx`, `mediaStudioDb.test.ts`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. P1.7 End-to-End Checkpoint Transport Integrity: Meneruskan `emitted_watermark` dan `lane_durability` dari Grammers backend melalui adapter `driveFilesApi.ts` ke UI layer, menuntaskan masalah watermark `0` pada scan inisial.
-2. P1.7 In-Flight Request Cursor Fingerprinting: Memperluas deduplikasi request in-flight pada `driveFilesApi.ts` dengan memasukkan fingerprint cursor (`fetchOffsetId` dan `exhausted` per jalur) agar request dengan cursor berbeda tidak salah di-dedup.
-3. P1.7 Zero-Media & Empty-Page Checkpoint Persistence: Mendekopel persistensi checkpoint dari ukuran halaman `page.length > 0` di `MediaStudio/index.tsx`, menjamin kanal/topik dengan 0 media atau halaman penutup tetap menyimpan state `backfillComplete: true`.
-4. P1.7 Monotonic Backfill Completion Guard: Memastikan `backfillComplete` pada `mergeMediaIndexCheckpoint` bersifat strictly monotonic (`prev.backfillComplete || next.backfillComplete === true`), tidak pernah terdegradasi menjadi `false` secara implisit.
+v3.7.97 Crash-Safe Historical Resume & Durable Delta Indexing (P2 Complete) — membenahi `telegram_ops.rs`, `media_list.rs`, `telegramBackend.ts`, `driveFilesApi.ts`, `mediaStudioDb.ts`, `MediaStudio/index.tsx`, `mediaStudioDb.test.ts`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. P2 MTProto `min_id` Search Support: Menambahkan `min_id: i32` pada `SearchScope`, `ListMediaRequest`, dan `list_media_blocking_topic_cursor` di Rust backend, sehingga query `messages::Search` pada jalur PhotoVideo dan Document dapat dibatasi secara presisi di atas baseline delta.
+2. P2 End-to-End Delta Transport & Scope Isolation: Meneruskan `minId` melalui `tgListMedia` dan `driveListFiles` serta mengintegrasikan `minId` ke dalam `contextKey` dan `normalize_search_cursor()`, menjamin isolasi total antara cursor pencarian historis (`minId = 0`) dan pencarian delta (`minId = deltaBaseId`).
+3. P2 Schema Version 2 & Monotonic Delta State Reducer: Memperbarui schema IndexedDB `MediaIndexState` ke versi 2 dengan field delta sync (`deltaActive`, `deltaBaseId`, `deltaPvCommittedOffset`, `deltaDocCommittedOffset`, `deltaMaxObservedId`). Reducer `mergeMediaIndexCheckpoint` menjaga `newestCommittedId` tetap immutable selama delta in-flight (anti-data-loss saat crash), dan memfinalisasinya secara atomik hanya ketika seluruh jalur delta selesai.
+4. P2 Intelligent Startup Evaluation & Crash-Safe Resume: Indexer di `MediaStudio/index.tsx` membaca checkpoint secara otomatis sebelum memulai pemindaian untuk memilih jalur eksekusi optimal: Fresh Backfill, Schema Version Safe Reset, Resume Historical Backfill dari watermark terakhir, Resume In-Flight Delta, atau Start Fresh Delta Sync.
+5. P2 Unified Cursor Source of Truth: Menghilangkan konflik dual-offset dengan mengatur `offsetId: searchCursorRef.current ? null : offset` dan memastikan kalkulasi statistik eksak (`getExactMediaStatsByContext`) dijalankan saat proses selesai atau finalisasi delta.
 
 Previous:
+v3.7.96 Checkpoint Transport Integrity (P1.7 Complete) — membenahi `driveFilesApi.ts`, `mediaStudioDb.ts`, `MediaStudio/index.tsx`, `mediaStudioDb.test.ts`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.95 Durable Checkpoint State Integrity (P1.6 Complete) — membenahi `media_list.rs`, `mediaStudioDb.ts`, `telegramBackend.ts`, `MediaStudio/index.tsx`, `mediaStudioDb.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.94 Cross-Page Dedup, Pending-Drain & ACK-Driven Commit Watermark (P1.5 Complete) — membenahi `media_list.rs`, `mediaStudioDb.ts`, `telegramBackend.ts`, `MediaStudio/index.tsx`, `mediaStudioDb.test.ts`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.93 Lossless Buffered Merge & Commit-Watermark Integrity (P1.4 Complete) — membenahi `media_list.rs`, `mediaStudioDb.ts`, `telegramBackend.ts`, `MediaStudio/index.tsx`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.

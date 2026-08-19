@@ -340,6 +340,7 @@ pub struct ListMediaRequest {
     pub chat_id: String,
     pub limit: Option<usize>,
     pub offset_id: Option<i64>,
+    pub min_id: Option<i64>,
     pub topic_id: Option<i64>,
     pub search_cursor: Option<super::grammers_ops::ScopedMediaSearchCursor>,
 }
@@ -479,6 +480,7 @@ pub fn tg_list_media(req: ListMediaRequest) -> OpResult<super::grammers_ops::Lis
         &req.chat_id,
         limit,
         req.offset_id,
+        req.min_id,
         req.topic_id,
         req.search_cursor,
     ) {

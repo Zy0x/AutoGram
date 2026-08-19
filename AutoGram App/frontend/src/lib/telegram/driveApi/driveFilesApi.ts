@@ -118,6 +118,7 @@ export async function driveListFiles(
   opts?: {
     pageSize?: number;
     offsetId?: number | null;
+    minId?: number | null;
     topicId?: number | null;
     context?: DriveMediaContext;
     searchCursor?: TgScopedMediaSearchCursor | null;
@@ -132,13 +133,14 @@ export async function driveListFiles(
   const topicId = opts?.topicId ?? null;
   const sortMode = opts?.sortMode ?? 'newest';
   const offsetId = opts?.offsetId ?? null;
+  const minId = opts?.minId ?? 0;
   const localOffset = opts?.localOffset ?? 0;
 
   const mediaContext = opts?.context ?? buildDriveMediaContext(creds.session, folderId, topicId);
   const cursorFingerprint = opts?.searchCursor
-    ? `${opts.searchCursor.photoVideo?.fetchOffsetId ?? 0}:${opts.searchCursor.document?.fetchOffsetId ?? 0}:${opts.searchCursor.photoVideo?.exhausted ? 1 : 0}:${opts.searchCursor.document?.exhausted ? 1 : 0}`
+    ? `${opts.searchCursor.photoVideo?.fetchOffsetId ?? 0}:${opts.searchCursor.document?.fetchOffsetId ?? 0}:${opts.searchCursor.photoVideo?.exhausted ? 1 : 0}:${opts.searchCursor.document?.exhausted ? 1 : 0}:${opts.searchCursor.scope?.minId ?? 0}`
     : 'fresh';
-  const contextKey = `${mediaContext.accountId}:${mediaContext.peerId}:${mediaContext.scopeKind}:${mediaContext.topicId ?? 'none'}:${offsetId ?? 0}:${localOffset}:${cursorFingerprint}`;
+  const contextKey = `${mediaContext.accountId}:${mediaContext.peerId}:${mediaContext.scopeKind}:${mediaContext.topicId ?? 'none'}:${offsetId ?? 0}:${minId}:${localOffset}:${cursorFingerprint}`;
 
   if (inFlightPages.has(contextKey)) {
     return inFlightPages.get(contextKey)!;
@@ -161,6 +163,7 @@ export async function driveListFiles(
         chatId,
         limit: pageSize,
         offsetId: opts?.offsetId ?? null,
+        minId: opts?.minId ?? null,
         topicId: topicId != null && topicId > 0 ? topicId : null,
         searchCursor: opts?.searchCursor ?? null,
       });

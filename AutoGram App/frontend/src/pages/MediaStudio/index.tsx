@@ -103,6 +103,9 @@ import {
   saveMediaBatchAndCheckpoint,
   type MediaIndexCheckpointUpdate,
   getExactMediaStatsByContext,
+  getMediaIndexState,
+  resetMediaIndexState,
+  MEDIA_INDEX_SCHEMA_VERSION,
   buildDriveMediaContext,
   normalizeTopicId,
   scopeMediaRecords,
@@ -3391,6 +3394,96 @@ function MediaDriveDesktop({
     const gen = peerGen.current;
     const tid = topicFilterRef.current;
     const cacheKey = getDriveCacheKey(creds?.session || session, peerId, tid);
+    const mediaContext = buildDriveMediaContext(creds?.session || session, peerId, tid);
+
+    // ── P2 STARTUP DECISION & DURABLE CHECKPOINT RESTORE ──
+    let indexState = await getMediaIndexState(mediaContext);
+    if (indexState && indexState.schemaVersion !== MEDIA_INDEX_SCHEMA_VERSION) {
+      console.warn('[Indexer] Schema version mismatch, performing safe reset of mediaIndexState');
+      await resetMediaIndexState(mediaContext);
+      indexState = null;
+    }
+
+    let isDeltaMode = false;
+    let currentMinId: number = 0;
+
+    if (!indexState) {
+      // Case A: Fresh historical backfill
+      isDeltaMode = false;
+      currentMinId = 0;
+      searchCursorRef.current = null;
+      setSearchCursor(null);
+    } else if (!indexState.backfillComplete) {
+      // Case C: Resume incomplete historical backfill from last durable committed lane watermarks
+      isDeltaMode = false;
+      currentMinId = 0;
+      const restoredCursor: TgScopedMediaSearchCursor = {
+        scope: {
+          accountId: mediaContext.accountId,
+          peerId: mediaContext.peerId,
+          topicId: tid,
+          minId: 0,
+        },
+        photoVideo: {
+          fetchOffsetId: indexState.pvCommittedOffset,
+          exhausted: indexState.pvExhausted,
+        },
+        document: {
+          fetchOffsetId: indexState.docCommittedOffset,
+          exhausted: indexState.docExhausted,
+        },
+        pendingPhotoVideo: [],
+        pendingDocument: [],
+      };
+      searchCursorRef.current = restoredCursor;
+      setSearchCursor(restoredCursor);
+    } else if (indexState.deltaActive) {
+      // Case D: Resume in-flight delta sync from last committed delta watermarks
+      isDeltaMode = true;
+      currentMinId = indexState.deltaBaseId;
+      const restoredDeltaCursor: TgScopedMediaSearchCursor = {
+        scope: {
+          accountId: mediaContext.accountId,
+          peerId: mediaContext.peerId,
+          topicId: tid,
+          minId: indexState.deltaBaseId,
+        },
+        photoVideo: {
+          fetchOffsetId: indexState.deltaPvCommittedOffset,
+          exhausted: indexState.deltaPvExhausted,
+        },
+        document: {
+          fetchOffsetId: indexState.deltaDocCommittedOffset,
+          exhausted: indexState.deltaDocExhausted,
+        },
+        pendingPhotoVideo: [],
+        pendingDocument: [],
+      };
+      searchCursorRef.current = restoredDeltaCursor;
+      setSearchCursor(restoredDeltaCursor);
+    } else {
+      // Case E: Start fresh delta sync against canonical newestCommittedId
+      isDeltaMode = true;
+      currentMinId = indexState.newestCommittedId;
+      const freshDeltaCursor: TgScopedMediaSearchCursor = {
+        scope: {
+          accountId: mediaContext.accountId,
+          peerId: mediaContext.peerId,
+          topicId: tid,
+          minId: currentMinId,
+        },
+        photoVideo: { fetchOffsetId: 0, exhausted: false },
+        document: { fetchOffsetId: 0, exhausted: false },
+        pendingPhotoVideo: [],
+        pendingDocument: [],
+      };
+      searchCursorRef.current = freshDeltaCursor;
+      setSearchCursor(freshDeltaCursor);
+    }
+
+    // CRITICAL: Ensure while loop condition is explicitly active on startup
+    filesHasMoreRef.current = true;
+    setFilesHasMore(true);
 
     let lastRenderTime = Date.now();
     let lastProgressTime = 0;
@@ -3435,7 +3528,8 @@ function MediaDriveDesktop({
         try {
           res = await driveListFiles(creds, peerId, {
             pageSize: 100,
-            offsetId: offset,
+            offsetId: searchCursorRef.current ? null : offset,
+            minId: currentMinId,
             searchCursor: searchCursorRef.current,
             topicId: tid,
             quickStats: false,
@@ -3463,22 +3557,32 @@ function MediaDriveDesktop({
 
         let page: DriveFile[] = res?.files || [];
         const leanPage = page.length ? stripInlineThumbsFromFiles(page).map(toLeanDriveFile) : [];
-        const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
         const scoped = scopeMediaRecords(leanPage, mediaContext, peerId || 0);
 
         const pvDrained = res.lane_durability?.photoVideoDrained ?? (Boolean(res.search_cursor?.photoVideo.exhausted) && (res.search_cursor?.pendingPhotoVideo?.length ?? 0) === 0);
         const docDrained = res.lane_durability?.documentDrained ?? (Boolean(res.search_cursor?.document.exhausted) && (res.search_cursor?.pendingDocument?.length ?? 0) === 0);
+        const isFinished = !res.has_more;
 
         const checkpointUpdate: MediaIndexCheckpointUpdate = {
           accountId: mediaContext.accountId,
           peerId: mediaContext.peerId,
           scopeKind: mediaContext.scopeKind,
           topicIdNormalized: normalizeTopicId(mediaContext.scopeKind, mediaContext.topicId),
-          pvCommittedOffset: res.emitted_watermark?.photoVideo || 0,
-          docCommittedOffset: res.emitted_watermark?.document || 0,
-          pvCommittedExhausted: pvDrained,
-          docCommittedExhausted: docDrained,
-          backfillComplete: !res.has_more,
+          mode: isDeltaMode ? 'delta' : 'backfill',
+          // Backfill mode fields
+          pvCommittedOffset: isDeltaMode ? undefined : (res.emitted_watermark?.photoVideo || 0),
+          docCommittedOffset: isDeltaMode ? undefined : (res.emitted_watermark?.document || 0),
+          pvCommittedExhausted: isDeltaMode ? undefined : pvDrained,
+          docCommittedExhausted: isDeltaMode ? undefined : docDrained,
+          backfillComplete: isDeltaMode ? undefined : isFinished,
+          // Delta mode fields
+          deltaActive: isDeltaMode ? !isFinished : undefined,
+          deltaBaseId: isDeltaMode ? currentMinId : undefined,
+          deltaPvCommittedOffset: isDeltaMode ? (res.emitted_watermark?.photoVideo || 0) : undefined,
+          deltaDocCommittedOffset: isDeltaMode ? (res.emitted_watermark?.document || 0) : undefined,
+          deltaPvCommittedExhausted: isDeltaMode ? pvDrained : undefined,
+          deltaDocCommittedExhausted: isDeltaMode ? docDrained : undefined,
+          deltaComplete: isDeltaMode ? isFinished : undefined,
         };
 
         try {

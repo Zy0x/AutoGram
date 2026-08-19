@@ -1,3 +1,33 @@
+## v3.7.97 Crash-Safe Historical Resume & Durable Delta Indexing (P2 Complete) (Phase 35.63)
+
+### 1. P2 Rust MTProto `min_id` & Delta Search Capabilities
+- **Dukungan `min_id` pada MTProto Search**:
+  - Menambahkan field `min_id: i32` (`#[serde(default)]`) pada struct `SearchScope` dan `pub min_id: Option<i64>` pada `ListMediaRequest` di `telegram_ops.rs`.
+  - Memperbarui fungsi `list_media_blocking_topic_cursor` di `media_list.rs` untuk meneruskan `min_id` ke kedua pemanggilan `messages::Search` (jalur PhotoVideo dan Document).
+  - Memastikan validasi scope di `normalize_search_cursor` secara otomatis menolak dan me-reset cursor jika `min_id` berubah (misalnya peralihan dari backfill historis ke delta sync).
+
+### 2. P2 Transport Layer & In-Flight Context Fingerprinting
+- **Propagasi Parameter `minId`**:
+  - Menambahkan properti `minId` pada tipe `TgSearchScope` dan fungsi `tgListMedia` di `telegramBackend.ts`.
+  - Memperbarui `driveListFiles` di `driveFilesApi.ts` untuk menerima opsi `minId`, meneruskannya ke Rust bridge, serta menyertakan `minId` ke dalam `contextKey` dan `cursorFingerprint`.
+
+### 3. P2 IndexedDB Schema Version 2 & Immutable Delta Baseline
+- **State Reducer Delta Monotonik di `mediaStudioDb.ts`**:
+  - Menaikkan `MEDIA_INDEX_SCHEMA_VERSION` ke versi 2 dan menambahkan field delta sync (`deltaActive`, `deltaBaseId`, `deltaPvCommittedOffset`, `deltaDocCommittedOffset`, `deltaPvExhausted`, `deltaDocExhausted`, `deltaMaxObservedId`).
+  - Menerapkan prinsip Immutable Delta Baseline: canonical `newestCommittedId` tidak dimajukan sebelum delta selesai secara menyeluruh (`deltaComplete: true`), mencegah resiko *permanent missing messages* apabila aplikasi tertutup di tengah proses delta.
+  - Menyediakan fungsi pembersih `resetMediaIndexState()` untuk penanganan migrasi schema yang aman.
+
+### 4. P2 Intelligent Startup Evaluation & Crash-Safe Resume
+- **Evaluasi 5 Skenario Startup di `MediaStudio/index.tsx`**:
+  - **Fresh Backfill**: Menginisialisasi pemindaian dari awal jika belum ada checkpoint (`minId = 0`).
+  - **Schema Safe Reset**: Mereset state secara aman jika versi schema tidak cocok dengan versi aplikasi aktif.
+  - **Resume Incomplete Historical Backfill**: Memulihkan cursor dari committed lane watermark (`pvCommittedOffset` dan `docCommittedOffset`) dan melanjutkan proses tanpa kehilangan data.
+  - **Resume In-Flight Delta**: Melanjutkan proses delta yang tertunda dari `deltaBaseId` dan committed delta offsets.
+  - **Start Fresh Delta Sync**: Menjalankan pemindaian delta baru dengan `minId = newestCommittedId`.
+- **Single Source of Truth & Loop Reactivity**:
+  - Menggunakan `offsetId: searchCursorRef.current ? null : offset` untuk mencegah konflik navigasi cursor.
+  - Secara eksplisit memastikan `filesHasMoreRef.current = true` dan `setFilesHasMore(true)` aktif sebelum memasuki loop pemindaian.
+
 ## v3.7.96 Checkpoint Transport Integrity (P1.7 Complete) (Phase 35.62)
 
 ### 1. P1.7 End-to-End Checkpoint Transport Integrity

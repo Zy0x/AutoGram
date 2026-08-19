@@ -86,11 +86,14 @@ export interface DeepIndexRecord {
   scannedAt: number;
 }
 
+export const MEDIA_INDEX_SCHEMA_VERSION = 2;
+
 export interface MediaIndexState {
   accountId: string;
   peerId: string;
   scopeKind: MediaScopeKind;
   topicIdNormalized: number;
+  // Historical Backfill State (Immutable after backfillComplete = true)
   pvCommittedOffset: number;
   docCommittedOffset: number;
   pvExhausted: boolean;
@@ -98,6 +101,15 @@ export interface MediaIndexState {
   newestCommittedId: number;
   oldestCommittedId: number;
   backfillComplete: boolean;
+  // Delta Sync State
+  deltaActive: boolean;
+  deltaBaseId: number;
+  deltaPvCommittedOffset: number;
+  deltaDocCommittedOffset: number;
+  deltaPvExhausted: boolean;
+  deltaDocExhausted: boolean;
+  deltaMaxObservedId: number;
+  // Stats & metadata
   exactMediaCount: number | null;
   exactBytes: number | null;
   pts: number | null;
@@ -391,19 +403,30 @@ export interface MediaIndexCheckpointUpdate {
   peerId: string;
   scopeKind: MediaScopeKind;
   topicIdNormalized: number;
+  mode?: 'backfill' | 'delta';
+  // Backfill fields
   pvCommittedOffset?: number;
   docCommittedOffset?: number;
   pvCommittedExhausted?: boolean;
   docCommittedExhausted?: boolean;
   backfillComplete?: boolean;
+  // Delta fields
+  deltaActive?: boolean;
+  deltaBaseId?: number;
+  deltaPvCommittedOffset?: number;
+  deltaDocCommittedOffset?: number;
+  deltaPvCommittedExhausted?: boolean;
+  deltaDocCommittedExhausted?: boolean;
+  deltaComplete?: boolean;
+  // Stats & metadata
   exactMediaCount?: number | null;
   exactBytes?: number | null;
   pts?: number | null;
 }
 
 /**
- * P1.6 Monotonic Checkpoint Reducer with zero-watermark protection,
- * pending-aware durable exhaustion, and automatic newest/oldest ID aggregation.
+ * P1.6 / P2 Monotonic Checkpoint Reducer with zero-watermark protection,
+ * pending-aware durable exhaustion, immutable delta baseline, and automatic ID aggregation.
  */
 export function mergeMediaIndexCheckpoint(
   prev: MediaIndexState,
@@ -415,6 +438,41 @@ export function mergeMediaIndexCheckpoint(
   const batchNewest = ids.length ? Math.max(...ids) : 0;
   const batchOldest = ids.length ? Math.min(...ids) : 0;
 
+  if (next.mode === 'delta') {
+    const currentMaxObserved = Math.max(prev.deltaMaxObservedId || 0, batchNewest);
+    const isDeltaComplete = next.deltaComplete === true;
+
+    if (isDeltaComplete) {
+      // Finalize delta: advance canonical newestCommittedId to the highest observed ID
+      const finalNewest = Math.max(prev.newestCommittedId, currentMaxObserved);
+      return {
+        ...prev,
+        newestCommittedId: finalNewest,
+        deltaActive: false,
+        deltaBaseId: 0,
+        deltaPvCommittedOffset: 0,
+        deltaDocCommittedOffset: 0,
+        deltaPvExhausted: false,
+        deltaDocExhausted: false,
+        deltaMaxObservedId: 0,
+        updatedAt: now,
+      };
+    }
+
+    return {
+      ...prev,
+      deltaActive: next.deltaActive !== undefined ? next.deltaActive : (prev.deltaActive || true),
+      deltaBaseId: next.deltaBaseId !== undefined ? next.deltaBaseId : prev.deltaBaseId,
+      deltaPvCommittedOffset: advanceBackfillOffset(prev.deltaPvCommittedOffset, next.deltaPvCommittedOffset),
+      deltaDocCommittedOffset: advanceBackfillOffset(prev.deltaDocCommittedOffset, next.deltaDocCommittedOffset),
+      deltaPvExhausted: Boolean(prev.deltaPvExhausted || next.deltaPvCommittedExhausted),
+      deltaDocExhausted: Boolean(prev.deltaDocExhausted || next.deltaDocCommittedExhausted),
+      deltaMaxObservedId: currentMaxObserved,
+      updatedAt: now,
+    };
+  }
+
+  // Historical Backfill mode
   const newestCommittedId = batchNewest > 0
     ? (prev.newestCommittedId > 0 ? Math.max(prev.newestCommittedId, batchNewest) : batchNewest)
     : prev.newestCommittedId;
@@ -496,10 +554,17 @@ export async function saveMediaBatchAndCheckpoint(
           newestCommittedId: 0,
           oldestCommittedId: 0,
           backfillComplete: false,
+          deltaActive: false,
+          deltaBaseId: 0,
+          deltaPvCommittedOffset: 0,
+          deltaDocCommittedOffset: 0,
+          deltaPvExhausted: false,
+          deltaDocExhausted: false,
+          deltaMaxObservedId: 0,
           exactMediaCount: null,
           exactBytes: null,
           pts: null,
-          schemaVersion: 1,
+          schemaVersion: MEDIA_INDEX_SCHEMA_VERSION,
           startedAt: now,
           updatedAt: now,
         };
@@ -521,6 +586,16 @@ export async function getMediaIndexState(
   const req = store.get([context.accountId, context.peerId, context.scopeKind, topicNorm]);
   const result = await requestToPromise<MediaIndexState | undefined>(req);
   return result ?? null;
+}
+
+export async function resetMediaIndexState(
+  context: DriveMediaContext
+): Promise<void> {
+  const db = await initDb();
+  const tx = db.transaction('mediaIndexState', 'readwrite');
+  const store = tx.objectStore('mediaIndexState');
+  const topicNorm = normalizeTopicId(context.scopeKind, context.topicId);
+  await requestToPromise(store.delete([context.accountId, context.peerId, context.scopeKind, topicNorm]));
 }
 
 export function scopeMediaRecords(

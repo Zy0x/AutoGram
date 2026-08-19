@@ -230,6 +230,7 @@ export type TgSearchScope = {
   accountId: string;
   peerId: string;
   topicId?: number | null;
+  minId?: number;
 };
 
 export type TgLaneCursor = {
@@ -286,6 +287,7 @@ export async function tgListMedia(args: {
   chatId: string;
   limit?: number;
   offsetId?: number | null;
+  minId?: number | null;
   topicId?: number | null;
   searchCursor?: TgScopedMediaSearchCursor | null;
 }): Promise<TgOpResult<TgListMediaResult> | null> {
@@ -299,6 +301,7 @@ export async function tgListMedia(args: {
         chatId: args.chatId,
         limit: args.limit,
         offsetId: args.offsetId ?? null,
+        minId: args.minId ?? null,
         topicId: args.topicId ?? null,
         searchCursor: args.searchCursor ?? null,
       },

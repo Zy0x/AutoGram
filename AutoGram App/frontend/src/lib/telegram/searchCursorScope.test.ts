@@ -11,7 +11,8 @@ describe('ScopedMediaSearchCursor, Watermark & Buffered Merge Contract', () => {
       incomingCursor &&
       incomingCursor.scope.accountId === currentScope.accountId &&
       incomingCursor.scope.peerId === currentScope.peerId &&
-      (incomingCursor.scope.topicId ?? null) === (currentScope.topicId ?? null)
+      (incomingCursor.scope.topicId ?? null) === (currentScope.topicId ?? null) &&
+      (incomingCursor.scope.minId ?? 0) === (currentScope.minId ?? 0)
     ) {
       return incomingCursor;
     }
@@ -192,5 +193,34 @@ describe('ScopedMediaSearchCursor, Watermark & Buffered Merge Contract', () => {
     expect(adaptedResponse.lane_durability).toEqual({ photoVideoDrained: false, documentDrained: true });
     expect(adaptedResponse.emitted_watermark?.photoVideo).toBe(1234);
     expect(adaptedResponse.emitted_watermark?.document).toBe(1100);
+  });
+
+  it('7. P2 minId Scope Isolation: Rejects stale cursor when switching from historical backfill (minId: 0) to delta mode (minId: 10000)', () => {
+    const historicalCursor: TgScopedMediaSearchCursor = {
+      scope: {
+        accountId: 'session_user_1',
+        peerId: '1001234567',
+        topicId: null,
+        minId: 0,
+      },
+      photoVideo: { fetchOffsetId: 5000, exhausted: false },
+      document: { fetchOffsetId: 4000, exhausted: false },
+      pendingPhotoVideo: [{ id: 4999 } as any],
+      pendingDocument: [{ id: 3999 } as any],
+    };
+
+    const deltaScope: TgSearchScope = {
+      accountId: 'session_user_1',
+      peerId: '1001234567',
+      topicId: null,
+      minId: 10000,
+    };
+
+    const normalized = normalizeSearchCursorContract(historicalCursor, deltaScope);
+    expect(normalized.scope.minId).toBe(10000);
+    expect(normalized.photoVideo.fetchOffsetId).toBe(0);
+    expect(normalized.document.fetchOffsetId).toBe(0);
+    expect(normalized.pendingPhotoVideo).toEqual([]);
+    expect(normalized.pendingDocument).toEqual([]);
   });
 });
