@@ -101,6 +101,7 @@ import {
   saveCheckpoint,
   saveMediaRecords,
   saveMediaBatchAndCheckpoint,
+  type MediaIndexCheckpointUpdate,
   getExactMediaStatsByContext,
   buildDriveMediaContext,
   normalizeTopicId,
@@ -3466,15 +3467,18 @@ function MediaDriveDesktop({
           const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
           const scoped = scopeMediaRecords(page, mediaContext, peerId || 0);
 
-          const checkpointUpdate = {
+          const pvDrained = res.lane_durability?.photoVideoDrained ?? (Boolean(res.search_cursor?.photoVideo.exhausted) && (res.search_cursor?.pendingPhotoVideo?.length ?? 0) === 0);
+          const docDrained = res.lane_durability?.documentDrained ?? (Boolean(res.search_cursor?.document.exhausted) && (res.search_cursor?.pendingDocument?.length ?? 0) === 0);
+
+          const checkpointUpdate: MediaIndexCheckpointUpdate = {
             accountId: mediaContext.accountId,
             peerId: mediaContext.peerId,
             scopeKind: mediaContext.scopeKind,
             topicIdNormalized: normalizeTopicId(mediaContext.scopeKind, mediaContext.topicId),
             pvCommittedOffset: res.emitted_watermark?.photoVideo || 0,
             docCommittedOffset: res.emitted_watermark?.document || 0,
-            pvExhausted: res.search_cursor?.photoVideo.exhausted ?? false,
-            docExhausted: res.search_cursor?.document.exhausted ?? false,
+            pvCommittedExhausted: pvDrained,
+            docCommittedExhausted: docDrained,
             backfillComplete: !res.has_more,
           };
 

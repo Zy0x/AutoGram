@@ -219,6 +219,13 @@ pub struct LaneCounts {
     pub document: Option<usize>,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LaneDurability {
+    pub photo_video_drained: bool,
+    pub document_drained: bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListMediaResult {
@@ -232,6 +239,7 @@ pub struct ListMediaResult {
     pub search_cursor: Option<ScopedMediaSearchCursor>,
     pub lane_counts: Option<LaneCounts>,
     pub emitted_watermark: Option<LaneWatermark>,
+    pub lane_durability: Option<LaneDurability>,
     pub total_count: Option<usize>,
     pub backend: String,
     pub cached: bool,
@@ -1016,6 +1024,11 @@ pub fn list_media_blocking_topic_cursor(
                         emitted_files.push(item.row.clone());
                     }
 
+                    let lane_durability = LaneDurability {
+                        photo_video_drained: cursor.photo_video.exhausted && cursor.pending_photo_video.is_empty(),
+                        document_drained: cursor.document.exhausted && cursor.pending_document.is_empty(),
+                    };
+
                     let has_more = !cursor.photo_video.exhausted
                         || !cursor.document.exhausted
                         || !cursor.pending_photo_video.is_empty()
@@ -1033,6 +1046,7 @@ pub fn list_media_blocking_topic_cursor(
                         search_cursor: Some(cursor),
                         lane_counts: Some(lane_counts),
                         emitted_watermark: Some(emitted_watermark),
+                        lane_durability: Some(lane_durability),
                         total_count: if candidate_estimate > 0 { Some(candidate_estimate) } else { None },
                         backend: BACKEND.to_string(),
                         cached: false,

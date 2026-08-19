@@ -243,6 +243,11 @@ export type TgLaneWatermark = {
   document: number;
 };
 
+export type TgLaneDurability = {
+  photoVideoDrained: boolean;
+  documentDrained: boolean;
+};
+
 export type TgScopedMediaSearchCursor = {
   scope: TgSearchScope;
   photoVideo: TgLaneCursor;
@@ -267,6 +272,7 @@ export type TgListMediaResult = {
   searchCursor?: TgScopedMediaSearchCursor | null;
   laneCounts?: TgLaneCounts | null;
   emittedWatermark?: TgLaneWatermark | null;
+  laneDurability?: TgLaneDurability | null;
   totalCount?: number | null;
   backend: string;
   cached: boolean;

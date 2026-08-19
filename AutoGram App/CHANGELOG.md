@@ -1,3 +1,29 @@
+## v3.7.95 Durable Checkpoint State Integrity (P1.6 Complete) (Phase 35.61)
+
+### 1. P1.6 Monotonic Watermark Progression & Zero-Watermark Protection
+- **Reducer Monotonik `advanceBackfillOffset` & `mergeMediaIndexCheckpoint`**:
+  - Menghapus object spread mentah saat menyimpan checkpoint. Watermark commit dihitung secara monotonik mengikuti arah scan historis (ID lebih kecil).
+  - Nilai watermark `0` atau `undefined` dari halaman yang hanya memuat media dari satu jalur (misal Doc-only) tidak akan pernah me-reset atau meregresikan watermark jalur lainnya (PV).
+
+### 2. P1.6 Pending-Aware Lane Durability (`LaneDurability`)
+- **Pemisahan Server Exhaustion vs Durable Drain**:
+  - Rust mengembalikan `LaneDurability { photo_video_drained, document_drained }` yang mensyaratkan kedua server lane Telegram exhausted DAN kedua pending buffer merger kosong.
+  - Checkpoint storage hanya mencatat `pvExhausted: true` / `docExhausted: true` jika seluruh media pending sudah berhasil di-drain dan di-commit, mencegah hilangnya media saat app crash.
+
+### 3. P1.6 Index Identifier Correction in Exact Stats
+- **Fix Indeks Database**:
+  - Memperbaiki pemanggilan indeks `byContextNewest` pada `getExactMediaStatsByContext` menjadi `byContextMessage` (`[accountId, peerId, scopeKind, topicIdNormalized, id]`), menuntaskan potensi `NotFoundError`.
+
+### 4. P1.6 All-or-Nothing Transaction Invariant & `tx.onabort`
+- **Integritas Transaksi Ketat**:
+  - Validasi ketat pada `saveMediaBatchAndCheckpoint`. Jika ada field invalid (`accountId`, `peerId`, `scopeKind`, `id <= 0`), transaksi langsung memanggil `tx.abort()`.
+  - Dilengkapi listener `tx.onabort` yang me-reject promise, memastikan checkpoint tidak pernah maju jika batch media gagal disimpan.
+
+### 5. P1.6 Comprehensive Lifecycle State Cleanup
+- **Sinkronisasi Pembersihan Cache & Akun**:
+  - Memperbarui `clearMediaCache()` untuk mengosongkan `media` dan `mediaIndexState` secara atomic.
+  - Memperbarui `deleteMediaRecordsBySession()` untuk membersihkan `mediaIndexState` akun terkait, mencegah timbulnya checkpoint yatim.
+
 ## v3.7.94 Cross-Page Dedup, Pending-Drain & ACK-Driven Commit Watermark (P1.5 Complete) (Phase 35.60)
 
 ### 1. P1.5 Inherent Dual-Lane Head Pop & Zero Cross-Page Duplicates

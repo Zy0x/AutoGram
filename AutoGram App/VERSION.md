@@ -1,13 +1,15 @@
-AutoGram Version: v3.7.94
+AutoGram Version: v3.7.95
 
 Current State:
-v3.7.94 Cross-Page Dedup, Pending-Drain & ACK-Driven Commit Watermark (P1.5 Complete) — membenahi `media_list.rs`, `mediaStudioDb.ts`, `telegramBackend.ts`, `MediaStudio/index.tsx`, `mediaStudioDb.test.ts`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. P1.5 Inherent Dual-Lane Head Pop & Zero Cross-Page Duplicates: Mengganti HashSet per-page dengan mekanisme pop simultan dari kedua head buffer (`pending_pv` dan `pending_doc`) saat mendeteksi ID identik (`pv.id == doc.id`), menjamin zero duplicates bahkan pada pagination $limit = 1$ di batas antar-page (*cross-page boundary*).
-2. P1.5 Single Rust Authoritative Completion Invariant: Mengikat status penyelesaian indexing di frontend secara ketat pada `res.has_more === true` dari Rust (yang mensyaratkan kedua jalur server Telegram exhausted DAN kedua pending buffer kosong). Mengeliminasi bug berhentinya frontend saat pending buffer masih berisi media.
-3. P1.5 Atomic Batch & Checkpoint Transaction (`mediaIndexState` Store): Memperkenalkan object store IndexedDB baru `mediaIndexState` (DB v7) dengan key `[accountId, peerId, scopeKind, topicIdNormalized]`. Media rows dan checkpoint watermark di-commit dalam SATU transaksi atomic `saveMediaBatchAndCheckpoint`. Transaksi gagal = rollback total = cursor tidak maju (anti-phantom commit).
-4. P1.5 Lane Origin & Emitted Watermark Isolation: Menambahkan `SearchLane` (`PhotoVideo`, `Document`, `Both`) dan `LaneWatermark` pada Rust merger sehingga watermark jalur PhotoVideo tidak pernah dimajukan oleh row berkas Document-only dan sebaliknya.
+v3.7.95 Durable Checkpoint State Integrity (P1.6 Complete) — membenahi `media_list.rs`, `mediaStudioDb.ts`, `telegramBackend.ts`, `MediaStudio/index.tsx`, `mediaStudioDb.test.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. P1.6 Monotonic Watermark Progression & Zero-Watermark Protection: Mengimplementasikan reducer `advanceBackfillOffset` dan `mergeMediaIndexCheckpoint` yang menjamin watermark commit mundur teratur mengikuti arah descending tanpa pernah me-reset ke 0 ketika sebuah halaman hanya menghasilkan media dari satu jalur.
+2. P1.6 Pending-Aware Lane Durability (`LaneDurability`): Rust backend menghitung status drain (`photo_video_drained` & `document_drained`) yang mensyaratkan server exhausted DAN pending buffer kosong. Mencegah checkpoint menyimpan status exhausted prematur saat pending buffer masih berisi media hidup.
+3. P1.6 Fix Stats Index Bug: Mengoreksi pemanggilan index `byContextNewest` yang tidak eksis di `getExactMediaStatsByContext` menjadi `byContextMessage` (`[accountId, peerId, scopeKind, topicIdNormalized, id]`).
+4. P1.6 All-or-Nothing Transaction Invariant: `saveMediaBatchAndCheckpoint` memvalidasi setiap record media secara ketat dan memanggil `tx.abort()` jika terdapat data cacat, dilengkapi handler `tx.onabort` agar checkpoint tidak pernah maju jika batch media gagal disimpan.
+5. P1.6 Comprehensive Lifecycle State Cleanup: Menyelaraskan `clearMediaCache()`, `deleteMediaRecordsBySession()`, dan `deleteMediaRecordsForPeer()` untuk membersihkan `mediaIndexState` secara atomic, mencegah timbulnya checkpoint yatim.
 
 Previous:
+v3.7.94 Cross-Page Dedup, Pending-Drain & ACK-Driven Commit Watermark (P1.5 Complete) — membenahi `media_list.rs`, `mediaStudioDb.ts`, `telegramBackend.ts`, `MediaStudio/index.tsx`, `mediaStudioDb.test.ts`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.93 Lossless Buffered Merge & Commit-Watermark Integrity (P1.4 Complete) — membenahi `media_list.rs`, `mediaStudioDb.ts`, `telegramBackend.ts`, `MediaStudio/index.tsx`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.92 Cursor Scope Isolation, Exact Pagination & Completion Correctness (P1.3 Complete) — membenahi `media_list.rs`, `telegram_ops.rs`, `telegramBackend.ts`, `driveFilesApi.ts`, `MediaStudio/index.tsx`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.91 Multi-Lane Independent Cursors, K-Way Merge & Persistent Class FloodGates (P1.2 Complete) — membenahi `store.rs`, `session_rate.rs`, `media_list.rs`, `telegram_ops.rs`, `driveFilesApi.ts`, `telegramBackend.ts`, `MediaStudio/index.tsx`, `speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`.

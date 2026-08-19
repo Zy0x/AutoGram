@@ -312,7 +312,7 @@ export async function getExactMediaStatsByContext(
   return new Promise((resolve, reject) => {
     const tx = db.transaction('media', 'readonly');
     const store = tx.objectStore('media');
-    const index = store.index('byContextNewest');
+    const index = store.index('byContextMessage');
     const normTopic = normalizeTopicId(context.scopeKind, context.topicId);
     const minKey = [context.accountId, context.peerId, context.scopeKind, normTopic, -Infinity];
     const maxKey = [context.accountId, context.peerId, context.scopeKind, normTopic, Infinity];
@@ -370,18 +370,83 @@ export async function saveMediaRecords(records: Omit<MediaRecord, 'lastAccessed'
 }
 
 /**
- * P1.5 / P2 Atomic batch persistence and durable watermark commit.
+ * P1.6 Monotonic Backfill Offset Advancement.
+ * Telegram historical search moves backwards from newer IDs to older IDs (descending).
+ * Therefore, the committed backfill watermark is the lowest/oldest message ID successfully committed.
+ * Zero/undefined incoming offset is strictly protected to never overwrite or regress an existing watermark.
+ */
+export function advanceBackfillOffset(
+  existing: number | undefined,
+  incoming: number | undefined
+): number {
+  const ex = existing && existing > 0 ? existing : 0;
+  const inc = incoming && incoming > 0 ? incoming : 0;
+  if (inc <= 0) return ex;
+  if (ex <= 0) return inc;
+  return Math.min(ex, inc);
+}
+
+export interface MediaIndexCheckpointUpdate {
+  accountId: string;
+  peerId: string;
+  scopeKind: MediaScopeKind;
+  topicIdNormalized: number;
+  pvCommittedOffset?: number;
+  docCommittedOffset?: number;
+  pvCommittedExhausted?: boolean;
+  docCommittedExhausted?: boolean;
+  backfillComplete?: boolean;
+  exactMediaCount?: number | null;
+  exactBytes?: number | null;
+  pts?: number | null;
+}
+
+/**
+ * P1.6 Monotonic Checkpoint Reducer with zero-watermark protection,
+ * pending-aware durable exhaustion, and automatic newest/oldest ID aggregation.
+ */
+export function mergeMediaIndexCheckpoint(
+  prev: MediaIndexState,
+  next: MediaIndexCheckpointUpdate,
+  rows: readonly Omit<MediaRecord, 'lastAccessed' | 'accessCount'>[],
+  now: number
+): MediaIndexState {
+  const ids = rows.map((r) => Number(r.id)).filter((id) => Number.isFinite(id) && id > 0);
+  const batchNewest = ids.length ? Math.max(...ids) : 0;
+  const batchOldest = ids.length ? Math.min(...ids) : 0;
+
+  const newestCommittedId = batchNewest > 0
+    ? (prev.newestCommittedId > 0 ? Math.max(prev.newestCommittedId, batchNewest) : batchNewest)
+    : prev.newestCommittedId;
+
+  const oldestCommittedId = batchOldest > 0
+    ? (prev.oldestCommittedId > 0 ? Math.min(prev.oldestCommittedId, batchOldest) : batchOldest)
+    : prev.oldestCommittedId;
+
+  return {
+    ...prev,
+    pvCommittedOffset: advanceBackfillOffset(prev.pvCommittedOffset, next.pvCommittedOffset),
+    docCommittedOffset: advanceBackfillOffset(prev.docCommittedOffset, next.docCommittedOffset),
+    pvExhausted: Boolean(prev.pvExhausted || next.pvCommittedExhausted),
+    docExhausted: Boolean(prev.docExhausted || next.docCommittedExhausted),
+    newestCommittedId,
+    oldestCommittedId,
+    backfillComplete: Boolean(next.backfillComplete ?? prev.backfillComplete),
+    exactMediaCount: next.exactMediaCount !== undefined ? next.exactMediaCount : prev.exactMediaCount,
+    exactBytes: next.exactBytes !== undefined ? next.exactBytes : prev.exactBytes,
+    pts: next.pts !== undefined ? next.pts : prev.pts,
+    updatedAt: now,
+  };
+}
+
+/**
+ * P1.5 / P1.6 / P2 Atomic batch persistence and durable watermark commit.
  * Both media rows and index checkpoint state are committed inside a SINGLE readwrite transaction.
- * If anything fails, the entire transaction rolls back atomically, preventing phantom cursor advancements.
+ * If any single record is invalid or any operation fails, the entire transaction rolls back atomically.
  */
 export async function saveMediaBatchAndCheckpoint(
   records: Omit<MediaRecord, 'lastAccessed' | 'accessCount'>[],
-  checkpoint?: Partial<MediaIndexState> & {
-    accountId: string;
-    peerId: string;
-    scopeKind: MediaScopeKind;
-    topicIdNormalized: number;
-  }
+  checkpoint?: MediaIndexCheckpointUpdate
 ): Promise<void> {
   const db = await initDb();
   return new Promise<void>((resolve, reject) => {
@@ -392,9 +457,15 @@ export async function saveMediaBatchAndCheckpoint(
 
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error || new Error('saveMediaBatchAndCheckpoint transaction failed'));
+    tx.onabort = () => reject(tx.error || new Error('Atomic index transaction aborted'));
 
+    // Strict validation: authoritative index transaction must be all-or-nothing!
     for (const rec of records) {
-      if (!rec.accountId || !rec.peerId || !rec.scopeKind) continue;
+      if (!rec.accountId || !rec.peerId || !rec.scopeKind || typeof rec.id !== 'number' || rec.id <= 0) {
+        tx.abort();
+        reject(new Error(`saveMediaBatchAndCheckpoint aborted: invalid media record [id=${rec?.id}]`));
+        return;
+      }
       const fullRecord: MediaRecord = {
         ...rec,
         name: (rec.name || '').trim(),
@@ -433,11 +504,7 @@ export async function saveMediaBatchAndCheckpoint(
           updatedAt: now,
         };
 
-        const merged: MediaIndexState = {
-          ...existing,
-          ...checkpoint,
-          updatedAt: now,
-        };
+        const merged = mergeMediaIndexCheckpoint(existing, checkpoint, records, now);
         stateStore.put(merged);
       };
     }
@@ -533,8 +600,14 @@ export async function deleteMediaRecordsForPeer(
 
 export async function clearMediaCache(): Promise<void> {
   const db = await initDb();
-  const tx = db.transaction('media', 'readwrite');
-  await requestToPromise(tx.objectStore('media').clear());
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(['media', 'mediaIndexState'], 'readwrite');
+    tx.objectStore('media').clear();
+    tx.objectStore('mediaIndexState').clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error ?? new Error('Failed to clear media cache'));
+    tx.onabort = () => reject(tx.error ?? new Error('Clear media cache aborted'));
+  });
 }
 
 export async function deleteMediaRecordsBySession(session: string): Promise<void> {
@@ -572,6 +645,24 @@ export async function deleteMediaRecordsBySession(session: string): Promise<void
       if (!cursor) return;
       const record = cursor.value as DeepIndexRecord;
       if (record.session === s || record.key?.startsWith(`${s}:`)) {
+        cursor.delete();
+      }
+      cursor.continue();
+    };
+  });
+
+  // 3. Delete from mediaIndexState store
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction('mediaIndexState', 'readwrite');
+    const store = tx.objectStore('mediaIndexState');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error('Failed to delete session media index state'));
+    const request = store.openCursor();
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) return;
+      const record = cursor.value as MediaIndexState;
+      if (record.accountId === s) {
         cursor.delete();
       }
       cursor.continue();
