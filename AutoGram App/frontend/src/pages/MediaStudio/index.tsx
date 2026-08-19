@@ -1207,7 +1207,12 @@ function MediaDriveDesktop({
     completeReconcileAfterDurableCommitRef.current = channelSync.completeReconcileAfterDurableCommit;
   }, [channelSync.completeReconcileAfterDurableCommit]);
 
-  void channelSync;
+  // P3.5/P4: Live sync freshness is owned by ChannelSync only when healthy and active
+  const channelSyncOwnsLiveFreshness =
+    isChannelOrSupergroup &&
+    channelSync.syncId != null &&
+    channelSync.status !== 'failed' &&
+    channelSync.status !== 'stopped';
 
   const activeLocationKey = getDriveCacheKey(creds?.session || session, peerId, topicFilter);
   const activeLocationKeyRef = useRef(activeLocationKey);
@@ -2992,8 +2997,8 @@ function MediaDriveDesktop({
         });
       }
 
-      if (res.cached && creds && !isChannelOrSupergroup) {
-        // Ultra-fast background sync of top 30 messages directly from Telegram server (fallback peers only, P3.5: disabled for ChannelSync-managed peers)
+      if (res.cached && creds && !channelSyncOwnsLiveFreshness) {
+        // Ultra-fast background sync of top 30 messages directly from Telegram server (fallback peers only, P3.5: disabled when ChannelSync owns freshness)
         void (async () => {
           try {
             const syncRes = await driveListFiles(creds, peerId, {
@@ -3062,7 +3067,7 @@ function MediaDriveDesktop({
     recoverInvalidPeerLocation,
     getDriveCacheKey,
     thumbLocationOptions,
-    isChannelOrSupergroup,
+    channelSyncOwnsLiveFreshness,
   ]);
 
   useEffect(() => {
@@ -3137,7 +3142,7 @@ function MediaDriveDesktop({
       } else if (evt.type === 'update') {
         const folderKey = evt.folder_id || 0;
         const currentActiveFolder = peerId || 0;
-        const isChannelSyncManaged = isChannelOrSupergroup && (folderKey === currentActiveFolder || folderKey === peerId);
+        const isChannelSyncManaged = channelSyncOwnsLiveFreshness && (folderKey === currentActiveFolder || folderKey === peerId);
         
         if (evt.action === 'new' && evt.file) {
           if (!isChannelSyncManaged) {
@@ -3195,7 +3200,7 @@ function MediaDriveDesktop({
     return () => {
       unsub();
     };
-  }, [creds, peerId, refreshFiles]);
+  }, [creds, peerId, refreshFiles, channelSyncOwnsLiveFreshness]);
 
   const processPendingActions = useCallback(async () => {
     if (!creds || !navigator.onLine) return;
@@ -3721,8 +3726,8 @@ function MediaDriveDesktop({
 
   const syncActiveLocationLive = useCallback(
     async (reason: 'interval' | 'focus') => {
-      // P3.5: Channel/supergroup is authoritatively managed by ChannelSyncWorker (sole live freshness engine)
-      if (isChannelOrSupergroup) return;
+      // P3.5: Channel/supergroup is authoritatively managed by ChannelSyncWorker when healthy/active (sole live freshness engine)
+      if (channelSyncOwnsLiveFreshness) return;
       if (!creds || loadingFiles || loadingMoreFiles || liveSyncLockRef.current) return;
       if (isTransferJobActive()) return;
       if (document.visibilityState === 'hidden') return;
@@ -3851,13 +3856,13 @@ function MediaDriveDesktop({
       statsAccurate,
       refreshFiles,
       scheduleMediaStats,
-      isChannelOrSupergroup,
+      channelSyncOwnsLiveFreshness,
     ]
   );
 
   useEffect(() => {
-    // P3.5: For channel/supergroup, ChannelSyncWorker is the sole live freshness engine (no interval/focus head polling)
-    if (!creds || isChannelOrSupergroup) return;
+    // P3.5: When ChannelSync owns live freshness, disable legacy interval/focus head polling
+    if (!creds || channelSyncOwnsLiveFreshness) return;
     const plan = getDriveLiveSyncPlan(getDrivePerfProfile().tier);
     const timer = window.setInterval(() => {
       void syncActiveLocationLive('interval');
@@ -3873,7 +3878,7 @@ function MediaDriveDesktop({
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [creds, peerId, topicFilter, syncActiveLocationLive, isChannelOrSupergroup]);
+  }, [creds, peerId, topicFilter, syncActiveLocationLive, channelSyncOwnsLiveFreshness]);
 
   useEffect(() => {
     void loadSessions();
