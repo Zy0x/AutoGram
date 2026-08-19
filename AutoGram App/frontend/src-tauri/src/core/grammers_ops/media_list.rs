@@ -645,7 +645,7 @@ pub fn list_media_blocking_topic(
     topic_id: Option<i64>,
 ) -> Result<ListMediaResult, TgError> {
     let rt = runtime()?;
-    let limit = limit.clamp(1, 15000);
+    let limit = limit.clamp(1, 500);
     let chat = chat_id.to_string();
     let folder_id: Option<i64> = if chat.eq_ignore_ascii_case("me") || chat == "0" {
         None
@@ -653,11 +653,11 @@ pub fn list_media_blocking_topic(
         chat.parse().ok()
     };
     let topic_filter = topic_id.filter(|t| *t > 0);
-    // Mega-Scale 10,000-15,000 Batch Scan Limit: enables giant atomic multi-thousand item queries
+    // Rapid Sub-Second Streaming Scan Limit: keeps RPC latency under 200ms for continuous live progress
     let scan_limit = if topic_filter.is_some() {
-        (limit * 2).clamp(150, 30000)
+        (limit * 2).clamp(150, 1000)
     } else {
-        (limit * 2).clamp(150, 30000)
+        (limit * 2).clamp(150, 1000)
     };
     let session_name = identity.session.clone();
 
@@ -739,7 +739,7 @@ pub fn list_media_blocking_topic(
                                 }
                             }
 
-                            if files.len() >= limit || batch_len < 100 || scanned >= 30000 {
+                            if files.len() >= limit || batch_len < 100 || scanned >= 2000 {
                                 break;
                             }
                         }

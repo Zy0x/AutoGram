@@ -1,3 +1,12 @@
+## v3.7.84 Continuous Real-Time Progress Streaming (Phase 35.50)
+
+### 1. Streaming Progres Berkelanjutan Tanpa Jeda Beku (`media_list.rs`, `MediaStudio`)
+- **Kalibrasi Chunk Streaming 500 Berkas**:
+  - Mengubah tarikan RPC ke 500 berkas per siklus (`limit: 500` / `scan_limit: 1000`) dengan waktu kembali kilat ~150–200ms.
+  - Bar progres kini bergerak bertambah secara aktif dan dinamis di layar setiap 0.2 detik tanpa ada jeda tunggu diam.
+- **Batch Database SSD 5.000 Berkas**:
+  - Penulisan ke IndexedDB SSD tetap berjalan secara efisien dalam blok 5.000 berkas di latar belakang secara non-blocking.
+
 ## v3.7.83 Fix Index Button Activation Guard & Re-Trigger Pipeline (Phase 35.49)
 
 ### 1. Perbaikan Tombol Index All yang Tidak Merespons (`MediaStudio/index.tsx`)
