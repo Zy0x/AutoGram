@@ -1,3 +1,11 @@
+## v3.7.85 Non-Media Gap Traversal & Resilient Offset Pipeline (Phase 35.51)
+
+### 1. Eliminasi Masalah Pengindeksan Terhenti di 17.500 (`media_list.rs`, `MediaStudio`)
+- **Penyelesaian Celah Pesan Non-Media / Pesan Terhapus**:
+  - Mengatasi kondisi di mana Telegram mengembalikan 0 media pada segmen obrolan teks atau pesan terhapus di tengah-tengah channel yang menyebabkan `next_offset_id` hilang.
+  - Menambahkan fallback offset otomatis di backend Rust (`saturating_sub`) dan monotonic gap traversal 500 pesan di frontend.
+  - Memastikan proses indeks terus melompat melewati celah non-media hingga seluruh riwayat channel tuntas 100%.
+
 ## v3.7.84 Continuous Real-Time Progress Streaming (Phase 35.50)
 
 ### 1. Streaming Progres Berkelanjutan Tanpa Jeda Beku (`media_list.rs`, `MediaStudio`)

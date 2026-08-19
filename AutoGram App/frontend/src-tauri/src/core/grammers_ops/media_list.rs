@@ -783,12 +783,16 @@ pub fn list_media_blocking_topic(
                             first_item = iter.next().await;
                         }
                     }
-                    let has_more = files.len() >= limit || (scanned > 0 && last_id.map_or(false, |id| id > 1));
-                    let next_offset_id = if has_more {
-                        last_id.or_else(|| files.last().map(|f| f.id))
+                    let next_offset_id = if let Some(lid) = last_id {
+                        if lid > 1 { Some(lid) } else { None }
+                    } else if let Some(fid) = files.last().map(|f| f.id) {
+                        if fid > 1 { Some(fid) } else { None }
+                    } else if let Some(oid) = offset_id {
+                        if oid > 1 { Some(oid.saturating_sub(limit as i64).max(1)) } else { None }
                     } else {
                         None
                     };
+                    let has_more = next_offset_id.is_some() || files.len() >= limit;
                     Ok(ListMediaResult {
                         status: "success".into(),
                         folder_id,

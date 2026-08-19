@@ -1,11 +1,12 @@
-AutoGram Version: v3.7.84
+AutoGram Version: v3.7.85
 
 Current State:
-v3.7.84 Continuous Real-Time Progress Streaming (500-Item Chunks / 5,000 SSD Batch) — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Continuous Sub-Second Progress Streaming: Mengonfigurasi tarikan ke 500 berkas per RPC (`pageSize: 500` dan `limit: 500`) yang kembali setiap 200ms. Menghilangkan jeda tunggu 25 detik pada query mega-batch 10.000 sehingga bar progres dan angka berkas bergerak bertambah secara mulus dan terlihat langsung di layar.
-2. 5,000-Item SSD Non-Blocking Batch: Menuliskan data ke IndexedDB SSD setiap 5.000 berkas di latar belakang tanpa menghambat streaming antarmuka UI.
+v3.7.85 Non-Media Gap Traversal & Resilient Offset Pipeline — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Resilient Non-Media Gap Traversal: Memperbaiki perhitungan `next_offset_id` pada backend Rust dan frontend saat iterasi Telegram menemui blok pesan kosong non-media atau ID pesan yang terhapus di pertengahan channel. Mencegah pengindeksan terhenti (*stuck*) di 17.500 dan memastikan seluruh riwayat channel hingga pesan awal dipindai tuntas.
+2. Fallback Offset Recovery: Menambahkan saturating subtract fallback pada Rust dan lonjakan 500 pesan pada frontend saat melewati area non-media.
 
 Previous:
+v3.7.84 Continuous Real-Time Progress Streaming (500-Item Chunks / 5,000 SSD Batch) — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.83 Fix Index Button Activation Guard & Re-Trigger Pipeline — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.82 Mega-Scale 10,000-Item Single-Batch Queries & 15,000-Item SSD Commit — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.81 Hyper-Scale 750-Item Pipelining & 10,000-Item SSD Commit — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.

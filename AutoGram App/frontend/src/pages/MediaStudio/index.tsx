@@ -3487,6 +3487,8 @@ function MediaDriveDesktop({
         } else if (offset != null && offset > 1) {
           // Monotonic gap traversal: jump backwards past non-media blocks
           nextOffset = Math.max(1, offset - 500);
+        } else if (lowestMsgIdInPage && lowestMsgIdInPage > 1) {
+          nextOffset = Math.max(1, lowestMsgIdInPage - 500);
         }
 
         const reachedTotal = (curTotal > 0 && curLoaded >= curTotal);
