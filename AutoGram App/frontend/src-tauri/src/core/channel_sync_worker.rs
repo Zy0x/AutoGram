@@ -29,7 +29,7 @@ const FRONTEND_REATTACH_TIMEOUT: Duration = Duration::from_secs(120);
 const REORDER_GRACE_DURATION: Duration = Duration::from_millis(500);
 const DEFAULT_SHORT_POLL_TIMEOUT: Duration = Duration::from_secs(2);
 
-fn now_epoch_ms() -> u64 {
+pub(crate) fn now_epoch_ms() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_millis() as u64)
@@ -236,6 +236,25 @@ impl ChannelSyncControl {
             }
         }
         false
+    }
+
+    pub async fn complete_reconcile(&self, latest_pts: i32) -> bool {
+        self.current_pts.store(latest_pts, Ordering::Release);
+        self.expected_batch_id.store(0, Ordering::Release);
+        self.claimed_batch_id.store(0, Ordering::Release);
+        {
+            let mut pb = self.pending_batch.write().await;
+            *pb = None;
+        }
+        {
+            let mut st = self.status.write().await;
+            *st = ChannelSyncStatus::LiveSynced;
+        }
+        let _ = self.emit_to_primary(ChannelSyncEvent::State {
+            sync_id: self.sync_id,
+            state: ChannelSyncStatus::LiveSynced,
+        }).await;
+        true
     }
 }
 
@@ -476,18 +495,26 @@ impl ChannelSyncWorker {
 
                         let local_pts = control_ref.current_pts.load(Ordering::Acquire);
 
-                        // Handle updateChannelTooLong explicitly
-                        if let ChannelUpdateType::ChannelTooLong { pts } = upd.update_type {
-                            let candidate = pts.unwrap_or(local_pts);
-                            {
-                                let mut st = control_ref.status.write().await;
-                                *st = ChannelSyncStatus::ReconcileRequired;
+                        // Handle updateChannelTooLong explicitly: triggers getChannelDifference recovery per Telegram MTProto spec
+                        if let ChannelUpdateType::ChannelTooLong { pts: _ } = upd.update_type {
+                            let outcome = Self::run_difference_recovery(
+                                &control_ref,
+                                &diff_source_ref,
+                                &request_identity,
+                                &peer_id,
+                                &session_key,
+                                &mut self.ack_rx,
+                                &mut batch_counter,
+                                &cancel,
+                            ).await?;
+                            match outcome {
+                                DifferenceRecoveryOutcome::Synced { next_short_poll_secs } => {
+                                    next_short_poll_at = Instant::now()
+                                        + Duration::from_secs(next_short_poll_secs.unwrap_or(2).clamp(1, 60) as u64);
+                                }
+                                DifferenceRecoveryOutcome::ReconcileRequired { .. } => {}
+                                DifferenceRecoveryOutcome::TerminalFailed(e) => return Err(e),
                             }
-                            let _ = control_ref.emit_to_primary(ChannelSyncEvent::ReconcileRequired {
-                                sync_id,
-                                latest_pts: candidate,
-                                reason: "updateChannelTooLong received from server".into(),
-                            }).await;
                             continue;
                         }
 
@@ -718,16 +745,31 @@ impl ChannelSyncWorker {
                 }
             } else {
                 tokio::select! {
-                    _ = cancel.cancelled() => return Err("Cancelled while waiting for storage ACK".into()),
+                    _ = cancel.cancelled() => {
+                        control.claimed_batch_id.store(0, Ordering::Release);
+                        return Err("Cancelled while waiting for storage ACK".into());
+                    }
                     _ = tokio::time::sleep(DEFAULT_ACK_TIMEOUT) => {
+                        control.claimed_batch_id.store(0, Ordering::Release);
                         return Err(format!("Storage ACK timed out on batch #{}", expected_batch_id));
                     }
                     _ = control.subscriber_notify.notified() => continue,
                     maybe_ack = ack_rx.recv() => {
                         match maybe_ack {
-                            Some(a) if a.batch_id == expected_batch_id => return Ok(a),
-                            Some(_) => return Err("Out of order batch ACK received".into()),
-                            None => return Err("ACK channel disconnected".into()),
+                            Some(a) if a.batch_id == expected_batch_id => {
+                                control.last_processed_batch_id.store(expected_batch_id, Ordering::Release);
+                                control.claimed_batch_id.store(0, Ordering::Release);
+                                control.expected_batch_id.store(0, Ordering::Release);
+                                return Ok(a);
+                            }
+                            Some(_) => {
+                                control.claimed_batch_id.store(0, Ordering::Release);
+                                return Err("Out of order batch ACK received".into());
+                            }
+                            None => {
+                                control.claimed_batch_id.store(0, Ordering::Release);
+                                return Err("ACK channel disconnected".into());
+                            }
                         }
                     }
                 }

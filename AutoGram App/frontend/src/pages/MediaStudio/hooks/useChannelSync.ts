@@ -3,7 +3,7 @@
  *
  * Connects foreground MediaStudio view to Rust ChannelSyncWorker, applies mutation batches
  * atomically with channel PTS to IndexedDB, manages bootstrap baseline durability,
- * and coordinates authoritative reconciliation.
+ * enforces document visibility awareness, and coordinates authoritative reconciliation completion.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -20,6 +20,7 @@ import {
   detachChannelSync,
   setChannelSyncActiveView,
   sendChannelSyncStorageAck,
+  completeChannelSyncReconcile,
   type ChannelSyncEvent,
   type ChannelSyncStatus,
   type TgTelegramIdentity,
@@ -60,6 +61,7 @@ export function useChannelSync({
 
   const subscriberMetaRef = useRef<{ subscriberId: number; generation: number } | null>(null);
   const activeSyncIdRef = useRef<number | null>(null);
+  const channelSyncStateRef = useRef<ChannelSyncState | null>(null);
   const onMutationsCommittedRef = useRef(onMutationsCommitted);
   onMutationsCommittedRef.current = onMutationsCommitted;
   const onReconcileRef = useRef(onAuthoritativeReconcileRequired);
@@ -68,11 +70,30 @@ export function useChannelSync({
   const targetPeerStr = peerId != null ? String(peerId).trim() : '';
   const sessionKey = identity?.session?.trim() || '';
 
-  // Synchronize active-view foreground state with Rust short polling
+  // Synchronize active-view foreground state with document visibility + short polling
   useEffect(() => {
-    if (activeSyncIdRef.current != null) {
-      setChannelSyncActiveView(activeSyncIdRef.current, isActivelyViewed).catch(() => {});
+    const updateActive = () => {
+      const isVisible = typeof document !== 'undefined' ? !document.hidden : true;
+      const effectiveActive = isActivelyViewed && isVisible;
+      if (activeSyncIdRef.current != null) {
+        setChannelSyncActiveView(activeSyncIdRef.current, effectiveActive).catch(() => {});
+      }
+    };
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', updateActive);
+      window.addEventListener('focus', updateActive);
+      window.addEventListener('blur', updateActive);
     }
+    updateActive();
+
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', updateActive);
+        window.removeEventListener('focus', updateActive);
+        window.removeEventListener('blur', updateActive);
+      }
+    };
   }, [isActivelyViewed]);
 
   const rebaselineAfterReconcile = useCallback(async (reconciledPts: number) => {
@@ -88,6 +109,12 @@ export function useChannelSync({
       schemaVersion: CHANNEL_SYNC_SCHEMA_VERSION,
     };
     await saveChannelMutationsAndPts([], nextState, { allowRebaseline: true });
+    channelSyncStateRef.current = nextState;
+
+    if (activeSyncIdRef.current != null) {
+      await completeChannelSyncReconcile(activeSyncIdRef.current, reconciledPts);
+    }
+
     setCurrentPts(reconciledPts);
     setReconcileRequired(false);
     setStatus('live_synced');
@@ -97,6 +124,7 @@ export function useChannelSync({
     if (!sessionKey || !targetPeerStr || !isChannelOrSupergroup || !identity) {
       setSyncId(null);
       activeSyncIdRef.current = null;
+      channelSyncStateRef.current = null;
       setStatus('stopped');
       return;
     }
@@ -110,9 +138,10 @@ export function useChannelSync({
         setError(null);
         setReconcileRequired(false);
 
-        // 1. Read existing durable sync state from IndexedDB
+        // 1. Read existing durable sync state from IndexedDB into Ref
         const existingState = await getChannelSyncState(sessionKey, targetPeerStr);
         if (!isSubscribed) return;
+        channelSyncStateRef.current = existingState;
 
         if (existingState?.pts) {
           setCurrentPts(existingState.pts);
@@ -130,7 +159,7 @@ export function useChannelSync({
           identity: activeIdentity,
           peerId: targetPeerStr,
           initialPts: existingState?.pts ?? null,
-          isActivelyViewed,
+          isActivelyViewed: isActivelyViewed && (typeof document !== 'undefined' ? !document.hidden : true),
         };
 
         const response = await startChannelSync(startReq, async (event: ChannelSyncEvent) => {
@@ -140,7 +169,8 @@ export function useChannelSync({
             setStatus(event.state);
           } else if (event.type === 'batch') {
             try {
-              let isReconciled = existingState?.baselineReconciled ?? true;
+              const currentDurable = channelSyncStateRef.current;
+              let isReconciled = currentDurable?.baselineReconciled ?? true;
 
               // Check bootstrap baseline condition
               if (event.source === 'bootstrap') {
@@ -159,7 +189,7 @@ export function useChannelSync({
                 lastDifferenceAt:
                   event.source === 'difference' || event.source === 'difference_empty'
                     ? Date.now()
-                    : existingState?.lastDifferenceAt ?? 0,
+                    : currentDurable?.lastDifferenceAt ?? 0,
                 schemaVersion: CHANNEL_SYNC_SCHEMA_VERSION,
               };
 
@@ -167,6 +197,7 @@ export function useChannelSync({
               await saveChannelMutationsAndPts(event.mutations, nextState, {
                 allowRebaseline: event.source === 'bootstrap',
               });
+              channelSyncStateRef.current = nextState;
 
               // Send post-commit storage ACK to Rust
               await sendChannelSyncStorageAck(

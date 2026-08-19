@@ -814,7 +814,7 @@ function MediaDriveDesktop({
   const transferHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Local paths of in-progress downloads (for Stop cleanup). */
   const downloadArtifactsRef = useRef<Set<string>>(new Set());
-  const refreshFilesRef = useRef<((retryCount?: number) => Promise<void>) | null>(null);
+  const refreshFilesRef = useRef<((retryCount?: number, opts?: { preserveError?: boolean; bypassCache?: boolean }) => Promise<void>) | null>(null);
   const uploadRefreshLockRef = useRef(false);
   /** Local confirm (delete/download) + external store for DnD move */
   const [confirmDlg, setConfirmDlg] = useState<DriveConfirmState | null>(null);
@@ -1126,7 +1126,24 @@ function MediaDriveDesktop({
     setGridZoom(clampGridZoom(z));
   };
 
-  const isChannelOrSupergroup = Boolean(peerId != null && peerId !== 0);
+  const isChannelOrSupergroup = useMemo(() => {
+    if (peerId == null || peerId === 0 || locationKind === 'saved') return false;
+    if (locationKind === 'drive') return true;
+    if (locationKind === 'chat') {
+      const chat = chats.find((c) => c.id === peerId);
+      if (!chat) return false;
+      return (
+        chat.type === 'channel' ||
+        chat.type === 'supergroup' ||
+        (chat as any).isChannel === true ||
+        (chat as any).isSupergroup === true
+      );
+    }
+    return false;
+  }, [peerId, locationKind, chats]);
+
+  const rebaselineAfterReconcileRef = useRef<((pts: number) => Promise<void>) | null>(null);
+
   const channelSync = useChannelSync({
     identity: creds,
     peerId: peerId || 0,
@@ -1159,10 +1176,22 @@ function MediaDriveDesktop({
         return updated;
       });
     }, []),
-    onAuthoritativeReconcileRequired: useCallback((_latestPts: number) => {
-      void refreshFilesRef.current?.();
+    onAuthoritativeReconcileRequired: useCallback(async (latestPts: number) => {
+      try {
+        await refreshFilesRef.current?.(0, { bypassCache: true });
+        if (rebaselineAfterReconcileRef.current) {
+          await rebaselineAfterReconcileRef.current(latestPts);
+        }
+      } catch (err) {
+        console.error('[MediaStudio] Authoritative reconcile error:', err);
+      }
     }, []),
   });
+
+  useEffect(() => {
+    rebaselineAfterReconcileRef.current = channelSync.rebaselineAfterReconcile;
+  }, [channelSync.rebaselineAfterReconcile]);
+
   void channelSync;
 
   const activeLocationKey = getDriveCacheKey(creds?.session || session, peerId, topicFilter);

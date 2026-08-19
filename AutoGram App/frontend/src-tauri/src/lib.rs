@@ -1572,6 +1572,15 @@ async fn tg_set_channel_sync_active_view(
 }
 
 #[tauri::command]
+async fn tg_complete_channel_sync_reconcile(
+    manager: tauri::State<'_, core::channel_sync_manager::ChannelSyncManager>,
+    sync_id: u64,
+    latest_pts: i32,
+) -> Result<bool, String> {
+    Ok(manager.complete_reconcile(sync_id, latest_pts).await)
+}
+
+#[tauri::command]
 async fn tg_upload_file(
     app: AppHandle,
     request: core::telegram_ops::UploadFileRequest,
@@ -2212,6 +2221,7 @@ pub fn run() {
             tg_resume_channel_sync,
             tg_stop_channel_sync,
             tg_set_channel_sync_active_view,
+            tg_complete_channel_sync_reconcile,
             tg_start_folder_stream,
             tg_cancel_folder_stream,
             tg_upload_file,

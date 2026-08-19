@@ -13,7 +13,7 @@ use grammers_client::tl;
 use tokio::sync::{mpsc, RwLock};
 use tokio_util::sync::CancellationToken;
 
-use super::grammers_ops::client_pool::obtain_live_client;
+use super::grammers_ops::client_pool::{disconnect_cached_session, obtain_live_client};
 use super::grammers_ops::media_list::tl_message_to_row;
 use super::media_mutation::MediaMutation;
 use super::telegram_ops::TelegramIdentity;
@@ -242,6 +242,7 @@ impl SessionUpdateRouter {
                                                             "stream_update_err",
                                                             format!("Session {} stream error: {e}", router.session_key),
                                                         );
+                                                        disconnect_cached_session(&router.session_key);
                                                         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
                                                         break;
                                                     }
@@ -256,9 +257,12 @@ impl SessionUpdateRouter {
                                         "stream_updates_init_failed",
                                         format!("Session {} stream_updates failed: {e}", router.session_key),
                                     );
+                                    disconnect_cached_session(&router.session_key);
                                 }
                             }
                         } else {
+                            // Receiver was already consumed by a previous loop; disconnect so next attempt gets a fresh LiveClient
+                            disconnect_cached_session(&router.session_key);
                             tokio::select! {
                                 _ = cancel.cancelled() => return,
                                 _ = tokio::time::sleep(std::time::Duration::from_secs(1)) => {}

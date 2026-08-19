@@ -265,3 +265,16 @@ export async function stopChannelSync(
 ): Promise<ChannelSyncControlResponse> {
   return invoke<ChannelSyncControlResponse>('tg_stop_channel_sync', { syncId });
 }
+
+/**
+ * Completes authoritative reconciliation for a channel sync worker and advances current PTS in Rust.
+ */
+export async function completeChannelSyncReconcile(
+  syncId: number,
+  latestPts: number
+): Promise<boolean> {
+  return invoke<boolean>('tg_complete_channel_sync_reconcile', {
+    syncId,
+    latestPts,
+  });
+}
