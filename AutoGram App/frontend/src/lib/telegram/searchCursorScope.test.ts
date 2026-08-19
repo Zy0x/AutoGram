@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import type { TgScopedMediaSearchCursor, TgSearchScope } from './core/telegramBackend';
 
-describe('ScopedMediaSearchCursor & Scope Isolation Tests', () => {
-  function validateOrResetCursor(
+describe('ScopedMediaSearchCursor, Watermark & Buffered Merge Contract', () => {
+  function normalizeSearchCursorContract(
     incomingCursor: TgScopedMediaSearchCursor | null,
-    currentScope: TgSearchScope
+    currentScope: TgSearchScope,
+    initialOffset = 0
   ): TgScopedMediaSearchCursor {
     if (
       incomingCursor &&
@@ -17,20 +18,24 @@ describe('ScopedMediaSearchCursor & Scope Isolation Tests', () => {
     // Scope mismatch -> reject stale cursor and initialize fresh for current scope
     return {
       scope: currentScope,
-      photoVideo: { offsetId: 0, exhausted: false },
-      document: { offsetId: 0, exhausted: false },
+      photoVideo: { fetchOffsetId: initialOffset, committedOffsetId: initialOffset, exhausted: false },
+      document: { fetchOffsetId: initialOffset, committedOffsetId: initialOffset, exhausted: false },
+      pendingPhotoVideo: [],
+      pendingDocument: [],
     };
   }
 
-  it('1. Rejects cursor and starts fresh when peerId changes (#Gudang -> #ChannelBaru)', () => {
+  it('1. Rejects cursor and wipes pending buffers when peerId changes (#Gudang -> #ChannelBaru)', () => {
     const staleCursor: TgScopedMediaSearchCursor = {
       scope: {
         accountId: 'session_user_1',
         peerId: '1001234567', // #Gudang
         topicId: null,
       },
-      photoVideo: { offsetId: 15000, exhausted: false },
-      document: { offsetId: 12000, exhausted: false },
+      photoVideo: { fetchOffsetId: 15000, committedOffsetId: 15500, exhausted: false },
+      document: { fetchOffsetId: 12000, committedOffsetId: 12500, exhausted: false },
+      pendingPhotoVideo: [{ id: 14990, name: 'stale_gudang.jpg', size: 100, iconType: 'photo' } as any],
+      pendingDocument: [{ id: 11990, name: 'stale_gudang.zip', size: 200, iconType: 'file' } as any],
     };
 
     const newScope: TgSearchScope = {
@@ -39,12 +44,12 @@ describe('ScopedMediaSearchCursor & Scope Isolation Tests', () => {
       topicId: null,
     };
 
-    const validated = validateOrResetCursor(staleCursor, newScope);
-    expect(validated.scope.peerId).toBe('1009876543');
-    expect(validated.photoVideo.offsetId).toBe(0);
-    expect(validated.document.offsetId).toBe(0);
-    expect(validated.photoVideo.exhausted).toBe(false);
-    expect(validated.document.exhausted).toBe(false);
+    const normalized = normalizeSearchCursorContract(staleCursor, newScope);
+    expect(normalized.scope.peerId).toBe('1009876543');
+    expect(normalized.photoVideo.fetchOffsetId).toBe(0);
+    expect(normalized.document.fetchOffsetId).toBe(0);
+    expect(normalized.pendingPhotoVideo).toEqual([]);
+    expect(normalized.pendingDocument).toEqual([]);
   });
 
   it('2. Rejects cursor and starts fresh when topicId changes within the same forum channel', () => {
@@ -52,22 +57,24 @@ describe('ScopedMediaSearchCursor & Scope Isolation Tests', () => {
       scope: {
         accountId: 'session_user_1',
         peerId: '1001234567',
-        topicId: 42, // Topic 42
+        topicId: 42,
       },
-      photoVideo: { offsetId: 9500, exhausted: false },
-      document: { offsetId: 8100, exhausted: false },
+      photoVideo: { fetchOffsetId: 9500, committedOffsetId: 9500, exhausted: false },
+      document: { fetchOffsetId: 8100, committedOffsetId: 8100, exhausted: false },
+      pendingPhotoVideo: [],
+      pendingDocument: [],
     };
 
     const newScope: TgSearchScope = {
       accountId: 'session_user_1',
       peerId: '1001234567',
-      topicId: 99, // Topic 99
+      topicId: 99,
     };
 
-    const validated = validateOrResetCursor(staleCursor, newScope);
-    expect(validated.scope.topicId).toBe(99);
-    expect(validated.photoVideo.offsetId).toBe(0);
-    expect(validated.document.offsetId).toBe(0);
+    const normalized = normalizeSearchCursorContract(staleCursor, newScope);
+    expect(normalized.scope.topicId).toBe(99);
+    expect(normalized.photoVideo.fetchOffsetId).toBe(0);
+    expect(normalized.document.fetchOffsetId).toBe(0);
   });
 
   it('3. Rejects cursor and starts fresh when accountId changes', () => {
@@ -77,8 +84,10 @@ describe('ScopedMediaSearchCursor & Scope Isolation Tests', () => {
         peerId: '1001234567',
         topicId: null,
       },
-      photoVideo: { offsetId: 5000, exhausted: false },
-      document: { offsetId: 4000, exhausted: false },
+      photoVideo: { fetchOffsetId: 5000, committedOffsetId: 5000, exhausted: false },
+      document: { fetchOffsetId: 4000, committedOffsetId: 4000, exhausted: false },
+      pendingPhotoVideo: [],
+      pendingDocument: [],
     };
 
     const newScope: TgSearchScope = {
@@ -87,20 +96,22 @@ describe('ScopedMediaSearchCursor & Scope Isolation Tests', () => {
       topicId: null,
     };
 
-    const validated = validateOrResetCursor(staleCursor, newScope);
-    expect(validated.scope.accountId).toBe('session_user_B');
-    expect(validated.photoVideo.offsetId).toBe(0);
+    const normalized = normalizeSearchCursorContract(staleCursor, newScope);
+    expect(normalized.scope.accountId).toBe('session_user_B');
+    expect(normalized.photoVideo.fetchOffsetId).toBe(0);
   });
 
-  it('4. Retains and advances cursor when scope matches perfectly', () => {
+  it('4. Retains and advances cursor and pending buffer when scope matches perfectly', () => {
     const validCursor: TgScopedMediaSearchCursor = {
       scope: {
         accountId: 'session_user_1',
         peerId: '1001234567',
         topicId: null,
       },
-      photoVideo: { offsetId: 901, exhausted: false },
-      document: { offsetId: 701, exhausted: false },
+      photoVideo: { fetchOffsetId: 901, committedOffsetId: 950, exhausted: false },
+      document: { fetchOffsetId: 701, committedOffsetId: 750, exhausted: false },
+      pendingPhotoVideo: [{ id: 900, name: 'valid.jpg', size: 100, iconType: 'photo' } as any],
+      pendingDocument: [{ id: 700, name: 'valid.pdf', size: 200, iconType: 'file' } as any],
     };
 
     const matchingScope: TgSearchScope = {
@@ -109,39 +120,40 @@ describe('ScopedMediaSearchCursor & Scope Isolation Tests', () => {
       topicId: null,
     };
 
-    const validated = validateOrResetCursor(validCursor, matchingScope);
-    expect(validated).toEqual(validCursor);
-    expect(validated.photoVideo.offsetId).toBe(901);
-    expect(validated.document.offsetId).toBe(701);
+    const normalized = normalizeSearchCursorContract(validCursor, matchingScope);
+    expect(normalized).toEqual(validCursor);
+    expect(normalized.pendingPhotoVideo?.length).toBe(1);
+    expect(normalized.pendingDocument?.length).toBe(1);
   });
 
-  it('5. HasMore is strictly true until BOTH lanes are exhausted (authoritative completion)', () => {
+  it('5. HasMore requires BOTH lanes exhausted AND all pending buffers empty', () => {
     function hasMoreWork(cursor: TgScopedMediaSearchCursor): boolean {
-      return !cursor.photoVideo.exhausted || !cursor.document.exhausted;
+      return (
+        !cursor.photoVideo.exhausted ||
+        !cursor.document.exhausted ||
+        (cursor.pendingPhotoVideo?.length ?? 0) > 0 ||
+        (cursor.pendingDocument?.length ?? 0) > 0
+      );
     }
 
-    // Only photoVideo exhausted
-    const cursor1: TgScopedMediaSearchCursor = {
+    // Both lanes exhausted but pending buffer still has items
+    const cursorWithBufferedItems: TgScopedMediaSearchCursor = {
       scope: { accountId: 's1', peerId: 'p1', topicId: null },
-      photoVideo: { offsetId: 1, exhausted: true },
-      document: { offsetId: 800, exhausted: false },
+      photoVideo: { fetchOffsetId: 1, committedOffsetId: 1, exhausted: true },
+      document: { fetchOffsetId: 1, committedOffsetId: 1, exhausted: true },
+      pendingPhotoVideo: [{ id: 50, name: 'buffered.jpg', size: 10, iconType: 'photo' } as any],
+      pendingDocument: [],
     };
-    expect(hasMoreWork(cursor1)).toBe(true);
+    expect(hasMoreWork(cursorWithBufferedItems)).toBe(true);
 
-    // Only document exhausted
-    const cursor2: TgScopedMediaSearchCursor = {
+    // Both exhausted and no pending items
+    const fullyExhaustedCursor: TgScopedMediaSearchCursor = {
       scope: { accountId: 's1', peerId: 'p1', topicId: null },
-      photoVideo: { offsetId: 500, exhausted: false },
-      document: { offsetId: 1, exhausted: true },
+      photoVideo: { fetchOffsetId: 1, committedOffsetId: 1, exhausted: true },
+      document: { fetchOffsetId: 1, committedOffsetId: 1, exhausted: true },
+      pendingPhotoVideo: [],
+      pendingDocument: [],
     };
-    expect(hasMoreWork(cursor2)).toBe(true);
-
-    // Both exhausted
-    const cursor3: TgScopedMediaSearchCursor = {
-      scope: { accountId: 's1', peerId: 'p1', topicId: null },
-      photoVideo: { offsetId: 1, exhausted: true },
-      document: { offsetId: 1, exhausted: true },
-    };
-    expect(hasMoreWork(cursor3)).toBe(false);
+    expect(hasMoreWork(fullyExhaustedCursor)).toBe(false);
   });
 });

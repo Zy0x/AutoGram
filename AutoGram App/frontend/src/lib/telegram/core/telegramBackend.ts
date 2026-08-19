@@ -233,7 +233,9 @@ export type TgSearchScope = {
 };
 
 export type TgLaneCursor = {
-  offsetId: number;
+  fetchOffsetId?: number;
+  committedOffsetId?: number;
+  offsetId?: number;
   exhausted: boolean;
 };
 
@@ -241,6 +243,8 @@ export type TgScopedMediaSearchCursor = {
   scope: TgSearchScope;
   photoVideo: TgLaneCursor;
   document: TgLaneCursor;
+  pendingPhotoVideo?: TgMediaFileRow[];
+  pendingDocument?: TgMediaFileRow[];
 };
 
 export type TgLaneCounts = {

@@ -1,13 +1,14 @@
-AutoGram Version: v3.7.92
+AutoGram Version: v3.7.93
 
 Current State:
-v3.7.92 Cursor Scope Isolation, Exact Pagination & Completion Correctness (P1.3 Complete) — membenahi `media_list.rs`, `telegram_ops.rs`, `telegramBackend.ts`, `driveFilesApi.ts`, `MediaStudio/index.tsx`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. P1.3 Cursor Scope Isolation (`ScopedMediaSearchCursor` & Invariant Enforcement): Setiap cursor kini mengikat `SearchScope` (`accountId`, `peerId`, `topicId`). Baik di backend Rust maupun di frontend React, perpindahan peer/topic/akun akan secara ketat me-reject cursor lama dan menginisialisasi fresh cursor, mencegah terjadinya *cross-scope cursor pollution*.
-2. P1.3 Authoritative Completion Invariant: Menghapus `reachedTotal` dari syarat penghentian indeks. Satu-satunya otoritas penyelesaian pemindaian adalah saat kedua jalur query (`photoVideo` dan `document`) berstatus `exhausted: true`.
-3. P1.3 Honest Estimate & Lane Counts: Menggantikan anggapan bahwa `photo_video_count + document_count` adalah unique total dengan `lane_counts: { photoVideo, document }` dan `candidate_estimate`.
-4. P1.3 Final DB Flush Fail-Stop: Kegagalan penyimpanan batch final ke IndexedDB akan langsung menghentikan dan menandai status indeks sebagai tertunda/gagal tanpa meng-commit snapshot selesai palsu.
+v3.7.93 Lossless Buffered Merge & Commit-Watermark Integrity (P1.4 Complete) — membenahi `media_list.rs`, `mediaStudioDb.ts`, `telegramBackend.ts`, `MediaStudio/index.tsx`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. P1.4 Lossless Buffered K-Way Merge & Exact Global Page Size ($\le \text{limit}$): Mengimplementasikan buffer antrean (`pending_photo_video` dan `pending_document`) pada cursor pencarian Rust. Merger hanya memancarkan tepat $\le \text{limit}$ (misal 100) berkas terurut descending dengan deduplikasi overlap tanpa pernah membuang/men-truncate sisa berkas hasil prefetch (*zero discarded prefetched items*).
+2. P1.4 Fetch vs Commit Watermark Separation: Membedakan `fetch_offset_id` (posisi pengambilan Telegram) dan `committed_offset_id` (watermark yang telah berhasil di-commit). Checkpoint hanya mengakui posisi yang benar-benar durable di database lokal, mencegah phantom commit jika terjadi crash/restart.
+3. P1.4 Exact Post-Completion DB Stats: Statistik akhir pemindaian (`statsAccurate: true`, `totalFileCount`, `totalBytes`) setelah kedua jalur exhausted diturunkan langsung dari database IndexedDB melalui `getExactMediaStatsByContext` (`COUNT(DISTINCT)` dan `SUM(size)`), tanpa pernah menandai estimasi mentah server sebagai akurat.
+4. P1.4 Production Rust Unit Test Suite: 9 unit tests langsung di modul `media_list.rs` (menguji scope rejection peer/topic/account, matching retain, exact page size, overlap deduplication, uneven lane traversal, single-item pages, dan exhaustion logic). Seluruh 80 tests di backend Rust lolos 100%.
 
 Previous:
+v3.7.92 Cursor Scope Isolation, Exact Pagination & Completion Correctness (P1.3 Complete) — membenahi `media_list.rs`, `telegram_ops.rs`, `telegramBackend.ts`, `driveFilesApi.ts`, `MediaStudio/index.tsx`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.91 Multi-Lane Independent Cursors, K-Way Merge & Persistent Class FloodGates (P1.2 Complete) — membenahi `store.rs`, `session_rate.rs`, `media_list.rs`, `telegram_ops.rs`, `driveFilesApi.ts`, `telegramBackend.ts`, `MediaStudio/index.tsx`, `speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.90 Multi-Lane Server Media Search, Single Rust Flood Authority & Concurrency Permits (P1.1 Complete) — membenahi `session_rate.rs`, `telegram_rpc_guard.rs`, `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.89 Server-Filtered MTProto Search & Guarded Control Plane (P0 & P1 Complete) — membenahi `session_rate.rs`, `telegram_rpc_guard.rs`, `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.

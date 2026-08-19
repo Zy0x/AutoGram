@@ -100,6 +100,7 @@ import {
 import {
   saveCheckpoint,
   saveMediaRecords,
+  getExactMediaStatsByContext,
   buildDriveMediaContext,
   scopeMediaRecords,
   deleteMediaRecordsForPeer,
@@ -3620,22 +3621,40 @@ function MediaDriveDesktop({
       // Persist deep index snapshot metadata to IndexedDB ONLY if no persist failure occurred
       if (creds?.session && !hasPersistFailure) {
         const curFiles = filesCacheRef.current.get(cacheKey) || liveFilesRef.current;
-        const finalCount = totalFileCount || initialTotal || indexedLoadedCount || curFiles.length;
-        if (curFiles.length > 0) {
+        const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
+
+        if (!filesHasMoreRef.current) {
+          try {
+            const exactStats = await getExactMediaStatsByContext(mediaContext);
+            const exactCount = exactStats.count;
+            const exactBytes = exactStats.totalBytes;
+            setStatsAccurate(true);
+            setStatsLoading(false);
+            setTotalFileCount(exactCount);
+            setTotalBytes(exactBytes);
+            filesTotalCountRef.current.set(cacheKey, exactCount);
+
+            if (curFiles.length > 0) {
+              void saveDeepIndexSnapshot(creds.session, peerId, tid, {
+                files: curFiles.slice(0, 2500),
+                hasMore: false,
+                nextOffsetId: null,
+                totalCount: exactCount,
+                totalBytes: exactBytes,
+              }).catch(() => {});
+            }
+          } catch (statErr) {
+            console.warn('[Indexer] Could not load exact stats from DB:', statErr);
+          }
+        } else if (curFiles.length > 0) {
+          const interimCount = totalFileCount || initialTotal || indexedLoadedCount || curFiles.length;
           void saveDeepIndexSnapshot(creds.session, peerId, tid, {
             files: curFiles.slice(0, 2500),
             hasMore: filesHasMoreRef.current,
             nextOffsetId: nextOffsetIdRef.current,
-            totalCount: finalCount,
+            totalCount: interimCount,
             totalBytes: totalBytes || null,
           }).catch(() => {});
-        }
-
-        if (!filesHasMoreRef.current) {
-          setStatsAccurate(true);
-          setStatsLoading(false);
-          setTotalFileCount(finalCount);
-          filesTotalCountRef.current.set(cacheKey, finalCount);
         }
       }
     } catch (err: any) {

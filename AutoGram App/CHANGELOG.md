@@ -1,3 +1,25 @@
+## v3.7.93 Lossless Buffered Merge & Commit-Watermark Integrity (P1.4 Complete) (Phase 35.59)
+
+### 1. P1.4 Lossless Buffered K-Way Merge & Exact Global Page Size ($\le \text{limit}$)
+- **Pending Buffers per Lane**:
+  - Menambahkan buffer internal `pending_photo_video: Vec<MediaFileRow>` dan `pending_document: Vec<MediaFileRow>` ke dalam `ScopedMediaSearchCursor`.
+  - Fungsi merger murni `buffered_k_way_merge` mengeluarkan tepat $\le \text{limit}$ item dengan deduplikasi ID dan urutan menurun (*descending*).
+  - Berkas sisa hasil prefetch yang belum terpancarkan tetap tersimpan aman di buffer antrean untuk panggilan halaman berikutnya tanpa pernah dibuang (*zero discarded items*).
+
+### 2. P1.4 Fetch vs Commit Watermark Separation
+- **Pencegahan Phantom Commit**:
+  - Memisahkan `fetch_offset_id` (batas pengambilan RPC Telegram) dari `committed_offset_id` (watermark yang telah tersimpan di storage lokal).
+  - Mengeliminasi risiko resume dari offset yang belum ter-commit saat crash atau restart.
+
+### 3. P1.4 Exact Post-Completion DB Statistics
+- **Derivasi Otoritatif dari Database**:
+  - Menambahkan fungsi `getExactMediaStatsByContext` di `mediaStudioDb.ts` yang menghitung `COUNT(DISTINCT)` dan `SUM(size)` langsung dari IndexedDB lokal.
+  - Nilai `statsAccurate: true`, `totalFileCount`, dan `totalBytes` pada UI dan metadata snapshot hanya di-commit berdasarkan data riil database setelah kedua jalur berstatus exhausted.
+
+### 4. P1.4 Production Rust Unit Test Suite
+- **Verifikasi Native 100%**:
+  - 9 unit tests disematkan langsung di `media_list.rs` untuk menguji: penolakan scope mismatch (peer, topic, account), retensi matching scope, exact global page size, deduplikasi overlap, traversal jalur tidak seimbang, pemrosesan single-item page, dan kondisi terminasi exhaustion. Seluruh 80 tests backend lolos.
+
 ## v3.7.92 Cursor Scope Isolation, Exact Pagination & Completion Correctness (P1.3 Complete) (Phase 35.58)
 
 ### 1. P1.3 Scope-Bound Cursors (`ScopedMediaSearchCursor` & Invariant Enforcement)

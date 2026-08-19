@@ -35,7 +35,7 @@ use super::peer_resolver::*;
 use super::session_auth::*;
 
 /// Drive-compatible media row (subset of frontend DriveFile).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaFileRow {
     pub id: i64,
@@ -88,7 +88,10 @@ pub struct SearchScope {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LaneCursor {
-    pub offset_id: i32,
+    #[serde(alias = "offset_id")]
+    pub fetch_offset_id: i32,
+    #[serde(default)]
+    pub committed_offset_id: i32,
     pub exhausted: bool,
 }
 
@@ -98,6 +101,71 @@ pub struct ScopedMediaSearchCursor {
     pub scope: SearchScope,
     pub photo_video: LaneCursor,
     pub document: LaneCursor,
+    #[serde(default)]
+    pub pending_photo_video: Vec<MediaFileRow>,
+    #[serde(default)]
+    pub pending_document: Vec<MediaFileRow>,
+}
+
+pub fn normalize_search_cursor(
+    incoming: Option<ScopedMediaSearchCursor>,
+    scope: &SearchScope,
+    initial_offset: i32,
+) -> ScopedMediaSearchCursor {
+    match incoming {
+        Some(c) if c.scope == *scope => c,
+        _ => ScopedMediaSearchCursor {
+            scope: scope.clone(),
+            photo_video: LaneCursor {
+                fetch_offset_id: initial_offset,
+                committed_offset_id: initial_offset,
+                exhausted: false,
+            },
+            document: LaneCursor {
+                fetch_offset_id: initial_offset,
+                committed_offset_id: initial_offset,
+                exhausted: false,
+            },
+            pending_photo_video: Vec::new(),
+            pending_document: Vec::new(),
+        },
+    }
+}
+
+/// Merges two descending streams of `MediaFileRow` (pending_photo_video and pending_document),
+/// extracts up to `limit` unique items descending by `message_id`, and retains any surplus
+/// items in their respective pending buffers without losing any data.
+pub fn buffered_k_way_merge(
+    pending_pv: &mut Vec<MediaFileRow>,
+    pending_doc: &mut Vec<MediaFileRow>,
+    limit: usize,
+) -> Vec<MediaFileRow> {
+    let mut emitted = Vec::with_capacity(limit);
+    let mut seen_ids = std::collections::HashSet::new();
+
+    pending_pv.sort_by(|a, b| b.id.cmp(&a.id));
+    pending_doc.sort_by(|a, b| b.id.cmp(&a.id));
+
+    while emitted.len() < limit && (!pending_pv.is_empty() || !pending_doc.is_empty()) {
+        let next_from_pv = match (pending_pv.first(), pending_doc.first()) {
+            (Some(pv), Some(doc)) => pv.id >= doc.id,
+            (Some(_), None) => true,
+            (None, Some(_)) => false,
+            (None, None) => break,
+        };
+
+        let candidate = if next_from_pv {
+            pending_pv.remove(0)
+        } else {
+            pending_doc.remove(0)
+        };
+
+        if seen_ids.insert(candidate.id) {
+            emitted.push(candidate);
+        }
+    }
+
+    emitted
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -727,32 +795,15 @@ pub fn list_media_blocking_topic_cursor(
                         topic_id,
                     };
 
-                    // Scope Invariant: If cursor does not match current peer/topic scope, initialize fresh cursor
-                    let mut cursor = match initial_cursor {
-                        Some(ref c) if c.scope == current_scope => c.clone(),
-                        _ => {
-                            let init_offset = offset_id.unwrap_or(0) as i32;
-                            ScopedMediaSearchCursor {
-                                scope: current_scope.clone(),
-                                photo_video: LaneCursor {
-                                    offset_id: init_offset,
-                                    exhausted: false,
-                                },
-                                document: LaneCursor {
-                                    offset_id: init_offset,
-                                    exhausted: false,
-                                },
-                            }
-                        }
-                    };
+                    let init_offset = offset_id.unwrap_or(0) as i32;
+                    let mut cursor = normalize_search_cursor(initial_cursor, &current_scope, init_offset);
 
-                    let mut combined_files: Vec<MediaFileRow> = Vec::new();
-                    let mut seen_ids = std::collections::HashSet::new();
                     let mut lane_counts = LaneCounts::default();
                     let mut candidate_estimate = 0usize;
 
                     // 1. Lane: PhotoVideo (Native Photos & Videos)
-                    if !cursor.photo_video.exhausted {
+                    // Replenish buffer if pending buffer is smaller than limit AND lane is not exhausted
+                    if cursor.pending_photo_video.len() < limit && !cursor.photo_video.exhausted {
                         let req = grammers_client::tl::functions::messages::Search {
                             peer: input_peer.clone(),
                             q: String::new(),
@@ -763,7 +814,7 @@ pub fn list_media_blocking_topic_cursor(
                             filter: grammers_client::tl::enums::MessagesFilter::InputMessagesFilterPhotoVideo,
                             min_date: 0,
                             max_date: 0,
-                            offset_id: cursor.photo_video.offset_id,
+                            offset_id: cursor.photo_video.fetch_offset_id,
                             add_offset: 0,
                             limit: limit as i32,
                             max_id: 0,
@@ -802,14 +853,12 @@ pub fn list_media_blocking_topic_cursor(
                                 lowest_id = Some(lowest_id.map_or(m.id, |prev: i32| prev.min(m.id)));
                             }
                             if let Some(row) = tl_message_to_row(&tl_msg, folder_id) {
-                                if seen_ids.insert(row.id) {
-                                    combined_files.push(row);
-                                }
+                                cursor.pending_photo_video.push(row);
                             }
                         }
 
                         if let Some(last_id) = lowest_id {
-                            cursor.photo_video.offset_id = last_id;
+                            cursor.photo_video.fetch_offset_id = last_id;
                             if raw_len < limit || last_id <= 1 {
                                 cursor.photo_video.exhausted = true;
                             }
@@ -819,7 +868,8 @@ pub fn list_media_blocking_topic_cursor(
                     }
 
                     // 2. Lane: Document (Files, Document Videos, Audio, Archives)
-                    if !cursor.document.exhausted {
+                    // Replenish buffer if pending buffer is smaller than limit AND lane is not exhausted
+                    if cursor.pending_document.len() < limit && !cursor.document.exhausted {
                         let req = grammers_client::tl::functions::messages::Search {
                             peer: input_peer.clone(),
                             q: String::new(),
@@ -830,7 +880,7 @@ pub fn list_media_blocking_topic_cursor(
                             filter: grammers_client::tl::enums::MessagesFilter::InputMessagesFilterDocument,
                             min_date: 0,
                             max_date: 0,
-                            offset_id: cursor.document.offset_id,
+                            offset_id: cursor.document.fetch_offset_id,
                             add_offset: 0,
                             limit: limit as i32,
                             max_id: 0,
@@ -869,14 +919,12 @@ pub fn list_media_blocking_topic_cursor(
                                 lowest_id = Some(lowest_id.map_or(m.id, |prev: i32| prev.min(m.id)));
                             }
                             if let Some(row) = tl_message_to_row(&tl_msg, folder_id) {
-                                if seen_ids.insert(row.id) {
-                                    combined_files.push(row);
-                                }
+                                cursor.pending_document.push(row);
                             }
                         }
 
                         if let Some(last_id) = lowest_id {
-                            cursor.document.offset_id = last_id;
+                            cursor.document.fetch_offset_id = last_id;
                             if raw_len < limit || last_id <= 1 {
                                 cursor.document.exhausted = true;
                             }
@@ -885,16 +933,35 @@ pub fn list_media_blocking_topic_cursor(
                         }
                     }
 
-                    // 3. K-Way Merge & Exact Page Ordering
-                    combined_files.sort_by(|a, b| b.id.cmp(&a.id));
+                    // 3. Lossless Buffered K-Way Merge & Exact Page Size
+                    let emitted_files = buffered_k_way_merge(
+                        &mut cursor.pending_photo_video,
+                        &mut cursor.pending_document,
+                        limit,
+                    );
 
-                    let has_more = !cursor.photo_video.exhausted || !cursor.document.exhausted;
-                    let next_offset_id = combined_files.last().map(|f| f.id);
+                    // Update committed watermark
+                    for f in &emitted_files {
+                        let id_i32 = f.id as i32;
+                        if cursor.photo_video.committed_offset_id == 0 || id_i32 < cursor.photo_video.committed_offset_id {
+                            cursor.photo_video.committed_offset_id = id_i32;
+                        }
+                        if cursor.document.committed_offset_id == 0 || id_i32 < cursor.document.committed_offset_id {
+                            cursor.document.committed_offset_id = id_i32;
+                        }
+                    }
+
+                    let has_more = !cursor.photo_video.exhausted
+                        || !cursor.document.exhausted
+                        || !cursor.pending_photo_video.is_empty()
+                        || !cursor.pending_document.is_empty();
+
+                    let next_offset_id = emitted_files.last().map(|f| f.id);
 
                     Ok(ListMediaResult {
                         status: "ok".to_string(),
                         folder_id,
-                        total: combined_files.len(),
+                        total: emitted_files.len(),
                         page_size: limit,
                         has_more,
                         next_offset_id,
@@ -903,7 +970,7 @@ pub fn list_media_blocking_topic_cursor(
                         total_count: if candidate_estimate > 0 { Some(candidate_estimate) } else { None },
                         backend: BACKEND.to_string(),
                         cached: false,
-                        files: combined_files,
+                        files: emitted_files,
                     })
                 })
             })
@@ -952,4 +1019,315 @@ pub fn start_folder_stream_blocking(
 
     let _ = channel.send(payload);
     Ok(true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn dummy_row(id: i64) -> MediaFileRow {
+        MediaFileRow {
+            id,
+            folder_id: None,
+            name: format!("file_{}.dat", id),
+            size: 1024,
+            mime_type: Some("application/octet-stream".to_string()),
+            icon_type: "file".to_string(),
+            created_at: Some("1700000000".to_string()),
+            has_thumb: false,
+            as_document: true,
+            backend: "grammers".to_string(),
+            thumb_data_url: None,
+            topic_id: None,
+            identity_source: None,
+            peer_id: None,
+            account_id: None,
+            peer_kind: None,
+            peer_username: None,
+            grouped_id: None,
+            is_saved_messages: None,
+            telegram_category: None,
+            telegram_subtype: None,
+            drive_category: None,
+            drive_format: None,
+        }
+    }
+
+    #[test]
+    fn test_normalize_search_cursor_scope_rejection_peer() {
+        let stale = ScopedMediaSearchCursor {
+            scope: SearchScope {
+                account_id: "user_a".to_string(),
+                peer_id: "100111111".to_string(),
+                topic_id: None,
+            },
+            photo_video: LaneCursor {
+                fetch_offset_id: 15000,
+                committed_offset_id: 15000,
+                exhausted: false,
+            },
+            document: LaneCursor {
+                fetch_offset_id: 12000,
+                committed_offset_id: 12000,
+                exhausted: false,
+            },
+            pending_photo_video: vec![dummy_row(14999)],
+            pending_document: vec![dummy_row(11999)],
+        };
+
+        let new_scope = SearchScope {
+            account_id: "user_a".to_string(),
+            peer_id: "100222222".to_string(),
+            topic_id: None,
+        };
+
+        let normalized = normalize_search_cursor(Some(stale), &new_scope, 0);
+        assert_eq!(normalized.scope.peer_id, "100222222");
+        assert_eq!(normalized.photo_video.fetch_offset_id, 0);
+        assert_eq!(normalized.document.fetch_offset_id, 0);
+        assert!(normalized.pending_photo_video.is_empty());
+        assert!(normalized.pending_document.is_empty());
+    }
+
+    #[test]
+    fn test_normalize_search_cursor_scope_rejection_topic() {
+        let stale = ScopedMediaSearchCursor {
+            scope: SearchScope {
+                account_id: "user_a".to_string(),
+                peer_id: "100111111".to_string(),
+                topic_id: Some(42),
+            },
+            photo_video: LaneCursor {
+                fetch_offset_id: 9000,
+                committed_offset_id: 9000,
+                exhausted: false,
+            },
+            document: LaneCursor {
+                fetch_offset_id: 8000,
+                committed_offset_id: 8000,
+                exhausted: false,
+            },
+            pending_photo_video: vec![],
+            pending_document: vec![],
+        };
+
+        let new_scope = SearchScope {
+            account_id: "user_a".to_string(),
+            peer_id: "100111111".to_string(),
+            topic_id: Some(99),
+        };
+
+        let normalized = normalize_search_cursor(Some(stale), &new_scope, 0);
+        assert_eq!(normalized.scope.topic_id, Some(99));
+        assert_eq!(normalized.photo_video.fetch_offset_id, 0);
+        assert_eq!(normalized.document.fetch_offset_id, 0);
+    }
+
+    #[test]
+    fn test_normalize_search_cursor_scope_rejection_account() {
+        let stale = ScopedMediaSearchCursor {
+            scope: SearchScope {
+                account_id: "account_1".to_string(),
+                peer_id: "100111111".to_string(),
+                topic_id: None,
+            },
+            photo_video: LaneCursor {
+                fetch_offset_id: 5000,
+                committed_offset_id: 5000,
+                exhausted: false,
+            },
+            document: LaneCursor {
+                fetch_offset_id: 4000,
+                committed_offset_id: 4000,
+                exhausted: false,
+            },
+            pending_photo_video: vec![],
+            pending_document: vec![],
+        };
+
+        let new_scope = SearchScope {
+            account_id: "account_2".to_string(),
+            peer_id: "100111111".to_string(),
+            topic_id: None,
+        };
+
+        let normalized = normalize_search_cursor(Some(stale), &new_scope, 0);
+        assert_eq!(normalized.scope.account_id, "account_2");
+        assert_eq!(normalized.photo_video.fetch_offset_id, 0);
+    }
+
+    #[test]
+    fn test_normalize_search_cursor_scope_retain_matching() {
+        let valid = ScopedMediaSearchCursor {
+            scope: SearchScope {
+                account_id: "user_a".to_string(),
+                peer_id: "100111111".to_string(),
+                topic_id: None,
+            },
+            photo_video: LaneCursor {
+                fetch_offset_id: 901,
+                committed_offset_id: 901,
+                exhausted: false,
+            },
+            document: LaneCursor {
+                fetch_offset_id: 701,
+                committed_offset_id: 701,
+                exhausted: false,
+            },
+            pending_photo_video: vec![dummy_row(900)],
+            pending_document: vec![dummy_row(700)],
+        };
+
+        let scope = SearchScope {
+            account_id: "user_a".to_string(),
+            peer_id: "100111111".to_string(),
+            topic_id: None,
+        };
+
+        let normalized = normalize_search_cursor(Some(valid), &scope, 0);
+        assert_eq!(normalized.photo_video.fetch_offset_id, 901);
+        assert_eq!(normalized.document.fetch_offset_id, 701);
+        assert_eq!(normalized.pending_photo_video.len(), 1);
+        assert_eq!(normalized.pending_document.len(), 1);
+    }
+
+    #[test]
+    fn test_buffered_k_way_merge_exact_page_size() {
+        // Synthetic stream:
+        // PV: 1000, 990, 980, 970, 960
+        // DOC: 995, 985, 975, 965, 955
+        let mut pv = vec![dummy_row(1000), dummy_row(990), dummy_row(980), dummy_row(970), dummy_row(960)];
+        let mut doc = vec![dummy_row(995), dummy_row(985), dummy_row(975), dummy_row(965), dummy_row(955)];
+
+        // Page 1 with limit = 4
+        let page1 = buffered_k_way_merge(&mut pv, &mut doc, 4);
+        let ids1: Vec<i64> = page1.iter().map(|f| f.id).collect();
+        assert_eq!(ids1, vec![1000, 995, 990, 985]);
+        assert_eq!(pv.len(), 3); // 980, 970, 960
+        assert_eq!(doc.len(), 3); // 975, 965, 955
+
+        // Page 2 with limit = 4
+        let page2 = buffered_k_way_merge(&mut pv, &mut doc, 4);
+        let ids2: Vec<i64> = page2.iter().map(|f| f.id).collect();
+        assert_eq!(ids2, vec![980, 975, 970, 965]);
+        assert_eq!(pv.len(), 1); // 960
+        assert_eq!(doc.len(), 1); // 955
+
+        // Page 3 with limit = 4
+        let page3 = buffered_k_way_merge(&mut pv, &mut doc, 4);
+        let ids3: Vec<i64> = page3.iter().map(|f| f.id).collect();
+        assert_eq!(ids3, vec![960, 955]);
+        assert_eq!(pv.len(), 0);
+        assert_eq!(doc.len(), 0);
+
+        // Combined verification: zero missing, zero duplicate, sorted descending
+        let mut all_ids = Vec::new();
+        all_ids.extend(ids1);
+        all_ids.extend(ids2);
+        all_ids.extend(ids3);
+        assert_eq!(all_ids, vec![1000, 995, 990, 985, 980, 975, 970, 965, 960, 955]);
+    }
+
+    #[test]
+    fn test_buffered_k_way_merge_overlap_deduplication() {
+        // PV: 1000, 990, 980
+        // DOC: 995, 990, 985
+        let mut pv = vec![dummy_row(1000), dummy_row(990), dummy_row(980)];
+        let mut doc = vec![dummy_row(995), dummy_row(990), dummy_row(985)];
+
+        let page = buffered_k_way_merge(&mut pv, &mut doc, 10);
+        let ids: Vec<i64> = page.iter().map(|f| f.id).collect();
+        assert_eq!(ids, vec![1000, 995, 990, 985, 980]);
+        // Message ID 990 appears only once!
+        assert_eq!(ids.iter().filter(|&&id| id == 990).count(), 1);
+    }
+
+    #[test]
+    fn test_buffered_k_way_merge_uneven_lanes() {
+        // PV: 1000, 900, 800, 700, 600
+        // DOC: 5000
+        let mut pv = vec![dummy_row(1000), dummy_row(900), dummy_row(800), dummy_row(700), dummy_row(600)];
+        let mut doc = vec![dummy_row(5000)];
+
+        let page1 = buffered_k_way_merge(&mut pv, &mut doc, 2);
+        let ids1: Vec<i64> = page1.iter().map(|f| f.id).collect();
+        assert_eq!(ids1, vec![5000, 1000]);
+
+        let page2 = buffered_k_way_merge(&mut pv, &mut doc, 10);
+        let ids2: Vec<i64> = page2.iter().map(|f| f.id).collect();
+        assert_eq!(ids2, vec![900, 800, 700, 600]);
+    }
+
+    #[test]
+    fn test_buffered_k_way_merge_single_item_pages() {
+        let mut pv = vec![dummy_row(300), dummy_row(100)];
+        let mut doc = vec![dummy_row(200)];
+
+        let p1 = buffered_k_way_merge(&mut pv, &mut doc, 1);
+        assert_eq!(p1[0].id, 300);
+
+        let p2 = buffered_k_way_merge(&mut pv, &mut doc, 1);
+        assert_eq!(p2[0].id, 200);
+
+        let p3 = buffered_k_way_merge(&mut pv, &mut doc, 1);
+        assert_eq!(p3[0].id, 100);
+
+        let p4 = buffered_k_way_merge(&mut pv, &mut doc, 1);
+        assert!(p4.is_empty());
+    }
+
+    #[test]
+    fn test_buffered_k_way_merge_exhaustion_conditions() {
+        let cursor_running = ScopedMediaSearchCursor {
+            scope: SearchScope {
+                account_id: "a".to_string(),
+                peer_id: "p".to_string(),
+                topic_id: None,
+            },
+            photo_video: LaneCursor {
+                fetch_offset_id: 100,
+                committed_offset_id: 100,
+                exhausted: false,
+            },
+            document: LaneCursor {
+                fetch_offset_id: 1,
+                committed_offset_id: 1,
+                exhausted: true,
+            },
+            pending_photo_video: vec![],
+            pending_document: vec![],
+        };
+
+        let has_more = !cursor_running.photo_video.exhausted
+            || !cursor_running.document.exhausted
+            || !cursor_running.pending_photo_video.is_empty()
+            || !cursor_running.pending_document.is_empty();
+        assert_eq!(has_more, true);
+
+        let cursor_exhausted = ScopedMediaSearchCursor {
+            scope: SearchScope {
+                account_id: "a".to_string(),
+                peer_id: "p".to_string(),
+                topic_id: None,
+            },
+            photo_video: LaneCursor {
+                fetch_offset_id: 1,
+                committed_offset_id: 1,
+                exhausted: true,
+            },
+            document: LaneCursor {
+                fetch_offset_id: 1,
+                committed_offset_id: 1,
+                exhausted: true,
+            },
+            pending_photo_video: vec![],
+            pending_document: vec![],
+        };
+
+        let has_more_final = !cursor_exhausted.photo_video.exhausted
+            || !cursor_exhausted.document.exhausted
+            || !cursor_exhausted.pending_photo_video.is_empty()
+            || !cursor_exhausted.pending_document.is_empty();
+        assert_eq!(has_more_final, false);
+    }
 }

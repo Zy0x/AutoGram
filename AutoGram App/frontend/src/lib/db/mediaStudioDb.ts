@@ -278,6 +278,36 @@ export async function getMediaPageByContext(
   });
 }
 
+export async function getExactMediaStatsByContext(
+  context: DriveMediaContext
+): Promise<{ count: number; totalBytes: number }> {
+  const db = await initDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('media', 'readonly');
+    const store = tx.objectStore('media');
+    const index = store.index('byContextNewest');
+    const normTopic = normalizeTopicId(context.scopeKind, context.topicId);
+    const minKey = [context.accountId, context.peerId, context.scopeKind, normTopic, -Infinity];
+    const maxKey = [context.accountId, context.peerId, context.scopeKind, normTopic, Infinity];
+    const range = IDBKeyRange.bound(minKey, maxKey);
+
+    let count = 0;
+    let totalBytes = 0;
+    const request = index.openCursor(range);
+    request.onsuccess = (e) => {
+      const cursor = (e.target as IDBRequest<IDBCursorWithValue | null>).result;
+      if (!cursor) {
+        resolve({ count, totalBytes });
+        return;
+      }
+      count += 1;
+      totalBytes += Number(cursor.value.size || 0);
+      cursor.continue();
+    };
+    request.onerror = () => reject(request.error || new Error('getExactMediaStatsByContext query failed'));
+  });
+}
+
 function requestToPromise<T>(req: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     req.onsuccess = () => resolve(req.result);
