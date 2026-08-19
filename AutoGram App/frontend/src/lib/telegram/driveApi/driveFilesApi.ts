@@ -135,7 +135,10 @@ export async function driveListFiles(
   const localOffset = opts?.localOffset ?? 0;
 
   const mediaContext = opts?.context ?? buildDriveMediaContext(creds.session, folderId, topicId);
-  const contextKey = `${mediaContext.accountId}:${mediaContext.peerId}:${mediaContext.scopeKind}:${mediaContext.topicId ?? 'none'}:${offsetId ?? 0}:${localOffset}`;
+  const cursorFingerprint = opts?.searchCursor
+    ? `${opts.searchCursor.photoVideo?.fetchOffsetId ?? 0}:${opts.searchCursor.document?.fetchOffsetId ?? 0}:${opts.searchCursor.photoVideo?.exhausted ? 1 : 0}:${opts.searchCursor.document?.exhausted ? 1 : 0}`
+    : 'fresh';
+  const contextKey = `${mediaContext.accountId}:${mediaContext.peerId}:${mediaContext.scopeKind}:${mediaContext.topicId ?? 'none'}:${offsetId ?? 0}:${localOffset}:${cursorFingerprint}`;
 
   if (inFlightPages.has(contextKey)) {
     return inFlightPages.get(contextKey)!;
@@ -202,6 +205,8 @@ export async function driveListFiles(
           next_offset_id: gr.data.nextOffsetId ?? null,
           search_cursor: gr.data.searchCursor ?? null,
           lane_counts: gr.data.laneCounts ?? null,
+          emitted_watermark: gr.data.emittedWatermark ?? null,
+          lane_durability: gr.data.laneDurability ?? null,
           total_count: gr.data.totalCount ?? null,
           total_bytes: null,
           stats_accurate: false,

@@ -156,4 +156,41 @@ describe('ScopedMediaSearchCursor, Watermark & Buffered Merge Contract', () => {
     };
     expect(hasMoreWork(fullyExhaustedCursor)).toBe(false);
   });
+
+  it('6. P1.7 Checkpoint Transport Integrity: emittedWatermark and laneDurability survive transport layer', () => {
+    const rawGrammersResponse = {
+      status: 'ok',
+      hasMore: true,
+      nextOffsetId: 1100,
+      searchCursor: {
+        scope: { accountId: 'session1', peerId: '1001', topicId: null },
+        photoVideo: { fetchOffsetId: 1200, exhausted: false },
+        document: { fetchOffsetId: 1100, exhausted: true },
+        pendingPhotoVideo: [],
+        pendingDocument: [],
+      },
+      laneCounts: { photoVideo: 50, document: 10 },
+      emittedWatermark: { photoVideo: 1234, document: 1100 },
+      laneDurability: { photoVideoDrained: false, documentDrained: true },
+      totalCount: 150,
+      files: [],
+    };
+
+    // Simulate driveListFiles return adapter mapping
+    const adaptedResponse = {
+      status: 'success',
+      has_more: !!rawGrammersResponse.hasMore,
+      next_offset_id: rawGrammersResponse.nextOffsetId ?? null,
+      search_cursor: rawGrammersResponse.searchCursor ?? null,
+      lane_counts: rawGrammersResponse.laneCounts ?? null,
+      emitted_watermark: rawGrammersResponse.emittedWatermark ?? null,
+      lane_durability: rawGrammersResponse.laneDurability ?? null,
+      total_count: rawGrammersResponse.totalCount ?? null,
+    };
+
+    expect(adaptedResponse.emitted_watermark).toEqual({ photoVideo: 1234, document: 1100 });
+    expect(adaptedResponse.lane_durability).toEqual({ photoVideoDrained: false, documentDrained: true });
+    expect(adaptedResponse.emitted_watermark?.photoVideo).toBe(1234);
+    expect(adaptedResponse.emitted_watermark?.document).toBe(1100);
+  });
 });

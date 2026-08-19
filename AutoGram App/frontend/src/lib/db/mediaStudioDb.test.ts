@@ -142,5 +142,64 @@ describe('Media Studio IndexedDB context isolation & MediaIndexState Contract', 
       expect(nextState.pvCommittedOffset).toBe(8500);
       expect(nextState.docCommittedOffset).toBe(8500);
     });
+
+    it('4. backfillComplete is strictly monotonic (once true, never reverts to false)', () => {
+      const completedState: MediaIndexState = {
+        ...baseState,
+        backfillComplete: true,
+      };
+
+      const intermediateUpdate: MediaIndexCheckpointUpdate = {
+        accountId: 'session_user_1',
+        peerId: '1001234567',
+        scopeKind: 'all',
+        topicIdNormalized: -1,
+        backfillComplete: false, // attempt to degrade
+      };
+
+      const nextState = mergeMediaIndexCheckpoint(completedState, intermediateUpdate, [], 1700000040000);
+      expect(nextState.backfillComplete).toBe(true);
+    });
+
+    it('5. Handles zero-media / empty-scope backfill completion checkpoint', () => {
+      const freshState: MediaIndexState = {
+        accountId: 'session_user_empty',
+        peerId: '999999',
+        scopeKind: 'all',
+        topicIdNormalized: -1,
+        pvCommittedOffset: 0,
+        docCommittedOffset: 0,
+        pvExhausted: false,
+        docExhausted: false,
+        newestCommittedId: 0,
+        oldestCommittedId: 0,
+        backfillComplete: false,
+        exactMediaCount: null,
+        exactBytes: null,
+        pts: null,
+        schemaVersion: 1,
+        startedAt: 1700000000000,
+        updatedAt: 1700000000000,
+      };
+
+      const emptyCompletedUpdate: MediaIndexCheckpointUpdate = {
+        accountId: 'session_user_empty',
+        peerId: '999999',
+        scopeKind: 'all',
+        topicIdNormalized: -1,
+        pvCommittedOffset: 0,
+        docCommittedOffset: 0,
+        pvCommittedExhausted: true,
+        docCommittedExhausted: true,
+        backfillComplete: true,
+      };
+
+      const nextState = mergeMediaIndexCheckpoint(freshState, emptyCompletedUpdate, [], 1700000050000);
+      expect(nextState.backfillComplete).toBe(true);
+      expect(nextState.pvExhausted).toBe(true);
+      expect(nextState.docExhausted).toBe(true);
+      expect(nextState.newestCommittedId).toBe(0);
+      expect(nextState.oldestCommittedId).toBe(0);
+    });
   });
 });

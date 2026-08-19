@@ -1,3 +1,25 @@
+## v3.7.96 Checkpoint Transport Integrity (P1.7 Complete) (Phase 35.62)
+
+### 1. P1.7 End-to-End Checkpoint Transport Integrity
+- **Propagasi Watermark & Durability**:
+  - Menghubungkan transmisi field `emitted_watermark` dan `lane_durability` dari Grammers backend melalui adapter `driveFilesApi.ts` ke UI state.
+  - Memastikan watermark commit awal (`pvCommittedOffset` dan `docCommittedOffset`) tidak ter-default menjadi `0` saat inisialisasi checkpoint.
+
+### 2. P1.7 In-Flight Request Cursor Fingerprinting
+- **Kunci Konteks Anti-Tabrakan**:
+  - Menambahkan fingerprint cursor (`fetchOffsetId` dan status `exhausted` per lane) ke dalam `contextKey` promise de-duplication di `driveFilesApi.ts`.
+  - Mencegah sharing promise yang keliru saat dua request memiliki filter sama tetapi posisi cursor berbeda.
+
+### 3. P1.7 Zero-Media & Empty-Page Checkpoint Persistence
+- **Persistensi State Universal**:
+  - Mendekopel eksekusi `saveMediaBatchAndCheckpoint` dari kondisi `page.length > 0` di `MediaStudio/index.tsx`.
+  - Kanal atau topik kosong serta pemindaian yang mencapai halaman penutup (0 media) kini tetap mencatat checkpoint `backfillComplete: true` secara permanen ke IndexedDB.
+
+### 4. P1.7 Monotonic Backfill Completion Guard
+- **Integritas Status Selesai**:
+  - Reducer `mergeMediaIndexCheckpoint` memastikan `backfillComplete` bersifat monotonik (`prev.backfillComplete || next.backfillComplete === true`).
+  - Mencegah status `backfillComplete` yang sudah tercapai kembali menjadi `false` oleh update parsial.
+
 ## v3.7.95 Durable Checkpoint State Integrity (P1.6 Complete) (Phase 35.61)
 
 ### 1. P1.6 Monotonic Watermark Progression & Zero-Watermark Protection

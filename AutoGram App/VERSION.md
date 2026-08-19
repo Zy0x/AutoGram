@@ -1,14 +1,14 @@
-AutoGram Version: v3.7.95
+AutoGram Version: v3.7.96
 
 Current State:
-v3.7.95 Durable Checkpoint State Integrity (P1.6 Complete) — membenahi `media_list.rs`, `mediaStudioDb.ts`, `telegramBackend.ts`, `MediaStudio/index.tsx`, `mediaStudioDb.test.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. P1.6 Monotonic Watermark Progression & Zero-Watermark Protection: Mengimplementasikan reducer `advanceBackfillOffset` dan `mergeMediaIndexCheckpoint` yang menjamin watermark commit mundur teratur mengikuti arah descending tanpa pernah me-reset ke 0 ketika sebuah halaman hanya menghasilkan media dari satu jalur.
-2. P1.6 Pending-Aware Lane Durability (`LaneDurability`): Rust backend menghitung status drain (`photo_video_drained` & `document_drained`) yang mensyaratkan server exhausted DAN pending buffer kosong. Mencegah checkpoint menyimpan status exhausted prematur saat pending buffer masih berisi media hidup.
-3. P1.6 Fix Stats Index Bug: Mengoreksi pemanggilan index `byContextNewest` yang tidak eksis di `getExactMediaStatsByContext` menjadi `byContextMessage` (`[accountId, peerId, scopeKind, topicIdNormalized, id]`).
-4. P1.6 All-or-Nothing Transaction Invariant: `saveMediaBatchAndCheckpoint` memvalidasi setiap record media secara ketat dan memanggil `tx.abort()` jika terdapat data cacat, dilengkapi handler `tx.onabort` agar checkpoint tidak pernah maju jika batch media gagal disimpan.
-5. P1.6 Comprehensive Lifecycle State Cleanup: Menyelaraskan `clearMediaCache()`, `deleteMediaRecordsBySession()`, dan `deleteMediaRecordsForPeer()` untuk membersihkan `mediaIndexState` secara atomic, mencegah timbulnya checkpoint yatim.
+v3.7.96 Checkpoint Transport Integrity (P1.7 Complete) — membenahi `driveFilesApi.ts`, `mediaStudioDb.ts`, `MediaStudio/index.tsx`, `mediaStudioDb.test.ts`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. P1.7 End-to-End Checkpoint Transport Integrity: Meneruskan `emitted_watermark` dan `lane_durability` dari Grammers backend melalui adapter `driveFilesApi.ts` ke UI layer, menuntaskan masalah watermark `0` pada scan inisial.
+2. P1.7 In-Flight Request Cursor Fingerprinting: Memperluas deduplikasi request in-flight pada `driveFilesApi.ts` dengan memasukkan fingerprint cursor (`fetchOffsetId` dan `exhausted` per jalur) agar request dengan cursor berbeda tidak salah di-dedup.
+3. P1.7 Zero-Media & Empty-Page Checkpoint Persistence: Mendekopel persistensi checkpoint dari ukuran halaman `page.length > 0` di `MediaStudio/index.tsx`, menjamin kanal/topik dengan 0 media atau halaman penutup tetap menyimpan state `backfillComplete: true`.
+4. P1.7 Monotonic Backfill Completion Guard: Memastikan `backfillComplete` pada `mergeMediaIndexCheckpoint` bersifat strictly monotonic (`prev.backfillComplete || next.backfillComplete === true`), tidak pernah terdegradasi menjadi `false` secara implisit.
 
 Previous:
+v3.7.95 Durable Checkpoint State Integrity (P1.6 Complete) — membenahi `media_list.rs`, `mediaStudioDb.ts`, `telegramBackend.ts`, `MediaStudio/index.tsx`, `mediaStudioDb.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.94 Cross-Page Dedup, Pending-Drain & ACK-Driven Commit Watermark (P1.5 Complete) — membenahi `media_list.rs`, `mediaStudioDb.ts`, `telegramBackend.ts`, `MediaStudio/index.tsx`, `mediaStudioDb.test.ts`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.93 Lossless Buffered Merge & Commit-Watermark Integrity (P1.4 Complete) — membenahi `media_list.rs`, `mediaStudioDb.ts`, `telegramBackend.ts`, `MediaStudio/index.tsx`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.92 Cursor Scope Isolation, Exact Pagination & Completion Correctness (P1.3 Complete) — membenahi `media_list.rs`, `telegram_ops.rs`, `telegramBackend.ts`, `driveFilesApi.ts`, `MediaStudio/index.tsx`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.

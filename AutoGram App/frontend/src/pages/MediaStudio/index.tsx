@@ -3462,38 +3462,36 @@ function MediaDriveDesktop({
         if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) break;
 
         let page: DriveFile[] = res?.files || [];
-        if (page.length) {
-          page = stripInlineThumbsFromFiles(page).map(toLeanDriveFile);
-          const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
-          const scoped = scopeMediaRecords(page, mediaContext, peerId || 0);
+        const leanPage = page.length ? stripInlineThumbsFromFiles(page).map(toLeanDriveFile) : [];
+        const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
+        const scoped = scopeMediaRecords(leanPage, mediaContext, peerId || 0);
 
-          const pvDrained = res.lane_durability?.photoVideoDrained ?? (Boolean(res.search_cursor?.photoVideo.exhausted) && (res.search_cursor?.pendingPhotoVideo?.length ?? 0) === 0);
-          const docDrained = res.lane_durability?.documentDrained ?? (Boolean(res.search_cursor?.document.exhausted) && (res.search_cursor?.pendingDocument?.length ?? 0) === 0);
+        const pvDrained = res.lane_durability?.photoVideoDrained ?? (Boolean(res.search_cursor?.photoVideo.exhausted) && (res.search_cursor?.pendingPhotoVideo?.length ?? 0) === 0);
+        const docDrained = res.lane_durability?.documentDrained ?? (Boolean(res.search_cursor?.document.exhausted) && (res.search_cursor?.pendingDocument?.length ?? 0) === 0);
 
-          const checkpointUpdate: MediaIndexCheckpointUpdate = {
-            accountId: mediaContext.accountId,
-            peerId: mediaContext.peerId,
-            scopeKind: mediaContext.scopeKind,
-            topicIdNormalized: normalizeTopicId(mediaContext.scopeKind, mediaContext.topicId),
-            pvCommittedOffset: res.emitted_watermark?.photoVideo || 0,
-            docCommittedOffset: res.emitted_watermark?.document || 0,
-            pvCommittedExhausted: pvDrained,
-            docCommittedExhausted: docDrained,
-            backfillComplete: !res.has_more,
-          };
+        const checkpointUpdate: MediaIndexCheckpointUpdate = {
+          accountId: mediaContext.accountId,
+          peerId: mediaContext.peerId,
+          scopeKind: mediaContext.scopeKind,
+          topicIdNormalized: normalizeTopicId(mediaContext.scopeKind, mediaContext.topicId),
+          pvCommittedOffset: res.emitted_watermark?.photoVideo || 0,
+          docCommittedOffset: res.emitted_watermark?.document || 0,
+          pvCommittedExhausted: pvDrained,
+          docCommittedExhausted: docDrained,
+          backfillComplete: !res.has_more,
+        };
 
-          try {
-            await saveMediaBatchAndCheckpoint(scoped, checkpointUpdate);
-          } catch (dbErr) {
-            console.error('[Indexer] Fatal error persisting media batch to database:', dbErr);
-            hasPersistFailure = true;
-            setIndexingJob((prev: any) => prev ? {
-              ...prev,
-              text: t('speedtest.db_error_paused') || 'Kesalahan database: pengindeksan dijeda demi menjaga integritas data'
-            } : prev);
-            // CRITICAL: Stop and do NOT advance cursor if DB write fails!
-            break;
-          }
+        try {
+          await saveMediaBatchAndCheckpoint(scoped, checkpointUpdate);
+        } catch (dbErr) {
+          console.error('[Indexer] Fatal error persisting media batch to database:', dbErr);
+          hasPersistFailure = true;
+          setIndexingJob((prev: any) => prev ? {
+            ...prev,
+            text: t('speedtest.db_error_paused') || 'Kesalahan database: pengindeksan dijeda demi menjaga integritas data'
+          } : prev);
+          // CRITICAL: Stop and do NOT advance cursor if DB write fails!
+          break;
         }
 
         // Update independent multi-lane search cursor ONLY AFTER DB commit ACK

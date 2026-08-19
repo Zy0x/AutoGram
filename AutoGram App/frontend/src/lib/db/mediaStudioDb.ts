@@ -431,7 +431,7 @@ export function mergeMediaIndexCheckpoint(
     docExhausted: Boolean(prev.docExhausted || next.docCommittedExhausted),
     newestCommittedId,
     oldestCommittedId,
-    backfillComplete: Boolean(next.backfillComplete ?? prev.backfillComplete),
+    backfillComplete: Boolean(prev.backfillComplete || next.backfillComplete === true),
     exactMediaCount: next.exactMediaCount !== undefined ? next.exactMediaCount : prev.exactMediaCount,
     exactBytes: next.exactBytes !== undefined ? next.exactBytes : prev.exactBytes,
     pts: next.pts !== undefined ? next.pts : prev.pts,
