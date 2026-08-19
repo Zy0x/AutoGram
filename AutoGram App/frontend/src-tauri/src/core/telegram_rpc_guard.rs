@@ -276,12 +276,12 @@ where
                             false
                         };
 
-                        if let Some(ref obs) = control.observer {
-                            obs.on_guard_backoff_end(attempts).await;
-                        }
-
                         if interrupted {
                             return Err(TgError::new(TgErrorCode::Cancelled, "guarded flood wait cancelled"));
+                        }
+
+                        if let Some(ref obs) = control.observer {
+                            obs.on_guard_backoff_end(attempts).await;
                         }
 
                         continue;

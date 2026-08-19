@@ -157,6 +157,9 @@ export interface TgStartMediaIndexJobResponse {
   jobId: number;
   state: TgMediaIndexJobState;
   reusedExistingJob: boolean;
+  subscriberId: number;
+  generation: number;
+  replayedAckId?: number | null;
 }
 
 export interface TgAttachMediaIndexJobResponse {

@@ -6,11 +6,13 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { Channel } from '@tauri-apps/api/core';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
 import {
   ackMediaIndexPage,
   attachMediaIndexJobChannel,
   cancelMediaIndexJob,
+  createMediaIndexChannel,
   detachMediaIndexJobChannel,
   pauseMediaIndexJob,
   resumeMediaIndexJob,
@@ -66,9 +68,9 @@ export function useMediaIndexJob(options: UseMediaIndexJobOptions): UseMediaInde
   } | null>(null);
   const [floodWaitRemaining, setFloodWaitRemaining] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-
   const activeJobIdRef = useRef<number | null>(null);
   const subscriberRef = useRef<{ subscriberId: number; generation: number } | null>(null);
+  const channelRef = useRef<Channel<TgMediaIndexEvent> | null>(null);
   const floodTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isMountedRef = useRef(true);
 
@@ -212,15 +214,19 @@ export function useMediaIndexJob(options: UseMediaIndexJobOptions): UseMediaInde
       if (curJobId && curSub) {
         void detachMediaIndexJobChannel(curJobId, curSub.subscriberId, curSub.generation);
       }
+      channelRef.current = null;
     };
   }, []);
 
   const attach = useCallback(
     async (targetJobId: number) => {
       try {
-        const res = await attachMediaIndexJobChannel(targetJobId, (evt: TgMediaIndexEvent) => {
+        const channel = createMediaIndexChannel((evt: TgMediaIndexEvent) => {
           void handleChannelEvent(evt);
         });
+        channelRef.current = channel;
+
+        const res = await attachMediaIndexJobChannel(targetJobId, channel);
 
         if (res.attached) {
           setJobId(targetJobId);
@@ -232,7 +238,7 @@ export function useMediaIndexJob(options: UseMediaIndexJobOptions): UseMediaInde
           setState(res.state);
         }
       } catch (err) {
-        console.error('[P3.1 Indexer] Attach channel failed:', err);
+        console.error('[P3.2 Indexer] Attach channel failed:', err);
       }
     },
     [handleChannelEvent]
@@ -261,6 +267,11 @@ export function useMediaIndexJob(options: UseMediaIndexJobOptions): UseMediaInde
         // Cryptographically secure UUID per invocation (never contain session string)
         const clientRequestId = crypto.randomUUID();
 
+        const channel = createMediaIndexChannel((evt: TgMediaIndexEvent) => {
+          void handleChannelEvent(evt);
+        });
+        channelRef.current = channel;
+
         const res = await startMediaIndexJob(
           {
             clientRequestId,
@@ -275,23 +286,21 @@ export function useMediaIndexJob(options: UseMediaIndexJobOptions): UseMediaInde
             initialState,
             forceMode: forceMode ?? null,
           },
-          (evt: TgMediaIndexEvent) => {
-            void handleChannelEvent(evt);
-          }
+          channel
         );
 
         setJobId(res.jobId);
         activeJobIdRef.current = res.jobId;
         subscriberRef.current = {
-          subscriberId: 1,
-          generation: 1,
+          subscriberId: res.subscriberId,
+          generation: res.generation,
         };
         setState(res.state);
       } catch (err: any) {
         console.error('[P3 Indexer] Start job failed:', err);
         const msg = String(err?.message || err);
-        setState('failed');
         setError(msg);
+        setState('failed');
         if (onError) onError(msg);
       }
     },

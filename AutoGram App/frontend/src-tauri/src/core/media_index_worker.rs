@@ -1,8 +1,8 @@
-//! media_index_worker.rs — Long-Running Rust Media Index & Sync Worker (P3.1 Hardened)
+//! media_index_worker.rs — Long-Running Rust Media Index & Sync Worker (P3.2 Hardened)
 //!
 //! Orchestrates Telegram MTProto pagination, K-way buffered merge, rate gating,
-//! bounded ACK backpressure synchronization, replaceable primary persistence Channel,
-//! pending-page replay, and strict lifecycle control in pure Tokio async.
+//! bounded ACK backpressure synchronization, unified primary subscriber identity & generation tracking,
+//! single-winner ACK idempotency, deterministic pending-page replay, and strict lifecycle control in pure Tokio async.
 //! Authoritative storage and checkpoint truth remain in IndexedDB.
 
 use std::collections::HashMap;
@@ -139,6 +139,15 @@ pub struct PendingPage {
     pub emitted_at_ms: u64,
 }
 
+/// Result returned from attaching or reattaching a primary persistence subscriber.
+#[derive(Debug, Clone)]
+pub struct AttachSnapshot {
+    pub subscriber_id: u64,
+    pub generation: u64,
+    pub state: MediaIndexJobState,
+    pub replayed_ack_id: Option<u64>,
+}
+
 /// Thread-safe control handles for an active or recent indexing job.
 pub struct MediaIndexJobControl {
     pub job_id: u64,
@@ -180,6 +189,59 @@ impl MediaIndexJobControl {
             sink.send_event(event)
         } else {
             false
+        }
+    }
+
+    /// Single unified helper for attaching or reattaching a primary persistence subscriber.
+    /// Guarantees that subscriber ID, generation increment, state notification, and pending-page
+    /// replay follow identical strict invariants across both `start_job` reuse and `attach_channel`.
+    pub async fn attach_primary_and_snapshot(
+        &self,
+        sink: Arc<dyn MediaIndexEventSink>,
+    ) -> AttachSnapshot {
+        let gen = self.subscriber_generation.fetch_add(1, Ordering::SeqCst) + 1;
+        let sub_id = self.next_subscriber_id.fetch_add(1, Ordering::SeqCst);
+
+        {
+            let mut primary = self.primary_subscriber.write().await;
+            *primary = Some(PrimarySubscriber {
+                subscriber_id: sub_id,
+                generation: gen,
+                sink: sink.clone(),
+            });
+        }
+
+        let st = self.status.read().await.clone();
+        sink.send_event(MediaIndexEvent::State {
+            job_id: self.job_id,
+            state: st.state,
+        });
+
+        // Replay pending page ONLY IF:
+        // 1. Expected ACK ID is positive (> 0)
+        // 2. ACK has NOT already been claimed (claimed < expected)
+        // 3. Pending page ACK ID exactly matches expected ACK ID
+        let mut replayed_ack_id = None;
+        let expected = self.expected_ack_id.load(Ordering::Acquire);
+        let claimed = self.claimed_ack_id.load(Ordering::Acquire);
+
+        if expected > 0 && claimed < expected {
+            let pending_guard = self.pending_page.read().await;
+            if let Some(ref p) = *pending_guard {
+                if p.ack_id == expected {
+                    sink.send_event(MediaIndexEvent::Page(p.event.clone()));
+                    replayed_ack_id = Some(p.ack_id);
+                }
+            }
+        }
+
+        self.subscriber_notify.notify_waiters();
+
+        AttachSnapshot {
+            subscriber_id: sub_id,
+            generation: gen,
+            state: st.state,
+            replayed_ack_id,
         }
     }
 }
@@ -345,38 +407,15 @@ impl MediaIndexJobManager {
                             let ctrl_clone = ctrl.clone();
                             drop(inner);
 
-                            // Reattach primary sink
-                            let gen = ctrl_clone.subscriber_generation.fetch_add(1, Ordering::SeqCst) + 1;
-                            let sub_id = ctrl_clone.next_subscriber_id.fetch_add(1, Ordering::SeqCst);
-                            {
-                                let mut primary = ctrl_clone.primary_subscriber.write().await;
-                                *primary = Some(PrimarySubscriber {
-                                    subscriber_id: sub_id,
-                                    generation: gen,
-                                    sink: sink_arc.clone(),
-                                });
-                            }
-
-                            let st = ctrl_clone.status.read().await.clone();
-                            sink_arc.send_event(MediaIndexEvent::State {
-                                job_id: existing_id,
-                                state: st.state,
-                            });
-
-                            // Replay pending page if waiting
-                            if st.state == MediaIndexJobState::WaitingAck || st.state == MediaIndexJobState::WaitingFrontend {
-                                let pending_guard = ctrl_clone.pending_page.read().await;
-                                if let Some(ref p) = *pending_guard {
-                                    sink_arc.send_event(MediaIndexEvent::Page(p.event.clone()));
-                                }
-                            }
-
-                            ctrl_clone.subscriber_notify.notify_waiters();
+                            let snapshot = ctrl_clone.attach_primary_and_snapshot(sink_arc).await;
 
                             return Ok(StartMediaIndexJobResponse {
                                 job_id: existing_id,
-                                state: st.state,
+                                state: snapshot.state,
                                 reused_existing_job: true,
+                                subscriber_id: snapshot.subscriber_id,
+                                generation: snapshot.generation,
+                                replayed_ack_id: snapshot.replayed_ack_id,
                             });
                         }
                     }
@@ -392,36 +431,15 @@ impl MediaIndexJobManager {
                             let ctrl_clone = ctrl.clone();
                             drop(inner);
 
-                            let gen = ctrl_clone.subscriber_generation.fetch_add(1, Ordering::SeqCst) + 1;
-                            let sub_id = ctrl_clone.next_subscriber_id.fetch_add(1, Ordering::SeqCst);
-                            {
-                                let mut primary = ctrl_clone.primary_subscriber.write().await;
-                                *primary = Some(PrimarySubscriber {
-                                    subscriber_id: sub_id,
-                                    generation: gen,
-                                    sink: sink_arc.clone(),
-                                });
-                            }
-
-                            let st = ctrl_clone.status.read().await.clone();
-                            sink_arc.send_event(MediaIndexEvent::State {
-                                job_id: existing_id,
-                                state: st.state,
-                            });
-
-                            if st.state == MediaIndexJobState::WaitingAck || st.state == MediaIndexJobState::WaitingFrontend {
-                                let pending_guard = ctrl_clone.pending_page.read().await;
-                                if let Some(ref p) = *pending_guard {
-                                    sink_arc.send_event(MediaIndexEvent::Page(p.event.clone()));
-                                }
-                            }
-
-                            ctrl_clone.subscriber_notify.notify_waiters();
+                            let snapshot = ctrl_clone.attach_primary_and_snapshot(sink_arc).await;
 
                             return Ok(StartMediaIndexJobResponse {
                                 job_id: existing_id,
-                                state: st.state,
+                                state: snapshot.state,
                                 reused_existing_job: true,
+                                subscriber_id: snapshot.subscriber_id,
+                                generation: snapshot.generation,
+                                replayed_ack_id: snapshot.replayed_ack_id,
                             });
                         }
 
@@ -525,6 +543,9 @@ impl MediaIndexJobManager {
             job_id,
             state: MediaIndexJobState::Preparing,
             reused_existing_job: is_reuse,
+            subscriber_id: 1,
+            generation: 1,
+            replayed_ack_id: None,
         })
     }
 
@@ -566,52 +587,21 @@ impl MediaIndexJobManager {
         }
 
         let sink_arc: Arc<dyn MediaIndexEventSink> = Arc::new(event_sink);
-        let gen = job.subscriber_generation.fetch_add(1, Ordering::SeqCst) + 1;
-        let sub_id = job.next_subscriber_id.fetch_add(1, Ordering::SeqCst);
-
-        {
-            let mut primary = job.primary_subscriber.write().await;
-            *primary = Some(PrimarySubscriber {
-                subscriber_id: sub_id,
-                generation: gen,
-                sink: sink_arc.clone(),
-            });
-        }
-
-        let st = job.status.read().await.clone();
-        sink_arc.send_event(MediaIndexEvent::State {
-            job_id,
-            state: st.state,
-        });
-
-        // Replay pending page if waiting and not yet claimed
-        let mut replayed_ack_id = None;
-        let expected = job.expected_ack_id.load(Ordering::Acquire);
-        let claimed = job.claimed_ack_id.load(Ordering::Acquire);
-
-        if expected > 0 && claimed < expected {
-            let pending_guard = job.pending_page.read().await;
-            if let Some(ref p) = *pending_guard {
-                if p.ack_id == expected {
-                    sink_arc.send_event(MediaIndexEvent::Page(p.event.clone()));
-                    replayed_ack_id = Some(p.ack_id);
-                }
-            }
-        }
-
-        job.subscriber_notify.notify_waiters();
+        let snapshot = job.attach_primary_and_snapshot(sink_arc).await;
 
         Ok(AttachMediaIndexJobResponse {
             job_id,
             attached: true,
-            subscriber_id: sub_id,
-            generation: gen,
-            state: st.state,
-            replayed_ack_id,
+            subscriber_id: snapshot.subscriber_id,
+            generation: snapshot.generation,
+            state: snapshot.state,
+            replayed_ack_id: snapshot.replayed_ack_id,
         })
     }
 
     /// Detaches a primary persistence subscriber if subscriber_id and generation still match.
+    /// If detaching the current active primary while waiting for ACK, immediately transitions
+    /// the job state to `WaitingFrontend` and notifies the worker loop.
     pub async fn detach_channel(
         &self,
         job_id: u64,
@@ -630,20 +620,34 @@ impl MediaIndexJobManager {
             };
         };
 
-        let mut primary = job.primary_subscriber.write().await;
-        if let Some(ref sub) = *primary {
-            if sub.subscriber_id == subscriber_id && sub.generation == generation {
-                *primary = None;
-                return DetachMediaIndexJobResponse {
-                    job_id,
-                    detached: true,
-                };
+        let detached = {
+            let mut primary = job.primary_subscriber.write().await;
+            if let Some(ref sub) = *primary {
+                if sub.subscriber_id == subscriber_id && sub.generation == generation {
+                    *primary = None;
+                    true
+                } else {
+                    false
+                }
+            } else {
+                false
             }
+        };
+
+        if detached {
+            if job.expected_ack_id.load(Ordering::Acquire) > 0 {
+                let mut st = job.status.write().await;
+                if st.state == MediaIndexJobState::WaitingAck {
+                    st.state = MediaIndexJobState::WaitingFrontend;
+                    st.updated_at_ms = now_epoch_ms();
+                }
+            }
+            job.subscriber_notify.notify_waiters();
         }
 
         DetachMediaIndexJobResponse {
             job_id,
-            detached: false,
+            detached,
         }
     }
 
@@ -838,9 +842,9 @@ pub fn derive_job_mode(
 }
 
 /// Observer for guard-owned FloodWait backoff, broadcasting typed Flood events to the UI.
-struct WorkerRpcObserver {
-    job_id: u64,
-    control: Arc<MediaIndexJobControl>,
+pub struct WorkerRpcObserver {
+    pub job_id: u64,
+    pub control: Arc<MediaIndexJobControl>,
 }
 
 #[async_trait]
@@ -869,17 +873,28 @@ impl RpcObserver for WorkerRpcObserver {
     }
 
     async fn on_guard_backoff_end(&self, _attempt: u32) {
+        if self.control.cancel.is_cancelled() {
+            return;
+        }
+
+        let next_state = if *self.control.state_tx.borrow() == MediaIndexDesiredState::Paused {
+            MediaIndexJobState::UserPaused
+        } else {
+            MediaIndexJobState::Running
+        };
+
         {
             let mut st = self.control.status.write().await;
             if st.state == MediaIndexJobState::FloodPaused {
-                st.state = MediaIndexJobState::Running;
+                st.state = next_state;
                 st.updated_at_ms = now_epoch_ms();
             }
         }
+
         let _ = self.control
             .emit_to_primary(MediaIndexEvent::State {
                 job_id: self.job_id,
-                state: MediaIndexJobState::Running,
+                state: next_state,
             })
             .await;
     }
@@ -1565,6 +1580,34 @@ mod tests {
         }
     }
 
+    fn sample_media_row(id: i64) -> MediaFileRow {
+        MediaFileRow {
+            id,
+            folder_id: None,
+            name: format!("file_{}.jpg", id),
+            size: 2048,
+            mime_type: Some("image/jpeg".into()),
+            icon_type: "photo".into(),
+            created_at: None,
+            has_thumb: false,
+            as_document: false,
+            backend: "grammers".into(),
+            thumb_data_url: None,
+            topic_id: None,
+            identity_source: None,
+            peer_id: None,
+            account_id: None,
+            peer_kind: None,
+            peer_username: None,
+            grouped_id: None,
+            is_saved_messages: None,
+            telegram_category: None,
+            telegram_subtype: None,
+            drive_category: None,
+            drive_format: None,
+        }
+    }
+
     #[tokio::test]
     async fn test_duplicate_ack_idempotency_already_acked() {
         let manager = MediaIndexJobManager::with_page_source(
@@ -1636,31 +1679,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_32_concurrent_duplicate_acks_exactly_one_accepted() {
-        let mock_file = MediaFileRow {
-            id: 501,
-            folder_id: None,
-            name: "test.jpg".into(),
-            size: 1024,
-            mime_type: Some("image/jpeg".into()),
-            icon_type: "photo".into(),
-            created_at: None,
-            has_thumb: false,
-            as_document: false,
-            backend: "grammers".into(),
-            thumb_data_url: None,
-            topic_id: None,
-            identity_source: None,
-            peer_id: None,
-            account_id: None,
-            peer_kind: None,
-            peer_username: None,
-            grouped_id: None,
-            is_saved_messages: None,
-            telegram_category: None,
-            telegram_subtype: None,
-            drive_category: None,
-            drive_format: None,
-        };
+        let mock_file = sample_media_row(501);
 
         let page1 = ListMediaResult {
             status: "ok".into(),
@@ -1869,11 +1888,15 @@ mod tests {
 
         let res1 = manager.start_job(req1.clone(), FnEventSink(|_| true)).await.unwrap();
         assert_eq!(res1.reused_existing_job, false);
+        assert_eq!(res1.subscriber_id, 1);
+        assert_eq!(res1.generation, 1);
 
-        // Same UUID + same scope -> Idempotent reuse
+        // Same UUID + same scope -> Idempotent reuse with incremented subscriber & generation
         let res2 = manager.start_job(req1, FnEventSink(|_| true)).await.unwrap();
         assert_eq!(res2.reused_existing_job, true);
         assert_eq!(res2.job_id, res1.job_id);
+        assert_eq!(res2.subscriber_id, 2);
+        assert_eq!(res2.generation, 2);
 
         // Same UUID + different scope -> Conflict error
         let req3 = StartMediaIndexJobRequest {
@@ -1939,5 +1962,305 @@ mod tests {
         // Valid detach from subscriber 3 (gen 3) must succeed
         let detach_valid = manager.detach_channel(job_id, attach_res3.subscriber_id, 3).await;
         assert_eq!(detach_valid.detached, true);
+    }
+
+    #[tokio::test]
+    async fn test_start_reuse_returns_actual_subscriber_metadata_and_detach_succeeds() {
+        let manager = MediaIndexJobManager::with_page_source(
+            PathBuf::from("dummy"),
+            Arc::new(MockMediaPageSource {
+                pages: Vec::new(),
+                call_count: AtomicUsize::new(0),
+            }),
+        );
+
+        let req = StartMediaIndexJobRequest {
+            client_request_id: "req_reuse_detach".into(),
+            identity: TelegramIdentity {
+                session: "sess_reuse_det".into(),
+                api_id: 12345,
+                api_hash: "hash123".into(),
+            },
+            peer_id: "peer_reuse_det".into(),
+            topic_id: None,
+            page_size: Some(10),
+            initial_state: None,
+            force_mode: None,
+        };
+
+        // First start -> subscriber 1, generation 1
+        let res1 = manager.start_job(req.clone(), FnEventSink(|_| true)).await.unwrap();
+        assert_eq!(res1.reused_existing_job, false);
+        assert_eq!(res1.subscriber_id, 1);
+        assert_eq!(res1.generation, 1);
+
+        // Second start (reuse) -> subscriber 2, generation 2
+        let res2 = manager.start_job(req, FnEventSink(|_| true)).await.unwrap();
+        assert_eq!(res2.reused_existing_job, true);
+        assert_eq!(res2.subscriber_id, 2);
+        assert_eq!(res2.generation, 2);
+
+        // Detaching with reused actual subscriber (2, 2) must succeed
+        let detach_res = manager.detach_channel(res2.job_id, res2.subscriber_id, res2.generation).await;
+        assert_eq!(detach_res.detached, true);
+    }
+
+    #[tokio::test]
+    async fn test_ack_claimed_same_scope_start_does_not_replay_page() {
+        let manager = Arc::new(MediaIndexJobManager::with_page_source(
+            PathBuf::from("dummy"),
+            Arc::new(MockMediaPageSource {
+                pages: Vec::new(),
+                call_count: AtomicUsize::new(0),
+            }),
+        ));
+
+        let req = StartMediaIndexJobRequest {
+            client_request_id: "req_ack_claim_replay".into(),
+            identity: TelegramIdentity {
+                session: "sess_claim_replay".into(),
+                api_id: 12345,
+                api_hash: "hash123".into(),
+            },
+            peer_id: "peer_claim_replay".into(),
+            topic_id: None,
+            page_size: Some(10),
+            initial_state: None,
+            force_mode: None,
+        };
+
+        let start_res = manager.start_job(req.clone(), FnEventSink(|_| true)).await.unwrap();
+        let job_id = start_res.job_id;
+
+        let job = {
+            let inner = manager.inner.read().await;
+            inner.jobs.get(&job_id).cloned().unwrap()
+        };
+
+        // Simulate page 42 waiting for ACK
+        let page_event = MediaIndexPageEvent {
+            job_id,
+            ack_id: 42,
+            mode: MediaIndexMode::HistoricalBackfill,
+            rows: vec![sample_media_row(42)],
+            candidate_checkpoint: MediaIndexCheckpointCandidate {
+                account_id: "sess_claim_replay".into(),
+                peer_id: "peer_claim_replay".into(),
+                scope_kind: "all".into(),
+                topic_id_normalized: -1,
+                mode: "backfill".into(),
+                pv_committed_offset: 42,
+                doc_committed_offset: 0,
+                pv_committed_exhausted: false,
+                doc_committed_exhausted: false,
+                backfill_complete: false,
+                newest_committed_id: None,
+                delta_active: false,
+                delta_base_id: 0,
+                delta_pv_committed_offset: 0,
+                delta_doc_committed_offset: 0,
+                delta_pv_committed_exhausted: false,
+                delta_doc_committed_exhausted: false,
+                delta_complete: false,
+            },
+            lane_counts: None,
+            emitted_watermark: None,
+            lane_durability: None,
+            has_more: true,
+            metrics: MediaIndexMetricsSnapshot::default(),
+        };
+
+        {
+            let mut p = job.pending_page.write().await;
+            *p = Some(PendingPage {
+                ack_id: 42,
+                event: page_event,
+                emitted_at_ms: now_epoch_ms(),
+            });
+        }
+        job.expected_ack_id.store(42, Ordering::Release);
+
+        // Before claim: reuse start should replay page 42
+        let reuse1 = manager.start_job(req.clone(), FnEventSink(|_| true)).await.unwrap();
+        assert_eq!(reuse1.replayed_ack_id, Some(42));
+
+        // Now claim ACK 42 (e.g. frontend sent ACK)
+        let ack_res = manager.process_ack(MediaIndexPageAck {
+            job_id,
+            ack_id: 42,
+            outcome: MediaIndexAckOutcome::Committed,
+            committed_state: None,
+            error_code: None,
+        }).await;
+        assert_eq!(ack_res, MediaIndexAckResult::Accepted);
+        assert_eq!(job.claimed_ack_id.load(Ordering::Acquire), 42);
+
+        // After claim: reuse start MUST NOT replay page 42 (claimed >= expected)
+        let reuse2 = manager.start_job(req, FnEventSink(|_| true)).await.unwrap();
+        assert_eq!(reuse2.replayed_ack_id, None, "Page must not replay once claimed");
+    }
+
+    #[tokio::test]
+    async fn test_waiting_ack_explicit_detach_transitions_to_waiting_frontend_and_notifies() {
+        let manager = MediaIndexJobManager::with_page_source(
+            PathBuf::from("dummy"),
+            Arc::new(MockMediaPageSource {
+                pages: Vec::new(),
+                call_count: AtomicUsize::new(0),
+            }),
+        );
+
+        let req = StartMediaIndexJobRequest {
+            client_request_id: "req_detach_wf".into(),
+            identity: TelegramIdentity {
+                session: "sess_detach_wf".into(),
+                api_id: 12345,
+                api_hash: "hash123".into(),
+            },
+            peer_id: "peer_detach_wf".into(),
+            topic_id: None,
+            page_size: Some(10),
+            initial_state: None,
+            force_mode: None,
+        };
+
+        let start_res = manager.start_job(req, FnEventSink(|_| true)).await.unwrap();
+        let job_id = start_res.job_id;
+
+        let job = {
+            let inner = manager.inner.read().await;
+            inner.jobs.get(&job_id).cloned().unwrap()
+        };
+
+        // Simulate state in WaitingAck with outstanding page 1
+        {
+            let mut st = job.status.write().await;
+            st.state = MediaIndexJobState::WaitingAck;
+        }
+        job.expected_ack_id.store(1, Ordering::Release);
+
+        // Explicit detach of primary subscriber (1, 1)
+        let detach_res = manager.detach_channel(job_id, 1, 1).await;
+        assert_eq!(detach_res.detached, true);
+
+        // Status must transition to WaitingFrontend
+        let st = job.status.read().await.clone();
+        assert_eq!(st.state, MediaIndexJobState::WaitingFrontend);
+    }
+
+    #[tokio::test]
+    async fn test_flood_observer_pause_during_flood_emits_user_paused() {
+        let (state_tx, _state_rx) = watch::channel(MediaIndexDesiredState::Running);
+        let cancel = CancellationToken::new();
+        let (ack_tx, _) = mpsc::channel(1);
+
+        let initial_status = MediaIndexJobStatus {
+            job_id: 99,
+            state: MediaIndexJobState::FloodPaused,
+            mode: MediaIndexMode::HistoricalBackfill,
+            peer_safe_label: "test".into(),
+            topic_id: None,
+            created_at_ms: now_epoch_ms(),
+            started_at_ms: None,
+            updated_at_ms: now_epoch_ms(),
+            expected_ack_id: None,
+            metrics: MediaIndexMetricsSnapshot::default(),
+            terminal_error: None,
+        };
+
+        let control = Arc::new(MediaIndexJobControl {
+            job_id: 99,
+            session_key: "sess".into(),
+            client_request_id: "req".into(),
+            request_fingerprint: "fp".into(),
+            peer_id: "peer".into(),
+            topic_id: None,
+            created_at_ms: now_epoch_ms(),
+            state_tx: state_tx.clone(),
+            cancel: cancel.clone(),
+            ack_tx,
+            expected_ack_id: AtomicU64::new(0),
+            claimed_ack_id: AtomicU64::new(0),
+            last_processed_ack_id: AtomicU64::new(0),
+            primary_subscriber: RwLock::new(None),
+            next_subscriber_id: AtomicU64::new(1),
+            subscriber_generation: AtomicU64::new(1),
+            subscriber_notify: Arc::new(Notify::new()),
+            pending_page: RwLock::new(None),
+            status: Arc::new(RwLock::new(initial_status)),
+            terminal_at_ms: AtomicU64::new(0),
+        });
+
+        let observer = WorkerRpcObserver {
+            job_id: 99,
+            control: control.clone(),
+        };
+
+        // User paused while in FloodPaused
+        let _ = state_tx.send(MediaIndexDesiredState::Paused);
+
+        // When guard backoff ends, observer must transition to UserPaused (not Running)
+        observer.on_guard_backoff_end(1).await;
+
+        let st = control.status.read().await.clone();
+        assert_eq!(st.state, MediaIndexJobState::UserPaused);
+    }
+
+    #[tokio::test]
+    async fn test_flood_observer_cancel_during_flood_does_not_emit_running() {
+        let (state_tx, _state_rx) = watch::channel(MediaIndexDesiredState::Running);
+        let cancel = CancellationToken::new();
+        let (ack_tx, _) = mpsc::channel(1);
+
+        let initial_status = MediaIndexJobStatus {
+            job_id: 100,
+            state: MediaIndexJobState::FloodPaused,
+            mode: MediaIndexMode::HistoricalBackfill,
+            peer_safe_label: "test".into(),
+            topic_id: None,
+            created_at_ms: now_epoch_ms(),
+            started_at_ms: None,
+            updated_at_ms: now_epoch_ms(),
+            expected_ack_id: None,
+            metrics: MediaIndexMetricsSnapshot::default(),
+            terminal_error: None,
+        };
+
+        let control = Arc::new(MediaIndexJobControl {
+            job_id: 100,
+            session_key: "sess".into(),
+            client_request_id: "req".into(),
+            request_fingerprint: "fp".into(),
+            peer_id: "peer".into(),
+            topic_id: None,
+            created_at_ms: now_epoch_ms(),
+            state_tx,
+            cancel: cancel.clone(),
+            ack_tx,
+            expected_ack_id: AtomicU64::new(0),
+            claimed_ack_id: AtomicU64::new(0),
+            last_processed_ack_id: AtomicU64::new(0),
+            primary_subscriber: RwLock::new(None),
+            next_subscriber_id: AtomicU64::new(1),
+            subscriber_generation: AtomicU64::new(1),
+            subscriber_notify: Arc::new(Notify::new()),
+            pending_page: RwLock::new(None),
+            status: Arc::new(RwLock::new(initial_status)),
+            terminal_at_ms: AtomicU64::new(0),
+        });
+
+        let observer = WorkerRpcObserver {
+            job_id: 100,
+            control: control.clone(),
+        };
+
+        // Cancel job
+        cancel.cancel();
+
+        // When guard backoff ends on cancelled job, observer must return early and NOT transition to Running
+        observer.on_guard_backoff_end(1).await;
+
+        let st = control.status.read().await.clone();
+        assert_eq!(st.state, MediaIndexJobState::FloodPaused, "Status must not be overwritten to Running upon cancellation");
     }
 }

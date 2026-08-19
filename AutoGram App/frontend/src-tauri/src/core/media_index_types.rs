@@ -232,6 +232,9 @@ pub struct StartMediaIndexJobResponse {
     pub job_id: u64,
     pub state: MediaIndexJobState,
     pub reused_existing_job: bool,
+    pub subscriber_id: u64,
+    pub generation: u64,
+    pub replayed_ack_id: Option<u64>,
 }
 
 /// Response returned when attaching a new primary persistence Channel to an existing job.
