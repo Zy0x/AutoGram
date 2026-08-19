@@ -3362,6 +3362,8 @@ function MediaDriveDesktop({
 
     let lastRenderTime = Date.now();
     let lastProgressTime = 0;
+    let lastMetricCount = initialProcessed;
+    let lastMetricTime = startTimeMs;
     let accumulatedNewFiles: DriveFile[] = [];
     let indexedLoadedCount = initialProcessed;
     let dbBatch: any[] = [];
@@ -3449,12 +3451,14 @@ function MediaDriveDesktop({
         setTotalIndexedCount(indexedLoadedCount);
         const curLoaded = indexedLoadedCount;
         const curTotal = totalFileCount || initialTotal;
-        const metrics = calculateIndexingMetrics(curLoaded, curTotal, startTimeMs);
+        const now = Date.now();
+        const metrics = calculateIndexingMetrics(curLoaded, curTotal, startTimeMs, now, lastMetricCount, lastMetricTime);
+        lastMetricCount = curLoaded;
+        lastMetricTime = now;
 
         // Database-First Indexing with Bounded RAM Buffer (Max 2,500 items in RAM):
         // All items are written directly to IndexedDB SSD. RAM only holds the top active window.
         accumulatedNewFiles.push(...page);
-        const now = Date.now();
         if (now - lastRenderTime >= 900 || !res?.has_more) {
           const batchToAdd = accumulatedNewFiles;
           accumulatedNewFiles = [];

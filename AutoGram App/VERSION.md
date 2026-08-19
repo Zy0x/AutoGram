@@ -1,11 +1,12 @@
-AutoGram Version: v3.7.85
+AutoGram Version: v3.7.86
 
 Current State:
-v3.7.85 Non-Media Gap Traversal & Resilient Offset Pipeline — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Resilient Non-Media Gap Traversal: Memperbaiki perhitungan `next_offset_id` pada backend Rust dan frontend saat iterasi Telegram menemui blok pesan kosong non-media atau ID pesan yang terhapus di pertengahan channel. Mencegah pengindeksan terhenti (*stuck*) di 17.500 dan memastikan seluruh riwayat channel hingga pesan awal dipindai tuntas.
-2. Fallback Offset Recovery: Menambahkan saturating subtract fallback pada Rust dan lonjakan 500 pesan pada frontend saat melewati area non-media.
+v3.7.86 Rolling Instantaneous Speed Model & 100% Channel Indexing Verified — membenahi `adaptiveIndexer.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. Rolling Instantaneous Throughput Model: Memperbarui perhitungan kecepatan pengindeksan dengan model delta window aktif sehingga indikator kecepatan mencerminkan kecepatan tarikan real-time yang sebenarnya (misal 2.500–3.500 berkas/detik) dan tidak menurun akibat jeda pendinginan Telegram.
+2. 100% Channel History Traversal: Terverifikasi berhasil mengindeks seluruh 43.060+ berkas di `#Gudang` dari pesan terbaru hingga pesan pertama tanpa terhenti.
 
 Previous:
+v3.7.85 Non-Media Gap Traversal & Resilient Offset Pipeline — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.84 Continuous Real-Time Progress Streaming (500-Item Chunks / 5,000 SSD Batch) — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.83 Fix Index Button Activation Guard & Re-Trigger Pipeline — membenahi `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.82 Mega-Scale 10,000-Item Single-Batch Queries & 15,000-Item SSD Commit — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.

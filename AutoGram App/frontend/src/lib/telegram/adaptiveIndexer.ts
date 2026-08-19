@@ -97,19 +97,32 @@ export function formatEta(etaSeconds: number | null): string | null {
 
 /**
  * Calculate real-time indexing metrics (percentage, speed in msg/sec, ETA).
+ * Uses instantaneous delta window so speed accurately reflects true active throughput
+ * (e.g. 2.5k - 3.5k msgs/sec) rather than decaying cumulative average.
  */
 export function calculateIndexingMetrics(
   processed: number,
   total: number | null | undefined,
   startTimeMs: number,
-  nowMs: number = Date.now()
+  nowMs: number = Date.now(),
+  lastProcessed?: number,
+  lastTimeMs?: number
 ): IndexingMetrics {
   const percent = (total && total > 0)
     ? Math.min(100, Math.max(0, Math.round((processed / total) * 100)))
     : 0;
 
-  const elapsedSec = Math.max(0.1, (nowMs - startTimeMs) / 1000);
-  const speedMsgPerSec = Math.round(processed / elapsedSec);
+  let speedMsgPerSec = 0;
+  if (lastProcessed != null && lastTimeMs != null && nowMs > lastTimeMs) {
+    const deltaItems = Math.max(0, processed - lastProcessed);
+    const deltaSec = Math.max(0.05, (nowMs - lastTimeMs) / 1000);
+    speedMsgPerSec = Math.round(deltaItems / deltaSec);
+  }
+
+  if (speedMsgPerSec <= 0) {
+    const elapsedSec = Math.max(0.1, (nowMs - startTimeMs) / 1000);
+    speedMsgPerSec = Math.round(processed / elapsedSec);
+  }
 
   let etaSeconds: number | null = null;
   if (total && total > processed && speedMsgPerSec > 0) {

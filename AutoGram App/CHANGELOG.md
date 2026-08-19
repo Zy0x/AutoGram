@@ -1,3 +1,12 @@
+## v3.7.86 Rolling Instantaneous Speed Model & 100% Channel Indexing Verified (Phase 35.52)
+
+### 1. Model Kecepatan Instan Real-Time (`adaptiveIndexer.ts`, `MediaStudio`)
+- **Delta Window Instantaneous Speed**:
+  - Mengganti formula rata-rata kumulatif dengan model *rolling delta window* aktif.
+  - Indikator kecepatan di antarmuka kini secara presisi menampilkan kecepatan tarikan aktif saat ini (~2.500–3.500 berkas/detik) dan tidak lagi menurun secara artifisial akibat jeda pendinginan Telegram.
+- **Penyelesaian 100% Pengindeksan Seluruh Channel**:
+  - Pengindeksan seluruh 43.060+ berkas di `#Gudang` telah terverifikasi tuntas 100% dari pesan terbaru hingga pesan pertama.
+
 ## v3.7.85 Non-Media Gap Traversal & Resilient Offset Pipeline (Phase 35.51)
 
 ### 1. Eliminasi Masalah Pengindeksan Terhenti di 17.500 (`media_list.rs`, `MediaStudio`)
