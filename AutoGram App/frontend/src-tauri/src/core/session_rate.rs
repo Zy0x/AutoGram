@@ -13,15 +13,30 @@ use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
 use super::tg_error::{TgError, TgErrorCode};
 
+/// Stable RPC Method Classification for fine-grained FloodWait isolation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum RpcClass {
+    IndexSearch,
+    IndexCounters,
+    IndexRepair,
+    MediaPreview,
+    MediaDownload,
+    WriteOperation,
+    GeneralRead,
+}
+
 /// Concurrent GetFile pipelines per session. 2 allows bootstrap of a new
 /// preview while the previous fill is cancelling (was 1 → open stuck "Memuat").
 const MAX_MEDIA_DOWNLOADS: usize = 2;
 const MAX_PREVIEW_CONCURRENCY: usize = 2;
 const MAX_FAST_THUMB_CONCURRENCY: usize = 12;
 const MAX_VIDEO_THUMB_CONCURRENCY: usize = 4;
+const MAX_INDEX_CONCURRENCY: usize = 2;
 
 struct SessionRate {
     flood_until: Option<Instant>,
+    class_flood_until: HashMap<RpcClass, Instant>,
+    index_sem: std::sync::Arc<Semaphore>,
     media_sem: std::sync::Arc<Semaphore>,
     preview_sem: std::sync::Arc<Semaphore>,
     fast_sem: std::sync::Arc<Semaphore>,
@@ -44,6 +59,8 @@ fn with_rate<R>(session: &str, f: impl FnOnce(&mut SessionRate) -> R) -> R {
         SessionRate {
             flood_until: restored_wait
                 .map(|seconds| Instant::now() + Duration::from_secs(u64::from(seconds))),
+            class_flood_until: HashMap::new(),
+            index_sem: std::sync::Arc::new(Semaphore::new(MAX_INDEX_CONCURRENCY)),
             media_sem: std::sync::Arc::new(Semaphore::new(MAX_MEDIA_DOWNLOADS)),
             preview_sem: std::sync::Arc::new(Semaphore::new(MAX_PREVIEW_CONCURRENCY)),
             fast_sem: std::sync::Arc::new(Semaphore::new(MAX_FAST_THUMB_CONCURRENCY)),
@@ -56,8 +73,9 @@ fn with_rate<R>(session: &str, f: impl FnOnce(&mut SessionRate) -> R) -> R {
 }
 
 /// Record a FLOOD_WAIT so subsequent ops sleep before touching MTProto.
+/// Invariant: Never truncates Telegram-provided FloodWait durations (no 600s clamp).
 pub fn note_flood_wait(session: &str, secs: u32) {
-    let secs = secs.clamp(1, 600);
+    let secs = secs.max(1);
     let until = Instant::now() + Duration::from_secs(u64::from(secs));
     with_rate(session, |e| {
         e.flood_until = match e.flood_until {
@@ -72,7 +90,26 @@ pub fn note_flood_wait(session: &str, secs: u32) {
     );
 }
 
+/// Record a class-specific FLOOD_WAIT without needlessly freezing unrelated operations.
+pub fn note_flood_wait_class(session: &str, class: RpcClass, secs: u32) {
+    let secs = secs.max(1);
+    let until = Instant::now() + Duration::from_secs(u64::from(secs));
+    with_rate(session, |e| {
+        let prev = e.class_flood_until.get(&class).copied();
+        if prev.map(|p| p < until).unwrap_or(true) {
+            e.class_flood_until.insert(class, until);
+        }
+    });
+    // Also persist for crash-safety
+    let _ = crate::core::autogram_core::transfer::persist_account_rate_gate(
+        session,
+        secs,
+        "telegram_flood_wait",
+    );
+}
+
 /// Parse FLOOD_WAIT or FLOOD_PREMIUM_WAIT seconds from Telegram RPC error text if present.
+/// Supports full u32 wait durations without arbitrary <=3600 restriction.
 pub fn parse_flood_secs(err: &str) -> Option<u32> {
     let low = err.to_ascii_lowercase();
     if !low.contains("flood")
@@ -87,7 +124,7 @@ pub fn parse_flood_secs(err: &str) -> Option<u32> {
         let after = &low[val_idx..];
         for part in after.split(|c: char| !c.is_ascii_digit()) {
             if let Ok(n) = part.parse::<u32>() {
-                if (1..3600).contains(&n) && n != 420 && n != 400 {
+                if n > 0 && n != 420 && n != 400 {
                     return Some(n);
                 }
             }
@@ -98,7 +135,7 @@ pub fn parse_flood_secs(err: &str) -> Option<u32> {
         let after = &low[wait_idx..];
         for part in after.split(|c: char| !c.is_ascii_digit()) {
             if let Ok(n) = part.parse::<u32>() {
-                if (1..3600).contains(&n) && n != 420 && n != 400 {
+                if n > 0 && n != 420 && n != 400 {
                     return Some(n);
                 }
             }
@@ -107,7 +144,7 @@ pub fn parse_flood_secs(err: &str) -> Option<u32> {
     // 3. Fallback: find any number except HTTP/RPC status 420 / 400
     for part in low.split(|c: char| !c.is_ascii_digit()) {
         if let Ok(n) = part.parse::<u32>() {
-            if (1..3600).contains(&n) && n != 420 && n != 400 {
+            if n > 0 && n != 420 && n != 400 {
                 return Some(n);
             }
         }
@@ -115,7 +152,7 @@ pub fn parse_flood_secs(err: &str) -> Option<u32> {
     None
 }
 
-/// If FloodWait is active, return remaining seconds.
+/// If FloodWait is active, return remaining seconds without artificial truncation.
 pub fn flood_remaining_secs(session: &str) -> Option<u32> {
     with_rate(session, |e| {
         let until = e.flood_until?;
@@ -124,7 +161,45 @@ pub fn flood_remaining_secs(session: &str) -> Option<u32> {
             e.flood_until = None;
             return None;
         }
-        Some((until - now).as_secs().min(600) as u32)
+        let remaining = (until - now).as_secs();
+        Some(remaining.min(u64::from(u32::MAX)) as u32)
+    })
+}
+
+/// If FloodWait is active for a specific RPC class or globally, return remaining seconds.
+pub fn flood_remaining_secs_class(session: &str, class: RpcClass) -> Option<u32> {
+    with_rate(session, |e| {
+        let now = Instant::now();
+        // Check global emergency gate first
+        let global_rem = if let Some(u) = e.flood_until {
+            if u > now {
+                Some((u - now).as_secs())
+            } else {
+                e.flood_until = None;
+                None
+            }
+        } else {
+            None
+        };
+
+        // Check class-specific gate
+        let class_rem = if let Some(u) = e.class_flood_until.get(&class).copied() {
+            if u > now {
+                Some((u - now).as_secs())
+            } else {
+                e.class_flood_until.remove(&class);
+                None
+            }
+        } else {
+            None
+        };
+
+        match (global_rem, class_rem) {
+            (Some(g), Some(c)) => Some(g.max(c).min(u64::from(u32::MAX)) as u32),
+            (Some(g), None) => Some(g.min(u64::from(u32::MAX)) as u32),
+            (None, Some(c)) => Some(c.min(u64::from(u32::MAX)) as u32),
+            (None, None) => None,
+        }
     })
 }
 
@@ -187,6 +262,33 @@ pub async fn wait_if_flooded_capped(session: &str, max_wait: Duration) -> Result
     }
 }
 
+/// Block (async) until class flood window ends for this session.
+pub async fn wait_if_flooded_class(session: &str, class: RpcClass) -> Result<(), TgError> {
+    loop {
+        let wait = flood_remaining_secs_class(session, class);
+        match wait {
+            None | Some(0) => return Ok(()),
+            Some(secs) if secs > 180 => {
+                return Err(TgError::with_flood(secs, "FLOOD_WAIT"));
+            }
+            Some(secs) => {
+                let d = Duration::from_secs(u64::from(secs));
+                tokio::time::sleep(d.min(Duration::from_secs(3))).await;
+            }
+        }
+    }
+}
+
+/// Fail-fast if still flooded globally or for a specific class.
+pub fn ensure_not_flooded_class(session: &str, class: RpcClass) -> Result<(), TgError> {
+    if let Some(secs) = flood_remaining_secs_class(session, class) {
+        if secs > 0 {
+            return Err(TgError::with_flood(secs, "FLOOD_WAIT"));
+        }
+    }
+    Ok(())
+}
+
 /// Fail-fast if still flooded (stops preview spam).
 pub fn ensure_not_flooded(session: &str) -> Result<(), TgError> {
     if let Some(secs) = flood_remaining_secs(session) {
@@ -195,6 +297,26 @@ pub fn ensure_not_flooded(session: &str) -> Result<(), TgError> {
         }
     }
     Ok(())
+}
+
+/// Acquire indexing slot (up to 2 permits per session control plane).
+pub async fn acquire_index_slot(session: &str) -> Result<OwnedSemaphorePermit, TgError> {
+    ensure_not_flooded_class(session, RpcClass::IndexSearch)?;
+    let sem = with_rate(session, |e| e.index_sem.clone());
+    match sem.clone().try_acquire_owned() {
+        Ok(p) => Ok(p),
+        Err(_) => match tokio::time::timeout(Duration::from_secs(8), sem.acquire_owned()).await {
+            Ok(Ok(p)) => Ok(p),
+            Ok(Err(_)) => Err(TgError::new(
+                TgErrorCode::Internal,
+                "index semaphore closed",
+            )),
+            Err(_) => Err(TgError::new(
+                TgErrorCode::Timeout,
+                "index slot busy — antrean indeks penuh",
+            )),
+        },
+    }
 }
 
 /// Acquire media-download slot (short bootstrap only — never hold for full file).

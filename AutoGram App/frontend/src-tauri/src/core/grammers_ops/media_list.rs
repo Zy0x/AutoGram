@@ -645,20 +645,14 @@ pub fn list_media_blocking_topic(
     topic_id: Option<i64>,
 ) -> Result<ListMediaResult, TgError> {
     let rt = runtime()?;
-    let limit = limit.clamp(1, 1000);
+    let limit = limit.clamp(1, 100);
     let chat = chat_id.to_string();
     let folder_id: Option<i64> = if chat.eq_ignore_ascii_case("me") || chat == "0" {
         None
     } else {
         chat.parse().ok()
     };
-    let topic_filter = topic_id.filter(|t| *t > 0);
-    // High-Throughput Sub-Second Streaming Limit (up to 1,000 files / 2,000 scan limit per tick)
-    let scan_limit = if topic_filter.is_some() {
-        (limit * 2).clamp(150, 2000)
-    } else {
-        (limit * 2).clamp(150, 2000)
-    };
+    let top_msg_id = topic_id.filter(|t| *t > 0).map(|t| t as i32);
     let session_name = identity.session.clone();
 
     rt.block_on(async {
@@ -680,130 +674,77 @@ pub fn list_media_blocking_topic(
                         }
                     }
                     let peer = peer_res?;
+                    let input_peer: grammers_client::tl::enums::InputPeer = (&peer).into();
+                    let cur_offset_id = offset_id.unwrap_or(0) as i32;
+
+                    // Server-Side Guarded Media Search
+                    let req = grammers_client::tl::functions::messages::Search {
+                        peer: input_peer,
+                        q: String::new(),
+                        from_id: None,
+                        saved_peer_id: None,
+                        saved_reaction: None,
+                        top_msg_id,
+                        filter: grammers_client::tl::enums::MessagesFilter::InputMessagesFilterEmpty,
+                        min_date: 0,
+                        max_date: 0,
+                        offset_id: cur_offset_id,
+                        add_offset: 0,
+                        limit: limit as i32,
+                        max_id: 0,
+                        min_id: 0,
+                        hash: 0,
+                    };
+
+                    let res = crate::core::telegram_rpc_guard::invoke_guarded(
+                        &session_name,
+                        crate::core::session_rate::RpcClass::IndexSearch,
+                        "messages.search",
+                        || client.invoke(&req),
+                    )
+                    .await?;
+
+                    let mut total_count_res = None;
+                    let raw_msgs = match res.value {
+                        grammers_client::tl::enums::messages::Messages::Messages(m) => m.messages,
+                        grammers_client::tl::enums::messages::Messages::Slice(m) => {
+                            total_count_res = Some(m.count as usize);
+                            m.messages
+                        }
+                        grammers_client::tl::enums::messages::Messages::ChannelMessages(m) => {
+                            total_count_res = Some(m.count as usize);
+                            m.messages
+                        }
+                        grammers_client::tl::enums::messages::Messages::NotModified(_) => Vec::new(),
+                    };
+
+                    let raw_len = raw_msgs.len();
                     let mut files = Vec::new();
                     let mut last_id: Option<i64> = None;
-                    let mut scanned = 0usize;
-                    let mut total_count_res: Option<usize> = None;
 
-                    if let Some(want) = topic_filter {
-                        let input_peer: grammers_client::tl::enums::InputPeer = (&peer).into();
-                        let mut cur_offset_id = offset_id.unwrap_or(0) as i32;
-
-                        loop {
-                            let req = grammers_client::tl::functions::messages::GetReplies {
-                                peer: input_peer.clone(),
-                                msg_id: want as i32,
-                                offset_id: cur_offset_id,
-                                offset_date: 0,
-                                add_offset: 0,
-                                limit: 100,
-                                max_id: 0,
-                                min_id: 0,
-                                hash: 0,
-                            };
-
-                            let res = match client.invoke(&req).await {
-                                Ok(r) => r,
-                                Err(_) => break,
-                            };
-
-                            let raw_msgs = match res {
-                                grammers_client::tl::enums::messages::Messages::Messages(m) => m.messages,
-                                grammers_client::tl::enums::messages::Messages::Slice(m) => {
-                                    total_count_res = Some(m.count as usize);
-                                    m.messages
-                                }
-                                grammers_client::tl::enums::messages::Messages::ChannelMessages(m) => {
-                                    total_count_res = Some(m.count as usize);
-                                    m.messages
-                                }
-                                grammers_client::tl::enums::messages::Messages::NotModified(_) => Vec::new(),
-                            };
-
-                            if raw_msgs.is_empty() {
-                                break;
-                            }
-
-                            let batch_len = raw_msgs.len();
-                            for tl_msg in raw_msgs {
-                                if let grammers_client::tl::enums::Message::Message(ref m) = tl_msg {
-                                    last_id = Some(m.id as i64);
-                                    cur_offset_id = m.id;
-                                    scanned += 1;
-                                }
-                                if let Some(row) = tl_message_to_row(&tl_msg, folder_id) {
-                                    files.push(row);
-                                    if files.len() >= limit {
-                                        break;
-                                    }
-                                }
-                            }
-
-                            if files.len() >= limit || batch_len < 100 || scanned >= 2000 {
-                                break;
-                            }
+                    for tl_msg in raw_msgs {
+                        if let grammers_client::tl::enums::Message::Message(ref m) = tl_msg {
+                            last_id = Some(m.id as i64);
                         }
-                    } else {
-                        let mut iter = client.iter_messages(peer).limit(scan_limit);
-                        if let Some(oid) = offset_id {
-                            if oid > 0 {
-                                iter = iter.offset_id(oid as i32);
-                            }
-                        }
-
-                        let mut first_item = iter.next().await;
-                        if let Err(ref e) = first_item {
-                            let err_str = e.to_string();
-                            if err_str.contains("CHANNEL_INVALID")
-                                || err_str.contains("CHANNEL_PRIVATE")
-                                || err_str.contains("PEER_ID_INVALID")
-                            {
-                                clear_peer_cache_for_all(&chat);
-                                let fresh_peer = resolve_peer(client, &chat).await?;
-                                let mut fresh_iter = client.iter_messages(fresh_peer).limit(scan_limit);
-                                if let Some(oid) = offset_id {
-                                    if oid > 0 {
-                                        fresh_iter = fresh_iter.offset_id(oid as i32);
-                                    }
-                                }
-                                iter = fresh_iter;
-                                first_item = iter.next().await;
-                            }
-                        }
-
-                        while let Ok(Some(msg)) = first_item {
-                            last_id = Some(msg.id() as i64);
-                            scanned += 1;
-                            if let Some(row) = media_to_row(&msg, folder_id) {
-                                files.push(row);
-                                if files.len() >= limit {
-                                    break;
-                                }
-                            }
-                            first_item = iter.next().await;
+                        if let Some(row) = tl_message_to_row(&tl_msg, folder_id) {
+                            files.push(row);
                         }
                     }
-                    let next_offset_id = if let Some(lid) = last_id {
-                        if lid > 1 { Some(lid) } else { None }
-                    } else if let Some(fid) = files.last().map(|f| f.id) {
-                        if fid > 1 { Some(fid) } else { None }
-                    } else if let Some(oid) = offset_id {
-                        if oid > 1 { Some(oid.saturating_sub(limit as i64).max(1)) } else { None }
-                    } else {
-                        None
-                    };
-                    let has_more = next_offset_id.is_some() || files.len() >= limit;
+
+                    let has_more = raw_len >= limit && last_id.map_or(false, |id| id > 1);
+                    let next_offset_id = if has_more { last_id } else { None };
+
                     Ok(ListMediaResult {
-                        status: "success".into(),
+                        status: "ok".to_string(),
                         folder_id,
                         total: files.len(),
                         page_size: limit,
                         has_more,
                         next_offset_id,
                         total_count: total_count_res,
-                        files,
-                        backend: BACKEND.into(),
+                        backend: BACKEND.to_string(),
                         cached: false,
+                        files,
                     })
                 })
             })

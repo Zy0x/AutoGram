@@ -1,11 +1,14 @@
-AutoGram Version: v3.7.88
+AutoGram Version: v3.7.89
 
 Current State:
-v3.7.88 AIMD Adaptive Rate Controller & Architectural Limiter Decoupling — membenahi `adaptiveIndexer.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. AIMD (Additive Increase, Multiplicative Decrease) Rate Controller: Menggantikan delay statis dengan algoritma AIMD dinamis. Pacing secara adaptif meningkat saat latensi rendah dan menurun secara proporsional saat mendekati batas server, secara otomatis mencapai titik throughput maksimal berkelanjutan tanpa memicu siklus `FLOOD_WAIT` berulang.
-2. Independent Limiter Decoupling: Menegakkan pemisahan tegas antara pembatas RPC Metadata (AIMD rate controller), pembatas Download Media (5/2 worker pool per DC + 1 MiB chunk), dan pembatas Commit Database SSD (batch asynchronous).
+v3.7.89 Server-Filtered MTProto Search & Guarded Control Plane (P0 & P1 Complete) — membenahi `session_rate.rs`, `telegram_rpc_guard.rs`, `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. P0 Exact FloodWait Durations: Menghapus seluruh pembatasan/pemotongan durasi wait 600s/3600s pada `session_rate.rs`, menyimpan waktu kedaluwarsa absolut (wall-clock), dan mendukung durasi `u32` penuh tanpa batasan buatan.
+2. P0 Eliminasi Silent Errors: Menghapus seluruh `Err(_) => break` pada modul indexing. Setiap error MTProto dipetakan secara terstruktur melalui `telegram_rpc_guard::invoke_guarded`.
+3. P1 Server-Filtered Search Engine: Mengganti pemindaian riwayat linear dengan `messages.search` server-side resmi Telegram yang mendukung `top_msg_id` (forum topics) dan filter media langsung di Data Center Telegram.
+4. P1 Method-Class Flood Gate & Index Permits: Mengisolasi status flood per-class (`RpcClass::IndexSearch`) dan membatasi konkurensi indeks maksimum 2 permit.
 
 Previous:
+v3.7.88 AIMD Adaptive Rate Controller & Architectural Limiter Decoupling — membenahi `adaptiveIndexer.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.87 Golden Sweet-Spot (750-Item Pipeline, 3ms Adaptive Pacing, Zero-Reconnect FloodWait) — membenahi `client_pool.rs`, `adaptiveIndexer.ts`, `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.86 Rolling Instantaneous Speed Model & 100% Channel Indexing Verified — membenahi `adaptiveIndexer.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.85 Non-Media Gap Traversal & Resilient Offset Pipeline — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.

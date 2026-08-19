@@ -1,3 +1,19 @@
+## v3.7.89 Server-Filtered MTProto Search & Guarded Control Plane (P0 & P1 Complete) (Phase 35.55)
+
+### 1. P0 Keselamatan & Penanganan Error Mutlak (`session_rate.rs`, `telegram_rpc_guard.rs`)
+- **Penghapusan Truncation FloodWait**:
+  - Menghapus pembatasan `clamp(1, 600)` dan `< 3600` pada parser dan register flood. Durasi `FLOOD_WAIT_X` kini dipatuhi dan disimpan secara persis sesuai instruksi server Telegram (termasuk durasi panjang).
+- **Eliminasi Silent Errors**:
+  - Menghapus pola `Err(_) => break` yang sebelumnya dapat menghentikan pengindeksan topik secara diam-diam.
+- **Guarded RPC Layer (`telegram_rpc_guard.rs`)**:
+  - Seluruh pemanggilan Telegram RPC kini melalui gerbang `invoke_guarded` dengan pelacakan latensi, isolasi per-class flood gate (`RpcClass::IndexSearch`), dan propagasi error terstruktur.
+
+### 2. P1 Server-Filtered Search Engine (`media_list.rs`, `MediaStudio`)
+- **Server-Side Media Discovery (`messages.search`)**:
+  - Menggantikan pemindaian riwayat linear (`iter_messages`) dengan `messages.search` server-side, meminta server Telegram Data Center untuk langsung menyaring pesan media dan melewati pesan teks/stiker di sisi server.
+- **Dukungan Forum Topics via `top_msg_id`**:
+  - Menyatukan penarikan media obrolan biasa dan forum topics ke dalam satu mesin `messages.search` terpadu.
+
 ## v3.7.88 AIMD Adaptive Rate Controller & Architectural Limiter Decoupling (Phase 35.54)
 
 ### 1. Implementasi Algoritma AIMD Rate Controller (`adaptiveIndexer.ts`, `MediaStudio`)

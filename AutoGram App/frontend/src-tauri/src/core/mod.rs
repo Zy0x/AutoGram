@@ -46,6 +46,7 @@ pub mod streaming_policy;
 pub mod studio_orch;
 pub use studio_orch as drive_upload_orchestrator;
 pub mod telegram_ops;
+pub mod telegram_rpc_guard;
 pub mod telethon_session_import;
 pub mod tg_error;
 pub mod tg_log;
