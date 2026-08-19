@@ -3400,41 +3400,32 @@ function MediaDriveDesktop({
 
         const reqStart = Date.now();
         let res: any = null;
-        let retries = 0;
-        while (retries < 5 && indexingActiveRef.current) {
-          try {
-            res = await driveListFiles(creds, peerId, {
-              pageSize: 100,
-              offsetId: offset,
-              topicId: tid,
-              quickStats: false,
-              sortMode: 'newest',
-              localOffset: currentTotalLoaded,
-            });
+        let reqLatency = 0;
+        try {
+          res = await driveListFiles(creds, peerId, {
+            pageSize: 100,
+            offsetId: offset,
+            topicId: tid,
+            quickStats: false,
+            sortMode: 'newest',
+            localOffset: currentTotalLoaded,
+          });
+          reqLatency = Date.now() - reqStart;
+          rateController.onSuccess(reqLatency);
+        } catch (err: any) {
+          console.warn('[Indexer] driveListFiles guarded error:', err);
+          // When Rust encounters a long FloodWait or unrecoverable error, pause indexing gracefully
+          const isFlood = err?.code === 'flood_wait' || String(err?.message || '').toLowerCase().includes('flood');
+          if (isFlood) {
+            const waitSec = err?.flood_wait_secs || 30;
+            setIndexingJob((prev: any) => prev ? {
+              ...prev,
+              text: t('speedtest.floodwait_countdown', { seconds: waitSec }) || `FloodWait: menunggu ${waitSec}s...`
+            } : prev);
             break;
-          } catch (err: any) {
-            retries++;
-            const errMsg = String(err?.message || err || '');
-            const floodMatch = errMsg.match(/FLOOD_WAIT_?(\d+)/i) || errMsg.match(/wait\s*(\d+)\s*s/i);
-            const waitSeconds = floodMatch ? parseInt(floodMatch[1], 10) : 0;
-
-            if (waitSeconds > 0) {
-              rateController.onFloodWait(waitSeconds);
-              console.warn(`[Indexer] Telegram FloodWait detected: waiting ${waitSeconds}s before auto-resuming`);
-              setIndexingJob((prev: any) => prev ? {
-                ...prev,
-                text: t('speedtest.floodwait_countdown', { seconds: waitSeconds }) || `FloodWait: menunggu ${waitSeconds}s...`
-              } : prev);
-              await new Promise((r) => setTimeout(r, (waitSeconds + 1) * 1000));
-            } else {
-              console.warn(`[Indexer] driveListFiles attempt ${retries} failed:`, err);
-              if (retries >= 5) break;
-              await new Promise((r) => setTimeout(r, 350 * retries));
-            }
           }
+          break;
         }
-        const reqLatency = Date.now() - reqStart;
-        rateController.onSuccess(reqLatency);
 
         if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) break;
 
@@ -3447,7 +3438,11 @@ function MediaDriveDesktop({
           if (dbBatch.length >= 250 || !res?.has_more) {
             const toWrite = dbBatch;
             dbBatch = [];
-            void saveMediaRecords(toWrite).catch(() => {});
+            try {
+              await saveMediaRecords(toWrite);
+            } catch (dbErr) {
+              console.error('[Indexer] Error persisting media batch to database:', dbErr);
+            }
           }
         }
 

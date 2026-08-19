@@ -1,3 +1,24 @@
+## v3.7.90 Multi-Lane Server Media Search, Single Rust Flood Authority & Concurrency Permits (P1.1 Complete) (Phase 35.56)
+
+### 1. P1.1 Real Multi-Lane Server-Side Search (`InputMessagesFilterPhotoVideo` & `InputMessagesFilterDocument`)
+- **Native Server-Side Filtering**:
+  - Menggantikan `InputMessagesFilterEmpty` dengan multi-lane query yang secara paralel memanggil `InputMessagesFilterPhotoVideo` dan `InputMessagesFilterDocument`.
+  - Memfilter 100% media langsung di Telegram Data Center sehingga tidak ada lagi pesan teks murni atau stiker yang dikirim melalui MTProto wire.
+  - Menggabungkan dan men-deduplikasi seluruh berkas media berdasarkan `message.id` secara descending dengan cursor traversal yang sinkron.
+
+### 2. P1.1 Single Rust Flood Authority & Eliminasi Dual Ownership
+- **Pembersihan Kontrol React**:
+  - Menghapus regex parsing `FLOOD_WAIT` dan `setTimeout` Telegram-specific sleep pada React `MediaStudio/index.tsx`.
+  - Menghapus panggilan salah `rateController.onSuccess` saat respons error/null.
+- **Rust-Side Auto Retry & Backoff**:
+  - `telegram_rpc_guard` kini menjadi satu-satunya otoritas yang mengelola backoff sleep dan auto-retry untuk wait durasi wajar ($\le 45$s) sebelum mengembalikan error terstruktur ke UI.
+
+### 3. P1.1 Concurrency Enforcement & Awaited Database Writes
+- **Permit Acquisition**:
+  - `telegram_rpc_guard` mewajibkan akuisisi `acquire_index_slot` sebelum melakukan RPC `messages.search`.
+- **Durable Database Persistence**:
+  - Operasi commit batch IndexedDB (`saveMediaRecords`) kini di-`await` secara ketat sebelum cursor maju, mencegah terjadinya phantom indexing jika terjadi kegagalan penyimpanan.
+
 ## v3.7.89 Server-Filtered MTProto Search & Guarded Control Plane (P0 & P1 Complete) (Phase 35.55)
 
 ### 1. P0 Keselamatan & Penanganan Error Mutlak (`session_rate.rs`, `telegram_rpc_guard.rs`)

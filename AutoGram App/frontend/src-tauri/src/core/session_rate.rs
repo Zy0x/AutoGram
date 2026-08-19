@@ -100,12 +100,6 @@ pub fn note_flood_wait_class(session: &str, class: RpcClass, secs: u32) {
             e.class_flood_until.insert(class, until);
         }
     });
-    // Also persist for crash-safety
-    let _ = crate::core::autogram_core::transfer::persist_account_rate_gate(
-        session,
-        secs,
-        "telegram_flood_wait",
-    );
 }
 
 /// Parse FLOOD_WAIT or FLOOD_PREMIUM_WAIT seconds from Telegram RPC error text if present.

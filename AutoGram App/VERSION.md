@@ -1,13 +1,14 @@
-AutoGram Version: v3.7.89
+AutoGram Version: v3.7.90
 
 Current State:
-v3.7.89 Server-Filtered MTProto Search & Guarded Control Plane (P0 & P1 Complete) — membenahi `session_rate.rs`, `telegram_rpc_guard.rs`, `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. P0 Exact FloodWait Durations: Menghapus seluruh pembatasan/pemotongan durasi wait 600s/3600s pada `session_rate.rs`, menyimpan waktu kedaluwarsa absolut (wall-clock), dan mendukung durasi `u32` penuh tanpa batasan buatan.
-2. P0 Eliminasi Silent Errors: Menghapus seluruh `Err(_) => break` pada modul indexing. Setiap error MTProto dipetakan secara terstruktur melalui `telegram_rpc_guard::invoke_guarded`.
-3. P1 Server-Filtered Search Engine: Mengganti pemindaian riwayat linear dengan `messages.search` server-side resmi Telegram yang mendukung `top_msg_id` (forum topics) dan filter media langsung di Data Center Telegram.
-4. P1 Method-Class Flood Gate & Index Permits: Mengisolasi status flood per-class (`RpcClass::IndexSearch`) dan membatasi konkurensi indeks maksimum 2 permit.
+v3.7.90 Multi-Lane Server Media Search, Single Rust Flood Authority & Concurrency Permits (P1.1 Complete) — membenahi `session_rate.rs`, `telegram_rpc_guard.rs`, `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. P1.1 Real Multi-Lane Server-Filtered Search: Menggunakan filter native Telegram `InputMessagesFilterPhotoVideo` dan `InputMessagesFilterDocument` secara paralel per-lane, menghasilkan 100% media terfilter murni di sisi server Telegram Data Center tanpa mengunduh pesan teks/stiker.
+2. P1.1 Single Flood Authority in Rust: Menghapus dual control plane. Regex parsing FLOOD_WAIT dan sleep Telegram-specific di React telah dihapus 100%. Rust menjadi satu-satunya otoritas pengatur FloodWait, permit semaphore, dan retry backoff.
+3. P1.1 Strict Index Concurrency & Permit Enforcement: `telegram_rpc_guard` kini secara aktif mengakuisisi `acquire_index_slot` (basis 1 inflight, maks 2) sebelum melakukan eksekusi RPC.
+4. P1.1 Awaited Durable Database Writes: Operasi `saveMediaRecords` kini di-`await` secara aman sebelum cursor dipindahkan, mencegah terjadinya phantom index data loss.
 
 Previous:
+v3.7.89 Server-Filtered MTProto Search & Guarded Control Plane (P0 & P1 Complete) — membenahi `session_rate.rs`, `telegram_rpc_guard.rs`, `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.88 AIMD Adaptive Rate Controller & Architectural Limiter Decoupling — membenahi `adaptiveIndexer.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.87 Golden Sweet-Spot (750-Item Pipeline, 3ms Adaptive Pacing, Zero-Reconnect FloodWait) — membenahi `client_pool.rs`, `adaptiveIndexer.ts`, `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.86 Rolling Instantaneous Speed Model & 100% Channel Indexing Verified — membenahi `adaptiveIndexer.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.

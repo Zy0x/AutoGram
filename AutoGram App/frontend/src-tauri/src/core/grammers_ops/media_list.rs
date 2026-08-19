@@ -677,74 +677,101 @@ pub fn list_media_blocking_topic(
                     let input_peer: grammers_client::tl::enums::InputPeer = (&peer).into();
                     let cur_offset_id = offset_id.unwrap_or(0) as i32;
 
-                    // Server-Side Guarded Media Search
-                    let req = grammers_client::tl::functions::messages::Search {
-                        peer: input_peer,
-                        q: String::new(),
-                        from_id: None,
-                        saved_peer_id: None,
-                        saved_reaction: None,
-                        top_msg_id,
-                        filter: grammers_client::tl::enums::MessagesFilter::InputMessagesFilterEmpty,
-                        min_date: 0,
-                        max_date: 0,
-                        offset_id: cur_offset_id,
-                        add_offset: 0,
-                        limit: limit as i32,
-                        max_id: 0,
-                        min_id: 0,
-                        hash: 0,
-                    };
+                    // Real Multi-Lane Server-Side Media Search (InputMessagesFilterPhotoVideo + InputMessagesFilterDocument)
+                    let lanes = vec![
+                        (
+                            "photo_video",
+                            grammers_client::tl::enums::MessagesFilter::InputMessagesFilterPhotoVideo,
+                        ),
+                        (
+                            "document",
+                            grammers_client::tl::enums::MessagesFilter::InputMessagesFilterDocument,
+                        ),
+                    ];
 
-                    let res = crate::core::telegram_rpc_guard::invoke_guarded(
-                        &session_name,
-                        crate::core::session_rate::RpcClass::IndexSearch,
-                        "messages.search",
-                        || client.invoke(&req),
-                    )
-                    .await?;
+                    let mut combined_files: Vec<MediaFileRow> = Vec::new();
+                    let mut seen_ids = std::collections::HashSet::new();
+                    let mut any_has_more = false;
+                    let mut min_msg_id: Option<i64> = None;
+                    let mut total_count_sum = 0usize;
 
-                    let mut total_count_res = None;
-                    let raw_msgs = match res.value {
-                        grammers_client::tl::enums::messages::Messages::Messages(m) => m.messages,
-                        grammers_client::tl::enums::messages::Messages::Slice(m) => {
-                            total_count_res = Some(m.count as usize);
-                            m.messages
+                    for (_lane_name, filter) in lanes {
+                        let req = grammers_client::tl::functions::messages::Search {
+                            peer: input_peer.clone(),
+                            q: String::new(),
+                            from_id: None,
+                            saved_peer_id: None,
+                            saved_reaction: None,
+                            top_msg_id,
+                            filter,
+                            min_date: 0,
+                            max_date: 0,
+                            offset_id: cur_offset_id,
+                            add_offset: 0,
+                            limit: limit as i32,
+                            max_id: 0,
+                            min_id: 0,
+                            hash: 0,
+                        };
+
+                        let res = crate::core::telegram_rpc_guard::invoke_guarded(
+                            &session_name,
+                            crate::core::session_rate::RpcClass::IndexSearch,
+                            "messages.search",
+                            || client.invoke(&req),
+                        )
+                        .await?;
+
+                        let raw_msgs = match res.value {
+                            grammers_client::tl::enums::messages::Messages::Messages(m) => m.messages,
+                            grammers_client::tl::enums::messages::Messages::Slice(m) => {
+                                total_count_sum += m.count as usize;
+                                m.messages
+                            }
+                            grammers_client::tl::enums::messages::Messages::ChannelMessages(m) => {
+                                total_count_sum += m.count as usize;
+                                m.messages
+                            }
+                            grammers_client::tl::enums::messages::Messages::NotModified(_) => Vec::new(),
+                        };
+
+                        let raw_len = raw_msgs.len();
+                        let mut lane_last_id = None;
+
+                        for tl_msg in raw_msgs {
+                            if let grammers_client::tl::enums::Message::Message(ref m) = tl_msg {
+                                lane_last_id = Some(m.id as i64);
+                                min_msg_id = Some(min_msg_id.map_or(m.id as i64, |prev| prev.min(m.id as i64)));
+                            }
+                            if let Some(row) = tl_message_to_row(&tl_msg, folder_id) {
+                                if seen_ids.insert(row.id) {
+                                    combined_files.push(row);
+                                }
+                            }
                         }
-                        grammers_client::tl::enums::messages::Messages::ChannelMessages(m) => {
-                            total_count_res = Some(m.count as usize);
-                            m.messages
-                        }
-                        grammers_client::tl::enums::messages::Messages::NotModified(_) => Vec::new(),
-                    };
 
-                    let raw_len = raw_msgs.len();
-                    let mut files = Vec::new();
-                    let mut last_id: Option<i64> = None;
-
-                    for tl_msg in raw_msgs {
-                        if let grammers_client::tl::enums::Message::Message(ref m) = tl_msg {
-                            last_id = Some(m.id as i64);
-                        }
-                        if let Some(row) = tl_message_to_row(&tl_msg, folder_id) {
-                            files.push(row);
+                        if raw_len >= limit && lane_last_id.map_or(false, |id| id > 1) {
+                            any_has_more = true;
                         }
                     }
 
-                    let has_more = raw_len >= limit && last_id.map_or(false, |id| id > 1);
-                    let next_offset_id = if has_more { last_id } else { None };
+                    // Sort combined items descending by Message ID
+                    combined_files.sort_by(|a, b| b.id.cmp(&a.id));
+
+                    let has_more = any_has_more && min_msg_id.map_or(false, |id| id > 1);
+                    let next_offset_id = if has_more { min_msg_id } else { None };
 
                     Ok(ListMediaResult {
                         status: "ok".to_string(),
                         folder_id,
-                        total: files.len(),
+                        total: combined_files.len(),
                         page_size: limit,
                         has_more,
                         next_offset_id,
-                        total_count: total_count_res,
+                        total_count: if total_count_sum > 0 { Some(total_count_sum) } else { None },
                         backend: BACKEND.to_string(),
                         cached: false,
-                        files,
+                        files: combined_files,
                     })
                 })
             })
