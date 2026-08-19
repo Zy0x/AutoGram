@@ -170,7 +170,7 @@ impl ChannelSyncManager {
 
             // 3. Launch New Authoritative ChannelSyncWorker with Atomic Scope Reservation
             let sync_id = self.next_sync_id.fetch_add(1, Ordering::SeqCst);
-            let (ack_tx, ack_rx) = mpsc::channel(32);
+            let (ack_tx, ack_rx) = mpsc::channel(1);
             let (state_tx, _) = watch::channel(ChannelSyncDesiredState::Running);
 
             let is_viewed_init = request.is_actively_viewed.unwrap_or(true);

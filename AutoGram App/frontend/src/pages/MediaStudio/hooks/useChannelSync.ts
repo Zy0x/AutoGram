@@ -152,9 +152,14 @@ export function useChannelSync({
           ? !existingState.baselineReconciled
           : hasExistingCache;
 
+        const clientRequestId =
+          typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : `sync_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
         // 2. Start or attach to Rust ChannelSyncWorker
         const startReq = {
-          clientRequestId: `sync_${sessionKey}_${targetPeerStr}_${Date.now()}`,
+          clientRequestId,
           identity: activeIdentity,
           peerId: targetPeerStr,
           initialPts: existingState?.pts ?? null,

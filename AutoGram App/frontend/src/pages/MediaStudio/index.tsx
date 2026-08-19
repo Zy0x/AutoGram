@@ -2992,8 +2992,8 @@ function MediaDriveDesktop({
         });
       }
 
-      if (res.cached && creds) {
-        // Ultra-fast background sync of top 30 messages directly from Telegram server
+      if (res.cached && creds && !isChannelOrSupergroup) {
+        // Ultra-fast background sync of top 30 messages directly from Telegram server (fallback peers only, P3.5: disabled for ChannelSync-managed peers)
         void (async () => {
           try {
             const syncRes = await driveListFiles(creds, peerId, {
@@ -3062,6 +3062,7 @@ function MediaDriveDesktop({
     recoverInvalidPeerLocation,
     getDriveCacheKey,
     thumbLocationOptions,
+    isChannelOrSupergroup,
   ]);
 
   useEffect(() => {
@@ -3720,6 +3721,8 @@ function MediaDriveDesktop({
 
   const syncActiveLocationLive = useCallback(
     async (reason: 'interval' | 'focus') => {
+      // P3.5: Channel/supergroup is authoritatively managed by ChannelSyncWorker (sole live freshness engine)
+      if (isChannelOrSupergroup) return;
       if (!creds || loadingFiles || loadingMoreFiles || liveSyncLockRef.current) return;
       if (isTransferJobActive()) return;
       if (document.visibilityState === 'hidden') return;
@@ -3848,11 +3851,13 @@ function MediaDriveDesktop({
       statsAccurate,
       refreshFiles,
       scheduleMediaStats,
+      isChannelOrSupergroup,
     ]
   );
 
   useEffect(() => {
-    if (!creds) return;
+    // P3.5: For channel/supergroup, ChannelSyncWorker is the sole live freshness engine (no interval/focus head polling)
+    if (!creds || isChannelOrSupergroup) return;
     const plan = getDriveLiveSyncPlan(getDrivePerfProfile().tier);
     const timer = window.setInterval(() => {
       void syncActiveLocationLive('interval');
@@ -3868,7 +3873,7 @@ function MediaDriveDesktop({
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [creds, peerId, topicFilter, syncActiveLocationLive]);
+  }, [creds, peerId, topicFilter, syncActiveLocationLive, isChannelOrSupergroup]);
 
   useEffect(() => {
     void loadSessions();
