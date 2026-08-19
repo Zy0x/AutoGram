@@ -281,7 +281,6 @@ export async function scanAllAuthoritativePeerMedia(
   const allFiles: DriveFile[] = [];
   const seenIds = new Set<number>();
   let currentCursor: TgScopedMediaSearchCursor | null = null;
-  let previousCursor: TgScopedMediaSearchCursor | null = null;
   let pagesScanned = 0;
   const SAFETY_MAX_PAGES = 10000; // supports up to 1,000,000 files
 
@@ -327,12 +326,11 @@ export async function scanAllAuthoritativePeerMedia(
       throw new Error('Authoritative scan incomplete: has_more=true but search_cursor is missing');
     }
 
-    // Fail closed: cursor stalled
-    if (previousCursor && isSameSearchCursor(res.search_cursor, previousCursor)) {
+    // Fail closed: cursor stalled (did not advance compared to current request cursor)
+    if (currentCursor && isSameSearchCursor(res.search_cursor, currentCursor)) {
       throw new Error('Authoritative scan stalled: search_cursor did not advance');
     }
 
-    previousCursor = currentCursor;
     currentCursor = res.search_cursor;
   }
 }

@@ -147,8 +147,10 @@ export function useChannelSync({
         if (!activeIdentity) return;
 
         const hasExistingCache = await hasCachedMediaRecords(sessionKey, targetPeerStr);
-        // Requires initial reconcile if baseline is not reconciled yet AND cache exists (or no initialPts exists)
-        const requiresInitialReconcile = !existingState?.baselineReconciled && (hasExistingCache || existingState == null);
+        // Requires initial reconcile if existing durable state explicitly says not reconciled, or if cache exists without state
+        const requiresInitialReconcile = existingState
+          ? !existingState.baselineReconciled
+          : hasExistingCache;
 
         // 2. Start or attach to Rust ChannelSyncWorker
         const startReq = {
@@ -169,6 +171,9 @@ export function useChannelSync({
 
           if (event.type === 'state') {
             setStatus(event.state);
+            if (event.state === 'reconcile_required') {
+              setReconcileRequired(true);
+            }
           } else if (event.type === 'batch') {
             try {
               const currentDurable = channelSyncStateRef.current;
@@ -217,9 +222,7 @@ export function useChannelSync({
                 } else {
                   setStatus('reconcile_required');
                   setReconcileRequired(true);
-                  if (onReconcileRef.current) {
-                    onReconcileRef.current(event.candidatePts);
-                  }
+                  // Dedup: Do not call onReconcileRef here. Reconcile is triggered canonically by event.type === 'reconcile_required'.
                 }
                 if (event.mutations.length > 0 && onMutationsCommittedRef.current) {
                   onMutationsCommittedRef.current(event.mutations);
@@ -270,6 +273,9 @@ export function useChannelSync({
         setSyncId(response.syncId);
         setStatus(response.state);
         setCurrentPts(response.currentPts);
+        if (response.state === 'reconcile_required') {
+          setReconcileRequired(true);
+        }
       } catch (err: any) {
         if (isSubscribed) {
           console.error('[useChannelSync] Init error:', err);

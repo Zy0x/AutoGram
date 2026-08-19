@@ -112,64 +112,104 @@ impl ChannelSyncManager {
 
         let sink_arc: Arc<dyn ChannelSyncEventSink> = Arc::new(event_sink);
 
-        let mut inner = self.inner.write().await;
-        inner.prune_terminal_workers(now_epoch_ms(), 300_000);
+        let (control, sync_id, ack_rx, state_tx) = {
+            let mut inner = self.inner.write().await;
+            inner.prune_terminal_workers(now_epoch_ms(), 300_000);
 
-        // 1. Client Request Idempotency Check
-        if let Some(&existing_sync_id) = inner.client_request_map.get(&client_req_id) {
-            if let Some(ctrl) = inner.workers.get(&existing_sync_id) {
-                let term_at = ctrl.terminal_at_ms.load(Ordering::Acquire);
-                if term_at == 0 {
-                    let ctrl_clone = ctrl.clone();
-                    drop(inner);
+            // 1. Client Request Idempotency Check
+            if let Some(&existing_sync_id) = inner.client_request_map.get(&client_req_id) {
+                if let Some(ctrl) = inner.workers.get(&existing_sync_id) {
+                    let term_at = ctrl.terminal_at_ms.load(Ordering::Acquire);
+                    if term_at == 0 {
+                        let ctrl_clone = ctrl.clone();
+                        drop(inner);
 
-                    let snapshot = ctrl_clone.attach_primary_and_snapshot(sink_arc).await;
-                    if let Some(is_viewed) = request.is_actively_viewed {
-                        ctrl_clone.is_actively_viewed.store(is_viewed, Ordering::Release);
+                        let snapshot = ctrl_clone.attach_primary_and_snapshot(sink_arc).await;
+                        if let Some(is_viewed) = request.is_actively_viewed {
+                            ctrl_clone.is_actively_viewed.store(is_viewed, Ordering::Release);
+                        }
+
+                        return Ok(StartChannelSyncResponse {
+                            sync_id: existing_sync_id,
+                            state: snapshot.state,
+                            reused_existing_sync: true,
+                            subscriber_id: snapshot.subscriber_id,
+                            generation: snapshot.generation,
+                            current_pts: snapshot.current_pts,
+                            reconcile_target_pts: snapshot.reconcile_target_pts,
+                        });
                     }
-
-                    return Ok(StartChannelSyncResponse {
-                        sync_id: existing_sync_id,
-                        state: snapshot.state,
-                        reused_existing_sync: true,
-                        subscriber_id: snapshot.subscriber_id,
-                        generation: snapshot.generation,
-                        current_pts: snapshot.current_pts,
-                    });
                 }
             }
-        }
 
-        // 2. Active Channel Scope Check (Single Active Worker per Session + Peer)
-        if let Some(&existing_id) = inner.active_channel_syncs.get(&scope_key) {
-            if let Some(ctrl) = inner.workers.get(&existing_id) {
-                let term_at = ctrl.terminal_at_ms.load(Ordering::Acquire);
-                if term_at == 0 {
-                    let ctrl_clone = ctrl.clone();
-                    drop(inner);
+            // 2. Active Channel Scope Check (Single Active Worker per Session + Peer)
+            if let Some(&existing_id) = inner.active_channel_syncs.get(&scope_key) {
+                if let Some(ctrl) = inner.workers.get(&existing_id) {
+                    let term_at = ctrl.terminal_at_ms.load(Ordering::Acquire);
+                    if term_at == 0 {
+                        let ctrl_clone = ctrl.clone();
+                        drop(inner);
 
-                    let snapshot = ctrl_clone.attach_primary_and_snapshot(sink_arc).await;
-                    if let Some(is_viewed) = request.is_actively_viewed {
-                        ctrl_clone.is_actively_viewed.store(is_viewed, Ordering::Release);
+                        let snapshot = ctrl_clone.attach_primary_and_snapshot(sink_arc).await;
+                        if let Some(is_viewed) = request.is_actively_viewed {
+                            ctrl_clone.is_actively_viewed.store(is_viewed, Ordering::Release);
+                        }
+
+                        return Ok(StartChannelSyncResponse {
+                            sync_id: existing_id,
+                            state: snapshot.state,
+                            reused_existing_sync: true,
+                            subscriber_id: snapshot.subscriber_id,
+                            generation: snapshot.generation,
+                            current_pts: snapshot.current_pts,
+                            reconcile_target_pts: snapshot.reconcile_target_pts,
+                        });
                     }
-
-                    return Ok(StartChannelSyncResponse {
-                        sync_id: existing_id,
-                        state: snapshot.state,
-                        reused_existing_sync: true,
-                        subscriber_id: snapshot.subscriber_id,
-                        generation: snapshot.generation,
-                        current_pts: snapshot.current_pts,
-                    });
                 }
             }
-        }
 
-        // 3. Launch New Authoritative ChannelSyncWorker with Atomic Scope Reservation
-        let sync_id = self.next_sync_id.fetch_add(1, Ordering::SeqCst);
-        let (ack_tx, ack_rx) = mpsc::channel(32);
-        let (state_tx, _) = watch::channel(ChannelSyncDesiredState::Running);
+            // 3. Launch New Authoritative ChannelSyncWorker with Atomic Scope Reservation
+            let sync_id = self.next_sync_id.fetch_add(1, Ordering::SeqCst);
+            let (ack_tx, ack_rx) = mpsc::channel(32);
+            let (state_tx, _) = watch::channel(ChannelSyncDesiredState::Running);
 
+            let is_viewed_init = request.is_actively_viewed.unwrap_or(true);
+            let current_pts_init = request.initial_pts.unwrap_or(0);
+
+            let control = Arc::new(ChannelSyncControl {
+                sync_id,
+                session_key: session_key.clone(),
+                client_request_id: client_req_id.clone(),
+                peer_id: peer_id.clone(),
+                created_at_ms: now_epoch_ms(),
+                cancel: CancellationToken::new(),
+                state_tx: state_tx.clone(),
+                ack_tx,
+                current_pts: AtomicI32::new(current_pts_init),
+                expected_batch_id: AtomicU64::new(0),
+                claimed_batch_id: AtomicU64::new(0),
+                last_processed_batch_id: AtomicU64::new(0),
+                primary_subscriber: RwLock::new(None),
+                next_subscriber_id: AtomicU64::new(1),
+                subscriber_generation: AtomicU64::new(0),
+                subscriber_notify: Arc::new(Notify::new()),
+                reconcile_target_pts: AtomicI32::new(0),
+                reconcile_notify: Arc::new(Notify::new()),
+                pending_batch: RwLock::new(None),
+                status: Arc::new(RwLock::new(ChannelSyncStatus::Preparing)),
+                is_actively_viewed: AtomicBool::new(is_viewed_init),
+                terminal_at_ms: AtomicU64::new(0),
+            });
+
+            // Reserve scope & request map under write lock and drop lock immediately
+            inner.workers.insert(sync_id, control.clone());
+            inner.active_channel_syncs.insert(scope_key.clone(), sync_id);
+            inner.client_request_map.insert(client_req_id.clone(), sync_id);
+
+            (control, sync_id, ack_rx, state_tx)
+        };
+
+        // Long asynchronous operations executed outside manager inner write lock:
         let router = self
             .router_manager
             .get_or_create(self.sessions_dir.clone(), &request.identity)
@@ -177,46 +217,12 @@ impl ChannelSyncManager {
 
         let (update_rx, mailbox_overflowed) = router.register_channel(parsed_channel_id).await;
 
-        let is_viewed_init = request.is_actively_viewed.unwrap_or(true);
-        let current_pts_init = request.initial_pts.unwrap_or(0);
-
-        let control = Arc::new(ChannelSyncControl {
-            sync_id,
-            session_key: session_key.clone(),
-            client_request_id: client_req_id.clone(),
-            peer_id: peer_id.clone(),
-            created_at_ms: now_epoch_ms(),
-            cancel: CancellationToken::new(),
-            state_tx,
-            ack_tx,
-            current_pts: AtomicI32::new(current_pts_init),
-            expected_batch_id: AtomicU64::new(0),
-            claimed_batch_id: AtomicU64::new(0),
-            last_processed_batch_id: AtomicU64::new(0),
-            primary_subscriber: RwLock::new(None),
-            next_subscriber_id: AtomicU64::new(1),
-            subscriber_generation: AtomicU64::new(0),
-            subscriber_notify: Arc::new(Notify::new()),
-            reconcile_target_pts: AtomicI32::new(0),
-            reconcile_notify: Arc::new(Notify::new()),
-            pending_batch: RwLock::new(None),
-            status: Arc::new(RwLock::new(ChannelSyncStatus::Preparing)),
-            is_actively_viewed: AtomicBool::new(is_viewed_init),
-            terminal_at_ms: AtomicU64::new(0),
-        });
-
-        // Reserve scope & request map under the same write lock
-        inner.workers.insert(sync_id, control.clone());
-        inner.active_channel_syncs.insert(scope_key.clone(), sync_id);
-        inner.client_request_map.insert(client_req_id.clone(), sync_id);
-
         let inner_arc = self.inner.clone();
         let scope_key_clone = scope_key.clone();
         let req_id_clone = client_req_id.clone();
 
         // Attach initial primary subscriber
         let snapshot = control.attach_primary_and_snapshot(sink_arc).await;
-        drop(inner);
 
         let worker = ChannelSyncWorker {
             sync_id,
@@ -243,6 +249,7 @@ impl ChannelSyncManager {
             subscriber_id: snapshot.subscriber_id,
             generation: snapshot.generation,
             current_pts: snapshot.current_pts,
+            reconcile_target_pts: snapshot.reconcile_target_pts,
         })
     }
 
@@ -293,6 +300,7 @@ impl ChannelSyncManager {
             state: snapshot.state,
             current_pts: snapshot.current_pts,
             replayed_batch_id: snapshot.replayed_batch_id,
+            reconcile_target_pts: snapshot.reconcile_target_pts,
         })
     }
 

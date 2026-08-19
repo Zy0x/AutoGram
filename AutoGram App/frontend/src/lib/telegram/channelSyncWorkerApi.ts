@@ -95,6 +95,7 @@ export interface StartChannelSyncResponse {
   subscriberId: number;
   generation: number;
   currentPts: number;
+  reconcileTargetPts?: number | null;
 }
 
 export interface AttachChannelSyncResponse {
@@ -105,6 +106,7 @@ export interface AttachChannelSyncResponse {
   state: ChannelSyncStatus;
   currentPts: number;
   replayedBatchId?: number | null;
+  reconcileTargetPts?: number | null;
 }
 
 export interface DetachChannelSyncResponse {

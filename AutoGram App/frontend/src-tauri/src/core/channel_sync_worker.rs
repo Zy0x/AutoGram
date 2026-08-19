@@ -126,6 +126,7 @@ pub struct ChannelAttachSnapshot {
     pub state: ChannelSyncStatus,
     pub current_pts: i32,
     pub replayed_batch_id: Option<u64>,
+    pub reconcile_target_pts: Option<i32>,
 }
 
 /// Desired lifecycle state signaled by pause/resume controllers.
@@ -223,6 +224,20 @@ impl ChannelSyncControl {
             }
         }
 
+        // Replay ReconcileRequired event if currently waiting in ReconcileRequired barrier
+        let mut reconcile_target = None;
+        if st == ChannelSyncStatus::ReconcileRequired {
+            let target = self.reconcile_target_pts.load(Ordering::Acquire);
+            if target > 0 {
+                reconcile_target = Some(target);
+                sink.send_event(ChannelSyncEvent::ReconcileRequired {
+                    sync_id: self.sync_id,
+                    latest_pts: target,
+                    reason: "Authoritative reconcile resume".into(),
+                });
+            }
+        }
+
         sink.send_event(ChannelSyncEvent::State {
             sync_id: self.sync_id,
             state: st,
@@ -236,6 +251,7 @@ impl ChannelSyncControl {
             state: st,
             current_pts: self.current_pts.load(Ordering::Acquire),
             replayed_batch_id: replayed_id,
+            reconcile_target_pts: reconcile_target,
         }
     }
 
@@ -341,7 +357,6 @@ impl ChannelSyncWorker {
                 Ok(pts) => {
                     batch_counter += 1;
                     let batch_id = batch_counter;
-                    self.control.current_pts.store(pts, Ordering::Release);
 
                     let batch_event = ChannelSyncMutationBatchEvent {
                         sync_id,
@@ -389,6 +404,7 @@ impl ChannelSyncWorker {
                     {
                         Ok(ack) => {
                             if ack.outcome == ChannelSyncAckOutcome::Committed {
+                                self.control.current_pts.store(pts, Ordering::Release);
                                 self.control.last_processed_batch_id.store(batch_id, Ordering::Release);
                                 self.control.expected_batch_id.store(0, Ordering::Release);
                                 {
@@ -1603,5 +1619,71 @@ mod tests {
         // Clean cancel
         cancel_clone.cancel();
         let _ = worker_handle.await;
+    }
+
+    #[tokio::test]
+    async fn test_reattach_during_reconcile_required_replays_event_and_target() {
+        use std::sync::Mutex;
+        let (ack_tx, _) = mpsc::channel(32);
+        let (state_tx, _) = watch::channel(ChannelSyncDesiredState::Running);
+        let cancel = CancellationToken::new();
+
+        let control = Arc::new(ChannelSyncControl {
+            sync_id: 88,
+            session_key: "test_session".into(),
+            client_request_id: "req_88".into(),
+            peer_id: "-100123".into(),
+            created_at_ms: now_epoch_ms(),
+            current_pts: AtomicI32::new(14000),
+            state_tx,
+            cancel,
+            ack_tx,
+            expected_batch_id: AtomicU64::new(0),
+            claimed_batch_id: AtomicU64::new(0),
+            last_processed_batch_id: AtomicU64::new(0),
+            primary_subscriber: RwLock::new(None),
+            next_subscriber_id: AtomicU64::new(1),
+            subscriber_generation: AtomicU64::new(1),
+            subscriber_notify: Arc::new(Notify::new()),
+            reconcile_target_pts: AtomicI32::new(15000),
+            reconcile_notify: Arc::new(Notify::new()),
+            pending_batch: RwLock::new(None),
+            status: Arc::new(RwLock::new(ChannelSyncStatus::ReconcileRequired)),
+            is_actively_viewed: AtomicBool::new(true),
+            terminal_at_ms: AtomicU64::new(0),
+        });
+
+        struct RecordingSink {
+            events: Arc<Mutex<Vec<ChannelSyncEvent>>>,
+        }
+        impl ChannelSyncEventSink for RecordingSink {
+            fn send_event(&self, event: ChannelSyncEvent) -> bool {
+                self.events.lock().unwrap().push(event);
+                true
+            }
+        }
+
+        let recorded_events = Arc::new(Mutex::new(Vec::new()));
+        let sink = Arc::new(RecordingSink {
+            events: recorded_events.clone(),
+        });
+
+        let snapshot = control.attach_primary_and_snapshot(sink).await;
+
+        assert_eq!(snapshot.state, ChannelSyncStatus::ReconcileRequired);
+        assert_eq!(snapshot.current_pts, 14000);
+        assert_eq!(snapshot.reconcile_target_pts, Some(15000));
+
+        let events = recorded_events.lock().unwrap().clone();
+        assert_eq!(events.len(), 2);
+        assert!(matches!(events[0], ChannelSyncEvent::ReconcileRequired {
+            sync_id: 88,
+            latest_pts: 15000,
+            ..
+        }));
+        assert!(matches!(events[1], ChannelSyncEvent::State {
+            sync_id: 88,
+            state: ChannelSyncStatus::ReconcileRequired,
+        }));
     }
 }

@@ -150,6 +150,7 @@ pub struct StartChannelSyncResponse {
     pub subscriber_id: u64,
     pub generation: u64,
     pub current_pts: i32,
+    pub reconcile_target_pts: Option<i32>,
 }
 
 /// Response returned when attaching a new primary persistence Channel to an existing sync worker.
@@ -163,6 +164,7 @@ pub struct AttachChannelSyncResponse {
     pub state: ChannelSyncStatus,
     pub current_pts: i32,
     pub replayed_batch_id: Option<u64>,
+    pub reconcile_target_pts: Option<i32>,
 }
 
 /// Response returned when explicitly detaching a Channel from a sync worker.
