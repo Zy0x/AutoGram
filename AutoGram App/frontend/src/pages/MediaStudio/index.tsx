@@ -33,6 +33,7 @@ import {
   determineIndexingTier,
   getAdaptiveDelay,
   calculateIndexingMetrics,
+  AimdRateController,
   type IndexingTier,
 } from '../../lib/telegram/adaptiveIndexer';
 import { checkMemoryHealth, executeEmergencyMemoryReclamation } from '../../lib/utils/memoryCircuitBreaker';
@@ -3367,6 +3368,7 @@ function MediaDriveDesktop({
     let accumulatedNewFiles: DriveFile[] = [];
     let indexedLoadedCount = initialProcessed;
     let dbBatch: any[] = [];
+    const rateController = new AimdRateController(3, 0, 150);
 
     try {
       while (
@@ -3417,6 +3419,7 @@ function MediaDriveDesktop({
             const waitSeconds = floodMatch ? parseInt(floodMatch[1], 10) : 0;
 
             if (waitSeconds > 0) {
+              rateController.onFloodWait(waitSeconds);
               console.warn(`[Indexer] Telegram FloodWait detected: waiting ${waitSeconds}s before auto-resuming`);
               setIndexingJob((prev: any) => prev ? {
                 ...prev,
@@ -3431,6 +3434,7 @@ function MediaDriveDesktop({
           }
         }
         const reqLatency = Date.now() - reqStart;
+        rateController.onSuccess(reqLatency);
 
         if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) break;
 
@@ -3534,9 +3538,10 @@ function MediaDriveDesktop({
           });
         }
 
-        // Adaptive Delay & UI Frame Pacing: requestAnimationFrame gives full rendering time to Windows OS
+        // Dynamic AIMD Delay & UI Frame Pacing
+        const aimdDelay = rateController.getDelay();
         const { delayMs } = getAdaptiveDelay(currentTier, curLoaded, reqLatency);
-        const safeDelay = Math.max(delayMs, 0);
+        const safeDelay = Math.max(aimdDelay, delayMs, 0);
         if (safeDelay > 0) {
           await new Promise((r) => setTimeout(r, safeDelay));
         } else {

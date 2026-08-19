@@ -1,3 +1,14 @@
+## v3.7.88 AIMD Adaptive Rate Controller & Architectural Limiter Decoupling (Phase 35.54)
+
+### 1. Implementasi Algoritma AIMD Rate Controller (`adaptiveIndexer.ts`, `MediaStudio`)
+- **Dynamic Throughput Optimization**:
+  - Menggantikan delay statis dengan kendali laju *Additive Increase, Multiplicative Decrease* (AIMD).
+  - Sistem secara mandiri menaikkan throughput saat latensi stabil dan melakukan *backoff* presisi saat server mendekati batas, mencegah terjadinya siklus pemborosan waktu 10 detik.
+- **Pemisahan 3 Lapisan Limiter Independen**:
+  - **Metadata History Limiter**: Kendali laju AIMD untuk pagination `messages.getHistory` / `getReplies`.
+  - **Media Download Worker Pool**: 5 worker paralel (<20MB) / 2 worker paralel (>20MB) per DC dengan ukuran chunk 1 MiB (`upload.getFile`).
+  - **SSD Database Sink**: Batch asynchronous ke IndexedDB tanpa menghambat rendering UI.
+
 ## v3.7.87 Golden Sweet-Spot (750-Item Pipeline, 3ms Adaptive Pacing, Zero-Reconnect FloodWait) (Phase 35.53)
 
 ### 1. Optimasi Golden Sweet-Spot MTProto (`client_pool.rs`, `media_list.rs`, `adaptiveIndexer.ts`, `MediaStudio`)

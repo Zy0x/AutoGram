@@ -1,12 +1,12 @@
-AutoGram Version: v3.7.87
+AutoGram Version: v3.7.88
 
 Current State:
-v3.7.87 Golden Sweet-Spot (750-Item Pipeline, 3ms Adaptive Pacing, Zero-Reconnect FloodWait) — membenahi `client_pool.rs`, `adaptiveIndexer.ts`, `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
-1. Zero-Reconnect FloodWait Fast-Recovery: Mengeliminasi pemutusan session dan siklus reconnect pada `with_pool_retry` saat Telegram memberikan jeda cooldown. Menjaga MTProto TCP socket tetap hangat dan langsung melanjutkan query dalam 0ms seketika timer cooldown selesai.
-2. 750-Item High-Throughput Sweet-Spot: Menyeimbangkan tarikan RPC ke 750 berkas per paket dengan batas scan 2.000 pesan, mencapai kecepatan puncak ~3.200–4.000 berkas/detik tanpa memicu socket backoff berlebihan.
-3. 3ms Micro-Pacing: Mengurangi delay pacing ke 3ms pada tier masif untuk memaksimalkan kapasitas pipa Telegram secara stabil.
+v3.7.88 AIMD Adaptive Rate Controller & Architectural Limiter Decoupling — membenahi `adaptiveIndexer.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghadirkan:
+1. AIMD (Additive Increase, Multiplicative Decrease) Rate Controller: Menggantikan delay statis dengan algoritma AIMD dinamis. Pacing secara adaptif meningkat saat latensi rendah dan menurun secara proporsional saat mendekati batas server, secara otomatis mencapai titik throughput maksimal berkelanjutan tanpa memicu siklus `FLOOD_WAIT` berulang.
+2. Independent Limiter Decoupling: Menegakkan pemisahan tegas antara pembatas RPC Metadata (AIMD rate controller), pembatas Download Media (5/2 worker pool per DC + 1 MiB chunk), dan pembatas Commit Database SSD (batch asynchronous).
 
 Previous:
+v3.7.87 Golden Sweet-Spot (750-Item Pipeline, 3ms Adaptive Pacing, Zero-Reconnect FloodWait) — membenahi `client_pool.rs`, `adaptiveIndexer.ts`, `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.86 Rolling Instantaneous Speed Model & 100% Channel Indexing Verified — membenahi `adaptiveIndexer.ts`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.85 Non-Media Gap Traversal & Resilient Offset Pipeline — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.84 Continuous Real-Time Progress Streaming (500-Item Chunks / 5,000 SSD Batch) — membenahi `media_list.rs`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`.

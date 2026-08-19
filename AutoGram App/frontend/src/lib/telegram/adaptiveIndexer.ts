@@ -23,6 +23,65 @@ export interface AdaptiveDelayResult {
 }
 
 /**
+ * AIMD (Additive Increase, Multiplicative Decrease) Rate Controller
+ * Dynamically converges to the maximum sustainable Telegram RPC throughput
+ * without triggering server-side FLOOD_WAIT cooldowns.
+ */
+export class AimdRateController {
+  private currentDelayMs: number;
+  private minDelayMs: number;
+  private maxDelayMs: number;
+  private consecutiveSuccesses: number = 0;
+
+  constructor(initialDelayMs: number = 6, minDelayMs: number = 1, maxDelayMs: number = 250) {
+    this.currentDelayMs = initialDelayMs;
+    this.minDelayMs = minDelayMs;
+    this.maxDelayMs = maxDelayMs;
+  }
+
+  /**
+   * Called upon every successful Telegram RPC response.
+   * Proactively steps up throughput if network latency is healthy.
+   */
+  onSuccess(latencyMs: number): number {
+    this.consecutiveSuccesses++;
+
+    if (latencyMs > 350) {
+      // Server is under load; gently back off
+      this.currentDelayMs = Math.min(this.maxDelayMs, this.currentDelayMs + 2);
+      this.consecutiveSuccesses = 0;
+    } else if (this.consecutiveSuccesses >= 3) {
+      // Additive Increase: step up throughput
+      this.currentDelayMs = Math.max(this.minDelayMs, this.currentDelayMs - 1);
+      this.consecutiveSuccesses = 0;
+    }
+
+    return this.currentDelayMs;
+  }
+
+  /**
+   * Called when FLOOD_WAIT_X is received from Telegram.
+   * Multiplicative Decrease: step down pace to fit server bucket drain rate.
+   */
+  onFloodWait(waitSeconds: number): number {
+    this.consecutiveSuccesses = 0;
+    // Multiplicative backoff proportional to wait severity
+    const penalty = Math.max(15, Math.min(80, waitSeconds * 3));
+    this.currentDelayMs = Math.min(this.maxDelayMs, Math.round(this.currentDelayMs * 1.5) + penalty);
+    return this.currentDelayMs;
+  }
+
+  getDelay(): number {
+    return this.currentDelayMs;
+  }
+
+  reset(initialDelayMs: number = 6) {
+    this.currentDelayMs = initialDelayMs;
+    this.consecutiveSuccesses = 0;
+  }
+}
+
+/**
  * Automatically determine the scale tier from total item count or current loaded count.
  */
 export function determineIndexingTier(totalCount: number | null | undefined, loadedCount: number): IndexingTier {
