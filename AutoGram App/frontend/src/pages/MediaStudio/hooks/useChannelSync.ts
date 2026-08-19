@@ -42,7 +42,7 @@ export interface UseChannelSyncResult {
   isLiveSynced: boolean;
   error: string | null;
   reconcileRequired: boolean;
-  rebaselineAfterReconcile: (reconciledPts: number) => Promise<void>;
+  completeReconcileAfterDurableCommit: (reconciledPts: number) => Promise<void>;
 }
 
 export function useChannelSync({
@@ -99,29 +99,19 @@ export function useChannelSync({
     };
   }, [isActivelyViewed]);
 
-  const rebaselineAfterReconcile = useCallback(async (reconciledPts: number) => {
-    if (!sessionKey || !targetPeerStr) return;
-    const nextState: ChannelSyncState = {
-      accountId: sessionKey,
-      peerId: targetPeerStr,
-      pts: reconciledPts,
-      baselineReady: true,
-      baselineReconciled: true,
-      lastAppliedAt: Date.now(),
-      lastDifferenceAt: Date.now(),
-      schemaVersion: CHANNEL_SYNC_SCHEMA_VERSION,
-    };
-    await saveChannelMutationsAndPts([], nextState, { allowRebaseline: true });
-    channelSyncStateRef.current = nextState;
-
-    if (activeSyncIdRef.current != null) {
-      await completeChannelSyncReconcile(activeSyncIdRef.current, reconciledPts);
+  const completeReconcileAfterDurableCommit = useCallback(async (reconciledPts: number) => {
+    if (activeSyncIdRef.current == null) {
+      throw new Error('Cannot complete reconcile: activeSyncId is null');
+    }
+    const accepted = await completeChannelSyncReconcile(activeSyncIdRef.current, reconciledPts);
+    if (!accepted) {
+      throw new Error(`Rust worker rejected authoritative reconcile completion for PTS ${reconciledPts}`);
     }
 
     setCurrentPts(reconciledPts);
     setReconcileRequired(false);
     setStatus('live_synced');
-  }, [sessionKey, targetPeerStr]);
+  }, []);
 
   useEffect(() => {
     if (!sessionKey || !targetPeerStr || !isChannelOrSupergroup || !identity) {
@@ -156,13 +146,22 @@ export function useChannelSync({
         const activeIdentity = identity;
         if (!activeIdentity) return;
 
+        const hasExistingCache = await hasCachedMediaRecords(sessionKey, targetPeerStr);
+        // Requires initial reconcile if baseline is not reconciled yet AND cache exists (or no initialPts exists)
+        const requiresInitialReconcile = !existingState?.baselineReconciled && (hasExistingCache || existingState == null);
+
         // 2. Start or attach to Rust ChannelSyncWorker
         const startReq = {
           clientRequestId: `sync_${sessionKey}_${targetPeerStr}_${Date.now()}`,
           identity: activeIdentity,
           peerId: targetPeerStr,
           initialPts: existingState?.pts ?? null,
-          isActivelyViewed: isActivelyViewed && (typeof document !== 'undefined' ? !document.hidden : true),
+          isActivelyViewed:
+            isActivelyViewed &&
+            (typeof document !== 'undefined'
+              ? !document.hidden && (typeof document.hasFocus !== 'function' || document.hasFocus())
+              : true),
+          requiresInitialReconcile,
         };
 
         const response = await startChannelSync(startReq, async (event: ChannelSyncEvent) => {
@@ -301,6 +300,6 @@ export function useChannelSync({
     isLiveSynced: status === 'live_synced' && !reconcileRequired,
     error,
     reconcileRequired,
-    rebaselineAfterReconcile,
+    completeReconcileAfterDurableCommit,
   };
 }

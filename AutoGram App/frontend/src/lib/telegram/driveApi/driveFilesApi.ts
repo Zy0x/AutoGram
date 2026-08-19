@@ -248,23 +248,49 @@ export async function driveGetFile(
   return { status: 'success', file: null, backend: 'grammers' };
 }
 
+export interface AuthoritativeScanResult {
+  files: DriveFile[];
+  uniqueCount: number;
+  pagesScanned: number;
+  exhausted: true;
+}
+
+function isSameSearchCursor(
+  a: TgScopedMediaSearchCursor | null,
+  b: TgScopedMediaSearchCursor | null
+): boolean {
+  if (!a || !b) return a === b;
+  return (
+    a.photoVideo?.fetchOffsetId === b.photoVideo?.fetchOffsetId &&
+    a.document?.fetchOffsetId === b.document?.fetchOffsetId &&
+    Boolean(a.photoVideo?.exhausted) === Boolean(b.photoVideo?.exhausted) &&
+    Boolean(a.document?.exhausted) === Boolean(b.document?.exhausted) &&
+    a.scope?.minId === b.scope?.minId
+  );
+}
+
 /**
- * P2.5.3 Authoritative Full Server Scan.
- * Paginates through all media records on Telegram server for the given peer across all pages until exhausted.
+ * P2.5.4 Exhaustive Authoritative Full Server Scan.
+ * Paginates through all media records on Telegram server for the given peer across all pages until fully exhausted.
+ * Fails closed: throws if cursor stalls, cursor is missing when has_more=true, or safety limit is hit.
  */
 export async function scanAllAuthoritativePeerMedia(
   creds: DriveCredentials,
   folderId: number | null
-): Promise<DriveFile[]> {
+): Promise<AuthoritativeScanResult> {
   const allFiles: DriveFile[] = [];
   const seenIds = new Set<number>();
   let currentCursor: TgScopedMediaSearchCursor | null = null;
-  let hasMore = true;
-  let pageCount = 0;
-  const MAX_PAGES = 500; // supports up to 50,000 files
+  let previousCursor: TgScopedMediaSearchCursor | null = null;
+  let pagesScanned = 0;
+  const SAFETY_MAX_PAGES = 10000; // supports up to 1,000,000 files
 
-  while (hasMore && pageCount < MAX_PAGES) {
-    pageCount++;
+  while (true) {
+    pagesScanned++;
+    if (pagesScanned > SAFETY_MAX_PAGES) {
+      throw new Error(`Authoritative scan safety limit (${SAFETY_MAX_PAGES} pages) reached before exhaustion`);
+    }
+
     const res = await driveListFiles(creds, folderId, {
       pageSize: 100,
       searchCursor: currentCursor,
@@ -273,25 +299,42 @@ export async function scanAllAuthoritativePeerMedia(
       bypassCache: true,
     });
 
-    if (!res || !res.files || res.files.length === 0) {
-      break;
+    if (!res) {
+      throw new Error('Authoritative scan failed: received empty response from driveListFiles');
     }
 
-    for (const f of res.files) {
-      if (!seenIds.has(f.id)) {
-        seenIds.add(f.id);
-        allFiles.push(f);
+    if (res.files && res.files.length > 0) {
+      for (const f of res.files) {
+        if (!seenIds.has(f.id)) {
+          seenIds.add(f.id);
+          allFiles.push(f);
+        }
       }
     }
 
-    if (!res.has_more || !res.search_cursor) {
-      hasMore = false;
-    } else {
-      currentCursor = res.search_cursor;
+    // If server declares no more, we have proven exhaustion!
+    if (!res.has_more) {
+      return {
+        files: allFiles,
+        uniqueCount: seenIds.size,
+        pagesScanned,
+        exhausted: true,
+      };
     }
-  }
 
-  return allFiles;
+    // Fail closed: has_more=true but cursor missing
+    if (!res.search_cursor) {
+      throw new Error('Authoritative scan incomplete: has_more=true but search_cursor is missing');
+    }
+
+    // Fail closed: cursor stalled
+    if (previousCursor && isSameSearchCursor(res.search_cursor, previousCursor)) {
+      throw new Error('Authoritative scan stalled: search_cursor did not advance');
+    }
+
+    previousCursor = currentCursor;
+    currentCursor = res.search_cursor;
+  }
 }
 
 

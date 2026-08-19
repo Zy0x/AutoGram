@@ -1143,7 +1143,7 @@ function MediaDriveDesktop({
     return false;
   }, [peerId, locationKind, chats]);
 
-  const rebaselineAfterReconcileRef = useRef<((pts: number) => Promise<void>) | null>(null);
+  const completeReconcileAfterDurableCommitRef = useRef<((pts: number) => Promise<void>) | null>(null);
 
   const channelSync = useChannelSync({
     identity: creds,
@@ -1180,22 +1180,22 @@ function MediaDriveDesktop({
     onAuthoritativeReconcileRequired: useCallback(async (latestPts: number) => {
       try {
         if (!creds || !peerId) return;
-        // 1. Authoritative full multi-page server scan across all Telegram pages
-        const serverFiles = await scanAllAuthoritativePeerMedia(creds, peerId);
+        // 1. Authoritative full multi-page server scan across all Telegram pages (fail-closed)
+        const scanResult = await scanAllAuthoritativePeerMedia(creds, peerId);
 
-        // 2. Commit reconciliation to IndexedDB (prune stale IDs, upsert current server files, commit target PTS)
-        await commitAuthoritativeReconciliation(creds.session, String(peerId), serverFiles, latestPts);
+        // 2. Single atomic commit to IndexedDB (prune stale IDs, upsert current server files, commit target PTS with baselineReconciled = true)
+        await commitAuthoritativeReconciliation(creds.session, String(peerId), scanResult, latestPts);
 
-        // 3. Complete Rust worker reconcile barrier handshake
-        if (rebaselineAfterReconcileRef.current) {
-          await rebaselineAfterReconcileRef.current(latestPts);
+        // 3. Complete Rust worker reconcile barrier handshake (throws if Rust rejects)
+        if (completeReconcileAfterDurableCommitRef.current) {
+          await completeReconcileAfterDurableCommitRef.current(latestPts);
         }
 
         // 4. Update in-memory files view with topic awareness
         const currentTopic = topicFilterRef.current;
         const visibleFiles = currentTopic != null
-          ? serverFiles.filter((f) => f.topic_id === currentTopic)
-          : serverFiles;
+          ? scanResult.files.filter((f) => f.topic_id === currentTopic)
+          : scanResult.files;
         setFiles(visibleFiles);
       } catch (err) {
         console.error('[MediaStudio] Authoritative reconcile error:', err);
@@ -1204,8 +1204,8 @@ function MediaDriveDesktop({
   });
 
   useEffect(() => {
-    rebaselineAfterReconcileRef.current = channelSync.rebaselineAfterReconcile;
-  }, [channelSync.rebaselineAfterReconcile]);
+    completeReconcileAfterDurableCommitRef.current = channelSync.completeReconcileAfterDurableCommit;
+  }, [channelSync.completeReconcileAfterDurableCommit]);
 
   void channelSync;
 

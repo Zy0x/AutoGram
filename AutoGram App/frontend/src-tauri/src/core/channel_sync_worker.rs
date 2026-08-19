@@ -436,20 +436,54 @@ impl ChannelSyncWorker {
             }
         };
 
-        // Transition to LiveSynced baseline
-        {
-            let mut st = self.control.status.write().await;
-            if *st != ChannelSyncStatus::ReconcileRequired {
-                *st = ChannelSyncStatus::LiveSynced;
+        // 2. Initial Baseline Gate: Check if initial authoritative reconciliation is required
+        let requires_reconcile = self.request.requires_initial_reconcile.unwrap_or(false);
+        if requires_reconcile {
+            self.control.reconcile_target_pts.store(initial_pts, Ordering::Release);
+            {
+                let mut st = self.control.status.write().await;
+                *st = ChannelSyncStatus::ReconcileRequired;
             }
-        }
-        let _ = self
-            .control
-            .emit_to_primary(ChannelSyncEvent::State {
+            let _ = self.control.emit_to_primary(ChannelSyncEvent::ReconcileRequired {
                 sync_id,
-                state: ChannelSyncStatus::LiveSynced,
-            })
-            .await;
+                latest_pts: initial_pts,
+                reason: "Initial cached media requires authoritative reconciliation".into(),
+            }).await;
+
+            // Enter the exact same reconcile barrier!
+            // Buffers incoming passive updates, suspends difference recovery & short polling until frontend finishes exhaustive scan + commit + complete_reconcile(initial_pts)
+            if let Err(e) = Self::wait_for_reconcile_completion(
+                &self.control,
+                &mut self.update_rx,
+                &mut reorder_buffer,
+                &cancel,
+            ).await {
+                let mut st = self.control.status.write().await;
+                *st = ChannelSyncStatus::Failed;
+                let _ = self.control.emit_to_primary(ChannelSyncEvent::Failed {
+                    sync_id,
+                    code: "initial_reconcile_barrier_failed".into(),
+                    message: e,
+                    recoverable: true,
+                }).await;
+                return;
+            }
+        } else {
+            // Clean slate / already reconciled: transition to LiveSynced baseline
+            {
+                let mut st = self.control.status.write().await;
+                if *st != ChannelSyncStatus::ReconcileRequired {
+                    *st = ChannelSyncStatus::LiveSynced;
+                }
+            }
+            let _ = self
+                .control
+                .emit_to_primary(ChannelSyncEvent::State {
+                    sync_id,
+                    state: ChannelSyncStatus::LiveSynced,
+                })
+                .await;
+        }
 
         let mut next_short_poll_at = Instant::now() + DEFAULT_SHORT_POLL_TIMEOUT;
         let control_ref = self.control.clone();
@@ -1457,5 +1491,117 @@ mod tests {
         // Old update 450 was discarded; new update 505 was preserved!
         assert_eq!(final_buf.len(), 1);
         assert!(final_buf.contains_key(&505));
+    }
+
+    #[tokio::test]
+    async fn test_bootstrap_with_initial_reconcile_barrier_buffers_updates_and_wakes_on_complete() {
+        let (ack_tx, ack_rx) = mpsc::channel(32);
+        let (update_tx, update_rx) = mpsc::channel(32);
+        let (state_tx, _) = watch::channel(ChannelSyncDesiredState::Running);
+        let cancel = CancellationToken::new();
+
+        let control = Arc::new(ChannelSyncControl {
+            sync_id: 101,
+            session_key: "test_session".into(),
+            client_request_id: "req_101".into(),
+            peer_id: "-100123".into(),
+            created_at_ms: now_epoch_ms(),
+            current_pts: AtomicI32::new(0),
+            state_tx,
+            cancel: cancel.clone(),
+            ack_tx: ack_tx.clone(),
+            expected_batch_id: AtomicU64::new(0),
+            claimed_batch_id: AtomicU64::new(0),
+            last_processed_batch_id: AtomicU64::new(0),
+            primary_subscriber: RwLock::new(None),
+            next_subscriber_id: AtomicU64::new(1),
+            subscriber_generation: AtomicU64::new(1),
+            subscriber_notify: Arc::new(Notify::new()),
+            reconcile_target_pts: AtomicI32::new(0),
+            reconcile_notify: Arc::new(Notify::new()),
+            pending_batch: RwLock::new(None),
+            status: Arc::new(RwLock::new(ChannelSyncStatus::Preparing)),
+            is_actively_viewed: AtomicBool::new(true),
+            terminal_at_ms: AtomicU64::new(0),
+        });
+
+        // Attach primary subscriber
+        control.attach_primary_and_snapshot(Arc::new(MockEventSink)).await;
+
+        let mock_source: Arc<dyn ChannelDifferenceSource> = Arc::new(MockDifferenceSource {
+            pts: 1000,
+            difference_pages: vec![],
+            call_count: AtomicUsize::new(0),
+        });
+
+        let identity = TelegramIdentity {
+            session: "test_session".into(),
+            api_id: 123,
+            api_hash: "abc".into(),
+        };
+        let router = Arc::new(SessionUpdateRouter::new(PathBuf::from("sessions"), identity.clone()));
+
+        let worker = ChannelSyncWorker {
+            sync_id: 101,
+            request: StartChannelSyncRequest {
+                client_request_id: "req_101".into(),
+                identity: identity.clone(),
+                peer_id: "-100123".into(),
+                initial_pts: None,
+                is_actively_viewed: Some(true),
+                requires_initial_reconcile: Some(true),
+            },
+            control: control.clone(),
+            difference_source: mock_source,
+            router,
+            ack_rx,
+            update_rx,
+            mailbox_overflowed: Arc::new(AtomicBool::new(false)),
+        };
+
+        // Handle bootstrap ACK
+        let ack_tx_clone = control.ack_tx.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(20)).await;
+            let _ = ack_tx_clone.send(ChannelSyncAck {
+                sync_id: 101,
+                batch_id: 1,
+                outcome: ChannelSyncAckOutcome::Committed,
+                committed_pts: Some(1000),
+                error_code: None,
+            }).await;
+        });
+
+        // Spawn worker
+        let cancel_clone = cancel.clone();
+        let worker_handle = tokio::spawn(async move {
+            worker.run().await;
+        });
+
+        // Wait until worker enters ReconcileRequired barrier
+        tokio::time::sleep(Duration::from_millis(60)).await;
+        let st = *control.status.read().await;
+        assert_eq!(st, ChannelSyncStatus::ReconcileRequired);
+        assert_eq!(control.reconcile_target_pts.load(Ordering::Acquire), 1000);
+
+        // Send a passive update with pts 1001 while in barrier
+        let _ = update_tx.send(PendingChannelUpdate {
+            channel_id: 100123,
+            pts: 1001,
+            pts_count: 1,
+            update_type: ChannelUpdateType::DeleteMessages(vec![99]),
+        }).await;
+
+        tokio::time::sleep(Duration::from_millis(30)).await;
+
+        // Complete reconcile with target 1000
+        let completed = control.complete_reconcile(1000).await;
+        assert!(completed);
+
+        tokio::time::sleep(Duration::from_millis(60)).await;
+
+        // Clean cancel
+        cancel_clone.cancel();
+        let _ = worker_handle.await;
     }
 }

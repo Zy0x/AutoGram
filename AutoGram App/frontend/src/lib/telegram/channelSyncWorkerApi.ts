@@ -85,6 +85,7 @@ export interface StartChannelSyncRequest {
   peerId: string;
   initialPts?: number | null;
   isActivelyViewed?: boolean | null;
+  requiresInitialReconcile?: boolean | null;
 }
 
 export interface StartChannelSyncResponse {

@@ -398,5 +398,19 @@ describe('Media Studio IndexedDB context isolation & MediaIndexState Contract', 
       const exists = await hasCachedMediaRecords('test_acc', 'test_peer_empty');
       expect(typeof exists).toBe('boolean');
     });
+
+    it('6. commitAuthoritativeReconciliation refuses unexhausted or partial scan result', async () => {
+      const { commitAuthoritativeReconciliation } = await import('./mediaStudioDb');
+      const partialResult: any = {
+        files: [{ id: 1, name: 'video.mp4', size: 1024, date: 1700000000, type: 'video' }],
+        uniqueCount: 1,
+        pagesScanned: 1,
+        exhausted: false, // unexhausted!
+      };
+
+      await expect(
+        commitAuthoritativeReconciliation('test_acc', 'test_peer', partialResult, 500)
+      ).rejects.toThrow('Refusing partial or unexhausted authoritative reconciliation');
+    });
   });
 });

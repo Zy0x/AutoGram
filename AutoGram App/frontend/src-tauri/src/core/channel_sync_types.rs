@@ -137,6 +137,7 @@ pub struct StartChannelSyncRequest {
     pub peer_id: String,
     pub initial_pts: Option<i32>,
     pub is_actively_viewed: Option<bool>,
+    pub requires_initial_reconcile: Option<bool>,
 }
 
 /// Response returned immediately upon channel sync creation or retrieval.

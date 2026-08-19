@@ -1,4 +1,5 @@
 import type { DriveFile, DriveMediaContext, MediaScopeKind } from '../telegram/driveTypes';
+import type { AuthoritativeScanResult } from '../telegram/driveApi/driveFilesApi';
 
 export interface MediaRecord extends DriveFile {
   folderId: number;      // composite folder/chat id
@@ -1203,16 +1204,22 @@ export async function getAllCachedPeerMessageIds(
 }
 
 /**
- * P2.5.3 Authoritative Peer Reconciliation Commit.
+ * P2.5.4 Authoritative Peer Reconciliation Commit.
+ * Strictly verifies scanResult.exhausted === true before proceeding.
  * Compares current local cached IDs with complete server scanned files.
  * Atomically deletes all stale local IDs, upserts all server files, and commits target PTS with baselineReconciled = true.
  */
 export async function commitAuthoritativeReconciliation(
   accountId: string,
   peerId: string,
-  serverFiles: DriveFile[],
+  scanResult: AuthoritativeScanResult,
   targetPts: number
 ): Promise<ChannelSyncState> {
+  if (!scanResult || !scanResult.exhausted || !Array.isArray(scanResult.files)) {
+    throw new Error('Refusing partial or unexhausted authoritative reconciliation');
+  }
+
+  const serverFiles = scanResult.files;
   const acc = String(accountId).trim();
   const p = String(peerId).trim();
 
