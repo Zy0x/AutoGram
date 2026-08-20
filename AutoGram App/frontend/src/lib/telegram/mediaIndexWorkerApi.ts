@@ -37,21 +37,50 @@ export type TgMediaIndexAckResult =
   | 'job_terminal';
 
 export interface TgMediaIndexMetricsSnapshot {
-  pagesFetched: number;
-  rpcCalls: number;
+  pageCycles?: number;
+  searchRpcCalls?: number;
+  searchRpcAttempts?: number;
+  successfulSearchRpcs?: number;
+  pvRpcCalls?: number;
+  docRpcCalls?: number;
   rowsEmitted: number;
   rowsCommitted: number;
-  uniqueMediaPerSec: number;
-  rpcPerSec: number;
-  rpcEwmaMs: number;
-  rpcP95Ms: number;
+  emittedRowsPerSec?: number;
+  committedRowsPerSec?: number;
+  searchRpcPerSec?: number;
+  usefulRowsPerSearchRpc?: number;
+  rpcLatencyEwmaMs?: number;
+  rpcP50Ms?: number;
+  rpcP95Ms?: number;
+  ackLatencyEwmaMs: number;
+  ackP50Ms?: number;
+  ackP95Ms?: number;
+  ackToNextRpcEwmaMs?: number;
+  ackToNextRpcP95Ms?: number;
+  pvRowsFetched?: number;
+  docRowsFetched?: number;
+  pvRowsPerRpc?: number;
+  docRowsPerRpc?: number;
   floodCount: number;
   floodSecondsTotal: number;
-  ackLatencyEwmaMs: number;
-  ackLatencyP95Ms: number;
+  lastFloodWaitSecs?: number;
+  governorState?: string;
+  governorInflightLimit?: number;
+  governorSpacingMs?: number;
+  governorConfidence?: number;
+  pendingPvItems?: number;
+  pendingDocItems?: number;
+  persistenceBatchRows?: number;
   candidateTotalEstimate?: number | null;
   estimatedPercent?: number | null;
   estimatedEtaSecs?: number | null;
+  // Compatibility fields
+  pagesFetched?: number;
+  rpcCalls?: number;
+  uniqueMediaPerSec?: number;
+  rpcPerSec?: number;
+  rpcEwmaMs?: number;
+  ackLatencyP95Ms?: number;
 }
 
 export interface TgMediaIndexCheckpointCandidate {

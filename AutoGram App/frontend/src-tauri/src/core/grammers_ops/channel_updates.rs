@@ -81,7 +81,7 @@ pub async fn fetch_channel_pts(
 
                     let res = invoke_guarded_with_control(
                         &s_inner,
-                        RpcClass::IndexSearch,
+                        RpcClass::ChannelSyncRecovery,
                         "channels.getFullChannel",
                         &g_inner,
                         || client.invoke(&req),
@@ -139,7 +139,7 @@ pub async fn get_channel_difference_page(
 
                     let res = invoke_guarded_with_control(
                         &s_inner,
-                        RpcClass::IndexSearch,
+                        RpcClass::ChannelSyncRecovery,
                         "updates.getChannelDifference",
                         &g_inner,
                         || client.invoke(&req),

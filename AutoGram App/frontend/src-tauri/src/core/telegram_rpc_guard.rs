@@ -12,7 +12,7 @@ use parking_lot::Mutex;
 use tokio_util::sync::CancellationToken;
 
 use crate::core::session_rate::{
-    acquire_index_slot, acquire_media_slot, acquire_preview_slot, note_error, note_flood_wait_class,
+    acquire_channel_sync_slot, acquire_index_slot, acquire_media_slot, acquire_preview_slot, note_error, note_flood_wait_class,
     wait_if_flooded_class, RpcClass,
 };
 use crate::core::tg_error::{map_invocation, TgError, TgErrorCode};
@@ -110,6 +110,16 @@ where
                 }
             } else {
                 Some(acquire_index_slot(session).await?)
+            }
+        }
+        RpcClass::ChannelSyncRecovery => {
+            if let Some(ref c) = control.cancel {
+                tokio::select! {
+                    _ = c.cancelled() => return Err(TgError::new(TgErrorCode::Cancelled, "guarded channel sync slot acquisition cancelled")),
+                    res = acquire_channel_sync_slot(session) => Some(res?),
+                }
+            } else {
+                Some(acquire_channel_sync_slot(session).await?)
             }
         }
         RpcClass::MediaDownload => {

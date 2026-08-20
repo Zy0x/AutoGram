@@ -93,28 +93,76 @@ pub struct MediaIndexCheckpointCandidate {
     pub delta_complete: bool,
 }
 
-/// Bounded telemetry and progress metrics snapshot.
+/// Bounded telemetry and progress metrics snapshot for P4.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaIndexMetricsSnapshot {
-    pub pages_fetched: u64,
-    pub rpc_calls: u64,
+    pub page_cycles: u64,
+
+    pub search_rpc_calls: u64,
+    pub search_rpc_attempts: u64,
+    pub successful_search_rpcs: u64,
+
+    pub pv_rpc_calls: u64,
+    pub doc_rpc_calls: u64,
+
     pub rows_emitted: u64,
     pub rows_committed: u64,
-    pub unique_media_per_sec: f64,
-    pub rpc_per_sec: f64,
-    pub rpc_ewma_ms: f64,
+
+    pub emitted_rows_per_sec: f64,
+    pub committed_rows_per_sec: f64,
+    pub search_rpc_per_sec: f64,
+    pub useful_rows_per_search_rpc: f64,
+
+    pub rpc_latency_ewma_ms: f64,
+    pub rpc_p50_ms: u64,
     pub rpc_p95_ms: u64,
+
+    pub ack_latency_ewma_ms: f64,
+    pub ack_p50_ms: u64,
+    pub ack_p95_ms: u64,
+
+    pub ack_to_next_rpc_ewma_ms: f64,
+    pub ack_to_next_rpc_p95_ms: u64,
+
+    pub pv_rows_fetched: u64,
+    pub doc_rows_fetched: u64,
+    pub pv_rows_per_rpc: f64,
+    pub doc_rows_per_rpc: f64,
+
     pub flood_count: u64,
     pub flood_seconds_total: u64,
-    pub ack_latency_ewma_ms: f64,
-    pub ack_latency_p95_ms: u64,
+    pub last_flood_wait_secs: u32,
+
+    pub governor_state: String,
+    pub governor_inflight_limit: u8,
+    pub governor_spacing_ms: u32,
+    pub governor_confidence: f64,
+
+    pub pending_pv_items: usize,
+    pub pending_doc_items: usize,
+    pub persistence_batch_rows: usize,
+
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub candidate_total_estimate: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub estimated_percent: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub estimated_eta_secs: Option<u64>,
+
+    // Compatibility aliases for frontend IPC parity
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pages_fetched: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rpc_calls: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unique_media_per_sec: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rpc_per_sec: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rpc_ewma_ms: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ack_latency_p95_ms: Option<u64>,
 }
 
 /// Emitted when a new batch of media rows has been fetched and merged by Rust.

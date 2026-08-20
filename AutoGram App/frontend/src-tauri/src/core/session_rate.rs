@@ -19,6 +19,7 @@ pub enum RpcClass {
     IndexSearch,
     IndexCounters,
     IndexRepair,
+    ChannelSyncRecovery,
     MediaPreview,
     MediaDownload,
     WriteOperation,
@@ -32,11 +33,13 @@ const MAX_PREVIEW_CONCURRENCY: usize = 2;
 const MAX_FAST_THUMB_CONCURRENCY: usize = 12;
 const MAX_VIDEO_THUMB_CONCURRENCY: usize = 4;
 const MAX_INDEX_CONCURRENCY: usize = 2;
+const MAX_CHANNEL_SYNC_CONCURRENCY: usize = 2;
 
 struct SessionRate {
     flood_until: Option<Instant>,
     class_flood_until: HashMap<RpcClass, Instant>,
     index_sem: std::sync::Arc<Semaphore>,
+    channel_sync_sem: std::sync::Arc<Semaphore>,
     media_sem: std::sync::Arc<Semaphore>,
     preview_sem: std::sync::Arc<Semaphore>,
     fast_sem: std::sync::Arc<Semaphore>,
@@ -62,6 +65,7 @@ fn with_rate<R>(session: &str, f: impl FnOnce(&mut SessionRate) -> R) -> R {
             (RpcClass::IndexSearch, "IndexSearch"),
             (RpcClass::IndexCounters, "IndexCounters"),
             (RpcClass::IndexRepair, "IndexRepair"),
+            (RpcClass::ChannelSyncRecovery, "ChannelSyncRecovery"),
             (RpcClass::MediaDownload, "MediaDownload"),
             (RpcClass::MediaPreview, "MediaPreview"),
             (RpcClass::WriteOperation, "WriteOperation"),
@@ -80,6 +84,7 @@ fn with_rate<R>(session: &str, f: impl FnOnce(&mut SessionRate) -> R) -> R {
                 .map(|seconds| Instant::now() + Duration::from_secs(u64::from(seconds))),
             class_flood_until,
             index_sem: std::sync::Arc::new(Semaphore::new(MAX_INDEX_CONCURRENCY)),
+            channel_sync_sem: std::sync::Arc::new(Semaphore::new(MAX_CHANNEL_SYNC_CONCURRENCY)),
             media_sem: std::sync::Arc::new(Semaphore::new(MAX_MEDIA_DOWNLOADS)),
             preview_sem: std::sync::Arc::new(Semaphore::new(MAX_PREVIEW_CONCURRENCY)),
             fast_sem: std::sync::Arc::new(Semaphore::new(MAX_FAST_THUMB_CONCURRENCY)),
@@ -123,6 +128,7 @@ pub fn note_flood_wait_class(session: &str, class: RpcClass, secs: u32) {
         RpcClass::IndexSearch => "IndexSearch",
         RpcClass::IndexCounters => "IndexCounters",
         RpcClass::IndexRepair => "IndexRepair",
+        RpcClass::ChannelSyncRecovery => "ChannelSyncRecovery",
         RpcClass::MediaDownload => "MediaDownload",
         RpcClass::MediaPreview => "MediaPreview",
         RpcClass::WriteOperation => "WriteOperation",
@@ -325,6 +331,26 @@ pub fn ensure_not_flooded(session: &str) -> Result<(), TgError> {
         }
     }
     Ok(())
+}
+
+/// Acquire channel sync slot (up to 2 permits per session for live PTS recovery / differences).
+pub async fn acquire_channel_sync_slot(session: &str) -> Result<OwnedSemaphorePermit, TgError> {
+    ensure_not_flooded_class(session, RpcClass::ChannelSyncRecovery)?;
+    let sem = with_rate(session, |e| e.channel_sync_sem.clone());
+    match sem.clone().try_acquire_owned() {
+        Ok(p) => Ok(p),
+        Err(_) => match tokio::time::timeout(Duration::from_secs(8), sem.acquire_owned()).await {
+            Ok(Ok(p)) => Ok(p),
+            Ok(Err(_)) => Err(TgError::new(
+                TgErrorCode::Internal,
+                "channel sync semaphore closed",
+            )),
+            Err(_) => Err(TgError::new(
+                TgErrorCode::Timeout,
+                "channel sync slot busy — antrean sync penuh",
+            )),
+        },
+    }
 }
 
 /// Acquire indexing slot (up to 2 permits per session control plane).

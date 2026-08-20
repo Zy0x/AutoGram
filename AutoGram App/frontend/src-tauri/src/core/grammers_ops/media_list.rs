@@ -102,9 +102,10 @@ pub struct LaneWatermark {
     pub document: i32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum SearchLane {
+    #[default]
     PhotoVideo,
     Document,
     Both,
@@ -167,48 +168,63 @@ pub fn buffered_k_way_merge(
     pending_pv.sort_by(|a, b| b.id.cmp(&a.id));
     pending_doc.sort_by(|a, b| b.id.cmp(&a.id));
 
-    while emitted.len() < limit && (!pending_pv.is_empty() || !pending_doc.is_empty()) {
-        match (pending_pv.first(), pending_doc.first()) {
+    let mut pv_idx = 0usize;
+    let mut doc_idx = 0usize;
+    let pv_len = pending_pv.len();
+    let doc_len = pending_doc.len();
+
+    while emitted.len() < limit && (pv_idx < pv_len || doc_idx < doc_len) {
+        let pv_item = pending_pv.get(pv_idx);
+        let doc_item = pending_doc.get(doc_idx);
+
+        match (pv_item, doc_item) {
             (Some(pv), Some(doc)) if pv.id == doc.id => {
                 // Inherent dual-lane pop: consume both heads at once so identical ID is NEVER
                 // retained in the secondary buffer across page boundaries!
-                let pv_row = pending_pv.remove(0);
-                let _doc_row = pending_doc.remove(0);
                 emitted.push(MergedMediaRow {
-                    row: pv_row,
+                    row: pv.clone(),
                     lane: SearchLane::Both,
                 });
+                pv_idx += 1;
+                doc_idx += 1;
             }
             (Some(pv), Some(doc)) if pv.id > doc.id => {
-                let pv_row = pending_pv.remove(0);
                 emitted.push(MergedMediaRow {
-                    row: pv_row,
+                    row: pv.clone(),
                     lane: SearchLane::PhotoVideo,
                 });
+                pv_idx += 1;
             }
-            (Some(_), Some(_)) => {
-                let doc_row = pending_doc.remove(0);
+            (Some(_), Some(doc)) => {
                 emitted.push(MergedMediaRow {
-                    row: doc_row,
+                    row: doc.clone(),
                     lane: SearchLane::Document,
                 });
+                doc_idx += 1;
             }
-            (Some(_), None) => {
-                let pv_row = pending_pv.remove(0);
+            (Some(pv), None) => {
                 emitted.push(MergedMediaRow {
-                    row: pv_row,
+                    row: pv.clone(),
                     lane: SearchLane::PhotoVideo,
                 });
+                pv_idx += 1;
             }
-            (None, Some(_)) => {
-                let doc_row = pending_doc.remove(0);
+            (None, Some(doc)) => {
                 emitted.push(MergedMediaRow {
-                    row: doc_row,
+                    row: doc.clone(),
                     lane: SearchLane::Document,
                 });
+                doc_idx += 1;
             }
             (None, None) => break,
         }
+    }
+
+    if pv_idx > 0 {
+        pending_pv.drain(..pv_idx);
+    }
+    if doc_idx > 0 {
+        pending_doc.drain(..doc_idx);
     }
 
     emitted
@@ -228,6 +244,16 @@ pub struct LaneDurability {
     pub document_drained: bool,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LaneRpcObservation {
+    pub lane: SearchLane,
+    pub latency_ms: u64,
+    pub attempts: u32,
+    pub rows_received: usize,
+    pub candidate_count: Option<usize>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListMediaResult {
@@ -245,6 +271,10 @@ pub struct ListMediaResult {
     pub total_count: Option<usize>,
     pub backend: String,
     pub cached: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pv_observation: Option<LaneRpcObservation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub doc_observation: Option<LaneRpcObservation>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -826,6 +856,108 @@ pub fn list_media_blocking_topic_cursor(
     ))
 }
 
+/// Pure independent lane-fetch primitive for P4 multi-lane indexing.
+pub async fn fetch_media_lane_page_async(
+    client: &grammers_client::Client,
+    session_name: &str,
+    input_peer: grammers_client::tl::enums::InputPeer,
+    lane: SearchLane,
+    offset_id: i32,
+    limit: i32,
+    min_id: i32,
+    top_msg_id: Option<i32>,
+    folder_id: Option<i64>,
+    guard: &crate::core::telegram_rpc_guard::RpcGuardControl,
+) -> Result<(Vec<MediaFileRow>, Option<i32>, bool, Option<usize>, LaneRpcObservation), TgError> {
+    let (filter, op_name) = match lane {
+        SearchLane::PhotoVideo => (
+            grammers_client::tl::enums::MessagesFilter::InputMessagesFilterPhotoVideo,
+            "messages.search.photo_video",
+        ),
+        SearchLane::Document => (
+            grammers_client::tl::enums::MessagesFilter::InputMessagesFilterDocument,
+            "messages.search.document",
+        ),
+        SearchLane::Both => (
+            grammers_client::tl::enums::MessagesFilter::InputMessagesFilterEmpty,
+            "messages.search.empty",
+        ),
+    };
+
+    let req = grammers_client::tl::functions::messages::Search {
+        peer: input_peer,
+        q: String::new(),
+        from_id: None,
+        saved_peer_id: None,
+        saved_reaction: None,
+        top_msg_id,
+        filter,
+        min_date: 0,
+        max_date: 0,
+        offset_id,
+        add_offset: 0,
+        limit,
+        max_id: 0,
+        min_id,
+        hash: 0,
+    };
+
+    let start_instant = Instant::now();
+    let res = crate::core::telegram_rpc_guard::invoke_guarded_with_control(
+        session_name,
+        crate::core::session_rate::RpcClass::IndexSearch,
+        op_name,
+        guard,
+        || client.invoke(&req),
+    )
+    .await?;
+
+    let latency_ms = start_instant.elapsed().as_millis() as u64;
+
+    let mut lane_total_count = None;
+    let raw_msgs = match res.value {
+        grammers_client::tl::enums::messages::Messages::Messages(m) => m.messages,
+        grammers_client::tl::enums::messages::Messages::Slice(m) => {
+            lane_total_count = Some(m.count as usize);
+            m.messages
+        }
+        grammers_client::tl::enums::messages::Messages::ChannelMessages(m) => {
+            lane_total_count = Some(m.count as usize);
+            m.messages
+        }
+        grammers_client::tl::enums::messages::Messages::NotModified(_) => Vec::new(),
+    };
+
+    let raw_len = raw_msgs.len();
+    let mut lowest_id = None;
+    let mut rows = Vec::with_capacity(raw_len);
+
+    for tl_msg in raw_msgs {
+        if let grammers_client::tl::enums::Message::Message(ref m) = tl_msg {
+            lowest_id = Some(lowest_id.map_or(m.id, |prev: i32| prev.min(m.id)));
+        }
+        if let Some(row) = tl_message_to_row(&tl_msg, folder_id) {
+            rows.push(row);
+        }
+    }
+
+    let is_exhausted = if let Some(last_id) = lowest_id {
+        raw_len < limit as usize || last_id <= 1
+    } else {
+        true
+    };
+
+    let observation = LaneRpcObservation {
+        lane,
+        latency_ms,
+        attempts: res.attempts,
+        rows_received: rows.len(),
+        candidate_count: lane_total_count,
+    };
+
+    Ok((rows, lowest_id, is_exhausted, lane_total_count, observation))
+}
+
 pub async fn list_media_page_async(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
@@ -886,138 +1018,65 @@ pub async fn list_media_page_async(
                     let mut lane_counts = LaneCounts::default();
                     let mut candidate_estimate = 0usize;
 
+                    let mut pv_observation = None;
+                    let mut doc_observation = None;
+
                     // 1. Lane: PhotoVideo (Native Photos & Videos)
                     // Replenish buffer if pending buffer is smaller than limit AND lane is not exhausted
                     if cursor.pending_photo_video.len() < limit && !cursor.photo_video.exhausted {
-                        let req = grammers_client::tl::functions::messages::Search {
-                            peer: input_peer.clone(),
-                            q: String::new(),
-                            from_id: None,
-                            saved_peer_id: None,
-                            saved_reaction: None,
-                            top_msg_id,
-                            filter: grammers_client::tl::enums::MessagesFilter::InputMessagesFilterPhotoVideo,
-                            min_date: 0,
-                            max_date: 0,
-                            offset_id: cursor.photo_video.fetch_offset_id,
-                            add_offset: 0,
-                            limit: limit as i32,
-                            max_id: 0,
-                            min_id: min_id_i32,
-                            hash: 0,
-                        };
-
-                        let res = crate::core::telegram_rpc_guard::invoke_guarded_with_control(
+                        let (rows, lowest_id, is_exhausted, count_opt, obs) = fetch_media_lane_page_async(
+                            client,
                             &session_name,
-                            crate::core::session_rate::RpcClass::IndexSearch,
-                            "messages.search.photo_video",
+                            input_peer.clone(),
+                            SearchLane::PhotoVideo,
+                            cursor.photo_video.fetch_offset_id,
+                            limit as i32,
+                            min_id_i32,
+                            top_msg_id,
+                            folder_id,
                             &active_guard,
-                            || client.invoke(&req),
                         )
                         .await?;
 
-                        let raw_msgs = match res.value {
-                            grammers_client::tl::enums::messages::Messages::Messages(m) => m.messages,
-                            grammers_client::tl::enums::messages::Messages::Slice(m) => {
-                                lane_counts.photo_video = Some(m.count as usize);
-                                candidate_estimate += m.count as usize;
-                                m.messages
-                            }
-                            grammers_client::tl::enums::messages::Messages::ChannelMessages(m) => {
-                                lane_counts.photo_video = Some(m.count as usize);
-                                candidate_estimate += m.count as usize;
-                                m.messages
-                            }
-                            grammers_client::tl::enums::messages::Messages::NotModified(_) => Vec::new(),
-                        };
-
-                        let raw_len = raw_msgs.len();
-                        let mut lowest_id = None;
-
-                        for tl_msg in raw_msgs {
-                            if let grammers_client::tl::enums::Message::Message(ref m) = tl_msg {
-                                lowest_id = Some(lowest_id.map_or(m.id, |prev: i32| prev.min(m.id)));
-                            }
-                            if let Some(row) = tl_message_to_row(&tl_msg, folder_id) {
-                                cursor.pending_photo_video.push(row);
-                            }
-                        }
-
+                        cursor.pending_photo_video.extend(rows);
                         if let Some(last_id) = lowest_id {
                             cursor.photo_video.fetch_offset_id = last_id;
-                            if raw_len < limit || last_id <= 1 {
-                                cursor.photo_video.exhausted = true;
-                            }
-                        } else {
-                            cursor.photo_video.exhausted = true;
                         }
+                        cursor.photo_video.exhausted = is_exhausted;
+                        lane_counts.photo_video = count_opt;
+                        if let Some(c) = count_opt {
+                            candidate_estimate += c;
+                        }
+                        pv_observation = Some(obs);
                     }
 
                     // 2. Lane: Document (Files, Document Videos, Audio, Archives)
                     // Replenish buffer if pending buffer is smaller than limit AND lane is not exhausted
                     if cursor.pending_document.len() < limit && !cursor.document.exhausted {
-                        let req = grammers_client::tl::functions::messages::Search {
-                            peer: input_peer.clone(),
-                            q: String::new(),
-                            from_id: None,
-                            saved_peer_id: None,
-                            saved_reaction: None,
-                            top_msg_id,
-                            filter: grammers_client::tl::enums::MessagesFilter::InputMessagesFilterDocument,
-                            min_date: 0,
-                            max_date: 0,
-                            offset_id: cursor.document.fetch_offset_id,
-                            add_offset: 0,
-                            limit: limit as i32,
-                            max_id: 0,
-                            min_id: min_id_i32,
-                            hash: 0,
-                        };
-
-                        let res = crate::core::telegram_rpc_guard::invoke_guarded_with_control(
+                        let (rows, lowest_id, is_exhausted, count_opt, obs) = fetch_media_lane_page_async(
+                            client,
                             &session_name,
-                            crate::core::session_rate::RpcClass::IndexSearch,
-                            "messages.search.document",
+                            input_peer.clone(),
+                            SearchLane::Document,
+                            cursor.document.fetch_offset_id,
+                            limit as i32,
+                            min_id_i32,
+                            top_msg_id,
+                            folder_id,
                             &active_guard,
-                            || client.invoke(&req),
                         )
                         .await?;
 
-                        let raw_msgs = match res.value {
-                            grammers_client::tl::enums::messages::Messages::Messages(m) => m.messages,
-                            grammers_client::tl::enums::messages::Messages::Slice(m) => {
-                                lane_counts.document = Some(m.count as usize);
-                                candidate_estimate += m.count as usize;
-                                m.messages
-                            }
-                            grammers_client::tl::enums::messages::Messages::ChannelMessages(m) => {
-                                lane_counts.document = Some(m.count as usize);
-                                candidate_estimate += m.count as usize;
-                                m.messages
-                            }
-                            grammers_client::tl::enums::messages::Messages::NotModified(_) => Vec::new(),
-                        };
-
-                        let raw_len = raw_msgs.len();
-                        let mut lowest_id = None;
-
-                        for tl_msg in raw_msgs {
-                            if let grammers_client::tl::enums::Message::Message(ref m) = tl_msg {
-                                lowest_id = Some(lowest_id.map_or(m.id, |prev: i32| prev.min(m.id)));
-                            }
-                            if let Some(row) = tl_message_to_row(&tl_msg, folder_id) {
-                                cursor.pending_document.push(row);
-                            }
-                        }
-
+                        cursor.pending_document.extend(rows);
                         if let Some(last_id) = lowest_id {
                             cursor.document.fetch_offset_id = last_id;
-                            if raw_len < limit || last_id <= 1 {
-                                cursor.document.exhausted = true;
-                            }
-                        } else {
-                            cursor.document.exhausted = true;
                         }
+                        cursor.document.exhausted = is_exhausted;
+                        lane_counts.document = count_opt;
+                        if let Some(c) = count_opt {
+                            candidate_estimate += c;
+                        }
+                        doc_observation = Some(obs);
                     }
 
                     // 3. Lossless Buffered K-Way Merge & Exact Page Size
@@ -1085,6 +1144,8 @@ pub async fn list_media_page_async(
                         backend: BACKEND.to_string(),
                         cached: false,
                         files: emitted_files,
+                        pv_observation,
+                        doc_observation,
                     })
                 })
             })

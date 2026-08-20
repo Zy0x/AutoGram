@@ -21,6 +21,7 @@ use super::grammers_ops::media_list::{
 };
 use super::media_index_types::*;
 use super::telegram_ops::TelegramIdentity;
+use super::adaptive_rate_governor::{AdaptiveRateGovernor, GovernorState, RpcObservation};
 use super::telegram_rpc_guard::{RpcGuardControl, RpcObserver};
 use super::tg_error::{TgError, TgErrorCode, TgErrorPublic};
 use super::tg_log;
@@ -1021,6 +1022,7 @@ impl MediaIndexWorker {
         let mut ack_counter = 0u64;
         let mut total_emitted = 0u64;
         let mut metrics = MediaIndexMetricsSnapshot::default();
+        let mut governor = AdaptiveRateGovernor::new();
         let mut last_progress_tick = Instant::now();
         let start_time = Instant::now();
         let mut delta_max_observed_id = current_newest_id;
@@ -1096,8 +1098,15 @@ impl MediaIndexWorker {
                     });
                 }
 
-                // 2. Fetch next page from Telegram MTProto
-                metrics.rpc_calls += 1;
+                // 2. Adaptive Pacing & Zero-Idle Admission Check
+                governor.before_index_rpc(&cancel).await.map_err(|e| MediaIndexJobError {
+                    code: "job_cancelled".into(),
+                    message: e.to_string(),
+                    recoverable: false,
+                })?;
+
+                metrics.page_cycles += 1;
+                metrics.pages_fetched = Some(metrics.page_cycles);
                 let fetch_start = Instant::now();
 
                 let page_res = page_source_ref
@@ -1115,13 +1124,76 @@ impl MediaIndexWorker {
 
                 let page = match page_res {
                     Ok(p) => {
-                        let rpc_latency_ms = fetch_start.elapsed().as_millis() as f64;
-                        if metrics.rpc_ewma_ms <= 0.0 {
-                            metrics.rpc_ewma_ms = rpc_latency_ms;
-                        } else {
-                            metrics.rpc_ewma_ms = (metrics.rpc_ewma_ms * 0.85) + (rpc_latency_ms * 0.15);
+                        let total_latency_ms = fetch_start.elapsed().as_millis() as u64;
+
+                        // Feed fine-grained lane RPC observations to telemetry and governor
+                        if let Some(ref pv_obs) = p.pv_observation {
+                            metrics.search_rpc_calls += 1;
+                            metrics.search_rpc_attempts += u64::from(pv_obs.attempts);
+                            metrics.successful_search_rpcs += 1;
+                            metrics.pv_rpc_calls += 1;
+                            metrics.pv_rows_fetched += pv_obs.rows_received as u64;
+                            governor.on_rpc_observation(RpcObservation {
+                                latency_ms: pv_obs.latency_ms,
+                                rows_yielded: pv_obs.rows_received,
+                                was_error: false,
+                            });
                         }
-                        metrics.pages_fetched += 1;
+                        if let Some(ref doc_obs) = p.doc_observation {
+                            metrics.search_rpc_calls += 1;
+                            metrics.search_rpc_attempts += u64::from(doc_obs.attempts);
+                            metrics.successful_search_rpcs += 1;
+                            metrics.doc_rpc_calls += 1;
+                            metrics.doc_rows_fetched += doc_obs.rows_received as u64;
+                            governor.on_rpc_observation(RpcObservation {
+                                latency_ms: doc_obs.latency_ms,
+                                rows_yielded: doc_obs.rows_received,
+                                was_error: false,
+                            });
+                        }
+                        if p.pv_observation.is_none() && p.doc_observation.is_none() {
+                            // Fallback observation (e.g. mock page source)
+                            metrics.search_rpc_calls += 1;
+                            metrics.search_rpc_attempts += 1;
+                            metrics.successful_search_rpcs += 1;
+                            governor.on_rpc_observation(RpcObservation {
+                                latency_ms: total_latency_ms,
+                                rows_yielded: p.files.len(),
+                                was_error: false,
+                            });
+                        }
+
+                        metrics.rpc_calls = Some(metrics.search_rpc_calls);
+                        metrics.rpc_p50_ms = governor.rpc_p50();
+                        metrics.rpc_p95_ms = governor.rpc_p95();
+
+                        let rpc_latency_ms = total_latency_ms as f64;
+                        if metrics.rpc_latency_ewma_ms <= 0.0 {
+                            metrics.rpc_latency_ewma_ms = rpc_latency_ms;
+                        } else {
+                            metrics.rpc_latency_ewma_ms = (metrics.rpc_latency_ewma_ms * 0.85) + (rpc_latency_ms * 0.15);
+                        }
+                        metrics.rpc_ewma_ms = Some(metrics.rpc_latency_ewma_ms);
+
+                        if metrics.search_rpc_calls > 0 {
+                            metrics.useful_rows_per_search_rpc = (metrics.pv_rows_fetched + metrics.doc_rows_fetched) as f64 / metrics.search_rpc_calls as f64;
+                        }
+                        if metrics.pv_rpc_calls > 0 {
+                            metrics.pv_rows_per_rpc = metrics.pv_rows_fetched as f64 / metrics.pv_rpc_calls as f64;
+                        }
+                        if metrics.doc_rpc_calls > 0 {
+                            metrics.doc_rows_per_rpc = metrics.doc_rows_fetched as f64 / metrics.doc_rpc_calls as f64;
+                        }
+
+                        metrics.governor_state = governor.state().as_str().to_string();
+                        metrics.governor_inflight_limit = governor.max_inflight() as u8;
+                        metrics.governor_spacing_ms = governor.spacing_ms();
+                        metrics.governor_confidence = governor.confidence();
+
+                        metrics.pending_pv_items = p.search_cursor.as_ref().map(|c| c.pending_photo_video.len()).unwrap_or(0);
+                        metrics.pending_doc_items = p.search_cursor.as_ref().map(|c| c.pending_document.len()).unwrap_or(0);
+                        metrics.persistence_batch_rows = p.files.len();
+
                         if let Some(ref counts) = p.lane_counts {
                             let total_est = (counts.photo_video.unwrap_or(0) + counts.document.unwrap_or(0)) as u64;
                             metrics.candidate_total_estimate = Some(total_est);
@@ -1142,8 +1214,13 @@ impl MediaIndexWorker {
                             let now_ms = now_epoch_ms();
                             let resume_at = now_ms + (u64::from(wait_secs) * 1000);
 
-                            metrics.flood_count += 1;
+                            governor.on_flood_wait(wait_secs);
+                            metrics.flood_count = governor.flood_count();
                             metrics.flood_seconds_total += u64::from(wait_secs);
+                            metrics.last_flood_wait_secs = wait_secs;
+                            metrics.governor_state = governor.state().as_str().to_string();
+                            metrics.governor_spacing_ms = governor.spacing_ms();
+                            metrics.governor_confidence = governor.confidence();
 
                             {
                                 let mut st = control_ref.status.write().await;
@@ -1172,6 +1249,11 @@ impl MediaIndexWorker {
                                 }
                             }
                         } else {
+                            governor.on_rpc_observation(RpcObservation {
+                                latency_ms: fetch_start.elapsed().as_millis() as u64,
+                                rows_yielded: 0,
+                                was_error: true,
+                            });
                             return Err(MediaIndexJobError {
                                 code: format!("{:?}", code),
                                 message: e.to_string(),
@@ -1257,16 +1339,20 @@ impl MediaIndexWorker {
                 metrics.rows_emitted = total_emitted;
 
                 let elapsed_secs = start_time.elapsed().as_secs_f64().max(0.001);
-                metrics.unique_media_per_sec = total_emitted as f64 / elapsed_secs;
-                metrics.rpc_per_sec = metrics.rpc_calls as f64 / elapsed_secs;
+                metrics.emitted_rows_per_sec = total_emitted as f64 / elapsed_secs;
+                metrics.committed_rows_per_sec = metrics.rows_committed as f64 / elapsed_secs;
+                metrics.unique_media_per_sec = Some(metrics.emitted_rows_per_sec);
+                metrics.search_rpc_per_sec = metrics.search_rpc_calls as f64 / elapsed_secs;
+                metrics.rpc_per_sec = Some(metrics.search_rpc_per_sec);
+                governor.update_throughput(metrics.emitted_rows_per_sec);
 
                 if let Some(total_est) = metrics.candidate_total_estimate {
                     if total_est > 0 {
                         let pct = (total_emitted as f64 / total_est as f64) * 100.0;
                         metrics.estimated_percent = Some(if is_complete { 100.0 } else { pct.clamp(0.0, 99.5) });
-                        if metrics.unique_media_per_sec > 0.0 && !is_complete {
+                        if metrics.emitted_rows_per_sec > 0.0 && !is_complete {
                             let rem = total_est.saturating_sub(total_emitted);
-                            metrics.estimated_eta_secs = Some((rem as f64 / metrics.unique_media_per_sec) as u64);
+                            metrics.estimated_eta_secs = Some((rem as f64 / metrics.emitted_rows_per_sec) as u64);
                         }
                     }
                 }
@@ -1397,12 +1483,17 @@ impl MediaIndexWorker {
                 };
 
                 // Processing received ACK
-                let ack_latency_ms = ack_emit_start.elapsed().as_millis() as f64;
+                let ack_latency_u64 = ack_emit_start.elapsed().as_millis() as u64;
+                let ack_latency_ms = ack_latency_u64 as f64;
                 if metrics.ack_latency_ewma_ms <= 0.0 {
                     metrics.ack_latency_ewma_ms = ack_latency_ms;
                 } else {
                     metrics.ack_latency_ewma_ms = (metrics.ack_latency_ewma_ms * 0.8) + (ack_latency_ms * 0.2);
                 }
+                governor.on_ack_committed(ack_latency_u64, 0);
+                metrics.ack_p50_ms = governor.ack_p50();
+                metrics.ack_p95_ms = governor.ack_p95();
+                metrics.ack_latency_p95_ms = Some(metrics.ack_p95_ms);
 
                 match ack.outcome {
                     MediaIndexAckOutcome::Committed => {
@@ -1575,6 +1666,8 @@ mod tests {
                     backend: "grammers".into(),
                     cached: false,
                     search_cursor: None,
+                    pv_observation: None,
+                    doc_observation: None,
                 })
             }
         }
@@ -1696,6 +1789,8 @@ mod tests {
             backend: "grammers".into(),
             cached: false,
             search_cursor: None,
+            pv_observation: None,
+            doc_observation: None,
         };
 
         let manager = Arc::new(MediaIndexJobManager::with_page_source(

@@ -1,7 +1,9 @@
 //! AutoGram Rust core — Grammers-only MTProto backend (no Python Telethon runtime).
 
 pub use autogram_core;
+pub mod adaptive_rate_governor;
 pub mod capability;
+pub mod media_index_bench;
 pub mod channel_sync_manager;
 pub mod channel_sync_types;
 pub mod channel_sync_worker;
