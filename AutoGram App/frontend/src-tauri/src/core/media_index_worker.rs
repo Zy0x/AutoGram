@@ -1101,11 +1101,13 @@ impl MediaIndexWorker {
         let mut pending_lane_durability: Option<LaneDurability> = None;
         let mut pending_has_more: bool = true;
         let mut pending_is_complete: bool = false;
+        let mut prefetched_page: Option<(Result<ListMediaResult, TgError>, Instant)> = None;
 
         let loop_result: Result<(), MediaIndexJobError> = async {
             loop {
                 // 1. Cooperative Pause / Resume Check
                 if *state_rx.borrow() == MediaIndexDesiredState::Paused {
+                    prefetched_page = None;
                     {
                         let mut st = control_ref.status.write().await;
                         st.state = MediaIndexJobState::UserPaused;
@@ -1170,21 +1172,27 @@ impl MediaIndexWorker {
 
                 metrics.page_cycles += 1;
                 metrics.pages_fetched = Some(metrics.page_cycles);
-                let fetch_start = Instant::now();
 
-                let page_res = page_source_ref
-                    .next_page(
-                        &request_identity,
-                        &peer_id,
-                        page_size,
-                        None,
-                        Some(min_id),
-                        topic_id,
-                        search_cursor.clone(),
-                        max_inflight,
-                        guard_control.clone(),
-                    )
-                    .await;
+                let (page_res, fetch_start) = match prefetched_page.take() {
+                    Some((res, start)) => (res, start),
+                    None => {
+                        let start = Instant::now();
+                        let res = page_source_ref
+                            .next_page(
+                                &request_identity,
+                                &peer_id,
+                                page_size,
+                                None,
+                                Some(min_id),
+                                topic_id,
+                                search_cursor.clone(),
+                                max_inflight,
+                                guard_control.clone(),
+                            )
+                            .await;
+                        (res, start)
+                    }
+                };
 
                 let page = match page_res {
                     Ok(p) => {
@@ -1538,6 +1546,37 @@ impl MediaIndexWorker {
                 // 3. Emit page and wait for ACK / reattach / timeout
                 let sent_ok = control_ref.emit_to_primary(MediaIndexEvent::Page(page_event)).await;
 
+                // Concurrent Pipelined Lookahead: Prefetch next MTProto page in background while storage ACK is committing
+                let next_cursor = pending_search_cursor.clone();
+                let next_identity = request_identity.clone();
+                let next_peer = peer_id.clone();
+                let next_source = page_source_ref.clone();
+                let next_guard = guard_control.clone();
+                let next_cancel = cancel.clone();
+                let can_prefetch = pending_has_more && !next_cancel.is_cancelled() && *state_rx.borrow() == MediaIndexDesiredState::Running;
+
+                let prefetch_task = if can_prefetch {
+                    let start = Instant::now();
+                    Some(tokio::spawn(async move {
+                        let res = next_source
+                            .next_page(
+                                &next_identity,
+                                &next_peer,
+                                page_size,
+                                None,
+                                Some(min_id),
+                                topic_id,
+                                next_cursor,
+                                max_inflight,
+                                next_guard,
+                            )
+                            .await;
+                        (res, start)
+                    }))
+                } else {
+                    None
+                };
+
                 if sent_ok {
                     let mut st = control_ref.status.write().await;
                     st.state = MediaIndexJobState::WaitingAck;
@@ -1572,6 +1611,9 @@ impl MediaIndexWorker {
                     if is_waiting_frontend {
                         tokio::select! {
                             _ = cancel.cancelled() => {
+                                if let Some(task) = prefetch_task {
+                                    task.abort();
+                                }
                                 return Err(MediaIndexJobError {
                                     code: "job_cancelled".into(),
                                     message: "Job cancelled while awaiting frontend reattach".into(),
@@ -1587,6 +1629,9 @@ impl MediaIndexWorker {
                                 continue;
                             }
                             _ = tokio::time::sleep(FRONTEND_REATTACH_TIMEOUT) => {
+                                if let Some(task) = prefetch_task {
+                                    task.abort();
+                                }
                                 return Err(MediaIndexJobError {
                                     code: "frontend_detached_timeout".into(),
                                     message: format!("Timed out waiting for frontend reattach on page #{}", ack_id),
@@ -1597,6 +1642,9 @@ impl MediaIndexWorker {
                     } else {
                         tokio::select! {
                             _ = cancel.cancelled() => {
+                                if let Some(task) = prefetch_task {
+                                    task.abort();
+                                }
                                 return Err(MediaIndexJobError {
                                     code: "job_cancelled".into(),
                                     message: "Job cancelled while awaiting storage ACK".into(),
@@ -1604,6 +1652,9 @@ impl MediaIndexWorker {
                                 });
                             }
                             _ = tokio::time::sleep(DEFAULT_ACK_TIMEOUT) => {
+                                if let Some(task) = prefetch_task {
+                                    task.abort();
+                                }
                                 return Err(MediaIndexJobError {
                                     code: "storage_ack_timeout".into(),
                                     message: format!("Frontend timed out acknowledging page #{}", ack_id),
@@ -1617,6 +1668,9 @@ impl MediaIndexWorker {
                                 match maybe_ack {
                                     Some(a) if a.ack_id == ack_id => break a,
                                     Some(_) => {
+                                        if let Some(task) = prefetch_task {
+                                            task.abort();
+                                        }
                                         return Err(MediaIndexJobError {
                                             code: "internal_invariant_violation".into(),
                                             message: "Received out-of-order ACK ID from receiver".into(),
@@ -1624,6 +1678,9 @@ impl MediaIndexWorker {
                                         });
                                     }
                                     None => {
+                                        if let Some(task) = prefetch_task {
+                                            task.abort();
+                                        }
                                         return Err(MediaIndexJobError {
                                             code: "frontend_detached".into(),
                                             message: "ACK channel closed".into(),
@@ -1651,6 +1708,13 @@ impl MediaIndexWorker {
                         let elapsed_secs = start_time.elapsed().as_secs_f64().max(0.001);
                         metrics.committed_rows_per_sec = metrics.rows_committed as f64 / elapsed_secs;
                         metrics.unique_media_per_sec = Some(metrics.committed_rows_per_sec);
+
+                        // Capture prefetched page for instantaneous next cycle
+                        if let Some(task) = prefetch_task {
+                            if let Ok((res, start)) = task.await {
+                                prefetched_page = Some((res, start));
+                            }
+                        }
 
                         // Feed durably committed throughput to governor & sync canonical metrics
                         {
