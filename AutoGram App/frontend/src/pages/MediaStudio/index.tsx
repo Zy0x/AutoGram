@@ -33,6 +33,7 @@ import { HardDrive, Upload, Scissors, Copy, ClipboardPaste, X } from 'lucide-rea
 import {
   determineIndexingTier,
   calculateIndexingMetrics,
+  getScopedIndexedCount,
   type IndexingTier,
 } from '../../lib/telegram/adaptiveIndexer';
 import { canUseLocalTelegramWorker, detectTauriRuntime } from '../../lib/tauri/platform';
@@ -561,6 +562,10 @@ function MediaDriveDesktop({
   const [cachedMediaBreakdown, setCachedMediaBreakdown] = useState<ExactMediaBreakdown | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [totalIndexedCount, setTotalIndexedCount] = useState<number>(0);
+  // `totalIndexedCount` is progress for one exact account/peer/topic scope. A
+  // plain component state value can otherwise survive navigation and make a
+  // new peer appear partially indexed with the previous peer's count.
+  const indexedCountScopeRef = useRef<string>(initCacheKey);
   const [nextOffsetId, setNextOffsetId] = useState<number | null>(
     () => initialLocationCache?.nextOffsetId ?? null
   );
@@ -1458,6 +1463,8 @@ function MediaDriveDesktop({
     setStatsAccurate(false);
     setStatsByType(null);
     setCachedMediaBreakdown(null);
+    indexedCountScopeRef.current = getDriveCacheKey(next, null, null);
+    setTotalIndexedCount(0);
     setTopics([]);
     setTopicFilter(null);
     setIsForumChat(false);
@@ -1525,7 +1532,7 @@ function MediaDriveDesktop({
     void import('../../lib/telegram')
       .then((m) => m.sessionGuardAcquire(next, `studio-${next}`, 'studio'))
       .catch(() => undefined);
-  }, [session, invalidateDriveGenerations]);
+  }, [session, invalidateDriveGenerations, getDriveCacheKey]);
 
   const activeContentFiles = mediaFilter === 'links' ? linkFiles : files;
 
@@ -2794,6 +2801,10 @@ function MediaDriveDesktop({
     let tid = topicFilterRef.current;
     let cacheKey = getDriveCacheKey(creds.session, peerId, tid);
     activeFilesCacheKeyRef.current = cacheKey;
+    if (indexedCountScopeRef.current !== cacheKey) {
+      indexedCountScopeRef.current = cacheKey;
+      setTotalIndexedCount(0);
+    }
 
     // Instant cache restore
     const cachedFiles = filesCacheRef.current.get(cacheKey);
@@ -3606,7 +3617,9 @@ function MediaDriveDesktop({
     setIndexingAllActive(true);
 
     const initialTotal = totalFileCount || 0;
-    const initialProcessed = Math.max(liveFilesRef.current.length, totalIndexedCount);
+    const scopedIndexedCount = getScopedIndexedCount(indexedCountScopeRef.current, cacheKey, totalIndexedCount);
+    indexedCountScopeRef.current = cacheKey;
+    const initialProcessed = Math.max(liveFilesRef.current.length, scopedIndexedCount);
     const initialTier = determineIndexingTier(initialTotal, initialProcessed);
     const startTimeMs = Date.now();
 
@@ -4319,6 +4332,8 @@ function MediaDriveDesktop({
     prevPeer.current = peerId;
 
     // Instantly wipe files and reset thumb context to prevent bleeding from previous peer
+    indexedCountScopeRef.current = getDriveCacheKey(creds.session, peerId, null);
+    setTotalIndexedCount(0);
     setFiles([]);
     setLoadingFiles(true);
     setThumbContext(creds, peerId, null);
@@ -4357,7 +4372,7 @@ function MediaDriveDesktop({
       void loadTopicsForPeer(peerId, meta);
     }
     void refreshFiles();
-  }, [peerId, creds, chats.length, refreshFiles, loadTopicsForPeer]);
+  }, [peerId, creds, chats.length, refreshFiles, loadTopicsForPeer, getDriveCacheKey]);
 
   const handleTopicFilter = useCallback(
     (t: DriveTopicFilter) => {
@@ -4396,6 +4411,8 @@ function MediaDriveDesktop({
       // never sticks on previous topic while the new topic loads.
       const cacheKey = getDriveCacheKey(creds?.session || session, peerId, t);
       activeFilesCacheKeyRef.current = cacheKey;
+      indexedCountScopeRef.current = cacheKey;
+      setTotalIndexedCount(0);
       filesCacheRef.current.delete(cacheKey);
 
       setTotalFileCount(null);

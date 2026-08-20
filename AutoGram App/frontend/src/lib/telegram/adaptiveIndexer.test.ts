@@ -4,9 +4,18 @@ import {
   getAdaptiveDelay,
   formatEta,
   calculateIndexingMetrics,
+  getScopedIndexedCount,
 } from './adaptiveIndexer';
 
 describe('adaptiveIndexer', () => {
+  describe('getScopedIndexedCount', () => {
+    it('keeps progress only inside the exact account/peer/topic scope', () => {
+      expect(getScopedIndexedCount('Mantan::-1003214112048::', 'Mantan::-1003214112048::', 43_013)).toBe(43_013);
+      expect(getScopedIndexedCount('Mantan::-1003214112048::', 'Mantan::-1001963951938::', 43_013)).toBe(0);
+      expect(getScopedIndexedCount('Mantan::-1001963951938::9929', 'Mantan::-1001963951938::43421', 800)).toBe(0);
+    });
+  });
+
   describe('determineIndexingTier', () => {
     it('correctly classifies micro tier (<= 1500)', () => {
       expect(determineIndexingTier(500, 100)).toBe('micro');

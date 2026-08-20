@@ -16,6 +16,12 @@ use tokio_util::sync::CancellationToken;
 
 use crate::core::tg_error::{TgError, TgErrorCode};
 
+const LATENCY_BACKOFF_COOLDOWN: Duration = Duration::from_secs(2);
+const LATENCY_BACKOFF_STEP: Duration = Duration::from_millis(25);
+const LATENCY_ONLY_SPACING_CAP: Duration = Duration::from_millis(250);
+const LATENCY_RECOVERY_STEP: Duration = Duration::from_millis(25);
+const SEVERE_RATE_DECAY_PERCENT: f64 = 45.0;
+
 fn now_epoch_ms() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -194,6 +200,7 @@ pub struct AdaptiveRateGovernor {
 
     stable_successes: u64,
     total_search_rpcs: u64,
+    last_latency_backoff_at: Option<Instant>,
 
     flood_count: u64,
     last_flood_wait_secs: u32,
@@ -252,6 +259,7 @@ impl AdaptiveRateGovernor {
 
             stable_successes: 0,
             total_search_rpcs: 0,
+            last_latency_backoff_at: None,
 
             flood_count: 0,
             last_flood_wait_secs: 0,
@@ -346,13 +354,32 @@ impl AdaptiveRateGovernor {
                 self.stable_successes += 1;
                 self.confidence_score = (self.confidence_score + 0.01).min(0.95);
                 let cur_p95 = self.rpc_samples.p95().unwrap_or(200) as f64;
+                let latency_is_elevated = self.baseline_rpc_p95_ms > 0.0
+                    && cur_p95 > self.baseline_rpc_p95_ms * 1.8;
+                let severe_flood_free_decay = self.last_flood_at_ms.is_none()
+                    && self.rate_decay_percent >= SEVERE_RATE_DECAY_PERCENT;
 
-                // Check for degradation: p95 > 1.8x baseline
-                if self.baseline_rpc_p95_ms > 0.0 && cur_p95 > self.baseline_rpc_p95_ms * 1.8 {
-                    self.min_dispatch_spacing = self.min_dispatch_spacing.saturating_add(Duration::from_millis(25));
-                } else if self.min_dispatch_spacing > Duration::from_millis(0) && self.stable_successes % 10 == 0 {
-                    // Gradually relieve pacing if healthy
-                    self.min_dispatch_spacing = self.min_dispatch_spacing.saturating_sub(Duration::from_millis(10));
+                // A rolling p95 can stay elevated for dozens of otherwise-successful pages.
+                // Never add latency pacing on every success: that feedback loop previously
+                // snowballed spacing past 1.8s with zero FloodWait and collapsed throughput.
+                if severe_flood_free_decay {
+                    self.min_dispatch_spacing = self.min_dispatch_spacing.min(LATENCY_ONLY_SPACING_CAP);
+                    if self.min_dispatch_spacing > Duration::ZERO && self.stable_successes % 5 == 0 {
+                        self.min_dispatch_spacing = self.min_dispatch_spacing.saturating_sub(LATENCY_RECOVERY_STEP);
+                    }
+                } else if latency_is_elevated {
+                    let cooldown_elapsed = self.last_latency_backoff_at
+                        .map(|last| last.elapsed() >= LATENCY_BACKOFF_COOLDOWN)
+                        .unwrap_or(true);
+                    if cooldown_elapsed && self.min_dispatch_spacing < LATENCY_ONLY_SPACING_CAP {
+                        self.min_dispatch_spacing = self.min_dispatch_spacing
+                            .saturating_add(LATENCY_BACKOFF_STEP)
+                            .min(LATENCY_ONLY_SPACING_CAP);
+                        self.last_latency_backoff_at = Some(Instant::now());
+                    }
+                } else if self.min_dispatch_spacing > Duration::ZERO && self.stable_successes % 5 == 0 {
+                    // Relieve latency-only pacing promptly after the rolling window recovers.
+                    self.min_dispatch_spacing = self.min_dispatch_spacing.saturating_sub(LATENCY_RECOVERY_STEP);
                 }
 
                 // Check probe eligibility (1 -> 2 promotion)
@@ -918,6 +945,56 @@ mod tests {
     }
 
     #[test]
+    fn test_stable_latency_backoff_is_cooldown_bounded_and_recovers_from_runaway() {
+        let mut gov = AdaptiveRateGovernor::new();
+        gov.baseline_rpc_p95_ms = 100.0;
+        gov.transition_to(GovernorState::Stable);
+
+        // Repeated successful high-latency observations in one cooldown window
+        // may apply only one step, not one step per page.
+        for _ in 0..100 {
+            gov.on_rpc_observation(RpcObservation {
+                latency_ms: 250,
+                rows_yielded: 100,
+                was_error: false,
+            });
+        }
+        assert_eq!(gov.spacing_ms(), 25);
+
+        // Even when every synthetic cooldown has elapsed, latency-only pacing is capped.
+        for _ in 0..20 {
+            gov.last_latency_backoff_at = Some(Instant::now() - LATENCY_BACKOFF_COOLDOWN);
+            gov.on_rpc_observation(RpcObservation {
+                latency_ms: 250,
+                rows_yielded: 100,
+                was_error: false,
+            });
+        }
+        assert_eq!(gov.spacing_ms(), 250);
+
+        // Reproduce the live 558k-peer failure: no FloodWait, 85% rate decay,
+        // and historical spacing already above 1.8s. The next success must clamp
+        // it immediately, then normal successes progressively relieve it.
+        gov.min_dispatch_spacing = Duration::from_millis(1_875);
+        gov.rate_decay_percent = 85.0;
+        gov.on_rpc_observation(RpcObservation {
+            latency_ms: 250,
+            rows_yielded: 100,
+            was_error: false,
+        });
+        assert!(gov.spacing_ms() <= 250);
+
+        for _ in 0..5 {
+            gov.on_rpc_observation(RpcObservation {
+                latency_ms: 250,
+                rows_yielded: 100,
+                was_error: false,
+            });
+        }
+        assert!(gov.spacing_ms() < 250, "severe flood-free decay must relieve pacing");
+    }
+
+    #[test]
     fn test_governor_monotonic_flood_recovery_window() {
         let mut gov = AdaptiveRateGovernor::new();
 
@@ -931,6 +1008,7 @@ mod tests {
         gov.on_flood_wait(5);
         assert_eq!(gov.state(), GovernorState::FloodRecovery);
         assert_eq!(gov.last_flood_wait_secs, 30, "last_flood_wait_secs must retain maximum wait");
+        assert!(gov.spacing_ms() > 250, "FloodWait pacing must remain independent of the latency-only cap");
         let second_deadline = gov.flood_recovery_until.unwrap();
         assert!(second_deadline >= first_deadline, "Concurrent shorter flood must not shorten recovery deadline");
 

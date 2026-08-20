@@ -23,6 +23,19 @@ export interface AdaptiveDelayResult {
 }
 
 /**
+ * Return an accumulated index count only for the exact active location scope.
+ * Session, peer and topic changes must never inherit progress from the previous
+ * location, even during the React render before reset effects have committed.
+ */
+export function getScopedIndexedCount(
+  countScope: string,
+  activeScope: string,
+  accumulatedCount: number
+): number {
+  return countScope === activeScope ? Math.max(0, accumulatedCount) : 0;
+}
+
+/**
  * AIMD (Additive Increase, Multiplicative Decrease) Rate Controller
  * Dynamically converges to the maximum sustainable Telegram RPC throughput
  * without triggering server-side FLOOD_WAIT cooldowns.
