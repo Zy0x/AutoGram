@@ -22,6 +22,7 @@ import {
   getSessionMetadata,
   setSessionAlias,
   deleteSessionLocalData,
+  SESSION_METADATA_EVENT,
   type SessionOption,
 } from '../../lib/telegram';
 import { getCachedAvatar, requestAvatar } from '../../lib/media/avatarBatcher';
@@ -134,6 +135,19 @@ export function SessionLauncher({
     return () => {
       clearTimeout(liveCheckTimer);
       clearInterval(interval);
+    };
+  }, [refreshSessions]);
+
+  // Accounts dispatches this after a successful QR/OTP/password flow. Refresh
+  // immediately so the new card appears without reopening the launcher or
+  // waiting for the periodic poll.
+  useEffect(() => {
+    const syncNow = () => refreshSessions(true, false);
+    window.addEventListener(SESSION_METADATA_EVENT, syncNow);
+    window.addEventListener('focus', syncNow);
+    return () => {
+      window.removeEventListener(SESSION_METADATA_EVENT, syncNow);
+      window.removeEventListener('focus', syncNow);
     };
   }, [refreshSessions]);
 

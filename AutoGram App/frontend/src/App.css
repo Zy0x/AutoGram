@@ -3312,6 +3312,69 @@ body.td-dnd-external {
   color: var(--td-primary);
   font-weight: 700;
 }
+.tg-msg-link-preview {
+  display: grid;
+  gap: 8px;
+  min-width: min(360px, 72vw);
+  padding: 12px;
+  border-left: 3px solid var(--td-primary);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--td-surface-2) 90%, transparent);
+}
+.tg-msg-link-heading {
+  color: var(--td-primary);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+.tg-msg-link-list {
+  display: grid;
+  gap: 6px;
+}
+.tg-msg-link-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 10px;
+  align-items: center;
+  width: 100%;
+  padding: 8px 9px;
+  border: 1px solid color-mix(in srgb, var(--td-primary) 24%, var(--td-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--td-surface-1) 90%, transparent);
+  color: var(--td-text);
+  text-align: left;
+  cursor: pointer;
+}
+.tg-msg-link-row:hover,
+.tg-msg-link-row:focus-visible {
+  border-color: var(--td-primary);
+  outline: none;
+}
+.tg-msg-link-domain,
+.tg-msg-link-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tg-msg-link-domain {
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+.tg-msg-link-url {
+  grid-column: 1;
+  color: var(--td-sub);
+  font-size: 0.68rem;
+}
+.tg-msg-link-row svg {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  color: var(--td-primary);
+}
+@media (max-width: 560px) {
+  .tg-msg-link-preview {
+    min-width: 0;
+    width: 100%;
+  }
+}
 .td-placeholder-label {
   font-size: 0.65rem;
   font-weight: 650;

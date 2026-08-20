@@ -526,6 +526,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
     }
     await stopQrTimers();
     invalidateSessionListCache();
+    notifySessionMetadataChanged();
     // New login becomes default (first) but keep other active accounts for Studio/Jobs switch
     setActiveSessions((prev) => [name, ...prev.filter((n) => n !== name)].slice(0, 12));
     setAuthNotice(`Terkoneksi dan terverifikasi${userLabel ? ` sebagai ${userLabel}` : ''}.`);

@@ -208,6 +208,32 @@ pub fn list_transfers() -> Vec<TransferRecord> {
     v
 }
 
+fn can_dismiss_state(state: &TransferState) -> bool {
+    !matches!(
+        state,
+        TransferState::Running | TransferState::Queued | TransferState::Paused
+    )
+}
+
+/// Remove a transfer only after it is no longer executable. The UI cancels a
+/// recovered/stale job first, then dismisses it, so an active upload can never
+/// be silently erased from the durable journal.
+pub fn dismiss_transfer(transfer_id: &str) -> Result<bool, String> {
+    let mut map = live().write();
+    let Some(record) = map.get(transfer_id) else {
+        return Ok(false);
+    };
+    if !can_dismiss_state(&record.state) {
+        return Err("transfer must be cancelled before it can be dismissed".into());
+    }
+    let removed = map.remove(transfer_id).is_some();
+    drop(map);
+    cancelled_set().write().remove(transfer_id);
+    paused_set().write().remove(transfer_id);
+    persist();
+    Ok(removed)
+}
+
 pub fn update_item(
     transfer_id: &str,
     index: usize,
@@ -410,5 +436,15 @@ mod tests {
         assert!(!is_transfer_paused("test-pause-b"));
         set_transfer_paused(Some("test-pause-a"), false);
         assert!(!is_transfer_paused("test-pause-a"));
+    }
+
+    #[test]
+    fn dismiss_accepts_only_terminal_states() {
+        assert!(!can_dismiss_state(&TransferState::Running));
+        assert!(!can_dismiss_state(&TransferState::Queued));
+        assert!(!can_dismiss_state(&TransferState::Paused));
+        assert!(can_dismiss_state(&TransferState::Completed));
+        assert!(can_dismiss_state(&TransferState::Failed));
+        assert!(can_dismiss_state(&TransferState::Cancelled));
     }
 }

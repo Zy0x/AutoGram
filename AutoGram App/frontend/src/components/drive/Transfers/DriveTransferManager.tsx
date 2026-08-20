@@ -546,7 +546,7 @@ export function DriveTransferManager({
                   onClick={onDismiss}
                   title={t('speedtest.clear_transfer_history')}
                 >
-                  {t('ui.generated.tutup_riwayat_1b533f7')}
+                  {t('speedtest.clear_transfer_history')}
                 </button>
               )}
             </div>

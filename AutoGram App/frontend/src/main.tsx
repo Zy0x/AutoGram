@@ -3,6 +3,8 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import "./i18n";
+// One app-lifetime GC loop for bounded caches, object URLs and Rust WAL/memory.
+import "./lib/utils/garbageCollector";
 
 /** WebView2 / Edge PDF viewer injects scripts that throw TypeError on `.plugins`
  *  (Chrome extension API). Not our code — swallow to avoid red noise + hard-close. */

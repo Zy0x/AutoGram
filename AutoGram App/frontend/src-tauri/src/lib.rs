@@ -1178,6 +1178,11 @@ fn studio_get_transfer(transfer_id: String) -> Option<core::job_queue::TransferR
     core::job_queue::get_transfer(&transfer_id)
 }
 
+#[tauri::command]
+fn studio_dismiss_transfer(transfer_id: String) -> Result<bool, String> {
+    core::job_queue::dismiss_transfer(&transfer_id)
+}
+
 /// Rust orchestrates the queue and Grammers performs every upload step.
 #[tauri::command]
 async fn studio_run_orchestrated(
@@ -2196,6 +2201,7 @@ pub fn run() {
             studio_enqueue,
             studio_list_transfers,
             studio_get_transfer,
+            studio_dismiss_transfer,
             studio_run_orchestrated,
             tg_backend_status,
             tg_set_backend,

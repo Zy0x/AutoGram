@@ -129,6 +129,15 @@ export async function studioGetTransfer(transferId: string): Promise<TransferRec
   }
 }
 
+export async function studioDismissTransfer(transferId: string): Promise<boolean> {
+  if (!detectTauriRuntime() || !transferId) return false;
+  try {
+    return await invoke<boolean>('studio_dismiss_transfer', { transferId });
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Run Rust + Grammers orchestrated upload. Throws on failure (no Telethon fallback).
  */

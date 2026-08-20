@@ -3,7 +3,7 @@
  * Portaled to document.body — avoids vertical-strip layout when nested in .td-page.
  */
 import { useTranslation } from 'react-i18next';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -41,8 +41,6 @@ import {
   applyBulkRenamePattern,
   computeSpaceUsage,
   findDuplicateGroups,
-  loadDeepIndexSnapshot,
-  saveDeepIndexSnapshot,
   removeFilesFromDeepIndex,
   type DriveAdvFilter,
   type DupGroup,
@@ -156,8 +154,11 @@ type Props = {
   onPreviewFile?: (file: DriveFile, opts?: { duplicateContext?: DuplicateContextInfo }) => void;
   onDeleteIds: (ids: number[]) => void;
   onBulkRename: (pairs: { id: number; newName: string }[]) => void;
-  onLoadMoreFiles?: (opts?: { pageSize?: number }) => Promise<void>;
-  onRefreshFiles?: () => Promise<void>;
+  onBuildDuplicateIndex?: (opts: {
+    mode: 'all_levels' | 'hash_unique' | 'name_size' | 'size_only' | 'message_clone';
+    onProgress: (processed: number, total: number) => void;
+    shouldCancel: () => boolean;
+  }) => Promise<DriveFile[]>;
   onSmartCopy?: (opts: {
     messageIds: number[];
     toFolderId: number | null;
@@ -188,8 +189,7 @@ export function DriveToolsPanel({
   locationStatsAccurate = false,
   locationByType = null,
   filesHasMore = false,
-  onLoadMoreFiles,
-  onRefreshFiles,
+  onBuildDuplicateIndex,
   topicFilter = null,
   isForum = false,
   transferSettings,
@@ -226,10 +226,17 @@ export function DriveToolsPanel({
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [toolsSearchQuery, setToolsSearchQuery] = useState('');
+  const [duplicateCandidates, setDuplicateCandidates] = useState<DriveFile[] | null>(null);
+
+  useEffect(() => {
+    setDuplicateCandidates(null);
+  }, [creds?.session, folderId, topicFilter]);
+
+  const duplicateSource = duplicateCandidates ?? files;
 
   const groups = useMemo(
-    () => findDuplicateGroups(files, dupMode as any),
-    [files, dupMode]
+    () => findDuplicateGroups(duplicateSource, dupMode as any),
+    [duplicateSource, dupMode]
   );
   const space = useMemo(() => computeSpaceUsage(files), [files]);
   // Prefer accurate location totals for header; by_type from stats when accurate
@@ -449,8 +456,8 @@ export function DriveToolsPanel({
               onDeleteIds={onDeleteIds}
               totalFileCount={locationTotalCount || files.length}
               filesHasMore={filesHasMore}
-              onLoadMoreFiles={onLoadMoreFiles}
-              onRefreshFiles={onRefreshFiles}
+              onBuildDuplicateIndex={onBuildDuplicateIndex}
+              onDuplicateCandidates={setDuplicateCandidates}
               loadedCount={files.length}
               locationLabel={locationLabel}
               isForum={isForum}
@@ -883,8 +890,8 @@ function DupTab({
   onDeleteIds,
   totalFileCount,
   filesHasMore,
-  onLoadMoreFiles,
-  onRefreshFiles,
+  onBuildDuplicateIndex,
+  onDuplicateCandidates,
   loadedCount = 0,
   locationLabel = '',
   isForum = false,
@@ -901,8 +908,8 @@ function DupTab({
   onDeleteIds: (ids: number[]) => void;
   totalFileCount?: number;
   filesHasMore?: boolean;
-  onLoadMoreFiles?: (opts?: { pageSize?: number }) => Promise<void>;
-  onRefreshFiles?: () => Promise<void>;
+  onBuildDuplicateIndex?: Props['onBuildDuplicateIndex'];
+  onDuplicateCandidates: (files: DriveFile[]) => void;
   loadedCount?: number;
   locationLabel?: string;
   isForum?: boolean;
@@ -930,87 +937,35 @@ function DupTab({
   const [searchQuery, setSearchQuery] = useState('');
   const [showModeSettings, setShowModeSettings] = useState(false);
 
-  // DEEP SCAN & FLOODWAIT STATE
+  // Shared persistent-index scan state. This never starts a second Telegram
+  // pagination loop; the parent owns the sole server index worker.
   const [isScanning, setIsScanning] = useState(false);
-  const [floodWaitSeconds, setFloodWaitSeconds] = useState<number | null>(null);
+  const [scanProgress, setScanProgress] = useState({ processed: 0, total: 0 });
   const scanStopRef = useState({ stop: false })[0];
 
-  const loadedCountRef = useRef(loadedCount);
-  useEffect(() => {
-    loadedCountRef.current = loadedCount;
-  }, [loadedCount]);
-
-  const filesHasMoreRef = useRef(filesHasMore);
-  useEffect(() => {
-    filesHasMoreRef.current = filesHasMore;
-  }, [filesHasMore]);
-
   const startDeepScan = async () => {
-    if (!onLoadMoreFiles || isScanning) return;
+    if (!onBuildDuplicateIndex || isScanning) return;
     setIsScanning(true);
     scanStopRef.stop = false;
-    setFloodWaitSeconds(null);
-
-    let lastCount = -1;
-    let sameCountStuck = 0;
+    setScanProgress({ processed: 0, total: totalFileCount || loadedCount });
 
     try {
-      if (onRefreshFiles) {
-        try {
-          await onRefreshFiles();
-          filesHasMoreRef.current = true;
-        } catch {
-          /* ignore */
-        }
-      }
-      while (!scanStopRef.stop && filesHasMoreRef.current) {
-        try {
-          // Request Turbo Page Size (1,000 items per page for ultra-fast deep scan)
-          await onLoadMoreFiles({ pageSize: 1000 });
-          setFloodWaitSeconds(null);
-          // Wait briefly for React state batching to propagate loadedCount
-          await new Promise((r) => setTimeout(r, 60));
-
-          const currentCount = loadedCountRef.current;
-          if (currentCount === lastCount) {
-            sameCountStuck++;
-            if (sameCountStuck >= 10) {
-              break;
-            }
-          } else {
-            sameCountStuck = 0;
-            lastCount = currentCount;
-          }
-        } catch (err: any) {
-          const errMsg = String(err?.message || err || '');
-          const match = errMsg.match(/FLOOD_WAIT_?(\d+)/i) || errMsg.match(/wait\s*(\d+)\s*s/i);
-          if (match) {
-            const sec = parseInt(match[1], 10) || 10;
-            // FLOODWAIT BADGE & COUNTDOWN
-            for (let s = sec; s > 0; s--) {
-              if (scanStopRef.stop) break;
-              setFloodWaitSeconds(s);
-              await new Promise((r) => setTimeout(r, 1000));
-            }
-            setFloodWaitSeconds(null);
-          } else {
-            // Brief pause on standard error before retrying next batch
-            await new Promise((r) => setTimeout(r, 800));
-          }
-        }
-      }
+      const candidates = await onBuildDuplicateIndex({
+        mode: dupMode,
+        onProgress: (processed, total) => setScanProgress({ processed, total }),
+        shouldCancel: () => scanStopRef.stop,
+      });
+      if (!scanStopRef.stop) onDuplicateCandidates(candidates);
     } catch {
       /* ignore scan errors */
     } finally {
       setIsScanning(false);
-      setFloodWaitSeconds(null);
     }
   };
 
   const stopDeepScan = () => {
     scanStopRef.stop = true;
     setIsScanning(false);
-    setFloodWaitSeconds(null);
   };
 
   const smartKey = useMemo(() => {
@@ -1021,28 +976,6 @@ function DupTab({
   useEffect(() => {
     setMarkedDelete(smartDeleteIds(groups, keepNewest));
   }, [smartKey]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // PERSIST DEEP SCANNED INDEX SNAPSHOT TO INDEXEDDB (0ms INSTANT RE-FETCH ON MOUNT)
-  useEffect(() => {
-    const session = creds?.session;
-    if (!session) return;
-    void loadDeepIndexSnapshot(session, folderId, topicFilter).catch(() => {});
-  }, [creds?.session, folderId, topicFilter]);
-
-  useEffect(() => {
-    const session = creds?.session;
-    if (!session || groups.length === 0) return;
-    const allScannedFiles = groups.flatMap((g) => g.files);
-    if (!allScannedFiles.length) return;
-
-    void saveDeepIndexSnapshot(session, folderId, topicFilter, {
-      files: allScannedFiles,
-      hasMore: !!filesHasMore,
-      nextOffsetId: null,
-      totalCount: totalFileCount || loadedCount,
-      totalBytes: wasteTotal || null,
-    });
-  }, [creds?.session, folderId, topicFilter, groups, filesHasMore, totalFileCount, loadedCount, wasteTotal]);
 
   const categoryCounts = useMemo(() => {
     const counts = { all: groups.length, image: 0, video: 0, document: 0, audio: 0 };
@@ -1155,7 +1088,10 @@ function DupTab({
   const clearAllMarks = () => setMarkedDelete(new Set());
 
   const targetTotal = totalFileCount || loadedCount;
-  const scanProgressPct = targetTotal > 0 ? Math.min(100, Math.round((loadedCount / targetTotal) * 100)) : 0;
+  const scanProgressTotal = scanProgress.total || targetTotal;
+  const scanProgressPct = scanProgressTotal > 0
+    ? Math.min(100, Math.round((scanProgress.processed / scanProgressTotal) * 100))
+    : 0;
 
   return (
     <div
@@ -1274,7 +1210,10 @@ function DupTab({
         {isScanning && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '2px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#38bdf8', fontWeight: 600 }}>
-              <span>{t('ui.generated.memindai_index_telegram_d6c165c')}{loadedCount.toLocaleString('id-ID')} / {targetTotal.toLocaleString('id-ID')})...</span>
+              <span>{t('speedtest.duplicate_shared_index_progress', {
+                processed: scanProgress.processed.toLocaleString('id-ID'),
+                total: scanProgressTotal.toLocaleString('id-ID'),
+              })}</span>
               <span>{scanProgressPct}%</span>
             </div>
             <div style={{ width: '100%', height: '5px', borderRadius: '3px', background: 'rgba(15, 23, 42, 0.8)', overflow: 'hidden' }}>
@@ -1287,32 +1226,6 @@ function DupTab({
                   transition: 'width 0.2s ease',
                 }}
               />
-            </div>
-          </div>
-        )}
-
-        {floodWaitSeconds !== null && (
-          <div
-            className="td-tools-dup-floodwait"
-            style={{
-              background: 'rgba(239, 68, 68, 0.2)',
-              border: '1px solid #ef4444',
-              borderRadius: '8px',
-              padding: '6px 12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              color: '#fca5a5',
-              fontWeight: 700,
-              fontSize: '0.78rem',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <AlertTriangle size={14} style={{ color: '#ef4444' }} />
-              <span><strong>{t('ui.generated.telegram_floodwait_8ca960d')}</strong> {t('ui.generated.memuat_otomatis_saat_limit_selesai_265c76b')}</span>
-            </div>
-            <div style={{ background: '#ef4444', color: '#ffffff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 800 }}>
-              {floodWaitSeconds}{t('ui.generated.s_a0f1490')}
             </div>
           </div>
         )}

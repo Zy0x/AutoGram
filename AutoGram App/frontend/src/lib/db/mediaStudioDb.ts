@@ -430,6 +430,145 @@ export async function getMediaRecordsCountByContext(
   });
 }
 
+export type DuplicateIndexMode =
+  | 'all_levels'
+  | 'hash_unique'
+  | 'name_size'
+  | 'size_only'
+  | 'message_clone';
+
+export interface DuplicateCandidateScanOptions {
+  onProgress?: (processed: number, total: number) => void;
+  shouldCancel?: () => boolean;
+}
+
+/**
+ * Reads duplicate candidates from the durable media index instead of paging
+ * Telegram a second time. The first pass stores only signature -> message-id,
+ * then a second pass materializes records that actually share a signature.
+ * This keeps large catalogues on disk and avoids retaining every DriveFile in
+ * React memory while the duplicate tool is open.
+ */
+export async function getDuplicateCandidatesByContext(
+  context: DriveMediaContext,
+  mode: DuplicateIndexMode,
+  options: DuplicateCandidateScanOptions = {}
+): Promise<MediaRecord[]> {
+  const total = await getMediaRecordsCountByContext(context);
+  if (total === 0 || options.shouldCancel?.()) return [];
+
+  const db = await initDb();
+  const normTopic = normalizeTopicId(context.scopeKind, context.topicId);
+  const minKey = [context.accountId, context.peerId, context.scopeKind, normTopic, -Infinity];
+  const maxKey = [context.accountId, context.peerId, context.scopeKind, normTopic, Infinity];
+  const range = IDBKeyRange.bound(minKey, maxKey);
+
+  const candidateIds = new Set<number>();
+  const bySize = new Map<number, number>();
+  const byNameSize = new Map<string, number>();
+  const byHash = new Map<string, number>();
+  const byForward = new Map<string, number>();
+
+  const remember = <T,>(map: Map<T, number>, key: T, id: number) => {
+    const first = map.get(key);
+    if (first == null) {
+      map.set(key, id);
+      return;
+    }
+    candidateIds.add(first);
+    candidateIds.add(id);
+  };
+
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction('media', 'readonly');
+    const index = tx.objectStore('media').index('byContextMessage');
+    const request = index.openCursor(range, 'next');
+    let processed = 0;
+    let settled = false;
+
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor || options.shouldCancel?.()) {
+        finish();
+        return;
+      }
+
+      const row = cursor.value as MediaRecord;
+      const id = Number(row.id);
+      const size = Number(row.size || 0);
+      const name = String(row.original_name || row.name || '').trim().toLocaleLowerCase();
+      const anyRow = row as MediaRecord & {
+        unique_id?: string;
+        sha256?: string;
+        file_hash?: string;
+        forward_from_message_id?: number | string;
+        source_message_id?: number | string;
+      };
+      const hash = String(anyRow.unique_id || anyRow.sha256 || anyRow.file_hash || '').trim();
+      const forwardId = anyRow.forward_from_message_id || anyRow.source_message_id;
+
+      if (mode === 'all_levels') {
+        // Size covers L1/L2/L3 without three parallel full-catalogue maps.
+        // Tiny or missing-size rows need their stronger signature explicitly.
+        if (size > 1024) remember(bySize, size, id);
+        else if (name && size > 0) remember(byNameSize, `${name}|${size}`, id);
+        else if (hash) remember(byHash, hash, id);
+        if (forwardId) remember(byForward, String(forwardId), id);
+      } else if (mode === 'hash_unique' && hash) {
+        remember(byHash, hash, id);
+      } else if (mode === 'name_size' && name && size > 0) {
+        remember(byNameSize, `${name}|${size}`, id);
+      } else if (mode === 'size_only' && size > 1024) {
+        remember(bySize, size, id);
+      } else if (mode === 'message_clone' && forwardId) {
+        remember(byForward, String(forwardId), id);
+      }
+
+      processed += 1;
+      if (processed % 2048 === 0) options.onProgress?.(processed, total);
+      cursor.continue();
+    };
+    request.onerror = () => reject(request.error || new Error('Duplicate candidate scan failed'));
+    tx.onabort = () => reject(tx.error || new Error('Duplicate candidate scan aborted'));
+  });
+
+  bySize.clear();
+  byNameSize.clear();
+  byHash.clear();
+  byForward.clear();
+  if (options.shouldCancel?.() || candidateIds.size === 0) {
+    options.onProgress?.(total, total);
+    return [];
+  }
+
+  return await new Promise<MediaRecord[]>((resolve, reject) => {
+    const tx = db.transaction('media', 'readonly');
+    const index = tx.objectStore('media').index('byContextMessage');
+    const request = index.openCursor(range, 'next');
+    const rows: MediaRecord[] = [];
+
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor || options.shouldCancel?.()) {
+        options.onProgress?.(total, total);
+        resolve(options.shouldCancel?.() ? [] : rows);
+        return;
+      }
+      const row = cursor.value as MediaRecord;
+      if (candidateIds.has(Number(row.id))) rows.push(row);
+      cursor.continue();
+    };
+    request.onerror = () => reject(request.error || new Error('Duplicate candidate materialization failed'));
+    tx.onabort = () => reject(tx.error || new Error('Duplicate candidate materialization aborted'));
+  });
+}
+
 export async function getExactMediaStatsByContext(
   context: DriveMediaContext
 ): Promise<{ count: number; totalBytes: number }> {
@@ -1439,4 +1578,3 @@ export async function clearMediaStudioCache(): Promise<void> {
     }
   } catch {}
 }
-

@@ -35,6 +35,7 @@ allow = [
     "studio_list_transfers",
     "studio_get_transfer",
     "studio_run_orchestrated",
+    "studio_dismiss_transfer",
     "tg_backend_status",
     "tg_set_backend",
     "tg_disconnect_session",
@@ -55,6 +56,7 @@ allow = [
     "tg_resume_media_index_job",
     "tg_cancel_media_index_job",
     "tg_get_media_index_job_status",
+    "tg_run_garbage_collection",
     "tg_start_channel_sync",
     "tg_attach_channel_sync",
     "tg_detach_channel_sync",
@@ -157,6 +159,5 @@ allow = [
     "reset_custom_cache_dir",
     "get_available_disk_space"
 ]
-
 
 

@@ -260,10 +260,19 @@ export function TelegramMessagePreviewModal({
   if (!isOpen || !file) return null;
 
   const tgUrl = buildTelegramMessageUrl(file);
+  const linkUrls = file.icon_type === 'link'
+    ? (file.link_urls?.length
+        ? file.link_urls
+        : String(file.drive_format || file.driveFormat || file.original_name || file.name || '')
+            .split(/\r?\n/)
+            .map((value) => value.trim())
+            .filter(Boolean))
+    : [];
+  const isLink = linkUrls.length > 0;
   const isVideo = isVideoDriveFile(file);
   const isImage = isImageDriveFile(file) || file.icon_type === 'image' || file.mime_type?.startsWith('image/');
   const isAudio = isAudioDriveFile(file) || file.icon_type === 'audio' || file.icon_type === 'voice' || file.mime_type?.startsWith('audio/');
-  const isDocument = !isImage && !isVideo && !isAudio;
+  const isDocument = !isLink && !isImage && !isVideo && !isAudio;
   const isVisualMedia = isImage || isVideo || (imageSrc && !imgError);
 
   const displayName = driveFileDisplayName(file);
@@ -277,7 +286,7 @@ export function TelegramMessagePreviewModal({
   const avatarInitials = isSavedMessages ? '⭐' : getAvatarInitials(senderName);
 
   const rawCaption = file.name || file.original_name || '';
-  const captionText = rawCaption;
+  const captionText = isLink ? '' : rawCaption;
 
   // Telegram date formatting
   const fileDate = file.created_at ? new Date(file.created_at) : new Date();
@@ -454,6 +463,41 @@ export function TelegramMessagePreviewModal({
                       )}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* URL messages: one rich lightweight card, or a compact list
+                  when Telegram stored multiple links in the same message. */}
+              {isLink && (
+                <div className={`tg-msg-link-preview${linkUrls.length > 1 ? ' is-multiple' : ''}`}>
+                  <div className="tg-msg-link-heading">
+                    {linkUrls.length > 1
+                      ? t('speedtest.link_preview_multiple', { count: linkUrls.length })
+                      : t('speedtest.link_preview_single')}
+                  </div>
+                  <div className="tg-msg-link-list">
+                    {linkUrls.map((url, index) => {
+                      let host = url;
+                      try {
+                        host = new URL(url).hostname.replace(/^www\./i, '');
+                      } catch {
+                        // Keep the original text for non-standard Telegram URLs.
+                      }
+                      return (
+                        <button
+                          type="button"
+                          className="tg-msg-link-row"
+                          key={`${file.id}-${index}`}
+                          title={url}
+                          onClick={() => void openUrl(url).catch(() => undefined)}
+                        >
+                          <span className="tg-msg-link-domain">{host}</span>
+                          <span className="tg-msg-link-url">{url}</span>
+                          <Send size={14} aria-hidden />
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 

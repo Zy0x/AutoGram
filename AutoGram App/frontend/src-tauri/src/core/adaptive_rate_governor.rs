@@ -800,6 +800,14 @@ mod tests {
     async fn test_governor_warmup_to_stable_and_probe_with_mature_baseline() {
         let cancel = CancellationToken::new();
         let mut gov = AdaptiveRateGovernor::new();
+        // Production now starts in the already-qualified two-lane Stable
+        // profile. Explicitly enter the legacy cold-start state here so this
+        // test continues to cover Warmup -> Stable -> Probe transitions.
+        gov.state = GovernorState::Warmup;
+        gov.max_inflight = 1;
+        gov.baseline_rpc_p50_ms = 0.0;
+        gov.baseline_rpc_p95_ms = 0.0;
+        gov.rpc_ewma_ms = 0.0;
         assert_eq!(gov.state(), GovernorState::Warmup);
         assert_eq!(gov.max_inflight(), 1);
 

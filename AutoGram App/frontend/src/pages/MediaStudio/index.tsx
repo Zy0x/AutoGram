@@ -5,6 +5,7 @@ import { MediaStudioModalsContainer } from './MediaStudioModalsContainer';
 import type { DuplicateContextInfo } from '../../components/drive/DrivePreviewModal';
 import { TransferPreflightDialog } from '../../components/drive/Transfers/TransferPreflightDialog';
 import { DriveTransferSettings } from '../../components/drive/Transfers/DriveTransferSettings';
+import { TelegramMessagePreviewModal } from '../../components/drive/Modals/TelegramMessagePreviewModal';
 import {
   runQualityPreflight,
   type PreflightReviewDecision,
@@ -94,6 +95,7 @@ import {
   studioChatIdFromFolder,
   studioRunUploadDefault,
   studioListTransfers,
+  studioDismissTransfer,
   mapOrchItemStatus,
 } from '../../lib/telegram';
 import {
@@ -102,6 +104,9 @@ import {
   saveMediaBatchAndCheckpoint,
   getExactMediaStatsByContext,
   getMediaIndexState,
+  getMediaPageByContext,
+  getMediaRecordsCountByContext,
+  getDuplicateCandidatesByContext,
   resetMediaIndexState,
   MEDIA_INDEX_SCHEMA_VERSION,
   buildDriveMediaContext,
@@ -148,10 +153,10 @@ import {
   dedupeByMsgId,
   purgeDeletedMsgIds,
   driveGetMediaStats,
-  loadDeepIndexSnapshot,
-  saveDeepIndexSnapshot,
   removeFilesFromDeepIndex,
 } from '../../lib/telegram';
+import { shouldPreservePersistentRows } from '../../lib/telegram/persistentIndexPolicy';
+import { mediaListCache } from '../../lib/cache/multiTierCache';
 import {
   countExactMediaBreakdown,
   countPerspectiveMedia,
@@ -750,6 +755,7 @@ function MediaDriveDesktop({
   }, []);
 
   const [previewFile, setPreviewFile] = useState<DriveFile | null>(null);
+  const [linkPreviewFile, setLinkPreviewFile] = useState<DriveFile | null>(null);
   const [previewDuplicateContext, setPreviewDuplicateContext] = useState<DuplicateContextInfo | null>(null);
   const [contextMenu, setContextMenu] = useState<
     | { kind: 'file'; x: number; y: number; file: DriveFile }
@@ -1271,7 +1277,7 @@ function MediaDriveDesktop({
         }
 
         // Live update server counter state without reload
-        setServerMediaCount((prev) => (prev != null ? Math.max(0, prev - deletedIds.length) : null));
+        setTotalFileCount((prev) => (prev != null ? Math.max(0, prev - deletedIds.length) : null));
       }
     }, [creds, session, peerId]),
     onAuthoritativeReconcileRequired: useCallback(async (latestPts: number) => {
@@ -2877,51 +2883,45 @@ function MediaDriveDesktop({
       setNextOffsetId(null);
     }
 
-    // Fast Stale-While-Revalidate: ALWAYS check IndexedDB deep snapshot to ensure complete dataset restoration
-    void loadDeepIndexSnapshot(creds.session, peerId, tid)
-      .then((snapshot) => {
-        if (gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey && snapshot && snapshot.files.length > 0) {
-          let filtered = snapshot.files;
-          if (tid != null && tid > 0) {
-            filtered = snapshot.files.filter((r: any) => Number(r.topic_id ?? r.topicId) === Number(tid));
+    // Canonical persistent restore: read one sorted page from the normalized,
+    // account/peer/topic-scoped store. Never deserialize a duplicate full-array
+    // snapshot into RAM; startup cost remains bounded for 100k-1M item indexes.
+    let durableRows: DriveFile[] = [];
+    let durableIndexFound = false;
+    try {
+      const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
+      const indexState = await getMediaIndexState(mediaContext);
+      const perf = getDrivePerfProfile();
+      durableRows = dedupeByMsgId(await getMediaPageByContext(
+        mediaContext,
+        'newest',
+        0,
+        stagedInitialPageSize(perf.tier, perf.filePage)
+      ));
+      durableIndexFound = durableRows.length > 0;
+      if (durableIndexFound && gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey) {
+          const durableCount = await getMediaRecordsCountByContext(mediaContext);
+          const exactCount = indexState?.exactMediaCount ?? durableCount ?? durableRows.length;
+          const exactBytes = indexState?.exactBytes ?? null;
+          const hasMore = exactCount > durableRows.length;
+          setFiles(durableRows);
+          filesCacheRef.current.set(cacheKey, durableRows);
+          setFilesHasMore(hasMore);
+          filesHasMoreRef.current = hasMore;
+          setNextOffsetId(durableRows[durableRows.length - 1]?.id ?? null);
+          setTotalFileCount(exactCount);
+          filesTotalCountRef.current.set(cacheKey, exactCount);
+          if (exactBytes != null) {
+            setTotalBytes(exactBytes);
+            filesTotalBytesRef.current.set(cacheKey, exactBytes);
           }
-          if (filtered.length > 0) {
-            const currentInMemory = filesCacheRef.current.get(cacheKey) || [];
-            if (filtered.length >= currentInMemory.length) {
-              const deduped = dedupeByMsgId(filtered);
-              setFiles(deduped);
-              filesCacheRef.current.set(cacheKey, deduped);
-              
-              const lowestMsgId = deduped.length > 0
-                ? Math.min(...deduped.map((f: any) => typeof f.id === 'number' ? f.id : parseInt(String(f.id), 10)).filter((n: number) => !isNaN(n) && n > 0))
-                : null;
-              const effectiveHasMore = snapshot.hasMore === true && snapshot.nextOffsetId != null && snapshot.nextOffsetId > 1;
-              const effectiveOffset = snapshot.nextOffsetId || lowestMsgId;
-
-              setFilesHasMore(effectiveHasMore);
-              filesHasMoreRef.current = effectiveHasMore;
-              setNextOffsetId(effectiveOffset);
-              nextOffsetIdRef.current = effectiveOffset;
-
-              if (snapshot.totalCount != null) {
-                setTotalFileCount(snapshot.totalCount);
-                filesTotalCountRef.current.set(cacheKey, snapshot.totalCount);
-              }
-              if (snapshot.totalBytes != null) {
-                setTotalBytes(snapshot.totalBytes);
-                filesTotalBytesRef.current.set(cacheKey, snapshot.totalBytes);
-              }
-
-              if (!effectiveHasMore && snapshot.totalCount != null && snapshot.totalCount > 0) {
-                setStatsAccurate(true);
-                setStatsLoading(false);
-              }
-              setLoadingFiles(false);
-            }
-          }
-        }
-      })
-      .catch(() => undefined);
+          setStatsAccurate(indexState?.backfillComplete === true);
+          setStatsLoading(false);
+          setLoadingFiles(false);
+      }
+    } catch {
+      // The live Grammers path below remains available if persistence is damaged.
+    }
 
     try {
       setStatusText(tid != null ? t('ui.generated.listing_files_topik_3ccdf69') : t('ui.generated.listing_files_8ddd84f'));
@@ -2932,7 +2932,9 @@ function MediaDriveDesktop({
         quickStats: false,
         sortMode: 'newest',
         localOffset: 0,
-        bypassCache: shouldBypassCache,
+        // Persistent rows have already painted. Fetch a small live head so a
+        // reopen performs delta reconciliation, never another full index walk.
+        bypassCache: shouldBypassCache || durableIndexFound,
       });
       if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return;
       if (res?.invalid_topic && tid != null) {
@@ -2946,6 +2948,8 @@ function MediaDriveDesktop({
         topicsRequestSeqRef.current += 1;
         setTopics([]);
         setIsForumChat(false);
+        durableRows = [];
+        durableIndexFound = false;
         res = await driveListFiles(creds, peerId, {
           pageSize: stagedInitialPageSize(perf.tier, perf.filePage),
           topicId: null,
@@ -2958,6 +2962,23 @@ function MediaDriveDesktop({
         if (peerId != null) void loadTopicsForPeer(peerId);
       }
       let page: DriveFile[] = dedupeByMsgId(res.files || []);
+      const preserveDurableRows = shouldPreservePersistentRows({
+        persistentRowCount: durableRows.length,
+        remoteRowCount: page.length,
+        remoteTotalCount: res.total_count ?? null,
+        remoteStatsAccurate: res.stats_accurate === true,
+      });
+      if (preserveDurableRows) {
+        page = durableRows;
+        res.has_more = res.has_more === true || Number(res.total_count || 0) > page.length;
+        res.next_offset_id = page[page.length - 1]?.id ?? null;
+        res.total_count = Math.max(
+          Number(res.total_count || 0),
+          filesTotalCountRef.current.get(cacheKey) || page.length
+        );
+        res.total_bytes = res.total_bytes ?? filesTotalBytesRef.current.get(cacheKey) ?? null;
+        res.cached = true;
+      }
       // Auto-paginate if topic scan returned 0 files but Telegram indicates has_more (supports deep topics up to 10k msgs)
       if (page.length === 0 && res.has_more && tid != null && res.next_offset_id && gen === peerGen.current) {
         let currentOffset = res.next_offset_id;
@@ -3871,7 +3892,6 @@ function MediaDriveDesktop({
             }
 
             if (creds?.session && !hasPersistFailure) {
-              const curFiles = filesCacheRef.current.get(cacheKey) || liveFilesRef.current;
               try {
                 const exactStats = await getExactMediaStatsByContext(mediaContext);
                 const exactCount = exactStats.count;
@@ -3882,15 +3902,8 @@ function MediaDriveDesktop({
                 setTotalBytes(exactBytes);
                 filesTotalCountRef.current.set(cacheKey, exactCount);
 
-                if (curFiles.length > 0) {
-                  void saveDeepIndexSnapshot(creds.session, peerId, tid, {
-                    files: curFiles.slice(0, 2500),
-                    hasMore: false,
-                    nextOffsetId: null,
-                    totalCount: exactCount,
-                    totalBytes: exactBytes,
-                  }).catch(() => {});
-                }
+                // Rows and checkpoint are already committed atomically per ACK.
+                // Do not serialize a redundant whole-array deep snapshot.
               } catch (statErr) {
                 console.warn('[Indexer] Could not load exact stats from DB:', statErr);
               }
@@ -4023,16 +4036,6 @@ function MediaDriveDesktop({
           });
         } catch {
           /* live data remains authoritative even if cache persistence fails */
-        }
-
-        if (headChanged && merged.length > 0 && creds?.session) {
-          void saveDeepIndexSnapshot(creds.session, peerId, tid, {
-            files: merged,
-            hasMore: keptExtendedPages ? hasMoreBefore || !!res.has_more : !!res.has_more,
-            nextOffsetId: keptExtendedPages ? cursorBefore : res.next_offset_id ?? null,
-            totalCount: filesTotalCountRef.current.get(cacheKey) ?? merged.length,
-            totalBytes: filesTotalBytesRef.current.get(cacheKey) ?? null,
-          }).catch(() => {});
         }
 
         liveSyncLastAtRef.current.set(cacheKey, Date.now());
@@ -4515,6 +4518,7 @@ function MediaDriveDesktop({
         pageSize,
         topicId: tid,
         quickStats: false,
+        bypassCache: true,
       });
       if (gen !== peerGen.current || tid !== topicFilterRef.current || activeFilesCacheKeyRef.current !== cacheKey) return;
       const liveHead: DriveFile[] = dedupeByMsgId(res.files || []);
@@ -4560,15 +4564,6 @@ function MediaDriveDesktop({
         });
       } catch { /* cache is best-effort */ }
 
-      if (merged.length > 0 && creds?.session) {
-        void saveDeepIndexSnapshot(creds.session, peerId, tid, {
-          files: merged,
-          hasMore: keptExtendedPages ? hasMoreBefore || !!res.has_more : !!res.has_more,
-          nextOffsetId: keptExtendedPages ? cursorBefore : res.next_offset_id ?? null,
-          totalCount: filesTotalCountRef.current.get(cacheKey) ?? merged.length,
-          totalBytes: filesTotalBytesRef.current.get(cacheKey) ?? null,
-        }).catch(() => {});
-      }
       // Stamp live-sync so the periodic timer skips a redundant fetch right after
       liveSyncLastAtRef.current.set(cacheKey, Date.now());
       liveSyncFailuresRef.current = 0;
@@ -4707,6 +4702,56 @@ function MediaDriveDesktop({
       sidebarRefreshLockRef.current = false;
     }
   }, [creds]);
+
+  const powerRefresh = useCallback(async () => {
+    if (!creds || isTransferJobActive()) {
+      if (isTransferJobActive()) {
+        setStatusText(t('ui.generated.transfer_aktif_refresh_ditunda_099d58a'));
+      }
+      return;
+    }
+
+    // This is a data refresh, not a WebView reload: invalidate only volatile
+    // render/network caches while preserving the durable media index.
+    mediaListCache.clear();
+    clearThumbCache();
+    clearPreviewCache();
+    clearZipBrowserCache();
+    invalidateThumbFailures();
+    invalidateAvatarFailures();
+    liveSyncLastAtRef.current.delete(activeFilesCacheKeyRef.current);
+    liveSyncBackoffUntilRef.current = 0;
+    liveSyncFailuresRef.current = 0;
+    setStatusText(t('speedtest.ctx_menu_refresh'));
+
+    await Promise.allSettled([
+      refreshFiles(0, { preserveError: true, bypassCache: true }),
+      softRefreshSidebar(),
+      peerId != null ? loadTopicsForPeer(peerId) : Promise.resolve(),
+    ]);
+
+    const visibleIds = liveFilesRef.current
+      .filter(canShowDriveThumb)
+      .slice(0, 48)
+      .map((file) => file.id);
+    if (visibleIds.length > 0) {
+      requestVisibleThumbs(creds, peerId, visibleIds, {
+        ...thumbLocationOptions,
+        bypassCache: true,
+        replaceViewport: true,
+      });
+    }
+    scheduleMediaStats({ force: true, delayMs: 150, urgent: true });
+  }, [
+    creds,
+    peerId,
+    refreshFiles,
+    softRefreshSidebar,
+    loadTopicsForPeer,
+    scheduleMediaStats,
+    thumbLocationOptions,
+    t,
+  ]);
 
   const toggleTransferMinimize = useCallback(() => {
     setTransferMinimized((m) => {
@@ -9039,7 +9084,7 @@ function MediaDriveDesktop({
             });
           }}
           channelLimitWarning={channelLimitWarning}
-          onRefresh={refreshLocations}
+          onRefresh={powerRefresh}
           loadingFolders={loadingFolders}
           loadingChats={loadingChats}
           session={session}
@@ -9125,7 +9170,7 @@ function MediaDriveDesktop({
               });
               openMoveDestinationPicker(selectedIds, names);
             }}
-            onRefresh={refreshFiles}
+            onRefresh={powerRefresh}
             onOpenTransferSettings={() => {
               setToolsOpen(false);
               setTransferSettingsOpen(true);
@@ -9218,11 +9263,24 @@ function MediaDriveDesktop({
             onStop={transfer.active || moveActiveRef.current ? cancelTransfer : undefined}
             onClearDone={() => setTransfer((t) => clearFinishedItems(t))}
             onDismiss={() => {
-              // Explicit clear history only — does not fire on outside click
-              if (transferHideTimer.current) clearTimeout(transferHideTimer.current);
-              setTransfer({ ...EMPTY_TRANSFER_SESSION });
-              setTransferMinimized(true);
-              localStorage.setItem(LS_TM_MIN, '1');
+              // Explicit history clear. A recovered Rust record is cancelled
+              // before dismissal so no executable Telegram work is orphaned.
+              void (async () => {
+                if (transferHideTimer.current) clearTimeout(transferHideTimer.current);
+                const transferId = transferRef.current.jobKey;
+                if (transferId) {
+                  await cancelDriveJob(transferId);
+                  await studioDismissTransfer(transferId);
+                }
+                transferQueueRef.current = [];
+                savePersistedQueue([]);
+                localStorage.removeItem('autogram_drive_upload_queue');
+                setHasPersistedQueue(false);
+                setPersistedQueueCount(0);
+                setTransfer({ ...EMPTY_TRANSFER_SESSION });
+                setTransferMinimized(true);
+                localStorage.setItem(LS_TM_MIN, '1');
+              })();
             }}
             downloadFolderPath={lastDownloadDir}
             onOpenDownloadFolder={
@@ -9359,8 +9417,28 @@ function MediaDriveDesktop({
             locationStatsAccurate={statsAccurate}
             locationByType={statsByType}
             filesHasMore={filesHasMore}
-            onLoadMoreFiles={loadMoreFiles}
-            onRefreshFiles={() => refreshFiles(0, { preserveError: true })}
+            onBuildDuplicateIndex={async ({ mode, onProgress, shouldCancel }) => {
+              const scanSession = creds?.session || session || '';
+              const scanPeerId = peerId;
+              const scanTopicId = topicFilterRef.current;
+              const scanContext = buildDriveMediaContext(scanSession, scanPeerId, scanTopicId);
+
+              // The main Rust worker remains the sole Telegram scanner. The
+              // duplicate tool waits for it, then reads candidates from the
+              // same durable index instead of issuing its own pagination.
+              const state = await getMediaIndexState(scanContext);
+              if (!state?.backfillComplete && !indexingActiveRef.current && !shouldCancel()) {
+                await handleIndexAllMetadata();
+              }
+              while (indexingActiveRef.current && !shouldCancel()) {
+                await new Promise((resolve) => window.setTimeout(resolve, 200));
+              }
+              if (shouldCancel()) return [];
+              return await getDuplicateCandidatesByContext(scanContext, mode, {
+                onProgress,
+                shouldCancel,
+              });
+            }}
             topicFilter={topicFilter}
             isForum={isForumChat}
             transferSettings={transferSettings}
@@ -9507,34 +9585,14 @@ function MediaDriveDesktop({
               onVisibleIdsChange={rememberVisibleThumbIds}
               onOpen={(f) => {
                 if (f.icon_type === 'link') {
-                  const url = f.original_name || f.name || '';
-                  if (url) {
-                    void (async () => {
-                      try {
-                        const mod = await import('@tauri-apps/plugin-opener');
-                        await mod.openUrl(url);
-                      } catch {
-                        window.open(url, '_blank');
-                      }
-                    })();
-                  }
+                  setLinkPreviewFile(f);
                 } else {
                   setPreviewFile(f);
                 }
               }}
               onPreview={(f) => {
                 if (f.icon_type === 'link') {
-                  const url = f.original_name || f.name || '';
-                  if (url) {
-                    void (async () => {
-                      try {
-                        const mod = await import('@tauri-apps/plugin-opener');
-                        await mod.openUrl(url);
-                      } catch {
-                        window.open(url, '_blank');
-                      }
-                    })();
-                  }
+                  setLinkPreviewFile(f);
                 } else {
                   setPreviewFile(f);
                 }
@@ -9567,6 +9625,14 @@ function MediaDriveDesktop({
                 e.preventDefault();
                 setContextMenu({ kind: 'canvas', x: e.clientX, y: e.clientY });
               }}
+            />
+            <TelegramMessagePreviewModal
+              isOpen={Boolean(linkPreviewFile)}
+              file={linkPreviewFile}
+              onClose={() => setLinkPreviewFile(null)}
+              chatName={breadcrumb}
+              creds={creds}
+              folderId={peerId}
             />
           </div>
         </div>
