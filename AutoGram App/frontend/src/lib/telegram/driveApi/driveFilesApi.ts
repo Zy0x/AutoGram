@@ -128,6 +128,7 @@ export async function driveListFiles(
     sortMode?: string;
     localOffset?: number;
     bypassCache?: boolean;
+    contentFilter?: 'links' | null;
   }
 ) {
   const pageSize = opts?.pageSize ?? DEFAULT_FILE_PAGE;
@@ -141,7 +142,7 @@ export async function driveListFiles(
   const cursorFingerprint = opts?.searchCursor
     ? `${opts.searchCursor.photoVideo?.fetchOffsetId ?? 0}:${opts.searchCursor.document?.fetchOffsetId ?? 0}:${opts.searchCursor.photoVideo?.exhausted ? 1 : 0}:${opts.searchCursor.document?.exhausted ? 1 : 0}:${opts.searchCursor.scope?.minId ?? 0}`
     : 'fresh';
-  const contextKey = `${mediaContext.accountId}:${mediaContext.peerId}:${mediaContext.scopeKind}:${mediaContext.topicId ?? 'none'}:${offsetId ?? 0}:${minId}:${localOffset}:${cursorFingerprint}`;
+  const contextKey = `${mediaContext.accountId}:${mediaContext.peerId}:${mediaContext.scopeKind}:${mediaContext.topicId ?? 'none'}:${opts?.contentFilter ?? 'media'}:${offsetId ?? 0}:${minId}:${localOffset}:${cursorFingerprint}`;
 
   if (inFlightPages.has(contextKey)) {
     return inFlightPages.get(contextKey)!;
@@ -167,6 +168,7 @@ export async function driveListFiles(
         minId: opts?.minId ?? null,
         topicId: topicId != null && topicId > 0 ? topicId : null,
         searchCursor: opts?.searchCursor ?? null,
+        contentFilter: opts?.contentFilter ?? null,
       });
       if (gr?.ok && gr.data?.files) {
         let files = gr.data.files.map((f: any) => ({
@@ -185,6 +187,14 @@ export async function driveListFiles(
           peer_username: f.peerUsername ?? f.peer_username ?? undefined,
           grouped_id: f.groupedId ?? f.grouped_id ?? undefined,
           is_saved_messages: f.isSavedMessages ?? f.is_saved_messages ?? (folderId == null || folderId === 0),
+          telegram_category: f.telegramCategory ?? f.telegram_category ?? undefined,
+          telegram_subtype: f.telegramSubtype ?? f.telegram_subtype ?? undefined,
+          drive_category: f.driveCategory ?? f.drive_category ?? undefined,
+          drive_format: f.driveFormat ?? f.drive_format ?? undefined,
+          link_urls: String(f.driveFormat ?? f.drive_format ?? '')
+            .split('\n')
+            .map((value) => value.trim())
+            .filter((value) => /^https?:\/\//i.test(value)),
         }));
         // Client-side sort for non-newest modes (network page is newest-first).
         if (sortMode === 'oldest') {
@@ -554,4 +564,3 @@ export async function driveGetMediaStats(
     return null;
   }
 }
-

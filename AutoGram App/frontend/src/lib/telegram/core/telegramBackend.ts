@@ -290,6 +290,7 @@ export async function tgListMedia(args: {
   minId?: number | null;
   topicId?: number | null;
   searchCursor?: TgScopedMediaSearchCursor | null;
+  contentFilter?: 'links' | null;
 }): Promise<TgOpResult<TgListMediaResult> | null> {
   if (!detectTauriRuntime()) return null;
   try {
@@ -304,6 +305,7 @@ export async function tgListMedia(args: {
         minId: args.minId ?? null,
         topicId: args.topicId ?? null,
         searchCursor: args.searchCursor ?? null,
+        contentFilter: args.contentFilter ?? null,
       },
     });
     debugLogLayer('rust', 'tg', 'list_media', {

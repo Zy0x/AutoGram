@@ -152,7 +152,24 @@ export function DriveTransferManager({
   const encodeItem = itemsList.find(
     (item: any) => item.phase === 'reencode' && item.status === 'preparing'
   );
-  const displayPercent = encodeItem ? encodeItem.percent : (session?.overallPercent ?? 0);
+  const displayPercent = session?.overallPercent ?? 0;
+  const phaseClass = (item: any): 'prepare' | 'convert' | 'reencode' | 'remux' | 'upload' | 'download' | 'commit' => {
+    const phase = String(item?.phase || '').toLowerCase();
+    if (item?.status === 'committing' || item?.status === 'waiting_commit' || phase.includes('commit')) return 'commit';
+    if (phase.includes('convert') || phase.includes('transcode')) return 'convert';
+    if (phase.includes('reencode') || phase === 'encode') return 'reencode';
+    if (phase.includes('remux')) return 'remux';
+    if (phase === 'download' || item?.direction === 'download') return 'download';
+    if (phase === 'upload' || phase === 'media_registering') return 'upload';
+    return 'prepare';
+  };
+  const activeProgressItem = itemsList.find((item: any) =>
+    ['active', 'preparing', 'uploaded', 'waiting_commit', 'committing'].includes(item.status)
+  );
+  const currentPhase = phaseClass(activeProgressItem || { direction: session.direction });
+  const scanPhase = ['cache_warmup', 'recent', 'sampling', 'forensic'].includes(String((session as any).scanPhase))
+    ? String((session as any).scanPhase)
+    : 'scanning';
 
   const { jobs } = useTransferProgressStore();
   const activeJob = jobs.find((j) => j.activeStage !== 'idle' && j.activeStage !== 'done') || jobs[0];
@@ -165,9 +182,9 @@ export function DriveTransferManager({
 
   const liveStageProgress = activeJob ? activeJob[currentStage] : null;
 
-  const realTimePercent = liveStageProgress && liveStageProgress.percent > 0
-    ? liveStageProgress.percent
-    : displayPercent;
+  // The header represents the whole job. Stage-local percentages are rendered
+  // only in their item row and never replace this aggregate value.
+  const realTimePercent = displayPercent;
 
   const realTimeSpeedStr = liveStageProgress && liveStageProgress.speed > 0
     ? formatSpeedBytes(liveStageProgress.speed)
@@ -181,15 +198,9 @@ export function DriveTransferManager({
         ? formatTransferEta(session.etaSeconds)
         : '';
 
-  const phaseLabel = isPreparing || currentStage === 'encode'
-    ? 'Re-encode'
-    : isMove
-      ? session.label?.startsWith('Salin')
-        ? 'Menyalin'
-        : 'Memindahkan'
-      : currentStage === 'upload'
-        ? 'Uploading'
-        : 'Downloading';
+  const phaseLabel = isMove
+    ? t('speedtest.tm_phase_move')
+    : t(`speedtest.tm_phase_${currentPhase}`);
   const activeName = activeItemName(session);
   const hasFinished = counts.done + counts.failed + counts.skipped + counts.needsVerification > 0;
   const isEmptyShell = !hasSession && forceShow;
@@ -204,12 +215,12 @@ export function DriveTransferManager({
   const pauseTitle = !session.active
     ? undefined
     : isMove
-      ? 'Pindah/salin: gunakan Stop untuk batalkan sisa antrean'
+      ? t('speedtest.tm_pause_move_unavailable')
       : remainingAfterActive > 0
-        ? 'Jeda: file yang sedang jalan diselesaikan, file berikutnya ditahan'
+        ? t('speedtest.tm_pause_safe_boundary')
         : session.items.length <= 1
-          ? 'File tunggal: tidak bisa dijeda di tengah unduhan. Gunakan Stop untuk batalkan.'
-          : 'Semua file sudah berjalan / selesai — tidak ada antrean yang bisa dijeda';
+          ? t('speedtest.tm_pause_single_unavailable')
+          : t('speedtest.tm_pause_queue_empty');
 
   const [showLogs, setShowLogs] = useState(false);
   const [copyMsg, setCopyMsg] = useState<string | null>(null);
@@ -320,7 +331,7 @@ export function DriveTransferManager({
                 : session.active
                   ? session.paused
                     ? t("speedtest.tm_status_paused")
-                    : `${currentStage === 'encode' ? 'Re-encode' : currentStage === 'upload' ? 'Uploading' : 'Downloading'}${session.label ? ` → ${session.label}` : ''}`
+                    : `${phaseLabel}${session.label ? ` → ${session.label}` : ''}`
                   : counts.failed
                     ? t("speedtest.tm_status_error")
                     : counts.needsVerification
@@ -420,15 +431,11 @@ export function DriveTransferManager({
               aria-valuemax={100}
             >
               <div
-                className={`tm-bar-fill stage-${currentStage}`}
+                className={`tm-bar-fill stage-${currentPhase}`}
                 style={{ width: `${Math.min(100, Math.max(0, realTimePercent))}%` }}
               />
             </div>
-            {liveStageProgress && liveStageProgress.totalBytes > 0 ? (
-              <div className="tm-bytes">
-                {formatDriveBytes(liveStageProgress.currentBytes)} / {formatDriveBytes(liveStageProgress.totalBytes)}
-              </div>
-            ) : encodeItem?.estimatedOutputBytes ? (
+            {encodeItem?.estimatedOutputBytes && currentPhase === 'reencode' ? (
               <div className="tm-bytes">
                 {t('ui.generated.perkiraan_output_5002fa3')} {formatDriveBytes(encodeItem.estimatedOutputBytes)}
               </div>
@@ -443,11 +450,7 @@ export function DriveTransferManager({
               <div className="tm-scan-progress">
                 <Loader2 size={11} className="tm-ico spin" style={{display:'inline',verticalAlign:'middle',marginRight:4}} />
                 <span>
-                  {(session as any).scanPhase === 'cache_warmup' && 'Memuat cache duplikat…'}
-                  {(session as any).scanPhase === 'recent' && `Memindai 1.000 pesan terakhir… (${(session as any).scanScanned ?? 0})`}
-                  {(session as any).scanPhase === 'sampling' && `Sampling adaptif… (${(session as any).scanScanned ?? 0} dipindai)`}
-                  {(session as any).scanPhase === 'forensic' && `Pemindaian forensik… (${(session as any).scanScanned ?? 0} pesan)`}
-                  {!['cache_warmup','recent','sampling','forensic'].includes((session as any).scanPhase) && `Memindai…`}
+                  {t(`speedtest.tm_scan_${scanPhase}`, { count: (session as any).scanScanned ?? 0 })}
                 </span>
               </div>
             )}
@@ -570,7 +573,7 @@ export function DriveTransferManager({
                       <span
                         className="tm-skip-badge-pill"
                         title={it.note || t('speedtest.file_exists_no_reupload')}
-                        aria-label={`Dilewati: ${it.note || 'duplikat'}`}
+                        aria-label={t('speedtest.tm_skipped_aria', { reason: it.note || t('speedtest.tm_duplicate_short') })}
                       >
                         <SkipForward size={9} />
                         {t('ui.generated.dilewati_4a88a03')}
@@ -621,7 +624,7 @@ export function DriveTransferManager({
                   {(it.status === 'active' || it.status === 'preparing' || it.status === 'uploaded' || it.status === 'waiting_commit' || it.status === 'committing') && (
                     <div className="tm-mini-bar">
                       <div
-                        className={`tm-mini-fill stage-${currentStage}`}
+                        className={`tm-mini-fill stage-${phaseClass(it)}`}
                         style={{ width: `${Math.min(100, Math.max(0, it.percent))}%` }}
                       />
                     </div>

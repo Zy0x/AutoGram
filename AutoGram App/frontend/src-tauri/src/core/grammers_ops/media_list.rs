@@ -1006,6 +1006,223 @@ pub fn message_topic_id(msg: &grammers_client::message::Message) -> Option<i64> 
     }
 }
 
+fn extract_http_urls(text: &str) -> Vec<String> {
+    let mut urls = Vec::new();
+    for token in text.split_whitespace() {
+        let candidate = token
+            .trim_matches(|c: char| matches!(c, '(' | ')' | '[' | ']' | '{' | '}' | '<' | '>' | '"' | '\'' | ',' | ';'))
+            .trim_end_matches(|c: char| matches!(c, '.' | '!' | '?' | ':'));
+        if (candidate.starts_with("https://") || candidate.starts_with("http://"))
+            && !urls.iter().any(|existing| existing == candidate)
+        {
+            urls.push(candidate.to_string());
+        }
+    }
+    urls
+}
+
+fn utf16_slice(text: &str, offset: i32, length: i32) -> Option<String> {
+    let start = usize::try_from(offset).ok()?;
+    let end = start.checked_add(usize::try_from(length).ok()?)?;
+    let units = text.encode_utf16().collect::<Vec<_>>();
+    if start >= end || end > units.len() {
+        return None;
+    }
+    String::from_utf16(&units[start..end]).ok()
+}
+
+fn normalize_entity_url(url: &str) -> Option<String> {
+    let trimmed = url.trim();
+    if trimmed.is_empty() {
+        None
+    } else if trimmed.contains("://") {
+        Some(trimmed.to_string())
+    } else {
+        Some(format!("https://{trimmed}"))
+    }
+}
+
+fn extract_message_urls(message: &grammers_client::tl::types::Message) -> Vec<String> {
+    use grammers_client::tl::enums::MessageEntity;
+
+    let mut urls = extract_http_urls(&message.message);
+    for entity in message.entities.iter().flatten() {
+        let candidate = match entity {
+            MessageEntity::TextUrl(value) => normalize_entity_url(&value.url),
+            MessageEntity::Url(value) => utf16_slice(&message.message, value.offset, value.length)
+                .and_then(|value| normalize_entity_url(&value)),
+            _ => None,
+        };
+        if let Some(candidate) = candidate {
+            if !urls.iter().any(|existing| existing == &candidate) {
+                urls.push(candidate);
+            }
+        }
+    }
+    urls
+}
+
+fn tl_link_to_row(
+    msg: &grammers_client::tl::enums::Message,
+    folder_id: Option<i64>,
+) -> Option<MediaFileRow> {
+    let m = match msg {
+        grammers_client::tl::enums::Message::Message(m) => m,
+        _ => return None,
+    };
+    let urls = extract_message_urls(m);
+    if urls.is_empty() {
+        return None;
+    }
+    let id = m.id as i64;
+    let topic_id = match &m.reply_to {
+        Some(grammers_client::tl::enums::MessageReplyHeader::Header(header)) => header
+            .reply_to_top_id
+            .or(header.reply_to_msg_id)
+            .map(i64::from),
+        _ => None,
+    };
+    Some(MediaFileRow {
+        id,
+        folder_id,
+        name: urls[0].clone(),
+        size: m.message.len() as u64,
+        mime_type: Some("text/uri-list".into()),
+        icon_type: "link".into(),
+        created_at: chrono::DateTime::from_timestamp(m.date as i64, 0).map(|dt| dt.to_rfc3339()),
+        has_thumb: false,
+        as_document: false,
+        backend: BACKEND.into(),
+        thumb_data_url: None,
+        topic_id,
+        identity_source: Some("telegram_search_url".into()),
+        peer_id: folder_id
+            .map(|value| if value == 0 { "me".into() } else { value.to_string() })
+            .or_else(|| Some("me".into())),
+        account_id: None,
+        peer_kind: None,
+        peer_username: None,
+        grouped_id: m.grouped_id,
+        is_saved_messages: Some(folder_id.map_or(true, |value| value == 0)),
+        telegram_category: Some("link".into()),
+        telegram_subtype: Some(if urls.len() > 1 { "multiple_links" } else { "single_link" }.into()),
+        drive_category: Some("link".into()),
+        // The ordinary media rows use this field for a short format token. A
+        // link row uses it as a compact newline-separated payload so the UI
+        // can render all URLs from one Telegram message without inventing fake
+        // message IDs.
+        drive_format: Some(urls.join("\n")),
+    })
+}
+
+/// List Telegram messages containing URLs. This is intentionally a separate
+/// server search lane: media-only indexes cannot produce link-only messages.
+pub fn list_links_blocking_topic(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    chat_id: &str,
+    limit: usize,
+    offset_id: Option<i64>,
+    topic_id: Option<i64>,
+) -> Result<ListMediaResult, TgError> {
+    let rt = runtime()?;
+    let limit = limit.clamp(1, 100);
+    let chat = chat_id.to_string();
+    let folder_id = if chat.eq_ignore_ascii_case("me") || chat == "0" {
+        None
+    } else {
+        chat.parse().ok()
+    };
+    let session_name = identity.session.clone();
+    rt.block_on(async {
+        with_pool_retry(&identity.session, || {
+        let chat = chat.clone();
+        let session_name = session_name.clone();
+        with_client(sessions_dir, identity, true, move |client| {
+            Box::pin(async move {
+                ensure_authorized(client, &session_name).await?;
+                let peer = resolve_peer(client, &chat).await?;
+                let request = grammers_client::tl::functions::messages::Search {
+                    peer: (&peer).into(),
+                    q: String::new(),
+                    from_id: None,
+                    saved_peer_id: None,
+                    saved_reaction: None,
+                    top_msg_id: topic_id.filter(|value| *value > 0).map(|value| value as i32),
+                    filter: grammers_client::tl::enums::MessagesFilter::InputMessagesFilterUrl,
+                    min_date: 0,
+                    max_date: 0,
+                    offset_id: offset_id.unwrap_or(0) as i32,
+                    add_offset: 0,
+                    limit: limit as i32,
+                    max_id: 0,
+                    min_id: 0,
+                    hash: 0,
+                };
+                let guard = crate::core::telegram_rpc_guard::RpcGuardControl::default();
+                let started = Instant::now();
+                let response = crate::core::telegram_rpc_guard::invoke_guarded_with_control(
+                    &session_name,
+                    crate::core::session_rate::RpcClass::IndexSearch,
+                    "messages.search.url",
+                    &guard,
+                    || client.invoke(&request),
+                )
+                .await?;
+                let mut total_count = None;
+                let messages = match response.value {
+                    grammers_client::tl::enums::messages::Messages::Messages(value) => value.messages,
+                    grammers_client::tl::enums::messages::Messages::Slice(value) => {
+                        total_count = Some(value.count.max(0) as usize);
+                        value.messages
+                    }
+                    grammers_client::tl::enums::messages::Messages::ChannelMessages(value) => {
+                        total_count = Some(value.count.max(0) as usize);
+                        value.messages
+                    }
+                    grammers_client::tl::enums::messages::Messages::NotModified(_) => Vec::new(),
+                };
+                let raw_len = messages.len();
+                let lowest_id = messages.iter().filter_map(|message| match message {
+                    grammers_client::tl::enums::Message::Message(value) => Some(value.id as i64),
+                    _ => None,
+                }).min();
+                let files = messages.iter().filter_map(|message| tl_link_to_row(message, folder_id)).collect::<Vec<_>>();
+                let has_more = raw_len >= limit && lowest_id.unwrap_or(0) > 1;
+                let observation = LaneRpcObservation {
+                    lane: SearchLane::Both,
+                    latency_ms: response.latency_ms,
+                    wall_latency_ms: started.elapsed().as_millis() as u64,
+                    attempts: response.attempts,
+                    rows_received: files.len(),
+                    candidate_count: total_count,
+                };
+                Ok(ListMediaResult {
+                    status: "ok".into(),
+                    folder_id,
+                    total: files.len(),
+                    page_size: limit,
+                    has_more,
+                    next_offset_id: lowest_id,
+                    search_cursor: None,
+                    lane_counts: None,
+                    emitted_watermark: None,
+                    lane_durability: None,
+                    total_count,
+                    backend: BACKEND.into(),
+                    cached: false,
+                    files,
+                    rpc_observations: vec![observation],
+                    pv_observation: None,
+                    doc_observation: None,
+                })
+            })
+        })
+        })
+        .await
+    })
+}
+
 /// List media messages in a chat (newest first). Optional forum `topic_id` filter.
 pub fn list_media_blocking(
     sessions_dir: &Path,
@@ -1542,6 +1759,28 @@ pub fn start_folder_stream_blocking(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn extracts_multiple_distinct_urls_without_trailing_punctuation() {
+        assert_eq!(
+            extract_http_urls("See https://example.com/a, then https://t.me/demo. https://example.com/a"),
+            vec!["https://example.com/a".to_string(), "https://t.me/demo".to_string()]
+        );
+    }
+
+    #[test]
+    fn extracts_utf16_entity_ranges_and_normalizes_bare_urls() {
+        let text = "😀 visit example.com now";
+        assert_eq!(utf16_slice(text, 9, 11).as_deref(), Some("example.com"));
+        assert_eq!(
+            normalize_entity_url("example.com/path").as_deref(),
+            Some("https://example.com/path")
+        );
+        assert_eq!(
+            normalize_entity_url("tg://resolve?domain=telegram").as_deref(),
+            Some("tg://resolve?domain=telegram")
+        );
+    }
 
     fn dummy_row(id: i64) -> MediaFileRow {
         MediaFileRow {

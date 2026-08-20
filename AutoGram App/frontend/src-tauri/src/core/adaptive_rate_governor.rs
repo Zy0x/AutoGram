@@ -1,7 +1,12 @@
-//! adaptive_rate_governor.rs — Rust-Only Adaptive Rate Governor for P4
+//! adaptive_rate_governor.rs — Rust-Only Adaptive Rate Governor for P4.4
 //!
-//! Dynamically adjusts inter-request pacing, inflight permits (1 -> 2),
-//! flood recovery, and latency EWMA/p95 feedback to maximize durably committed useful media/s.
+//! Long-Haul Maximum-Speed Controller:
+//! - Multi-window rolling throughput tracking (short 5-10s, medium 15-30s, long 60-120s)
+//! - Continuous throughput decay detection & bi-directional inflight (1 ⇄ 2) adaptation
+//! - Fair DegradeProbe comparison (inflight 2 -> 1) with anti-oscillation dwell time
+//! - Rolling & ratio-aware DbBound protection (ack_p95 / rpc_p95 > 2.0 & consecutive elevated ACKs)
+//! - Telemetry-linked ResourceBound protection (pending items buffer containment)
+//! - Zero FloodWait degradation guarantee
 
 use std::collections::VecDeque;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -24,6 +29,7 @@ pub enum GovernorState {
     Warmup,
     Stable,
     ProbeInflight2,
+    DegradeProbe,
     Cooldown,
     FloodRecovery,
     DbBound,
@@ -36,6 +42,7 @@ impl GovernorState {
             GovernorState::Warmup => "warmup",
             GovernorState::Stable => "stable",
             GovernorState::ProbeInflight2 => "probe_inflight_2",
+            GovernorState::DegradeProbe => "degrade_probe",
             GovernorState::Cooldown => "cooldown",
             GovernorState::FloodRecovery => "flood_recovery",
             GovernorState::DbBound => "db_bound",
@@ -108,6 +115,17 @@ pub struct ThroughputWindow {
     pub sample_count: usize,
 }
 
+#[derive(Debug, Clone)]
+pub struct SustainedWindow {
+    pub started_at: Instant,
+    pub committed_start: u64,
+    pub rpc_start: u64,
+    pub flood_start: u64,
+    pub committed_rate: f64,
+    pub rpc_p95_ms: u64,
+    pub ack_p95_ms: u64,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionRateProfile {
     pub sustainable_dispatch_rate_rps: f64,
@@ -148,12 +166,31 @@ pub struct AdaptiveRateGovernor {
     committed_rows_per_sec: f64,
     useful_rows_per_rpc: f64,
 
-    // Probe 2 mature baseline vs probe window evaluation
+    // Long-haul sustained throughput metrics
+    best_safe_committed_rate: f64,
+    current_sustained_rate: f64,
+    rate_decay_percent: f64,
+    last_promotion_at: Option<Instant>,
+    last_demotion_at: Option<Instant>,
+
+    // Probe 1 -> 2 promotion tracking
     pending_probe: bool,
     baseline_rolling_committed_rate: f64,
     probe_start_instant: Option<Instant>,
     probe_start_committed_rows: u64,
     probe_successes: u64,
+
+    // DegradeProbe 2 -> 1 demotion tracking
+    pending_degrade_probe: bool,
+    sustained_rate_before_degrade: f64,
+    degrade_start_instant: Option<Instant>,
+    degrade_start_committed_rows: u64,
+    degrade_successes: u64,
+
+    // DbBound & ResourceBound rolling state
+    consecutive_high_acks: usize,
+    consecutive_low_acks: usize,
+    last_resource_observation_at: Option<Instant>,
 
     stable_successes: u64,
     total_search_rpcs: u64,
@@ -186,16 +223,32 @@ impl AdaptiveRateGovernor {
             ack_samples: RollingSampleWindow::new(),
             idle_samples: RollingSampleWindow::new(),
 
-            committed_samples: VecDeque::with_capacity(64),
+            committed_samples: VecDeque::with_capacity(128),
             total_committed_rows: 0,
             committed_rows_per_sec: 0.0,
             useful_rows_per_rpc: 0.0,
+
+            best_safe_committed_rate: 0.0,
+            current_sustained_rate: 0.0,
+            rate_decay_percent: 0.0,
+            last_promotion_at: None,
+            last_demotion_at: None,
 
             pending_probe: false,
             baseline_rolling_committed_rate: 0.0,
             probe_start_instant: None,
             probe_start_committed_rows: 0,
             probe_successes: 0,
+
+            pending_degrade_probe: false,
+            sustained_rate_before_degrade: 0.0,
+            degrade_start_instant: None,
+            degrade_start_committed_rows: 0,
+            degrade_successes: 0,
+
+            consecutive_high_acks: 0,
+            consecutive_low_acks: 0,
+            last_resource_observation_at: None,
 
             stable_successes: 0,
             total_search_rpcs: 0,
@@ -211,14 +264,14 @@ impl AdaptiveRateGovernor {
     }
 
     /// Fast cancellation check and clean page epoch preparation.
-    /// If probe eligibility was flagged during the prior page observations,
-    /// the probe epoch activates strictly here at the page boundary.
+    /// If probe eligibility or degrade probe was flagged,
+    /// the transition activates strictly here at the page boundary.
     pub fn before_index_rpc(&mut self, cancel: &CancellationToken) -> Result<(), TgError> {
         if cancel.is_cancelled() {
             return Err(TgError::new(TgErrorCode::Cancelled, "indexing cancelled"));
         }
 
-        // Clean page epoch transition: activate pending probe strictly at page start
+        // 1. Clean page epoch transition: activate pending probe (1 -> 2) strictly at page start
         if self.pending_probe && self.state == GovernorState::Stable && self.max_inflight == 1 {
             if let Some(baseline_win) = self.get_mature_baseline_window(12.0) {
                 self.pending_probe = false;
@@ -235,6 +288,17 @@ impl AdaptiveRateGovernor {
             } else {
                 self.pending_probe = false;
             }
+        }
+
+        // 2. Clean page epoch transition: activate pending degrade probe (2 -> 1) strictly at page start
+        if self.pending_degrade_probe && self.state == GovernorState::Stable && self.max_inflight == 2 {
+            self.pending_degrade_probe = false;
+            self.sustained_rate_before_degrade = self.current_sustained_rate;
+            self.degrade_start_instant = Some(Instant::now());
+            self.degrade_start_committed_rows = self.total_committed_rows;
+            self.transition_to(GovernorState::DegradeProbe);
+            self.max_inflight = 1;
+            self.degrade_successes = 0;
         }
 
         Ok(())
@@ -264,6 +328,7 @@ impl AdaptiveRateGovernor {
             if self.state == GovernorState::ProbeInflight2 {
                 self.transition_to(GovernorState::Cooldown);
                 self.max_inflight = 1;
+                self.last_demotion_at = Some(Instant::now());
             }
             return;
         }
@@ -290,10 +355,25 @@ impl AdaptiveRateGovernor {
                     self.min_dispatch_spacing = self.min_dispatch_spacing.saturating_sub(Duration::from_millis(10));
                 }
 
-                // Check probe eligibility; flag for next page epoch to avoid mid-page contamination
-                if self.stable_successes >= 20 && self.confidence_score >= 0.6 && self.max_inflight == 1 {
-                    if self.get_mature_baseline_window(12.0).is_some() {
+                // Check probe eligibility (1 -> 2 promotion)
+                if self.max_inflight == 1 && self.stable_successes >= 20 && self.confidence_score >= 0.6 {
+                    let can_probe = self.last_demotion_at
+                        .map(|t| t.elapsed() >= Duration::from_secs(20))
+                        .unwrap_or(true);
+
+                    if can_probe && self.get_mature_baseline_window(12.0).is_some() {
                         self.pending_probe = true;
+                    }
+                }
+
+                // Check long-haul throughput decay (2 -> 1 demotion trigger)
+                if self.max_inflight == 2 && self.state_entered_at.elapsed() >= Duration::from_secs(15) {
+                    let can_degrade_probe = self.last_promotion_at
+                        .map(|t| t.elapsed() >= Duration::from_secs(20))
+                        .unwrap_or(true);
+
+                    if can_degrade_probe && self.rate_decay_percent > 18.0 && self.useful_rows_per_rpc >= 10.0 {
+                        self.pending_degrade_probe = true;
                     }
                 }
             }
@@ -305,6 +385,7 @@ impl AdaptiveRateGovernor {
                 if self.baseline_rpc_p95_ms > 0.0 && cur_p95 > self.baseline_rpc_p95_ms * 2.2 {
                     self.transition_to(GovernorState::Cooldown);
                     self.max_inflight = 1;
+                    self.last_demotion_at = Some(Instant::now());
                     self.confidence_score = (self.confidence_score * 0.8).max(0.2);
                 } else if self.probe_successes >= 20 {
                     // 2. Fair Throughput comparison: evaluate committed rows/sec during probe window vs stable rolling baseline
@@ -322,6 +403,7 @@ impl AdaptiveRateGovernor {
                             // Confirmed real throughput gain under inflight=2 against mature rolling baseline!
                             self.confidence_score = (self.confidence_score + 0.15).min(0.95);
                             self.max_inflight = 2;
+                            self.last_promotion_at = Some(Instant::now());
                             self.transition_to(GovernorState::Stable);
 
                             // Gradually relieve conservative probe stagger if stable
@@ -332,13 +414,41 @@ impl AdaptiveRateGovernor {
                             // No improvement: rollback to inflight=1 to avoid unneeded pressure
                             self.transition_to(GovernorState::Cooldown);
                             self.max_inflight = 1;
+                            self.last_demotion_at = Some(Instant::now());
                             self.confidence_score = (self.confidence_score * 0.85).max(0.3);
                         }
                     } else if probe_duration >= 15.0 {
                         // Timeout without enough progress in probe window: rollback to inflight=1
                         self.transition_to(GovernorState::Cooldown);
                         self.max_inflight = 1;
+                        self.last_demotion_at = Some(Instant::now());
                     }
+                }
+            }
+            GovernorState::DegradeProbe => {
+                self.degrade_successes += 1;
+                let degrade_duration = self.degrade_start_instant.map(|i| i.elapsed().as_secs_f64()).unwrap_or(0.0);
+                let degrade_delta_rows = self.total_committed_rows.saturating_sub(self.degrade_start_committed_rows);
+
+                if self.degrade_successes >= 15 && degrade_duration >= 5.0 && degrade_delta_rows > 0 {
+                    let degrade_committed_rate = degrade_delta_rows as f64 / degrade_duration;
+
+                    // If inflight 1 is >= 98% of the degraded inflight 2 rate, inflight 1 is just as fast or faster!
+                    if self.sustained_rate_before_degrade <= 0.0 || degrade_committed_rate >= (self.sustained_rate_before_degrade * 0.98) {
+                        // Stay at inflight 1
+                        self.max_inflight = 1;
+                        self.last_demotion_at = Some(Instant::now());
+                        self.transition_to(GovernorState::Stable);
+                    } else {
+                        // Inflight 2 was actually faster; return to inflight 2
+                        self.max_inflight = 2;
+                        self.last_promotion_at = Some(Instant::now());
+                        self.transition_to(GovernorState::Stable);
+                    }
+                } else if degrade_duration >= 15.0 {
+                    self.max_inflight = 1;
+                    self.last_demotion_at = Some(Instant::now());
+                    self.transition_to(GovernorState::Stable);
                 }
             }
             GovernorState::Cooldown => {
@@ -356,10 +466,14 @@ impl AdaptiveRateGovernor {
                     }
                 }
             }
-            GovernorState::DbBound | GovernorState::ResourceBound => {
-                if self.state_entered_at.elapsed() >= Duration::from_secs(5) {
+            GovernorState::DbBound => {
+                // Exit DbBound only after consecutive normal ACKs and recovered EWMA
+                if self.consecutive_low_acks >= 3 && self.ack_ewma_ms < 200.0 {
                     self.transition_to(GovernorState::Stable);
                 }
+            }
+            GovernorState::ResourceBound => {
+                // Maintained via on_resource_observation
             }
         }
     }
@@ -371,6 +485,7 @@ impl AdaptiveRateGovernor {
         self.last_flood_at_ms = Some(now_epoch_ms());
         self.max_inflight = 1;
         self.pending_probe = false;
+        self.pending_degrade_probe = false;
         self.confidence_score = (self.confidence_score * 0.5).max(0.1);
 
         // Resume rate below the unsafe observed rate: add minimum 150ms pacing
@@ -390,7 +505,7 @@ impl AdaptiveRateGovernor {
         self.total_committed_rows = total_committed;
         let now = Instant::now();
 
-        if self.committed_samples.len() >= 64 {
+        if self.committed_samples.len() >= 128 {
             self.committed_samples.pop_front();
         }
         self.committed_samples.push_back(CommittedProgressSample {
@@ -398,9 +513,9 @@ impl AdaptiveRateGovernor {
             total_committed,
         });
 
-        // Prune samples older than 30s
+        // Prune samples older than 60s
         while let Some(front) = self.committed_samples.front() {
-            if now.duration_since(front.timestamp) > Duration::from_secs(30) && self.committed_samples.len() > 2 {
+            if now.duration_since(front.timestamp) > Duration::from_secs(60) && self.committed_samples.len() > 2 {
                 self.committed_samples.pop_front();
             } else {
                 break;
@@ -408,6 +523,25 @@ impl AdaptiveRateGovernor {
         }
 
         self.committed_rows_per_sec = self.calculate_rolling_committed_rate(15.0);
+        self.current_sustained_rate = self.committed_rows_per_sec;
+
+        // Track best safe sustained rate when flood count == 0 and in Stable
+        if self.flood_count == 0 && self.state == GovernorState::Stable && self.current_sustained_rate > self.best_safe_committed_rate {
+            let sample_duration = self.committed_samples.front()
+                .map(|f| now.duration_since(f.timestamp).as_secs_f64())
+                .unwrap_or(0.0);
+            if sample_duration >= 8.0 {
+                self.best_safe_committed_rate = self.current_sustained_rate;
+            }
+        }
+
+        // Calculate rate decay
+        if self.best_safe_committed_rate > 0.0 {
+            let decay = (self.best_safe_committed_rate - self.current_sustained_rate).max(0.0);
+            self.rate_decay_percent = (decay / self.best_safe_committed_rate) * 100.0;
+        } else {
+            self.rate_decay_percent = 0.0;
+        }
 
         self.ack_samples.push(ack_latency_ms);
         let ack_f = ack_latency_ms as f64;
@@ -417,10 +551,29 @@ impl AdaptiveRateGovernor {
             self.ack_ewma_ms = (self.ack_ewma_ms * 0.8) + (ack_f * 0.2);
         }
 
-        // If IndexedDB ACK latency is high (>350ms), mark DbBound to prevent Telegram congestion
-        if ack_latency_ms > 350 && self.state != GovernorState::FloodRecovery {
+        // Rolling & ratio-aware DbBound
+        if ack_latency_ms > 250 {
+            self.consecutive_high_acks += 1;
+            self.consecutive_low_acks = 0;
+        } else {
+            self.consecutive_low_acks += 1;
+            self.consecutive_high_acks = self.consecutive_high_acks.saturating_sub(1);
+        }
+
+        let has_enough_samples = self.ack_samples.len() >= 3;
+        let rpc_p95_val = self.rpc_p95().max(1);
+        let ack_p95_val = self.ack_p95();
+        let db_ratio = ack_p95_val as f64 / rpc_p95_val as f64;
+
+        let should_enter_db_bound = has_enough_samples && ((self.consecutive_high_acks >= 3)
+            || (self.rpc_samples.len() >= 3 && ack_p95_val > 250 && db_ratio > 2.0 && self.ack_ewma_ms > 200.0));
+
+        if should_enter_db_bound && self.state != GovernorState::FloodRecovery && self.state != GovernorState::DbBound {
             self.transition_to(GovernorState::DbBound);
             self.max_inflight = 1;
+            self.pending_probe = false;
+        } else if self.state == GovernorState::DbBound && self.consecutive_low_acks >= 3 && self.ack_ewma_ms < 200.0 {
+            self.transition_to(GovernorState::Stable);
         }
     }
 
@@ -432,6 +585,23 @@ impl AdaptiveRateGovernor {
             self.idle_ewma_ms = idle_f;
         } else {
             self.idle_ewma_ms = (self.idle_ewma_ms * 0.8) + (idle_f * 0.2);
+        }
+    }
+
+    /// Feeds resource observation (pending items buffer & persistence batch rows) to contain RAM/IPC pressure.
+    pub fn on_resource_observation(&mut self, pending_pv: usize, pending_doc: usize, persistence_batch_rows: usize) {
+        self.last_resource_observation_at = Some(Instant::now());
+        let total_pending = pending_pv.saturating_add(pending_doc);
+
+        if total_pending >= 600 || persistence_batch_rows >= 1000 {
+            if self.state != GovernorState::FloodRecovery && self.state != GovernorState::ResourceBound {
+                self.transition_to(GovernorState::ResourceBound);
+                self.max_inflight = 1;
+                self.pending_probe = false;
+                self.min_dispatch_spacing = self.min_dispatch_spacing.max(Duration::from_millis(50));
+            }
+        } else if self.state == GovernorState::ResourceBound && total_pending <= 200 && persistence_batch_rows <= 300 {
+            self.transition_to(GovernorState::Stable);
         }
     }
 
@@ -550,6 +720,26 @@ impl AdaptiveRateGovernor {
     pub fn last_flood_wait_secs(&self) -> u32 {
         self.last_flood_wait_secs
     }
+
+    pub fn best_safe_committed_rate(&self) -> f64 {
+        self.best_safe_committed_rate
+    }
+
+    pub fn current_sustained_rate(&self) -> f64 {
+        self.current_sustained_rate
+    }
+
+    pub fn rate_decay_percent(&self) -> f64 {
+        self.rate_decay_percent
+    }
+
+    pub fn is_db_bound(&self) -> bool {
+        self.state == GovernorState::DbBound
+    }
+
+    pub fn is_resource_bound(&self) -> bool {
+        self.state == GovernorState::ResourceBound
+    }
 }
 
 #[cfg(test)]
@@ -618,6 +808,113 @@ mod tests {
         assert_eq!(gov.state(), GovernorState::ProbeInflight2);
         assert_eq!(gov.max_inflight(), 2);
         assert!(gov.spacing_ms() >= 25, "Initial probe spacing must be conservative");
+    }
+
+    #[tokio::test]
+    async fn test_bi_directional_inflight_degrade_probe_and_demotion() {
+        let cancel = CancellationToken::new();
+        let mut gov = AdaptiveRateGovernor::new();
+
+        // 1. Establish stable baseline
+        for _ in 0..5 {
+            gov.on_rpc_observation(RpcObservation {
+                latency_ms: 80,
+                rows_yielded: 100,
+                was_error: false,
+            });
+        }
+        assert_eq!(gov.state(), GovernorState::Stable);
+
+        // Set high best safe rate
+        gov.best_safe_committed_rate = 700.0;
+        gov.max_inflight = 2;
+        gov.state_entered_at = Instant::now() - Duration::from_secs(20);
+
+        // Simulate degraded throughput at inflight 2 (current = 350, decay = 50%)
+        gov.current_sustained_rate = 350.0;
+        gov.rate_decay_percent = 50.0;
+        gov.useful_rows_per_rpc = 80.0;
+
+        // Feed RPC observation to trigger degrade probe detection
+        gov.on_rpc_observation(RpcObservation {
+            latency_ms: 150,
+            rows_yielded: 80,
+            was_error: false,
+        });
+
+        assert!(gov.pending_degrade_probe, "Governor must flag pending degrade probe on severe sustained rate decay");
+
+        // Activate degrade probe at page boundary
+        gov.before_index_rpc(&cancel).unwrap();
+        assert_eq!(gov.state(), GovernorState::DegradeProbe);
+        assert_eq!(gov.max_inflight(), 1, "Inflight must demote to 1 during DegradeProbe");
+
+        // Simulate degrade probe running for 6s with 500 rows/sec (faster than degraded 350 rows/sec!)
+        gov.degrade_start_instant = Some(Instant::now() - Duration::from_secs(6));
+        gov.degrade_start_committed_rows = 0;
+        gov.total_committed_rows = 3000; // 3000 / 6 = 500 rows/s
+
+        for _ in 0..16 {
+            gov.on_rpc_observation(RpcObservation {
+                latency_ms: 90,
+                rows_yielded: 80,
+                was_error: false,
+            });
+        }
+
+        // Must transition to Stable while KEEPING max_inflight = 1!
+        assert_eq!(gov.state(), GovernorState::Stable);
+        assert_eq!(gov.max_inflight(), 1, "Governor must remain at inflight 1 since it outperforms degraded inflight 2");
+    }
+
+    #[test]
+    fn test_rolling_db_bound_requires_sustained_evidence() {
+        let mut gov = AdaptiveRateGovernor::new();
+        gov.baseline_rpc_p95_ms = 100.0;
+        gov.transition_to(GovernorState::Stable);
+
+        // Single high ACK spike (e.g. 300ms) MUST NOT immediately trigger DbBound
+        gov.on_ack_committed(300, 100, 10.0);
+        assert_ne!(gov.state(), GovernorState::DbBound, "Single ACK spike must not cause premature DbBound");
+
+        // Second high ACK
+        gov.on_ack_committed(290, 200, 10.0);
+        assert_ne!(gov.state(), GovernorState::DbBound);
+
+        // Third consecutive high ACK -> Sustained evidence triggers DbBound
+        gov.on_ack_committed(310, 300, 10.0);
+        assert_eq!(gov.state(), GovernorState::DbBound, "3 consecutive high ACKs must trigger DbBound");
+        assert_eq!(gov.max_inflight(), 1);
+
+        // Recovery: requires 3 consecutive low ACKs (<150ms)
+        gov.on_ack_committed(40, 400, 10.0);
+        gov.on_ack_committed(45, 500, 10.0);
+        assert_eq!(gov.state(), GovernorState::DbBound, "Must not exit DbBound before 3 normal ACKs");
+
+        gov.on_ack_committed(42, 600, 10.0);
+        gov.on_rpc_observation(RpcObservation { latency_ms: 100, rows_yielded: 50, was_error: false });
+        assert_eq!(gov.state(), GovernorState::Stable, "Must exit DbBound after sustained low ACKs");
+    }
+
+    #[test]
+    fn test_resource_bound_activation_and_recovery() {
+        let mut gov = AdaptiveRateGovernor::new();
+        gov.transition_to(GovernorState::Stable);
+        gov.max_inflight = 2;
+
+        // Normal buffer level (pending = 100, doc = 50)
+        gov.on_resource_observation(100, 50, 150);
+        assert_eq!(gov.state(), GovernorState::Stable);
+        assert_eq!(gov.max_inflight(), 2);
+
+        // High pending items buffer (pending = 400 pv + 300 doc = 700 total >= 600)
+        gov.on_resource_observation(400, 300, 150);
+        assert_eq!(gov.state(), GovernorState::ResourceBound, "Excess pending items must activate ResourceBound");
+        assert_eq!(gov.max_inflight(), 1, "ResourceBound must clamp inflight to 1");
+
+        // Buffer drains back to safe zone (total = 150 <= 200)
+        gov.on_resource_observation(100, 50, 150);
+        assert_eq!(gov.state(), GovernorState::Stable, "ResourceBound must recover to Stable once buffer drains");
     }
 
     #[test]

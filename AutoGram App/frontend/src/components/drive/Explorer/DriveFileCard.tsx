@@ -76,19 +76,22 @@ function DriveFileCardInner({
   const durationLabel = formatDriveDuration(durationSecs);
   const kindLabel = formatDriveKindLabel(file);
   const displayName = driveFileDisplayName(file);
-  
+  const linkUrls = file.icon_type === 'link'
+    ? (file.link_urls?.length ? file.link_urls : [file.original_name || file.name]).filter(Boolean) as string[]
+    : [];
+  const linkHosts = linkUrls.map((url) => {
+    try {
+      return new URL(url).hostname.replace(/^www\./i, '');
+    } catch {
+      return url;
+    }
+  });
+
   let subLabel = '';
   if (file.icon_type === 'link') {
-    try {
-      const url = file.original_name || file.name || '';
-      if (url.startsWith('http://') || url.startsWith('https://')) {
-        subLabel = new URL(url).hostname;
-      } else {
-        subLabel = t('speedtest.view_links');
-      }
-    } catch {
-      subLabel = t('speedtest.view_links');
-    }
+    subLabel = linkUrls.length > 1
+      ? t('speedtest.link_preview_multiple', { count: linkUrls.length })
+      : (linkHosts[0] || t('speedtest.view_links'));
   } else {
     subLabel = formatDriveBytes(file.size);
     if (kindLabel) {
@@ -531,7 +534,24 @@ function DriveFileCardInner({
                 : 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
             }}
           >
-            {thumbLoading && canThumb ? (
+            {file.icon_type === 'link' ? (
+              <div className="td-link-preview" aria-label={subLabel}>
+                <div className="td-link-preview-domain">{linkHosts[0] || t('speedtest.view_links')}</div>
+                <div className="td-link-preview-list">
+                  {linkUrls.slice(0, 3).map((url, index) => (
+                    <div className="td-link-preview-row" key={`${file.id}-${index}`} title={url}>
+                      <span>{linkHosts[index] || url}</span>
+                      <small>{url}</small>
+                    </div>
+                  ))}
+                  {linkUrls.length > 3 ? (
+                    <div className="td-link-preview-more">
+                      {t('speedtest.link_preview_more', { count: linkUrls.length - 3 })}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : thumbLoading && canThumb ? (
               <div className="td-thumb-loading">
                 <Loader2 size={22} className="spin" />
                 <span>{isVideo ? t('speedtest.loading_video') : t('speedtest.loading_short')}</span>

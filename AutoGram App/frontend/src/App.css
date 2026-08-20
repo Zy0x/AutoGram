@@ -3261,6 +3261,57 @@ body.td-dnd-external {
   gap: 8px;
   opacity: 0.9;
 }
+.td-link-preview {
+  width: calc(100% - 22px);
+  max-height: calc(100% - 92px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--td-primary) 34%, var(--td-border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--td-surface-2) 92%, transparent);
+  text-align: left;
+}
+.td-link-preview-domain {
+  overflow: hidden;
+  color: var(--td-primary);
+  font-size: 0.78rem;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.td-link-preview-list {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.td-link-preview-row {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.td-link-preview-row span,
+.td-link-preview-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.td-link-preview-row span {
+  color: var(--td-text);
+  font-size: 0.68rem;
+  font-weight: 650;
+}
+.td-link-preview-row small,
+.td-link-preview-more {
+  color: var(--td-sub);
+  font-size: 0.6rem;
+}
+.td-link-preview-more {
+  color: var(--td-primary);
+  font-weight: 700;
+}
 .td-placeholder-label {
   font-size: 0.65rem;
   font-weight: 650;
@@ -14611,8 +14662,21 @@ body:has(.app-layout-drive-focus),
   background: linear-gradient(90deg, #0ea5e9, #38bdf8 60%, #7dd3fc);
   transition: width 0.28s ease;
 }
-.tm-bar-fill.stage-encode, .tm-mini-fill.stage-encode {
+.tm-bar-fill.stage-encode, .tm-mini-fill.stage-encode,
+.tm-bar-fill.stage-reencode, .tm-mini-fill.stage-reencode {
   background: linear-gradient(90deg, #f97316, #a855f7 70%, #d8b4fe) !important;
+}
+.tm-bar-fill.stage-prepare, .tm-mini-fill.stage-prepare {
+  background: linear-gradient(90deg, #64748b, #94a3b8 70%, #cbd5e1) !important;
+}
+.tm-bar-fill.stage-convert, .tm-mini-fill.stage-convert {
+  background: linear-gradient(90deg, #7c3aed, #d946ef 70%, #f0abfc) !important;
+}
+.tm-bar-fill.stage-remux, .tm-mini-fill.stage-remux {
+  background: linear-gradient(90deg, #0f766e, #14b8a6 70%, #5eead4) !important;
+}
+.tm-bar-fill.stage-commit, .tm-mini-fill.stage-commit {
+  background: linear-gradient(90deg, #ea580c, #f59e0b 70%, #fde047) !important;
 }
 .tm-bar-fill.stage-upload, .tm-mini-fill.stage-upload {
   background: linear-gradient(90deg, #06b6d4, #3b82f6 70%, #60a5fa) !important;

@@ -343,6 +343,9 @@ pub struct ListMediaRequest {
     pub min_id: Option<i64>,
     pub topic_id: Option<i64>,
     pub search_cursor: Option<super::grammers_ops::ScopedMediaSearchCursor>,
+    /// Optional server-side content lane. `links` uses Telegram's URL filter
+    /// instead of filtering an already-loaded media page in React.
+    pub content_filter: Option<String>,
 }
 
 use std::collections::HashMap;
@@ -474,16 +477,28 @@ pub fn tg_list_media(req: ListMediaRequest) -> OpResult<super::grammers_ops::Lis
         api_hash: req.api_hash,
     };
     let limit = req.limit.unwrap_or(40);
-    match super::grammers_ops::list_media_blocking_topic_cursor(
-        &dir,
-        &identity,
-        &req.chat_id,
-        limit,
-        req.offset_id,
-        req.min_id,
-        req.topic_id,
-        req.search_cursor,
-    ) {
+    let result = if req.content_filter.as_deref() == Some("links") {
+        super::grammers_ops::list_links_blocking_topic(
+            &dir,
+            &identity,
+            &req.chat_id,
+            limit,
+            req.offset_id,
+            req.topic_id,
+        )
+    } else {
+        super::grammers_ops::list_media_blocking_topic_cursor(
+            &dir,
+            &identity,
+            &req.chat_id,
+            limit,
+            req.offset_id,
+            req.min_id,
+            req.topic_id,
+            req.search_cursor,
+        )
+    };
+    match result {
         Ok(v) => ok_result("grammers", v),
         Err(e) => {
             tg_log::error("grammers", "list_media", e.to_string());

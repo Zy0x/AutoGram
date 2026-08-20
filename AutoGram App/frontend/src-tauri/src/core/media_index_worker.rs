@@ -17,7 +17,7 @@ use tokio_util::sync::CancellationToken;
 
 use super::grammers_ops::media_list::{
     list_media_page_async, LaneCounts, LaneCursor, LaneDurability, LaneRpcObservation, LaneWatermark,
-    ListMediaResult, ScopedMediaSearchCursor, SearchLane, SearchScope,
+    ListMediaResult, MediaFileRow, ScopedMediaSearchCursor, SearchLane, SearchScope,
 };
 use super::media_index_types::*;
 use super::telegram_ops::TelegramIdentity;
@@ -1093,6 +1093,15 @@ impl MediaIndexWorker {
         let page_source_ref = self.page_source.clone();
         let request_identity = self.request.identity.clone();
 
+        let mut accumulated_files: Vec<MediaFileRow> = Vec::with_capacity(400);
+        let mut pending_search_cursor: Option<ScopedMediaSearchCursor> = search_cursor.clone();
+        let mut pending_candidate_checkpoint: Option<MediaIndexCheckpointCandidate> = None;
+        let mut pending_lane_counts: Option<LaneCounts> = None;
+        let mut pending_emitted_watermark: Option<LaneWatermark> = None;
+        let mut pending_lane_durability: Option<LaneDurability> = None;
+        let mut pending_has_more: bool = true;
+        let mut pending_is_complete: bool = false;
+
         let loop_result: Result<(), MediaIndexJobError> = async {
             loop {
                 // 1. Cooperative Pause / Resume Check
@@ -1218,6 +1227,11 @@ impl MediaIndexWorker {
                             metrics.governor_inflight_limit = gov.max_inflight() as u8;
                             metrics.governor_spacing_ms = gov.spacing_ms();
                             metrics.governor_confidence = gov.confidence();
+                            metrics.best_safe_committed_rate = Some(gov.best_safe_committed_rate());
+                            metrics.current_sustained_rate = Some(gov.current_sustained_rate());
+                            metrics.rate_decay_percent = Some(gov.rate_decay_percent());
+                            metrics.db_bound_active = Some(gov.is_db_bound());
+                            metrics.resource_bound_active = Some(gov.is_resource_bound());
                         }
 
                         let total_wall_latency_ms = fetch_start.elapsed().as_millis() as f64;
@@ -1248,6 +1262,26 @@ impl MediaIndexWorker {
                         metrics.pending_pv_items = p.search_cursor.as_ref().map(|c| c.pending_photo_video.len()).unwrap_or(0);
                         metrics.pending_doc_items = p.search_cursor.as_ref().map(|c| c.pending_document.len()).unwrap_or(0);
                         metrics.persistence_batch_rows = p.files.len();
+
+                        // Feed resource observation to governor for buffer containment
+                        {
+                            let mut gov = governor.lock().await;
+                            gov.on_resource_observation(
+                                metrics.pending_pv_items,
+                                metrics.pending_doc_items,
+                                metrics.persistence_batch_rows,
+                            );
+                            metrics.governor_state = gov.state().as_str().to_string();
+                            metrics.governor_inflight_limit = gov.max_inflight() as u8;
+                            metrics.governor_spacing_ms = gov.spacing_ms();
+                            metrics.governor_confidence = gov.confidence();
+                            metrics.best_safe_committed_rate = Some(gov.best_safe_committed_rate());
+                            metrics.current_sustained_rate = Some(gov.current_sustained_rate());
+                            metrics.rate_decay_percent = Some(gov.rate_decay_percent());
+                            metrics.db_bound_active = Some(gov.is_db_bound());
+                            metrics.resource_bound_active = Some(gov.is_resource_bound());
+                            dispatch_gate.set_spacing_ms(gov.spacing_ms());
+                        }
 
                         if let Some(ref counts) = p.lane_counts {
                             if let Some(pv) = counts.photo_video {
@@ -1341,15 +1375,14 @@ impl MediaIndexWorker {
                     }
                 };
 
-                // Update search cursor from page result
-                search_cursor = page.search_cursor.clone();
-
-                // Compute candidate checkpoint
-                let pv_offset = page.emitted_watermark.as_ref().map(|w| w.photo_video).unwrap_or(0);
-                let doc_offset = page.emitted_watermark.as_ref().map(|w| w.document).unwrap_or(0);
-                let pv_drained = page.lane_durability.as_ref().map(|d| d.photo_video_drained).unwrap_or(false);
-                let doc_drained = page.lane_durability.as_ref().map(|d| d.document_drained).unwrap_or(false);
+                // Update accumulator state from latest page result
+                pending_search_cursor = page.search_cursor.clone();
+                pending_lane_counts = page.lane_counts;
+                pending_emitted_watermark = page.emitted_watermark;
+                pending_lane_durability = page.lane_durability;
+                pending_has_more = page.has_more;
                 let is_complete = !page.has_more;
+                pending_is_complete = is_complete;
 
                 // Track max observed ID in delta mode
                 for f in &page.files {
@@ -1357,6 +1390,12 @@ impl MediaIndexWorker {
                         delta_max_observed_id = f.id;
                     }
                 }
+
+                // Compute latest candidate checkpoint
+                let pv_offset = pending_emitted_watermark.as_ref().map(|w| w.photo_video).unwrap_or(0);
+                let doc_offset = pending_emitted_watermark.as_ref().map(|w| w.document).unwrap_or(0);
+                let pv_drained = pending_lane_durability.as_ref().map(|d| d.photo_video_drained).unwrap_or(false);
+                let doc_drained = pending_lane_durability.as_ref().map(|d| d.document_drained).unwrap_or(false);
 
                 let candidate_checkpoint = if mode == MediaIndexMode::DeltaSync {
                     MediaIndexCheckpointCandidate {
@@ -1409,11 +1448,49 @@ impl MediaIndexWorker {
                         delta_complete: false,
                     }
                 };
+                pending_candidate_checkpoint = Some(candidate_checkpoint);
 
+                accumulated_files.extend(page.files);
+
+                // Determine dynamic commit target from governor:
+                // Base 100, adaptive 200/300/400 when DB latency rises
+                let commit_target = {
+                    let gov = governor.lock().await;
+                    let ack_p95 = gov.ack_p95();
+                    if ack_p95 < 40 {
+                        100
+                    } else if ack_p95 < 100 {
+                        200
+                    } else if ack_p95 < 200 {
+                        300
+                    } else {
+                        400
+                    }
+                };
+
+                let is_paused_or_cancelled = cancel.is_cancelled() || *state_rx.borrow() == MediaIndexDesiredState::Paused;
+                let should_flush = accumulated_files.len() >= commit_target
+                    || !pending_has_more
+                    || pending_is_complete
+                    || is_paused_or_cancelled
+                    || accumulated_files.len() >= 400;
+
+                if !should_flush {
+                    // Update search_cursor for next fetch and loop immediately without waiting for ACK!
+                    search_cursor = pending_search_cursor.clone();
+                    continue;
+                }
+
+                if accumulated_files.is_empty() && pending_has_more {
+                    search_cursor = pending_search_cursor.clone();
+                    continue;
+                }
+
+                let batch_files = std::mem::take(&mut accumulated_files);
                 ack_counter += 1;
                 let ack_id = ack_counter;
 
-                total_emitted += page.files.len() as u64;
+                total_emitted += batch_files.len() as u64;
                 metrics.rows_emitted = total_emitted;
 
                 let elapsed_secs = start_time.elapsed().as_secs_f64().max(0.001);
@@ -1426,8 +1503,8 @@ impl MediaIndexWorker {
                 if let Some(total_est) = metrics.candidate_total_estimate {
                     if total_est > 0 {
                         let pct = (total_emitted as f64 / total_est as f64) * 100.0;
-                        metrics.estimated_percent = Some(if is_complete { 100.0 } else { pct.clamp(0.0, 99.5) });
-                        if metrics.emitted_rows_per_sec > 0.0 && !is_complete {
+                        metrics.estimated_percent = Some(if pending_is_complete { 100.0 } else { pct.clamp(0.0, 99.5) });
+                        if metrics.emitted_rows_per_sec > 0.0 && !pending_is_complete {
                             let rem = total_est.saturating_sub(total_emitted);
                             metrics.estimated_eta_secs = Some((rem as f64 / metrics.emitted_rows_per_sec) as u64);
                         }
@@ -1438,12 +1515,12 @@ impl MediaIndexWorker {
                     job_id,
                     ack_id,
                     mode,
-                    rows: page.files,
-                    candidate_checkpoint,
-                    lane_counts: page.lane_counts,
-                    emitted_watermark: page.emitted_watermark,
-                    lane_durability: page.lane_durability,
-                    has_more: page.has_more,
+                    rows: batch_files,
+                    candidate_checkpoint: pending_candidate_checkpoint.take().unwrap(),
+                    lane_counts: pending_lane_counts.take(),
+                    emitted_watermark: pending_emitted_watermark.take(),
+                    lane_durability: pending_lane_durability.take(),
+                    has_more: pending_has_more,
                     metrics: metrics.clone(),
                 };
 
@@ -1592,6 +1669,11 @@ impl MediaIndexWorker {
                             metrics.governor_inflight_limit = gov.max_inflight() as u8;
                             metrics.governor_spacing_ms = gov.spacing_ms();
                             metrics.governor_confidence = gov.confidence();
+                            metrics.best_safe_committed_rate = Some(gov.best_safe_committed_rate());
+                            metrics.current_sustained_rate = Some(gov.current_sustained_rate());
+                            metrics.rate_decay_percent = Some(gov.rate_decay_percent());
+                            metrics.db_bound_active = Some(gov.is_db_bound());
+                            metrics.resource_bound_active = Some(gov.is_resource_bound());
                             metrics.flood_count = gov.flood_count();
                             metrics.last_flood_wait_secs = gov.last_flood_wait_secs();
                             dispatch_gate.set_spacing_ms(gov.spacing_ms());
@@ -1633,7 +1715,10 @@ impl MediaIndexWorker {
                             st.updated_at_ms = now_epoch_ms();
                         }
 
-                        if is_complete {
+                        // On ACK Committed: adopt durable checkpoint and cursor in Rust
+                        search_cursor = pending_search_cursor.clone();
+
+                        if pending_is_complete || (!pending_has_more && accumulated_files.is_empty()) {
                             break;
                         }
                     }
@@ -2646,15 +2731,18 @@ mod tests {
 
         let job_id = start_res.job_id;
 
-        // Process Page 1
-        let mut ack1 = 0u64;
-        while let Some(evt) = rx_events.recv().await {
-            if let MediaIndexEvent::Page(p1) = evt {
-                ack1 = p1.ack_id;
-                break;
+        // P4.5 coalesces both source pages into one terminal durable batch.
+        // A timeout makes an ACK protocol regression fail instead of hanging.
+        let ack1 = loop {
+            let evt = tokio::time::timeout(Duration::from_secs(5), rx_events.recv())
+                .await
+                .expect("timed out waiting for terminal durable page")
+                .expect("event channel closed before terminal durable page");
+            if let MediaIndexEvent::Page(page) = evt {
+                assert_eq!(page.rows.len(), 2, "terminal batch must contain both source pages");
+                break page.ack_id;
             }
-        }
-        assert!(ack1 > 0, "Must have received Page 1");
+        };
         manager.process_ack(MediaIndexPageAck {
             job_id,
             ack_id: ack1,
@@ -2663,30 +2751,13 @@ mod tests {
             error_code: None,
         }).await;
 
-        // Process Page 2 (Zero-RPC page)
-        let mut ack2 = 0u64;
-        while let Some(evt) = rx_events.recv().await {
-            if let MediaIndexEvent::Page(p2) = evt {
-                ack2 = p2.ack_id;
-                break;
-            }
-        }
-        assert!(ack2 > 0, "Must have received Page 2");
-        manager.process_ack(MediaIndexPageAck {
-            job_id,
-            ack_id: ack2,
-            outcome: MediaIndexAckOutcome::Committed,
-            committed_state: None,
-            error_code: None,
-        }).await;
-
         // Wait for job completion
         loop {
-            if let Some(evt) = rx_events.recv().await {
-                if let MediaIndexEvent::Complete(_) = evt {
-                    break;
-                }
-            } else {
+            let evt = tokio::time::timeout(Duration::from_secs(5), rx_events.recv())
+                .await
+                .expect("timed out waiting for completion")
+                .expect("event channel closed before completion");
+            if let MediaIndexEvent::Complete(_) = evt {
                 break;
             }
         }
@@ -2872,27 +2943,31 @@ mod tests {
 
         let job_id = start_res.job_id;
 
-        // Process 4 pages with ACKs
-        for _ in 0..4 {
-            let mut ack_id = 0u64;
-            while let Some(evt) = rx_events.recv().await {
-                if let MediaIndexEvent::Page(p) = evt {
-                    ack_id = p.ack_id;
-                    break;
-                }
+        // Four source pages are intentionally committed as one terminal batch.
+        let ack_id = loop {
+            let evt = tokio::time::timeout(Duration::from_secs(5), rx_events.recv())
+                .await
+                .expect("timed out waiting for coalesced durable page")
+                .expect("event channel closed before coalesced durable page");
+            if let MediaIndexEvent::Page(page) = evt {
+                assert_eq!(page.rows.len(), 4, "coalesced page must retain every source row");
+                break page.ack_id;
             }
-            assert!(ack_id > 0, "Must have received page event");
-            manager.process_ack(MediaIndexPageAck {
-                job_id,
-                ack_id,
-                outcome: MediaIndexAckOutcome::Committed,
-                committed_state: None,
-                error_code: None,
-            }).await;
-        }
+        };
+        manager.process_ack(MediaIndexPageAck {
+            job_id,
+            ack_id,
+            outcome: MediaIndexAckOutcome::Committed,
+            committed_state: None,
+            error_code: None,
+        }).await;
 
         // Wait for complete event
-        while let Some(evt) = rx_events.recv().await {
+        loop {
+            let evt = tokio::time::timeout(Duration::from_secs(5), rx_events.recv())
+                .await
+                .expect("timed out waiting for completion")
+                .expect("event channel closed before completion");
             if let MediaIndexEvent::Complete(_) = evt {
                 break;
             }
@@ -2912,5 +2987,108 @@ mod tests {
         // Verify pure RPC EWMA is present and positive
         assert!(status.metrics.rpc_latency_ewma_ms > 0.0, "RPC latency EWMA must be computed from pure RPC observations");
         assert!(status.metrics.page_cycle_wall_ewma_ms.is_some(), "Page cycle wall EWMA must be tracked separately");
+    }
+
+    #[tokio::test]
+    async fn test_adaptive_durable_commit_coalescing_and_terminal_flush() {
+        let make_files = |start_id: i64, count: usize| -> Vec<MediaFileRow> {
+            (0..count).map(|i| sample_media_row(start_id + i as i64)).collect()
+        };
+
+        let make_page = |start_id: i64, count: usize, next_offset: i32, has_more: bool, total_count: Option<usize>| -> ListMediaResult {
+            ListMediaResult {
+                status: "ok".into(),
+                folder_id: None,
+                files: make_files(start_id, count),
+                total: count,
+                page_size: 100,
+                has_more,
+                next_offset_id: Some(next_offset.into()),
+                lane_counts: Some(LaneCounts { photo_video: Some(237), document: Some(0) }),
+                emitted_watermark: Some(LaneWatermark { photo_video: next_offset, document: 0 }),
+                lane_durability: None,
+                total_count,
+                backend: "grammers".into(),
+                cached: false,
+                search_cursor: None,
+                rpc_observations: vec![LaneRpcObservation {
+                    lane: SearchLane::PhotoVideo,
+                    latency_ms: 50,
+                    wall_latency_ms: 50,
+                    attempts: 1,
+                    rows_received: count,
+                    candidate_count: Some(237),
+                }],
+                pv_observation: None,
+                doc_observation: None,
+            }
+        };
+
+        // 4 sub-pages of 50 items each (= 200 items), then 1 terminal page of 37 items (= 237 total)
+        let page1 = make_page(1, 50, 50, true, Some(237));
+        let page2 = make_page(51, 50, 100, true, Some(237));
+        let page3 = make_page(101, 50, 150, true, Some(237));
+        let page4 = make_page(151, 50, 200, true, Some(237));
+        let terminal_page = make_page(201, 37, 237, false, Some(237));
+
+        let mock_source = Arc::new(MockMediaPageSource {
+            pages: vec![page1, page2, page3, page4, terminal_page],
+            call_count: AtomicUsize::new(0),
+        });
+
+        let manager = MediaIndexJobManager::with_page_source(PathBuf::from("dummy"), mock_source);
+        let req = StartMediaIndexJobRequest {
+            client_request_id: "req_coalesce_test".into(),
+            identity: TelegramIdentity { session: "s".into(), api_id: 1, api_hash: "h".into() },
+            peer_id: "peer_coalesce".into(),
+            topic_id: None,
+            page_size: Some(100),
+            initial_state: None,
+            force_mode: None,
+        };
+
+        let (tx_events, mut rx_events) = tokio::sync::mpsc::unbounded_channel();
+        let start_res = manager.start_job(req, FnEventSink(move |evt| {
+            let _ = tx_events.send(evt);
+            true
+        })).await.unwrap();
+
+        let job_id = start_res.job_id;
+        let mut emitted_page_events = Vec::new();
+
+        while let Some(evt) = rx_events.recv().await {
+            match evt {
+                MediaIndexEvent::Page(p) => {
+                    let ack_id = p.ack_id;
+                    emitted_page_events.push(p);
+                    manager.process_ack(MediaIndexPageAck {
+                        job_id,
+                        ack_id,
+                        outcome: MediaIndexAckOutcome::Committed,
+                        committed_state: None,
+                        error_code: None,
+                    }).await;
+                }
+                MediaIndexEvent::Complete(_) => break,
+                _ => {}
+            }
+        }
+
+        // With base commit_target = 100:
+        // Batch 1: 50 + 50 = 100 rows
+        // Batch 2: 50 + 50 = 100 rows
+        // Batch 3: 37 rows (terminal flush!)
+        assert_eq!(emitted_page_events.len(), 3, "Coalescer must emit exactly 3 durable batches for 237 total items");
+        assert_eq!(emitted_page_events[0].rows.len(), 100);
+        assert_eq!(emitted_page_events[1].rows.len(), 100);
+        assert_eq!(emitted_page_events[2].rows.len(), 37, "Terminal partial tail must cleanly flush without hanging");
+
+        let job = {
+            let inner = manager.inner.read().await;
+            inner.jobs.get(&job_id).cloned().unwrap()
+        };
+        let status = job.status.read().await;
+        assert_eq!(status.metrics.rows_committed, 237, "Exact 237 rows must be durably committed");
+        assert_eq!(status.metrics.search_rpc_calls, 5, "Total search RPCs must match the 5 sub-fetches");
     }
 }

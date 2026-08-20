@@ -878,8 +878,29 @@ pub fn maybe_reencode_for_telegram(
             || mode.contains("AUTO");
 
         if prevent_sticker {
+            emit_transfer_event(
+                app,
+                "StudioItemPrepare",
+                serde_json::json!({
+                    "index": item_index,
+                    "path": path,
+                    "phase": "convert",
+                    "percent": 0
+                }),
+            );
             match transcode_sticker_media_to_image_lossless(path) {
                 Ok(out_path) => {
+                    emit_transfer_event(
+                        app,
+                        "StudioItemPrepare",
+                        serde_json::json!({
+                            "index": item_index,
+                            "path": out_path,
+                            "phase": "converted",
+                            "percent": 100,
+                            "output_bytes": fs::metadata(&out_path).map(|value| value.len()).unwrap_or(0)
+                        }),
+                    );
                     return Ok(out_path.display().to_string());
                 }
                 Err(e) => {
@@ -947,6 +968,16 @@ pub fn maybe_reencode_for_telegram(
     if ext != "mp4" && hard_target_bytes.is_none() && source_analysis.lossless_mp4_remux_feasible()
     {
         let remuxed = unique_name("remux", "mp4");
+        emit_transfer_event(
+            app,
+            "StudioItemPrepare",
+            serde_json::json!({
+                "index": item_index,
+                "path": path,
+                "phase": "remux",
+                "percent": 0
+            }),
+        );
         let mut command = Command::new(&ff);
         command.args([
             "-hide_banner",
@@ -981,6 +1012,17 @@ pub fn maybe_reencode_for_telegram(
             Ok(status) if status.success() && remuxed.is_file() => {
                 let validation = super::autogram_core::transfer::analyze_media(&remuxed);
                 if validation.is_validated_native_video() {
+                    emit_transfer_event(
+                        app,
+                        "StudioItemPrepare",
+                        serde_json::json!({
+                            "index": item_index,
+                            "path": remuxed,
+                            "phase": "remuxed",
+                            "percent": 100,
+                            "output_bytes": fs::metadata(&remuxed).map(|value| value.len()).unwrap_or(0)
+                        }),
+                    );
                     tg_log::info(BACKEND, "lossless_remux_selected", "explicit stream map");
                     return Ok(remuxed.display().to_string());
                 }

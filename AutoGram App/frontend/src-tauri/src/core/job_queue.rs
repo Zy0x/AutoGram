@@ -276,9 +276,15 @@ static CANCEL_ALL_TRANSFERS: std::sync::atomic::AtomicBool =
     std::sync::atomic::AtomicBool::new(false);
 static PAUSE_ALL_TRANSFERS: std::sync::atomic::AtomicBool =
     std::sync::atomic::AtomicBool::new(false);
+static PAUSED_TRANSFER_IDS: OnceLock<RwLock<std::collections::HashSet<String>>> =
+    OnceLock::new();
 
 fn cancelled_set() -> &'static RwLock<std::collections::HashSet<String>> {
     CANCELLED_TRANSFER_IDS.get_or_init(|| RwLock::new(std::collections::HashSet::new()))
+}
+
+fn paused_set() -> &'static RwLock<std::collections::HashSet<String>> {
+    PAUSED_TRANSFER_IDS.get_or_init(|| RwLock::new(std::collections::HashSet::new()))
 }
 
 pub fn cancel_transfer(transfer_id: Option<&str>) {
@@ -301,6 +307,7 @@ pub fn cancel_transfer(transfer_id: Option<&str>) {
 pub fn clear_cancel_flag_for(transfer_id: &str) {
     CANCEL_ALL_TRANSFERS.store(false, std::sync::atomic::Ordering::SeqCst);
     cancelled_set().write().remove(transfer_id);
+    paused_set().write().remove(transfer_id);
 }
 
 pub fn clear_all_cancel_flags() {
@@ -322,16 +329,31 @@ pub fn is_transfer_cancelled(transfer_id: &str) -> bool {
     false
 }
 
-pub fn set_transfer_paused(paused: bool) {
+pub fn set_transfer_paused(transfer_id: Option<&str>, paused: bool) {
+    if let Some(transfer_id) = transfer_id {
+        if paused {
+            paused_set().write().insert(transfer_id.to_string());
+            let _ = set_transfer_state(transfer_id, TransferState::Paused);
+        } else {
+            paused_set().write().remove(transfer_id);
+            if let Some(record) = get_transfer(transfer_id) {
+                if record.state == TransferState::Paused {
+                    let _ = set_transfer_state(transfer_id, TransferState::Running);
+                }
+            }
+        }
+        return;
+    }
     PAUSE_ALL_TRANSFERS.store(paused, std::sync::atomic::Ordering::SeqCst);
 }
 
-pub fn is_transfer_paused() -> bool {
+pub fn is_transfer_paused(transfer_id: &str) -> bool {
     PAUSE_ALL_TRANSFERS.load(std::sync::atomic::Ordering::SeqCst)
+        || paused_set().read().contains(transfer_id)
 }
 
 pub fn wait_while_transfer_paused(transfer_id: &str) -> Result<(), String> {
-    while is_transfer_paused() {
+    while is_transfer_paused(transfer_id) {
         if is_transfer_cancelled(transfer_id) {
             return Err("transfer cancelled by user".into());
         }
@@ -383,9 +405,10 @@ mod tests {
 
     #[test]
     fn pause_state_is_explicit_and_reversible() {
-        set_transfer_paused(true);
-        assert!(is_transfer_paused());
-        set_transfer_paused(false);
-        assert!(!is_transfer_paused());
+        set_transfer_paused(Some("test-pause-a"), true);
+        assert!(is_transfer_paused("test-pause-a"));
+        assert!(!is_transfer_paused("test-pause-b"));
+        set_transfer_paused(Some("test-pause-a"), false);
+        assert!(!is_transfer_paused("test-pause-a"));
     }
 }

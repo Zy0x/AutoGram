@@ -115,6 +115,8 @@ export type DriveFile = {
   drive_format?: string | null;
   driveCategory?: string | null;
   driveFormat?: string | null;
+  /** Every URL contained in a Telegram message returned by the URL lane. */
+  link_urls?: string[];
 };
 
 export type ViewPerspective = 'telegram' | 'drive';
@@ -681,6 +683,8 @@ export type TopicScope = 'selected_only' | 'selected_plus_general' | 'all_topics
 
 /** Upload + download preferences for Media Studio (persisted in localStorage). */
 export type DriveTransferSettings = {
+  /** Validate local inputs, Telegram session/peer, and item visibility without mutating either side. */
+  dryRun: boolean;
   /** Upload quality mapping to Telethon send kwargs */
   qualityMode: QualityMode;
   /** Concurrent file slots for multi-file upload pipeline (1–8) */
@@ -795,6 +799,7 @@ export function isTopicScope(v: unknown): v is TopicScope {
 }
 
 export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
+  dryRun: false,
   qualityMode: 'SMART',
   uploadConcurrency: 4,
   downloadConcurrency: 4,
@@ -890,6 +895,7 @@ export function loadTransferSettings(): DriveTransferSettings {
     if (!raw) return { ...DEFAULT_TRANSFER_SETTINGS };
     const p = JSON.parse(raw) as Partial<DriveTransferSettings>;
     return {
+      dryRun: p.dryRun === true,
       qualityMode: isQualityMode(p.qualityMode) ? p.qualityMode : DEFAULT_TRANSFER_SETTINGS.qualityMode,
       uploadConcurrency: clampConcurrency(
         p.uploadConcurrency,

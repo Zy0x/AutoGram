@@ -510,8 +510,8 @@ fn studio_cancel_transfer(transfer_id: Option<String>) -> Result<bool, String> {
 }
 
 #[tauri::command]
-fn studio_set_transfer_paused(paused: bool) -> bool {
-    core::job_queue::set_transfer_paused(paused);
+fn studio_set_transfer_paused(paused: bool, transfer_id: Option<String>) -> bool {
+    core::job_queue::set_transfer_paused(transfer_id.as_deref(), paused);
     true
 }
 

@@ -143,6 +143,17 @@ pub struct MediaIndexMetricsSnapshot {
     pub governor_spacing_ms: u32,
     pub governor_confidence: f64,
 
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub best_safe_committed_rate: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current_sustained_rate: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rate_decay_percent: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub db_bound_active: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resource_bound_active: Option<bool>,
+
     pub pending_pv_items: usize,
     pub pending_doc_items: usize,
     pub persistence_batch_rows: usize,

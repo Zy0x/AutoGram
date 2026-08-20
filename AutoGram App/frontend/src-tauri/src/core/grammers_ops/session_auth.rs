@@ -866,6 +866,43 @@ pub fn take_password_token(session: &str) -> Option<PasswordToken> {
     password_tokens().lock().remove(session)
 }
 
+fn is_session_password_needed(error: &impl std::fmt::Display) -> bool {
+    error
+        .to_string()
+        .to_ascii_uppercase()
+        .contains("SESSION_PASSWORD_NEEDED")
+}
+
+async fn emit_qr_password_required(
+    app: &tauri::AppHandle,
+    client: &Client,
+    session_name: &str,
+    session: &Arc<MemorySession>,
+    session_path: &Path,
+) -> Result<(), TgError> {
+    use tauri::Emitter;
+
+    let password: grammers_client::tl::types::account::Password = client
+        .invoke(&grammers_client::tl::functions::account::GetPassword {})
+        .await
+        .map_err(|error| map_invocation(&error))?
+        .into();
+    let token = PasswordToken::new(password);
+    let hint = token.hint().map(str::to_string);
+    store_password_token(session_name, token);
+    persist_login_transport_best_effort(session, session_path);
+    app.emit(
+        "qr-event",
+        serde_json::json!({
+            "status": "2fa_required",
+            "password_hint": hint,
+            "session": session_name
+        }),
+    )
+    .map_err(|error| TgError::new(TgErrorCode::Auth, format!("emit QR 2FA event: {error}")))?;
+    Ok(())
+}
+
 pub async fn grammers_qr_login(
     app: tauri::AppHandle,
     session_name: String,
@@ -1015,37 +1052,33 @@ pub async fn grammers_qr_login(
                                     break;
                                 }
                                 Ok(_) => {}
+                                Err(err) if is_session_password_needed(&err) => {
+                                    emit_qr_password_required(
+                                        &app,
+                                        &live.client,
+                                        &session_name,
+                                        &live.session,
+                                        &live.session_path,
+                                    )
+                                    .await?;
+                                    login_success = true;
+                                    break;
+                                }
                                 Err(err) => return Err(map_invocation(&err)),
                             }
                         }
                         Err(e) => {
                             let err_str = e.to_string();
-                            if err_str.contains("SESSION_PASSWORD_NEEDED") {
-                                let password: grammers_client::tl::types::account::Password = live
-                                    .client
-                                    .invoke(
-                                        &grammers_client::tl::functions::account::GetPassword {},
-                                    )
-                                    .await
-                                    .map_err(|err| map_invocation(&err))?
-                                    .into();
-                                let token = PasswordToken::new(password);
-                                let hint = token.hint().map(str::to_string);
-                                store_password_token(&session_name, token);
+                            if is_session_password_needed(&e) {
                                 login_success = true;
-                                persist_login_transport_best_effort(
+                                emit_qr_password_required(
+                                    &app,
+                                    &live.client,
+                                    &session_name,
                                     &live.session,
                                     &live.session_path,
-                                );
-
-                                let _ = app.emit(
-                                    "qr-event",
-                                    serde_json::json!({
-                                        "status": "2fa_required",
-                                        "password_hint": hint,
-                                        "session": session_name
-                                    }),
-                                );
+                                )
+                                .await?;
                                 break;
                             } else if err_str.contains("AUTH_TOKEN_EXPIRED")
                                 || err_str.contains("AUTH_TOKEN_INVALID")
@@ -1078,6 +1111,17 @@ pub async fn grammers_qr_login(
                         );
                     }
                     Ok(_) => {}
+                    Err(err) if is_session_password_needed(&err) => {
+                        emit_qr_password_required(
+                            &app,
+                            &live.client,
+                            &session_name,
+                            &live.session,
+                            &live.session_path,
+                        )
+                        .await?;
+                        login_success = true;
+                    }
                     Err(err) => return Err(map_invocation(&err)),
                 }
             }
@@ -1095,26 +1139,15 @@ pub async fn grammers_qr_login(
             }
             Err(e) => {
                 let err_str = e.to_string();
-                if err_str.contains("SESSION_PASSWORD_NEEDED") {
-                    let password: grammers_client::tl::types::account::Password = live
-                        .client
-                        .invoke(&grammers_client::tl::functions::account::GetPassword {})
-                        .await
-                        .map_err(|err| map_invocation(&err))?
-                        .into();
-                    let token = PasswordToken::new(password);
-                    let hint = token.hint().map(str::to_string);
-                    store_password_token(&session_name, token);
-                    persist_login_transport_best_effort(&live.session, &live.session_path);
-
-                    let _ = app.emit(
-                        "qr-event",
-                        serde_json::json!({
-                            "status": "2fa_required",
-                            "password_hint": hint,
-                            "session": session_name
-                        }),
-                    );
+                if is_session_password_needed(&e) {
+                    emit_qr_password_required(
+                        &app,
+                        &live.client,
+                        &session_name,
+                        &live.session,
+                        &live.session_path,
+                    )
+                    .await?;
                     break;
                 } else if err_str.contains("AUTH_TOKEN_EXPIRED") {
                     tokio::time::sleep(Duration::from_millis(500)).await;
@@ -1229,5 +1262,16 @@ mod tests {
     fn flood_wait_is_not_transport_error() {
         let err = TgError::with_flood(31, "FLOOD_WAIT_31");
         assert!(!is_pool_or_transport_error(&err));
+    }
+
+    #[test]
+    fn qr_login_detects_two_factor_requirement_across_rpc_context() {
+        assert!(is_session_password_needed(
+            &"rpc error 401: SESSION_PASSWORD_NEEDED caused by auth.importLoginToken"
+        ));
+        assert!(is_session_password_needed(
+            &"session_password_needed"
+        ));
+        assert!(!is_session_password_needed(&"AUTH_TOKEN_EXPIRED"));
     }
 }

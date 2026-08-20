@@ -13,6 +13,8 @@ export type QueueItemState =
   | 'preparing'
   | 'uploading'
   | 'committing'
+  | 'unknown_commit'
+  | 'reconciling'
   | 'done'
   | 'failed'
   | 'skipped';

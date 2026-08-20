@@ -51,6 +51,50 @@ function computeEta(
   return remain / bytesPerSec;
 }
 
+const TERMINAL_ITEM_STATUSES = new Set<TransferItemStatus>([
+  'done',
+  'skipped',
+  'failed',
+  'cancelled',
+  'needs_verification',
+]);
+
+/**
+ * Convert phase-local progress into one cumulative item lifecycle value.
+ * A re-encode finishing at 100% means the item is prepared, not transferred;
+ * upload and commit therefore continue from stable phase boundaries instead
+ * of resetting the total progress bar back to zero.
+ */
+export function transferItemOverallPercent(item: TransferItem): number {
+  if (TERMINAL_ITEM_STATUSES.has(item.status)) return 100;
+  if (item.status === 'queued' || item.status === 'paused') return 0;
+  if (item.status === 'uploaded' || item.status === 'waiting_commit') return 95;
+  if (item.status === 'committing') return 98;
+
+  const percent = Math.min(100, Math.max(0, Number(item.percent) || 0));
+  const phase = String(item.phase || '').toLowerCase();
+
+  if (item.direction === 'download' || phase === 'download') return percent;
+  if (phase === 'commit' || phase === 'committing' || phase === 'waiting_commit') {
+    return 95 + (percent * 0.05);
+  }
+  if (phase === 'upload' || phase === 'media_registering') {
+    return 30 + (percent * 0.65);
+  }
+  if (
+    phase === 'reencode' ||
+    phase === 'convert' ||
+    phase === 'conversion' ||
+    phase === 'remux'
+  ) {
+    return 5 + (percent * 0.25);
+  }
+  if (phase === 'probe' || phase === 'preflight' || phase === 'prepare') {
+    return Math.min(5, percent);
+  }
+  return percent;
+}
+
 function ensureItem(
   items: TransferItem[],
   index: number,
@@ -86,27 +130,30 @@ export function recomputeOverall(session: TransferSession): TransferSession {
   let overall = session.overallPercent;
 
   if (n > 0) {
-    const itemTransferred = items.reduce((s, i) => s + (i.transferred || 0), 0);
-    if (itemTransferred > transferred) transferred = itemTransferred;
-
     const itemTotals = items.reduce((s, i) => s + (i.total || 0), 0);
-    if (itemTotals > total) total = itemTotals;
+    total = itemTotals > 0 ? itemTotals : total;
 
-    if (total > 0) {
-      overall = Math.min(100, (transferred / total) * 100);
-    } else {
-      const sumPct = items.reduce((s, i) => {
-        if (
-          i.status === 'done' ||
-          i.status === 'skipped' ||
-          i.status === 'failed' ||
-          i.status === 'cancelled' ||
-          i.status === 'needs_verification'
-        ) return s + 100;
-        return s + (i.percent || 0);
-      }, 0);
-      overall = sumPct / n;
-    }
+    // Bytes are meaningful only for network transfer phases. Re-encode frame
+    // counters must never be added to upload bytes.
+    transferred = items.reduce((sum, item) => {
+      if (TERMINAL_ITEM_STATUSES.has(item.status)) return sum + (item.total || 0);
+      const phase = String(item.phase || '').toLowerCase();
+      return phase === 'upload' || phase === 'download'
+        ? sum + Math.min(item.total || Number.MAX_SAFE_INTEGER, item.transferred || 0)
+        : sum;
+    }, 0);
+
+    const weighted = items.reduce(
+      (acc, item) => {
+        const weight = item.total && item.total > 0 ? item.total : 1;
+        return {
+          progress: acc.progress + (transferItemOverallPercent(item) * weight),
+          weight: acc.weight + weight,
+        };
+      },
+      { progress: 0, weight: 0 }
+    );
+    overall = weighted.weight > 0 ? weighted.progress / weighted.weight : 0;
   }
 
   return {
@@ -280,11 +327,19 @@ export function applyTransferEvent(
   if (t === 'StudioItemPrepare') {
     const index = num(p.index, 0);
     const name = basename(str(p.path || p.file_name || '')) || undefined;
-    const phase = str(p.phase || 'prepare');
+    const rawPhase = str(p.phase || 'prepare');
+    const phase = rawPhase === 'converted'
+      ? 'convert'
+      : rawPhase === 'remuxed'
+        ? 'remux'
+        : rawPhase;
+    const phasePercent = rawPhase === 'reencoded' || rawPhase === 'converted' || rawPhase === 'remuxed'
+      ? 100
+      : num(p.percent, 3);
     const items = ensureItem(session.items, index, session.direction, {
       status: 'preparing',
       phase: phase === 'probe' ? 'probe' : phase,
-      percent: phase === 'reencoded' ? session.items[index]?.percent ?? 100 : 3,
+      percent: Math.min(100, Math.max(0, phasePercent)),
       encoderBackend: str(p.encoder_backend || session.items[index]?.encoderBackend || '') || undefined,
       encoderName: str(p.encoder_name || session.items[index]?.encoderName || '') || undefined,
       decoderName: str(p.decoder_name || session.items[index]?.decoderName || '') || undefined,
@@ -292,7 +347,7 @@ export function applyTransferEvent(
       ...(name ? { name } : {}),
     });
     const debugLogs = appendDebugLog(session, `Item ${index + 1} (${name || 'File'}): Menyiapkan (${phase})`);
-    return {
+    return recomputeOverall({
       ...session,
       debugLogs,
       active: true,
@@ -300,7 +355,7 @@ export function applyTransferEvent(
       banner:
         phase === 'probe'
           ? 'Menyiapkan video (probe/re-encode)…'
-          : phase === 'reencoded'
+          : rawPhase === 'reencoded'
             ? 'Re-encode selesai — mulai unggah…'
             : phase === 'prepare_failed' || phase === 'rejected_oversize'
               ? p.budget_failure || p.size_fit_required
@@ -309,8 +364,7 @@ export function applyTransferEvent(
                   ? `Prepare gagal: ${str(p.error)}`
                   : 'Prepare gagal — unggahan dihentikan.'
               : undefined,
-      overallPercent: Math.max(session.overallPercent, phase === 'reencoded' ? 5 : 2),
-    };
+    });
   }
 
   if (t === 'StudioReencodeStarted') {
@@ -335,12 +389,12 @@ export function applyTransferEvent(
     });
     const backend = str(p.backend || '').toUpperCase();
     const encoder = str(p.encoder || 'H.264');
-    return {
+    return recomputeOverall({
       ...session,
       active: true,
       items,
       banner: `Re-encode ${backend || 'GPU'} · ${encoder}`,
-    };
+    });
   }
 
   if (t === 'StudioReencodeProgress') {
@@ -361,7 +415,7 @@ export function applyTransferEvent(
       encoderName: str(p.encoder || session.items[index]?.encoderName || '') || undefined,
       decoderName: str(p.decoder || session.items[index]?.decoderName || '') || undefined,
     });
-    return { ...session, active: true, items, banner: undefined };
+    return recomputeOverall({ ...session, active: true, items, banner: undefined });
   }
 
   if (t === 'StudioReencodeDone') {
@@ -379,7 +433,7 @@ export function applyTransferEvent(
       decoderName: str(p.decoder || session.items[index]?.decoderName || '') || undefined,
       fallbackReason: str(p.fallback_reason || session.items[index]?.fallbackReason || '') || undefined,
     });
-    return { ...session, active: true, items, banner: 'Re-encode selesai · menyiapkan upload' };
+    return recomputeOverall({ ...session, active: true, items, banner: 'Re-encode selesai · menyiapkan upload' });
   }
 
   if (t === 'StudioItemPhase') {

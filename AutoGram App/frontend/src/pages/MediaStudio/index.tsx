@@ -92,6 +92,7 @@ import {
   isStudioOrchEligible,
   studioChatIdFromFolder,
   studioRunUploadDefault,
+  studioListTransfers,
   mapOrchItemStatus,
 } from '../../lib/telegram';
 import {
@@ -205,6 +206,7 @@ import {
   applyTransferEvent,
   clearFinishedItems,
   markTransferFinished,
+  recomputeOverall,
   seedTransferSession,
   setSessionPaused,
   transferBadge,
@@ -535,6 +537,13 @@ function MediaDriveDesktop({
   const [locationKind, setLocationKind] = useState<LocationKind>(initial.kind);
   const [activePeerId, setActivePeerId] = useState<number | null>(initial.id);
   const [files, setFiles] = useState<DriveFile[]>(() => initialLocationCache?.files ?? []);
+  const [linkFiles, setLinkFiles] = useState<DriveFile[]>([]);
+  const [linksLoading, setLinksLoading] = useState(false);
+  const [linksLoadingMore, setLinksLoadingMore] = useState(false);
+  const [linksHasMore, setLinksHasMore] = useState(false);
+  const [linksTotalCount, setLinksTotalCount] = useState<number | null>(null);
+  const linkNextOffsetRef = useRef<number | null>(null);
+  const linkRequestSeqRef = useRef(0);
   const [filesHasMore, setFilesHasMore] = useState(() => initialLocationCache?.hasMore ?? false);
   /** Accurate totals for the whole location (not just loaded page) */
   const [totalFileCount, setTotalFileCount] = useState<number | null>(
@@ -767,6 +776,7 @@ function MediaDriveDesktop({
   const taskRunningRef = useRef(false);
   const transferRef = useRef(transfer);
   transferRef.current = transfer;
+  const recoveryCheckedSessionRef = useRef<string | null>(null);
   if (typeof window !== 'undefined') {
     (window as any).transfer = transfer;
   }
@@ -981,6 +991,60 @@ function MediaDriveDesktop({
     if (!session || !id || !hash) return null;
     return { session, apiId: id, apiHash: hash };
   }, [session, apiCreds.apiId, apiCreds.apiHash]);
+
+  useEffect(() => {
+    if (!creds?.session || recoveryCheckedSessionRef.current === creds.session) return;
+    recoveryCheckedSessionRef.current = creds.session;
+    void studioListTransfers().then((records) => {
+      if (transferRef.current.active || transferQueueRef.current.length > 0) return;
+      const unresolved = records
+        .filter((record) => record.session === creds.session)
+        .filter((record) => {
+          const state = String(record.state || '').toLowerCase();
+          return state === 'failed'
+            || state === 'paused'
+            || state === 'running'
+            || state === 'queued'
+            || record.items.some((item) => item.state === 'unknown_commit' || item.state === 'reconciling');
+        })
+        .sort((left, right) => Number(right.updatedAtMs) - Number(left.updatedAtMs));
+      const record = unresolved[0];
+      if (!record) return;
+      const recovered = seedTransferSession({
+        direction: 'upload',
+        names: record.items.map((item) => item.path.split(/[/\\]/).pop() || item.path),
+        destination: record.chatId,
+        label: t('speedtest.recovered_transfer_label'),
+      });
+      recovered.jobKey = record.transferId;
+      recovered.active = false;
+      recovered.startedAt = Number(record.createdAtMs) || Date.now();
+      recovered.banner = t('speedtest.recovered_transfer_banner', { count: unresolved.length });
+      recovered.items = recovered.items.map((item, index) => {
+        const persisted = record.items[index];
+        const state = persisted?.state;
+        const status = state === 'done'
+          ? 'done'
+          : state === 'skipped'
+            ? 'skipped'
+            : state === 'failed'
+              ? 'failed'
+              : state === 'unknown_commit' || state === 'reconciling' || state === 'committing'
+                ? 'needs_verification'
+                : 'paused';
+        return {
+          ...item,
+          status,
+          percent: status === 'done' || status === 'skipped' ? 100 : item.percent,
+          messageId: persisted?.messageId ?? undefined,
+          error: persisted?.error ?? undefined,
+        };
+      });
+      setTransfer(recomputeOverall(recovered));
+      setTransferMinimized(false);
+      localStorage.setItem(LS_TM_MIN, '0');
+    });
+  }, [creds?.session, t]);
 
   // Persist last session so next open can boot immediately
   useEffect(() => {
@@ -1463,16 +1527,18 @@ function MediaDriveDesktop({
       .catch(() => undefined);
   }, [session, invalidateDriveGenerations]);
 
+  const activeContentFiles = mediaFilter === 'links' ? linkFiles : files;
+
   const sortedPreviewList = useMemo(() => {
     // Same filter + sort as explorer so next/prev matches visible order
-    return filterAndSortDriveFilesPower(files, {
+    return filterAndSortDriveFilesPower(activeContentFiles, {
       query,
       mediaFilter,
       sortMode,
       adv: advFilter,
       perspective: viewPerspective,
     });
-  }, [files, query, mediaFilter, sortMode, advFilter, viewPerspective]);
+  }, [activeContentFiles, query, mediaFilter, sortMode, advFilter, viewPerspective]);
 
   const previewIndex = previewFile ? sortedPreviewList.findIndex((f) => f.id === previewFile.id) : -1;
 
@@ -3420,6 +3486,66 @@ function MediaDriveDesktop({
     thumbLocationOptions,
   ]);
 
+  const loadMoreLinks = useCallback(async () => {
+    const offsetId = linkNextOffsetRef.current;
+    if (!creds || !linksHasMore || linksLoadingMore || offsetId == null) return;
+    const requestSeq = linkRequestSeqRef.current;
+    const tid = topicFilterRef.current;
+    setLinksLoadingMore(true);
+    try {
+      const response = await driveListFiles(creds, peerId, {
+        pageSize: 100,
+        offsetId,
+        topicId: tid,
+        contentFilter: 'links',
+        bypassCache: true,
+      });
+      if (requestSeq !== linkRequestSeqRef.current || mediaFilter !== 'links') return;
+      const next = dedupeByMsgId(response.files || []);
+      setLinkFiles((current) => dedupeByMsgId([...current, ...next]));
+      setLinksHasMore(Boolean(response.has_more));
+      linkNextOffsetRef.current = response.next_offset_id ?? null;
+      if (response.total_count != null) setLinksTotalCount(Number(response.total_count));
+    } catch (error) {
+      if (requestSeq === linkRequestSeqRef.current) setError(friendlyDriveError(error));
+    } finally {
+      if (requestSeq === linkRequestSeqRef.current) setLinksLoadingMore(false);
+    }
+  }, [creds, linksHasMore, linksLoadingMore, mediaFilter, peerId]);
+
+  useEffect(() => {
+    if (mediaFilter !== 'links' || !creds) return;
+    const requestSeq = ++linkRequestSeqRef.current;
+    const tid = topicFilterRef.current;
+    setLinkFiles([]);
+    setLinksLoading(true);
+    setLinksHasMore(false);
+    setLinksTotalCount(null);
+    linkNextOffsetRef.current = null;
+    void driveListFiles(creds, peerId, {
+      pageSize: 100,
+      topicId: tid,
+      contentFilter: 'links',
+      bypassCache: true,
+    })
+      .then((response) => {
+        if (requestSeq !== linkRequestSeqRef.current) return;
+        setLinkFiles(dedupeByMsgId(response.files || []));
+        setLinksHasMore(Boolean(response.has_more));
+        setLinksTotalCount(response.total_count != null ? Number(response.total_count) : null);
+        linkNextOffsetRef.current = response.next_offset_id ?? null;
+      })
+      .catch((error) => {
+        if (requestSeq === linkRequestSeqRef.current) setError(friendlyDriveError(error));
+      })
+      .finally(() => {
+        if (requestSeq === linkRequestSeqRef.current) setLinksLoading(false);
+      });
+    return () => {
+      linkRequestSeqRef.current += 1;
+    };
+  }, [creds, mediaFilter, peerId, topicFilter]);
+
   const indexingActiveRef = useRef(false);
   const indexingPausedRef = useRef(false);
   const activeIndexingJobIdRef = useRef<number | null>(null);
@@ -3631,7 +3757,10 @@ function MediaDriveDesktop({
               tier: determineIndexingTier(curTotal, curLoaded),
               speed: metrics.speedMsgPerSec,
               eta: metrics.etaFormatted,
-              isPaused: false,
+              // A page that was already in flight can arrive immediately after the
+              // user pauses the worker. Keep the control state authoritative so the
+              // queued page cannot hide the Resume action while Rust is paused.
+              isPaused: indexingPausedRef.current,
               text: curTotal > 0
                 ? t('speedtest.index_progress_detail', {
                     processed: curLoaded.toLocaleString(),
@@ -4567,6 +4696,44 @@ function MediaDriveDesktop({
       : task.names.join(', ');
 
     try {
+      if (task.options?.dry_run === true) {
+        setStatusText(String(t('speedtest.dry_run_checking')));
+        if (task.kind === 'upload') {
+          await driveListFiles(creds, task.targetFolderId ?? null, {
+            pageSize: 1,
+            topicId: task.topicId ?? null,
+            bypassCache: true,
+          });
+        } else {
+          const ids = task.kind === 'download_one'
+            ? [task.messageId]
+            : (task.selectedIds || []);
+          for (const messageId of ids) {
+            if (!messageId) continue;
+            const result = await driveGetFile(
+              creds,
+              task.targetFolderId ?? peerId ?? null,
+              messageId
+            );
+            if (!result?.file) {
+              throw new Error(t('speedtest.dry_run_item_missing', { id: messageId }));
+            }
+          }
+        }
+        setTransfer((current) => ({
+          ...current,
+          active: true,
+          banner: t('speedtest.dry_run_success'),
+          items: current.items.map((item, index) =>
+            index >= task.startIndex && index < task.startIndex + task.names.length
+              ? { ...item, status: 'done' as const, phase: 'dry_run', percent: 100, note: t('speedtest.dry_run_verified') }
+              : item
+          ),
+        }));
+        setStatusText(String(t('speedtest.dry_run_success')));
+        return;
+      }
+
       if (task.kind === 'upload') {
         const filesPayload = task.paths!.map((path, pathIdx) => {
           const isUrl = path.startsWith('http://') || path.startsWith('https://');
@@ -4600,16 +4767,10 @@ function MediaDriveDesktop({
         }
 
         setStatusText(`Upload (Grammers)${label}: ${namesLabel}`);
-        setTransfer((t) => {
-          const nextItems = t.items.map((it, idx) => {
-            if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
-              if (it.status === 'done' || it.status === 'skipped') return it;
-              return { ...it, status: 'active' as const, phase: 'upload' as const };
-            }
-            return it;
-          });
-          return { ...t, items: nextItems, active: true };
-        });
+        // Keep untouched files queued. The Rust worker promotes only the item
+        // that is actually active, which makes pause-at-safe-boundary useful
+        // and prevents the UI from claiming every file is uploading at once.
+        setTransfer((current) => ({ ...current, active: true }));
 
         const apiIdNum = Number(creds!.apiId) || 0;
         const topicFromOpts =
@@ -4719,7 +4880,7 @@ function MediaDriveDesktop({
         const totalCount = task.selectedIds!.length;
 
         await runWithConcurrency(totalCount, Number(task.options?.concurrency), async (i) => {
-          await waitWhileDriveTransferPaused();
+          await waitWhileDriveTransferPaused(task.id);
           const msgId = task.selectedIds![i];
           const name = task.names[i] || `msg_${msgId}`;
           const destFile = `${task.saveDir!.replace(/[/\\]+$/, '')}/${name.replace(/[<>:"/\\|?*]/g, '_')}`;
@@ -4790,7 +4951,7 @@ function MediaDriveDesktop({
           const { join } = await import('@tauri-apps/api/path');
 
           await runWithConcurrency(totalCount, Number(task.options?.concurrency), async (i) => {
-            await waitWhileDriveTransferPaused();
+            await waitWhileDriveTransferPaused(task.id);
             const messageId = task.selectedIds![i];
             const rawName = task.names[i] || `msg_${messageId}`;
             const safeName = rawName.replace(/[<>:"/\\|?*]/g, '_');
@@ -4837,7 +4998,7 @@ function MediaDriveDesktop({
             let success = false;
             let lastErr: string | null = null;
             for (let attempt = 1; attempt <= 3; attempt++) {
-              await waitWhileDriveTransferPaused();
+              await waitWhileDriveTransferPaused(task.id);
               try {
                 const result = await tgDownloadFile({
                   session: creds!.session,
@@ -4969,7 +5130,7 @@ function MediaDriveDesktop({
 
       // If queue is empty, finish the overall transfer session
       if (transferQueueRef.current.length === 0) {
-        void clearDriveTransferPause();
+        void clearDriveTransferPause(task.id);
         setTransfer((t) =>
           t.active
             ? applyTransferEvent(t, {
@@ -5039,24 +5200,24 @@ function MediaDriveDesktop({
 
   const getDisplayedIds = useCallback(() => {
     if (displayedIdsRef.current.length) return displayedIdsRef.current;
-    return filterAndSortDriveFilesPower(files, {
+    return filterAndSortDriveFilesPower(activeContentFiles, {
       query,
       mediaFilter,
       sortMode,
       adv: advFilter,
       perspective: viewPerspective,
     }).map((f) => f.id);
-  }, [files, query, mediaFilter, sortMode, advFilter, viewPerspective]);
+  }, [activeContentFiles, query, mediaFilter, sortMode, advFilter, viewPerspective]);
 
   const getDisplayedFiles = useCallback(() => {
-    return filterAndSortDriveFilesPower(files, {
+    return filterAndSortDriveFilesPower(activeContentFiles, {
       query,
       mediaFilter,
       sortMode,
       adv: advFilter,
       perspective: viewPerspective,
     });
-  }, [files, query, mediaFilter, sortMode, advFilter, viewPerspective]);
+  }, [activeContentFiles, query, mediaFilter, sortMode, advFilter, viewPerspective]);
 
   const clearSelection = useCallback(() => {
     setSelectedIds([]);
@@ -5845,6 +6006,7 @@ function MediaDriveDesktop({
       download_resume_partial: transferSettings.downloadResumePartial,
       download_integrity: transferSettings.downloadIntegrity,
       duplicate_policy: transferSettings.duplicatePolicy || 'SKIP',
+      dry_run: transferSettings.dryRun,
       duplicate_force_upload_paths: duplicateForceUploadPaths,
       scan_mode: transferSettings.scanMode || 'smart',
       guardrail_enabled: transferSettings.guardrailEnabled !== false,
@@ -6061,7 +6223,10 @@ function MediaDriveDesktop({
         saveDir: stageDir,
         savePath,
         names,
-        options: { concurrency: transferSettings.downloadConcurrency },
+        options: {
+          concurrency: transferSettings.downloadConcurrency,
+          dry_run: transferSettings.dryRun,
+        },
         startIndex: 0,
       };
       if (transferHideTimer.current) clearTimeout(transferHideTimer.current);
@@ -6157,12 +6322,14 @@ function MediaDriveDesktop({
       const newTask: QueueTask = {
         id: `download_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
         kind: 'download',
+        targetFolderId: peerId,
         selectedIds: [...selectedIds],
         saveDir,
         names,
         options: {
           concurrency: transferSettings.downloadConcurrency,
           notifyDownloadDone: transferSettings.notifyDownloadDone,
+          dry_run: transferSettings.dryRun,
         },
         startIndex,
       };
@@ -6250,7 +6417,7 @@ function MediaDriveDesktop({
         messageId: file.id,
         savePath,
         names: [file.name],
-        options: {},
+        options: { dry_run: transferSettings.dryRun },
         startIndex,
       };
 
@@ -6330,7 +6497,7 @@ function MediaDriveDesktop({
         messageId: opts.messageId,
         savePath: opts.savePath,
         names: [opts.name],
-        options: {},
+        options: { dry_run: transferSettings.dryRun },
         startIndex,
       };
 
@@ -6376,7 +6543,7 @@ function MediaDriveDesktop({
       setError(null);
       void processNextQueueTask();
     },
-    [creds, openTransferManager]
+    [creds, openTransferManager, transferSettings.dryRun]
   );
 
   const openOneInSystem = async (file: DriveFile) => {
@@ -8362,7 +8529,7 @@ function MediaDriveDesktop({
     const tracked = Array.from(downloadArtifactsRef.current);
     // Abort sequential move/forward batch (not a worker job)
     cancelMoveBatch();
-    await clearDriveTransferPause();
+    await clearDriveTransferPause(transfer.jobKey);
     await cancelDriveJob(transfer.jobKey);
     childRef.current?.dispose?.();
     childRef.current = null;
@@ -8396,13 +8563,13 @@ function MediaDriveDesktop({
 
   const pauseTransfer = async () => {
     debugLog('drive', 'transfer pause');
-    await setDriveTransferPaused(true);
+    await setDriveTransferPaused(true, transfer.jobKey);
     setTransfer((t) => setSessionPaused(t, true));
   };
 
   const resumeTransfer = async () => {
     debugLog('drive', 'transfer resume');
-    await setDriveTransferPaused(false);
+    await setDriveTransferPaused(false, transfer.jobKey);
     setTransfer((t) => setSessionPaused(t, false));
   };
 
@@ -9112,7 +9279,7 @@ function MediaDriveDesktop({
             onTab={setToolsTab}
             onClose={() => setToolsOpen(false)}
             files={getDisplayedFiles()}
-            selectedFiles={files.filter((f) => selectedIds.includes(f.id))}
+            selectedFiles={activeContentFiles.filter((f) => selectedIds.includes(f.id))}
             advFilter={advFilter}
             onAdvFilter={setAdvFilter}
             folders={folders}
@@ -9239,24 +9406,24 @@ function MediaDriveDesktop({
             )}
             <DriveExplorer
               key={`${session}::${explorerScrollKey}`}
-              files={files}
-              loading={loadingFiles}
-              loadingMore={loadingMoreFiles}
-              hasMore={filesHasMore}
-              onLoadMore={loadMoreFiles}
+              files={activeContentFiles}
+              loading={mediaFilter === 'links' ? linksLoading : loadingFiles}
+              loadingMore={mediaFilter === 'links' ? linksLoadingMore : loadingMoreFiles}
+              hasMore={mediaFilter === 'links' ? linksHasMore : filesHasMore}
+              onLoadMore={mediaFilter === 'links' ? loadMoreLinks : loadMoreFiles}
               progressiveReady={progressiveReady}
               scrollKey={explorerScrollKey}
               initialScrollTop={explorerInitialScrollTop}
               onScrollPositionChange={rememberExplorerScroll}
               scaleHint={scaleHint}
-              error={error && files.length === 0 ? error : null}
+              error={error && activeContentFiles.length === 0 ? error : null}
               viewMode={viewMode}
               selectedIds={selectedIds}
               query={query}
               mediaFilter={mediaFilter}
               viewPerspective={viewPerspective}
               onViewPerspective={setViewPerspective}
-              totalCount={totalFileCount}
+              totalCount={mediaFilter === 'links' ? linksTotalCount : totalFileCount}
               sortMode={sortMode}
               onSortMode={handleSortModeChange}
               advFilter={advFilter}

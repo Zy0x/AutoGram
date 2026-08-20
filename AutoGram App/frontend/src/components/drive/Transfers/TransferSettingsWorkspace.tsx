@@ -1101,6 +1101,21 @@ export function TransferSettingsWorkspace({
               </div>
             </section>
 
+            <section className="td-settings-subcard" style={{ marginBottom: '16px' }}>
+              <label className="td-switch-row">
+                <div>
+                  <strong>{t('speedtest.dry_run_title')}</strong>
+                  <p>{t('speedtest.dry_run_description')}</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={draft.dryRun}
+                  disabled={!!transferActive}
+                  onChange={(event) => patch({ dryRun: event.target.checked })}
+                />
+              </label>
+            </section>
+
             {/* CATEGORIES BUTTONS LIST GRID (DIRECTLY DISPLAYS ALL CATEGORIES) */}
             <div className="td-category-menu-list">
               {subMenuCategories.map((cat) => {

@@ -1789,9 +1789,9 @@ pub fn upload_file_blocking_topic_with_delivery(
                         current_bytes: 0,
                         last_emit_time: Instant::now(),
                         last_emit_bytes: 0,
-                        app_handle,
+                        app_handle: app_handle.clone(),
                         item_index: index,
-                        transfer_id,
+                        transfer_id: transfer_id.clone(),
                     };
                     client
                         .upload_stream(&mut reader, size as usize, display_filename.clone())
@@ -1882,6 +1882,19 @@ pub fn upload_file_blocking_topic_with_delivery(
                     }
                     doc_msg
                 };
+
+                if let Some(app) = app_handle.as_ref() {
+                    use tauri::Emitter;
+                    let _ = app.emit(
+                        "transfer-event",
+                        serde_json::json!({
+                            "type": "StudioItemPhase",
+                            "index": index,
+                            "phase": "committing",
+                            "transfer_id": transfer_id
+                        }),
+                    );
+                }
 
                 let sent = match client.send_message(peer, msg).await {
                     Ok(m) => Ok(m.id() as i64),
