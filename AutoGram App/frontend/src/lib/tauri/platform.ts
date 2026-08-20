@@ -27,8 +27,12 @@ export function detectTauriRuntime(): boolean {
   } catch {
     /* fall through to the IPC marker */
   }
-  if (typeof localStorage !== 'undefined' && (localStorage.getItem('AUTOGRAM_FORCE_RUNTIME') === 'desktop' || localStorage.getItem('forceDesktop') === 'true')) {
-    return true;
+  try {
+    if (typeof localStorage !== 'undefined' && typeof localStorage?.getItem === 'function' && (localStorage.getItem('AUTOGRAM_FORCE_RUNTIME') === 'desktop' || localStorage.getItem('forceDesktop') === 'true')) {
+      return true;
+    }
+  } catch {
+    /* ignore storage access error in non-browser environments */
   }
   const root = globalThis as typeof globalThis & {
     __TAURI_INTERNALS__?: { invoke?: unknown };
