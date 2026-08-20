@@ -149,6 +149,7 @@ pub struct AdaptiveRateGovernor {
     useful_rows_per_rpc: f64,
 
     // Probe 2 mature baseline vs probe window evaluation
+    pending_probe: bool,
     baseline_rolling_committed_rate: f64,
     probe_start_instant: Option<Instant>,
     probe_start_committed_rows: u64,
@@ -190,6 +191,7 @@ impl AdaptiveRateGovernor {
             committed_rows_per_sec: 0.0,
             useful_rows_per_rpc: 0.0,
 
+            pending_probe: false,
             baseline_rolling_committed_rate: 0.0,
             probe_start_instant: None,
             probe_start_committed_rows: 0,
@@ -208,12 +210,33 @@ impl AdaptiveRateGovernor {
         }
     }
 
-    /// Fast cancellation check before page fetch initiation.
-    /// Actual inter-request pacing is enforced at the network RPC level by IndexDispatchGate.
-    pub fn before_index_rpc(&self, cancel: &CancellationToken) -> Result<(), TgError> {
+    /// Fast cancellation check and clean page epoch preparation.
+    /// If probe eligibility was flagged during the prior page observations,
+    /// the probe epoch activates strictly here at the page boundary.
+    pub fn before_index_rpc(&mut self, cancel: &CancellationToken) -> Result<(), TgError> {
         if cancel.is_cancelled() {
             return Err(TgError::new(TgErrorCode::Cancelled, "indexing cancelled"));
         }
+
+        // Clean page epoch transition: activate pending probe strictly at page start
+        if self.pending_probe && self.state == GovernorState::Stable && self.max_inflight == 1 {
+            if let Some(baseline_win) = self.get_mature_baseline_window(12.0) {
+                self.pending_probe = false;
+                self.baseline_rolling_committed_rate = baseline_win.rate;
+                self.probe_start_instant = Some(Instant::now());
+                self.probe_start_committed_rows = self.total_committed_rows;
+                self.transition_to(GovernorState::ProbeInflight2);
+                self.max_inflight = 2;
+                self.probe_successes = 0;
+
+                // Initial conservative stagger based on baseline p50 latency to prevent simultaneous burst
+                let conservative_stagger_ms = ((self.baseline_rpc_p50_ms / 4.0) as u32).clamp(25, 100);
+                self.min_dispatch_spacing = self.min_dispatch_spacing.max(Duration::from_millis(u64::from(conservative_stagger_ms)));
+            } else {
+                self.pending_probe = false;
+            }
+        }
+
         Ok(())
     }
 
@@ -267,19 +290,10 @@ impl AdaptiveRateGovernor {
                     self.min_dispatch_spacing = self.min_dispatch_spacing.saturating_sub(Duration::from_millis(10));
                 }
 
-                // Probe inflight 2 if stable for >= 20 successful RPCs, high confidence, and mature baseline window exists
+                // Check probe eligibility; flag for next page epoch to avoid mid-page contamination
                 if self.stable_successes >= 20 && self.confidence_score >= 0.6 && self.max_inflight == 1 {
-                    if let Some(baseline_win) = self.get_mature_baseline_window(12.0) {
-                        self.baseline_rolling_committed_rate = baseline_win.rate;
-                        self.probe_start_instant = Some(Instant::now());
-                        self.probe_start_committed_rows = self.total_committed_rows;
-                        self.transition_to(GovernorState::ProbeInflight2);
-                        self.max_inflight = 2;
-                        self.probe_successes = 0;
-
-                        // Initial conservative stagger based on baseline p50 latency to prevent simultaneous burst
-                        let conservative_stagger_ms = ((self.baseline_rpc_p50_ms / 4.0) as u32).clamp(25, 100);
-                        self.min_dispatch_spacing = self.min_dispatch_spacing.max(Duration::from_millis(u64::from(conservative_stagger_ms)));
+                    if self.get_mature_baseline_window(12.0).is_some() {
+                        self.pending_probe = true;
                     }
                 }
             }
@@ -338,6 +352,7 @@ impl AdaptiveRateGovernor {
                     if Instant::now() >= until {
                         self.transition_to(GovernorState::Stable);
                         self.stable_successes = 0;
+                        self.flood_recovery_until = None;
                     }
                 }
             }
@@ -349,17 +364,24 @@ impl AdaptiveRateGovernor {
         }
     }
 
-    /// Feeds FloodWait signal: resets inflight to 1, sets exact cooldown, and backs off pacing.
+    /// Feeds FloodWait signal: resets inflight to 1, extends cooldown monotonically (longest safety window wins), and backs off pacing.
     pub fn on_flood_wait(&mut self, wait_secs: u32) {
         self.flood_count += 1;
-        self.last_flood_wait_secs = wait_secs;
+        self.last_flood_wait_secs = self.last_flood_wait_secs.max(wait_secs);
         self.last_flood_at_ms = Some(now_epoch_ms());
         self.max_inflight = 1;
+        self.pending_probe = false;
         self.confidence_score = (self.confidence_score * 0.5).max(0.1);
 
         // Resume rate below the unsafe observed rate: add minimum 150ms pacing
         self.min_dispatch_spacing = (self.min_dispatch_spacing + Duration::from_millis(150)).max(Duration::from_millis(200));
-        self.flood_recovery_until = Some(Instant::now() + Duration::from_secs(u64::from(wait_secs) + 10));
+
+        let candidate_until = Instant::now() + Duration::from_secs(u64::from(wait_secs) + 10);
+        self.flood_recovery_until = Some(
+            self.flood_recovery_until
+                .map(|existing| existing.max(candidate_until))
+                .unwrap_or(candidate_until)
+        );
         self.transition_to(GovernorState::FloodRecovery);
     }
 
@@ -555,6 +577,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_governor_warmup_to_stable_and_probe_with_mature_baseline() {
+        let cancel = CancellationToken::new();
         let mut gov = AdaptiveRateGovernor::new();
         assert_eq!(gov.state(), GovernorState::Warmup);
         assert_eq!(gov.max_inflight(), 1);
@@ -576,7 +599,7 @@ mod tests {
             });
         }
 
-        // Feed stable successes to trigger probe
+        // Feed stable successes to flag pending probe
         for _ in 0..25 {
             gov.on_rpc_observation(RpcObservation {
                 latency_ms: 110,
@@ -584,21 +607,41 @@ mod tests {
                 was_error: false,
             });
         }
+
+        // State remains Stable until next page epoch boundary!
+        assert_eq!(gov.state(), GovernorState::Stable);
+        assert_eq!(gov.max_inflight(), 1);
+        assert!(gov.pending_probe);
+
+        // At next page boundary, activate probe cleanly
+        gov.before_index_rpc(&cancel).unwrap();
         assert_eq!(gov.state(), GovernorState::ProbeInflight2);
         assert_eq!(gov.max_inflight(), 2);
         assert!(gov.spacing_ms() >= 25, "Initial probe spacing must be conservative");
     }
 
     #[test]
-    fn test_governor_flood_wait_backoff() {
+    fn test_governor_monotonic_flood_recovery_window() {
         let mut gov = AdaptiveRateGovernor::new();
-        gov.on_flood_wait(30);
 
+        // 1. First FloodWait of 30s
+        gov.on_flood_wait(30);
         assert_eq!(gov.state(), GovernorState::FloodRecovery);
-        assert_eq!(gov.max_inflight(), 1);
-        assert!(gov.spacing_ms() >= 200);
-        assert_eq!(gov.flood_count, 1);
         assert_eq!(gov.last_flood_wait_secs, 30);
+        let first_deadline = gov.flood_recovery_until.unwrap();
+
+        // 2. Concurrent second FloodWait of 5s MUST NOT shorten the recovery window!
+        gov.on_flood_wait(5);
+        assert_eq!(gov.state(), GovernorState::FloodRecovery);
+        assert_eq!(gov.last_flood_wait_secs, 30, "last_flood_wait_secs must retain maximum wait");
+        let second_deadline = gov.flood_recovery_until.unwrap();
+        assert!(second_deadline >= first_deadline, "Concurrent shorter flood must not shorten recovery deadline");
+
+        // 3. Subsequent longer FloodWait of 45s MUST extend the deadline
+        gov.on_flood_wait(45);
+        assert_eq!(gov.last_flood_wait_secs, 45);
+        let third_deadline = gov.flood_recovery_until.unwrap();
+        assert!(third_deadline > second_deadline, "Longer flood must extend recovery deadline");
     }
 
     #[test]

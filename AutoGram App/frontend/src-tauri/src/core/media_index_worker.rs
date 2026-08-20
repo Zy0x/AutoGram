@@ -1147,7 +1147,7 @@ impl MediaIndexWorker {
 
                 // 2. Cancellation Check & Shared Dispatch Gate Synchronization
                 let max_inflight = {
-                    let gov = governor.lock().await;
+                    let mut gov = governor.lock().await;
                     gov.before_index_rpc(&cancel).map_err(|e| MediaIndexJobError {
                         code: "job_cancelled".into(),
                         message: e.to_string(),
