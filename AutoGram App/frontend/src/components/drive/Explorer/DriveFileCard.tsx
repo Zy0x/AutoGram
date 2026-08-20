@@ -87,6 +87,7 @@ function DriveFileCardInner({
     }
   });
 
+  const drFmt = (file.drive_format || file.file_ext || kindLabel || '').toUpperCase();
   let subLabel = '';
   if (file.icon_type === 'link') {
     subLabel = linkUrls.length > 1
@@ -94,9 +95,6 @@ function DriveFileCardInner({
       : (linkHosts[0] || t('speedtest.view_links'));
   } else {
     subLabel = formatDriveBytes(file.size);
-    if (kindLabel) {
-      subLabel += ` · ${kindLabel}`;
-    }
   }
 
   const [dragging, setDragging] = useState(false);
@@ -466,17 +464,11 @@ function DriveFileCardInner({
         )}
         {(() => {
           const tgCat = (file.telegram_category || (file.as_document ? 'file' : file.icon_type === 'image' || file.icon_type === 'video' ? 'media' : file.icon_type || 'file')).toLowerCase();
-          const drFmt = (file.drive_format || file.file_ext || '').toUpperCase();
           return (
             <div className="td-file-perspective-badges">
               <span className={`td-tag-badge tg-${tgCat}`}>
                 {tgCat.toUpperCase()}
               </span>
-              {drFmt && drFmt !== tgCat.toUpperCase() ? (
-                <span className="td-tag-badge drive-fmt">
-                  {drFmt}
-                </span>
-              ) : null}
             </div>
           );
         })()}
@@ -597,7 +589,18 @@ function DriveFileCardInner({
             {displayName}
           </div>
           <div className="td-file-card-sub" title={file.icon_type === 'link' ? (file.original_name || file.name) : undefined}>
-            <span className="td-file-card-size">{subLabel}</span>
+            {file.icon_type === 'link' ? (
+              <span className="td-file-card-size">{subLabel}</span>
+            ) : (
+              <div className="td-file-card-sub-row">
+                <span className="td-file-card-size">{subLabel}</span>
+                {drFmt ? (
+                  <span className="td-tag-badge drive-fmt">
+                    {drFmt}
+                  </span>
+                ) : null}
+              </div>
+            )}
           </div>
         </div>
 

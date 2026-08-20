@@ -3512,6 +3512,32 @@ body.td-dnd-external {
   opacity: 1;
 }
 
+.td-file-card-sub-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  min-width: 0;
+  vertical-align: middle;
+}
+
+.td-file-card-sub-row .td-file-card-size {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.td-file-card-sub-row .td-tag-badge.drive-fmt {
+  font-size: 0.54rem;
+  font-weight: 800;
+  padding: 1px 4px;
+  line-height: 1.1;
+  border-radius: 3px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
 /* ── Zoom-level meta density ── */
 .td-explorer.td-zoom-0 .td-file-card-meta {
   padding: 4px 5px 5px;
