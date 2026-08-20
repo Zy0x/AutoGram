@@ -1549,36 +1549,42 @@ function MediaDriveDesktop({
 
   const previewIndex = previewFile ? sortedPreviewList.findIndex((f) => f.id === previewFile.id) : -1;
 
-  const perspectiveCounts = useMemo(() => {
-    if (!filesHasMore && files.length > 0) {
-      return countPerspectiveMedia(files, viewPerspective);
-    }
-    if (viewPerspective === 'telegram' && cachedMediaBreakdown) {
-      return {
-        all: totalFileCount ?? 0,
-        media: cachedMediaBreakdown.photoCount + cachedMediaBreakdown.videoCount,
-        files: cachedMediaBreakdown.fileCount,
-        links: cachedMediaBreakdown.linkCount,
-        gifs: cachedMediaBreakdown.gifCount,
-        audio: cachedMediaBreakdown.audioCount,
-      };
-    }
-    return null;
-  }, [filesHasMore, files, viewPerspective, cachedMediaBreakdown, totalFileCount]);
+  const perspectiveCounts: Record<string, number> | null = useMemo(() => {
+    const localCounts = files.length > 0 ? countPerspectiveMedia(files, viewPerspective) : null;
 
-  // If App bootstrap still running, fill creds ASAP so drive boot can start
-  useEffect(() => {
-    if (apiCreds.apiId && apiCreds.apiHash) return;
-    let cancelled = false;
-    void bootstrapSecureCredentials().then((c) => {
-      if (!cancelled && (c.apiId || c.apiHash)) {
-        setApiCreds({ apiId: c.apiId, apiHash: c.apiHash });
+    if (viewPerspective === 'telegram' && cachedMediaBreakdown) {
+      const serverMedia = (cachedMediaBreakdown.photoCount || 0) + (cachedMediaBreakdown.videoCount || 0);
+      const serverFiles = cachedMediaBreakdown.fileCount || 0;
+      const serverTotal =
+        serverMedia +
+        serverFiles +
+        (cachedMediaBreakdown.linkCount || 0) +
+        (cachedMediaBreakdown.gifCount || 0) +
+        (cachedMediaBreakdown.audioCount || 0);
+
+      if (serverTotal > 0) {
+        const res: Record<string, number> = {
+          all: Math.max(totalFileCount ?? 0, files.length, serverTotal),
+          media: Math.max(serverMedia, localCounts?.media || 0),
+          files: Math.max(serverFiles, localCounts?.files || 0),
+          links: Math.max(cachedMediaBreakdown.linkCount || 0, localCounts?.links || 0),
+          gifs: Math.max(cachedMediaBreakdown.gifCount || 0, localCounts?.gifs || 0),
+          audio: Math.max(cachedMediaBreakdown.audioCount || 0, localCounts?.audio || 0),
+        };
+        return res;
       }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [apiCreds.apiId, apiCreds.apiHash]);
+    }
+
+    if (localCounts) {
+      const res: Record<string, number> = {
+        ...localCounts,
+        all: Math.max(totalFileCount ?? 0, localCounts.all || files.length),
+      };
+      return res;
+    }
+
+    return null;
+  }, [files, viewPerspective, cachedMediaBreakdown, totalFileCount]);
 
   // Dynamically fetch missing message ID from Telegram when searched
   useEffect(() => {
