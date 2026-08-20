@@ -2,6 +2,9 @@
 //!
 //! Evaluates sustained indexing throughput, 0 duplicate invariant, 0 missing ID invariant,
 //! k-way merge efficiency, and memory stability across 10k -> 25k -> 50k -> 100k -> 250k -> 500k -> 1M+ scales.
+//!
+//! Note: Full end-to-end application pipeline benchmark (incorporating MediaIndexWorker, AdaptiveRateGovernor,
+//! Tauri IPC events, IndexedDB transactions, storage ACKs, and crash-resume parity) is part of Phase P5.
 
 use std::collections::HashSet;
 use std::path::Path;
@@ -11,7 +14,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::grammers_ops::media_list::{buffered_k_way_merge, list_media_page_async, MediaFileRow};
 use crate::core::telegram_ops::TelegramIdentity;
-use crate::core::telegram_rpc_guard::RpcGuardControl;
 use crate::core::tg_error::TgError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -54,14 +56,14 @@ pub struct IndexBenchReport {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LiveTelegramIndexBenchReport {
+pub struct LiveTelegramSearchScanBenchReport {
     pub target_peer: String,
     pub wall_duration_ms: u64,
     pub total_pages_fetched: usize,
     pub total_rows_emitted: usize,
     pub unique_rows: usize,
     pub duplicate_rows: usize,
-    pub committed_media_per_sec: f64,
+    pub unique_emitted_per_sec: f64,
     pub passed: bool,
 }
 
@@ -169,13 +171,13 @@ pub fn run_synthetic_index_benchmark(tier: IndexBenchTier) -> IndexBenchReport {
     }
 }
 
-/// Executes a live index throughput probe against real Telegram MTProto datacenter.
-pub async fn run_live_telegram_index_benchmark(
+/// Executes a raw search scan throughput probe against real Telegram MTProto datacenter.
+pub async fn run_live_telegram_search_scan_benchmark(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
     chat_id: &str,
     max_pages: usize,
-) -> Result<LiveTelegramIndexBenchReport, TgError> {
+) -> Result<LiveTelegramSearchScanBenchReport, TgError> {
     let start = Instant::now();
     let mut cursor = None;
     let mut pages_fetched = 0usize;
@@ -214,17 +216,17 @@ pub async fn run_live_telegram_index_benchmark(
 
     let elapsed = start.elapsed();
     let wall_duration_ms = elapsed.as_millis().max(1) as u64;
-    let committed_media_per_sec = (seen_ids.len() as f64) / elapsed.as_secs_f64().max(0.0001);
+    let unique_emitted_per_sec = (seen_ids.len() as f64) / elapsed.as_secs_f64().max(0.0001);
     let passed = duplicate_rows == 0 && seen_ids.len() == emitted_rows;
 
-    Ok(LiveTelegramIndexBenchReport {
+    Ok(LiveTelegramSearchScanBenchReport {
         target_peer: chat_id.to_string(),
         wall_duration_ms,
         total_pages_fetched: pages_fetched,
         total_rows_emitted: emitted_rows,
         unique_rows: seen_ids.len(),
         duplicate_rows,
-        committed_media_per_sec,
+        unique_emitted_per_sec,
         passed,
     })
 }

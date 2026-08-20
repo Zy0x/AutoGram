@@ -94,6 +94,12 @@ impl<T: Copy + Ord, const N: usize> RollingSampleWindow<T, N> {
     }
 }
 
+#[derive(Debug, Clone)]
+struct CommittedProgressSample {
+    timestamp: Instant,
+    total_committed: u64,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionRateProfile {
     pub sustainable_dispatch_rate_rps: f64,
@@ -117,8 +123,6 @@ pub struct AdaptiveRateGovernor {
     min_dispatch_spacing: Duration,
     max_inflight: usize,
 
-    last_dispatch_instant: Option<Instant>,
-
     baseline_rpc_p50_ms: f64,
     baseline_rpc_p95_ms: f64,
     rpc_ewma_ms: f64,
@@ -131,12 +135,13 @@ pub struct AdaptiveRateGovernor {
     ack_samples: RollingSampleWindow<u64, 128>,
     idle_samples: RollingSampleWindow<u64, 128>,
 
+    committed_samples: VecDeque<CommittedProgressSample>,
     total_committed_rows: u64,
     committed_rows_per_sec: f64,
     useful_rows_per_rpc: f64,
 
-    // Probe 2 evaluation state
-    baseline_committed_rate: f64,
+    // Probe 2 rolling baseline vs probe window evaluation
+    baseline_rolling_committed_rate: f64,
     probe_start_instant: Option<Instant>,
     probe_start_committed_rows: u64,
     probe_successes: u64,
@@ -160,8 +165,6 @@ impl AdaptiveRateGovernor {
             min_dispatch_spacing: Duration::from_millis(0),
             max_inflight: 1,
 
-            last_dispatch_instant: None,
-
             baseline_rpc_p50_ms: 0.0,
             baseline_rpc_p95_ms: 0.0,
             rpc_ewma_ms: 0.0,
@@ -174,11 +177,12 @@ impl AdaptiveRateGovernor {
             ack_samples: RollingSampleWindow::new(),
             idle_samples: RollingSampleWindow::new(),
 
+            committed_samples: VecDeque::with_capacity(64),
             total_committed_rows: 0,
             committed_rows_per_sec: 0.0,
             useful_rows_per_rpc: 0.0,
 
-            baseline_committed_rate: 0.0,
+            baseline_rolling_committed_rate: 0.0,
             probe_start_instant: None,
             probe_start_committed_rows: 0,
             probe_successes: 0,
@@ -196,30 +200,16 @@ impl AdaptiveRateGovernor {
         }
     }
 
-    /// Cancellation-aware pacing check to enforce minimum inter-request spacing before actual RPC dispatch.
-    pub async fn before_index_rpc(&mut self, cancel: &CancellationToken) -> Result<(), TgError> {
+    /// Fast cancellation check before page fetch initiation.
+    /// Actual inter-request pacing is enforced at the network RPC level by IndexDispatchGate.
+    pub fn before_index_rpc(&self, cancel: &CancellationToken) -> Result<(), TgError> {
         if cancel.is_cancelled() {
             return Err(TgError::new(TgErrorCode::Cancelled, "indexing cancelled"));
         }
-
-        if let Some(last) = self.last_dispatch_instant {
-            let elapsed = last.elapsed();
-            if elapsed < self.min_dispatch_spacing {
-                let wait = self.min_dispatch_spacing - elapsed;
-                tokio::select! {
-                    _ = cancel.cancelled() => {
-                        return Err(TgError::new(TgErrorCode::Cancelled, "indexing cancelled during pacing"));
-                    }
-                    _ = tokio::time::sleep(wait) => {}
-                }
-            }
-        }
-
-        self.last_dispatch_instant = Some(Instant::now());
         Ok(())
     }
 
-    /// Feeds real RPC measurement from a guarded search invocation.
+    /// Feeds pure MTProto RPC invocation measurement (excluding dispatch pacing / semaphore queue time).
     pub fn on_rpc_observation(&mut self, obs: RpcObservation) {
         self.total_search_rpcs += 1;
         self.rpc_samples.push(obs.latency_ms);
@@ -271,7 +261,7 @@ impl AdaptiveRateGovernor {
 
                 // Probe inflight 2 if stable for >= 20 successful RPCs and high confidence
                 if self.stable_successes >= 20 && self.confidence_score >= 0.6 && self.max_inflight == 1 {
-                    self.baseline_committed_rate = self.committed_rows_per_sec;
+                    self.baseline_rolling_committed_rate = self.calculate_rolling_committed_rate(12.0);
                     self.probe_start_instant = Some(Instant::now());
                     self.probe_start_committed_rows = self.total_committed_rows;
                     self.transition_to(GovernorState::ProbeInflight2);
@@ -283,21 +273,21 @@ impl AdaptiveRateGovernor {
                 self.probe_successes += 1;
                 let cur_p95 = self.rpc_samples.p95().unwrap_or(200) as f64;
 
-                // 1. Latency spike check: if p95 spikes > 2.2x baseline, roll back
+                // 1. Latency spike check: if pure RPC p95 spikes > 2.2x baseline, roll back
                 if self.baseline_rpc_p95_ms > 0.0 && cur_p95 > self.baseline_rpc_p95_ms * 2.2 {
                     self.transition_to(GovernorState::Cooldown);
                     self.max_inflight = 1;
                     self.confidence_score = (self.confidence_score * 0.8).max(0.2);
                 } else if self.probe_successes >= 20 {
-                    // 2. Throughput comparison: evaluate committed rows/sec during probe window
+                    // 2. Fair Throughput comparison: evaluate committed rows/sec during probe window vs stable rolling baseline
                     let probe_duration = self.probe_start_instant.map(|i| i.elapsed().as_secs_f64()).unwrap_or(1.0).max(0.1);
                     let probe_delta_rows = self.total_committed_rows.saturating_sub(self.probe_start_committed_rows);
                     let probe_committed_rate = probe_delta_rows as f64 / probe_duration;
 
-                    let is_rate_improved = self.baseline_committed_rate <= 0.0 || probe_committed_rate >= (self.baseline_committed_rate * 1.08);
+                    let is_rate_improved = self.baseline_rolling_committed_rate <= 0.0 || probe_committed_rate >= (self.baseline_rolling_committed_rate * 1.08);
 
                     if is_rate_improved {
-                        // Confirmed real throughput gain under inflight=2!
+                        // Confirmed real throughput gain under inflight=2 against comparable rolling baseline!
                         self.confidence_score = (self.confidence_score + 0.15).min(0.95);
                         self.max_inflight = 2;
                         self.transition_to(GovernorState::Stable);
@@ -345,14 +335,31 @@ impl AdaptiveRateGovernor {
         self.transition_to(GovernorState::FloodRecovery);
     }
 
-    /// Feeds IndexedDB ACK and scheduler gap observations, updating durably committed throughput.
-    pub fn on_ack_committed(&mut self, ack_latency_ms: u64, ack_to_next_gap_ms: u64, total_committed: u64, committed_rate: f64) {
+    /// Feeds IndexedDB ACK observation, maintaining rolling progress history.
+    pub fn on_ack_committed(&mut self, ack_latency_ms: u64, total_committed: u64, _committed_rate_cum: f64) {
         self.total_committed_rows = total_committed;
-        self.committed_rows_per_sec = committed_rate;
+        let now = Instant::now();
+
+        if self.committed_samples.len() >= 64 {
+            self.committed_samples.pop_front();
+        }
+        self.committed_samples.push_back(CommittedProgressSample {
+            timestamp: now,
+            total_committed,
+        });
+
+        // Prune samples older than 30s
+        while let Some(front) = self.committed_samples.front() {
+            if now.duration_since(front.timestamp) > Duration::from_secs(30) && self.committed_samples.len() > 2 {
+                self.committed_samples.pop_front();
+            } else {
+                break;
+            }
+        }
+
+        self.committed_rows_per_sec = self.calculate_rolling_committed_rate(15.0);
 
         self.ack_samples.push(ack_latency_ms);
-        self.idle_samples.push(ack_to_next_gap_ms);
-
         let ack_f = ack_latency_ms as f64;
         if self.ack_ewma_ms <= 0.0 {
             self.ack_ewma_ms = ack_f;
@@ -360,18 +367,47 @@ impl AdaptiveRateGovernor {
             self.ack_ewma_ms = (self.ack_ewma_ms * 0.8) + (ack_f * 0.2);
         }
 
-        let idle_f = ack_to_next_gap_ms as f64;
-        if self.idle_ewma_ms <= 0.0 {
-            self.idle_ewma_ms = idle_f;
-        } else {
-            self.idle_ewma_ms = (self.idle_ewma_ms * 0.8) + (idle_f * 0.2);
-        }
-
         // If IndexedDB ACK latency is high (>350ms), mark DbBound to prevent Telegram congestion
         if ack_latency_ms > 350 && self.state != GovernorState::FloodRecovery {
             self.transition_to(GovernorState::DbBound);
             self.max_inflight = 1;
         }
+    }
+
+    /// Feeds authoritative measured gap between ACK completion and first subsequent Telegram network dispatch.
+    pub fn on_ack_to_dispatch_gap(&mut self, gap_ms: u64) {
+        self.idle_samples.push(gap_ms);
+        let idle_f = gap_ms as f64;
+        if self.idle_ewma_ms <= 0.0 {
+            self.idle_ewma_ms = idle_f;
+        } else {
+            self.idle_ewma_ms = (self.idle_ewma_ms * 0.8) + (idle_f * 0.2);
+        }
+    }
+
+    /// Computes delta committed rows / delta time over a rolling duration window.
+    pub fn calculate_rolling_committed_rate(&self, window_secs: f64) -> f64 {
+        if self.committed_samples.len() < 2 {
+            return 0.0;
+        }
+        let now = Instant::now();
+        let newest = self.committed_samples.back().unwrap();
+
+        let mut baseline_sample = self.committed_samples.front().unwrap();
+        for sample in self.committed_samples.iter() {
+            let age = now.duration_since(sample.timestamp).as_secs_f64();
+            if age <= window_secs {
+                baseline_sample = sample;
+                break;
+            }
+        }
+
+        let dt = newest.timestamp.duration_since(baseline_sample.timestamp).as_secs_f64();
+        if dt < 0.001 {
+            return 0.0;
+        }
+        let d_rows = newest.total_committed.saturating_sub(baseline_sample.total_committed);
+        d_rows as f64 / dt
     }
 
     fn transition_to(&mut self, new_state: GovernorState) {
@@ -421,6 +457,10 @@ impl AdaptiveRateGovernor {
 
     pub fn flood_count(&self) -> u64 {
         self.flood_count
+    }
+
+    pub fn last_flood_wait_secs(&self) -> u32 {
+        self.last_flood_wait_secs
     }
 }
 
@@ -484,5 +524,16 @@ mod tests {
         assert!(gov.spacing_ms() >= 200);
         assert_eq!(gov.flood_count, 1);
         assert_eq!(gov.last_flood_wait_secs, 30);
+    }
+
+    #[test]
+    fn test_rolling_committed_rate_calculation() {
+        let mut gov = AdaptiveRateGovernor::new();
+        gov.on_ack_committed(50, 100, 10.0);
+        std::thread::sleep(Duration::from_millis(50));
+        gov.on_ack_committed(50, 200, 20.0);
+
+        let rate = gov.calculate_rolling_committed_rate(10.0);
+        assert!(rate > 0.0, "Rolling rate must be positive");
     }
 }

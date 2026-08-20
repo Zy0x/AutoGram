@@ -22,7 +22,7 @@ use super::grammers_ops::media_list::{
 use super::media_index_types::*;
 use super::telegram_ops::TelegramIdentity;
 use super::adaptive_rate_governor::{AdaptiveRateGovernor, GovernorState, RpcObservation};
-use super::telegram_rpc_guard::{RpcGuardControl, RpcObserver};
+use super::telegram_rpc_guard::{IndexDispatchGate, RpcGuardControl, RpcObserver};
 use super::tg_error::{TgError, TgErrorCode, TgErrorPublic};
 use super::tg_log;
 
@@ -850,6 +850,7 @@ pub struct WorkerRpcObserver {
     pub job_id: u64,
     pub control: Arc<MediaIndexJobControl>,
     pub governor: Arc<tokio::sync::Mutex<AdaptiveRateGovernor>>,
+    pub last_ack_completed: Arc<tokio::sync::Mutex<Option<Instant>>>,
 }
 
 #[async_trait]
@@ -861,16 +862,17 @@ impl RpcObserver for WorkerRpcObserver {
         _attempt: u32,
         _max_attempts: u32,
     ) {
-        {
+        let (flood_count, last_wait) = {
             let mut gov = self.governor.lock().await;
             gov.on_flood_wait(wait_secs);
-        }
+            (gov.flood_count(), gov.last_flood_wait_secs())
+        };
         {
             let mut st = self.control.status.write().await;
             st.state = MediaIndexJobState::FloodPaused;
-            st.metrics.flood_count += 1;
+            st.metrics.flood_count = flood_count;
             st.metrics.flood_seconds_total += u64::from(wait_secs);
-            st.metrics.last_flood_wait_secs = wait_secs;
+            st.metrics.last_flood_wait_secs = last_wait;
             st.updated_at_ms = now_epoch_ms();
         }
         let _ = self.control
@@ -907,6 +909,19 @@ impl RpcObserver for WorkerRpcObserver {
                 state: next_state,
             })
             .await;
+    }
+
+    async fn on_actual_rpc_dispatch(&self, dispatch_instant: Instant) {
+        let gap_ms_opt = {
+            let mut last_ack = self.last_ack_completed.lock().await;
+            last_ack.take().map(|ack_instant| {
+                dispatch_instant.duration_since(ack_instant).as_millis().min(u64::MAX as u128) as u64
+            })
+        };
+        if let Some(gap_ms) = gap_ms_opt {
+            let mut gov = self.governor.lock().await;
+            gov.on_ack_to_dispatch_gap(gap_ms);
+        }
     }
 }
 
@@ -1032,7 +1047,8 @@ impl MediaIndexWorker {
         let mut total_emitted = 0u64;
         let mut metrics = MediaIndexMetricsSnapshot::default();
         let governor = Arc::new(tokio::sync::Mutex::new(AdaptiveRateGovernor::new()));
-        let mut last_ack_completed_instant: Option<Instant> = None;
+        let dispatch_gate = Arc::new(IndexDispatchGate::new(0));
+        let last_ack_completed = Arc::new(tokio::sync::Mutex::new(None));
         let mut last_progress_tick = Instant::now();
         let start_time = Instant::now();
         let mut delta_max_observed_id = current_newest_id;
@@ -1041,12 +1057,13 @@ impl MediaIndexWorker {
             job_id,
             control: self.control.clone(),
             governor: governor.clone(),
+            last_ack_completed: last_ack_completed.clone(),
         });
 
         let guard_control = RpcGuardControl {
             cancel: Some(cancel.clone()),
             observer: Some(observer),
-            pacing_ms: 0,
+            dispatch_gate: Some(dispatch_gate.clone()),
         };
 
         let mut state_rx = self.control.state_tx.subscribe();
@@ -1110,23 +1127,17 @@ impl MediaIndexWorker {
                     });
                 }
 
-                // 2. Adaptive Pacing & Zero-Idle Admission Check
-                let (max_inflight, pacing_ms) = {
-                    let mut gov = governor.lock().await;
-                    gov.before_index_rpc(&cancel).await.map_err(|e| MediaIndexJobError {
+                // 2. Cancellation Check & Shared Dispatch Gate Synchronization
+                let max_inflight = {
+                    let gov = governor.lock().await;
+                    gov.before_index_rpc(&cancel).map_err(|e| MediaIndexJobError {
                         code: "job_cancelled".into(),
                         message: e.to_string(),
                         recoverable: false,
                     })?;
-                    (gov.max_inflight(), gov.spacing_ms())
+                    dispatch_gate.set_spacing_ms(gov.spacing_ms());
+                    gov.max_inflight()
                 };
-
-                let mut active_guard = guard_control.clone();
-                active_guard.pacing_ms = pacing_ms;
-
-                let ack_to_rpc_gap_ms = last_ack_completed_instant
-                    .map(|i| i.elapsed().as_millis() as u64)
-                    .unwrap_or(0);
 
                 metrics.page_cycles += 1;
                 metrics.pages_fetched = Some(metrics.page_cycles);
@@ -1142,7 +1153,7 @@ impl MediaIndexWorker {
                         topic_id,
                         search_cursor.clone(),
                         max_inflight,
-                        active_guard,
+                        guard_control.clone(),
                     )
                     .await;
 
@@ -1529,12 +1540,11 @@ impl MediaIndexWorker {
                         metrics.committed_rows_per_sec = metrics.rows_committed as f64 / elapsed_secs;
                         metrics.unique_media_per_sec = Some(metrics.committed_rows_per_sec);
 
-                        // Feed durably committed throughput & scheduler gap to governor
+                        // Feed durably committed throughput to governor & sync canonical metrics
                         {
                             let mut gov = governor.lock().await;
                             gov.on_ack_committed(
                                 ack_latency_u64,
-                                ack_to_rpc_gap_ms,
                                 metrics.rows_committed,
                                 metrics.committed_rows_per_sec,
                             );
@@ -1547,9 +1557,12 @@ impl MediaIndexWorker {
                             metrics.governor_inflight_limit = gov.max_inflight() as u8;
                             metrics.governor_spacing_ms = gov.spacing_ms();
                             metrics.governor_confidence = gov.confidence();
+                            metrics.flood_count = gov.flood_count();
+                            metrics.last_flood_wait_secs = gov.last_flood_wait_secs();
+                            dispatch_gate.set_spacing_ms(gov.spacing_ms());
                         }
 
-                        last_ack_completed_instant = Some(Instant::now());
+                        *last_ack_completed.lock().await = Some(Instant::now());
 
                         if let Some(comm) = ack.committed_state {
                             if comm.newest_committed_id > current_newest_id {
@@ -2344,6 +2357,7 @@ mod tests {
             job_id: 99,
             control: control.clone(),
             governor: Arc::new(tokio::sync::Mutex::new(AdaptiveRateGovernor::new())),
+            last_ack_completed: Arc::new(tokio::sync::Mutex::new(None)),
         };
 
         // User paused while in FloodPaused
@@ -2403,6 +2417,7 @@ mod tests {
             job_id: 100,
             control: control.clone(),
             governor: Arc::new(tokio::sync::Mutex::new(AdaptiveRateGovernor::new())),
+            last_ack_completed: Arc::new(tokio::sync::Mutex::new(None)),
         };
 
         // Cancel job

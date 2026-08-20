@@ -18,7 +18,65 @@ use crate::core::session_rate::{
 use crate::core::tg_error::{map_invocation, TgError, TgErrorCode};
 use crate::core::tg_log;
 
-/// Trait for observing guard-owned internal FloodWait retries and backoff states.
+/// Shared inter-request dispatch coordinator across concurrent lane searches (PhotoVideo + Document).
+/// Enforces true staggered dispatch: if spacing is 100ms and 2 requests fire simultaneously,
+/// request A dispatches at t=0 and request B dispatches at t=100ms while request A is in-flight.
+#[derive(Debug)]
+pub struct IndexDispatchGate {
+    next_allowed_instant: tokio::sync::Mutex<Instant>,
+    spacing_ms: std::sync::atomic::AtomicU32,
+}
+
+impl IndexDispatchGate {
+    pub fn new(initial_spacing_ms: u32) -> Self {
+        Self {
+            next_allowed_instant: tokio::sync::Mutex::new(Instant::now()),
+            spacing_ms: std::sync::atomic::AtomicU32::new(initial_spacing_ms),
+        }
+    }
+
+    pub fn set_spacing_ms(&self, ms: u32) {
+        self.spacing_ms.store(ms, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    pub fn spacing_ms(&self) -> u32 {
+        self.spacing_ms.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// Reserves a dispatch timestamp and sleeps until that timestamp is reached.
+    /// Returns the instant at which actual network dispatch begins and the pacing wait duration in ms.
+    pub async fn acquire_dispatch_slot(&self, cancel: Option<&CancellationToken>) -> Result<(Instant, u64), TgError> {
+        let spacing_ms = self.spacing_ms.load(std::sync::atomic::Ordering::Relaxed);
+        let target_time = {
+            let mut next = self.next_allowed_instant.lock().await;
+            let now = Instant::now();
+            let scheduled = (*next).max(now);
+            *next = scheduled + Duration::from_millis(u64::from(spacing_ms));
+            scheduled
+        };
+
+        let now = Instant::now();
+        let pacing_wait_ms = if target_time > now {
+            let wait = target_time - now;
+            let ms = wait.as_millis().min(u64::MAX as u128) as u64;
+            if let Some(c) = cancel {
+                tokio::select! {
+                    _ = c.cancelled() => return Err(TgError::new(TgErrorCode::Cancelled, "guarded rpc cancelled during dispatch pacing")),
+                    _ = tokio::time::sleep(wait) => {}
+                }
+            } else {
+                tokio::time::sleep(wait).await;
+            }
+            ms
+        } else {
+            0
+        };
+
+        Ok((Instant::now(), pacing_wait_ms))
+    }
+}
+
+/// Trait for observing guard-owned internal FloodWait retries, backoff states, and actual network dispatches.
 #[async_trait::async_trait]
 pub trait RpcObserver: Send + Sync {
     async fn on_guard_backoff_start(
@@ -29,14 +87,15 @@ pub trait RpcObserver: Send + Sync {
         max_attempts: u32,
     );
     async fn on_guard_backoff_end(&self, attempt: u32);
+    async fn on_actual_rpc_dispatch(&self, _dispatch_instant: Instant) {}
 }
 
-/// Optional control handles passed to guarded RPC invocations (cancellation + telemetry observers).
+/// Optional control handles passed to guarded RPC invocations (cancellation, telemetry observers, shared dispatch gate).
 #[derive(Clone, Default)]
 pub struct RpcGuardControl {
     pub cancel: Option<CancellationToken>,
     pub observer: Option<Arc<dyn RpcObserver>>,
-    pub pacing_ms: u32,
+    pub dispatch_gate: Option<Arc<IndexDispatchGate>>,
 }
 
 /// Rolling telemetry metrics per RPC class and operation.
@@ -168,20 +227,19 @@ where
             wait_if_flooded_class(session, class).await?;
         }
 
-        // 3. Apply governor pacing if configured
-        if control.pacing_ms > 0 {
-            let wait = Duration::from_millis(u64::from(control.pacing_ms));
-            if let Some(ref c) = control.cancel {
-                tokio::select! {
-                    _ = c.cancelled() => return Err(TgError::new(TgErrorCode::Cancelled, "guarded rpc cancelled during pacing")),
-                    _ = tokio::time::sleep(wait) => {}
-                }
-            } else {
-                tokio::time::sleep(wait).await;
-            }
+        // 3. Apply shared dispatch gate pacing if configured
+        let (dispatch_instant, _pacing_wait_ms) = if let Some(ref gate) = control.dispatch_gate {
+            gate.acquire_dispatch_slot(control.cancel.as_ref()).await?
+        } else {
+            (Instant::now(), 0)
+        };
+
+        // Notify observer of actual network dispatch instant
+        if let Some(ref obs) = control.observer {
+            obs.on_actual_rpc_dispatch(dispatch_instant).await;
         }
 
-        // 4. Measure invocation latency
+        // 4. Measure pure network invocation latency
         let start = Instant::now();
         let result = if let Some(ref c) = control.cancel {
             tokio::select! {

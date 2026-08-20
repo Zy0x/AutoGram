@@ -248,7 +248,8 @@ pub struct LaneDurability {
 #[serde(rename_all = "camelCase")]
 pub struct LaneRpcObservation {
     pub lane: SearchLane,
-    pub latency_ms: u64,
+    pub latency_ms: u64,          // Pure MTProto network invocation latency
+    pub wall_latency_ms: u64,     // Full end-to-end wall latency including queue/pacing
     pub attempts: u32,
     pub rows_received: usize,
     pub candidate_count: Option<usize>,
@@ -913,7 +914,7 @@ pub async fn fetch_media_lane_page_async(
     )
     .await?;
 
-    let latency_ms = start_instant.elapsed().as_millis() as u64;
+    let wall_latency_ms = start_instant.elapsed().as_millis() as u64;
 
     let mut lane_total_count = None;
     let raw_msgs = match res.value {
@@ -950,7 +951,8 @@ pub async fn fetch_media_lane_page_async(
 
     let observation = LaneRpcObservation {
         lane,
-        latency_ms,
+        latency_ms: res.latency_ms,
+        wall_latency_ms,
         attempts: res.attempts,
         rows_received: rows.len(),
         candidate_count: lane_total_count,
