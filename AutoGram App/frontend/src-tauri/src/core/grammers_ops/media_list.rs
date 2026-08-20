@@ -1469,8 +1469,8 @@ pub async fn list_media_page_async(
                         (None, None) => None,
                     };
 
-                    let pv_observation = rpc_observations.iter().find(|o| o.lane == SearchLane::PhotoVideo).cloned();
-                    let doc_observation = rpc_observations.iter().find(|o| o.lane == SearchLane::Document).cloned();
+                    let pv_observation = rpc_observations.iter().rev().find(|o| o.lane == SearchLane::PhotoVideo).cloned();
+                    let doc_observation = rpc_observations.iter().rev().find(|o| o.lane == SearchLane::Document).cloned();
 
                     Ok(ListMediaResult {
                         status: "ok".to_string(),

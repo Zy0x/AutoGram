@@ -1068,6 +1068,8 @@ impl MediaIndexWorker {
         let mut last_progress_tick = Instant::now();
         let start_time = Instant::now();
         let mut delta_max_observed_id = current_newest_id;
+        let mut pv_candidate_estimate: Option<u64> = None;
+        let mut doc_candidate_estimate: Option<u64> = None;
 
         let observer = Arc::new(WorkerRpcObserver {
             job_id,
@@ -1177,8 +1179,6 @@ impl MediaIndexWorker {
 
                 let page = match page_res {
                     Ok(p) => {
-                        let total_latency_ms = fetch_start.elapsed().as_millis() as u64;
-
                         // Feed fine-grained lane RPC observations to telemetry and governor
                         {
                             let mut gov = governor.lock().await;
@@ -1202,6 +1202,13 @@ impl MediaIndexWorker {
                                     rows_yielded: obs.rows_received,
                                     was_error: false,
                                 });
+
+                                let obs_latency_ms = obs.latency_ms as f64;
+                                if metrics.rpc_latency_ewma_ms <= 0.0 {
+                                    metrics.rpc_latency_ewma_ms = obs_latency_ms;
+                                } else {
+                                    metrics.rpc_latency_ewma_ms = (metrics.rpc_latency_ewma_ms * 0.85) + (obs_latency_ms * 0.15);
+                                }
                             }
 
                             metrics.rpc_calls = Some(metrics.search_rpc_calls);
@@ -1213,16 +1220,20 @@ impl MediaIndexWorker {
                             metrics.governor_confidence = gov.confidence();
                         }
 
-                        let total_latency_ms = fetch_start.elapsed().as_millis() as u64;
-                        if !p.rpc_observations.is_empty() {
-                            let rpc_latency_ms = total_latency_ms as f64;
-                            if metrics.rpc_latency_ewma_ms <= 0.0 {
-                                metrics.rpc_latency_ewma_ms = rpc_latency_ms;
-                            } else {
-                                metrics.rpc_latency_ewma_ms = (metrics.rpc_latency_ewma_ms * 0.85) + (rpc_latency_ms * 0.15);
-                            }
-                            metrics.rpc_ewma_ms = Some(metrics.rpc_latency_ewma_ms);
+                        let total_wall_latency_ms = fetch_start.elapsed().as_millis() as f64;
+                        if metrics.page_cycle_wall_ewma_ms.unwrap_or(0.0) <= 0.0 {
+                            metrics.page_cycle_wall_ewma_ms = Some(total_wall_latency_ms);
+                        } else {
+                            metrics.page_cycle_wall_ewma_ms = Some(
+                                (metrics.page_cycle_wall_ewma_ms.unwrap_or(total_wall_latency_ms) * 0.85) + (total_wall_latency_ms * 0.15)
+                            );
                         }
+
+                        metrics.rpc_ewma_ms = if metrics.search_rpc_calls > 0 {
+                            Some(metrics.rpc_latency_ewma_ms)
+                        } else {
+                            None
+                        };
 
                         if metrics.search_rpc_calls > 0 {
                             metrics.useful_rows_per_search_rpc = (metrics.pv_rows_fetched + metrics.doc_rows_fetched) as f64 / metrics.search_rpc_calls as f64;
@@ -1239,11 +1250,24 @@ impl MediaIndexWorker {
                         metrics.persistence_batch_rows = p.files.len();
 
                         if let Some(ref counts) = p.lane_counts {
-                            if counts.photo_video.is_some() || counts.document.is_some() {
-                                let total_est = (counts.photo_video.unwrap_or(0) + counts.document.unwrap_or(0)) as u64;
-                                if total_est > 0 {
-                                    metrics.candidate_total_estimate = Some(total_est);
+                            if let Some(pv) = counts.photo_video {
+                                pv_candidate_estimate = Some(pv as u64);
+                            }
+                            if let Some(doc) = counts.document {
+                                doc_candidate_estimate = Some(doc as u64);
+                            }
+
+                            match (pv_candidate_estimate, doc_candidate_estimate) {
+                                (Some(pv), Some(doc)) => {
+                                    metrics.candidate_total_estimate = Some(pv.saturating_add(doc));
                                 }
+                                (Some(pv), None) => {
+                                    metrics.candidate_total_estimate = Some(pv);
+                                }
+                                (None, Some(doc)) => {
+                                    metrics.candidate_total_estimate = Some(doc);
+                                }
+                                (None, None) => {}
                             }
                         }
                         p
@@ -2678,5 +2702,215 @@ mod tests {
         assert_eq!(status.metrics.page_cycles, 2, "Page cycles must advance to 2");
         // Verify: Candidate total estimate was preserved at 250,000 and not overwritten by zero-RPC page!
         assert_eq!(status.metrics.candidate_total_estimate, Some(250_000), "Candidate total estimate must be preserved across zero-RPC buffered page");
+    }
+
+    #[tokio::test]
+    async fn test_persistent_lane_estimates_and_pure_rpc_telemetry() {
+        let f1 = sample_media_row(100);
+        let f2 = sample_media_row(99);
+        let f3 = sample_media_row(98);
+        let f4 = sample_media_row(97);
+
+        // Page 1: FetchBoth (PV=150,000, DOC=100,000) -> Candidate total = 250,000
+        let page1 = ListMediaResult {
+            status: "ok".into(),
+            folder_id: None,
+            files: vec![f1],
+            total: 1,
+            page_size: 1,
+            has_more: true,
+            next_offset_id: Some(100),
+            lane_counts: Some(LaneCounts {
+                photo_video: Some(150_000),
+                document: Some(100_000),
+            }),
+            emitted_watermark: Some(LaneWatermark { photo_video: 100, document: 100 }),
+            lane_durability: None,
+            total_count: Some(250_000),
+            backend: "grammers".into(),
+            cached: false,
+            search_cursor: None,
+            rpc_observations: vec![
+                LaneRpcObservation {
+                    lane: SearchLane::PhotoVideo,
+                    latency_ms: 100,
+                    wall_latency_ms: 100,
+                    attempts: 1,
+                    rows_received: 1,
+                    candidate_count: Some(150_000),
+                },
+                LaneRpcObservation {
+                    lane: SearchLane::Document,
+                    latency_ms: 120,
+                    wall_latency_ms: 120,
+                    attempts: 1,
+                    rows_received: 1,
+                    candidate_count: Some(100_000),
+                },
+            ],
+            pv_observation: None,
+            doc_observation: None,
+        };
+
+        // Page 2: FetchPv only (PV=149,000, DOC not queried -> document = None)
+        // Candidate estimate MUST use 149,000 + previous DOC (100,000) = 249,000 (NOT 149,000!)
+        let page2 = ListMediaResult {
+            status: "ok".into(),
+            folder_id: None,
+            files: vec![f2],
+            total: 1,
+            page_size: 1,
+            has_more: true,
+            next_offset_id: Some(99),
+            lane_counts: Some(LaneCounts {
+                photo_video: Some(149_000),
+                document: None, // Document lane was NOT queried in this page
+            }),
+            emitted_watermark: Some(LaneWatermark { photo_video: 99, document: 100 }),
+            lane_durability: None,
+            total_count: Some(149_000),
+            backend: "grammers".into(),
+            cached: false,
+            search_cursor: None,
+            rpc_observations: vec![
+                LaneRpcObservation {
+                    lane: SearchLane::PhotoVideo,
+                    latency_ms: 80,
+                    wall_latency_ms: 80,
+                    attempts: 1,
+                    rows_received: 1,
+                    candidate_count: Some(149_000),
+                },
+            ],
+            pv_observation: None,
+            doc_observation: None,
+        };
+
+        // Page 3: 0-RPC buffered page (lane_counts = None, rpc_observations = empty)
+        let page3 = ListMediaResult {
+            status: "ok".into(),
+            folder_id: None,
+            files: vec![f3],
+            total: 1,
+            page_size: 1,
+            has_more: true,
+            next_offset_id: Some(98),
+            lane_counts: None,
+            emitted_watermark: Some(LaneWatermark { photo_video: 98, document: 100 }),
+            lane_durability: None,
+            total_count: None,
+            backend: "grammers".into(),
+            cached: false,
+            search_cursor: None,
+            rpc_observations: Vec::new(),
+            pv_observation: None,
+            doc_observation: None,
+        };
+
+        // Page 4: FetchDoc only where document count is 0 (valid known zero)
+        // Candidate estimate MUST be 149,000 + 0 = 149,000
+        let page4 = ListMediaResult {
+            status: "ok".into(),
+            folder_id: None,
+            files: vec![f4],
+            total: 1,
+            page_size: 1,
+            has_more: false,
+            next_offset_id: None,
+            lane_counts: Some(LaneCounts {
+                photo_video: None, // PV not queried
+                document: Some(0), // DOC queried and genuinely has 0 items
+            }),
+            emitted_watermark: Some(LaneWatermark { photo_video: 98, document: 0 }),
+            lane_durability: None,
+            total_count: Some(0),
+            backend: "grammers".into(),
+            cached: false,
+            search_cursor: None,
+            rpc_observations: vec![
+                LaneRpcObservation {
+                    lane: SearchLane::Document,
+                    latency_ms: 50,
+                    wall_latency_ms: 50,
+                    attempts: 1,
+                    rows_received: 1,
+                    candidate_count: Some(0),
+                },
+            ],
+            pv_observation: None,
+            doc_observation: None,
+        };
+
+        let pages = vec![page1, page2, page3, page4];
+        let manager = Arc::new(MediaIndexJobManager::with_page_source(
+            PathBuf::from("dummy"),
+            Arc::new(MockMediaPageSource {
+                pages,
+                call_count: AtomicUsize::new(0),
+            }),
+        ));
+
+        let req = StartMediaIndexJobRequest {
+            client_request_id: "req_p432_test".into(),
+            identity: TelegramIdentity {
+                session: "sess_p432".into(),
+                api_id: 12345,
+                api_hash: "hash".into(),
+            },
+            peer_id: "100123".into(),
+            topic_id: None,
+            page_size: Some(1),
+            initial_state: None,
+            force_mode: None,
+        };
+
+        let (tx_events, mut rx_events) = tokio::sync::mpsc::unbounded_channel();
+        let start_res = manager.start_job(req, FnEventSink(move |evt| {
+            let _ = tx_events.send(evt);
+            true
+        })).await.unwrap();
+
+        let job_id = start_res.job_id;
+
+        // Process 4 pages with ACKs
+        for _ in 0..4 {
+            let mut ack_id = 0u64;
+            while let Some(evt) = rx_events.recv().await {
+                if let MediaIndexEvent::Page(p) = evt {
+                    ack_id = p.ack_id;
+                    break;
+                }
+            }
+            assert!(ack_id > 0, "Must have received page event");
+            manager.process_ack(MediaIndexPageAck {
+                job_id,
+                ack_id,
+                outcome: MediaIndexAckOutcome::Committed,
+                committed_state: None,
+                error_code: None,
+            }).await;
+        }
+
+        // Wait for complete event
+        while let Some(evt) = rx_events.recv().await {
+            if let MediaIndexEvent::Complete(_) = evt {
+                break;
+            }
+        }
+
+        let job = {
+            let inner = manager.inner.read().await;
+            inner.jobs.get(&job_id).cloned().unwrap()
+        };
+
+        let status = job.status.read().await;
+        // Total search RPC calls: 2 (page 1) + 1 (page 2) + 0 (page 3) + 1 (page 4) = 4 RPCs!
+        assert_eq!(status.metrics.search_rpc_calls, 4, "Total actual search RPCs must be 4");
+        assert_eq!(status.metrics.page_cycles, 4, "Page cycles must be 4");
+        // Final candidate estimate: PV 149k + DOC 0 = 149,000
+        assert_eq!(status.metrics.candidate_total_estimate, Some(149_000), "Candidate total estimate must reflect known zero for DOC");
+        // Verify pure RPC EWMA is present and positive
+        assert!(status.metrics.rpc_latency_ewma_ms > 0.0, "RPC latency EWMA must be computed from pure RPC observations");
+        assert!(status.metrics.page_cycle_wall_ewma_ms.is_some(), "Page cycle wall EWMA must be tracked separately");
     }
 }
