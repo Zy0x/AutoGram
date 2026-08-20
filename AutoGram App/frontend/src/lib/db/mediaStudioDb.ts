@@ -1013,10 +1013,21 @@ export async function hasCachedMediaRecords(
   return new Promise<boolean>((resolve, reject) => {
     const tx = db.transaction('media', 'readonly');
     const store = tx.objectStore('media');
-    const index = store.index('byPeer');
-    const req = index.getKey(IDBKeyRange.only([String(accountId).trim(), String(peerId).trim()]));
-    req.onsuccess = () => resolve(req.result !== undefined);
-    req.onerror = () => reject(req.error);
+    const acc = String(accountId).trim();
+    const peer = String(peerId).trim();
+    if (store.indexNames.contains('byPeerMessage')) {
+      const index = store.index('byPeerMessage');
+      const req = index.getKey(IDBKeyRange.bound([acc, peer, 0], [acc, peer, Number.MAX_SAFE_INTEGER]));
+      req.onsuccess = () => resolve(req.result !== undefined);
+      req.onerror = () => reject(req.error);
+    } else if (store.indexNames.contains('byPeer')) {
+      const index = store.index('byPeer');
+      const req = index.getKey(IDBKeyRange.only([acc, peer]));
+      req.onsuccess = () => resolve(req.result !== undefined);
+      req.onerror = () => reject(req.error);
+    } else {
+      resolve(false);
+    }
   });
 }
 
@@ -1181,11 +1192,21 @@ export async function getAllCachedPeerMessageIds(
   return new Promise<Set<number>>((resolve, reject) => {
     const tx = db.transaction('media', 'readonly');
     const store = tx.objectStore('media');
-    const index = store.index('byPeer');
     const acc = String(accountId).trim();
     const p = String(peerId).trim();
-    const req = index.openCursor(IDBKeyRange.only([acc, p]));
     const ids = new Set<number>();
+
+    let req: IDBRequest<IDBCursorWithValue | null>;
+    if (store.indexNames.contains('byPeerMessage')) {
+      const index = store.index('byPeerMessage');
+      req = index.openCursor(IDBKeyRange.bound([acc, p, 0], [acc, p, Number.MAX_SAFE_INTEGER]));
+    } else if (store.indexNames.contains('byPeer')) {
+      const index = store.index('byPeer');
+      req = index.openCursor(IDBKeyRange.only([acc, p]));
+    } else {
+      resolve(ids);
+      return;
+    }
 
     req.onsuccess = () => {
       const cursor = req.result;
