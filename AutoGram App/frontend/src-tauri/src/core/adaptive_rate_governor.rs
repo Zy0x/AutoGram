@@ -383,7 +383,11 @@ impl AdaptiveRateGovernor {
                 }
 
                 // Check probe eligibility (1 -> 2 promotion)
-                if self.max_inflight == 1 && self.stable_successes >= 20 && self.confidence_score >= 0.6 {
+                if self.max_inflight == 1
+                    && self.stable_successes >= 20
+                    && self.confidence_score >= 0.6
+                    && !severe_flood_free_decay
+                {
                     let can_probe = self.last_demotion_at
                         .map(|t| t.elapsed() >= Duration::from_secs(20))
                         .unwrap_or(true);
@@ -977,12 +981,22 @@ mod tests {
         // it immediately, then normal successes progressively relieve it.
         gov.min_dispatch_spacing = Duration::from_millis(1_875);
         gov.rate_decay_percent = 85.0;
+        gov.confidence_score = 0.95;
+        gov.pending_probe = false;
+        let now = Instant::now();
+        for i in 0_u64..4 {
+            gov.committed_samples.push_back(CommittedProgressSample {
+                timestamp: now - Duration::from_secs(4 - i),
+                total_committed: i * 100,
+            });
+        }
         gov.on_rpc_observation(RpcObservation {
             latency_ms: 250,
             rows_yielded: 100,
             was_error: false,
         });
         assert!(gov.spacing_ms() <= 250);
+        assert!(!gov.pending_probe, "severe decay must not promote inflight while pacing recovers");
 
         for _ in 0..5 {
             gov.on_rpc_observation(RpcObservation {

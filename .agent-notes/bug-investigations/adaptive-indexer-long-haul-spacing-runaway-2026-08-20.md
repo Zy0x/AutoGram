@@ -27,6 +27,7 @@ The stable-state branch added 25 ms of spacing for every successful RPC while th
 - Apply latency-only pacing at most once per two-second cooldown.
 - Cap latency-only spacing at 250 ms.
 - If sustained throughput decays at least 45% with no FloodWait in the job, clamp runaway spacing and progressively relieve it.
+- Suppress inflight 1-to-2 promotion until severe flood-free decay has recovered.
 - Keep FloodWait recovery independent and monotonic; its pacing may exceed the latency-only cap.
 - Add a deterministic regression test for the repeated-success feedback loop and the observed 1,875 ms recovery case.
 
