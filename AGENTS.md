@@ -80,17 +80,68 @@ Do not claim done until:
 
 ## Remote E2E & Executable Desktop Control Standard (Mandatory)
 
-- When asked to perform "remote", remote testing, or remote control on AutoGram, agents **MUST** target the actual running native executable (`frontend.exe`) via CDP over WebView2, **NOT** standalone browser testing.
-- **Seamless Live Attach Priority (Zero Interruption Rule):**
-  - Always check if port 9230 is already open before attempting to launch any new process (e.g., when the user has launched the app via `Buka_AutoGram_LiveDev.bat`).
-  - If port 9230 is open, **DIRECTLY ATTACH** using `chromium.connectOverCDP('http://127.0.0.1:9230')` without closing, restarting, or interrupting the user's running window.
-  - **STRICTLY PROHIBITED:** Never run `Stop-Process`, `child.kill()`, or `browser.close()` on the user's active application. Upon completing a probe or automated action, only disconnect the Playwright CDP WebSocket connection, keeping the user's live window open and functional.
-- **Interactive Live UI Control Capabilities:**
-  - Agents are empowered to programmatically operate the live desktop window in real-time: clicking buttons/tabs, filling inputs/modals, scrolling views, triggering keyboard shortcuts (`Esc`, `Ctrl+V`), and inspecting DOM state or console logs live in front of the user.
-- **Strict Agent Script Execution Timeout (Anti-Hanging Protection):**
-  - All test scripts, node probes, CDP scripts, or subprocesses run by agents MUST include a hard exit timer (e.g. `setTimeout(() => process.exit(0), 10000)` or explicit command timeout).
-  - Never leave open-ended event listeners or unresolved promises that keep background processes running indefinitely.
-  - Agents must always proactively check and terminate background probe tasks after execution to prevent orphan background loops.
+When asked to perform "remote", remote testing, live inspection, or UI automation on AutoGram, agents **MUST** target the actual running native desktop executable (`frontend.exe`) via CDP (Chrome DevTools Protocol) over WebView2 on port **9230**, **NEVER** a standalone browser or mock web environment.
+
+### 1. Seamless Live Attach Priority (Zero Interruption Rule)
+- **Port 9230 Detection:** Always verify whether port 9230 is open (e.g. when app is running via `Buka_AutoGram_LiveDev.bat`).
+- **Direct Attach:** When port 9230 is active, **DIRECTLY ATTACH** using Playwright CDP without restarting or launching separate browser instances:
+  ```js
+  const browser = await chromium.connectOverCDP('http://127.0.0.1:9230');
+  const context = browser.contexts()[0] || browser;
+  const page = context.pages()[0] || (await context.newPage());
+  ```
+- **Strictly Prohibited:**
+  - NEVER call `Stop-Process`, `child.kill()`, or terminate the user's running `frontend.exe`.
+  - NEVER kill or close the active native window. When finishing automation, calling `await browser.close()` only disconnects the CDP WebSocket client connection; keep the user's live window open and running.
+  - The user's live desktop window must remain open, focused, and uninterrupted at all times.
+
+### 2. Interactive Live UI Control Capabilities
+Agents are empowered and expected to programmatically operate the live desktop application in real-time in front of the user:
+- **Navigation & Tabs:** Switch between Drive Explorer, Media Studio, Forwarder Workspace, Transfer Queue, Settings, and Accounts.
+- **Interactions:** Click buttons, open dropdowns, filter media, toggle selection checkmarks, double-click to open folders/modals, fill inputs, and test hotkeys (`Esc`, `Ctrl+A`, `Ctrl+V`, `Delete`, `Space`).
+- **Inspection & Diagnostics:** Read DOM elements, evaluate React state / Zustand stores, inspect IndexedDB / SQLite state, and capture console logs / network requests live.
+- **Verification:** Confirm visual state, badge styling, modal open/close states, and layout responsiveness without requiring manual user intervention.
+
+### 3. Strict Agent Script Execution Timeout (Anti-Hanging Protection)
+- **Mandatory Hard Exit Timer:** Every test script, node probe, CDP script, or subprocess run by agents MUST include a hard exit timeout:
+  ```js
+  setTimeout(() => {
+    console.log('[AGENT_PROBE_TIMEOUT] Exiting cleanly.');
+    process.exit(0);
+  }, 10000);
+  ```
+- **No Open Listeners:** Never leave unhandled event listeners, unresolved promises, or persistent intervals that prevent node scripts from exiting.
+- **Task Management:** Proactively check background tasks with `manage_task` and clean up any finished probes to prevent orphan background processes.
+
+### 4. Standard Remote Probe Template
+```js
+import { chromium } from 'playwright';
+
+(async () => {
+  const timer = setTimeout(() => {
+    console.error('Probe timeout reached. Exiting.');
+    process.exit(0);
+  }, 10000);
+
+  try {
+    const browser = await chromium.connectOverCDP('http://127.0.0.1:9230');
+    const page = browser.contexts()[0]?.pages()[0];
+    if (!page) throw new Error('No active desktop page found on CDP port 9230');
+
+    // Perform live action or inspection here:
+    const title = await page.title();
+    console.log('Connected to AutoGram Desktop:', title);
+
+    // Disconnect CDP WebSocket cleanly without closing app
+    await browser.close();
+  } catch (err) {
+    console.error('CDP Probe Error:', err.message);
+  } finally {
+    clearTimeout(timer);
+    process.exit(0);
+  }
+})();
+```
 
 ## Safety & language
 

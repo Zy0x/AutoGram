@@ -32,13 +32,32 @@ Dokumen ini berfungsi sebagai pelengkap untuk aturan pengembangan proyek AutoGra
    - Setiap penambahan key di `id/*.json` **WAJIB** secara sinkron menambahkan key yang sama di `en/*.json` (100% key parity).
    - Gunakan hook `const { t } = useTranslation();` dari `react-i18next` di seluruh komponen UI.
 8. **Remote E2E & Executable Desktop Control Standard (Mandatory):**
-   - Setiap kali pengguna meminta untuk melakukan "remote", "remote test", atau pengujian otomatisasi pada AutoGram, agen **WAJIB** mengendalikan langsung proses executable native (`frontend.exe`) via CDP (Chrome DevTools Protocol pada WebView2), **BUKAN** browser standalone.
+   - Setiap kali pengguna meminta untuk melakukan "remote", "remote test", atau pengujian otomatisasi pada AutoGram, agen **WAJIB** mengendalikan langsung proses executable native (`frontend.exe`) via CDP (Chrome DevTools Protocol pada WebView2 di port `9230`), **BUKAN** browser standalone.
    - **Mekanisme Prioritas Live Attach (Zero Interruption Rule):**
      - Selalu cek apakah port 9230 sudah aktif (misal saat pengguna membuka aplikasi via `Buka_AutoGram_LiveDev.bat`).
      - Jika port 9230 aktif, **LANGSUNG ATTACH** menggunakan `chromium.connectOverCDP('http://127.0.0.1:9230')` tanpa mematikan, me-restart, atau menutup jendela pengguna yang sedang terbuka.
-     - **DILARANG KERAS:** Memanggil `Stop-Process`, `child.kill()`, atau `browser.close()` pada aplikasi aktif pengguna. Setelah pengujian/aksi selesai, hanya putus koneksi WebSocket CDP dan biarkan jendela aplikasi tetap berjalan.
+     - **DILARANG KERAS:** Memanggil `Stop-Process`, `child.kill()`, atau `browser.close()` yang mematikan aplikasi aktif pengguna. Setelah pengujian/aksi selesai, hanya putus koneksi WebSocket CDP dan biarkan jendela aplikasi tetap berjalan normal.
    - **Kemampuan Operasi UI Live (Real Remote Control):**
-     - Agen dapat mengoperasikan jendela aplikasi desktop secara real-time di layar pengguna: mengklik tombol/tab, mengisi formulir, membuka/menutup modal, scrolling daftar berkas, menekan shortcut (`Esc`, `Ctrl+V`), serta menginspeksi console log dan state DOM secara langsung.
+     - Agen dapat mengoperasikan jendela aplikasi desktop secara real-time di layar pengguna: mengklik tombol/tab, mengisi formulir, membuka/menutup modal, scrolling daftar berkas, menekan shortcut (`Esc`, `Ctrl+A`, `Ctrl+V`), serta menginspeksi console log dan state DOM secara langsung.
+   - **Template Probe Skrip CDP Standar:**
+     ```js
+     import { chromium } from 'playwright';
+     (async () => {
+       const timer = setTimeout(() => { console.log('Timeout. Exiting.'); process.exit(0); }, 10000);
+       try {
+         const browser = await chromium.connectOverCDP('http://127.0.0.1:9230');
+         const page = browser.contexts()[0]?.pages()[0];
+         if (!page) throw new Error('No desktop page found on CDP 9230');
+         // Operasi / inspeksi UI di sini...
+         await browser.close(); // hanya menutup websocket CDP
+       } catch (e) {
+         console.error('CDP Error:', e.message);
+       } finally {
+         clearTimeout(timer);
+         process.exit(0);
+       }
+     })();
+     ```
 9. **Batas Waktu Ketat Eksekusi Skrip Agen (*Strict Agent Script Execution Timeout*):**
    - Setiap skrip pengujian, probe node, otomatisasi CDP, atau subproses yang dijalankan oleh agen **WAJIB** memiliki timer keluar keras (*hard exit timer*, misal: `setTimeout(() => process.exit(0), 10000)`).
    - DILARANG membiarkan listener atau promise terbuka yang menggantung proses di latar belakang (*background task*).
