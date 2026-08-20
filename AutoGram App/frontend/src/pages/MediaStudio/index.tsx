@@ -3459,7 +3459,7 @@ function MediaDriveDesktop({
   }, []);
 
   const handleIndexAllMetadata = useCallback(async () => {
-    if (indexingActiveRef.current || loadingMoreFiles) return;
+    if (indexingActiveRef.current) return;
 
     const tid = topicFilterRef.current;
     const cacheKey = getDriveCacheKey(creds?.session || session, peerId, tid);
@@ -3469,6 +3469,7 @@ function MediaDriveDesktop({
     const sessionKey = creds?.session || session || '';
     const apiId = creds?.apiId || Number(import.meta.env.VITE_TELEGRAM_API_ID) || 0;
     const apiHash = creds?.apiHash || String(import.meta.env.VITE_TELEGRAM_API_HASH) || '';
+    const peerIdStr = peerId == null ? 'me' : String(peerId);
 
     filesHasMoreRef.current = true;
     setFilesHasMore(true);
@@ -3532,7 +3533,7 @@ function MediaDriveDesktop({
             apiId: Number(apiId),
             apiHash,
           },
-          peerId: String(peerId),
+          peerId: peerIdStr,
           topicId: tid ?? null,
           pageSize: 100,
           initialState: indexState,

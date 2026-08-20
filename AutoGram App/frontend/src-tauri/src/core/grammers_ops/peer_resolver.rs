@@ -272,6 +272,8 @@ pub(crate) async fn resolve_peer(
         || s.eq_ignore_ascii_case("saved messages")
         || s.eq_ignore_ascii_case("saved_messages")
         || s.eq_ignore_ascii_case("pesan tersimpan")
+        || s.eq_ignore_ascii_case("null")
+        || s.eq_ignore_ascii_case("undefined")
         || s == "0"
         || s.is_empty();
 

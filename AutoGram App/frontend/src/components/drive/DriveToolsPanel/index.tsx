@@ -946,7 +946,7 @@ function DupTab({
   }, [filesHasMore]);
 
   const startDeepScan = async () => {
-    if (!onLoadMoreFiles || !filesHasMoreRef.current || isScanning) return;
+    if (!onLoadMoreFiles || isScanning) return;
     setIsScanning(true);
     scanStopRef.stop = false;
     setFloodWaitSeconds(null);
@@ -958,6 +958,7 @@ function DupTab({
       if (onRefreshFiles) {
         try {
           await onRefreshFiles();
+          filesHasMoreRef.current = true;
         } catch {
           /* ignore */
         }
