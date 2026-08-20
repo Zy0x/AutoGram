@@ -443,6 +443,30 @@ pub fn clear_all_entries() -> usize {
     count
 }
 
+/// Prune entries that have completed or cancelled and have not been accessed for `ttl`.
+pub fn prune_expired_entries(ttl: Duration) -> usize {
+    let now = now_ms();
+    let ttl_ms = ttl.as_millis();
+    let mut to_remove = Vec::new();
+
+    {
+        let map = live_map().read();
+        for (sid, entry) in map.iter() {
+            if entry.done || entry.cancelled || entry.error.is_some() {
+                if now.saturating_sub(entry.updated_at_ms) > ttl_ms {
+                    to_remove.push(sid.clone());
+                }
+            }
+        }
+    }
+
+    let pruned_count = to_remove.len();
+    for sid in to_remove {
+        remove_entry(&sid);
+    }
+    pruned_count
+}
+
 pub fn status_of(sid: &str) -> StreamStatusDto {
     match get_entry(sid) {
         None => StreamStatusDto {
@@ -855,6 +879,8 @@ fn handle_stream(request: Request, sid: &str) {
         res.add_header(h);
     }
     res.add_header(Header::from_bytes(&b"Accept-Ranges"[..], &b"bytes"[..]).unwrap());
+    res.add_header(Header::from_bytes(&b"Cache-Control"[..], &b"public, max-age=31536000, immutable"[..]).unwrap());
+    res.add_header(Header::from_bytes(&b"X-Content-Type-Options"[..], &b"nosniff"[..]).unwrap());
     if status == 206 {
         if let Ok(h) = Header::from_bytes(&b"Content-Range"[..], cr_str.as_bytes()) {
             res.add_header(h);

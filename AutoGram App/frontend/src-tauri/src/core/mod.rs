@@ -36,6 +36,7 @@ pub mod media_meta;
 pub mod media_mutation;
 pub mod media_prep;
 pub mod media_statistics;
+pub mod memory_gc;
 pub mod migration_run;
 pub mod moov_sidecar;
 pub mod mp4_keyframe;

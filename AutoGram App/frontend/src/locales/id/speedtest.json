@@ -1,4 +1,7 @@
 {
+  "delta_sync_running": "Sinkronisasi delta Telegram (memeriksa pembaruan)...",
+  "gc_running": "Membersihkan memori RAM dan mengoptimalkan buffer...",
+  "gc_completed": "Pembersihan memori selesai",
   "media_index_reconciled": "{{media}} media terindeks · {{skipped}} pesan nonmedia dilewati",
   "duplicate_scan_index": "Pindai indeks chat ({{count}} item)",
   "duplicate_rescan_index": "Validasi ulang indeks ({{count}} item)",

@@ -35,6 +35,10 @@ pub fn open_db() -> Result<Connection, String> {
         PRAGMA busy_timeout = 60000;
         PRAGMA journal_mode = WAL;
         PRAGMA synchronous = NORMAL;
+        PRAGMA wal_autocheckpoint = 1000;
+        PRAGMA cache_size = -64000;
+        PRAGMA mmap_size = 268435456;
+        PRAGMA temp_store = MEMORY;
         ",
     )
     .map_err(|e| format!("Gagal set PRAGMA: {}", e))?;

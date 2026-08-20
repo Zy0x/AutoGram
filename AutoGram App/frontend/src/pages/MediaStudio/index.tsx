@@ -3657,14 +3657,14 @@ function MediaDriveDesktop({
       indexState = null;
     }
 
-    // INDEX ALL means complete historical backfill scan.
-    // If a previous historical backfill has already completed (backfillComplete === true),
-    // discard only its durable cursor/checkpoint so this explicit user action starts again from head.
-    // Existing media records in IndexedDB are preserved and updated idempotently by Message ID.
-    if (indexState?.backfillComplete === true) {
-      console.info('[Indexer] Previous backfill was complete; resetting checkpoint for explicit fresh Index All scan');
-      await resetMediaIndexState(mediaContext);
-      indexState = null;
+    const isAlreadyBackfilled = indexState?.backfillComplete === true;
+    const targetMode: 'historical_backfill' | 'delta_sync' = isAlreadyBackfilled
+      ? 'delta_sync'
+      : 'historical_backfill';
+
+    if (targetMode === 'delta_sync') {
+      console.info('[Indexer] Previous backfill is complete; running live 2-way delta sync to check Telegram server changes');
+      setStatusText(t('speedtest.delta_sync_running'));
     }
 
     let accumulatedNewFiles: DriveFile[] = [];
@@ -3687,7 +3687,7 @@ function MediaDriveDesktop({
           topicId: tid ?? null,
           pageSize: 100,
           initialState: indexState,
-          forceMode: 'historical_backfill',
+          forceMode: targetMode,
         },
         async (event: TgMediaIndexEvent) => {
           if (!indexingActiveRef.current || gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) {

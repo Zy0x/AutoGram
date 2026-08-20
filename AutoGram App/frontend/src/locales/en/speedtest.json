@@ -1,4 +1,7 @@
 {
+  "delta_sync_running": "Syncing Telegram deltas (checking for updates)...",
+  "gc_running": "Cleaning RAM memory and optimizing buffers...",
+  "gc_completed": "Memory cleanup complete",
   "media_index_reconciled": "{{media}} media indexed · {{skipped}} non-media messages skipped",
   "duplicate_scan_index": "Scan chat index ({{count}} items)",
   "duplicate_rescan_index": "Validate index again ({{count}} items)",

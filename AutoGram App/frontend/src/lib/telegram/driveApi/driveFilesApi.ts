@@ -107,7 +107,13 @@ export async function driveAvatarsBatch(
 }
 
 import type { DriveMediaContext } from '../driveTypes';
-import { buildDriveMediaContext } from '../../db/mediaStudioDb';
+import {
+  buildDriveMediaContext,
+  getMediaPageByContext,
+  getMediaIndexState,
+  getMediaRecordsCountByContext,
+} from '../../db/mediaStudioDb';
+import { mediaListCache } from '../../cache/multiTierCache';
 
 const inFlightPages = new Map<string, Promise<any>>();
 
@@ -143,6 +149,49 @@ export async function driveListFiles(
     ? `${opts.searchCursor.photoVideo?.fetchOffsetId ?? 0}:${opts.searchCursor.document?.fetchOffsetId ?? 0}:${opts.searchCursor.photoVideo?.exhausted ? 1 : 0}:${opts.searchCursor.document?.exhausted ? 1 : 0}:${opts.searchCursor.scope?.minId ?? 0}`
     : 'fresh';
   const contextKey = `${mediaContext.accountId}:${mediaContext.peerId}:${mediaContext.scopeKind}:${mediaContext.topicId ?? 'none'}:${opts?.contentFilter ?? 'media'}:${offsetId ?? 0}:${minId}:${localOffset}:${cursorFingerprint}`;
+
+  // L1 In-Memory Fast Cache Check
+  if (!opts?.bypassCache && mediaListCache.has(contextKey)) {
+    return mediaListCache.get(contextKey);
+  }
+
+  // L2 Persistent Database Instant Paint Check (when opening fresh or after restart)
+  if (!opts?.bypassCache && offsetId == null && localOffset === 0 && !opts?.searchCursor && opts?.contentFilter !== 'links') {
+    try {
+      const indexState = await getMediaIndexState(mediaContext);
+      if (indexState && (indexState.backfillComplete || indexState.newestCommittedId > 0)) {
+        const localRows = await getMediaPageByContext(mediaContext, sortMode, localOffset, pageSize);
+        if (localRows && localRows.length > 0) {
+          const totalCount = (await getMediaRecordsCountByContext(mediaContext)) || indexState.exactMediaCount || localRows.length;
+          const cachedResult = {
+            status: 'success',
+            folder_id: folderId,
+            topic_id: topicId,
+            files: localRows,
+            total: localRows.length,
+            page_size: pageSize,
+            has_more: localRows.length >= pageSize && localRows.length < totalCount,
+            next_offset_id: localRows[localRows.length - 1]?.id ?? null,
+            search_cursor: null,
+            lane_counts: null,
+            emitted_watermark: null,
+            lane_durability: null,
+            total_count: totalCount,
+            total_bytes: indexState.exactBytes ?? null,
+            stats_accurate: true,
+            stats_pending: false,
+            cached: true,
+            invalid_topic: false,
+            backend: 'indexeddb_l2',
+          };
+          mediaListCache.set(contextKey, cachedResult, 15000); // 15s micro-cache
+          return cachedResult;
+        }
+      }
+    } catch {
+      /* Fallback cleanly to MTProto network */
+    }
+  }
 
   if (inFlightPages.has(contextKey)) {
     return inFlightPages.get(contextKey)!;
@@ -208,7 +257,7 @@ export async function driveListFiles(
         } else if (sortMode === 'name_asc') {
           files = [...files].sort((a, b) => a.name.localeCompare(b.name));
         }
-        return {
+        const result = {
           status: 'success',
           folder_id: folderId,
           topic_id: topicId,
@@ -229,6 +278,8 @@ export async function driveListFiles(
           invalid_topic: false,
           backend: 'grammers',
         } as any;
+        mediaListCache.set(contextKey, result);
+        return result;
       }
       throw new Error(gr?.userMessage || gr?.error?.message || 'Daftar media native gagal.');
     } catch (e) {

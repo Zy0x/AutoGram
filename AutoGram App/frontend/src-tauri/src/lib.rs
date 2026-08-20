@@ -1581,6 +1581,11 @@ async fn tg_complete_channel_sync_reconcile(
 }
 
 #[tauri::command]
+async fn tg_run_garbage_collection() -> Result<core::memory_gc::MemoryGcReport, String> {
+    Ok(core::memory_gc::run_garbage_collection_pass())
+}
+
+#[tauri::command]
 async fn tg_upload_file(
     app: AppHandle,
     request: core::telegram_ops::UploadFileRequest,
@@ -2315,12 +2320,15 @@ pub fn run() {
             reset_custom_cache_dir,
             fetch_remote_json_metadata,
             fetch_remote_text_content,
+            tg_run_garbage_collection,
         ])
         .setup(|app| {
             // Best-effort: create sessions/cache/temp + tighten ACLs + seed API from .env
             let _ = secrets::ensure_secure_dirs(app.handle().clone());
             // Clear any leftover ghost sessions on disk
             let _ = session_clone::clear_ghost_sessions_disk(app.handle());
+            // Active RAM Garbage Collection and WAL maintenance daemon (45s period)
+            core::memory_gc::start_background_gc_daemon(45);
             // Hybrid: start Rust Range HTTP server (Python GetFile publishes registry)
             if let Ok(worker) = resolve_worker_dir(app.handle()) {
                 let reg = worker.join("cache").join("stream_registry");

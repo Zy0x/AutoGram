@@ -366,6 +366,70 @@ export async function getMediaPageByContext(
   });
 }
 
+export async function getAllMediaRecordsByContext(
+  context: DriveMediaContext,
+  limit: number = 100000
+): Promise<MediaRecord[]> {
+  const db = await initDb();
+  return new Promise<MediaRecord[]>((resolve, reject) => {
+    const tx = db.transaction('media', 'readonly');
+    const store = tx.objectStore('media');
+    const normTopic = normalizeTopicId(context.scopeKind, context.topicId);
+
+    if (!store.indexNames.contains('byContextDate')) {
+      resolve([]);
+      return;
+    }
+
+    const index = store.index('byContextDate');
+    const minKey = [context.accountId, context.peerId, context.scopeKind, normTopic, ''];
+    const maxKey = [context.accountId, context.peerId, context.scopeKind, normTopic, '\uffff'];
+    const range = IDBKeyRange.bound(minKey, maxKey);
+
+    const results: MediaRecord[] = [];
+    const request = index.openCursor(range, 'prev');
+    request.onsuccess = (e) => {
+      const cursor = (e.target as IDBRequest<IDBCursorWithValue | null>).result;
+      if (!cursor) {
+        resolve(results);
+        return;
+      }
+      results.push(cursor.value);
+      if (results.length < limit) {
+        cursor.continue();
+      } else {
+        resolve(results);
+      }
+    };
+    request.onerror = () => reject(request.error || new Error('getAllMediaRecordsByContext query failed'));
+  });
+}
+
+export async function getMediaRecordsCountByContext(
+  context: DriveMediaContext
+): Promise<number> {
+  const db = await initDb();
+  return new Promise<number>((resolve, reject) => {
+    const tx = db.transaction('media', 'readonly');
+    const store = tx.objectStore('media');
+    const normTopic = normalizeTopicId(context.scopeKind, context.topicId);
+
+    if (!store.indexNames.contains('byContextMessage')) {
+      resolve(0);
+      return;
+    }
+
+    const index = store.index('byContextMessage');
+    const minKey = [context.accountId, context.peerId, context.scopeKind, normTopic, -Infinity];
+    const maxKey = [context.accountId, context.peerId, context.scopeKind, normTopic, Infinity];
+    const range = IDBKeyRange.bound(minKey, maxKey);
+
+    const request = index.count(range);
+    request.onsuccess = () => resolve(request.result || 0);
+    request.onerror = () => reject(request.error || new Error('getMediaRecordsCountByContext failed'));
+  });
+}
+
 export async function getExactMediaStatsByContext(
   context: DriveMediaContext
 ): Promise<{ count: number; totalBytes: number }> {
@@ -649,6 +713,81 @@ export async function resetMediaIndexState(
   const store = tx.objectStore('mediaIndexState');
   const topicNorm = normalizeTopicId(context.scopeKind, context.topicId);
   await requestToPromise(store.delete([context.accountId, context.peerId, context.scopeKind, topicNorm]));
+}
+
+/**
+ * Real-time 2-Way Delta Reconciliation.
+ * Atomically inserts/updates new Telegram media items at the head of the index,
+ * deletes any removed message IDs, and updates the newestCommittedId watermark.
+ */
+export async function reconcileDeltaBatch(
+  context: DriveMediaContext,
+  incomingFiles: DriveFile[],
+  deletedIds: number[] = []
+): Promise<{ added: number; updated: number; deleted: number; newState: MediaIndexState | null }> {
+  const db = await initDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(['media', 'mediaIndexState'], 'readwrite');
+    const mediaStore = tx.objectStore('media');
+    const stateStore = tx.objectStore('mediaIndexState');
+    const now = Date.now();
+    const topicNorm = normalizeTopicId(context.scopeKind, context.topicId);
+
+    let addedCount = 0;
+    let updatedCount = 0;
+    let deletedCount = 0;
+    let committedState: MediaIndexState | null = null;
+
+    tx.oncomplete = () => {
+      resolve({ added: addedCount, updated: updatedCount, deleted: deletedCount, newState: committedState });
+    };
+    tx.onerror = () => reject(tx.error || new Error('reconcileDeltaBatch failed'));
+
+    // 1. Process deletions
+    if (deletedIds && deletedIds.length > 0) {
+      for (const id of deletedIds) {
+        if (typeof id === 'number' && id > 0) {
+          mediaStore.delete([context.accountId, context.peerId, context.scopeKind, topicNorm, id]);
+          deletedCount++;
+        }
+      }
+    }
+
+    // 2. Process incoming files
+    const parsedPeerId = parseInt(String(context.peerId), 10) || 0;
+    const scopedRows = scopeMediaRecords(incomingFiles, context, parsedPeerId);
+
+    for (const rec of scopedRows) {
+      if (!rec.accountId || !rec.peerId || !rec.scopeKind || typeof rec.id !== 'number' || rec.id <= 0) continue;
+      const fullRecord: MediaRecord = {
+        ...rec,
+        name: (rec.name || '').trim(),
+        lastAccessed: now,
+        accessCount: 1,
+      };
+      mediaStore.put(fullRecord);
+      addedCount++;
+    }
+
+    // 3. Update index state
+    const stateReq = stateStore.get([context.accountId, context.peerId, context.scopeKind, topicNorm]);
+    stateReq.onsuccess = () => {
+      const existing: MediaIndexState | undefined = stateReq.result;
+      if (existing) {
+        const incomingIds = incomingFiles.map((f) => Number(f.id)).filter((id) => Number.isFinite(id) && id > 0);
+        const maxIncomingId = incomingIds.length ? Math.max(...incomingIds) : 0;
+        const newMax = maxIncomingId > 0 ? Math.max(existing.newestCommittedId, maxIncomingId) : existing.newestCommittedId;
+
+        const updatedState: MediaIndexState = {
+          ...existing,
+          newestCommittedId: newMax,
+          updatedAt: now,
+        };
+        committedState = updatedState;
+        stateStore.put(updatedState);
+      }
+    };
+  });
 }
 
 export function scopeMediaRecords(
