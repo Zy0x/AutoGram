@@ -168,13 +168,16 @@ export function DriveStorageInfoBadge({
 
   const summaryText = useMemo(() => {
     const isAccurate = statusMode === 'accurate' || statsAccurate || isFinal || hasMore === false;
-    const countFormatted = effectiveTotalCount.toLocaleString();
+    const countFormatted =
+      totalCount != null && totalCount > 0 && fileCount > 0 && fileCount < totalCount
+        ? `${fileCount.toLocaleString()} / ${totalCount.toLocaleString()}`
+        : effectiveTotalCount.toLocaleString();
     const countPart = isAccurate
       ? t('speedtest.items_total_simple', { count: countFormatted, defaultValue: `${countFormatted} Items` })
       : t('speedtest.items_total_estimate', { count: countFormatted });
     const spacePart = spaceLabel ? ` · ${isAccurate ? spaceLabel.replace(/\+$/, '') : spaceLabel}` : '';
     return `${countPart}${spacePart}`;
-  }, [effectiveTotalCount, isFinal, statsAccurate, statusMode, hasMore, spaceLabel, t]);
+  }, [totalCount, fileCount, effectiveTotalCount, isFinal, statsAccurate, statusMode, hasMore, spaceLabel, t]);
 
   return (
     <div
@@ -251,7 +254,11 @@ export function DriveStorageInfoBadge({
           <div className="td-storage-metrics-grid">
             <div className="td-storage-metric-box">
               <span className="td-metric-label">{t('speedtest.storage_info_items')}</span>
-              <strong className="td-metric-value">{effectiveTotalCount.toLocaleString()}</strong>
+              <strong className="td-metric-value">
+                {totalCount != null && totalCount > 0 && fileCount > 0 && fileCount < totalCount
+                  ? `${fileCount.toLocaleString()} / ${totalCount.toLocaleString()}`
+                  : effectiveTotalCount.toLocaleString()}
+              </strong>
             </div>
 
             <div className="td-storage-metric-box">
