@@ -465,6 +465,8 @@ pub struct ListMediaResult {
     pub total_count: Option<usize>,
     pub backend: String,
     pub cached: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub rpc_observations: Vec<LaneRpcObservation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pv_observation: Option<LaneRpcObservation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1212,11 +1214,9 @@ pub async fn list_media_page_async(
                     let init_offset = offset_id.unwrap_or(0) as i32;
                     let mut cursor = normalize_search_cursor(initial_cursor, &current_scope, init_offset);
 
-                    let mut lane_counts = LaneCounts::default();
-                    let mut candidate_estimate = 0usize;
-
-                    let mut pv_observation = None;
-                    let mut doc_observation = None;
+                    let mut latest_pv_count: Option<usize> = None;
+                    let mut latest_doc_count: Option<usize> = None;
+                    let mut rpc_observations: Vec<LaneRpcObservation> = Vec::new();
 
                     // 3. Frontier-Aware Lazy Replenishment Loop (P4.3 RPC Elision)
                     let mut merged_items: Vec<MergedMediaRow> = Vec::with_capacity(limit);
@@ -1280,11 +1280,10 @@ pub async fn list_media_page_async(
                                         cursor.photo_video.fetch_offset_id = last_id;
                                     }
                                     cursor.photo_video.exhausted = pv_exhausted;
-                                    lane_counts.photo_video = pv_count_opt;
                                     if let Some(c) = pv_count_opt {
-                                        candidate_estimate += c;
+                                        latest_pv_count = Some(c);
                                     }
-                                    pv_observation = Some(pv_obs);
+                                    rpc_observations.push(pv_obs);
 
                                     let (doc_rows, doc_lowest_id, doc_exhausted, doc_count_opt, doc_obs) = doc_res?;
                                     cursor.pending_document.extend(doc_rows);
@@ -1294,11 +1293,10 @@ pub async fn list_media_page_async(
                                         cursor.document.fetch_offset_id = last_id;
                                     }
                                     cursor.document.exhausted = doc_exhausted;
-                                    lane_counts.document = doc_count_opt;
                                     if let Some(c) = doc_count_opt {
-                                        candidate_estimate += c;
+                                        latest_doc_count = Some(c);
                                     }
-                                    doc_observation = Some(doc_obs);
+                                    rpc_observations.push(doc_obs);
                                 } else {
                                     // Sequential Lane Replenishment
                                     let (pv_rows, pv_lowest_id, pv_exhausted, pv_count_opt, pv_obs) = fetch_media_lane_page_async(
@@ -1322,11 +1320,10 @@ pub async fn list_media_page_async(
                                         cursor.photo_video.fetch_offset_id = last_id;
                                     }
                                     cursor.photo_video.exhausted = pv_exhausted;
-                                    lane_counts.photo_video = pv_count_opt;
                                     if let Some(c) = pv_count_opt {
-                                        candidate_estimate += c;
+                                        latest_pv_count = Some(c);
                                     }
-                                    pv_observation = Some(pv_obs);
+                                    rpc_observations.push(pv_obs);
 
                                     let (doc_rows, doc_lowest_id, doc_exhausted, doc_count_opt, doc_obs) = fetch_media_lane_page_async(
                                         client,
@@ -1349,11 +1346,10 @@ pub async fn list_media_page_async(
                                         cursor.document.fetch_offset_id = last_id;
                                     }
                                     cursor.document.exhausted = doc_exhausted;
-                                    lane_counts.document = doc_count_opt;
                                     if let Some(c) = doc_count_opt {
-                                        candidate_estimate += c;
+                                        latest_doc_count = Some(c);
                                     }
-                                    doc_observation = Some(doc_obs);
+                                    rpc_observations.push(doc_obs);
                                 }
                             }
                             FrontierStep::FetchPv => {
@@ -1378,11 +1374,10 @@ pub async fn list_media_page_async(
                                     cursor.photo_video.fetch_offset_id = last_id;
                                 }
                                 cursor.photo_video.exhausted = is_exhausted;
-                                lane_counts.photo_video = count_opt;
                                 if let Some(c) = count_opt {
-                                    candidate_estimate += c;
+                                    latest_pv_count = Some(c);
                                 }
-                                pv_observation = Some(obs);
+                                rpc_observations.push(obs);
                             }
                             FrontierStep::FetchDoc => {
                                 let (rows, lowest_id, is_exhausted, count_opt, obs) = fetch_media_lane_page_async(
@@ -1406,11 +1401,10 @@ pub async fn list_media_page_async(
                                     cursor.document.fetch_offset_id = last_id;
                                 }
                                 cursor.document.exhausted = is_exhausted;
-                                lane_counts.document = count_opt;
                                 if let Some(c) = count_opt {
-                                    candidate_estimate += c;
+                                    latest_doc_count = Some(c);
                                 }
-                                doc_observation = Some(obs);
+                                rpc_observations.push(obs);
                             }
                             _ => break,
                         }
@@ -1459,6 +1453,25 @@ pub async fn list_media_page_async(
 
                     let next_offset_id = emitted_files.last().map(|f| f.id);
 
+                    let lane_counts = if latest_pv_count.is_some() || latest_doc_count.is_some() {
+                        Some(LaneCounts {
+                            photo_video: latest_pv_count,
+                            document: latest_doc_count,
+                        })
+                    } else {
+                        None
+                    };
+
+                    let total_count = match (latest_pv_count, latest_doc_count) {
+                        (Some(pv), Some(doc)) => Some(pv + doc),
+                        (Some(pv), None) => Some(pv),
+                        (None, Some(doc)) => Some(doc),
+                        (None, None) => None,
+                    };
+
+                    let pv_observation = rpc_observations.iter().find(|o| o.lane == SearchLane::PhotoVideo).cloned();
+                    let doc_observation = rpc_observations.iter().find(|o| o.lane == SearchLane::Document).cloned();
+
                     Ok(ListMediaResult {
                         status: "ok".to_string(),
                         folder_id,
@@ -1467,13 +1480,14 @@ pub async fn list_media_page_async(
                         has_more,
                         next_offset_id,
                         search_cursor: Some(cursor),
-                        lane_counts: Some(lane_counts),
+                        lane_counts,
                         emitted_watermark: Some(emitted_watermark),
                         lane_durability: Some(lane_durability),
-                        total_count: if candidate_estimate > 0 { Some(candidate_estimate) } else { None },
+                        total_count,
                         backend: BACKEND.to_string(),
                         cached: false,
                         files: emitted_files,
+                        rpc_observations,
                         pv_observation,
                         doc_observation,
                     })
@@ -2032,30 +2046,32 @@ mod tests {
 
     #[test]
     fn test_frontier_scheduler_matches_full_reference_merge_scale() {
-        for scale in [1_000, 10_000, 50_000, 100_000] {
+        for scale in [1_000, 10_000, 50_000, 100_000, 250_000, 500_000, 1_000_000] {
             // Generate synthetic descending streams for PV and DOC
-            let mut pv_all: Vec<MediaFileRow> = (1..=(scale as i64))
+            let pv_all: Vec<MediaFileRow> = (1..=(scale as i64))
                 .filter(|id| id % 2 == 0 || id % 7 == 0)
                 .rev()
                 .map(dummy_row)
                 .collect();
-            let mut doc_all: Vec<MediaFileRow> = (1..=(scale as i64))
+            let doc_all: Vec<MediaFileRow> = (1..=(scale as i64))
                 .filter(|id| id % 3 == 0 || id % 7 == 0)
                 .rev()
                 .map(dummy_row)
                 .collect();
 
             // Reference merge: full concat, sort descending, dedup by ID
-            let mut reference = Vec::new();
+            let mut reference = Vec::with_capacity(pv_all.len() + doc_all.len());
             reference.extend(pv_all.iter().map(|r| r.id));
             reference.extend(doc_all.iter().map(|r| r.id));
             reference.sort_unstable_by(|a, b| b.cmp(a));
             reference.dedup();
 
-            // Paginated simulated frontier scheduler merge
-            let mut emitted_stream = Vec::new();
+            // Paginated simulated frontier scheduler merge using O(1) cursor indexing
+            let mut emitted_stream = Vec::with_capacity(reference.len());
             let mut pending_pv = Vec::new();
             let mut pending_doc = Vec::new();
+            let mut pv_cursor = 0usize;
+            let mut doc_cursor = 0usize;
             let mut pv_offset = 0i32;
             let mut doc_offset = 0i32;
             let mut pv_exhausted = false;
@@ -2084,55 +2100,71 @@ mod tests {
 
                     match step {
                         FrontierStep::FetchBoth => {
-                            // Replenish PV chunk
+                            // Replenish PV chunk in O(1) via slice
                             if !pv_exhausted {
-                                let take_cnt = 100.min(pv_all.len());
-                                let chunk: Vec<_> = pv_all.drain(..take_cnt).collect();
-                                if let Some(last) = chunk.last() {
-                                    pv_offset = last.id as i32;
+                                let rem = pv_all.len() - pv_cursor;
+                                let take_cnt = 100.min(rem);
+                                if take_cnt > 0 {
+                                    let chunk = &pv_all[pv_cursor..pv_cursor + take_cnt];
+                                    pv_cursor += take_cnt;
+                                    if let Some(last) = chunk.last() {
+                                        pv_offset = last.id as i32;
+                                    }
+                                    pending_pv.extend_from_slice(chunk);
                                 }
-                                if pv_all.is_empty() {
+                                if pv_cursor >= pv_all.len() {
                                     pv_exhausted = true;
                                 }
-                                pending_pv.extend(chunk);
                             }
-                            // Replenish DOC chunk
+                            // Replenish DOC chunk in O(1) via slice
                             if !doc_exhausted {
-                                let take_cnt = 100.min(doc_all.len());
-                                let chunk: Vec<_> = doc_all.drain(..take_cnt).collect();
-                                if let Some(last) = chunk.last() {
-                                    doc_offset = last.id as i32;
+                                let rem = doc_all.len() - doc_cursor;
+                                let take_cnt = 100.min(rem);
+                                if take_cnt > 0 {
+                                    let chunk = &doc_all[doc_cursor..doc_cursor + take_cnt];
+                                    doc_cursor += take_cnt;
+                                    if let Some(last) = chunk.last() {
+                                        doc_offset = last.id as i32;
+                                    }
+                                    pending_doc.extend_from_slice(chunk);
                                 }
-                                if doc_all.is_empty() {
+                                if doc_cursor >= doc_all.len() {
                                     doc_exhausted = true;
                                 }
-                                pending_doc.extend(chunk);
                             }
                         }
                         FrontierStep::FetchPv => {
                             if !pv_exhausted {
-                                let take_cnt = 100.min(pv_all.len());
-                                let chunk: Vec<_> = pv_all.drain(..take_cnt).collect();
-                                if let Some(last) = chunk.last() {
-                                    pv_offset = last.id as i32;
+                                let rem = pv_all.len() - pv_cursor;
+                                let take_cnt = 100.min(rem);
+                                if take_cnt > 0 {
+                                    let chunk = &pv_all[pv_cursor..pv_cursor + take_cnt];
+                                    pv_cursor += take_cnt;
+                                    if let Some(last) = chunk.last() {
+                                        pv_offset = last.id as i32;
+                                    }
+                                    pending_pv.extend_from_slice(chunk);
                                 }
-                                if pv_all.is_empty() {
+                                if pv_cursor >= pv_all.len() {
                                     pv_exhausted = true;
                                 }
-                                pending_pv.extend(chunk);
                             }
                         }
                         FrontierStep::FetchDoc => {
                             if !doc_exhausted {
-                                let take_cnt = 100.min(doc_all.len());
-                                let chunk: Vec<_> = doc_all.drain(..take_cnt).collect();
-                                if let Some(last) = chunk.last() {
-                                    doc_offset = last.id as i32;
+                                let rem = doc_all.len() - doc_cursor;
+                                let take_cnt = 100.min(rem);
+                                if take_cnt > 0 {
+                                    let chunk = &doc_all[doc_cursor..doc_cursor + take_cnt];
+                                    doc_cursor += take_cnt;
+                                    if let Some(last) = chunk.last() {
+                                        doc_offset = last.id as i32;
+                                    }
+                                    pending_doc.extend_from_slice(chunk);
                                 }
-                                if doc_all.is_empty() {
+                                if doc_cursor >= doc_all.len() {
                                     doc_exhausted = true;
                                 }
-                                pending_doc.extend(chunk);
                             }
                         }
                         _ => break,

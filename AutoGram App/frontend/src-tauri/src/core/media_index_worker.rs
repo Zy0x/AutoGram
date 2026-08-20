@@ -16,8 +16,8 @@ use tokio::sync::{mpsc, watch, Notify, RwLock};
 use tokio_util::sync::CancellationToken;
 
 use super::grammers_ops::media_list::{
-    list_media_page_async, LaneCounts, LaneCursor, LaneDurability, LaneWatermark, ListMediaResult,
-    ScopedMediaSearchCursor, SearchScope,
+    list_media_page_async, LaneCounts, LaneCursor, LaneDurability, LaneRpcObservation, LaneWatermark,
+    ListMediaResult, ScopedMediaSearchCursor, SearchLane, SearchScope,
 };
 use super::media_index_types::*;
 use super::telegram_ops::TelegramIdentity;
@@ -1182,38 +1182,24 @@ impl MediaIndexWorker {
                         // Feed fine-grained lane RPC observations to telemetry and governor
                         {
                             let mut gov = governor.lock().await;
-                            if let Some(ref pv_obs) = p.pv_observation {
+                            for obs in &p.rpc_observations {
                                 metrics.search_rpc_calls += 1;
-                                metrics.search_rpc_attempts += u64::from(pv_obs.attempts);
+                                metrics.search_rpc_attempts += u64::from(obs.attempts);
                                 metrics.successful_search_rpcs += 1;
-                                metrics.pv_rpc_calls += 1;
-                                metrics.pv_rows_fetched += pv_obs.rows_received as u64;
+                                match obs.lane {
+                                    SearchLane::PhotoVideo => {
+                                        metrics.pv_rpc_calls += 1;
+                                        metrics.pv_rows_fetched += obs.rows_received as u64;
+                                    }
+                                    SearchLane::Document => {
+                                        metrics.doc_rpc_calls += 1;
+                                        metrics.doc_rows_fetched += obs.rows_received as u64;
+                                    }
+                                    _ => {}
+                                }
                                 gov.on_rpc_observation(RpcObservation {
-                                    latency_ms: pv_obs.latency_ms,
-                                    rows_yielded: pv_obs.rows_received,
-                                    was_error: false,
-                                });
-                            }
-                            if let Some(ref doc_obs) = p.doc_observation {
-                                metrics.search_rpc_calls += 1;
-                                metrics.search_rpc_attempts += u64::from(doc_obs.attempts);
-                                metrics.successful_search_rpcs += 1;
-                                metrics.doc_rpc_calls += 1;
-                                metrics.doc_rows_fetched += doc_obs.rows_received as u64;
-                                gov.on_rpc_observation(RpcObservation {
-                                    latency_ms: doc_obs.latency_ms,
-                                    rows_yielded: doc_obs.rows_received,
-                                    was_error: false,
-                                });
-                            }
-                            if p.pv_observation.is_none() && p.doc_observation.is_none() {
-                                // Fallback observation (e.g. mock page source)
-                                metrics.search_rpc_calls += 1;
-                                metrics.search_rpc_attempts += 1;
-                                metrics.successful_search_rpcs += 1;
-                                gov.on_rpc_observation(RpcObservation {
-                                    latency_ms: total_latency_ms,
-                                    rows_yielded: p.files.len(),
+                                    latency_ms: obs.latency_ms,
+                                    rows_yielded: obs.rows_received,
                                     was_error: false,
                                 });
                             }
@@ -1227,13 +1213,16 @@ impl MediaIndexWorker {
                             metrics.governor_confidence = gov.confidence();
                         }
 
-                        let rpc_latency_ms = total_latency_ms as f64;
-                        if metrics.rpc_latency_ewma_ms <= 0.0 {
-                            metrics.rpc_latency_ewma_ms = rpc_latency_ms;
-                        } else {
-                            metrics.rpc_latency_ewma_ms = (metrics.rpc_latency_ewma_ms * 0.85) + (rpc_latency_ms * 0.15);
+                        let total_latency_ms = fetch_start.elapsed().as_millis() as u64;
+                        if !p.rpc_observations.is_empty() {
+                            let rpc_latency_ms = total_latency_ms as f64;
+                            if metrics.rpc_latency_ewma_ms <= 0.0 {
+                                metrics.rpc_latency_ewma_ms = rpc_latency_ms;
+                            } else {
+                                metrics.rpc_latency_ewma_ms = (metrics.rpc_latency_ewma_ms * 0.85) + (rpc_latency_ms * 0.15);
+                            }
+                            metrics.rpc_ewma_ms = Some(metrics.rpc_latency_ewma_ms);
                         }
-                        metrics.rpc_ewma_ms = Some(metrics.rpc_latency_ewma_ms);
 
                         if metrics.search_rpc_calls > 0 {
                             metrics.useful_rows_per_search_rpc = (metrics.pv_rows_fetched + metrics.doc_rows_fetched) as f64 / metrics.search_rpc_calls as f64;
@@ -1250,8 +1239,12 @@ impl MediaIndexWorker {
                         metrics.persistence_batch_rows = p.files.len();
 
                         if let Some(ref counts) = p.lane_counts {
-                            let total_est = (counts.photo_video.unwrap_or(0) + counts.document.unwrap_or(0)) as u64;
-                            metrics.candidate_total_estimate = Some(total_est);
+                            if counts.photo_video.is_some() || counts.document.is_some() {
+                                let total_est = (counts.photo_video.unwrap_or(0) + counts.document.unwrap_or(0)) as u64;
+                                if total_est > 0 {
+                                    metrics.candidate_total_estimate = Some(total_est);
+                                }
+                            }
                         }
                         p
                     }
@@ -1711,6 +1704,7 @@ impl MediaIndexWorker {
 mod tests {
     use super::*;
     use super::super::grammers_ops::media_list::MediaFileRow;
+    use super::super::grammers_ops::{LaneRpcObservation, SearchLane};
     use std::sync::atomic::AtomicUsize;
 
     struct MockMediaPageSource {
@@ -1751,6 +1745,7 @@ mod tests {
                     backend: "grammers".into(),
                     cached: false,
                     search_cursor: None,
+                    rpc_observations: Vec::new(),
                     pv_observation: None,
                     doc_observation: None,
                 })
@@ -1874,6 +1869,14 @@ mod tests {
             backend: "grammers".into(),
             cached: false,
             search_cursor: None,
+            rpc_observations: vec![LaneRpcObservation {
+                lane: SearchLane::PhotoVideo,
+                latency_ms: 25,
+                wall_latency_ms: 25,
+                attempts: 1,
+                rows_received: 1,
+                candidate_count: Some(1),
+            }],
             pv_observation: None,
             doc_observation: None,
         };
@@ -2529,5 +2532,151 @@ mod tests {
         // Only now should state transition to Running!
         assert_eq!(control.status.read().await.state, MediaIndexJobState::Running, "Status must transition to Running once ALL concurrent backoffs have completed");
         assert_eq!(active_guard_backoffs.load(Ordering::SeqCst), 0);
+    }
+
+    #[tokio::test]
+    async fn test_zero_rpc_buffered_page_telemetry_integrity() {
+        let mock_file1 = sample_media_row(100);
+        let mock_file2 = sample_media_row(99);
+
+        // Page 1: 1 Telegram RPC with 1 observation and candidate estimate = 250,000
+        let page1 = ListMediaResult {
+            status: "ok".into(),
+            folder_id: None,
+            files: vec![mock_file1],
+            total: 1,
+            page_size: 1,
+            has_more: true,
+            next_offset_id: Some(100),
+            lane_counts: Some(LaneCounts {
+                photo_video: Some(150_000),
+                document: Some(100_000),
+            }),
+            emitted_watermark: Some(LaneWatermark { photo_video: 100, document: 0 }),
+            lane_durability: None,
+            total_count: Some(250_000),
+            backend: "grammers".into(),
+            cached: false,
+            search_cursor: None,
+            rpc_observations: vec![LaneRpcObservation {
+                lane: SearchLane::PhotoVideo,
+                latency_ms: 30,
+                wall_latency_ms: 30,
+                attempts: 1,
+                rows_received: 1,
+                candidate_count: Some(150_000),
+            }],
+            pv_observation: None,
+            doc_observation: None,
+        };
+
+        // Page 2: 0 Telegram RPCs (served purely from buffered memory) with lane_counts = None
+        let page2 = ListMediaResult {
+            status: "ok".into(),
+            folder_id: None,
+            files: vec![mock_file2],
+            total: 1,
+            page_size: 1,
+            has_more: false,
+            next_offset_id: None,
+            lane_counts: None, // 0-RPC page produces None lane_counts
+            emitted_watermark: Some(LaneWatermark { photo_video: 99, document: 0 }),
+            lane_durability: None,
+            total_count: None,
+            backend: "grammers".into(),
+            cached: false,
+            search_cursor: None,
+            rpc_observations: Vec::new(), // 0 observations!
+            pv_observation: None,
+            doc_observation: None,
+        };
+
+        let pages = vec![page1, page2];
+        let manager = Arc::new(MediaIndexJobManager::with_page_source(
+            PathBuf::from("dummy"),
+            Arc::new(MockMediaPageSource {
+                pages,
+                call_count: AtomicUsize::new(0),
+            }),
+        ));
+
+        let req = StartMediaIndexJobRequest {
+            client_request_id: "req_zero_rpc_test".into(),
+            identity: TelegramIdentity {
+                session: "sess_zero_rpc".into(),
+                api_id: 12345,
+                api_hash: "hash".into(),
+            },
+            peer_id: "100123".into(),
+            topic_id: None,
+            page_size: Some(1),
+            initial_state: None,
+            force_mode: None,
+        };
+
+        let (tx_events, mut rx_events) = tokio::sync::mpsc::unbounded_channel();
+        let start_res = manager.start_job(req, FnEventSink(move |evt| {
+            let _ = tx_events.send(evt);
+            true
+        })).await.unwrap();
+
+        let job_id = start_res.job_id;
+
+        // Process Page 1
+        let mut ack1 = 0u64;
+        while let Some(evt) = rx_events.recv().await {
+            if let MediaIndexEvent::Page(p1) = evt {
+                ack1 = p1.ack_id;
+                break;
+            }
+        }
+        assert!(ack1 > 0, "Must have received Page 1");
+        manager.process_ack(MediaIndexPageAck {
+            job_id,
+            ack_id: ack1,
+            outcome: MediaIndexAckOutcome::Committed,
+            committed_state: None,
+            error_code: None,
+        }).await;
+
+        // Process Page 2 (Zero-RPC page)
+        let mut ack2 = 0u64;
+        while let Some(evt) = rx_events.recv().await {
+            if let MediaIndexEvent::Page(p2) = evt {
+                ack2 = p2.ack_id;
+                break;
+            }
+        }
+        assert!(ack2 > 0, "Must have received Page 2");
+        manager.process_ack(MediaIndexPageAck {
+            job_id,
+            ack_id: ack2,
+            outcome: MediaIndexAckOutcome::Committed,
+            committed_state: None,
+            error_code: None,
+        }).await;
+
+        // Wait for job completion
+        loop {
+            if let Some(evt) = rx_events.recv().await {
+                if let MediaIndexEvent::Complete(_) = evt {
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+
+        let job = {
+            let inner = manager.inner.read().await;
+            inner.jobs.get(&job_id).cloned().unwrap()
+        };
+
+        let status = job.status.read().await;
+        // Verify: Exactly 1 search RPC was performed across 2 pages!
+        assert_eq!(status.metrics.search_rpc_calls, 1, "Zero-RPC page must NOT increment search_rpc_calls (+0)");
+        assert_eq!(status.metrics.page_cycles, 2, "Page cycles must advance to 2");
+        // Verify: Candidate total estimate was preserved at 250,000 and not overwritten by zero-RPC page!
+        assert_eq!(status.metrics.candidate_total_estimate, Some(250_000), "Candidate total estimate must be preserved across zero-RPC buffered page");
     }
 }
