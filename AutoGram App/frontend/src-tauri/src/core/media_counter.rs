@@ -68,7 +68,14 @@ pub fn get_media_statistics_blocking(
             .map(|d| d.as_secs())
             .unwrap_or(0);
 
-        if cached.is_exact == Some(true) {
+        let cached_media_total = cached
+            .photo_count
+            .saturating_add(cached.video_count)
+            .saturating_add(cached.file_count)
+            .saturating_add(cached.gif_count)
+            .saturating_add(cached.audio_count);
+
+        if cached.is_exact == Some(true) && cached_media_total > 0 {
             if loaded_count > cached.loaded_count {
                 cached.loaded_count = loaded_count;
                 let _ = save_statistics(&cached);
@@ -76,17 +83,9 @@ pub fn get_media_statistics_blocking(
             return Ok(cached);
         }
 
-        let cached_media_total = cached
-            .photo_count
-            .saturating_add(cached.video_count)
-            .saturating_add(cached.file_count)
-            .saturating_add(cached.gif_count)
-            .saturating_add(cached.audio_count);
-        // Older builds stored InputMessagesFilterEmpty here, which is a count
-        // of every topic message (including text/service posts), not media.
         let cache_uses_media_semantics =
             cached.total_count <= cached_media_total.max(cached.loaded_count);
-        if now.saturating_sub(cached.last_sync) < 120 && cache_uses_media_semantics {
+        if now.saturating_sub(cached.last_sync) < 120 && cache_uses_media_semantics && cached_media_total > 0 {
             if loaded_count > cached.loaded_count {
                 cached.loaded_count = loaded_count;
                 let _ = save_statistics(&cached);
@@ -107,9 +106,7 @@ pub fn get_media_statistics_blocking(
 
                     let top_msg_id = topic_id.filter(|t| *t > 0).map(|t| t as i32);
 
-                    // Telegram itself fills the shared-media tabs with this one
-                    // vector RPC. It is substantially cheaper and less prone to
-                    // rate limits than six sequential messages.search calls.
+                    // Telegram shared-media vector RPC for standard channels/topics
                     let filters = vec![
                         tl::enums::MessagesFilter::InputMessagesFilterPhotos,
                         tl::enums::MessagesFilter::InputMessagesFilterVideo,
@@ -131,12 +128,76 @@ pub fn get_media_statistics_blocking(
                     for counter in counters {
                         breakdown.ingest(counter);
                     }
-                    let total_count = breakdown.estimated_total(loaded_count);
+                    let mut total_count = breakdown.estimated_total(loaded_count);
+
+                    // If GetSearchCounters returned 0 for media and documents (common on forum supergroups with all-media scope),
+                    // fallback to fast targeted messages::Search for PhotoVideo and Document to obtain the exact server counts!
+                    if breakdown.photo_count == 0 && breakdown.video_count == 0 && breakdown.file_count == 0 {
+                        // 1. Query Photo/Video count
+                        let pv_req = tl::functions::messages::Search {
+                            peer: (&peer).into(),
+                            q: String::new(),
+                            from_id: None,
+                            saved_peer_id: None,
+                            saved_reaction: None,
+                            top_msg_id,
+                            filter: tl::enums::MessagesFilter::InputMessagesFilterPhotoVideo,
+                            min_date: 0,
+                            max_date: 0,
+                            offset_id: 0,
+                            add_offset: 0,
+                            limit: 1,
+                            max_id: 0,
+                            min_id: 0,
+                            hash: 0,
+                        };
+                        if let Ok(res) = client.invoke(&pv_req).await {
+                            let count = match res {
+                                tl::enums::messages::Messages::Slice(s) => s.count.max(0) as usize,
+                                tl::enums::messages::Messages::ChannelMessages(c) => c.count.max(0) as usize,
+                                tl::enums::messages::Messages::Messages(m) => m.messages.len(),
+                                _ => 0,
+                            };
+                            breakdown.photo_count = count;
+                        }
+
+                        // 2. Query Document/File count
+                        let doc_req = tl::functions::messages::Search {
+                            peer: (&peer).into(),
+                            q: String::new(),
+                            from_id: None,
+                            saved_peer_id: None,
+                            saved_reaction: None,
+                            top_msg_id,
+                            filter: tl::enums::MessagesFilter::InputMessagesFilterDocument,
+                            min_date: 0,
+                            max_date: 0,
+                            offset_id: 0,
+                            add_offset: 0,
+                            limit: 1,
+                            max_id: 0,
+                            min_id: 0,
+                            hash: 0,
+                        };
+                        if let Ok(res) = client.invoke(&doc_req).await {
+                            let count = match res {
+                                tl::enums::messages::Messages::Slice(s) => s.count.max(0) as usize,
+                                tl::enums::messages::Messages::ChannelMessages(c) => c.count.max(0) as usize,
+                                tl::enums::messages::Messages::Messages(m) => m.messages.len(),
+                                _ => 0,
+                            };
+                            breakdown.file_count = count;
+                        }
+
+                        total_count = breakdown.photo_count.saturating_add(breakdown.file_count).max(loaded_count);
+                    }
 
                     let now = std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
                         .map(|d| d.as_secs())
                         .unwrap_or(0);
+
+                    let is_exact = breakdown.photo_count > 0 || breakdown.file_count > 0;
 
                     let stats = MediaStatisticsResult {
                         account_id: session_name,
@@ -152,7 +213,7 @@ pub fn get_media_statistics_blocking(
                         loaded_count,
                         total_bytes: 0,
                         last_sync: now,
-                        is_exact: Some(false),
+                        is_exact: Some(is_exact),
                     };
 
                     let _ = save_statistics(&stats);
