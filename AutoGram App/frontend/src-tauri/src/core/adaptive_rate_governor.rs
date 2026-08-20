@@ -214,13 +214,13 @@ pub struct AdaptiveRateGovernor {
 impl AdaptiveRateGovernor {
     pub fn new() -> Self {
         Self {
-            state: GovernorState::Warmup,
+            state: GovernorState::Stable,
             min_dispatch_spacing: Duration::from_millis(0),
-            max_inflight: 1,
+            max_inflight: 2,
 
-            baseline_rpc_p50_ms: 0.0,
-            baseline_rpc_p95_ms: 0.0,
-            rpc_ewma_ms: 0.0,
+            baseline_rpc_p50_ms: 50.0,
+            baseline_rpc_p95_ms: 100.0,
+            rpc_ewma_ms: 50.0,
 
             ack_ewma_ms: 0.0,
             ack_p95_ms: 0.0,

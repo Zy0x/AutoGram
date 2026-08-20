@@ -3753,10 +3753,9 @@ function MediaDriveDesktop({
                 setFiles((prev) => {
                   if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
                   const merged = dedupeByMsgId([...prev, ...batchToAdd]);
-                  const activeSort = sortMode || 'newest';
                   let boundedFiles = merged;
                   if (boundedFiles.length > 2500) {
-                    boundedFiles = filterAndSortDriveFilesPower(boundedFiles, { sortMode: activeSort }).slice(0, 2500);
+                    boundedFiles = boundedFiles.slice(0, 2500);
                   }
                   filesCacheRef.current.set(cacheKey, boundedFiles);
                   return boundedFiles;
