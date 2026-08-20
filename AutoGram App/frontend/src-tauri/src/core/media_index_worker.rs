@@ -7,7 +7,7 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -850,7 +850,9 @@ pub struct WorkerRpcObserver {
     pub job_id: u64,
     pub control: Arc<MediaIndexJobControl>,
     pub governor: Arc<tokio::sync::Mutex<AdaptiveRateGovernor>>,
+    pub dispatch_gate: Arc<IndexDispatchGate>,
     pub last_ack_completed: Arc<tokio::sync::Mutex<Option<Instant>>>,
+    pub active_guard_backoffs: Arc<AtomicU32>,
 }
 
 #[async_trait]
@@ -862,11 +864,18 @@ impl RpcObserver for WorkerRpcObserver {
         _attempt: u32,
         _max_attempts: u32,
     ) {
-        let (flood_count, last_wait) = {
+        let (flood_count, last_wait, new_spacing) = {
             let mut gov = self.governor.lock().await;
             gov.on_flood_wait(wait_secs);
-            (gov.flood_count(), gov.last_flood_wait_secs())
+            (gov.flood_count(), gov.last_flood_wait_secs(), gov.spacing_ms())
         };
+
+        // Immediately update dispatch gate spacing so internal retry cannot fire with stale spacing!
+        self.dispatch_gate.set_spacing_ms(new_spacing);
+
+        // Atomically track concurrent backoffs
+        self.active_guard_backoffs.fetch_add(1, Ordering::SeqCst);
+
         {
             let mut st = self.control.status.write().await;
             st.state = MediaIndexJobState::FloodPaused;
@@ -886,6 +895,12 @@ impl RpcObserver for WorkerRpcObserver {
 
     async fn on_guard_backoff_end(&self, _attempt: u32) {
         if self.control.cancel.is_cancelled() {
+            return;
+        }
+
+        let prev = self.active_guard_backoffs.fetch_sub(1, Ordering::SeqCst);
+        // Only transition state when ALL concurrent backoffs have completed (remaining == 0)
+        if prev > 1 {
             return;
         }
 
@@ -1049,6 +1064,7 @@ impl MediaIndexWorker {
         let governor = Arc::new(tokio::sync::Mutex::new(AdaptiveRateGovernor::new()));
         let dispatch_gate = Arc::new(IndexDispatchGate::new(0));
         let last_ack_completed = Arc::new(tokio::sync::Mutex::new(None));
+        let active_guard_backoffs = Arc::new(AtomicU32::new(0));
         let mut last_progress_tick = Instant::now();
         let start_time = Instant::now();
         let mut delta_max_observed_id = current_newest_id;
@@ -1057,7 +1073,9 @@ impl MediaIndexWorker {
             job_id,
             control: self.control.clone(),
             governor: governor.clone(),
+            dispatch_gate: dispatch_gate.clone(),
             last_ack_completed: last_ack_completed.clone(),
+            active_guard_backoffs: active_guard_backoffs.clone(),
         });
 
         let guard_control = RpcGuardControl {
@@ -2357,7 +2375,9 @@ mod tests {
             job_id: 99,
             control: control.clone(),
             governor: Arc::new(tokio::sync::Mutex::new(AdaptiveRateGovernor::new())),
+            dispatch_gate: Arc::new(IndexDispatchGate::new(0)),
             last_ack_completed: Arc::new(tokio::sync::Mutex::new(None)),
+            active_guard_backoffs: Arc::new(AtomicU32::new(1)),
         };
 
         // User paused while in FloodPaused
@@ -2417,7 +2437,9 @@ mod tests {
             job_id: 100,
             control: control.clone(),
             governor: Arc::new(tokio::sync::Mutex::new(AdaptiveRateGovernor::new())),
+            dispatch_gate: Arc::new(IndexDispatchGate::new(0)),
             last_ack_completed: Arc::new(tokio::sync::Mutex::new(None)),
+            active_guard_backoffs: Arc::new(AtomicU32::new(1)),
         };
 
         // Cancel job
@@ -2428,5 +2450,84 @@ mod tests {
 
         let st = control.status.read().await.clone();
         assert_eq!(st.state, MediaIndexJobState::FloodPaused, "Status must not be overwritten to Running upon cancellation");
+    }
+
+    #[tokio::test]
+    async fn test_concurrent_dual_lane_flood_backoffs_require_both_to_finish() {
+        let (state_tx, _state_rx) = watch::channel(MediaIndexDesiredState::Running);
+        let cancel = CancellationToken::new();
+        let (ack_tx, _) = mpsc::channel(1);
+
+        let initial_status = MediaIndexJobStatus {
+            job_id: 101,
+            state: MediaIndexJobState::Running,
+            mode: MediaIndexMode::HistoricalBackfill,
+            peer_safe_label: "test".into(),
+            topic_id: None,
+            created_at_ms: now_epoch_ms(),
+            started_at_ms: None,
+            updated_at_ms: now_epoch_ms(),
+            expected_ack_id: None,
+            metrics: MediaIndexMetricsSnapshot::default(),
+            terminal_error: None,
+        };
+
+        let control = Arc::new(MediaIndexJobControl {
+            job_id: 101,
+            session_key: "sess".into(),
+            client_request_id: "req".into(),
+            request_fingerprint: "fp".into(),
+            peer_id: "peer".into(),
+            topic_id: None,
+            created_at_ms: now_epoch_ms(),
+            state_tx,
+            cancel,
+            ack_tx,
+            expected_ack_id: AtomicU64::new(0),
+            claimed_ack_id: AtomicU64::new(0),
+            last_processed_ack_id: AtomicU64::new(0),
+            primary_subscriber: RwLock::new(None),
+            next_subscriber_id: AtomicU64::new(1),
+            subscriber_generation: AtomicU64::new(1),
+            subscriber_notify: Arc::new(Notify::new()),
+            pending_page: RwLock::new(None),
+            status: Arc::new(RwLock::new(initial_status)),
+            terminal_at_ms: AtomicU64::new(0),
+        });
+
+        let dispatch_gate = Arc::new(IndexDispatchGate::new(0));
+        let active_guard_backoffs = Arc::new(AtomicU32::new(0));
+
+        let observer = WorkerRpcObserver {
+            job_id: 101,
+            control: control.clone(),
+            governor: Arc::new(tokio::sync::Mutex::new(AdaptiveRateGovernor::new())),
+            dispatch_gate: dispatch_gate.clone(),
+            last_ack_completed: Arc::new(tokio::sync::Mutex::new(None)),
+            active_guard_backoffs: active_guard_backoffs.clone(),
+        };
+
+        // 1. Lane 1 (PhotoVideo) enters FloodWait
+        observer.on_guard_backoff_start(15, 1700000015000, 1, 3).await;
+        assert_eq!(control.status.read().await.state, MediaIndexJobState::FloodPaused);
+        assert!(dispatch_gate.spacing_ms() >= 200, "Gate spacing must be updated immediately upon FloodWait");
+        assert_eq!(active_guard_backoffs.load(Ordering::SeqCst), 1);
+
+        // 2. Lane 2 (Document) enters concurrent FloodWait
+        observer.on_guard_backoff_start(20, 1700000020000, 1, 3).await;
+        assert_eq!(control.status.read().await.state, MediaIndexJobState::FloodPaused);
+        assert_eq!(active_guard_backoffs.load(Ordering::SeqCst), 2);
+
+        // 3. Lane 1 finishes its backoff early
+        observer.on_guard_backoff_end(1).await;
+        // Status MUST remain FloodPaused because Lane 2 is still sleeping!
+        assert_eq!(control.status.read().await.state, MediaIndexJobState::FloodPaused, "Status must remain FloodPaused while Lane 2 is still in backoff");
+        assert_eq!(active_guard_backoffs.load(Ordering::SeqCst), 1);
+
+        // 4. Lane 2 finishes its backoff
+        observer.on_guard_backoff_end(1).await;
+        // Only now should state transition to Running!
+        assert_eq!(control.status.read().await.state, MediaIndexJobState::Running, "Status must transition to Running once ALL concurrent backoffs have completed");
+        assert_eq!(active_guard_backoffs.load(Ordering::SeqCst), 0);
     }
 }

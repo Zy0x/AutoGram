@@ -100,6 +100,14 @@ struct CommittedProgressSample {
     total_committed: u64,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct ThroughputWindow {
+    pub rate: f64,
+    pub duration_secs: f64,
+    pub committed_delta: u64,
+    pub sample_count: usize,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionRateProfile {
     pub sustainable_dispatch_rate_rps: f64,
@@ -140,7 +148,7 @@ pub struct AdaptiveRateGovernor {
     committed_rows_per_sec: f64,
     useful_rows_per_rpc: f64,
 
-    // Probe 2 rolling baseline vs probe window evaluation
+    // Probe 2 mature baseline vs probe window evaluation
     baseline_rolling_committed_rate: f64,
     probe_start_instant: Option<Instant>,
     probe_start_committed_rows: u64,
@@ -259,14 +267,20 @@ impl AdaptiveRateGovernor {
                     self.min_dispatch_spacing = self.min_dispatch_spacing.saturating_sub(Duration::from_millis(10));
                 }
 
-                // Probe inflight 2 if stable for >= 20 successful RPCs and high confidence
+                // Probe inflight 2 if stable for >= 20 successful RPCs, high confidence, and mature baseline window exists
                 if self.stable_successes >= 20 && self.confidence_score >= 0.6 && self.max_inflight == 1 {
-                    self.baseline_rolling_committed_rate = self.calculate_rolling_committed_rate(12.0);
-                    self.probe_start_instant = Some(Instant::now());
-                    self.probe_start_committed_rows = self.total_committed_rows;
-                    self.transition_to(GovernorState::ProbeInflight2);
-                    self.max_inflight = 2;
-                    self.probe_successes = 0;
+                    if let Some(baseline_win) = self.get_mature_baseline_window(12.0) {
+                        self.baseline_rolling_committed_rate = baseline_win.rate;
+                        self.probe_start_instant = Some(Instant::now());
+                        self.probe_start_committed_rows = self.total_committed_rows;
+                        self.transition_to(GovernorState::ProbeInflight2);
+                        self.max_inflight = 2;
+                        self.probe_successes = 0;
+
+                        // Initial conservative stagger based on baseline p50 latency to prevent simultaneous burst
+                        let conservative_stagger_ms = ((self.baseline_rpc_p50_ms / 4.0) as u32).clamp(25, 100);
+                        self.min_dispatch_spacing = self.min_dispatch_spacing.max(Duration::from_millis(u64::from(conservative_stagger_ms)));
+                    }
                 }
             }
             GovernorState::ProbeInflight2 => {
@@ -280,22 +294,36 @@ impl AdaptiveRateGovernor {
                     self.confidence_score = (self.confidence_score * 0.8).max(0.2);
                 } else if self.probe_successes >= 20 {
                     // 2. Fair Throughput comparison: evaluate committed rows/sec during probe window vs stable rolling baseline
-                    let probe_duration = self.probe_start_instant.map(|i| i.elapsed().as_secs_f64()).unwrap_or(1.0).max(0.1);
+                    let probe_duration = self.probe_start_instant.map(|i| i.elapsed().as_secs_f64()).unwrap_or(0.0);
                     let probe_delta_rows = self.total_committed_rows.saturating_sub(self.probe_start_committed_rows);
-                    let probe_committed_rate = probe_delta_rows as f64 / probe_duration;
 
-                    let is_rate_improved = self.baseline_rolling_committed_rate <= 0.0 || probe_committed_rate >= (self.baseline_rolling_committed_rate * 1.08);
+                    // Require at least 4.0s of probe duration and non-zero committed progress to evaluate
+                    if probe_duration >= 4.0 && probe_delta_rows > 0 {
+                        let probe_committed_rate = probe_delta_rows as f64 / probe_duration;
 
-                    if is_rate_improved {
-                        // Confirmed real throughput gain under inflight=2 against comparable rolling baseline!
-                        self.confidence_score = (self.confidence_score + 0.15).min(0.95);
-                        self.max_inflight = 2;
-                        self.transition_to(GovernorState::Stable);
-                    } else {
-                        // No improvement: rollback to inflight=1 to avoid unneeded pressure
+                        let is_rate_improved = self.baseline_rolling_committed_rate > 0.0
+                            && probe_committed_rate >= (self.baseline_rolling_committed_rate * 1.08);
+
+                        if is_rate_improved {
+                            // Confirmed real throughput gain under inflight=2 against mature rolling baseline!
+                            self.confidence_score = (self.confidence_score + 0.15).min(0.95);
+                            self.max_inflight = 2;
+                            self.transition_to(GovernorState::Stable);
+
+                            // Gradually relieve conservative probe stagger if stable
+                            if self.min_dispatch_spacing > Duration::from_millis(0) {
+                                self.min_dispatch_spacing = self.min_dispatch_spacing.saturating_sub(Duration::from_millis(15));
+                            }
+                        } else {
+                            // No improvement: rollback to inflight=1 to avoid unneeded pressure
+                            self.transition_to(GovernorState::Cooldown);
+                            self.max_inflight = 1;
+                            self.confidence_score = (self.confidence_score * 0.85).max(0.3);
+                        }
+                    } else if probe_duration >= 15.0 {
+                        // Timeout without enough progress in probe window: rollback to inflight=1
                         self.transition_to(GovernorState::Cooldown);
                         self.max_inflight = 1;
-                        self.confidence_score = (self.confidence_score * 0.85).max(0.3);
                     }
                 }
             }
@@ -410,6 +438,44 @@ impl AdaptiveRateGovernor {
         d_rows as f64 / dt
     }
 
+    /// Validates and returns a mature throughput window for probe baseline gating.
+    pub fn get_mature_baseline_window(&self, target_window_secs: f64) -> Option<ThroughputWindow> {
+        if self.committed_samples.len() < 4 {
+            return None;
+        }
+        let now = Instant::now();
+        let newest = self.committed_samples.back()?;
+
+        let mut oldest_in_window = None;
+        let mut sample_count = 0usize;
+
+        for sample in self.committed_samples.iter() {
+            let age = now.duration_since(sample.timestamp).as_secs_f64();
+            if age <= target_window_secs {
+                if oldest_in_window.is_none() {
+                    oldest_in_window = Some(sample);
+                }
+                sample_count += 1;
+            }
+        }
+
+        let oldest = oldest_in_window?;
+        let duration_secs = newest.timestamp.duration_since(oldest.timestamp).as_secs_f64();
+        let committed_delta = newest.total_committed.saturating_sub(oldest.total_committed);
+
+        if duration_secs >= 3.0 && sample_count >= 3 && committed_delta > 0 {
+            let rate = committed_delta as f64 / duration_secs;
+            Some(ThroughputWindow {
+                rate,
+                duration_secs,
+                committed_delta,
+                sample_count,
+            })
+        } else {
+            None
+        }
+    }
+
     fn transition_to(&mut self, new_state: GovernorState) {
         self.state = new_state;
         self.state_entered_at = Instant::now();
@@ -488,7 +554,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_governor_warmup_to_stable_and_probe() {
+    async fn test_governor_warmup_to_stable_and_probe_with_mature_baseline() {
         let mut gov = AdaptiveRateGovernor::new();
         assert_eq!(gov.state(), GovernorState::Warmup);
         assert_eq!(gov.max_inflight(), 1);
@@ -502,6 +568,14 @@ mod tests {
         }
         assert_eq!(gov.state(), GovernorState::Stable);
 
+        // Feed mature committed ACK history (simulate 5 ACKs over 4s)
+        for i in 1..=5 {
+            gov.committed_samples.push_back(CommittedProgressSample {
+                timestamp: Instant::now() - Duration::from_secs(6 - i),
+                total_committed: i * 100,
+            });
+        }
+
         // Feed stable successes to trigger probe
         for _ in 0..25 {
             gov.on_rpc_observation(RpcObservation {
@@ -512,6 +586,7 @@ mod tests {
         }
         assert_eq!(gov.state(), GovernorState::ProbeInflight2);
         assert_eq!(gov.max_inflight(), 2);
+        assert!(gov.spacing_ms() >= 25, "Initial probe spacing must be conservative");
     }
 
     #[test]
