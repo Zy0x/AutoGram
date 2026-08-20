@@ -153,6 +153,199 @@ pub fn normalize_search_cursor(
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FrontierStep {
+    EmitPv,
+    EmitDoc,
+    EmitBoth,
+    FetchPv,
+    FetchDoc,
+    FetchBoth,
+    Finished,
+}
+
+/// Evaluates the provably safe next action based on known pending lane heads and fetch frontiers.
+pub fn evaluate_frontier_step(
+    pending_pv: &[MediaFileRow],
+    pending_doc: &[MediaFileRow],
+    pv_offset: i32,
+    doc_offset: i32,
+    pv_exhausted: bool,
+    doc_exhausted: bool,
+) -> FrontierStep {
+    let head_pv = pending_pv.first();
+    let head_doc = pending_doc.first();
+
+    match (head_pv, head_doc) {
+        // Case 1: Both heads known
+        (Some(pv), Some(doc)) => {
+            if pv.id > doc.id {
+                FrontierStep::EmitPv
+            } else if doc.id > pv.id {
+                FrontierStep::EmitDoc
+            } else {
+                FrontierStep::EmitBoth
+            }
+        }
+        // Case 2: PV head known, DOC buffer empty
+        (Some(pv), None) => {
+            if doc_exhausted {
+                // DOC is completely exhausted -> PV is provably safe to emit
+                FrontierStep::EmitPv
+            } else if doc_offset == 0 {
+                // DOC has never been fetched -> frontier is UNKNOWN -> MUST FETCH DOC
+                FrontierStep::FetchDoc
+            } else if (pv.id as i32) > doc_offset {
+                // STRICT inequality: PV is strictly newer than any potential unseen DOC
+                FrontierStep::EmitPv
+            } else {
+                // pv.id <= doc_offset -> unseen DOC could have higher ID -> MUST FETCH DOC
+                FrontierStep::FetchDoc
+            }
+        }
+        // Case 3: DOC head known, PV buffer empty
+        (None, Some(doc)) => {
+            if pv_exhausted {
+                // PV is completely exhausted -> DOC is provably safe to emit
+                FrontierStep::EmitDoc
+            } else if pv_offset == 0 {
+                // PV has never been fetched -> frontier is UNKNOWN -> MUST FETCH PV
+                FrontierStep::FetchPv
+            } else if (doc.id as i32) > pv_offset {
+                // STRICT inequality: DOC is strictly newer than any potential unseen PV
+                FrontierStep::EmitDoc
+            } else {
+                // doc.id <= pv_offset -> unseen PV could have higher ID -> MUST FETCH PV
+                FrontierStep::FetchPv
+            }
+        }
+        // Case 4: Both buffers empty
+        (None, None) => {
+            if pv_exhausted && doc_exhausted {
+                FrontierStep::Finished
+            } else if !pv_exhausted && !doc_exhausted {
+                FrontierStep::FetchBoth
+            } else if !pv_exhausted {
+                FrontierStep::FetchPv
+            } else {
+                FrontierStep::FetchDoc
+            }
+        }
+    }
+}
+
+/// Drains as many provably ordered items as possible from pending buffers into `emitted`.
+/// Stops when `emitted.len() >= limit` OR when a lane must be fetched to prove the next item.
+pub fn drain_provably_safe_frontier(
+    pending_pv: &mut Vec<MediaFileRow>,
+    pending_doc: &mut Vec<MediaFileRow>,
+    pv_offset: i32,
+    doc_offset: i32,
+    pv_exhausted: bool,
+    doc_exhausted: bool,
+    limit: usize,
+    emitted: &mut Vec<MergedMediaRow>,
+) -> FrontierStep {
+    // Keep pending buffers sorted descending by id
+    pending_pv.sort_by(|a, b| b.id.cmp(&a.id));
+    pending_doc.sort_by(|a, b| b.id.cmp(&a.id));
+
+    let mut pv_idx = 0usize;
+    let mut doc_idx = 0usize;
+
+    let final_step = loop {
+        if emitted.len() >= limit {
+            break FrontierStep::Finished;
+        }
+
+        let head_pv = pending_pv.get(pv_idx);
+        let head_doc = pending_doc.get(doc_idx);
+
+        let step = match (head_pv, head_doc) {
+            (Some(pv), Some(doc)) => {
+                if pv.id > doc.id {
+                    FrontierStep::EmitPv
+                } else if doc.id > pv.id {
+                    FrontierStep::EmitDoc
+                } else {
+                    FrontierStep::EmitBoth
+                }
+            }
+            (Some(pv), None) => {
+                if doc_exhausted {
+                    FrontierStep::EmitPv
+                } else if doc_offset == 0 {
+                    FrontierStep::FetchDoc
+                } else if (pv.id as i32) > doc_offset {
+                    FrontierStep::EmitPv
+                } else {
+                    FrontierStep::FetchDoc
+                }
+            }
+            (None, Some(doc)) => {
+                if pv_exhausted {
+                    FrontierStep::EmitDoc
+                } else if pv_offset == 0 {
+                    FrontierStep::FetchPv
+                } else if (doc.id as i32) > pv_offset {
+                    FrontierStep::EmitDoc
+                } else {
+                    FrontierStep::FetchPv
+                }
+            }
+            (None, None) => {
+                if pv_exhausted && doc_exhausted {
+                    FrontierStep::Finished
+                } else if !pv_exhausted && !doc_exhausted {
+                    FrontierStep::FetchBoth
+                } else if !pv_exhausted {
+                    FrontierStep::FetchPv
+                } else {
+                    FrontierStep::FetchDoc
+                }
+            }
+        };
+
+        match step {
+            FrontierStep::EmitPv => {
+                let pv = &pending_pv[pv_idx];
+                emitted.push(MergedMediaRow {
+                    row: pv.clone(),
+                    lane: SearchLane::PhotoVideo,
+                });
+                pv_idx += 1;
+            }
+            FrontierStep::EmitDoc => {
+                let doc = &pending_doc[doc_idx];
+                emitted.push(MergedMediaRow {
+                    row: doc.clone(),
+                    lane: SearchLane::Document,
+                });
+                doc_idx += 1;
+            }
+            FrontierStep::EmitBoth => {
+                let pv = &pending_pv[pv_idx];
+                emitted.push(MergedMediaRow {
+                    row: pv.clone(),
+                    lane: SearchLane::Both,
+                });
+                pv_idx += 1;
+                doc_idx += 1;
+            }
+            fetch_or_finish => break fetch_or_finish,
+        }
+    };
+
+    if pv_idx > 0 {
+        pending_pv.drain(..pv_idx);
+    }
+    if doc_idx > 0 {
+        pending_doc.drain(..doc_idx);
+    }
+
+    final_step
+}
+
 /// Merges two descending streams of `MediaFileRow` (pending_photo_video and pending_document),
 /// extracts up to `limit` unique items descending by `message_id`, inherently pops matching
 /// duplicates from both lane heads simultaneously to guarantee zero duplicate across page boundaries,
@@ -1025,128 +1218,203 @@ pub async fn list_media_page_async(
                     let mut pv_observation = None;
                     let mut doc_observation = None;
 
-                    let need_pv = cursor.pending_photo_video.len() < limit && !cursor.photo_video.exhausted;
-                    let need_doc = cursor.pending_document.len() < limit && !cursor.document.exhausted;
+                    // 3. Frontier-Aware Lazy Replenishment Loop (P4.3 RPC Elision)
+                    let mut merged_items: Vec<MergedMediaRow> = Vec::with_capacity(limit);
 
-                    if max_inflight >= 2 && need_pv && need_doc {
-                        // Concurrent Dual-Lane Inflight (PhotoVideo + Document parallel MTProto search)
-                        let pv_offset = cursor.photo_video.fetch_offset_id;
-                        let doc_offset = cursor.document.fetch_offset_id;
-
-                        let pv_fut = fetch_media_lane_page_async(
-                            client,
-                            &session_name,
-                            input_peer.clone(),
-                            SearchLane::PhotoVideo,
-                            pv_offset,
-                            limit as i32,
-                            min_id_i32,
-                            top_msg_id,
-                            folder_id,
-                            &active_guard,
+                    while merged_items.len() < limit {
+                        let step = drain_provably_safe_frontier(
+                            &mut cursor.pending_photo_video,
+                            &mut cursor.pending_document,
+                            cursor.photo_video.fetch_offset_id,
+                            cursor.document.fetch_offset_id,
+                            cursor.photo_video.exhausted,
+                            cursor.document.exhausted,
+                            limit,
+                            &mut merged_items,
                         );
 
-                        let doc_fut = fetch_media_lane_page_async(
-                            client,
-                            &session_name,
-                            input_peer.clone(),
-                            SearchLane::Document,
-                            doc_offset,
-                            limit as i32,
-                            min_id_i32,
-                            top_msg_id,
-                            folder_id,
-                            &active_guard,
-                        );
-
-                        let (pv_res, doc_res) = tokio::join!(pv_fut, doc_fut);
-
-                        let (pv_rows, pv_lowest_id, pv_exhausted, pv_count_opt, pv_obs) = pv_res?;
-                        cursor.pending_photo_video.extend(pv_rows);
-                        if let Some(last_id) = pv_lowest_id {
-                            cursor.photo_video.fetch_offset_id = last_id;
+                        if merged_items.len() >= limit || step == FrontierStep::Finished {
+                            break;
                         }
-                        cursor.photo_video.exhausted = pv_exhausted;
-                        lane_counts.photo_video = pv_count_opt;
-                        if let Some(c) = pv_count_opt {
-                            candidate_estimate += c;
-                        }
-                        pv_observation = Some(pv_obs);
 
-                        let (doc_rows, doc_lowest_id, doc_exhausted, doc_count_opt, doc_obs) = doc_res?;
-                        cursor.pending_document.extend(doc_rows);
-                        if let Some(last_id) = doc_lowest_id {
-                            cursor.document.fetch_offset_id = last_id;
-                        }
-                        cursor.document.exhausted = doc_exhausted;
-                        lane_counts.document = doc_count_opt;
-                        if let Some(c) = doc_count_opt {
-                            candidate_estimate += c;
-                        }
-                        doc_observation = Some(doc_obs);
-                    } else {
-                        // Sequential Lane Replenishment
-                        if need_pv {
-                            let (rows, lowest_id, is_exhausted, count_opt, obs) = fetch_media_lane_page_async(
-                                client,
-                                &session_name,
-                                input_peer.clone(),
-                                SearchLane::PhotoVideo,
-                                cursor.photo_video.fetch_offset_id,
-                                limit as i32,
-                                min_id_i32,
-                                top_msg_id,
-                                folder_id,
-                                &active_guard,
-                            )
-                            .await?;
+                        match step {
+                            FrontierStep::FetchBoth => {
+                                let pv_offset = cursor.photo_video.fetch_offset_id;
+                                let doc_offset = cursor.document.fetch_offset_id;
 
-                            cursor.pending_photo_video.extend(rows);
-                            if let Some(last_id) = lowest_id {
-                                cursor.photo_video.fetch_offset_id = last_id;
+                                if max_inflight >= 2 {
+                                    // Concurrent Dual-Lane Inflight (PhotoVideo + Document parallel MTProto search)
+                                    let pv_fut = fetch_media_lane_page_async(
+                                        client,
+                                        &session_name,
+                                        input_peer.clone(),
+                                        SearchLane::PhotoVideo,
+                                        pv_offset,
+                                        limit as i32,
+                                        min_id_i32,
+                                        top_msg_id,
+                                        folder_id,
+                                        &active_guard,
+                                    );
+
+                                    let doc_fut = fetch_media_lane_page_async(
+                                        client,
+                                        &session_name,
+                                        input_peer.clone(),
+                                        SearchLane::Document,
+                                        doc_offset,
+                                        limit as i32,
+                                        min_id_i32,
+                                        top_msg_id,
+                                        folder_id,
+                                        &active_guard,
+                                    );
+
+                                    let (pv_res, doc_res) = tokio::join!(pv_fut, doc_fut);
+
+                                    let (pv_rows, pv_lowest_id, pv_exhausted, pv_count_opt, pv_obs) = pv_res?;
+                                    cursor.pending_photo_video.extend(pv_rows);
+                                    cursor.pending_photo_video.sort_by(|a, b| b.id.cmp(&a.id));
+                                    cursor.pending_photo_video.dedup_by_key(|r| r.id);
+                                    if let Some(last_id) = pv_lowest_id {
+                                        cursor.photo_video.fetch_offset_id = last_id;
+                                    }
+                                    cursor.photo_video.exhausted = pv_exhausted;
+                                    lane_counts.photo_video = pv_count_opt;
+                                    if let Some(c) = pv_count_opt {
+                                        candidate_estimate += c;
+                                    }
+                                    pv_observation = Some(pv_obs);
+
+                                    let (doc_rows, doc_lowest_id, doc_exhausted, doc_count_opt, doc_obs) = doc_res?;
+                                    cursor.pending_document.extend(doc_rows);
+                                    cursor.pending_document.sort_by(|a, b| b.id.cmp(&a.id));
+                                    cursor.pending_document.dedup_by_key(|r| r.id);
+                                    if let Some(last_id) = doc_lowest_id {
+                                        cursor.document.fetch_offset_id = last_id;
+                                    }
+                                    cursor.document.exhausted = doc_exhausted;
+                                    lane_counts.document = doc_count_opt;
+                                    if let Some(c) = doc_count_opt {
+                                        candidate_estimate += c;
+                                    }
+                                    doc_observation = Some(doc_obs);
+                                } else {
+                                    // Sequential Lane Replenishment
+                                    let (pv_rows, pv_lowest_id, pv_exhausted, pv_count_opt, pv_obs) = fetch_media_lane_page_async(
+                                        client,
+                                        &session_name,
+                                        input_peer.clone(),
+                                        SearchLane::PhotoVideo,
+                                        pv_offset,
+                                        limit as i32,
+                                        min_id_i32,
+                                        top_msg_id,
+                                        folder_id,
+                                        &active_guard,
+                                    )
+                                    .await?;
+
+                                    cursor.pending_photo_video.extend(pv_rows);
+                                    cursor.pending_photo_video.sort_by(|a, b| b.id.cmp(&a.id));
+                                    cursor.pending_photo_video.dedup_by_key(|r| r.id);
+                                    if let Some(last_id) = pv_lowest_id {
+                                        cursor.photo_video.fetch_offset_id = last_id;
+                                    }
+                                    cursor.photo_video.exhausted = pv_exhausted;
+                                    lane_counts.photo_video = pv_count_opt;
+                                    if let Some(c) = pv_count_opt {
+                                        candidate_estimate += c;
+                                    }
+                                    pv_observation = Some(pv_obs);
+
+                                    let (doc_rows, doc_lowest_id, doc_exhausted, doc_count_opt, doc_obs) = fetch_media_lane_page_async(
+                                        client,
+                                        &session_name,
+                                        input_peer.clone(),
+                                        SearchLane::Document,
+                                        doc_offset,
+                                        limit as i32,
+                                        min_id_i32,
+                                        top_msg_id,
+                                        folder_id,
+                                        &active_guard,
+                                    )
+                                    .await?;
+
+                                    cursor.pending_document.extend(doc_rows);
+                                    cursor.pending_document.sort_by(|a, b| b.id.cmp(&a.id));
+                                    cursor.pending_document.dedup_by_key(|r| r.id);
+                                    if let Some(last_id) = doc_lowest_id {
+                                        cursor.document.fetch_offset_id = last_id;
+                                    }
+                                    cursor.document.exhausted = doc_exhausted;
+                                    lane_counts.document = doc_count_opt;
+                                    if let Some(c) = doc_count_opt {
+                                        candidate_estimate += c;
+                                    }
+                                    doc_observation = Some(doc_obs);
+                                }
                             }
-                            cursor.photo_video.exhausted = is_exhausted;
-                            lane_counts.photo_video = count_opt;
-                            if let Some(c) = count_opt {
-                                candidate_estimate += c;
-                            }
-                            pv_observation = Some(obs);
-                        }
+                            FrontierStep::FetchPv => {
+                                let (rows, lowest_id, is_exhausted, count_opt, obs) = fetch_media_lane_page_async(
+                                    client,
+                                    &session_name,
+                                    input_peer.clone(),
+                                    SearchLane::PhotoVideo,
+                                    cursor.photo_video.fetch_offset_id,
+                                    limit as i32,
+                                    min_id_i32,
+                                    top_msg_id,
+                                    folder_id,
+                                    &active_guard,
+                                )
+                                .await?;
 
-                        if need_doc {
-                            let (rows, lowest_id, is_exhausted, count_opt, obs) = fetch_media_lane_page_async(
-                                client,
-                                &session_name,
-                                input_peer.clone(),
-                                SearchLane::Document,
-                                cursor.document.fetch_offset_id,
-                                limit as i32,
-                                min_id_i32,
-                                top_msg_id,
-                                folder_id,
-                                &active_guard,
-                            )
-                            .await?;
+                                cursor.pending_photo_video.extend(rows);
+                                cursor.pending_photo_video.sort_by(|a, b| b.id.cmp(&a.id));
+                                cursor.pending_photo_video.dedup_by_key(|r| r.id);
+                                if let Some(last_id) = lowest_id {
+                                    cursor.photo_video.fetch_offset_id = last_id;
+                                }
+                                cursor.photo_video.exhausted = is_exhausted;
+                                lane_counts.photo_video = count_opt;
+                                if let Some(c) = count_opt {
+                                    candidate_estimate += c;
+                                }
+                                pv_observation = Some(obs);
+                            }
+                            FrontierStep::FetchDoc => {
+                                let (rows, lowest_id, is_exhausted, count_opt, obs) = fetch_media_lane_page_async(
+                                    client,
+                                    &session_name,
+                                    input_peer.clone(),
+                                    SearchLane::Document,
+                                    cursor.document.fetch_offset_id,
+                                    limit as i32,
+                                    min_id_i32,
+                                    top_msg_id,
+                                    folder_id,
+                                    &active_guard,
+                                )
+                                .await?;
 
-                            cursor.pending_document.extend(rows);
-                            if let Some(last_id) = lowest_id {
-                                cursor.document.fetch_offset_id = last_id;
+                                cursor.pending_document.extend(rows);
+                                cursor.pending_document.sort_by(|a, b| b.id.cmp(&a.id));
+                                cursor.pending_document.dedup_by_key(|r| r.id);
+                                if let Some(last_id) = lowest_id {
+                                    cursor.document.fetch_offset_id = last_id;
+                                }
+                                cursor.document.exhausted = is_exhausted;
+                                lane_counts.document = count_opt;
+                                if let Some(c) = count_opt {
+                                    candidate_estimate += c;
+                                }
+                                doc_observation = Some(obs);
                             }
-                            cursor.document.exhausted = is_exhausted;
-                            lane_counts.document = count_opt;
-                            if let Some(c) = count_opt {
-                                candidate_estimate += c;
-                            }
-                            doc_observation = Some(obs);
+                            _ => break,
                         }
                     }
-
-                    // 3. Lossless Buffered K-Way Merge & Exact Page Size
-                    let merged_items = buffered_k_way_merge(
-                        &mut cursor.pending_photo_video,
-                        &mut cursor.pending_document,
-                        limit,
-                    );
 
                     let mut emitted_watermark = LaneWatermark {
                         photo_video: 0,
@@ -1645,4 +1913,250 @@ mod tests {
             || !cursor_exhausted.pending_document.is_empty();
         assert_eq!(has_more_final, false);
     }
+
+    #[test]
+    fn test_frontier_scheduler_emits_without_refetch_when_safe() {
+        let mut pv = vec![dummy_row(1050), dummy_row(1040), dummy_row(1030), dummy_row(1020)];
+        let mut doc = vec![];
+        let mut emitted = Vec::new();
+
+        // DOC frontier is 1000, not exhausted. All PV rows > 1000 are provably safe to emit!
+        let step = drain_provably_safe_frontier(&mut pv, &mut doc, 1000, 1000, false, false, 4, &mut emitted);
+        assert_eq!(emitted.len(), 4);
+        let emitted_ids: Vec<i64> = emitted.iter().map(|f| f.row.id).collect();
+        assert_eq!(emitted_ids, vec![1050, 1040, 1030, 1020]);
+        assert!(pv.is_empty());
+        assert_eq!(step, FrontierStep::Finished);
+    }
+
+    #[test]
+    fn test_frontier_scheduler_fetches_when_candidate_crosses_other_frontier() {
+        let mut pv = vec![dummy_row(990)];
+        let mut doc = vec![];
+        let mut emitted = Vec::new();
+
+        // DOC frontier is 1000, not exhausted. PV item 990 <= 1000 cannot be emitted blindly!
+        let step = drain_provably_safe_frontier(&mut pv, &mut doc, 1000, 1000, false, false, 4, &mut emitted);
+        assert_eq!(emitted.len(), 0, "Candidate <= other frontier must NOT be emitted blindly");
+        assert_eq!(step, FrontierStep::FetchDoc);
+        assert_eq!(pv.len(), 1);
+    }
+
+    #[test]
+    fn test_frontier_equal_boundary_requires_fetch() {
+        let mut pv = vec![dummy_row(1000)];
+        let mut doc = vec![];
+        let mut emitted = Vec::new();
+
+        // Boundary test: PV item 1000 == DOC frontier 1000. Strict inequality (> vs >=) MUST trigger FetchDoc!
+        let step = drain_provably_safe_frontier(&mut pv, &mut doc, 1000, 1000, false, false, 1, &mut emitted);
+        assert_eq!(emitted.len(), 0);
+        assert_eq!(step, FrontierStep::FetchDoc, "Exact equal boundary must require fetching other lane");
+    }
+
+    #[test]
+    fn test_unknown_initial_frontier_requires_fetch() {
+        let mut pv = vec![dummy_row(5000)];
+        let mut doc = vec![];
+        let mut emitted = Vec::new();
+
+        // doc_offset == 0 represents uninitialized/unknown frontier -> MUST FETCH DOC
+        let step = drain_provably_safe_frontier(&mut pv, &mut doc, 5000, 0, false, false, 1, &mut emitted);
+        assert_eq!(emitted.len(), 0);
+        assert_eq!(step, FrontierStep::FetchDoc);
+    }
+
+    #[test]
+    fn test_existing_200_buffered_rows_can_serve_next_page_without_rpc() {
+        let mut pv: Vec<MediaFileRow> = (101..=200).rev().map(dummy_row).collect();
+        let mut doc: Vec<MediaFileRow> = (1..=100).rev().map(dummy_row).collect();
+
+        let mut page1 = Vec::new();
+        let step1 = drain_provably_safe_frontier(&mut pv, &mut doc, 100, 1, true, true, 100, &mut page1);
+        assert_eq!(page1.len(), 100);
+        assert_eq!(page1[0].row.id, 200);
+        assert_eq!(page1[99].row.id, 101);
+        assert_eq!(step1, FrontierStep::Finished);
+
+        let mut page2 = Vec::new();
+        let step2 = drain_provably_safe_frontier(&mut pv, &mut doc, 100, 1, true, true, 100, &mut page2);
+        assert_eq!(page2.len(), 100);
+        assert_eq!(page2[0].row.id, 100);
+        assert_eq!(page2[99].row.id, 1);
+        assert_eq!(step2, FrontierStep::Finished);
+
+        assert!(pv.is_empty());
+        assert!(doc.is_empty());
+    }
+
+    #[test]
+    fn test_one_exhausted_lane_never_refetched() {
+        let mut pv = vec![];
+        let mut doc = vec![];
+        let mut emitted = Vec::new();
+
+        // PV is exhausted, DOC is not -> scheduler MUST ONLY request FetchDoc
+        let step = drain_provably_safe_frontier(&mut pv, &mut doc, 50, 50, true, false, 10, &mut emitted);
+        assert_eq!(step, FrontierStep::FetchDoc);
+
+        // DOC is exhausted, PV is not -> scheduler MUST ONLY request FetchPv
+        let step2 = drain_provably_safe_frontier(&mut pv, &mut doc, 50, 50, false, true, 10, &mut emitted);
+        assert_eq!(step2, FrontierStep::FetchPv);
+    }
+
+    #[test]
+    fn test_sparse_doc_lane_cannot_starve() {
+        // PV has 100 items (1000..901). DOC has 1 item at 950 (matching PV 950 cross-lane duplicate).
+        let mut pv: Vec<MediaFileRow> = (901..=1000).rev().map(dummy_row).collect();
+        let mut doc: Vec<MediaFileRow> = vec![dummy_row(950)];
+        let mut emitted = Vec::new();
+
+        // 1. First drain: emits 1000..951 (50 items) + 950 (1 item from Both).
+        // Since DOC buffer is now empty and doc_offset = 950, next PV candidate (949) <= 950 requires FetchDoc!
+        let step1 = drain_provably_safe_frontier(&mut pv, &mut doc, 901, 950, true, false, 100, &mut emitted);
+        assert_eq!(step1, FrontierStep::FetchDoc, "Scheduler must pause PV emission and fetch DOC at boundary");
+        assert_eq!(emitted.len(), 51); // 1000..951 (50 items) + 950 (1 item via EmitBoth)
+        assert_eq!(emitted[0].row.id, 1000);
+        assert_eq!(emitted[50].row.id, 950);
+        assert_eq!(emitted[50].lane, SearchLane::Both, "Matching cross-lane 950 must be tagged Both and deduplicated");
+
+        // 2. DOC search completes and finds no more items (doc_exhausted = true)
+        let step2 = drain_provably_safe_frontier(&mut pv, &mut doc, 901, 950, true, true, 100, &mut emitted);
+        assert_eq!(step2, FrontierStep::Finished);
+        assert_eq!(emitted.len(), 100); // exactly 100 unique items (950 deduplicated)
+        assert_eq!(emitted[51].row.id, 949);
+        assert_eq!(emitted[99].row.id, 901);
+        assert!(pv.is_empty());
+        assert!(doc.is_empty());
+    }
+
+    #[test]
+    fn test_frontier_scheduler_matches_full_reference_merge_scale() {
+        for scale in [1_000, 10_000, 50_000, 100_000] {
+            // Generate synthetic descending streams for PV and DOC
+            let mut pv_all: Vec<MediaFileRow> = (1..=(scale as i64))
+                .filter(|id| id % 2 == 0 || id % 7 == 0)
+                .rev()
+                .map(dummy_row)
+                .collect();
+            let mut doc_all: Vec<MediaFileRow> = (1..=(scale as i64))
+                .filter(|id| id % 3 == 0 || id % 7 == 0)
+                .rev()
+                .map(dummy_row)
+                .collect();
+
+            // Reference merge: full concat, sort descending, dedup by ID
+            let mut reference = Vec::new();
+            reference.extend(pv_all.iter().map(|r| r.id));
+            reference.extend(doc_all.iter().map(|r| r.id));
+            reference.sort_unstable_by(|a, b| b.cmp(a));
+            reference.dedup();
+
+            // Paginated simulated frontier scheduler merge
+            let mut emitted_stream = Vec::new();
+            let mut pending_pv = Vec::new();
+            let mut pending_doc = Vec::new();
+            let mut pv_offset = 0i32;
+            let mut doc_offset = 0i32;
+            let mut pv_exhausted = false;
+            let mut doc_exhausted = false;
+
+            let page_limit = 100usize;
+
+            while emitted_stream.len() < reference.len() {
+                let mut page_emitted = Vec::new();
+
+                while page_emitted.len() < page_limit {
+                    let step = drain_provably_safe_frontier(
+                        &mut pending_pv,
+                        &mut pending_doc,
+                        pv_offset,
+                        doc_offset,
+                        pv_exhausted,
+                        doc_exhausted,
+                        page_limit,
+                        &mut page_emitted,
+                    );
+
+                    if page_emitted.len() >= page_limit || step == FrontierStep::Finished {
+                        break;
+                    }
+
+                    match step {
+                        FrontierStep::FetchBoth => {
+                            // Replenish PV chunk
+                            if !pv_exhausted {
+                                let take_cnt = 100.min(pv_all.len());
+                                let chunk: Vec<_> = pv_all.drain(..take_cnt).collect();
+                                if let Some(last) = chunk.last() {
+                                    pv_offset = last.id as i32;
+                                }
+                                if pv_all.is_empty() {
+                                    pv_exhausted = true;
+                                }
+                                pending_pv.extend(chunk);
+                            }
+                            // Replenish DOC chunk
+                            if !doc_exhausted {
+                                let take_cnt = 100.min(doc_all.len());
+                                let chunk: Vec<_> = doc_all.drain(..take_cnt).collect();
+                                if let Some(last) = chunk.last() {
+                                    doc_offset = last.id as i32;
+                                }
+                                if doc_all.is_empty() {
+                                    doc_exhausted = true;
+                                }
+                                pending_doc.extend(chunk);
+                            }
+                        }
+                        FrontierStep::FetchPv => {
+                            if !pv_exhausted {
+                                let take_cnt = 100.min(pv_all.len());
+                                let chunk: Vec<_> = pv_all.drain(..take_cnt).collect();
+                                if let Some(last) = chunk.last() {
+                                    pv_offset = last.id as i32;
+                                }
+                                if pv_all.is_empty() {
+                                    pv_exhausted = true;
+                                }
+                                pending_pv.extend(chunk);
+                            }
+                        }
+                        FrontierStep::FetchDoc => {
+                            if !doc_exhausted {
+                                let take_cnt = 100.min(doc_all.len());
+                                let chunk: Vec<_> = doc_all.drain(..take_cnt).collect();
+                                if let Some(last) = chunk.last() {
+                                    doc_offset = last.id as i32;
+                                }
+                                if doc_all.is_empty() {
+                                    doc_exhausted = true;
+                                }
+                                pending_doc.extend(chunk);
+                            }
+                        }
+                        _ => break,
+                    }
+                }
+
+                if page_emitted.is_empty() {
+                    break;
+                }
+                for item in page_emitted {
+                    emitted_stream.push(item.row.id);
+                }
+            }
+
+            assert_eq!(
+                emitted_stream.len(),
+                reference.len(),
+                "Scale {scale}: emitted count must match reference exactly"
+            );
+            assert_eq!(
+                emitted_stream, reference,
+                "Scale {scale}: emitted sequence must be 100% identical to reference descending order"
+            );
+        }
+    }
+
 }
