@@ -195,9 +195,9 @@ export function DriveStorageInfoBadge({
         aria-label={t('speedtest.storage_info_badge_aria')}
         aria-expanded={isPopoverOpen}
       >
-        <span className={`td-splash-dot td-dot-${statusMode}`} />
         {isAutoSplashVisible ? (
           <>
+            <span className={`td-splash-dot td-dot-${statusMode}`} />
             <span className="td-splash-text">{summaryText}</span>
             <span
               className="td-splash-dismiss-btn"
@@ -217,7 +217,7 @@ export function DriveStorageInfoBadge({
             </span>
           </>
         ) : (
-          <Info size={13} className="td-storage-info-icon" />
+          <Info size={13} className={`td-storage-info-icon td-icon-status-${statusMode}`} />
         )}
       </button>
 
