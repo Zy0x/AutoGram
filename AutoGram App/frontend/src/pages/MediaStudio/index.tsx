@@ -3724,10 +3724,6 @@ function MediaDriveDesktop({
           forceMode: targetMode,
         },
         async (event: TgMediaIndexEvent) => {
-          if (!indexingActiveRef.current || gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) {
-            return;
-          }
-
           if (event.type === 'page') {
             const page = event.rows || [];
             const leanPage = page.length ? stripInlineThumbsFromFiles(page).map(toLeanDriveFile) : [];
@@ -3759,69 +3755,87 @@ function MediaDriveDesktop({
                 outcome: 'failed',
                 errorCode: String((dbErr as any)?.message || dbErr),
               });
-              setIndexingJob((prev: any) => prev ? {
-                ...prev,
-                text: t('speedtest.db_error_paused') || 'Kesalahan database: pengindeksan dijeda demi menjaga integritas data'
-              } : prev);
+              if (gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey) {
+                setIndexingJob((prev: any) => prev ? {
+                  ...prev,
+                  text: t('speedtest.db_error_paused') || 'Kesalahan database: pengindeksan dijeda demi menjaga integritas data'
+                } : prev);
+              }
               return;
             }
 
             indexedLoadedCount += page.length;
-            setTotalIndexedCount(indexedLoadedCount);
-            const curLoaded = indexedLoadedCount;
-            const curTotal = totalFileCount || initialTotal;
-            const now = Date.now();
-            const metrics = calculateIndexingMetrics(curLoaded, curTotal, startTimeMs, now, curLoaded, now);
 
-            accumulatedNewFiles.push(...page);
-            if (now - lastRenderTime >= 900 || !event.hasMore) {
-              const batchToAdd = accumulatedNewFiles;
-              accumulatedNewFiles = [];
-              startTransition(() => {
-                setFiles((prev) => {
-                  if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
-                  const merged = dedupeByMsgId([...prev, ...batchToAdd]);
-                  let boundedFiles = merged;
-                  if (boundedFiles.length > 2500) {
-                    boundedFiles = boundedFiles.slice(0, 2500);
-                  }
-                  filesCacheRef.current.set(cacheKey, boundedFiles);
-                  return boundedFiles;
+            // Only update active foreground UI state if user is currently looking at this folder
+            const isCurrentlyViewed = gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey;
+            if (isCurrentlyViewed) {
+              setTotalIndexedCount(indexedLoadedCount);
+              const curLoaded = indexedLoadedCount;
+              const curTotal = totalFileCount || initialTotal;
+              const now = Date.now();
+              const metrics = calculateIndexingMetrics(curLoaded, curTotal, startTimeMs, now, curLoaded, now);
+
+              accumulatedNewFiles.push(...page);
+              if (now - lastRenderTime >= 900 || !event.hasMore) {
+                const batchToAdd = accumulatedNewFiles;
+                accumulatedNewFiles = [];
+                startTransition(() => {
+                  setFiles((prev) => {
+                    if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
+                    const merged = dedupeByMsgId([...prev, ...batchToAdd]);
+                    let boundedFiles = merged;
+                    if (boundedFiles.length > 2500) {
+                      boundedFiles = boundedFiles.slice(0, 2500);
+                    }
+                    filesCacheRef.current.set(cacheKey, boundedFiles);
+                    return boundedFiles;
+                  });
                 });
-              });
-              lastRenderTime = now;
-            }
+                lastRenderTime = now;
+              }
 
-            setIndexingProgress({
-              processed: curLoaded,
-              total: curTotal || null,
-            });
-            setIndexingJob({
-              active: true,
-              processed: curLoaded,
-              total: curTotal,
-              tier: determineIndexingTier(curTotal, curLoaded),
-              speed: metrics.speedMsgPerSec,
-              eta: metrics.etaFormatted,
-              // A page that was already in flight can arrive immediately after the
-              // user pauses the worker. Keep the control state authoritative so the
-              // queued page cannot hide the Resume action while Rust is paused.
-              isPaused: indexingPausedRef.current,
-              text: curTotal > 0
-                ? t('speedtest.index_progress_detail', {
-                    processed: curLoaded.toLocaleString(),
-                    total: curTotal.toLocaleString(),
-                    percent: metrics.percent,
-                  })
-                : t('speedtest.index_progress_count_only', { processed: curLoaded.toLocaleString() }),
-            });
+              setIndexingProgress({
+                processed: curLoaded,
+                total: curTotal || null,
+              });
+              setIndexingJob({
+                active: true,
+                processed: curLoaded,
+                total: curTotal,
+                tier: determineIndexingTier(curTotal, curLoaded),
+                speed: metrics.speedMsgPerSec,
+                eta: metrics.etaFormatted,
+                isPaused: indexingPausedRef.current,
+                text: curTotal > 0
+                  ? t('speedtest.index_progress_detail', {
+                      processed: curLoaded.toLocaleString(),
+                      total: curTotal.toLocaleString(),
+                      percent: metrics.percent,
+                    })
+                  : t('speedtest.index_progress_count_only', { processed: curLoaded.toLocaleString() }),
+              });
+            }
+          } else if (event.type === 'state') {
+            if (event.state === 'user_paused' || event.state === 'flood_paused') {
+              setIndexingJob((prev) => ({
+                ...prev,
+                isPaused: true,
+              }));
+            } else if (event.state === 'running') {
+              setIndexingJob((prev) => ({
+                ...prev,
+                isPaused: false,
+              }));
+            }
           } else if (event.type === 'progress') {
             const curLoaded = indexedLoadedCount;
             const curTotal = totalFileCount || initialTotal;
-            setIndexingProgress({
-              processed: curLoaded,
-              total: curTotal || null,
-            });
+            if (gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey) {
+              setIndexingProgress({
+                processed: curLoaded,
+                total: curTotal || null,
+              });
+            }
           } else if (event.type === 'flood') {
             setIndexingJob((prev: any) => prev ? {
               ...prev,

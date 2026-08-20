@@ -1107,7 +1107,6 @@ impl MediaIndexWorker {
             loop {
                 // 1. Cooperative Pause / Resume Check
                 if *state_rx.borrow() == MediaIndexDesiredState::Paused {
-                    prefetched_page = None;
                     {
                         let mut st = control_ref.status.write().await;
                         st.state = MediaIndexJobState::UserPaused;
