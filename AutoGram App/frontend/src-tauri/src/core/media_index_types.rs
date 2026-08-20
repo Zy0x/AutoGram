@@ -41,6 +41,7 @@ pub struct MediaIndexStateSnapshot {
     pub peer_id: String,
     pub scope_kind: String,
     pub topic_id_normalized: i64,
+    #[serde(default)]
     pub mode: String,
     pub pv_committed_offset: i32,
     pub doc_committed_offset: i32,
