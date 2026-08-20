@@ -3434,6 +3434,7 @@ function MediaDriveDesktop({
     indexingPausedRef.current = false;
     const currentJobId = activeIndexingJobIdRef.current;
     if (currentJobId) {
+      activeIndexingJobIdRef.current = null;
       void cancelMediaIndexJob(currentJobId);
     }
     setIndexingAllActive(false);
@@ -3517,6 +3518,16 @@ function MediaDriveDesktop({
       indexState = null;
     }
 
+    // INDEX ALL means complete historical backfill scan.
+    // If a previous historical backfill has already completed (backfillComplete === true),
+    // discard only its durable cursor/checkpoint so this explicit user action starts again from head.
+    // Existing media records in IndexedDB are preserved and updated idempotently by Message ID.
+    if (indexState?.backfillComplete === true) {
+      console.info('[Indexer] Previous backfill was complete; resetting checkpoint for explicit fresh Index All scan');
+      await resetMediaIndexState(mediaContext);
+      indexState = null;
+    }
+
     let accumulatedNewFiles: DriveFile[] = [];
     let lastRenderTime = Date.now();
     let indexedLoadedCount = initialProcessed;
@@ -3537,7 +3548,7 @@ function MediaDriveDesktop({
           topicId: tid ?? null,
           pageSize: 100,
           initialState: indexState,
-          forceMode: null,
+          forceMode: 'historical_backfill',
         },
         async (event: TgMediaIndexEvent) => {
           if (!indexingActiveRef.current || gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) {
@@ -3642,11 +3653,14 @@ function MediaDriveDesktop({
               text: t('speedtest.floodwait_countdown', { seconds: event.waitSecs }) || `FloodWait: menunggu ${event.waitSecs}s...`
             } : prev);
           } else if (event.type === 'complete') {
+            console.info('[Indexer] TERMINAL COMPLETE', event.mode, event.totalEmittedRows, event.metrics);
+            activeIndexingJobIdRef.current = null;
             filesHasMoreRef.current = false;
             setFilesHasMore(false);
             nextOffsetIdRef.current = null;
             setNextOffsetId(null);
             indexingActiveRef.current = false;
+            indexingPausedRef.current = false;
             setIndexingAllActive(false);
 
             if (accumulatedNewFiles.length > 0) {
@@ -3697,10 +3711,13 @@ function MediaDriveDesktop({
             setTotalIndexedCount(indexedLoadedCount);
             setStatusText(t('ui.generated.semua_media_dimuat_2310a13'));
           } else if (event.type === 'failed') {
-            console.warn('[Indexer] Job failed:', event.message);
+            console.error('[Indexer] TERMINAL FAILED', event.code, event.message, event.recoverable);
+            activeIndexingJobIdRef.current = null;
             indexingActiveRef.current = false;
+            indexingPausedRef.current = false;
             setIndexingAllActive(false);
             setIndexingJob({ active: false, processed: 0, total: 0, text: '', isPaused: false });
+            setStatusText(t('speedtest.index_failed_error', { message: event.message }) || `Index gagal: ${event.message}`);
           }
         }
       );
@@ -3708,6 +3725,7 @@ function MediaDriveDesktop({
       activeIndexingJobIdRef.current = startRes.jobId;
     } catch (err: any) {
       console.warn('[Indexer] startMediaIndexJob caught error:', err);
+      activeIndexingJobIdRef.current = null;
       indexingActiveRef.current = false;
       indexingPausedRef.current = false;
       setIndexingAllActive(false);

@@ -1227,6 +1227,7 @@
   "sort_index_progress": "Mengindeks {{count}} media untuk pengurutan global akurat…",
   "sort_index_rate_wait": "Batas laju Telegram · lanjut dalam {{seconds}} dtk",
   "sort_index_failed": "Indeks pengurutan global gagal: {{error}}",
+  "index_failed_error": "Indeks gagal: {{message}}",
   "preflight_info_button": "Informasi pengaturan",
   "preflight_drive_settings": "Pengaturan Drive",
   "preflight_drive_settings_title": "Pengaturan unggahan Drive dan transfer",

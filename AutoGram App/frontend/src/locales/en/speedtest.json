@@ -1227,6 +1227,7 @@
   "sort_index_progress": "Indexing {{count}} media for accurate global sorting…",
   "sort_index_rate_wait": "Telegram rate limit · resuming in {{seconds}}s",
   "sort_index_failed": "Global sorting index failed: {{error}}",
+  "index_failed_error": "Indexing failed: {{message}}",
   "preflight_info_button": "Settings information",
   "preflight_drive_settings": "Drive settings",
   "preflight_drive_settings_title": "Drive and transfer upload settings",
