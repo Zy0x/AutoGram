@@ -175,3 +175,21 @@ pub fn save_statistics(stats: &MediaStatisticsResult) -> Result<(), String> {
 
     Ok(())
 }
+
+pub fn invalidate_cached_statistics(
+    account_id: &str,
+    peer_id: &str,
+    topic_id: Option<i64>,
+) {
+    if let Ok(conn) = open_db() {
+        let tid = topic_id.unwrap_or(0);
+        let _ = conn.execute(
+            "DELETE FROM media_statistics WHERE account_id = ?1 AND peer_id = ?2 AND topic_id = ?3",
+            params![account_id, peer_id, tid],
+        );
+        let _ = conn.execute(
+            "DELETE FROM media_statistics WHERE account_id = ?1 AND peer_id = ?2 AND topic_id = 0",
+            params![account_id, peer_id],
+        );
+    }
+}

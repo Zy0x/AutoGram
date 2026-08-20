@@ -1197,11 +1197,18 @@ function MediaDriveDesktop({
   };
 
   const isChannelOrSupergroup = useMemo(() => {
-    if (peerId == null || peerId === 0 || locationKind === 'saved') return false;
+    if (peerId == null || peerId === 0) return false;
+    if (locationKind === 'saved') return false;
     if (locationKind === 'drive') return true;
     if (locationKind === 'chat') {
-      const chat = chats.find((c) => c.id === peerId);
-      if (!chat) return false;
+      const pNum = Number(peerId);
+      if (Number.isFinite(pNum) && pNum < 0) return true;
+      const pStr = String(peerId);
+      if (pStr.startsWith('-100') || pStr.startsWith('-')) return true;
+      const chat = chats.find(
+        (c) => String(c.id) === pStr || String(c.id) === pStr.replace('-100', '') || String(c.id) === `-${pStr}`
+      );
+      if (!chat) return true; // Default to true so ChannelSync worker stays actively synchronizing
       return (
         chat.type === 'channel' ||
         chat.type === 'supergroup' ||
@@ -1220,6 +1227,7 @@ function MediaDriveDesktop({
     isChannelOrSupergroup,
     isActivelyViewed: true,
     onMutationsCommitted: useCallback((mutations: MediaMutation[]) => {
+      const deletedIds: number[] = [];
       setFiles((prev) => {
         let updated = [...prev];
         for (const mut of mutations) {
@@ -1240,12 +1248,32 @@ function MediaDriveDesktop({
             }
           } else if (mut.action === 'delete') {
             const delSet = new Set(mut.message_ids);
+            deletedIds.push(...mut.message_ids);
             updated = updated.filter((f) => !delSet.has(f.id));
           }
         }
         return updated;
       });
-    }, []),
+
+      if (deletedIds.length > 0) {
+        const delSet = new Set(deletedIds);
+        liveFilesRef.current = liveFilesRef.current.filter((f) => !delSet.has(f.id));
+
+        // Purge memory cache so filters and paginations stay 100% live in sync
+        const currentSession = creds?.session || session;
+        const prefix = `${currentSession}::${peerId == null ? 'saved' : peerId}::`;
+        for (const key of Array.from(filesCacheRef.current.keys())) {
+          if (key.startsWith(prefix)) {
+            filesCacheRef.current.delete(key);
+            filesTotalCountRef.current.delete(key);
+            filesTotalBytesRef.current.delete(key);
+          }
+        }
+
+        // Live update server counter state without reload
+        setServerMediaCount((prev) => (prev != null ? Math.max(0, prev - deletedIds.length) : null));
+      }
+    }, [creds, session, peerId]),
     onAuthoritativeReconcileRequired: useCallback(async (latestPts: number) => {
       try {
         if (!creds || !peerId) return;

@@ -968,6 +968,8 @@ pub fn tg_delete_messages(
     req: DeleteMessagesRequest,
 ) -> OpResult<super::drive_rpc::DeleteMessagesResult> {
     let dir = sessions_dir_from_env();
+    let session = req.session.clone();
+    let chat_id = req.chat_id.clone();
     let identity = identity_from(req.session, req.api_id, req.api_hash);
     match super::drive_rpc::delete_messages_blocking(
         &dir,
@@ -975,7 +977,10 @@ pub fn tg_delete_messages(
         &req.chat_id,
         &req.message_ids,
     ) {
-        Ok(r) => ok_result("grammers", r),
+        Ok(r) => {
+            super::media_statistics::invalidate_cached_statistics(&session, &chat_id, None);
+            ok_result("grammers", r)
+        }
         Err(e) => err_result("grammers", e),
     }
 }

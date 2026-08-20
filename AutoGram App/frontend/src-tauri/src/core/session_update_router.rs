@@ -190,6 +190,21 @@ impl SessionUpdateRouter {
                 }).await;
             }
 
+            tl::enums::Update::DeleteMessages(u) => {
+                let ids: Vec<i64> = u.messages.iter().map(|id| *id as i64).collect();
+                if !ids.is_empty() {
+                    let mailboxes = self.channel_mailboxes.read().await;
+                    for (&cid, mb) in mailboxes.iter() {
+                        let _ = mb.sender.try_send(PendingChannelUpdate {
+                            channel_id: cid,
+                            pts: u.pts,
+                            pts_count: u.pts_count,
+                            update_type: ChannelUpdateType::DeleteMessages(ids.clone()),
+                        });
+                    }
+                }
+            }
+
             tl::enums::Update::ChannelTooLong(u) => {
                 let channel_id = u.channel_id;
                 self.route_channel_update(PendingChannelUpdate {
