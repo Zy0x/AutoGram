@@ -36,6 +36,7 @@ pub trait RpcObserver: Send + Sync {
 pub struct RpcGuardControl {
     pub cancel: Option<CancellationToken>,
     pub observer: Option<Arc<dyn RpcObserver>>,
+    pub pacing_ms: u32,
 }
 
 /// Rolling telemetry metrics per RPC class and operation.
@@ -167,7 +168,20 @@ where
             wait_if_flooded_class(session, class).await?;
         }
 
-        // 3. Measure invocation latency
+        // 3. Apply governor pacing if configured
+        if control.pacing_ms > 0 {
+            let wait = Duration::from_millis(u64::from(control.pacing_ms));
+            if let Some(ref c) = control.cancel {
+                tokio::select! {
+                    _ = c.cancelled() => return Err(TgError::new(TgErrorCode::Cancelled, "guarded rpc cancelled during pacing")),
+                    _ = tokio::time::sleep(wait) => {}
+                }
+            } else {
+                tokio::time::sleep(wait).await;
+            }
+        }
+
+        // 4. Measure invocation latency
         let start = Instant::now();
         let result = if let Some(ref c) = control.cancel {
             tokio::select! {

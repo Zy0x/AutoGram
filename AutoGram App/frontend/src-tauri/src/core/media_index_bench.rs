@@ -4,11 +4,15 @@
 //! k-way merge efficiency, and memory stability across 10k -> 25k -> 50k -> 100k -> 250k -> 500k -> 1M+ scales.
 
 use std::collections::HashSet;
+use std::path::Path;
 use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 
-use crate::core::grammers_ops::media_list::{buffered_k_way_merge, MediaFileRow};
+use crate::core::grammers_ops::media_list::{buffered_k_way_merge, list_media_page_async, MediaFileRow};
+use crate::core::telegram_ops::TelegramIdentity;
+use crate::core::telegram_rpc_guard::RpcGuardControl;
+use crate::core::tg_error::TgError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum IndexBenchTier {
@@ -46,6 +50,18 @@ pub struct IndexBenchReport {
     pub duration_ms: u64,
     pub avg_items_per_sec: f64,
     pub merge_cycles: usize,
+    pub passed: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LiveTelegramIndexBenchReport {
+    pub target_peer: String,
+    pub wall_duration_ms: u64,
+    pub total_pages_fetched: usize,
+    pub total_rows_emitted: usize,
+    pub unique_rows: usize,
+    pub duplicate_rows: usize,
+    pub committed_media_per_sec: f64,
     pub passed: bool,
 }
 
@@ -153,6 +169,66 @@ pub fn run_synthetic_index_benchmark(tier: IndexBenchTier) -> IndexBenchReport {
     }
 }
 
+/// Executes a live index throughput probe against real Telegram MTProto datacenter.
+pub async fn run_live_telegram_index_benchmark(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    chat_id: &str,
+    max_pages: usize,
+) -> Result<LiveTelegramIndexBenchReport, TgError> {
+    let start = Instant::now();
+    let mut cursor = None;
+    let mut pages_fetched = 0usize;
+    let mut emitted_rows = 0usize;
+    let mut seen_ids = HashSet::new();
+    let mut duplicate_rows = 0usize;
+
+    for _ in 0..max_pages {
+        pages_fetched += 1;
+        let res = list_media_page_async(
+            sessions_dir,
+            identity,
+            chat_id,
+            100,
+            None,
+            None,
+            None,
+            cursor.clone(),
+            2, // Test inflight=2 dual lane
+            None,
+        )
+        .await?;
+
+        for f in &res.files {
+            emitted_rows += 1;
+            if !seen_ids.insert(f.id) {
+                duplicate_rows += 1;
+            }
+        }
+
+        cursor = res.search_cursor;
+        if !res.has_more {
+            break;
+        }
+    }
+
+    let elapsed = start.elapsed();
+    let wall_duration_ms = elapsed.as_millis().max(1) as u64;
+    let committed_media_per_sec = (seen_ids.len() as f64) / elapsed.as_secs_f64().max(0.0001);
+    let passed = duplicate_rows == 0 && seen_ids.len() == emitted_rows;
+
+    Ok(LiveTelegramIndexBenchReport {
+        target_peer: chat_id.to_string(),
+        wall_duration_ms,
+        total_pages_fetched: pages_fetched,
+        total_rows_emitted: emitted_rows,
+        unique_rows: seen_ids.len(),
+        duplicate_rows,
+        committed_media_per_sec,
+        passed,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -183,5 +259,24 @@ mod tests {
         assert_eq!(r100k.duplicate_items, 0);
         assert_eq!(r100k.missing_items, 0);
         assert!(r100k.avg_items_per_sec > 20_000.0);
+    }
+
+    #[test]
+    fn test_synthetic_benchmark_250k_to_1m() {
+        let r250k = run_synthetic_index_benchmark(IndexBenchTier::Scale250k);
+        assert!(r250k.passed, "250k benchmark failed: {:?}", r250k);
+        assert_eq!(r250k.duplicate_items, 0);
+        assert_eq!(r250k.missing_items, 0);
+
+        let r500k = run_synthetic_index_benchmark(IndexBenchTier::Scale500k);
+        assert!(r500k.passed, "500k benchmark failed: {:?}", r500k);
+        assert_eq!(r500k.duplicate_items, 0);
+        assert_eq!(r500k.missing_items, 0);
+
+        let r1m = run_synthetic_index_benchmark(IndexBenchTier::Scale1M);
+        assert!(r1m.passed, "1M benchmark failed: {:?}", r1m);
+        assert_eq!(r1m.duplicate_items, 0);
+        assert_eq!(r1m.missing_items, 0);
+        assert!(r1m.avg_items_per_sec > 20_000.0);
     }
 }

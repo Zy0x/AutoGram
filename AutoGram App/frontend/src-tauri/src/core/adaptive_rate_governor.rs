@@ -1,7 +1,7 @@
 //! adaptive_rate_governor.rs — Rust-Only Adaptive Rate Governor for P4
 //!
 //! Dynamically adjusts inter-request pacing, inflight permits (1 -> 2),
-//! flood recovery, and latency EWMA/p95 feedback to maximize committed useful media/s.
+//! flood recovery, and latency EWMA/p95 feedback to maximize durably committed useful media/s.
 
 use std::collections::VecDeque;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -118,7 +118,6 @@ pub struct AdaptiveRateGovernor {
     max_inflight: usize,
 
     last_dispatch_instant: Option<Instant>,
-    last_safe_pacing_ms: u32,
 
     baseline_rpc_p50_ms: f64,
     baseline_rpc_p95_ms: f64,
@@ -126,16 +125,23 @@ pub struct AdaptiveRateGovernor {
 
     ack_ewma_ms: f64,
     ack_p95_ms: f64,
+    idle_ewma_ms: f64,
 
     rpc_samples: RollingSampleWindow<u64, 128>,
     ack_samples: RollingSampleWindow<u64, 128>,
     idle_samples: RollingSampleWindow<u64, 128>,
 
+    total_committed_rows: u64,
     committed_rows_per_sec: f64,
     useful_rows_per_rpc: f64,
 
-    stable_successes: u64,
+    // Probe 2 evaluation state
+    baseline_committed_rate: f64,
+    probe_start_instant: Option<Instant>,
+    probe_start_committed_rows: u64,
     probe_successes: u64,
+
+    stable_successes: u64,
     total_search_rpcs: u64,
 
     flood_count: u64,
@@ -155,7 +161,6 @@ impl AdaptiveRateGovernor {
             max_inflight: 1,
 
             last_dispatch_instant: None,
-            last_safe_pacing_ms: 0,
 
             baseline_rpc_p50_ms: 0.0,
             baseline_rpc_p95_ms: 0.0,
@@ -163,16 +168,22 @@ impl AdaptiveRateGovernor {
 
             ack_ewma_ms: 0.0,
             ack_p95_ms: 0.0,
+            idle_ewma_ms: 0.0,
 
             rpc_samples: RollingSampleWindow::new(),
             ack_samples: RollingSampleWindow::new(),
             idle_samples: RollingSampleWindow::new(),
 
+            total_committed_rows: 0,
             committed_rows_per_sec: 0.0,
             useful_rows_per_rpc: 0.0,
 
-            stable_successes: 0,
+            baseline_committed_rate: 0.0,
+            probe_start_instant: None,
+            probe_start_committed_rows: 0,
             probe_successes: 0,
+
+            stable_successes: 0,
             total_search_rpcs: 0,
 
             flood_count: 0,
@@ -260,6 +271,9 @@ impl AdaptiveRateGovernor {
 
                 // Probe inflight 2 if stable for >= 20 successful RPCs and high confidence
                 if self.stable_successes >= 20 && self.confidence_score >= 0.6 && self.max_inflight == 1 {
+                    self.baseline_committed_rate = self.committed_rows_per_sec;
+                    self.probe_start_instant = Some(Instant::now());
+                    self.probe_start_committed_rows = self.total_committed_rows;
                     self.transition_to(GovernorState::ProbeInflight2);
                     self.max_inflight = 2;
                     self.probe_successes = 0;
@@ -269,15 +283,30 @@ impl AdaptiveRateGovernor {
                 self.probe_successes += 1;
                 let cur_p95 = self.rpc_samples.p95().unwrap_or(200) as f64;
 
-                // If p95 latency spikes sharply under inflight=2, roll back to Stable with inflight=1
+                // 1. Latency spike check: if p95 spikes > 2.2x baseline, roll back
                 if self.baseline_rpc_p95_ms > 0.0 && cur_p95 > self.baseline_rpc_p95_ms * 2.2 {
                     self.transition_to(GovernorState::Cooldown);
                     self.max_inflight = 1;
                     self.confidence_score = (self.confidence_score * 0.8).max(0.2);
-                } else if self.probe_successes >= 30 {
-                    // Confirmed sustainable inflight=2!
-                    self.confidence_score = (self.confidence_score + 0.1).min(0.95);
-                    self.transition_to(GovernorState::Stable);
+                } else if self.probe_successes >= 20 {
+                    // 2. Throughput comparison: evaluate committed rows/sec during probe window
+                    let probe_duration = self.probe_start_instant.map(|i| i.elapsed().as_secs_f64()).unwrap_or(1.0).max(0.1);
+                    let probe_delta_rows = self.total_committed_rows.saturating_sub(self.probe_start_committed_rows);
+                    let probe_committed_rate = probe_delta_rows as f64 / probe_duration;
+
+                    let is_rate_improved = self.baseline_committed_rate <= 0.0 || probe_committed_rate >= (self.baseline_committed_rate * 1.08);
+
+                    if is_rate_improved {
+                        // Confirmed real throughput gain under inflight=2!
+                        self.confidence_score = (self.confidence_score + 0.15).min(0.95);
+                        self.max_inflight = 2;
+                        self.transition_to(GovernorState::Stable);
+                    } else {
+                        // No improvement: rollback to inflight=1 to avoid unneeded pressure
+                        self.transition_to(GovernorState::Cooldown);
+                        self.max_inflight = 1;
+                        self.confidence_score = (self.confidence_score * 0.85).max(0.3);
+                    }
                 }
             }
             GovernorState::Cooldown => {
@@ -316,8 +345,11 @@ impl AdaptiveRateGovernor {
         self.transition_to(GovernorState::FloodRecovery);
     }
 
-    /// Feeds IndexedDB ACK and scheduler gap observations.
-    pub fn on_ack_committed(&mut self, ack_latency_ms: u64, ack_to_next_gap_ms: u64) {
+    /// Feeds IndexedDB ACK and scheduler gap observations, updating durably committed throughput.
+    pub fn on_ack_committed(&mut self, ack_latency_ms: u64, ack_to_next_gap_ms: u64, total_committed: u64, committed_rate: f64) {
+        self.total_committed_rows = total_committed;
+        self.committed_rows_per_sec = committed_rate;
+
         self.ack_samples.push(ack_latency_ms);
         self.idle_samples.push(ack_to_next_gap_ms);
 
@@ -328,15 +360,18 @@ impl AdaptiveRateGovernor {
             self.ack_ewma_ms = (self.ack_ewma_ms * 0.8) + (ack_f * 0.2);
         }
 
+        let idle_f = ack_to_next_gap_ms as f64;
+        if self.idle_ewma_ms <= 0.0 {
+            self.idle_ewma_ms = idle_f;
+        } else {
+            self.idle_ewma_ms = (self.idle_ewma_ms * 0.8) + (idle_f * 0.2);
+        }
+
         // If IndexedDB ACK latency is high (>350ms), mark DbBound to prevent Telegram congestion
         if ack_latency_ms > 350 && self.state != GovernorState::FloodRecovery {
             self.transition_to(GovernorState::DbBound);
             self.max_inflight = 1;
         }
-    }
-
-    pub fn update_throughput(&mut self, committed_rate: f64) {
-        self.committed_rows_per_sec = committed_rate;
     }
 
     fn transition_to(&mut self, new_state: GovernorState) {
@@ -378,6 +413,10 @@ impl AdaptiveRateGovernor {
 
     pub fn ack_to_next_p95(&self) -> u64 {
         self.idle_samples.p95().unwrap_or(0)
+    }
+
+    pub fn ack_to_next_ewma(&self) -> f64 {
+        self.idle_ewma_ms
     }
 
     pub fn flood_count(&self) -> u64 {

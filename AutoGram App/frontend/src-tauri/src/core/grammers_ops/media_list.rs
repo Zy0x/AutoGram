@@ -852,6 +852,7 @@ pub fn list_media_blocking_topic_cursor(
         min_id,
         topic_id,
         search_cursor,
+        1,
         None,
     ))
 }
@@ -967,6 +968,7 @@ pub async fn list_media_page_async(
     min_id: Option<i64>,
     topic_id: Option<i64>,
     search_cursor: Option<ScopedMediaSearchCursor>,
+    max_inflight: usize,
     guard_control: Option<&crate::core::telegram_rpc_guard::RpcGuardControl>,
 ) -> Result<ListMediaResult, TgError> {
     let limit = limit.clamp(1, 100);
@@ -1021,62 +1023,120 @@ pub async fn list_media_page_async(
                     let mut pv_observation = None;
                     let mut doc_observation = None;
 
-                    // 1. Lane: PhotoVideo (Native Photos & Videos)
-                    // Replenish buffer if pending buffer is smaller than limit AND lane is not exhausted
-                    if cursor.pending_photo_video.len() < limit && !cursor.photo_video.exhausted {
-                        let (rows, lowest_id, is_exhausted, count_opt, obs) = fetch_media_lane_page_async(
+                    let need_pv = cursor.pending_photo_video.len() < limit && !cursor.photo_video.exhausted;
+                    let need_doc = cursor.pending_document.len() < limit && !cursor.document.exhausted;
+
+                    if max_inflight >= 2 && need_pv && need_doc {
+                        // Concurrent Dual-Lane Inflight (PhotoVideo + Document parallel MTProto search)
+                        let pv_offset = cursor.photo_video.fetch_offset_id;
+                        let doc_offset = cursor.document.fetch_offset_id;
+
+                        let pv_fut = fetch_media_lane_page_async(
                             client,
                             &session_name,
                             input_peer.clone(),
                             SearchLane::PhotoVideo,
-                            cursor.photo_video.fetch_offset_id,
+                            pv_offset,
                             limit as i32,
                             min_id_i32,
                             top_msg_id,
                             folder_id,
                             &active_guard,
-                        )
-                        .await?;
+                        );
 
-                        cursor.pending_photo_video.extend(rows);
-                        if let Some(last_id) = lowest_id {
-                            cursor.photo_video.fetch_offset_id = last_id;
-                        }
-                        cursor.photo_video.exhausted = is_exhausted;
-                        lane_counts.photo_video = count_opt;
-                        if let Some(c) = count_opt {
-                            candidate_estimate += c;
-                        }
-                        pv_observation = Some(obs);
-                    }
-
-                    // 2. Lane: Document (Files, Document Videos, Audio, Archives)
-                    // Replenish buffer if pending buffer is smaller than limit AND lane is not exhausted
-                    if cursor.pending_document.len() < limit && !cursor.document.exhausted {
-                        let (rows, lowest_id, is_exhausted, count_opt, obs) = fetch_media_lane_page_async(
+                        let doc_fut = fetch_media_lane_page_async(
                             client,
                             &session_name,
                             input_peer.clone(),
                             SearchLane::Document,
-                            cursor.document.fetch_offset_id,
+                            doc_offset,
                             limit as i32,
                             min_id_i32,
                             top_msg_id,
                             folder_id,
                             &active_guard,
-                        )
-                        .await?;
+                        );
 
-                        cursor.pending_document.extend(rows);
-                        if let Some(last_id) = lowest_id {
-                            cursor.document.fetch_offset_id = last_id;
+                        let (pv_res, doc_res) = tokio::join!(pv_fut, doc_fut);
+
+                        let (pv_rows, pv_lowest_id, pv_exhausted, pv_count_opt, pv_obs) = pv_res?;
+                        cursor.pending_photo_video.extend(pv_rows);
+                        if let Some(last_id) = pv_lowest_id {
+                            cursor.photo_video.fetch_offset_id = last_id;
                         }
-                        cursor.document.exhausted = is_exhausted;
-                        lane_counts.document = count_opt;
-                        if let Some(c) = count_opt {
+                        cursor.photo_video.exhausted = pv_exhausted;
+                        lane_counts.photo_video = pv_count_opt;
+                        if let Some(c) = pv_count_opt {
                             candidate_estimate += c;
                         }
-                        doc_observation = Some(obs);
+                        pv_observation = Some(pv_obs);
+
+                        let (doc_rows, doc_lowest_id, doc_exhausted, doc_count_opt, doc_obs) = doc_res?;
+                        cursor.pending_document.extend(doc_rows);
+                        if let Some(last_id) = doc_lowest_id {
+                            cursor.document.fetch_offset_id = last_id;
+                        }
+                        cursor.document.exhausted = doc_exhausted;
+                        lane_counts.document = doc_count_opt;
+                        if let Some(c) = doc_count_opt {
+                            candidate_estimate += c;
+                        }
+                        doc_observation = Some(doc_obs);
+                    } else {
+                        // Sequential Lane Replenishment
+                        if need_pv {
+                            let (rows, lowest_id, is_exhausted, count_opt, obs) = fetch_media_lane_page_async(
+                                client,
+                                &session_name,
+                                input_peer.clone(),
+                                SearchLane::PhotoVideo,
+                                cursor.photo_video.fetch_offset_id,
+                                limit as i32,
+                                min_id_i32,
+                                top_msg_id,
+                                folder_id,
+                                &active_guard,
+                            )
+                            .await?;
+
+                            cursor.pending_photo_video.extend(rows);
+                            if let Some(last_id) = lowest_id {
+                                cursor.photo_video.fetch_offset_id = last_id;
+                            }
+                            cursor.photo_video.exhausted = is_exhausted;
+                            lane_counts.photo_video = count_opt;
+                            if let Some(c) = count_opt {
+                                candidate_estimate += c;
+                            }
+                            pv_observation = Some(obs);
+                        }
+
+                        if need_doc {
+                            let (rows, lowest_id, is_exhausted, count_opt, obs) = fetch_media_lane_page_async(
+                                client,
+                                &session_name,
+                                input_peer.clone(),
+                                SearchLane::Document,
+                                cursor.document.fetch_offset_id,
+                                limit as i32,
+                                min_id_i32,
+                                top_msg_id,
+                                folder_id,
+                                &active_guard,
+                            )
+                            .await?;
+
+                            cursor.pending_document.extend(rows);
+                            if let Some(last_id) = lowest_id {
+                                cursor.document.fetch_offset_id = last_id;
+                            }
+                            cursor.document.exhausted = is_exhausted;
+                            lane_counts.document = count_opt;
+                            if let Some(c) = count_opt {
+                                candidate_estimate += c;
+                            }
+                            doc_observation = Some(obs);
+                        }
                     }
 
                     // 3. Lossless Buffered K-Way Merge & Exact Page Size
