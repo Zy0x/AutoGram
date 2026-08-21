@@ -137,6 +137,8 @@ type Props = {
   statsAccurate?: boolean;
   /** True when pagination has more pages remaining to fetch from Telegram */
   hasMore?: boolean;
+  /** True only when the durable historical index checkpoint is complete. */
+  indexComplete?: boolean;
   /** Optional background calculation hint text */
   scaleHint?: string | null;
   /** Dual perspective mode: 'telegram' (Nekogram/Telegram style) vs 'drive' (MIME/file style) */
@@ -224,6 +226,7 @@ export function DriveTopBar({
   statsLoading,
   statsAccurate,
   hasMore,
+  indexComplete = false,
   scaleHint: _scaleHint,
   viewPerspective = 'telegram',
   onViewPerspective,
@@ -1163,12 +1166,12 @@ export function DriveTopBar({
                       )}
                     </div>
                   </div>
-                ) : hasMore && onIndexAll ? (
+                ) : !indexComplete && onIndexAll ? (
                   <button
                     type="button"
                     className="td-sort-scope-chip is-partial"
                     onClick={onIndexAll}
-                    title={t('speedtest.index_all_action')}
+                    title={t('speedtest.index_scope_partial_hint')}
                   >
                     <Sparkles size={11} className="td-sort-scope-icon" />
                     <span className="td-sort-scope-text">
@@ -1185,15 +1188,15 @@ export function DriveTopBar({
                       {t('speedtest.index_all_action')}
                     </span>
                   </button>
-                ) : fileCount > 0 ? (
+                ) : fileCount > 0 && indexComplete ? (
                   <button
                     type="button"
                     className="td-sort-scope-chip is-complete cursor-pointer"
                     onClick={onIndexAll}
-                    title={t('speedtest.index_all_action')}
+                    title={t('speedtest.index_scope_complete_hint', { count: fileCount.toLocaleString() })}
                   >
                     <Sparkles size={11} className="td-sort-scope-icon" />
-                    <span>{t('speedtest.sort_complete_badge', { count: (totalCount || fileCount).toLocaleString() })}</span>
+                    <span>{t('speedtest.sort_complete_badge', { count: fileCount.toLocaleString() })}</span>
                     <span className="td-sort-scope-btn-label">
                       {t('speedtest.index_all_action')}
                     </span>

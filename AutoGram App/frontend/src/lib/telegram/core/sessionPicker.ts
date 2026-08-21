@@ -16,6 +16,57 @@ export type SessionOption = {
   latencyMs?: number;
 };
 
+/**
+ * Launcher cards must represent a verified Telegram identity. Native inventory
+ * can contain legacy aliases or migration source files that look like a real
+ * account before the background auth check finishes.
+ */
+export function hasStableSessionIdentity(
+  session: SessionOption,
+  metadataFor: (sessionName: string) => SessionMetadata | null = getSessionMetadata
+): boolean {
+  return Boolean(String(metadataFor(session.name)?.telegramUserId || '').trim());
+}
+
+export function dedupeSessionOptionsByIdentity(
+  sessions: SessionOption[],
+  metadataFor: (sessionName: string) => SessionMetadata | null = getSessionMetadata
+): SessionOption[] {
+  const seen = new Map<string, number>();
+  const result: SessionOption[] = [];
+  for (const session of sessions) {
+    const metadata = metadataFor(session.name);
+    const telegramUserId = String(metadata?.telegramUserId || '').trim();
+    // Unknown identities must remain independent until Telegram verification
+    // supplies a stable account id.
+    if (!telegramUserId) {
+      result.push(session);
+      continue;
+    }
+    const key = `user:${telegramUserId}`;
+    const existingIndex = seen.get(key);
+    const candidate = {
+      ...session,
+      label: getSessionDisplayName(session.name),
+      userFullName: metadata?.userFullName,
+      username: metadata?.username,
+    };
+    if (existingIndex == null) {
+      seen.set(key, result.length);
+      result.push(candidate);
+      continue;
+    }
+    const existing = result[existingIndex];
+    const score = (item: SessionOption) =>
+      (item.status === 'connected' ? 8 : 0) +
+      (item.name.startsWith('session_') ? 4 : 0) +
+      (item.username ? 2 : 0) +
+      (item.userFullName ? 1 : 0);
+    if (score(candidate) > score(existing)) result[existingIndex] = candidate;
+  }
+  return result;
+}
+
 export type SessionMetadata = {
   userFullName?: string;
   username?: string;
@@ -287,7 +338,7 @@ export async function loadSelectableSessions(opts?: {
     all = checked;
   }
 
-  const usable = all.filter((s: any) => isUsableStatus(s.status));
+  const usable = dedupeSessionOptionsByIdentity(all.filter((s: any) => isUsableStatus(s.status)));
   let targets = readActiveTargets();
 
   // Trigger non-blocking background hydration for any sessions missing user display name metadata
@@ -338,6 +389,8 @@ export async function hydrateSessionMetadataInBackground(sessionNames: string[])
           userFullName: uFullName,
           username: u.username || undefined,
           photoBase64: u.photoBase64 || undefined,
+          telegramUserId: u.id ? String(u.id) : undefined,
+          isPremium: Boolean(u.isPremium),
         });
       }
     } catch {
@@ -421,5 +474,3 @@ export async function purgeOrphanedSessions(): Promise<{
     purgedNames,
   };
 }
-
-

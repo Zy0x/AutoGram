@@ -1,4 +1,6 @@
 {
+  "refresh_sessions": "Refresh session list and connection status",
+  "refresh": "Refresh",
   "title": "AutoGram",
   "home": "Home",
   "dashboard": "Dashboard",

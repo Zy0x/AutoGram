@@ -72,6 +72,13 @@ pub struct DialogEntry {
     /// True when peer is a forum (topics UI). Megagroup channels with forum flag.
     #[serde(default)]
     pub is_forum: bool,
+    /// Telegram-authoritative content/access restriction for this account.
+    #[serde(default)]
+    pub is_restricted: bool,
+    #[serde(default)]
+    pub restriction_reason: Option<String>,
+    #[serde(default)]
+    pub restriction_code: Option<String>,
 }
 
 /// Backend ownership label for capability / UI diagnostics.
@@ -747,6 +754,10 @@ pub struct DebugGetMessageResult {
     pub document_id: Option<i64>,
     pub photo_id: Option<i64>,
     pub text_preview: Option<String>,
+    /// Complete authoritative Telegram message text/caption. This is fetched
+    /// on demand for message preview and is intentionally not duplicated into
+    /// every media-index row.
+    pub text: Option<String>,
 }
 
 pub fn tg_debug_get_message(req: DebugGetMessageRequest) -> OpResult<DebugGetMessageResult> {
@@ -792,6 +803,11 @@ pub fn tg_debug_get_message(req: DebugGetMessageRequest) -> OpResult<DebugGetMes
                             }
                             _ => (None, None, None),
                         };
+                        let full_text = if !msg.text().is_empty() {
+                            Some(msg.text().to_string())
+                        } else {
+                            None
+                        };
                         let text_prev = if !msg.text().is_empty() {
                             Some(msg.text().chars().take(50).collect())
                         } else {
@@ -806,6 +822,7 @@ pub fn tg_debug_get_message(req: DebugGetMessageRequest) -> OpResult<DebugGetMes
                             document_id: doc_id,
                             photo_id,
                             text_preview: text_prev,
+                            text: full_text,
                         })
                     } else {
                         Ok(DebugGetMessageResult {
@@ -817,6 +834,7 @@ pub fn tg_debug_get_message(req: DebugGetMessageRequest) -> OpResult<DebugGetMes
                             document_id: None,
                             photo_id: None,
                             text_preview: None,
+                            text: None,
                         })
                     }
                 })
@@ -1001,6 +1019,55 @@ pub fn tg_create_folder(req: CreateFolderRequest) -> OpResult<super::drive_rpc::
     match super::drive_rpc::create_folder_blocking(&dir, &identity, &req.name, req.parent_id) {
         Ok(r) => ok_result("grammers", r),
         Err(e) => err_result("grammers", e),
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChatActionRequest {
+    pub session: String,
+    pub api_id: i64,
+    pub api_hash: String,
+    pub action: String,
+    pub target: String,
+    #[serde(default)]
+    pub message: Option<String>,
+}
+
+pub fn tg_chat_action(
+    req: ChatActionRequest,
+) -> OpResult<super::grammers_ops::ChatActionResult> {
+    let dir = sessions_dir_from_env();
+    let identity = identity_from(req.session, req.api_id, req.api_hash);
+    match super::grammers_ops::chat_action_blocking(
+        &dir,
+        &identity,
+        &req.action,
+        &req.target,
+        req.message.as_deref(),
+    ) {
+        Ok(result) => ok_result("grammers", result),
+        Err(error) => err_result("grammers", error),
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChatTargetInspectionRequest {
+    pub session: String,
+    pub api_id: i64,
+    pub api_hash: String,
+    pub target: String,
+}
+
+pub fn tg_inspect_chat_target(
+    req: ChatTargetInspectionRequest,
+) -> OpResult<super::grammers_ops::ChatTargetInspection> {
+    let dir = sessions_dir_from_env();
+    let identity = identity_from(req.session, req.api_id, req.api_hash);
+    match super::grammers_ops::inspect_chat_target_blocking(&dir, &identity, &req.target) {
+        Ok(result) => ok_result("grammers", result),
+        Err(error) => err_result("grammers", error),
     }
 }
 

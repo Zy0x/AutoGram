@@ -3,7 +3,7 @@
  * Handles Android Hardware / Gesture Back Button and Browser popstate
  * to gracefully dismiss top-most modals, dialogs, drawers, and menus.
  */
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { isTauri } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 
@@ -97,9 +97,15 @@ export function registerModalBackHandler(id: string, onClose: () => void): () =>
  * Hook to automatically bind a modal's open state to the Android back-stack.
  */
 export function useModalBackHandler(isOpen: boolean, onClose: () => void, modalId: string) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!isOpen) return;
-    const cleanup = registerModalBackHandler(modalId, onClose);
+    // Register once per open cycle. Inline callbacks commonly change identity
+    // on every render; re-registering them pushes/pops browser history and can
+    // dismiss a modal while its async content is still loading.
+    const cleanup = registerModalBackHandler(modalId, () => onCloseRef.current());
     return cleanup;
-  }, [isOpen, onClose, modalId]);
+  }, [isOpen, modalId]);
 }

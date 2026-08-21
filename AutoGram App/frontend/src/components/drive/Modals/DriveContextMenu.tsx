@@ -24,6 +24,7 @@ import {
   PinOff,
   ChevronRight,
   Send,
+  Info,
 } from 'lucide-react';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
 import { driveFileDisplayName } from '../../../lib/telegram/driveTypes';
@@ -52,6 +53,7 @@ type Props = {
   target: DriveContextMenuTarget;
   onClose: () => void;
   onPreview?: () => void;
+  onInfo?: () => void;
   onPreviewMessage?: (file: DriveFile) => void;
   chatName?: string;
   topicName?: string;
@@ -176,6 +178,7 @@ export function DriveContextMenu({
   target,
   onClose,
   onPreview,
+  onInfo,
   onPreviewMessage,
   chatName,
   topicName,
@@ -473,6 +476,16 @@ export function DriveContextMenu({
                 onClick={() => run(onPreview)}
               >
                 <Eye size={14} /> {t('speedtest.ctx_menu_preview')}
+              </button>
+            )}
+            {onInfo && (
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={() => scheduleCloseSubmenu(80)}
+                onClick={() => run(onInfo)}
+              >
+                <Info size={14} /> {t('speedtest.ctx_menu_info')}
               </button>
             )}
             {telegramMenu}

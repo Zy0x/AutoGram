@@ -81,7 +81,7 @@ export function ZipEntryTable({
                 return (
                   <tr key={directory} className={`dzb-table-row ${selectedEntries.has(directory) ? 'selected' : ''}`} onDoubleClick={() => onNavigateDir(directory)}>
                     <td className="dzb-table-cell dzb-col-check"><input type="checkbox" checked={selectedEntries.has(directory)} onChange={() => onToggleSelectEntry(directory)} className="dzb-checkbox" aria-label={t('speedtest.zip_select_directory', { name: label })} /></td>
-                    <td className="dzb-table-cell"><button type="button" className="dzb-entry-name directory" onClick={() => onNavigateDir(directory)}><Folder size={18} /><span>{label}</span></button></td>
+                    <td className="dzb-table-cell"><button type="button" className="dzb-entry-name directory" onClick={(event) => { event.stopPropagation(); onToggleSelectEntry(directory); }} onDoubleClick={(event) => { event.stopPropagation(); onNavigateDir(directory); }} title={t('speedtest.zip_folder_double_click')}><Folder size={18} /><span>{label}</span></button></td>
                     <td className="dzb-table-cell dzb-col-size">—</td>
                     <td className="dzb-table-cell dzb-col-compressed">—</td>
                     <td className="dzb-table-cell dzb-col-actions"><div className="dzb-row-actions"><button type="button" onClick={() => onExtractDirectory(directory)} className="dzb-action-icon-btn" title={t('speedtest.zip_extract_directory')}><Download size={16} /></button><button type="button" onClick={() => onNavigateDir(directory)} className="dzb-action-icon-btn" title={t('speedtest.zip_open_folder')}><ChevronRight size={16} /></button></div></td>

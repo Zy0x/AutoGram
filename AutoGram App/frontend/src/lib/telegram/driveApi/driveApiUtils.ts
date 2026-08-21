@@ -87,6 +87,20 @@ export function isPeerEntityError(err: unknown): boolean {
   );
 }
 
+export type TelegramAccessIssue = 'restricted' | 'private' | 'unavailable' | null;
+
+export function telegramAccessIssue(err: unknown): TelegramAccessIssue {
+  const raw = [
+    String((err as any)?.code || ''),
+    String((err as any)?.message || err || ''),
+    String((err as any)?.raw || ''),
+  ].join(' ').toUpperCase();
+  if (/CHAT_RESTRICTED|USER_RESTRICTED|SENSITIVE_CONTENT|RESTRICTION_REASON/.test(raw)) return 'restricted';
+  if (/CHANNEL_PRIVATE|CHAT_ADMIN_REQUIRED|INVITE_HASH_EXPIRED/.test(raw)) return 'private';
+  if (/PEER_ID_INVALID|CHANNEL_INVALID|CHAT_ID_INVALID/.test(raw)) return 'unavailable';
+  return null;
+}
+
 export function friendlyDriveError(err: unknown): string {
   const raw = String((err as any)?.message || err || '');
   if (/media stats superseded by newer location/i.test(raw)) {
@@ -347,6 +361,9 @@ export function mapDialogToChat(d: {
   isChannel?: boolean;
   isGroup?: boolean;
   isForum?: boolean;
+  isRestricted?: boolean;
+  restrictionReason?: string | null;
+  restrictionCode?: string | null;
 }) {
   const title = String(d.title || d.id);
   const isTd = title.includes('[TD]');
@@ -370,6 +387,9 @@ export function mapDialogToChat(d: {
     type,
     is_drive_folder: isTd,
     is_forum: isForum,
+    is_restricted: d.isRestricted === true,
+    restriction_reason: d.restrictionReason || null,
+    restriction_code: d.restrictionCode || null,
     username: null as string | null,
   };
 }

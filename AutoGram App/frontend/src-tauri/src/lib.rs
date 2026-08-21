@@ -1335,6 +1335,28 @@ async fn tg_list_dialogs(
 }
 
 #[tauri::command]
+async fn tg_chat_action(
+    app: AppHandle,
+    request: core::telegram_ops::ChatActionRequest,
+) -> Result<core::telegram_ops::OpResult<core::grammers_ops::ChatActionResult>, String> {
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_chat_action(request))
+        .await
+        .map_err(|e| format!("native chat action task failed: {e}"))
+}
+
+#[tauri::command]
+async fn tg_inspect_chat_target(
+    app: AppHandle,
+    request: core::telegram_ops::ChatTargetInspectionRequest,
+) -> Result<core::telegram_ops::OpResult<core::grammers_ops::ChatTargetInspection>, String> {
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_inspect_chat_target(request))
+        .await
+        .map_err(|e| format!("native chat inspection task failed: {e}"))
+}
+
+#[tauri::command]
 async fn tg_list_dialog_filters(
     app: AppHandle,
     identity: core::telegram_ops::TelegramIdentity,
@@ -2148,6 +2170,13 @@ fn fetch_remote_json_metadata(url: String) -> Result<serde_json::Value, String> 
     Ok(val)
 }
 
+#[tauri::command]
+fn resolve_remote_link_deep(
+    url: String,
+) -> Result<core::remote_link_resolver::RemoteLinkResolution, String> {
+    core::remote_link_resolver::resolve_remote_link_deep(url)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -2165,6 +2194,7 @@ pub fn run() {
             greet,
             fetch_remote_json_metadata,
             fetch_remote_text_content,
+            resolve_remote_link_deep,
             desktop_read_clipboard,
             desktop_write_clipboard,
             app_toggle_devtools,
@@ -2212,6 +2242,8 @@ pub fn run() {
             tg_auth_status,
             tg_download_profile_photo,
             tg_list_dialogs,
+            tg_chat_action,
+            tg_inspect_chat_target,
             tg_list_dialog_filters,
             tg_get_media_statistics,
             tg_save_exact_media_statistics,
@@ -2324,8 +2356,6 @@ pub fn run() {
             get_custom_cache_dir,
             set_custom_cache_dir,
             reset_custom_cache_dir,
-            fetch_remote_json_metadata,
-            fetch_remote_text_content,
             tg_run_garbage_collection,
         ])
         .setup(|app| {

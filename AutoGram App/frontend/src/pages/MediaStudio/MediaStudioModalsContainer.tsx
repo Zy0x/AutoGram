@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DrivePreviewModal } from '../../components/drive/DrivePreviewModal';
 import { DriveContextMenu } from '../../components/drive/Modals/DriveContextMenu';
@@ -6,6 +6,7 @@ import { DriveConfirmDialog } from '../../components/drive/Modals/DriveConfirmDi
 import { DriveInputDialog } from '../../components/drive/Modals/DriveInputDialog';
 import { DriveDestinationPicker, type DriveDestChoice } from '../../components/drive/Modals/DriveDestinationPicker';
 import { RemoteUploadModal } from '../../components/drive/Modals/RemoteUploadModal';
+import { DriveFileInfoModal } from '../../components/drive/Modals/DriveFileInfoModal';
 import { SessionRelogModal } from '../../components/drive/Modals/SessionRelogModal';
 import type { DriveCredentials } from '../../lib/telegram/driveApi';
 import type { DriveChat, DriveFile, DriveFolder, DriveTopic } from '../../lib/telegram/driveTypes';
@@ -77,6 +78,7 @@ export interface MediaStudioModalsContainerProps {
   setDestPicker: (picker: any) => void;
 
   remoteUploadOpen: boolean;
+  remoteUploadInitialUrl?: string;
   setRemoteUploadOpen: (open: boolean) => void;
   transferSettings?: DriveTransferSettings | null;
   handleRemoteUpload: (
@@ -149,10 +151,13 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
   setDestPicker,
 
   remoteUploadOpen,
+  remoteUploadInitialUrl,
   setRemoteUploadOpen,
   handleRemoteUpload,
 }) => {
   const { t } = useTranslation();
+  const [infoFile, setInfoFile] = useState<DriveFile | null>(null);
+  const closeRemoteUpload = useCallback(() => setRemoteUploadOpen(false), [setRemoteUploadOpen]);
   const accountUserId = getSessionMetadata(sessionName || '')?.telegramUserId ||
     String(sessionName || '').replace(/^session_/, '') || '0';
   const activeChat = chats.find((chat) => Number(chat.id) === Number(activePeerId)) || null;
@@ -181,7 +186,9 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
           onOpenTransferManager={openTransferManager}
           onEnqueueUploadPaths={runUploadPaths}
           onEnqueueDownloadSingle={handleEnqueueSingleDownload}
-          onClose={() => setPreviewFile(null)}
+          onClose={() => {
+            setPreviewFile(null);
+          }}
           hasPrev={previewIndex > 0}
           hasNext={previewIndex >= 0 && previewIndex < sortedPreviewList.length - 1}
           neighborIds={
@@ -229,7 +236,16 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
           folderId={peerId}
           onPreview={
             contextMenu.kind === 'file'
-              ? () => setPreviewFile(contextMenu.file)
+              ? () => {
+                  setPreviewFile(contextMenu.file);
+                }
+              : undefined
+          }
+          onInfo={
+            contextMenu.kind === 'file'
+              ? () => {
+                  setInfoFile(contextMenu.file);
+                }
               : undefined
           }
           onDownload={
@@ -404,6 +420,25 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
         />
       )}
 
+      <DriveFileInfoModal
+        file={infoFile}
+        locationName={
+          folders.find((f) => f.id === peerId)?.name ||
+          chats.find((c) => c.id === peerId)?.name ||
+          (locationKind === 'saved' ? String(t('speedtest.saved_messages')) : undefined)
+        }
+        pathId={infoFile ? buildMediaPathId({
+          accountUserId,
+          locationKind,
+          peerId: activePeerId,
+          topicId: infoFile.topic_id ?? topicFilterRef.current,
+          mediaId: infoFile.id,
+          chat: activeChat,
+          file: infoFile,
+        }) : null}
+        onClose={() => setInfoFile(null)}
+      />
+
       <DriveConfirmDialog
         state={activeConfirm}
         onClose={() => {
@@ -475,7 +510,8 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
         return (
           <RemoteUploadModal
             isOpen={remoteUploadOpen}
-            onClose={() => setRemoteUploadOpen(false)}
+            initialUrl={remoteUploadInitialUrl}
+            onClose={closeRemoteUpload}
             destinations={allDestinations}
             currentDestination={currentDestChoice}
             creds={creds}

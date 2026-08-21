@@ -47,6 +47,7 @@ import {
 
 interface RemoteUploadModalProps {
   isOpen: boolean;
+  initialUrl?: string;
   onClose: () => void;
   destinations: DriveDestChoice[];
   currentDestination?: DriveDestChoice;
@@ -188,7 +189,17 @@ function getFormatDisplayLabel(
       return t('speedtest.remote_fmt_slide_photo', { idx, total });
     }
   }
+  if (fmt.label === 'remote_web_page_handoff') {
+    return t('speedtest.remote_web_page_handoff');
+  }
   return fmt.label;
+}
+
+function getFormatDisplayBadge(fmt: StreamQualityFormat, t: any): string | undefined {
+  if (fmt.badge === 'remote_web_page') {
+    return t('speedtest.remote_web_page_badge');
+  }
+  return fmt.badge;
 }
 
 function getEffectiveFormatFilename(
@@ -205,6 +216,7 @@ function getEffectiveFormatFilename(
 
 export function RemoteUploadModal({
   isOpen,
+  initialUrl,
   onClose,
   destinations,
   currentDestination,
@@ -241,10 +253,15 @@ export function RemoteUploadModal({
   const inspectTimerRef = useRef<number | null>(null);
 
   const prevIsOpenRef = useRef(false);
+  const lastAppliedInitialUrlRef = useRef('');
+  const lastProbedHandoffRef = useRef('');
   useEffect(() => {
-    if (isOpen && !prevIsOpenRef.current) {
+    const normalizedInitialUrl = String(initialUrl || '').trim();
+    const openedNow = isOpen && !prevIsOpenRef.current;
+    const receivedNewHandoff = isOpen && normalizedInitialUrl !== lastAppliedInitialUrlRef.current;
+    if (openedNow || receivedNewHandoff) {
       setTab('single');
-      setUrl('');
+      setUrl(normalizedInitialUrl);
       setCustomFilename('');
       setBatchUrlsText('');
       setDeliveryMode(resolveDefaultDeliveryMode(transferSettings));
@@ -255,9 +272,14 @@ export function RemoteUploadModal({
       setSelectedDest(currentDestination || { id: null, label: 'Saved Messages', kind: 'saved' });
       setErrorMsg('');
       setPickerOpen(false);
+      lastAppliedInitialUrlRef.current = normalizedInitialUrl;
+    }
+    if (!isOpen) {
+      lastAppliedInitialUrlRef.current = '';
+      lastProbedHandoffRef.current = '';
     }
     prevIsOpenRef.current = isOpen;
-  }, [isOpen, currentDestination, transferSettings]);
+  }, [isOpen, currentDestination, initialUrl, transferSettings]);
 
   useEffect(() => {
     if (
@@ -442,6 +464,18 @@ export function RemoteUploadModal({
       });
     }
   }, []);
+
+  useEffect(() => {
+    const handoff = String(initialUrl || '').trim();
+    if (
+      !isOpen ||
+      !handoff ||
+      url.trim() !== handoff ||
+      lastProbedHandoffRef.current === handoff
+    ) return;
+    lastProbedHandoffRef.current = handoff;
+    void probeUrl(handoff);
+  }, [initialUrl, isOpen, probeUrl, url]);
 
   const handleUrlChange = (val: string) => {
     setUrl(val);
@@ -1262,8 +1296,8 @@ export function RemoteUploadModal({
                                 {isSelected && <CheckCircle2 size={13} className="td-remote-chip-active-ico" />}
                               </div>
                               <div className="td-remote-quality-chip-meta">
-                                {fmt.badge && (
-                                  <span className="td-remote-quality-chip-badge">{fmt.badge}</span>
+                                {getFormatDisplayBadge(fmt, t) && (
+                                  <span className="td-remote-quality-chip-badge">{getFormatDisplayBadge(fmt, t)}</span>
                                 )}
                                 {fmt.filesizeBytes ? (
                                   <span className="td-remote-quality-chip-size">

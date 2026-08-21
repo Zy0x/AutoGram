@@ -66,6 +66,37 @@ export function isZipArchiveName(name: string): boolean {
   return /\.(zip|zipx)$/i.test(name);
 }
 
+/**
+ * Extract explicitly labelled password candidates from the authoritative
+ * Telegram caption. This deliberately does not brute-force archives.
+ */
+export function extractZipPasswordCandidates(messageText: string, archiveName = ''): string[] {
+  const candidates: string[] = [];
+  const seen = new Set<string>();
+  const add = (raw: string | undefined) => {
+    const value = String(raw || '')
+      .trim()
+      .replace(/^[`'"\[({<]+|[`'"\])}>.,;:]+$/gu, '');
+    if (value.length < 2 || value.length > 128 || /\s{3,}/u.test(value)) return;
+    const key = value.toLocaleLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      candidates.push(value);
+    }
+  };
+  const labels = '(?:password|passwd|pass|pwd|kata\\s+sandi|sandi|mật\\s+khẩu|mat\\s+khau|密码|密碼|解压码|解壓碼)';
+  const labelled = new RegExp(`${labels}\\s*(?:is|adalah|[:=：-])\\s*[\\x60'\"]?([^\\r\\n\\x60'\"]{2,128})`, 'giu');
+  for (const match of messageText.matchAll(labelled)) add(match[1]);
+  const codeAfterLabel = new RegExp(`${labels}[^\\r\\n]{0,24}[\\x60'\"]([^\\x60'\"]{2,128})[\\x60'\"]`, 'giu');
+  for (const match of messageText.matchAll(codeAfterLabel)) add(match[1]);
+
+  // Common archive convention: the explicit archive stem is repeated after a
+  // password label; never infer arbitrary caption words as passwords.
+  const stem = archiveName.replace(/\.(zip|zipx)$/iu, '').trim();
+  if (stem && messageText.toLocaleLowerCase().includes(`password: ${stem}`.toLocaleLowerCase())) add(stem);
+  return candidates.slice(0, 12);
+}
+
 export function safeZipEntryPath(name: string): string {
   return name
     .replace(/\\/g, '/')

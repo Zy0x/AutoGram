@@ -117,23 +117,47 @@ pub fn list_dialogs_blocking(
                             .name()
                             .map(|s| s.to_string())
                             .unwrap_or_else(|| id.to_string());
-                        let (is_user, is_bot, is_channel, is_group, is_forum) = match &peer {
+                        let restriction_from_raw = |reasons: Option<&Vec<grammers_client::tl::enums::RestrictionReason>>| {
+                            reasons
+                                .and_then(|items| items.first())
+                                .map(|reason| {
+                                    let grammers_client::tl::enums::RestrictionReason::Reason(value) = reason;
+                                    (Some(value.text.clone()), Some(value.reason.clone()))
+                                })
+                                .unwrap_or((None, None))
+                        };
+                        let (is_user, is_bot, is_channel, is_group, is_forum, is_restricted, restriction_reason, restriction_code) = match &peer {
                             grammers_client::peer::Peer::User(user) => {
-                                (true, user.is_bot(), false, false, false)
+                                let reasons = user.restriction_reason();
+                                let first = reasons.first();
+                                (
+                                    true,
+                                    user.is_bot(),
+                                    false,
+                                    false,
+                                    false,
+                                    !reasons.is_empty(),
+                                    first.map(|r| r.text.clone()),
+                                    first.map(|r| r.reason.clone()),
+                                )
                             }
                             grammers_client::peer::Peer::Channel(ch) => {
                                 let is_megagroup = ch.raw.megagroup;
                                 let is_forum = ch.raw.forum;
-                                (false, false, !is_megagroup, is_megagroup, is_forum)
+                                let (reason, code) = restriction_from_raw(ch.raw.restriction_reason.as_ref());
+                                (false, false, !is_megagroup, is_megagroup, is_forum, ch.raw.restricted || reason.is_some(), reason, code)
                             }
                             grammers_client::peer::Peer::Group(g) => {
                                 use grammers_client::tl::enums::Chat as C;
-                                let forum = match &g.raw {
-                                    C::Channel(c) => c.forum,
-                                    _ => false,
+                                let (forum, restricted, reason, code) = match &g.raw {
+                                    C::Channel(c) => {
+                                        let (reason, code) = restriction_from_raw(c.restriction_reason.as_ref());
+                                        (c.forum, c.restricted || reason.is_some(), reason, code)
+                                    }
+                                    _ => (false, false, None, None),
                                 };
                                 // Megagroup → treat as group (is_channel false for UI folders)
-                                (false, false, false, true, forum)
+                                (false, false, false, true, forum, restricted, reason, code)
                             }
                         };
                         out.push(DialogEntry {
@@ -144,6 +168,9 @@ pub fn list_dialogs_blocking(
                             is_channel,
                             is_group,
                             is_forum,
+                            is_restricted,
+                            restriction_reason,
+                            restriction_code,
                         });
                         if out.len() >= limit {
                             break;

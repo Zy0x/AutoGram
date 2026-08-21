@@ -1,5 +1,28 @@
 import type { DriveFile } from '../driveTypes';
 
+const MESSAGE_URL_RE = /(?:https?:\/\/|tg:\/\/)[^\s<>"'`]+/giu;
+
+export function extractTelegramMessageUrls(text: string): string[] {
+  const seen = new Set<string>();
+  const urls: string[] = [];
+  for (const match of text.match(MESSAGE_URL_RE) || []) {
+    const value = match.replace(/[),.;!?]+$/u, '');
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    urls.push(value);
+  }
+  return urls;
+}
+
+export function isTelegramActionLink(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'tg:' || /(^|\.)t\.me$/i.test(parsed.hostname);
+  } catch {
+    return url.startsWith('tg://');
+  }
+}
+
 export interface TelegramUrlInput {
   id?: number | null;
   messageId?: number | null;

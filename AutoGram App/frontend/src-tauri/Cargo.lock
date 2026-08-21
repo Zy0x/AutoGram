@@ -1326,6 +1326,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "ureq",
+ "url",
  "urlencoding",
  "zip",
 ]

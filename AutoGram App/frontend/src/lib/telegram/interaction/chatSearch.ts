@@ -198,22 +198,32 @@ export function buildDriveBreadcrumbSegments(
     return segs;
   }
   if (opts.locationKind === 'drive' && opts.activePeerId != null) {
+    const authoritativeName = (id: number) => opts.chats?.find(
+      (chat) => String(chat.id) === String(id)
+    )?.name;
     const ancestors = folderAncestorIds(folders, opts.activePeerId).reverse();
     for (const aid of ancestors) {
       const f = folders.find((x) => x.id === aid);
-      segs.push({ id: aid, label: f?.name || `Folder ${aid}`, kind: 'drive' });
+      segs.push({ id: aid, label: authoritativeName(aid) || f?.name || `Folder ${aid}`, kind: 'drive' });
     }
     const cur = folders.find((x) => x.id === opts.activePeerId);
     segs.push({
       id: opts.activePeerId,
-      label: cur?.name || `Folder ${opts.activePeerId}`,
+      label: authoritativeName(opts.activePeerId) || cur?.name || `Folder ${opts.activePeerId}`,
       kind: 'drive',
     });
   } else if (opts.locationKind === 'chat' && opts.activePeerId != null) {
-    const c = opts.chats?.find((x) => x.id === opts.activePeerId);
+    // IDs restored from local JSON can be strings even though the runtime
+    // model is numeric. Normalize them before lookup so a known Telegram title
+    // never degrades to `Chat -100...` in the header.
+    const c = opts.chats?.find((x) => String(x.id) === String(opts.activePeerId));
+    const folder = folders.find((x) => String(x.id) === String(opts.activePeerId));
     segs.push({
       id: opts.activePeerId,
-      label: c?.name || `Chat ${opts.activePeerId}`,
+      // A custom Drive can still be opened through the Telegram/chat view.
+      // Keep its authoritative Telegram title even when the paged dialog list
+      // has not reached this peer yet; only expose the raw id as a last resort.
+      label: c?.name || folder?.name || `Chat ${opts.activePeerId}`,
       kind: 'chat',
     });
   }

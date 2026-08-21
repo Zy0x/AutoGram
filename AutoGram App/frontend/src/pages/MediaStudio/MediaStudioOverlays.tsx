@@ -12,6 +12,7 @@ export interface MediaStudioOverlaysProps {
   retrySec?: number;
   onResetCircuit?: () => void;
   onOpenRelogModal?: () => void;
+  restrictionNotice?: string | null;
 }
 
 export const MediaStudioOverlays: React.FC<MediaStudioOverlaysProps> = ({
@@ -24,6 +25,7 @@ export const MediaStudioOverlays: React.FC<MediaStudioOverlaysProps> = ({
   retrySec,
   onResetCircuit,
   onOpenRelogModal,
+  restrictionNotice,
 }) => {
   const { t } = useTranslation();
   const isUnauthorizedError =
@@ -55,7 +57,14 @@ export const MediaStudioOverlays: React.FC<MediaStudioOverlaysProps> = ({
         </div>
       )}
 
-      {error && !driveCircuitTripped && (
+      {restrictionNotice && (
+        <div className="td-error-banner" role="status">
+          <AlertTriangle size={16} />
+          <span style={{ flex: 1 }}>{restrictionNotice}</span>
+        </div>
+      )}
+
+      {error && !driveCircuitTripped && error !== restrictionNotice && (
         <div className="td-error-banner" role="alert">
           <span style={{ flex: 1 }}>{error}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

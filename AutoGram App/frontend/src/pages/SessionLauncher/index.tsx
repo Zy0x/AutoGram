@@ -16,9 +16,11 @@ import {
   Trash2,
   Loader2,
   AlertTriangle,
+  RefreshCw,
 } from 'lucide-react';
 import {
   loadSelectableSessions,
+  hasStableSessionIdentity,
   getSessionMetadata,
   setSessionAlias,
   deleteSessionLocalData,
@@ -71,6 +73,7 @@ export function SessionLauncher({
   const [deletingSessionStep1, setDeletingSessionStep1] = useState<SessionOption | null>(null);
   const [deletingSessionStep2, setDeletingSessionStep2] = useState<SessionOption | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [isRefreshingSessions, setIsRefreshingSessions] = useState(false);
 
   useEffect(() => {
     const handleOutsideClick = () => {
@@ -80,14 +83,13 @@ export function SessionLauncher({
     return () => window.removeEventListener('click', handleOutsideClick);
   }, []);
 
-  const refreshSessions = useCallback((force = false, verify = false) => {
-    loadSelectableSessions({ verify, force })
+  const refreshSessions = useCallback(async (force = false, verify = false) => {
+    if (force) setIsRefreshingSessions(true);
+    return loadSelectableSessions({ verify, force })
       .then((res: SessionOption[]) => {
         if (Array.isArray(res)) {
           setSessions(res);
-          if (!defaultSession && res.length > 0) {
-            setDefaultSession(res[0].name);
-          }
+          setDefaultSession((current) => current || res[0]?.name || '');
 
           // Fetch self profile photo for each session
           bootstrapSecureCredentials()
@@ -112,8 +114,11 @@ export function SessionLauncher({
             .catch(() => {});
         }
       })
-      .catch(() => {});
-  }, [defaultSession]);
+      .catch(() => {})
+      .finally(() => {
+        if (force) setIsRefreshingSessions(false);
+      });
+  }, []);
 
   useEffect(() => {
     // [Stale-While-Revalidate]
@@ -194,16 +199,11 @@ export function SessionLauncher({
     };
   }, []);
 
-  const displaySessions: SessionOption[] = sessions.length > 0 ? sessions : [
-    {
-      name: 'Lavender',
-      label: 'Lavender (@lv_drr)',
-      status: 'active',
-      latencyMs: 15,
-      isPremium: true,
-      datacenterId: 4,
-    } as SessionOption,
-  ];
+  // Never fabricate a fallback account. A synthetic "Lavender" card was
+  // indistinguishable from a real native session and caused ghost sessions.
+  const displaySessions: SessionOption[] = sessions.filter((session) =>
+    hasStableSessionIdentity(session)
+  );
 
   return (
     <div
@@ -263,6 +263,17 @@ export function SessionLauncher({
         </div>
 
         <div className="ag-launcher-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={() => void refreshSessions(true, true)}
+            disabled={isRefreshingSessions}
+            className="ag-launcher-refresh-btn"
+            title={t('nav.refresh_sessions')}
+            aria-label={t('nav.refresh_sessions')}
+          >
+            <RefreshCw size={15} className={isRefreshingSessions ? 'td-spin' : undefined} />
+            <span>{t('nav.refresh')}</span>
+          </button>
           <button
             type="button"
             onClick={onOpenAccounts}

@@ -175,6 +175,10 @@ export type DriveChat = {
   is_drive_folder?: boolean;
   /** Telegram forum (topics) group */
   is_forum?: boolean;
+  /** Telegram-authoritative access/content restriction for the active account. */
+  is_restricted?: boolean;
+  restriction_reason?: string | null;
+  restriction_code?: string | null;
   username?: string | null;
 };
 

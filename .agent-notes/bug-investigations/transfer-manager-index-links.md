@@ -44,3 +44,23 @@ Protected preview/stream behavior was not rewritten; refresh only requests visib
 - `cargo test --lib`: 134/134 passed.
 - Synthetic native benchmark: 250k through 1M passed.
 - `frontend.exe` CDP 9230: pause/resume passed; persisted Saved Messages repainted 7 cards after drive switch in about 403 ms; power refresh preserved 24 link cards with no console error; single and multi-link previews opened; launcher metadata refresh preserved all 4 cards.
+
+## Contextual Telegram destinations and Remote Link handoff (2026-08-21)
+
+### Root causes
+- Telegram join/bot controls were incorrectly exposed as a global sidebar action instead of being derived from an opened Telegram URL.
+- Handing a message URL to Remote Link unmounted the source modal while the child modal registered browser history; overlapping `popstate` cleanup immediately closed Remote Link.
+- Inline modal close callbacks caused unnecessary back-stack registrations during async resolver renders.
+
+### Working fix
+- Removed the global sidebar action. Telegram links are inspected in the active Grammers session; already-joined destinations navigate to their Drive, while Join or bot actions are offered only when required.
+- Added native parsing for public links, private `t.me/c` identities, `t.me/+`/`joinchat`, `tg://join`, and bot start links.
+- Remote Link is now a child of the Telegram message preview. The source remains mounted, the handed-off URL is retained, and Escape closes child then parent.
+- Stabilized modal back-stack callbacks and added contextual Escape suppression for nested modals.
+
+### Verification
+- TypeScript passed; locale EN/ID parity passed at 5,229/5,229 with zero missing/hardcoded strings.
+- Focused Vitest passed 17/17; Rust chat-action/parser test passed.
+- Production frontend build passed.
+- Native CDP: no Telegram action exists in the sidebar; Info opens a dedicated detail modal; Remote Link opened with the Facebook source URL and closed in correct child/parent order.
+- The running dev binary predates the newly registered Rust commands, so no mutating Telegram action was invoked. Command compilation and parser behavior were verified without terminating the user's active `frontend.exe`.

@@ -9,6 +9,8 @@ import { pinterestResolver } from './providers/pinterestResolver';
 import { pixivResolver } from './providers/pixivResolver';
 import { socialMediaResolver } from './providers/socialMediaResolver';
 import { directFileResolver } from './providers/directFileResolver';
+import { knownRemoteHostResolver } from './providers/knownRemoteHostResolver';
+import { nativeDeepResolver } from './providers/nativeDeepResolver';
 
 /**
  * LinkResolverRegistry
@@ -16,6 +18,7 @@ import { directFileResolver } from './providers/directFileResolver';
  */
 class LinkResolverRegistry {
   private providers: LinkResolverProvider[] = [
+    nativeDeepResolver,
     tiktokResolver,
     youtubeResolver,
     gdriveResolver,
@@ -25,6 +28,7 @@ class LinkResolverRegistry {
     pinterestResolver,
     pixivResolver,
     socialMediaResolver,
+    knownRemoteHostResolver,
     directFileResolver, // Fallback provider
   ];
 

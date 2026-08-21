@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { basenamesAt, isZipArchiveName, safeZipEntryPath } from './zipUtils';
+import { basenamesAt, extractZipPasswordCandidates, isZipArchiveName, safeZipEntryPath } from './zipUtils';
 
 describe('Drive ZIP workbench navigation', () => {
   const entries = [
@@ -20,5 +20,13 @@ describe('Drive ZIP workbench navigation', () => {
   it('recognizes nested ZIP entries and strips traversal segments', () => {
     expect(isZipArchiveName('nested/ARCHIVE.ZIP')).toBe(true);
     expect(safeZipEntryPath('../../safe/../payload/file.txt')).toBe('safe/payload/file.txt');
+  });
+
+  it('extracts only explicitly labelled Telegram password candidates', () => {
+    expect(extractZipPasswordCandidates(
+      'Archive ready\nPassword: CentreHub2026\nmirror pass = 778899\nrandom unrelated words',
+      'pack.zip'
+    )).toEqual(['CentreHub2026', '778899']);
+    expect(extractZipPasswordCandidates('This caption has no password label', 'pack.zip')).toEqual([]);
   });
 });

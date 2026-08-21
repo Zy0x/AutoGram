@@ -11,9 +11,10 @@ import {
   CheckCheck,
   Share2,
   Play,
-  Eye,
   Send,
   Download,
+  ExternalLink,
+  LogIn,
 } from 'lucide-react';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
 import {
@@ -24,7 +25,11 @@ import {
   isAudioDriveFile,
   canShowDriveThumb,
 } from '../../../lib/telegram/driveTypes';
-import { buildTelegramMessageUrl } from '../../../lib/telegram/utils/telegramMessageUrl';
+import {
+  buildTelegramMessageUrl,
+  extractTelegramMessageUrls,
+  isTelegramActionLink,
+} from '../../../lib/telegram/utils/telegramMessageUrl';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
@@ -37,6 +42,7 @@ import {
 } from '../../../lib/media/thumbBatcher';
 import { loadPersistentThumb } from '../../../lib/media/thumbPersistentCache';
 import { getCachedPreview, loadPreviewCached } from '../../../lib/media/previewCache';
+import { tgDebugGetMessage } from '../../../lib/telegram/core/telegramBackend';
 
 export interface TelegramMessagePreviewModalProps {
   file: DriveFile | null;
@@ -46,6 +52,9 @@ export interface TelegramMessagePreviewModalProps {
   topicName?: string;
   creds?: DriveCredentials | null;
   folderId?: number | null;
+  onSendToRemoteLink?: (url: string) => void;
+  onOpenTelegramLink?: (url: string) => void;
+  escapeDisabled?: boolean;
 }
 
 function normalizeSrc(src: string | null | undefined): string | null {
@@ -111,6 +120,9 @@ export function TelegramMessagePreviewModal({
   topicName,
   creds,
   folderId,
+  onSendToRemoteLink,
+  onOpenTelegramLink,
+  escapeDisabled = false,
 }: TelegramMessagePreviewModalProps) {
   const { t } = useTranslation();
   useModalBackHandler(isOpen, onClose, 'telegram-message-preview-modal');
@@ -118,6 +130,9 @@ export function TelegramMessagePreviewModal({
   const [copiedLink, setCopiedLink] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [exactMessageText, setExactMessageText] = useState<string | null>(null);
+  const [messageLoading, setMessageLoading] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const overlayMouseDownTargetRef = useRef<EventTarget | null>(null);
 
   const scopedFolderId = file?.folder_id ?? folderId ?? null;
@@ -148,7 +163,7 @@ export function TelegramMessagePreviewModal({
   const [imageSrc, setImageSrc] = useState<string | null>(getInitialImage);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || escapeDisabled) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -158,7 +173,7 @@ export function TelegramMessagePreviewModal({
     };
     window.addEventListener('keydown', onKeyDown, true);
     return () => window.removeEventListener('keydown', onKeyDown, true);
-  }, [isOpen, onClose]);
+  }, [escapeDisabled, isOpen, onClose]);
 
   // Sync thumbnail / full image preview and fetch from backend if missing
   useEffect(() => {
@@ -257,17 +272,43 @@ export function TelegramMessagePreviewModal({
     };
   }, [file?.id, scopedFolderId, itemPeerId, itemTopicId, creds?.session, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen || !file || !creds?.session || !creds.apiId || !creds.apiHash) {
+      setExactMessageText(null);
+      return;
+    }
+    let cancelled = false;
+    setMessageLoading(true);
+    void tgDebugGetMessage({
+      session: creds.session,
+      apiId: Number(creds.apiId),
+      apiHash: creds.apiHash,
+      peerId: itemPeerId,
+      telegramMessageId: file.id,
+    }).then((result) => {
+      if (cancelled) return;
+      setExactMessageText(result?.ok && result.data?.found ? result.data.text ?? '' : null);
+    }).finally(() => {
+      if (!cancelled) setMessageLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [creds?.apiHash, creds?.apiId, creds?.session, file?.id, isOpen, itemPeerId]);
+
   if (!isOpen || !file) return null;
 
   const tgUrl = buildTelegramMessageUrl(file);
-  const linkUrls = file.icon_type === 'link'
+  const exactUrls = extractTelegramMessageUrls(exactMessageText || '');
+  const indexedUrls = file.icon_type === 'link'
     ? (file.link_urls?.length
         ? file.link_urls
         : String(file.drive_format || file.driveFormat || file.original_name || file.name || '')
-            .split(/\r?\n/)
-            .map((value) => value.trim())
-            .filter(Boolean))
+          .split(/\r?\n/)
+          .map((value) => value.trim())
+          .filter(Boolean))
     : [];
+  const linkUrls = Array.from(new Set([...exactUrls, ...indexedUrls]));
   const isLink = linkUrls.length > 0;
   const isVideo = isVideoDriveFile(file);
   const isImage = isImageDriveFile(file) || file.icon_type === 'image' || file.mime_type?.startsWith('image/');
@@ -285,8 +326,7 @@ export function TelegramMessagePreviewModal({
   const avatarGradient = getTelegramAvatarGradient(senderName, file.peer_id);
   const avatarInitials = isSavedMessages ? '⭐' : getAvatarInitials(senderName);
 
-  const rawCaption = file.name || file.original_name || '';
-  const captionText = isLink ? '' : rawCaption;
+  const captionText = exactMessageText ?? '';
 
   // Telegram date formatting
   const fileDate = file.created_at ? new Date(file.created_at) : new Date();
@@ -307,9 +347,6 @@ export function TelegramMessagePreviewModal({
   const durationStr = formatDuration(file.duration || file.duration_s);
   const fileExt = (file.file_ext || file.name.split('.').pop() || 'FILE').toUpperCase();
 
-  // Pseudo-random view count based on file.id for channel feel
-  const viewCount = file.id ? `${((Math.abs(file.id * 17) % 8900) + 120).toLocaleString()}` : '1.4k';
-
   const handleCopyCaption = async () => {
     if (!captionText) return;
     await nativeWriteClipboardText(captionText);
@@ -322,6 +359,12 @@ export function TelegramMessagePreviewModal({
     await nativeWriteClipboardText(tgUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const handleCopyUrl = async (url: string) => {
+    await nativeWriteClipboardText(url);
+    setCopiedUrl(url);
+    window.setTimeout(() => setCopiedUrl((current) => current === url ? null : current), 1600);
   };
 
   const handleOpenTelegram = async () => {
@@ -484,17 +527,61 @@ export function TelegramMessagePreviewModal({
                         // Keep the original text for non-standard Telegram URLs.
                       }
                       return (
-                        <button
-                          type="button"
+                        <div
                           className="tg-msg-link-row"
                           key={`${file.id}-${index}`}
                           title={url}
-                          onClick={() => void openUrl(url).catch(() => undefined)}
                         >
-                          <span className="tg-msg-link-domain">{host}</span>
-                          <span className="tg-msg-link-url">{url}</span>
-                          <Send size={14} aria-hidden />
-                        </button>
+                          <button
+                            type="button"
+                            className="tg-msg-link-open"
+                            onClick={() => void openUrl(url).catch(() => undefined)}
+                            title={t('speedtest.link_preview_open')}
+                          >
+                            <span className="tg-msg-link-domain">{host}</span>
+                            <span className="tg-msg-link-url">{url}</span>
+                            <ExternalLink size={14} aria-hidden />
+                          </button>
+                          <button
+                            type="button"
+                            className="tg-msg-link-icon-action"
+                            onClick={() => void handleCopyUrl(url)}
+                            title={t('speedtest.link_preview_copy')}
+                            aria-label={t('speedtest.link_preview_copy')}
+                          >
+                            {copiedUrl === url ? <Check size={14} /> : <Copy size={14} />}
+                          </button>
+                          {onSendToRemoteLink && !isTelegramActionLink(url) && (
+                            <button
+                              type="button"
+                              className="tg-msg-link-icon-action"
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                onSendToRemoteLink(url);
+                              }}
+                              title={t('speedtest.link_preview_send_remote')}
+                              aria-label={t('speedtest.link_preview_send_remote')}
+                            >
+                              <Send size={14} aria-hidden />
+                            </button>
+                          )}
+                          {onOpenTelegramLink && isTelegramActionLink(url) && (
+                            <button
+                              type="button"
+                              className="tg-msg-link-icon-action"
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                onOpenTelegramLink(url);
+                              }}
+                              title={t('telegram_actions.open_context')}
+                              aria-label={t('telegram_actions.open_context')}
+                            >
+                              <LogIn size={14} aria-hidden />
+                            </button>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -553,6 +640,11 @@ export function TelegramMessagePreviewModal({
               )}
 
               {/* 4. Message Caption / Text Content */}
+              {messageLoading && (
+                <div className="tg-msg-bubble-caption-loading" role="status">
+                  {t('speedtest.tg_preview_loading_message')}
+                </div>
+              )}
               {captionText && (
                 <div className="tg-msg-bubble-caption-text">
                   {captionText}
@@ -561,12 +653,6 @@ export function TelegramMessagePreviewModal({
 
               {/* 5. Telegram Footer Inside Bubble: Views + Timestamp + Double Checkmarks */}
               <div className="tg-msg-bubble-footer">
-                {!isSavedMessages && (
-                  <div className="tg-msg-bubble-views">
-                    <Eye size={12} />
-                    <span>{viewCount}</span>
-                  </div>
-                )}
                 <div className="tg-msg-bubble-time-block">
                   <span className="tg-msg-bubble-time">{timeOnly}</span>
                   <CheckCheck size={14} className="tg-msg-bubble-check" />

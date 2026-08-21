@@ -377,6 +377,9 @@ export type TgDialogEntry = {
   isChannel: boolean;
   isGroup: boolean;
   isForum?: boolean;
+  isRestricted?: boolean;
+  restrictionReason?: string | null;
+  restrictionCode?: string | null;
 };
 
 /** Drop live Grammers client for a session (fast multi-account switch). */
@@ -651,6 +654,7 @@ export type TgDebugGetMessageResult = {
   documentId?: number | null;
   photoId?: number | null;
   textPreview?: string | null;
+  text?: string | null;
 };
 
 export async function tgDebugGetMessage(args: {
@@ -846,6 +850,48 @@ export async function tgCreateFolder(args: {
       parentId: args.parentId ?? null,
     }
   );
+}
+
+export type TgChatAction = 'join' | 'leave' | 'start_bot' | 'stop_bot' | 'send_message';
+
+export async function tgInspectChatTarget(args: {
+  session: string;
+  apiId: number;
+  apiHash: string;
+  target: string;
+}) {
+  return tgInvoke<{
+    target: string;
+    kind: 'bot' | 'chat';
+    joined: boolean;
+    canJoin: boolean;
+    peerId?: number | null;
+    displayName?: string | null;
+  }>('tg_inspect_chat_target', {
+    ...identity(args),
+    target: args.target,
+  });
+}
+
+export async function tgChatAction(args: {
+  session: string;
+  apiId: number;
+  apiHash: string;
+  action: TgChatAction;
+  target: string;
+  message?: string | null;
+}) {
+  return tgInvoke<{
+    status: string;
+    action: TgChatAction;
+    target: string;
+    messageId?: number | null;
+  }>('tg_chat_action', {
+    ...identity(args),
+    action: args.action,
+    target: args.target,
+    message: args.message?.trim() || null,
+  });
 }
 
 export async function tgRenameFolder(args: {

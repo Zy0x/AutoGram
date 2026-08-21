@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildTelegramMessageUrl } from './telegramMessageUrl';
+import {
+  buildTelegramMessageUrl,
+  extractTelegramMessageUrls,
+  isTelegramActionLink,
+} from './telegramMessageUrl';
 
 describe('buildTelegramMessageUrl', () => {
   it('1. Public channel with username', () => {
@@ -125,5 +129,19 @@ describe('buildTelegramMessageUrl', () => {
     };
     expect(buildTelegramMessageUrl(file1)).toBe('https://t.me/c/1111111111/41178');
     expect(buildTelegramMessageUrl(file2)).toBe('https://t.me/c/2222222222/41178');
+  });
+});
+
+describe('Telegram message link extraction', () => {
+  it('extracts all unique links and trims surrounding punctuation', () => {
+    expect(extractTelegramMessageUrls(
+      'One https://example.com/a, two https://example.com/b. duplicate https://example.com/a'
+    )).toEqual(['https://example.com/a', 'https://example.com/b']);
+  });
+
+  it('keeps Telegram bot/deep links as explicit Telegram actions', () => {
+    expect(isTelegramActionLink('https://t.me/example_bot?start=abc')).toBe(true);
+    expect(isTelegramActionLink('tg://resolve?domain=example_bot')).toBe(true);
+    expect(isTelegramActionLink('https://pixeldrain.com/u/abc')).toBe(false);
   });
 });

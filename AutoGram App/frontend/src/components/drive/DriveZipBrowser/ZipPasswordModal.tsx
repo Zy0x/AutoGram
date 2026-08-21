@@ -7,11 +7,12 @@ type Props = {
   archiveLabel: string;
   error?: string | null;
   busy?: boolean;
+  suggestions?: string[];
   onClose: () => void;
   onSubmit: (password: string) => void;
 };
 
-export function ZipPasswordModal({ open, archiveLabel, error, busy, onClose, onSubmit }: Props) {
+export function ZipPasswordModal({ open, archiveLabel, error, busy, suggestions = [], onClose, onSubmit }: Props) {
   const { t } = useTranslation();
   const [password, setPassword] = useState('');
   if (!open) return null;
@@ -50,6 +51,19 @@ export function ZipPasswordModal({ open, archiveLabel, error, busy, onClose, onS
               />
             </div>
           </label>
+          {suggestions.length > 0 && (
+            <section className="dzb-password-suggestions" aria-label={t('speedtest.zip_password_candidates')}>
+              <span>{t('speedtest.zip_password_candidates')}</span>
+              <div>
+                {suggestions.map((candidate) => (
+                  <button key={candidate} type="button" onClick={() => setPassword(candidate)}>
+                    {candidate}
+                  </button>
+                ))}
+              </div>
+              <small>{t('speedtest.zip_password_candidates_hint')}</small>
+            </section>
+          )}
           {error && <p className="dzb-password-error" role="alert">{error}</p>}
         </div>
         <div className="dzb-modal-footer">

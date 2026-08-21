@@ -31,4 +31,19 @@ describe('mapDialogToChat', () => {
     expect(forum).toMatchObject({ type: 'group', is_forum: true });
     expect(channel).toMatchObject({ type: 'channel', is_forum: false });
   });
+
+  it('preserves Telegram restriction metadata for the active account', () => {
+    expect(mapDialogToChat({
+      id: -1003606461240,
+      title: 'Restricted channel',
+      isChannel: true,
+      isRestricted: true,
+      restrictionReason: "This channel can't be displayed because it was used to spread pornographic content.",
+      restrictionCode: 'porn',
+    })).toMatchObject({
+      is_restricted: true,
+      restriction_code: 'porn',
+      restriction_reason: "This channel can't be displayed because it was used to spread pornographic content.",
+    });
+  });
 });

@@ -584,19 +584,18 @@ pub fn media_to_row(
             Some(row)
         }
         Media::Document(doc) => {
+            let mime = doc.mime_type().map(|s| s.to_string());
+            let native_delivery = match doc.raw.document.as_ref() {
+                Some(grammers_client::tl::enums::Document::Document(raw)) => {
+                    has_native_delivery(&raw.attributes)
+                }
+                _ => false,
+            };
             let n = doc
                 .name()
                 .map(|s| s.to_string())
                 .filter(|s| !s.is_empty())
-                .or_else(|| {
-                    if !caption.is_empty() {
-                        Some(caption.to_string())
-                    } else {
-                        None
-                    }
-                })
-                .unwrap_or_else(|| format!("file_{id}"));
-            let mime = doc.mime_type().map(|s| s.to_string());
+                .unwrap_or_else(|| fallback_document_name(id, mime.as_deref(), native_delivery));
             let mime_l = mime.as_deref().unwrap_or("").to_ascii_lowercase();
             let name_l = n.to_ascii_lowercase();
 
@@ -661,7 +660,7 @@ pub fn media_to_row(
             let cls = crate::core::media_classifier::classify_media_item(
                 &n,
                 final_mime.as_deref(),
-                true,
+                !native_delivery,
                 false,
                 false,
             );
@@ -675,7 +674,7 @@ pub fn media_to_row(
                 icon_type: icon.into(),
                 created_at: created,
                 has_thumb: doc_has_thumb,
-                as_document: true,
+                as_document: !native_delivery,
                 backend: BACKEND.into(),
                 thumb_data_url,
                 topic_id: message_topic_id(msg),
@@ -850,15 +849,9 @@ pub fn tl_message_to_row(
                         raw_name = Some(f.file_name.clone());
                     }
                 }
+                let native_delivery = has_native_delivery(&doc.attributes);
                 let name = raw_name
-                    .or_else(|| {
-                        if caption.is_empty() {
-                            None
-                        } else {
-                            Some(caption.to_string())
-                        }
-                    })
-                    .unwrap_or_else(|| format!("file_{id}"));
+                    .unwrap_or_else(|| fallback_document_name(id, Some(&doc.mime_type), native_delivery));
                 let mime = doc.mime_type.clone();
                 let mime_l = mime.to_ascii_lowercase();
                 let name_l = name.to_ascii_lowercase();
@@ -896,7 +889,7 @@ pub fn tl_message_to_row(
                 let cls = crate::core::media_classifier::classify_media_item(
                     &name,
                     Some(&mime),
-                    true,
+                    !native_delivery,
                     false,
                     false,
                 );
@@ -912,7 +905,7 @@ pub fn tl_message_to_row(
                         || mime_l.starts_with("image/")
                         || thumb_data_url.is_some()
                         || doc.thumbs.as_ref().map(|t| !t.is_empty()).unwrap_or(false),
-                    as_document: true,
+                    as_document: !native_delivery,
                     backend: BACKEND.to_string(),
                     thumb_data_url,
                     topic_id,
@@ -1004,6 +997,60 @@ pub fn message_topic_id(msg: &grammers_client::message::Message) -> Option<i64> 
         }
         _ => None,
     }
+}
+
+/// Telegram represents both native videos/GIFs and generic files as
+/// `MessageMediaDocument`. The presence of native visual attributes—not the
+/// MIME extension—determines whether clients render the item as media or FILE.
+fn has_native_delivery(
+    attributes: &[grammers_client::tl::enums::DocumentAttribute],
+) -> bool {
+    attributes.iter().any(|attr| matches!(
+        attr,
+        grammers_client::tl::enums::DocumentAttribute::Video(_)
+            | grammers_client::tl::enums::DocumentAttribute::Audio(_)
+            | grammers_client::tl::enums::DocumentAttribute::Animated
+    ))
+}
+
+fn fallback_document_name(id: i64, mime: Option<&str>, native_delivery: bool) -> String {
+    let normalized = mime.unwrap_or("").to_ascii_lowercase();
+    let (kind, extension) = if normalized.starts_with("video/") {
+        (
+            if native_delivery { "video" } else { "file" },
+            match normalized.as_str() {
+                "video/quicktime" => "mov",
+                "video/webm" => "webm",
+                "video/x-matroska" => "mkv",
+                _ => "mp4",
+            },
+        )
+    } else if normalized.starts_with("audio/") {
+        (
+            if native_delivery { "audio" } else { "file" },
+            match normalized.as_str() {
+                "audio/ogg" => "ogg",
+                "audio/opus" => "opus",
+                "audio/flac" => "flac",
+                "audio/mp4" | "audio/x-m4a" => "m4a",
+                _ => "mp3",
+            },
+        )
+    } else if normalized.starts_with("image/") {
+        (
+            if native_delivery { "image" } else { "file" },
+            match normalized.as_str() {
+                "image/png" => "png",
+                "image/webp" => "webp",
+                "image/gif" => "gif",
+                "image/heic" => "heic",
+                _ => "jpg",
+            },
+        )
+    } else {
+        ("file", "bin")
+    };
+    format!("{kind}_{id}.{extension}")
 }
 
 fn extract_http_urls(text: &str) -> Vec<String> {
@@ -1779,6 +1826,37 @@ mod tests {
         assert_eq!(
             normalize_entity_url("tg://resolve?domain=telegram").as_deref(),
             Some("tg://resolve?domain=telegram")
+        );
+    }
+
+    #[test]
+    fn native_delivery_uses_telegram_attributes_not_filename_extension() {
+        use grammers_client::tl::{enums::DocumentAttribute, types::DocumentAttributeVideo};
+
+        let native_video = DocumentAttribute::Video(DocumentAttributeVideo {
+            round_message: false,
+            supports_streaming: true,
+            nosound: false,
+            duration: 1.0,
+            w: 1280,
+            h: 720,
+            preload_prefix_size: None,
+            video_start_ts: None,
+            video_codec: None,
+        });
+        assert!(has_native_delivery(&[native_video]));
+        assert!(!has_native_delivery(&[
+            DocumentAttribute::Filename(grammers_client::tl::types::DocumentAttributeFilename {
+                file_name: "sent-as-file.mp4".to_string(),
+            }),
+        ]));
+        assert_eq!(
+            fallback_document_name(19024, Some("video/mp4"), true),
+            "video_19024.mp4"
+        );
+        assert_eq!(
+            fallback_document_name(19024, Some("video/mp4"), false),
+            "file_19024.mp4"
         );
     }
 

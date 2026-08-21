@@ -52,10 +52,10 @@ thiserror = "2"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 ureq = { version = "2", default-features = false, features = ["tls", "json"] }
 urlencoding = "2.1"
+url = "2"
 
 [features]
 default = ["grammers"]
 # Compile-time enable of Grammers backend (runtime still dual-path via AUTOGRAM_TELEGRAM_BACKEND)
 grammers = []
-
 

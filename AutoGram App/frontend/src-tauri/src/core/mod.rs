@@ -45,6 +45,7 @@ pub mod path_policy;
 pub mod preview_transcoder;
 pub mod profiles_db;
 pub mod progress_rate;
+pub mod remote_link_resolver;
 pub mod session_guard;
 pub mod session_rate;
 pub mod session_update_router;

@@ -2,8 +2,24 @@ import { useTranslation } from 'react-i18next';
 import i18n from 'i18next';
 import { MediaStudioOverlays } from './MediaStudioOverlays';
 import { MediaStudioModalsContainer } from './MediaStudioModalsContainer';
+import {
+  completedIndexNeedsRevalidation,
+  isIndexEventForActiveScope,
+  partialIndexNeedsAutoResume,
+} from './indexScope';
 import type { DuplicateContextInfo } from '../../components/drive/DrivePreviewModal';
 import { TransferPreflightDialog } from '../../components/drive/Transfers/TransferPreflightDialog';
+
+function localizedDriveError(
+  error: unknown,
+  t: (key: string, options?: Record<string, unknown>) => string
+): string {
+  const issue = telegramAccessIssue(error);
+  if (issue === 'restricted') return t('speedtest.telegram_access_restricted');
+  if (issue === 'private') return t('speedtest.telegram_access_private');
+  if (issue === 'unavailable') return t('speedtest.telegram_access_unavailable');
+  return friendlyDriveError(error);
+}
 import { DriveTransferSettings } from '../../components/drive/Transfers/DriveTransferSettings';
 import { TelegramMessagePreviewModal } from '../../components/drive/Modals/TelegramMessagePreviewModal';
 import {
@@ -83,6 +99,7 @@ import {
   clearDriveTransferPause,
   isTransferJobActive,
   friendlyDriveError,
+  telegramAccessIssue,
   isPeerEntityError,
   isSessionLockError,
   CHAT_BULK_PAGE,
@@ -318,6 +335,11 @@ import { DriveTopBar, type DriveCrumbSeg } from '../../components/drive/Navigati
 import { DriveExplorer } from '../../components/drive/Explorer/DriveExplorer';
 import { DriveTransferManager } from '../../components/drive/Transfers/DriveTransferManager';
 import { DownloadAllZipModal, type ZipCategory } from '../../components/drive/Modals/DownloadAllZipModal';
+import { TelegramChatActionModal } from '../../components/drive/Modals/TelegramChatActionModal';
+import {
+  tgInspectChatTarget,
+  type TgChatAction,
+} from '../../lib/telegram/core/telegramBackend';
 
 import { type DriveConfirmState } from '../../components/drive/Modals/DriveConfirmDialog';
 import { type DriveInputState } from '../../components/drive/Modals/DriveInputDialog';
@@ -441,6 +463,11 @@ function MediaDriveDesktop({
     }
   });
   const [relogModalOpen, setRelogModalOpen] = useState(false);
+  const [telegramActionContext, setTelegramActionContext] = useState<{
+    target: string;
+    allowedActions: TgChatAction[];
+    initialAction: TgChatAction;
+  } | null>(null);
   // Peer is ALWAYS session-scoped — never restore another account's channel id.
   const initial = (() => {
     try {
@@ -567,6 +594,10 @@ function MediaDriveDesktop({
   const [cachedMediaBreakdown, setCachedMediaBreakdown] = useState<ExactMediaBreakdown | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [totalIndexedCount, setTotalIndexedCount] = useState<number>(0);
+  const [indexBackfillComplete, setIndexBackfillComplete] = useState(false);
+  const staleIndexAutoResumeScopeRef = useRef<string | null>(null);
+  const indexAutoResumeAttemptedAtRef = useRef<Map<string, number>>(new Map());
+  const [staleIndexAutoResumeToken, setStaleIndexAutoResumeToken] = useState(0);
   // `totalIndexedCount` is progress for one exact account/peer/topic scope. A
   // plain component state value can otherwise survive navigation and make a
   // new peer appear partially indexed with the previous peer's count.
@@ -603,6 +634,7 @@ function MediaDriveDesktop({
   const [error, setError] = useState<string | null>(null);
   const [statusText, setStatusText] = useState('Ready');
   const [remoteUploadOpen, setRemoteUploadOpen] = useState(false);
+  const [remoteUploadInitialUrl, setRemoteUploadInitialUrl] = useState('');
   const [scaleHint, setScaleHint] = useState<string | null>(null);
   const [recents, setRecents] = useState<DriveRecent[]>(() =>
     session ? loadDriveRecents(session) : []
@@ -725,6 +757,7 @@ function MediaDriveDesktop({
   const locationSortPrefsRef = useRef<Map<string, DriveSortMode>>(new Map());
   const [sortMode, setSortMode] = useState<DriveSortMode>('newest');
   const [indexingJob, setIndexingJob] = useState<{
+    scopeKey?: string;
     active: boolean;
     processed: number;
     total: number;
@@ -1133,14 +1166,23 @@ function MediaDriveDesktop({
       isForumChat && topicFilter != null
         ? topics.find((x) => x.id === topicFilter) || null
         : null;
+    const knownPeerTitles = [
+      ...chats,
+      ...pins
+        .filter((entry) => entry.id != null)
+        .map((entry) => ({ id: entry.id as number, name: entry.label })),
+      ...recents
+        .filter((entry) => entry.id != null)
+        .map((entry) => ({ id: entry.id as number, name: entry.label })),
+    ];
     return buildDriveBreadcrumbSegments(folders, {
       locationKind,
       activePeerId,
-      chats,
+      chats: knownPeerTitles,
       topicTitle: activeTopic?.title || null,
       topicId: activeTopic?.id ?? (topicFilter != null ? Number(topicFilter) : null),
     });
-  }, [locationKind, activePeerId, folders, chats, isForumChat, topicFilter, topics]);
+  }, [locationKind, activePeerId, folders, chats, pins, recents, isForumChat, topicFilter, topics]);
 
   const breadcrumb = useMemo(() => {
     if (breadcrumbSegs.length <= 1) return 'Saved Messages';
@@ -1407,7 +1449,7 @@ function MediaDriveDesktop({
       setLocationKind('saved');
       setActivePeerId(null);
       setTopicFilter(null);
-      setError(friendlyDriveError(e));
+      setError(localizedDriveError(e, t));
       setStatusText(t('ui.generated.lokasi_tidak_valid_di_session_ini_d5b3e1a'));
       setFiles([]);
       setFilesHasMore(false);
@@ -2282,7 +2324,7 @@ function MediaDriveDesktop({
             // Warm path must recover PeerChannel here — .catch swallows so the
             // outer try/catch never sees the error (poisoned location stick).
             if (peerId != null && recoverInvalidPeerLocation(e, { gen })) return;
-            setError(friendlyDriveError(e));
+            setError(localizedDriveError(e, t));
           })
           .finally(() => {
             if (gen === peerGen.current) setLoadingFiles(false);
@@ -2318,6 +2360,19 @@ function MediaDriveDesktop({
               });
               chatsCursorRef.current = nextCursor;
             }
+            // Telegram's current dialog title is authoritative. Preserve local
+            // hierarchy metadata while repairing stale cached drive labels.
+            const liveNames = new Map<number, DriveChat>(list.map((chat: DriveChat) => [chat.id, chat]));
+            setFolders((previous) => previous.map((folder) => {
+              const live = liveNames.get(folder.id);
+              if (!live) return folder;
+              return {
+                ...folder,
+                name: live.name || folder.name,
+                title_raw: live.title_raw || live.name || folder.title_raw,
+                username: live.username ?? folder.username ?? null,
+              };
+            }));
             try {
               saveDriveSidebarSnapshot(localStorage, creds.session, {
                 chats: list,
@@ -2369,7 +2424,7 @@ function MediaDriveDesktop({
             }
           })
           .catch((e: any) => {
-            if (gen === peerGen.current) setError(friendlyDriveError(e));
+            if (gen === peerGen.current) setError(localizedDriveError(e, t));
           })
           .finally(() => {
             if (gen === peerGen.current) setLoadingChats(false);
@@ -2574,7 +2629,7 @@ function MediaDriveDesktop({
       }
       sessionLockRetriesRef.current = 0;
       if (peerId != null && recoverInvalidPeerLocation(e, { gen })) return;
-      setError(friendlyDriveError(e));
+      setError(localizedDriveError(e, t));
     } finally {
       if (gen === peerGen.current) {
         setLoadingFolders(false);
@@ -2652,7 +2707,7 @@ function MediaDriveDesktop({
       if (
         requestId === chatFolderRequestRef.current &&
         activeChatFolderIdRef.current === folderId
-      ) setError(friendlyDriveError(e));
+      ) setError(localizedDriveError(e, t));
     } finally {
       if (
         requestId === chatFolderRequestRef.current &&
@@ -2735,7 +2790,7 @@ function MediaDriveDesktop({
         chatsCursorRef.current = null;
       }
     } catch (e: any) {
-      setError(friendlyDriveError(e));
+      setError(localizedDriveError(e, t));
     } finally {
       setChatsLoadingMore(false);
       chatBulkLock.current = false;
@@ -2844,6 +2899,7 @@ function MediaDriveDesktop({
     if (indexedCountScopeRef.current !== cacheKey) {
       indexedCountScopeRef.current = cacheKey;
       setTotalIndexedCount(0);
+      setIndexBackfillComplete(false);
     }
 
     // Instant cache restore
@@ -2888,9 +2944,15 @@ function MediaDriveDesktop({
     // snapshot into RAM; startup cost remains bounded for 100k-1M item indexes.
     let durableRows: DriveFile[] = [];
     let durableIndexFound = false;
+    let durableUniqueCount = 0;
+    let durableWasComplete = false;
     try {
       const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
       const indexState = await getMediaIndexState(mediaContext);
+      durableWasComplete = indexState?.backfillComplete === true;
+      if (gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey) {
+        setIndexBackfillComplete(indexState?.backfillComplete === true);
+      }
       const perf = getDrivePerfProfile();
       durableRows = dedupeByMsgId(await getMediaPageByContext(
         mediaContext,
@@ -2901,7 +2963,11 @@ function MediaDriveDesktop({
       durableIndexFound = durableRows.length > 0;
       if (durableIndexFound && gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey) {
           const durableCount = await getMediaRecordsCountByContext(mediaContext);
-          const exactCount = indexState?.exactMediaCount ?? durableCount ?? durableRows.length;
+          durableUniqueCount = durableCount;
+          // The normalized store is authoritative for the number of unique
+          // records in this exact account/peer/topic scope. A checkpoint count
+          // can legitimately lag behind a just-committed delta page.
+          const exactCount = durableCount;
           const exactBytes = indexState?.exactBytes ?? null;
           const hasMore = exactCount > durableRows.length;
           setFiles(durableRows);
@@ -2910,6 +2976,7 @@ function MediaDriveDesktop({
           filesHasMoreRef.current = hasMore;
           setNextOffsetId(durableRows[durableRows.length - 1]?.id ?? null);
           setTotalFileCount(exactCount);
+          setTotalIndexedCount(exactCount);
           filesTotalCountRef.current.set(cacheKey, exactCount);
           if (exactBytes != null) {
             setTotalBytes(exactBytes);
@@ -2937,6 +3004,48 @@ function MediaDriveDesktop({
         bypassCache: shouldBypassCache || durableIndexFound,
       });
       if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return;
+
+      const liveCandidateTotal = res.total_count == null ? null : Number(res.total_count);
+      if (completedIndexNeedsRevalidation(
+        durableWasComplete,
+        durableUniqueCount,
+        liveCandidateTotal
+      )) {
+        // Preserve every indexed media row. Reset only the stale cursor state;
+        // the next historical pass upserts existing rows and continues until
+        // the full live Telegram count is represented locally.
+        await resetMediaIndexState(buildDriveMediaContext(creds.session, peerId, tid));
+        if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return;
+        durableWasComplete = false;
+        setIndexBackfillComplete(false);
+        setStatsAccurate(false);
+        filesHasMoreRef.current = true;
+        setFilesHasMore(true);
+        if (liveCandidateTotal != null && Number.isFinite(liveCandidateTotal)) {
+          setTotalFileCount(Math.max(0, Math.trunc(liveCandidateTotal)));
+        }
+        staleIndexAutoResumeScopeRef.current = cacheKey;
+        setStaleIndexAutoResumeToken((token) => token + 1);
+      } else if (partialIndexNeedsAutoResume(
+        durableWasComplete,
+        durableUniqueCount,
+        liveCandidateTotal
+      )) {
+        // Preserve already indexed rows and any valid partial checkpoint. The
+        // worker resumes from that checkpoint (or safely upserts from the head
+        // for legacy rows that predate mediaIndexState).
+        const now = Date.now();
+        const lastAttempt = indexAutoResumeAttemptedAtRef.current.get(cacheKey) || 0;
+        if (now - lastAttempt >= 60_000) {
+          indexAutoResumeAttemptedAtRef.current.set(cacheKey, now);
+          setIndexBackfillComplete(false);
+          setStatsAccurate(false);
+          filesHasMoreRef.current = true;
+          setFilesHasMore(true);
+          staleIndexAutoResumeScopeRef.current = cacheKey;
+          setStaleIndexAutoResumeToken((token) => token + 1);
+        }
+      }
       if (res?.invalid_topic && tid != null) {
         // Recover stale/deleted/cross-peer topic selection without showing a
         // fatal location error. Reopen the active peer as "Semua media".
@@ -3177,7 +3286,7 @@ function MediaDriveDesktop({
         }, 1200);
         return;
       }
-      setError(friendlyDriveError(e));
+      setError(localizedDriveError(e, t));
       setStatusText(t('ui.generated.list_failed_520195e'));
     } finally {
       setLoadingFiles(false);
@@ -3244,16 +3353,28 @@ function MediaDriveDesktop({
     const unsub = addDriveEventListener(async (evt: any) => {
       if (evt.type === 'index_progress') {
         const folderKey = evt.folderId || 0;
+        const currentFolderKey = peerId || 0;
+        // Legacy drive events are not topic-aware. Never let an event emitted for
+        // another peer repaint the active location's index indicator.
+        if (!isIndexEventForActiveScope(folderKey, currentFolderKey, topicFilterRef.current)) return;
+        const scopeKey = getDriveCacheKey(creds.session, peerId, null);
         if (Array.isArray(evt.items)) {
           const context = buildDriveMediaContext(creds.session, folderKey || null, null);
           await saveMediaRecords(scopeMediaRecords(evt.items, context, folderKey))
             .catch(err => console.error('[Index] Save failed:', err));
         }
         setIndexingJob({
+          scopeKey,
           active: true,
           processed: evt.processedCount,
           total: evt.totalCount,
-          text: `Mengindeks media: ${evt.processedCount} / ${evt.totalCount} file...`
+          text: t('speedtest.index_progress_detail', {
+            processed: Number(evt.processedCount || 0).toLocaleString(),
+            total: Number(evt.totalCount || 0).toLocaleString(),
+            percent: evt.totalCount > 0
+              ? Math.min(100, Math.round((evt.processedCount / evt.totalCount) * 100))
+              : 0,
+          }),
         });
       } else if (evt.type === 'index_complete') {
         const folderKey = evt.folderId || 0;
@@ -3269,8 +3390,11 @@ function MediaDriveDesktop({
           version: 1
         }).catch(err => console.error('[Index] Save checkpoint failed:', err));
         
-        setIndexingJob({ active: false, processed: 0, total: 0, text: '' });
-        void refreshFiles();
+        const isCurrentScope = isIndexEventForActiveScope(folderKey, peerId, topicFilterRef.current);
+        if (isCurrentScope) {
+          setIndexingJob({ active: false, processed: 0, total: 0, text: '' });
+          void refreshFiles();
+        }
       } else if (evt.type === 'update') {
         const folderKey = evt.folder_id || 0;
         const currentActiveFolder = peerId || 0;
@@ -3332,7 +3456,7 @@ function MediaDriveDesktop({
     return () => {
       unsub();
     };
-  }, [creds, peerId, refreshFiles, channelSyncOwnsLiveFreshness]);
+  }, [creds, peerId, refreshFiles, channelSyncOwnsLiveFreshness, getDriveCacheKey, t]);
 
   const processPendingActions = useCallback(async () => {
     if (!creds || !navigator.onLine) return;
@@ -3529,7 +3653,7 @@ function MediaDriveDesktop({
           const sec = parseInt(fwMatch[1], 10) || 10;
           throw new Error(`FLOOD_WAIT_${sec}`);
         }
-        setError(friendlyDriveError(e));
+        setError(localizedDriveError(e, t));
         setStatusText(t('ui.generated.load_more_gagal_b4ced02'));
         throw e;
       }
@@ -3573,7 +3697,7 @@ function MediaDriveDesktop({
       linkNextOffsetRef.current = response.next_offset_id ?? null;
       if (response.total_count != null) setLinksTotalCount(Number(response.total_count));
     } catch (error) {
-      if (requestSeq === linkRequestSeqRef.current) setError(friendlyDriveError(error));
+      if (requestSeq === linkRequestSeqRef.current) setError(localizedDriveError(error, t));
     } finally {
       if (requestSeq === linkRequestSeqRef.current) setLinksLoadingMore(false);
     }
@@ -3602,7 +3726,7 @@ function MediaDriveDesktop({
         linkNextOffsetRef.current = response.next_offset_id ?? null;
       })
       .catch((error) => {
-        if (requestSeq === linkRequestSeqRef.current) setError(friendlyDriveError(error));
+        if (requestSeq === linkRequestSeqRef.current) setError(localizedDriveError(error, t));
       })
       .finally(() => {
         if (requestSeq === linkRequestSeqRef.current) setLinksLoading(false);
@@ -3615,6 +3739,7 @@ function MediaDriveDesktop({
   const indexingActiveRef = useRef(false);
   const indexingPausedRef = useRef(false);
   const activeIndexingJobIdRef = useRef<number | null>(null);
+  const activeIndexingScopeKeyRef = useRef<string | null>(null);
   const [indexingAllActive, setIndexingAllActive] = useState(false);
   const [indexingProgress, setIndexingProgress] = useState<{
     processed: number;
@@ -3622,6 +3747,8 @@ function MediaDriveDesktop({
   }>({ processed: 0, total: null });
 
   const handleStopIndexing = useCallback(() => {
+    const currentScopeKey = getDriveCacheKey(creds?.session || session, peerId, topicFilterRef.current);
+    if (activeIndexingScopeKeyRef.current !== currentScopeKey) return;
     indexingActiveRef.current = false;
     indexingPausedRef.current = false;
     const currentJobId = activeIndexingJobIdRef.current;
@@ -3629,12 +3756,15 @@ function MediaDriveDesktop({
       activeIndexingJobIdRef.current = null;
       void cancelMediaIndexJob(currentJobId);
     }
+    activeIndexingScopeKeyRef.current = null;
     setIndexingAllActive(false);
     setIndexingJob({ active: false, processed: 0, total: 0, text: '', isPaused: false });
-  }, []);
+  }, [creds?.session, getDriveCacheKey, peerId, session]);
 
   const handleTogglePauseIndexing = useCallback(() => {
     if (!indexingActiveRef.current) return;
+    const currentScopeKey = getDriveCacheKey(creds?.session || session, peerId, topicFilterRef.current);
+    if (activeIndexingScopeKeyRef.current !== currentScopeKey) return;
     const nextPaused = !indexingPausedRef.current;
     indexingPausedRef.current = nextPaused;
     const currentJobId = activeIndexingJobIdRef.current;
@@ -3649,7 +3779,7 @@ function MediaDriveDesktop({
       ...prev,
       isPaused: nextPaused,
     }));
-  }, []);
+  }, [creds?.session, getDriveCacheKey, peerId, session]);
 
   const handleIndexAllMetadata = useCallback(async () => {
     if (indexingActiveRef.current) return;
@@ -3669,12 +3799,14 @@ function MediaDriveDesktop({
 
     indexingActiveRef.current = true;
     indexingPausedRef.current = false;
+    activeIndexingScopeKeyRef.current = cacheKey;
     setIndexingAllActive(true);
 
     const initialTotal = totalFileCount || 0;
+    const durableInitialCount = await getMediaRecordsCountByContext(mediaContext).catch(() => 0);
     const scopedIndexedCount = getScopedIndexedCount(indexedCountScopeRef.current, cacheKey, totalIndexedCount);
     indexedCountScopeRef.current = cacheKey;
-    const initialProcessed = Math.max(liveFilesRef.current.length, scopedIndexedCount);
+    const initialProcessed = Math.max(durableInitialCount, scopedIndexedCount);
     const initialTier = determineIndexingTier(initialTotal, initialProcessed);
     const startTimeMs = Date.now();
 
@@ -3685,6 +3817,7 @@ function MediaDriveDesktop({
       total: initialTotal || null,
     });
     setIndexingJob({
+      scopeKey: cacheKey,
       active: true,
       processed: initialProcessed,
       total: initialTotal,
@@ -3710,6 +3843,7 @@ function MediaDriveDesktop({
       console.warn('[Indexer] Schema version mismatch, performing safe reset of mediaIndexState');
       await resetMediaIndexState(mediaContext);
       indexState = null;
+      if (activeFilesCacheKeyRef.current === cacheKey) setIndexBackfillComplete(false);
     }
 
     const isAlreadyBackfilled = indexState?.backfillComplete === true;
@@ -3785,14 +3919,18 @@ function MediaDriveDesktop({
               return;
             }
 
-            indexedLoadedCount += page.length;
+            // Count unique persisted rows after the atomic commit. Page length
+            // is not a progress counter: delta pages and Telegram retries may
+            // contain records already present in IndexedDB.
+            indexedLoadedCount = await getMediaRecordsCountByContext(mediaContext);
 
             // Only update active foreground UI state if user is currently looking at this folder
             const isCurrentlyViewed = gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey;
             if (isCurrentlyViewed) {
               setTotalIndexedCount(indexedLoadedCount);
               const curLoaded = indexedLoadedCount;
-              const curTotal = totalFileCount || initialTotal;
+              const candidateTotal = Number(event.metrics?.candidateTotalEstimate || 0);
+              const curTotal = Math.max(candidateTotal, indexedLoadedCount);
               const now = Date.now();
               const metrics = calculateIndexingMetrics(curLoaded, curTotal, startTimeMs, now, curLoaded, now);
 
@@ -3820,6 +3958,7 @@ function MediaDriveDesktop({
                 total: curTotal || null,
               });
               setIndexingJob({
+                scopeKey: cacheKey,
                 active: true,
                 processed: curLoaded,
                 total: curTotal,
@@ -3837,6 +3976,7 @@ function MediaDriveDesktop({
               });
             }
           } else if (event.type === 'state') {
+            if (activeFilesCacheKeyRef.current !== cacheKey) return;
             if (event.state === 'user_paused' || event.state === 'flood_paused') {
               setIndexingJob((prev) => ({
                 ...prev,
@@ -3850,7 +3990,8 @@ function MediaDriveDesktop({
             }
           } else if (event.type === 'progress') {
             const curLoaded = indexedLoadedCount;
-            const curTotal = totalFileCount || initialTotal;
+            const candidateTotal = Number(event.metrics?.candidateTotalEstimate || 0);
+            const curTotal = Math.max(candidateTotal, indexedLoadedCount);
             if (gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey) {
               setIndexingProgress({
                 processed: curLoaded,
@@ -3858,6 +3999,7 @@ function MediaDriveDesktop({
               });
             }
           } else if (event.type === 'flood') {
+            if (activeFilesCacheKeyRef.current !== cacheKey) return;
             setIndexingJob((prev: any) => prev ? {
               ...prev,
               text: t('speedtest.floodwait_countdown', { seconds: event.waitSecs }) || `FloodWait: menunggu ${event.waitSecs}s...`
@@ -3865,10 +4007,15 @@ function MediaDriveDesktop({
           } else if (event.type === 'complete') {
             console.info('[Indexer] TERMINAL COMPLETE', event.mode, event.totalEmittedRows, event.metrics);
             activeIndexingJobIdRef.current = null;
-            filesHasMoreRef.current = false;
-            setFilesHasMore(false);
-            nextOffsetIdRef.current = null;
-            setNextOffsetId(null);
+            activeIndexingScopeKeyRef.current = null;
+            const isCurrentlyViewed = gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey;
+            if (isCurrentlyViewed) {
+              setIndexBackfillComplete(true);
+              filesHasMoreRef.current = false;
+              setFilesHasMore(false);
+              nextOffsetIdRef.current = null;
+              setNextOffsetId(null);
+            }
             indexingActiveRef.current = false;
             indexingPausedRef.current = false;
             setIndexingAllActive(false);
@@ -3896,11 +4043,15 @@ function MediaDriveDesktop({
                 const exactStats = await getExactMediaStatsByContext(mediaContext);
                 const exactCount = exactStats.count;
                 const exactBytes = exactStats.totalBytes;
-                setStatsAccurate(true);
-                setStatsLoading(false);
-                setTotalFileCount(exactCount);
-                setTotalBytes(exactBytes);
                 filesTotalCountRef.current.set(cacheKey, exactCount);
+                filesTotalBytesRef.current.set(cacheKey, exactBytes);
+                if (isCurrentlyViewed) {
+                  setStatsAccurate(true);
+                  setStatsLoading(false);
+                  setTotalFileCount(exactCount);
+                  setTotalIndexedCount(exactCount);
+                  setTotalBytes(exactBytes);
+                }
 
                 // Rows and checkpoint are already committed atomically per ACK.
                 // Do not serialize a redundant whole-array deep snapshot.
@@ -3909,17 +4060,21 @@ function MediaDriveDesktop({
               }
             }
 
-            setIndexingJob({ active: false, processed: 0, total: 0, text: '', isPaused: false });
-            setTotalIndexedCount(indexedLoadedCount);
-            setStatusText(t('ui.generated.semua_media_dimuat_2310a13'));
+            if (isCurrentlyViewed) {
+              setIndexingJob({ active: false, processed: 0, total: 0, text: '', isPaused: false });
+              setStatusText(t('ui.generated.semua_media_dimuat_2310a13'));
+            }
           } else if (event.type === 'failed') {
             console.error('[Indexer] TERMINAL FAILED', event.code, event.message, event.recoverable);
             activeIndexingJobIdRef.current = null;
+            activeIndexingScopeKeyRef.current = null;
             indexingActiveRef.current = false;
             indexingPausedRef.current = false;
             setIndexingAllActive(false);
-            setIndexingJob({ active: false, processed: 0, total: 0, text: '', isPaused: false });
-            setStatusText(t('speedtest.index_failed_error', { message: event.message }) || `Index gagal: ${event.message}`);
+            if (activeFilesCacheKeyRef.current === cacheKey) {
+              setIndexingJob({ active: false, processed: 0, total: 0, text: '', isPaused: false });
+              setStatusText(t('speedtest.index_failed_error', { message: event.message }));
+            }
           }
         }
       );
@@ -3928,6 +4083,7 @@ function MediaDriveDesktop({
     } catch (err: any) {
       console.warn('[Indexer] startMediaIndexJob caught error:', err);
       activeIndexingJobIdRef.current = null;
+      activeIndexingScopeKeyRef.current = null;
       indexingActiveRef.current = false;
       indexingPausedRef.current = false;
       setIndexingAllActive(false);
@@ -3943,6 +4099,24 @@ function MediaDriveDesktop({
     loadingMoreFiles,
     getDriveCacheKey,
     t,
+  ]);
+
+  // A checkpoint disproved by Telegram repairs itself only while that peer is
+  // open. Durable rows paint immediately; the worker fills the missing range
+  // in the background without creating cross-drive work or discarding data.
+  useEffect(() => {
+    const scopeKey = getDriveCacheKey(creds?.session || session, peerId, topicFilterRef.current);
+    if (staleIndexAutoResumeScopeRef.current !== scopeKey || indexingActiveRef.current) return;
+    staleIndexAutoResumeScopeRef.current = null;
+    const timer = window.setTimeout(() => void handleIndexAllMetadata(), 180);
+    return () => window.clearTimeout(timer);
+  }, [
+    creds?.session,
+    getDriveCacheKey,
+    handleIndexAllMetadata,
+    peerId,
+    session,
+    staleIndexAutoResumeToken,
   ]);
 
   const syncActiveLocationLive = useCallback(
@@ -4322,7 +4496,7 @@ function MediaDriveDesktop({
         }
       } catch (e: any) {
         if (!cancelled) {
-          setError(friendlyDriveError(e));
+          setError(localizedDriveError(e, t));
           setLoadingFolders(false);
           setLoadingChats(false);
           setLoadingFiles(false);
@@ -4752,6 +4926,14 @@ function MediaDriveDesktop({
     thumbLocationOptions,
     t,
   ]);
+
+  const visibleIndexScopeKey = getDriveCacheKey(
+    creds?.session || session,
+    peerId,
+    topicFilter
+  );
+  const isVisibleIndexingJob =
+    indexingAllActive && indexingJob.active && indexingJob.scopeKey === visibleIndexScopeKey;
 
   const toggleTransferMinimize = useCallback(() => {
     setTransferMinimized((m) => {
@@ -5489,17 +5671,54 @@ function MediaDriveDesktop({
               res?.folder?.id != null && Number.isFinite(Number(res.folder.id))
                 ? Number(res.folder.id)
                 : null;
-            await refreshLocations();
             if (newId != null) {
+              const optimisticFolder: DriveFolder = {
+                id: newId,
+                name: String(res?.folder?.name || name),
+                title_raw: String(res?.folder?.title_raw || `${name} [TD]`),
+                username: res?.folder?.username ?? null,
+                parent_id: parentId,
+                is_drive_folder: true,
+                is_orphan: false,
+              };
+              // CreateChannel already returned the authoritative peer. Paint it
+              // immediately instead of waiting for the next paged dialog scan.
+              setFolders((previous) => {
+                const next = withFolderOrphanFlags([
+                  optimisticFolder,
+                  ...previous.filter((folder) => Number(folder.id) !== newId),
+                ]);
+                try {
+                  saveDriveSidebarSnapshot(localStorage, creds.session, { folders: next });
+                } catch {
+                  /* sidebar cache is best-effort */
+                }
+                return next;
+              });
               setLocationKind('drive');
               setActivePeerId(newId);
               setTopicFilter(null);
               topicFilterRef.current = null;
               setStatusText(
                 parentId != null
-                  ? `Folder siap: ${res?.folder?.name || name}`
-                  : `Drive siap: ${res?.folder?.name || name}`
+                  ? t('speedtest.folder_ready', { name: res?.folder?.name || name })
+                  : t('speedtest.drive_ready', { name: res?.folder?.name || name })
               );
+              // Reconcile server metadata after the optimistic paint without
+              // blocking navigation to the newly created Drive.
+              window.setTimeout(() => {
+                void driveScanFolders(creds).then((scan) => {
+                  const rows = Array.isArray(scan) ? scan : scan?.folders || [];
+                  if (!Array.isArray(rows) || rows.length === 0) return;
+                  const normalized = withFolderOrphanFlags(rows);
+                  setFolders(normalized);
+                  try {
+                    saveDriveSidebarSnapshot(localStorage, creds.session, { folders: normalized });
+                  } catch {
+                    /* sidebar cache is best-effort */
+                  }
+                }).catch(() => undefined);
+              }, 600);
             } else {
               setStatusText(
                 parentId != null
@@ -6929,15 +7148,41 @@ function MediaDriveDesktop({
   );
 
   const locationLabel = useMemo(() => {
-    if (locationKind === 'saved') return 'Saved Messages';
+    const samePeer = (id: string | number | null | undefined) =>
+      String(id ?? '') === String(activePeerId ?? '');
+    const knownLabel =
+      chats.find((c) => samePeer(c.id))?.name ||
+      folders.find((f) => samePeer(f.id))?.name ||
+      pins.find((entry) => samePeer(entry.id))?.label ||
+      recents.find((entry) => samePeer(entry.id))?.label;
+    if (locationKind === 'saved') return t('speedtest.saved_messages');
     if (locationKind === 'drive') {
       return (
-        folders.find((f) => f.id === activePeerId)?.name ||
-        `Drive ${activePeerId}`
+        knownLabel ||
+        t('speedtest.location_drive_fallback', { id: activePeerId })
       );
     }
-    return chats.find((c) => c.id === activePeerId)?.name || `Chat ${activePeerId}`;
-  }, [locationKind, activePeerId, folders, chats]);
+    return (
+      knownLabel ||
+      t('speedtest.location_chat_fallback', { id: activePeerId })
+    );
+  }, [locationKind, activePeerId, folders, chats, pins, recents, t]);
+
+  const activeRestrictionNotice = useMemo(() => {
+    if (locationKind === 'saved' || activePeerId == null) return null;
+    const activeChat = chats.find((chat) => String(chat.id) === String(activePeerId));
+    if (!activeChat?.is_restricted) return null;
+    const rawCode = String(activeChat.restriction_code || 'restricted').trim().toLowerCase();
+    const knownCode = ['porn', 'spam', 'copyright', 'violence'].includes(rawCode)
+      ? rawCode
+      : 'restricted';
+    const localizedReason = t(`speedtest.telegram_restriction_reason_${knownCode}`);
+    return t('speedtest.telegram_restriction_detail', {
+      reason: localizedReason,
+      code: rawCode,
+      serverReason: activeChat.restriction_reason || t('speedtest.telegram_access_restricted'),
+    });
+  }, [activePeerId, chats, locationKind, t]);
 
   const spaceHint = useMemo(() => {
     // Prefer location total_bytes (unique media_stats when accurate)
@@ -9156,7 +9401,10 @@ function MediaDriveDesktop({
             onSelectAll={handleSelectAllDisplayed}
             onInvertSelection={handleInvertSelection}
             onUpload={handleUpload}
-            onRemoteUploadClick={() => setRemoteUploadOpen(true)}
+            onRemoteUploadClick={() => {
+              setRemoteUploadInitialUrl('');
+              setRemoteUploadOpen(true);
+            }}
             onDownloadAllClick={handleDownloadAll}
             onDownload={handleDownloadSelected}
             onDelete={() => handleDeleteIds(selectedIds)}
@@ -9234,10 +9482,11 @@ function MediaDriveDesktop({
             statsLoading={statsLoading}
             statsAccurate={statsAccurate}
             hasMore={filesHasMore}
+            indexComplete={indexBackfillComplete}
             scaleHint={scaleHint}
             onIndexAll={handleIndexAllMetadata}
             onStopIndex={handleStopIndexing}
-            indexingAllActive={indexingAllActive}
+            indexingAllActive={isVisibleIndexingJob}
             indexingProgress={{
               processed: indexingJob.processed || indexingProgress.processed,
               total: indexingJob.total || indexingProgress.total,
@@ -9484,6 +9733,7 @@ function MediaDriveDesktop({
             mediaDragActive={mediaDragActive}
             breadcrumb={breadcrumb}
             error={error}
+            restrictionNotice={activeRestrictionNotice}
             setError={setError}
             driveCircuitTripped={creds ? isDriveSessionCircuitTripped(creds) : false}
             retrySec={0}
@@ -9566,6 +9816,7 @@ function MediaDriveDesktop({
               viewPerspective={viewPerspective}
               onViewPerspective={setViewPerspective}
               totalCount={mediaFilter === 'links' ? linksTotalCount : totalFileCount}
+              unavailableNotice={activeRestrictionNotice}
               sortMode={sortMode}
               onSortMode={handleSortModeChange}
               advFilter={advFilter}
@@ -9633,6 +9884,47 @@ function MediaDriveDesktop({
               chatName={breadcrumb}
               creds={creds}
               folderId={peerId}
+              onSendToRemoteLink={(url) => {
+                setRemoteUploadInitialUrl(url);
+                // Keep the source message preview mounted below Remote Link.
+                // This gives Back/Escape a deterministic parent modal and
+                // avoids a popstate race while handing the URL across modals.
+                setRemoteUploadOpen(true);
+              }}
+              onOpenTelegramLink={async (url) => {
+                if (!creds) return;
+                const result = await tgInspectChatTarget({
+                  session: creds.session,
+                  apiId: Number(creds.apiId) || 0,
+                  apiHash: creds.apiHash,
+                  target: url,
+                });
+                if (!result?.ok || !result.data) {
+                  setError(result?.userMessage || result?.error?.message || t('telegram_actions.failed'));
+                  return;
+                }
+                if (result.data.joined && result.data.peerId != null) {
+                  setLocationKind('chat');
+                  setActivePeerId(Number(result.data.peerId));
+                  setTopicFilter(null);
+                  topicFilterRef.current = null;
+                  setLinkPreviewFile(null);
+                  return;
+                }
+                const isBotAction = result.data.kind === 'bot';
+                if (!isBotAction && !result.data.canJoin) {
+                  setError(t('telegram_actions.destination_not_joinable'));
+                  return;
+                }
+                setTelegramActionContext({
+                  target: url,
+                  allowedActions: isBotAction
+                    ? ['start_bot', 'stop_bot', 'send_message']
+                    : ['join'],
+                  initialAction: isBotAction ? 'start_bot' : 'join',
+                });
+              }}
+              escapeDisabled={remoteUploadOpen || Boolean(telegramActionContext)}
             />
           </div>
         </div>
@@ -9698,9 +9990,23 @@ function MediaDriveDesktop({
         destPicker={destPicker}
         setDestPicker={setDestPicker}
         remoteUploadOpen={remoteUploadOpen}
+        remoteUploadInitialUrl={remoteUploadInitialUrl}
         setRemoteUploadOpen={setRemoteUploadOpen}
         transferSettings={transferSettings}
         handleRemoteUpload={handleRemoteUpload}
+      />
+      <TelegramChatActionModal
+        open={Boolean(telegramActionContext)}
+        creds={creds}
+        initialTarget={telegramActionContext?.target || ''}
+        allowedActions={telegramActionContext?.allowedActions}
+        initialAction={telegramActionContext?.initialAction}
+        contextual
+        onClose={() => setTelegramActionContext(null)}
+        onChanged={async () => {
+          await powerRefresh();
+          setTelegramActionContext(null);
+        }}
       />
       <TransferPreflightDialog
         report={preflightReport}

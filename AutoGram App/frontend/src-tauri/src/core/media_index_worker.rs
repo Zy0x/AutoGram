@@ -1460,16 +1460,18 @@ impl MediaIndexWorker {
                 accumulated_files.extend(page.files);
 
                 // Determine dynamic commit target from governor:
-                // Base 100, adaptive 200/300/400 when DB latency rises
+                // Fast storage still pays a fixed IndexedDB transaction/ACK cost. Coalesce
+                // two full Telegram pages by default, then grow conservatively when the
+                // frontend storage path is the bottleneck. Memory remains hard-bounded.
                 let commit_target = {
                     let gov = governor.lock().await;
                     let ack_p95 = gov.ack_p95();
                     if ack_p95 < 40 {
-                        100
-                    } else if ack_p95 < 100 {
                         200
+                    } else if ack_p95 < 100 {
+                        250
                     } else if ack_p95 < 200 {
-                        300
+                        350
                     } else {
                         400
                     }
@@ -3137,14 +3139,12 @@ mod tests {
             }
         }
 
-        // With base commit_target = 100:
-        // Batch 1: 50 + 50 = 100 rows
-        // Batch 2: 50 + 50 = 100 rows
-        // Batch 3: 37 rows (terminal flush!)
-        assert_eq!(emitted_page_events.len(), 3, "Coalescer must emit exactly 3 durable batches for 237 total items");
-        assert_eq!(emitted_page_events[0].rows.len(), 100);
-        assert_eq!(emitted_page_events[1].rows.len(), 100);
-        assert_eq!(emitted_page_events[2].rows.len(), 37, "Terminal partial tail must cleanly flush without hanging");
+        // With base commit_target = 200:
+        // Batch 1: 50 + 50 + 50 + 50 = 200 rows
+        // Batch 2: 37 rows (terminal flush!)
+        assert_eq!(emitted_page_events.len(), 2, "Coalescer must emit exactly 2 durable batches for 237 total items");
+        assert_eq!(emitted_page_events[0].rows.len(), 200);
+        assert_eq!(emitted_page_events[1].rows.len(), 37, "Terminal partial tail must cleanly flush without hanging");
 
         let job = {
             let inner = manager.inner.read().await;

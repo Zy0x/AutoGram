@@ -13,6 +13,7 @@ import commonID from './id/common.json';
 import errorID from './id/error.json';
 import profilesID from './id/profiles.json';
 import uiID from './id/ui.json';
+import telegramActionsID from './id/telegram_actions.json';
 
 import navEN from './en/nav.json';
 import dashboardEN from './en/dashboard.json';
@@ -28,6 +29,7 @@ import commonEN from './en/common.json';
 import errorEN from './en/error.json';
 import profilesEN from './en/profiles.json';
 import uiEN from './en/ui.json';
+import telegramActionsEN from './en/telegram_actions.json';
 
 export const resources = {
   id: {
@@ -46,6 +48,7 @@ export const resources = {
       error: errorID,
       profiles: profilesID,
       ui: uiID,
+      telegram_actions: telegramActionsID,
     },
   },
   en: {
@@ -64,6 +67,7 @@ export const resources = {
       error: errorEN,
       profiles: profilesEN,
       ui: uiEN,
+      telegram_actions: telegramActionsEN,
     },
   },
 };

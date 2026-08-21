@@ -156,6 +156,8 @@ type Props = {
     name: string;
   }) => Promise<void>;
   initialFullscreen?: boolean;
+  /** Open the detailed metadata panel immediately (context-menu Info). */
+  initialInfoOpen?: boolean;
 };
 
 type PlayQuality = {
@@ -175,43 +177,27 @@ const MAX_ZOOM = 6;
 const ZOOM_STEP = 0.25;
 const RATES = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 
-/** Fallback Telegram-style menu when backend returns a thin list */
-const DEFAULT_VIDEO_QUALITIES: PlayQuality[] = [
-  {
-    id: 'auto',
-    label: 'Otomatis',
-    description: 'Stream progressive (default)',
-    native: true,
-    recommended: true,
-  },
-  {
-    id: 'original',
-    label: 'Asli',
-    description: 'Resolusi penuh dari Telegram',
-    native: true,
-  },
-  {
-    id: 'p720',
-    label: '720p',
-    description: 'HD · konversi lokal',
-    height: 720,
-    transcode: true,
-  },
-  {
-    id: 'p480',
-    label: '480p',
-    description: 'SD · hemat data',
-    height: 480,
-    transcode: true,
-  },
-  {
-    id: 'p360',
-    label: '360p',
-    description: 'Data saver',
-    height: 360,
-    transcode: true,
-  },
-];
+/** Telegram exposes the uploaded video source, not YouTube-style renditions.
+ * Never advertise synthetic resolutions unless the backend returns a real
+ * Telegram-provided variant. This avoids hidden local transcodes and storage
+ * amplification merely for preview playback. */
+function fallbackVideoQualities(t: (key: string) => string): PlayQuality[] {
+  return [
+    {
+      id: 'auto',
+      label: t('speedtest.quality_telegram_auto'),
+      description: t('speedtest.quality_telegram_auto_desc'),
+      native: true,
+      recommended: true,
+    },
+    {
+      id: 'original',
+      label: t('speedtest.quality_telegram_original'),
+      description: t('speedtest.quality_telegram_original_desc'),
+      native: true,
+    },
+  ];
+}
 
 function readQualityPref(): string {
   try {
@@ -702,8 +688,10 @@ export function DrivePreviewModal({
   onEnqueueUploadPaths,
   onEnqueueDownloadSingle,
   initialFullscreen = false,
+  initialInfoOpen = false,
 }: Props) {
   const { t } = useTranslation();
+  const defaultVideoQualities = useMemo(() => fallbackVideoQualities(t), [t]);
   const isSplitCompareMode = Boolean(duplicateContext);
 
   const currentDupGroup = useMemo(() => {
@@ -1006,7 +994,7 @@ export function DrivePreviewModal({
   const [hasVideoFrame, setHasVideoFrame] = useState(false);
   const [isMagnifierMode, setIsMagnifierMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(initialFullscreen);
-  const [showInfo, setShowInfo] = useState(false);
+  const [showInfo, setShowInfo] = useState(initialInfoOpen);
   const [mediaWidth, setMediaWidth] = useState<number | null>(null);
   const [mediaHeight, setMediaHeight] = useState<number | null>(null);
 
@@ -1361,7 +1349,7 @@ export function DrivePreviewModal({
   }, [folderId, file.id]);
 
   const activeQuality = useMemo(() => {
-    const list = qualities.length >= 2 ? qualities : DEFAULT_VIDEO_QUALITIES;
+    const list = qualities.length >= 2 ? qualities : defaultVideoQualities;
     const hit =
       list.find((q) => q.id === quality) || list.find((q) => q.recommended) || list[0] || null;
     if (!hit) return null;
@@ -1369,7 +1357,7 @@ export function DrivePreviewModal({
       ...hit,
       label: sanitizeQualityLabel(hit.label, hit.id, hit.height),
     };
-  }, [qualities, quality]);
+  }, [defaultVideoQualities, qualities, quality]);
 
   const resetViewTools = useCallback(() => {
     if (isSplitCompareMode) {
@@ -1693,6 +1681,7 @@ export function DrivePreviewModal({
   // Load when file / folder changes
   useEffect(() => {
     resetViewTools();
+    setShowInfo(initialInfoOpen);
     setMediaWidth(null);
     setMediaHeight(null);
     if (isSplitCompareMode) {
@@ -1737,7 +1726,7 @@ export function DrivePreviewModal({
     const q = readQualityPref();
     setQuality(q);
     loadPreview(q);
-  }, [file.id, folderId, isSplitCompareMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [file.id, folderId, isSplitCompareMode, initialInfoOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     streamDoneRef.current = streamDone;
@@ -2693,7 +2682,7 @@ export function DrivePreviewModal({
 
   /** Always offer resolution menu for video (Telegram-style) */
   const resolutionOptions =
-    qualities.length >= 2 ? qualities : isVideo ? DEFAULT_VIDEO_QUALITIES : qualities;
+    qualities.length >= 2 ? qualities : isVideo ? defaultVideoQualities : qualities;
   const showThumbSkeleton =
     (loading || ((isVideo || isImage) && !activeSrc)) &&
     !error &&
@@ -4092,7 +4081,7 @@ export function DrivePreviewModal({
                 );
               })}
               <p className="drive-quality-note">
-                {t('ui.generated.otomatis_asli_stream_telegram_720p_360p_konversi_3a941d3')}
+                {t('speedtest.quality_telegram_source_note')}
               </p>
             </div>,
             document.body

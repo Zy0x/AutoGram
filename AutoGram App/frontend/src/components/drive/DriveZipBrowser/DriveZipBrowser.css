@@ -28,7 +28,7 @@
   flex-shrink: 0;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 960px) {
   .dzb-toolbar {
     flex-direction: row;
     align-items: center;
@@ -45,7 +45,7 @@
   width: 100%;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 960px) {
   .dzb-toolbar-top {
     width: auto;
     flex-shrink: 0;
@@ -148,7 +148,7 @@
   width: 100%;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 960px) {
   .dzb-toolbar-controls {
     flex: 1 1 auto;
     width: auto;
@@ -422,13 +422,13 @@
   }
 }
 
-/* Desktop Data Table View (Visible on tablet/desktop >= 640px) */
+/* Desktop data table only when every WinRAR-like column has enough room. */
 .dzb-table-container {
   display: none;
   width: 100%;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 900px) {
   .dzb-table-container {
     display: table;
     border-collapse: collapse;
@@ -484,7 +484,7 @@
   border-radius: 4px;
 }
 
-/* Mobile Card View (Visible on small screens < 640px) */
+/* Mobile/tablet card view prevents columns from collapsing into each other. */
 .dzb-mobile-cards {
   display: flex;
   flex-direction: column;
@@ -492,7 +492,7 @@
   padding: 10px;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 900px) {
   .dzb-mobile-cards {
     display: none;
   }
@@ -744,12 +744,66 @@
 .dzb-password-field > div { display: flex; align-items: center; gap: 8px; padding: 0 11px; }
 .dzb-password-field input { width: 100%; border: 0; outline: 0; background: transparent; color: #f8fafc; }
 .dzb-password-error { color: #fca5a5 !important; }
+.dzb-password-suggestions {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 10px;
+  background: rgba(14, 116, 144, 0.08);
+}
+.dzb-password-suggestions > span {
+  color: #bae6fd;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+.dzb-password-suggestions > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dzb-password-suggestions button {
+  min-height: 34px;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0 10px;
+  border: 1px solid rgba(56, 189, 248, 0.32);
+  border-radius: 8px;
+  background: #0b1726;
+  color: #e0f2fe;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.dzb-password-suggestions small { color: #7f8fa6; line-height: 1.4; }
+
+@media (min-width: 520px) and (max-width: 899px) {
+  .dzb-mobile-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+  }
+}
+
+@media (min-width: 1440px) {
+  .dzb-table-cell,
+  .dzb-table-head th { padding-inline: 18px; }
+  .dzb-archive-name { max-width: 520px; }
+}
 
 @media (max-width: 640px) {
   .dzb-badge-unlocked { display: none; }
   .dzb-destination-tabs { grid-template-columns: 1fr; }
   .dzb-destination-list { grid-template-columns: 1fr; }
   .dzb-modal-actions .dzb-btn-compact span { display: none; }
+  .dzb-toolbar { padding: 8px; }
+  .dzb-toolbar-top { align-items: flex-start; }
+  .dzb-title-group { flex: 1 1 auto; }
+  .dzb-archive-name { max-width: min(48vw, 210px); }
+  .dzb-modal-overlay { padding: 0; align-items: stretch; }
+  .dzb-modal-card { max-width: none; max-height: none; height: 100%; border-radius: 0; }
+  .dzb-modal-footer { flex-wrap: wrap; }
+  .dzb-modal-footer > button { flex: 1 1 140px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

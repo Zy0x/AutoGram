@@ -11,7 +11,7 @@ import type {
   ZipEntry,
   ZipPreviewResult,
 } from './zipUtils';
-import { basenamesAt, isZipArchiveName, safeZipEntryPath } from './zipUtils';
+import { basenamesAt, extractZipPasswordCandidates, isZipArchiveName, safeZipEntryPath } from './zipUtils';
 import { ZipHeaderToolbar } from './ZipHeaderToolbar';
 import { ZipEntryTable } from './ZipEntryTable';
 import { ZipCodePreviewModal } from './ZipCodePreviewModal';
@@ -19,6 +19,7 @@ import { ZipExtractModal } from './ZipExtractModal';
 import { ZipPasswordModal } from './ZipPasswordModal';
 import { driveZipExtractEntry, driveZipList, driveZipReadEntry } from '../../../lib/telegram/driveApi';
 import { zipExtractEntry, zipListLocal, zipPreviewEntry } from '../../../lib/tauri/rustBackend';
+import { tgDebugGetMessage } from '../../../lib/telegram/core/telegramBackend';
 import './DriveZipBrowser.css';
 
 export { clearZipBrowserCache } from './zipUtils';
@@ -98,6 +99,7 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
   const [activePassword, setActivePassword] = useState<string | null>(null);
   const [passwordAction, setPasswordAction] = useState<PasswordAction>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordCandidates, setPasswordCandidates] = useState<string[]>([]);
   const tempRootPromise = useRef<Promise<string> | null>(null);
 
   const ensureTempRoot = useCallback(() => {
@@ -150,6 +152,28 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
     setActivePassword(null);
     void loadZipEntries();
   }, [loadZipEntries]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!creds.session || !creds.apiId || !creds.apiHash) {
+      setPasswordCandidates([]);
+      return;
+    }
+    void tgDebugGetMessage({
+      session: creds.session,
+      apiId: Number(creds.apiId),
+      apiHash: creds.apiHash,
+      peerId: folderId == null || folderId === 0 ? 'me' : String(folderId),
+      telegramMessageId: messageId,
+    }).then((result) => {
+      if (cancelled) return;
+      const text = result?.ok && result.data?.found ? result.data.text || '' : '';
+      setPasswordCandidates(extractZipPasswordCandidates(text, archiveName || source.label));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [archiveName, creds.apiHash, creds.apiId, creds.session, folderId, messageId, source.label]);
 
   const { dirs, files } = useMemo(
     () => basenamesAt(entries, currentPath, searchQuery, category),
@@ -368,6 +392,7 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
         archiveLabel={source.label}
         error={passwordError}
         busy={isPreviewLoading || extractBusy}
+        suggestions={passwordCandidates}
         onClose={() => setPasswordAction(null)}
         onSubmit={(password) => void submitPassword(password)}
       />

@@ -72,10 +72,11 @@ export const directFileResolver: LinkResolverProvider = {
     const isVideo = mime.startsWith('video/') || ['mp4', 'mkv', 'mov', 'avi', 'webm', 'flv'].includes(ext);
     const isImage = mime.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(ext);
     const isAudio = mime.startsWith('audio/') || ['mp3', 'm4a', 'flac', 'wav', 'ogg', 'aac'].includes(ext);
+    const isHtmlPage = /(?:text\/html|application\/xhtml\+xml)/i.test(mime);
 
     const defaultFormat: StreamQualityFormat = {
       id: 'direct_stream',
-      label: 'Direct Stream (Source)',
+      label: isHtmlPage ? 'remote_web_page_handoff' : 'Direct Stream (Source)',
       qualityTier: 'original',
       ext,
       filesizeBytes: bytes,
@@ -83,7 +84,7 @@ export const directFileResolver: LinkResolverProvider = {
       isVideo,
       isImage,
       isAudio,
-      badge: isVideo ? 'DIRECT VIDEO' : isImage ? 'DIRECT IMAGE' : isAudio ? 'DIRECT AUDIO' : 'DIRECT FILE',
+      badge: isHtmlPage ? 'remote_web_page' : isVideo ? 'DIRECT VIDEO' : isImage ? 'DIRECT IMAGE' : isAudio ? 'DIRECT AUDIO' : 'DIRECT FILE',
     };
 
     return {
@@ -93,7 +94,7 @@ export const directFileResolver: LinkResolverProvider = {
       title,
       formats: [defaultFormat],
       selectedFormatId: 'direct_stream',
-      isDirectFile: true,
+      isDirectFile: !isHtmlPage,
       resolvedAt: Date.now(),
     };
   },

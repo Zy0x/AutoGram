@@ -104,6 +104,7 @@ type Props = {
   viewPerspective?: ViewPerspective;
   onViewPerspective?: (perspective: ViewPerspective) => void;
   totalCount?: number | null;
+  unavailableNotice?: string | null;
 };
 
 const GRID_GAP = 10;
@@ -176,6 +177,8 @@ export function DriveExplorer({
   scanState,
   onResumeSync,
   viewPerspective = 'telegram',
+  totalCount = null,
+  unavailableNotice = null,
 }: Props) {
   const { t } = useTranslation();
   const draggingSet = useMemo(() => new Set(draggingIds || []), [draggingIds]);
@@ -423,68 +426,107 @@ export function DriveExplorer({
   const rowCount = Math.ceil(displayed.length / cols) || 0;
 
   // Floating top update indicator and anchor scroll retention
-  const [newItemsAboveCount, setNewItemsAboveCount] = useState<number>(0);
-  const prevDisplayedCountRef = useRef<number>(displayed.length);
-  const prevFirstIdRef = useRef<number | null>(displayed[0]?.id ?? null);
+  type ContentNotice = { kind: 'added' | 'updated' | 'removed' | 'reordered'; count: number; targetId: number | null };
+  const [contentNotice, setContentNotice] = useState<ContentNotice | null>(null);
+  const snapshotOf = useCallback((items: DriveFile[]) => new Map(
+    items.map((item) => [
+      item.id,
+      `${String(item.name || '')}|${Number(item.size || 0)}|${String(item.mime_type || '')}|${String(item.created_at || '')}`,
+    ])
+  ), []);
+  const prevDisplayedRef = useRef<DriveFile[]>(displayed);
+  const prevSnapshotRef = useRef<Map<number, string>>(snapshotOf(displayed));
   const prevLocationKeyRef = useRef<string>(activeScrollKey);
 
   // Clear pill when switching locations
   useEffect(() => {
     if (prevLocationKeyRef.current !== activeScrollKey) {
       prevLocationKeyRef.current = activeScrollKey;
-      setNewItemsAboveCount(0);
-      prevDisplayedCountRef.current = displayed.length;
-      prevFirstIdRef.current = displayed[0]?.id ?? null;
+      setContentNotice(null);
+      prevDisplayedRef.current = displayed;
+      prevSnapshotRef.current = snapshotOf(displayed);
     }
-  }, [activeScrollKey, displayed.length]);
+  }, [activeScrollKey, displayed, snapshotOf]);
 
   // Track insertion above current viewport anchor & preserve scroll stability without full dataset Set allocation
   useEffect(() => {
-    const prevCount = prevDisplayedCountRef.current;
+    const previous = prevDisplayedRef.current;
+    const previousSnapshot = prevSnapshotRef.current;
+    const prevCount = previous.length;
     const currentCount = displayed.length;
-    const prevFirstId = prevFirstIdRef.current;
+    const prevFirstId = previous[0]?.id ?? null;
     const currentFirstId = displayed[0]?.id ?? null;
 
-    prevDisplayedCountRef.current = currentCount;
-    prevFirstIdRef.current = currentFirstId;
+    prevDisplayedRef.current = displayed;
+    const currentSnapshot = snapshotOf(displayed);
+    prevSnapshotRef.current = currentSnapshot;
+
+    if (prevLocationKeyRef.current !== activeScrollKey || prevCount === 0) return;
+    const el = parentRef.current;
+    const scrollTop = el ? el.scrollTop : 0;
+    if (scrollTop <= 80) {
+      setContentNotice(null);
+      return;
+    }
 
     if (prevCount > 0 && currentCount > prevCount && prevFirstId !== currentFirstId) {
-      const el = parentRef.current;
-      const scrollTop = el ? el.scrollTop : 0;
-      if (scrollTop > 80) {
-        let visibleStartIndex = 0;
-        if (viewMode === 'list') {
-          visibleStartIndex = Math.floor(scrollTop / LIST_ROW_H);
-        } else {
-          const rowIdx = Math.floor(scrollTop / (rowHeight || 180));
-          visibleStartIndex = rowIdx * (cols || 1);
-        }
+      let visibleStartIndex = 0;
+      if (viewMode === 'list') {
+        visibleStartIndex = Math.floor(scrollTop / LIST_ROW_H);
+      } else {
+        const rowIdx = Math.floor(scrollTop / (rowHeight || 180));
+        visibleStartIndex = rowIdx * (cols || 1);
+      }
 
-        const sliceAbove = displayed.slice(0, visibleStartIndex);
-        const prevFirstIndex = sliceAbove.findIndex((f: any) => f.id === prevFirstId);
-        const newAbove = prevFirstIndex >= 0 ? prevFirstIndex : (currentCount - prevCount);
+      const sliceAbove = displayed.slice(0, visibleStartIndex);
+      const prevFirstIndex = sliceAbove.findIndex((f: any) => f.id === prevFirstId);
+      const newAbove = prevFirstIndex >= 0 ? prevFirstIndex : (currentCount - prevCount);
 
-        if (newAbove > 0) {
-          if (el) {
-            const shiftPx =
-              viewMode === 'list'
-                ? newAbove * LIST_ROW_H
-                : Math.ceil(newAbove / (cols || 1)) * (rowHeight || 180);
-            el.scrollTop += shiftPx;
-          }
-          setNewItemsAboveCount((prev) => prev + newAbove);
+      if (newAbove > 0) {
+        if (el) {
+          const shiftPx =
+            viewMode === 'list'
+              ? newAbove * LIST_ROW_H
+              : Math.ceil(newAbove / (cols || 1)) * (rowHeight || 180);
+          el.scrollTop += shiftPx;
         }
+        setContentNotice({ kind: 'added', count: newAbove, targetId: currentFirstId });
+        return;
       }
     }
-  }, [displayed, viewMode, cols, rowHeight]);
 
-  const handleScrollToTopPill = useCallback(() => {
+    const removed = previous.filter((item) => !currentSnapshot.has(item.id));
+    if (removed.length > 0) {
+      const nearestId = displayed.find((item) => item.id < removed[0].id)?.id ?? displayed[0]?.id ?? null;
+      setContentNotice({ kind: 'removed', count: removed.length, targetId: nearestId });
+      return;
+    }
+    const updated = displayed.filter((item) => {
+      const oldSignature = previousSnapshot.get(item.id);
+      return oldSignature != null && oldSignature !== currentSnapshot.get(item.id);
+    });
+    if (updated.length > 0) {
+      setContentNotice({ kind: 'updated', count: updated.length, targetId: updated[0].id });
+      return;
+    }
+    if (prevFirstId !== currentFirstId && currentCount === prevCount) {
+      setContentNotice({ kind: 'reordered', count: currentCount, targetId: currentFirstId });
+    }
+  }, [activeScrollKey, displayed, viewMode, cols, rowHeight, snapshotOf]);
+
+  const handleContentNotice = useCallback(() => {
     const el = parentRef.current;
     if (el) {
-      el.scrollTo({ top: 0, behavior: 'smooth' });
+      const targetIndex = contentNotice?.targetId == null
+        ? 0
+        : Math.max(0, displayed.findIndex((item) => item.id === contentNotice.targetId));
+      const top = viewMode === 'list'
+        ? targetIndex * LIST_ROW_H
+        : Math.floor(targetIndex / Math.max(1, cols)) * (rowHeight || 180);
+      el.scrollTo({ top, behavior: 'smooth' });
     }
-    setNewItemsAboveCount(0);
-  }, []);
+    setContentNotice(null);
+  }, [cols, contentNotice?.targetId, displayed, rowHeight, viewMode]);
 
   useEffect(() => {
     console.debug('[GRID_DIAG] Explorer Mount', {
@@ -578,7 +620,7 @@ export function DriveExplorer({
     const save = () => onScrollPositionChange(targetKey, el.scrollTop);
     const onScroll = () => {
       if (parentRef.current && parentRef.current.scrollTop <= 40) {
-        setNewItemsAboveCount(0);
+        setContentNotice(null);
       }
       if (saveTimer != null) window.clearTimeout(saveTimer);
       saveTimer = window.setTimeout(save, 180);
@@ -1052,12 +1094,20 @@ export function DriveExplorer({
         onCanvasContextMenu?.(e);
       }}
     >
-      {loading && files.length === 0 ? (
+      {(loading || (!error && !unavailableNotice && files.length === 0 && Number(totalCount || 0) > 0)) ? (
         <div style={{ padding: '16px', position: 'relative', width: '100%' }}>
           <div className="ag-loading-overlay">
             <CenteredGlassmorphicProgress isLoading={true} />
           </div>
           {viewMode === 'grid' ? <DriveGridSkeleton count={16} /> : <DriveListSkeleton count={10} />}
+        </div>
+      ) : unavailableNotice && files.length === 0 ? (
+        <div className="td-empty td-empty-error" role="status">
+          <div className="td-empty-icon" style={{ opacity: 0.8, color: 'inherit' }}>
+            <AlertTriangle size={48} />
+          </div>
+          <h3>{t('speedtest.telegram_restriction_title')}</h3>
+          <p style={{ maxWidth: '680px', margin: '0 auto', opacity: 0.9 }}>{unavailableNotice}</p>
         </div>
       ) : error && files.length === 0 ? (
         <div className="td-empty td-empty-error">
@@ -1085,16 +1135,16 @@ export function DriveExplorer({
         />
       )}
 
-      {newItemsAboveCount > 0 && (
+      {contentNotice && (
         <button
           type="button"
           className="td-floating-top-pill"
-          onClick={handleScrollToTopPill}
+          onClick={handleContentNotice}
           title={t('speedtest.scroll_to_top_title')}
         >
           <ArrowUp size={13} className="td-floating-top-icon" />
           <span className="td-floating-top-text">
-            {t('speedtest.new_items_above_banner', { count: newItemsAboveCount })}
+            {t(`speedtest.content_notice_${contentNotice.kind}`, { count: contentNotice.count })}
           </span>
           <span className="td-floating-top-action">
             {t('speedtest.view_top_action')}

@@ -3332,7 +3332,7 @@ body.td-dnd-external {
 }
 .tg-msg-link-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 2px 10px;
   align-items: center;
   width: 100%;
@@ -3342,12 +3342,24 @@ body.td-dnd-external {
   background: color-mix(in srgb, var(--td-surface-1) 90%, transparent);
   color: var(--td-text);
   text-align: left;
-  cursor: pointer;
+  cursor: default;
 }
 .tg-msg-link-row:hover,
 .tg-msg-link-row:focus-visible {
   border-color: var(--td-primary);
   outline: none;
+}
+.tg-msg-link-open {
+  grid-column: 1;
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 .tg-msg-link-domain,
 .tg-msg-link-url {
@@ -3360,14 +3372,32 @@ body.td-dnd-external {
   font-weight: 700;
 }
 .tg-msg-link-url {
-  grid-column: 1;
   color: var(--td-sub);
   font-size: 0.68rem;
+  user-select: text;
+}
+.tg-msg-link-icon-action {
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid var(--td-border);
+  border-radius: 7px;
+  background: var(--td-surface-2);
+  color: var(--td-primary);
+  cursor: pointer;
+}
+.tg-msg-link-icon-action:hover,
+.tg-msg-link-icon-action:focus-visible {
+  border-color: var(--td-primary);
+  outline: none;
 }
 .tg-msg-link-row svg {
-  grid-column: 2;
-  grid-row: 1 / span 2;
   color: var(--td-primary);
+}
+.tg-msg-bubble-caption-loading {
+  color: var(--td-sub);
+  font-size: 0.72rem;
 }
 @media (max-width: 560px) {
   .tg-msg-link-preview {
@@ -5534,6 +5564,81 @@ video.drive-preview-media {
 }
 
 /* Telegram Message Preview Modal — 1:1 Authentic Telegram Desktop UI */
+.drive-file-info-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10080;
+  display: grid;
+  place-items: center;
+  padding: clamp(12px, 3vw, 32px);
+  background: rgba(2, 7, 16, 0.78);
+  backdrop-filter: blur(10px);
+}
+
+.drive-file-info-dialog {
+  width: min(760px, 100%);
+  max-height: min(86dvh, 880px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: #e7eef9;
+  background: #111c29;
+  border: 1px solid #314154;
+  border-radius: 18px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.52);
+}
+
+.drive-file-info-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #283749;
+}
+
+.drive-file-info-heading { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.drive-file-info-heading h2 { margin: 0; font-size: 18px; line-height: 1.25; }
+.drive-file-info-heading p { margin: 3px 0 0; color: #91a3ba; font-size: 12px; }
+.drive-file-info-icon { display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 auto; color: #39bdf8; background: #12344b; border: 1px solid #1e6589; border-radius: 12px; }
+.drive-file-info-close { display: grid; place-items: center; width: 38px; height: 38px; flex: 0 0 auto; color: #9fb0c5; background: transparent; border: 1px solid transparent; border-radius: 10px; cursor: pointer; }
+.drive-file-info-close:hover { color: #fff; background: #1c2a3a; border-color: #34465a; }
+
+.drive-file-info-body { overflow: auto; padding: 18px 20px 22px; overscroll-behavior: contain; }
+.drive-file-info-name { overflow: hidden; margin-bottom: 14px; color: #fff; font-size: clamp(16px, 2vw, 21px); font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.drive-file-info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; overflow: hidden; background: #2a394b; border: 1px solid #2a394b; border-radius: 12px; }
+.drive-file-info-row { display: grid; grid-template-columns: minmax(90px, .75fr) minmax(0, 1.25fr); gap: 12px; padding: 11px 12px; background: #101a27; }
+.drive-file-info-row span { color: #8496ad; font-size: 12px; }
+.drive-file-info-row strong { overflow: hidden; color: #dde8f5; font-size: 12px; font-weight: 650; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+
+.drive-file-info-identities { display: grid; gap: 8px; margin-top: 14px; }
+.drive-file-info-identities button { display: grid; grid-template-columns: minmax(145px, auto) minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; color: #cfe2f6; text-align: left; background: #0d1723; border: 1px solid #293b4f; border-radius: 10px; cursor: pointer; }
+.drive-file-info-identities button:hover { border-color: #2588b7; background: #102235; }
+.drive-file-info-identities button > span { display: inline-flex; align-items: center; gap: 7px; color: #7fcdf1; font-size: 12px; font-weight: 700; }
+.drive-file-info-identities code { overflow: hidden; color: #aebed1; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+
+.drive-file-info-links { margin-top: 16px; }
+.drive-file-info-links h3 { margin: 0 0 8px; color: #dbe8f6; font-size: 13px; }
+.drive-file-info-links button { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; margin-top: 6px; padding: 9px 11px; color: #87d7fb; background: #102034; border: 1px solid #29435f; border-radius: 9px; cursor: pointer; }
+.drive-file-info-links code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drive-file-info-expand { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; margin-top: 16px; padding: 10px; color: #9ac9e3; background: transparent; border: 1px dashed #35506c; border-radius: 10px; cursor: pointer; }
+.drive-file-info-raw { margin-top: 10px; overflow: hidden; border: 1px solid #29394b; border-radius: 10px; }
+.drive-file-info-raw > div { display: grid; grid-template-columns: minmax(120px, .7fr) minmax(0, 1.3fr); gap: 12px; padding: 8px 10px; border-top: 1px solid #243345; }
+.drive-file-info-raw > div:first-child { border-top: 0; }
+.drive-file-info-raw code { color: #78c8ee; font-size: 11px; }
+.drive-file-info-raw span { overflow-wrap: anywhere; color: #aebed0; font-size: 11px; white-space: pre-wrap; }
+
+@media (max-width: 620px) {
+  .drive-file-info-backdrop { align-items: end; padding: 0; }
+  .drive-file-info-dialog { width: 100%; max-height: 92dvh; border-right: 0; border-bottom: 0; border-left: 0; border-radius: 18px 18px 0 0; }
+  .drive-file-info-header, .drive-file-info-body { padding-right: 14px; padding-left: 14px; }
+  .drive-file-info-grid { grid-template-columns: 1fr; }
+  .drive-file-info-row { grid-template-columns: minmax(90px, .7fr) minmax(0, 1.3fr); }
+  .drive-file-info-identities button { grid-template-columns: minmax(0, 1fr) auto; }
+  .drive-file-info-identities button code { grid-column: 1 / -1; grid-row: 2; }
+  .drive-file-info-raw > div { grid-template-columns: 1fr; gap: 4px; }
+}
+
 .tg-msg-preview-backdrop {
   position: fixed;
   inset: 0;
@@ -32763,6 +32868,20 @@ button.td-confirm-icon.is-back-btn:active {
   white-space: nowrap !important;
 }
 
+.ag-launcher-refresh-btn {
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+  background: rgba(15, 23, 42, 0.7) !important;
+  color: #b8c6d9 !important;
+  cursor: pointer;
+}
+.ag-launcher-refresh-btn:hover:not(:disabled),
+.ag-launcher-refresh-btn:focus-visible {
+  border-color: rgba(56, 189, 248, 0.5) !important;
+  color: #38bdf8 !important;
+  outline: none;
+}
+.ag-launcher-refresh-btn:disabled { opacity: 0.58; cursor: wait; }
+
 /* Tablet & Compact Viewports (<= 768px): Icon-only compact header buttons */
 @media (max-width: 768px) {
   .ag-launcher-header {
@@ -34077,4 +34196,76 @@ button.td-confirm-icon.is-back-btn:active {
 .td-sort-scope-stop-btn:hover {
   color: #f87171;
   background: rgba(239, 68, 68, 0.28);
+}
+.tg-action-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10080;
+  display: grid;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: rgb(2 8 20 / 72%);
+  backdrop-filter: blur(8px);
+}
+
+.tg-action-modal {
+  width: min(680px, 100%);
+  max-height: min(820px, calc(100dvh - 32px));
+  overflow: hidden auto;
+  border: 1px solid #2b3c52;
+  border-radius: 20px;
+  background: #0d1726;
+  color: #e7eef8;
+  box-shadow: 0 26px 80px rgb(0 0 0 / 45%);
+}
+
+.tg-action-header,
+.tg-action-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #233247;
+}
+
+.tg-action-title-wrap { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.tg-action-icon { display: grid; place-items: center; width: 42px; height: 42px; flex: 0 0 auto; border: 1px solid #155e75; border-radius: 13px; background: #082f49; color: #38bdf8; }
+.tg-action-header h2 { margin: 0; font-size: 1.05rem; }
+.tg-action-header p { margin: 4px 0 0; color: #91a4bb; font-size: .84rem; }
+.tg-action-header > button { display: grid; place-items: center; width: 38px; height: 38px; border: 0; border-radius: 11px; background: transparent; color: #9fb0c4; }
+.tg-action-header > button:hover { background: #172337; color: #fff; }
+.tg-action-body { display: grid; gap: 17px; padding: 20px; }
+.tg-action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 8px; }
+.tg-action-grid button { display: flex; min-height: 58px; align-items: center; justify-content: center; gap: 7px; padding: 9px; border: 1px solid #2a3a50; border-radius: 12px; background: #111d2d; color: #aebed0; font: inherit; font-size: .78rem; }
+.tg-action-grid button.is-active { border-color: #0ea5e9; background: #0b2b40; color: #65d3ff; box-shadow: inset 0 0 0 1px rgb(14 165 233 / 22%); }
+.tg-action-field { display: grid; gap: 8px; color: #d8e2ee; font-size: .86rem; font-weight: 700; }
+.tg-action-field input,
+.tg-action-field textarea { width: 100%; box-sizing: border-box; border: 1px solid #2c4059; border-radius: 12px; background: #091321; padding: 12px 13px; color: #f4f8fd; font: inherit; outline: none; resize: vertical; }
+.tg-action-field input:focus,
+.tg-action-field textarea:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgb(14 165 233 / 13%); }
+.tg-action-field small,
+.tg-action-note { margin: 0; color: #8498af; font-size: .76rem; font-weight: 400; line-height: 1.5; }
+.tg-action-context-target { display: grid; gap: 7px; min-width: 0; padding: 12px 14px; border: 1px solid #2c4059; border-radius: 12px; background: #091321; }
+.tg-action-context-target span { color: #8498af; font-size: .75rem; }
+.tg-action-context-target strong { overflow: hidden; color: #f4f8fd; font-size: .87rem; text-overflow: ellipsis; white-space: nowrap; }
+.tg-action-note { padding: 11px 12px; border: 1px solid #283a50; border-radius: 11px; background: #0a1422; }
+.tg-action-note.is-danger { border-color: #71303b; background: #28131a; color: #f3a3af; }
+.tg-action-feedback { display: flex; align-items: center; gap: 8px; margin: 0; padding: 11px 12px; border-radius: 11px; font-size: .82rem; }
+.tg-action-feedback.is-error { border: 1px solid #7f1d1d; background: #2b1116; color: #fca5a5; }
+.tg-action-feedback.is-success { border: 1px solid #0f766e; background: #082c2b; color: #5eead4; }
+.tg-action-footer { justify-content: flex-end; border-top: 1px solid #233247; border-bottom: 0; }
+.tg-action-footer button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 0 17px; border-radius: 11px; border: 1px solid #304158; color: #dce6f2; font: inherit; font-weight: 700; }
+.tg-action-footer button.secondary { background: #131f2f; }
+.tg-action-footer button.primary { border-color: #0284c7; background: #0284c7; color: white; }
+.tg-action-footer button:disabled { cursor: not-allowed; opacity: .48; }
+
+@media (max-width: 700px) {
+  .tg-action-backdrop { align-items: end; padding: 0; }
+  .tg-action-modal { width: 100%; max-height: 92dvh; border-radius: 20px 20px 0 0; padding-bottom: env(safe-area-inset-bottom); }
+  .tg-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tg-action-grid button:last-child { grid-column: 1 / -1; }
+  .tg-action-header, .tg-action-body, .tg-action-footer { padding-left: 16px; padding-right: 16px; }
+  .tg-action-footer { position: sticky; bottom: 0; background: #0d1726; }
+  .tg-action-footer button { flex: 1; }
 }
