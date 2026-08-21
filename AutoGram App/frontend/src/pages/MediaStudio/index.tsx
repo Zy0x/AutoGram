@@ -585,13 +585,14 @@ function MediaDriveDesktop({
   const [locationKind, setLocationKind] = useState<LocationKind>(initial.kind);
   const [activePeerId, setActivePeerId] = useState<number | null>(initial.id);
   const [files, setFiles] = useState<DriveFile[]>(() => initialLocationCache?.files ?? []);
-  const [linkFiles, setLinkFiles] = useState<DriveFile[]>([]);
-  const [linksLoading, setLinksLoading] = useState(false);
-  const [linksLoadingMore, setLinksLoadingMore] = useState(false);
-  const [linksHasMore, setLinksHasMore] = useState(false);
-  const [linksTotalCount, setLinksTotalCount] = useState<number | null>(null);
-  const linkNextOffsetRef = useRef<number | null>(null);
-  const linkRequestSeqRef = useRef(0);
+  // Filtered Media Stream State (per-category stream for instant fast access)
+  const [filteredFilesMap, setFilteredFilesMap] = useState<Record<string, DriveFile[]>>({});
+  const [filteredLoading, setFilteredLoading] = useState(false);
+  const [filteredLoadingMore, setFilteredLoadingMore] = useState(false);
+  const [filteredHasMoreMap, setFilteredHasMoreMap] = useState<Record<string, boolean>>({});
+  const [filteredTotalCountMap, setFilteredTotalCountMap] = useState<Record<string, number | null>>({});
+  const filteredNextOffsetMapRef = useRef<Record<string, number | null>>({});
+  const filterRequestSeqRef = useRef(0);
   const [filesHasMore, setFilesHasMore] = useState(() => initialLocationCache?.hasMore ?? false);
   /** Accurate totals for the whole location (not just loaded page) */
   const [totalFileCount, setTotalFileCount] = useState<number | null>(
@@ -1240,12 +1241,16 @@ function MediaDriveDesktop({
     topicFilterRef.current = topicFilter;
   }, [topicFilter]);
 
-  // Scope Invariant: Reset pagination cursors on peer, topic, or session change to prevent cross-scope pollution
+  // Scope Invariant: Reset pagination cursors and filtered stream caches on peer, topic, or session change to prevent cross-scope pollution
   useEffect(() => {
     searchCursorRef.current = null;
     setSearchCursor(null);
     nextOffsetIdRef.current = null;
     setNextOffsetId(null);
+    filteredNextOffsetMapRef.current = {};
+    setFilteredFilesMap({});
+    setFilteredHasMoreMap({});
+    setFilteredTotalCountMap({});
   }, [peerId, topicFilter, session]);
 
   useEffect(() => {
@@ -1675,7 +1680,7 @@ function MediaDriveDesktop({
       .catch(() => undefined);
   }, [session, invalidateDriveGenerations, getDriveCacheKey]);
 
-  const activeContentFiles = mediaFilter === 'links' ? linkFiles : files;
+  const activeContentFiles = mediaFilter === 'all' ? files : (filteredFilesMap[mediaFilter] || []);
 
   const sortedPreviewList = useMemo(() => {
     // Same filter + sort as explorer so next/prev matches visible order
@@ -3771,65 +3776,98 @@ function MediaDriveDesktop({
     thumbLocationOptions,
   ]);
 
-  const loadMoreLinks = useCallback(async () => {
-    const offsetId = linkNextOffsetRef.current;
-    if (!creds || !linksHasMore || linksLoadingMore || offsetId == null) return;
-    const requestSeq = linkRequestSeqRef.current;
+  const loadMoreFiltered = useCallback(async () => {
+    if (mediaFilter === 'all' || !creds) return;
+    const filterKey = mediaFilter;
+    const offsetId = filteredNextOffsetMapRef.current[filterKey];
+    const hasMore = filteredHasMoreMap[filterKey];
+    if (!hasMore || filteredLoadingMore || offsetId == null) return;
+    const requestSeq = filterRequestSeqRef.current;
     const tid = topicFilterRef.current;
-    setLinksLoadingMore(true);
+    setFilteredLoadingMore(true);
     try {
+      const currentList = filteredFilesMap[filterKey] || [];
       const response = await driveListFiles(creds, peerId, {
         pageSize: 100,
         offsetId,
         topicId: tid,
-        contentFilter: 'links',
+        contentFilter: filterKey,
         bypassCache: true,
+        localOffset: currentList.length,
+        perspective: viewPerspective,
       });
-      if (requestSeq !== linkRequestSeqRef.current || mediaFilter !== 'links') return;
+      if (requestSeq !== filterRequestSeqRef.current || mediaFilter !== filterKey) return;
       const next = dedupeByMsgId(response.files || []);
-      setLinkFiles((current) => dedupeByMsgId([...current, ...next]));
-      setLinksHasMore(Boolean(response.has_more));
-      linkNextOffsetRef.current = response.next_offset_id ?? null;
-      if (response.total_count != null) setLinksTotalCount(Number(response.total_count));
+      setFilteredFilesMap((prev) => ({
+        ...prev,
+        [filterKey]: dedupeByMsgId([...(prev[filterKey] || []), ...next]),
+      }));
+      setFilteredHasMoreMap((prev) => ({
+        ...prev,
+        [filterKey]: Boolean(response.has_more),
+      }));
+      filteredNextOffsetMapRef.current[filterKey] = response.next_offset_id ?? null;
+      if (response.total_count != null) {
+        setFilteredTotalCountMap((prev) => ({
+          ...prev,
+          [filterKey]: Number(response.total_count),
+        }));
+      }
     } catch (error) {
-      if (requestSeq === linkRequestSeqRef.current) setError(localizedDriveError(error, t));
+      if (requestSeq === filterRequestSeqRef.current) setError(localizedDriveError(error, t));
     } finally {
-      if (requestSeq === linkRequestSeqRef.current) setLinksLoadingMore(false);
+      if (requestSeq === filterRequestSeqRef.current) setFilteredLoadingMore(false);
     }
-  }, [creds, linksHasMore, linksLoadingMore, mediaFilter, peerId]);
+  }, [creds, filteredFilesMap, filteredHasMoreMap, filteredLoadingMore, mediaFilter, peerId, t, viewPerspective]);
 
   useEffect(() => {
-    if (mediaFilter !== 'links' || !creds) return;
-    const requestSeq = ++linkRequestSeqRef.current;
+    if (mediaFilter === 'all' || !creds) return;
+    const filterKey = mediaFilter;
+    const requestSeq = ++filterRequestSeqRef.current;
     const tid = topicFilterRef.current;
-    setLinkFiles([]);
-    setLinksLoading(true);
-    setLinksHasMore(false);
-    setLinksTotalCount(null);
-    linkNextOffsetRef.current = null;
+
+    const existing = filteredFilesMap[filterKey];
+    if (!existing || existing.length === 0) {
+      setFilteredLoading(true);
+    }
+
     void driveListFiles(creds, peerId, {
       pageSize: 100,
       topicId: tid,
-      contentFilter: 'links',
-      bypassCache: true,
+      contentFilter: filterKey,
+      bypassCache: false,
+      perspective: viewPerspective,
     })
       .then((response) => {
-        if (requestSeq !== linkRequestSeqRef.current) return;
-        setLinkFiles(dedupeByMsgId(response.files || []));
-        setLinksHasMore(Boolean(response.has_more));
-        setLinksTotalCount(response.total_count != null ? Number(response.total_count) : null);
-        linkNextOffsetRef.current = response.next_offset_id ?? null;
+        if (requestSeq !== filterRequestSeqRef.current) return;
+        const next = dedupeByMsgId(response.files || []);
+        setFilteredFilesMap((prev) => ({
+          ...prev,
+          [filterKey]: next,
+        }));
+        setFilteredHasMoreMap((prev) => ({
+          ...prev,
+          [filterKey]: Boolean(response.has_more),
+        }));
+        if (response.total_count != null) {
+          setFilteredTotalCountMap((prev) => ({
+            ...prev,
+            [filterKey]: Number(response.total_count),
+          }));
+        }
+        filteredNextOffsetMapRef.current[filterKey] = response.next_offset_id ?? null;
       })
       .catch((error) => {
-        if (requestSeq === linkRequestSeqRef.current) setError(localizedDriveError(error, t));
+        if (requestSeq === filterRequestSeqRef.current) setError(localizedDriveError(error, t));
       })
       .finally(() => {
-        if (requestSeq === linkRequestSeqRef.current) setLinksLoading(false);
+        if (requestSeq === filterRequestSeqRef.current) setFilteredLoading(false);
       });
+
     return () => {
-      linkRequestSeqRef.current += 1;
+      filterRequestSeqRef.current += 1;
     };
-  }, [creds, mediaFilter, peerId, topicFilter]);
+  }, [creds, mediaFilter, peerId, topicFilter, t, viewPerspective]);
 
   const indexingActiveRef = useRef(false);
   const indexingPausedRef = useRef(false);
@@ -10112,10 +10150,10 @@ function MediaDriveDesktop({
             <DriveExplorer
               key={`${session}::${explorerScrollKey}`}
               files={activeContentFiles}
-              loading={mediaFilter === 'links' ? linksLoading : loadingFiles}
-              loadingMore={mediaFilter === 'links' ? linksLoadingMore : loadingMoreFiles}
-              hasMore={mediaFilter === 'links' ? linksHasMore : filesHasMore}
-              onLoadMore={mediaFilter === 'links' ? loadMoreLinks : loadMoreFiles}
+              loading={mediaFilter === 'all' ? loadingFiles : (filteredLoading && (!filteredFilesMap[mediaFilter] || filteredFilesMap[mediaFilter].length === 0))}
+              loadingMore={mediaFilter === 'all' ? loadingMoreFiles : filteredLoadingMore}
+              hasMore={mediaFilter === 'all' ? filesHasMore : (filteredHasMoreMap[mediaFilter] ?? false)}
+              onLoadMore={mediaFilter === 'all' ? loadMoreFiles : loadMoreFiltered}
               progressiveReady={progressiveReady}
               scrollKey={explorerScrollKey}
               initialScrollTop={explorerInitialScrollTop}
@@ -10128,7 +10166,11 @@ function MediaDriveDesktop({
               mediaFilter={mediaFilter}
               viewPerspective={viewPerspective}
               onViewPerspective={setViewPerspective}
-              totalCount={mediaFilter === 'links' ? linksTotalCount : totalFileCount}
+              totalCount={
+                mediaFilter === 'all'
+                  ? totalFileCount
+                  : (filteredTotalCountMap[mediaFilter] ?? (perspectiveCounts ? perspectiveCounts[mediaFilter] : null))
+              }
               unavailableNotice={activeRestrictionNotice}
               hideRestrictedMedia={transferSettings.hideRestrictedMedia !== false}
               sortMode={sortMode}

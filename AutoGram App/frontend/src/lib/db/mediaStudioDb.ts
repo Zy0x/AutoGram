@@ -1,4 +1,11 @@
-import type { DriveFile, DriveMediaContext, MediaScopeKind } from '../telegram/driveTypes';
+import {
+  type DriveFile,
+  type DriveMediaContext,
+  type DriveMediaFilter,
+  type MediaScopeKind,
+  type ViewPerspective,
+  matchesMediaFilter,
+} from '../telegram/driveTypes';
 import type { AuthoritativeScanResult } from '../telegram/driveApi/driveFilesApi';
 
 export interface MediaRecord extends DriveFile {
@@ -295,7 +302,9 @@ export async function getMediaPageByContext(
   context: DriveMediaContext,
   sortMode: string,
   offset: number,
-  limit: number
+  limit: number,
+  contentFilter?: DriveMediaFilter | string | null,
+  perspective: ViewPerspective = 'telegram'
 ): Promise<MediaRecord[]> {
   const db = await initDb();
   return new Promise<MediaRecord[]>((resolve, reject) => {
@@ -338,7 +347,8 @@ export async function getMediaPageByContext(
     const range = IDBKeyRange.bound(minKey, maxKey);
 
     const results: MediaRecord[] = [];
-    let advanced = false;
+    let skipped = 0;
+    const hasFilter = contentFilter != null && contentFilter !== 'all' && contentFilter !== '';
 
     const request = index.openCursor(range, direction);
     request.onsuccess = (e) => {
@@ -348,13 +358,21 @@ export async function getMediaPageByContext(
         return;
       }
 
-      if (offset > 0 && !advanced) {
-        advanced = true;
-        cursor.advance(offset);
+      const val = cursor.value;
+      if (hasFilter) {
+        if (!matchesMediaFilter(val, contentFilter!, perspective)) {
+          cursor.continue();
+          return;
+        }
+      }
+
+      if (offset > 0 && skipped < offset) {
+        skipped++;
+        cursor.continue();
         return;
       }
 
-      results.push(cursor.value);
+      results.push(val);
       if (results.length < limit) {
         cursor.continue();
       } else {
@@ -406,9 +424,34 @@ export async function getAllMediaRecordsByContext(
 }
 
 export async function getMediaRecordsCountByContext(
-  context: DriveMediaContext
+  context: DriveMediaContext,
+  contentFilter?: DriveMediaFilter | string | null,
+  perspective: ViewPerspective = 'telegram'
 ): Promise<number> {
   const db = await initDb();
+  const hasFilter = contentFilter != null && contentFilter !== 'all' && contentFilter !== '';
+  if (!hasFilter) {
+    return new Promise<number>((resolve, reject) => {
+      const tx = db.transaction('media', 'readonly');
+      const store = tx.objectStore('media');
+      const normTopic = normalizeTopicId(context.scopeKind, context.topicId);
+
+      if (!store.indexNames.contains('byContextMessage')) {
+        resolve(0);
+        return;
+      }
+
+      const index = store.index('byContextMessage');
+      const minKey = [context.accountId, context.peerId, context.scopeKind, normTopic, -Infinity];
+      const maxKey = [context.accountId, context.peerId, context.scopeKind, normTopic, Infinity];
+      const range = IDBKeyRange.bound(minKey, maxKey);
+
+      const request = index.count(range);
+      request.onsuccess = () => resolve(request.result || 0);
+      request.onerror = () => reject(request.error || new Error('getMediaRecordsCountByContext failed'));
+    });
+  }
+
   return new Promise<number>((resolve, reject) => {
     const tx = db.transaction('media', 'readonly');
     const store = tx.objectStore('media');
@@ -424,8 +467,19 @@ export async function getMediaRecordsCountByContext(
     const maxKey = [context.accountId, context.peerId, context.scopeKind, normTopic, Infinity];
     const range = IDBKeyRange.bound(minKey, maxKey);
 
-    const request = index.count(range);
-    request.onsuccess = () => resolve(request.result || 0);
+    let matchCount = 0;
+    const request = index.openCursor(range);
+    request.onsuccess = (e) => {
+      const cursor = (e.target as IDBRequest<IDBCursorWithValue | null>).result;
+      if (!cursor) {
+        resolve(matchCount);
+        return;
+      }
+      if (matchesMediaFilter(cursor.value, contentFilter!, perspective)) {
+        matchCount++;
+      }
+      cursor.continue();
+    };
     request.onerror = () => reject(request.error || new Error('getMediaRecordsCountByContext failed'));
   });
 }

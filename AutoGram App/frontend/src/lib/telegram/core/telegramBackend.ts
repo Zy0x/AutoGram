@@ -290,7 +290,7 @@ export async function tgListMedia(args: {
   minId?: number | null;
   topicId?: number | null;
   searchCursor?: TgScopedMediaSearchCursor | null;
-  contentFilter?: 'links' | null;
+  contentFilter?: string | null;
 }): Promise<TgOpResult<TgListMediaResult> | null> {
   if (!detectTauriRuntime()) return null;
   try {

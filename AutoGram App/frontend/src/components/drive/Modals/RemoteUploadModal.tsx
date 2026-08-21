@@ -15,6 +15,7 @@ import {
   Hash,
   ChevronRight,
   Clipboard,
+  ExternalLink,
   Film,
   Image as ImageIcon,
   Music,
@@ -541,12 +542,23 @@ export function RemoteUploadModal({
     void probeUrl(cleanUrl, extractedPasscode);
   }, [initialUrl, isOpen, probeUrl, url]);
 
+  const handleOpenInBrowser = async (targetUrl?: string) => {
+    const raw = (targetUrl || url || '').trim();
+    if (!raw) return;
+    try {
+      const { openUrl } = await import('@tauri-apps/plugin-opener');
+      await openUrl(raw);
+    } catch {
+      if (typeof window !== 'undefined') {
+        window.open(raw, '_blank', 'noopener,noreferrer');
+      }
+    }
+  };
+
   const handleUrlChange = (val: string) => {
     const { cleanUrl, extractedPasscode } = extractUrlAndPasscode(val);
     setUrl(cleanUrl);
-    if (extractedPasscode) {
-      setPasscode(extractedPasscode);
-    }
+    setPasscode(extractedPasscode || '');
     if (errorMsg) setErrorMsg('');
 
     if (inspectTimerRef.current) {
@@ -987,16 +999,30 @@ export function RemoteUploadModal({
                       </button>
                       {renderSupportedLinksPopover()}
                     </div>
-                    <button
-                      type="button"
-                      className="td-remote-paste-action"
-                      onClick={handlePasteClipboard}
-                      disabled={submitting}
-                      title={t('speedtest.remote_paste_clipboard')}
-                    >
-                      <Clipboard size={12} />
-                      <span>{t('speedtest.remote_paste_clipboard')}</span>
-                    </button>
+                    <div className="td-remote-label-actions">
+                      {url.trim().startsWith('http') && (
+                        <button
+                          type="button"
+                          className="td-remote-open-web-action"
+                          onClick={() => handleOpenInBrowser(url.trim())}
+                          disabled={submitting}
+                          title={t('speedtest.remote_open_in_browser')}
+                        >
+                          <ExternalLink size={12} />
+                          <span>{t('speedtest.remote_open_in_browser')}</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="td-remote-paste-action"
+                        onClick={handlePasteClipboard}
+                        disabled={submitting}
+                        title={t('speedtest.remote_paste_clipboard')}
+                      >
+                        <Clipboard size={12} />
+                        <span>{t('speedtest.remote_paste_clipboard')}</span>
+                      </button>
+                    </div>
                   </div>
                   <div className="td-remote-input-wrap">
                     <span className="td-remote-input-icon">
@@ -1028,56 +1054,72 @@ export function RemoteUploadModal({
                   </div>
                 </div>
 
-                <div className="td-remote-field-group">
-                  <div className="td-remote-label-row">
-                    <label className="td-input-label" htmlFor="td-remote-passcode">
-                      {t('speedtest.remote_passcode_label')}
-                    </label>
-                    {resolvedMedia?.requiresPassword && (
-                      <span
-                        className={`td-remote-passcode-status-badge ${
-                          resolvedMedia.passwordError ? 'error' : 'required'
-                        }`}
-                      >
-                        <KeyRound size={11} />
-                        <span>
-                          {resolvedMedia.passwordError
-                            ? t('speedtest.remote_passcode_invalid_badge')
-                            : t('speedtest.remote_passcode_required_badge')}
-                        </span>
+                {(resolvedMedia?.requiresPassword || Boolean(passcode.trim())) && (
+                  <div className="td-remote-field-group td-remote-passcode-field-animated">
+                    <div className="td-remote-label-row">
+                      <label className="td-input-label" htmlFor="td-remote-passcode">
+                        {t('speedtest.remote_passcode_label')}
+                      </label>
+                      <div className="td-remote-label-actions">
+                        {resolvedMedia?.requiresPassword && (
+                          <span
+                            className={`td-remote-passcode-status-badge ${
+                              resolvedMedia.passwordError ? 'error' : 'required'
+                            }`}
+                          >
+                            <KeyRound size={11} />
+                            <span>
+                              {resolvedMedia.passwordError
+                                ? t('speedtest.remote_passcode_invalid_badge')
+                                : t('speedtest.remote_passcode_required_badge')}
+                            </span>
+                          </span>
+                        )}
+                        {url.trim().startsWith('http') && (
+                          <button
+                            type="button"
+                            className="td-remote-open-web-action"
+                            onClick={() => handleOpenInBrowser(url.trim())}
+                            disabled={submitting}
+                            title={t('speedtest.remote_open_web_for_code')}
+                          >
+                            <ExternalLink size={11} />
+                            <span>{t('speedtest.remote_open_web_for_code')}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="td-remote-input-wrap">
+                      <span className="td-remote-input-icon">
+                        <KeyRound size={15} />
                       </span>
-                    )}
-                  </div>
-                  <div className="td-remote-input-wrap">
-                    <span className="td-remote-input-icon">
-                      <KeyRound size={15} />
-                    </span>
-                    <input
-                      id="td-remote-passcode"
-                      className={`td-input-field td-remote-passcode-input ${
-                        resolvedMedia?.requiresPassword ? 'highlight-required' : ''
-                      }`}
-                      type="text"
-                      placeholder={t('speedtest.remote_passcode_placeholder')}
-                      value={passcode}
-                      onChange={(e) => handlePasscodeChange(e.target.value)}
-                      disabled={submitting}
-                      autoComplete="off"
-                      spellCheck={false}
-                    />
-                    {passcode && (
-                      <button
-                        type="button"
-                        className="td-remote-clear-btn"
-                        onClick={() => handlePasscodeChange('')}
+                      <input
+                        id="td-remote-passcode"
+                        className={`td-input-field td-remote-passcode-input ${
+                          resolvedMedia?.requiresPassword ? 'highlight-required' : ''
+                        }`}
+                        type="text"
+                        placeholder={t('speedtest.remote_passcode_placeholder')}
+                        value={passcode}
+                        onChange={(e) => handlePasscodeChange(e.target.value)}
                         disabled={submitting}
-                        aria-label={t('speedtest.remote_clear_input')}
-                      >
-                        <X size={14} />
-                      </button>
-                    )}
+                        autoComplete="off"
+                        spellCheck={false}
+                      />
+                      {passcode && (
+                        <button
+                          type="button"
+                          className="td-remote-clear-btn"
+                          onClick={() => handlePasscodeChange('')}
+                          disabled={submitting}
+                          aria-label={t('speedtest.remote_clear_input')}
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="td-remote-field-group">
                   <label className="td-input-label" htmlFor="td-custom-filename">
@@ -1348,6 +1390,20 @@ export function RemoteUploadModal({
                             </span>
                           ) : null}
                         </div>
+                      </div>
+                    ) : resolvedMedia.formats[0]?.badge === 'remote_web_page' || resolvedMedia.formats[0]?.label === 'remote_web_page_handoff' ? (
+                      <div className="td-remote-big-canvas-fallback td-remote-web-page-card">
+                        <ExternalLink size={32} className="td-remote-fallback-icon" />
+                        <span className="td-remote-web-handoff-title">{t('speedtest.remote_web_handoff_title')}</span>
+                        <p className="td-remote-web-handoff-desc">{t('speedtest.remote_web_handoff_desc')}</p>
+                        <button
+                          type="button"
+                          className="td-remote-open-web-card-btn"
+                          onClick={() => handleOpenInBrowser(resolvedMedia.url)}
+                        >
+                          <ExternalLink size={13} />
+                          <span>{t('speedtest.remote_btn_open_web')}</span>
+                        </button>
                       </div>
                     ) : (
                       <div className="td-remote-big-canvas-fallback">

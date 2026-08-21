@@ -484,11 +484,13 @@ pub fn tg_list_media(req: ListMediaRequest) -> OpResult<super::grammers_ops::Lis
         api_hash: req.api_hash,
     };
     let limit = req.limit.unwrap_or(40);
-    let result = if req.content_filter.as_deref() == Some("links") {
-        super::grammers_ops::list_links_blocking_topic(
+    let filter_type = req.content_filter.as_deref().unwrap_or("all");
+    let result = if filter_type != "all" && !filter_type.is_empty() {
+        super::grammers_ops::list_filtered_media_blocking_topic(
             &dir,
             &identity,
             &req.chat_id,
+            filter_type,
             limit,
             req.offset_id,
             req.topic_id,

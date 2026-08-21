@@ -106,7 +106,7 @@ export async function driveAvatarsBatch(
   }
 }
 
-import type { DriveMediaContext } from '../driveTypes';
+import type { DriveMediaContext, DriveMediaFilter, ViewPerspective } from '../driveTypes';
 import {
   buildDriveMediaContext,
   getMediaPageByContext,
@@ -134,7 +134,8 @@ export async function driveListFiles(
     sortMode?: string;
     localOffset?: number;
     bypassCache?: boolean;
-    contentFilter?: 'links' | null;
+    contentFilter?: DriveMediaFilter | string | null;
+    perspective?: ViewPerspective;
   }
 ) {
   const pageSize = opts?.pageSize ?? DEFAULT_FILE_PAGE;
@@ -148,7 +149,7 @@ export async function driveListFiles(
   const cursorFingerprint = opts?.searchCursor
     ? `${opts.searchCursor.photoVideo?.fetchOffsetId ?? 0}:${opts.searchCursor.document?.fetchOffsetId ?? 0}:${opts.searchCursor.photoVideo?.exhausted ? 1 : 0}:${opts.searchCursor.document?.exhausted ? 1 : 0}:${opts.searchCursor.scope?.minId ?? 0}`
     : 'fresh';
-  const contextKey = `${mediaContext.accountId}:${mediaContext.peerId}:${mediaContext.scopeKind}:${mediaContext.topicId ?? 'none'}:${opts?.contentFilter ?? 'media'}:${offsetId ?? 0}:${minId}:${localOffset}:${cursorFingerprint}`;
+  const contextKey = `${mediaContext.accountId}:${mediaContext.peerId}:${mediaContext.scopeKind}:${mediaContext.topicId ?? 'none'}:${opts?.contentFilter ?? 'all'}:${opts?.perspective ?? 'telegram'}:${offsetId ?? 0}:${minId}:${localOffset}:${cursorFingerprint}`;
 
   // L1 In-Memory Fast Cache Check
   if (!opts?.bypassCache && mediaListCache.has(contextKey)) {
@@ -156,13 +157,23 @@ export async function driveListFiles(
   }
 
   // L2 Persistent Database Instant Paint Check (when opening fresh or after restart)
-  if (!opts?.bypassCache && offsetId == null && localOffset === 0 && !opts?.searchCursor && opts?.contentFilter !== 'links') {
+  if (!opts?.bypassCache && offsetId == null && localOffset === 0 && !opts?.searchCursor) {
     try {
       const indexState = await getMediaIndexState(mediaContext);
       if (indexState && (indexState.backfillComplete || indexState.newestCommittedId > 0)) {
-        const localRows = await getMediaPageByContext(mediaContext, sortMode, localOffset, pageSize);
+        const localRows = await getMediaPageByContext(
+          mediaContext,
+          sortMode,
+          localOffset,
+          pageSize,
+          opts?.contentFilter,
+          opts?.perspective || 'telegram'
+        );
         if (localRows && localRows.length > 0) {
-          const totalCount = (await getMediaRecordsCountByContext(mediaContext)) || indexState.exactMediaCount || localRows.length;
+          const totalCount =
+            (await getMediaRecordsCountByContext(mediaContext, opts?.contentFilter, opts?.perspective || 'telegram')) ||
+            (opts?.contentFilter && opts.contentFilter !== 'all' ? localRows.length : indexState.exactMediaCount) ||
+            localRows.length;
           const cachedResult = {
             status: 'success',
             folder_id: folderId,

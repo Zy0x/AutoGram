@@ -1337,11 +1337,12 @@ fn tl_link_to_row(
 }
 
 /// List Telegram messages containing URLs. This is intentionally a separate
-/// server search lane: media-only indexes cannot produce link-only messages.
-pub fn list_links_blocking_topic(
+/// Dedicated topic-aware and chat-aware search filtered by MTProto category (Document, PhotoVideo, Photos, Video, Gif, Music, Url, etc.)
+pub fn list_filtered_media_blocking_topic(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
     chat_id: &str,
+    filter_type: &str,
     limit: usize,
     offset_id: Option<i64>,
     topic_id: Option<i64>,
@@ -1355,93 +1356,167 @@ pub fn list_links_blocking_topic(
         chat.parse().ok()
     };
     let session_name = identity.session.clone();
+    let filter_str = filter_type.to_string();
     rt.block_on(async {
         with_pool_retry(&identity.session, || {
-        let chat = chat.clone();
-        let session_name = session_name.clone();
-        with_client(sessions_dir, identity, true, move |client| {
-            Box::pin(async move {
-                ensure_authorized(client, &session_name).await?;
-                let peer = resolve_peer(client, &chat).await?;
-                let request = grammers_client::tl::functions::messages::Search {
-                    peer: (&peer).into(),
-                    q: String::new(),
-                    from_id: None,
-                    saved_peer_id: None,
-                    saved_reaction: None,
-                    top_msg_id: topic_id.filter(|value| *value > 0).map(|value| value as i32),
-                    filter: grammers_client::tl::enums::MessagesFilter::InputMessagesFilterUrl,
-                    min_date: 0,
-                    max_date: 0,
-                    offset_id: offset_id.unwrap_or(0) as i32,
-                    add_offset: 0,
-                    limit: limit as i32,
-                    max_id: 0,
-                    min_id: 0,
-                    hash: 0,
-                };
-                let guard = crate::core::telegram_rpc_guard::RpcGuardControl::default();
-                let started = Instant::now();
-                let response = crate::core::telegram_rpc_guard::invoke_guarded_with_control(
-                    &session_name,
-                    crate::core::session_rate::RpcClass::IndexSearch,
-                    "messages.search.url",
-                    &guard,
-                    || client.invoke(&request),
-                )
-                .await?;
-                let mut total_count = None;
-                let messages = match response.value {
-                    grammers_client::tl::enums::messages::Messages::Messages(value) => value.messages,
-                    grammers_client::tl::enums::messages::Messages::Slice(value) => {
-                        total_count = Some(value.count.max(0) as usize);
-                        value.messages
-                    }
-                    grammers_client::tl::enums::messages::Messages::ChannelMessages(value) => {
-                        total_count = Some(value.count.max(0) as usize);
-                        value.messages
-                    }
-                    grammers_client::tl::enums::messages::Messages::NotModified(_) => Vec::new(),
-                };
-                let raw_len = messages.len();
-                let lowest_id = messages.iter().filter_map(|message| match message {
-                    grammers_client::tl::enums::Message::Message(value) => Some(value.id as i64),
-                    _ => None,
-                }).min();
-                let files = messages.iter().filter_map(|message| tl_link_to_row(message, folder_id)).collect::<Vec<_>>();
-                let has_more = raw_len >= limit && lowest_id.unwrap_or(0) > 1;
-                let observation = LaneRpcObservation {
-                    lane: SearchLane::Both,
-                    latency_ms: response.latency_ms,
-                    wall_latency_ms: started.elapsed().as_millis() as u64,
-                    attempts: response.attempts,
-                    rows_received: files.len(),
-                    candidate_count: total_count,
-                };
-                Ok(ListMediaResult {
-                    status: "ok".into(),
-                    folder_id,
-                    total: files.len(),
-                    page_size: limit,
-                    has_more,
-                    next_offset_id: lowest_id,
-                    search_cursor: None,
-                    lane_counts: None,
-                    emitted_watermark: None,
-                    lane_durability: None,
-                    total_count,
-                    backend: BACKEND.into(),
-                    cached: false,
-                    files,
-                    rpc_observations: vec![observation],
-                    pv_observation: None,
-                    doc_observation: None,
+            let chat = chat.clone();
+            let session_name = session_name.clone();
+            let filter_str = filter_str.clone();
+            with_client(sessions_dir, identity, true, move |client| {
+                Box::pin(async move {
+                    ensure_authorized(client, &session_name).await?;
+                    let peer = resolve_peer(client, &chat).await?;
+                    let (filter, op_name, is_link) = match filter_str.to_ascii_lowercase().as_str() {
+                        "links" | "link" | "url" | "urls" => (
+                            grammers_client::tl::enums::MessagesFilter::InputMessagesFilterUrl,
+                            "messages.search.url",
+                            true,
+                        ),
+                        "files" | "file" | "document" | "documents" | "archives" | "archive" => (
+                            grammers_client::tl::enums::MessagesFilter::InputMessagesFilterDocument,
+                            "messages.search.document",
+                            false,
+                        ),
+                        "media" | "photo_video" | "photovideo" => (
+                            grammers_client::tl::enums::MessagesFilter::InputMessagesFilterPhotoVideo,
+                            "messages.search.photo_video",
+                            false,
+                        ),
+                        "photos" | "photo" | "images" | "image" => (
+                            grammers_client::tl::enums::MessagesFilter::InputMessagesFilterPhotos,
+                            "messages.search.photos",
+                            false,
+                        ),
+                        "videos" | "video" => (
+                            grammers_client::tl::enums::MessagesFilter::InputMessagesFilterVideo,
+                            "messages.search.video",
+                            false,
+                        ),
+                        "gifs" | "gif" => (
+                            grammers_client::tl::enums::MessagesFilter::InputMessagesFilterGif,
+                            "messages.search.gif",
+                            false,
+                        ),
+                        "audio" | "music" => (
+                            grammers_client::tl::enums::MessagesFilter::InputMessagesFilterMusic,
+                            "messages.search.music",
+                            false,
+                        ),
+                        "voice" => (
+                            grammers_client::tl::enums::MessagesFilter::InputMessagesFilterVoice,
+                            "messages.search.voice",
+                            false,
+                        ),
+                        _ => (
+                            grammers_client::tl::enums::MessagesFilter::InputMessagesFilterEmpty,
+                            "messages.search.empty",
+                            false,
+                        ),
+                    };
+
+                    let request = grammers_client::tl::functions::messages::Search {
+                        peer: (&peer).into(),
+                        q: String::new(),
+                        from_id: None,
+                        saved_peer_id: None,
+                        saved_reaction: None,
+                        top_msg_id: topic_id.filter(|value| *value > 0).map(|value| value as i32),
+                        filter,
+                        min_date: 0,
+                        max_date: 0,
+                        offset_id: offset_id.unwrap_or(0) as i32,
+                        add_offset: 0,
+                        limit: limit as i32,
+                        max_id: 0,
+                        min_id: 0,
+                        hash: 0,
+                    };
+                    let guard = crate::core::telegram_rpc_guard::RpcGuardControl::default();
+                    let started = Instant::now();
+                    let response = crate::core::telegram_rpc_guard::invoke_guarded_with_control(
+                        &session_name,
+                        crate::core::session_rate::RpcClass::IndexSearch,
+                        op_name,
+                        &guard,
+                        || client.invoke(&request),
+                    )
+                    .await?;
+                    let mut total_count = None;
+                    let messages = match response.value {
+                        grammers_client::tl::enums::messages::Messages::Messages(value) => value.messages,
+                        grammers_client::tl::enums::messages::Messages::Slice(value) => {
+                            total_count = Some(value.count.max(0) as usize);
+                            value.messages
+                        }
+                        grammers_client::tl::enums::messages::Messages::ChannelMessages(value) => {
+                            total_count = Some(value.count.max(0) as usize);
+                            value.messages
+                        }
+                        grammers_client::tl::enums::messages::Messages::NotModified(_) => Vec::new(),
+                    };
+                    let raw_len = messages.len();
+                    let lowest_id = messages.iter().filter_map(|message| match message {
+                        grammers_client::tl::enums::Message::Message(value) => Some(value.id as i64),
+                        _ => None,
+                    }).min();
+                    let files: Vec<MediaFileRow> = if is_link {
+                        messages.iter().filter_map(|message| tl_link_to_row(message, folder_id)).collect()
+                    } else {
+                        messages.iter().filter_map(|message| tl_message_to_row(message, folder_id)).collect()
+                    };
+                    let has_more = raw_len >= limit && lowest_id.unwrap_or(0) > 1;
+                    let observation = LaneRpcObservation {
+                        lane: SearchLane::Both,
+                        latency_ms: response.latency_ms,
+                        wall_latency_ms: started.elapsed().as_millis() as u64,
+                        attempts: response.attempts,
+                        rows_received: files.len(),
+                        candidate_count: total_count,
+                    };
+                    Ok(ListMediaResult {
+                        status: "ok".into(),
+                        folder_id,
+                        total: files.len(),
+                        page_size: limit,
+                        has_more,
+                        next_offset_id: lowest_id,
+                        search_cursor: None,
+                        lane_counts: None,
+                        emitted_watermark: None,
+                        lane_durability: None,
+                        total_count,
+                        backend: BACKEND.into(),
+                        cached: false,
+                        files,
+                        rpc_observations: vec![observation],
+                        pv_observation: None,
+                        doc_observation: None,
+                    })
                 })
             })
         })
-        })
         .await
     })
+}
+
+/// Dedicated links search (backward-compatible delegate).
+pub fn list_links_blocking_topic(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    chat_id: &str,
+    limit: usize,
+    offset_id: Option<i64>,
+    topic_id: Option<i64>,
+) -> Result<ListMediaResult, TgError> {
+    list_filtered_media_blocking_topic(
+        sessions_dir,
+        identity,
+        chat_id,
+        "links",
+        limit,
+        offset_id,
+        topic_id,
+    )
 }
 
 /// List media messages in a chat (newest first). Optional forum `topic_id` filter.

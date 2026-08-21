@@ -1,3 +1,24 @@
+## v3.8.8 Smart Conditional Remote Upload & Web Handoff Engine (Phase 35.74)
+
+### 1. Smart Conditional Passcode Visibility
+- **Input Password Dinamis & Bersih**:
+  - Menyembunyikan input field *Access Passcode / Password* secara default untuk semua tautan publik standar (YouTube, TikTok, Instagram, Pinterest, Direct MP4/ZIP/MKV, Google Drive, Mediafire, Dropbox, dll.).
+  - Input field kata sandi hanya dimunculkan secara otomatis (*smart animated reveal*) jika tautan terdeteksi berstatus **Password Protected** (misal tautan berbagi berkas PikPak terproteksi sandi atau URL yang mengandung parameter sandi/ekstraksi).
+  - Mengurangi kebingungan pengguna dan mengoptimalkan ruang vertikal modal upload.
+
+### 2. Direct Browser Opener & Web Handoff Actions
+- **Integrasi Navigasi Eksternal ke Peramban Web**:
+  - Menambahkan tombol aksi *"Buka di Web"* (*Open in Browser*) langsung pada baris input URL ketika URL valid terdeteksi, memudahkan pengguna memeriksa halaman asli, menyelesaikan otentikasi/CAPTCHA, atau mengambil tautan unduhan langsung.
+  - Menambahkan kartu informatif *Web Page Handoff* pada panel pratinjau jika tautan yang dimasukkan mengarah ke halaman web interaktif daripada stream media langsung.
+
+### 3. Kepatuhan Standar Teknis & Kualitas Kode
+- **100% Zero Hardcoded Strings & Key Parity**:
+  - Seluruh teks aksi, label, dan deskripsi web handoff diekstrak ke `id/speedtest.json` dan `en/speedtest.json` dengan audit `npm run test:locale` (5.256 keys ID & 5.256 keys EN, 0 missing, 0 parity mismatch).
+- **Pengujian & Verifikasi Penuh**:
+  - Lolos uji seluruh 278 unit test frontend vitest tanpa kegagalan.
+  - Lolos uji validasi `npx tsc --noEmit` dengan 0 error.
+  - Lolos uji bundling produksi `npm run build` Vite dalam 7.33 detik.
+
 ## v3.8.7 Drive Settings Inaccessible & Restricted Channel Media Filter Engine (Phase 35.73)
 
 ### 1. Central Drive Setting for Inaccessible & Restricted Media
