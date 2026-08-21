@@ -762,36 +762,6 @@ export function DriveSidebar({
   const locationQuery = chatQuery;
   const hasLocationQuery = !!locationQuery.trim();
   const chatRows = useMemo(
-    () => filterChatsFast(chatIndex, locationQuery),
-    [chatIndex, locationQuery]
-  );
-  const folderRows = useMemo(
-    () => filterFoldersFast(folders, locationQuery),
-    [folders, locationQuery]
-  );
-  // First load: expand every parent so nested folders are visible by default
-  const treeSeededRef = useRef(false);
-  useEffect(() => {
-    if (treeSeededRef.current || !folders.length) return;
-    const idSet = new Set(folders.map((f: any) => f.id));
-    const parents = new Set<number>();
-    for (const f of folders) {
-      if (f.parent_id != null && idSet.has(f.parent_id) && f.parent_id !== f.id) {
-        parents.add(f.parent_id);
-      }
-    }
-    if (parents.size) setTreeExpanded(parents);
-    treeSeededRef.current = true;
-  }, [folders]);
-
-  // Auto-expand ancestors only when the *selected* folder changes — not on every
-  // folders[] refresh (that was re-opening nodes the user just collapsed).
-  const lastTreeExpandPeerRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (locationKind !== 'drive' || activePeerId == null) {
-      if (locationKind !== 'drive') lastTreeExpandPeerRef.current = null;
-      return;
-    }
     const ancestors = folderAncestorIds(folders, activePeerId);
     if (!ancestors.length) return;
     const peerChanged = lastTreeExpandPeerRef.current !== activePeerId;

@@ -151,6 +151,24 @@ export function folderDirectChildIds(folders: DriveFolder[], parentId: number): 
   return folders.filter((f) => f.parent_id === parentId && f.id !== parentId).map((f) => f.id);
 }
 
+/** Recursively collect all descendant folder IDs (children, grandchildren, etc.). */
+export function folderAllDescendantIds(folders: DriveFolder[], rootId: number): number[] {
+  const result: number[] = [];
+  const queue: number[] = [rootId];
+  const visited = new Set<number>([rootId]);
+  while (queue.length > 0) {
+    const parentId = queue.shift()!;
+    for (const f of folders) {
+      if (f.parent_id === parentId && f.id !== parentId && !visited.has(f.id)) {
+        visited.add(f.id);
+        result.push(f.id);
+        queue.push(f.id);
+      }
+    }
+  }
+  return result;
+}
+
 /** True if setting folderId's parent to newParentId would create a cycle. */
 export function wouldCreateFolderCycle(
   folders: DriveFolder[],

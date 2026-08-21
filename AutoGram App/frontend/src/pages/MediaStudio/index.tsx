@@ -100,6 +100,7 @@ import {
   isTransferJobActive,
   friendlyDriveError,
   telegramAccessIssue,
+  resolveRestrictionReasonKey,
   isPeerEntityError,
   isSessionLockError,
   CHAT_BULK_PAGE,
@@ -7172,16 +7173,11 @@ function MediaDriveDesktop({
     if (locationKind === 'saved' || activePeerId == null) return null;
     const activeChat = chats.find((chat) => String(chat.id) === String(activePeerId));
     if (!activeChat?.is_restricted) return null;
-    const rawCode = String(activeChat.restriction_code || 'restricted').trim().toLowerCase();
-    const knownCode = ['porn', 'spam', 'copyright', 'violence'].includes(rawCode)
-      ? rawCode
-      : 'restricted';
-    const localizedReason = t(`speedtest.telegram_restriction_reason_${knownCode}`);
-    return t('speedtest.telegram_restriction_detail', {
-      reason: localizedReason,
-      code: rawCode,
-      serverReason: activeChat.restriction_reason || t('speedtest.telegram_access_restricted'),
-    });
+    const key = resolveRestrictionReasonKey(
+      activeChat.restriction_code,
+      activeChat.restriction_reason
+    );
+    return t(`speedtest.telegram_restriction_reason_${key}`);
   }, [activePeerId, chats, locationKind, t]);
 
   const spaceHint = useMemo(() => {

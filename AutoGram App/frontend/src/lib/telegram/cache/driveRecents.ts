@@ -204,6 +204,73 @@ function savePins(session: string, list: DriveRecent[], store: StorageLike): Dri
   return out;
 }
 
+export function removeDriveRecent(
+  session: string,
+  kind: DriveRecentKind,
+  id: number | null,
+  store?: StorageLike | null
+): DriveRecent[] {
+  const s = store ?? storage();
+  if (!s || !String(session || '').trim()) return [];
+  const targetKey = `${kind}:${id ?? 'me'}`;
+  const prev = loadDriveRecents(session, s);
+  const filtered = prev.filter((r) => keyOf(r) !== targetKey);
+  if (filtered.length !== prev.length) {
+    try {
+      s.setItem(driveRecentsStorageKey(session), JSON.stringify(filtered));
+    } catch {
+      /* ignore */
+    }
+  }
+  return filtered;
+}
+
+export function removeDrivePin(
+  session: string,
+  kind: DriveRecentKind,
+  id: number | null,
+  store?: StorageLike | null
+): DriveRecent[] {
+  const s = store ?? storage();
+  if (!s || !String(session || '').trim()) return [];
+  const targetKey = `${kind}:${id ?? 'me'}`;
+  const prev = loadDrivePins(session, s);
+  const filtered = prev.filter((p) => keyOf(p) !== targetKey);
+  if (filtered.length !== prev.length) {
+    savePins(session, filtered, s);
+  }
+  return filtered;
+}
+
+export function removeMultipleDriveLocations(
+  session: string,
+  ids: (number | null)[],
+  kind: DriveRecentKind = 'drive',
+  store?: StorageLike | null
+): { recents: DriveRecent[]; pins: DriveRecent[] } {
+  const s = store ?? storage();
+  if (!s || !String(session || '').trim()) return { recents: [], pins: [] };
+  const targetKeys = new Set(ids.map((id) => `${kind}:${id ?? 'me'}`));
+
+  const prevRecents = loadDriveRecents(session, s);
+  const nextRecents = prevRecents.filter((r) => !targetKeys.has(keyOf(r)));
+  if (nextRecents.length !== prevRecents.length) {
+    try {
+      s.setItem(driveRecentsStorageKey(session), JSON.stringify(nextRecents));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const prevPins = loadDrivePins(session, s);
+  const nextPins = prevPins.filter((p) => !targetKeys.has(keyOf(p)));
+  if (nextPins.length !== prevPins.length) {
+    savePins(session, nextPins, s);
+  }
+
+  return { recents: nextRecents, pins: nextPins };
+}
+
 export function isDrivePinned(
   session: string,
   entry: Pick<DriveRecent, 'kind' | 'id'>,

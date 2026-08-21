@@ -142,3 +142,49 @@ export function removeFilesFromDriveLocationSnapshot(
   }
 }
 
+export function clearDriveLocationForPeer(
+  storage: StorageLike,
+  session: string,
+  peerId: number | null
+): void {
+  const envelope = readEnvelope(storage, session);
+  const prefix = `${peerId == null ? 'root' : peerId}:`;
+  let changed = false;
+  for (const key of Object.keys(envelope.entries)) {
+    if (key.startsWith(prefix)) {
+      delete envelope.entries[key];
+      changed = true;
+    }
+  }
+  if (changed) {
+    try {
+      storage.setItem(storageKey(session), JSON.stringify(envelope));
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+export function clearMultipleDriveLocations(
+  storage: StorageLike,
+  session: string,
+  peerIds: (number | null)[]
+): void {
+  const envelope = readEnvelope(storage, session);
+  const prefixes = peerIds.map((id) => `${id == null ? 'root' : id}:`);
+  let changed = false;
+  for (const key of Object.keys(envelope.entries)) {
+    if (prefixes.some((p) => key.startsWith(p))) {
+      delete envelope.entries[key];
+      changed = true;
+    }
+  }
+  if (changed) {
+    try {
+      storage.setItem(storageKey(session), JSON.stringify(envelope));
+    } catch {
+      /* ignore */
+    }
+  }
+}
+

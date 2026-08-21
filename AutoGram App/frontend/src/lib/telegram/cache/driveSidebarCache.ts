@@ -87,3 +87,24 @@ export function saveDriveSidebarSnapshot(
     // Sidebar cache is an acceleration layer only.
   }
 }
+
+export function removeFoldersFromDriveSidebarSnapshot(
+  storage: StorageLike,
+  session: string,
+  folderIds: number[],
+  now = Date.now()
+): void {
+  if (!folderIds || !folderIds.length) return;
+  const deleteSet = new Set(folderIds.map((id) => Number(id)));
+  const existing = loadDriveSidebarSnapshot(storage, session, now);
+  if (!existing || !Array.isArray(existing.folders)) return;
+
+  const nextFolders = existing.folders.filter((f) => !deleteSet.has(Number(f.id)));
+  const nextChats = existing.chats.filter((c) => !deleteSet.has(Number(c.id)));
+  if (nextFolders.length === existing.folders.length && nextChats.length === existing.chats.length) return;
+
+  saveDriveSidebarSnapshot(storage, session, {
+    folders: nextFolders,
+    chats: nextChats,
+  }, now);
+}

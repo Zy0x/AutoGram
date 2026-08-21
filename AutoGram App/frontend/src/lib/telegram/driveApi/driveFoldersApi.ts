@@ -259,6 +259,35 @@ export async function driveDeleteFolder(
   return { status: 'success', backend: 'grammers' };
 }
 
+/**
+ * Batch delete multiple Drive/Folder channels permanently on Telegram MTProto.
+ * Executes in parallel with allSettled so one failure (e.g. already deleted channel)
+ * doesn't block the deletion of the rest.
+ */
+export async function driveDeleteFoldersBatch(
+  creds: DriveCredentials,
+  folderIds: number[]
+) {
+  if (!folderIds || !folderIds.length) return { status: 'success', backend: 'grammers' };
+  const uniqueIds = Array.from(new Set(folderIds.map((id) => Number(id)))).filter(Number.isFinite);
+  const results = await Promise.allSettled(
+    uniqueIds.map((fid) => driveDeleteFolder(creds, fid))
+  );
+  const errors: string[] = [];
+  for (const r of results) {
+    if (r.status === 'rejected') {
+      const msg = String(r.reason?.message || r.reason || '');
+      if (!msg.toLowerCase().includes('not found') && !msg.toLowerCase().includes('channel_invalid')) {
+        errors.push(msg);
+      }
+    }
+  }
+  if (errors.length > 0 && errors.length === uniqueIds.length) {
+    throw new Error(errors[0]);
+  }
+  return { status: 'success', backend: 'grammers' };
+}
+
 /** Rename a Drive [TD] folder channel title. */
 export async function driveRenameFolder(
   creds: DriveCredentials,

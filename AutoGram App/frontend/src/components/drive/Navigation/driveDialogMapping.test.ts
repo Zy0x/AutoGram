@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { mapDialogToChat } from '../../../lib/telegram/driveApi/driveApiUtils';
+import { mapDialogToChat, resolveRestrictionReasonKey } from '../../../lib/telegram/driveApi/driveApiUtils';
 
 describe('mapDialogToChat', () => {
   it('keeps bots separate from private chats', () => {
@@ -45,5 +45,28 @@ describe('mapDialogToChat', () => {
       restriction_code: 'porn',
       restriction_reason: "This channel can't be displayed because it was used to spread pornographic content.",
     });
+  });
+});
+
+describe('resolveRestrictionReasonKey', () => {
+  it('resolves sensitive and pornographic restriction codes correctly', () => {
+    expect(resolveRestrictionReasonKey('sensitive', null)).toBe('sensitive');
+    expect(resolveRestrictionReasonKey('all:sensitive', null)).toBe('sensitive');
+    expect(resolveRestrictionReasonKey('porn', null)).toBe('sensitive');
+    expect(resolveRestrictionReasonKey(null, 'contains sensitive content')).toBe('sensitive');
+    expect(resolveRestrictionReasonKey(null, 'spread pornographic content')).toBe('sensitive');
+  });
+
+  it('resolves copyright, violence, and spam codes', () => {
+    expect(resolveRestrictionReasonKey('copyright', null)).toBe('copyright');
+    expect(resolveRestrictionReasonKey('dmca', null)).toBe('copyright');
+    expect(resolveRestrictionReasonKey('violence', null)).toBe('violence');
+    expect(resolveRestrictionReasonKey('spam', null)).toBe('spam');
+    expect(resolveRestrictionReasonKey('scam', null)).toBe('spam');
+  });
+
+  it('falls back to restricted for generic or missing reasons', () => {
+    expect(resolveRestrictionReasonKey(null, null)).toBe('restricted');
+    expect(resolveRestrictionReasonKey('other', 'access restricted')).toBe('restricted');
   });
 });

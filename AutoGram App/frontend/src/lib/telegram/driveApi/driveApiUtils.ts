@@ -89,6 +89,46 @@ export function isPeerEntityError(err: unknown): boolean {
 
 export type TelegramAccessIssue = 'restricted' | 'private' | 'unavailable' | null;
 
+export function resolveRestrictionReasonKey(
+  rawCode?: string | null,
+  serverReason?: string | null
+): string {
+  const code = String(rawCode || '').trim().toLowerCase();
+  const server = String(serverReason || '').toLowerCase();
+
+  if (
+    code.includes('porn') ||
+    code.includes('sensitive') ||
+    server.includes('porn') ||
+    server.includes('sensitive')
+  ) {
+    return 'sensitive';
+  }
+  if (
+    code.includes('copyright') ||
+    code.includes('dmca') ||
+    server.includes('copyright')
+  ) {
+    return 'copyright';
+  }
+  if (
+    code.includes('violence') ||
+    code.includes('harm') ||
+    server.includes('violen')
+  ) {
+    return 'violence';
+  }
+  if (
+    code.includes('spam') ||
+    code.includes('scam') ||
+    code.includes('fake') ||
+    server.includes('spam')
+  ) {
+    return 'spam';
+  }
+  return 'restricted';
+}
+
 export function telegramAccessIssue(err: unknown): TelegramAccessIssue {
   const raw = [
     String((err as any)?.code || ''),
