@@ -1,13 +1,14 @@
-AutoGram Version: v3.8.9
+AutoGram Version: v3.8.10
 
 Current State:
-v3.8.9 Instant Server-Side Filtered Media Streams & MTProto RPC Acceleration Engine — menghadirkan pemfilteran instan (<300ms) untuk tab 'Files', 'GIFs', 'Links', 'Audio', dan 'Media' pada saluran dan topik berkapasitas besar:
-1. Native Grammers MTProto RPC Filter Routing: Mengalihkan permintaan kategori filter (`files`, `media`, `photos`, `videos`, `gifs`, `audio`, `links`) langsung ke query filter server Telegram (`InputMessagesFilterDocument`, `InputMessagesFilterPhotoVideo`, `InputMessagesFilterGif`, `InputMessagesFilterUrl`, `InputMessagesFilterMusic`) dalam 1 kali round-trip MTProto tanpa perlu memindai puluhan ribu pesan campuran.
-2. Filter-Aware IndexedDB L2 Fast Cache: Mengintegrasikan `contentFilter` dan `perspective` ke dalam query kursor IndexedDB (`getMediaPageByContext` dan `getMediaRecordsCountByContext`) sehingga filter instan langsung menampilkan data ter-cache dalam hitungan milidetik saat aplikasi dibuka kembali.
-3. Isolated Per-Category Reactive Streams: Memperbarui MediaStudio frontend dengan peta stream terisolasi (`filteredFilesMap`, `filteredHasMoreMap`, `filteredTotalCountMap`) untuk memastikan infinite scroll, loading indicator, dan pagination bekerja mulus pada setiap tab filter.
-4. Comprehensive Remote E2E Validation: Terverifikasi via CDP pada saluran #Gudang (44.855 item) bahwa peralihan ke tab 'Files' (86 berkas) memuat secara instan dalam ~200-300ms tanpa lag maupun halaman kosong.
+v3.8.10 Drive Settings Unicode-Resilient Restricted Media Filter Engine — membenahi dan memperkuat pemfilteran pesan terlarang/dibatasi dari Telegram MTProto agar 100% akurat menyembunyikan kartu peringatan yang tidak dapat dibuka:
+1. Universal Typography & Unicode Quotation Marks Support: Memperluas regex pattern matcher (`RESTRICTED_MEDIA_PATTERNS`) dengan dukungan penuh untuk seluruh variasi tanda petik Unicode (*Right Single Quotation Mark* `’` `\u2019`, *Left Single Quotation Mark* `‘` `\u2018`, backtick `` ` ``, acute `´`, serta petik ASCII `'`), memastikan pesan bawaan Telegram (*"This channel can’t be displayed..."*) terdeteksi dan tereliminasi secara instan saat opsi *Hide Restrict Media* aktif.
+2. Full Multi-Field & Format Inspection: Memperluas `isRestrictedOrInaccessibleFile()` untuk memindai seluruh atribut entitas berkas (`name`, `original_name`, `caption`, `mime_type`, `drive_format`, `text`, `message`, dan `file_ext`), mengantisipasi pesan teks tanpa nama dokumen atau yang terpotong menjadi format file buatan.
+3. Dual-Layer Rust & TypeScript Defense: Menambahkan deteksi klasifikasi pesan terlarang di sisi backend Rust (`media_classifier.rs`) sehingga pesan peringatan langsung diklasifikasikan sebagai `restricted` pada `telegram_category` dan `drive_category`.
+4. 100% Comprehensive Unit Test Coverage: Lolos 100% uji suite Vitest (`restrictedMediaFilter.test.ts`) dan Rust test (`test_restricted_notice_classification`) mencakup seluruh variasi pola pesan bahasa Indonesia dan Inggris.
 
 Previous:
+v3.8.9 Instant Server-Side Filtered Media Streams & MTProto RPC Acceleration Engine.
 v3.8.8 Smart Conditional Remote Upload & Web Handoff Engine.
 v3.8.7 Drive Settings Inaccessible & Restricted Channel Media Filter Engine.
 1. Native WinZip AES-128 / AES-192 / AES-256 & PKWARE ZipCrypto Decryption: Mengaktifkan fitur `aes-crypto` pada crate `zip` backend Rust untuk mendekripsi arsip terenkripsi standar modern (7-Zip, WinRAR, WinZip, Bandizip) secara on-the-fly.

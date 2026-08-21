@@ -1,3 +1,25 @@
+## v3.8.10 Drive Settings Unicode-Resilient Restricted Media Filter Engine (Phase 35.76)
+
+### 1. Universal Typography & Unicode Quotation Marks Recognition
+- **Pendeteksian Tanda Petik Tipografi Server Telegram**:
+  - Mengatasi kegagalan pencocokan pola regex pada pesan bawaan Telegram (*"This channel can’t be displayed..."*) yang menggunakan karakter Unicode *Right Single Quotation Mark* (`’` `\u2019`).
+  - Memperluas seluruh ekspresi reguler pada `RESTRICTED_MEDIA_PATTERNS` di `driveTypes.ts` dengan dukungan menyeluruh untuk `['’‘`´ʻʼʽˈˊˋ]`, `cannot`, `can not`, serta variasi penulisan dwibahasa (EN & ID).
+
+### 2. Multi-Field Extended Content & Format Scanner
+- **Inspeksi Metadata Berkas Menyeluruh**:
+  - Memperluas fungsi `isRestrictedOrInaccessibleFile()` untuk memindai properti `name`, `original_name`, `caption`, `mime_type`, `drive_format`, `text`, `message`, dan `file_ext`.
+  - Mencegah pesan peringatan teks 85-byte yang terpotong menjadi badge format berkas buatan (`THIS CHANNEL CAN'T B`) lolos ke tampilan antarmuka saat preferensi *Hide Restrict Media* dalam keadaan aktif.
+
+### 3. Dual-Layer Defense di Sisi Rust Backend
+- **Klasifikasi Otomatis pada `media_classifier.rs`**:
+  - Mengintegrasikan deteksi pesan terlarang/peringatan restriksi langsung pada saat pengolahan pesan di backend Rust.
+  - Secara otomatis menetapkan `telegram_category = "restricted"` dan `drive_category = "restricted"` pada entitas berkas teks restriksi.
+
+### 4. Jaminan Kualitas & Pengujian Komprehensif
+- **100% Zero Regression & Suite Validation**:
+  - Memperbarui suite pengujian `restrictedMediaFilter.test.ts` (6 tes lulus 100%) dan pengujian unit backend Rust `test_restricted_notice_classification`.
+  - Seluruh 32 file tes Vitest (278 tes) dan audit locale i18n lulus 100%.
+
 ## v3.8.9 Instant Server-Side Filtered Media Streams & MTProto RPC Acceleration Engine (Phase 35.75)
 
 ### 1. Native Grammers MTProto RPC Filter Routing

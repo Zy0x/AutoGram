@@ -659,6 +659,7 @@ export function matchesMediaFilter(
   if (perspective === 'telegram') {
     switch (filter) {
       case 'media':
+        if (f.as_document === true || tgCat === 'file') return false;
         return (
           tgCat === 'media' ||
           icon === 'photo' ||
