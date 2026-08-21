@@ -36,7 +36,7 @@ pub struct ChatTargetInspection {
     pub display_name: Option<String>,
 }
 
-fn public_target(raw: &str) -> Option<String> {
+pub(crate) fn public_target(raw: &str) -> Option<String> {
     let clean = raw.trim();
     if clean.starts_with('@') {
         return Some(clean.to_string());
@@ -56,22 +56,31 @@ fn public_target(raw: &str) -> Option<String> {
     let path = no_scheme
         .strip_prefix("t.me/")
         .or_else(|| no_scheme.strip_prefix("telegram.me/"))?;
-    let first = path.split(['/', '?', '#']).next().unwrap_or("").trim();
-    if first.is_empty()
-        || first.starts_with('+')
-        || first.eq_ignore_ascii_case("joinchat")
-        || matches!(
-            first.to_ascii_lowercase().as_str(),
-            "c" | "s" | "addlist" | "share" | "login" | "proxy" | "setlanguage"
-        )
-    {
+    let segments: Vec<&str> = path.split(['/', '?', '#']).filter(|s| !s.is_empty()).collect();
+    if segments.is_empty() {
+        return None;
+    }
+    let first = segments[0].trim();
+    if first.starts_with('+') || first.eq_ignore_ascii_case("joinchat") {
+        return None;
+    }
+    if first.eq_ignore_ascii_case("s") && segments.len() > 1 {
+        let second = segments[1].trim();
+        if !second.is_empty() && !second.starts_with('+') {
+            return Some(format!("@{second}"));
+        }
+    }
+    if matches!(
+        first.to_ascii_lowercase().as_str(),
+        "c" | "s" | "addlist" | "share" | "login" | "proxy" | "setlanguage"
+    ) {
         None
     } else {
         Some(format!("@{first}"))
     }
 }
 
-fn private_channel_target(raw: &str) -> Option<String> {
+pub(crate) fn private_channel_target(raw: &str) -> Option<String> {
     let url = Url::parse(raw.trim()).ok()?;
     if !matches!(url.scheme(), "http" | "https")
         || !url.host_str().is_some_and(|host| {
@@ -151,13 +160,22 @@ pub fn inspect_chat_target_blocking(
                         }
                     }
                     let can_join = kind != "bot";
+                    let display_name = if lookup.starts_with('@') {
+                        if let Ok(Some(p)) = client.resolve_username(lookup.trim_start_matches('@')).await {
+                            p.name().map(str::to_string)
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    };
                     Ok(ChatTargetInspection {
                         target,
                         kind,
                         joined: false,
                         can_join,
                         peer_id: Some(peer_id),
-                        display_name: None,
+                        display_name: display_name.or(Some(lookup)),
                     })
                 })
             })

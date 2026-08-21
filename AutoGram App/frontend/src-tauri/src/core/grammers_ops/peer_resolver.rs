@@ -281,10 +281,15 @@ pub(crate) async fn resolve_peer(
     client: &Client,
     chat_id: &str,
 ) -> Result<grammers_session::types::PeerRef, TgError> {
-    let s = chat_id.trim();
-    if s.is_empty() {
+    let raw = chat_id.trim();
+    if raw.is_empty() {
         return Err(TgError::new(TgErrorCode::PeerNotFound, "chat_id empty"));
     }
+
+    let normalized = super::chat_actions::public_target(raw)
+        .or_else(|| super::chat_actions::private_channel_target(raw))
+        .unwrap_or_else(|| raw.to_string());
+    let s = normalized.as_str();
 
     let owner_id = client
         .get_me()
@@ -310,6 +315,7 @@ pub(crate) async fn resolve_peer(
         if let Ok(ref pref) = res {
             if owner_id != 0 {
                 if let Ok(mut guard) = peer_cache().write() {
+                    guard.insert(ckey(raw), *pref);
                     guard.insert(ckey(s), *pref);
                     guard.insert(ckey("me"), *pref);
                     guard.insert(ckey("saved"), *pref);
@@ -334,7 +340,29 @@ pub(crate) async fn resolve_peer(
             if let Ok(ref pref) = res {
                 if owner_id != 0 {
                     if let Ok(mut guard) = peer_cache().write() {
+                        guard.insert(ckey(raw), *pref);
                         guard.insert(ckey(s), *pref);
+                        guard.insert(ckey(uname), *pref);
+                        guard.insert(ckey(&format!("@{uname}")), *pref);
+                        let pid = peer_id_i64(peer.id());
+                        guard.insert(ckey(&pid.to_string()), *pref);
+                        let bare = pid.abs();
+                        guard.insert(ckey(&format!("-100{bare}")), *pref);
+                        guard.insert(ckey(&format!("-{bare}")), *pref);
+                        guard.insert(ckey(&bare.to_string()), *pref);
+                        if let Some(name) = match &peer {
+                            grammers_client::peer::Peer::Channel(c) => Some(c.title().to_string()),
+                            grammers_client::peer::Peer::Group(g) => g.title().map(str::to_string),
+                            grammers_client::peer::Peer::User(u) => Some(
+                                format!("{} {}", u.first_name().unwrap_or(""), u.last_name().unwrap_or(""))
+                                    .trim()
+                                    .to_string(),
+                            ),
+                        } {
+                            if !name.is_empty() {
+                                guard.insert(ckey(&name.to_lowercase()), *pref);
+                            }
+                        }
                     }
                 }
             }

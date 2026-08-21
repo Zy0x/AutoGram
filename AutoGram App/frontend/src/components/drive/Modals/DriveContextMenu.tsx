@@ -88,6 +88,10 @@ type Props = {
   deleteFolderLabel?: string;
   onTogglePin?: () => void;
   isPinned?: boolean;
+  onOpenTelegramLink?: (url: string) => void;
+  onBrowseTelegramDrive?: (url: string) => void;
+  onJoinTelegramChat?: (url: string) => void;
+  onSendToRemoteLink?: (url: string) => void;
 };
 
 interface SubmenuProps {
@@ -212,6 +216,10 @@ export function DriveContextMenu({
   deleteFolderLabel,
   onTogglePin,
   isPinned = false,
+  onOpenTelegramLink,
+  onBrowseTelegramDrive,
+  onJoinTelegramChat,
+  onSendToRemoteLink,
 }: Props) {
   const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
@@ -719,6 +727,10 @@ export function DriveContextMenu({
         topicName={topicName}
         creds={creds}
         folderId={folderId}
+        onSendToRemoteLink={onSendToRemoteLink}
+        onOpenTelegramLink={onOpenTelegramLink}
+        onBrowseTelegramDrive={onBrowseTelegramDrive}
+        onJoinTelegramChat={onJoinTelegramChat}
       />
     </>
   );

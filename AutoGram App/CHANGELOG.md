@@ -1,3 +1,22 @@
+## v3.8.1 Remote Telegram Link Drive Explorer & 1-Click Channel Join Action Engine (Phase 35.67)
+
+### 1. Remote Telegram Link Drive Explorer
+- **Eksplorasi Drive Channel Langsung dari Tautan Telegram**:
+  - Membuka dan menjelajahi seluruh isi berkas, media (video, foto, audio, dokumen), dan pesan pada channel atau chat publik langsung dari tautan Telegram (`t.me/...`, `@username`, `https://t.me/s/...`, dsb.) di AutoGram tanpa mewajibkan pengguna untuk bergabung terlebih dahulu.
+  - Penambahan tombol aksi **Buka / Lihat Isi Drive di AutoGram** (`FolderOpen`) pada kartu pratinjau tautan di `TelegramMessagePreviewModal`.
+  - Normalisasi URL Telegram di backend Rust (`resolve_peer`) dan pengisian otomatis cache alias peer (`@username`, `username`, numeric ID `-100...`, `bare_id`, dan judul channel) sehingga listing berkas channel publik yang belum diikuti dapat dimuat secara instan.
+
+### 2. 1-Click Channel Join Action & Unjoined Channel Banner
+- **Aksi Gabung / Ikuti Channel Langsung dari Aplikasi**:
+  - Penambahan tombol aksi **Gabung ke Channel / Chat** (`UserPlus`) langsung pada setiap tautan Telegram di modal pratinjau pesan.
+  - Menampilkan banner modern responsif **Channel Publik (Belum Bergabung)** di bagian atas kanvas drive saat melihat channel publik, lengkap dengan tombol 1-klik **Gabung ke Channel** (`UserPlus`).
+  - Setelah aksi gabung selesai (`tgChatAction` join channel), sistem secara otomatis menyinkronkan dialog sidebar, memperbarui lokasi aktif, dan menghilangkan banner notifikasi dengan mulus.
+
+### 3. Dukungan Lengkap Internasionalisasi & Konsistensi UI
+- **Penerapan 100% Zero Hardcoded Strings**:
+  - Penambahan key terjemahan lengkap dan sinkron pada `locales/id/telegram_actions.json` dan `locales/en/telegram_actions.json`.
+  - Pengaturan tata letak antarmuka dengan touch target minimal 44×44 px yang sepenuhnya stabil dan responsif di seluruh resolusi layar desktop dan perangkat mobile.
+
 ## v3.8.0 2-Way Instant Drive Deletion & Sidebar Tab Live Synchronization Engine (Phase 35.66)
 
 ### 1. Instant Optimistic UI Purge (0ms Latency)

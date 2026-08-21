@@ -25,5 +25,14 @@
   "leave_note": "Leaving a group or channel can remove it from your dialog list. This action does not delete the remote chat.",
   "working": "Working…",
   "failed": "Telegram action failed.",
-  "success": "{{action}} completed. The sidebar is being synchronized."
+  "success": "{{action}} completed. The sidebar is being synchronized.",
+  "browse_drive": "Open & View Drive in AutoGram",
+  "browse_drive_desc": "View all files, media, and messages from this channel/chat in AutoGram",
+  "action_join_title": "Join this Channel / Chat",
+  "already_joined": "You have already joined this channel.",
+  "unjoined_banner_title": "Public Channel (Not Joined)",
+  "unjoined_banner_desc": "You are previewing the drive of this public channel. Click Join if you want to add it to your chat list.",
+  "unjoined_join_btn": "Join Channel",
+  "joining": "Joining…",
+  "join_success": "Successfully joined {{name}}!"
 }

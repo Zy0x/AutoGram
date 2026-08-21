@@ -46,7 +46,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import { HardDrive, Upload, Scissors, Copy, ClipboardPaste, X } from 'lucide-react';
+import { HardDrive, Upload, Scissors, Copy, ClipboardPaste, X, Globe, UserPlus, Loader2 } from 'lucide-react';
 import {
   determineIndexingTier,
   calculateIndexingMetrics,
@@ -79,7 +79,6 @@ import {
   driveListChats,
   driveScanFolders,
   driveCreateFolder,
-  driveDeleteFolder,
   driveDeleteFoldersBatch,
   driveListFiles,
   driveGetFile,
@@ -165,8 +164,6 @@ import {
   removeFoldersFromDriveSidebarSnapshot,
 } from '../../lib/telegram';
 import {
-  removeDriveRecent,
-  removeDrivePin,
   removeMultipleDriveLocations,
 } from '../../lib/telegram';
 import {
@@ -349,6 +346,7 @@ import { DownloadAllZipModal, type ZipCategory } from '../../components/drive/Mo
 import { TelegramChatActionModal } from '../../components/drive/Modals/TelegramChatActionModal';
 import {
   tgInspectChatTarget,
+  tgChatAction,
   type TgChatAction,
 } from '../../lib/telegram/core/telegramBackend';
 
@@ -479,6 +477,12 @@ function MediaDriveDesktop({
     allowedActions: TgChatAction[];
     initialAction: TgChatAction;
   } | null>(null);
+  const [unjoinedChannelNotice, setUnjoinedChannelNotice] = useState<{
+    target: string;
+    peerId: number;
+    displayName: string;
+  } | null>(null);
+  const [joiningChannel, setJoiningChannel] = useState(false);
   // Peer is ALWAYS session-scoped — never restore another account's channel id.
   const initial = (() => {
     try {
@@ -9254,7 +9258,108 @@ function MediaDriveDesktop({
     };
   }, []);
 
+  const handleBrowseTelegramDrive = useCallback(async (url: string) => {
+    if (!creds) return;
+    try {
+      const result = await tgInspectChatTarget({
+        session: creds.session,
+        apiId: Number(creds.apiId) || 0,
+        apiHash: creds.apiHash,
+        target: url,
+      });
+      if (!result?.ok || !result.data) {
+        setError(result?.userMessage || result?.error?.message || t('telegram_actions.failed'));
+        return;
+      }
+      if (result.data.peerId != null) {
+        setLocationKind('chat');
+        setActivePeerId(Number(result.data.peerId));
+        setTopicFilter(null);
+        topicFilterRef.current = null;
+        setLinkPreviewFile(null);
+        if (!result.data.joined && result.data.canJoin) {
+          setUnjoinedChannelNotice({
+            target: url,
+            peerId: Number(result.data.peerId),
+            displayName: result.data.displayName || url,
+          });
+        } else {
+          setUnjoinedChannelNotice(null);
+        }
+        return;
+      }
+      // If it is a private invite link (peerId is null because Telegram requires joining first)
+      setTelegramActionContext({
+        target: url,
+        allowedActions: ['join'],
+        initialAction: 'join',
+      });
+    } catch (err: any) {
+      setError(err?.message || t('telegram_actions.failed'));
+    }
+  }, [creds, t]);
 
+  const handleJoinTelegramChat = useCallback(async (url: string) => {
+    if (!creds) return;
+    try {
+      const result = await tgInspectChatTarget({
+        session: creds.session,
+        apiId: Number(creds.apiId) || 0,
+        apiHash: creds.apiHash,
+        target: url,
+      });
+      if (!result?.ok || !result.data) {
+        setError(result?.userMessage || result?.error?.message || t('telegram_actions.failed'));
+        return;
+      }
+      if (result.data.joined) {
+        setStatusText(t('telegram_actions.already_joined'));
+        if (result.data.peerId != null) {
+          setLocationKind('chat');
+          setActivePeerId(Number(result.data.peerId));
+          setTopicFilter(null);
+          topicFilterRef.current = null;
+          setLinkPreviewFile(null);
+        }
+        return;
+      }
+      const isBotAction = result.data.kind === 'bot';
+      setTelegramActionContext({
+        target: url,
+        allowedActions: isBotAction
+          ? ['start_bot', 'stop_bot', 'send_message']
+          : ['join'],
+        initialAction: isBotAction ? 'start_bot' : 'join',
+      });
+    } catch (err: any) {
+      setError(err?.message || t('telegram_actions.failed'));
+    }
+  }, [creds, t]);
+
+  const handleJoinCurrentUnjoinedChannel = useCallback(async () => {
+    if (!creds || !unjoinedChannelNotice) return;
+    setJoiningChannel(true);
+    try {
+      const result = await tgChatAction({
+        session: creds.session,
+        apiId: Number(creds.apiId) || 0,
+        apiHash: creds.apiHash,
+        action: 'join',
+        target: unjoinedChannelNotice.target,
+      });
+      if (!result?.ok) {
+        throw new Error(result?.userMessage || result?.error?.message || t('telegram_actions.failed'));
+      }
+      const joinedName = unjoinedChannelNotice.displayName;
+      setUnjoinedChannelNotice(null);
+      setStatusText(t('telegram_actions.join_success', { name: joinedName }));
+      await powerRefresh();
+    } catch (err: any) {
+      setError(err?.message || t('telegram_actions.failed'));
+    } finally {
+      setJoiningChannel(false);
+    }
+  }, [creds, unjoinedChannelNotice, powerRefresh, t]);
 
   return (
     <main
@@ -9713,6 +9818,37 @@ function MediaDriveDesktop({
             }}
           />
 
+          {unjoinedChannelNotice && (
+            <div className="tg-unjoined-channel-banner">
+              <div className="tg-unjoined-channel-info">
+                <Globe size={18} className="tg-unjoined-channel-icon" />
+                <div className="tg-unjoined-channel-texts">
+                  <strong>{t('telegram_actions.unjoined_banner_title')}</strong>
+                  <span>{t('telegram_actions.unjoined_banner_desc')}</span>
+                </div>
+              </div>
+              <div className="tg-unjoined-channel-actions">
+                <button
+                  type="button"
+                  className="td-btn-primary tg-unjoined-join-btn"
+                  disabled={joiningChannel}
+                  onClick={handleJoinCurrentUnjoinedChannel}
+                >
+                  {joiningChannel ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
+                  <span>{joiningChannel ? t('telegram_actions.joining') : t('telegram_actions.unjoined_join_btn')}</span>
+                </button>
+                <button
+                  type="button"
+                  className="tg-unjoined-dismiss-btn"
+                  onClick={() => setUnjoinedChannelNotice(null)}
+                  title={t('telegram_actions.close_aria')}
+                >
+                  <X size={15} />
+                </button>
+              </div>
+            </div>
+          )}
+
           <DriveToolsPanel
             open={toolsOpen}
             tab={toolsTab}
@@ -9960,39 +10096,9 @@ function MediaDriveDesktop({
                 // avoids a popstate race while handing the URL across modals.
                 setRemoteUploadOpen(true);
               }}
-              onOpenTelegramLink={async (url) => {
-                if (!creds) return;
-                const result = await tgInspectChatTarget({
-                  session: creds.session,
-                  apiId: Number(creds.apiId) || 0,
-                  apiHash: creds.apiHash,
-                  target: url,
-                });
-                if (!result?.ok || !result.data) {
-                  setError(result?.userMessage || result?.error?.message || t('telegram_actions.failed'));
-                  return;
-                }
-                if (result.data.joined && result.data.peerId != null) {
-                  setLocationKind('chat');
-                  setActivePeerId(Number(result.data.peerId));
-                  setTopicFilter(null);
-                  topicFilterRef.current = null;
-                  setLinkPreviewFile(null);
-                  return;
-                }
-                const isBotAction = result.data.kind === 'bot';
-                if (!isBotAction && !result.data.canJoin) {
-                  setError(t('telegram_actions.destination_not_joinable'));
-                  return;
-                }
-                setTelegramActionContext({
-                  target: url,
-                  allowedActions: isBotAction
-                    ? ['start_bot', 'stop_bot', 'send_message']
-                    : ['join'],
-                  initialAction: isBotAction ? 'start_bot' : 'join',
-                });
-              }}
+              onOpenTelegramLink={handleBrowseTelegramDrive}
+              onBrowseTelegramDrive={handleBrowseTelegramDrive}
+              onJoinTelegramChat={handleJoinTelegramChat}
               escapeDisabled={remoteUploadOpen || Boolean(telegramActionContext)}
             />
           </div>
@@ -10063,6 +10169,13 @@ function MediaDriveDesktop({
         setRemoteUploadOpen={setRemoteUploadOpen}
         transferSettings={transferSettings}
         handleRemoteUpload={handleRemoteUpload}
+        onOpenTelegramLink={handleBrowseTelegramDrive}
+        onBrowseTelegramDrive={handleBrowseTelegramDrive}
+        onJoinTelegramChat={handleJoinTelegramChat}
+        onSendToRemoteLink={(url) => {
+          setRemoteUploadInitialUrl(url);
+          setRemoteUploadOpen(true);
+        }}
       />
       <TelegramChatActionModal
         open={Boolean(telegramActionContext)}
@@ -10073,7 +10186,28 @@ function MediaDriveDesktop({
         contextual
         onClose={() => setTelegramActionContext(null)}
         onChanged={async () => {
+          const actionTarget = telegramActionContext?.target;
           await powerRefresh();
+          if (actionTarget && creds) {
+            try {
+              const insp = await tgInspectChatTarget({
+                session: creds.session,
+                apiId: Number(creds.apiId) || 0,
+                apiHash: creds.apiHash,
+                target: actionTarget,
+              });
+              if (insp?.ok && insp.data?.peerId != null) {
+                setLocationKind('chat');
+                setActivePeerId(Number(insp.data.peerId));
+                setTopicFilter(null);
+                topicFilterRef.current = null;
+                setUnjoinedChannelNotice(null);
+                setLinkPreviewFile(null);
+              }
+            } catch {
+              // ignore navigation error on refresh
+            }
+          }
           setTelegramActionContext(null);
         }}
       />

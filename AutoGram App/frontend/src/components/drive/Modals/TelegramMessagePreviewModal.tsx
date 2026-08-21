@@ -14,7 +14,8 @@ import {
   Send,
   Download,
   ExternalLink,
-  LogIn,
+  FolderOpen,
+  UserPlus,
 } from 'lucide-react';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
 import {
@@ -54,6 +55,8 @@ export interface TelegramMessagePreviewModalProps {
   folderId?: number | null;
   onSendToRemoteLink?: (url: string) => void;
   onOpenTelegramLink?: (url: string) => void;
+  onBrowseTelegramDrive?: (url: string) => void;
+  onJoinTelegramChat?: (url: string) => void;
   escapeDisabled?: boolean;
 }
 
@@ -122,6 +125,8 @@ export function TelegramMessagePreviewModal({
   folderId,
   onSendToRemoteLink,
   onOpenTelegramLink,
+  onBrowseTelegramDrive,
+  onJoinTelegramChat,
   escapeDisabled = false,
 }: TelegramMessagePreviewModalProps) {
   const { t } = useTranslation();
@@ -535,52 +540,111 @@ export function TelegramMessagePreviewModal({
                           <button
                             type="button"
                             className="tg-msg-link-open"
-                            onClick={() => void openUrl(url).catch(() => undefined)}
-                            title={t('speedtest.link_preview_open')}
+                            onClick={() => {
+                              if (isTelegramActionLink(url) && onBrowseTelegramDrive) {
+                                onBrowseTelegramDrive(url);
+                              } else {
+                                void openUrl(url).catch(() => undefined);
+                              }
+                            }}
+                            title={
+                              isTelegramActionLink(url)
+                                ? t('telegram_actions.browse_drive_desc')
+                                : t('speedtest.link_preview_open')
+                            }
                           >
                             <span className="tg-msg-link-domain">{host}</span>
                             <span className="tg-msg-link-url">{url}</span>
-                            <ExternalLink size={14} aria-hidden />
                           </button>
-                          <button
-                            type="button"
-                            className="tg-msg-link-icon-action"
-                            onClick={() => void handleCopyUrl(url)}
-                            title={t('speedtest.link_preview_copy')}
-                            aria-label={t('speedtest.link_preview_copy')}
-                          >
-                            {copiedUrl === url ? <Check size={14} /> : <Copy size={14} />}
-                          </button>
-                          {onSendToRemoteLink && !isTelegramActionLink(url) && (
+                          <div className="tg-msg-link-actions-group">
                             <button
                               type="button"
                               className="tg-msg-link-icon-action"
-                              onClick={(event) => {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                onSendToRemoteLink(url);
-                              }}
-                              title={t('speedtest.link_preview_send_remote')}
-                              aria-label={t('speedtest.link_preview_send_remote')}
+                              onClick={() => void handleCopyUrl(url)}
+                              title={t('speedtest.link_preview_copy')}
+                              aria-label={t('speedtest.link_preview_copy')}
                             >
-                              <Send size={14} aria-hidden />
+                              {copiedUrl === url ? <Check size={14} /> : <Copy size={14} />}
                             </button>
-                          )}
-                          {onOpenTelegramLink && isTelegramActionLink(url) && (
-                            <button
-                              type="button"
-                              className="tg-msg-link-icon-action"
-                              onClick={(event) => {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                onOpenTelegramLink(url);
-                              }}
-                              title={t('telegram_actions.open_context')}
-                              aria-label={t('telegram_actions.open_context')}
-                            >
-                              <LogIn size={14} aria-hidden />
-                            </button>
-                          )}
+                            {isTelegramActionLink(url) ? (
+                              <>
+                                {(onBrowseTelegramDrive || onOpenTelegramLink) && (
+                                  <button
+                                    type="button"
+                                    className="tg-msg-link-icon-action tg-msg-link-browse-btn"
+                                    onClick={(event) => {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      if (onBrowseTelegramDrive) {
+                                        onBrowseTelegramDrive(url);
+                                      } else if (onOpenTelegramLink) {
+                                        onOpenTelegramLink(url);
+                                      }
+                                    }}
+                                    title={t('telegram_actions.browse_drive')}
+                                    aria-label={t('telegram_actions.browse_drive')}
+                                  >
+                                    <FolderOpen size={14} aria-hidden />
+                                  </button>
+                                )}
+                                {(onJoinTelegramChat || onOpenTelegramLink) && (
+                                  <button
+                                    type="button"
+                                    className="tg-msg-link-icon-action tg-msg-link-join-btn"
+                                    onClick={(event) => {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      if (onJoinTelegramChat) {
+                                        onJoinTelegramChat(url);
+                                      } else if (onOpenTelegramLink) {
+                                        onOpenTelegramLink(url);
+                                      }
+                                    }}
+                                    title={t('telegram_actions.action_join_title')}
+                                    aria-label={t('telegram_actions.action_join_title')}
+                                  >
+                                    <UserPlus size={14} aria-hidden />
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  className="tg-msg-link-icon-action"
+                                  onClick={() => void openUrl(url).catch(() => undefined)}
+                                  title={t('speedtest.link_preview_open')}
+                                  aria-label={t('speedtest.link_preview_open')}
+                                >
+                                  <ExternalLink size={14} aria-hidden />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                {onSendToRemoteLink && (
+                                  <button
+                                    type="button"
+                                    className="tg-msg-link-icon-action"
+                                    onClick={(event) => {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      onSendToRemoteLink(url);
+                                    }}
+                                    title={t('speedtest.link_preview_send_remote')}
+                                    aria-label={t('speedtest.link_preview_send_remote')}
+                                  >
+                                    <Send size={14} aria-hidden />
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  className="tg-msg-link-icon-action"
+                                  onClick={() => void openUrl(url).catch(() => undefined)}
+                                  title={t('speedtest.link_preview_open')}
+                                  aria-label={t('speedtest.link_preview_open')}
+                                >
+                                  <ExternalLink size={14} aria-hidden />
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
                       );
                     })}

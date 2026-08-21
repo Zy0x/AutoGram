@@ -25,5 +25,14 @@
   "leave_note": "Keluar dari grup atau channel dapat menghapusnya dari daftar dialog Anda. Aksi ini tidak menghapus chat di server.",
   "working": "Memproses…",
   "failed": "Aksi Telegram gagal.",
-  "success": "{{action}} selesai. Sidebar sedang disinkronkan."
+  "success": "{{action}} selesai. Sidebar sedang disinkronkan.",
+  "browse_drive": "Buka & Lihat Isi Drive di AutoGram",
+  "browse_drive_desc": "Lihat seluruh berkas, media, dan pesan dari channel/chat ini di AutoGram",
+  "action_join_title": "Gabung ke Channel / Chat ini",
+  "already_joined": "Anda sudah bergabung di channel ini.",
+  "unjoined_banner_title": "Channel Publik (Belum Bergabung)",
+  "unjoined_banner_desc": "Anda sedang melihat isi drive dari channel publik ini. Klik Gabung jika ingin menambahkan ke daftar chat Anda.",
+  "unjoined_join_btn": "Gabung ke Channel",
+  "joining": "Sedang bergabung…",
+  "join_success": "Berhasil bergabung ke {{name}}!"
 }

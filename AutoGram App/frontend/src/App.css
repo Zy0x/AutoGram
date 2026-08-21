@@ -3331,12 +3331,12 @@ body.td-dnd-external {
   gap: 6px;
 }
 .tg-msg-link-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 2px 10px;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   width: 100%;
-  padding: 8px 9px;
+  padding: 8px 10px;
   border: 1px solid color-mix(in srgb, var(--td-primary) 24%, var(--td-border));
   border-radius: 8px;
   background: color-mix(in srgb, var(--td-surface-1) 90%, transparent);
@@ -3350,9 +3350,9 @@ body.td-dnd-external {
   outline: none;
 }
 .tg-msg-link-open {
-  grid-column: 1;
-  display: grid;
+  flex: 1 1 0%;
   min-width: 0;
+  display: grid;
   gap: 2px;
   padding: 0;
   border: 0;
@@ -3360,6 +3360,12 @@ body.td-dnd-external {
   color: inherit;
   text-align: left;
   cursor: pointer;
+}
+.tg-msg-link-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
 }
 .tg-msg-link-domain,
 .tg-msg-link-url {
@@ -3386,11 +3392,21 @@ body.td-dnd-external {
   background: var(--td-surface-2);
   color: var(--td-primary);
   cursor: pointer;
+  transition: all 0.18s ease;
 }
 .tg-msg-link-icon-action:hover,
 .tg-msg-link-icon-action:focus-visible {
   border-color: var(--td-primary);
+  background: color-mix(in srgb, var(--td-primary) 12%, var(--td-surface-2));
   outline: none;
+}
+.tg-msg-link-browse-btn:hover {
+  background: color-mix(in srgb, #3b82f6 18%, var(--td-surface-2));
+  border-color: #3b82f6;
+}
+.tg-msg-link-join-btn:hover {
+  background: color-mix(in srgb, #10b981 18%, var(--td-surface-2));
+  border-color: #10b981;
 }
 .tg-msg-link-row svg {
   color: var(--td-primary);
@@ -3403,6 +3419,92 @@ body.td-dnd-external {
   .tg-msg-link-preview {
     min-width: 0;
     width: 100%;
+  }
+}
+
+/* Unjoined Channel Banner */
+.tg-unjoined-channel-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  margin: 8px 16px 0 16px;
+  background: color-mix(in srgb, var(--td-primary) 10%, var(--td-surface-1));
+  border: 1px solid color-mix(in srgb, var(--td-primary) 32%, var(--td-border));
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.tg-unjoined-channel-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.tg-unjoined-channel-icon {
+  color: var(--td-primary);
+  flex-shrink: 0;
+}
+.tg-unjoined-channel-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.tg-unjoined-channel-texts strong {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--td-text);
+}
+.tg-unjoined-channel-texts span {
+  font-size: 0.74rem;
+  color: var(--td-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tg-unjoined-channel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.tg-unjoined-join-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 650;
+  border-radius: 8px;
+  min-height: 34px;
+}
+.tg-unjoined-dismiss-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--td-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--td-sub);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.tg-unjoined-dismiss-btn:hover {
+  color: var(--td-text);
+  border-color: var(--td-text);
+}
+@media (max-width: 640px) {
+  .tg-unjoined-channel-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin: 6px 10px 0 10px;
+    padding: 10px 12px;
+  }
+  .tg-unjoined-channel-actions {
+    justify-content: flex-end;
   }
 }
 .td-placeholder-label {

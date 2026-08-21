@@ -86,6 +86,10 @@ export interface MediaStudioModalsContainerProps {
     destination: DriveDestChoice,
     opts?: { customFilename?: string; asDocument?: boolean }
   ) => Promise<void>;
+  onOpenTelegramLink?: (url: string) => void;
+  onBrowseTelegramDrive?: (url: string) => void;
+  onJoinTelegramChat?: (url: string) => void;
+  onSendToRemoteLink?: (url: string) => void;
 }
 
 export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProps> = ({
@@ -154,6 +158,10 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
   remoteUploadInitialUrl,
   setRemoteUploadOpen,
   handleRemoteUpload,
+  onOpenTelegramLink,
+  onBrowseTelegramDrive,
+  onJoinTelegramChat,
+  onSendToRemoteLink,
 }) => {
   const { t } = useTranslation();
   const [infoFile, setInfoFile] = useState<DriveFile | null>(null);
@@ -417,6 +425,10 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
                   })()
                 : chats.find((c) => c.id === activePeerId)?.name || 'Chat'
           }
+          onOpenTelegramLink={onOpenTelegramLink}
+          onBrowseTelegramDrive={onBrowseTelegramDrive}
+          onJoinTelegramChat={onJoinTelegramChat}
+          onSendToRemoteLink={onSendToRemoteLink}
         />
       )}
 
