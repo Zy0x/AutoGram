@@ -80,6 +80,7 @@ import {
   driveScanFolders,
   driveCreateFolder,
   driveDeleteFolder,
+  driveDeleteFoldersBatch,
   driveListFiles,
   driveGetFile,
   driveMediaStats,
@@ -155,10 +156,18 @@ import {
   loadDriveLocationSnapshot,
   saveDriveLocationSnapshot,
   removeFilesFromDriveLocationSnapshot,
+  clearDriveLocationForPeer,
+  clearMultipleDriveLocations,
 } from '../../lib/telegram';
 import {
   loadDriveSidebarSnapshot,
   saveDriveSidebarSnapshot,
+  removeFoldersFromDriveSidebarSnapshot,
+} from '../../lib/telegram';
+import {
+  removeDriveRecent,
+  removeDrivePin,
+  removeMultipleDriveLocations,
 } from '../../lib/telegram';
 import {
   loadDriveTopicsSnapshot,
@@ -328,6 +337,7 @@ import {
 import {
   buildDriveBreadcrumbSegments,
   folderDirectChildIds,
+  folderAllDescendantIds,
   wouldCreateFolderCycle,
   withFolderOrphanFlags,
 } from '../../lib/telegram';
@@ -1444,8 +1454,20 @@ function MediaDriveDesktop({
     (e: unknown, opts?: { gen?: number }) => {
       if (opts?.gen != null && opts.gen !== peerGen.current) return false;
       if (!isPeerEntityError(e)) return false;
+      const invalidPeer = activePeerId;
       if (session) {
         saveDrivePeer(session, { kind: 'saved', id: null });
+        if (invalidPeer != null) {
+          removeMultipleDriveLocations(session, [invalidPeer]);
+          removeFoldersFromDriveSidebarSnapshot(localStorage, session, [invalidPeer]);
+          clearDriveLocationForPeer(localStorage, session, invalidPeer);
+        }
+      }
+      if (invalidPeer != null) {
+        setFolders((prev) => prev.filter((f) => f.id !== invalidPeer));
+        setChats((prev) => prev.filter((c) => c.id !== invalidPeer));
+        setRecents((prev) => prev.filter((r) => r.id !== invalidPeer));
+        setPins((prev) => prev.filter((p) => p.id !== invalidPeer));
       }
       setLocationKind('saved');
       setActivePeerId(null);
@@ -1457,7 +1479,7 @@ function MediaDriveDesktop({
       setNextOffsetId(null);
       return true;
     },
-    [session]
+    [session, activePeerId, t]
   );
 
   /** Sync session switch — clear UI before paint so Terbaru/location never bleed. */
@@ -2431,12 +2453,35 @@ function MediaDriveDesktop({
             if (gen === peerGen.current) setLoadingChats(false);
           });
 
-        // 3) Drives [TD] are derived incrementally from dialog pages. The old
-        // automatic 500-dialog scan could hold the account lock for 30-60s and
-        // make every click/reload wait behind invisible background work.
-        const foldersP = chatsP.finally(() => {
-          if (gen === peerGen.current) setLoadingFolders(false);
-        });
+        // 3) Drives [TD] background sync: reconcile alive folders from Telegram
+        const foldersP = driveScanFolders(creds)
+          .then((fr: { folders?: DriveFolder[] } | DriveFolder[]) => {
+            if (gen !== peerGen.current) return;
+            const list = (Array.isArray(fr) ? fr : (fr as any)?.folders || []) as DriveFolder[];
+            const normalized = withFolderOrphanFlags(Array.isArray(list) ? list : []);
+            const liveFolderIds = new Set(normalized.map((f) => f.id));
+            startTransition(() => {
+              if (gen !== peerGen.current) return;
+              setFolders(normalized);
+            });
+            try {
+              saveDriveSidebarSnapshot(localStorage, creds.session, { folders: normalized });
+              setRecents((prev) => {
+                const alive = prev.filter((r) => r.kind !== 'drive' || r.id == null || liveFolderIds.has(r.id));
+                return alive;
+              });
+              setPins((prev) => {
+                const alive = prev.filter((p) => p.kind !== 'drive' || p.id == null || liveFolderIds.has(p.id));
+                return alive;
+              });
+            } catch {
+              /* sidebar cache is best-effort */
+            }
+          })
+          .catch(() => { /* ignore background scan errors */ })
+          .finally(() => {
+            if (gen === peerGen.current) setLoadingFolders(false);
+          });
 
         // "Ready" means the grid is usable; sidebar/folders continue progressively.
         await filesP;
@@ -2586,6 +2631,9 @@ function MediaDriveDesktop({
             });
             try {
               saveDriveSidebarSnapshot(localStorage, creds.session, { folders: normalized });
+              const liveFolderIds = new Set(normalized.map((f) => f.id));
+              setRecents((prev) => prev.filter((r) => r.kind !== 'drive' || r.id == null || liveFolderIds.has(r.id)));
+              setPins((prev) => prev.filter((p) => p.kind !== 'drive' || p.id == null || liveFolderIds.has(p.id)));
             } catch {
               /* sidebar cache is best-effort */
             }
@@ -2607,6 +2655,9 @@ function MediaDriveDesktop({
             });
             try {
               saveDriveSidebarSnapshot(localStorage, creds.session, { folders: normalized });
+              const liveFolderIds = new Set(normalized.map((f) => f.id));
+              setRecents((prev) => prev.filter((r) => r.kind !== 'drive' || r.id == null || liveFolderIds.has(r.id)));
+              setPins((prev) => prev.filter((p) => p.kind !== 'drive' || p.id == null || liveFolderIds.has(p.id)));
             } catch {
               /* sidebar cache is best-effort */
             }
@@ -6036,7 +6087,10 @@ function MediaDriveDesktop({
     const row = folders.find((f) => f.id === folderId);
     const kind = driveItemKind(row);
     const kindLabel = labelDriveItem(row);
+    const descendantIds = folderAllDescendantIds(folders, folderId);
     const childIds = folderDirectChildIds(folders, folderId);
+    const allDeletedIds = [folderId, ...descendantIds];
+    const deleteSet = new Set(allDeletedIds);
     const childNames = childIds.map(
       (id) => folders.find((f) => f.id === id)?.name || `Folder ${id}`
     );
@@ -6056,28 +6110,47 @@ function MediaDriveDesktop({
                 ? `Menghapus ${kindLabel.toLowerCase()} “${folderName}” + isinya…`
                 : `Menghapus ${kindLabel.toLowerCase()} “${folderName}”…`
             );
+
+            // 1. INSTANT OPTIMISTIC UI PURGE (0ms)
+            const remainingFolders = folders.filter((f) => !deleteSet.has(f.id));
+            setFolders(remainingFolders);
+            setChats((prev) => prev.filter((c) => !deleteSet.has(c.id)));
+            setRecents((prev) => prev.filter((r) => !(r.kind === 'drive' && r.id != null && deleteSet.has(r.id))));
+            setPins((prev) => prev.filter((p) => !(p.kind === 'drive' && p.id != null && deleteSet.has(p.id))));
+
             try {
-              await ensureDriveSession(creds);
+              removeMultipleDriveLocations(creds.session, allDeletedIds);
+              removeFoldersFromDriveSidebarSnapshot(localStorage, creds.session, allDeletedIds);
+              clearMultipleDriveLocations(localStorage, creds.session, allDeletedIds);
             } catch {
-              /* one-shot fallback */
+              /* ignore cache error */
             }
-            // Always cascade: user expects full delete of Drive/Folder + nested content
-            await driveDeleteFolder(creds, folderId, {
-              cascade: true,
-              detachChildren: false,
-            });
-            if (locationKind === 'drive' && activePeerId === folderId) {
+
+            if (locationKind === 'drive' && activePeerId != null && deleteSet.has(activePeerId)) {
+              saveDrivePeer(creds.session, { kind: 'saved', id: null });
               setLocationKind('saved');
               setActivePeerId(null);
               setTopicFilter(null);
               topicFilterRef.current = null;
               setFiles([]);
+              setFilesHasMore(false);
+              setNextOffsetId(null);
             }
-            await refreshLocations();
+
+            try {
+              await ensureDriveSession(creds);
+            } catch {
+              /* one-shot fallback */
+            }
+
+            // 2. SERVER MTPROTO CASCADE DELETION
+            await driveDeleteFoldersBatch(creds, allDeletedIds);
             setStatusText(`${kindLabel} dihapus: ${folderName}`);
+            void refreshLocations();
           } catch (e: any) {
             setError(String(e?.message || e || `Gagal menghapus ${kindLabel.toLowerCase()}`));
             setStatusText(t('nav.status_idle'));
+            void refreshLocations();
           }
         })();
       },

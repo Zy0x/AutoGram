@@ -1,3 +1,22 @@
+## v3.8.0 2-Way Instant Drive Deletion & Sidebar Tab Live Synchronization Engine (Phase 35.66)
+
+### 1. Instant Optimistic UI Purge (0ms Latency)
+- **Penghapusan Seketika pada UI**:
+  - Menghapus Drive atau subfolder dari state React (`folders`, `chats`, `recents`, `pins`) seketika saat dialog konfirmasi hapus disetujui.
+  - Tab Drives, Tab Recent, Pinned favorites, dan Quick Bar langsung ter-update secara instan tanpa menunggu waktu proses jaringan Telegram.
+  - Snapshot cache sidebar (`removeFoldersFromDriveSidebarSnapshot`) dan location caches (`clearMultipleDriveLocations`) langsung dibersihkan secara lokal.
+
+### 2. Full Cascade Permanent Deletion on Telegram MTProto
+- **Penghapusan Hierarki Lengkap di Server**:
+  - Menambahkan traversal rekursif `folderAllDescendantIds` pada `chatSearch.ts` untuk mengidentifikasi seluruh tingkatan subfolder turunan (anak, cucu, cicit).
+  - Mengimplementasikan `driveDeleteFoldersBatch` pada `driveFoldersApi.ts` yang mengeksekusi penghapusan permanen ke Telegram server (`channels.DeleteChannel` / `delete_dialog`) secara paralel dan andal.
+
+### 3. Live 2-Way Sync & External Deletion Detection
+- **Sinkronisasi Otomatis 2 Arah**:
+  - Memperbaiki penanganan warm path di mana pemindaian dialog background (`driveScanFolders`) secara otomatis merekonsiliasi daftar channel `[TD]` aktif.
+  - Jika channel dihapus dari luar aplikasi (Telegram mobile/desktop/web), sistem langsung mendeteksi ketiadaannya dan membersihkannya dari Sidebar, Recents, Pins, dan Snapshot Cache.
+  - Penguatan `recoverInvalidPeerLocation` untuk membersihkan identitas channel invalid yang terhapus secara otomatis dan mengarahkan navigasi kembali ke Saved Messages secara aman.
+
 ## v3.7.99 Persistent Session-Scoped Indexing, 2-Way Delta Sync, Multi-Tier Caching, RAM Garbage Collection & 4K/8K Media Streaming Engine (Phase 35.65)
 
 ### 1. Persistent Session-Scoped Indexing & Zero Cold-Start

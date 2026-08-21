@@ -1,14 +1,14 @@
-AutoGram Version: v3.7.99
+AutoGram Version: v3.8.0
 
 Current State:
-v3.7.99 Persistent Session-Scoped Indexing, 2-Way Delta Sync, Multi-Tier Caching, RAM Garbage Collection & 4K/8K Media Streaming Engine — menghadirkan arsitektur performa tinggi dan sinkronisasi live 100% dengan Telegram:
-1. Persistent Session-Scoped Indexing & Zero Cold-Start: Pengindeksan tersimpan permanen per session di IndexedDB & SQLite (`topic_media_items`). Saat aplikasi dibuka ulang / berganti session / crash, daftar berkas langsung tampil instan (0ms) tanpa perlu proses ulang.
-2. 2-Way Live Delta Sync: Auto-detect status backfill lengkap (`backfillComplete: true`), secara otomatis hanya mengecek pesan baru (`min_id = newestCommittedId`) dan menghapus pesan terhapus dari server Telegram tanpa memindai ulang dari awal.
-3. Multi-Tier High-Performance Caching (L1/L2/L3): In-memory lock-free micro-cache (L1) untuk media item & search cursor, persistent SQLite WAL & IndexedDB (L2), serta multiplexed Telegram network stream (L3).
-4. Proactive Garbage Collection & RAM Hygiene: Background GC daemon di Rust (`memory_gc.rs`) dan TypeScript (`garbageCollector.ts`) membersihkan buffer streaming kadaluarsa, revokasi Object URL, dan menjalankan passive SQLite WAL checkpointing setiap 45 detik.
-5. CDN-Grade 4K/8K Media Streaming Pipeline: Prefetching prediktif 32MB–64MB di depan kursor playback, chunk alignment 512KB, ekstraksi atom MOOV instan (<100ms first play), dan optimasi header HTTP Range (`Accept-Ranges`, `Cache-Control: public, max-age=31536000, immutable`).
+v3.8.0 2-Way Instant Drive Deletion & Sidebar Tab Live Synchronization Engine — menghadirkan sinkronisasi penghapusan Drive instan (0ms) pada antarmuka sidebar/tab dan penghapusan permanen dua arah di server Telegram:
+1. Instant Optimistic UI Purge (0ms): Ketika user menghapus Drive atau subfolder, item tersebut seketika lenyap dari daftar sidebar, Tab Drives, Tab Recent, Pinned, dan Quick Bar tanpa menunggu jeda jaringan.
+2. Full Cascade Deletion on Telegram MTProto: Seluruh channel subfolder turunan (anak, cucu, cicit) beserta channel Drive induk dihapus secara tuntas dan permanen dari server Telegram (`channels.DeleteChannel`).
+3. 2-Way Live Sync & Zombie Pruning: Pemindaian background secara otomatis mendeteksi ketiadaan channel yang dihapus dari luar aplikasi (Telegram mobile/desktop/web), membersihkan cache snapshot sidebar, location snapshots, recents, dan pins secara real-time.
+4. Auto Navigation Recovery: Jika lokasi aktif berada di dalam Drive atau subfolder yang terhapus, sistem secara otomatis mengembalikan navigasi ke Saved Messages dengan aman.
 
 Previous:
+v3.7.99 Persistent Session-Scoped Indexing, 2-Way Delta Sync, Multi-Tier Caching, RAM Garbage Collection & 4K/8K Media Streaming Engine — menghadirkan arsitektur performa tinggi dan sinkronisasi live 100% dengan Telegram.
 v3.7.98 Live Destructive Crash/Resume Torture Validation Gate (P2.2 Complete) — mengeksekusi dan memvalidasi seluruh 12 skenario destructive crash/resume live pada channel #Gudang (Topic 9929, 1.992 item) via CDP Native WebView2.
 v3.7.97 Crash-Safe Historical Resume & Durable Delta Indexing (P2 Complete) — membenahi `telegram_ops.rs`, `media_list.rs`, `telegramBackend.ts`, `driveFilesApi.ts`, `mediaStudioDb.ts`, `MediaStudio/index.tsx`, `mediaStudioDb.test.ts`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v3.7.96 Checkpoint Transport Integrity (P1.7 Complete) — membenahi `driveFilesApi.ts`, `mediaStudioDb.ts`, `MediaStudio/index.tsx`, `mediaStudioDb.test.ts`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.
