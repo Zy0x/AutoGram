@@ -1,3 +1,21 @@
+## v3.8.3 Per-Location Filter Isolation & Rapid Preview Load Optimization Engine (Phase 35.69)
+
+### 1. Per-Location Filter Isolation & Scope Reset
+- **Reset Pemfilteran Otomatis saat Berpindah Drive / Channel**:
+  - Menyelesaikan masalah persistensi filter yang terbawa antar drive/channel dengan menambahkan observer cakupan lokasi aktif (`activeLocationScopeKey`).
+  - Setiap kali pengguna berpindah ke channel, drive, atau chat lain, filter media (`mediaFilter`) secara otomatis di-reset ke nilai default yang logis (`'all'`), kata kunci pencarian (`query`) dikosongkan, filter lanjutan (`advFilter`) dibersihkan, dan seleksi berkas (`selectedIds`) di-reset.
+  - Setiap drive atau channel yang dibuka kini selalu menyajikan seluruh konten dan media secara lengkap sejak awal tanpa terdistorsi oleh filter dari lokasi sebelumnya.
+
+### 2. Rapid Preview Loading & Infinite Stalled Skeleton Fix
+- **Perbaikan Layar Loading Skeleton & Overlay Progres**:
+  - Menghilangkan kendala tampilan loading skeleton yang macet di 98% (`Loading Catalog 98%`) pada kanvas berkas dengan memperbaiki kondisi rendering di `DriveExplorer`.
+  - Progres overlay kini hanya ditampilkan selama pemuatan aktif (`loading === true`) dan segera menampilkan kanvas serta status kosong/banner channel tanpa menutupi interaksi pengguna.
+  - Banner Channel Publik (Belum Bergabung) dan tombol 1-klik gabung channel kini langsung dapat diakses dan responsif tanpa terhalang animasi overlay.
+
+### 3. Kepatuhan Standar Teknis & Kualitas Kode
+- **TypeScript Typecheck 100% Bersih & Zero Hardcoded Strings**:
+  - Seluruh komponen terintegrasi dengan dictionary i18n dwibahasa (Indonesia & Inggris) dan lolos validasi `npx tsc --noEmit` tanpa error.
+
 ## v3.8.2 Public Channel Unjoined Media Listing & Dual-Mode History Fallback Engine (Phase 35.68)
 
 ### 1. Dual-Mode Public Channel Media Listing & Fallback Engine

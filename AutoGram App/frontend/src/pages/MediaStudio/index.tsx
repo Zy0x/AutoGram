@@ -7429,6 +7429,21 @@ function MediaDriveDesktop({
     );
   }, [session, locationKind, activePeerId, folders, chats]);
 
+  // Reset filters (mediaFilter -> 'all', query -> '', advFilter -> empty, selectedIds -> [])
+  // when navigating to a different drive, channel, or chat so filters do not bleed across locations
+  const activeLocationScopeKey = `${session}:${locationKind}:${activePeerId ?? 'me'}:${topicFilter ?? '0'}`;
+  const prevLocationScopeKeyRef = useRef<string>(activeLocationScopeKey);
+  useEffect(() => {
+    if (prevLocationScopeKeyRef.current !== activeLocationScopeKey) {
+      prevLocationScopeKeyRef.current = activeLocationScopeKey;
+      setMediaFilter('all');
+      setQuery('');
+      setSelectedIds([]);
+      setAdvFilter({ ...EMPTY_ADV_FILTER });
+      selectionAnchorRef.current = null;
+    }
+  }, [activeLocationScopeKey]);
+
   // Auto-clear ephemeral status (stuck "Drop dibatalkan" etc.)
   useEffect(() => {
     if (mediaDragActive) return;

@@ -1491,8 +1491,8 @@ pub fn list_media_blocking_topic_cursor(
     ))
 }
 
-/// Fallback primitive using client.iter_messages for unjoined public channels
-/// or channels where search filters are restricted.
+/// Fallback primitive using client.iter_messages and direct messages.GetHistory
+/// for unjoined public channels or channels where search filters are restricted.
 pub async fn fetch_channel_history_page_async(
     client: &grammers_client::Client,
     peer_ref: grammers_session::types::PeerRef,
@@ -1500,15 +1500,75 @@ pub async fn fetch_channel_history_page_async(
     limit: i32,
     min_id: i32,
     folder_id: Option<i64>,
-) -> Result<(Vec<MediaFileRow>, Option<i32>, bool, Option<usize>), TgError> {
+) -> Result<(Vec<MediaFileRow>, Option<i32>, bool, Option<usize>, String), TgError> {
+    let mut lowest_id = None;
+    let mut rows = Vec::new();
+    let mut count = 0;
+    let mut total_count = None;
+    let mut diag = String::new();
+
+    // Strategy A: Try direct MTProto messages.GetHistory
+    let input_peer: grammers_client::tl::enums::InputPeer = (&peer_ref).into();
+    let req = grammers_client::tl::functions::messages::GetHistory {
+        peer: input_peer,
+        offset_id,
+        offset_date: 0,
+        add_offset: 0,
+        limit,
+        max_id: 0,
+        min_id,
+        hash: 0,
+    };
+
+    match client.invoke(&req).await {
+        Ok(res) => {
+            let raw_msgs = match res {
+                grammers_client::tl::enums::messages::Messages::Messages(m) => {
+                    total_count = Some(m.messages.len());
+                    diag = format!("GetHistory:Messages len={}", m.messages.len());
+                    m.messages
+                }
+                grammers_client::tl::enums::messages::Messages::Slice(m) => {
+                    total_count = Some(m.count as usize);
+                    diag = format!("GetHistory:Slice count={}, len={}", m.count, m.messages.len());
+                    m.messages
+                }
+                grammers_client::tl::enums::messages::Messages::ChannelMessages(m) => {
+                    total_count = Some(m.count as usize);
+                    diag = format!("GetHistory:ChannelMessages count={}, len={}", m.count, m.messages.len());
+                    m.messages
+                }
+                grammers_client::tl::enums::messages::Messages::NotModified(_) => {
+                    diag = "GetHistory:NotModified".to_string();
+                    Vec::new()
+                }
+            };
+
+            for tl_msg in &raw_msgs {
+                if let grammers_client::tl::enums::Message::Message(ref m) = tl_msg {
+                    count += 1;
+                    lowest_id = Some(lowest_id.map_or(m.id, |prev: i32| prev.min(m.id)));
+                }
+                if let Some(row) = tl_message_to_row(tl_msg, folder_id) {
+                    rows.push(row);
+                }
+            }
+
+            let is_exhausted = count < limit as usize || lowest_id.unwrap_or(0) <= 1;
+            diag.push_str(&format!(", parsed_rows={}", rows.len()));
+            return Ok((rows, lowest_id, is_exhausted, total_count, diag));
+        }
+        Err(e) => {
+            diag = format!("GetHistory:Err({e})");
+            eprintln!("[TG_LIST] messages.GetHistory invoke error: {e}, attempting iter_messages fallback");
+        }
+    }
+
+    // Strategy B: iter_messages wrapper
     let mut iter = client.iter_messages(peer_ref).limit(limit as usize);
     if offset_id > 0 {
         iter = iter.offset_id(offset_id);
     }
-
-    let mut lowest_id = None;
-    let mut rows = Vec::new();
-    let mut count = 0;
 
     while let Ok(Some(msg)) = iter.next().await {
         count += 1;
@@ -1523,7 +1583,8 @@ pub async fn fetch_channel_history_page_async(
     }
 
     let is_exhausted = count < limit as usize || lowest_id.unwrap_or(0) <= 1;
-    Ok((rows, lowest_id, is_exhausted, None))
+    diag.push_str(&format!(", iter_count={count}, rows={}", rows.len()));
+    Ok((rows, lowest_id, is_exhausted, total_count, diag))
 }
 
 /// Pure independent lane-fetch primitive for P4 multi-lane indexing.
@@ -1914,6 +1975,7 @@ pub async fn list_media_page_async(
                         emitted_files.push(item.row.clone());
                     }
 
+                    let mut fallback_diag = None;
                     if emitted_files.is_empty()
                         && (cursor.photo_video.exhausted || cursor.pending_photo_video.is_empty())
                         && (cursor.document.exhausted || cursor.pending_document.is_empty())
@@ -1928,8 +1990,9 @@ pub async fn list_media_page_async(
                         )
                         .await
                         {
-                            Ok((hist_rows, hist_lowest_id, hist_exhausted, hist_total)) => {
-                                eprintln!("[TG_LIST] History fallback returned {} rows (lowest_id: {:?}, total: {:?})", hist_rows.len(), hist_lowest_id, hist_total);
+                            Ok((hist_rows, hist_lowest_id, hist_exhausted, hist_total, diag)) => {
+                                eprintln!("[TG_LIST] History fallback returned {} rows (lowest_id: {:?}, total: {:?}, diag: {})", hist_rows.len(), hist_lowest_id, hist_total, diag);
+                                fallback_diag = Some(diag);
                                 if !hist_rows.is_empty() || hist_total.is_some() {
                                     emitted_files = hist_rows;
                                     if latest_pv_count.is_none() && latest_doc_count.is_none() {
@@ -1944,6 +2007,7 @@ pub async fn list_media_page_async(
                                 }
                             }
                             Err(e) => {
+                                fallback_diag = Some(format!("fetch_error:{e}"));
                                 eprintln!("[TG_LIST] History fallback error: {e}");
                             }
                         }
@@ -1981,7 +2045,9 @@ pub async fn list_media_page_async(
                     let doc_observation = rpc_observations.iter().rev().find(|o| o.lane == SearchLane::Document).cloned();
 
                     Ok(ListMediaResult {
-                        status: "ok".to_string(),
+                        status: fallback_diag
+                            .map(|d| format!("history_fallback: {d}"))
+                            .unwrap_or_else(|| "ok".to_string()),
                         folder_id,
                         total: emitted_files.len(),
                         page_size: limit,

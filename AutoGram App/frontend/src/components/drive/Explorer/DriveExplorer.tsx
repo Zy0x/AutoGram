@@ -177,7 +177,7 @@ export function DriveExplorer({
   scanState,
   onResumeSync,
   viewPerspective = 'telegram',
-  totalCount = null,
+  totalCount: _totalCount = null,
   unavailableNotice = null,
 }: Props) {
   const { t } = useTranslation();
@@ -1094,10 +1094,10 @@ export function DriveExplorer({
         onCanvasContextMenu?.(e);
       }}
     >
-      {(loading || (!error && !unavailableNotice && files.length === 0 && Number(totalCount || 0) > 0)) ? (
+      {loading ? (
         <div style={{ padding: '16px', position: 'relative', width: '100%' }}>
           <div className="ag-loading-overlay">
-            <CenteredGlassmorphicProgress isLoading={true} />
+            <CenteredGlassmorphicProgress isLoading={loading} />
           </div>
           {viewMode === 'grid' ? <DriveGridSkeleton count={16} /> : <DriveListSkeleton count={10} />}
         </div>
