@@ -1183,6 +1183,7 @@ function MediaDriveDesktop({
         : null;
     const knownPeerTitles = [
       ...chats,
+      ...(unjoinedChannelNotice && unjoinedChannelNotice.peerId === activePeerId ? [{ id: unjoinedChannelNotice.peerId, name: unjoinedChannelNotice.displayName }] : []),
       ...pins
         .filter((entry) => entry.id != null)
         .map((entry) => ({ id: entry.id as number, name: entry.label })),
@@ -1197,7 +1198,7 @@ function MediaDriveDesktop({
       topicTitle: activeTopic?.title || null,
       topicId: activeTopic?.id ?? (topicFilter != null ? Number(topicFilter) : null),
     });
-  }, [locationKind, activePeerId, folders, chats, pins, recents, isForumChat, topicFilter, topics]);
+  }, [locationKind, activePeerId, folders, chats, pins, recents, isForumChat, topicFilter, topics, unjoinedChannelNotice]);
 
   const breadcrumb = useMemo(() => {
     if (breadcrumbSegs.length <= 1) return 'Saved Messages';

@@ -1,3 +1,21 @@
+## v3.8.2 Public Channel Unjoined Media Listing & Dual-Mode History Fallback Engine (Phase 35.68)
+
+### 1. Dual-Mode Public Channel Media Listing & Fallback Engine
+- **Pemuatan Berkas & Media Channel Publik Tanpa Perlu Bergabung**:
+  - Menyelesaikan kendala *"No match found"* ketika membuka channel Telegram publik yang belum diikuti (unjoined channel) dengan mengimplementasikan `fetch_channel_history_page_async` berbasis `client.iter_messages(peer)`.
+  - Pada protokol Telegram MTProto, filter pencarian pesan (`messages.Search` Photo/Video/Document) dibatasi oleh server untuk pengguna yang belum bergabung. AutoGram secara cerdas mendeteksi kondisi ini dan melakukan fallback otomatis ke stream riwayat channel publik secara transparan.
+  - Mendukung konversi seluruh tipe pesan channel (foto beresolusi penuh, berkas dokumen/video, pratinjau WebPage, serta posting berisikan tautan/teks) ke baris media berkas kanvas drive (`MediaFileRow`).
+
+### 2. Breadcrumb & Channel Identity Synchronization
+- **Sinkronisasi Judul Channel Publik pada Breadcrumb**:
+  - Memperbarui penyusunan segment breadcrumb `buildDriveBreadcrumbSegments` di `MediaStudio` agar mengenali nama channel publik (`unjoinedChannelNotice.displayName`) secara langsung, menggantikan representasi numerik default (`Chat -100...`).
+  - Menjaga konsistensi navigasi hierarki drive, tata letak kanvas, dan interaksi 1-klik gabung channel.
+
+### 3. Kepatuhan Standar Teknis & Internasionalisasi Penuh
+- **100% Zero Hardcoded Strings & Touch-First Layout**:
+  - Seluruh teks antarmuka dan notifikasi terikat dengan dictionary i18n dwibahasa (Indonesia dan Inggris).
+  - Menjaga kestabilan tampilan di seluruh resolusi layar desktop dan mobile sesuai pedoman Lovable Dev AI.
+
 ## v3.8.1 Remote Telegram Link Drive Explorer & 1-Click Channel Join Action Engine (Phase 35.67)
 
 ### 1. Remote Telegram Link Drive Explorer

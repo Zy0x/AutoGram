@@ -930,8 +930,182 @@ pub fn tl_message_to_row(
                     drive_format: Some(cls.drive_format),
                 })
             }
-            _ => None,
+            grammers_client::tl::enums::MessageMedia::WebPage(ref wp) => {
+                let name = if caption.is_empty() {
+                    format!("link_{id}")
+                } else {
+                    let first_line = caption.lines().next().unwrap_or(caption).trim();
+                    if first_line.len() > 60 {
+                        format!("{}…", &first_line[..60])
+                    } else {
+                        first_line.to_string()
+                    }
+                };
+                let mut photo_size = 0u64;
+                let mut has_photo = false;
+                if let grammers_client::tl::enums::WebPage::Page(ref page) = wp.webpage {
+                    if let Some(grammers_client::tl::enums::Photo::Photo(photo)) = &page.photo {
+                        has_photo = true;
+                        for s in &photo.sizes {
+                            match s {
+                                grammers_client::tl::enums::PhotoSize::Size(sz) => {
+                                    photo_size = photo_size.max(sz.size as u64);
+                                }
+                                grammers_client::tl::enums::PhotoSize::Progressive(pr) => {
+                                    if let Some(&max_sz) = pr.sizes.iter().max() {
+                                        photo_size = photo_size.max(max_sz as u64);
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+                let cls = crate::core::media_classifier::classify_media_item(
+                    &name,
+                    Some("text/html"),
+                    false,
+                    false,
+                    false,
+                );
+                Some(MediaFileRow {
+                    id,
+                    folder_id,
+                    name,
+                    size: if photo_size > 0 { photo_size } else { caption.len() as u64 },
+                    mime_type: Some("text/html".to_string()),
+                    icon_type: if has_photo { "photo".to_string() } else { "link".to_string() },
+                    created_at: created,
+                    has_thumb: has_photo || thumb_data_url.is_some(),
+                    as_document: false,
+                    backend: BACKEND.to_string(),
+                    thumb_data_url,
+                    topic_id,
+                    identity_source: Some("telegram_webpage".into()),
+                    peer_id: folder_id
+                        .map(|fid| {
+                            if fid == 0 {
+                                "me".into()
+                            } else {
+                                fid.to_string()
+                            }
+                        })
+                        .or_else(|| Some("me".into())),
+                    account_id: None,
+                    peer_kind: None,
+                    peer_username: None,
+                    grouped_id: m.grouped_id,
+                    is_saved_messages: Some(folder_id.map_or(true, |fid| fid == 0)),
+                    telegram_category: Some(cls.telegram_category),
+                    telegram_subtype: Some(cls.telegram_subtype),
+                    drive_category: Some(cls.drive_category),
+                    drive_format: Some(caption.to_string()),
+                })
+            }
+            _ => {
+                if !caption.is_empty() {
+                    let first_line = caption.lines().next().unwrap_or(caption).trim();
+                    let name = if first_line.len() > 60 {
+                        format!("{}…", &first_line[..60])
+                    } else {
+                        first_line.to_string()
+                    };
+                    let is_link = caption.contains("http://") || caption.contains("https://") || caption.contains("t.me/");
+                    let icon_type = if is_link { "link".to_string() } else { "file".to_string() };
+                    let cls = crate::core::media_classifier::classify_media_item(
+                        &name,
+                        Some("text/plain"),
+                        false,
+                        false,
+                        false,
+                    );
+                    Some(MediaFileRow {
+                        id,
+                        folder_id,
+                        name,
+                        size: caption.len() as u64,
+                        mime_type: Some("text/plain".to_string()),
+                        icon_type,
+                        created_at: created,
+                        has_thumb: thumb_data_url.is_some(),
+                        as_document: false,
+                        backend: BACKEND.to_string(),
+                        thumb_data_url,
+                        topic_id,
+                        identity_source: Some("telegram_media".into()),
+                        peer_id: folder_id
+                            .map(|fid| {
+                                if fid == 0 {
+                                    "me".into()
+                                } else {
+                                    fid.to_string()
+                                }
+                            })
+                            .or_else(|| Some("me".into())),
+                        account_id: None,
+                        peer_kind: None,
+                        peer_username: None,
+                        grouped_id: m.grouped_id,
+                        is_saved_messages: Some(folder_id.map_or(true, |fid| fid == 0)),
+                        telegram_category: Some(cls.telegram_category),
+                        telegram_subtype: Some(cls.telegram_subtype),
+                        drive_category: Some(cls.drive_category),
+                        drive_format: Some(caption.to_string()),
+                    })
+                } else {
+                    None
+                }
+            }
         }
+    } else if !caption.is_empty() {
+        let first_line = caption.lines().next().unwrap_or(caption).trim();
+        let name = if first_line.len() > 60 {
+            format!("{}…", &first_line[..60])
+        } else {
+            first_line.to_string()
+        };
+        let is_link = caption.contains("http://") || caption.contains("https://") || caption.contains("t.me/");
+        let icon_type = if is_link { "link".to_string() } else { "file".to_string() };
+        let cls = crate::core::media_classifier::classify_media_item(
+            &name,
+            Some("text/plain"),
+            false,
+            false,
+            false,
+        );
+        Some(MediaFileRow {
+            id,
+            folder_id,
+            name,
+            size: caption.len() as u64,
+            mime_type: Some("text/plain".to_string()),
+            icon_type,
+            created_at: created,
+            has_thumb: false,
+            as_document: false,
+            backend: BACKEND.to_string(),
+            thumb_data_url: None,
+            topic_id,
+            identity_source: Some("telegram_text".into()),
+            peer_id: folder_id
+                .map(|fid| {
+                    if fid == 0 {
+                        "me".into()
+                    } else {
+                        fid.to_string()
+                    }
+                })
+                .or_else(|| Some("me".into())),
+            account_id: None,
+            peer_kind: None,
+            peer_username: None,
+            grouped_id: m.grouped_id,
+            is_saved_messages: Some(folder_id.map_or(true, |fid| fid == 0)),
+            telegram_category: Some(cls.telegram_category),
+            telegram_subtype: Some(cls.telegram_subtype),
+            drive_category: Some(cls.drive_category),
+            drive_format: Some(caption.to_string()),
+        })
     } else {
         None
     }
@@ -1315,6 +1489,41 @@ pub fn list_media_blocking_topic_cursor(
         1,
         None,
     ))
+}
+
+/// Fallback primitive using client.iter_messages for unjoined public channels
+/// or channels where search filters are restricted.
+pub async fn fetch_channel_history_page_async(
+    client: &grammers_client::Client,
+    peer_ref: grammers_session::types::PeerRef,
+    offset_id: i32,
+    limit: i32,
+    min_id: i32,
+    folder_id: Option<i64>,
+) -> Result<(Vec<MediaFileRow>, Option<i32>, bool, Option<usize>), TgError> {
+    let mut iter = client.iter_messages(peer_ref).limit(limit as usize);
+    if offset_id > 0 {
+        iter = iter.offset_id(offset_id);
+    }
+
+    let mut lowest_id = None;
+    let mut rows = Vec::new();
+    let mut count = 0;
+
+    while let Ok(Some(msg)) = iter.next().await {
+        count += 1;
+        let id = msg.id();
+        lowest_id = Some(lowest_id.map_or(id, |prev: i32| prev.min(id)));
+        if min_id > 0 && id <= min_id {
+            break;
+        }
+        if let Some(row) = tl_message_to_row(&msg.raw, folder_id) {
+            rows.push(row);
+        }
+    }
+
+    let is_exhausted = count < limit as usize || lowest_id.unwrap_or(0) <= 1;
+    Ok((rows, lowest_id, is_exhausted, None))
 }
 
 /// Pure independent lane-fetch primitive for P4 multi-lane indexing.
@@ -1703,6 +1912,41 @@ pub async fn list_media_page_async(
                             }
                         }
                         emitted_files.push(item.row.clone());
+                    }
+
+                    if emitted_files.is_empty()
+                        && (cursor.photo_video.exhausted || cursor.pending_photo_video.is_empty())
+                        && (cursor.document.exhausted || cursor.pending_document.is_empty())
+                    {
+                        match fetch_channel_history_page_async(
+                            client,
+                            peer,
+                            init_offset,
+                            limit as i32,
+                            min_id_i32,
+                            folder_id,
+                        )
+                        .await
+                        {
+                            Ok((hist_rows, hist_lowest_id, hist_exhausted, hist_total)) => {
+                                eprintln!("[TG_LIST] History fallback returned {} rows (lowest_id: {:?}, total: {:?})", hist_rows.len(), hist_lowest_id, hist_total);
+                                if !hist_rows.is_empty() || hist_total.is_some() {
+                                    emitted_files = hist_rows;
+                                    if latest_pv_count.is_none() && latest_doc_count.is_none() {
+                                        latest_pv_count = hist_total;
+                                    }
+                                    cursor.photo_video.exhausted = hist_exhausted;
+                                    cursor.document.exhausted = hist_exhausted;
+                                    if let Some(last_id) = hist_lowest_id {
+                                        cursor.photo_video.fetch_offset_id = last_id;
+                                        cursor.document.fetch_offset_id = last_id;
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                eprintln!("[TG_LIST] History fallback error: {e}");
+                            }
+                        }
                     }
 
                     let lane_durability = LaneDurability {
