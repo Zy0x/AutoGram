@@ -1,3 +1,21 @@
+## v3.8.11 Password-Protected Sparse ZIP On-The-Fly Decryption & Scoped Peer/Topic MTProto Range Streaming (Phase 35.77)
+
+### 1. Accurate Scoped Peer & Topic MTProto Routing
+- **Perbaikan Resolusi Identitas Channel & Topic**:
+  - Meneruskan parameter `peerId`, `topicId`, `locationType`, dan `accountId` dari `DrivePreviewModal` ke komponen `DriveZipBrowser`.
+  - Mengintegrasikan `resolveZipChatId` pada `driveZipList`, `driveZipReadEntry`, `driveZipExtractEntry`, dan `clearZipEntryCache` sehingga pencarian dokumen pada channel/supergroup bertopik (seperti `D-1003214112048/T32793`) langsung menuju ke peer yang tepat.
+  - Memperbaiki pemanggilan `tgDebugGetMessage` agar saran kata sandi yang tercantum pada caption pesan Telegram dapat diekstraksi dan disugestikan secara otomatis ke pengguna.
+
+### 2. Zero Full-File Download Media Decrypt & Stream
+- **Dekripsi On-The-Fly Berbasis Range MTProto**:
+  - Mengeliminasi kebutuhan mengunduh penuh seluruh arsip ZIP berukuran bergiga-giga saat pengguna hanya ingin melihat gambar, video, audio, teks, atau PDF tertentu.
+  - Membaca entri ZIP terenkripsi langsung melalui `TelegramSparseReader` dengan mengambil byte range (512 KiB) yang diperlukan, mendekripsi dengan password yang valid, dan merender pratinjau instan.
+
+### 3. Instant Single-Entry Video & Media Workbench
+- **Dukungan Pratinjau Moov Atom & Video Player**:
+  - Untuk berkas video (MP4, MKV, WebM) atau media biner di dalam arsip terenkripsi, sistem mengekstrak berkas target secara terisolasi ke direktori workbench sementara (`tempDir`).
+  - Memungkinkan pemutar video membaca header atom `moov` secara langsung untuk scrubbing dan playback tanpa menunggu atau mengunduh sisa arsip ZIP lainnya.
+
 ## v3.8.10 Drive Settings Unicode-Resilient Restricted Media Filter Engine (Phase 35.76)
 
 ### 1. Universal Typography & Unicode Quotation Marks Recognition

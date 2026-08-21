@@ -5887,10 +5887,10 @@ export function DrivePreviewModal({
                     creds={creds}
                     messageId={file.id}
                     folderId={folderId}
-                    peerId={itemPeerId}
-                    topicId={itemTopicId}
-                    locationType={locationType}
-                    accountId={itemAccountId}
+                    peerId={file.peer_id || (folderId != null && folderId !== 0 ? String(folderId) : null)}
+                    topicId={file.topic_id ?? null}
+                    locationType={(file.peer_id || (folderId != null && folderId !== 0 ? String(folderId) : null)) === 'me' ? 'saved_messages' : 'group'}
+                    accountId={file.account_id || creds?.session}
                     archiveName={displayName}
                     onClose={onClose}
                     onPrev={hasPrev ? () => onPrev?.() : undefined}

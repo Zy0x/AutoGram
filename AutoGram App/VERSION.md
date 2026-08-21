@@ -1,13 +1,14 @@
-AutoGram Version: v3.8.10
+AutoGram Version: v3.8.11
 
 Current State:
-v3.8.10 Drive Settings Unicode-Resilient Restricted Media Filter Engine — membenahi dan memperkuat pemfilteran pesan terlarang/dibatasi dari Telegram MTProto agar 100% akurat menyembunyikan kartu peringatan yang tidak dapat dibuka:
-1. Universal Typography & Unicode Quotation Marks Support: Memperluas regex pattern matcher (`RESTRICTED_MEDIA_PATTERNS`) dengan dukungan penuh untuk seluruh variasi tanda petik Unicode (*Right Single Quotation Mark* `’` `\u2019`, *Left Single Quotation Mark* `‘` `\u2018`, backtick `` ` ``, acute `´`, serta petik ASCII `'`), memastikan pesan bawaan Telegram (*"This channel can’t be displayed..."*) terdeteksi dan tereliminasi secara instan saat opsi *Hide Restrict Media* aktif.
-2. Full Multi-Field & Format Inspection: Memperluas `isRestrictedOrInaccessibleFile()` untuk memindai seluruh atribut entitas berkas (`name`, `original_name`, `caption`, `mime_type`, `drive_format`, `text`, `message`, dan `file_ext`), mengantisipasi pesan teks tanpa nama dokumen atau yang terpotong menjadi format file buatan.
-3. Dual-Layer Rust & TypeScript Defense: Menambahkan deteksi klasifikasi pesan terlarang di sisi backend Rust (`media_classifier.rs`) sehingga pesan peringatan langsung diklasifikasikan sebagai `restricted` pada `telegram_category` dan `drive_category`.
-4. 100% Comprehensive Unit Test Coverage: Lolos 100% uji suite Vitest (`restrictedMediaFilter.test.ts`) dan Rust test (`test_restricted_notice_classification`) mencakup seluruh variasi pola pesan bahasa Indonesia dan Inggris.
+v3.8.11 Password-Protected Sparse ZIP On-The-Fly Decryption & Scoped Peer/Topic MTProto Range Streaming — membenahi resolusi identitas peer/topic pada sparse ZIP browser dan mengoptimalkan dekripsi on-the-fly untuk mencegah pengunduhan penuh berkas ZIP berpassword:
+1. Accurate Scoped Peer & Topic MTProto Routing: Meneruskan identitas `peerId`, `topicId`, `locationType`, dan `accountId` secara konsisten dari `DrivePreviewModal` ke `DriveZipBrowser` dan seluruh fungsi sparse ZIP API (`driveZipList`, `driveZipReadEntry`, `driveZipExtractEntry`, dan `tgDebugGetMessage`).
+2. Zero Full-Archive Download Media Decrypt: Membuka media (gambar, video, audio, teks, pdf) di dalam arsip ZIP berpassword langsung mendekripsi byte range 512 KiB dari entri yang diminta melalui Grammers MTProto Range Requests tanpa memicu download penuh arsip ZIP bergiga-giga.
+3. Instant Single-Entry Video & Media Workbench: Menjamin pemutaran video MP4/MKV di dalam ZIP hanya mengekstrak entri yang dipilih ke workbench lokal terisolasi sehingga browser langsung dapat membaca atom `moov` dan melakukan scrubbing/streaming secara instan.
+4. Automatic Caption Password Candidate Recognition: Memperbaiki resolusi peer pada pengambil teks caption pesan Telegram sehingga saran kata sandi otomatis muncul pada dialog input sandi.
 
 Previous:
+v3.8.10 Drive Settings Unicode-Resilient Restricted Media Filter Engine.
 v3.8.9 Instant Server-Side Filtered Media Streams & MTProto RPC Acceleration Engine.
 v3.8.8 Smart Conditional Remote Upload & Web Handoff Engine.
 v3.8.7 Drive Settings Inaccessible & Restricted Channel Media Filter Engine.
