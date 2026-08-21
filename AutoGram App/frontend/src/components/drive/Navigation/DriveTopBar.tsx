@@ -555,39 +555,43 @@ export function DriveTopBar({
               <Menu size={18} />
             </button>
           )}
-          {onNavBack && (
-            <button
-              type="button"
-              className={`td-icon-btn td-nav-btn ${!canNavBack ? 'is-disabled' : ''}`}
-              disabled={!canNavBack}
-              onClick={onNavBack}
-              title={`${t('speedtest.nav_back_drive', { defaultValue: 'Kembali ke Drive sebelumnya' })} (Alt+←)`}
-              aria-label={t('speedtest.nav_back_drive', { defaultValue: 'Kembali ke Drive sebelumnya' })}
-            >
-              <ChevronLeft size={18} />
-            </button>
-          )}
-          {onNavForward && (
-            <button
-              type="button"
-              className={`td-icon-btn td-nav-btn ${!canNavForward ? 'is-disabled' : ''}`}
-              disabled={!canNavForward}
-              onClick={onNavForward}
-              title={`${t('speedtest.nav_forward_drive', { defaultValue: 'Maju ke Drive berikutnya' })} (Alt+→)`}
-              aria-label={t('speedtest.nav_forward_drive', { defaultValue: 'Maju ke Drive berikutnya' })}
-            >
-              <ChevronRight size={18} />
-            </button>
+          {(onNavBack || onNavForward) && (
+            <div className="td-nav-history-group" role="group" aria-label="Drive history navigation">
+              {onNavBack && (
+                <button
+                  type="button"
+                  className={`td-nav-history-btn td-nav-history-prev ${!canNavBack ? 'is-disabled' : ''}`}
+                  disabled={!canNavBack}
+                  onClick={onNavBack}
+                  title={`${t('speedtest.nav_back_drive', { defaultValue: 'Kembali ke Drive sebelumnya' })} (Alt+←)`}
+                  aria-label={t('speedtest.nav_back_drive', { defaultValue: 'Kembali ke Drive sebelumnya' })}
+                >
+                  <ChevronLeft size={14} strokeWidth={2.2} />
+                </button>
+              )}
+              {onNavForward && (
+                <button
+                  type="button"
+                  className={`td-nav-history-btn td-nav-history-next ${!canNavForward ? 'is-disabled' : ''}`}
+                  disabled={!canNavForward}
+                  onClick={onNavForward}
+                  title={`${t('speedtest.nav_forward_drive', { defaultValue: 'Maju ke Drive berikutnya' })} (Alt+→)`}
+                  aria-label={t('speedtest.nav_forward_drive', { defaultValue: 'Maju ke Drive berikutnya' })}
+                >
+                  <ChevronRight size={14} strokeWidth={2.2} />
+                </button>
+              )}
+            </div>
           )}
           {onTogglePin && (
             <button
               type="button"
-              className={`td-icon-btn ${isPinned ? 'active' : ''}`}
+              className={`td-icon-btn td-pin-btn ${isPinned ? 'active' : ''}`}
               onClick={onTogglePin}
               title={isPinned ? t('speedtest.topbar_unpin_loc') : t('speedtest.topbar_pin_loc')}
               aria-label={isPinned ? t("speedtest.topbar_unpin_loc") : t("speedtest.topbar_pin_loc")}
             >
-              {isPinned ? <PinOff size={16} /> : <Pin size={16} />}
+              {isPinned ? <PinOff size={14} /> : <Pin size={14} />}
             </button>
           )}
           <nav className="td-breadcrumbs" aria-label={t('ui.generated.breadcrumb_c766e66')}>

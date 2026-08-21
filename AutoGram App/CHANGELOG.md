@@ -1,3 +1,21 @@
+## v3.8.5 Ultra-Compact Segmented History Navigation Pill & Breadcrumb Ergonomics (Phase 35.71)
+
+### 1. Ultra-Compact Segmented History Navigation Pill
+- **Restrukturisasi Tombol Riwayat Menjadi Segmented Pill Tunggal (`td-nav-history-group`)**:
+  - Menggabungkan tombol Kembali (`<`) dan Maju (`>`) menjadi satu kelompok tombol tersegmentasi (*segmented pill button*) bergaya browser modern yang sangat ramping dan hemat ruang (lebar total hanya 49.6px, tinggi 25px).
+  - Mengeliminasi ruang kosong, padding berlebih, dan pemisahan tombol yang sebelumnya memakan tempat pada bilah atas.
+  - Dilengkapi micro-divider vertikal, sudut melengkung 7px, dan micro-motion interaktif saat di-hover/di-klik.
+
+### 2. Breadcrumb Spacing & Title Legibility Optimization
+- **Pelegaan Ruang Judul & Jalur Breadcrumb**:
+  - Mengoptimalkan alokasi lebar pada `td-topbar-left` dan menghilangkan pemotongan agresif pada segmen awal (segmen `Start` kini tampil utuh tanpa terpotong menjadi `Sta...`).
+  - Judul channel dan folder memiliki area tampilan yang jauh lebih leluasa, mencegah tampilan terasa sesak (*anti-clutter*).
+  - Tombol Pin lokasi (`td-pin-btn`) dibuat presisi (25×25px) harmonis dengan pil navigasi.
+
+### 3. Kepatuhan Standar Teknis & Kualitas Kode
+- **100% Zero Hardcoded Strings & Validasi TypeScript**:
+  - Lolos uji validasi `npx tsc --noEmit` dengan 0 error dan terverifikasi secara langsung pada runtime desktop via CDP Port 9230.
+
 ## v3.8.4 Browser-Style Drive History Navigation Bar & Quick Return Engine (Phase 35.70)
 
 ### 1. Browser-Style Drive History Navigation Bar
