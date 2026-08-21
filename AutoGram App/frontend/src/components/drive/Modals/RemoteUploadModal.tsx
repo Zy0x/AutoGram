@@ -27,6 +27,7 @@ import {
   Zap,
   User,
   Info,
+  KeyRound,
 } from 'lucide-react';
 import type { DriveDestChoice, DriveDestPickerState } from './DriveDestinationPicker';
 import { DriveDestinationPicker } from './DriveDestinationPicker';
@@ -87,6 +88,46 @@ function inferKindFromExt(ext: string): UrlKind {
   if (['zip', 'rar', '7z', 'tar', 'gz', 'xz', 'iso', 'bz2', 'tgz'].includes(e)) return 'zip';
   if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'epub'].includes(e)) return 'doc';
   return 'other';
+}
+
+function extractUrlAndPasscode(rawText: string): { cleanUrl: string; extractedPasscode?: string } {
+  const trimmed = rawText.trim();
+  if (!trimmed) return { cleanUrl: '' };
+
+  const parts = trimmed.split(/\s+/);
+  const firstPart = parts[0];
+
+  let extractedPasscode: string | undefined;
+  try {
+    const u = new URL(firstPart);
+    extractedPasscode =
+      u.searchParams.get('pwd') ||
+      u.searchParams.get('pass_code') ||
+      u.searchParams.get('code') ||
+      u.searchParams.get('passcode') ||
+      undefined;
+
+    if (!extractedPasscode && u.hash) {
+      const hashVal = u.hash.replace(/^#/, '').trim();
+      if (/^[a-zA-Z0-9]{4,12}$/.test(hashVal)) {
+        extractedPasscode = hashVal;
+      }
+    }
+  } catch {
+    /* ignore parse error */
+  }
+
+  if (!extractedPasscode && parts.length > 1) {
+    const rest = parts.slice(1).join(' ');
+    const m = rest.match(/(?:pwd|pass|code|password|kode|sandi|提取码|密码)[:=\s]+([a-zA-Z0-9]{4,12})/i);
+    if (m && m[1]) {
+      extractedPasscode = m[1].trim();
+    } else if (parts.length === 2 && /^[a-zA-Z0-9]{4,12}$/.test(parts[1])) {
+      extractedPasscode = parts[1].trim();
+    }
+  }
+
+  return { cleanUrl: firstPart, extractedPasscode };
 }
 
 function inferFilenameFromUrl(rawUrl: string): string {
@@ -174,9 +215,14 @@ function getFormatDisplayLabel(
   if (fmt.id === 'tiktok_profile_avatar') {
     return t('speedtest.remote_fmt_creator_avatar');
   }
-  if (fmt.id === 'tiktok_photo_all_pack' || fmt.isAlbumPack) {
+  if (fmt.id === 'tiktok_photo_all_pack' || (fmt.isAlbumPack && resolvedMedia?.platform === 'tiktok')) {
     const total = resolvedMedia?.albumImages?.length || '';
     return t('speedtest.remote_fmt_album_pack', { total });
+  }
+  if (fmt.id === 'pikpak_all_files_pack') {
+    const count = resolvedMedia?.totalItems || resolvedMedia?.formats.filter((f) => !f.isAlbumPack).length || 0;
+    const sizeStr = fmt.filesizeBytes ? ` ~${formatDriveBytes(fmt.filesizeBytes)}` : '';
+    return t('speedtest.remote_pikpak_batch_pack', { count, size: sizeStr });
   }
   if (fmt.id.startsWith('tiktok_photo_')) {
     const total = resolvedMedia?.albumImages?.length || 1;
@@ -198,6 +244,12 @@ function getFormatDisplayLabel(
 function getFormatDisplayBadge(fmt: StreamQualityFormat, t: any): string | undefined {
   if (fmt.badge === 'remote_web_page') {
     return t('speedtest.remote_web_page_badge');
+  }
+  if (fmt.badge === 'PASSCODE ERROR') {
+    return t('speedtest.remote_passcode_invalid_badge');
+  }
+  if (fmt.badge === 'PASSWORD PROTECTED') {
+    return t('speedtest.remote_passcode_required_badge');
   }
   return fmt.badge;
 }
@@ -228,6 +280,7 @@ export function RemoteUploadModal({
   useModalBackHandler(isOpen, onClose, 'remote-upload-modal');
   const [tab, setTab] = useState<RemoteUploadTab>('single');
   const [url, setUrl] = useState('');
+  const [passcode, setPasscode] = useState('');
   const [customFilename, setCustomFilename] = useState('');
   const [batchUrlsText, setBatchUrlsText] = useState('');
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(() =>
@@ -256,12 +309,15 @@ export function RemoteUploadModal({
   const lastAppliedInitialUrlRef = useRef('');
   const lastProbedHandoffRef = useRef('');
   useEffect(() => {
-    const normalizedInitialUrl = String(initialUrl || '').trim();
+    const rawHandoff = String(initialUrl || '').trim();
+    const { cleanUrl, extractedPasscode } = extractUrlAndPasscode(rawHandoff);
+    const normalizedInitialUrl = cleanUrl;
     const openedNow = isOpen && !prevIsOpenRef.current;
     const receivedNewHandoff = isOpen && normalizedInitialUrl !== lastAppliedInitialUrlRef.current;
     if (openedNow || receivedNewHandoff) {
       setTab('single');
       setUrl(normalizedInitialUrl);
+      setPasscode(extractedPasscode || '');
       setCustomFilename('');
       setBatchUrlsText('');
       setDeliveryMode(resolveDefaultDeliveryMode(transferSettings));
@@ -277,6 +333,7 @@ export function RemoteUploadModal({
     if (!isOpen) {
       lastAppliedInitialUrlRef.current = '';
       lastProbedHandoffRef.current = '';
+      setPasscode('');
     }
     prevIsOpenRef.current = isOpen;
   }, [isOpen, currentDestination, initialUrl, transferSettings]);
@@ -343,13 +400,16 @@ export function RemoteUploadModal({
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [showSupportedInfo]);
 
-  const probeUrl = useCallback(async (rawUrl: string) => {
+  const probeUrl = useCallback(async (rawUrl: string, explicitPasscode?: string) => {
     if (inspectAbortRef.current) {
       inspectAbortRef.current.abort();
       inspectAbortRef.current = null;
     }
 
-    const trimmed = rawUrl.trim();
+    const { cleanUrl, extractedPasscode } = extractUrlAndPasscode(rawUrl);
+    const activePasscode = explicitPasscode !== undefined ? explicitPasscode : (extractedPasscode || passcode);
+
+    const trimmed = cleanUrl.trim();
     if (!trimmed || (!trimmed.startsWith('http://') && !trimmed.startsWith('https://'))) {
       setInspection(null);
       setResolvedMedia(null);
@@ -374,7 +434,9 @@ export function RemoteUploadModal({
     inspectAbortRef.current = controller;
 
     try {
-      const resolved = await resolveRemoteMediaUrl(trimmed, controller.signal);
+      const resolved = await resolveRemoteMediaUrl(trimmed, controller.signal, {
+        passcode: activePasscode,
+      });
       if (resolved) {
         setResolvedMedia(resolved);
         setSelectedFormatId(resolved.selectedFormatId || resolved.formats[0]?.id || '');
@@ -463,7 +525,7 @@ export function RemoteUploadModal({
         kind: inferredKind,
       });
     }
-  }, []);
+  }, [passcode]);
 
   useEffect(() => {
     const handoff = String(initialUrl || '').trim();
@@ -474,19 +536,37 @@ export function RemoteUploadModal({
       lastProbedHandoffRef.current === handoff
     ) return;
     lastProbedHandoffRef.current = handoff;
-    void probeUrl(handoff);
+    const { cleanUrl, extractedPasscode } = extractUrlAndPasscode(handoff);
+    if (extractedPasscode) setPasscode(extractedPasscode);
+    void probeUrl(cleanUrl, extractedPasscode);
   }, [initialUrl, isOpen, probeUrl, url]);
 
   const handleUrlChange = (val: string) => {
-    setUrl(val);
+    const { cleanUrl, extractedPasscode } = extractUrlAndPasscode(val);
+    setUrl(cleanUrl);
+    if (extractedPasscode) {
+      setPasscode(extractedPasscode);
+    }
     if (errorMsg) setErrorMsg('');
 
     if (inspectTimerRef.current) {
       window.clearTimeout(inspectTimerRef.current);
     }
     inspectTimerRef.current = window.setTimeout(() => {
-      probeUrl(val);
+      probeUrl(cleanUrl, extractedPasscode);
     }, 280);
+  };
+
+  const handlePasscodeChange = (codeVal: string) => {
+    setPasscode(codeVal);
+    if (errorMsg) setErrorMsg('');
+
+    if (inspectTimerRef.current) {
+      window.clearTimeout(inspectTimerRef.current);
+    }
+    inspectTimerRef.current = window.setTimeout(() => {
+      probeUrl(url, codeVal);
+    }, 300);
   };
 
   const handlePasteClipboard = async () => {
@@ -627,9 +707,9 @@ export function RemoteUploadModal({
       setSubmitting(true);
       try {
         let activeResolved = resolvedMedia;
-        if (!activeResolved && (targetUrl.includes('tiktok.com') || targetUrl.includes('douyin.com') || targetUrl.includes('youtube.com') || targetUrl.includes('youtu.be') || targetUrl.includes('instagram.com') || targetUrl.includes('terabox') || targetUrl.includes('pinterest.com') || targetUrl.includes('pixiv.net'))) {
+        if (!activeResolved && (targetUrl.includes('tiktok.com') || targetUrl.includes('douyin.com') || targetUrl.includes('youtube.com') || targetUrl.includes('youtu.be') || targetUrl.includes('instagram.com') || targetUrl.includes('terabox') || targetUrl.includes('pikpak') || targetUrl.includes('pinterest.com') || targetUrl.includes('pixiv.net'))) {
           try {
-            activeResolved = await resolveRemoteMediaUrl(targetUrl);
+            activeResolved = await resolveRemoteMediaUrl(targetUrl, undefined, { passcode });
           } catch {
             /* fallback */
           }
@@ -798,6 +878,7 @@ export function RemoteUploadModal({
             {t('speedtest.remote_info_cat_cloud')}
           </div>
           <div className="td-remote-info-tags">
+            <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_pikpak')}</span>
             <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_gdrive')}</span>
             <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_dropbox')}</span>
             <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_mediafire')}</span>
@@ -938,6 +1019,57 @@ export function RemoteUploadModal({
                         type="button"
                         className="td-remote-clear-btn"
                         onClick={() => handleUrlChange('')}
+                        disabled={submitting}
+                        aria-label={t('speedtest.remote_clear_input')}
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="td-remote-field-group">
+                  <div className="td-remote-label-row">
+                    <label className="td-input-label" htmlFor="td-remote-passcode">
+                      {t('speedtest.remote_passcode_label')}
+                    </label>
+                    {resolvedMedia?.requiresPassword && (
+                      <span
+                        className={`td-remote-passcode-status-badge ${
+                          resolvedMedia.passwordError ? 'error' : 'required'
+                        }`}
+                      >
+                        <KeyRound size={11} />
+                        <span>
+                          {resolvedMedia.passwordError
+                            ? t('speedtest.remote_passcode_invalid_badge')
+                            : t('speedtest.remote_passcode_required_badge')}
+                        </span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="td-remote-input-wrap">
+                    <span className="td-remote-input-icon">
+                      <KeyRound size={15} />
+                    </span>
+                    <input
+                      id="td-remote-passcode"
+                      className={`td-input-field td-remote-passcode-input ${
+                        resolvedMedia?.requiresPassword ? 'highlight-required' : ''
+                      }`}
+                      type="text"
+                      placeholder={t('speedtest.remote_passcode_placeholder')}
+                      value={passcode}
+                      onChange={(e) => handlePasscodeChange(e.target.value)}
+                      disabled={submitting}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                    {passcode && (
+                      <button
+                        type="button"
+                        className="td-remote-clear-btn"
+                        onClick={() => handlePasscodeChange('')}
                         disabled={submitting}
                         aria-label={t('speedtest.remote_clear_input')}
                       >

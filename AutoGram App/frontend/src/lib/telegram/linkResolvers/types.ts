@@ -10,6 +10,7 @@ export type PlatformKind =
   | 'dropbox'
   | 'mediafire'
   | 'terabox'
+  | 'pikpak'
   | 'pinterest'
   | 'pixiv'
   | 'instagram'
@@ -40,6 +41,10 @@ export interface StreamQualityFormat {
   customFilename?: string;
 }
 
+export interface ResolveOptions {
+  passcode?: string;
+}
+
 export interface ResolvedMediaInfo {
   url: string;
   platform: PlatformKind;
@@ -56,6 +61,9 @@ export interface ResolvedMediaInfo {
   isDirectFile?: boolean;
   requiresHeaders?: boolean;
   customHeaders?: Record<string, string>;
+  requiresPassword?: boolean;
+  passwordError?: boolean;
+  totalItems?: number;
   resolvedAt: number;
 }
 
@@ -63,5 +71,5 @@ export interface LinkResolverProvider {
   readonly name: string;
   readonly platform: PlatformKind;
   canHandle(url: string): boolean;
-  resolve(url: string, signal?: AbortSignal): Promise<ResolvedMediaInfo | null>;
+  resolve(url: string, signal?: AbortSignal, options?: ResolveOptions): Promise<ResolvedMediaInfo | null>;
 }

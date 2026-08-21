@@ -133,6 +133,117 @@ pub fn resolve_social_media_direct_url(url: &str) -> Option<String> {
     None
 }
 
+pub fn resolve_pikpak_direct_url(url: &str) -> Option<String> {
+    let u_lower = url.to_ascii_lowercase();
+    if !u_lower.contains("pikpak") || !u_lower.contains("/s/") {
+        return None;
+    }
+    let parsed = url::Url::parse(url).ok()?;
+    let path = parsed.path();
+    let share_id = if let Some(idx) = path.find("/s/") {
+        let seg = &path[idx + 3..];
+        seg.split('/').next()?.to_string()
+    } else {
+        return None;
+    };
+    if share_id.is_empty() {
+        return None;
+    }
+
+    let pass_code = parsed
+        .query_pairs()
+        .find(|(k, _)| k == "pwd" || k == "pass_code" || k == "code" || k == "passcode")
+        .map(|(_, v)| v.to_string())
+        .unwrap_or_default();
+
+    let client_id = "YUMx5nI8ZU8Ap8pm";
+    let client_version = "undefined";
+    let package_name = "drive.mypikpak.com";
+    let timestamp = "1787297641205";
+    let device_id = format!("{:032x}", rand::random::<u128>());
+
+    let salts = [
+        "fyZ4+p77W1U4zcWBUwefAIFhFxvADWtT1wzolCxhg9q7etmGUjXr",
+        "uSUX02HYJ1IkyLdhINEFcCf7l2",
+        "iWt97bqD/qvjIaPXB2Ja5rsBWtQtBZZmaHH2rMR41",
+        "3binT1s/5a1pu3fGsN",
+        "8YCCU+AIr7pg+yd7CkQEY16lDMwi8Rh4WNp5",
+        "DYS3StqnAEKdGddRP8CJrxUSFh",
+        "crquW+4",
+        "ryKqvW9B9hly+JAymXCIfag5Z",
+        "Hr08T/NDTX1oSJfHk90c",
+        "i",
+    ];
+
+    let mut current_salt = format!("{}{}{}{}{}", client_id, client_version, package_name, device_id, timestamp);
+    for salt in salts {
+        let digest = md5::compute(format!("{}{}", current_salt, salt).as_bytes());
+        current_salt = format!("{:x}", digest);
+    }
+    let captcha_sign = format!("1.{}", current_salt);
+
+    let agent = ureq::AgentBuilder::new()
+        .timeout_connect(std::time::Duration::from_secs(10))
+        .timeout_read(std::time::Duration::from_secs(15))
+        .build();
+
+    let init_body = serde_json::json!({
+        "client_id": client_id,
+        "device_id": device_id,
+        "action": "GET:/drive/v1/share",
+        "meta": {
+            "captcha_sign": captcha_sign,
+            "client_version": client_version,
+            "package_name": package_name,
+            "user_id": "",
+            "timestamp": timestamp
+        }
+    });
+
+    let init_resp = agent
+        .post("https://user.mypikpak.com/v1/shield/captcha/init")
+        .set("Content-Type", "application/json")
+        .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36")
+        .set("x-device-id", &device_id)
+        .set("x-client-id", client_id)
+        .send_json(init_body)
+        .ok()?;
+
+    let init_val: serde_json::Value = init_resp.into_json().ok()?;
+    let captcha_token = init_val.get("captcha_token")?.as_str()?;
+
+    let mut share_url = format!("https://api-drive.mypikpak.com/drive/v1/share?share_id={}", urlencoding::encode(&share_id));
+    if !pass_code.is_empty() {
+        share_url.push_str(&format!("&pass_code={}", urlencoding::encode(&pass_code)));
+    }
+
+    let share_resp = agent
+        .get(&share_url)
+        .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36")
+        .set("x-device-id", &device_id)
+        .set("x-client-id", client_id)
+        .set("x-captcha-token", captcha_token)
+        .set("Accept", "application/json")
+        .call()
+        .ok()?;
+
+    let share_val: serde_json::Value = share_resp.into_json().ok()?;
+    let files = share_val.get("files")?.as_array()?;
+    let first_file = files.first()?;
+
+    if let Some(link) = first_file.get("web_content_link").and_then(|v| v.as_str()) {
+        if link.starts_with("http") {
+            return Some(link.to_string());
+        }
+    }
+    if let Some(link) = first_file.get("links").and_then(|l| l.get("download")).and_then(|d| d.get("url")).and_then(|u| u.as_str()) {
+        if link.starts_with("http") {
+            return Some(link.to_string());
+        }
+    }
+    None
+}
+
 /// Download remote URL to a temp file under path policy (max up to 4GB Telegram limit).
 pub fn download_remote_url(
     url: &str,
@@ -144,7 +255,9 @@ pub fn download_remote_url(
         return Err("not a remote URL".into());
     }
 
-    let resolved_url = resolve_social_media_direct_url(url_str).unwrap_or_else(|| url_str.to_string());
+    let resolved_url = resolve_social_media_direct_url(url_str)
+        .or_else(|| resolve_pikpak_direct_url(url_str))
+        .unwrap_or_else(|| url_str.to_string());
     let url = resolved_url.as_str();
 
     tg_log::info(

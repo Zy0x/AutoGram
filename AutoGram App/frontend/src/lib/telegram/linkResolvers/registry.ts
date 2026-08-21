@@ -1,4 +1,5 @@
-import type { LinkResolverProvider, ResolvedMediaInfo } from './types';
+import type { LinkResolverProvider, ResolvedMediaInfo, ResolveOptions } from './types';
+import { pikpakResolver } from './providers/pikpakResolver';
 import { youtubeResolver } from './providers/youtubeResolver';
 import { tiktokResolver } from './providers/tiktokResolver';
 import { gdriveResolver } from './providers/gdriveResolver';
@@ -8,9 +9,9 @@ import { teraboxResolver } from './providers/teraboxResolver';
 import { pinterestResolver } from './providers/pinterestResolver';
 import { pixivResolver } from './providers/pixivResolver';
 import { socialMediaResolver } from './providers/socialMediaResolver';
-import { directFileResolver } from './providers/directFileResolver';
 import { knownRemoteHostResolver } from './providers/knownRemoteHostResolver';
 import { nativeDeepResolver } from './providers/nativeDeepResolver';
+import { directFileResolver } from './providers/directFileResolver';
 
 /**
  * LinkResolverRegistry
@@ -18,7 +19,7 @@ import { nativeDeepResolver } from './providers/nativeDeepResolver';
  */
 class LinkResolverRegistry {
   private providers: LinkResolverProvider[] = [
-    nativeDeepResolver,
+    pikpakResolver,
     tiktokResolver,
     youtubeResolver,
     gdriveResolver,
@@ -29,6 +30,7 @@ class LinkResolverRegistry {
     pixivResolver,
     socialMediaResolver,
     knownRemoteHostResolver,
+    nativeDeepResolver,
     directFileResolver, // Fallback provider
   ];
 
@@ -46,14 +48,14 @@ class LinkResolverRegistry {
   /**
    * Resolve any remote URL with fail-safe error isolation.
    */
-  public async resolve(url: string, signal?: AbortSignal): Promise<ResolvedMediaInfo> {
+  public async resolve(url: string, signal?: AbortSignal, options?: ResolveOptions): Promise<ResolvedMediaInfo> {
     const cleanUrl = url.trim();
 
     // 1. Find matching specialized provider
     for (const provider of this.providers) {
-      if (provider !== directFileResolver && provider.canHandle(cleanUrl)) {
+      if (provider !== directFileResolver && provider !== nativeDeepResolver && provider.canHandle(cleanUrl)) {
         try {
-          const result = await provider.resolve(cleanUrl, signal);
+          const result = await provider.resolve(cleanUrl, signal, options);
           if (result && result.formats && result.formats.length > 0) {
             return result;
           }
@@ -61,6 +63,18 @@ class LinkResolverRegistry {
           console.warn(`[LinkResolverRegistry] Provider ${provider.name} failed:`, err);
           // Don't throw, continue to next or fallback
         }
+      }
+    }
+
+    // 2. Try desktop native deep crawler if in Tauri runtime
+    if (nativeDeepResolver.canHandle(cleanUrl)) {
+      try {
+        const nativeResult = await nativeDeepResolver.resolve(cleanUrl, signal, options);
+        if (nativeResult && nativeResult.formats && nativeResult.formats.length > 0) {
+          return nativeResult;
+        }
+      } catch {
+        /* ignore */
       }
     }
 

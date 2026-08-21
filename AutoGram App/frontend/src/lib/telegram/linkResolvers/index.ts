@@ -7,11 +7,15 @@
 export * from './types';
 export * from './registry';
 import { linkResolverRegistry } from './registry';
-import type { ResolvedMediaInfo } from './types';
+import type { ResolvedMediaInfo, ResolveOptions } from './types';
 
 /**
  * Resolves any remote media or cloud file URL into structured metadata and stream quality formats.
  */
-export async function resolveRemoteMediaUrl(url: string, signal?: AbortSignal): Promise<ResolvedMediaInfo> {
-  return linkResolverRegistry.resolve(url, signal);
+export async function resolveRemoteMediaUrl(
+  url: string,
+  signal?: AbortSignal,
+  options?: ResolveOptions
+): Promise<ResolvedMediaInfo> {
+  return linkResolverRegistry.resolve(url, signal, options);
 }

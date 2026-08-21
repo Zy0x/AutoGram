@@ -2070,6 +2070,180 @@ fn fetch_remote_text_content(url: String, user_agent: Option<String>) -> Result<
 }
 
 #[tauri::command]
+fn fetch_pikpak_share_meta(
+    share_id: String,
+    pass_code: Option<String>,
+    folder_id: Option<String>,
+    file_id: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let client_id = "YUMx5nI8ZU8Ap8pm";
+    let client_version = "undefined";
+    let package_name = "drive.mypikpak.com";
+    let timestamp = "1787297641205";
+    let device_id = format!("{:032x}", rand::random::<u128>());
+
+    let salts = [
+        "fyZ4+p77W1U4zcWBUwefAIFhFxvADWtT1wzolCxhg9q7etmGUjXr",
+        "uSUX02HYJ1IkyLdhINEFcCf7l2",
+        "iWt97bqD/qvjIaPXB2Ja5rsBWtQtBZZmaHH2rMR41",
+        "3binT1s/5a1pu3fGsN",
+        "8YCCU+AIr7pg+yd7CkQEY16lDMwi8Rh4WNp5",
+        "DYS3StqnAEKdGddRP8CJrxUSFh",
+        "crquW+4",
+        "ryKqvW9B9hly+JAymXCIfag5Z",
+        "Hr08T/NDTX1oSJfHk90c",
+        "i",
+    ];
+
+    let mut current_salt = format!("{}{}{}{}{}", client_id, client_version, package_name, device_id, timestamp);
+    for salt in salts {
+        let digest = md5::compute(format!("{}{}", current_salt, salt).as_bytes());
+        current_salt = format!("{:x}", digest);
+    }
+    let captcha_sign = format!("1.{}", current_salt);
+
+    let agent = ureq::AgentBuilder::new()
+        .timeout_connect(std::time::Duration::from_secs(10))
+        .timeout_read(std::time::Duration::from_secs(15))
+        .build();
+
+    let action_endpoint = if folder_id.is_some() {
+        "GET:/drive/v1/share/detail"
+    } else if file_id.is_some() {
+        "GET:/drive/v1/share/file_info"
+    } else {
+        "GET:/drive/v1/share"
+    };
+
+    let init_body = serde_json::json!({
+        "client_id": client_id,
+        "device_id": device_id,
+        "action": action_endpoint,
+        "meta": {
+            "captcha_sign": captcha_sign,
+            "client_version": client_version,
+            "package_name": package_name,
+            "user_id": "",
+            "timestamp": timestamp
+        }
+    });
+
+    let init_resp = agent
+        .post("https://user.mypikpak.com/v1/shield/captcha/init")
+        .set("Content-Type", "application/json")
+        .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36")
+        .set("x-device-id", &device_id)
+        .set("x-client-id", client_id)
+        .send_json(init_body)
+        .map_err(|e| format!("Captcha init failed: {e}"))?;
+
+    let init_val: serde_json::Value = init_resp.into_json().map_err(|e| format!("Parse captcha json failed: {e}"))?;
+    let captcha_token = init_val.get("captcha_token").and_then(|v| v.as_str()).unwrap_or_default();
+
+    let target_api_url = if let Some(fid) = folder_id {
+        let mut u = format!(
+            "https://api-drive.mypikpak.com/drive/v1/share/detail?share_id={}&parent_id={}&limit=100",
+            urlencoding::encode(&share_id),
+            urlencoding::encode(&fid)
+        );
+        if let Some(ref pc) = pass_code {
+            if !pc.is_empty() {
+                u.push_str(&format!("&pass_code={}", urlencoding::encode(pc)));
+            }
+        }
+        u
+    } else if let Some(flid) = file_id {
+        let mut u = format!(
+            "https://api-drive.mypikpak.com/drive/v1/share/file_info?share_id={}&file_id={}",
+            urlencoding::encode(&share_id),
+            urlencoding::encode(&flid)
+        );
+        if let Some(ref pc) = pass_code {
+            if !pc.is_empty() {
+                u.push_str(&format!("&pass_code={}", urlencoding::encode(pc)));
+            }
+        }
+        u
+    } else {
+        let mut u = format!(
+            "https://api-drive.mypikpak.com/drive/v1/share?share_id={}",
+            urlencoding::encode(&share_id)
+        );
+        if let Some(ref pc) = pass_code {
+            if !pc.is_empty() {
+                u.push_str(&format!("&pass_code={}", urlencoding::encode(pc)));
+            }
+        }
+        u
+    };
+
+    let share_resp = agent
+        .get(&target_api_url)
+        .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36")
+        .set("x-device-id", &device_id)
+        .set("x-client-id", client_id)
+        .set("x-captcha-token", captcha_token)
+        .set("Accept", "application/json")
+        .call();
+
+    match share_resp {
+        Ok(resp) => {
+            let val: serde_json::Value = resp.into_json().map_err(|e| format!("Parse share json failed: {e}"))?;
+            Ok(val)
+        }
+        Err(ureq::Error::Status(code, resp)) => {
+            let error_val: serde_json::Value = resp.into_json().unwrap_or(serde_json::json!({
+                "error": format!("HTTP {code}"),
+                "error_code": code
+            }));
+            Ok(error_val)
+        }
+        Err(e) => Err(format!("Share API failed: {e}")),
+    }
+}
+
+#[tauri::command]
+fn fetch_native_http(
+    url: String,
+    method: Option<String>,
+    headers: Option<std::collections::HashMap<String, String>>,
+    body: Option<String>,
+) -> Result<String, String> {
+    let u_clean = url.trim();
+    if u_clean.is_empty() {
+        return Err("empty URL".into());
+    }
+    let agent = ureq::AgentBuilder::new()
+        .timeout_connect(std::time::Duration::from_secs(10))
+        .timeout_read(std::time::Duration::from_secs(20))
+        .redirects(8)
+        .build();
+
+    let method_str = method.unwrap_or_else(|| "GET".to_string()).to_uppercase();
+    let mut req = match method_str.as_str() {
+        "POST" => agent.post(u_clean),
+        "PUT" => agent.put(u_clean),
+        "HEAD" => agent.head(u_clean),
+        _ => agent.get(u_clean),
+    };
+
+    if let Some(h) = headers {
+        for (k, v) in h {
+            req = req.set(&k, &v);
+        }
+    }
+
+    let resp = if let Some(b) = body {
+        req.send_string(&b)
+    } else {
+        req.call()
+    }.map_err(|e| format!("HTTP request failed: {e}"))?;
+
+    let text = resp.into_string().map_err(|e| format!("read body failed: {e}"))?;
+    Ok(text)
+}
+
+#[tauri::command]
 fn fetch_remote_json_metadata(url: String) -> Result<serde_json::Value, String> {
     let u_clean = url.trim();
     if u_clean.is_empty() {
@@ -2192,6 +2366,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             greet,
+            fetch_pikpak_share_meta,
+            fetch_native_http,
             fetch_remote_json_metadata,
             fetch_remote_text_content,
             resolve_remote_link_deep,

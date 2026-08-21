@@ -25488,6 +25488,12 @@ button.td-confirm-icon.is-back-btn:active {
   border-color: rgba(239, 68, 68, 0.35);
 }
 
+.td-remote-platform-badge.pikpak {
+  background: rgba(59, 130, 246, 0.18);
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.4);
+}
+
 .td-remote-clean-badge {
   display: inline-flex;
   align-items: center;
@@ -25499,6 +25505,39 @@ button.td-confirm-icon.is-back-btn:active {
   background: rgba(16, 185, 129, 0.15);
   color: #34d399;
   border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.td-remote-passcode-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  animation: tdPasscodePulse 2s infinite ease-in-out;
+}
+
+.td-remote-passcode-status-badge.required {
+  background: rgba(234, 179, 8, 0.15);
+  color: #facc15;
+  border: 1px solid rgba(250, 204, 21, 0.35);
+}
+
+.td-remote-passcode-status-badge.error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.td-input-field.td-remote-passcode-input.highlight-required {
+  border-color: rgba(250, 204, 21, 0.6);
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.2);
+}
+
+@keyframes tdPasscodePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.02); }
 }
 
 .td-remote-media-title {

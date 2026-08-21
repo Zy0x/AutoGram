@@ -35,6 +35,7 @@ zip = { version = "2", default-features = false, features = ["deflate", "bzip2",
 flate2 = "1.0"
 tiny_http = "0.12"
 sha2 = "0.10"
+md5 = "0.7"
 hex = "0.4"
 parking_lot = "0.12"
 # Phase 4 — Grammers MTProto (dual-path with Telethon companion)

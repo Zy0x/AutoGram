@@ -5,6 +5,8 @@ description = "Enables frontend invocation of AutoGram custom Rust commands"
 [permission.commands]
 allow = [
     "greet",
+    "fetch_pikpak_share_meta",
+    "fetch_native_http",
     "fetch_remote_json_metadata",
     "fetch_remote_text_content",
     "resolve_remote_link_deep",
