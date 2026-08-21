@@ -1477,14 +1477,51 @@ function MediaDriveDesktop({
       setLocationKind('saved');
       setActivePeerId(null);
       setTopicFilter(null);
+      topicFilterRef.current = null;
+      setTopics([]);
+      setIsForumChat(false);
       setError(localizedDriveError(e, t));
       setStatusText(t('ui.generated.lokasi_tidak_valid_di_session_ini_d5b3e1a'));
-      setFiles([]);
-      setFilesHasMore(false);
-      setNextOffsetId(null);
+
+      // Instantly hydrate Saved Messages from local cache so UI is never left blank
+      const currentSession = session || creds?.session;
+      if (currentSession) {
+        const savedBootKey = getDriveCacheKey(currentSession, null, null);
+        indexedCountScopeRef.current = savedBootKey;
+        activeFilesCacheKeyRef.current = savedBootKey;
+        const cachedSaved = filesCacheRef.current.get(savedBootKey);
+        if (cachedSaved && cachedSaved.length > 0) {
+          setFiles(cachedSaved);
+          setLoadingFiles(false);
+        } else {
+          const snap = loadDriveLocationSnapshot(localStorage, currentSession, null, null);
+          if (snap && Array.isArray(snap.files) && snap.files.length > 0) {
+            const deduped = dedupeByMsgId(snap.files);
+            filesCacheRef.current.set(savedBootKey, deduped);
+            setFiles(deduped);
+            setFilesHasMore(!!snap.hasMore);
+            setNextOffsetId(snap.nextOffsetId ?? null);
+            if (snap.totalCount != null) setTotalFileCount(snap.totalCount);
+            if (snap.totalBytes != null) setTotalBytes(snap.totalBytes);
+            setLoadingFiles(false);
+          } else {
+            setFiles([]);
+            setLoadingFiles(true);
+          }
+        }
+      } else {
+        setFiles([]);
+        setFilesHasMore(false);
+        setNextOffsetId(null);
+      }
+
+      window.setTimeout(() => {
+        void refreshFilesRef.current?.(0, { bypassCache: true });
+      }, 50);
+
       return true;
     },
-    [session, activePeerId, t]
+    [session, activePeerId, creds, t, getDriveCacheKey]
   );
 
   /** Sync session switch — clear UI before paint so Terbaru/location never bleed. */
@@ -5902,7 +5939,7 @@ function MediaDriveDesktop({
               topicFilterRef.current = null;
               setFiles([]);
               setLoadingFiles(true);
-              void refreshFiles();
+              await refreshFiles();
             }
             setStatusText(`Topik "${topicTitle}" berhasil dihapus.`);
           } catch (e: any) {
@@ -6109,6 +6146,10 @@ function MediaDriveDesktop({
       childFolderCount: childIds.length,
       onConfirm: () => {
         void (async () => {
+          const wasActive =
+            (locationKind === 'drive' && activePeerId != null && deleteSet.has(activePeerId)) ||
+            (locationKind === 'chat' && activePeerId != null && deleteSet.has(activePeerId));
+
           try {
             setStatusText(
               childIds.length
@@ -6131,15 +6172,39 @@ function MediaDriveDesktop({
               /* ignore cache error */
             }
 
-            if (locationKind === 'drive' && activePeerId != null && deleteSet.has(activePeerId)) {
+            if (wasActive) {
               saveDrivePeer(creds.session, { kind: 'saved', id: null });
               setLocationKind('saved');
               setActivePeerId(null);
               setTopicFilter(null);
               topicFilterRef.current = null;
-              setFiles([]);
-              setFilesHasMore(false);
-              setNextOffsetId(null);
+              setTopics([]);
+              setIsForumChat(false);
+
+              // Instantly hydrate Saved Messages from local cache so UI is never left blank
+              const savedBootKey = getDriveCacheKey(creds.session, null, null);
+              indexedCountScopeRef.current = savedBootKey;
+              activeFilesCacheKeyRef.current = savedBootKey;
+              const cachedSaved = filesCacheRef.current.get(savedBootKey);
+              if (cachedSaved && cachedSaved.length > 0) {
+                setFiles(cachedSaved);
+                setLoadingFiles(false);
+              } else {
+                const snap = loadDriveLocationSnapshot(localStorage, creds.session, null, null);
+                if (snap && Array.isArray(snap.files) && snap.files.length > 0) {
+                  const deduped = dedupeByMsgId(snap.files);
+                  filesCacheRef.current.set(savedBootKey, deduped);
+                  setFiles(deduped);
+                  setFilesHasMore(!!snap.hasMore);
+                  setNextOffsetId(snap.nextOffsetId ?? null);
+                  if (snap.totalCount != null) setTotalFileCount(snap.totalCount);
+                  if (snap.totalBytes != null) setTotalBytes(snap.totalBytes);
+                  setLoadingFiles(false);
+                } else {
+                  setFiles([]);
+                  setLoadingFiles(true);
+                }
+              }
             }
 
             try {
@@ -6151,11 +6216,35 @@ function MediaDriveDesktop({
             // 2. SERVER MTPROTO CASCADE DELETION
             await driveDeleteFoldersBatch(creds, allDeletedIds);
             setStatusText(`${kindLabel} dihapus: ${folderName}`);
-            void refreshLocations();
+
+            // 3. REFRESH FRESH STATE ACCORDINGLY
+            if (wasActive) {
+              // Actively load fresh files for Saved Messages
+              void refreshFilesRef.current?.(0, { bypassCache: true });
+              // Background scan to update sidebar folders
+              void driveScanFolders(creds)
+                .then((fr: { folders?: DriveFolder[] } | DriveFolder[]) => {
+                  const list = (Array.isArray(fr) ? fr : (fr as any)?.folders || []) as DriveFolder[];
+                  const normalized = withFolderOrphanFlags(Array.isArray(list) ? list : []);
+                  setFolders(normalized);
+                  try {
+                    saveDriveSidebarSnapshot(localStorage, creds.session, { folders: normalized });
+                  } catch {
+                    /* ignore */
+                  }
+                })
+                .catch(() => undefined);
+            } else {
+              void refreshLocations();
+            }
           } catch (e: any) {
             setError(String(e?.message || e || `Gagal menghapus ${kindLabel.toLowerCase()}`));
             setStatusText(t('nav.status_idle'));
-            void refreshLocations();
+            if (wasActive) {
+              void refreshFilesRef.current?.(0, { bypassCache: true });
+            } else {
+              void refreshLocations();
+            }
           }
         })();
       },
