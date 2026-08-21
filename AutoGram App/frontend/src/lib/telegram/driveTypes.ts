@@ -459,19 +459,23 @@ export function getFileSortType(f: DriveFile): string {
  * returned by Telegram MTProto or local indexers.
  */
 export const RESTRICTED_MEDIA_PATTERNS: RegExp[] = [
-  /this\s+channel\s+can'?t\s+be\s+displayed/i,
-  /this\s+channel\s+cannot\s+be\s+displayed/i,
-  /this\s+message\s+can'?t\s+be\s+displayed/i,
-  /this\s+message\s+cannot\s+be\s+displayed/i,
-  /this\s+group\s+can'?t\s+be\s+displayed/i,
-  /this\s+group\s+cannot\s+be\s+displayed/i,
-  /this\s+media\s+is\s+not\s+available/i,
+  /this\s+(?:channel|message|group|media|content)\s+(?:can['’‘`´ʻʼʽˈˊˋ]?t|cannot|can\s+not)\s+be\s+displayed/i,
+  /this\s+(?:channel|message|group|media|content)\s+(?:is|was)\s+(?:not\s+available|unavailable|blocked|banned|restricted)/i,
+  /(?:can['’‘`´ʻʼʽˈˊˋ]?t|cannot|can\s+not)\s+be\s+displayed/i,
+  /because\s+it\s+was\s+used\s+to\s+spread/i,
+  /because\s+of\s+copyright\s+infringement/i,
+  /due\s+to\s+(?:local\s+legal\s+regulations|terms\s+of\s+service|copyright)/i,
+  /violated\s+local\s+laws/i,
   /saluran\s+ini\s+tidak\s+dapat\s+ditampilkan/i,
   /pesan\s+ini\s+tidak\s+dapat\s+ditampilkan/i,
   /grup\s+ini\s+tidak\s+dapat\s+ditampilkan/i,
   /media\s+ini\s+tidak\s+tersedia/i,
-  /channel\s+blocked/i,
+  /konten\s+ini\s+tidak\s+tersedia/i,
+  /tidak\s+dapat\s+ditampilkan\s+karena/i,
+  /karena\s+(?:melanggar\s+hak\s+cipta|digunakan\s+untuk\s+menyebarkan)/i,
+  /saluran\s+(?:ini\s+)?diblokir/i,
   /banned\s+channel/i,
+  /channel\s+blocked/i,
 ];
 
 /**
@@ -484,12 +488,17 @@ export function isRestrictedOrInaccessibleFile(f: DriveFile): boolean {
   if (f.restriction_reason || f.restriction_code) return true;
   if (f.telegram_category === 'restricted' || f.drive_category === 'restricted') return true;
 
+  const anyF = f as any;
   const name = String(f.name || '');
   const orig = String(f.original_name || '');
   const caption = String(f.caption || '');
   const mime = String(f.mime_type || '');
+  const driveFormat = String(f.drive_format || anyF.driveFormat || '');
+  const text = String(anyF.text || '');
+  const message = String(anyF.message || '');
+  const fileExt = String(f.file_ext || anyF.fileExt || '');
 
-  const textToScan = `${name}\n${orig}\n${caption}\n${mime}`;
+  const textToScan = `${name}\n${orig}\n${caption}\n${mime}\n${driveFormat}\n${text}\n${message}\n${fileExt}`;
   return RESTRICTED_MEDIA_PATTERNS.some((pattern) => pattern.test(textToScan));
 }
 
@@ -652,14 +661,18 @@ export function matchesMediaFilter(
       case 'media':
         return (
           tgCat === 'media' ||
-          (!f.as_document && (icon === 'image' || icon === 'photo' || icon === 'video'))
+          icon === 'photo' ||
+          icon === 'video' ||
+          icon === 'image' ||
+          mime.startsWith('image/') ||
+          mime.startsWith('video/')
         );
       case 'files':
         return tgCat === 'file' || f.as_document === true || icon === 'file' || icon === 'document';
       case 'links':
-        return tgCat === 'link' || mime === 'text/x-url' || name.startsWith('http');
+        return tgCat === 'link' || mime === 'text/x-url' || name.startsWith('http') || (Array.isArray(f.link_urls) && f.link_urls.length > 0);
       case 'gifs':
-        return tgCat === 'gif' || mime === 'image/gif' || ext === 'gif';
+        return tgCat === 'gif' || mime === 'image/gif' || ext === 'gif' || icon === 'gif' || (f.telegram_subtype && f.telegram_subtype.includes('gif')) === true;
       case 'audio':
         return tgCat === 'audio' || icon === 'audio' || icon === 'voice' || mime.startsWith('audio/');
       default:

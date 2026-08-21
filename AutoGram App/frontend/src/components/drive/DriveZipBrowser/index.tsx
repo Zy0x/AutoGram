@@ -63,6 +63,10 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
     creds,
     messageId,
     folderId,
+    peerId,
+    topicId,
+    locationType,
+    accountId,
     archiveName,
     onPrev,
     onNext,
@@ -76,6 +80,13 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
     onEnqueueUploadPaths,
   } = props;
   const { t } = useTranslation();
+
+  const zipOpts = useMemo(() => ({
+    peerId,
+    topicId,
+    locationType,
+    accountId,
+  }), [accountId, locationType, peerId, topicId]);
 
   const [sources, setSources] = useState<ZipArchiveSource[]>([
     { kind: 'telegram', label: archiveName || t('speedtest.zip_archive_explorer') },
@@ -123,7 +134,7 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
     setError(null);
     try {
       if (source.kind === 'telegram') {
-        const result = await driveZipList(creds, messageId, folderId);
+        const result = await driveZipList(creds, messageId, folderId, false, zipOpts);
         if (result.status === 'error') throw new Error(result.message || result.error);
         setEntries(Array.isArray(result.entries) ? result.entries : []);
       } else {
@@ -143,7 +154,7 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [creds, folderId, messageId, source, t]);
+  }, [creds, folderId, messageId, source, t, zipOpts]);
 
   useEffect(() => {
     setCurrentPath('');
@@ -159,11 +170,12 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
       setPasswordCandidates([]);
       return;
     }
+    const resolvedPeer = (peerId || (folderId != null && folderId !== 0 ? String(folderId) : '') || 'me').trim();
     void tgDebugGetMessage({
       session: creds.session,
       apiId: Number(creds.apiId),
       apiHash: creds.apiHash,
-      peerId: folderId == null || folderId === 0 ? 'me' : String(folderId),
+      peerId: resolvedPeer,
       telegramMessageId: messageId,
     }).then((result) => {
       if (cancelled) return;
@@ -173,7 +185,7 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
     return () => {
       cancelled = true;
     };
-  }, [archiveName, creds.apiHash, creds.apiId, creds.session, folderId, messageId, source.label]);
+  }, [archiveName, creds.apiHash, creds.apiId, creds.session, folderId, messageId, peerId, source.label]);
 
   const { dirs, files } = useMemo(
     () => basenamesAt(entries, currentPath, searchQuery, category),
@@ -185,19 +197,19 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
     const relative = safeZipEntryPath(entry.name) || `entry-${Date.now()}`;
     const destination = await join(root, ...relative.split('/'));
     if (source.kind === 'telegram') {
-      await driveZipExtractEntry(creds, messageId, folderId, entry.name, destination, password || undefined);
+      await driveZipExtractEntry(creds, messageId, folderId, entry.name, destination, password || undefined, zipOpts);
     } else {
       await zipExtractEntry(source.path, entry.name, destination, password || undefined);
     }
     return destination;
-  }, [creds, ensureTempRoot, folderId, messageId, source]);
+  }, [creds, ensureTempRoot, folderId, messageId, source, zipOpts]);
 
   const readEntry = useCallback(async (entry: ZipEntry, password?: string | null) => {
     if (source.kind === 'telegram') {
-      return await driveZipReadEntry(creds, messageId, folderId, entry.name, password || undefined) as ZipPreviewResult;
+      return await driveZipReadEntry(creds, messageId, folderId, entry.name, password || undefined, false, zipOpts) as ZipPreviewResult;
     }
     return mapLocalPreview(await zipPreviewEntry(source.path, entry.name, password || undefined));
-  }, [creds, folderId, messageId, source]);
+  }, [creds, folderId, messageId, source, zipOpts]);
 
   const requestPassword = (action: Exclude<PasswordAction, null>, message?: string | null) => {
     setPasswordAction(action);

@@ -110,6 +110,28 @@ pub fn classify_media_item(
             }
         });
 
+    // 0. Check if Restricted / Inaccessible Notice
+    let is_restricted_notice = name_l.contains("can't be displayed")
+        || name_l.contains("can’t be displayed")
+        || name_l.contains("cannot be displayed")
+        || name_l.contains("can not be displayed")
+        || name_l.contains("tidak dapat ditampilkan")
+        || name_l.contains("is not available")
+        || name_l.contains("tidak tersedia")
+        || name_l.contains("channel blocked")
+        || name_l.contains("banned channel")
+        || name_l.contains("saluran diblokir");
+
+    if is_restricted_notice {
+        return ClassificationResult {
+            telegram_category: "restricted".into(),
+            telegram_subtype: "notice".into(),
+            drive_category: "restricted".into(),
+            drive_format: "RESTRICTED".into(),
+            media_category: MediaCategory::Unknown,
+        };
+    }
+
     // 1. Check if URL / Link
     if mime_l == "text/x-url" || name_l.starts_with("http://") || name_l.starts_with("https://") {
         return ClassificationResult {
@@ -278,6 +300,39 @@ mod tests {
             classify_media_category("data.zip", Some("application/zip")),
             MediaCategory::BinaryAsset
         );
+    }
+
+    #[test]
+    fn test_restricted_notice_classification() {
+        let ascii_res = classify_media_item(
+            "This channel can't be displayed because it was used to spread...",
+            Some("text/plain"),
+            false,
+            false,
+            false,
+        );
+        assert_eq!(ascii_res.telegram_category, "restricted");
+        assert_eq!(ascii_res.drive_category, "restricted");
+
+        let curly_res = classify_media_item(
+            "This channel can’t be displayed because it was used to spread...",
+            Some("text/plain"),
+            false,
+            false,
+            false,
+        );
+        assert_eq!(curly_res.telegram_category, "restricted");
+        assert_eq!(curly_res.drive_category, "restricted");
+
+        let id_res = classify_media_item(
+            "Saluran ini tidak dapat ditampilkan karena melanggar hak cipta",
+            Some("text/plain"),
+            false,
+            false,
+            false,
+        );
+        assert_eq!(id_res.telegram_category, "restricted");
+        assert_eq!(id_res.drive_category, "restricted");
     }
 }
 

@@ -225,15 +225,33 @@ export async function driveStreamSeek(
   }
 }
 
+export type ZipTargetOpts = {
+  peerId?: string | null;
+  topicId?: number | null;
+  locationType?: string;
+  accountId?: string;
+};
+
+export function resolveZipChatId(
+  folderId: number | null,
+  opts?: ZipTargetOpts
+): string {
+  const rawPeer = (opts?.peerId || (folderId != null && folderId !== 0 ? String(folderId) : '') || '').trim();
+  const locType = opts?.locationType || (rawPeer === 'me' ? 'saved_messages' : 'group');
+  return rawPeer || (locType === 'saved_messages' ? 'me' : 'me');
+}
+
 /** In-memory session cache for extracted ZIP entry previews to prevent duplicate MTProto fetches on re-open */
 const zipEntryCacheMap = new Map<string, Map<string, any>>();
 
 export function clearZipEntryCache(
   creds: DriveCredentials,
   messageId: number,
-  folderId: number | null
+  folderId: number | null,
+  opts?: ZipTargetOpts
 ): void {
-  const archiveKey = `${creds?.session || ''}_${folderId ?? 'root'}_${messageId}`;
+  const chatId = resolveZipChatId(folderId, opts);
+  const archiveKey = `${creds?.session || ''}_${chatId}_${messageId}`;
   zipEntryCacheMap.delete(archiveKey);
 }
 
@@ -242,17 +260,18 @@ export async function driveZipList(
   creds: DriveCredentials,
   messageId: number,
   folderId: number | null,
-  forceRefresh?: boolean
+  forceRefresh?: boolean,
+  opts?: ZipTargetOpts
 ): Promise<any> {
   if (!detectTauriRuntime()) {
     throw new Error('ZIP browser membutuhkan desktop Rust + Grammers.');
   }
 
   if (forceRefresh) {
-    clearZipEntryCache(creds, messageId, folderId);
+    clearZipEntryCache(creds, messageId, folderId, opts);
   }
 
-  const chatId = folderId == null ? 'me' : String(folderId);
+  const chatId = resolveZipChatId(folderId, opts);
   const apiId = Number(creds.apiId) || 0;
   const sparseOpts = {
     session: creds.session,
@@ -311,13 +330,15 @@ export async function driveZipReadEntry(
   folderId: number | null,
   entry: string,
   password?: string,
-  forceRefresh?: boolean
+  forceRefresh?: boolean,
+  opts?: ZipTargetOpts
 ): Promise<any> {
   if (!detectTauriRuntime()) {
     throw new Error('ZIP browser membutuhkan desktop Rust + Grammers.');
   }
 
-  const archiveKey = `${creds?.session || ''}_${folderId ?? 'root'}_${messageId}`;
+  const chatId = resolveZipChatId(folderId, opts);
+  const archiveKey = `${creds?.session || ''}_${chatId}_${messageId}`;
   const passKey = password || '';
   const entryCacheKey = `${entry}||${passKey}`;
 
@@ -329,7 +350,6 @@ export async function driveZipReadEntry(
   }
 
   const runRead = async () => {
-    const chatId = folderId == null ? 'me' : String(folderId);
     const apiId = Number(creds.apiId) || 0;
     const sparseOpts = {
       session: creds.session,
@@ -425,12 +445,13 @@ export async function driveZipExtractEntry(
   folderId: number | null,
   entryName: string,
   destPath: string,
-  password?: string
+  password?: string,
+  opts?: ZipTargetOpts
 ): Promise<{ status: string; bytesWritten: number }> {
   if (!detectTauriRuntime()) {
     throw new Error('ZIP extraction membutuhkan desktop Rust + Grammers.');
   }
-  const chatId = folderId == null ? 'me' : String(folderId);
+  const chatId = resolveZipChatId(folderId, opts);
   const apiId = Number(creds.apiId) || 0;
   const sparseOpts = {
     session: creds.session,

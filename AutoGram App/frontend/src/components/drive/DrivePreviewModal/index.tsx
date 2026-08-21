@@ -5887,6 +5887,10 @@ export function DrivePreviewModal({
                     creds={creds}
                     messageId={file.id}
                     folderId={folderId}
+                    peerId={itemPeerId}
+                    topicId={itemTopicId}
+                    locationType={locationType}
+                    accountId={itemAccountId}
                     archiveName={displayName}
                     onClose={onClose}
                     onPrev={hasPrev ? () => onPrev?.() : undefined}

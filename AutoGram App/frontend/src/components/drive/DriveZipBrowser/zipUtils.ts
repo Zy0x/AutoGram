@@ -45,6 +45,10 @@ export type ZipBrowserProps = {
   creds: DriveCredentials;
   messageId: number;
   folderId: number | null;
+  peerId?: string | null;
+  topicId?: number | null;
+  locationType?: string;
+  accountId?: string;
   archiveName?: string;
   onClose?: () => void;
   onPrev?: () => void;

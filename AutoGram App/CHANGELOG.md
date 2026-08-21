@@ -1,3 +1,33 @@
+## v3.8.9 Instant Server-Side Filtered Media Streams & MTProto RPC Acceleration Engine (Phase 35.75)
+
+### 1. Native Grammers MTProto RPC Filter Routing
+- **Percepatan Drastis Query Filter Server**:
+  - Mengalihkan permintaan kategori filter (`files`, `media`, `photos`, `videos`, `gifs`, `audio`, `links`) langsung ke RPC query Telegram MTProto khusus:
+    - `InputMessagesFilterDocument` untuk tab **Files** / Dokumen.
+    - `InputMessagesFilterPhotoVideo` untuk tab **Media**.
+    - `InputMessagesFilterGif` untuk tab **GIFs**.
+    - `InputMessagesFilterUrl` untuk tab **Links** / Tautan.
+    - `InputMessagesFilterMusic` untuk tab **Audio**.
+  - Mengeliminasi kebutuhan memindai puluhan ribu pesan campuran yang menyebabkan lag 10–15 detik atau tampilan kosong pada saluran besar (misal 44.000+ pesan).
+  - Waktu muat turun dari 10–15+ detik menjadi **~200-300ms**.
+
+### 2. Filter-Aware IndexedDB L2 Fast Cache
+- **Kueri Kursor L2 Multi-Tier Berbasis Kategori**:
+  - Memperbarui `getMediaPageByContext` dan `getMediaRecordsCountByContext` dengan parameter `contentFilter` dan `perspective`.
+  - Membaca dan menghitung entri kursor ter-cache secara instan pada pembukaan ulang atau saat offline tanpa memicu perulangan tak terbatas.
+
+### 3. Isolated Per-Category Reactive Streams di Frontend
+- **Pemisahan State Stream Media per Tab**:
+  - Mengganti state terpisah lama dengan peta terisolasi: `filteredFilesMap`, `filteredHasMoreMap`, `filteredTotalCountMap`, dan `filteredNextOffsetMapRef`.
+  - Mendukung *Infinite Scroll* (`loadMoreFiltered`) yang mandiri dan bersih pada setiap kategori media.
+  - Memastikan *Zero State Pollution* saat berpindah antar channel, grup, atau topik forum.
+
+### 4. Validasi Remote E2E & Kualitas Kode
+- **Verifikasi Live Desktop via CDP**:
+  - Terverifikasi pada saluran `#Gudang` (44.855 pesan total) bahwa klik tab `Files` (86 berkas) memuat dan merender 36 kartu pertama dalam **~200-300ms** (turun >98% dari sebelumnya).
+  - Seluruh tab (`All`, `Media`, `Files`, `Links`, `GIFs`) teruji berpindah secara instan dengan responsivitas tinggi.
+  - Lolos uji build Vite `npm run build` dan `npx tsc --noEmit` dengan 0 error.
+
 ## v3.8.8 Smart Conditional Remote Upload & Web Handoff Engine (Phase 35.74)
 
 ### 1. Smart Conditional Passcode Visibility

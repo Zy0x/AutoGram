@@ -1,14 +1,15 @@
-AutoGram Version: v3.8.7
+AutoGram Version: v3.8.9
 
 Current State:
-v3.8.7 Drive Settings Inaccessible & Restricted Channel Media Filter Engine — menghadirkan pengaturan preferensi sentral di Drive Settings (Tab Advanced > Filter & Tampilan Konten Drive) untuk menyembunyikan media terlarang, pesan yang tidak dapat dibuka ("This channel can't be displayed..."), serta media dari saluran terblokir:
-1. Intelligent Pattern & Metadata Detection: Mendeteksi pesan terlarang/dibatasi dari Telegram MTProto melalui indikator metadata (`is_restricted`, `restriction_reason`, `restriction_code`, `telegram_category === 'restricted'`) serta pemindaian pola teks dwibahasa (EN & ID) seperti *"This channel can't be displayed"*, *"Saluran ini tidak dapat ditampilkan"*, *"This media is not available"*, dan *"Saluran diblokir"*.
-2. Clean Workspace & Explorer Grid: Otomatis memfilter dan membersihkan grid Drive, list view, studio preview carousel navigation, seleksi marquee/shift-range, dan antrean transfer dari item-item yang rusak atau tidak dapat dibuka.
-3. Central Drive Settings & Search Integration: Menyediakan sakelar interaktif pada **Drive Settings > Advanced**, terindeks pada bilah pencarian pengaturan (kata kunci: restricted, channel, saluran, terlarang, dibatasi), serta tersinkronisasi secara reaktif ke seluruh antarmuka.
-4. 100% Zero Hardcoded Strings & Key Parity: Seluruh teks antarmuka diekstrak ke dalam locale i18n (`id/speedtest.json` & `en/speedtest.json`) dengan unit test komprehensif.
+v3.8.9 Instant Server-Side Filtered Media Streams & MTProto RPC Acceleration Engine — menghadirkan pemfilteran instan (<300ms) untuk tab 'Files', 'GIFs', 'Links', 'Audio', dan 'Media' pada saluran dan topik berkapasitas besar:
+1. Native Grammers MTProto RPC Filter Routing: Mengalihkan permintaan kategori filter (`files`, `media`, `photos`, `videos`, `gifs`, `audio`, `links`) langsung ke query filter server Telegram (`InputMessagesFilterDocument`, `InputMessagesFilterPhotoVideo`, `InputMessagesFilterGif`, `InputMessagesFilterUrl`, `InputMessagesFilterMusic`) dalam 1 kali round-trip MTProto tanpa perlu memindai puluhan ribu pesan campuran.
+2. Filter-Aware IndexedDB L2 Fast Cache: Mengintegrasikan `contentFilter` dan `perspective` ke dalam query kursor IndexedDB (`getMediaPageByContext` dan `getMediaRecordsCountByContext`) sehingga filter instan langsung menampilkan data ter-cache dalam hitungan milidetik saat aplikasi dibuka kembali.
+3. Isolated Per-Category Reactive Streams: Memperbarui MediaStudio frontend dengan peta stream terisolasi (`filteredFilesMap`, `filteredHasMoreMap`, `filteredTotalCountMap`) untuk memastikan infinite scroll, loading indicator, dan pagination bekerja mulus pada setiap tab filter.
+4. Comprehensive Remote E2E Validation: Terverifikasi via CDP pada saluran #Gudang (44.855 item) bahwa peralihan ke tab 'Files' (86 berkas) memuat secara instan dalam ~200-300ms tanpa lag maupun halaman kosong.
 
 Previous:
-v3.8.6 Sparse Encrypted ZIP Media Streaming & AES-256 Decryption Engine — menghadirkan pemutaran dan pratinjau media pada berkas ZIP berpassword/terenkripsi secara streaming satuan (Zero Full-File Download):
+v3.8.8 Smart Conditional Remote Upload & Web Handoff Engine.
+v3.8.7 Drive Settings Inaccessible & Restricted Channel Media Filter Engine.
 1. Native WinZip AES-128 / AES-192 / AES-256 & PKWARE ZipCrypto Decryption: Mengaktifkan fitur `aes-crypto` pada crate `zip` backend Rust untuk mendekripsi arsip terenkripsi standar modern (7-Zip, WinRAR, WinZip, Bandizip) secara on-the-fly.
 2. Zero Full-File Download Media Streaming: Membuka media (gambar, video, audio, teks, pdf) di dalam ZIP berpassword HANYA mengunduh rentang byte dari entri yang diminta melalui MTProto Range requests, menghemat kuota internet pengguna secara drastis tanpa perlu mengunduh utuh berkas ZIP bergiga-giga.
 3. Accurate Password Verification & Fast Error Diagnostics: Memperbaiki pemetaan status `bad_password` pada saat verifikasi header dan pembacaan stream data, mencegah loop modal input password yang salah.

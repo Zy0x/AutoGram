@@ -77,6 +77,25 @@ describe('Restricted & Inaccessible Media Detection & Filtering', () => {
     created_at: '2026-08-07T00:00:00Z',
   };
 
+  const restrictedByCurlyApostrophe: DriveFile = {
+    id: 8,
+    folder_id: null,
+    icon_type: 'file',
+    name: "This channel can’t be displayed because it was used to spread pornographic content.",
+    size: 85,
+    created_at: '2026-08-08T00:00:00Z',
+  };
+
+  const restrictedByDriveFormatText: DriveFile = {
+    id: 9,
+    folder_id: null,
+    icon_type: 'file',
+    name: "This channel can't b...",
+    drive_format: "This channel can’t be displayed because it was used to spread...",
+    size: 85,
+    created_at: '2026-08-09T00:00:00Z',
+  };
+
   const allFiles: DriveFile[] = [
     normalFile1,
     normalFile2,
@@ -85,6 +104,8 @@ describe('Restricted & Inaccessible Media Detection & Filtering', () => {
     restrictedByEnglishNoticeInCaption,
     restrictedByIndonesianNotice,
     restrictedByCategory,
+    restrictedByCurlyApostrophe,
+    restrictedByDriveFormatText,
   ];
 
   it('correctly identifies normal media vs restricted media', () => {
@@ -96,19 +117,33 @@ describe('Restricted & Inaccessible Media Detection & Filtering', () => {
     expect(isRestrictedOrInaccessibleFile(restrictedByEnglishNoticeInCaption)).toBe(true);
     expect(isRestrictedOrInaccessibleFile(restrictedByIndonesianNotice)).toBe(true);
     expect(isRestrictedOrInaccessibleFile(restrictedByCategory)).toBe(true);
+    expect(isRestrictedOrInaccessibleFile(restrictedByCurlyApostrophe)).toBe(true);
+    expect(isRestrictedOrInaccessibleFile(restrictedByDriveFormatText)).toBe(true);
   });
 
   it('matches all declared RESTRICTED_MEDIA_PATTERNS correctly', () => {
     const testCases = [
       "This channel can't be displayed",
+      "This channel can’t be displayed",
+      "This channel can‘t be displayed",
+      "This channel can`t be displayed",
       "This channel cannot be displayed",
       "This message can't be displayed",
+      "This message can’t be displayed",
+      "This message cannot be displayed",
       "This group can't be displayed",
+      "This group can’t be displayed",
       "This media is not available in your country",
+      "This content is unavailable",
       "Saluran ini tidak dapat ditampilkan",
       "Pesan ini tidak dapat ditampilkan",
       "Grup ini tidak dapat ditampilkan",
       "Media ini tidak tersedia",
+      "Konten ini tidak tersedia",
+      "Tidak dapat ditampilkan karena melanggar hak cipta",
+      "Saluran diblokir",
+      "Channel blocked",
+      "Banned channel",
     ];
 
     for (const text of testCases) {
@@ -129,7 +164,7 @@ describe('Restricted & Inaccessible Media Detection & Filtering', () => {
 
   it('includes restricted files when hideRestrictedMedia: false', () => {
     const result = filterAndSortDriveFiles(allFiles, { sortMode: 'oldest', hideRestrictedMedia: false });
-    expect(result.map((f) => f.id)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(result.map((f) => f.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
 
   it('works seamlessly through filterAndSortDriveFilesPower', () => {
@@ -137,6 +172,6 @@ describe('Restricted & Inaccessible Media Detection & Filtering', () => {
     expect(hidden.map((f) => f.id)).toEqual([1, 2]);
 
     const visible = filterAndSortDriveFilesPower(allFiles, { sortMode: 'oldest', hideRestrictedMedia: false });
-    expect(visible.map((f) => f.id)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(visible.map((f) => f.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
 });
