@@ -1,3 +1,64 @@
+## v3.8.7 Drive Settings Inaccessible & Restricted Channel Media Filter Engine (Phase 35.73)
+
+### 1. Central Drive Setting for Inaccessible & Restricted Media
+- **Opsi Pengaturan di Drive Settings**:
+  - Menambahkan kartu pengaturan baru pada **Drive Settings > Advanced (Lanjutan)**: *"Filter & Tampilan Konten Drive"* dengan sakelar *"Sembunyikan Media & Saluran yang Dibatasi"*.
+  - Otomatis memfilter dan menyembunyikan berkas / pesan peringatan Telegram yang tidak dapat ditampilkan (*"This channel can't be displayed..."*, hak cipta, konten diblokir, saluran terlarang) agar tampilan Drive tetap bersih dari item yang rusak atau tidak dapat dibuka.
+  - Nilai bawaan (*default*): `true` (aktif menyembunyikan item terlarang).
+  - Terintegrasi penuh dengan pencarian preferensi pengaturan Drive dengan kata kunci dwibahasa: `restricted`, `channel`, `saluran`, `terlarang`, `dibatasi`, `tidak dapat ditampilkan`, `cant be displayed`, `hide`, `sembunyikan`, `banned`.
+
+### 2. Intelligent Pattern & Metadata Detection
+- **Deteksi Cerdas Berlapis**:
+  - Menginspeksi metadata berkas dari Telegram MTProto: `is_restricted`, `restriction_reason`, `restriction_code`, dan kategori `telegram_category === 'restricted'`.
+  - Pemindaian pola regex dwibahasa (Inggris & Indonesia) pada `name`, `original_name`, `caption`, dan `mime_type` mencakup:
+    - `"this channel can't be displayed"`
+    - `"this channel cannot be displayed"`
+    - `"this message can't be displayed"`
+    - `"this group can't be displayed"`
+    - `"this media is not available"`
+    - `"saluran ini tidak dapat ditampilkan"`
+    - `"pesan ini tidak dapat ditampilkan"`
+    - `"grup ini tidak dapat ditampilkan"`
+    - `"media ini tidak tersedia"`
+    - `"channel blocked"` / `"banned channel"`
+
+### 3. Pipeline-Wide Real-Time Reactivity
+- **Pembersihan Menyeluruh pada Semua View & Interaksi**:
+  - **Drive Explorer**: Grid view dan list view langsung diperbarui secara reaktif saat toggle diubah tanpa perlu reload.
+  - **Media Studio Carousel**: Navigasi Next/Prev pratinjau media secara otomatis melompati media terlarang yang disembunyikan.
+  - **Selection & Marquee**: Pemilihan seleksi multi-berkas (Shift+Range, Drag Marquee, Select All) hanya menyertakan berkas yang valid.
+  - **Transfer & Download Queue**: Mencegah antrean transfer dari item dummy yang akan selalu gagal diunduh.
+
+### 4. Kepatuhan Standar Teknis & Kualitas Kode
+- **100% Zero Hardcoded Strings & Key Parity**:
+  - Seluruh teks dan deskripsi pengaturan diekstrak ke `id/speedtest.json` dan `en/speedtest.json` dengan audit `npm run test:locale` (5.251 keys ID & 5.251 keys EN, 0 missing, 0 parity mismatch).
+- **Unit Testing & Verifikasi Penuh**:
+  - Membuat suite pengujian baru `restrictedMediaFilter.test.ts` (6 pengujian lulus 100%).
+  - Lolos uji seluruh 104 pengujian unit `vitest` frontend dan `npx tsc --noEmit` dengan 0 error.
+  - Lolos uji bundling produksi `npm run build` Vite dalam 8.19 detik.
+
+## v3.8.6 Sparse Encrypted ZIP Media Streaming & AES-256 Decryption Engine (Phase 35.72)
+
+### 1. Zero Full-File Download Streaming for Encrypted ZIP Archives
+- **Pratinjau Media Tanpa Mengunduh Arsip Utuh**:
+  - Membuka berkas gambar, video, audio, teks, atau dokumen di dalam arsip ZIP berpassword/terenkripsi kini **HANYA** mengunduh rentang byte dari entri yang diminta via MTProto Range request, bukan seluruh berkas ZIP utuh bergiga-giga.
+  - Menghemat kuota data pengguna secara signifikan dan mempercepat waktu tunggu hingga hitungan detik.
+
+### 2. Native WinZip AES-128 / AES-192 / AES-256 Decryption
+- **Dukungan Enkripsi Standar Modern**:
+  - Mengaktifkan fitur `aes-crypto` pada crate `zip` backend Rust untuk mendekripsi arsip berpassword yang dibuat menggunakan 7-Zip, WinRAR, WinZip, dan Bandizip.
+  - Mempertahankan kompatibilitas penuh dengan metode enkripsi tradisional PKWARE ZipCrypto.
+
+### 3. Accurate Password Verification & Fast Error Diagnostics
+- **Penanganan Validasi Password yang Presisi**:
+  - Memperbaiki pemetaan status `bad_password` pada saat verifikasi header dan pembacaan stream data, mencegah loop modal input password yang salah.
+  - Menjamin pembersihan otomatis (*auto-cleanup*) berkas sementara yang gagal didekripsi dari penyimpanan lokal secara atomik.
+
+### 4. Kepatuhan Standar Teknis & Kualitas Kode
+- **100% Key Parity Locale & Validasi TypeScript/Rust**:
+  - Lolos uji validasi `cargo test core::zip_local` (7 lulus, 0 gagal termasuk AES-256 encryption/decryption test).
+  - Lolos uji validasi `npx tsc --noEmit` dan seluruh 278 unit test frontend dengan 0 error.
+
 ## v3.8.5 Ultra-Compact Segmented History Navigation Pill & Breadcrumb Ergonomics (Phase 35.71)
 
 ### 1. Ultra-Compact Segmented History Navigation Pill

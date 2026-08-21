@@ -31,7 +31,7 @@ rand = "0.8"
 base64 = "0.22"
 keyring = "3"
 rusqlite = { version = "0.32", features = ["backup", "bundled"] }
-zip = { version = "2", default-features = false, features = ["deflate", "bzip2", "zstd"] }
+zip = { version = "2", default-features = false, features = ["deflate", "bzip2", "zstd", "aes-crypto"] }
 flate2 = "1.0"
 tiny_http = "0.12"
 sha2 = "0.10"

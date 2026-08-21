@@ -105,6 +105,7 @@ type Props = {
   onViewPerspective?: (perspective: ViewPerspective) => void;
   totalCount?: number | null;
   unavailableNotice?: string | null;
+  hideRestrictedMedia?: boolean;
 };
 
 const GRID_GAP = 10;
@@ -179,6 +180,7 @@ export function DriveExplorer({
   viewPerspective = 'telegram',
   totalCount: _totalCount = null,
   unavailableNotice = null,
+  hideRestrictedMedia = true,
 }: Props) {
   const { t } = useTranslation();
   const draggingSet = useMemo(() => new Set(draggingIds || []), [draggingIds]);
@@ -404,8 +406,9 @@ export function DriveExplorer({
       sortMode,
       adv: advFilter ?? null,
       perspective: viewPerspective,
+      hideRestrictedMedia,
     });
-  }, [contextFiles, query, mediaFilter, sortMode, advFilter, viewPerspective]);
+  }, [contextFiles, query, mediaFilter, sortMode, advFilter, viewPerspective, hideRestrictedMedia]);
 
   const displayedIds = useMemo(() => displayed.map((f: any) => f.id), [displayed]);
 

@@ -117,6 +117,13 @@ export type DriveFile = {
   driveFormat?: string | null;
   /** Every URL contained in a Telegram message returned by the URL lane. */
   link_urls?: string[];
+  /** Optional caption on media */
+  caption?: string | null;
+  /** Restricted / inaccessible media flags */
+  is_restricted?: boolean | null;
+  restriction_reason?: string | null;
+  /** Short restriction error code or status code */
+  restriction_code?: string | null;
 };
 
 export type ViewPerspective = 'telegram' | 'drive';
@@ -448,6 +455,45 @@ export function getFileSortType(f: DriveFile): string {
 }
 
 /**
+ * Text patterns indicating restricted / inaccessible messages or channels
+ * returned by Telegram MTProto or local indexers.
+ */
+export const RESTRICTED_MEDIA_PATTERNS: RegExp[] = [
+  /this\s+channel\s+can'?t\s+be\s+displayed/i,
+  /this\s+channel\s+cannot\s+be\s+displayed/i,
+  /this\s+message\s+can'?t\s+be\s+displayed/i,
+  /this\s+message\s+cannot\s+be\s+displayed/i,
+  /this\s+group\s+can'?t\s+be\s+displayed/i,
+  /this\s+group\s+cannot\s+be\s+displayed/i,
+  /this\s+media\s+is\s+not\s+available/i,
+  /saluran\s+ini\s+tidak\s+dapat\s+ditampilkan/i,
+  /pesan\s+ini\s+tidak\s+dapat\s+ditampilkan/i,
+  /grup\s+ini\s+tidak\s+dapat\s+ditampilkan/i,
+  /media\s+ini\s+tidak\s+tersedia/i,
+  /channel\s+blocked/i,
+  /banned\s+channel/i,
+];
+
+/**
+ * Checks whether a drive file is an inaccessible or restricted Telegram item
+ * (e.g. copyright blocks, porn/sensitive restrictions, banned channels).
+ */
+export function isRestrictedOrInaccessibleFile(f: DriveFile): boolean {
+  if (!f) return false;
+  if (f.is_restricted === true) return true;
+  if (f.restriction_reason || f.restriction_code) return true;
+  if (f.telegram_category === 'restricted' || f.drive_category === 'restricted') return true;
+
+  const name = String(f.name || '');
+  const orig = String(f.original_name || '');
+  const caption = String(f.caption || '');
+  const mime = String(f.mime_type || '');
+
+  const textToScan = `${name}\n${orig}\n${caption}\n${mime}`;
+  return RESTRICTED_MEDIA_PATTERNS.some((pattern) => pattern.test(textToScan));
+}
+
+/**
  * Apply media filter + search query + sort — single source of truth for grid/list
  * and for selection (shift-range / marquee / select-all must use this order).
  */
@@ -458,13 +504,20 @@ export function filterAndSortDriveFiles(
     mediaFilter?: DriveMediaFilter;
     sortMode?: DriveSortMode;
     perspective?: ViewPerspective;
-  }
+    hideRestrictedMedia?: boolean;
+  } = {}
 ): DriveFile[] {
   const q = (opts.query || '').trim().toLowerCase();
   const mediaFilter = opts.mediaFilter ?? 'all';
   const sortMode = opts.sortMode ?? DEFAULT_DRIVE_SORT;
   const perspective = opts.perspective ?? 'telegram';
-  let list = files.filter((f) => matchesMediaFilter(f, mediaFilter, perspective));
+  const hideRestricted = opts.hideRestrictedMedia !== false;
+
+  let list = files;
+  if (hideRestricted) {
+    list = list.filter((f) => !isRestrictedOrInaccessibleFile(f));
+  }
+  list = list.filter((f) => matchesMediaFilter(f, mediaFilter, perspective));
   if (q) {
     // Multi-token AND over name + type/mime/ext (current-location file search)
     const tokens = q.split(/\s+/).filter(Boolean);
@@ -785,6 +838,8 @@ export type DriveTransferSettings = {
   playbackSeekCacheMb?: number;
   /** Show real-time telemetry overlay on video player */
   playbackShowDiagnostics?: boolean;
+  /** Automatically filter out and hide restricted/inaccessible messages and media (e.g. "This channel can't be displayed...") */
+  hideRestrictedMedia?: boolean;
 };
 
 export type DriveTransferSettingsProfile = {
@@ -860,6 +915,7 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   playbackMaxVramMb: 1024,
   playbackSeekCacheMb: 256,
   playbackShowDiagnostics: false,
+  hideRestrictedMedia: true,
 };
 
 export const QUALITY_MODE_OPTIONS: {
@@ -972,6 +1028,7 @@ export function loadTransferSettings(): DriveTransferSettings {
       downloadConflictPolicy: ['ask', 'rename', 'overwrite', 'skip'].includes(String(p.downloadConflictPolicy)) ? p.downloadConflictPolicy! : DEFAULT_TRANSFER_SETTINGS.downloadConflictPolicy,
       downloadResumePartial: p.downloadResumePartial !== false,
       downloadIntegrity: p.downloadIntegrity === 'sha256' ? 'sha256' : 'size',
+      hideRestrictedMedia: p.hideRestrictedMedia !== false,
     };
   } catch {
     return { ...DEFAULT_TRANSFER_SETTINGS };

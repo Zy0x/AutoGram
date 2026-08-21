@@ -1853,5 +1853,9 @@
   "remote_native_badge": "NATIVE DIRECT",
   "remote_native_inspected": "Diselesaikan oleh pemeriksa native terbatas melalui {{count}} halaman.",
   "nav_back_drive": "Kembali ke Drive sebelumnya",
-  "nav_forward_drive": "Maju ke Drive berikutnya"
+  "nav_forward_drive": "Maju ke Drive berikutnya",
+  "hide_restricted_media_section_title": "Filter & Tampilan Konten Drive",
+  "hide_restricted_media_section_subtitle": "Bersihkan media terlarang atau pesan yang tidak dapat dibuka dari grid Drive",
+  "hide_restricted_media_title": "Sembunyikan Media & Saluran yang Dibatasi",
+  "hide_restricted_media_desc": "Otomatis memfilter dan menyembunyikan berkas / pesan peringatan Telegram yang tidak dapat ditampilkan (\"This channel can't be displayed...\") agar tampilan Drive tetap rapi dan bersih dari media rusak."
 }

@@ -161,6 +161,33 @@ export function buildSearchRegistry(t: TFunction): SearchableSettingItem[] {
       description: String(t('speedtest.tools_tab_advanced_desc')),
       keywords: ['advanced', 'sync', 'timeout', 'export', 'import', 'reset'],
     },
+    {
+      id: 'hide-restricted-media',
+      tab: 'advanced',
+      mode: 'advanced',
+      sectionId: 'section-hide-restricted-media',
+      label: String(t('speedtest.hide_restricted_media_title')),
+      description: String(t('speedtest.hide_restricted_media_desc')),
+      keywords: [
+        'restricted',
+        'channel',
+        'saluran',
+        'terlarang',
+        'dibatasi',
+        'tidak dapat ditampilkan',
+        'this channel can\'t be',
+        'this channel cannot be',
+        'this message cannot be',
+        'cant be displayed',
+        'hide',
+        'sembunyikan',
+        'bersihkan',
+        'clean',
+        'block',
+        'banned',
+        'rusak',
+      ],
+    },
   ];
 }
 

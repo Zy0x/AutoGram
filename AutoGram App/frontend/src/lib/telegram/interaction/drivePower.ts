@@ -82,6 +82,7 @@ export function filterAndSortDriveFilesPower(
     sortMode?: DriveSortMode;
     adv?: DriveAdvFilter | null;
     perspective?: ViewPerspective;
+    hideRestrictedMedia?: boolean;
   }
 ): DriveFile[] {
   let list = filterAndSortDriveFiles(files, {
@@ -89,6 +90,7 @@ export function filterAndSortDriveFilesPower(
     mediaFilter: opts.mediaFilter,
     sortMode: opts.sortMode,
     perspective: opts.perspective,
+    hideRestrictedMedia: opts.hideRestrictedMedia,
   });
   if (opts.adv && isAdvFilterActive(opts.adv)) {
     list = list.filter((f) => matchesAdvFilter(f, opts.adv!));

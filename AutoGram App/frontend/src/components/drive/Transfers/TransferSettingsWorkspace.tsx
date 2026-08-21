@@ -849,6 +849,7 @@ export function TransferSettingsWorkspace({
           autoRetryOnNetworkError: defaults.autoRetryOnNetworkError,
           smartRateControlEnabled: defaults.smartRateControlEnabled,
           debugLoggingEnabled: defaults.debugLoggingEnabled,
+          hideRestrictedMedia: defaults.hideRestrictedMedia,
         };
         break;
     }
@@ -3155,6 +3156,60 @@ export function TransferSettingsWorkspace({
                     checked={draft.smartRateControlEnabled ?? true}
                     disabled={!!transferActive}
                     onChange={(e) => patch({ smartRateControlEnabled: e.target.checked })}
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* 2. FILTER & TAMPILAN KONTEN DRIVE */}
+            <div
+              id="section-hide-restricted-media"
+              className="td-settings-card"
+              style={{
+                background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <ShieldAlert size={18} style={{ color: '#f87171' }} />
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                    {t('speedtest.hide_restricted_media_section_title')}
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                    {t('speedtest.hide_restricted_media_section_subtitle')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="td-switches-list">
+                <label className="td-switch-row">
+                  <div>
+                    <strong>{t('speedtest.hide_restricted_media_title')}</strong>
+                    <p>{t('speedtest.hide_restricted_media_desc')}</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={draft.hideRestrictedMedia ?? true}
+                    disabled={!!transferActive}
+                    onChange={(e) => patch({ hideRestrictedMedia: e.target.checked })}
                   />
                 </label>
               </div>

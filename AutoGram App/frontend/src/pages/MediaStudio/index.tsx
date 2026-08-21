@@ -1685,8 +1685,9 @@ function MediaDriveDesktop({
       sortMode,
       adv: advFilter,
       perspective: viewPerspective,
+      hideRestrictedMedia: transferSettings.hideRestrictedMedia !== false,
     });
-  }, [activeContentFiles, query, mediaFilter, sortMode, advFilter, viewPerspective]);
+  }, [activeContentFiles, query, mediaFilter, sortMode, advFilter, viewPerspective, transferSettings.hideRestrictedMedia]);
 
   const previewIndex = previewFile ? sortedPreviewList.findIndex((f) => f.id === previewFile.id) : -1;
 
@@ -5591,8 +5592,9 @@ function MediaDriveDesktop({
       sortMode,
       adv: advFilter,
       perspective: viewPerspective,
+      hideRestrictedMedia: transferSettings.hideRestrictedMedia !== false,
     }).map((f) => f.id);
-  }, [activeContentFiles, query, mediaFilter, sortMode, advFilter, viewPerspective]);
+  }, [activeContentFiles, query, mediaFilter, sortMode, advFilter, viewPerspective, transferSettings.hideRestrictedMedia]);
 
   const getDisplayedFiles = useCallback(() => {
     return filterAndSortDriveFilesPower(activeContentFiles, {
@@ -5601,8 +5603,9 @@ function MediaDriveDesktop({
       sortMode,
       adv: advFilter,
       perspective: viewPerspective,
+      hideRestrictedMedia: transferSettings.hideRestrictedMedia !== false,
     });
-  }, [activeContentFiles, query, mediaFilter, sortMode, advFilter, viewPerspective]);
+  }, [activeContentFiles, query, mediaFilter, sortMode, advFilter, viewPerspective, transferSettings.hideRestrictedMedia]);
 
   const clearSelection = useCallback(() => {
     setSelectedIds([]);
@@ -10127,6 +10130,7 @@ function MediaDriveDesktop({
               onViewPerspective={setViewPerspective}
               totalCount={mediaFilter === 'links' ? linksTotalCount : totalFileCount}
               unavailableNotice={activeRestrictionNotice}
+              hideRestrictedMedia={transferSettings.hideRestrictedMedia !== false}
               sortMode={sortMode}
               onSortMode={handleSortModeChange}
               advFilter={advFilter}

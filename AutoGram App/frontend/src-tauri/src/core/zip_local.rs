@@ -335,7 +335,17 @@ pub fn preview_zip_entry_from_archive<R: Read + Seek>(
             .by_index_decrypt(idx, pass.as_bytes())
             .map_err(|e| match e {
                 zip::result::ZipError::InvalidPassword => "bad_password".into(),
-                _ => format!("Gagal membaca entri {entry_name}: {e}"),
+                zip::result::ZipError::UnsupportedArchive(msg) => {
+                    format!("Format enkripsi ZIP tidak didukung: {msg}")
+                }
+                _ => {
+                    let s = e.to_string();
+                    if s.contains("password") || s.contains("Password") {
+                        "bad_password".into()
+                    } else {
+                        format!("Gagal membaca entri {entry_name}: {e}")
+                    }
+                }
             })?
     } else {
         match archive.by_index(idx) {
@@ -353,7 +363,22 @@ pub fn preview_zip_entry_from_archive<R: Read + Seek>(
                     backend: "rust".into(),
                 });
             }
-            Err(e) => return Err(format!("Gagal membaca entri {entry_name}: {e}")),
+            Err(e) => {
+                let s = e.to_string();
+                if s.contains("Password") || s.contains("password") || s.contains("encrypted") || s.contains("Encrypted") {
+                    return Ok(ZipEntryPreview {
+                        name: entry_name.into(),
+                        size: 0,
+                        text_content: None,
+                        data_url: None,
+                        mime_type: None,
+                        is_binary: true,
+                        encrypted: true,
+                        backend: "rust".into(),
+                    });
+                }
+                return Err(format!("Gagal membaca entri {entry_name}: {e}"));
+            }
         }
     };
 
@@ -389,19 +414,38 @@ pub fn preview_zip_entry_from_archive<R: Read + Seek>(
     let mut buf = Vec::new();
     if let Err(e) = f.read_to_end(&mut buf) {
         let err_str = e.to_string();
-        if err_str.contains("password") || err_str.contains("Password") {
-            return Ok(ZipEntryPreview {
-                name: entry_name.into(),
-                size,
-                text_content: None,
-                data_url: None,
-                mime_type: None,
-                is_binary: true,
-                encrypted: true,
-                backend: "rust".into(),
-            });
+        if password.is_some() {
+            if err_str.contains("password")
+                || err_str.contains("Password")
+                || err_str.contains("checksum")
+                || err_str.contains("Checksum")
+                || err_str.contains("Invalid")
+                || err_str.contains("invalid")
+                || err_str.contains("HMAC")
+                || err_str.contains("hmac")
+            {
+                return Err("bad_password".into());
+            }
+            return Err(format!("Gagal membaca stream data entri {entry_name}: {err_str}"));
+        } else {
+            if err_str.contains("password")
+                || err_str.contains("Password")
+                || err_str.contains("encrypted")
+                || err_str.contains("Encrypted")
+            {
+                return Ok(ZipEntryPreview {
+                    name: entry_name.into(),
+                    size,
+                    text_content: None,
+                    data_url: None,
+                    mime_type: None,
+                    is_binary: true,
+                    encrypted: true,
+                    backend: "rust".into(),
+                });
+            }
+            return Err(err_str);
         }
-        return Err(err_str);
     }
 
     Ok(build_zip_entry_preview(entry_name, size, buf))
@@ -507,7 +551,17 @@ pub fn extract_zip_entry_from_archive<R: Read + Seek>(
             .by_index_decrypt(idx, pass.as_bytes())
             .map_err(|e| match e {
                 zip::result::ZipError::InvalidPassword => "bad_password".into(),
-                _ => format!("Gagal membaca entri {entry_name}: {e}"),
+                zip::result::ZipError::UnsupportedArchive(msg) => {
+                    format!("Format enkripsi ZIP tidak didukung: {msg}")
+                }
+                _ => {
+                    let s = e.to_string();
+                    if s.contains("password") || s.contains("Password") {
+                        "bad_password".into()
+                    } else {
+                        format!("Gagal membaca entri {entry_name}: {e}")
+                    }
+                }
             })?
     } else {
         match archive.by_index(idx) {
@@ -531,8 +585,24 @@ pub fn extract_zip_entry_from_archive<R: Read + Seek>(
 
     let mut out_file =
         File::create(&dst_p).map_err(|e| format!("Gagal membuat file tujuan: {e}"))?;
-    let bytes_written = std::io::copy(&mut entry_file, &mut out_file)
-        .map_err(|e| format!("Gagal menulis data ekstraksi: {e}"))?;
+    let copy_res = std::io::copy(&mut entry_file, &mut out_file);
+    if let Err(e) = copy_res {
+        let _ = std::fs::remove_file(&dst_p);
+        let err_str = e.to_string();
+        if err_str.contains("password")
+            || err_str.contains("Password")
+            || err_str.contains("checksum")
+            || err_str.contains("Checksum")
+            || err_str.contains("Invalid")
+            || err_str.contains("invalid")
+            || err_str.contains("HMAC")
+            || err_str.contains("hmac")
+        {
+            return Err("bad_password".into());
+        }
+        return Err(format!("Gagal menulis data ekstraksi: {e}"));
+    }
+    let bytes_written = copy_res.unwrap();
 
     Ok(bytes_written)
 }
@@ -561,6 +631,7 @@ mod tests {
     use super::*;
     use std::io::Cursor;
     use std::io::Write;
+    use zip::unstable::write::FileOptionsExt;
     use zip::write::SimpleFileOptions;
     use zip::ZipWriter;
 
@@ -706,4 +777,119 @@ mod tests {
         assert_eq!(nested.count, 1);
         assert_eq!(nested.entries[0].name, "nested/readme.md");
     }
+
+    #[test]
+    fn encrypted_zip_preview_and_extract_flow() {
+        let dir = std::env::temp_dir().join("ag_zip_crypto_test");
+        let _ = std::fs::create_dir_all(&dir);
+        let zip_path = dir.join("encrypted.zip");
+        let target_path = dir.join("decrypted.txt");
+
+        {
+            let f = File::create(&zip_path).unwrap();
+            let mut z = ZipWriter::new(f);
+            let options = SimpleFileOptions::default()
+                .with_deprecated_encryption(b"password123");
+            z.start_file("secret.txt", options).unwrap();
+            z.write_all(b"top secret payload").unwrap();
+            z.finish().unwrap();
+        }
+
+        // 1. Preview without password -> returns encrypted: true
+        let prev_no_pass = preview_zip_entry(zip_path.to_str().unwrap(), "secret.txt", None).unwrap();
+        assert!(prev_no_pass.encrypted);
+        assert!(prev_no_pass.text_content.is_none());
+
+        // 2. Preview with wrong password -> returns bad_password
+        let prev_bad_pass = preview_zip_entry(zip_path.to_str().unwrap(), "secret.txt", Some("wrongpass"));
+        assert!(prev_bad_pass.is_err());
+        assert_eq!(prev_bad_pass.unwrap_err(), "bad_password");
+
+        // 3. Preview with correct password -> returns decrypted text content
+        let prev_ok = preview_zip_entry(zip_path.to_str().unwrap(), "secret.txt", Some("password123")).unwrap();
+        assert!(!prev_ok.encrypted);
+        assert_eq!(prev_ok.text_content.unwrap(), "top secret payload");
+
+        // 4. Extract with wrong password -> returns bad_password and removes corrupted file
+        let extract_bad = extract_zip_entry(
+            zip_path.to_str().unwrap(),
+            "secret.txt",
+            target_path.to_str().unwrap(),
+            Some("wrongpass"),
+        );
+        assert!(extract_bad.is_err());
+        assert_eq!(extract_bad.unwrap_err(), "bad_password");
+        assert!(!target_path.exists());
+
+        // 5. Extract with correct password -> extracts file successfully
+        let extract_ok = extract_zip_entry(
+            zip_path.to_str().unwrap(),
+            "secret.txt",
+            target_path.to_str().unwrap(),
+            Some("password123"),
+        )
+        .unwrap();
+        assert_eq!(extract_ok, 18);
+        assert_eq!(std::fs::read_to_string(&target_path).unwrap(), "top secret payload");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn aes_encrypted_zip_preview_and_extract_flow() {
+        let dir = std::env::temp_dir().join("ag_zip_aes_test");
+        let _ = std::fs::create_dir_all(&dir);
+        let zip_path = dir.join("aes_encrypted.zip");
+        let target_path = dir.join("aes_decrypted.txt");
+
+        {
+            let f = File::create(&zip_path).unwrap();
+            let mut z = ZipWriter::new(f);
+            let options = SimpleFileOptions::default()
+                .with_aes_encryption(zip::AesMode::Aes256, "aespassword456");
+            z.start_file("aes_secret.txt", options).unwrap();
+            z.write_all(b"aes 256 secret content").unwrap();
+            z.finish().unwrap();
+        }
+
+        // 1. Preview without password -> returns encrypted: true
+        let prev_no_pass = preview_zip_entry(zip_path.to_str().unwrap(), "aes_secret.txt", None).unwrap();
+        assert!(prev_no_pass.encrypted);
+        assert!(prev_no_pass.text_content.is_none());
+
+        // 2. Preview with wrong password -> returns bad_password
+        let prev_bad_pass = preview_zip_entry(zip_path.to_str().unwrap(), "aes_secret.txt", Some("wrongpass"));
+        assert!(prev_bad_pass.is_err());
+        assert_eq!(prev_bad_pass.unwrap_err(), "bad_password");
+
+        // 3. Preview with correct password -> returns decrypted text content
+        let prev_ok = preview_zip_entry(zip_path.to_str().unwrap(), "aes_secret.txt", Some("aespassword456")).unwrap();
+        assert!(!prev_ok.encrypted);
+        assert_eq!(prev_ok.text_content.unwrap(), "aes 256 secret content");
+
+        // 4. Extract with wrong password -> returns bad_password
+        let extract_bad = extract_zip_entry(
+            zip_path.to_str().unwrap(),
+            "aes_secret.txt",
+            target_path.to_str().unwrap(),
+            Some("wrongpass"),
+        );
+        assert!(extract_bad.is_err());
+        assert_eq!(extract_bad.unwrap_err(), "bad_password");
+        assert!(!target_path.exists());
+
+        // 5. Extract with correct password -> extracts file successfully
+        let extract_ok = extract_zip_entry(
+            zip_path.to_str().unwrap(),
+            "aes_secret.txt",
+            target_path.to_str().unwrap(),
+            Some("aespassword456"),
+        )
+        .unwrap();
+        assert_eq!(extract_ok, 22);
+        assert_eq!(std::fs::read_to_string(&target_path).unwrap(), "aes 256 secret content");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }
+

@@ -1,13 +1,24 @@
-AutoGram Version: v3.8.0
+AutoGram Version: v3.8.7
 
 Current State:
-v3.8.0 2-Way Instant Drive Deletion & Sidebar Tab Live Synchronization Engine — menghadirkan sinkronisasi penghapusan Drive instan (0ms) pada antarmuka sidebar/tab dan penghapusan permanen dua arah di server Telegram:
-1. Instant Optimistic UI Purge (0ms): Ketika user menghapus Drive atau subfolder, item tersebut seketika lenyap dari daftar sidebar, Tab Drives, Tab Recent, Pinned, dan Quick Bar tanpa menunggu jeda jaringan.
-2. Full Cascade Deletion on Telegram MTProto: Seluruh channel subfolder turunan (anak, cucu, cicit) beserta channel Drive induk dihapus secara tuntas dan permanen dari server Telegram (`channels.DeleteChannel`).
-3. 2-Way Live Sync & Zombie Pruning: Pemindaian background secara otomatis mendeteksi ketiadaan channel yang dihapus dari luar aplikasi (Telegram mobile/desktop/web), membersihkan cache snapshot sidebar, location snapshots, recents, dan pins secara real-time.
-4. Auto Navigation Recovery: Jika lokasi aktif berada di dalam Drive atau subfolder yang terhapus, sistem secara otomatis mengembalikan navigasi ke Saved Messages dengan aman.
+v3.8.7 Drive Settings Inaccessible & Restricted Channel Media Filter Engine — menghadirkan pengaturan preferensi sentral di Drive Settings (Tab Advanced > Filter & Tampilan Konten Drive) untuk menyembunyikan media terlarang, pesan yang tidak dapat dibuka ("This channel can't be displayed..."), serta media dari saluran terblokir:
+1. Intelligent Pattern & Metadata Detection: Mendeteksi pesan terlarang/dibatasi dari Telegram MTProto melalui indikator metadata (`is_restricted`, `restriction_reason`, `restriction_code`, `telegram_category === 'restricted'`) serta pemindaian pola teks dwibahasa (EN & ID) seperti *"This channel can't be displayed"*, *"Saluran ini tidak dapat ditampilkan"*, *"This media is not available"*, dan *"Saluran diblokir"*.
+2. Clean Workspace & Explorer Grid: Otomatis memfilter dan membersihkan grid Drive, list view, studio preview carousel navigation, seleksi marquee/shift-range, dan antrean transfer dari item-item yang rusak atau tidak dapat dibuka.
+3. Central Drive Settings & Search Integration: Menyediakan sakelar interaktif pada **Drive Settings > Advanced**, terindeks pada bilah pencarian pengaturan (kata kunci: restricted, channel, saluran, terlarang, dibatasi), serta tersinkronisasi secara reaktif ke seluruh antarmuka.
+4. 100% Zero Hardcoded Strings & Key Parity: Seluruh teks antarmuka diekstrak ke dalam locale i18n (`id/speedtest.json` & `en/speedtest.json`) dengan unit test komprehensif.
 
 Previous:
+v3.8.6 Sparse Encrypted ZIP Media Streaming & AES-256 Decryption Engine — menghadirkan pemutaran dan pratinjau media pada berkas ZIP berpassword/terenkripsi secara streaming satuan (Zero Full-File Download):
+1. Native WinZip AES-128 / AES-192 / AES-256 & PKWARE ZipCrypto Decryption: Mengaktifkan fitur `aes-crypto` pada crate `zip` backend Rust untuk mendekripsi arsip terenkripsi standar modern (7-Zip, WinRAR, WinZip, Bandizip) secara on-the-fly.
+2. Zero Full-File Download Media Streaming: Membuka media (gambar, video, audio, teks, pdf) di dalam ZIP berpassword HANYA mengunduh rentang byte dari entri yang diminta melalui MTProto Range requests, menghemat kuota internet pengguna secara drastis tanpa perlu mengunduh utuh berkas ZIP bergiga-giga.
+3. Accurate Password Verification & Fast Error Diagnostics: Memperbaiki pemetaan status `bad_password` pada saat verifikasi header dan pembacaan stream data, mencegah loop modal input password yang salah.
+4. Auto-Cleanup Corrupt Partial Downloads: Menjamin berkas sementara yang gagal didekripsi langsung dibersihkan dari penyimpanan disk secara atomik.
+
+Previous:
+v3.8.5 Ultra-Compact Segmented History Navigation Pill & Breadcrumb Ergonomics.
+v3.8.4 Browser-Style Drive History Navigation Bar & Quick Return Engine.
+v3.8.3 Per-Location Filter Isolation & Rapid Preview Load Optimization Engine.
+v3.8.0 2-Way Instant Drive Deletion & Sidebar Tab Live Synchronization Engine.
 v3.7.99 Persistent Session-Scoped Indexing, 2-Way Delta Sync, Multi-Tier Caching, RAM Garbage Collection & 4K/8K Media Streaming Engine — menghadirkan arsitektur performa tinggi dan sinkronisasi live 100% dengan Telegram.
 v3.7.98 Live Destructive Crash/Resume Torture Validation Gate (P2.2 Complete) — mengeksekusi dan memvalidasi seluruh 12 skenario destructive crash/resume live pada channel #Gudang (Topic 9929, 1.992 item) via CDP Native WebView2.
 v3.7.97 Crash-Safe Historical Resume & Durable Delta Indexing (P2 Complete) — membenahi `telegram_ops.rs`, `media_list.rs`, `telegramBackend.ts`, `driveFilesApi.ts`, `mediaStudioDb.ts`, `MediaStudio/index.tsx`, `mediaStudioDb.test.ts`, `searchCursorScope.test.ts`, `VERSION.md`, dan `CHANGELOG.md`.

@@ -388,7 +388,16 @@ export async function driveZipReadEntry(
     } catch (sparseErr: any) {
       const msg = String(sparseErr?.message || sparseErr || 'Gagal membaca entri ZIP');
       console.warn('[driveZipReadEntry] Sparse preview error:', sparseErr);
-      if (msg.includes('bad_password') || msg.includes('Password') || msg.includes('decryption failed')) {
+      if (
+        msg.includes('bad_password') ||
+        msg.includes('Password') ||
+        msg.includes('password') ||
+        msg.includes('decryption failed') ||
+        msg.includes('checksum') ||
+        msg.includes('Checksum') ||
+        msg.includes('HMAC') ||
+        msg.includes('hmac')
+      ) {
         return {
           status: 'bad_password',
           message: 'Password salah atau enkripsi tidak didukung.',
