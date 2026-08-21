@@ -1845,5 +1845,7 @@
   "telegram_restriction_detail": "{{reason}}",
   "remote_native_candidate": "Detected media {{index}}",
   "remote_native_badge": "NATIVE DIRECT",
-  "remote_native_inspected": "Resolved by the native bounded inspector across {{count}} page(s)."
+  "remote_native_inspected": "Resolved by the native bounded inspector across {{count}} page(s).",
+  "nav_back_drive": "Back to previous Drive",
+  "nav_forward_drive": "Forward to next Drive"
 }

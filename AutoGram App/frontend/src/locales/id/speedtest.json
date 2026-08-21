@@ -1845,5 +1845,7 @@
   "telegram_restriction_detail": "{{reason}}",
   "remote_native_candidate": "Media terdeteksi {{index}}",
   "remote_native_badge": "NATIVE DIRECT",
-  "remote_native_inspected": "Diselesaikan oleh pemeriksa native terbatas melalui {{count}} halaman."
+  "remote_native_inspected": "Diselesaikan oleh pemeriksa native terbatas melalui {{count}} halaman.",
+  "nav_back_drive": "Kembali ke Drive sebelumnya",
+  "nav_forward_drive": "Maju ke Drive berikutnya"
 }

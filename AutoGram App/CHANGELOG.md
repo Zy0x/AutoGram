@@ -1,3 +1,21 @@
+## v3.8.4 Browser-Style Drive History Navigation Bar & Quick Return Engine (Phase 35.70)
+
+### 1. Browser-Style Drive History Navigation Bar
+- **Tombol Navigasi Kembali (`Back` / `ChevronLeft`) & Maju (`Forward` / `ChevronRight`)**:
+  - Menyediakan tombol navigasi riwayat drive interaktif langsung di bilah atas (`DriveTopBar`) tepat di sebelah breadcrumbs.
+  - Pengguna dapat dengan mudah kembali ke Drive, Folder, Channel, atau Chat yang dibuka sebelumnya dengan 1-klik tombol kembali (`<`) atau maju (`>`).
+  - Dilengkapi indikator status aktif/non-aktif (`disabled`/`enabled`) yang sinkron dengan tumpukan riwayat penelusuran lokasi (`navHist`).
+
+### 2. Universal Shortcut & Mouse Navigation Integration
+- **Dukungan Pintasan Keyboard & Tombol Mouse**:
+  - Mendukung pintasan keyboard global `Alt + ←` (Kembali ke Drive sebelumnya) dan `Alt + →` (Maju ke Drive berikutnya).
+  - Terintegrasi penuh dengan penanganan riwayat lokasi di `MediaStudio` (`goNav('back')` dan `goNav('forward')`), menjaga isolasi filter dan konteks aktif setiap drive.
+
+### 3. Kepatuhan Standar Teknis & Kualitas Kode
+- **100% Zero Hardcoded Strings & Validasi TypeScript**:
+  - Seluruh label tooltip dan aksesibilitas terdaftar secara sinkron pada `locales/id/speedtest.json` dan `locales/en/speedtest.json`.
+  - Lolos uji validasi `npx tsc --noEmit` dengan 0 error.
+
 ## v3.8.3 Per-Location Filter Isolation & Rapid Preview Load Optimization Engine (Phase 35.69)
 
 ### 1. Per-Location Filter Isolation & Scope Reset

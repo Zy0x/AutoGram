@@ -125,8 +125,7 @@ type Props = {
   canNavBack?: boolean;
   canNavForward?: boolean;
   onNavBack?: () => void;
-  onNavForward?: () => void;
-  /** Pin current location */
+  onNavForward?: () => void;  /** Pin current location */
   isPinned?: boolean;
   onTogglePin?: () => void;
   /** Optional space usage hint under count */
@@ -216,10 +215,10 @@ export function DriveTopBar({
   onDropOnTopic,
   onOpenTools,
   toolsActive,
-  canNavBack: _canNavBack,
-  canNavForward: _canNavForward,
-  onNavBack: _onNavBack,
-  onNavForward: _onNavForward,
+  canNavBack,
+  canNavForward,
+  onNavBack,
+  onNavForward,
   isPinned,
   onTogglePin,
   spaceLabel,
@@ -554,6 +553,30 @@ export function DriveTopBar({
               aria-label={t("speedtest.open_location_list")}
             >
               <Menu size={18} />
+            </button>
+          )}
+          {onNavBack && (
+            <button
+              type="button"
+              className={`td-icon-btn td-nav-btn ${!canNavBack ? 'is-disabled' : ''}`}
+              disabled={!canNavBack}
+              onClick={onNavBack}
+              title={`${t('speedtest.nav_back_drive', { defaultValue: 'Kembali ke Drive sebelumnya' })} (Alt+←)`}
+              aria-label={t('speedtest.nav_back_drive', { defaultValue: 'Kembali ke Drive sebelumnya' })}
+            >
+              <ChevronLeft size={18} />
+            </button>
+          )}
+          {onNavForward && (
+            <button
+              type="button"
+              className={`td-icon-btn td-nav-btn ${!canNavForward ? 'is-disabled' : ''}`}
+              disabled={!canNavForward}
+              onClick={onNavForward}
+              title={`${t('speedtest.nav_forward_drive', { defaultValue: 'Maju ke Drive berikutnya' })} (Alt+→)`}
+              aria-label={t('speedtest.nav_forward_drive', { defaultValue: 'Maju ke Drive berikutnya' })}
+            >
+              <ChevronRight size={18} />
             </button>
           )}
           {onTogglePin && (
