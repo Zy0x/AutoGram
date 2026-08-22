@@ -8263,13 +8263,13 @@ body:has(.app-layout-drive-focus),
 /* ── Compact Path ID Quick Jump Card ─────────────────────────────────────── */
 .td-path-quick-jump {
   margin: 3px 6px 7px;
-  padding: 8px 10px;
+  padding: 9px 10px;
   background: linear-gradient(135deg, color-mix(in srgb, var(--td-accent, #5865f2) 14%, var(--td-bg2, #181b28)), var(--td-bg2, #181b28));
   border: 1px solid color-mix(in srgb, var(--td-accent, #5865f2) 40%, transparent);
   border-radius: 9px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
   flex-shrink: 0;
   cursor: pointer;
   user-select: none;
@@ -8319,81 +8319,38 @@ body:has(.app-layout-drive-focus),
   color: var(--td-text, #e2e8f0);
   opacity: 0.9;
 }
-.td-path-qj-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.td-path-qj-inline-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 7px;
-  border-radius: 5px;
-  background: var(--td-accent, #5865f2);
-  color: #ffffff;
-  font-size: 0.62rem;
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-  transition: opacity 120ms ease, transform 100ms ease, filter 120ms ease;
-}
-.td-path-qj-inline-btn:hover {
-  filter: brightness(1.15);
-  transform: translateY(-0.5px);
-}
-.td-path-qj-clear-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 2px 6px;
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #94a3b8;
-  font-size: 0.61rem;
-  font-weight: 600;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  cursor: pointer;
-  transition: all 120ms ease;
-}
-.td-path-qj-clear-btn:hover {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: rgba(239, 68, 68, 0.4);
-  color: #fca5a5;
-  transform: translateY(-0.5px);
-}
-.td-path-qj-kbd {
-  display: inline-block;
-  padding: 0 3px;
-  font-size: 0.58rem;
-  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
-  font-weight: 800;
-  background: rgba(0, 0, 0, 0.28);
-  border-radius: 3px;
-  line-height: 1.2;
-}
 
-/* Breadcrumb flow of pills */
+/* Horizontal scrollable single-line breadcrumbs */
 .td-path-qj-flow {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 4px;
   width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 1px 0 3px 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+.td-path-qj-flow::-webkit-scrollbar {
+  height: 3px;
+}
+.td-path-qj-flow::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.35);
+  border-radius: 999px;
 }
 .td-path-qj-step {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  min-width: 0;
-  max-width: 100%;
+  flex-shrink: 0;
 }
 .td-path-qj-sep {
   color: var(--td-sub, #64748b);
   opacity: 0.7;
   flex-shrink: 0;
-  margin-right: 1px;
 }
 .td-path-pill {
   display: inline-flex;
@@ -8404,21 +8361,73 @@ body:has(.app-layout-drive-focus),
   font-size: 0.67rem;
   font-weight: 600;
   line-height: 1.25;
-  max-width: 135px;
+  max-width: 140px;
   overflow: hidden;
   white-space: nowrap;
+  flex-shrink: 0;
 }
-.td-path-qj-footer {
+
+/* Actions Row on next line */
+.td-path-qj-actions-row {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  gap: 6px;
   margin-top: 1px;
 }
-.td-path-qj-hint {
-  font-size: 0.58rem;
-  color: #64748b;
-  font-weight: 500;
-  letter-spacing: 0.01em;
+.td-path-qj-btn-open {
+  flex: 1.2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 5px;
+  background: var(--td-accent, #5865f2);
+  color: #ffffff;
+  font-size: 0.64rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  transition: opacity 120ms ease, transform 100ms ease, filter 120ms ease;
+}
+.td-path-qj-btn-open:hover {
+  filter: brightness(1.15);
+  transform: translateY(-0.5px);
+}
+.td-path-qj-btn-cancel {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  font-size: 0.63rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+.td-path-qj-btn-cancel:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  transform: translateY(-0.5px);
+}
+.td-path-qj-kbd {
+  display: inline-block;
+  padding: 0 3px;
+  font-size: 0.56rem;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-weight: 800;
+  background: rgba(0, 0, 0, 0.28);
+  border-radius: 3px;
+  line-height: 1.2;
 }
 .td-path-pill-tag {
   font-size: 0.54rem;

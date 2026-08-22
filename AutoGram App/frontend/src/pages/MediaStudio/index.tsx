@@ -1819,6 +1819,9 @@ function MediaDriveDesktop({
         const msgId = path.messageId;
         pendingTargetMsgIdRef.current = msgId;
 
+        // Auto-fill media ID into location search query (DriveTopBar search)
+        setQuery(String(msgId));
+
         // Check if file is already in currently loaded files
         const existingFile = files.find((f) => f.id === msgId);
         if (existingFile) {
@@ -1857,7 +1860,7 @@ function MediaDriveDesktop({
         }
       }
     },
-    [files, setLocationKind, setActivePeerId, setTopicFilter, setTopics, setSelectedIds, setPreviewFile, showPathJumpToast, t]
+    [files, setLocationKind, setActivePeerId, setTopicFilter, setTopics, setSelectedIds, setPreviewFile, setQuery, showPathJumpToast, t]
   );
 
   // Resume pending path navigation after session switch once folders/chats are available

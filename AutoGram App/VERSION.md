@@ -10,8 +10,8 @@ v3.8.18 ZIP Preview Workbench Power Redesign & Modernization Engine — perombak
 6. Floating Batch Action Bar & Desktop Context Menu: Bilah aksi mengambang animasi untuk ekstraksi batch instan dan menu klik kanan desktop lengkap.
 7. Keyboard Navigation & 100% Locale Parity: Navigasi cepat via keyboard (Esc, Space, Enter, Ctrl+A) serta kepatuhan 100% Zero Hardcoded Strings.
 8. Native Scroll Unblocking & Viewport Containment: Menghilangkan konflik touch-action dan zoom listener, memastikan area galeri dan tabel dapat digulir bebas di seluruh perangkat.
-9. Click-to-Preview Archive Ergonomics: Sekali klik pada entri langsung membuka pratinjau instan tanpa menyerupai kartu media umum, dilengkapi tombol Ekstrak Semua.
-10. Quick Jump Breadcrumb Grouping & Instant Clear/Cancel: Pengelompokan rapi segmen Path ID agar tanda panah tidak menggantung sendirian di baris baru, tombol Batal eksplisit di header kartu, serta shortcut Esc untuk kembali ke daftar normal seketika.
+10. Quick Jump Single-Line Horizontal Scrolling Trail: Pengelompokan hierarki Path ID menjadi 1 baris horizontal yang dapat digulir bebas dan pemisahan tombol aksi Buka (↵) dan Batal (Esc) ke baris berikutnya.
+11. Auto-Fill Media ID in Location Search: Menuliskan ID media langsung ke dalam filter pencarian Top Bar saat melompat ke pesan/media, sehingga menghapus kata kunci pencarian akan langsung mengembalikan daftar semua file di lokasi tersebut.
 
 Previous:
 v3.8.17 Transfer Manager True Clean Purge & Zombie Queue Clearance Engine — perbaikan menyeluruh pada pembersihan antrean dan riwayat Transfer Manager:

@@ -2453,44 +2453,23 @@ export function DriveSidebar({
               }
             }}
           >
-            {/* Header: Title on Left, Action Buttons on Right */}
+            {/* Header: Title */}
             <div className="td-path-qj-header">
               <div className="td-path-qj-title-wrap">
                 <Zap size={12} aria-hidden className="td-path-qj-icon" />
                 <span className="td-path-qj-title">{t('ui.path_jump.title')}</span>
               </div>
-              <div className="td-path-qj-actions">
-                <button
-                  type="button"
-                  className="td-path-qj-inline-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onNavigatePath?.(parsedPath);
-                    onCloseDrawer?.();
-                  }}
-                  title={t('ui.path_jump.btn_open_short')}
-                >
-                  <span>{t('ui.path_jump.btn_open_short')}</span>
-                  <kbd className="td-path-qj-kbd">↵</kbd>
-                </button>
-                <button
-                  type="button"
-                  className="td-path-qj-clear-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onChatQuery('');
-                  }}
-                  title={t('ui.path_jump.btn_cancel_short')}
-                  aria-label={t('ui.path_jump.btn_cancel_short')}
-                >
-                  <X size={11} />
-                  <span>{t('ui.path_jump.btn_cancel_short')}</span>
-                </button>
-              </div>
             </div>
 
-            {/* Breadcrumb Flow of Micro-Pills (Grouped in steps to eliminate orphaned separators) */}
-            <div className="td-path-qj-flow">
+            {/* Breadcrumb Flow: Horizontal Scrollable Single-Line Strip */}
+            <div
+              className="td-path-qj-flow"
+              onWheel={(e) => {
+                if (e.deltaY !== 0) {
+                  e.currentTarget.scrollLeft += e.deltaY;
+                }
+              }}
+            >
               {pathSteps.map((step, idx) => (
                 <div key={idx} className="td-path-qj-step">
                   {idx > 0 && <ChevronRight size={10} className="td-path-qj-sep" aria-hidden />}
@@ -2502,9 +2481,35 @@ export function DriveSidebar({
               ))}
             </div>
 
-            {/* Subtle Footer Shortcut Hint */}
-            <div className="td-path-qj-footer">
-              <span className="td-path-qj-hint">{t('ui.path_jump.hint_esc_cancel')}</span>
+            {/* Actions Row: Open & Cancel on the Next Line */}
+            <div className="td-path-qj-actions-row">
+              <button
+                type="button"
+                className="td-path-qj-btn-open"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNavigatePath?.(parsedPath);
+                  onCloseDrawer?.();
+                }}
+                title={t('ui.path_jump.btn_open_short')}
+              >
+                <span>{t('ui.path_jump.btn_open_short')}</span>
+                <kbd className="td-path-qj-kbd">↵</kbd>
+              </button>
+              <button
+                type="button"
+                className="td-path-qj-btn-cancel"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChatQuery('');
+                }}
+                title={t('ui.path_jump.btn_cancel_short')}
+                aria-label={t('ui.path_jump.btn_cancel_short')}
+              >
+                <X size={11} />
+                <span>{t('ui.path_jump.btn_cancel_short')}</span>
+                <kbd className="td-path-qj-kbd">Esc</kbd>
+              </button>
             </div>
           </div>
         )}

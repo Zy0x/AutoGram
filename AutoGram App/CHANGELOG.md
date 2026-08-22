@@ -46,11 +46,15 @@
   - Menempatkan seleksi multi-berkas khusus pada kotak centang (*checkbox*) atau kombinasi tombol `Ctrl`/`Shift`.
   - Menambahkan tombol aksi cepat *Ekstrak Semua* pada toolbar utama.
 
-### 10. Quick Jump Breadcrumb Grouping & Instant Clear/Cancel Ergonomics
-- **Kerapian Rekayasa Path Breadcrumb & Tombol Batal/Kembali**:
-  - Mengelompokkan setiap segmen Path ID (`U` Akun, `D` Drive/Chat, `T` Topik, `#` Media) ke dalam kontainer inline non-breaking (`.td-path-qj-step`), mencegah pemisah `>` terisolasi/tergantung sendirian pada baris baru saat terjadi text-wrap.
-  - Menyematkan tombol eksplisit **✕ Batal / Clear** pada header kartu Quick Jump di samping tombol *Buka (↵)*.
-  - Menambahkan dukungan keyboard `Escape` global dan di dalam input pencarian untuk langsung menghapus pencarian (`onChatQuery('')`) dan kembali ke tampilan normal/semua folder dengan seketika.
+### 10. Quick Jump Single-Line Horizontal Scrolling Trail & Action Row
+- **Kerapian Rekayasa Path Breadcrumb Horizontal & Baris Aksi Terpisah**:
+  - Mengubah jalur hierarki Path ID (`U` Akun, `D` Drive/Chat, `T` Topik, `#` Media) menjadi pita horizontal 1 baris ramping yang dapat digeser/di-scroll bebas (`overflow-x: auto`), mencegah penumpukan tinggi kartu di sidebar.
+  - Memisahkan tombol aksi ke baris berikutnya: tombol **Buka (↵)** dan tombol **✕ Batal (Esc)** berdampingan secara proporsional.
+
+### 11. Auto-Fill Media ID in Location Search & Instant Filter Dismissal
+- **Integrasi Pencarian Media di Lokasi Aktif**:
+  - Saat Quick Jump menargetkan ID Media tertentu, ID media tersebut secara otomatis dimasukkan ke dalam kolom *Search file in location* di Top Bar (`setQuery(String(msgId))`).
+  - Ketika pengguna menghapus pencarian di kolom Top Bar (menekan `✕` atau menghapus teks), Media Studio seketika memulihkan seluruh daftar file di lokasi tersebut seperti semula tanpa perlu reload ulang.
 
 ## v3.8.17 Transfer Manager True Clean Purge & Zombie Queue Clearance Engine (Phase 35.83)
 
