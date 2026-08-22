@@ -886,6 +886,390 @@ fn preview_zip_entry_direct(
     Ok(prev)
 }
 
+fn extract_exif_thumbnail_from_header(data: &[u8]) -> Option<Vec<u8>> {
+    if data.len() < 128 || data[0] != 0xFF || data[1] != 0xD8 {
+        return None;
+    }
+
+    let mut pos = 2;
+    while pos + 4 <= data.len() {
+        if data[pos] != 0xFF {
+            break;
+        }
+        let marker = data[pos + 1];
+        pos += 2;
+
+        if marker == 0xD9 || marker == 0xDA {
+            break;
+        }
+
+        if pos + 2 > data.len() {
+            break;
+        }
+        let seg_len = u16::from_be_bytes([data[pos], data[pos + 1]]) as usize;
+        if seg_len < 2 || pos + seg_len > data.len() {
+            break;
+        }
+
+        let seg_data = &data[pos + 2..pos + seg_len];
+        pos += seg_len;
+
+        if marker == 0xE1 && seg_data.len() >= 14 && &seg_data[0..6] == b"Exif\0\0" {
+            let tiff = &seg_data[6..];
+            if tiff.len() < 8 {
+                continue;
+            }
+
+            let is_le = match &tiff[0..2] {
+                b"II" => true,
+                b"MM" => false,
+                _ => continue,
+            };
+
+            let read_u16 = |buf: &[u8], off: usize| -> Option<u16> {
+                if off + 2 <= buf.len() {
+                    if is_le {
+                        Some(u16::from_le_bytes([buf[off], buf[off + 1]]))
+                    } else {
+                        Some(u16::from_be_bytes([buf[off], buf[off + 1]]))
+                    }
+                } else {
+                    None
+                }
+            };
+
+            let read_u32 = |buf: &[u8], off: usize| -> Option<u32> {
+                if off + 4 <= buf.len() {
+                    if is_le {
+                        Some(u32::from_le_bytes([buf[off], buf[off + 1], buf[off + 2], buf[off + 3]]))
+                    } else {
+                        Some(u32::from_be_bytes([buf[off], buf[off + 1], buf[off + 2], buf[off + 3]]))
+                    }
+                } else {
+                    None
+                }
+            };
+
+            let ifd0_offset = read_u32(tiff, 4)? as usize;
+            if ifd0_offset >= tiff.len() {
+                continue;
+            }
+
+            let ifd0_count = read_u16(tiff, ifd0_offset)? as usize;
+            let ifd1_ptr_offset = ifd0_offset + 2 + ifd0_count * 12;
+            let ifd1_offset = read_u32(tiff, ifd1_ptr_offset)? as usize;
+
+            if ifd1_offset == 0 || ifd1_offset >= tiff.len() {
+                continue;
+            }
+
+            let ifd1_count = read_u16(tiff, ifd1_offset)? as usize;
+            let mut thumb_offset: Option<usize> = None;
+            let mut thumb_len: Option<usize> = None;
+
+            for i in 0..ifd1_count {
+                let tag_off = ifd1_offset + 2 + i * 12;
+                let tag_id = read_u16(tiff, tag_off)?;
+                let tag_val = read_u32(tiff, tag_off + 8)?;
+
+                if tag_id == 0x0201 {
+                    thumb_offset = Some(tag_val as usize);
+                } else if tag_id == 0x0202 {
+                    thumb_len = Some(tag_val as usize);
+                }
+            }
+
+            if let (Some(off), Some(len)) = (thumb_offset, thumb_len) {
+                if off + len <= tiff.len() {
+                    let thumb_slice = &tiff[off..off + len];
+                    if thumb_slice.len() >= 4 && thumb_slice[0] == 0xFF && thumb_slice[1] == 0xD8 {
+                        return Some(thumb_slice.to_vec());
+                    }
+                }
+            }
+        }
+    }
+
+    None
+}
+
+fn extract_mp4_cover_from_header(data: &[u8]) -> Option<Vec<u8>> {
+    if data.len() < 32 {
+        return None;
+    }
+    if let Some(covr_pos) = data.windows(4).position(|w| w == b"covr") {
+        if covr_pos + 8 <= data.len() {
+            let data_atom_pos = covr_pos + 8;
+            if data_atom_pos + 16 <= data.len() && &data[data_atom_pos + 4..data_atom_pos + 8] == b"data" {
+                let data_len = u32::from_be_bytes([
+                    data[data_atom_pos],
+                    data[data_atom_pos + 1],
+                    data[data_atom_pos + 2],
+                    data[data_atom_pos + 3],
+                ]) as usize;
+                let payload_start = data_atom_pos + 16;
+                let payload_end = (data_atom_pos + data_len).min(data.len());
+                if payload_start < payload_end {
+                    let img_slice = &data[payload_start..payload_end];
+                    if (img_slice.len() >= 2 && img_slice[0] == 0xFF && img_slice[1] == 0xD8)
+                        || (img_slice.len() >= 8 && &img_slice[0..4] == b"\x89PNG")
+                    {
+                        return Some(img_slice.to_vec());
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+fn extract_thumbnail_direct(
+    reader: &mut TelegramSparseReader,
+    entry: &ZipEntry,
+    password: Option<&str>,
+) -> IoResult<ZipEntryPreview> {
+    if entry.is_dir {
+        return Ok(ZipEntryPreview {
+            name: entry.name.clone(),
+            size: 0,
+            text_content: None,
+            data_url: None,
+            mime_type: None,
+            is_binary: false,
+            encrypted: false,
+            backend: "grammers_sparse_thumb".into(),
+        });
+    }
+
+    reader.seek(SeekFrom::Start(entry.local_header_offset))?;
+    let mut header_buf = [0u8; 30];
+    reader.read_exact(&mut header_buf)?;
+
+    if &header_buf[0..4] != &[0x50, 0x4b, 0x03, 0x04] {
+        return Err(IoError::new(
+            IoErrorKind::InvalidData,
+            "Invalid Local Header signature",
+        ));
+    }
+
+    let flags = u16::from_le_bytes([header_buf[6], header_buf[7]]);
+    let is_encrypted = (flags & 1) != 0;
+    if is_encrypted && password.is_none() {
+        return Ok(ZipEntryPreview {
+            name: entry.name.clone(),
+            size: entry.size,
+            text_content: None,
+            data_url: None,
+            mime_type: None,
+            is_binary: true,
+            encrypted: true,
+            backend: "grammers_sparse_thumb".into(),
+        });
+    }
+
+    let name_len = u16::from_le_bytes([header_buf[26], header_buf[27]]) as usize;
+    let extra_len = u16::from_le_bytes([header_buf[28], header_buf[29]]) as usize;
+
+    let mut name_extra_buf = vec![0u8; name_len + extra_len];
+    if !name_extra_buf.is_empty() {
+        reader.read_exact(&mut name_extra_buf)?;
+    }
+
+    let mut full_local_header = Vec::with_capacity(30 + name_len + extra_len);
+    full_local_header.extend_from_slice(&header_buf);
+    full_local_header.extend_from_slice(&name_extra_buf);
+
+    let method = u16::from_le_bytes([header_buf[8], header_buf[9]]);
+
+    // CAPPED MICRO-QUOTA READ: For files > 384 KB, fetch only first 64 KiB from MTProto!
+    let capped_fetch = if entry.size > 384 * 1024 {
+        (entry.compressed_size as usize).min(64 * 1024)
+    } else {
+        entry.compressed_size as usize
+    };
+
+    let mut comp_buf = vec![0u8; capped_fetch];
+    reader.read_exact(&mut comp_buf)?;
+
+    // If small file (< 384 KB), decompress fully
+    if entry.size <= 384 * 1024 {
+        let decomp_buf = decode_entry_bytes_direct(&full_local_header, &comp_buf, password, entry.size)?;
+        let mut prev = super::zip_local::build_zip_entry_preview(&entry.name, entry.size, decomp_buf);
+        prev.backend = "grammers_sparse_thumb_full".into();
+        return Ok(prev);
+    }
+
+    // For large files (> 384 KB): extract header chunk
+    let mut header_data = Vec::new();
+    if is_encrypted {
+        if let Some(pass) = password {
+            if comp_buf.len() >= 12 {
+                let mut z = ZipCrypto::new(pass.as_bytes());
+                for b in comp_buf.iter_mut() {
+                    *b = z.decrypt_byte(*b);
+                }
+                comp_buf = comp_buf[12..].to_vec();
+            }
+        }
+    }
+
+    if method == 0 {
+        header_data = comp_buf;
+    } else if method == 8 {
+        use flate2::read::DeflateDecoder;
+        let mut decoder = DeflateDecoder::new(&comp_buf[..]);
+        let mut uncomp_chunk = Vec::with_capacity(128 * 1024);
+        let _ = std::io::copy(&mut (&mut decoder).take(128 * 1024), &mut uncomp_chunk);
+        header_data = uncomp_chunk;
+    }
+
+    // Try EXIF JPEG thumbnail extraction
+    if let Some(thumb_bytes) = extract_exif_thumbnail_from_header(&header_data) {
+        use base64::Engine;
+        let b64 = base64::engine::general_purpose::STANDARD.encode(&thumb_bytes);
+        return Ok(ZipEntryPreview {
+            name: entry.name.clone(),
+            size: entry.size,
+            text_content: None,
+            data_url: Some(format!("data:image/jpeg;base64,{b64}")),
+            mime_type: Some("image/jpeg".into()),
+            is_binary: true,
+            encrypted: false,
+            backend: "grammers_sparse_exif_thumb".into(),
+        });
+    }
+
+    // Try MP4 cover extraction
+    if let Some(cover_bytes) = extract_mp4_cover_from_header(&header_data) {
+        use base64::Engine;
+        let mime = if cover_bytes.starts_with(b"\x89PNG") { "image/png" } else { "image/jpeg" };
+        let b64 = base64::engine::general_purpose::STANDARD.encode(&cover_bytes);
+        return Ok(ZipEntryPreview {
+            name: entry.name.clone(),
+            size: entry.size,
+            text_content: None,
+            data_url: Some(format!("data:{mime};base64,{b64}")),
+            mime_type: Some(mime.into()),
+            is_binary: true,
+            encrypted: false,
+            backend: "grammers_sparse_mp4_cover".into(),
+        });
+    }
+
+    // Fallback: If image has JPEG SOI but no EXIF thumbnail and entry size is moderately sized (< 1.5MB),
+    // fetch full entry preview
+    if entry.size < 1536 * 1024 {
+        reader.seek(SeekFrom::Start(entry.local_header_offset + 30 + name_len as u64 + extra_len as u64))?;
+        let full_comp_size = entry.compressed_size as usize;
+        let mut full_comp_buf = vec![0u8; full_comp_size];
+        reader.read_exact(&mut full_comp_buf)?;
+        let decomp_buf = decode_entry_bytes_direct(&full_local_header, &full_comp_buf, password, entry.size)?;
+        let mut prev = super::zip_local::build_zip_entry_preview(&entry.name, entry.size, decomp_buf);
+        prev.backend = "grammers_sparse_direct_fallback".into();
+        return Ok(prev);
+    }
+
+    Ok(ZipEntryPreview {
+        name: entry.name.clone(),
+        size: entry.size,
+        text_content: None,
+        data_url: None,
+        mime_type: None,
+        is_binary: true,
+        encrypted: false,
+        backend: "grammers_sparse_no_thumb".into(),
+    })
+}
+
+/// Read micro-quota thumbnail (capped at max 64 KiB from MTProto)
+pub async fn preview_zip_thumbnail_sparse(
+    opts: SparseZipOpts,
+    entry_name: String,
+    password: Option<String>,
+) -> Result<ZipEntryPreview, TgError> {
+    let cache_key = format!("{}:{}:{}", opts.chat_id, opts.message_id, opts.session);
+    let catalog = match get_cached_catalog(&cache_key) {
+        Some(cat) => cat,
+        None => list_zip_sparse(opts.clone()).await?,
+    };
+
+    let target_entry = catalog
+        .entries
+        .iter()
+        .find(|e| {
+            e.name == entry_name || sanitize_zip_path(&e.name) == sanitize_zip_path(&entry_name)
+        })
+        .cloned();
+
+    let rt = runtime()?;
+    let identity = TelegramIdentity {
+        session: opts.session.clone(),
+        api_id: opts.api_id,
+        api_hash: opts.api_hash.clone(),
+    };
+    session_rate::wait_if_flooded_capped(&opts.session, std::time::Duration::from_secs(35)).await?;
+    let _media_slot = session_rate::acquire_media_slot(&opts.session).await?;
+    let sessions_dir = super::grammers_ops::resolve_sessions_dir(None);
+    let live = obtain_live_client(&sessions_dir, &identity, true, false).await?;
+    let peer = resolve_peer(&live.client, &opts.chat_id).await?;
+
+    let msg = live
+        .client
+        .get_messages_by_id(peer, &[opts.message_id])
+        .await
+        .map_err(|e| map_invocation(&e))?
+        .pop()
+        .flatten()
+        .ok_or_else(|| TgError::new(TgErrorCode::PeerNotFound, "Pesan tidak ditemukan"))?;
+
+    let media = msg
+        .media()
+        .ok_or_else(|| TgError::new(TgErrorCode::PeerNotFound, "Media tidak ada pada pesan"))?;
+
+    let doc_size = match &media {
+        Media::Document(d) => d.size().unwrap_or(0) as u64,
+        _ => 0,
+    };
+
+    if doc_size == 0 {
+        return Err(TgError::new(TgErrorCode::Io, "Ukuran dokumen ZIP 0 byte"));
+    }
+
+    let client = live.client.clone();
+    let session = live.session.clone();
+    let session_path = live.session_path.clone();
+    let media_cloned = media.clone();
+
+    tokio::task::spawn_blocking(move || {
+        let mut sparse_reader = TelegramSparseReader::new(&client, media_cloned, doc_size, rt);
+
+        if let Some(ref entry) = target_entry {
+            match extract_thumbnail_direct(&mut sparse_reader, entry, password.as_deref()) {
+                Ok(prev) => {
+                    let _ = persist_memory_session(&session, &session_path);
+                    return Ok(prev);
+                }
+                Err(e) => {
+                    let err_msg = e.to_string();
+                    if err_msg.contains("bad_password") || err_msg.contains("Password required") || err_msg.contains("PermissionDenied") {
+                        return Err(TgError::new(TgErrorCode::Io, "bad_password"));
+                    }
+                    return Err(TgError::new(TgErrorCode::Io, err_msg));
+                }
+            }
+        }
+
+        Err(TgError::new(TgErrorCode::Io, format!("Entri tidak ditemukan: {entry_name}")))
+    })
+    .await
+    .map_err(|e| {
+        TgError::new(
+            TgErrorCode::Internal,
+            format!("Alur tugas thumbnail ZIP terputus: {e}"),
+        )
+    })?
+}
+
 /// Read single entry by fetching exact byte range lazily from Telegram MTProto (zero full download)
 pub async fn preview_zip_entry_sparse(
     opts: SparseZipOpts,

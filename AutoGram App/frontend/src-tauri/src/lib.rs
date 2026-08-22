@@ -1081,6 +1081,17 @@ async fn tg_zip_preview_entry_sparse(
 }
 
 #[tauri::command]
+async fn tg_zip_thumbnail_sparse(
+    opts: core::grammers_sparse_zip::SparseZipOpts,
+    entry_name: String,
+    password: Option<String>,
+) -> Result<core::zip_local::ZipEntryPreview, String> {
+    core::grammers_sparse_zip::preview_zip_thumbnail_sparse(opts, entry_name, password)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 async fn tg_zip_extract_entry_sparse(
     opts: core::grammers_sparse_zip::SparseZipOpts,
     entry_name: String,
@@ -2397,6 +2408,7 @@ pub fn run() {
             zip_create_from_files,
             tg_zip_list_sparse,
             tg_zip_preview_entry_sparse,
+            tg_zip_thumbnail_sparse,
             tg_zip_extract_entry_sparse,
             file_sha256,
             file_quick_fingerprint,

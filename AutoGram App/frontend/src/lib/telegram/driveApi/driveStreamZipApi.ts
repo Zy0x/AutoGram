@@ -438,6 +438,99 @@ export async function driveZipReadEntry(
   return nextReadPromise;
 }
 
+/** Fetch micro-quota thumbnail from ZIP entry (capped at max 64 KiB MTProto download). */
+export async function driveZipThumbnailEntry(
+  creds: DriveCredentials,
+  messageId: number,
+  folderId: number | null,
+  entry: string,
+  password?: string,
+  forceRefresh?: boolean,
+  opts?: ZipTargetOpts
+): Promise<any> {
+  if (!detectTauriRuntime()) {
+    throw new Error('ZIP browser membutuhkan desktop Rust + Grammers.');
+  }
+
+  const chatId = resolveZipChatId(folderId, opts);
+  const archiveKey = `thumb_${creds?.session || ''}_${chatId}_${messageId}`;
+  const passKey = password || '';
+  const entryCacheKey = `${entry}||${passKey}`;
+
+  if (!forceRefresh) {
+    const cachedObj = zipEntryCacheMap.get(archiveKey)?.get(entryCacheKey);
+    if (cachedObj && cachedObj.status === 'success') {
+      return { ...cachedObj, cached: true };
+    }
+  }
+
+  const runThumb = async () => {
+    const apiId = Number(creds.apiId) || 0;
+    const sparseOpts = {
+      session: creds.session,
+      apiId,
+      apiHash: creds.apiHash,
+      chatId,
+      messageId,
+    };
+
+    try {
+      const { zipThumbnailEntrySparse } = await import('../../tauri/rustBackend');
+      const res = await zipThumbnailEntrySparse(sparseOpts, entry, password);
+
+      if (res?.encrypted) {
+        return {
+          status: 'encrypted',
+          message: 'File ZIP dienkripsi. Masukkan password.',
+          backend: 'grammers_sparse_thumb',
+        };
+      }
+
+      const outObj = {
+        status: 'success',
+        kind: 'image',
+        text: null,
+        data_url: res?.dataUrl,
+        mime: res?.mimeType || 'image/jpeg',
+        size: res?.size,
+        backend: res?.backend || 'grammers_sparse_thumb',
+      };
+
+      let archiveMap = zipEntryCacheMap.get(archiveKey);
+      if (!archiveMap) {
+        archiveMap = new Map();
+        zipEntryCacheMap.set(archiveKey, archiveMap);
+      }
+      archiveMap.set(entryCacheKey, outObj);
+
+      return outObj;
+    } catch (sparseErr: any) {
+      const msg = String(sparseErr?.message || sparseErr || 'Gagal membaca thumbnail ZIP');
+      if (
+        msg.includes('bad_password') ||
+        msg.includes('Password') ||
+        msg.includes('password') ||
+        msg.includes('decryption failed')
+      ) {
+        return {
+          status: 'encrypted',
+          message: 'Password salah atau diperlukan.',
+          backend: 'grammers_sparse_thumb',
+        };
+      }
+      return {
+        status: 'error',
+        message: msg,
+        backend: 'grammers_sparse_thumb',
+      };
+    }
+  };
+
+  const nextThumbPromise = currentZipReadPromise.then(runThumb, runThumb);
+  currentZipReadPromise = nextThumbPromise;
+  return nextThumbPromise;
+}
+
 /** Extract single ZIP entry directly to destination path on disk via Grammers Sparse Fetch. */
 export async function driveZipExtractEntry(
   creds: DriveCredentials,

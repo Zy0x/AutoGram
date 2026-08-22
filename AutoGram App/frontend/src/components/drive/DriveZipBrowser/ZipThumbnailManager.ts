@@ -1,5 +1,5 @@
 import type { DriveCredentials, ZipTargetOpts } from '../../../lib/telegram/driveApi';
-import { driveZipReadEntry } from '../../../lib/telegram/driveApi';
+import { driveZipThumbnailEntry } from '../../../lib/telegram/driveApi';
 import { loadPersistentThumb, savePersistentThumb } from '../../../lib/media/thumbPersistentCache';
 
 const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'avif', 'heic', 'heif', 'svg']);
@@ -104,8 +104,8 @@ export async function fetchZipEntryThumbnail(
 
   const fetchPromise = (async () => {
     try {
-      // 3. Strict sparse byte-range read: only fetches this specific entry from MTProto
-      const res = await driveZipReadEntry(
+      // 3. Strict micro-quota byte-range read: fetches max 64KB from MTProto and parses EXIF thumbnail
+      const res = await driveZipThumbnailEntry(
         creds,
         messageId,
         folderId,

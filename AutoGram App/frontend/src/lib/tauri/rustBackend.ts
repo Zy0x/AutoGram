@@ -236,6 +236,27 @@ export async function zipPreviewEntrySparse(
   }
 }
 
+/** Micro-quota thumbnail extraction via capped byte-range MTProto read */
+export async function zipThumbnailEntrySparse(
+  opts: SparseZipOpts,
+  entryName: string,
+  password?: string
+): Promise<ZipEntryPreview> {
+  if (!detectTauriRuntime()) {
+    throw new Error('Sparse ZIP engine membutuhkan aplikasi desktop (Rust).');
+  }
+  try {
+    return await invoke<ZipEntryPreview>('tg_zip_thumbnail_sparse', {
+      opts,
+      entryName,
+      password: password || null,
+    });
+  } catch (err: any) {
+    console.error('[zipThumbnailEntrySparse] invoke failed:', err);
+    throw new Error(String(err?.message || err || 'Gagal membuat thumbnail sparse ZIP via Grammers'));
+  }
+}
+
 export async function zipExtractEntrySparse(
   opts: SparseZipOpts,
   entryName: string,
