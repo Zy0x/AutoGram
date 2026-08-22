@@ -418,6 +418,7 @@
   "sidebar_drives_header": "DAFTAR DRIVE [TD]",
   "sidebar_drives_tooltip": "Jumlah Drive & folder [TD]",
   "sidebar_drives_empty": "Tidak ada Drive/folder cocok.",
+  "sidebar_recents_empty": "Tidak ada riwayat lokasi yang cocok.",
   "sidebar_resizer_aria": "Batas Drives dan Chats",
   "sidebar_chats_header": "Daftar Chat",
   "sidebar_chats_tooltip": "Jumlah chat termuat",

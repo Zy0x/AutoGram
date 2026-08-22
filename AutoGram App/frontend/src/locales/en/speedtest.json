@@ -418,6 +418,7 @@
   "sidebar_drives_header": "DRIVES LIST [TD]",
   "sidebar_drives_tooltip": "Number of Drives & folders [TD]",
   "sidebar_drives_empty": "No matching Drives/folders.",
+  "sidebar_recents_empty": "No matching recent locations.",
   "sidebar_resizer_aria": "Drives and Chats boundary",
   "sidebar_chats_header": "Chats List",
   "sidebar_chats_tooltip": "Number of loaded chats",

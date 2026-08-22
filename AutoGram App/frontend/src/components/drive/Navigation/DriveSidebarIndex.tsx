@@ -1160,6 +1160,14 @@ export function DriveSidebar({
     }
     return recents;
   }, [recents, pins, layoutModel]);
+
+  const matchingRecents = useMemo(() => {
+    if (!hasLocationQuery || isPathIdMode) return filteredRecents;
+    const q = locationQuery.toLowerCase().trim();
+    return filteredRecents.filter((r) =>
+      (r.label || '').toLowerCase().includes(q)
+    );
+  }, [filteredRecents, locationQuery, hasLocationQuery, isPathIdMode]);
   const busy = !!(loadingFolders || loadingChats);
 
   // While searching or dragging, force sections open so targets stay reachable.
@@ -2296,8 +2304,10 @@ export function DriveSidebar({
               >
                 <Clock size={13} aria-hidden />
                 <span className="td-sidebar-tab-label">{t('speedtest.sidebar_tab_recent')}</span>
-                {filteredRecents.length > 0 && (
-                  <span className="td-tab-badge">{filteredRecents.length}</span>
+                {(hasLocationQuery || filteredRecents.length > 0) && (
+                  <span className="td-tab-badge">
+                    {hasLocationQuery ? matchingRecents.length : filteredRecents.length}
+                  </span>
                 )}
               </button>
 
@@ -2313,8 +2323,10 @@ export function DriveSidebar({
               >
                 <HardDrive size={13} aria-hidden />
                 <span className="td-sidebar-tab-label">{t('speedtest.sidebar_tab_drives')}</span>
-                {folders.length > 0 && (
-                  <span className="td-tab-badge">{folders.length}</span>
+                {(hasLocationQuery || folders.length > 0) && (
+                  <span className="td-tab-badge">
+                    {hasLocationQuery ? folderRows.length : folders.length}
+                  </span>
                 )}
               </button>
 
@@ -2330,8 +2342,10 @@ export function DriveSidebar({
               >
                 <MessageSquare size={13} aria-hidden />
                 <span className="td-sidebar-tab-label">{t('speedtest.sidebar_tab_telegram')}</span>
-                {chats.length > 0 && (
-                  <span className="td-tab-badge">{chatRows.length}</span>
+                {(hasLocationQuery || chats.length > 0) && (
+                  <span className="td-tab-badge">
+                    {hasLocationQuery ? chatRows.length : (chatIndex.length || chats.length)}
+                  </span>
                 )}
               </button>
             </div>
@@ -2347,11 +2361,13 @@ export function DriveSidebar({
                 data-drop-key="tab:recent"
                 className={`td-collapsed-tab-icon${activeTab === 'recent' ? ' is-active' : ''}${overKey === 'tab:recent' ? ' is-drag-hover' : ''}`}
                 onClick={() => setActiveTab('recent')}
-                title={`${t('speedtest.sidebar_tab_recent')} (${filteredRecents.length})`}
+                title={`${t('speedtest.sidebar_tab_recent')} (${hasLocationQuery ? matchingRecents.length : filteredRecents.length})`}
               >
                 <Clock size={15} aria-hidden />
-                {filteredRecents.length > 0 && (
-                  <span className="td-collapsed-badge">{filteredRecents.length}</span>
+                {(hasLocationQuery || filteredRecents.length > 0) && (
+                  <span className="td-collapsed-badge">
+                    {hasLocationQuery ? matchingRecents.length : filteredRecents.length}
+                  </span>
                 )}
               </button>
               <button
@@ -2361,11 +2377,13 @@ export function DriveSidebar({
                 data-drop-key="tab:drives"
                 className={`td-collapsed-tab-icon${activeTab === 'drives' ? ' is-active' : ''}${overKey === 'tab:drives' ? ' is-drag-hover' : ''}`}
                 onClick={() => setActiveTab('drives')}
-                title={`${t('speedtest.sidebar_tab_drives')} (${folders.length})`}
+                title={`${t('speedtest.sidebar_tab_drives')} (${hasLocationQuery ? folderRows.length : folders.length})`}
               >
                 <HardDrive size={15} aria-hidden />
-                {folders.length > 0 && (
-                  <span className="td-collapsed-badge">{folders.length}</span>
+                {(hasLocationQuery || folders.length > 0) && (
+                  <span className="td-collapsed-badge">
+                    {hasLocationQuery ? folderRows.length : folders.length}
+                  </span>
                 )}
               </button>
               <button
@@ -2375,11 +2393,13 @@ export function DriveSidebar({
                 data-drop-key="tab:chats"
                 className={`td-collapsed-tab-icon${activeTab === 'chats' ? ' is-active' : ''}${overKey === 'tab:chats' ? ' is-drag-hover' : ''}`}
                 onClick={() => setActiveTab('chats')}
-                title={`${t('speedtest.sidebar_tab_telegram')} (${chatRows.length})`}
+                title={`${t('speedtest.sidebar_tab_telegram')} (${hasLocationQuery ? chatRows.length : (chatIndex.length || chats.length)})`}
               >
                 <MessageSquare size={15} aria-hidden />
-                {chats.length > 0 && (
-                  <span className="td-collapsed-badge">{chatRows.length}</span>
+                {(hasLocationQuery || chats.length > 0) && (
+                  <span className="td-collapsed-badge">
+                    {hasLocationQuery ? chatRows.length : (chatIndex.length || chats.length)}
+                  </span>
                 )}
               </button>
             </div>
@@ -2418,14 +2438,20 @@ export function DriveSidebar({
       >
         {hasLocationQuery && !dragLive && !isPathIdMode && (
           <p className="td-location-search-meta td-only-expanded">
-            {[
-              showSaved ? 1 : 0,
-              folderRows.length,
-              chatRows.length,
-            ].reduce((a, b) => a + b, 0)}{' '}
-            {t('ui.generated.lokasi_9c8096b')}
-            {chatsHasMore && chatRows.length === 0
-              ? t('ui.generated.muat_chat_lain_jika_belum_muncul_38ef29f')
+            {layoutModel === 'model_a'
+              ? activeTab === 'recent'
+                ? `${matchingRecents.length} ${t('speedtest.sidebar_tab_recent')}`
+                : activeTab === 'drives'
+                  ? `${folderRows.length} ${t('speedtest.sidebar_tab_drives')}`
+                  : `${chatRows.length} ${t('speedtest.sidebar_tab_telegram')}`
+              : `${[
+                  showSaved ? 1 : 0,
+                  matchingRecents.length,
+                  folderRows.length,
+                  chatRows.length,
+                ].reduce((a, b) => a + b, 0)} ${t('ui.generated.lokasi_9c8096b')}`}
+            {chatsHasMore && chatRows.length === 0 && activeTab === 'chats'
+              ? ` · ${t('ui.generated.muat_chat_lain_jika_belum_muncul_38ef29f')}`
               : ''}
           </p>
         )}
@@ -2697,107 +2723,113 @@ export function DriveSidebar({
         )}
 
         {/* Recent locations — flat clean section without heavy dropdown container */}
-        {!hasLocationQuery && filteredRecents.length > 0 && (
+        {(hasLocationQuery ? (matchingRecents.length > 0 || (layoutModel === 'model_a' && activeTab === 'recent')) : filteredRecents.length > 0) && (
           <div className="td-recents" data-recent="1">
             <div className="td-recents-header td-only-expanded">
               <Clock size={12} className="td-recents-icon" aria-hidden />
               <span className="td-recents-title">{t("speedtest.sidebar_recents_header")}</span>
-              <span className="td-recents-count">{filteredRecents.length}</span>
+              <span className="td-recents-count">
+                {hasLocationQuery ? `${matchingRecents.length}/${filteredRecents.length}` : filteredRecents.length}
+              </span>
             </div>
-            <div className="td-recents-list">
-              {filteredRecents.slice(0, 6).map((r: any) => {
-                const key =
-                  r.kind === 'saved'
-                    ? dropKey('saved', null)
-                    : dropKey(r.kind, r.id as number);
-                registerLabel(key, r.label);
-                const active =
-                  (r.kind === 'saved' && locationKind === 'saved') ||
-                  (r.kind !== 'saved' &&
-                    locationKind === r.kind &&
-                    activePeerId === r.id);
-                const kindBadge = (() => {
-                  if (r.kind === 'drive') return 'Drive';
-                  if (r.kind === 'saved') return 'Saved';
-                  // kind === 'chat': resolve type from stored metadata first,
-                  // then fall back to live chats list (covers old localStorage entries without chatType)
-                  const liveMeta = r.id != null ? chats.find((c) => c.id === r.id) : null;
-                  const resolvedIsForum = r.isForum ?? !!(liveMeta?.is_forum);
-                  const resolvedType = r.chatType ?? liveMeta?.type;
-                  if (resolvedIsForum) return 'Groups - Forum';
-                  if (resolvedType === 'channel') return 'Channel';
-                  if (resolvedType === 'group') return 'Group';
-                  if (resolvedType === 'bot') return 'Bot';
-                  if (resolvedType === 'user') return 'Private Chat';
-                  return 'Chat';
-                })();
-                return (
-                  <DropRow
-                    key={`${r.kind}:${r.id ?? 'me'}`}
-                    dropKeyStr={key}
-                    className={`td-folder-row ${active ? 'active' : ''}`}
-                    title={
-                      dragLive
-                        ? `Lepas untuk kirim ke ${r.label}`
-                        : r.label
-                    }
-                    isOver={overKey === key}
-                    invalidTarget={isSelf(key)}
-                    dragLive={dragLive}
-                    acceptDrop={acceptDrop}
-                    onHover={handleHover}
-                    onDropTarget={handleDropKey}
-                    onActivate={() => go(() => onSelectRecent?.(r))}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      onLocationContextMenu?.({
-                        locationKind: r.kind === 'saved' ? 'saved' : r.kind === 'drive' ? 'drive' : 'chat',
-                        id: r.kind === 'saved' ? null : (r.id as number),
-                        name: r.label,
-                        x: e.clientX,
-                        y: e.clientY,
-                      });
-                    }}
-                  >
-                    <span className="td-folder-ico">
-                      {r.kind === 'saved' ? (
-                        <PeerAvatar peerId={0} creds={creds} title={r.label} fallback={<Home size={16} />} />
-                      ) : r.kind === 'drive' ? (
-                        <PeerAvatar peerId={r.id} creds={creds} title={r.label} fallback={<Folder size={16} />} />
-                      ) : (
-                        <PeerAvatar peerId={r.id} creds={creds} title={r.label} fallback={<MessageSquare size={16} />} />
-                      )}
-                    </span>
-                    <div className="td-folder-text-col" style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: '1px', lineHeight: 1.25 }}>
-                      <span className="td-folder-label">{r.label}</span>
-                      <span className="td-folder-subtext" style={{ fontSize: '0.68rem', color: 'var(--td-sub, #94a3b8)', opacity: 0.85, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {formatRelativeAccessTime(r.at, t)}
+            {hasLocationQuery && matchingRecents.length === 0 ? (
+              <p className="td-sidebar-hint td-only-expanded">{t('speedtest.sidebar_recents_empty')}</p>
+            ) : (
+              <div className="td-recents-list">
+                {matchingRecents.slice(0, 8).map((r: any) => {
+                  const key =
+                    r.kind === 'saved'
+                      ? dropKey('saved', null)
+                      : dropKey(r.kind, r.id as number);
+                  registerLabel(key, r.label);
+                  const active =
+                    (r.kind === 'saved' && locationKind === 'saved') ||
+                    (r.kind !== 'saved' &&
+                      locationKind === r.kind &&
+                      activePeerId === r.id);
+                  const kindBadge = (() => {
+                    if (r.kind === 'drive') return 'Drive';
+                    if (r.kind === 'saved') return 'Saved';
+                    // kind === 'chat': resolve type from stored metadata first,
+                    // then fall back to live chats list (covers old localStorage entries without chatType)
+                    const liveMeta = r.id != null ? chats.find((c) => c.id === r.id) : null;
+                    const resolvedIsForum = r.isForum ?? !!(liveMeta?.is_forum);
+                    const resolvedType = r.chatType ?? liveMeta?.type;
+                    if (resolvedIsForum) return 'Groups - Forum';
+                    if (resolvedType === 'channel') return 'Channel';
+                    if (resolvedType === 'group') return 'Group';
+                    if (resolvedType === 'bot') return 'Bot';
+                    if (resolvedType === 'user') return 'Private Chat';
+                    return 'Chat';
+                  })();
+                  return (
+                    <DropRow
+                      key={`${r.kind}:${r.id ?? 'me'}`}
+                      dropKeyStr={key}
+                      className={`td-folder-row ${active ? 'active' : ''}`}
+                      title={
+                        dragLive
+                          ? `Lepas untuk kirim ke ${r.label}`
+                          : r.label
+                      }
+                      isOver={overKey === key}
+                      invalidTarget={isSelf(key)}
+                      dragLive={dragLive}
+                      acceptDrop={acceptDrop}
+                      onHover={handleHover}
+                      onDropTarget={handleDropKey}
+                      onActivate={() => go(() => onSelectRecent?.(r))}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        onLocationContextMenu?.({
+                          locationKind: r.kind === 'saved' ? 'saved' : r.kind === 'drive' ? 'drive' : 'chat',
+                          id: r.kind === 'saved' ? null : (r.id as number),
+                          name: r.label,
+                          x: e.clientX,
+                          y: e.clientY,
+                        });
+                      }}
+                    >
+                      <span className="td-folder-ico">
+                        {r.kind === 'saved' ? (
+                          <PeerAvatar peerId={0} creds={creds} title={r.label} fallback={<Home size={16} />} />
+                        ) : r.kind === 'drive' ? (
+                          <PeerAvatar peerId={r.id} creds={creds} title={r.label} fallback={<Folder size={16} />} />
+                        ) : (
+                          <PeerAvatar peerId={r.id} creds={creds} title={r.label} fallback={<MessageSquare size={16} />} />
+                        )}
                       </span>
-                    </div>
-                    <span className="td-location-badge" style={(() => {
-                      const base = {
-                        fontSize: '0.62rem',
-                        padding: '1px 6px',
-                        borderRadius: '4px',
-                        fontWeight: 600,
-                        marginLeft: '8px',
-                        flexShrink: 0 as const,
-                      };
-                      if (kindBadge === 'Groups - Forum') return { ...base, background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.45)', color: '#c4b5fd' };
-                      if (kindBadge === 'Channel') return { ...base, background: 'rgba(6,182,212,0.13)', border: '1px solid rgba(6,182,212,0.4)', color: '#67e8f9' };
-                      if (kindBadge === 'Group') return { ...base, background: 'rgba(34,197,94,0.13)', border: '1px solid rgba(34,197,94,0.4)', color: '#86efac' };
-                      if (kindBadge === 'Bot') return { ...base, background: 'rgba(16,185,129,0.13)', border: '1px solid rgba(16,185,129,0.4)', color: '#6ee7b7' };
-                      if (kindBadge === 'Private Chat') return { ...base, background: 'rgba(148,163,184,0.13)', border: '1px solid rgba(148,163,184,0.4)', color: '#cbd5e1' };
-                      if (kindBadge === 'Drive') return { ...base, background: 'rgba(249,115,22,0.13)', border: '1px solid rgba(249,115,22,0.4)', color: '#fdba74' };
-                      if (kindBadge === 'Saved') return { ...base, background: 'rgba(59,130,246,0.13)', border: '1px solid rgba(59,130,246,0.4)', color: '#93c5fd' };
-                      return { ...base, border: '1px solid color-mix(in srgb, var(--td-primary, #3b82f6) 40%, var(--td-border))', color: 'color-mix(in srgb, var(--td-primary, #3b82f6) 85%, var(--td-fg))' };
-                    })()}>
-                      {kindBadge}
-                    </span>
-                  </DropRow>
-                );
-              })}
-            </div>
+                      <div className="td-folder-text-col" style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: '1px', lineHeight: 1.25 }}>
+                        <span className="td-folder-label">{r.label}</span>
+                        <span className="td-folder-subtext" style={{ fontSize: '0.68rem', color: 'var(--td-sub, #94a3b8)', opacity: 0.85, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {formatRelativeAccessTime(r.at, t)}
+                        </span>
+                      </div>
+                      <span className="td-location-badge" style={(() => {
+                        const base = {
+                          fontSize: '0.62rem',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          fontWeight: 600,
+                          marginLeft: '8px',
+                          flexShrink: 0 as const,
+                        };
+                        if (kindBadge === 'Groups - Forum') return { ...base, background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.45)', color: '#c4b5fd' };
+                        if (kindBadge === 'Channel') return { ...base, background: 'rgba(6,182,212,0.13)', border: '1px solid rgba(6,182,212,0.4)', color: '#67e8f9' };
+                        if (kindBadge === 'Group') return { ...base, background: 'rgba(34,197,94,0.13)', border: '1px solid rgba(34,197,94,0.4)', color: '#86efac' };
+                        if (kindBadge === 'Bot') return { ...base, background: 'rgba(16,185,129,0.13)', border: '1px solid rgba(16,185,129,0.4)', color: '#6ee7b7' };
+                        if (kindBadge === 'Private Chat') return { ...base, background: 'rgba(148,163,184,0.13)', border: '1px solid rgba(148,163,184,0.4)', color: '#cbd5e1' };
+                        if (kindBadge === 'Drive') return { ...base, background: 'rgba(249,115,22,0.13)', border: '1px solid rgba(249,115,22,0.4)', color: '#fdba74' };
+                        if (kindBadge === 'Saved') return { ...base, background: 'rgba(59,130,246,0.13)', border: '1px solid rgba(59,130,246,0.4)', color: '#93c5fd' };
+                        return { ...base, border: '1px solid color-mix(in srgb, var(--td-primary, #3b82f6) 40%, var(--td-border))', color: 'color-mix(in srgb, var(--td-primary, #3b82f6) 85%, var(--td-fg))' };
+                      })()}>
+                        {kindBadge}
+                      </span>
+                    </DropRow>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
