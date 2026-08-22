@@ -10167,7 +10167,7 @@ function MediaDriveDesktop({
           <DriveTransferManager
             session={transfer}
             minimized={transferMinimized}
-            forceShow={!transferMinimized && (transfer.active || (transfer.items?.length ?? 0) > 0 || !!transfer.banner)}
+            forceShow={!transferMinimized}
             onToggleMinimize={toggleTransferMinimize}
             onPause={
               transfer.active && transfer.direction !== 'move' ? pauseTransfer : undefined
