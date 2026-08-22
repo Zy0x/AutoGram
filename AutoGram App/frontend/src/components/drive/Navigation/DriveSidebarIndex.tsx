@@ -777,14 +777,14 @@ export function DriveSidebar({
   );
   const isPathIdMode = parsedPath.isPathId;
 
-  // When in Path ID mode, still show chat/folder list normally (don't filter to 0 rows)
+  // When in Path ID mode, show chat/folder list normally (do not filter to 0 rows)
   // so the user can see context while the Quick Jump card is shown above.
   const chatRows = useMemo(
-    () => (isPathIdMode ? [] : filterChatsFast(chatIndex, locationQuery)),
+    () => filterChatsFast(chatIndex, isPathIdMode ? '' : locationQuery),
     [chatIndex, locationQuery, isPathIdMode]
   );
   const folderRows = useMemo(
-    () => (isPathIdMode ? [] : filterFoldersFast(folders, locationQuery)),
+    () => filterFoldersFast(folders, isPathIdMode ? '' : locationQuery),
     [folders, locationQuery, isPathIdMode]
   );
   // First load: expand every parent so nested folders are visible by default
