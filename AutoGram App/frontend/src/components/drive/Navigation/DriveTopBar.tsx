@@ -29,6 +29,7 @@ import {
   ChevronDown,
   Sparkles,
   X,
+  Search,
   Pause,
   Play,
 } from 'lucide-react';
@@ -1011,21 +1012,44 @@ export function DriveTopBar({
       <div
         className={`td-topbar-row td-topbar-row-2${hasSelection ? ' has-selection-tools' : ''}`}
       >
-        <input
-          ref={searchInputRef}
-          type="text"
-          inputMode="search"
-          autoComplete="off"
-          spellCheck={false}
-          className="td-search"
-          value={query}
-          onChange={(e) => onQuery(e.target.value)}
-          placeholder={t("speedtest.search_placeholder")}
-          aria-label={t("speedtest.search_aria_label")}
-          title={t('speedtest.filter_media_tooltip')}
-          onFocus={handleSearchFocus}
-          onBlur={handleSearchBlur}
-        />
+        <div className="td-topbar-search-box">
+          <Search size={14} className="td-topbar-search-icon" aria-hidden="true" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            inputMode="search"
+            autoComplete="off"
+            spellCheck={false}
+            className="td-search"
+            value={query}
+            onChange={(e) => onQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.stopPropagation();
+                onQuery('');
+              }
+            }}
+            placeholder={t("speedtest.search_placeholder")}
+            aria-label={t("speedtest.search_aria_label")}
+            title={t('speedtest.filter_media_tooltip')}
+            onFocus={handleSearchFocus}
+            onBlur={handleSearchBlur}
+          />
+          {query.trim().length > 0 && (
+            <button
+              type="button"
+              className="td-topbar-search-clear-btn"
+              onClick={() => {
+                onQuery('');
+                searchInputRef.current?.focus();
+              }}
+              title={t('speedtest.clear_search')}
+              aria-label={t('speedtest.clear_search')}
+            >
+              <X size={13} strokeWidth={2.5} />
+            </button>
+          )}
+        </div>
         {hasSelection && selectionToolbar}
       </div>
 

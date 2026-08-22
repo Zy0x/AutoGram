@@ -57,6 +57,12 @@
   - Kartu media yang sesuai secara otomatis dipilih (*selected*) dan digeser secara halus (*smooth scroll into view*) ke tengah layar tanpa memaksakan popup pratinjau modal terbuka seketika.
   - Menghapus pencarian di Top Bar (menekan `✕` atau tombol keyboard) akan langsung memulihkan tampilan seluruh berkas pada channel/topik tersebut seperti semula.
 
+### 12. Fully Reactive Live Location Search Box with Clear Button & Escape Dismissal
+- **Interaktivitas Penuh & Tombol Bersihkan Pencarian di Toolbar**:
+  - Menyematkan wadah pencarian `.td-topbar-search-box` dengan ikon pencarian presisi, responsivitas pengetikan instan (*live filtering*), serta tombol **✕ Hapus Pencarian** yang otomatis muncul saat kolom berisi teks.
+  - Menambahkan penanganan tombol `Escape` di dalam input pencarian agar pengguna dapat menutup dan menghapus filter pencarian seketika tanpa harus menghapus teks secara manual.
+  - Menjamin pemulihan daftar berkas secara penuh dan cepat saat pencarian dikosongkan.
+
 ## v3.8.17 Transfer Manager True Clean Purge & Zombie Queue Clearance Engine (Phase 35.83)
 
 ### 1. Complete Multi-Tier Transfer Queue Dismissal & Purge
