@@ -166,11 +166,6 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
         if (result.status === 'error') throw new Error(result.message || result.error);
         const parsed = Array.isArray(result.entries) ? result.entries : [];
         setEntries(parsed);
-
-        // Auto-switch to grid view if archive is predominantly images
-        if (detectArchiveDominantType(parsed) === 'images') {
-          setViewMode('grid');
-        }
       } else {
         const result = await zipListLocal(source.path);
         const mapped = (result.entries || []).map((entry) => ({
@@ -182,9 +177,6 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
           encrypted: !!entry.encrypted,
         }));
         setEntries(mapped);
-        if (detectArchiveDominantType(mapped) === 'images') {
-          setViewMode('grid');
-        }
       }
     } catch (caught) {
       setEntries([]);
