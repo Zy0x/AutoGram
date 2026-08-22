@@ -24,7 +24,7 @@ type ZipEntryGridProps = {
   currentPath: string;
   onNavigateDir: (path: string) => void;
   selectedEntries: Set<string>;
-  onToggleSelectEntry: (name: string, shiftKey?: boolean) => void;
+  onSelectEntry: (name: string, e: React.MouseEvent) => void;
   onPreviewCode: (entry: ZipEntry) => void;
   onExtractEntry: (entry: ZipEntry) => void;
   onExtractDirectory: (path: string) => void;
@@ -51,7 +51,7 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
   currentPath,
   onNavigateDir,
   selectedEntries,
-  onToggleSelectEntry,
+  onSelectEntry,
   onPreviewCode,
   onExtractEntry,
   onExtractDirectory,
@@ -69,10 +69,9 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
         return (
           <div
             key={directory}
+            data-entry-name={directory}
             className={`dzb-grid-card directory ${selected ? 'selected' : ''}`}
-            onClick={(e) => {
-              onToggleSelectEntry(directory, e.shiftKey);
-            }}
+            onClick={(e) => onSelectEntry(directory, e)}
             onDoubleClick={() => onNavigateDir(directory)}
             onContextMenu={(e) => onContextMenu(e, { kind: 'dir', path: directory })}
             role="gridcell"
@@ -80,14 +79,6 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
             title={t('speedtest.zip_folder_double_click')}
           >
             <div className="dzb-grid-card-top">
-              <input
-                type="checkbox"
-                checked={selected}
-                onChange={() => onToggleSelectEntry(directory)}
-                onClick={(e) => e.stopPropagation()}
-                className="dzb-checkbox"
-                aria-label={t('speedtest.zip_select_directory', { name: label })}
-              />
               <span className="dzb-grid-badge folder">{t('speedtest.zip_tag_folder')}</span>
             </div>
 
@@ -131,10 +122,9 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
         return (
           <div
             key={entry.name}
+            data-entry-name={entry.name}
             className={`dzb-grid-card ${selected ? 'selected' : ''}`}
-            onClick={(e) => {
-              onToggleSelectEntry(entry.name, e.shiftKey);
-            }}
+            onClick={(e) => onSelectEntry(entry.name, e)}
             onDoubleClick={() => onPreviewCode(entry)}
             onContextMenu={(e) => onContextMenu(e, { kind: 'file', entry })}
             role="gridcell"
@@ -142,15 +132,6 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
             title={entry.name}
           >
             <div className="dzb-grid-card-top">
-              <input
-                type="checkbox"
-                checked={selected}
-                onChange={() => onToggleSelectEntry(entry.name)}
-                onClick={(e) => e.stopPropagation()}
-                className="dzb-checkbox"
-                aria-label={t('speedtest.zip_select_entry', { name: entry.name })}
-              />
-
               <div className="dzb-grid-top-badges">
                 {entry.encrypted && (
                   <span className="dzb-lock-pill" title={t('speedtest.zip_protected')}>

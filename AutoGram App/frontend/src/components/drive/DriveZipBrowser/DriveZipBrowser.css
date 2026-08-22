@@ -600,6 +600,7 @@
    CONTENT SURFACE & STATE CONTAINERS
    ========================================================================== */
 .dzb-content-surface {
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
   height: 100%;
@@ -614,6 +615,20 @@
   padding: 14px 18px 85px 18px;
   scrollbar-width: thin;
   scrollbar-color: rgba(99, 102, 241, 0.4) transparent;
+}
+
+.dzb-content-surface.is-marquee {
+  user-select: none;
+}
+
+.dzb-marquee-rect {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(99, 102, 241, 0.18);
+  border: 1.5px solid rgba(99, 102, 241, 0.7);
+  border-radius: 4px;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
+  z-index: 50;
 }
 
 .dzb-content-surface::-webkit-scrollbar {
@@ -734,16 +749,15 @@
   letter-spacing: 0.05em;
 }
 
-.dzb-th-check,
-.dzb-td-check {
-  width: 44px;
-  text-align: center;
-  padding-left: 12px;
-  padding-right: 6px;
-}
-
 .dzb-th-name {
   min-width: 200px;
+  padding-left: 14px;
+}
+
+.dzb-th-name-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .dzb-th-type {

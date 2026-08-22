@@ -20,7 +20,7 @@ type ZipEntryTableProps = {
   currentPath: string;
   onNavigateDir: (path: string) => void;
   selectedEntries: Set<string>;
-  onToggleSelectEntry: (name: string, shiftKey?: boolean) => void;
+  onSelectEntry: (name: string, e: React.MouseEvent) => void;
   onSelectAll: () => void;
   isAllSelected: boolean;
   onPreviewCode: (entry: ZipEntry) => void;
@@ -49,7 +49,7 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
   currentPath,
   onNavigateDir,
   selectedEntries,
-  onToggleSelectEntry,
+  onSelectEntry,
   onSelectAll,
   isAllSelected,
   onPreviewCode,
@@ -64,16 +64,19 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
       <table className="dzb-table">
         <thead className="dzb-thead">
           <tr>
-            <th className="dzb-th-check">
-              <input
-                type="checkbox"
-                checked={isAllSelected}
-                onChange={onSelectAll}
-                className="dzb-checkbox"
-                aria-label={t('speedtest.zip_select_all')}
-              />
+            <th className="dzb-th-name">
+              <div className="dzb-th-name-inner">
+                <input
+                  type="checkbox"
+                  checked={isAllSelected}
+                  onChange={onSelectAll}
+                  className="dzb-checkbox"
+                  title={t('speedtest.zip_select_all')}
+                  aria-label={t('speedtest.zip_select_all')}
+                />
+                <span>{t('speedtest.zip_col_name')}</span>
+              </div>
             </th>
-            <th className="dzb-th-name">{t('speedtest.zip_col_name')}</th>
             <th className="dzb-th-type">{t('speedtest.zip_sort_type')}</th>
             <th className="dzb-th-size">{t('speedtest.zip_col_size')}</th>
             <th className="dzb-th-actions">{t('speedtest.zip_col_actions')}</th>
@@ -88,14 +91,12 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
             return (
               <tr
                 key={directory}
+                data-entry-name={directory}
                 className={`dzb-tr directory ${selected ? 'selected' : ''}`}
-                onClick={(e) => {
-                  onToggleSelectEntry(directory, e.shiftKey);
-                }}
+                onClick={(e) => onSelectEntry(directory, e)}
                 onDoubleClick={() => onNavigateDir(directory)}
                 onContextMenu={(e) => onContextMenu(e, { kind: 'dir', path: directory })}
               >
-                <td className="dzb-td-check" />
                 <td className="dzb-td-name">
                   <div className="dzb-name-cell">
                     <Folder size={18} className="dzb-folder-icon" />
@@ -138,14 +139,12 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
             return (
               <tr
                 key={entry.name}
+                data-entry-name={entry.name}
                 className={`dzb-tr ${selected ? 'selected' : ''}`}
-                onClick={(e) => {
-                  onToggleSelectEntry(entry.name, e.shiftKey);
-                }}
+                onClick={(e) => onSelectEntry(entry.name, e)}
                 onDoubleClick={() => onPreviewCode(entry)}
                 onContextMenu={(e) => onContextMenu(e, { kind: 'file', entry })}
               >
-                <td className="dzb-td-check" />
                 <td className="dzb-td-name">
                   <div className="dzb-name-cell">
                     <EntryIcon name={entry.name} />

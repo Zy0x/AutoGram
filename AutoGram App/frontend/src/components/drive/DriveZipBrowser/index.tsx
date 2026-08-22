@@ -413,29 +413,167 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
     if (action.kind === 'extract') await runExtraction(action.target, password);
   };
 
-  // Selection toggle with Shift+Click range support
-  const toggleEntry = (name: string, shiftKey?: boolean) => {
-    setSelectedEntries((current) => {
-      const next = new Set(current);
+  const contentSurfaceRef = useRef<HTMLDivElement>(null);
+  const [marqueeBox, setMarqueeBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const marqueeStateRef = useRef<{
+    startX: number;
+    startY: number;
+    initialSelected: Set<string>;
+    isAdditive: boolean;
+    active: boolean;
+  } | null>(null);
+
+  // OS File Explorer style item selection with Shift / Ctrl / Normal Click
+  const handleSelectEntry = useCallback(
+    (name: string, e: React.MouseEvent) => {
       const allVisible = [...dirs, ...files.map((f) => f.name)];
 
-      if (shiftKey && lastSelectedName && allVisible.includes(lastSelectedName) && allVisible.includes(name)) {
-        const idxA = allVisible.indexOf(lastSelectedName);
+      if (e.shiftKey) {
+        // Shift + Click: contiguous range selection from anchor
+        const anchor = lastSelectedName && allVisible.includes(lastSelectedName) ? lastSelectedName : allVisible[0];
+        const idxA = allVisible.indexOf(anchor);
         const idxB = allVisible.indexOf(name);
-        const [start, end] = [Math.min(idxA, idxB), Math.max(idxA, idxB)];
-        for (let i = start; i <= end; i++) {
-          next.add(allVisible[i]);
+        if (idxA !== -1 && idxB !== -1) {
+          const [start, end] = [Math.min(idxA, idxB), Math.max(idxA, idxB)];
+          const range = new Set(allVisible.slice(start, end + 1));
+          if (e.ctrlKey || e.metaKey) {
+            setSelectedEntries((current) => new Set([...current, ...range]));
+          } else {
+            setSelectedEntries(range);
+          }
         }
+      } else if (e.ctrlKey || e.metaKey) {
+        // Ctrl + Click: toggle single item in/out of selection
+        setSelectedEntries((current) => {
+          const next = new Set(current);
+          if (next.has(name)) {
+            next.delete(name);
+          } else {
+            next.add(name);
+          }
+          return next;
+        });
+        setLastSelectedName(name);
       } else {
-        if (next.has(name)) {
-          next.delete(name);
-        } else {
-          next.add(name);
-        }
+        // Normal Click: select ONLY clicked item
+        setSelectedEntries(new Set([name]));
+        setLastSelectedName(name);
       }
-      return next;
-    });
-    setLastSelectedName(name);
+    },
+    [dirs, files, lastSelectedName]
+  );
+
+  const handleSurfacePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('button, input, textarea, a, select, .dzb-action-icon-btn')) {
+      return;
+    }
+
+    const clickedCardOrRow = target.closest('[data-entry-name]');
+    const surface = contentSurfaceRef.current;
+    if (!surface) return;
+
+    const surfaceRect = surface.getBoundingClientRect();
+    const startX = e.clientX - surfaceRect.left + surface.scrollLeft;
+    const startY = e.clientY - surfaceRect.top + surface.scrollTop;
+
+    const isAdditive = e.ctrlKey || e.metaKey;
+
+    if (!clickedCardOrRow && !isAdditive && !e.shiftKey) {
+      // Clicking empty surface clears selection
+      setSelectedEntries(new Set());
+      setLastSelectedName(null);
+    }
+
+    if (!clickedCardOrRow) {
+      marqueeStateRef.current = {
+        startX,
+        startY,
+        initialSelected: new Set(isAdditive ? selectedEntries : []),
+        isAdditive,
+        active: false,
+      };
+
+      const handlePointerMove = (ev: PointerEvent) => {
+        const state = marqueeStateRef.current;
+        if (!state) return;
+        const currentSurf = contentSurfaceRef.current;
+        if (!currentSurf) return;
+
+        const currentSurfRect = currentSurf.getBoundingClientRect();
+        const curX = ev.clientX - currentSurfRect.left + currentSurf.scrollLeft;
+        const curY = ev.clientY - currentSurfRect.top + currentSurf.scrollTop;
+
+        const deltaX = Math.abs(curX - state.startX);
+        const deltaY = Math.abs(curY - state.startY);
+
+        if (!state.active && (deltaX > 4 || deltaY > 4)) {
+          state.active = true;
+          document.body.classList.add('dzb-marquee-active');
+        }
+
+        if (state.active) {
+          const x = Math.min(state.startX, curX);
+          const y = Math.min(state.startY, curY);
+          const w = Math.max(state.startX, curX) - x;
+          const h = Math.max(state.startY, curY) - y;
+
+          setMarqueeBox({ x, y, w, h });
+
+          // Test intersection with all items [data-entry-name]
+          const elements = currentSurf.querySelectorAll('[data-entry-name]');
+          const hitNames = new Set<string>(state.initialSelected);
+
+          const selRect = {
+            left: x - currentSurf.scrollLeft,
+            top: y - currentSurf.scrollTop,
+            right: x - currentSurf.scrollLeft + w,
+            bottom: y - currentSurf.scrollTop + h,
+          };
+
+          elements.forEach((el) => {
+            const entryName = el.getAttribute('data-entry-name');
+            if (!entryName) return;
+            const r = el.getBoundingClientRect();
+            const relRect = {
+              left: r.left - currentSurfRect.left,
+              top: r.top - currentSurfRect.top,
+              right: r.right - currentSurfRect.left,
+              bottom: r.bottom - currentSurfRect.top,
+            };
+
+            const intersects = !(
+              relRect.left > selRect.right ||
+              relRect.right < selRect.left ||
+              relRect.top > selRect.bottom ||
+              relRect.bottom < selRect.top
+            );
+
+            if (intersects) {
+              hitNames.add(entryName);
+            } else if (!state.isAdditive) {
+              hitNames.delete(entryName);
+            }
+          });
+
+          setSelectedEntries(hitNames);
+        }
+      };
+
+      const handlePointerUp = () => {
+        marqueeStateRef.current = null;
+        setMarqueeBox(null);
+        document.body.classList.remove('dzb-marquee-active');
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
+        window.removeEventListener('pointercancel', handlePointerUp);
+      };
+
+      window.addEventListener('pointermove', handlePointerMove);
+      window.addEventListener('pointerup', handlePointerUp);
+      window.addEventListener('pointercancel', handlePointerUp);
+    }
   };
 
   const selectAll = () => {
@@ -538,8 +676,24 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
         currentFolderItemCount={visibleTotalCount}
       />
 
-      {/* Main Content Surface */}
-      <main className="dzb-content-surface">
+      {/* Main Content Surface with Marquee Selection Support */}
+      <main
+        ref={contentSurfaceRef}
+        className={`dzb-content-surface ${marqueeBox ? 'is-marquee' : ''}`}
+        onPointerDown={handleSurfacePointerDown}
+      >
+        {marqueeBox && (
+          <div
+            className="dzb-marquee-rect"
+            style={{
+              left: marqueeBox.x,
+              top: marqueeBox.y,
+              width: marqueeBox.w,
+              height: marqueeBox.h,
+            }}
+          />
+        )}
+
         {isLoading ? (
           <div className="dzb-state-center">
             <div className="dzb-spinner" />
@@ -566,7 +720,7 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
             currentPath={currentPath}
             onNavigateDir={setCurrentPath}
             selectedEntries={selectedEntries}
-            onToggleSelectEntry={toggleEntry}
+            onSelectEntry={handleSelectEntry}
             onPreviewCode={handlePreview}
             onExtractEntry={(entry) => {
               setSelectedEntries(new Set([entry.name]));
@@ -585,7 +739,7 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
             currentPath={currentPath}
             onNavigateDir={setCurrentPath}
             selectedEntries={selectedEntries}
-            onToggleSelectEntry={toggleEntry}
+            onSelectEntry={handleSelectEntry}
             onSelectAll={selectAll}
             isAllSelected={isAllSelected}
             onPreviewCode={handlePreview}
