@@ -670,7 +670,7 @@ export function DriveTopBar({
                             </button>
                           ) : (
                             <span
-                              className={i === 0 ? 'td-crumb-muted' : 'td-crumb-current'}
+                              className={isLast ? 'td-crumb-current' : 'td-crumb-muted'}
                               title={seg.label}
                             >
                               {seg.label}

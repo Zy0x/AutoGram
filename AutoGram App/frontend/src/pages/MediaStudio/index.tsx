@@ -1215,9 +1215,8 @@ function MediaDriveDesktop({
   }, [locationKind, activePeerId, folders, chats, pins, recents, isForumChat, topicFilter, topics, unjoinedChannelNotice]);
 
   const breadcrumb = useMemo(() => {
-    if (breadcrumbSegs.length <= 1) return 'Saved Messages';
+    if (breadcrumbSegs.length === 0) return 'Saved Messages';
     return breadcrumbSegs
-      .slice(1)
       .map((s) => s.label)
       .join(' / ');
   }, [breadcrumbSegs]);

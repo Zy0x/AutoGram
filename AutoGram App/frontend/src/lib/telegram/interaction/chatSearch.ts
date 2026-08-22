@@ -210,19 +210,22 @@ export function buildDriveBreadcrumbSegments(
     topicId?: number | null;
   }
 ): DriveBreadcrumbSeg[] {
-  const segs: DriveBreadcrumbSeg[] = [{ id: null, label: 'Start', kind: 'start' }];
+  const segs: DriveBreadcrumbSeg[] = [];
   if (opts.locationKind === 'saved') {
     segs.push({ id: null, label: 'Saved Messages', kind: 'saved' });
     return segs;
   }
   if (opts.locationKind === 'drive' && opts.activePeerId != null) {
-    const authoritativeName = (id: number) => opts.chats?.find(
-      (chat) => String(chat.id) === String(id)
-    )?.name;
+    const authoritativeName = (id: number) =>
+      opts.chats?.find((chat) => String(chat.id) === String(id))?.name;
     const ancestors = folderAncestorIds(folders, opts.activePeerId).reverse();
     for (const aid of ancestors) {
       const f = folders.find((x) => x.id === aid);
-      segs.push({ id: aid, label: authoritativeName(aid) || f?.name || `Folder ${aid}`, kind: 'drive' });
+      segs.push({
+        id: aid,
+        label: authoritativeName(aid) || f?.name || `Folder ${aid}`,
+        kind: 'drive',
+      });
     }
     const cur = folders.find((x) => x.id === opts.activePeerId);
     segs.push({
@@ -247,6 +250,9 @@ export function buildDriveBreadcrumbSegments(
   }
   if (opts.topicTitle) {
     segs.push({ id: opts.topicId ?? null, label: opts.topicTitle, kind: 'topic' });
+  }
+  if (segs.length === 0) {
+    segs.push({ id: null, label: 'Saved Messages', kind: 'saved' });
   }
   return segs;
 }
