@@ -368,6 +368,24 @@ export function DriveTopBar({
     topicsCount: topics?.length ?? 0,
   });
 
+  // Auto-scroll active topic pill into view (e.g. from Quick Jump or topic click)
+  useEffect(() => {
+    if (topicFilter == null || !topicPillsRef.current || !topics?.length) return;
+    const timer = setTimeout(() => {
+      const container = topicPillsRef.current;
+      if (!container) return;
+      const activePill = container.querySelector<HTMLElement>(`[data-topic-id="${topicFilter}"]`);
+      if (activePill) {
+        const containerWidth = container.clientWidth;
+        const pillLeft = activePill.offsetLeft;
+        const pillWidth = activePill.offsetWidth;
+        const targetScrollLeft = Math.max(0, pillLeft - (containerWidth / 2) + (pillWidth / 2));
+        container.scrollTo({ left: targetScrollLeft, behavior: 'smooth' });
+      }
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [topicFilter, topics]);
+
   const topbarActionsRef = useRef<HTMLDivElement>(null);
   const [canScrollActionsLeft, setCanScrollActionsLeft] = useState(false);
   const [canScrollActionsRight, setCanScrollActionsRight] = useState(false);

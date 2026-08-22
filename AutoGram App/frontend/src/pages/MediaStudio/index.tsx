@@ -1704,11 +1704,16 @@ function MediaDriveDesktop({
     const targetFile = files.find((f) => f.id === targetId);
     if (targetFile) {
       setSelectedIds([targetId]);
+      setQuery(String(targetId));
       showPathJumpToast(
         t('ui.path_jump.navigate_success', { target: targetFile.name || `#${targetId}` }),
         'info'
       );
-      pendingTargetMsgIdRef.current = null;
+      setTimeout(() => {
+        if (pendingTargetMsgIdRef.current === targetId) {
+          pendingTargetMsgIdRef.current = null;
+        }
+      }, 1500);
     }
   }, [files, showPathJumpToast, t]);
 
@@ -1826,7 +1831,11 @@ function MediaDriveDesktop({
             t('ui.path_jump.navigate_success', { target: existingFile.name || `#${msgId}` }),
             'info'
           );
-          pendingTargetMsgIdRef.current = null;
+          setTimeout(() => {
+            if (pendingTargetMsgIdRef.current === msgId) {
+              pendingTargetMsgIdRef.current = null;
+            }
+          }, 1500);
         } else {
           // Timeout after 6s if not found in loaded files
           setTimeout(() => {
@@ -7855,8 +7864,13 @@ function MediaDriveDesktop({
     if (prevLocationScopeKeyRef.current !== activeLocationScopeKey) {
       prevLocationScopeKeyRef.current = activeLocationScopeKey;
       setMediaFilter('all');
-      setQuery('');
-      setSelectedIds([]);
+      if (pendingTargetMsgIdRef.current != null) {
+        setQuery(String(pendingTargetMsgIdRef.current));
+        setSelectedIds([pendingTargetMsgIdRef.current]);
+      } else {
+        setQuery('');
+        setSelectedIds([]);
+      }
       setAdvFilter({ ...EMPTY_ADV_FILTER });
       selectionAnchorRef.current = null;
     }
