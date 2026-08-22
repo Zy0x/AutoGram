@@ -73,33 +73,34 @@ export const ZipCodePreviewModal: React.FC<ZipCodePreviewModalProps> = ({
     setFlipH(false);
     setFlipV(false);
     setPan({ x: 0, y: 0 });
+    setIsFullscreen(false);
   }, [entry?.name]);
-
-  if (!entry) return null;
 
   const content = preview?.text || null;
   const mediaUrl = preview?.data_url || localUrl || null;
   const kind = preview?.kind || 'meta';
 
   // Navigation calculation
-  const currentIndex = entries.findIndex((e) => e.name === entry.name);
+  const currentIndex = entry ? entries.findIndex((e) => e.name === entry.name) : -1;
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex >= 0 && currentIndex < entries.length - 1;
 
   const handlePrev = useCallback(() => {
-    if (hasPrev && onNavigate) {
+    if (hasPrev && onNavigate && currentIndex > 0) {
       onNavigate(entries[currentIndex - 1]);
     }
   }, [currentIndex, entries, hasPrev, onNavigate]);
 
   const handleNext = useCallback(() => {
-    if (hasNext && onNavigate) {
+    if (hasNext && onNavigate && currentIndex >= 0 && currentIndex < entries.length - 1) {
       onNavigate(entries[currentIndex + 1]);
     }
   }, [currentIndex, entries, hasNext, onNavigate]);
 
-  // Keyboard navigation & controls
+  // Keyboard navigation & controls (Hook must run unconditionally)
   useEffect(() => {
+    if (!entry) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
         return;
@@ -135,7 +136,7 @@ export const ZipCodePreviewModal: React.FC<ZipCodePreviewModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleNext, handlePrev, kind, onClose]);
+  }, [entry, handleNext, handlePrev, kind, onClose]);
 
   const handleCopy = async () => {
     if (!content) return;
@@ -169,6 +170,9 @@ export const ZipCodePreviewModal: React.FC<ZipCodePreviewModalProps> = ({
   const handleMouseUp = () => {
     setIsDragging(false);
   };
+
+  // All hooks have been called. Now we can safely return null if no entry is selected.
+  if (!entry) return null;
 
   const imageTransformStyle: React.CSSProperties = {
     transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom}) rotate(${rotation}deg) scaleX(${flipH ? -1 : 1}) scaleY(${flipV ? -1 : 1})`,
