@@ -35136,41 +35136,32 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-nav-history-next {
-  border-top-left-radius: 2px !important;
-  border-bottom-left-radius: 2px !important;
+  border-radius: 2px !important;
   border-left: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
-.td-topbar .td-pin-btn {
-  width: 25px !important;
-  height: 25px !important;
-  min-width: 25px !important;
-  max-width: 25px !important;
-  min-height: 25px !important;
-  max-height: 25px !important;
-  border-radius: 7px !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  flex-shrink: 0 !important;
-  background: transparent !important;
-  border: 1px solid transparent !important;
+.td-nav-history-pin {
+  border-top-left-radius: 2px !important;
+  border-bottom-left-radius: 2px !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.08) !important;
   color: #94a3b8 !important;
-  transition: all 0.15s ease !important;
 }
 
-.td-topbar .td-pin-btn:hover {
-  background: rgba(255, 255, 255, 0.08) !important;
+.td-nav-history-pin:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14) !important;
   color: #f1f5f9 !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-.td-topbar .td-pin-btn.active {
-  background: rgba(245, 166, 35, 0.12) !important;
+.td-nav-history-pin.active,
+.td-nav-history-pin.is-pinned {
+  background: rgba(245, 166, 35, 0.16) !important;
   color: #f5a623 !important;
-  border-color: rgba(245, 166, 35, 0.25) !important;
+}
+
+.td-nav-history-pin.active:hover,
+.td-nav-history-pin.is-pinned:hover {
+  background: rgba(245, 166, 35, 0.25) !important;
+  color: #fbbf24 !important;
 }
 
 .td-topbar .td-crumb-link {

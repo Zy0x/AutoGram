@@ -591,8 +591,8 @@ export function DriveTopBar({
               <Menu size={18} />
             </button>
           )}
-          {(onNavBack || onNavForward) && (
-            <div className="td-nav-history-group" role="group" aria-label="Drive history navigation">
+          {(onNavBack || onNavForward || onTogglePin) && (
+            <div className="td-nav-history-group" role="group" aria-label="Drive history and pin navigation">
               {onNavBack && (
                 <button
                   type="button"
@@ -617,18 +617,18 @@ export function DriveTopBar({
                   <ChevronRight size={14} strokeWidth={2.2} />
                 </button>
               )}
+              {onTogglePin && (
+                <button
+                  type="button"
+                  className={`td-nav-history-btn td-nav-history-pin ${isPinned ? 'active is-pinned' : ''}`}
+                  onClick={onTogglePin}
+                  title={isPinned ? t('speedtest.topbar_unpin_loc') : t('speedtest.topbar_pin_loc')}
+                  aria-label={isPinned ? t("speedtest.topbar_unpin_loc") : t("speedtest.topbar_pin_loc")}
+                >
+                  {isPinned ? <PinOff size={13} /> : <Pin size={13} />}
+                </button>
+              )}
             </div>
-          )}
-          {onTogglePin && (
-            <button
-              type="button"
-              className={`td-icon-btn td-pin-btn ${isPinned ? 'active' : ''}`}
-              onClick={onTogglePin}
-              title={isPinned ? t('speedtest.topbar_unpin_loc') : t('speedtest.topbar_pin_loc')}
-              aria-label={isPinned ? t("speedtest.topbar_unpin_loc") : t("speedtest.topbar_pin_loc")}
-            >
-              {isPinned ? <PinOff size={14} /> : <Pin size={14} />}
-            </button>
           )}
           <nav className="td-breadcrumbs" aria-label={t('ui.generated.breadcrumb_c766e66')}>
             {breadcrumbSegs && breadcrumbSegs.length > 0 ? (
