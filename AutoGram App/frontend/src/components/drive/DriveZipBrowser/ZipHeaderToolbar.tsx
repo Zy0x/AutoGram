@@ -182,7 +182,7 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
 
         {/* Right: View Toggle, Extract All, Save, Close */}
         <div className="dzb-identity-right">
-          {unloadedMediaCount > 0 && onLoadAllThumbnails && (
+          {viewMode === 'grid' && unloadedMediaCount > 0 && onLoadAllThumbnails && (
             <button
               type="button"
               onClick={onLoadAllThumbnails}
