@@ -34,6 +34,9 @@ import {
   ExternalLink,
   AppWindow,
   FileText,
+  FileCode,
+  Music,
+  Zap,
   Copy,
   Printer,
   Repeat,
@@ -4728,26 +4731,77 @@ export function DrivePreviewModal({
             </div>
           ) : (
             <>
-              {(loading || (customSource && !activeSrc && !textBody && !pdfSrc)) && !showThumbSkeleton && !isZip && !error && (
-            <div className="w-full flex flex-col items-center justify-center min-h-[350px] p-6">
-              <DeadCenterProgress
-                isLoading={true}
-                label={
-                  customSource
-                    ? customSource.encrypted
-                      ? String(t('speedtest.zip_decrypting_ram'))
-                      : String(t('speedtest.zip_extracting_ram'))
-                    : switchingQuality
-                      ? `Mengganti ke ${activeQuality?.label || quality}…`
-                      : isPdf || isText
-                        ? 'Mengunduh dokumen via Grammers MTProto…'
-                        : /^(p720|p480|p360)/i.test(quality)
-                          ? `Menyiapkan ${quality.replace(/^p/i, '')}p…`
-                          : 'Menyiapkan stream media…'
-                }
-              />
-            </div>
-          )}
+              {/* DEDICATED ZIP PREVIEW IN-MEMORY LOADING CARD */}
+              {customSource && (loading || (!activeSrc && !textBody && !pdfSrc)) && !error && (
+                <div className="w-full flex flex-col items-center justify-center min-h-[360px] p-6 select-none">
+                  <div className="dzb-preview-loading-card">
+                    <div className="dzb-dual-ring-wrap">
+                      <div className="dzb-dual-ring-spinner" />
+                      <div
+                        className="dzb-loading-icon-center"
+                        style={{
+                          color:
+                            customSource.kind === 'video'
+                              ? '#38bdf8'
+                              : customSource.kind === 'audio'
+                              ? '#34d399'
+                              : customSource.kind === 'image'
+                              ? '#818cf8'
+                              : customSource.kind === 'text'
+                              ? '#fbbf24'
+                              : '#a78bfa',
+                        }}
+                      >
+                        {customSource.kind === 'video' ? (
+                          <Film size={24} />
+                        ) : customSource.kind === 'audio' ? (
+                          <Music size={24} />
+                        ) : customSource.kind === 'image' ? (
+                          <ImageIcon size={24} />
+                        ) : customSource.kind === 'text' ? (
+                          <FileCode size={24} />
+                        ) : customSource.kind === 'pdf' ? (
+                          <FileText size={24} />
+                        ) : (
+                          <Zap size={24} />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="dzb-loading-title-box">
+                      <h4 className="dzb-loading-title">{t('speedtest.zip_reading_entry')}</h4>
+                      <p className="dzb-loading-sub">{t('speedtest.zip_sparse_reading_dots')}</p>
+                    </div>
+
+                    <div className="dzb-loading-shimmer-bar">
+                      <div className="dzb-loading-shimmer-thumb" />
+                    </div>
+
+                    <div className="dzb-loading-badge">
+                      <Zap size={12} className="text-amber-400" />
+                      <span>{t('speedtest.zip_sparse_direct_decrypt')}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* NORMAL DRIVE PREVIEW LOADING PROGRESS */}
+              {!customSource && loading && !showThumbSkeleton && !activeSrc && !textBody && !pdfSrc && !isZip && !error && (
+                <div className="w-full flex flex-col items-center justify-center min-h-[350px] p-6">
+                  <DeadCenterProgress
+                    isLoading={loading}
+                    label={
+                      switchingQuality
+                        ? `Mengganti ke ${activeQuality?.label || quality}…`
+                        : isPdf || isText
+                          ? 'Mengunduh dokumen via Grammers MTProto…'
+                          : /^(p720|p480|p360)/i.test(quality)
+                            ? `Menyiapkan ${quality.replace(/^p/i, '')}p…`
+                            : 'Menyiapkan stream media…'
+                    }
+                  />
+                </div>
+              )}
 
           {!loading && error && (
             <div className="drive-empty drive-error">
