@@ -1,13 +1,14 @@
-AutoGram Version: v3.8.13
+AutoGram Version: v3.8.14
 
 Current State:
-v3.8.13 Filter Pill & Card List Exact Parity Engine — perbaikan komprehensif pada integritas klasifikasi media dan sinkronisasi jumlah indikator filter dengan kartu yang ditampilkan:
-1. Strict Non-Document Message Separation: Mengoreksi `media_classifier.rs` dan `media_list.rs` sehingga pesan teks biasa, catatan pendek, username (`@...`), dan web link yang tidak memiliki dokumen lampiran tidak lagi diklasifikasikan secara keliru sebagai `telegram_category: "file"` atau `icon_type: "file"`.
-2. Exact Filter Matching in Multi-Tier Caching & Statistics: Memperbaiki `matchesMediaFilter` pada `driveTypes.ts` dan `mediaStatistics.ts` untuk secara tegas mengecualikan pesan teks dan tautan dari kategori `files`, mencegah inflasi angka lokal `localCounts` (dari 20 ke 3/1 yang akurat).
-3. Authoritative Filtered Stream Count Synchronization: Menyelaraskan `perspectiveCounts` pada `MediaStudio/index.tsx` dengan `filteredTotalCountMap` dan server Telegram breakdown, menjamin indikator angka pada pill selalu 100% identik dengan jumlah berkas riil di grid dan footer 'verified media'.
-4. Remote E2E Validation on Multiple Accounts: Terverifikasi via CDP pada akun `Mantan Gadis` dan `Lavender` bahwa tab 'Files' menampilkan angka yang 100% presisi dan selaras dengan kartu yang dimuat.
+v3.8.14 Zero-Scan Sparse ZIP In-Memory Decryptor & True Minimal Bandwidth Streaming Engine — eliminasi total pemborosan kuota data pada berkas ZIP terenkripsi (ZipCrypto & WinZip AES) melalui arsitektur dekripsi langsung in-memory:
+1. Pure In-Memory Direct Decryptor & Decompressor: Mengimplementasikan `ZipCrypto` native cipher stream dan sintetis in-memory micro-archive pada `grammers_sparse_zip.rs`. Saat membuka entri terenkripsi, sistem HANYA mengunduh rentang byte lokal entri target (header lokal 30B + nama + payload terkompresi) dan langsung mendekripsinya di RAM dalam hitungan milidetik.
+2. Complete Elimination of 50MB-60MB MagicFinder Full Scans: Menghapus total ketergantungan pada `zip::ZipArchive::new(sparse_reader)` yang sebelumnya memicu pemindaian linier multi-blok (50-60 MB) dari EOCD ke Central Directory. Pembukaan foto/media 1–2 MB kini murni hanya mengunduh 1–2 MB data byte sebenarnya.
+3. Robust Fallback & Direct Disk Extraction: Menyelaraskan fungsi pratinjau (`preview_zip_entry_direct`) dan ekstraksi langsung (`extract_zip_entry_direct`) sehingga seluruh operasi ZIP berpassword terlindungi dengan efisiensi kuota data 100% minimal.
+4. Dynamic Session Directory Resolution: Memperbaiki resolusi `sessions_dir` di seluruh fungsi sparse ZIP dengan menggunakan `super::grammers_ops::resolve_sessions_dir(None)` yang otomatis mencari `worker/sessions`.
 
 Previous:
+v3.8.13 Filter Pill & Card List Exact Parity Engine.
 v3.8.12 Universal Media Card Right-Click Context Menu & Multi-Stream File Resolution Engine.
 v3.8.11 Password-Protected Sparse ZIP On-The-Fly Decryption & Scoped Peer/Topic MTProto Range Streaming.
 v3.8.10 Filter Pill & Card List Exact Parity Engine — perbaikan komprehensif pada integritas klasifikasi media dan sinkronisasi jumlah indikator filter dengan kartu yang ditampilkan:

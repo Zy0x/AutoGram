@@ -1,3 +1,20 @@
+## v3.8.14 Zero-Scan Sparse ZIP In-Memory Decryptor & True Minimal Bandwidth Streaming Engine (Phase 35.80)
+
+### 1. Pure In-Memory Direct Decryptor & Decompressor
+- **Dekripsi Langsung In-Memory (Zero Multi-Megabyte Archive Scans)**:
+  - Mengimplementasikan `ZipCrypto` stream cipher native dan sintetis in-memory micro-archive pada `grammers_sparse_zip.rs`.
+  - Saat membuka entri terenkripsi, sistem HANYA mengunduh rentang byte lokal entri target (header lokal 30B + nama + payload terkompresi) dan langsung mendekripsinya di RAM dalam hitungan milidetik.
+
+### 2. Complete Elimination of 50MB-60MB MagicFinder Full Scans
+- **Penghapusan Total Pemindaian Linier**:
+  - Menghapus total ketergantungan pada `zip::ZipArchive::new(sparse_reader)` yang sebelumnya memicu pemindaian linier multi-blok (50-60 MB) dari EOCD ke Central Directory.
+  - Pembukaan foto/media 1–2 MB di dalam arsip ZIP 960MB kini murni hanya mengunduh 1–2 MB data byte sebenarnya dari Telegram MTProto.
+
+### 3. Direct Disk Extraction & Session Resolution
+- **Sinkronisasi Ekstraksi dan Sesi**:
+  - Menyelaraskan fungsi pratinjau (`preview_zip_entry_direct`) dan ekstraksi langsung (`extract_zip_entry_direct`) sehingga seluruh operasi ZIP berpassword terlindungi dengan efisiensi kuota data 100% minimal.
+  - Memperbaiki resolusi `sessions_dir` di seluruh fungsi sparse ZIP dengan menggunakan `super::grammers_ops::resolve_sessions_dir(None)` yang otomatis mencari `worker/sessions`.
+
 ## v3.8.13 Filter Pill & Card List Exact Parity Engine (Phase 35.79)
 
 ### 1. Strict Non-Document Message Separation di Backend Rust
