@@ -140,41 +140,12 @@ export function useTopicDrop({ onDropOnTopic, topicPillsRef, topicsCount }: UseT
     };
   }, [topicPillsRef]);
 
-  // Window-level wheel interception when pointer is over topic pills bar (handles wheel even when drag captures pointer)
-  useEffect(() => {
-    const onWindowWheel = (e: WheelEvent) => {
-      const el = topicPillsRef?.current;
-      if (!el || el.scrollWidth <= el.clientWidth) return;
-      const rect = el.getBoundingClientRect();
-      if (
-        e.clientX >= rect.left &&
-        e.clientX <= rect.right &&
-        e.clientY >= rect.top - 6 &&
-        e.clientY <= rect.bottom + 6
-      ) {
-        const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-        if (delta !== 0) {
-          el.scrollLeft += delta;
-          e.preventDefault();
-        }
-      }
-    };
-
-    window.addEventListener('wheel', onWindowWheel, { passive: false });
-    return () => window.removeEventListener('wheel', onWindowWheel);
-  }, [topicPillsRef]);
-
   const handlePillsWheel = useCallback(
-    (e: React.WheelEvent<HTMLDivElement>) => {
-      const el = topicPillsRef?.current;
-      if (!el) return;
-      const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-      if (delta !== 0) {
-        el.scrollLeft += delta;
-        e.preventDefault();
-      }
+    (_e: React.WheelEvent<HTMLDivElement>) => {
+      // Native horizontal delta is handled natively by the browser.
+      // Vertical mouse wheel delta is handled globally and smoothly by handleHorizontalWheel.
     },
-    [topicPillsRef]
+    []
   );
 
   const handlePillsDragOver = useCallback(

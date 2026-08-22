@@ -9793,8 +9793,8 @@ body:has(.app-layout-drive-focus),
   overflow-x: auto;
   overflow-y: hidden;
   padding: 2px 0 4px;
-  scrollbar-width: thin;
-  scroll-behavior: smooth;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
 }
 .td-topic-pill {
