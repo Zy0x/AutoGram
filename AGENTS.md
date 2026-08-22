@@ -143,8 +143,21 @@ import { chromium } from 'playwright';
 })();
 ```
 
+## Sparse ZIP Preview & Encrypted In-Memory Streaming Standard (Mandatory)
+
+- **Zero Full-Archive Downloads:** Opening, previewing, or extracting media inside any ZIP archive (plain, ZipCrypto, or WinZip AES-128/256) **MUST NEVER** download the full ZIP file or trigger multi-megabyte archive scans.
+- **Strict Byte-Range Fetching:** `TelegramSparseReader` must strictly request only the exact byte range of the target entry (`local_header_offset` + 30 + `name_len` + `extra_len` + `compressed_size`). Opening a 1–2 MB photo inside a 1GB+ archive must strictly consume only ~1–2 MB of network data.
+- **In-Memory Decryption & Decompression:**
+  - **ZipCrypto (PKWARE):** Use direct in-memory stream cipher decryption on the target entry's byte slice in RAM (`decode_entry_bytes_direct`).
+  - **WinZip AES-128 / AES-256:** Synthesize an in-memory 1-entry micro-archive in RAM (local header + payload + 1 CDFH + EOCD) and execute `zip::ZipArchive` directly on that small memory buffer cursor.
+- **Strictly Prohibited Anti-Patterns:**
+  - **NEVER** pass `TelegramSparseReader` to `zip::ZipArchive::new(&mut sparse_reader)` during entry preview or extraction. `zip-rs` `OptimisticMagicFinder` scans the entire range from EOCD to the Central Directory, downloading 50–60 MB of unnecessary MTProto blocks.
+  - **NEVER** throw fallback errors on encrypted entries that redirect to full archive scans.
+  - Always resolve session directories using `super::grammers_ops::resolve_sessions_dir(None)`.
+
 ## Safety & language
 
 - Prefer **murid** over **siswa** in product copy when Indonesian is used.
 - No destructive git/fs operations without explicit user approval.
 - Never commit secrets, session files, or API hashes.
+

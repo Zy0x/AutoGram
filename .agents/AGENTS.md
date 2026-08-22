@@ -62,4 +62,14 @@ Dokumen ini berfungsi sebagai pelengkap untuk aturan pengembangan proyek AutoGra
    - Setiap skrip pengujian, probe node, otomatisasi CDP, atau subproses yang dijalankan oleh agen **WAJIB** memiliki timer keluar keras (*hard exit timer*, misal: `setTimeout(() => process.exit(0), 10000)`).
    - DILARANG membiarkan listener atau promise terbuka yang menggantung proses di latar belakang (*background task*).
    - Agen wajib secara proaktif memeriksa dan menghentikan (*kill/cleanup*) task yang sudah selesai agar tidak terjadi *orphan task* atau loop tak berujung.
+10. **Standar Pratinjau Sparse ZIP & Dekripsi In-Memory (*Zero Full-Archive Download*):**
+   - **Eliminasi Pengunduhan Utuh / Pemindaian Multi-Megabyte:** Membuka, melihat pratinjau, atau mengekstrak media di dalam arsip ZIP (polos, ZipCrypto, atau WinZip AES-128/256) **DILARANG KERAS** mengunduh seluruh file ZIP atau memicu pemindaian linier berukuran puluhan megabyte.
+   - **Permintaan Rentang Byte Eksak (*Strict Byte-Range Fetching*):** `TelegramSparseReader` wajib hanya meminta rentang byte lokal entri target (`local_header_offset` + 30 + `name_len` + `extra_len` + `compressed_size`). Membuka foto 1–2 MB di dalam ZIP 1GB+ wajib murni hanya mengonsumsi ~1–2 MB kuota data.
+   - **Arsitektur Dekripsi Langsung di RAM:**
+     - **ZipCrypto (PKWARE):** Gunakan cipher stream in-memory langsung pada slice byte entri di RAM (`decode_entry_bytes_direct`).
+     - **WinZip AES-128 / AES-256:** Sintesis struktur mikro-arsip 1 entri di RAM (header lokal + payload + 1 CDFH + EOCD) dan jalankan `zip::ZipArchive` langsung pada buffer cursor memori tersebut.
+   - **Pola Terlarang (*Strictly Prohibited Anti-Patterns*):**
+     - DILARANG mengoper `TelegramSparseReader` ke `zip::ZipArchive::new(&mut sparse_reader)` saat preview atau ekstraksi entri karena `OptimisticMagicFinder` akan memindai 50–60 MB blok data MTProto dari EOCD ke Central Directory.
+     - DILARANG melempar error fallback pada berkas terenkripsi yang mengarahkan ke pemindaian arsip utuh.
+     - Selalu gunakan `super::grammers_ops::resolve_sessions_dir(None)` untuk resolusi folder sesi.
 </RULE[project_autogram]>
