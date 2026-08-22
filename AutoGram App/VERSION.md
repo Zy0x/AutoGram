@@ -1,6 +1,12 @@
-AutoGram Version: v3.8.16
+AutoGram Version: v3.8.17
 
 Current State:
+v3.8.17 Transfer Manager True Clean Purge & Zombie Queue Clearance Engine — perbaikan menyeluruh pada pembersihan antrean dan riwayat Transfer Manager:
+1. Complete Multi-Tier Transfer Queue Dismissal & Purge: Menambahkan Tauri command `studio_clear_transfers` di backend Rust (`core::job_queue`) dan menyederhanakan `dismiss_transfer` agar seluruh antrean riwayat yang tertinggal atau gagal dapat dihapus secara atomik dari database `job_queue.json`.
+2. Deep State Reset across Stores & Storage: Menambahkan metode `clearAllJobs` pada `transferProgressStore`, menyinkronkan pembersihan `localStorage` antrean upload, dan mereset status `transfer` menjadi `EMPTY_TRANSFER_SESSION`.
+3. Smart Close (X) & Hidden Empty Shell: Tombol `X` pada `DriveTransferManager` kini mengeksekusi pembersihan penuh saat transfer tidak aktif, serta mencegah rendering modal kosong (*empty shell*) saat tidak ada sesi transfer yang aktif.
+
+Previous:
 v3.8.16 Modern-Elegant Animated Refresh Button & Responsive Micro-Interactions — perombakan total visual tombol refresh atas menjadi desain glassmorphic elegan dengan animasi interaktif halus:
 1. Glassmorphism & High-Tech Dark Design: Mengganti tombol kaku abu-abu dengan styling modern berlatar belakang gradien semi-transparan `rgba(30, 41, 59, 0.75)`, blur backdrop `12px`, border neon cyan `rgba(56, 189, 248, 0.28)`, serta aksen pantulan cahaya (luminous sheen) dan glowing halo saat di-hover.
 2. Spring Pre-Tension & Tactile Micro-Interactions: Menambahkan rotasi pegas halus 60° pada ikon saat kursor diarahkan ke tombol, respon tekan elastis `scale(0.95)`, dan transisi status yang responsif.

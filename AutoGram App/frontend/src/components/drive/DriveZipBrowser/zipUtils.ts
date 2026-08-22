@@ -36,6 +36,9 @@ export type ZipArchiveSource =
   | { kind: 'telegram'; label: string }
   | { kind: 'local'; label: string; path: string; parentEntry: string };
 
+export type ViewMode = 'list' | 'grid';
+export type SortOption = 'name-asc' | 'name-desc' | 'size-desc' | 'size-asc' | 'type';
+
 export function isZipEntryDir(e: ZipEntry | null | undefined): boolean {
   if (!e) return false;
   return !!(e.is_dir || e.isDir);
@@ -68,6 +71,33 @@ export type Category = 'all' | 'image' | 'doc' | 'media' | 'archive';
 
 export function isZipArchiveName(name: string): boolean {
   return /\.(zip|zipx)$/i.test(name);
+}
+
+/**
+ * Natural alphanumeric comparator (sorts 1, 2, 3... 10 instead of 1, 10, 2)
+ */
+export function naturalCompare(a: string, b: string): number {
+  return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+}
+
+/**
+ * Middle truncation for long filenames (preserves extension)
+ */
+export function middleTruncateFilename(filename: string, maxLength: number = 32): string {
+  if (!filename || filename.length <= maxLength) return filename;
+  const extIndex = filename.lastIndexOf('.');
+  const ext = extIndex !== -1 ? filename.slice(extIndex) : '';
+  const nameWithoutExt = extIndex !== -1 ? filename.slice(0, extIndex) : filename;
+
+  const targetNameLength = maxLength - ext.length - 3;
+  if (targetNameLength <= 4) {
+    return `${filename.slice(0, 8)}...${ext}`;
+  }
+
+  const frontLen = Math.ceil(targetNameLength / 2);
+  const backLen = Math.floor(targetNameLength / 2);
+
+  return `${nameWithoutExt.slice(0, frontLen)}...${nameWithoutExt.slice(-backLen)}${ext}`;
 }
 
 /**
@@ -127,25 +157,82 @@ export function matchesCategory(name: string | null | undefined, cat: Category):
   const lower = name.toLowerCase();
 
   if (cat === 'image') {
-    return /\.(jpg|jpeg|png|gif|webp|bmp|svg|tiff)$/.test(lower);
+    return /\.(jpg|jpeg|png|gif|webp|bmp|svg|tiff|avif|heic|heif|ico)$/.test(lower);
   }
   if (cat === 'media') {
-    return /\.(mp4|mkv|avi|mov|webm|mp3|m4a|aac|flac|ogg|wav|opus)$/.test(lower);
+    return /\.(mp4|mkv|avi|mov|webm|m4v|3gp|mp3|m4a|aac|flac|ogg|wav|opus)$/.test(lower);
   }
   if (cat === 'doc') {
     return /\.(pdf|doc|docx|txt|json|md|mdx|py|rs|ts|tsx|js|jsx|css|html|log|sh|csv|xml|yaml|yml|toml|ini|sql)$/.test(lower);
   }
   if (cat === 'archive') {
-    return /\.(zip|zipx)$/.test(lower);
+    return /\.(zip|zipx|rar|7z|tar|gz|bz2|xz)$/.test(lower);
   }
   return true;
+}
+
+export function getEntryCategory(name: string): Category {
+  if (matchesCategory(name, 'image')) return 'image';
+  if (matchesCategory(name, 'media')) return 'media';
+  if (matchesCategory(name, 'doc')) return 'doc';
+  if (matchesCategory(name, 'archive')) return 'archive';
+  return 'all';
+}
+
+export function getCategoryCounts(
+  entries: ZipEntry[],
+  cwd: string,
+  query: string
+): Record<Category, number> {
+  const counts: Record<Category, number> = {
+    all: 0,
+    image: 0,
+    media: 0,
+    doc: 0,
+    archive: 0,
+  };
+  const normalizedCwd = cwd ? (cwd.endsWith('/') ? cwd : cwd + '/') : '';
+  const q = query.trim().toLowerCase();
+
+  for (const e of entries) {
+    if (!e.name || isZipEntryDir(e)) continue;
+    const name = e.name;
+    if (q && !name.toLowerCase().includes(q)) continue;
+    if (!q && normalizedCwd && !name.startsWith(normalizedCwd)) continue;
+
+    counts.all += 1;
+    if (matchesCategory(name, 'image')) counts.image += 1;
+    else if (matchesCategory(name, 'media')) counts.media += 1;
+    else if (matchesCategory(name, 'doc')) counts.doc += 1;
+    else if (matchesCategory(name, 'archive')) counts.archive += 1;
+  }
+  return counts;
+}
+
+export function detectArchiveDominantType(entries: ZipEntry[]): 'images' | 'media' | 'mixed' {
+  const fileEntries = entries.filter((e) => !isZipEntryDir(e));
+  if (fileEntries.length === 0) return 'mixed';
+  let imageCount = 0;
+  let mediaCount = 0;
+  for (const e of fileEntries) {
+    if (matchesCategory(e.name, 'image')) imageCount += 1;
+    else if (matchesCategory(e.name, 'media')) mediaCount += 1;
+  }
+  if (imageCount / fileEntries.length >= 0.5) return 'images';
+  if ((imageCount + mediaCount) / fileEntries.length >= 0.5) return 'media';
+  return 'mixed';
+}
+
+export function totalEntriesSize(entries: ZipEntry[]): number {
+  return entries.reduce((acc, e) => acc + (isZipEntryDir(e) ? 0 : Number(e.size || 0)), 0);
 }
 
 export function basenamesAt(
   entries: ZipEntry[],
   cwd: string,
   query: string,
-  category: Category
+  category: Category,
+  sortOption: SortOption = 'name-asc'
 ): {
   dirs: string[];
   files: ZipEntry[];
@@ -199,9 +286,33 @@ export function basenamesAt(
     }
   }
 
+  const sortedDirs = Array.from(dirs).sort((a, b) => naturalCompare(a, b));
+
+  const sortedFiles = [...files].sort((a, b) => {
+    const nameA = entryLabel(a.name, cwd);
+    const nameB = entryLabel(b.name, cwd);
+    switch (sortOption) {
+      case 'name-asc':
+        return naturalCompare(nameA, nameB);
+      case 'name-desc':
+        return naturalCompare(nameB, nameA);
+      case 'size-desc':
+        return (b.size || 0) - (a.size || 0) || naturalCompare(nameA, nameB);
+      case 'size-asc':
+        return (a.size || 0) - (b.size || 0) || naturalCompare(nameA, nameB);
+      case 'type': {
+        const extA = nameA.split('.').pop()?.toLowerCase() || '';
+        const extB = nameB.split('.').pop()?.toLowerCase() || '';
+        return extA.localeCompare(extB) || naturalCompare(nameA, nameB);
+      }
+      default:
+        return naturalCompare(nameA, nameB);
+    }
+  });
+
   return {
-    dirs: Array.from(dirs).sort((a, b) => a.localeCompare(b)),
-    files: files.sort((a, b) => a.name.localeCompare(b.name)),
+    dirs: sortedDirs,
+    files: sortedFiles,
   };
 }
 
@@ -222,3 +333,4 @@ export function clearZipBrowserCache(): void {
     /* ignore */
   }
 }
+

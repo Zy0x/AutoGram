@@ -1,3 +1,21 @@
+## v3.8.17 Transfer Manager True Clean Purge & Zombie Queue Clearance Engine (Phase 35.83)
+
+### 1. Complete Multi-Tier Transfer Queue Dismissal & Purge
+- **Pembersihan Bersih Total Riwayat & Antrean Transfer**:
+  - Menambahkan backend Rust command `studio_clear_transfers` pada `core::job_queue` dan `lib.rs` untuk menghapus seluruh riwayat transfer (`job_queue.json`) secara atomik ketika pengguna melakukan pembersihan.
+  - Memperbaiki `dismiss_transfer` agar dapat menghapus transfer berstatus apapun tanpa tertolak oleh pembatasan status sementara.
+  - Mendaftarkan perizinan keamanan `"studio_clear_transfers"` pada `permissions/autogram-commands.toml`.
+
+### 2. Deep State Reset across Stores and LocalStorage
+- **Sinkronisasi Pembersihan Antarmuka & Memori Frontend**:
+  - Menambahkan metode `clearAllJobs()` dan `clearJob()` pada `transferProgressStore` untuk membersihkan antrean pemrosesan aktif dan riwayat kecepatan di memori.
+  - Memperbarui tombol "Bersihkan riwayat transfer" (`onDismiss`) dan "Clear selesai" (`onClearDone`) di `MediaStudio/index.tsx` agar secara simultan membersihkan Rust `job_queue`, `transferProgressStore`, `transferQueueRef`, `localStorage` (`autogram_drive_upload_queue`), serta mereset status `transfer` ke `EMPTY_TRANSFER_SESSION`.
+
+### 3. Smart Header Close & Empty Shell Hiding
+- **Perilaku Tombol Tutup (X) dan Tampilan Mengambang**:
+  - Mengubah tombol `X` di header `DriveTransferManager` agar langsung memicu pembersihan penuh (`onDismiss`) saat tidak ada proses aktif, bukan sekadar meminimalisir jendela.
+  - Mengoreksi parameter `forceShow` pada `DriveTransferManager` agar modal kosong (*empty shell*) tidak tampil mengambang jika tidak ada riwayat atau aktivitas transfer yang sedang berjalan.
+
 ## v3.8.16 Modern-Elegant Animated Refresh Button & Responsive Micro-Interactions (Phase 35.82)
 
 ### 1. Glassmorphic Dark-Tech Button Aesthetics

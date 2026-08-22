@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Fragment, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Search,
@@ -11,74 +11,117 @@ import {
   File,
   ChevronLeft,
   ChevronRight,
-  FolderInput,
   X,
   Archive,
   CornerUpLeft,
+  LayoutGrid,
+  List,
+  ArrowUpDown,
+  Home,
 } from 'lucide-react';
-import { Category } from './zipUtils';
+import { formatDriveBytes } from '../../../lib/telegram/driveTypes';
+import {
+  middleTruncateFilename,
+  type Category,
+  type SortOption,
+  type ViewMode,
+} from './zipUtils';
 
 type ZipHeaderToolbarProps = {
   archiveName?: string;
+  totalFiles: number;
+  totalBytes: number;
+  dominantType?: 'images' | 'media' | 'mixed';
   searchQuery: string;
   onSearchChange: (q: string) => void;
   category: Category;
   onCategoryChange: (cat: Category) => void;
+  categoryCounts: Record<Category, number>;
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
+  sortOption: SortOption;
+  onSortChange: (sort: SortOption) => void;
   isPasswordProtected?: boolean;
-  onExtractSelected: () => void;
-  selectedCount: number;
   onDownloadZip?: () => void;
+  onClose?: () => void;
   hasPrev?: boolean;
   hasNext?: boolean;
   onPrev?: () => void;
   onNext?: () => void;
   nestedDepth?: number;
   onBackNested?: () => void;
+  currentPath: string;
+  onNavigateDir: (path: string) => void;
+  currentFolderItemCount: number;
 };
 
 export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
   archiveName,
+  totalFiles,
+  totalBytes,
+  dominantType = 'mixed',
   searchQuery,
   onSearchChange,
   category,
   onCategoryChange,
+  categoryCounts,
+  viewMode,
+  onViewModeChange,
+  sortOption,
+  onSortChange,
   isPasswordProtected,
-  onExtractSelected,
-  selectedCount,
   onDownloadZip,
+  onClose,
   hasPrev,
   hasNext,
   onPrev,
   onNext,
   nestedDepth = 0,
   onBackNested,
+  currentPath,
+  onNavigateDir,
+  currentFolderItemCount,
 }) => {
   const { t } = useTranslation();
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
   const categories: { id: Category; label: string; icon: React.ReactNode }[] = [
-    { id: 'all', label: t('speedtest.zip_cat_all'), icon: <File size={14} /> },
-    { id: 'image', label: t('speedtest.zip_cat_image'), icon: <ImageIcon size={14} /> },
-    { id: 'media', label: t('speedtest.zip_cat_media'), icon: <Film size={14} /> },
-    { id: 'doc', label: t('speedtest.zip_cat_doc'), icon: <FileText size={14} /> },
-    { id: 'archive', label: t('speedtest.zip_cat_archive'), icon: <Archive size={14} /> },
+    { id: 'all', label: t('speedtest.zip_cat_all'), icon: <File size={13} /> },
+    { id: 'image', label: t('speedtest.zip_cat_image'), icon: <ImageIcon size={13} /> },
+    { id: 'media', label: t('speedtest.zip_cat_media'), icon: <Film size={13} /> },
+    { id: 'doc', label: t('speedtest.zip_cat_doc'), icon: <FileText size={13} /> },
+    { id: 'archive', label: t('speedtest.zip_cat_archive'), icon: <Archive size={13} /> },
   ];
 
+  const sortOptions: { id: SortOption; label: string }[] = [
+    { id: 'name-asc', label: t('speedtest.zip_sort_name_asc') },
+    { id: 'name-desc', label: t('speedtest.zip_sort_name_desc') },
+    { id: 'size-desc', label: t('speedtest.zip_sort_size_desc') },
+    { id: 'size-asc', label: t('speedtest.zip_sort_size_asc') },
+    { id: 'type', label: t('speedtest.zip_sort_type') },
+  ];
+
+  const pathParts = currentPath.split('/').filter(Boolean);
+  const rawTitle = archiveName || t('speedtest.zip_archive_explorer');
+  const truncatedTitle = middleTruncateFilename(rawTitle, 40);
+
   return (
-    <header className="dzb-toolbar">
-      {/* Top row: Archive name, status badge, prev/next buttons */}
-      <div className="dzb-toolbar-top">
-        <div className="dzb-title-group">
+    <header className="dzb-header-workbench">
+      {/* LAYER 1: Archive Identity & Primary Controls */}
+      <div className="dzb-identity-bar">
+        {/* Left: Chevrons + Icon + Name + Badges */}
+        <div className="dzb-identity-left">
           {(onPrev || onNext) && (
-            <div className="dzb-nav-group">
+            <div className="dzb-nav-pill-group">
               {onPrev && (
                 <button
                   type="button"
                   onClick={onPrev}
                   disabled={!hasPrev}
-                  className="dzb-nav-btn"
+                  className="dzb-nav-icon-btn"
                   title={t('speedtest.zip_previous_archive')}
                 >
-                  <ChevronLeft size={18} />
+                  <ChevronLeft size={16} />
                 </button>
               )}
               {onNext && (
@@ -86,99 +129,232 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
                   type="button"
                   onClick={onNext}
                   disabled={!hasNext}
-                  className="dzb-nav-btn"
+                  className="dzb-nav-icon-btn"
                   title={t('speedtest.zip_next_archive')}
                 >
-                  <ChevronRight size={18} />
+                  <ChevronRight size={16} />
                 </button>
               )}
             </div>
           )}
 
           {onBackNested && (
-            <button type="button" onClick={onBackNested} className="dzb-nav-btn" title={t('speedtest.zip_back_parent')}>
-              <CornerUpLeft size={17} />
-            </button>
-          )}
-
-          <h4 className="dzb-archive-name" title={archiveName || t('speedtest.zip_archive_explorer')}>
-            {archiveName || t('speedtest.zip_archive_explorer')}
-          </h4>
-
-          {nestedDepth > 0 && <span className="dzb-depth-badge">{t('speedtest.zip_nested_depth', { count: nestedDepth })}</span>}
-
-          {isPasswordProtected ? (
-            <span className="dzb-badge-protected">
-              <Lock size={12} /> {t('speedtest.zip_protected')}
-            </span>
-          ) : (
-            <span className="dzb-badge-unlocked">
-              <Unlock size={12} /> {t('speedtest.zip_unlocked')}
-            </span>
-          )}
-        </div>
-
-        {/* Top actions for Mobile Extract / Download if needed */}
-        <div className="dzb-action-group">
-          {selectedCount > 0 && (
             <button
               type="button"
-              onClick={onExtractSelected}
-              className="dzb-btn-primary"
+              onClick={onBackNested}
+              className="dzb-nav-icon-btn"
+              title={t('speedtest.zip_back_parent')}
             >
-              <FolderInput size={16} />
-              <span>{t('speedtest.zip_extract_count', { count: selectedCount })}</span>
+              <CornerUpLeft size={15} />
             </button>
           )}
+
+          <div className="dzb-archive-identity">
+            <div className="dzb-archive-icon-wrapper">
+              <Archive size={20} className="dzb-archive-icon" />
+            </div>
+
+            <div className="dzb-archive-title-meta">
+              <div className="dzb-title-row">
+                <h3 className="dzb-archive-heading" title={rawTitle}>
+                  {truncatedTitle}
+                </h3>
+
+                {nestedDepth > 0 && (
+                  <span className="dzb-badge-depth">
+                    {t('speedtest.zip_nested_depth', { count: nestedDepth })}
+                  </span>
+                )}
+
+                {isPasswordProtected ? (
+                  <span className="dzb-badge-protected">
+                    <Lock size={11} /> {t('speedtest.zip_protected')}
+                  </span>
+                ) : (
+                  <span className="dzb-badge-unlocked">
+                    <Unlock size={11} /> {t('speedtest.zip_unlocked')}
+                  </span>
+                )}
+              </div>
+
+              <div className="dzb-meta-subrow">
+                <span className="dzb-stat-text">
+                  {t('speedtest.zip_stats_summary', {
+                    files: totalFiles,
+                    size: formatDriveBytes(totalBytes),
+                  })}
+                </span>
+                <span className="dzb-stat-bullet">•</span>
+                <span className="dzb-type-text">
+                  {dominantType === 'images'
+                    ? t('speedtest.zip_badge_images_archive')
+                    : dominantType === 'media'
+                    ? t('speedtest.zip_badge_media_archive')
+                    : t('speedtest.zip_badge_mixed_archive')}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: View Toggle + Save Archive + Close button */}
+        <div className="dzb-identity-right">
+          {/* View Mode Toggle */}
+          <div className="dzb-view-toggle-group">
+            <button
+              type="button"
+              onClick={() => onViewModeChange('list')}
+              className={`dzb-view-btn ${viewMode === 'list' ? 'active' : ''}`}
+              title={t('speedtest.zip_view_list')}
+            >
+              <List size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => onViewModeChange('grid')}
+              className={`dzb-view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+              title={t('speedtest.zip_view_grid')}
+            >
+              <LayoutGrid size={16} />
+            </button>
+          </div>
 
           {onDownloadZip && (
             <button
               type="button"
               onClick={onDownloadZip}
-              className="dzb-btn-secondary"
+              className="dzb-btn-save-archive"
+              title={t('speedtest.zip_save_archive')}
             >
-              <Download size={16} />
+              <Download size={15} />
               <span>{t('speedtest.zip_save_archive')}</span>
+            </button>
+          )}
+
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="dzb-close-btn"
+              title={t('speedtest.zip_close')}
+            >
+              <X size={18} />
             </button>
           )}
         </div>
       </div>
 
-      {/* Main Controls Row: Search Input + Scrollable Category Filter Pills */}
-      <div className="dzb-toolbar-controls">
-        <div className="dzb-search-box">
-          <Search className="dzb-search-icon" size={16} />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder={t('speedtest.ph_search_zip')}
-            className="dzb-search-input"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => onSearchChange('')}
-              className="dzb-search-clear"
-              title={t('speedtest.zip_clear_search')}
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
+      {/* LAYER 2: Command & Breadcrumbs Navigation Bar */}
+      <div className="dzb-command-bar">
+        {/* Breadcrumb Path Bar */}
+        <nav className="dzb-breadcrumbs-bar" aria-label={t('speedtest.zip_breadcrumbs')}>
+          <button
+            type="button"
+            onClick={() => onNavigateDir('')}
+            className={`dzb-crumb-item ${pathParts.length === 0 ? 'active' : ''}`}
+            title={t('speedtest.zip_back_to_root')}
+          >
+            <Home size={13} />
+            <span>{t('speedtest.zip_root')}</span>
+          </button>
 
-        <div className="dzb-categories">
-          {categories.map((c) => (
+          {pathParts.map((part, index) => {
+            const subPath = `${pathParts.slice(0, index + 1).join('/')}/`;
+            const isLast = index === pathParts.length - 1;
+            return (
+              <Fragment key={subPath}>
+                <span className="dzb-crumb-divider">/</span>
+                <button
+                  type="button"
+                  onClick={() => onNavigateDir(subPath)}
+                  className={`dzb-crumb-item ${isLast ? 'active' : ''}`}
+                >
+                  {part}
+                </button>
+              </Fragment>
+            );
+          })}
+
+          <span className="dzb-folder-count">
+            ({t('speedtest.zip_items_count', { count: currentFolderItemCount })})
+          </span>
+        </nav>
+
+        {/* Search, Filter Pills & Sort */}
+        <div className="dzb-controls-row">
+          {/* Real-Time Search Box */}
+          <div className="dzb-search-wrap">
+            <Search className="dzb-search-icon" size={14} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder={t('speedtest.ph_search_zip')}
+              className="dzb-search-input"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => onSearchChange('')}
+                className="dzb-search-clear-btn"
+                title={t('speedtest.zip_clear_search')}
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          {/* Category Filter Chips with Live Counters */}
+          <div className="dzb-category-chips">
+            {categories.map((c) => {
+              const count = categoryCounts[c.id] || 0;
+              const isActive = category === c.id;
+
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => onCategoryChange(c.id)}
+                  className={`dzb-chip-btn ${isActive ? 'active' : ''}`}
+                >
+                  {c.icon}
+                  <span>{c.label}</span>
+                  <span className="dzb-chip-counter">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Sort Selector Dropdown */}
+          <div className="dzb-sort-container">
             <button
-              key={c.id}
               type="button"
-              onClick={() => onCategoryChange(c.id)}
-              className={`dzb-cat-tab ${category === c.id ? 'active' : ''}`}
+              onClick={() => setShowSortMenu(!showSortMenu)}
+              className="dzb-sort-trigger-btn"
+              title={t('speedtest.zip_sort_by')}
             >
-              {c.icon}
-              <span>{c.label}</span>
+              <ArrowUpDown size={14} />
+              <span>{sortOptions.find((s) => s.id === sortOption)?.label}</span>
             </button>
-          ))}
+
+            {showSortMenu && (
+              <div className="dzb-sort-dropdown" onMouseLeave={() => setShowSortMenu(false)}>
+                {sortOptions.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      onSortChange(opt.id);
+                      setShowSortMenu(false);
+                    }}
+                    className={`dzb-sort-option ${sortOption === opt.id ? 'active' : ''}`}
+                  >
+                    <span>{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>
