@@ -39,6 +39,7 @@ import {
   getDriveSessionError,
   resetDriveSessionCircuit,
   getSessionDisplayName,
+  getSessionMetadata,
   applyDropEffect,
   beginFolderDrag,
   canAcceptDriveDrop,
@@ -776,6 +777,167 @@ export function DriveSidebar({
     [locationQuery]
   );
   const isPathIdMode = parsedPath.isPathId;
+
+  // Resolve human-readable names for parsed Path ID segments (Account, Chat, Topic, Media)
+  const resolvedPathInfo = useMemo(() => {
+    if (!parsedPath.isPathId) return null;
+
+    // 1. Account Name
+    let accountName: string | null = null;
+    let accountTooltip: string | null = null;
+    if (parsedPath.accountSegment) {
+      const target = parsedPath.accountSegment.trim();
+      const targetLower = target.toLowerCase();
+      const targetCleanUser = targetLower.replace(/^@/, '');
+      const targetDigits = target.replace(/[^0-9]/g, '');
+
+      for (const s of sessions) {
+        if (s.toLowerCase() === targetLower) {
+          accountName = getSessionDisplayName(s) || s;
+          accountTooltip = `${t('ui.path_jump.label_user_id')}: ${target}`;
+          break;
+        }
+        const meta = getSessionMetadata(s);
+        if (meta) {
+          if (
+            (meta.telegramUserId && String(meta.telegramUserId).trim() === target) ||
+            (meta.username && meta.username.toLowerCase().replace(/^@/, '') === targetCleanUser) ||
+            (meta.userFullName && meta.userFullName.toLowerCase() === targetLower) ||
+            (meta.phone && targetDigits.length >= 6 && meta.phone.replace(/[^0-9]/g, '') === targetDigits)
+          ) {
+            accountName = meta.userFullName || meta.username || getSessionDisplayName(s) || s;
+            accountTooltip = `${t('ui.path_jump.label_user_id')}: ${meta.telegramUserId || target}`;
+            break;
+          }
+        }
+      }
+      if (!accountName) {
+        accountName = parsedPath.accountSegment;
+        accountTooltip = `${t('ui.path_jump.label_user_id')}: ${parsedPath.accountSegment}`;
+      }
+    }
+
+    // 2. Chat / Drive Name
+    let chatName: string | null = null;
+    let chatTooltip: string | null = null;
+    if (parsedPath.chatId !== null) {
+      const cid = parsedPath.chatId;
+      const matchFolder = folders.find((f) => {
+        const fid = f.id;
+        return (
+          fid === cid ||
+          fid === Math.abs(cid) ||
+          fid === -1000_000_000_000 - Math.abs(cid) ||
+          Math.abs(fid) === Math.abs(cid)
+        );
+      });
+      if (matchFolder) {
+        chatName = matchFolder.name;
+        chatTooltip = `${t('ui.path_jump.label_chat_id')}: ${matchFolder.id}`;
+      } else {
+        const matchChat = chats.find((c) => {
+          const chid = c.id;
+          return (
+            chid === cid ||
+            chid === Math.abs(cid) ||
+            chid === -1000_000_000_000 - Math.abs(cid) ||
+            Math.abs(chid) === Math.abs(cid)
+          );
+        });
+        if (matchChat) {
+          chatName = matchChat.name;
+          chatTooltip = `${t('ui.path_jump.label_chat_id')}: ${matchChat.id}`;
+        }
+      }
+    } else if (parsedPath.tmeUsername) {
+      const username = parsedPath.tmeUsername.toLowerCase().replace(/^@/, '');
+      const matchChat = chats.find(
+        (c) => (c.username || '').toLowerCase().replace(/^@/, '') === username
+      );
+      if (matchChat) {
+        chatName = matchChat.name;
+        chatTooltip = `@${parsedPath.tmeUsername} (ID: ${matchChat.id})`;
+      } else {
+        chatName = `@${parsedPath.tmeUsername}`;
+        chatTooltip = `@${parsedPath.tmeUsername}`;
+      }
+    }
+
+    if (!chatName && (parsedPath.chatSegmentRaw || parsedPath.chatId)) {
+      chatName = parsedPath.chatSegmentRaw ?? String(parsedPath.chatId);
+      chatTooltip = `${t('ui.path_jump.label_chat_id')}: ${chatName}`;
+    }
+
+    // 3. Topic Name
+    let topicName: string | null = null;
+    let topicTooltip: string | null = null;
+    if (parsedPath.topicId !== null) {
+      const targetTopicId = parsedPath.topicId;
+      topicTooltip = `${t('ui.path_jump.label_topic_id')}: ${targetTopicId}`;
+
+      const currentSess = creds?.session || '';
+      if (currentSess && parsedPath.chatId) {
+        try {
+          const rawTopics = localStorage.getItem(
+            `autogram_drive_topics_v1_${encodeURIComponent(currentSess)}_${parsedPath.chatId}`
+          );
+          if (rawTopics) {
+            const parsed = JSON.parse(rawTopics);
+            const found = (parsed.topics || []).find((tp: any) => tp.id === targetTopicId);
+            if (found && found.title) {
+              topicName = found.title;
+            }
+          }
+        } catch {}
+      }
+      if (!topicName) {
+        topicName = `T${targetTopicId}`;
+      }
+    }
+
+    // 4. Media / Message Name
+    let mediaName: string | null = null;
+    let mediaTooltip: string | null = null;
+    if (parsedPath.messageId !== null) {
+      const targetMsgId = parsedPath.messageId;
+      mediaTooltip = `${t('ui.path_jump.label_message_id')}: #${targetMsgId}`;
+
+      const currentSess = creds?.session || '';
+      if (currentSess) {
+        try {
+          const rawLoc = localStorage.getItem(
+            `autogram_drive_locations_v1_${encodeURIComponent(currentSess)}`
+          );
+          if (rawLoc) {
+            const parsed = JSON.parse(rawLoc);
+            const entries = parsed.entries || {};
+            for (const key of Object.keys(entries)) {
+              const files = entries[key].files || [];
+              const f = files.find((item: any) => item.id === targetMsgId);
+              if (f && f.name) {
+                mediaName = f.name;
+                break;
+              }
+            }
+          }
+        } catch {}
+      }
+      if (!mediaName) {
+        mediaName = `#${targetMsgId}`;
+      }
+    }
+
+    return {
+      accountName,
+      accountTooltip,
+      chatName,
+      chatTooltip,
+      topicName,
+      topicTooltip,
+      mediaName,
+      mediaTooltip,
+    };
+  }, [parsedPath, sessions, folders, chats, creds, t]);
 
   // When in Path ID mode, show chat/folder list normally (do not filter to 0 rows)
   // so the user can see context while the Quick Jump card is shown above.
@@ -2232,36 +2394,36 @@ export function DriveSidebar({
               <span className="td-path-qj-title">{t('ui.path_jump.title')}</span>
             </div>
             <div className="td-path-qj-badges">
-              {parsedPath.accountSegment && (
-                <span className="td-path-badge td-path-badge-account" title={`${t('ui.path_jump.label_user_id')}: ${parsedPath.accountSegment}`}>
+              {resolvedPathInfo?.accountName && (
+                <span className="td-path-badge td-path-badge-account" title={resolvedPathInfo.accountTooltip || ''}>
                   <span className="td-path-badge-prefix">U</span>
-                  <span className="td-path-badge-value">{parsedPath.accountSegment}</span>
+                  <span className="td-path-badge-value">{resolvedPathInfo.accountName}</span>
                 </span>
               )}
-              {(parsedPath.chatSegmentRaw || parsedPath.tmeUsername) && (
-                <span className="td-path-badge td-path-badge-chat" title={`${t('ui.path_jump.label_chat_id')}: ${parsedPath.tmeUsername ?? parsedPath.chatSegmentRaw}`}>
+              {resolvedPathInfo?.chatName && (
+                <span className="td-path-badge td-path-badge-chat" title={resolvedPathInfo.chatTooltip || ''}>
                   <span className="td-path-badge-prefix">D</span>
-                  <span className="td-path-badge-value">{parsedPath.tmeUsername ? `@${parsedPath.tmeUsername}` : (parsedPath.chatSegmentRaw || '')}</span>
+                  <span className="td-path-badge-value">{resolvedPathInfo.chatName}</span>
                 </span>
               )}
-              {parsedPath.topicId !== null && (
-                <span className="td-path-badge td-path-badge-topic" title={`${t('ui.path_jump.label_topic_id')}: ${parsedPath.topicId}`}>
+              {resolvedPathInfo?.topicName && (
+                <span className="td-path-badge td-path-badge-topic" title={resolvedPathInfo.topicTooltip || ''}>
                   <span className="td-path-badge-prefix">T</span>
-                  <span className="td-path-badge-value">{parsedPath.topicId}</span>
+                  <span className="td-path-badge-value">{resolvedPathInfo.topicName}</span>
                 </span>
               )}
-              {parsedPath.messageId !== null && (
-                <span className="td-path-badge td-path-badge-media" title={`${t('ui.path_jump.label_message_id')}: ${parsedPath.messageId}`}>
+              {resolvedPathInfo?.mediaName && (
+                <span className="td-path-badge td-path-badge-media" title={resolvedPathInfo.mediaTooltip || ''}>
                   <span className="td-path-badge-prefix">#</span>
-                  <span className="td-path-badge-value">{parsedPath.messageId}</span>
+                  <span className="td-path-badge-value">{resolvedPathInfo.mediaName}</span>
                 </span>
               )}
             </div>
             <button
               type="button"
               className="td-path-qj-btn"
-              title={describePath(parsedPath, t)}
-              aria-label={`${t('ui.path_jump.btn_go')}: ${describePath(parsedPath, t)}`}
+              title={describePath(parsedPath, t, resolvedPathInfo || undefined)}
+              aria-label={`${t('ui.path_jump.btn_go')}: ${describePath(parsedPath, t, resolvedPathInfo || undefined)}`}
               onClick={() => {
                 onNavigatePath?.(parsedPath);
                 onCloseDrawer?.();

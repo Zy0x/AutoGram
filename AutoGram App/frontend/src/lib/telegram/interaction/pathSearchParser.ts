@@ -1,4 +1,4 @@
-﻿/**
+/**
  * pathSearchParser.ts
  *
  * Precise parser for AutoGram sidebar Path ID search.
@@ -173,12 +173,30 @@ export function parseTelegramPathId(query: string): ParsedTelegramPath {
   return { ...EMPTY_PATH, raw: trimmed, isPathId: false };
 }
 
-export function describePath(p: ParsedTelegramPath, t: (key: string, opts?: any) => string): string {
+export function describePath(
+  p: ParsedTelegramPath,
+  t: (key: string, opts?: any) => string,
+  resolved?: {
+    accountName?: string | null;
+    chatName?: string | null;
+    topicName?: string | null;
+    mediaName?: string | null;
+  }
+): string {
   const parts: string[] = [];
-  if (p.accountSegment) parts.push(`${t('ui.path_jump.account')}: U${p.accountSegment}`);
-  if (p.tmeUsername) parts.push(`${t('ui.path_jump.location')}: @${p.tmeUsername}`);
-  else if (p.chatSegmentRaw) parts.push(`${t('ui.path_jump.location')}: ${p.chatSegmentRaw}`);
-  if (p.topicId !== null) parts.push(`${t('ui.path_jump.topic')}: T${p.topicId}`);
-  if (p.messageId !== null) parts.push(`${t('ui.path_jump.media')}: #${p.messageId}`);
+  const acc = resolved?.accountName || (p.accountSegment ? `U${p.accountSegment}` : null);
+  if (acc) parts.push(`${t('ui.path_jump.account')}: ${acc}`);
+
+  const loc =
+    resolved?.chatName ||
+    (p.tmeUsername ? `@${p.tmeUsername}` : p.chatSegmentRaw ? `D${p.chatSegmentRaw}` : null);
+  if (loc) parts.push(`${t('ui.path_jump.location')}: ${loc}`);
+
+  const top = resolved?.topicName || (p.topicId !== null ? `T${p.topicId}` : null);
+  if (top) parts.push(`${t('ui.path_jump.topic')}: ${top}`);
+
+  const med = resolved?.mediaName || (p.messageId !== null ? `#${p.messageId}` : null);
+  if (med) parts.push(`${t('ui.path_jump.media')}: ${med}`);
+
   return parts.join(' › ');
 }
