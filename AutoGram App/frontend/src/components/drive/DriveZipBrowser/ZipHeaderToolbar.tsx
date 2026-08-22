@@ -18,6 +18,7 @@ import {
   List,
   ArrowUpDown,
   Home,
+  FolderInput,
 } from 'lucide-react';
 import { formatDriveBytes } from '../../../lib/telegram/driveTypes';
 import {
@@ -43,6 +44,7 @@ type ZipHeaderToolbarProps = {
   onSortChange: (sort: SortOption) => void;
   isPasswordProtected?: boolean;
   onDownloadZip?: () => void;
+  onExtractAll?: () => void;
   onClose?: () => void;
   hasPrev?: boolean;
   hasNext?: boolean;
@@ -71,6 +73,7 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
   onSortChange,
   isPasswordProtected,
   onDownloadZip,
+  onExtractAll,
   onClose,
   hasPrev,
   hasNext,
@@ -218,6 +221,18 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
               <LayoutGrid size={16} />
             </button>
           </div>
+
+          {onExtractAll && (
+            <button
+              type="button"
+              onClick={onExtractAll}
+              className="dzb-btn-save-archive"
+              title={t('speedtest.zip_btn_extract_all')}
+            >
+              <FolderInput size={15} />
+              <span>{t('speedtest.zip_btn_extract_all')}</span>
+            </button>
+          )}
 
           {onDownloadZip && (
             <button

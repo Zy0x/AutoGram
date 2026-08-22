@@ -1038,6 +1038,7 @@
   "zip_batch_extract": "Ekstrak Terpilih",
   "zip_batch_select_all": "Pilih Semua",
   "zip_batch_clear": "Batal Pilih",
+  "zip_btn_extract_all": "Ekstrak Semua",
   "zip_ctx_preview": "Pratinjau",
   "zip_ctx_open_folder": "Buka Folder",
   "zip_ctx_extract": "Ekstrak File Ini",

@@ -3465,7 +3465,7 @@ export function DrivePreviewModal({
       onClick={onBackdropPointerDown}
     >
       <div
-        className={`drive-preview-modal${isFullscreen ? ' is-fullscreen' : ''}${isSplitCompareMode ? ' is-split-compare' : ''}`}
+        className={`drive-preview-modal${isFullscreen ? ' is-fullscreen' : ''}${isSplitCompareMode ? ' is-split-compare' : ''}${isZip ? ' is-zip-modal' : ''}`}
         ref={shellRef}
         role="dialog"
         aria-modal="true"
@@ -4134,7 +4134,7 @@ export function DrivePreviewModal({
         <div
           className={`drive-preview-body${isZip ? ' is-zip-body' : ''}`}
           ref={stageRef}
-          onWheel={onWheelStage}
+          onWheel={isZip ? undefined : onWheelStage}
           style={
             isSplitCompareMode
               ? { width: '100%', height: '100%', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'stretch', flex: '1 1 0%', minHeight: 0, overflow: 'hidden' }

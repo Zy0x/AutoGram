@@ -530,6 +530,10 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
         onSortChange={setSortOption}
         isPasswordProtected={entries.some((entry) => entry.encrypted)}
         onDownloadZip={onDownloadZip}
+        onExtractAll={() => {
+          selectAll();
+          setShowExtractModal(true);
+        }}
         onClose={onClose}
         hasPrev={hasPrev}
         hasNext={hasNext}

@@ -568,11 +568,35 @@
 .dzb-content-surface {
   flex: 1 1 auto;
   min-height: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y !important;
   background-color: #080c14;
-  padding: 12px 16px 70px 16px;
+  padding: 14px 18px 85px 18px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.4) transparent;
+}
+
+.dzb-content-surface::-webkit-scrollbar {
+  width: 7px;
+}
+
+.dzb-content-surface::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dzb-content-surface::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.35);
+  border-radius: 999px;
+}
+
+.dzb-content-surface::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.6);
 }
 
 /* State Boxes */
@@ -647,6 +671,8 @@
    ========================================================================== */
 .dzb-table-wrap {
   width: 100%;
+  flex-shrink: 0;
+  min-height: min-content;
   background: rgba(15, 23, 42, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
@@ -833,6 +859,8 @@
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: 12px;
   width: 100%;
+  flex-shrink: 0;
+  min-height: min-content;
 }
 
 @media (min-width: 1200px) {

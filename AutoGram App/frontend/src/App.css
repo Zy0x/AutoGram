@@ -18372,26 +18372,46 @@ body:has(.app-layout-drive-focus),
   color: #f8fafc !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
 }
+.drive-preview-modal.is-zip-modal {
+  width: min(1280px, calc(100vw - 16px)) !important;
+  max-width: min(1280px, calc(100vw - 16px)) !important;
+  height: min(94dvh, 94vh, 960px) !important;
+  max-height: min(94dvh, 94vh, 960px) !important;
+  background: #080c14 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 16px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
 .drive-preview-zip {
   flex: 1 1 100% !important;
   width: 100% !important;
   height: 100% !important;
   min-height: 0 !important;
   min-width: 0 !important;
-  padding: 0;
-  background: transparent;
+  padding: 0 !important;
+  background: transparent !important;
   display: flex !important;
   flex-direction: column !important;
+  overflow: hidden !important;
 }
+
 .drive-preview-body.is-zip-body {
   padding: 0 !important;
   align-items: stretch !important;
   justify-content: stretch !important;
   flex: 1 1 100% !important;
+  width: 100% !important;
   height: 100% !important;
   min-height: 0 !important;
+  min-width: 0 !important;
   display: flex !important;
   flex-direction: column !important;
+  touch-action: auto !important;
+  overflow: hidden !important;
+  background: #080c14 !important;
 }
 .drive-zip-cat-tab.active {
   background: linear-gradient(135deg, rgba(255, 174, 0, 0.25) 0%, rgba(245, 158, 11, 0.18) 100%) !important;

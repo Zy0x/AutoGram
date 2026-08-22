@@ -35,6 +35,17 @@
   - Dukungan shortcut keyboard penuh: `Esc` (batalkan seleksi / tutup modal), `Ctrl+A` (pilih semua berkas visible), `Space` / `Enter` (buka pratinjau instan).
   - 100% Zero Hardcoded Strings dengan paritas kunci penuh antara `src/locales/id/speedtest.json` dan `src/locales/en/speedtest.json`.
 
+### 8. Native Scroll Unblocking & Viewport Containment
+- **Restorasi Pengguliran Halus (Mouse Wheel, Trackpad, Touch)**:
+  - Memperbaiki konflik layout di `DrivePreviewModal` dengan membypass `onWheelStage` saat `isZip` aktif, menambahkan kelas `.is-zip-modal`, serta menetapkan `touch-action: auto / pan-y` dan `overflow-y: auto !important` pada `.dzb-content-surface`.
+  - Menghadirkan scrollbar ramping modern beraksen ungu indigo lembut.
+
+### 9. Click-to-Preview Archive Ergonomics & Extract All
+- **Ergonomi Penjelajah Arsip Native**:
+  - Mengubah perilaku klik pada kartu kisi (Grid) dan baris tabel (List) agar sekali klik (*single click*) langsung membuka pratinjau berkas / masuk ke subfolder (bukan masuk ke seleksi batch media biasa).
+  - Menempatkan seleksi multi-berkas khusus pada kotak centang (*checkbox*) atau kombinasi tombol `Ctrl`/`Shift`.
+  - Menambahkan tombol aksi cepat *Ekstrak Semua* pada toolbar utama.
+
 ## v3.8.17 Transfer Manager True Clean Purge & Zombie Queue Clearance Engine (Phase 35.83)
 
 ### 1. Complete Multi-Tier Transfer Queue Dismissal & Purge

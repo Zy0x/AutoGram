@@ -89,7 +89,13 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
               <tr
                 key={directory}
                 className={`dzb-tr directory ${selected ? 'selected' : ''}`}
-                onClick={(e) => onToggleSelectEntry(directory, e.shiftKey)}
+                onClick={(e) => {
+                  if (e.ctrlKey || e.metaKey || e.shiftKey) {
+                    onToggleSelectEntry(directory, e.shiftKey);
+                  } else {
+                    onNavigateDir(directory);
+                  }
+                }}
                 onDoubleClick={() => onNavigateDir(directory)}
                 onContextMenu={(e) => onContextMenu(e, { kind: 'dir', path: directory })}
               >
@@ -146,7 +152,13 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
               <tr
                 key={entry.name}
                 className={`dzb-tr ${selected ? 'selected' : ''}`}
-                onClick={(e) => onToggleSelectEntry(entry.name, e.shiftKey)}
+                onClick={(e) => {
+                  if (e.ctrlKey || e.metaKey || e.shiftKey) {
+                    onToggleSelectEntry(entry.name, e.shiftKey);
+                  } else {
+                    onPreviewCode(entry);
+                  }
+                }}
                 onDoubleClick={() => onPreviewCode(entry)}
                 onContextMenu={(e) => onContextMenu(e, { kind: 'file', entry })}
               >

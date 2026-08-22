@@ -70,7 +70,13 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
           <div
             key={directory}
             className={`dzb-grid-card directory ${selected ? 'selected' : ''}`}
-            onClick={(e) => onToggleSelectEntry(directory, e.shiftKey)}
+            onClick={(e) => {
+              if (e.ctrlKey || e.metaKey || e.shiftKey) {
+                onToggleSelectEntry(directory, e.shiftKey);
+              } else {
+                onNavigateDir(directory);
+              }
+            }}
             onDoubleClick={() => onNavigateDir(directory)}
             onContextMenu={(e) => onContextMenu(e, { kind: 'dir', path: directory })}
             role="gridcell"
@@ -130,7 +136,13 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
           <div
             key={entry.name}
             className={`dzb-grid-card ${selected ? 'selected' : ''}`}
-            onClick={(e) => onToggleSelectEntry(entry.name, e.shiftKey)}
+            onClick={(e) => {
+              if (e.ctrlKey || e.metaKey || e.shiftKey) {
+                onToggleSelectEntry(entry.name, e.shiftKey);
+              } else {
+                onPreviewCode(entry);
+              }
+            }}
             onDoubleClick={() => onPreviewCode(entry)}
             onContextMenu={(e) => onContextMenu(e, { kind: 'file', entry })}
             role="gridcell"
