@@ -46,6 +46,12 @@
   - Menempatkan seleksi multi-berkas khusus pada kotak centang (*checkbox*) atau kombinasi tombol `Ctrl`/`Shift`.
   - Menambahkan tombol aksi cepat *Ekstrak Semua* pada toolbar utama.
 
+### 10. Quick Jump Breadcrumb Grouping & Instant Clear/Cancel Ergonomics
+- **Kerapian Rekayasa Path Breadcrumb & Tombol Batal/Kembali**:
+  - Mengelompokkan setiap segmen Path ID (`U` Akun, `D` Drive/Chat, `T` Topik, `#` Media) ke dalam kontainer inline non-breaking (`.td-path-qj-step`), mencegah pemisah `>` terisolasi/tergantung sendirian pada baris baru saat terjadi text-wrap.
+  - Menyematkan tombol eksplisit **✕ Batal / Clear** pada header kartu Quick Jump di samping tombol *Buka (↵)*.
+  - Menambahkan dukungan keyboard `Escape` global dan di dalam input pencarian untuk langsung menghapus pencarian (`onChatQuery('')`) dan kembali ke tampilan normal/semua folder dengan seketika.
+
 ## v3.8.17 Transfer Manager True Clean Purge & Zombie Queue Clearance Engine (Phase 35.83)
 
 ### 1. Complete Multi-Tier Transfer Queue Dismissal & Purge

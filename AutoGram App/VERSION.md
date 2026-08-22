@@ -11,6 +11,7 @@ v3.8.18 ZIP Preview Workbench Power Redesign & Modernization Engine — perombak
 7. Keyboard Navigation & 100% Locale Parity: Navigasi cepat via keyboard (Esc, Space, Enter, Ctrl+A) serta kepatuhan 100% Zero Hardcoded Strings.
 8. Native Scroll Unblocking & Viewport Containment: Menghilangkan konflik touch-action dan zoom listener, memastikan area galeri dan tabel dapat digulir bebas di seluruh perangkat.
 9. Click-to-Preview Archive Ergonomics: Sekali klik pada entri langsung membuka pratinjau instan tanpa menyerupai kartu media umum, dilengkapi tombol Ekstrak Semua.
+10. Quick Jump Breadcrumb Grouping & Instant Clear/Cancel: Pengelompokan rapi segmen Path ID agar tanda panah tidak menggantung sendirian di baris baru, tombol Batal eksplisit di header kartu, serta shortcut Esc untuk kembali ke daftar normal seketika.
 
 Previous:
 v3.8.17 Transfer Manager True Clean Purge & Zombie Queue Clearance Engine — perbaikan menyeluruh pada pembersihan antrean dan riwayat Transfer Manager:

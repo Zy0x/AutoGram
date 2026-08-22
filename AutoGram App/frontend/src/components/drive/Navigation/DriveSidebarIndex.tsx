@@ -939,6 +939,44 @@ export function DriveSidebar({
     };
   }, [parsedPath, sessions, folders, chats, creds, t]);
 
+  const pathSteps = useMemo(() => {
+    if (!resolvedPathInfo) return [];
+    const steps: { type: 'account' | 'chat' | 'topic' | 'media'; tag: string; name: string; tooltip?: string }[] = [];
+    if (resolvedPathInfo.accountName) {
+      steps.push({
+        type: 'account',
+        tag: 'U',
+        name: resolvedPathInfo.accountName,
+        tooltip: resolvedPathInfo.accountTooltip || undefined,
+      });
+    }
+    if (resolvedPathInfo.chatName) {
+      steps.push({
+        type: 'chat',
+        tag: 'D',
+        name: resolvedPathInfo.chatName,
+        tooltip: resolvedPathInfo.chatTooltip || undefined,
+      });
+    }
+    if (resolvedPathInfo.topicName) {
+      steps.push({
+        type: 'topic',
+        tag: 'T',
+        name: resolvedPathInfo.topicName,
+        tooltip: resolvedPathInfo.topicTooltip || undefined,
+      });
+    }
+    if (resolvedPathInfo.mediaName) {
+      steps.push({
+        type: 'media',
+        tag: '#',
+        name: resolvedPathInfo.mediaName,
+        tooltip: resolvedPathInfo.mediaTooltip || undefined,
+      });
+    }
+    return steps;
+  }, [resolvedPathInfo]);
+
   // When in Path ID mode, show chat/folder list normally (do not filter to 0 rows)
   // so the user can see context while the Quick Jump card is shown above.
   const chatRows = useMemo(
@@ -1892,19 +1930,22 @@ export function DriveSidebar({
   useEffect(() => {
     if (collapsed) return;
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'k') return;
-      const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
-        // Allow re-focus only when not already typing in another field that isn't location search
-        if (t !== locationSearchRef.current && t.closest('.td-location-search') == null) return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        const t = e.target as HTMLElement | null;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
+          // Allow re-focus only when not already typing in another field that isn't location search
+          if (t !== locationSearchRef.current && t.closest('.td-location-search') == null) return;
+        }
+        e.preventDefault();
+        locationSearchRef.current?.focus();
+        locationSearchRef.current?.select();
+      } else if (e.key === 'Escape' && hasLocationQuery) {
+        onChatQuery('');
       }
-      e.preventDefault();
-      locationSearchRef.current?.focus();
-      locationSearchRef.current?.select();
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [collapsed]);
+  }, [collapsed, hasLocationQuery, onChatQuery]);
 
   // Collapse sidebar is strictly disabled below 900x600 (drawer mode stays clean & expanded)
   const isCollapseAllowed = typeof window !== 'undefined'
@@ -2220,6 +2261,9 @@ export function DriveSidebar({
                     e.preventDefault();
                     onNavigatePath?.(parsedPath);
                     onCloseDrawer?.();
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    onChatQuery('');
                   }
                 }}
               />
@@ -2403,75 +2447,64 @@ export function DriveSidebar({
                 e.preventDefault();
                 onNavigatePath?.(parsedPath);
                 onCloseDrawer?.();
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                onChatQuery('');
               }
             }}
           >
-            {/* Header: Title on Left, Inline Action Button on Right */}
+            {/* Header: Title on Left, Action Buttons on Right */}
             <div className="td-path-qj-header">
               <div className="td-path-qj-title-wrap">
                 <Zap size={12} aria-hidden className="td-path-qj-icon" />
                 <span className="td-path-qj-title">{t('ui.path_jump.title')}</span>
               </div>
-              <button
-                type="button"
-                className="td-path-qj-inline-btn"
-                tabIndex={-1}
-                aria-hidden
-              >
-                <span>{t('ui.path_jump.btn_open_short')}</span>
-                <kbd className="td-path-qj-kbd">↵</kbd>
-              </button>
+              <div className="td-path-qj-actions">
+                <button
+                  type="button"
+                  className="td-path-qj-inline-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onNavigatePath?.(parsedPath);
+                    onCloseDrawer?.();
+                  }}
+                  title={t('ui.path_jump.btn_open_short')}
+                >
+                  <span>{t('ui.path_jump.btn_open_short')}</span>
+                  <kbd className="td-path-qj-kbd">↵</kbd>
+                </button>
+                <button
+                  type="button"
+                  className="td-path-qj-clear-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onChatQuery('');
+                  }}
+                  title={t('ui.path_jump.btn_cancel_short')}
+                  aria-label={t('ui.path_jump.btn_cancel_short')}
+                >
+                  <X size={11} />
+                  <span>{t('ui.path_jump.btn_cancel_short')}</span>
+                </button>
+              </div>
             </div>
 
-            {/* Breadcrumb Flow of Micro-Pills */}
+            {/* Breadcrumb Flow of Micro-Pills (Grouped in steps to eliminate orphaned separators) */}
             <div className="td-path-qj-flow">
-              {resolvedPathInfo?.accountName && (
-                <span
-                  className="td-path-pill td-path-pill-account"
-                  title={resolvedPathInfo.accountTooltip || ''}
-                >
-                  <span className="td-path-pill-tag">U</span>
-                  <span className="td-path-pill-text">{resolvedPathInfo.accountName}</span>
-                </span>
-              )}
-              {resolvedPathInfo?.accountName &&
-                (resolvedPathInfo.chatName || resolvedPathInfo.topicName || resolvedPathInfo.mediaName) && (
-                  <ChevronRight size={10} className="td-path-qj-sep" aria-hidden />
-                )}
-              {resolvedPathInfo?.chatName && (
-                <span
-                  className="td-path-pill td-path-pill-chat"
-                  title={resolvedPathInfo.chatTooltip || ''}
-                >
-                  <span className="td-path-pill-tag">D</span>
-                  <span className="td-path-pill-text">{resolvedPathInfo.chatName}</span>
-                </span>
-              )}
-              {resolvedPathInfo?.chatName &&
-                (resolvedPathInfo.topicName || resolvedPathInfo.mediaName) && (
-                  <ChevronRight size={10} className="td-path-qj-sep" aria-hidden />
-                )}
-              {resolvedPathInfo?.topicName && (
-                <span
-                  className="td-path-pill td-path-pill-topic"
-                  title={resolvedPathInfo.topicTooltip || ''}
-                >
-                  <span className="td-path-pill-tag">T</span>
-                  <span className="td-path-pill-text">{resolvedPathInfo.topicName}</span>
-                </span>
-              )}
-              {resolvedPathInfo?.topicName && resolvedPathInfo.mediaName && (
-                <ChevronRight size={10} className="td-path-qj-sep" aria-hidden />
-              )}
-              {resolvedPathInfo?.mediaName && (
-                <span
-                  className="td-path-pill td-path-pill-media"
-                  title={resolvedPathInfo.mediaTooltip || ''}
-                >
-                  <span className="td-path-pill-tag">#</span>
-                  <span className="td-path-pill-text">{resolvedPathInfo.mediaName}</span>
-                </span>
-              )}
+              {pathSteps.map((step, idx) => (
+                <div key={idx} className="td-path-qj-step">
+                  {idx > 0 && <ChevronRight size={10} className="td-path-qj-sep" aria-hidden />}
+                  <span className={`td-path-pill td-path-pill-${step.type}`} title={step.tooltip || step.name}>
+                    <span className="td-path-pill-tag">{step.tag}</span>
+                    <span className="td-path-pill-text">{step.name}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Subtle Footer Shortcut Hint */}
+            <div className="td-path-qj-footer">
+              <span className="td-path-qj-hint">{t('ui.path_jump.hint_esc_cancel')}</span>
             </div>
           </div>
         )}
