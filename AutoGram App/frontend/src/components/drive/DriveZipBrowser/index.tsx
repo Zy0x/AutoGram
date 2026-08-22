@@ -4,8 +4,10 @@ import { convertFileSrc } from '@tauri-apps/api/core';
 import { join, tempDir } from '@tauri-apps/api/path';
 import { mkdir } from '@tauri-apps/plugin-fs';
 import {
+  Archive,
   FileWarning,
   RefreshCw,
+  Zap,
 } from 'lucide-react';
 import type {
   Category,
@@ -811,8 +813,28 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
 
         {isLoading ? (
           <div className="dzb-state-center">
-            <div className="dzb-spinner" />
-            <span className="dzb-state-text">{t('speedtest.zip_reading_index')}</span>
+            <div className="dzb-preview-loading-card">
+              <div className="dzb-dual-ring-wrap">
+                <div className="dzb-dual-ring-spinner" />
+                <div className="dzb-loading-icon-center text-indigo-400">
+                  <Archive size={24} />
+                </div>
+              </div>
+
+              <div className="dzb-loading-title-box">
+                <h4 className="dzb-loading-title">{t('speedtest.zip_reading_index')}</h4>
+                <p className="dzb-loading-sub">{t('speedtest.zip_sparse_reading_dots')}</p>
+              </div>
+
+              <div className="dzb-loading-shimmer-bar">
+                <div className="dzb-loading-shimmer-thumb" />
+              </div>
+
+              <div className="dzb-loading-badge">
+                <Zap size={12} className="text-amber-400" />
+                <span>{t('speedtest.zip_sparse_direct_decrypt')}</span>
+              </div>
+            </div>
           </div>
         ) : error ? (
           <div className="dzb-state-center error">
