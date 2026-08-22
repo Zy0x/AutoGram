@@ -377,26 +377,34 @@ export function DriveTopBar({
       if (!container) return;
       const activePill =
         container.querySelector<HTMLElement>(`[data-topic-id="${topicFilter}"]`) ||
+        container.querySelector<HTMLElement>(`[data-topic-id="${String(topicFilter)}"]`) ||
+        container.querySelector<HTMLElement>(`[data-topic-id="${Number(topicFilter)}"]`) ||
         container.querySelector<HTMLElement>('.td-topic-pill.active');
       if (activePill) {
-        const containerWidth = container.clientWidth;
-        const pillLeft = activePill.offsetLeft;
-        const pillWidth = activePill.offsetWidth;
-        const targetScrollLeft = Math.max(0, pillLeft - (containerWidth / 2) + (pillWidth / 2));
+        const containerRect = container.getBoundingClientRect();
+        const pillRect = activePill.getBoundingClientRect();
+        const pillCenter = pillRect.left + pillRect.width / 2;
+        const containerCenter = containerRect.left + containerRect.width / 2;
+        const delta = pillCenter - containerCenter;
+        const targetScrollLeft = Math.max(0, container.scrollLeft + delta);
         container.scrollTo({ left: targetScrollLeft, behavior: 'smooth' });
       }
     };
 
     // Staggered triggers to reliably catch async MTProto topic loading and DOM layout paint
     scrollToActiveTopic();
-    const t1 = setTimeout(scrollToActiveTopic, 80);
-    const t2 = setTimeout(scrollToActiveTopic, 220);
-    const t3 = setTimeout(scrollToActiveTopic, 500);
+    const t1 = setTimeout(scrollToActiveTopic, 50);
+    const t2 = setTimeout(scrollToActiveTopic, 150);
+    const t3 = setTimeout(scrollToActiveTopic, 300);
+    const t4 = setTimeout(scrollToActiveTopic, 600);
+    const t5 = setTimeout(scrollToActiveTopic, 1200);
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
+      clearTimeout(t4);
+      clearTimeout(t5);
     };
   }, [topicFilter, topics, showTopics]);
 

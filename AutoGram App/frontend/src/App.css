@@ -9785,6 +9785,7 @@ body:has(.app-layout-drive-focus),
   letter-spacing: 0.03em;
 }
 .td-topic-pills {
+  position: relative;
   display: flex;
   flex-wrap: nowrap;
   gap: 6px;
@@ -9793,6 +9794,7 @@ body:has(.app-layout-drive-focus),
   overflow-y: hidden;
   padding: 2px 0 4px;
   scrollbar-width: thin;
+  scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
 }
 .td-topic-pill {
