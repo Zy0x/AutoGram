@@ -913,10 +913,12 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
       {/* Sub-Modals: Preview, Extract, Password */}
       <ZipCodePreviewModal
         entry={previewEntry}
+        entries={files}
         preview={preview}
         localUrl={previewLocalUrl}
         isLoading={isPreviewLoading}
         error={previewError}
+        onNavigate={(nextEntry) => void handlePreview(nextEntry)}
         onExtract={
           previewEntry
             ? () => {
