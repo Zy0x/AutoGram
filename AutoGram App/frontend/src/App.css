@@ -9486,12 +9486,11 @@ body:has(.app-layout-drive-focus),
   transform: scale(0.96);
 }
 
-/* When selection active: search box shrinks on left, stays fully visible */
+/* When selection active: search box flexes to fill available space beside selection tools */
 .td-topbar-row-2.has-selection-tools .td-topbar-search-box {
-  flex: 1 1 200px;
-  width: auto;
-  min-width: 80px;
-  max-width: 300px;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 140px;
 }
 /* Selection strip: sits beside search input on right, EXACT same 36px height */
 .td-topbar-row-2.has-selection-tools .td-selection-strip {
@@ -28144,12 +28143,21 @@ button.td-confirm-icon.is-back-btn:active {
   overflow: visible !important;
 }
 
+.td-topbar-row-2 .td-topbar-search-box,
+.td-topbar .td-topbar-search-box {
+  width: 100% !important;
+  flex: 1 1 auto !important;
+  min-width: 100px !important;
+}
+
 .td-topbar-row-2 .td-search,
 .td-topbar .td-search {
   height: 38px !important;
   min-height: 38px !important;
   max-height: 38px !important;
   box-sizing: border-box !important;
+  width: 100% !important;
+  flex: 1 1 auto !important;
 }
 
 .td-topbar .td-search input,
