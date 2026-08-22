@@ -36,7 +36,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { useTopicDrop } from './useTopicDrop';
+import { useTopicDrop, useHoldToScroll } from './useTopicDrop';
 import type {
   DriveGridZoom,
   DriveMediaFilter,
@@ -358,6 +358,7 @@ export function DriveTopBar({
     canScrollLeft,
     canScrollRight,
     scrollTopicsBy,
+    createTopicHoldProps,
     handlePillsWheel,
     handlePillsDragOver,
     handleDragOver,
@@ -411,6 +412,7 @@ export function DriveTopBar({
   const topbarActionsRef = useRef<HTMLDivElement>(null);
   const [canScrollActionsLeft, setCanScrollActionsLeft] = useState(false);
   const [canScrollActionsRight, setCanScrollActionsRight] = useState(false);
+  const { createHoldProps: createActionsHoldProps } = useHoldToScroll(topbarActionsRef);
 
   const updateActionsScrollState = useCallback(() => {
     const el = topbarActionsRef.current;
@@ -421,12 +423,6 @@ export function DriveTopBar({
     }
     setCanScrollActionsLeft(el.scrollLeft > 2);
     setCanScrollActionsRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
-  }, []);
-
-  const scrollActionsBy = useCallback((delta: number) => {
-    const el = topbarActionsRef.current;
-    if (!el) return;
-    el.scrollBy({ left: delta, behavior: 'smooth' });
   }, []);
 
   useEffect(() => {
@@ -726,7 +722,7 @@ export function DriveTopBar({
               <button
                 type="button"
                 className="td-action-nav-btn left"
-                onClick={() => scrollActionsBy(-150)}
+                {...createActionsHoldProps(-1, 140, 12)}
                 title={t('speedtest.scroll_tools_left')}
                 aria-label={t('speedtest.scroll_tools_left')}
               >
@@ -899,7 +895,7 @@ export function DriveTopBar({
               <button
                 type="button"
                 className="td-action-nav-btn right"
-                onClick={() => scrollActionsBy(150)}
+                {...createActionsHoldProps(1, 140, 12)}
                 title={t('speedtest.scroll_tools_right')}
                 aria-label={t('speedtest.scroll_tools_right')}
               >
@@ -921,7 +917,7 @@ export function DriveTopBar({
               <button
                 type="button"
                 className="td-topic-nav-btn left"
-                onClick={() => scrollTopicsBy(-200)}
+                {...createTopicHoldProps(-1, 150, 14)}
                 onDragOver={(e) => {
                   e.preventDefault();
                   scrollTopicsBy(-18);
@@ -1010,7 +1006,7 @@ export function DriveTopBar({
               <button
                 type="button"
                 className="td-topic-nav-btn right"
-                onClick={() => scrollTopicsBy(200)}
+                {...createTopicHoldProps(1, 150, 14)}
                 onDragOver={(e) => {
                   e.preventDefault();
                   scrollTopicsBy(18);

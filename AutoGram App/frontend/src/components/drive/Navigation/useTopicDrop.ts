@@ -220,16 +220,87 @@ export function useTopicDrop({ onDropOnTopic, topicPillsRef, topicsCount }: UseT
     [onDropOnTopic]
   );
 
+  const { createHoldProps: createTopicHoldProps } = useHoldToScroll(topicPillsRef);
+
   return {
     activeDragTopicId,
     pointerHoverKey,
     canScrollLeft,
     canScrollRight,
     scrollTopicsBy,
+    createTopicHoldProps,
     handlePillsWheel,
     handlePillsDragOver,
     handleDragOver,
     handleDragLeave,
     handleDrop,
   };
+}
+
+/**
+ * Universal hook for scroll buttons providing native scrollbar-arrow behavior:
+ * - Single click / tap: immediate discrete step scroll
+ * - Press & hold: continuous smooth 60fps scrolling while held down
+ */
+export function useHoldToScroll(targetRef?: React.RefObject<HTMLDivElement | null>) {
+  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const rafRef = useRef<number | null>(null);
+
+  const stopScrolling = useCallback(() => {
+    if (holdTimerRef.current != null) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+  }, []);
+
+  const createHoldProps = useCallback(
+    (direction: -1 | 1, stepPx: number = 140, speedPx: number = 12) => {
+      const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        stopScrolling();
+
+        const el = targetRef?.current;
+        if (!el) return;
+
+        // Immediate single click step
+        el.scrollBy({ left: direction * stepPx, behavior: 'auto' });
+
+        // Continuous scrolling on hold (starts after 200ms)
+        holdTimerRef.current = setTimeout(() => {
+          const tick = () => {
+            const container = targetRef?.current;
+            if (!container) {
+              stopScrolling();
+              return;
+            }
+            container.scrollLeft += direction * speedPx;
+            rafRef.current = requestAnimationFrame(tick);
+          };
+          rafRef.current = requestAnimationFrame(tick);
+        }, 200);
+      };
+
+      return {
+        onPointerDown: handlePointerDown,
+        onPointerUp: stopScrolling,
+        onPointerLeave: stopScrolling,
+        onPointerCancel: stopScrolling,
+        onClick: (e: React.MouseEvent) => e.preventDefault(),
+      };
+    },
+    [targetRef, stopScrolling]
+  );
+
+  useEffect(() => {
+    return () => {
+      stopScrolling();
+    };
+  }, [stopScrolling]);
+
+  return { createHoldProps, stopScrolling };
 }
