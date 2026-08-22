@@ -86,10 +86,6 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
     accountId,
     archiveName,
     onClose,
-    onPrev,
-    onNext,
-    hasPrev,
-    hasNext,
     onDownloadZip,
     folders = [],
     chats = [],
@@ -665,10 +661,6 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
           setShowExtractModal(true);
         }}
         onClose={onClose}
-        hasPrev={hasPrev}
-        hasNext={hasNext}
-        onPrev={onPrev}
-        onNext={onNext}
         nestedDepth={sources.length - 1}
         onBackNested={sources.length > 1 ? () => setSources((current) => current.slice(0, -1)) : undefined}
         currentPath={currentPath}

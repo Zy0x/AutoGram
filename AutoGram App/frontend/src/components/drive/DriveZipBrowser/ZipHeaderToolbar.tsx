@@ -9,8 +9,6 @@ import {
   Image as ImageIcon,
   Film,
   File,
-  ChevronLeft,
-  ChevronRight,
   X,
   Archive,
   CornerUpLeft,
@@ -47,10 +45,6 @@ type ZipHeaderToolbarProps = {
   onDownloadZip?: () => void;
   onExtractAll?: () => void;
   onClose?: () => void;
-  hasPrev?: boolean;
-  hasNext?: boolean;
-  onPrev?: () => void;
-  onNext?: () => void;
   nestedDepth?: number;
   onBackNested?: () => void;
   currentPath: string;
@@ -76,10 +70,6 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
   onDownloadZip,
   onExtractAll,
   onClose,
-  hasPrev,
-  hasNext,
-  onPrev,
-  onNext,
   nestedDepth = 0,
   onBackNested,
   currentPath,
@@ -126,35 +116,8 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
     <header className="dzb-header-workbench">
       {/* LAYER 1: Archive Identity & Primary Controls */}
       <div className="dzb-identity-bar">
-        {/* Left: Chevrons + Icon + Name + Badges */}
+        {/* Left: Icon + Name + Badges */}
         <div className="dzb-identity-left">
-          {(onPrev || onNext) && (
-            <div className="dzb-nav-pill-group">
-              {onPrev && (
-                <button
-                  type="button"
-                  onClick={onPrev}
-                  disabled={!hasPrev}
-                  className="dzb-nav-icon-btn"
-                  title={t('speedtest.zip_previous_archive')}
-                >
-                  <ChevronLeft size={16} />
-                </button>
-              )}
-              {onNext && (
-                <button
-                  type="button"
-                  onClick={onNext}
-                  disabled={!hasNext}
-                  className="dzb-nav-icon-btn"
-                  title={t('speedtest.zip_next_archive')}
-                >
-                  <ChevronRight size={16} />
-                </button>
-              )}
-            </div>
-          )}
-
           {onBackNested && (
             <button
               type="button"
