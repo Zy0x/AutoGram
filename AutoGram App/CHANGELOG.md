@@ -51,10 +51,11 @@
   - Mengubah jalur hierarki Path ID (`U` Akun, `D` Drive/Chat, `T` Topik, `#` Media) menjadi pita horizontal 1 baris ramping yang dapat digeser/di-scroll bebas (`overflow-x: auto`), mencegah penumpukan tinggi kartu di sidebar.
   - Memisahkan tombol aksi ke baris berikutnya: tombol **Buka (↵)** dan tombol **✕ Batal (Esc)** berdampingan secara proporsional.
 
-### 11. Auto-Fill Media ID in Location Search & Instant Filter Dismissal
-- **Integrasi Pencarian Media di Lokasi Aktif**:
-  - Saat Quick Jump menargetkan ID Media tertentu, ID media tersebut secara otomatis dimasukkan ke dalam kolom *Search file in location* di Top Bar (`setQuery(String(msgId))`).
-  - Ketika pengguna menghapus pencarian di kolom Top Bar (menekan `✕` atau menghapus teks), Media Studio seketika memulihkan seluruh daftar file di lokasi tersebut seperti semula tanpa perlu reload ulang.
+### 11. Hierarchical Location & Media Search Traversal with In-Place Focusing
+- **Alur Masuk Lokasi Bertingkat & Penyorotan Berkas di Grid**:
+  - Saat Quick Jump menargetkan media, AutoGram kini menavigasi secara hierarkis: masuk ke Channel/Drive target di sidebar → mengaktifkan Topik target → mengetikkan ID media otomatis ke dalam kolom *Search file in location* di toolbar Top Bar.
+  - Kartu media yang sesuai secara otomatis dipilih (*selected*) dan digeser secara halus (*smooth scroll into view*) ke tengah layar tanpa memaksakan popup pratinjau modal terbuka seketika.
+  - Menghapus pencarian di Top Bar (menekan `✕` atau tombol keyboard) akan langsung memulihkan tampilan seluruh berkas pada channel/topik tersebut seperti semula.
 
 ## v3.8.17 Transfer Manager True Clean Purge & Zombie Queue Clearance Engine (Phase 35.83)
 

@@ -11,7 +11,7 @@ v3.8.18 ZIP Preview Workbench Power Redesign & Modernization Engine — perombak
 7. Keyboard Navigation & 100% Locale Parity: Navigasi cepat via keyboard (Esc, Space, Enter, Ctrl+A) serta kepatuhan 100% Zero Hardcoded Strings.
 8. Native Scroll Unblocking & Viewport Containment: Menghilangkan konflik touch-action dan zoom listener, memastikan area galeri dan tabel dapat digulir bebas di seluruh perangkat.
 10. Quick Jump Single-Line Horizontal Scrolling Trail: Pengelompokan hierarki Path ID menjadi 1 baris horizontal yang dapat digulir bebas dan pemisahan tombol aksi Buka (↵) dan Batal (Esc) ke baris berikutnya.
-11. Auto-Fill Media ID in Location Search: Menuliskan ID media langsung ke dalam filter pencarian Top Bar saat melompat ke pesan/media, sehingga menghapus kata kunci pencarian akan langsung mengembalikan daftar semua file di lokasi tersebut.
+11. Hierarchical Location & Media Search Traversal: Menavigasi secara hierarkis ke Channel/Topik, mengisi ID media ke dalam pencarian Top Bar, serta menyorot dan menggulir kartu media di grid tanpa memaksakan popup modal terbuka langsung.
 
 Previous:
 v3.8.17 Transfer Manager True Clean Purge & Zombie Queue Clearance Engine — perbaikan menyeluruh pada pembersihan antrean dan riwayat Transfer Manager:

@@ -1697,17 +1697,13 @@ function MediaDriveDesktop({
   const pendingTargetMsgIdRef = useRef<number | null>(null);
   const pendingPathNavRef = useRef<ParsedTelegramPath | null>(null);
 
-  // Watch files: when new files load and we have a pending target message ID, auto-select & preview
+  // Watch files: when new files load and we have a pending target message ID, auto-select & focus card
   useEffect(() => {
     if (pendingTargetMsgIdRef.current == null || !files.length) return;
     const targetId = pendingTargetMsgIdRef.current;
     const targetFile = files.find((f) => f.id === targetId);
     if (targetFile) {
       setSelectedIds([targetId]);
-      const mediaIconTypes = ['image', 'video', 'audio', 'voice', 'document', 'photo'];
-      if (mediaIconTypes.includes(targetFile.icon_type)) {
-        setPreviewFile(targetFile);
-      }
       showPathJumpToast(
         t('ui.path_jump.navigate_success', { target: targetFile.name || `#${targetId}` }),
         'info'
@@ -1826,10 +1822,6 @@ function MediaDriveDesktop({
         const existingFile = files.find((f) => f.id === msgId);
         if (existingFile) {
           setSelectedIds([msgId]);
-          const mediaIconTypes = ['image', 'video', 'audio', 'voice', 'document', 'photo'];
-          if (mediaIconTypes.includes(existingFile.icon_type)) {
-            setPreviewFile(existingFile);
-          }
           showPathJumpToast(
             t('ui.path_jump.navigate_success', { target: existingFile.name || `#${msgId}` }),
             'info'

@@ -615,6 +615,32 @@ export function DriveExplorer({
     };
   }, [scrollKey, onScrollPositionChange]);
 
+  // Auto-scroll single targeted file (e.g. from Quick Jump) into view
+  const lastTargetScrollIdRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (selectedIds.length === 1 && displayed.length > 0) {
+      const targetId = selectedIds[0];
+      if (lastTargetScrollIdRef.current === targetId) return;
+      lastTargetScrollIdRef.current = targetId;
+
+      const idx = displayed.findIndex((f) => f.id === targetId);
+      if (idx !== -1 && parentRef.current) {
+        const el = parentRef.current;
+        const targetTop = viewMode === 'list'
+          ? idx * LIST_ROW_H
+          : Math.floor(idx / Math.max(1, cols)) * (rowHeight || 180);
+
+        const currentTop = el.scrollTop;
+        const currentBottom = currentTop + el.clientHeight;
+        if (targetTop < currentTop || targetTop > currentBottom - (rowHeight || 180)) {
+          el.scrollTo({ top: Math.max(0, targetTop - 60), behavior: 'smooth' });
+        }
+      }
+    } else if (selectedIds.length === 0) {
+      lastTargetScrollIdRef.current = null;
+    }
+  }, [selectedIds, displayed, viewMode, cols, rowHeight]);
+
   useEffect(() => {
     const el = parentRef.current;
     if (!el || !onScrollPositionChange || !scrollKey) return;
