@@ -1,6 +1,16 @@
-AutoGram Version: v3.8.17
+AutoGram Version: v3.8.18
 
 Current State:
+v3.8.18 ZIP Preview Workbench Power Redesign & Modernization Engine — perombakan menyeluruh pada antarmuka penjelajah arsip ZIP menjadi Power Workbench modern:
+1. Dual View Switcher (List Detail & Gallery Grid Modes): Mendukung tampilan tabel kompak dan galeri visual berbasis kartu beraksen neon dengan deteksi otomatis tipe arsip media/gambar.
+2. Streamlined Single Smart Size & Compression Ratio: Menghapus pemisahan kolom redundan dan menghadirkan kolom Smart Size tabular monospace dengan badge rasio hemat kompresi.
+3. Natural Alphanumeric Sorting: Pengurutan nama berkas berbasis urutan numerik alami (1, 2, 10, 100) serta opsi pengurutan ukuran dan tipe berkas.
+4. Dynamic Category Chips with Live Counters: Filter kategori instan (Semua, Gambar, Media, Dokumen, Arsip) lengkap dengan counter jumlah berkas live.
+5. Double-Layer Toolbar with Explicit Close (X): Toolbar dua tingkat dengan identitas arsip, statistik kapasitas, breadcrumbs folder, dan tombol Tutup eksplisit.
+6. Floating Batch Action Bar & Desktop Context Menu: Bilah aksi mengambang animasi untuk ekstraksi batch instan dan menu klik kanan desktop lengkap.
+7. Keyboard Navigation & 100% Locale Parity: Navigasi cepat via keyboard (Esc, Space, Enter, Ctrl+A) serta kepatuhan 100% Zero Hardcoded Strings.
+
+Previous:
 v3.8.17 Transfer Manager True Clean Purge & Zombie Queue Clearance Engine — perbaikan menyeluruh pada pembersihan antrean dan riwayat Transfer Manager:
 1. Complete Multi-Tier Transfer Queue Dismissal & Purge: Menambahkan Tauri command `studio_clear_transfers` di backend Rust (`core::job_queue`) dan menyederhanakan `dismiss_transfer` agar seluruh antrean riwayat yang tertinggal atau gagal dapat dihapus secara atomik dari database `job_queue.json`.
 2. Deep State Reset across Stores & Storage: Menambahkan metode `clearAllJobs` pada `transferProgressStore`, menyinkronkan pembersihan `localStorage` antrean upload, dan mereset status `transfer` menjadi `EMPTY_TRANSFER_SESSION`.

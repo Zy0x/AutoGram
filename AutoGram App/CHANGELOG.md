@@ -1,3 +1,40 @@
+## v3.8.18 ZIP Preview Workbench Power Redesign & Modernization Engine (Phase 35.84)
+
+### 1. Dual View Switcher: List Detail & Gallery Grid Modes
+- **Mode Pratinjau Fleksibel & Auto-Detect Media**:
+  - Menghadirkan pengalih mode ganda (*List Detail View* dan *Gallery Grid View*) dengan memori status dan deteksi otomatis (*auto-switch to grid*) untuk arsip yang dominan berisi gambar atau media.
+  - Mode Galeri menampilkan kartu visual beraksen double-bezel, orb ikon dengan pendaran neon berdasarkan kategori berkas, pill ekstensi, ukuran file, rasio kompresi, dan tombol aksi cepat hover.
+
+### 2. Streamlined Single Smart Size & Monospace Typography
+- **Eliminasi Kolom Redundan & Indikator Rasio Kompresi**:
+  - Menghapus pemisahan kolom `SIZE` dan `COMPRESSED` yang redundan pada tabel dan menggantinya dengan satu kolom *Smart Size* tabular monospace terpadu (`font-variant-numeric: tabular-nums`).
+  - Menyematkan badge rasio kompresi cerdas (`−XX%`) ketika ukuran berkas terkompresi lebih hemat secara signifikan.
+
+### 3. Natural Alphanumeric Sorting Engine
+- **Pengurutan Angka Alami & Pilihan Multi-Kriteria**:
+  - Mengimplementasikan `naturalCompare` berbasis `localeCompare` numerik sehingga penamaan file berurutan (`1.png`, `2.png`, `10.png`, `100.png`) terurut dengan benar tanpa lompatan ASCII (`1, 10, 100, 2`).
+  - Menyediakan opsi pengurutan lengkap: Nama (A-Z / Z-A), Ukuran (Terbesar / Terkecil), dan Tipe Berkas.
+
+### 4. Dynamic Category Chips with Live Counters
+- **Filter Kategori Cerdas & Penghitung Berkas Dinamis**:
+  - Menambahkan barisan *category filter chips* dengan badge angka live: `Semua (N)`, `Gambar (N)`, `Media (N)`, `Dokumen (N)`, dan `Arsip (N)`.
+  - Filter beroperasi secara instan dan memperbarui pratinjau daftar maupun galeri secara real-time.
+
+### 5. Double-Layer Command Toolbar with Dedicated Close (X) Button
+- **Navigasi Dua Tingkat & Kontrol Presisi**:
+  - *Layer 1 (Archive Identity)*: Tombol navigasi riwayat arsip (`<` dan `>`), tombol kembali nested archive (`↵`), identitas arsip dengan pemotongan nama tengah (*middle truncate*), badge status keamanan (*Unlocked* / *Protected*), ringkasan statistik (jumlah file + total kapasitas), tombol simpan arsip, dan tombol Tutup (`X`) eksplisit yang menutup modal pratinjau.
+  - *Layer 2 (Command Bar)*: Breadcrumb interaktif dengan ikon root dan indikator jumlah item folder, kotak pencarian real-time dengan tombol hapus cepat, filter chip kategori, dan pemilih pengurutan (*Sort Dropdown*).
+
+### 6. Floating Batch Action Bar & Desktop Context Menu
+- **Bilah Aksi Mengambang & Klik Kanan Multi-Aksi**:
+  - Menghadirkan bilah aksi mengambang (*floating batch action bar*) yang meluncur mulus dari bawah saat $\ge 1$ item dipilih, menampilkan jumlah item terpilih, total ukuran akumulatif terformat, tombol *Select All / Invert*, tombol cepat *Extract Selected*, dan tombol *Clear* (`X`).
+  - Menambahkan menu konteks klik kanan desktop standar: Pratinjau/Buka, Ekstrak, Ekstrak Seleksi, Salin Nama Berkas, Salin Path Lengkap, Pilih Semua, dan Balikkan Seleksi.
+
+### 7. Keyboard Navigation & 100% Zero Hardcoded Strings
+- **Interaksi Keyboard Desktop & Kepatuhan Internasionalisasi**:
+  - Dukungan shortcut keyboard penuh: `Esc` (batalkan seleksi / tutup modal), `Ctrl+A` (pilih semua berkas visible), `Space` / `Enter` (buka pratinjau instan).
+  - 100% Zero Hardcoded Strings dengan paritas kunci penuh antara `src/locales/id/speedtest.json` dan `src/locales/en/speedtest.json`.
+
 ## v3.8.17 Transfer Manager True Clean Purge & Zombie Queue Clearance Engine (Phase 35.83)
 
 ### 1. Complete Multi-Tier Transfer Queue Dismissal & Purge
