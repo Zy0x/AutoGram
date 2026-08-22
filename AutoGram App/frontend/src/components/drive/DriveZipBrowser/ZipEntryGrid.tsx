@@ -78,7 +78,7 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
           <div
             key={directory}
             data-entry-name={directory}
-            className={`dzb-grid-card directory ${selected ? 'selected' : ''}`}
+            className={`td-file-card dzb-grid-card directory ${selected ? 'selected' : ''}`}
             onClick={(e) => onSelectEntry(directory, e)}
             onDoubleClick={() => onNavigateDir(directory)}
             onContextMenu={(e) => onContextMenu(e, { kind: 'dir', path: directory })}
@@ -86,32 +86,37 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
             tabIndex={0}
             title={t('speedtest.zip_folder_double_click')}
           >
-            <div className="dzb-grid-card-top">
-              <span className="dzb-grid-badge folder">{t('speedtest.zip_tag_folder')}</span>
-            </div>
-
-            <div className="dzb-grid-card-center">
-              <div className="dzb-folder-orb">
-                <Folder size={36} className="dzb-folder-icon" />
+            <div className="td-file-card-inner dzb-grid-card-inner directory-card">
+              <div className="td-file-perspective-badges dzb-top-badges">
+                <span className="td-tag-badge dzb-tag-badge folder">{t('speedtest.zip_tag_folder')}</span>
               </div>
-            </div>
 
-            <div className="dzb-grid-card-bottom">
-              <span className="dzb-grid-filename" title={label}>
-                {label}
-              </span>
+              <div className="td-file-thumb-empty dzb-thumb-empty directory-bg">
+                <div className="dzb-folder-orb">
+                  <Folder size={38} className="dzb-folder-icon" />
+                </div>
+              </div>
 
-              <div className="dzb-grid-card-actions">
+              <div className="td-file-card-meta dzb-card-meta on-empty">
+                <div className="td-file-card-name dzb-card-name" title={label}>
+                  {label}
+                </div>
+                <div className="td-file-card-sub dzb-card-sub">
+                  <span className="td-file-card-size dzb-card-size">{t('speedtest.zip_tag_folder')}</span>
+                </div>
+              </div>
+
+              <div className="td-file-card-actions dzb-card-actions">
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     onExtractDirectory(directory);
                   }}
-                  className="dzb-action-icon-btn small"
+                  className="td-file-act dzb-action-icon-btn small"
                   title={t('speedtest.zip_extract_directory')}
                 >
-                  <Download size={14} />
+                  <Download size={13} />
                 </button>
               </div>
             </div>
@@ -133,7 +138,7 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
           <div
             key={entry.name}
             data-entry-name={entry.name}
-            className={`dzb-grid-card ${selected ? 'selected' : ''} ${thumbUrl ? 'has-thumb' : ''}`}
+            className={`td-file-card dzb-grid-card ${selected ? 'selected' : ''}`}
             onClick={(e) => onSelectEntry(entry.name, e)}
             onDoubleClick={() => onPreviewCode(entry)}
             onContextMenu={(e) => onContextMenu(e, { kind: 'file', entry })}
@@ -141,35 +146,39 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
             tabIndex={0}
             title={entry.name}
           >
-            <div className="dzb-grid-card-top">
-              <div className="dzb-grid-top-badges">
+            <div className="td-file-card-inner dzb-grid-card-inner">
+              <div className="td-file-perspective-badges dzb-top-badges">
                 {entry.encrypted && (
                   <span className="dzb-lock-pill" title={t('speedtest.zip_protected')}>
                     <LockKeyhole size={11} />
                   </span>
                 )}
-                <span className="dzb-grid-badge">{extTag}</span>
+                <span className={`td-tag-badge dzb-tag-badge`}>{extTag}</span>
               </div>
-            </div>
 
-            <div className="dzb-grid-card-center">
               {thumbUrl ? (
-                <div className="dzb-grid-thumb-wrap">
+                <div className="td-file-thumb-full dzb-thumb-full">
                   <img
                     src={thumbUrl}
                     alt={entry.name}
-                    className="dzb-grid-thumb-img"
+                    className="dzb-thumb-img"
                     loading="lazy"
+                    decoding="async"
                   />
+                  <div className="td-file-thumb-grad dzb-thumb-grad" />
                 </div>
               ) : isThumbLoading ? (
-                <div className="dzb-grid-thumb-loading">
-                  <Loader2 size={24} className="dzb-micro-spinner animate-spin" />
-                  <span className="dzb-thumb-loading-text">{t('speedtest.zip_thumbnail_loading')}</span>
+                <div className="td-file-thumb-empty dzb-thumb-loading-wrap">
+                  <div className="td-thumb-loading dzb-thumb-loading">
+                    <Loader2 size={24} className="spin animate-spin" />
+                    <span>{t('speedtest.zip_thumbnail_loading')}</span>
+                  </div>
                 </div>
               ) : (
-                <div className="dzb-icon-orb">
-                  <EntryIcon name={entry.name} size={36} />
+                <div className="td-file-thumb-empty dzb-thumb-empty">
+                  <div className="dzb-icon-orb-center">
+                    <EntryIcon name={entry.name} size={36} />
+                  </div>
                   {isMediaThumbnailSupported(entry.name) && onLoadThumbnail && (
                     <button
                       type="button"
@@ -178,50 +187,55 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
                         onLoadThumbnail(entry);
                       }}
                       className="dzb-orb-preview-pill"
-                      title={t('speedtest.zip_load_thumbnail')}
+                      title={entry.encrypted ? t('speedtest.zip_password_for_media_title') : t('speedtest.zip_load_thumbnail')}
                     >
-                      <Eye size={11} />
+                      {entry.encrypted ? <LockKeyhole size={11} /> : <Eye size={11} />}
                       <span>{t('speedtest.zip_btn_load_preview')}</span>
                     </button>
                   )}
                 </div>
               )}
-            </div>
 
-            <div className="dzb-grid-card-bottom">
-              <span className="dzb-grid-filename" title={label}>
-                {label}
-              </span>
-
-              <div className="dzb-grid-meta-row">
-                <span className="dzb-grid-size">{formatDriveBytes(entry.size)}</span>
-                {ratio > 10 && <span className="dzb-ratio-badge">−{ratio}%</span>}
-
-                <div className="dzb-grid-card-actions">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPreviewCode(entry);
-                    }}
-                    className="dzb-action-icon-btn small"
-                    title={isZipArchiveName(entry.name) ? t('speedtest.zip_open_nested') : t('speedtest.zip_preview_content')}
-                  >
-                    {isZipArchiveName(entry.name) ? <Archive size={14} /> : <Eye size={14} />}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onExtractEntry(entry);
-                    }}
-                    className="dzb-action-icon-btn small"
-                    title={t('speedtest.zip_extract_entry')}
-                  >
-                    <Download size={14} />
-                  </button>
+              <div className={`td-file-card-meta dzb-card-meta ${thumbUrl ? 'on-media' : 'on-empty'}`}>
+                <div className="td-file-card-name dzb-card-name" title={label}>
+                  {label}
                 </div>
+                <div className="td-file-card-sub dzb-card-sub">
+                  <div className="td-file-card-sub-row dzb-card-sub-row">
+                    <span className="td-file-card-size dzb-card-size">{formatDriveBytes(entry.size)}</span>
+                    {ratio > 10 && (
+                      <span className="dzb-ratio-badge" title={`${t('speedtest.zip_col_compressed')}: ${formatDriveBytes(compressed)}`}>
+                        −{ratio}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="td-file-card-actions dzb-card-actions">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPreviewCode(entry);
+                  }}
+                  className="td-file-act dzb-action-icon-btn small"
+                  title={isZipArchiveName(entry.name) ? t('speedtest.zip_open_nested') : t('speedtest.zip_preview_content')}
+                >
+                  {isZipArchiveName(entry.name) ? <Archive size={13} /> : <Eye size={13} />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onExtractEntry(entry);
+                  }}
+                  className="td-file-act ok dzb-action-icon-btn small"
+                  title={t('speedtest.zip_extract_entry')}
+                >
+                  <Download size={13} />
+                </button>
               </div>
             </div>
           </div>

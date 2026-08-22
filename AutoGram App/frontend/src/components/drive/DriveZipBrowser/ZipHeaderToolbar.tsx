@@ -17,6 +17,8 @@ import {
   Home,
   FolderInput,
   ArrowUp,
+  Eye,
+  Loader2,
 } from 'lucide-react';
 import { formatDriveBytes } from '../../../lib/telegram/driveTypes';
 import {
@@ -49,6 +51,9 @@ type ZipHeaderToolbarProps = {
   currentPath: string;
   onNavigateDir: (path: string) => void;
   currentFolderItemCount: number;
+  unloadedMediaCount?: number;
+  isLoadingAllMedia?: boolean;
+  onLoadAllThumbnails?: () => void;
 };
 
 export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
@@ -74,6 +79,9 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
   currentPath,
   onNavigateDir,
   currentFolderItemCount,
+  unloadedMediaCount = 0,
+  isLoadingAllMedia,
+  onLoadAllThumbnails,
 }) => {
   const { t } = useTranslation();
   const [showSortMenu, setShowSortMenu] = useState(false);
@@ -121,60 +129,76 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
             <button
               type="button"
               onClick={onBackNested}
-              className="dzb-nav-icon-btn"
+              className="dzb-back-nested-btn"
               title={t('speedtest.zip_back_parent')}
             >
-              <CornerUpLeft size={15} />
+              <CornerUpLeft size={16} />
             </button>
           )}
 
-          <div className="dzb-archive-identity">
-            <div className="dzb-archive-icon-wrapper">
-              <Archive size={20} className="dzb-archive-icon" />
+          <div className="dzb-archive-badge-icon">
+            <Archive size={20} className="dzb-archive-svg" />
+          </div>
+
+          <div className="dzb-archive-titles">
+            <div className="dzb-title-row">
+              <h2 className="dzb-archive-name" title={rawTitle}>
+                {truncatedTitle}
+              </h2>
+
+              {nestedDepth > 0 && (
+                <span className="dzb-badge-nested">
+                  {t('speedtest.zip_nested_depth', { count: nestedDepth })}
+                </span>
+              )}
+
+              {isPasswordProtected && (
+                <span className="dzb-badge-locked" title={t('speedtest.zip_protected')}>
+                  <Lock size={12} />
+                  <span>{t('speedtest.zip_protected')}</span>
+                </span>
+              )}
             </div>
 
-            <div className="dzb-archive-title-meta">
-              <div className="dzb-title-row">
-                <h3 className="dzb-archive-heading" title={rawTitle}>
-                  {truncatedTitle}
-                </h3>
-
-                {nestedDepth > 0 && (
-                  <span className="dzb-badge-depth">
-                    {t('speedtest.zip_nested_depth', { count: nestedDepth })}
+            <div className="dzb-subtitle-row">
+              <span className="dzb-meta-stat">
+                {t('speedtest.zip_meta_files', { count: totalFiles })}
+              </span>
+              <span className="dzb-meta-dot">•</span>
+              <span className="dzb-meta-stat">{formatDriveBytes(totalBytes)}</span>
+              {dominantType !== 'mixed' && (
+                <>
+                  <span className="dzb-meta-dot">•</span>
+                  <span className="dzb-meta-type">
+                    {dominantType === 'images'
+                      ? t('speedtest.zip_dominant_images')
+                      : t('speedtest.zip_dominant_media')}
                   </span>
-                )}
-
-                {isPasswordProtected && (
-                  <span className="dzb-badge-protected">
-                    <Lock size={11} /> {t('speedtest.zip_protected')}
-                  </span>
-                )}
-              </div>
-
-              <div className="dzb-meta-subrow">
-                <span className="dzb-stat-text">
-                  {t('speedtest.zip_stats_summary', {
-                    files: totalFiles,
-                    size: formatDriveBytes(totalBytes),
-                  })}
-                </span>
-                <span className="dzb-stat-bullet">•</span>
-                <span className="dzb-type-text">
-                  {dominantType === 'images'
-                    ? t('speedtest.zip_badge_images_archive')
-                    : dominantType === 'media'
-                    ? t('speedtest.zip_badge_media_archive')
-                    : t('speedtest.zip_badge_mixed_archive')}
-                </span>
-              </div>
+                </>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Right: View Toggle + Save Archive + Close button */}
+        {/* Right: View Toggle, Extract All, Save, Close */}
         <div className="dzb-identity-right">
-          {/* View Mode Toggle */}
+          {unloadedMediaCount > 0 && onLoadAllThumbnails && (
+            <button
+              type="button"
+              onClick={onLoadAllThumbnails}
+              disabled={isLoadingAllMedia}
+              className="dzb-btn-load-all-media"
+              title={t('speedtest.zip_preview_all_media', { count: unloadedMediaCount })}
+            >
+              {isLoadingAllMedia ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Eye size={14} />
+              )}
+              <span>{t('speedtest.zip_preview_all_media', { count: unloadedMediaCount })}</span>
+            </button>
+          )}
+
           <div className="dzb-view-toggle-group">
             <button
               type="button"

@@ -46,6 +46,8 @@ type PasswordAction =
   | { kind: 'preview'; entry: ZipEntry }
   | { kind: 'nested'; entry: ZipEntry }
   | { kind: 'extract'; target: TargetDestination }
+  | { kind: 'thumbnail'; entry: ZipEntry }
+  | { kind: 'all_thumbnails' }
   | null;
 
 function mapLocalPreview(result: Awaited<ReturnType<typeof zipPreviewEntry>>): ZipPreviewResult {
@@ -408,6 +410,8 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
     if (action.kind === 'preview') await handlePreview(action.entry, password);
     if (action.kind === 'nested') await openNestedArchive(action.entry, password);
     if (action.kind === 'extract') await runExtraction(action.target, password);
+    if (action.kind === 'thumbnail') await handleLoadThumbnail(action.entry, password);
+    if (action.kind === 'all_thumbnails') await handleLoadAllThumbnails(password);
   };
 
   const contentSurfaceRef = useRef<HTMLDivElement>(null);
@@ -424,10 +428,15 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
     active: boolean;
   } | null>(null);
 
-  // Manual on-demand single thumbnail fetch
+  // Manual on-demand single thumbnail fetch with password protection support
   const handleLoadThumbnail = useCallback(
-    async (entry: ZipEntry) => {
+    async (entry: ZipEntry, explicitPassword?: string | null) => {
       if (thumbnails.has(entry.name) || loadingThumbnails.has(entry.name)) return;
+      const pwd = explicitPassword !== undefined ? explicitPassword : activePassword;
+      if (entry.encrypted && !pwd) {
+        requestPassword({ kind: 'thumbnail', entry }, t('speedtest.zip_password_for_media_title'));
+        return;
+      }
       setLoadingThumbnails((prev) => new Set(prev).add(entry.name));
       try {
         const thumbUrl = await fetchZipEntryThumbnail(
@@ -435,11 +444,18 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
           messageId,
           folderId,
           entry.name,
-          activePassword,
+          pwd,
           zipOpts
         );
         if (thumbUrl) {
           setThumbnails((prev) => new Map(prev).set(entry.name, thumbUrl));
+        } else if (entry.encrypted) {
+          requestPassword({ kind: 'thumbnail', entry }, t('speedtest.zip_password_invalid'));
+        }
+      } catch (err: any) {
+        const errMsg = String(err?.message || err);
+        if (/bad_password|password|encrypted/i.test(errMsg)) {
+          requestPassword({ kind: 'thumbnail', entry }, t('speedtest.zip_password_invalid'));
         }
       } finally {
         setLoadingThumbnails((prev) => {
@@ -449,7 +465,45 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
         });
       }
     },
-    [activePassword, creds, folderId, messageId, thumbnails, loadingThumbnails, zipOpts]
+    [activePassword, creds, folderId, messageId, requestPassword, t, thumbnails, loadingThumbnails, zipOpts]
+  );
+
+  // Total unloaded media files in current folder/view
+  const totalUnloadedMediaCount = useMemo(() => {
+    let count = 0;
+    for (const f of files) {
+      if (isMediaThumbnailSupported(f.name) && !thumbnails.has(f.name)) {
+        count++;
+      }
+    }
+    return count;
+  }, [files, thumbnails]);
+
+  // Load all media thumbnails in current folder/view with password protection support
+  const handleLoadAllThumbnails = useCallback(
+    async (explicitPassword?: string | null) => {
+      const pwd = explicitPassword !== undefined ? explicitPassword : activePassword;
+      const targets = files.filter(
+        (f) => isMediaThumbnailSupported(f.name) && !thumbnails.has(f.name)
+      );
+      if (targets.length === 0 || isBatchLoadingThumbs) return;
+
+      const hasEncrypted = targets.some((f) => f.encrypted) || entries.some((e) => e.encrypted);
+      if (hasEncrypted && !pwd) {
+        requestPassword({ kind: 'all_thumbnails' }, t('speedtest.zip_password_for_media_title'));
+        return;
+      }
+
+      setIsBatchLoadingThumbs(true);
+      try {
+        for (const target of targets) {
+          await handleLoadThumbnail(target, pwd);
+        }
+      } finally {
+        setIsBatchLoadingThumbs(false);
+      }
+    },
+    [activePassword, entries, files, handleLoadThumbnail, isBatchLoadingThumbs, requestPassword, t, thumbnails]
   );
 
   // Count selected media entries that have not loaded thumbnail yet
@@ -470,10 +524,13 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
     );
     if (targets.length === 0 || isBatchLoadingThumbs) return;
     setIsBatchLoadingThumbs(true);
-    for (const target of targets) {
-      await handleLoadThumbnail(target);
+    try {
+      for (const target of targets) {
+        await handleLoadThumbnail(target);
+      }
+    } finally {
+      setIsBatchLoadingThumbs(false);
     }
-    setIsBatchLoadingThumbs(false);
   }, [files, handleLoadThumbnail, isBatchLoadingThumbs, selectedEntries, thumbnails]);
 
   // OS File Explorer style item selection with Shift / Ctrl / Normal Click
@@ -729,6 +786,9 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
         currentPath={currentPath}
         onNavigateDir={setCurrentPath}
         currentFolderItemCount={visibleTotalCount}
+        unloadedMediaCount={totalUnloadedMediaCount}
+        isLoadingAllMedia={isBatchLoadingThumbs}
+        onLoadAllThumbnails={() => void handleLoadAllThumbnails()}
       />
 
       {/* Main Content Surface with Marquee Selection Support */}
