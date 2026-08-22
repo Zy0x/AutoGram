@@ -24,7 +24,6 @@ import {
   Image as ImageIcon,
   FileText,
   FileCode,
-  Lock,
 } from 'lucide-react';
 import { VSCodeCodeViewer } from '../../common/VSCodeCodeViewer';
 import { formatDriveBytes } from '../../../lib/telegram/driveTypes';
@@ -97,7 +96,7 @@ export const ZipCodePreviewModal: React.FC<ZipCodePreviewModalProps> = ({
     }
   }, [currentIndex, entries, hasNext, onNavigate]);
 
-  // Keyboard navigation & controls (Hook must run unconditionally)
+  // Keyboard navigation & controls (unconditionally declared)
   useEffect(() => {
     if (!entry) return;
 
@@ -171,7 +170,7 @@ export const ZipCodePreviewModal: React.FC<ZipCodePreviewModalProps> = ({
     setIsDragging(false);
   };
 
-  // All hooks have been called. Now we can safely return null if no entry is selected.
+  // Guard after all hooks run
   if (!entry) return null;
 
   const imageTransformStyle: React.CSSProperties = {
@@ -184,57 +183,64 @@ export const ZipCodePreviewModal: React.FC<ZipCodePreviewModalProps> = ({
 
   return (
     <div
-      className={`drive-preview-overlay dzb-modal-overlay${isFullscreen ? ' is-fs' : ''}`}
+      className={`drive-preview-overlay${isFullscreen ? ' is-fs' : ''}`}
       role="dialog"
       aria-modal="true"
       aria-label={entry.name}
+      onClick={onClose}
     >
       <div
-        className={`drive-preview-modal dzb-preview-modal${isFullscreen ? ' is-fullscreen' : ''}`}
+        className={`drive-preview-modal${isFullscreen ? ' is-fullscreen' : ''}`}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Unified Drive Preview Header Toolbar */}
-        <header className="drive-preview-header">
-          <div className="drive-preview-title" title={entry.name}>
-            <span className="font-semibold text-sm text-slate-100">{entry.name}</span>
-            <span className="text-xs text-slate-400 font-mono ml-2">
-              ({formatDriveBytes(entry.size)})
+        {/* Exact Drive Preview Header Toolbar Layout */}
+        <header className="drive-preview-header font-sans">
+          {/* Row A: Title & Meta */}
+          <div className="drive-preview-title">
+            <strong title={entry.name}>{entry.name}</strong>
+            <span
+              className="drive-muted"
+              title={`${formatDriveBytes(entry.size)}${
+                entries.length > 1 && currentIndex >= 0 ? ` · [${currentIndex + 1} / ${entries.length}]` : ''
+              }${entry.encrypted ? ` · 🔒 ${t('speedtest.zip_tag_encrypted')}` : ''}`}
+            >
+              {formatDriveBytes(entry.size)}
+              {entries.length > 1 && currentIndex >= 0 ? ` · [${currentIndex + 1} / ${entries.length}]` : ''}
+              {entry.encrypted ? ` · 🔒 ${t('speedtest.zip_tag_encrypted')}` : ''}
             </span>
-            {entries.length > 1 && currentIndex >= 0 && (
-              <span className="text-xs text-indigo-400 font-mono ml-2">
-                [{currentIndex + 1} / {entries.length}]
-              </span>
-            )}
-            {entry.encrypted && (
-              <span className="inline-flex items-center gap-1 text-xs text-amber-400 font-medium ml-2 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
-                <Lock size={11} />
-                <span>{t('speedtest.zip_tag_encrypted')}</span>
-              </span>
-            )}
           </div>
 
-          <div className="flex items-center gap-1.5">
+          {/* Row B: Nav Toolbar */}
+          <div className="drive-preview-nav" role="toolbar" aria-label={t('speedtest.nav_aria')}>
             {/* Prev / Next Navigation */}
             {entries.length > 1 && (
               <>
                 <button
                   type="button"
+                  className="td-icon-btn"
                   disabled={!hasPrev}
-                  onClick={handlePrev}
-                  className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-                  title={t('speedtest.prev_file_tooltip')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePrev();
+                  }}
+                  title={hasPrev ? t('speedtest.preview_prev_file') : t('speedtest.preview_no_prev')}
+                  aria-label={t('speedtest.prev_aria')}
                 >
                   <ChevronLeft size={18} />
                 </button>
                 <button
                   type="button"
+                  className="td-icon-btn"
                   disabled={!hasNext}
-                  onClick={handleNext}
-                  className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-                  title={t('speedtest.next_file_tooltip')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleNext();
+                  }}
+                  title={hasNext ? t('speedtest.preview_next_file') : t('speedtest.preview_no_next')}
+                  aria-label={t('speedtest.next_aria')}
                 >
                   <ChevronRight size={18} />
                 </button>
-                <div className="w-px h-4 bg-slate-700/60 mx-0.5" />
               </>
             )}
 
@@ -242,9 +248,13 @@ export const ZipCodePreviewModal: React.FC<ZipCodePreviewModalProps> = ({
             {content && (
               <button
                 type="button"
-                onClick={handleCopy}
-                className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80 transition-colors"
+                className="td-icon-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void handleCopy();
+                }}
                 title={t(copied ? 'speedtest.zip_btn_copied' : 'speedtest.zip_btn_copy')}
+                aria-label={t(copied ? 'speedtest.zip_btn_copied' : 'speedtest.zip_btn_copy')}
               >
                 {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
               </button>
@@ -254,9 +264,13 @@ export const ZipCodePreviewModal: React.FC<ZipCodePreviewModalProps> = ({
             {onExtract && (
               <button
                 type="button"
-                onClick={onExtract}
-                className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80 transition-colors"
+                className="td-icon-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onExtract();
+                }}
                 title={t('speedtest.zip_extract_entry')}
+                aria-label={t('speedtest.zip_extract_entry')}
               >
                 <Download size={16} />
               </button>
@@ -265,31 +279,39 @@ export const ZipCodePreviewModal: React.FC<ZipCodePreviewModalProps> = ({
             {/* Fullscreen Toggle */}
             <button
               type="button"
-              onClick={() => setIsFullscreen((fs) => !fs)}
-              className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80 transition-colors"
+              className="td-icon-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsFullscreen((fs) => !fs);
+              }}
               title={
                 isFullscreen
                   ? t('speedtest.preview_fullscreen_exit')
                   : t('speedtest.preview_fullscreen_enter')
               }
+              aria-label={t('speedtest.fullscreen')}
             >
               {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             </button>
-
-            {/* Close Button */}
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-red-500/20 hover:text-red-300 ml-1 transition-colors"
-              title={t('speedtest.close_esc_tooltip')}
-            >
-              <X size={18} />
-            </button>
           </div>
+
+          {/* Row A: Close Button */}
+          <button
+            type="button"
+            className="td-icon-btn drive-preview-close"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            title={t('speedtest.close_esc_tooltip')}
+            aria-label={t('speedtest.preview_close_btn')}
+          >
+            <X size={18} />
+          </button>
         </header>
 
         {/* Center Stage & Media Viewer */}
-        <div className="drive-preview-body dzb-preview-body">
+        <div className="drive-preview-body">
           {isLoading ? (
             <div className="dzb-preview-loading-card">
               <div className="dzb-dual-ring-wrap">
