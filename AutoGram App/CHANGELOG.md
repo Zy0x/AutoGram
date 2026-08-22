@@ -1,3 +1,48 @@
+## v3.8.16 Modern-Elegant Animated Refresh Button & Responsive Micro-Interactions (Phase 35.82)
+
+### 1. Glassmorphic Dark-Tech Button Aesthetics
+- **Transformasi Visual Tombol Refresh Workspace Hub**:
+  - Mengubah tampilan tombol refresh dari gaya kotak abu-abu kaku menjadi tombol glassmorphic modern dengan gradien semi-transparan `rgba(30, 41, 59, 0.75)`, blur filter `12px`, border neon cyan presisi `rgba(56, 189, 248, 0.28)`, dan efek kedalaman bayangan (layered shadow).
+  - Menambahkan pantulan berkas cahaya dinamis (*luminous shimmer beam*) dan ambient aura saat hover.
+
+### 2. Fluid Interactive Animations & Spring Micro-Interactions
+- **Animasi Fisika & Respon Sentuh**:
+  - Menambahkan rotasi pegas 60° pada ikon `RefreshCw` saat kursor diarahkan ke tombol (*pre-tension windup*).
+  - Respon tekan taktil `scale(0.95)` dan transisi mulus saat ditekan.
+  - Putaran kontinu 360° yang sangat halus (`agLauncherSpin`) dengan efek pulsing cyan aura selama proses sinkronisasi sesi berlangsung.
+
+### 3. Immediate Sync Feedback & Success Check Pop
+- **Umpan Balik Status Sinkronisasi Sukses**:
+  - Menghadirkan transisi warna hijau emerald cerah (`#4ade80`), border glow lembut, dan ikon centang `Check` dengan animasi pop elastis selama 1.6 detik setelah sesi berhasil dimuat ulang.
+  - Transisi status teks yang dinamis: "Menyegarkan…" saat memproses dan "Tersinkronisasi" saat selesai.
+
+### 4. Internationalization & Mobile Responsive Parity
+- **100% Zero Hardcoded Strings & Tata Letak Mobile**:
+  - Ekstraksi teks status ke `src/locales/id/nav.json` dan `src/locales/en/nav.json` (`refreshing`, `refreshed`).
+  - Menjamin visibilitas ikon dan animasi tetap optimal pada tampilan perangkat ringkas / mobile (<= 768px).
+
+## v3.8.15 Corrupted Thumbnail Healing & Image Magic Byte Validation Engine (Phase 35.81)
+
+### 1. Strict Image Magic Header Validation
+- **Validasi Biner Format Gambar di Backend Rust**:
+  - Memperbarui `to_data_url` pada `thumbs.rs` dan `stream.rs` backend Rust untuk secara ketat memverifikasi byte signature format gambar standar (JPEG, PNG, WebP, GIF, BMP, SVG).
+  - Mengeliminasi bug konversi biner korup atau berkas null-byte menjadi `data:image/jpeg;base64,AAAA...` yang menyebabkan decoding gambar di browser crash atau error loop.
+
+### 2. Graceful Fallback & Auto-Purge of Corrupted Disk Cache
+- **Pembersihan Cache Otomatis & Penanganan Berkas Korup**:
+  - Memperbaiki `download_media_thumb` agar mengembalikan `CorruptedOrUnrecognizedImageMedia` saat ekstraksi frame gagal pada berkas korup, mencegah pengembalian byte mentah yang rusak.
+  - Menambahkan mekanisme auto-delete pada `thumbs.rs` untuk secara instan menghapus berkas cache disk lokal yang tidak lolos validasi header biner.
+
+### 3. Infinite Retry Loop Elimination di Media Card
+- **Pencegahan Glitch dan Loop Rendering**:
+  - Mengimplementasikan `retriedRef` dan penanganan `setThumbLoading(false)` yang konsisten pada `DriveFileCard.tsx`.
+  - Mengeliminasi glitch visual dan kedipan cepat antara spinner loading dan decode failure saat thumbnail rusak atau gagal dimuat.
+
+### 4. Dedicated Corrupted Thumbnail Visual Indicator
+- **Tampilan Khusus Thumbnail Rusak**:
+  - Menambahkan status visual "Thumbnail Rusak" (`is-corrupted`, ikon `ImageOff`, dan gradien kontras tinggi) pada `DriveFileCard.tsx`, `ThumbnailImage.tsx`, dan `App.css`.
+  - Sinkronisasi lokalisasi 100% pada bahasa Indonesia (`id`) dan Inggris (`en`).
+
 ## v3.8.14 Zero-Scan Sparse ZIP In-Memory Decryptor & True Minimal Bandwidth Streaming Engine (Phase 35.80)
 
 ### 1. Pure In-Memory Direct Decryptor & Decompressor

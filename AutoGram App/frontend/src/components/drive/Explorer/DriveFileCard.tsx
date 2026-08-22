@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { memo, useCallback, useEffect, useState } from 'react';
-import { Eye, Download, Trash2, Check, Loader2, Play, Scissors, Copy } from 'lucide-react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { Eye, Download, Trash2, Check, Loader2, Play, Scissors, Copy, ImageOff } from 'lucide-react';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import {
   canShowDriveThumb,
@@ -177,6 +177,7 @@ function DriveFileCardInner({
   });
   const [thumbLoading, setThumbLoading] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const retriedRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -189,6 +190,7 @@ function DriveFileCardInner({
 
   useEffect(() => {
     setImgError(false);
+    retriedRef.current = false;
     if (!canThumb) {
       setThumb(null);
       setIsPlaceholderImg(false);
@@ -239,7 +241,11 @@ function DriveFileCardInner({
           setIsPlaceholderImg(false);
           setThumbLoading(false);
           setImgError(false);
+        } else {
+          setThumbLoading(false);
         }
+      }).catch(() => {
+        setThumbLoading(false);
       });
     }
   }, [canThumb, folderId, file.id, file.peer_id, file.topic_id, creds?.session, thumbQuality, file.thumb_data_url, file.thumbDataUrl, visible]);
@@ -484,11 +490,12 @@ function DriveFileCardInner({
               loading="eager"
               decoding="async"
               onError={() => {
-                setImgError(true);
                 setThumb(null);
-                // Blob may have been revoked by the LRU — drop cache and refetch.
+                setIsPlaceholderImg(false);
+                // Blob may have been revoked by the LRU — drop cache and refetch once
                 invalidateThumb(folderId, file.id, creds?.session, thumbLocator);
-                if (creds && canThumb && visible) {
+                if (creds && canThumb && visible && !retriedRef.current) {
+                  retriedRef.current = true;
                   setThumbLoading(true);
                   void requestThumb(creds, folderId, file.id, {
                     priority: 'visible',
@@ -500,9 +507,17 @@ function DriveFileCardInner({
                     if (url) {
                       setThumb(url);
                       setImgError(false);
+                    } else {
+                      setImgError(true);
                     }
                     setThumbLoading(false);
+                  }).catch(() => {
+                    setImgError(true);
+                    setThumbLoading(false);
                   });
+                } else {
+                  setImgError(true);
+                  setThumbLoading(false);
                 }
               }}
             />
@@ -515,9 +530,11 @@ function DriveFileCardInner({
           </div>
         ) : (
           <div
-            className={`td-file-thumb-empty${isVideo ? ' is-video-empty' : ''}`}
+            className={`td-file-thumb-empty${isVideo ? ' is-video-empty' : ''}${imgError ? ' is-corrupted' : ''}`}
             style={{
-              background: isVideo
+              background: imgError
+                ? undefined
+                : isVideo
                 ? 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)'
                 : file.icon_type === 'image' || file.mime_type?.startsWith('image/')
                 ? 'linear-gradient(135deg, #064e3b 0%, #0f172a 100%)'
@@ -526,7 +543,12 @@ function DriveFileCardInner({
                 : 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
             }}
           >
-            {file.icon_type === 'link' ? (
+            {imgError ? (
+              <div className="td-thumb-corrupted" title={t('speedtest.thumbnail_corrupted')}>
+                <ImageOff size={38} className="td-type-ico lg corrupted" />
+                <span>{t('speedtest.thumbnail_corrupted_short')}</span>
+              </div>
+            ) : file.icon_type === 'link' ? (
               <div className="td-link-preview" aria-label={subLabel}>
                 <div className="td-link-preview-domain">{linkHosts[0] || t('speedtest.view_links')}</div>
                 <div className="td-link-preview-list">

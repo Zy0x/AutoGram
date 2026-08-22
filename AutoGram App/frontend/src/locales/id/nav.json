@@ -1,6 +1,8 @@
 {
   "refresh_sessions": "Segarkan daftar session dan status koneksi",
   "refresh": "Segarkan",
+  "refreshing": "Menyegarkan…",
+  "refreshed": "Tersinkronisasi",
   "title": "AutoGram",
   "home": "Beranda",
   "dashboard": "Dashboard",

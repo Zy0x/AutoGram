@@ -334,9 +334,11 @@ fn to_data_url(bytes: &[u8]) -> Option<String> {
     if bytes.is_empty() {
         return None;
     }
-    let is_jpeg = bytes.len() >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8;
+    let is_jpeg = bytes.len() >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF;
     let is_png = bytes.len() >= 8 && &bytes[0..4] == b"\x89PNG";
     let is_webp = bytes.len() >= 12 && &bytes[0..4] == b"RIFF" && &bytes[8..12] == b"WEBP";
+    let is_gif = bytes.len() >= 6 && (&bytes[0..6] == b"GIF87a" || &bytes[0..6] == b"GIF89a");
+    let is_bmp = bytes.len() >= 2 && &bytes[0..2] == b"BM";
     let is_svg = bytes.starts_with(b"<svg") || bytes.starts_with(b"<?xml");
     let mime = if is_jpeg {
         "image/jpeg"
@@ -344,10 +346,14 @@ fn to_data_url(bytes: &[u8]) -> Option<String> {
         "image/png"
     } else if is_webp {
         "image/webp"
+    } else if is_gif {
+        "image/gif"
+    } else if is_bmp {
+        "image/bmp"
     } else if is_svg {
         "image/svg+xml"
     } else {
-        "image/jpeg"
+        return None;
     };
     Some(format!("data:{mime};base64,{}", B64.encode(bytes)))
 }

@@ -1215,6 +1215,8 @@
   "count_pill_simple_title": "{{count}} item di lokasi ini",
   "loading_video": "Memuat Video…",
   "loading_short": "Memuat…",
+  "thumbnail_corrupted": "Thumbnail / Berkas Rusak",
+  "thumbnail_corrupted_short": "Rusak",
   "deselect": "Batal pilih",
   "select": "Pilih",
   "duration_title": "Durasi {{duration}}",

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ImageOff } from 'lucide-react';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
 import { FileTypeIcon } from './FileTypeIcon';
 
@@ -15,6 +17,7 @@ export const ThumbnailImage: React.FC<ThumbnailImageProps> = ({
   strippedThumbUrl,
   className = '',
 }) => {
+  const { t } = useTranslation();
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
 
@@ -27,7 +30,21 @@ export const ThumbnailImage: React.FC<ThumbnailImageProps> = ({
     };
   }, []);
 
-  if (!displaySrc || error) {
+  if (error) {
+    return (
+      <div
+        className={`w-full h-full flex flex-col items-center justify-center bg-slate-900/80 p-2 text-center select-none ${className}`}
+        title={t('speedtest.thumbnail_corrupted')}
+      >
+        <ImageOff size={28} className="text-rose-500/80 mb-1" />
+        <span className="text-[10px] font-medium text-rose-400 leading-tight">
+          {t('speedtest.thumbnail_corrupted_short')}
+        </span>
+      </div>
+    );
+  }
+
+  if (!displaySrc) {
     return (
       <div className={`w-full h-full flex items-center justify-center bg-slate-900/60 ${className}`}>
         <FileTypeIcon file={file} size="lg" />

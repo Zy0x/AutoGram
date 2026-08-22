@@ -48,6 +48,7 @@ allow = [
     "studio_get_transfer",
     "studio_run_orchestrated",
     "studio_dismiss_transfer",
+    "studio_clear_transfers",
     "studio_cancel_transfer",
     "studio_set_transfer_paused",
     "quality_preflight",

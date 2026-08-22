@@ -1,13 +1,16 @@
-AutoGram Version: v3.8.14
+AutoGram Version: v3.8.16
 
 Current State:
-v3.8.14 Zero-Scan Sparse ZIP In-Memory Decryptor & True Minimal Bandwidth Streaming Engine — eliminasi total pemborosan kuota data pada berkas ZIP terenkripsi (ZipCrypto & WinZip AES) melalui arsitektur dekripsi langsung in-memory:
-1. Pure In-Memory Direct Decryptor & Decompressor: Mengimplementasikan `ZipCrypto` native cipher stream dan sintetis in-memory micro-archive pada `grammers_sparse_zip.rs`. Saat membuka entri terenkripsi, sistem HANYA mengunduh rentang byte lokal entri target (header lokal 30B + nama + payload terkompresi) dan langsung mendekripsinya di RAM dalam hitungan milidetik.
-2. Complete Elimination of 50MB-60MB MagicFinder Full Scans: Menghapus total ketergantungan pada `zip::ZipArchive::new(sparse_reader)` yang sebelumnya memicu pemindaian linier multi-blok (50-60 MB) dari EOCD ke Central Directory. Pembukaan foto/media 1–2 MB kini murni hanya mengunduh 1–2 MB data byte sebenarnya.
-3. Robust Fallback & Direct Disk Extraction: Menyelaraskan fungsi pratinjau (`preview_zip_entry_direct`) dan ekstraksi langsung (`extract_zip_entry_direct`) sehingga seluruh operasi ZIP berpassword terlindungi dengan efisiensi kuota data 100% minimal.
-4. Dynamic Session Directory Resolution: Memperbaiki resolusi `sessions_dir` di seluruh fungsi sparse ZIP dengan menggunakan `super::grammers_ops::resolve_sessions_dir(None)` yang otomatis mencari `worker/sessions`.
+v3.8.16 Modern-Elegant Animated Refresh Button & Responsive Micro-Interactions — perombakan total visual tombol refresh atas menjadi desain glassmorphic elegan dengan animasi interaktif halus:
+1. Glassmorphism & High-Tech Dark Design: Mengganti tombol kaku abu-abu dengan styling modern berlatar belakang gradien semi-transparan `rgba(30, 41, 59, 0.75)`, blur backdrop `12px`, border neon cyan `rgba(56, 189, 248, 0.28)`, serta aksen pantulan cahaya (luminous sheen) dan glowing halo saat di-hover.
+2. Spring Pre-Tension & Tactile Micro-Interactions: Menambahkan rotasi pegas halus 60° pada ikon saat kursor diarahkan ke tombol, respon tekan elastis `scale(0.95)`, dan transisi status yang responsif.
+3. Smooth Continuous Spin & Active Aura: Menghadirkan animasi rotasi 360° yang mulus dan tanpa patah-patah dengan efek shimmering beam sweep serta pulsing cyan aura saat proses sinkronisasi sesi sedang berlangsung.
+4. Instant Sync Feedback & Success Check Pop: Menambahkan umpan balik transisi hijau emerald `is-success` lengkap dengan ikon centang `Check` animasi pop selama 1.6 detik setelah refresh selesai sebelum kembali ke status siap.
+5. 100% Zero Hardcoded Strings & Responsive Parity: Ekstraksi seluruh teks status ke `id/nav.json` dan `en/nav.json` (`refreshing`, `refreshed`), serta penjagaan visibilitas ikon pada layar sentuh/mobile (<= 768px).
 
 Previous:
+v3.8.15 Corrupted Thumbnail Healing & Image Magic Byte Validation Engine.
+v3.8.14 Zero-Scan Sparse ZIP In-Memory Decryptor & True Minimal Bandwidth Streaming Engine.
 v3.8.13 Filter Pill & Card List Exact Parity Engine.
 v3.8.12 Universal Media Card Right-Click Context Menu & Multi-Stream File Resolution Engine.
 v3.8.11 Password-Protected Sparse ZIP On-The-Fly Decryption & Scoped Peer/Topic MTProto Range Streaming.

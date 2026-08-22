@@ -360,10 +360,14 @@ export function DriveTransferManager({
             type="button"
             className="tm-icon-btn"
             onClick={() => {
-              onToggleMinimize();
+              if (!session?.active && onDismiss) {
+                onDismiss();
+              } else {
+                onToggleMinimize();
+              }
             }}
-            title={t('speedtest.minimize_panel')}
-            aria-label={t('speedtest.show_less')}
+            title={session?.active ? t('speedtest.minimize_panel') : t('speedtest.clear_transfer_history')}
+            aria-label={session?.active ? t('speedtest.show_less') : t('speedtest.clear_transfer_history')}
           >
             <X size={15} />
           </button>
@@ -376,6 +380,15 @@ export function DriveTransferManager({
           <p className="tm-hint">
             {t('ui.generated.mulai_unduh_atau_unggah_progress_akan_tampil_di__51dedb7')}
           </p>
+          <div className="tm-controls" style={{ marginTop: 12, justifyContent: 'center' }}>
+            <button
+              type="button"
+              className="tm-btn ghost"
+              onClick={onDismiss || onToggleMinimize}
+            >
+              <Minimize2 size={13} /> {t('speedtest.show_less')}
+            </button>
+          </div>
         </div>
       ) : (
         <>

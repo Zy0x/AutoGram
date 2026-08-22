@@ -147,6 +147,20 @@ class TransferProgressStore {
     }
   };
 
+  public clearAllJobs = () => {
+    this.jobs.clear();
+    this.speedHistories.clear();
+    this.notify();
+  };
+
+  public clearJob = (jobId: string) => {
+    this.jobs.delete(jobId);
+    this.speedHistories.delete(`${jobId}_encode`);
+    this.speedHistories.delete(`${jobId}_upload`);
+    this.speedHistories.delete(`${jobId}_download`);
+    this.notify();
+  };
+
   private notify() {
     this.updateSnapshot();
     this.listeners.forEach((listener) => listener());
@@ -224,6 +238,8 @@ export function useTransferProgressStore() {
   return {
     ...state,
     fetchHardwareCapabilities: transferProgressStore.fetchHardwareCapabilities,
+    clearAllJobs: transferProgressStore.clearAllJobs,
+    clearJob: transferProgressStore.clearJob,
   };
 }
 

@@ -1215,6 +1215,8 @@
   "count_pill_simple_title": "{{count}} items in this location",
   "loading_video": "Loading Video…",
   "loading_short": "Loading…",
+  "thumbnail_corrupted": "Corrupted Thumbnail / File",
+  "thumbnail_corrupted_short": "Corrupted",
   "deselect": "Deselect",
   "select": "Select",
   "duration_title": "Duration {{duration}}",

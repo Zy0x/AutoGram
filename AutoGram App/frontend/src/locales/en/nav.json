@@ -1,6 +1,8 @@
 {
   "refresh_sessions": "Refresh session list and connection status",
   "refresh": "Refresh",
+  "refreshing": "Refreshing…",
+  "refreshed": "Synced",
   "title": "AutoGram",
   "home": "Home",
   "dashboard": "Dashboard",

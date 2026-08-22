@@ -208,30 +208,51 @@ pub fn list_transfers() -> Vec<TransferRecord> {
     v
 }
 
-fn can_dismiss_state(state: &TransferState) -> bool {
-    !matches!(
-        state,
-        TransferState::Running | TransferState::Queued | TransferState::Paused
-    )
-}
-
-/// Remove a transfer only after it is no longer executable. The UI cancels a
-/// recovered/stale job first, then dismisses it, so an active upload can never
-/// be silently erased from the durable journal.
+/// Dismiss a single transfer. Cancels tracking and removes the record.
 pub fn dismiss_transfer(transfer_id: &str) -> Result<bool, String> {
     let mut map = live().write();
-    let Some(record) = map.get(transfer_id) else {
+    let Some(_) = map.get(transfer_id) else {
         return Ok(false);
     };
-    if !can_dismiss_state(&record.state) {
-        return Err("transfer must be cancelled before it can be dismissed".into());
-    }
     let removed = map.remove(transfer_id).is_some();
     drop(map);
     cancelled_set().write().remove(transfer_id);
     paused_set().write().remove(transfer_id);
     persist();
     Ok(removed)
+}
+
+/// Clear all transfers or transfers for a specific session.
+pub fn clear_transfers(session: Option<&str>) -> Result<usize, String> {
+    let mut map = live().write();
+    let mut cancelled = cancelled_set().write();
+    let mut paused = paused_set().write();
+    let mut removed_count = 0;
+
+    if let Some(sess) = session {
+        let keys_to_remove: Vec<String> = map
+            .iter()
+            .filter(|(_, rec)| rec.session == sess)
+            .map(|(k, _)| k.clone())
+            .collect();
+        for k in &keys_to_remove {
+            cancelled.remove(k);
+            paused.remove(k);
+            if map.remove(k).is_some() {
+                removed_count += 1;
+            }
+        }
+    } else {
+        removed_count = map.len();
+        map.clear();
+        cancelled.clear();
+        paused.clear();
+    }
+    drop(map);
+    drop(cancelled);
+    drop(paused);
+    persist();
+    Ok(removed_count)
 }
 
 pub fn update_item(
@@ -439,12 +460,50 @@ mod tests {
     }
 
     #[test]
-    fn dismiss_accepts_only_terminal_states() {
-        assert!(!can_dismiss_state(&TransferState::Running));
-        assert!(!can_dismiss_state(&TransferState::Queued));
-        assert!(!can_dismiss_state(&TransferState::Paused));
-        assert!(can_dismiss_state(&TransferState::Completed));
-        assert!(can_dismiss_state(&TransferState::Failed));
-        assert!(can_dismiss_state(&TransferState::Cancelled));
+    fn dismiss_and_clear_transfers() {
+        let dir = std::env::temp_dir().join("ag_job_queue_test_clear");
+        let _ = fs::create_dir_all(&dir);
+        let f1 = dir.join("f1.txt");
+        let f2 = dir.join("f2.txt");
+        fs::write(&f1, b"hello").unwrap();
+        fs::write(&f2, b"world").unwrap();
+        init_queue_path(dir.join("q.json"));
+        let _ = create_transfer(CreateTransferRequest {
+            session: "SessionA".into(),
+            api_id: 1,
+            api_hash: "x".into(),
+            chat_id: "-1001".into(),
+            topic_id: None,
+            files: vec![CreateFileEntry {
+                path: f1.to_string_lossy().into(),
+                caption: None,
+                size: Some(5),
+            }],
+            options: None,
+            transfer_id: Some("clear-t1".into()),
+        })
+        .unwrap();
+        assert!(get_transfer("clear-t1").is_some());
+        assert!(dismiss_transfer("clear-t1").unwrap());
+        assert!(get_transfer("clear-t1").is_none());
+
+        let _ = create_transfer(CreateTransferRequest {
+            session: "SessionA".into(),
+            api_id: 1,
+            api_hash: "x".into(),
+            chat_id: "-1001".into(),
+            topic_id: None,
+            files: vec![CreateFileEntry {
+                path: f2.to_string_lossy().into(),
+                caption: None,
+                size: Some(5),
+            }],
+            options: None,
+            transfer_id: Some("clear-t2".into()),
+        })
+        .unwrap();
+        let count = clear_transfers(Some("SessionA")).unwrap();
+        assert_eq!(count, 1);
+        assert!(get_transfer("clear-t2").is_none());
     }
 }

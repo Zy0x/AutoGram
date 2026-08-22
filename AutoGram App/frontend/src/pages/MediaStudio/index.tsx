@@ -114,6 +114,7 @@ import {
   studioRunUploadDefault,
   studioListTransfers,
   studioDismissTransfer,
+  studioClearTransfers,
   mapOrchItemStatus,
 } from '../../lib/telegram';
 import {
@@ -342,6 +343,7 @@ import { DriveSidebar } from '../../components/drive/Navigation/DriveSidebarInde
 import { DriveTopBar, type DriveCrumbSeg } from '../../components/drive/Navigation/DriveTopBar';
 import { DriveExplorer } from '../../components/drive/Explorer/DriveExplorer';
 import { DriveTransferManager } from '../../components/drive/Transfers/DriveTransferManager';
+import { transferProgressStore } from '../../stores/transferProgressStore';
 import { DownloadAllZipModal, type ZipCategory } from '../../components/drive/Modals/DownloadAllZipModal';
 import { TelegramChatActionModal } from '../../components/drive/Modals/TelegramChatActionModal';
 import {
@@ -9883,7 +9885,7 @@ function MediaDriveDesktop({
           <DriveTransferManager
             session={transfer}
             minimized={transferMinimized}
-            forceShow={!transferMinimized}
+            forceShow={!transferMinimized && (transfer.active || (transfer.items?.length ?? 0) > 0 || !!transfer.banner)}
             onToggleMinimize={toggleTransferMinimize}
             onPause={
               transfer.active && transfer.direction !== 'move' ? pauseTransfer : undefined
@@ -9892,10 +9894,35 @@ function MediaDriveDesktop({
               transfer.active && transfer.direction !== 'move' ? resumeTransfer : undefined
             }
             onStop={transfer.active || moveActiveRef.current ? cancelTransfer : undefined}
-            onClearDone={() => setTransfer((t) => clearFinishedItems(t))}
+            onClearDone={() => {
+              const cleaned = clearFinishedItems(transferRef.current);
+              const hasRemaining = Array.isArray(cleaned.items) && cleaned.items.length > 0;
+              if (!hasRemaining && !cleaned.active) {
+                if (transferHideTimer.current) clearTimeout(transferHideTimer.current);
+                void (async () => {
+                  const transferId = transferRef.current.jobKey;
+                  if (transferId) {
+                    await cancelDriveJob(transferId);
+                    await studioDismissTransfer(transferId);
+                  }
+                  await studioClearTransfers(creds?.session);
+                  transferProgressStore.clearAllJobs();
+                  transferQueueRef.current = [];
+                  savePersistedQueue([]);
+                  localStorage.removeItem('autogram_drive_upload_queue');
+                  setHasPersistedQueue(false);
+                  setPersistedQueueCount(0);
+                  setTransfer({ ...EMPTY_TRANSFER_SESSION });
+                  setTransferMinimized(true);
+                  localStorage.setItem(LS_TM_MIN, '1');
+                })();
+              } else {
+                setTransfer(cleaned);
+              }
+            }}
             onDismiss={() => {
-              // Explicit history clear. A recovered Rust record is cancelled
-              // before dismissal so no executable Telegram work is orphaned.
+              // Explicit history clear. Cancels active jobs, dismisses all session transfers
+              // from Rust journal, and resets all local queues and stores.
               void (async () => {
                 if (transferHideTimer.current) clearTimeout(transferHideTimer.current);
                 const transferId = transferRef.current.jobKey;
@@ -9903,6 +9930,8 @@ function MediaDriveDesktop({
                   await cancelDriveJob(transferId);
                   await studioDismissTransfer(transferId);
                 }
+                await studioClearTransfers(creds?.session);
+                transferProgressStore.clearAllJobs();
                 transferQueueRef.current = [];
                 savePersistedQueue([]);
                 localStorage.removeItem('autogram_drive_upload_queue');

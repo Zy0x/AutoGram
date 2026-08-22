@@ -58,9 +58,11 @@ pub fn to_data_url(bytes: &[u8]) -> Option<String> {
     if bytes.is_empty() {
         return None;
     }
-    let is_jpeg = bytes.len() >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8;
+    let is_jpeg = bytes.len() >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF;
     let is_png = bytes.len() >= 8 && &bytes[0..4] == b"\x89PNG";
     let is_webp = bytes.len() >= 12 && &bytes[0..4] == b"RIFF" && &bytes[8..12] == b"WEBP";
+    let is_gif = bytes.len() >= 6 && (&bytes[0..6] == b"GIF87a" || &bytes[0..6] == b"GIF89a");
+    let is_bmp = bytes.len() >= 2 && &bytes[0..2] == b"BM";
     let is_svg = bytes.starts_with(b"<svg") || bytes.starts_with(b"<?xml");
     let mime = if is_jpeg {
         "image/jpeg"
@@ -68,10 +70,14 @@ pub fn to_data_url(bytes: &[u8]) -> Option<String> {
         "image/png"
     } else if is_webp {
         "image/webp"
+    } else if is_gif {
+        "image/gif"
+    } else if is_bmp {
+        "image/bmp"
     } else if is_svg {
         "image/svg+xml"
     } else {
-        "image/jpeg"
+        return None;
     };
     Some(format!("data:{mime};base64,{}", B64.encode(bytes)))
 }
@@ -1050,7 +1056,13 @@ async fn download_media_thumb(
                     return Ok(frame_bytes);
                 }
 
-                return Ok(sample_bytes);
+                if is_standard_web_image {
+                    return Ok(sample_bytes);
+                }
+                return Err(TgError::new(
+                    TgErrorCode::Internal,
+                    "CorruptedOrUnrecognizedImageMedia",
+                ));
             } else if is_pdf {
                 // PDF extraction: try embedded cover image stream first, then WinRT PDF page render
                 if let Some(img_bytes) = extract_embedded_pdf_image(&sample_bytes) {
@@ -1868,7 +1880,12 @@ pub fn thumbs_batch_items_blocking_app(
                         if let Some(url) = to_data_url(&bytes) {
                             insert_thumb_mem_cache(cache_key.clone(), url.clone());
                             found_url = Some(url);
+                        } else {
+                            // Cached file is corrupted or non-image bytes — remove immediately
+                            let _ = std::fs::remove_file(&cache_file);
                         }
+                    } else {
+                        let _ = std::fs::remove_file(&cache_file);
                     }
                 }
             }
@@ -2102,13 +2119,13 @@ pub fn thumbs_batch_items_blocking_app(
                                 let dl_res = download_media_thumb(&client, &media, &q_key).await;
                                 match dl_res {
                                     Ok(bytes) if bytes.len() >= 64 => {
-                                        let cache_file = t_dir.join(format!("{q_cache}.jpg"));
-                                        let rand_id = now_ms();
-                                        let part_file = t_dir.join(format!("{q_cache}.{rand_id}.part"));
-                                        if std::fs::write(&part_file, &bytes).is_ok() {
-                                            let _ = std::fs::rename(&part_file, &cache_file);
-                                        }
                                         if let Some(url) = to_data_url(&bytes) {
+                                            let cache_file = t_dir.join(format!("{q_cache}.jpg"));
+                                            let rand_id = now_ms();
+                                            let part_file = t_dir.join(format!("{q_cache}.{rand_id}.part"));
+                                            if std::fs::write(&part_file, &bytes).is_ok() {
+                                                let _ = std::fs::rename(&part_file, &cache_file);
+                                            }
                                             insert_thumb_mem_cache(q_cache, url.clone());
                                             return (
                                                 key,

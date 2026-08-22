@@ -138,6 +138,15 @@ export async function studioDismissTransfer(transferId: string): Promise<boolean
   }
 }
 
+export async function studioClearTransfers(session?: string | null): Promise<number> {
+  if (!detectTauriRuntime()) return 0;
+  try {
+    return await invoke<number>('studio_clear_transfers', { session: session ?? null });
+  } catch {
+    return 0;
+  }
+}
+
 /**
  * Run Rust + Grammers orchestrated upload. Throws on failure (no Telethon fallback).
  */

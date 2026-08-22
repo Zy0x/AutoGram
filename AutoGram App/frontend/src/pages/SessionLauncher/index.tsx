@@ -17,6 +17,7 @@ import {
   Loader2,
   AlertTriangle,
   RefreshCw,
+  Check,
 } from 'lucide-react';
 import {
   loadSelectableSessions,
@@ -74,6 +75,7 @@ export function SessionLauncher({
   const [deletingSessionStep2, setDeletingSessionStep2] = useState<SessionOption | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [isRefreshingSessions, setIsRefreshingSessions] = useState(false);
+  const [justRefreshed, setJustRefreshed] = useState(false);
 
   useEffect(() => {
     const handleOutsideClick = () => {
@@ -119,6 +121,19 @@ export function SessionLauncher({
         if (force) setIsRefreshingSessions(false);
       });
   }, []);
+
+  const handleManualRefresh = useCallback(async () => {
+    if (isRefreshingSessions) return;
+    try {
+      await refreshSessions(true, true);
+      setJustRefreshed(true);
+      setTimeout(() => {
+        setJustRefreshed(false);
+      }, 1600);
+    } catch {
+      // Ignored
+    }
+  }, [isRefreshingSessions, refreshSessions]);
 
   useEffect(() => {
     // [Stale-While-Revalidate]
@@ -265,14 +280,33 @@ export function SessionLauncher({
         <div className="ag-launcher-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button
             type="button"
-            onClick={() => void refreshSessions(true, true)}
+            onClick={handleManualRefresh}
             disabled={isRefreshingSessions}
-            className="ag-launcher-refresh-btn"
+            className={`ag-launcher-refresh-btn ${isRefreshingSessions ? 'is-refreshing' : ''} ${
+              justRefreshed ? 'is-success' : ''
+            }`}
             title={t('nav.refresh_sessions')}
             aria-label={t('nav.refresh_sessions')}
           >
-            <RefreshCw size={15} className={isRefreshingSessions ? 'td-spin' : undefined} />
-            <span>{t('nav.refresh')}</span>
+            <span className="ag-refresh-btn-glow" aria-hidden="true" />
+            <span className="ag-refresh-btn-shimmer" aria-hidden="true" />
+            <span className="ag-refresh-icon-wrap" aria-hidden="true">
+              {justRefreshed ? (
+                <Check size={14} className="ag-refresh-check-icon" />
+              ) : (
+                <RefreshCw
+                  size={14}
+                  className={`ag-refresh-icon ${isRefreshingSessions ? 'is-spinning' : ''}`}
+                />
+              )}
+            </span>
+            <span className="ag-refresh-label">
+              {isRefreshingSessions
+                ? t('nav.refreshing')
+                : justRefreshed
+                ? t('nav.refreshed')
+                : t('nav.refresh')}
+            </span>
           </button>
           <button
             type="button"
