@@ -931,7 +931,12 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
           setPreviewEntry(null);
           setPreview(null);
           setPreviewLocalUrl(null);
+          setPreviewError(null);
         }}
+        folders={folders}
+        chats={chats}
+        creds={creds}
+        folderId={folderId}
       />
 
       <ZipExtractModal

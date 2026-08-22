@@ -129,6 +129,19 @@ export type DuplicateContextInfo = {
   onNavigateGroup?: (nextGroupIndex: number, fileToPreview?: DriveFile) => void;
 };
 
+export type CustomPreviewSource = {
+  src?: string | null;
+  text?: string | null;
+  kind?: 'image' | 'video' | 'audio' | 'text' | 'pdf' | 'other' | 'binary';
+  loading?: boolean;
+  error?: string | null;
+  encrypted?: boolean;
+  compressedSize?: number | null;
+  indexCounter?: { current: number; total: number };
+  onExtract?: () => void;
+  onReload?: () => void;
+};
+
 type Props = {
   file: DriveFile;
   folderId: number | null;
@@ -158,6 +171,7 @@ type Props = {
   initialFullscreen?: boolean;
   /** Open the detailed metadata panel immediately (context-menu Info). */
   initialInfoOpen?: boolean;
+  customSource?: CustomPreviewSource;
 };
 
 type PlayQuality = {
@@ -689,6 +703,7 @@ export function DrivePreviewModal({
   onEnqueueDownloadSingle,
   initialFullscreen = false,
   initialInfoOpen = false,
+  customSource,
 }: Props) {
   const { t } = useTranslation();
   const defaultVideoQualities = useMemo(() => fallbackVideoQualities(t), [t]);
@@ -1711,6 +1726,17 @@ export function DrivePreviewModal({
     liveStreamIdRef.current = null;
     lastSeekKickRef.current = 0;
     hasUserPlayRef.current = false;
+    if (customSource) {
+      setLoading(!!customSource.loading);
+      setError(customSource.error ?? null);
+      setDataUrl(customSource.src ?? null);
+      setPath(null);
+      setStreamUrl(null);
+      setStreamId(null);
+      setTextBody(customSource.text ?? null);
+      if (customSource.kind) setPreviewKind(customSource.kind);
+      return;
+    }
     // ZIP: browser lists central dir — skip heavy media stream/download path
     if (isZipDriveFile(file)) {
       setLoading(false);
@@ -1726,7 +1752,17 @@ export function DrivePreviewModal({
     const q = readQualityPref();
     setQuality(q);
     loadPreview(q);
-  }, [file.id, folderId, isSplitCompareMode, initialInfoOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [file.id, folderId, isSplitCompareMode, initialInfoOpen, customSource?.src, customSource?.loading, customSource?.error]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Synchronize dynamic updates to customSource
+  useEffect(() => {
+    if (!customSource) return;
+    setLoading(!!customSource.loading);
+    setError(customSource.error ?? null);
+    setDataUrl(customSource.src ?? null);
+    setTextBody(customSource.text ?? null);
+    if (customSource.kind) setPreviewKind(customSource.kind);
+  }, [customSource?.loading, customSource?.error, customSource?.src, customSource?.text, customSource?.kind]);
 
   useEffect(() => {
     streamDoneRef.current = streamDone;
@@ -2450,6 +2486,7 @@ export function DrivePreviewModal({
 
   // Prefer file metadata immediately (before RPC) so toolbar doesn't flash video tools on photos
   const mediaKind = useMemo(() => {
+    if (customSource?.kind) return customSource.kind === 'binary' ? ('other' as const) : customSource.kind;
     if (isImageDriveFile(file) && !isVideoDriveFile(file)) return 'image' as const;
     if (isVideoDriveFile(file) && !isImageDriveFile(file)) return 'video' as const;
     if (isAudioDriveFile(file)) return 'audio' as const;
@@ -2457,7 +2494,7 @@ export function DrivePreviewModal({
     if (isTextDriveFile(file)) return 'text' as const;
     if (isZipDriveFile(file)) return 'zip' as const;
     return resolvePreviewKind(file, mime, previewKind);
-  }, [file, mime, previewKind]);
+  }, [customSource?.kind, file, mime, previewKind]);
   const isVideo = mediaKind === 'video';
   const isImage = mediaKind === 'image';
   const isAudio = mediaKind === 'audio';
@@ -2477,8 +2514,8 @@ export function DrivePreviewModal({
   }, [isVideo, isAudio, file.id]);
 
   const mediaSrc = useMemo(
-    () => buildMediaSrc(streamUrl, dataUrl, path, isImage, { forVideo: isVideo || isAudio }),
-    [streamUrl, dataUrl, path, isImage, isVideo, isAudio]
+    () => customSource?.src || buildMediaSrc(streamUrl, dataUrl, path, isImage, { forVideo: isVideo || isAudio }),
+    [customSource?.src, streamUrl, dataUrl, path, isImage, isVideo, isAudio]
   );
 
   // Fallback sources if primary fails — never inject poster/thumb into <video>
@@ -2768,6 +2805,10 @@ export function DrivePreviewModal({
   };
 
   const handleDownload = () => {
+    if (customSource?.onExtract) {
+      customSource.onExtract();
+      return;
+    }
     if (!creds || saving) return;
     setConfirmDlg({
       kind: 'download',
@@ -3506,6 +3547,8 @@ export function DrivePreviewModal({
                       {isVideo && activeQuality ? ` · ${activeQuality.label}` : ''}
                       {fromCache && !loading ? t('ui.generated.cache_00cdf64') : ''}
                       {previewState === 'degraded' ? t('ui.generated.degraded_e96e6b7') : ''}
+                      {customSource?.indexCounter ? ` · [${customSource.indexCounter.current} / ${customSource.indexCounter.total}]` : ''}
+                      {customSource?.encrypted ? ` · 🔒 ${t('speedtest.zip_tag_encrypted')}` : ''}
                     </>
                   )}
                 </span>
@@ -3984,6 +4027,10 @@ export function DrivePreviewModal({
                 disabled={isHeaderFrozen || (!isSplitCompareMode && loading)}
                 onClick={() => {
                   resetViewTools();
+                  if (customSource?.onReload) {
+                    customSource.onReload();
+                    return;
+                  }
                   if (isSplitCompareMode && activeSlotFile) {
                     invalidatePreview(
                       activeSlotFile.folder_id ?? folderId,
@@ -6032,6 +6079,16 @@ export function DrivePreviewModal({
               <div>
                 <strong>{t("speedtest.size_label")}</strong> {formatDriveBytes(file.size)}
               </div>
+              {customSource?.compressedSize != null && (
+                <div>
+                  <strong>{t("speedtest.zip_col_compressed")}</strong> {formatDriveBytes(customSource.compressedSize)}
+                </div>
+              )}
+              {customSource?.encrypted && (
+                <div>
+                  <strong>{t("speedtest.zip_tag_encrypted")}</strong> 🔒 {t('speedtest.zip_tag_encrypted')}
+                </div>
+              )}
               {durationLabel && (
                 <div>
                   <strong>{t("speedtest.duration_label")}</strong> {durationLabel}
