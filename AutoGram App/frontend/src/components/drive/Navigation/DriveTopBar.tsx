@@ -369,13 +369,15 @@ export function DriveTopBar({
     topicsCount: topics?.length ?? 0,
   });
 
-  // Auto-scroll active topic pill into view (e.g. from Quick Jump or topic click)
+  // Auto-scroll active topic pill into view (e.g. from Quick Jump, Quick Action, or topic click)
   useEffect(() => {
-    if (topicFilter == null || !topicPillsRef.current || !topics?.length) return;
-    const timer = setTimeout(() => {
+    if (topicFilter == null || !topicPillsRef.current) return;
+    const scrollToActiveTopic = () => {
       const container = topicPillsRef.current;
       if (!container) return;
-      const activePill = container.querySelector<HTMLElement>(`[data-topic-id="${topicFilter}"]`);
+      const activePill =
+        container.querySelector<HTMLElement>(`[data-topic-id="${topicFilter}"]`) ||
+        container.querySelector<HTMLElement>('.td-topic-pill.active');
       if (activePill) {
         const containerWidth = container.clientWidth;
         const pillLeft = activePill.offsetLeft;
@@ -383,9 +385,20 @@ export function DriveTopBar({
         const targetScrollLeft = Math.max(0, pillLeft - (containerWidth / 2) + (pillWidth / 2));
         container.scrollTo({ left: targetScrollLeft, behavior: 'smooth' });
       }
-    }, 60);
-    return () => clearTimeout(timer);
-  }, [topicFilter, topics]);
+    };
+
+    // Staggered triggers to reliably catch async MTProto topic loading and DOM layout paint
+    scrollToActiveTopic();
+    const t1 = setTimeout(scrollToActiveTopic, 80);
+    const t2 = setTimeout(scrollToActiveTopic, 220);
+    const t3 = setTimeout(scrollToActiveTopic, 500);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [topicFilter, topics, showTopics]);
 
   const topbarActionsRef = useRef<HTMLDivElement>(null);
   const [canScrollActionsLeft, setCanScrollActionsLeft] = useState(false);

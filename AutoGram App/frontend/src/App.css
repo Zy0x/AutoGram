@@ -9816,9 +9816,11 @@ body:has(.app-layout-drive-focus),
   color: var(--td-text, inherit);
 }
 .td-topic-pill.active {
-  background: color-mix(in srgb, var(--td-primary) 22%, transparent);
-  border-color: color-mix(in srgb, var(--td-primary) 55%, var(--td-border));
-  color: var(--td-primary);
+  background: color-mix(in srgb, var(--td-primary, #f59e0b) 25%, transparent);
+  border-color: color-mix(in srgb, var(--td-primary, #f59e0b) 75%, var(--td-border));
+  color: var(--td-primary, #f59e0b);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--td-primary, #f59e0b) 30%, transparent);
+  font-weight: 700;
 }
 .td-topic-pill.is-closed {
   opacity: 0.72;
