@@ -95,16 +95,7 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
                 onDoubleClick={() => onNavigateDir(directory)}
                 onContextMenu={(e) => onContextMenu(e, { kind: 'dir', path: directory })}
               >
-                <td className="dzb-td-check">
-                  <input
-                    type="checkbox"
-                    checked={selected}
-                    onChange={() => onToggleSelectEntry(directory)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="dzb-checkbox"
-                    aria-label={t('speedtest.zip_select_directory', { name: label })}
-                  />
-                </td>
+                <td className="dzb-td-check" />
                 <td className="dzb-td-name">
                   <div className="dzb-name-cell">
                     <Folder size={18} className="dzb-folder-icon" />
@@ -154,16 +145,7 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
                 onDoubleClick={() => onPreviewCode(entry)}
                 onContextMenu={(e) => onContextMenu(e, { kind: 'file', entry })}
               >
-                <td className="dzb-td-check">
-                  <input
-                    type="checkbox"
-                    checked={selected}
-                    onChange={() => onToggleSelectEntry(entry.name)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="dzb-checkbox"
-                    aria-label={t('speedtest.zip_select_entry', { name: entry.name })}
-                  />
-                </td>
+                <td className="dzb-td-check" />
                 <td className="dzb-td-name">
                   <div className="dzb-name-cell">
                     <EntryIcon name={entry.name} />
