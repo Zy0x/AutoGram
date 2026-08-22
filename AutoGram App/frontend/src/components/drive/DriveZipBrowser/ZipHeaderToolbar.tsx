@@ -4,7 +4,6 @@ import {
   Search,
   Download,
   Lock,
-  Unlock,
   FileText,
   Image as ImageIcon,
   Film,
@@ -146,13 +145,9 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
                   </span>
                 )}
 
-                {isPasswordProtected ? (
+                {isPasswordProtected && (
                   <span className="dzb-badge-protected">
                     <Lock size={11} /> {t('speedtest.zip_protected')}
-                  </span>
-                ) : (
-                  <span className="dzb-badge-unlocked">
-                    <Unlock size={11} /> {t('speedtest.zip_unlocked')}
                   </span>
                 )}
               </div>
