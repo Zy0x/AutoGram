@@ -950,5 +950,28 @@
     "gagal_menyimpan_api_credentials_silakan_coba_lag_4907244": "Failed to save API Credentials. Please try again.",
     "credentials_anda_disimpan_secara_terenkripsi_ama_b24611b": "Your credentials are stored securely encrypted on local device via Encrypted Store",
     "api_id_hash_belum_terisi_buka_settings_untuk_men_d015fa3": "API ID / Hash has not been filled in. Open Settings to save credentials — session files remain safe on disk."
+  },
+  "path_jump": {
+    "title": "Quick Jump",
+    "account": "Account",
+    "location": "Location",
+    "topic": "Topic",
+    "media": "Media",
+    "btn_go": "Open Location",
+    "account_switched": "Switched to account {{account}}",
+    "account_not_found": "Account {{account}} is not registered in AutoGram sessions.",
+    "account_try_current": "Try current active account",
+    "chat_not_found": "Chat or Drive {{chat}} not found or inaccessible.",
+    "chat_resolving": "Resolving location…",
+    "topic_not_found": "Topic T{{topic}} not found, opening main chat.",
+    "media_not_found": "Message / Media #{{msgId}} not found in this location.",
+    "navigate_success": "Navigated to {{target}} successfully",
+    "hint_enter": "Press Enter or click to open",
+    "hint_format": "Format: U{userId}/D{chatId}/T{topicId}/{msgId}",
+    "label_user_id": "User ID",
+    "label_chat_id": "Chat / Drive ID",
+    "label_topic_id": "Topic ID",
+    "label_message_id": "Message / Media ID",
+    "label_username": "Username"
   }
 }

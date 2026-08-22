@@ -950,5 +950,28 @@
     "gagal_menyimpan_api_credentials_silakan_coba_lag_4907244": "Gagal menyimpan API Credentials. Silakan coba lagi.",
     "credentials_anda_disimpan_secara_terenkripsi_ama_b24611b": "Credentials Anda disimpan secara terenkripsi di perangkat lokal melalui Encrypted Store",
     "api_id_hash_belum_terisi_buka_settings_untuk_men_d015fa3": "API ID / Hash belum terisi. Buka Settings untuk menyimpan credentials — session file tetap aman di disk."
+  },
+  "path_jump": {
+    "title": "Navigasi Cepat",
+    "account": "Akun",
+    "location": "Lokasi",
+    "topic": "Topik",
+    "media": "Media",
+    "btn_go": "Buka Lokasi",
+    "account_switched": "Beralih ke akun {{account}}",
+    "account_not_found": "Akun {{account}} tidak terdaftar pada sesi AutoGram.",
+    "account_try_current": "Coba pakai akun aktif saat ini",
+    "chat_not_found": "Chat atau Drive {{chat}} tidak ditemukan atau tidak memiliki akses.",
+    "chat_resolving": "Mencari lokasi…",
+    "topic_not_found": "Topik T{{topic}} tidak ditemukan, membuka chat utama.",
+    "media_not_found": "Pesan / Media #{{msgId}} tidak ditemukan di lokasi ini.",
+    "navigate_success": "Navigasi ke {{target}} berhasil",
+    "hint_enter": "Tekan Enter atau klik untuk membuka",
+    "hint_format": "Format: U{userId}/D{chatId}/T{topicId}/{msgId}",
+    "label_user_id": "ID Pengguna",
+    "label_chat_id": "ID Chat / Drive",
+    "label_topic_id": "ID Topik",
+    "label_message_id": "ID Pesan / Media",
+    "label_username": "Username"
   }
 }

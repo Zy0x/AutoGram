@@ -340,6 +340,7 @@ import {
   withFolderOrphanFlags,
 } from '../../lib/telegram';
 import { DriveSidebar } from '../../components/drive/Navigation/DriveSidebarIndex';
+import type { ParsedTelegramPath } from '../../lib/telegram/interaction/pathSearchParser';
 import { DriveTopBar, type DriveCrumbSeg } from '../../components/drive/Navigation/DriveTopBar';
 import { DriveExplorer } from '../../components/drive/Explorer/DriveExplorer';
 import { DriveTransferManager } from '../../components/drive/Transfers/DriveTransferManager';
@@ -766,6 +767,14 @@ function MediaDriveDesktop({
   });
   const [query, setQuery] = useState('');
   const [chatQuery, setChatQuery] = useState('');
+  /** Path ID navigation toast: {msg, kind} auto-cleared after 3.5s */
+  const [pathJumpToast, setPathJumpToast] = useState<{ msg: string; kind: 'info' | 'warn' | 'error' } | null>(null);
+  const pathJumpToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showPathJumpToast = useCallback((msg: string, kind: 'info' | 'warn' | 'error' = 'info') => {
+    if (pathJumpToastTimerRef.current) clearTimeout(pathJumpToastTimerRef.current);
+    setPathJumpToast({ msg, kind });
+    pathJumpToastTimerRef.current = setTimeout(() => setPathJumpToast(null), 3500);
+  }, []);
   const [mediaFilter, setMediaFilter] = useState<DriveMediaFilter>('all');
   const [viewPerspective, setViewPerspective] = useState<ViewPerspective>('telegram');
   const perspectivePrefsRef = useRef<Record<ViewPerspective, { filter: DriveMediaFilter; sort: DriveSortMode }>>({
@@ -1681,6 +1690,184 @@ function MediaDriveDesktop({
       .then((m) => m.sessionGuardAcquire(next, `studio-${next}`, 'studio'))
       .catch(() => undefined);
   }, [session, invalidateDriveGenerations, getDriveCacheKey]);
+
+  /**
+   * handleNavigateTelegramPath
+   * Orchestrates navigation for a parsed Telegram Path ID (U/D/T/M).
+   * - Resolves account segment: auto-switches session if a matching sesi is found
+   * - Resolves chat/drive: looks up in folders + chats, switches location
+   * - Resolves topic: sets topicFilter (smart fallback to main chat if not found)
+   * - Resolves message/media: looks up in current files list, opens preview
+   */
+  const handleNavigateTelegramPath = useCallback(
+    async (path: ParsedTelegramPath) => {
+      if (!path.isPathId) return;
+
+      // ── 1. Account Segment (U...) ─────────────────────────────────────────
+      if (path.accountSegment) {
+        const userIdStr = path.accountSegment;
+        // Try to find a matching session by comparing session name / phone number
+        const matchedSession = sessions.find((s) => {
+          const name = s.toLowerCase();
+          return (
+            name === userIdStr.toLowerCase() ||
+            name.replace(/[^0-9]/g, '') === userIdStr
+          );
+        });
+
+        if (matchedSession && matchedSession !== session) {
+          // Found a different registered session — auto-switch
+          showPathJumpToast(
+            t('ui.path_jump.account_switched', { account: matchedSession }),
+            'info'
+          );
+          handleSessionChange(matchedSession);
+          // After session switch, navigation to chat must be deferred to next render.
+          // For now, only clear location and let the user re-open the path.
+          setChatQuery('');
+          return;
+        } else if (!matchedSession) {
+          // Not registered — show warning but continue with current session
+          showPathJumpToast(
+            t('ui.path_jump.account_not_found', { account: userIdStr }),
+            'warn'
+          );
+          // Don't abort — the chat target might still be accessible via current session
+        }
+        // If matchedSession === session, continue (already on correct account)
+      }
+
+      // ── 2. Chat/Drive Segment (D...) ─────────────────────────────────────
+      let resolvedChatId: number | null = path.chatId;
+      let resolvedLocationKind: 'saved' | 'drive' | 'chat' | null = null;
+
+      if (resolvedChatId !== null) {
+        // Check if it's a Drive folder
+        const matchFolder = folders.find(
+          (f) => f.id === resolvedChatId || f.id === Math.abs(resolvedChatId!)
+        );
+        if (matchFolder) {
+          resolvedLocationKind = 'drive';
+        } else {
+          // Check chats list
+          const matchChat = chats.find(
+            (c) => c.id === resolvedChatId || c.id === Math.abs(resolvedChatId!)
+          );
+          if (matchChat) {
+            resolvedLocationKind = 'chat';
+          } else {
+            // Not in local cache — show descriptive error
+            showPathJumpToast(
+              t('ui.path_jump.chat_not_found', { chat: path.chatSegmentRaw ?? String(resolvedChatId) }),
+              'error'
+            );
+            setChatQuery('');
+            return;
+          }
+        }
+
+        // Navigate to the chat/drive
+        if (resolvedLocationKind === 'drive') {
+          setLocationKind('drive');
+          setActivePeerId(resolvedChatId);
+          setTopicFilter(null);
+          topicFilterRef.current = null;
+        } else {
+          setLocationKind('chat');
+          setActivePeerId(resolvedChatId);
+          setTopicFilter(null);
+          topicFilterRef.current = null;
+        }
+        setChatQuery('');
+      } else if (path.tmeUsername) {
+        // Username-based lookup — find by username in chats
+        const username = path.tmeUsername.toLowerCase();
+        const matchByUsername = chats.find(
+          (c) => (c.username || '').toLowerCase() === username
+        );
+        if (matchByUsername) {
+          setLocationKind('chat');
+          setActivePeerId(matchByUsername.id);
+          setTopicFilter(null);
+          topicFilterRef.current = null;
+          resolvedChatId = matchByUsername.id;
+          resolvedLocationKind = 'chat';
+          setChatQuery('');
+        } else {
+          showPathJumpToast(
+            t('ui.path_jump.chat_not_found', { chat: `@${path.tmeUsername}` }),
+            'error'
+          );
+          setChatQuery('');
+          return;
+        }
+      } else if (!path.chatId && !path.tmeUsername) {
+        // Only account segment — already handled above
+        setChatQuery('');
+        return;
+      }
+
+      // ── 3. Topic Segment (T...) ───────────────────────────────────────────
+      if (path.topicId !== null && resolvedChatId !== null) {
+        // We set topicFilter optimistically — the topic list will load after navigation
+        // If the topic doesn't exist, the DriveTopBar area will show no items and we
+        // show a fallback toast after a brief delay.
+        setTopicFilter(path.topicId);
+        topicFilterRef.current = path.topicId;
+
+        // Schedule a check: if after 2s the topic still isn't in the list, show toast
+        const topicId = path.topicId;
+        setTimeout(() => {
+          setTopics((currentTopics) => {
+            if (currentTopics.length > 0) {
+              const found = currentTopics.find((tp) => tp.id === topicId);
+              if (!found) {
+                // Topic not found after load — fallback to main chat
+                setTopicFilter(null);
+                topicFilterRef.current = null;
+                showPathJumpToast(
+                  t('ui.path_jump.topic_not_found', { topic: topicId }),
+                  'warn'
+                );
+              }
+            }
+            return currentTopics; // no mutation
+          });
+        }, 2500);
+      }
+
+      // ── 4. Media / Message Segment (M... or last number) ─────────────────
+      if (path.messageId !== null) {
+        const msgId = path.messageId;
+        // Look for the file in the currently loaded list first
+        const existingFile = files.find((f) => f.id === msgId);
+        if (existingFile) {
+          setSelectedIds([msgId]);
+          // Open preview for media files
+          const mediaIconTypes = ['image', 'video', 'audio', 'voice', 'document'];
+          if (mediaIconTypes.includes(existingFile.icon_type)) {
+            setPreviewFile(existingFile);
+          }
+          showPathJumpToast(
+            t('ui.path_jump.navigate_success', { target: existingFile.name || `#${msgId}` }),
+            'info'
+          );
+        } else {
+          // File not yet loaded — inform user it'll appear after navigation
+          showPathJumpToast(
+            t('ui.path_jump.media_not_found', { msgId }),
+            'warn'
+          );
+        }
+      }
+    },
+    [
+      session, sessions, folders, chats, files,
+      handleSessionChange, showPathJumpToast,
+      setLocationKind, setActivePeerId, setTopicFilter, setTopics,
+      setSelectedIds, setPreviewFile, setChatQuery, t
+    ]
+  );
 
   const activeContentFiles = mediaFilter === 'all' ? files : (filteredFilesMap[mediaFilter] || []);
 
@@ -9748,7 +9935,15 @@ function MediaDriveDesktop({
           }
           creds={creds}
           onOpenRelogModal={() => setRelogModalOpen(true)}
+          onNavigatePath={handleNavigateTelegramPath}
         />
+
+        {/* Path ID navigation toast overlay */}
+        {pathJumpToast && (
+          <div className={`td-path-jump-toast td-path-jump-toast--${pathJumpToast.kind}`} role="status" aria-live="polite">
+            {pathJumpToast.msg}
+          </div>
+        )}
 
         <div className="td-main">
           <DriveTopBar

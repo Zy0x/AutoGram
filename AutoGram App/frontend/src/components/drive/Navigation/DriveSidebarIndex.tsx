@@ -23,8 +23,10 @@ import {
   MessagesSquare,
   Check,
   LogIn,
+  Zap,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { parseTelegramPathId, describePath, type ParsedTelegramPath } from '../../../lib/telegram/interaction/pathSearchParser';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { createPortal } from 'react-dom';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
@@ -212,6 +214,11 @@ type Props = {
     status: 'offline' | 'disconnected' | 'excellent' | 'good' | 'fair' | 'poor' | 'transferring';
     ms: number | null;
   };
+  /**
+   * Called when the user executes a Quick Jump via Path ID.
+   * The parent is responsible for navigation + toast feedback.
+   */
+  onNavigatePath?: (path: ParsedTelegramPath) => void;
 };
 
 function ChatIcon({ type }: { type: string }) {
@@ -593,6 +600,7 @@ export function DriveSidebar({
   onFolderReparentDrop,
   channelLimitWarning,
   pingState,
+  onNavigatePath,
 }: Props) {
   const { t } = useTranslation();
   const [isCompactSearchActive, setIsCompactSearchActive] = useState<boolean>(false);
@@ -761,13 +769,23 @@ export function DriveSidebar({
   const chatIndex = useMemo(() => buildChatSearchIndex(chats), [chats]);
   const locationQuery = chatQuery;
   const hasLocationQuery = !!locationQuery.trim();
+
+  // Detect Path ID format — when detected, quick jump card is shown instead of normal filter
+  const parsedPath = useMemo<ParsedTelegramPath>(
+    () => parseTelegramPathId(locationQuery),
+    [locationQuery]
+  );
+  const isPathIdMode = parsedPath.isPathId;
+
+  // When in Path ID mode, still show chat/folder list normally (don't filter to 0 rows)
+  // so the user can see context while the Quick Jump card is shown above.
   const chatRows = useMemo(
-    () => filterChatsFast(chatIndex, locationQuery),
-    [chatIndex, locationQuery]
+    () => (isPathIdMode ? [] : filterChatsFast(chatIndex, locationQuery)),
+    [chatIndex, locationQuery, isPathIdMode]
   );
   const folderRows = useMemo(
-    () => filterFoldersFast(folders, locationQuery),
-    [folders, locationQuery]
+    () => (isPathIdMode ? [] : filterFoldersFast(folders, locationQuery)),
+    [folders, locationQuery, isPathIdMode]
   );
   // First load: expand every parent so nested folders are visible by default
   const treeSeededRef = useRef(false);
@@ -1924,6 +1942,11 @@ export function DriveSidebar({
                     onChatQuery('');
                   }
                 }
+                if (e.key === 'Enter' && isPathIdMode && parsedPath.isPathId) {
+                  e.preventDefault();
+                  onNavigatePath?.(parsedPath);
+                  onCloseDrawer?.();
+                }
               }}
               onBlur={() => {
                 if (!locationQuery) {
@@ -2030,6 +2053,13 @@ export function DriveSidebar({
                 aria-label={t("speedtest.sidebar_search_aria")}
                 title={t("speedtest.sidebar_search_title")}
                 onDragOver={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && isPathIdMode && parsedPath.isPathId) {
+                    e.preventDefault();
+                    onNavigatePath?.(parsedPath);
+                    onCloseDrawer?.();
+                  }
+                }}
               />
               {hasLocationQuery && (
                 <button
@@ -2180,7 +2210,7 @@ export function DriveSidebar({
           }
         }}
       >
-        {hasLocationQuery && !dragLive && (
+        {hasLocationQuery && !dragLive && !isPathIdMode && (
           <p className="td-location-search-meta td-only-expanded">
             {[
               showSaved ? 1 : 0,
@@ -2193,6 +2223,57 @@ export function DriveSidebar({
               : ''}
           </p>
         )}
+
+        {/* ── Quick Jump Card — shown when Path ID pattern detected ── */}
+        {hasLocationQuery && !dragLive && isPathIdMode && (
+          <div className="td-path-quick-jump td-only-expanded">
+            <div className="td-path-qj-header">
+              <Zap size={13} aria-hidden className="td-path-qj-icon" />
+              <span className="td-path-qj-title">{t('ui.path_jump.title')}</span>
+            </div>
+            <div className="td-path-qj-badges">
+              {parsedPath.accountSegment && (
+                <span className="td-path-badge td-path-badge-account" title={`${t('ui.path_jump.label_user_id')}: ${parsedPath.accountSegment}`}>
+                  <span className="td-path-badge-prefix">U</span>
+                  <span className="td-path-badge-value">{parsedPath.accountSegment}</span>
+                </span>
+              )}
+              {(parsedPath.chatSegmentRaw || parsedPath.tmeUsername) && (
+                <span className="td-path-badge td-path-badge-chat" title={`${t('ui.path_jump.label_chat_id')}: ${parsedPath.tmeUsername ?? parsedPath.chatSegmentRaw}`}>
+                  <span className="td-path-badge-prefix">D</span>
+                  <span className="td-path-badge-value">{parsedPath.tmeUsername ? `@${parsedPath.tmeUsername}` : (parsedPath.chatSegmentRaw || '')}</span>
+                </span>
+              )}
+              {parsedPath.topicId !== null && (
+                <span className="td-path-badge td-path-badge-topic" title={`${t('ui.path_jump.label_topic_id')}: ${parsedPath.topicId}`}>
+                  <span className="td-path-badge-prefix">T</span>
+                  <span className="td-path-badge-value">{parsedPath.topicId}</span>
+                </span>
+              )}
+              {parsedPath.messageId !== null && (
+                <span className="td-path-badge td-path-badge-media" title={`${t('ui.path_jump.label_message_id')}: ${parsedPath.messageId}`}>
+                  <span className="td-path-badge-prefix">#</span>
+                  <span className="td-path-badge-value">{parsedPath.messageId}</span>
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              className="td-path-qj-btn"
+              title={describePath(parsedPath, t)}
+              aria-label={`${t('ui.path_jump.btn_go')}: ${describePath(parsedPath, t)}`}
+              onClick={() => {
+                onNavigatePath?.(parsedPath);
+                onCloseDrawer?.();
+              }}
+            >
+              <Zap size={12} aria-hidden />
+              {t('ui.path_jump.btn_go')}
+            </button>
+            <p className="td-path-qj-hint">{t('ui.path_jump.hint_enter')}</p>
+          </div>
+        )}
+
         {/* ── Saved Messages & Pins Quick Bar (Shown in both Expanded and Collapsed Rail) ── */}
         {(layoutModel === 'model_a' || layoutModel === 'model_b') && !anyDragLive && !hasLocationQuery && (
           <div className="td-sidebar-quick-bar">
