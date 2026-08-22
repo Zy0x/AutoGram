@@ -34,6 +34,7 @@ import { ZipContextMenu, type ZipContextMenuState, type ZipContextTarget } from 
 import { ZipCodePreviewModal } from './ZipCodePreviewModal';
 import { ZipExtractModal } from './ZipExtractModal';
 import { ZipPasswordModal } from './ZipPasswordModal';
+import { fetchZipEntryThumbnail, isMediaThumbnailSupported } from './ZipThumbnailManager';
 import { driveZipExtractEntry, driveZipList, driveZipReadEntry } from '../../../lib/telegram/driveApi';
 import { zipExtractEntry, zipListLocal, zipPreviewEntry } from '../../../lib/tauri/rustBackend';
 import { tgDebugGetMessage } from '../../../lib/telegram/core/telegramBackend';
@@ -411,6 +412,10 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
 
   const contentSurfaceRef = useRef<HTMLDivElement>(null);
   const [marqueeBox, setMarqueeBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [thumbnails, setThumbnails] = useState<Map<string, string>>(new Map());
+  const [loadingThumbnails, setLoadingThumbnails] = useState<Set<string>>(new Set());
+  const [isBatchLoadingThumbs, setIsBatchLoadingThumbs] = useState(false);
+
   const marqueeStateRef = useRef<{
     startX: number;
     startY: number;
@@ -418,6 +423,58 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
     isAdditive: boolean;
     active: boolean;
   } | null>(null);
+
+  // Manual on-demand single thumbnail fetch
+  const handleLoadThumbnail = useCallback(
+    async (entry: ZipEntry) => {
+      if (thumbnails.has(entry.name) || loadingThumbnails.has(entry.name)) return;
+      setLoadingThumbnails((prev) => new Set(prev).add(entry.name));
+      try {
+        const thumbUrl = await fetchZipEntryThumbnail(
+          creds,
+          messageId,
+          folderId,
+          entry.name,
+          activePassword,
+          zipOpts
+        );
+        if (thumbUrl) {
+          setThumbnails((prev) => new Map(prev).set(entry.name, thumbUrl));
+        }
+      } finally {
+        setLoadingThumbnails((prev) => {
+          const next = new Set(prev);
+          next.delete(entry.name);
+          return next;
+        });
+      }
+    },
+    [activePassword, creds, folderId, messageId, thumbnails, loadingThumbnails, zipOpts]
+  );
+
+  // Count selected media entries that have not loaded thumbnail yet
+  const selectedMediaUnloadedCount = useMemo(() => {
+    let count = 0;
+    for (const name of selectedEntries) {
+      if (isMediaThumbnailSupported(name) && !thumbnails.has(name)) {
+        count++;
+      }
+    }
+    return count;
+  }, [selectedEntries, thumbnails]);
+
+  // Batch load thumbnails for all selected media entries
+  const handleLoadSelectedThumbnails = useCallback(async () => {
+    const targets = files.filter(
+      (f) => selectedEntries.has(f.name) && isMediaThumbnailSupported(f.name) && !thumbnails.has(f.name)
+    );
+    if (targets.length === 0 || isBatchLoadingThumbs) return;
+    setIsBatchLoadingThumbs(true);
+    for (const target of targets) {
+      await handleLoadThumbnail(target);
+    }
+    setIsBatchLoadingThumbs(false);
+  }, [files, handleLoadThumbnail, isBatchLoadingThumbs, selectedEntries, thumbnails]);
 
   // OS File Explorer style item selection with Shift / Ctrl / Normal Click
   const handleSelectEntry = useCallback(
@@ -729,6 +786,9 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
               setShowExtractModal(true);
             }}
             onContextMenu={handleContextMenu}
+            thumbnails={thumbnails}
+            loadingThumbnails={loadingThumbnails}
+            onLoadThumbnail={handleLoadThumbnail}
           />
         ) : (
           <ZipEntryTable
@@ -750,6 +810,9 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
               setShowExtractModal(true);
             }}
             onContextMenu={handleContextMenu}
+            thumbnails={thumbnails}
+            loadingThumbnails={loadingThumbnails}
+            onLoadThumbnail={handleLoadThumbnail}
           />
         )}
       </main>
@@ -758,6 +821,9 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
       <ZipFloatingActionBar
         selectedCount={selectedEntries.size}
         selectedBytes={selectedBytes}
+        unloadedMediaCount={selectedMediaUnloadedCount}
+        onLoadSelectedThumbnails={handleLoadSelectedThumbnails}
+        isLoadingThumbnails={isBatchLoadingThumbs}
         onExtract={() => setShowExtractModal(true)}
         onSelectAll={selectAll}
         onClear={() => setSelectedEntries(new Set())}

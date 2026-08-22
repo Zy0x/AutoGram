@@ -985,6 +985,67 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+}
+
+.dzb-grid-thumb-wrap {
+  width: 100%;
+  height: 90px;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dzb-grid-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  animation: dzbFadeIn 0.22s ease forwards;
+}
+
+.dzb-grid-thumb-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #818cf8;
+}
+
+.dzb-thumb-loading-text {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.dzb-orb-preview-pill {
+  position: absolute;
+  bottom: -6px;
+  padding: 2px 8px;
+  background: rgba(99, 102, 241, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: all 0.15s ease;
+  z-index: 5;
+}
+
+.dzb-orb-preview-pill:hover {
+  background: #6366f1;
+  transform: scale(1.05);
 }
 
 .dzb-icon-orb {
@@ -996,6 +1057,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
   transition: transform 0.18s ease;
 }
 
@@ -1019,11 +1081,51 @@
   transform: scale(1.08);
 }
 
+.dzb-table-thumb-wrap {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dzb-table-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dzb-table-thumb-loading {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #818cf8;
+  flex-shrink: 0;
+}
+
 .dzb-grid-icon.image { color: #10b981; }
 .dzb-grid-icon.media { color: #818cf8; }
 .dzb-grid-icon.document { color: #f59e0b; }
 .dzb-grid-icon.archive { color: #c084fc; }
 .dzb-grid-icon.generic { color: #94a3b8; }
+
+@keyframes dzbFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
 
 .dzb-grid-card-bottom {
   display: flex;

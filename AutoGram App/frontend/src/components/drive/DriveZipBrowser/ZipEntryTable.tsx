@@ -10,9 +10,11 @@ import {
   Folder,
   Image as ImageIcon,
   LockKeyhole,
+  Loader2,
 } from 'lucide-react';
 import { formatDriveBytes } from '../../../lib/telegram/driveTypes';
 import { entryLabel, isZipArchiveName, type ZipEntry } from './zipUtils';
+import { isMediaThumbnailSupported } from './ZipThumbnailManager';
 
 type ZipEntryTableProps = {
   dirs: string[];
@@ -27,6 +29,9 @@ type ZipEntryTableProps = {
   onExtractEntry: (entry: ZipEntry) => void;
   onExtractDirectory: (path: string) => void;
   onContextMenu: (e: React.MouseEvent, target: { kind: 'file'; entry: ZipEntry } | { kind: 'dir'; path: string }) => void;
+  thumbnails?: Map<string, string>;
+  loadingThumbnails?: Set<string>;
+  onLoadThumbnail?: (entry: ZipEntry) => void;
 };
 
 function EntryIcon({ name }: { name: string }) {
@@ -56,6 +61,9 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
   onExtractEntry,
   onExtractDirectory,
   onContextMenu,
+  thumbnails,
+  loadingThumbnails,
+  onLoadThumbnail,
 }) => {
   const { t } = useTranslation();
 
@@ -135,6 +143,8 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
             const compressed = entry.compressed_size ?? entry.compressedSize ?? entry.size;
             const ratio = entry.size > 0 ? Math.max(0, Math.round(((entry.size - compressed) / entry.size) * 100)) : 0;
             const ext = getExtensionBadge(entry.name);
+            const thumbUrl = thumbnails?.get(entry.name);
+            const isThumbLoading = loadingThumbnails?.has(entry.name);
 
             return (
               <tr
@@ -147,7 +157,17 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
               >
                 <td className="dzb-td-name">
                   <div className="dzb-name-cell">
-                    <EntryIcon name={entry.name} />
+                    {thumbUrl ? (
+                      <div className="dzb-table-thumb-wrap">
+                        <img src={thumbUrl} alt="" className="dzb-table-thumb-img" />
+                      </div>
+                    ) : isThumbLoading ? (
+                      <div className="dzb-table-thumb-loading">
+                        <Loader2 size={16} className="dzb-micro-spinner animate-spin" />
+                      </div>
+                    ) : (
+                      <EntryIcon name={entry.name} />
+                    )}
                     {entry.encrypted && (
                       <span className="dzb-lock-icon" title={t('speedtest.zip_protected')}>
                         <LockKeyhole size={13} />
@@ -173,6 +193,23 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
                 </td>
                 <td className="dzb-td-actions">
                   <div className="dzb-row-actions">
+                    {isMediaThumbnailSupported(entry.name) && !thumbUrl && onLoadThumbnail && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onLoadThumbnail(entry);
+                        }}
+                        className="dzb-action-icon-btn small thumb-btn"
+                        title={t('speedtest.zip_load_thumbnail')}
+                      >
+                        {isThumbLoading ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Eye size={14} />
+                        )}
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={(e) => {

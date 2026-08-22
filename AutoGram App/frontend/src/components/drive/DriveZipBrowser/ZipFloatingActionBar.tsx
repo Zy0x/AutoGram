@@ -1,11 +1,14 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { FolderInput, CheckSquare, X, Layers } from 'lucide-react';
+import { FolderInput, CheckSquare, X, Layers, Eye, Loader2 } from 'lucide-react';
 import { formatDriveBytes } from '../../../lib/telegram/driveTypes';
 
 type ZipFloatingActionBarProps = {
   selectedCount: number;
   selectedBytes: number;
+  unloadedMediaCount?: number;
+  onLoadSelectedThumbnails?: () => void;
+  isLoadingThumbnails?: boolean;
   onExtract: () => void;
   onSelectAll: () => void;
   onClear: () => void;
@@ -15,6 +18,9 @@ type ZipFloatingActionBarProps = {
 export const ZipFloatingActionBar: React.FC<ZipFloatingActionBarProps> = ({
   selectedCount,
   selectedBytes,
+  unloadedMediaCount = 0,
+  onLoadSelectedThumbnails,
+  isLoadingThumbnails,
   onExtract,
   onSelectAll,
   onClear,
@@ -38,6 +44,19 @@ export const ZipFloatingActionBar: React.FC<ZipFloatingActionBarProps> = ({
         </div>
 
         <div className="dzb-floating-actions">
+          {unloadedMediaCount > 0 && onLoadSelectedThumbnails && (
+            <button
+              type="button"
+              onClick={onLoadSelectedThumbnails}
+              disabled={isLoadingThumbnails}
+              className="dzb-floating-btn secondary"
+              title={t('speedtest.zip_load_selected_thumbnails', { count: unloadedMediaCount })}
+            >
+              {isLoadingThumbnails ? <Loader2 size={15} className="animate-spin" /> : <Eye size={15} />}
+              <span>{t('speedtest.zip_load_selected_thumbnails', { count: unloadedMediaCount })}</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={onSelectAll}

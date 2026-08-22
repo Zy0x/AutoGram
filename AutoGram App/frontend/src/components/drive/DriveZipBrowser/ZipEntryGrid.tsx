@@ -10,6 +10,7 @@ import {
   Eye,
   Download,
   LockKeyhole,
+  Loader2,
 } from 'lucide-react';
 import { formatDriveBytes } from '../../../lib/telegram/driveTypes';
 import {
@@ -17,6 +18,7 @@ import {
   isZipArchiveName,
   type ZipEntry,
 } from './zipUtils';
+import { isMediaThumbnailSupported } from './ZipThumbnailManager';
 
 type ZipEntryGridProps = {
   dirs: string[];
@@ -29,6 +31,9 @@ type ZipEntryGridProps = {
   onExtractEntry: (entry: ZipEntry) => void;
   onExtractDirectory: (path: string) => void;
   onContextMenu: (e: React.MouseEvent, target: { kind: 'file'; entry: ZipEntry } | { kind: 'dir'; path: string }) => void;
+  thumbnails?: Map<string, string>;
+  loadingThumbnails?: Set<string>;
+  onLoadThumbnail?: (entry: ZipEntry) => void;
 };
 
 function EntryIcon({ name, size = 32 }: { name: string; size?: number }) {
@@ -56,6 +61,9 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
   onExtractEntry,
   onExtractDirectory,
   onContextMenu,
+  thumbnails,
+  loadingThumbnails,
+  onLoadThumbnail,
 }) => {
   const { t } = useTranslation();
 
@@ -118,12 +126,14 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
         const compressed = entry.compressed_size ?? entry.compressedSize ?? entry.size;
         const ratio = entry.size > 0 ? Math.max(0, Math.round(((entry.size - compressed) / entry.size) * 100)) : 0;
         const extTag = getExtensionTag(entry.name);
+        const thumbUrl = thumbnails?.get(entry.name);
+        const isThumbLoading = loadingThumbnails?.has(entry.name);
 
         return (
           <div
             key={entry.name}
             data-entry-name={entry.name}
-            className={`dzb-grid-card ${selected ? 'selected' : ''}`}
+            className={`dzb-grid-card ${selected ? 'selected' : ''} ${thumbUrl ? 'has-thumb' : ''}`}
             onClick={(e) => onSelectEntry(entry.name, e)}
             onDoubleClick={() => onPreviewCode(entry)}
             onContextMenu={(e) => onContextMenu(e, { kind: 'file', entry })}
@@ -143,9 +153,39 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
             </div>
 
             <div className="dzb-grid-card-center">
-              <div className="dzb-icon-orb">
-                <EntryIcon name={entry.name} size={36} />
-              </div>
+              {thumbUrl ? (
+                <div className="dzb-grid-thumb-wrap">
+                  <img
+                    src={thumbUrl}
+                    alt={entry.name}
+                    className="dzb-grid-thumb-img"
+                    loading="lazy"
+                  />
+                </div>
+              ) : isThumbLoading ? (
+                <div className="dzb-grid-thumb-loading">
+                  <Loader2 size={24} className="dzb-micro-spinner animate-spin" />
+                  <span className="dzb-thumb-loading-text">{t('speedtest.zip_thumbnail_loading')}</span>
+                </div>
+              ) : (
+                <div className="dzb-icon-orb">
+                  <EntryIcon name={entry.name} size={36} />
+                  {isMediaThumbnailSupported(entry.name) && onLoadThumbnail && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onLoadThumbnail(entry);
+                      }}
+                      className="dzb-orb-preview-pill"
+                      title={t('speedtest.zip_load_thumbnail')}
+                    >
+                      <Eye size={11} />
+                      <span>{t('speedtest.zip_btn_load_preview')}</span>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="dzb-grid-card-bottom">
