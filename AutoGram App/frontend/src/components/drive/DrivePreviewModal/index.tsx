@@ -2721,6 +2721,7 @@ export function DrivePreviewModal({
   const resolutionOptions =
     qualities.length >= 2 ? qualities : isVideo ? defaultVideoQualities : qualities;
   const showThumbSkeleton =
+    !customSource &&
     (loading || ((isVideo || isImage) && !activeSrc)) &&
     !error &&
     !tooLarge &&
@@ -4727,18 +4728,22 @@ export function DrivePreviewModal({
             </div>
           ) : (
             <>
-              {loading && !showThumbSkeleton && !mediaSrc && !textBody && !pdfSrc && !isZip && (
+              {(loading || (customSource && !activeSrc && !textBody && !pdfSrc)) && !showThumbSkeleton && !isZip && !error && (
             <div className="w-full flex flex-col items-center justify-center min-h-[350px] p-6">
               <DeadCenterProgress
-                isLoading={loading}
+                isLoading={true}
                 label={
-                  switchingQuality
-                    ? `Mengganti ke ${activeQuality?.label || quality}…`
-                    : isPdf || isText
-                      ? 'Mengunduh dokumen via Grammers MTProto…'
-                      : /^(p720|p480|p360)/i.test(quality)
-                        ? `Menyiapkan ${quality.replace(/^p/i, '')}p…`
-                        : 'Menyiapkan stream media…'
+                  customSource
+                    ? customSource.encrypted
+                      ? String(t('speedtest.zip_decrypting_ram'))
+                      : String(t('speedtest.zip_extracting_ram'))
+                    : switchingQuality
+                      ? `Mengganti ke ${activeQuality?.label || quality}…`
+                      : isPdf || isText
+                        ? 'Mengunduh dokumen via Grammers MTProto…'
+                        : /^(p720|p480|p360)/i.test(quality)
+                          ? `Menyiapkan ${quality.replace(/^p/i, '')}p…`
+                          : 'Menyiapkan stream media…'
                 }
               />
             </div>

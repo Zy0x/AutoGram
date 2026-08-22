@@ -1279,6 +1279,8 @@
   "status_reading_catalog": "Reading drive media catalog…",
   "status_parsing_metadata": "Parsing metadata & files…",
   "status_almost_done": "Almost done…",
+  "zip_extracting_ram": "Extracting byte range in RAM…",
+  "zip_decrypting_ram": "Decrypting entry in RAM (AES/ZipCrypto)…",
   "syncing_media_library": "Syncing your media library",
   "loading_catalog": "Loading Catalog",
   "done_exclamation": "Done!",

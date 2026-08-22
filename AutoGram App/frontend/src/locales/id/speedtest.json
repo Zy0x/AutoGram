@@ -1279,6 +1279,8 @@
   "status_reading_catalog": "Membaca katalog media drive…",
   "status_parsing_metadata": "Menyusun metadata & file…",
   "status_almost_done": "Hampir selesai…",
+  "zip_extracting_ram": "Mengekstrak rentang byte dalam RAM…",
+  "zip_decrypting_ram": "Mendekripsi entri dalam RAM (AES/ZipCrypto)…",
   "syncing_media_library": "Menyinkronkan pustaka media Anda",
   "loading_catalog": "Memuat Katalog",
   "done_exclamation": "Selesai!",
