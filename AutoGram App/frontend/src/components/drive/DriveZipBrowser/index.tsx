@@ -451,9 +451,15 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
         });
         setLastSelectedName(name);
       } else {
-        // Normal Click: select ONLY clicked item
-        setSelectedEntries(new Set([name]));
-        setLastSelectedName(name);
+        // Normal Click: if already single-selected, unselect it; otherwise select ONLY this item
+        setSelectedEntries((current) => {
+          if (current.has(name) && current.size === 1) {
+            setLastSelectedName(null);
+            return new Set();
+          }
+          setLastSelectedName(name);
+          return new Set([name]);
+        });
       }
     },
     [dirs, files, lastSelectedName]
