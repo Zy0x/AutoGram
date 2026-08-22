@@ -11,11 +11,15 @@ import {
   Check,
   ZoomIn,
   ZoomOut,
+  Shrink,
   RotateCw,
   RotateCcw,
   FlipHorizontal,
   FlipVertical,
   RefreshCw,
+  Search,
+  PictureInPicture2,
+  Info,
   FileWarning,
   Zap,
   AlertCircle,
@@ -55,6 +59,9 @@ export const ZipCodePreviewModal: React.FC<ZipCodePreviewModalProps> = ({
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const [isMagnifierMode, setIsMagnifierMode] = useState(false);
+  const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
 
   // Image manipulation state
   const [zoom, setZoom] = useState(1);
@@ -65,7 +72,7 @@ export const ZipCodePreviewModal: React.FC<ZipCodePreviewModalProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
 
-  // Reset transforms on entry change
+  // Reset transforms & dimensions on entry change
   useEffect(() => {
     setZoom(1);
     setRotation(0);
@@ -73,11 +80,22 @@ export const ZipCodePreviewModal: React.FC<ZipCodePreviewModalProps> = ({
     setFlipV(false);
     setPan({ x: 0, y: 0 });
     setIsFullscreen(false);
+    setShowInfo(false);
+    setIsMagnifierMode(false);
+    setDimensions(null);
   }, [entry?.name]);
 
   const content = preview?.text || null;
   const mediaUrl = preview?.data_url || localUrl || null;
   const kind = preview?.kind || 'meta';
+
+  const ext = entry?.name.split('.').pop()?.toLowerCase() || '';
+  const isImage = kind === 'image';
+  const isVideo = kind === 'video';
+  const isAudio = kind === 'audio';
+  const isText = kind === 'text';
+  const isPdf = kind === 'pdf';
+  const mediaKind = isImage ? 'image' : isVideo ? 'video' : isAudio ? 'audio' : isText ? 'text' : isPdf ? 'pdf' : 'other';
 
   // Navigation calculation
   const currentIndex = entry ? entries.findIndex((e) => e.name === entry.name) : -1;
@@ -114,7 +132,7 @@ export const ZipCodePreviewModal: React.FC<ZipCodePreviewModalProps> = ({
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
         handleNext();
-      } else if (kind === 'image') {
+      } else if (isImage) {
         if (e.key === '+' || e.key === '=') {
           e.preventDefault();
           setZoom((z) => Math.min(4, z + 0.25));
@@ -135,7 +153,7 @@ export const ZipCodePreviewModal: React.FC<ZipCodePreviewModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [entry, handleNext, handlePrev, kind, onClose]);
+  }, [entry, handleNext, handlePrev, isImage, onClose]);
 
   const handleCopy = async () => {
     if (!content) return;
@@ -201,10 +219,14 @@ export const ZipCodePreviewModal: React.FC<ZipCodePreviewModalProps> = ({
             <span
               className="drive-muted"
               title={`${formatDriveBytes(entry.size)}${
+                dimensions ? ` · ${dimensions.width}×${dimensions.height}px` : ''
+              }${ext ? ` · ${ext}` : ''}${
                 entries.length > 1 && currentIndex >= 0 ? ` · [${currentIndex + 1} / ${entries.length}]` : ''
               }${entry.encrypted ? ` · 🔒 ${t('speedtest.zip_tag_encrypted')}` : ''}`}
             >
               {formatDriveBytes(entry.size)}
+              {dimensions ? ` · ${dimensions.width}×${dimensions.height}px` : ''}
+              {ext ? ` · ${ext}` : ''}
               {entries.length > 1 && currentIndex >= 0 ? ` · [${currentIndex + 1} / ${entries.length}]` : ''}
               {entry.encrypted ? ` · 🔒 ${t('speedtest.zip_tag_encrypted')}` : ''}
             </span>
@@ -242,22 +264,6 @@ export const ZipCodePreviewModal: React.FC<ZipCodePreviewModalProps> = ({
                   <ChevronRight size={18} />
                 </button>
               </>
-            )}
-
-            {/* Copy Button (for Code / Text) */}
-            {content && (
-              <button
-                type="button"
-                className="td-icon-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void handleCopy();
-                }}
-                title={t(copied ? 'speedtest.zip_btn_copied' : 'speedtest.zip_btn_copy')}
-                aria-label={t(copied ? 'speedtest.zip_btn_copied' : 'speedtest.zip_btn_copy')}
-              >
-                {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
-              </button>
             )}
 
             {/* Extract Entry Button */}
@@ -309,6 +315,207 @@ export const ZipCodePreviewModal: React.FC<ZipCodePreviewModalProps> = ({
             <X size={18} />
           </button>
         </header>
+
+        {/* Full Adaptive Labeled Secondary Toolbar */}
+        <div
+          className={`drive-preview-toolbar is-${mediaKind}`}
+          role="toolbar"
+          aria-label={
+            isImage
+              ? t('speedtest.label_zoom')
+              : isVideo
+              ? t('speedtest.label_video')
+              : t('speedtest.nav_aria')
+          }
+          data-media-kind={mediaKind}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          onWheel={(e) => e.stopPropagation()}
+        >
+          <div className="drive-preview-tools">
+            {/* ZOOM Group (for Image & Video) */}
+            {(isImage || isVideo) && (
+              <div className="drive-tool-group" role="group" aria-label={t('speedtest.label_zoom')}>
+                <span className="drive-tool-group-label">{t('speedtest.label_zoom')}</span>
+                <button
+                  type="button"
+                  className="drive-tool-btn"
+                  title={t('speedtest.zoom_out_tooltip')}
+                  disabled={zoom <= 0.25}
+                  onClick={() => setZoom((z) => Math.max(0.25, z - 0.25))}
+                >
+                  <ZoomOut size={15} />
+                  <span className="drive-tool-btn-label">{t('speedtest.label_zoom_out')}</span>
+                </button>
+                <button
+                  type="button"
+                  className="drive-tool-btn drive-tool-btn-value"
+                  title={t('speedtest.tooltip_zoom_reset')}
+                  onClick={() => {
+                    setZoom(1);
+                    setPan({ x: 0, y: 0 });
+                  }}
+                >
+                  <Shrink size={14} />
+                  <span className="drive-tool-btn-label strong">{Math.round(zoom * 100)}%</span>
+                </button>
+                <button
+                  type="button"
+                  className="drive-tool-btn"
+                  title={t('speedtest.zoom_in_tooltip')}
+                  disabled={zoom >= 4}
+                  onClick={() => setZoom((z) => Math.min(4, z + 0.25))}
+                >
+                  <ZoomIn size={15} />
+                  <span className="drive-tool-btn-label">{t('speedtest.label_zoom_in')}</span>
+                </button>
+                {isImage && (
+                  <button
+                    type="button"
+                    className={`drive-tool-btn${isMagnifierMode ? ' is-on' : ''}`}
+                    title={t('speedtest.tooltip_magnifier')}
+                    onClick={() => {
+                      setIsMagnifierMode((m) => !m);
+                      if (!isMagnifierMode && zoom <= 1) {
+                        setZoom(2);
+                      }
+                    }}
+                    aria-pressed={isMagnifierMode}
+                  >
+                    <Search size={15} />
+                    <span className="drive-tool-btn-label">{t('speedtest.label_magnifier')}</span>
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* ROTATE Group (for Image & Video) */}
+            {(isImage || isVideo) && (
+              <div className="drive-tool-group" role="group" aria-label={t('speedtest.label_rotate')}>
+                <span className="drive-tool-group-label">{t('speedtest.label_rotate')}</span>
+                <button
+                  type="button"
+                  className="drive-tool-btn"
+                  title={t('speedtest.tooltip_rotate_left')}
+                  onClick={() => setRotation((r) => (r + 270) % 360)}
+                >
+                  <RotateCcw size={15} />
+                  <span className="drive-tool-btn-label">{t('speedtest.label_left')}</span>
+                </button>
+                <button
+                  type="button"
+                  className="drive-tool-btn"
+                  title={t('speedtest.tooltip_rotate_right')}
+                  onClick={() => setRotation((r) => (r + 90) % 360)}
+                >
+                  <RotateCw size={15} />
+                  <span className="drive-tool-btn-label">{t('speedtest.label_right')}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`drive-tool-btn${flipV ? ' is-on' : ''}`}
+                  title={t('speedtest.tooltip_flip_v')}
+                  onClick={() => setFlipV((v) => !v)}
+                >
+                  <FlipVertical size={15} />
+                  <span className="drive-tool-btn-label">{t('speedtest.label_flip_v')}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`drive-tool-btn${flipH ? ' is-on' : ''}`}
+                  title={t('speedtest.tooltip_flip_h')}
+                  onClick={() => setFlipH((h) => !h)}
+                >
+                  <FlipHorizontal size={15} />
+                  <span className="drive-tool-btn-label">{t('speedtest.label_flip')}</span>
+                </button>
+                {(rotation !== 0 || flipH || flipV) && (
+                  <button
+                    type="button"
+                    className="drive-tool-btn"
+                    title={t('speedtest.tooltip_rotate_reset')}
+                    onClick={() => {
+                      setRotation(0);
+                      setFlipH(false);
+                      setFlipV(false);
+                    }}
+                  >
+                    <RefreshCw size={15} />
+                    <span className="drive-tool-btn-label">{t('speedtest.label_rotate_reset')}</span>
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* VIDEO Group */}
+            {isVideo && (
+              <div className="drive-tool-group" role="group" aria-label={t('speedtest.label_video')}>
+                <span className="drive-tool-group-label">{t('speedtest.label_video')}</span>
+                <button
+                  type="button"
+                  className="drive-tool-btn"
+                  title={t('speedtest.preview_pip_hint')}
+                  onClick={() => {
+                    const vid = document.querySelector('.dzb-preview-video') as HTMLVideoElement | null;
+                    if (vid) {
+                      if (document.pictureInPictureElement) {
+                        void document.exitPictureInPicture();
+                      } else if (vid.requestPictureInPicture) {
+                        void vid.requestPictureInPicture();
+                      }
+                    }
+                  }}
+                >
+                  <PictureInPicture2 size={15} />
+                  <span className="drive-tool-btn-label">{t('speedtest.label_pip')}</span>
+                </button>
+              </div>
+            )}
+
+            {/* DOCUMENT / CODE Group */}
+            {isText && content && (
+              <div className="drive-tool-group" role="group" aria-label={t('speedtest.label_open_doc')}>
+                <span className="drive-tool-group-label">{t('speedtest.label_open')}</span>
+                <button
+                  type="button"
+                  className="drive-tool-btn"
+                  title={t('speedtest.copy_text')}
+                  onClick={() => void handleCopy()}
+                >
+                  {copied ? <Check size={15} className="text-emerald-400" /> : <Copy size={15} />}
+                  <span className="drive-tool-btn-label">{t('speedtest.label_copy')}</span>
+                </button>
+              </div>
+            )}
+
+            {/* MORE Group */}
+            <div className="drive-tool-group" role="group" aria-label={t('speedtest.label_other')}>
+              <span className="drive-tool-group-label">{t('speedtest.label_other')}</span>
+              <button
+                type="button"
+                className="drive-tool-btn"
+                title={t('speedtest.reload_preview')}
+                onClick={() => {
+                  if (entry && onNavigate) {
+                    onNavigate(entry);
+                  }
+                }}
+              >
+                <RefreshCw size={15} />
+                <span className="drive-tool-btn-label">{isLoading ? t('speedtest.label_loading') : t('speedtest.label_load')}</span>
+              </button>
+              <button
+                type="button"
+                className={`drive-tool-btn${showInfo ? ' is-on' : ''}`}
+                title={t('speedtest.file_detail_tooltip')}
+                onClick={() => setShowInfo((s) => !s)}
+              >
+                <Info size={15} />
+                <span className="drive-tool-btn-label">{t('speedtest.label_info')}</span>
+              </button>
+            </div>
+          </div>
+        </div>
 
         {/* Center Stage & Media Viewer */}
         <div className="drive-preview-body">
@@ -371,94 +578,18 @@ export const ZipCodePreviewModal: React.FC<ZipCodePreviewModalProps> = ({
                 <img
                   src={mediaUrl}
                   alt={entry.name}
+                  onLoad={(e) => {
+                    setDimensions({
+                      width: e.currentTarget.naturalWidth,
+                      height: e.currentTarget.naturalHeight,
+                    });
+                  }}
                   style={imageTransformStyle}
                   className={`max-w-full max-h-full rounded-md shadow-2xl ${
                     zoom > 1 ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default'
                   }`}
                   draggable={false}
                 />
-              </div>
-
-              {/* Image Floating Toolbar */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-2xl px-3 py-1.5 flex items-center gap-2 shadow-2xl z-20">
-                <button
-                  type="button"
-                  onClick={() => setZoom((z) => Math.max(0.25, z - 0.25))}
-                  className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800"
-                  title={t('speedtest.zoom_out_tooltip')}
-                >
-                  <ZoomOut size={16} />
-                </button>
-                <span className="text-xs font-mono text-slate-200 min-w-[40px] text-center">
-                  {Math.round(zoom * 100)}%
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setZoom((z) => Math.min(4, z + 0.25))}
-                  className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800"
-                  title={t('speedtest.zoom_in_tooltip')}
-                >
-                  <ZoomIn size={16} />
-                </button>
-
-                <div className="w-px h-4 bg-slate-800 mx-1" />
-
-                <button
-                  type="button"
-                  onClick={() => setRotation((r) => (r - 90 + 360) % 360)}
-                  className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800"
-                  title={t('speedtest.rotate_left_tooltip')}
-                >
-                  <RotateCcw size={16} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRotation((r) => (r + 90) % 360)}
-                  className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800"
-                  title={t('speedtest.rotate_right_tooltip')}
-                >
-                  <RotateCw size={16} />
-                </button>
-
-                <div className="w-px h-4 bg-slate-800 mx-1" />
-
-                <button
-                  type="button"
-                  onClick={() => setFlipH((f) => !f)}
-                  className={`p-1.5 rounded-lg hover:bg-slate-800 ${
-                    flipH ? 'text-indigo-400 bg-indigo-950/60' : 'text-slate-300 hover:text-white'
-                  }`}
-                  title={t('speedtest.flip_h_tooltip')}
-                >
-                  <FlipHorizontal size={16} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFlipV((f) => !f)}
-                  className={`p-1.5 rounded-lg hover:bg-slate-800 ${
-                    flipV ? 'text-indigo-400 bg-indigo-950/60' : 'text-slate-300 hover:text-white'
-                  }`}
-                  title={t('speedtest.flip_v_tooltip')}
-                >
-                  <FlipVertical size={16} />
-                </button>
-
-                <div className="w-px h-4 bg-slate-800 mx-1" />
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setZoom(1);
-                    setRotation(0);
-                    setFlipH(false);
-                    setFlipV(false);
-                    setPan({ x: 0, y: 0 });
-                  }}
-                  className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800"
-                  title={t('speedtest.label_rotate_reset')}
-                >
-                  <RefreshCw size={16} />
-                </button>
               </div>
             </div>
           ) : kind === 'video' && mediaUrl ? (
@@ -470,6 +601,12 @@ export const ZipCodePreviewModal: React.FC<ZipCodePreviewModalProps> = ({
                 autoPlay
                 preload="metadata"
                 playsInline
+                onLoadedMetadata={(e) => {
+                  setDimensions({
+                    width: e.currentTarget.videoWidth,
+                    height: e.currentTarget.videoHeight,
+                  });
+                }}
               />
             </div>
           ) : kind === 'audio' && mediaUrl ? (
@@ -522,6 +659,49 @@ export const ZipCodePreviewModal: React.FC<ZipCodePreviewModalProps> = ({
                   <Download size={16} />
                   <span>{t('speedtest.zip_preview_extract_btn')}</span>
                 </button>
+              )}
+            </div>
+          )}
+
+          {/* Info Side Dialog Panel */}
+          {showInfo && (
+            <div
+              className="drive-preview-info"
+              role="dialog"
+              aria-label={t('speedtest.detail_aria')}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="drive-preview-info-head">
+                <strong className="drive-preview-info-title">{t('speedtest.file_detail_title')}</strong>
+                <button
+                  type="button"
+                  className="td-icon-btn drive-preview-info-close"
+                  title={t('speedtest.close_info')}
+                  aria-label={t('speedtest.close_info')}
+                  onClick={() => setShowInfo(false)}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <div>
+                <strong>{t('speedtest.col_name')}</strong> {entry.name}
+              </div>
+              {dimensions && (
+                <div>
+                  <strong>{t('speedtest.dimensions_label')}</strong> {dimensions.width} {t('ui.generated.text_67fba2f')} {dimensions.height} {t('ui.generated.px_07a65dd')}
+                </div>
+              )}
+              <div>
+                <strong>{t('speedtest.size_label')}</strong> {formatDriveBytes(entry.size)}
+              </div>
+              <div>
+                <strong>{t('speedtest.type_label')}</strong> {kind}
+              </div>
+              {entry.encrypted && (
+                <div>
+                  <strong>{t('speedtest.zip_tag_encrypted')}</strong> 🔒 {t('speedtest.zip_tag_encrypted')}
+                </div>
               )}
             </div>
           )}
