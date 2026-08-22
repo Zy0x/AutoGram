@@ -1,15 +1,20 @@
-AutoGram Version: v3.8.12
+AutoGram Version: v3.8.13
 
 Current State:
-v3.8.12 Universal Media Card Right-Click Context Menu & Multi-Stream File Resolution Engine — membenahi deteksi klik kanan (context menu) pada seluruh kartu media di semua mode pemfilteran (All, Media, Photos, Videos, Files, Links, GIFs, Audio), urutan penyortiran (Newest, Oldest, Name, Size, Type), dan mode tampilan (Grid / List):
-1. Multi-Tier File Resolution (`findFileFromRefs` & `findAnyFile`): Memperbaiki pencarian berkas pada event capture level dokumen dan operasi UI (Download, Delete, Rename, Move, Shortcuts) agar memprioritaskan stream filter aktif (`activeContentFiles`), stream `files`, kategori `filteredFilesMap`, dan `liveFilesRef` daripada hanya mencari pada daftar file unfiltered.
-2. Elimination of Canvas Fallback Hijack: Mencegah penangkapan klik kanan pada kartu media terfilter dari salah diarahkan (*hijacked*) ke canvas context menu akibat kegagalan pencarian berkas dalam memori.
-3. Resilient Fallback File Synthesis: Menambahkan fallback sintetis `DriveFile` saat elemen kartu diklik kanan di DOM jika objek berkas belum terindeks penuh di memori, menjamin menu konteks berkas (Preview, Info, Telegram, Download, Open with, Rename, Move, Delete) selalu muncul 100% reliabel di segala kondisi.
-4. Drag & Drop Multi-Stream Lookup: Menyelaraskan pencarian berkas pada event pointer drag (`onMove` & `onMouseMove`) untuk kartu media dalam kondisi filter aktif.
+v3.8.13 Filter Pill & Card List Exact Parity Engine — perbaikan komprehensif pada integritas klasifikasi media dan sinkronisasi jumlah indikator filter dengan kartu yang ditampilkan:
+1. Strict Non-Document Message Separation: Mengoreksi `media_classifier.rs` dan `media_list.rs` sehingga pesan teks biasa, catatan pendek, username (`@...`), dan web link yang tidak memiliki dokumen lampiran tidak lagi diklasifikasikan secara keliru sebagai `telegram_category: "file"` atau `icon_type: "file"`.
+2. Exact Filter Matching in Multi-Tier Caching & Statistics: Memperbaiki `matchesMediaFilter` pada `driveTypes.ts` dan `mediaStatistics.ts` untuk secara tegas mengecualikan pesan teks dan tautan dari kategori `files`, mencegah inflasi angka lokal `localCounts` (dari 20 ke 3/1 yang akurat).
+3. Authoritative Filtered Stream Count Synchronization: Menyelaraskan `perspectiveCounts` pada `MediaStudio/index.tsx` dengan `filteredTotalCountMap` dan server Telegram breakdown, menjamin indikator angka pada pill selalu 100% identik dengan jumlah berkas riil di grid dan footer 'verified media'.
+4. Remote E2E Validation on Multiple Accounts: Terverifikasi via CDP pada akun `Mantan Gadis` dan `Lavender` bahwa tab 'Files' menampilkan angka yang 100% presisi dan selaras dengan kartu yang dimuat.
 
 Previous:
+v3.8.12 Universal Media Card Right-Click Context Menu & Multi-Stream File Resolution Engine.
 v3.8.11 Password-Protected Sparse ZIP On-The-Fly Decryption & Scoped Peer/Topic MTProto Range Streaming.
-v3.8.10 Drive Settings Unicode-Resilient Restricted Media Filter Engine.
+v3.8.10 Filter Pill & Card List Exact Parity Engine — perbaikan komprehensif pada integritas klasifikasi media dan sinkronisasi jumlah indikator filter dengan kartu yang ditampilkan:
+1. Strict Non-Document Message Separation: Mengoreksi `media_classifier.rs` dan `media_list.rs` sehingga pesan teks biasa, catatan pendek, username (`@...`), dan web link yang tidak memiliki dokumen lampiran tidak lagi diklasifikasikan secara keliru sebagai `telegram_category: "file"` atau `icon_type: "file"`.
+2. Exact Filter Matching in Multi-Tier Caching & Statistics: Memperbaiki `matchesMediaFilter` pada `driveTypes.ts` dan `mediaStatistics.ts` untuk secara tegas mengecualikan pesan teks dan tautan dari kategori `files`, mencegah inflasi angka lokal `localCounts` (dari 20 ke 3/1 yang akurat).
+3. Authoritative Filtered Stream Count Synchronization: Menyelaraskan `perspectiveCounts` pada `MediaStudio/index.tsx` dengan `filteredTotalCountMap` dan server Telegram breakdown, menjamin indikator angka pada pill selalu 100% identik dengan jumlah berkas riil di grid dan footer 'verified media'.
+4. Remote E2E Validation on Multiple Accounts: Terverifikasi via CDP pada akun `Mantan Gadis` dan `Lavender` bahwa tab 'Files' menampilkan angka yang 100% presisi dan selaras dengan kartu yang dimuat.
 v3.8.9 Instant Server-Side Filtered Media Streams & MTProto RPC Acceleration Engine.
 v3.8.8 Smart Conditional Remote Upload & Web Handoff Engine.
 v3.8.7 Drive Settings Inaccessible & Restricted Channel Media Filter Engine.

@@ -669,9 +669,30 @@ export function matchesMediaFilter(
           mime.startsWith('video/')
         );
       case 'files':
-        return tgCat === 'file' || f.as_document === true || icon === 'file' || icon === 'document';
+        if (tgCat === 'text' || tgCat === 'link' || tgCat === 'restricted' || icon === 'text' || icon === 'link') return false;
+        return (
+          tgCat === 'file' ||
+          f.as_document === true ||
+          icon === 'file' ||
+          icon === 'document' ||
+          icon === 'archive' ||
+          icon === 'apk' ||
+          icon === 'code' ||
+          icon === 'pdf' ||
+          drCat === 'document' ||
+          drCat === 'archive'
+        );
       case 'links':
-        return tgCat === 'link' || mime === 'text/x-url' || name.startsWith('http') || (Array.isArray(f.link_urls) && f.link_urls.length > 0);
+        if (tgCat === 'text' && !name.startsWith('http') && !name.startsWith('t.me')) return false;
+        return (
+          tgCat === 'link' ||
+          mime === 'text/x-url' ||
+          mime === 'text/html' ||
+          name.startsWith('http') ||
+          name.startsWith('t.me') ||
+          icon === 'link' ||
+          (Array.isArray(f.link_urls) && f.link_urls.length > 0)
+        );
       case 'gifs':
         return tgCat === 'gif' || mime === 'image/gif' || ext === 'gif' || icon === 'gif' || (f.telegram_subtype && f.telegram_subtype.includes('gif')) === true;
       case 'audio':

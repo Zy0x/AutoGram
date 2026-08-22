@@ -1732,11 +1732,11 @@ function MediaDriveDesktop({
       if (serverTotal > 0) {
         const res: Record<string, number> = {
           all: Math.max(totalFileCount ?? 0, files.length, serverTotal),
-          media: Math.max(serverMedia, localCounts?.media || 0),
-          files: Math.max(serverFiles, localCounts?.files || 0),
-          links: Math.max(cachedMediaBreakdown.linkCount || 0, localCounts?.links || 0),
-          gifs: Math.max(cachedMediaBreakdown.gifCount || 0, localCounts?.gifs || 0),
-          audio: Math.max(cachedMediaBreakdown.audioCount || 0, localCounts?.audio || 0),
+          media: filteredTotalCountMap['media'] ?? (serverMedia > 0 ? serverMedia : (localCounts?.media || 0)),
+          files: filteredTotalCountMap['files'] ?? (serverFiles > 0 ? serverFiles : (localCounts?.files || 0)),
+          links: filteredTotalCountMap['links'] ?? (cachedMediaBreakdown.linkCount ?? localCounts?.links ?? 0),
+          gifs: filteredTotalCountMap['gifs'] ?? (cachedMediaBreakdown.gifCount ?? localCounts?.gifs ?? 0),
+          audio: filteredTotalCountMap['audio'] ?? (cachedMediaBreakdown.audioCount ?? localCounts?.audio ?? 0),
         };
         return res;
       }
@@ -1746,12 +1746,17 @@ function MediaDriveDesktop({
       const res: Record<string, number> = {
         ...localCounts,
         all: Math.max(totalFileCount ?? 0, localCounts.all || files.length),
+        files: filteredTotalCountMap['files'] ?? localCounts.files ?? 0,
+        media: filteredTotalCountMap['media'] ?? localCounts.media ?? 0,
+        links: filteredTotalCountMap['links'] ?? localCounts.links ?? 0,
+        gifs: filteredTotalCountMap['gifs'] ?? localCounts.gifs ?? 0,
+        audio: filteredTotalCountMap['audio'] ?? localCounts.audio ?? 0,
       };
       return res;
     }
 
     return null;
-  }, [files, viewPerspective, cachedMediaBreakdown, totalFileCount]);
+  }, [files, viewPerspective, cachedMediaBreakdown, totalFileCount, filteredTotalCountMap]);
 
   // Dynamically fetch missing message ID from Telegram when searched
   useEffect(() => {

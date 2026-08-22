@@ -1011,10 +1011,10 @@ pub fn tl_message_to_row(
                         first_line.to_string()
                     };
                     let is_link = caption.contains("http://") || caption.contains("https://") || caption.contains("t.me/");
-                    let icon_type = if is_link { "link".to_string() } else { "file".to_string() };
+                    let icon_type = if is_link { "link".to_string() } else { "text".to_string() };
                     let cls = crate::core::media_classifier::classify_media_item(
                         &name,
-                        Some("text/plain"),
+                        if is_link { Some("text/x-url") } else { Some("text/plain") },
                         false,
                         false,
                         false,

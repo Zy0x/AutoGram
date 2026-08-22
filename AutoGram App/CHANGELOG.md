@@ -1,3 +1,26 @@
+## v3.8.13 Filter Pill & Card List Exact Parity Engine (Phase 35.79)
+
+### 1. Strict Non-Document Message Separation di Backend Rust
+- **Pembersihan Klasifikasi Berkas**:
+  - Mengoreksi `media_classifier.rs` dan `media_list.rs` sehingga pesan teks biasa, catatan pendek, username (`@...`), dan web link yang tidak memiliki dokumen lampiran tidak lagi diklasifikasikan secara keliru sebagai `telegram_category: "file"` atau `icon_type: "file"`.
+  - Pesan teks non-media kini dikelompokkan dengan benar ke `telegram_category: "text"` dan tautan web ke `telegram_category: "link"`.
+
+### 2. Exact Filter Matching in Multi-Tier Caching & Statistics
+- **Eliminasi Inflasi Perhitungan Lokal**:
+  - Memperbarui `matchesMediaFilter` pada `driveTypes.ts` dan `countExactMediaBreakdown` pada `mediaStatistics.ts` untuk secara tegas mengecualikan pesan teks dan tautan dari kategori `files`.
+  - Mencegah inflasi angka lokal `localCounts` (dari 20 ke 3/1 yang akurat) pada chat Saved Messages maupun grup.
+
+### 3. Authoritative Filtered Stream Count Synchronization
+- **Sinkronisasi 100% Antara Pill Indicator, Grid Cards, dan Verified Footer**:
+  - Menyelaraskan `perspectiveCounts` pada `MediaStudio/index.tsx` dengan `filteredTotalCountMap` dan server Telegram breakdown.
+  - Menjamin indikator angka pada pill selalu 100% identik dengan jumlah berkas riil di grid dan footer *(✓) All X verified media*.
+
+### 4. Validasi Remote E2E & Kualitas Kode
+- **Verifikasi Live Desktop via CDP**:
+  - Terverifikasi pada akun `Mantan Gadis` (Saved Messages) bahwa tab `Files` menampilkan angka `Files 3` (sebelumnya `Files 20`) dengan 3 kartu dokumen riil (`@Miko_EzAI`, `MX-Player.apk`, `@thuandmuda`) dan footer `All 3 verified media`.
+  - Terverifikasi pada akun `Lavender` (`#Gudang`) bahwa tab `Files` menampilkan angka `Files 86` dengan 86 dokumen riil.
+  - Lolos uji build Vite `npm run build`, `npx tsc --noEmit`, dan `cargo check --lib` dengan 0 error.
+
 ## v3.8.12 Universal Media Card Right-Click Context Menu & Multi-Stream File Resolution Engine (Phase 35.78)
 
 ### 1. Multi-Tier File Resolution Across All Filters & Sorts

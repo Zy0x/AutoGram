@@ -218,6 +218,20 @@ pub fn classify_media_item(
         || mime_l.contains("spreadsheet")
         || mime_l.contains("presentation");
 
+    let is_web_link = mime_l == "text/x-url"
+        || mime_l == "text/html"
+        || name_l.starts_with("http://")
+        || name_l.starts_with("https://")
+        || name_l.starts_with("t.me/")
+        || name_l.contains("t.me/");
+
+    let has_file_extension = name_l.rfind('.').map_or(false, |idx| {
+        let extension = &name_l[idx + 1..];
+        !extension.is_empty() && extension.len() <= 10 && extension.chars().all(|c| c.is_ascii_alphanumeric())
+    });
+
+    let is_actual_document = as_document || is_archive_format || is_doc_format || (has_file_extension && !is_web_link && mime_l != "text/plain" && mime_l != "text/html");
+
     // Telegram View Classification
     let (telegram_category, telegram_subtype) = if is_photo_msg {
         ("media".to_string(), "photo".to_string())
@@ -237,17 +251,23 @@ pub fn classify_media_item(
         }
     } else if is_audio_format {
         ("audio".to_string(), "music".to_string())
-    } else {
+    } else if is_web_link {
+        ("link".to_string(), "url".to_string())
+    } else if is_actual_document {
         let sub = if is_archive_format {
             "archive"
         } else if name_l.ends_with(".pdf") {
             "pdf"
         } else if name_l.ends_with(".docx") || name_l.ends_with(".doc") {
             "docx"
+        } else if name_l.ends_with(".apk") {
+            "apk"
         } else {
             "other"
         };
         ("file".to_string(), sub.to_string())
+    } else {
+        ("text".to_string(), "text".to_string())
     };
 
     // Drive View Classification (by true content)
@@ -259,10 +279,12 @@ pub fn classify_media_item(
         "audio".to_string()
     } else if is_archive_format {
         "archive".to_string()
-    } else if is_doc_format {
+    } else if is_doc_format || is_actual_document {
         "document".to_string()
+    } else if is_web_link {
+        "web".to_string()
     } else {
-        "document".to_string()
+        "text".to_string()
     };
 
     ClassificationResult {

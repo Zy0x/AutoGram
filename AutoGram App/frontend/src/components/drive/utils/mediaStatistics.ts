@@ -37,7 +37,7 @@ export function countExactMediaBreakdown(files: DriveFile[]): ExactMediaBreakdow
       } else {
         counts.photoCount += 1;
       }
-    } else {
+    } else if (matchesMediaFilter(file, 'files', 'telegram')) {
       counts.fileCount += 1;
     }
   }
