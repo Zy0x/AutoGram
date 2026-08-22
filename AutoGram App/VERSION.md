@@ -1,13 +1,14 @@
-AutoGram Version: v3.8.11
+AutoGram Version: v3.8.12
 
 Current State:
-v3.8.11 Password-Protected Sparse ZIP On-The-Fly Decryption & Scoped Peer/Topic MTProto Range Streaming — membenahi resolusi identitas peer/topic pada sparse ZIP browser dan mengoptimalkan dekripsi on-the-fly untuk mencegah pengunduhan penuh berkas ZIP berpassword:
-1. Accurate Scoped Peer & Topic MTProto Routing: Meneruskan identitas `peerId`, `topicId`, `locationType`, dan `accountId` secara konsisten dari `DrivePreviewModal` ke `DriveZipBrowser` dan seluruh fungsi sparse ZIP API (`driveZipList`, `driveZipReadEntry`, `driveZipExtractEntry`, dan `tgDebugGetMessage`).
-2. Zero Full-Archive Download Media Decrypt: Membuka media (gambar, video, audio, teks, pdf) di dalam arsip ZIP berpassword langsung mendekripsi byte range 512 KiB dari entri yang diminta melalui Grammers MTProto Range Requests tanpa memicu download penuh arsip ZIP bergiga-giga.
-3. Instant Single-Entry Video & Media Workbench: Menjamin pemutaran video MP4/MKV di dalam ZIP hanya mengekstrak entri yang dipilih ke workbench lokal terisolasi sehingga browser langsung dapat membaca atom `moov` dan melakukan scrubbing/streaming secara instan.
-4. Automatic Caption Password Candidate Recognition: Memperbaiki resolusi peer pada pengambil teks caption pesan Telegram sehingga saran kata sandi otomatis muncul pada dialog input sandi.
+v3.8.12 Universal Media Card Right-Click Context Menu & Multi-Stream File Resolution Engine — membenahi deteksi klik kanan (context menu) pada seluruh kartu media di semua mode pemfilteran (All, Media, Photos, Videos, Files, Links, GIFs, Audio), urutan penyortiran (Newest, Oldest, Name, Size, Type), dan mode tampilan (Grid / List):
+1. Multi-Tier File Resolution (`findFileFromRefs` & `findAnyFile`): Memperbaiki pencarian berkas pada event capture level dokumen dan operasi UI (Download, Delete, Rename, Move, Shortcuts) agar memprioritaskan stream filter aktif (`activeContentFiles`), stream `files`, kategori `filteredFilesMap`, dan `liveFilesRef` daripada hanya mencari pada daftar file unfiltered.
+2. Elimination of Canvas Fallback Hijack: Mencegah penangkapan klik kanan pada kartu media terfilter dari salah diarahkan (*hijacked*) ke canvas context menu akibat kegagalan pencarian berkas dalam memori.
+3. Resilient Fallback File Synthesis: Menambahkan fallback sintetis `DriveFile` saat elemen kartu diklik kanan di DOM jika objek berkas belum terindeks penuh di memori, menjamin menu konteks berkas (Preview, Info, Telegram, Download, Open with, Rename, Move, Delete) selalu muncul 100% reliabel di segala kondisi.
+4. Drag & Drop Multi-Stream Lookup: Menyelaraskan pencarian berkas pada event pointer drag (`onMove` & `onMouseMove`) untuk kartu media dalam kondisi filter aktif.
 
 Previous:
+v3.8.11 Password-Protected Sparse ZIP On-The-Fly Decryption & Scoped Peer/Topic MTProto Range Streaming.
 v3.8.10 Drive Settings Unicode-Resilient Restricted Media Filter Engine.
 v3.8.9 Instant Server-Side Filtered Media Streams & MTProto RPC Acceleration Engine.
 v3.8.8 Smart Conditional Remote Upload & Web Handoff Engine.

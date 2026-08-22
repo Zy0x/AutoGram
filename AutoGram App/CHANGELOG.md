@@ -1,3 +1,24 @@
+## v3.8.12 Universal Media Card Right-Click Context Menu & Multi-Stream File Resolution Engine (Phase 35.78)
+
+### 1. Multi-Tier File Resolution Across All Filters & Sorts
+- **Resolusi Berkas Multi-Sumber (`findFileFromRefs` & `findAnyFile`)**:
+  - Mengatasi kegagalan pembukaan menu konteks klik kanan pada kartu media saat berada di mode filter aktif (Media, Photos, Videos, Files, Links, GIFs, Audio) maupun pengurutan khusus (Newest, Oldest, Name, Size, Type).
+  - Memperbarui pencarian referensi berkas agar memindai secara berjenjang: (1) `activeContentFiles` (stream aktif saat ini), (2) `files` (stream utama), (3) `filteredFilesMap` (seluruh kategori server-side/local filtered), dan (4) `liveFilesRef` (stream live in-memory).
+
+### 2. Elimination of Canvas Fallback Hijack
+- **Pencegahan Salah Arah Event Capture Level Dokumen**:
+  - Memperbaiki event listener capture `contextmenu` pada dokumen agar tidak lagi mengalihkan klik kanan kartu media ke menu canvas kosong (`setContextMenu({ kind: 'canvas' })`) saat berkas sedang berada di stream terfilter.
+  - Memastikan seluruh menu konteks media (Preview, Info, Telegram, Download, Open with, Rename, Move/Copy, Delete) selalu terbuka dengan benar pada item yang diklik kanan di tampilan Grid maupun List.
+
+### 3. Resilient Fallback File Synthesis
+- **Ketahanan Objek Berkas DOM**:
+  - Menambahkan generator fallback `DriveFile` sintetis yang mengekstrak atribut kartu (`data-msg-id`, `title`, `folder_id`, `topic_id`) jika suatu kartu di-render oleh DOM tetapi objek state belum selesai terindeks penuh di memori.
+
+### 4. Comprehensive Action & Drag-and-Drop Parity
+- **Penyelarasan Operasi UI & Pointer Drag**:
+  - Menyelaraskan seluruh aksi tombol (Download Selected, Delete IDs, Rename, Move Destination Picker) dan pintasan keyboard (Cut `Ctrl+X`, Copy `Ctrl+C`, Rename `F2`, Preview `Enter`) untuk menggunakan `findAnyFile`.
+  - Memperbaiki pencarian target drag-and-drop pointer move (`onMove` dan `onMouseMove`) untuk berkas dalam kondisi filter aktif.
+
 ## v3.8.11 Password-Protected Sparse ZIP On-The-Fly Decryption & Scoped Peer/Topic MTProto Range Streaming (Phase 35.77)
 
 ### 1. Accurate Scoped Peer & Topic MTProto Routing

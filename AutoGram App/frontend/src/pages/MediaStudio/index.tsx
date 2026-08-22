@@ -1682,6 +1682,26 @@ function MediaDriveDesktop({
 
   const activeContentFiles = mediaFilter === 'all' ? files : (filteredFilesMap[mediaFilter] || []);
 
+  const findAnyFile = useCallback(
+    (id: number): DriveFile | null => {
+      if (!id || !Number.isFinite(id)) return null;
+      const inActive = activeContentFiles.find((f) => f.id === id);
+      if (inActive) return inActive;
+      const inFiles = files.find((f) => f.id === id);
+      if (inFiles) return inFiles;
+      for (const list of Object.values(filteredFilesMap)) {
+        if (Array.isArray(list)) {
+          const found = list.find((f) => f.id === id);
+          if (found) return found;
+        }
+      }
+      const inLive = liveFilesRef.current?.find((f) => f.id === id);
+      if (inLive) return inLive;
+      return null;
+    },
+    [activeContentFiles, files, filteredFilesMap]
+  );
+
   const sortedPreviewList = useMemo(() => {
     // Same filter + sort as explorer so next/prev matches visible order
     return filterAndSortDriveFilesPower(activeContentFiles, {
@@ -6842,7 +6862,7 @@ function MediaDriveDesktop({
       const saveDir = typeof dir === 'string' ? dir : Array.isArray(dir) ? dir[0] : null;
       if (!saveDir) return;
       const names = selectedIds.map((id) => {
-        const f = files.find((x) => x.id === id);
+        const f = findAnyFile(id);
         return f?.name || `msg_${id}`;
       });
       setLastDownloadDir(saveDir);
@@ -6920,7 +6940,7 @@ function MediaDriveDesktop({
   const handleDownloadSelected = () => {
     if (!creds || !selectedIds.length) return;
     const names = selectedIds.map((id) => {
-      const f = files.find((x) => x.id === id);
+      const f = findAnyFile(id);
       return f?.name || `msg_${id}`;
     });
     setConfirmDlg({
@@ -7130,7 +7150,7 @@ function MediaDriveDesktop({
       try {
         setStatusText(n === 1 ? t('ui.generated.menghapus_99906e1') : `Menghapus ${n} file…`);
         const items = ids.map((id) => {
-          const f = files.find((x) => x.id === id) || liveFilesRef.current.find((x) => x.id === id);
+          const f = findAnyFile(id);
           const targetFolder = (f as any)?.folder_id ?? (f as any)?.folderId ?? (f as any)?.chat_id ?? peerId;
           return { id, folderId: targetFolder };
         });
@@ -7210,14 +7230,14 @@ function MediaDriveDesktop({
         setLoadingFiles(false);
       }
     },
-    [creds, peerId, files]
+    [creds, peerId, findAnyFile, t]
   );
 
   const handleDeleteIds = useCallback(
     (ids: number[]) => {
       if (!creds || !ids.length) return;
       const names = ids.map((id) => {
-        const f = files.find((x) => x.id === id);
+        const f = findAnyFile(id);
         return f?.name || `msg_${id}`;
       });
       setConfirmDlg({
@@ -7228,7 +7248,7 @@ function MediaDriveDesktop({
         },
       });
     },
-    [creds, files, executeDeleteIds]
+    [creds, findAnyFile, executeDeleteIds]
   );
 
   const handleRename = (file: DriveFile) => {
@@ -7675,7 +7695,7 @@ function MediaDriveDesktop({
       if ((e.ctrlKey || e.metaKey) && (e.key === 'x' || e.key === 'X')) {
         if (selectedIds.length > 0) {
           e.preventDefault();
-          const names = selectedIds.map((id) => files.find((f) => f.id === id)?.name || `msg_${id}`);
+          const names = selectedIds.map((id) => findAnyFile(id)?.name || `msg_${id}`);
           setDriveClipboard({
             mode: 'cut',
             messageIds: [...selectedIds],
@@ -7690,7 +7710,7 @@ function MediaDriveDesktop({
       if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C') && !e.shiftKey) {
         if (selectedIds.length > 0) {
           e.preventDefault();
-          const names = selectedIds.map((id) => files.find((f) => f.id === id)?.name || `msg_${id}`);
+          const names = selectedIds.map((id) => findAnyFile(id)?.name || `msg_${id}`);
           setDriveClipboard({
             mode: 'copy',
             messageIds: [...selectedIds],
@@ -7715,13 +7735,13 @@ function MediaDriveDesktop({
       }
       if (e.key === 'F2' && selectedIds.length === 1) {
         e.preventDefault();
-        const f = files.find((x) => x.id === selectedIds[0]);
+        const f = findAnyFile(selectedIds[0]);
         if (f) handleRename(f);
         return;
       }
       if (e.key === 'Enter' && selectedIds.length === 1) {
         e.preventDefault();
-        const f = files.find((x) => x.id === selectedIds[0]);
+        const f = findAnyFile(selectedIds[0]);
         if (f) setPreviewFile(f);
         return;
       }
@@ -7873,7 +7893,7 @@ function MediaDriveDesktop({
     setStatusText(`${verb} ${messageIds.length} file → ${targetLabel}…`);
     if (transferHideTimer.current) clearTimeout(transferHideTimer.current);
     const moveNames = messageIds.map((id) => {
-      const f = files.find((x) => x.id === id);
+      const f = findAnyFile(id);
       return f?.name || `msg_${id}`;
     });
     moveAbortRef.current = { cancelled: false };
@@ -8080,7 +8100,7 @@ function MediaDriveDesktop({
         return;
       }
       const names = messageIds.map((id) => {
-        const f = files.find((x) => x.id === id);
+        const f = findAnyFile(id);
         return f?.name || `msg_${id}`;
       });
       const chatMeta = toFolderId != null ? chats.find((c) => c.id === toFolderId) : null;
@@ -8740,10 +8760,31 @@ function MediaDriveDesktop({
    */
   const filesRef = useRef(files);
   filesRef.current = files;
+  const activeContentFilesRef = useRef(activeContentFiles);
+  activeContentFilesRef.current = activeContentFiles;
+  const filteredFilesMapRef = useRef(filteredFilesMap);
+  filteredFilesMapRef.current = filteredFilesMap;
   const selectedIdsRef = useRef(selectedIds);
   selectedIdsRef.current = selectedIds;
   const handleMediaDragPrimeRef = useRef(handleMediaDragPrime);
   handleMediaDragPrimeRef.current = handleMediaDragPrime;
+
+  const findFileFromRefs = useCallback((id: number): DriveFile | null => {
+    if (!id || !Number.isFinite(id)) return null;
+    const inActive = activeContentFilesRef.current.find((f) => f.id === id);
+    if (inActive) return inActive;
+    const inFiles = filesRef.current.find((f) => f.id === id);
+    if (inFiles) return inFiles;
+    for (const list of Object.values(filteredFilesMapRef.current)) {
+      if (Array.isArray(list)) {
+        const found = list.find((f) => f.id === id);
+        if (found) return found;
+      }
+    }
+    const inLive = liveFilesRef.current?.find((f) => f.id === id);
+    if (inLive) return inLive;
+    return null;
+  }, []);
 
   /**
    * Document capture contextmenu — WebView2-safe tools menu.
@@ -8772,10 +8813,7 @@ function MediaDriveDesktop({
           fileEl.closest('[data-msg-id], [data-file-id]')?.getAttribute('data-msg-id') ||
           fileEl.closest('[data-file-id]')?.getAttribute('data-file-id');
         const id = rawId != null ? Number(rawId) : NaN;
-        const file =
-          Number.isFinite(id) && id !== 0
-            ? filesRef.current.find((f) => f.id === id) || null
-            : null;
+        const file = findFileFromRefs(id);
         if (file) {
           setContextMenu({ kind: 'file', x: e.clientX, y: e.clientY, file });
           setSelectedIds((prev) => {
@@ -8783,6 +8821,25 @@ function MediaDriveDesktop({
             selectionAnchorRef.current = file.id;
             return [file.id];
           });
+          return;
+        }
+        // Fallback: If clicked on a media card element but file object wasn't found in memory,
+        // construct a resilient fallback DriveFile so the file context menu still appears reliably
+        if (Number.isFinite(id) && id !== 0) {
+          const fallbackName = fileEl.getAttribute('title') || `File #${id}`;
+          const fallbackFile = {
+            id,
+            name: fallbackName,
+            size: 0,
+            date: Date.now() / 1000,
+            account_id: credsRef.current?.session || '',
+            folder_id: activePeerRef.current,
+            peer_id: activePeerRef.current == null ? 'me' : String(activePeerRef.current),
+            topic_id: topicFilterRef.current ?? null,
+            icon_type: 'generic',
+          } as unknown as DriveFile;
+          setContextMenu({ kind: 'file', x: e.clientX, y: e.clientY, file: fallbackFile });
+          setSelectedIds([id]);
           return;
         }
       }
@@ -8794,7 +8851,7 @@ function MediaDriveDesktop({
     // Capture phase: run before bubble handlers / WebView default
     document.addEventListener('contextmenu', onCtx, true);
     return () => document.removeEventListener('contextmenu', onCtx, true);
-  }, []);
+  }, [findFileFromRefs]);
 
   // React-owned drop completion (opened from native pointerup via CustomEvent)
   useEffect(() => {
@@ -8895,7 +8952,7 @@ function MediaDriveDesktop({
       }
       const dist = Math.hypot(e.clientX - down.x, e.clientY - down.y);
       if (dist < DRAG_THRESHOLD_PX) return;
-      const file = filesRef.current.find((f) => f.id === down!.fileId);
+      const file = findFileFromRefs(down!.fileId);
       if (!file) return;
       primed = true;
       handleMediaDragPrimeRef.current(file, {
@@ -8928,7 +8985,7 @@ function MediaDriveDesktop({
       }
       const dist = Math.hypot(e.clientX - down.x, e.clientY - down.y);
       if (dist < DRAG_THRESHOLD_PX) return;
-      const file = filesRef.current.find((f) => f.id === down!.fileId);
+      const file = findFileFromRefs(down!.fileId);
       if (!file) return;
       primed = true;
       handleMediaDragPrimeRef.current(file, {
@@ -9733,7 +9790,7 @@ function MediaDriveDesktop({
             onMoveSelected={() => {
               if (!selectedIds.length) return;
               const names = selectedIds.map((id) => {
-                const f = files.find((x) => x.id === id);
+                const f = findAnyFile(id);
                 return f?.name || `msg_${id}`;
               });
               openMoveDestinationPicker(selectedIds, names);
