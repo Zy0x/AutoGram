@@ -958,6 +958,7 @@
     "topic": "Topik",
     "media": "Media",
     "btn_go": "Buka Lokasi",
+    "btn_open_short": "Buka",
     "account_switched": "Beralih ke akun {{account}}",
     "account_not_found": "Akun {{account}} tidak terdaftar pada sesi AutoGram.",
     "account_try_current": "Coba pakai akun aktif saat ini",

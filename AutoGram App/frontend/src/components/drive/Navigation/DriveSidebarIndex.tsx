@@ -2386,53 +2386,93 @@ export function DriveSidebar({
           </p>
         )}
 
-        {/* ── Quick Jump Card — shown when Path ID pattern detected ── */}
+        {/* ── Compact Quick Jump Card — shown when Path ID pattern detected ── */}
         {hasLocationQuery && !dragLive && isPathIdMode && (
-          <div className="td-path-quick-jump td-only-expanded">
-            <div className="td-path-qj-header">
-              <Zap size={13} aria-hidden className="td-path-qj-icon" />
-              <span className="td-path-qj-title">{t('ui.path_jump.title')}</span>
-            </div>
-            <div className="td-path-qj-badges">
-              {resolvedPathInfo?.accountName && (
-                <span className="td-path-badge td-path-badge-account" title={resolvedPathInfo.accountTooltip || ''}>
-                  <span className="td-path-badge-prefix">U</span>
-                  <span className="td-path-badge-value">{resolvedPathInfo.accountName}</span>
-                </span>
-              )}
-              {resolvedPathInfo?.chatName && (
-                <span className="td-path-badge td-path-badge-chat" title={resolvedPathInfo.chatTooltip || ''}>
-                  <span className="td-path-badge-prefix">D</span>
-                  <span className="td-path-badge-value">{resolvedPathInfo.chatName}</span>
-                </span>
-              )}
-              {resolvedPathInfo?.topicName && (
-                <span className="td-path-badge td-path-badge-topic" title={resolvedPathInfo.topicTooltip || ''}>
-                  <span className="td-path-badge-prefix">T</span>
-                  <span className="td-path-badge-value">{resolvedPathInfo.topicName}</span>
-                </span>
-              )}
-              {resolvedPathInfo?.mediaName && (
-                <span className="td-path-badge td-path-badge-media" title={resolvedPathInfo.mediaTooltip || ''}>
-                  <span className="td-path-badge-prefix">#</span>
-                  <span className="td-path-badge-value">{resolvedPathInfo.mediaName}</span>
-                </span>
-              )}
-            </div>
-            <button
-              type="button"
-              className="td-path-qj-btn"
-              title={describePath(parsedPath, t, resolvedPathInfo || undefined)}
-              aria-label={`${t('ui.path_jump.btn_go')}: ${describePath(parsedPath, t, resolvedPathInfo || undefined)}`}
-              onClick={() => {
+          <div
+            className="td-path-quick-jump td-only-expanded"
+            role="button"
+            tabIndex={0}
+            title={describePath(parsedPath, t, resolvedPathInfo || undefined)}
+            aria-label={`${t('ui.path_jump.title')}: ${describePath(parsedPath, t, resolvedPathInfo || undefined)}`}
+            onClick={() => {
+              onNavigatePath?.(parsedPath);
+              onCloseDrawer?.();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
                 onNavigatePath?.(parsedPath);
                 onCloseDrawer?.();
-              }}
-            >
-              <Zap size={12} aria-hidden />
-              {t('ui.path_jump.btn_go')}
-            </button>
-            <p className="td-path-qj-hint">{t('ui.path_jump.hint_enter')}</p>
+              }
+            }}
+          >
+            {/* Header: Title on Left, Inline Action Button on Right */}
+            <div className="td-path-qj-header">
+              <div className="td-path-qj-title-wrap">
+                <Zap size={12} aria-hidden className="td-path-qj-icon" />
+                <span className="td-path-qj-title">{t('ui.path_jump.title')}</span>
+              </div>
+              <button
+                type="button"
+                className="td-path-qj-inline-btn"
+                tabIndex={-1}
+                aria-hidden
+              >
+                <span>{t('ui.path_jump.btn_open_short')}</span>
+                <kbd className="td-path-qj-kbd">↵</kbd>
+              </button>
+            </div>
+
+            {/* Breadcrumb Flow of Micro-Pills */}
+            <div className="td-path-qj-flow">
+              {resolvedPathInfo?.accountName && (
+                <span
+                  className="td-path-pill td-path-pill-account"
+                  title={resolvedPathInfo.accountTooltip || ''}
+                >
+                  <span className="td-path-pill-tag">U</span>
+                  <span className="td-path-pill-text">{resolvedPathInfo.accountName}</span>
+                </span>
+              )}
+              {resolvedPathInfo?.accountName &&
+                (resolvedPathInfo.chatName || resolvedPathInfo.topicName || resolvedPathInfo.mediaName) && (
+                  <ChevronRight size={10} className="td-path-qj-sep" aria-hidden />
+                )}
+              {resolvedPathInfo?.chatName && (
+                <span
+                  className="td-path-pill td-path-pill-chat"
+                  title={resolvedPathInfo.chatTooltip || ''}
+                >
+                  <span className="td-path-pill-tag">D</span>
+                  <span className="td-path-pill-text">{resolvedPathInfo.chatName}</span>
+                </span>
+              )}
+              {resolvedPathInfo?.chatName &&
+                (resolvedPathInfo.topicName || resolvedPathInfo.mediaName) && (
+                  <ChevronRight size={10} className="td-path-qj-sep" aria-hidden />
+                )}
+              {resolvedPathInfo?.topicName && (
+                <span
+                  className="td-path-pill td-path-pill-topic"
+                  title={resolvedPathInfo.topicTooltip || ''}
+                >
+                  <span className="td-path-pill-tag">T</span>
+                  <span className="td-path-pill-text">{resolvedPathInfo.topicName}</span>
+                </span>
+              )}
+              {resolvedPathInfo?.topicName && resolvedPathInfo.mediaName && (
+                <ChevronRight size={10} className="td-path-qj-sep" aria-hidden />
+              )}
+              {resolvedPathInfo?.mediaName && (
+                <span
+                  className="td-path-pill td-path-pill-media"
+                  title={resolvedPathInfo.mediaTooltip || ''}
+                >
+                  <span className="td-path-pill-tag">#</span>
+                  <span className="td-path-pill-text">{resolvedPathInfo.mediaName}</span>
+                </span>
+              )}
+            </div>
           </div>
         )}
 

@@ -111,6 +111,10 @@ function parseSegments(input: string): ParsedTelegramPath | null {
     const pureNumMatch = /^(-?\d+)$/.exec(part);
     if (pureNumMatch) {
       const num = Number(pureNumMatch[1]);
+      // If single standalone bare number without prefix, require >= 5 digits or negative peer ID
+      if (parts.length === 1 && !/^-?\d{5,}$/.test(part) && num >= 0) {
+        continue;
+      }
       if (chatId === null && chatSegmentRaw === null) {
         chatId = normalizePeerId(pureNumMatch[1]); chatSegmentRaw = pureNumMatch[1];
       } else if (messageId === null) { messageId = num; }
