@@ -1058,6 +1058,8 @@
   "zip_tag_folder": "FOLDER",
   "zip_tag_file": "FILE",
   "zip_back_to_root": "Kembali ke Direktori Utama",
+  "zip_up_one_level": "Kembali ke folder sebelumnya (Naik satu tingkat)",
+  "zip_up_disabled": "Sudah berada di direktori utama (Root)",
   "zip_keyboard_hint": "Spasi: Pratinjau · Esc: Batal / Tutup",
   "zip_previous_archive": "Arsip sebelumnya",
   "zip_next_archive": "Arsip berikutnya",

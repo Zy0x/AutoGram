@@ -19,6 +19,7 @@ import {
   ArrowUpDown,
   Home,
   FolderInput,
+  ArrowUp,
 } from 'lucide-react';
 import { formatDriveBytes } from '../../../lib/telegram/driveTypes';
 import {
@@ -105,6 +106,19 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
   ];
 
   const pathParts = currentPath.split('/').filter(Boolean);
+  const canNavigateUp = pathParts.length > 0 || (nestedDepth > 0 && !!onBackNested);
+
+  const handleNavigateUp = () => {
+    if (pathParts.length > 1) {
+      const parentPath = `${pathParts.slice(0, -1).join('/')}/`;
+      onNavigateDir(parentPath);
+    } else if (pathParts.length === 1) {
+      onNavigateDir('');
+    } else if (nestedDepth > 0 && onBackNested) {
+      onBackNested();
+    }
+  };
+
   const rawTitle = archiveName || t('speedtest.zip_archive_explorer');
   const truncatedTitle = middleTruncateFilename(rawTitle, 40);
 
@@ -263,6 +277,23 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
       <div className="dzb-command-bar">
         {/* Breadcrumb Path Bar */}
         <nav className="dzb-breadcrumbs-bar" aria-label={t('speedtest.zip_breadcrumbs')}>
+          <button
+            type="button"
+            onClick={handleNavigateUp}
+            disabled={!canNavigateUp}
+            className="dzb-crumb-up-btn"
+            title={
+              pathParts.length > 0
+                ? t('speedtest.zip_up_one_level')
+                : nestedDepth > 0
+                ? t('speedtest.zip_back_parent')
+                : t('speedtest.zip_up_disabled')
+            }
+            aria-label={t('speedtest.zip_up_one_level')}
+          >
+            <ArrowUp size={13} strokeWidth={2.4} />
+          </button>
+
           <button
             type="button"
             onClick={() => onNavigateDir('')}

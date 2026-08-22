@@ -1058,6 +1058,8 @@
   "zip_tag_folder": "FOLDER",
   "zip_tag_file": "FILE",
   "zip_back_to_root": "Back to Root Directory",
+  "zip_up_one_level": "Go to parent folder (Up one level)",
+  "zip_up_disabled": "Already at root directory",
   "zip_keyboard_hint": "Space: Preview · Esc: Clear / Close",
   "zip_previous_archive": "Previous archive",
   "zip_next_archive": "Next archive",

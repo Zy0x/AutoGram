@@ -382,7 +382,7 @@ export async function hydrateSessionMetadataInBackground(sessionNames: string[])
         apiId: Number(apiId),
         apiHash,
       });
-      if (result?.ok && result.data?.user) {
+      if (result?.ok && result.data?.authorized && result.data?.user) {
         const u = result.data.user;
         const uFullName = u.firstName || undefined;
         saveSessionMetadata(sessionName, {
@@ -392,6 +392,20 @@ export async function hydrateSessionMetadataInBackground(sessionNames: string[])
           telegramUserId: u.id ? String(u.id) : undefined,
           isPremium: Boolean(u.isPremium),
         });
+      } else if (result?.ok && !result.data?.authorized) {
+        const existingMeta = getSessionMetadata(sessionName);
+        if (!existingMeta?.telegramUserId) {
+          // Unauthenticated / dead session file on disk — auto purge so it never pollutes the dropdown
+          try {
+            const { invoke } = await import('@tauri-apps/api/core');
+            await invoke('delete_session_rust', { session: sessionName });
+            deleteSessionLocalData(sessionName, true);
+            invalidateSessionListCache();
+            notifySessionMetadataChanged();
+          } catch (purgeErr) {
+            console.warn(`[AutoGram:Session] Auto-purge orphan session "${sessionName}" failed:`, purgeErr);
+          }
+        }
       }
     } catch {
       /* ignore */

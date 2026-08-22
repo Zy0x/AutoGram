@@ -733,7 +733,6 @@ pub fn login_blocking(sessions_dir: &Path, req: &LoginRequest) -> Result<LoginRe
                     // Token cannot be persisted easily across process calls without storing it.
                     // Document: second call must happen soon; we store token in static map.
                     store_login_token(&identity.session, _token);
-                    persist_login_transport_best_effort(&session, &g_path);
                     client.disconnect();
                     tg_log::info(BACKEND, "login_code_sent", "phone_ok=1");
                     return Ok(LoginResult {
@@ -1181,6 +1180,7 @@ pub fn qr_cancel_flags() -> &'static Mutex<HashMap<String, Arc<std::sync::atomic
 }
 
 pub fn cancel_qr_login(session_name: &str) -> bool {
+    let _ = delete_grammers_session_files(session_name);
     if let Some(flag) = qr_cancel_flags().lock().remove(session_name) {
         flag.store(true, std::sync::atomic::Ordering::SeqCst);
         true

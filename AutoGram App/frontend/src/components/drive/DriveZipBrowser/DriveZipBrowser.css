@@ -321,6 +321,40 @@
   display: none;
 }
 
+.dzb-crumb-up-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-right: 2px;
+  flex-shrink: 0;
+}
+
+.dzb-crumb-up-btn:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.35);
+  color: #a5b4fc;
+}
+
+.dzb-crumb-up-btn:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.dzb-crumb-up-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  border-color: transparent;
+  background: transparent;
+}
+
 .dzb-crumb-item {
   display: inline-flex;
   align-items: center;
