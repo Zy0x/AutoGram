@@ -85,16 +85,20 @@
 }
 
 /* Archive Title & Meta Identity */
-.dzb-archive-identity {
+.dzb-archive-identity,
+.dzb-archive-titles {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
+.dzb-archive-badge-icon,
 .dzb-archive-icon-wrapper {
   width: 38px;
   height: 38px;
+  min-width: 38px;
   border-radius: 10px;
   background: radial-gradient(circle at center, rgba(99, 102, 241, 0.25) 0%, rgba(99, 102, 241, 0.05) 100%);
   border: 1px solid rgba(99, 102, 241, 0.3);
@@ -118,8 +122,10 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
+  max-width: 100%;
 }
 
+.dzb-archive-name,
 .dzb-archive-heading {
   margin: 0;
   font-size: 0.96rem;
@@ -128,16 +134,27 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 340px;
+  min-width: 0;
+  max-width: 100%;
   letter-spacing: -0.01em;
 }
 
 @media (min-width: 1200px) {
+  .dzb-archive-name,
   .dzb-archive-heading {
-    max-width: 520px;
+    max-width: 580px;
   }
 }
 
+@media (min-width: 1920px) {
+  .dzb-archive-name,
+  .dzb-archive-heading {
+    max-width: 900px;
+    font-size: 1.06rem;
+  }
+}
+
+.dzb-subtitle-row,
 .dzb-meta-subrow {
   display: flex;
   align-items: center;
@@ -146,15 +163,26 @@
   color: #94a3b8;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
+.dzb-meta-stat {
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.dzb-meta-dot,
 .dzb-stat-bullet {
   color: #475569;
 }
 
+.dzb-meta-type,
 .dzb-type-text {
   color: #818cf8;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 /* Security & Depth Badges */
@@ -170,8 +198,10 @@
   color: #34d399;
   border: 1px solid rgba(52, 211, 153, 0.28);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
+.dzb-badge-locked,
 .dzb-badge-protected {
   display: inline-flex;
   align-items: center;
@@ -184,8 +214,10 @@
   color: #fbbf24;
   border: 1px solid rgba(251, 191, 36, 0.28);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
+.dzb-badge-nested,
 .dzb-badge-depth {
   display: inline-flex;
   align-items: center;
@@ -196,6 +228,8 @@
   background: rgba(99, 102, 241, 0.15);
   color: #c7d2fe;
   border: 1px solid rgba(129, 140, 248, 0.3);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Layer 1 Right Actions */
@@ -390,18 +424,19 @@
   margin-left: 4px;
 }
 
-/* Controls Row (Search + Category Chips + Sort) */
+/* Controls Row (Search + Filter Chips + Sort) */
 .dzb-controls-row {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  flex: 1 1 auto;
+  justify-content: flex-end;
 }
 
-@media (min-width: 992px) {
+@media (min-width: 900px) {
   .dzb-controls-row {
-    flex: 1 1 auto;
-    justify-content: flex-end;
+    flex-wrap: nowrap;
   }
 }
 
@@ -410,9 +445,9 @@
   position: relative;
   display: flex;
   align-items: center;
-  min-width: 160px;
-  flex: 1 1 160px;
-  max-width: 260px;
+  min-width: 140px;
+  flex: 1 1 180px;
+  max-width: 240px;
 }
 
 .dzb-search-input {
@@ -467,6 +502,15 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+/* Filter & Sort Container */
+.dzb-filter-sort-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
 /* Category Filter Chips with Live Counters */
 .dzb-category-chips {
   display: flex;
@@ -474,10 +518,12 @@
   gap: 3px;
   overflow-x: auto;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 8px;
   padding: 2px;
+  min-width: 0;
 }
 
 .dzb-category-chips::-webkit-scrollbar {
@@ -499,6 +545,7 @@
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.15s ease;
+  flex-shrink: 0;
 }
 
 .dzb-chip-btn:hover {
@@ -530,6 +577,7 @@
 /* Sort Selector */
 .dzb-sort-container {
   position: relative;
+  flex-shrink: 0;
 }
 
 .dzb-sort-trigger-btn {
@@ -545,13 +593,21 @@
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
+  outline: none;
+  box-shadow: none;
   transition: all 0.15s ease;
   white-space: nowrap;
 }
 
 .dzb-sort-trigger-btn:hover {
   background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
   color: #f8fafc;
+}
+
+.dzb-sort-trigger-btn:focus-visible {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
 }
 
 .dzb-sort-dropdown {
@@ -2224,28 +2280,271 @@
 }
 
 /* ==========================================================================
-   RESPONSIVE ADJUSTMENTS
+   MULTI-TIER RESPONSIVE ADAPTATION ENGINE
+   Ultrawide (>= 1920px), Wide (1440px - 1919px), Desktop (1024px - 1439px),
+   Tablet / Split (768px - 1023px), Mobile & Floating Windows (480px - 767px),
+   and Micro Viewports (< 480px)
    ========================================================================== */
-@media (max-width: 640px) {
+
+/* 1. Ultra-Wide Screens (>= 1920px) */
+@media (min-width: 1920px) {
   .dzb-identity-bar {
-    padding: 8px 10px;
+    padding: 12px 24px;
+  }
+  .dzb-archive-name,
+  .dzb-archive-heading {
+    font-size: 1.08rem;
+    max-width: 800px;
   }
   .dzb-command-bar {
-    padding: 6px 10px;
+    padding: 10px 24px;
+    gap: 16px;
   }
-  .dzb-content-surface {
-    padding: 8px 10px 70px 10px;
+  .dzb-search-wrap {
+    max-width: 320px;
   }
-  .dzb-badge-unlocked {
-    display: none;
+  .dzb-grid-layout {
+    grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+    gap: 16px;
+    padding: 12px 0 32px;
+  }
+}
+
+/* 2. Wide Screens (1440px - 1919px) */
+@media (min-width: 1440px) and (max-width: 1919px) {
+  .dzb-identity-bar {
+    padding: 10px 20px;
+  }
+  .dzb-archive-name,
+  .dzb-archive-heading {
+    max-width: 600px;
+  }
+  .dzb-command-bar {
+    padding: 8px 20px;
+  }
+  .dzb-search-wrap {
+    max-width: 280px;
+  }
+  .dzb-grid-layout {
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    gap: 14px;
+  }
+}
+
+/* 3. Standard Desktop (1024px - 1439px) */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .dzb-archive-name,
+  .dzb-archive-heading {
+    max-width: 420px;
+  }
+  .dzb-grid-layout {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+}
+
+/* 4. Tablet Landscape & Medium Split (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .dzb-command-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 8px 14px;
+  }
+  .dzb-breadcrumbs-bar {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+  }
+  .dzb-controls-row {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .dzb-search-wrap {
+    flex: 1 1 200px;
+    max-width: 320px;
+  }
+  .dzb-filter-sort-row {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+  }
+  .dzb-category-chips {
+    flex: 0 1 auto;
+  }
+  .dzb-grid-layout {
+    grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+    gap: 10px;
+  }
+}
+
+/* 5. Mobile & Small Window (< 768px) */
+@media (max-width: 767px) {
+  .dzb-identity-bar {
+    padding: 8px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .dzb-identity-left {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .dzb-archive-badge-icon,
+  .dzb-archive-icon-wrapper {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border-radius: 8px;
+  }
+  .dzb-archive-name,
+  .dzb-archive-heading {
+    font-size: 0.9rem;
+    max-width: calc(100vw - 60px);
+  }
+  .dzb-subtitle-row,
+  .dzb-meta-subrow {
+    font-size: 0.7rem;
+    gap: 4px;
+  }
+  .dzb-identity-right {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+    gap: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
   }
   .dzb-btn-save-archive span {
     display: none;
+  }
+  .dzb-btn-load-all-media {
+    height: 32px;
+    padding: 0 8px;
+    font-size: 0.72rem;
+    gap: 4px;
+  }
+  .dzb-command-bar {
+    padding: 6px 12px;
+    gap: 6px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .dzb-breadcrumbs-bar {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+    font-size: 0.72rem;
+  }
+  .dzb-controls-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    width: 100%;
+  }
+  .dzb-search-wrap {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .dzb-search-input {
+    height: 32px;
+    font-size: 0.76rem;
+  }
+  .dzb-filter-sort-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    width: 100%;
+  }
+  .dzb-category-chips {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .dzb-chip-btn {
+    height: 28px;
+    padding: 0 7px;
+    font-size: 0.7rem;
+  }
+  .dzb-sort-container {
+    flex-shrink: 0;
+  }
+  .dzb-sort-trigger-btn {
+    height: 28px;
+    padding: 0 8px;
+    font-size: 0.7rem;
+  }
+  .dzb-content-surface {
+    padding: 8px 10px 75px 10px;
+  }
+  .dzb-grid-layout {
+    grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
+    gap: 8px;
+    padding: 4px 0 20px;
+  }
+  .dzb-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .dzb-thead th {
+    padding: 8px 10px;
+    font-size: 0.68rem;
+  }
+  .dzb-tr td {
+    padding: 6px 10px;
+  }
+  .dzb-th-type,
+  .dzb-td-type {
+    display: none;
+  }
+  .dzb-floating-bar-wrap {
+    bottom: 12px;
+    width: calc(100% - 20px);
+    max-width: 440px;
+  }
+  .dzb-floating-bar {
+    padding: 6px 10px;
+    gap: 8px;
+    justify-content: space-between;
+    width: 100%;
+  }
+  .dzb-floating-count {
+    font-size: 0.76rem;
+  }
+  .dzb-floating-btn {
+    height: 30px;
+    padding: 0 9px;
+    font-size: 0.72rem;
   }
   .dzb-destination-tabs {
     grid-template-columns: 1fr;
   }
   .dzb-destination-list {
     grid-template-columns: 1fr;
+  }
+}
+
+/* 6. Ultra-Compact Micro (< 420px) */
+@media (max-width: 419px) {
+  .dzb-grid-layout {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+  .dzb-chip-btn span:not(.dzb-chip-counter) {
+    display: none;
+  }
+  .dzb-sort-trigger-btn span {
+    display: none;
+  }
+  .dzb-floating-info span {
+    display: none;
+  }
+  .dzb-floating-actions {
+    flex-wrap: wrap;
+    gap: 4px;
   }
 }

@@ -332,56 +332,58 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
             )}
           </div>
 
-          {/* Category Filter Chips with Live Counters */}
-          <div className="dzb-category-chips">
-            {categories.map((c) => {
-              const count = categoryCounts[c.id] || 0;
-              const isActive = category === c.id;
+          <div className="dzb-filter-sort-row">
+            {/* Category Filter Chips with Live Counters */}
+            <div className="dzb-category-chips">
+              {categories.map((c) => {
+                const count = categoryCounts[c.id] || 0;
+                const isActive = category === c.id;
 
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => onCategoryChange(c.id)}
-                  className={`dzb-chip-btn ${isActive ? 'active' : ''}`}
-                >
-                  {c.icon}
-                  <span>{c.label}</span>
-                  <span className="dzb-chip-counter">{count}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Sort Selector Dropdown */}
-          <div className="dzb-sort-container">
-            <button
-              type="button"
-              onClick={() => setShowSortMenu(!showSortMenu)}
-              className="dzb-sort-trigger-btn"
-              title={t('speedtest.zip_sort_by')}
-            >
-              <ArrowUpDown size={14} />
-              <span>{sortOptions.find((s) => s.id === sortOption)?.label}</span>
-            </button>
-
-            {showSortMenu && (
-              <div className="dzb-sort-dropdown" onMouseLeave={() => setShowSortMenu(false)}>
-                {sortOptions.map((opt) => (
+                return (
                   <button
-                    key={opt.id}
+                    key={c.id}
                     type="button"
-                    onClick={() => {
-                      onSortChange(opt.id);
-                      setShowSortMenu(false);
-                    }}
-                    className={`dzb-sort-option ${sortOption === opt.id ? 'active' : ''}`}
+                    onClick={() => onCategoryChange(c.id)}
+                    className={`dzb-chip-btn ${isActive ? 'active' : ''}`}
                   >
-                    <span>{opt.label}</span>
+                    {c.icon}
+                    <span>{c.label}</span>
+                    <span className="dzb-chip-counter">{count}</span>
                   </button>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
+
+            {/* Sort Selector Dropdown */}
+            <div className="dzb-sort-container">
+              <button
+                type="button"
+                onClick={() => setShowSortMenu(!showSortMenu)}
+                className="dzb-sort-trigger-btn"
+                title={t('speedtest.zip_sort_by')}
+              >
+                <ArrowUpDown size={14} />
+                <span>{sortOptions.find((s) => s.id === sortOption)?.label}</span>
+              </button>
+
+              {showSortMenu && (
+                <div className="dzb-sort-dropdown" onMouseLeave={() => setShowSortMenu(false)}>
+                  {sortOptions.map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        onSortChange(opt.id);
+                        setShowSortMenu(false);
+                      }}
+                      className={`dzb-sort-option ${sortOption === opt.id ? 'active' : ''}`}
+                    >
+                      <span>{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
