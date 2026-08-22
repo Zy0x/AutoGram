@@ -161,14 +161,14 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
             </div>
 
             <div className="dzb-subtitle-row">
+              <span className="dzb-meta-stat">{formatDriveBytes(totalBytes)}</span>
+              <span className="dzb-meta-dot">·</span>
               <span className="dzb-meta-stat">
                 {t('speedtest.zip_meta_files', { count: totalFiles })}
               </span>
-              <span className="dzb-meta-dot">•</span>
-              <span className="dzb-meta-stat">{formatDriveBytes(totalBytes)}</span>
               {dominantType !== 'mixed' && (
                 <>
-                  <span className="dzb-meta-dot">•</span>
+                  <span className="dzb-meta-dot">·</span>
                   <span className="dzb-meta-type">
                     {dominantType === 'images'
                       ? t('speedtest.zip_dominant_images')
@@ -303,9 +303,11 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
             );
           })}
 
-          <span className="dzb-folder-count">
-            ({t('speedtest.zip_items_count', { count: currentFolderItemCount })})
-          </span>
+          {pathParts.length > 0 && (
+            <span className="dzb-folder-count">
+              ({t('speedtest.zip_items_count', { count: currentFolderItemCount })})
+            </span>
+          )}
         </nav>
 
         {/* Search, Filter Pills & Sort */}
