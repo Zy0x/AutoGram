@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState, type ComponentType } from 'react';
-import { Battery, Cpu, Gauge, HardDrive, ShieldCheck, SlidersHorizontal, Sparkles, Wifi, Zap } from 'lucide-react';
+import { Battery, CheckCircle2, Cpu, Gauge, HardDrive, Loader2, RefreshCw, ShieldCheck, SlidersHorizontal, Sparkles, Wifi, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getDrivePerfProfile, setPerfTierOverride, type PerfTier } from '../../lib/utils/devicePerformance';
 import { garbageCollector } from '../../lib/utils/garbageCollector';
@@ -73,12 +73,32 @@ export const PerfSection = memo(function PerfSection() {
     },
   ];
 
+  const [clearingRam, setClearingRam] = useState(false);
+  const [clearedSuccess, setClearedSuccess] = useState(false);
+
   const selectTier = (nextTier: PerfTier) => {
     setTier(nextTier);
     setPerfTierOverride(nextTier);
     window.dispatchEvent(new CustomEvent('autogram-perf-tier-changed', { detail: nextTier }));
     window.dispatchEvent(new CustomEvent('autogram-emergency-memory-reclaim'));
     void garbageCollector.runGarbageCollection();
+  };
+
+  const handleClearRam = async () => {
+    if (clearingRam) return;
+    setClearingRam(true);
+    setClearedSuccess(false);
+    try {
+      window.dispatchEvent(new CustomEvent('autogram-emergency-memory-reclaim'));
+      await garbageCollector.runGarbageCollection();
+      garbageCollector.forcePurgeAll();
+      setClearedSuccess(true);
+      setTimeout(() => setClearedSuccess(false), 3000);
+    } catch {
+      /* ignore */
+    } finally {
+      setClearingRam(false);
+    }
   };
 
   const cpuName = hardwareCapabilities?.cpu?.processor_name
@@ -245,6 +265,86 @@ export const PerfSection = memo(function PerfSection() {
             <ShieldCheck size={12} style={{ color: '#818cf8', flexShrink: 0 }} />
             <span>{t('settings.perf_engine_rust')}</span>
           </span>
+        </div>
+      </div>
+
+      {/* CLEAR RAM & FLUSH MEMORY BAR */}
+      <div
+        style={{
+          marginTop: '14px',
+          padding: '12px 16px',
+          borderRadius: '10px',
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid rgba(255, 255, 255, 0.07)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '220px', flex: 1 }}>
+          <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#f1f5f9' }}>
+            {t('settings.perf_clear_ram_btn')}
+          </span>
+          <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.3 }}>
+            {t('settings.perf_clear_ram_desc')}
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {clearedSuccess && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '0.76rem',
+                fontWeight: 600,
+                color: '#10b981',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                background: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+              }}
+            >
+              <CheckCircle2 size={13} />
+              <span>{t('settings.perf_clear_ram_success')}</span>
+            </span>
+          )}
+
+          <button
+            type="button"
+            disabled={clearingRam}
+            onClick={handleClearRam}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              padding: '7px 14px',
+              borderRadius: '8px',
+              background: 'rgba(56, 189, 248, 0.12)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              color: '#38bdf8',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              cursor: clearingRam ? 'not-allowed' : 'pointer',
+              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {clearingRam ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                <span>{t('settings.perf_clear_ram_clearing')}</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw size={14} />
+                <span>{t('settings.perf_clear_ram_btn')}</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
     </section>
