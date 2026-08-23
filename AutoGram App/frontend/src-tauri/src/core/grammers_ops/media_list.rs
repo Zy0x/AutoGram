@@ -751,6 +751,14 @@ pub fn media_to_row(
         _ => None,
     }
 }
+fn truncate_first_line(caption: &str, max_chars: usize) -> String {
+    let first_line = caption.lines().next().unwrap_or(caption).trim();
+    if let Some((idx, _)) = first_line.char_indices().nth(max_chars) {
+        format!("{}…", &first_line[..idx])
+    } else {
+        first_line.to_string()
+    }
+}
 
 pub fn tl_message_to_row(
     msg: &grammers_client::tl::enums::Message,
@@ -779,7 +787,7 @@ pub fn tl_message_to_row(
                 let name = if caption.is_empty() {
                     format!("photo_{id}.jpg")
                 } else {
-                    format!("{caption}.jpg")
+                    truncate_first_line(caption, 60)
                 };
                 let mut photo_size = 0u64;
                 if let Some(grammers_client::tl::enums::Photo::Photo(photo)) = &photo_media.photo {
@@ -808,16 +816,16 @@ pub fn tl_message_to_row(
                     id,
                     folder_id,
                     name,
-                    size: photo_size,
+                    size: if photo_size > 0 { photo_size } else { 0 },
                     mime_type: Some("image/jpeg".to_string()),
                     icon_type: "photo".to_string(),
                     created_at: created,
-                    has_thumb: true,
+                    has_thumb: photo_media.photo.is_some() || thumb_data_url.is_some(),
                     as_document: false,
                     backend: BACKEND.to_string(),
                     thumb_data_url,
                     topic_id,
-                    identity_source: Some("telegram_search".into()),
+                    identity_source: Some("telegram_photo".into()),
                     peer_id: folder_id
                         .map(|fid| {
                             if fid == 0 {
@@ -843,10 +851,13 @@ pub fn tl_message_to_row(
                     Some(grammers_client::tl::enums::Document::Document(d)) => d,
                     _ => return None,
                 };
-                let mut raw_name: Option<String> = None;
+                let mut raw_name = None;
                 for attr in &doc.attributes {
                     if let grammers_client::tl::enums::DocumentAttribute::Filename(f) = attr {
-                        raw_name = Some(f.file_name.clone());
+                        if !f.file_name.is_empty() {
+                            raw_name = Some(f.file_name.clone());
+                            break;
+                        }
                     }
                 }
                 let native_delivery = has_native_delivery(&doc.attributes);
@@ -934,12 +945,7 @@ pub fn tl_message_to_row(
                 let name = if caption.is_empty() {
                     format!("link_{id}")
                 } else {
-                    let first_line = caption.lines().next().unwrap_or(caption).trim();
-                    if first_line.len() > 60 {
-                        format!("{}…", &first_line[..60])
-                    } else {
-                        first_line.to_string()
-                    }
+                    truncate_first_line(caption, 60)
                 };
                 let mut photo_size = 0u64;
                 let mut has_photo = false;
@@ -1004,12 +1010,7 @@ pub fn tl_message_to_row(
             }
             _ => {
                 if !caption.is_empty() {
-                    let first_line = caption.lines().next().unwrap_or(caption).trim();
-                    let name = if first_line.len() > 60 {
-                        format!("{}…", &first_line[..60])
-                    } else {
-                        first_line.to_string()
-                    };
+                    let name = truncate_first_line(caption, 60);
                     let is_link = caption.contains("http://") || caption.contains("https://") || caption.contains("t.me/");
                     let icon_type = if is_link { "link".to_string() } else { "text".to_string() };
                     let cls = crate::core::media_classifier::classify_media_item(
@@ -1058,12 +1059,7 @@ pub fn tl_message_to_row(
             }
         }
     } else if !caption.is_empty() {
-        let first_line = caption.lines().next().unwrap_or(caption).trim();
-        let name = if first_line.len() > 60 {
-            format!("{}…", &first_line[..60])
-        } else {
-            first_line.to_string()
-        };
+        let name = truncate_first_line(caption, 60);
         let is_link = caption.contains("http://") || caption.contains("https://") || caption.contains("t.me/");
         let icon_type = if is_link { "link".to_string() } else { "file".to_string() };
         let cls = crate::core::media_classifier::classify_media_item(
@@ -2891,6 +2887,30 @@ mod tests {
                 "Scale {scale}: emitted sequence must be 100% identical to reference descending order"
             );
         }
+    }
+
+    #[test]
+    fn test_truncate_first_line_multibyte_safe() {
+        // Test Chinese characters (3 bytes per char) - crash was at byte index 60 (inside char '六')
+        let chinese_caption = "这是一个很长的测试说明文字，用来测试六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六六";
+        let res = truncate_first_line(chinese_caption, 60);
+        assert!(res.ends_with('…'));
+        assert_eq!(res.chars().count(), 61); // 60 chars + 1 ellipsis
+
+        // Test Arabic characters (2 bytes per char) - crash was inside 'و'
+        let arabic_caption = "وَاعْتَصِمُوا بِحَبْلِ اللَّهِ جَمِيعًا وَلَا تَفَرَّقُوا وَاذْكُرُوا نِعْمَتَ اللَّهِ عَلَيْكُمْ إِذْ كُنتُمْ أَعْدَاءً فَأَلَّفَ بَيْنَ قُلُوبِكُمْ";
+        let res_ar = truncate_first_line(arabic_caption, 60);
+        assert!(res_ar.ends_with('…'));
+        assert_eq!(res_ar.chars().count(), 61);
+
+        // Test emojis (4 bytes per char)
+        let emoji_caption = "🚀🔥🎉✨🌟💡🛡️⚡🎯🎨".repeat(10);
+        let res_emoji = truncate_first_line(&emoji_caption, 60);
+        assert!(res_emoji.ends_with('…'));
+
+        // Short string should not be truncated
+        let short = "Hello World";
+        assert_eq!(truncate_first_line(short, 60), "Hello World");
     }
 
 }

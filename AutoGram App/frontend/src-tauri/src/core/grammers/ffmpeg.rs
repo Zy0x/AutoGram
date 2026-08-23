@@ -1575,8 +1575,8 @@ pub fn extract_ffmpeg_frame_from_url(
     if result.is_none() {
         let stderr = String::from_utf8_lossy(&stderr_bytes);
         if !stderr.is_empty() {
-            let trimmed = if stderr.len() > 1024 {
-                format!("{}... [trimmed]", &stderr[..1024])
+            let trimmed = if let Some((idx, _)) = stderr.char_indices().nth(1024) {
+                format!("{}... [trimmed]", &stderr[..idx])
             } else {
                 stderr.trim().to_string()
             };

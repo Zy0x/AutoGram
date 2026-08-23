@@ -355,8 +355,8 @@ fn extract_office_zip(path: &Path, ext: &str, max_chars: usize) -> Option<String
         return None;
     }
     let mut body = chunks.join("\n\n");
-    if body.len() > max_chars {
-        body.truncate(max_chars);
+    if let Some((idx, _)) = body.char_indices().nth(max_chars) {
+        body.truncate(idx);
         body.push_str("\n\n… (dipotong)");
     }
     Some(body)

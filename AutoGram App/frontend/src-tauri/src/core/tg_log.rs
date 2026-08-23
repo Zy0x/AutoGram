@@ -71,8 +71,8 @@ pub fn session_label(session: &str) -> String {
         return "session:empty".into();
     }
     // Cap length
-    if base.len() > 48 {
-        format!("session:{}…", &base[..45])
+    if let Some((idx, _)) = base.char_indices().nth(45) {
+        format!("session:{}…", &base[..idx])
     } else {
         format!("session:{base}")
     }
