@@ -27,6 +27,16 @@ pub struct DriveRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct DrivePage {
+    pub account_id: String,
+    pub drives: Vec<DriveRecord>,
+    pub limit: usize,
+    pub offset: usize,
+    pub has_more: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct FolderRecord {
     pub folder_id: String,
     pub drive_id: String,

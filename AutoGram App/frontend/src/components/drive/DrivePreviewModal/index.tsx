@@ -1328,9 +1328,24 @@ export function DrivePreviewModal({
 
   const [srcOverride, setSrcOverride] = useState<string | null>(null);
   const [prevFileId, setPrevFileId] = useState(file.id);
+  const navDebounceTimerRef = useRef<number | null>(null);
 
   if (file.id !== prevFileId) {
     setPrevFileId(file.id);
+    if (navDebounceTimerRef.current != null) {
+      window.clearTimeout(navDebounceTimerRef.current);
+      navDebounceTimerRef.current = null;
+    }
+    try {
+      const v = videoRef.current;
+      if (v) {
+        v.pause();
+        v.removeAttribute('src');
+        v.load();
+      }
+    } catch {
+      /* ignore */
+    }
     liveStreamIdRef.current = null;
     nativeStreamReadyRef.current = false;
     setDataUrl(null);
@@ -1638,59 +1653,76 @@ export function DrivePreviewModal({
         setPoster((p) => p || gridThumb);
       }
 
-      try {
-        const itemPeerId = file.peer_id || (folderId != null && folderId !== 0 ? String(folderId) : null);
-        const itemTopicId = file.topic_id ?? null;
-        const itemAccountId = file.account_id || creds.session;
-        const locationType = itemPeerId === 'me' ? 'saved_messages' : 'group';
-        const res = await loadPreviewCached(creds, file.id, folderId, qNorm, {
-          force,
-          peerId: itemPeerId,
-          topicId: itemTopicId,
-          locationType,
-          accountId: itemAccountId,
-        });
-        if (mountGenRef.current !== activeMountGen) return;
-        if (seq !== loadSeq.current) return;
-        applyResult(res, qNorm, false);
+      if (navDebounceTimerRef.current != null) {
+        window.clearTimeout(navDebounceTimerRef.current);
+        navDebounceTimerRef.current = null;
+      }
 
-        // Prefetch neighbors for regular images only — never for ZIP, video, or doc
-        const isOnlyImagePost = isImageDriveFile(file) && !isVideoDriveFile(file) && !isZipDriveFile(file) && !isPdfDriveFile(file) && !isTextDriveFile(file);
-        const idsPost = neighborIds.filter((id) => id && id !== file.id).slice(0, 2);
-        if (idsPost.length && isOnlyImagePost) prefetchPreviews(creds, folderId, idsPost, qNorm);
-      } catch (e: any) {
-        if (mountGenRef.current !== activeMountGen) return;
-        if (seq !== loadSeq.current) return;
+      const executeRemoteLoad = async () => {
+        try {
+          const itemPeerId = file.peer_id || (folderId != null && folderId !== 0 ? String(folderId) : null);
+          const itemTopicId = file.topic_id ?? null;
+          const itemAccountId = file.account_id || creds.session;
+          const locationType = itemPeerId === 'me' ? 'saved_messages' : 'group';
+          const res = await loadPreviewCached(creds, file.id, folderId, qNorm, {
+            force,
+            peerId: itemPeerId,
+            topicId: itemTopicId,
+            locationType,
+            accountId: itemAccountId,
+          });
+          if (mountGenRef.current !== activeMountGen) return;
+          if (seq !== loadSeq.current) return;
+          applyResult(res, qNorm, false);
 
-        const raw = String(e?.message || e || '');
-        const isDeferred = /drive read deferred/i.test(raw);
-        const retryCount = opts?.deferredRetryCount ?? 0;
+          // Prefetch neighbors for regular images only — never for ZIP, video, or doc
+          const isOnlyImagePost = isImageDriveFile(file) && !isVideoDriveFile(file) && !isZipDriveFile(file) && !isPdfDriveFile(file) && !isTextDriveFile(file);
+          const idsPost = neighborIds.filter((id) => id && id !== file.id).slice(0, 2);
+          if (idsPost.length && isOnlyImagePost) prefetchPreviews(creds, folderId, idsPost, qNorm);
+        } catch (e: any) {
+          if (mountGenRef.current !== activeMountGen) return;
+          if (seq !== loadSeq.current) return;
 
-        if (isDeferred && retryCount < 6) {
-          setPlayerHint(`Drive sedang sibuk transfer file... Mencoba kembali otomatis (percobaan ${retryCount + 1}/6)...`);
-          setLoading(true);
-          setError(null);
-          setTimeout(() => {
-            if (mountGenRef.current !== activeMountGen) return;
-            if (seq !== loadSeq.current) return;
-            void loadPreview(q, { ...opts, deferredRetryCount: retryCount + 1, soft: true });
-          }, 1500);
-          return;
+          const raw = String(e?.message || e || '');
+          const isDeferred = /drive read deferred/i.test(raw);
+          const retryCount = opts?.deferredRetryCount ?? 0;
+
+          if (isDeferred && retryCount < 6) {
+            setPlayerHint(`Drive sedang sibuk transfer file... Mencoba kembali otomatis (percobaan ${retryCount + 1}/6)...`);
+            setLoading(true);
+            setError(null);
+            setTimeout(() => {
+              if (mountGenRef.current !== activeMountGen) return;
+              if (seq !== loadSeq.current) return;
+              void loadPreview(q, { ...opts, deferredRetryCount: retryCount + 1, soft: true });
+            }, 1500);
+            return;
+          }
+
+          // Keep cached playback if we already painted a hit
+          if (!hasUsable) {
+            const disconnected = /while disconnected|cannot send requests|koneksi telegram terputus|not connected|drive session ended|drive session stopped|drive session not ready/i.test(
+              raw
+            );
+            setError(
+              disconnected
+                ? t('ui.generated.koneksi_telegram_putus_saat_memuat_pratinjau_kli_caf3236')
+                : raw || t('ui.generated.gagal_memuat_pratinjau_a59ec1e')
+            );
+            setLoading(false);
+          }
+        } finally {
+          setSwitchingQuality(false);
         }
+      };
 
-        // Keep cached playback if we already painted a hit
-        if (!hasUsable) {
-          const disconnected = /while disconnected|cannot send requests|koneksi telegram terputus|not connected|drive session ended|drive session stopped|drive session not ready/i.test(
-            raw
-          );
-          setError(
-            disconnected
-              ? t('ui.generated.koneksi_telegram_putus_saat_memuat_pratinjau_kli_caf3236')
-              : raw || t('ui.generated.gagal_memuat_pratinjau_a59ec1e')
-          );
-          setLoading(false);
-        }
-        setSwitchingQuality(false);
+      if (force || soft) {
+        void executeRemoteLoad();
+      } else {
+        navDebounceTimerRef.current = window.setTimeout(() => {
+          navDebounceTimerRef.current = null;
+          void executeRemoteLoad();
+        }, 110);
       }
     },
     [applyResult, creds, file.id, folderId, gridThumb, neighborIds]
@@ -2253,6 +2285,75 @@ export function DrivePreviewModal({
       setSeekWarn(null);
     })();
   }, [streamUrl, timeInBuffered, flashSeekWarn]);
+
+  const lastLookaheadTimeRef = useRef(0);
+
+  /**
+   * Proactive Lookahead Buffering:
+   * When video is actively playing and current buffer ahead drops below 5.0 seconds,
+   * proactively dispatch range requests for +8.0s so playback never starves/lags.
+   */
+  const checkAndRequestLookaheadBuffer = useCallback((v: HTMLVideoElement) => {
+    if (streamDoneRef.current) return;
+    const sid = streamIdRef.current;
+    const c = credsRef.current;
+    if (!v || !sid || !c || v.paused || v.ended) return;
+
+    const curTime = v.currentTime;
+    const dur = v.duration;
+    if (!Number.isFinite(curTime) || !Number.isFinite(dur) || dur <= 0) return;
+    if (curTime >= dur - 0.5) return;
+
+    let currentBufferedEnd = 0;
+    try {
+      const b = v.buffered;
+      if (b && b.length > 0) {
+        for (let i = 0; i < b.length; i++) {
+          if (b.start(i) <= curTime + 0.3 && curTime <= b.end(i) + 0.3) {
+            currentBufferedEnd = Math.max(currentBufferedEnd, b.end(i));
+          }
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+
+    const bufferAhead = Math.max(0, currentBufferedEnd - curTime);
+
+    // If buffer ahead is under 5.0 seconds (e.g. 3-5 seconds before buffer runs out), request next chunk ahead
+    const now = Date.now();
+    if (bufferAhead < 5.0 && now - lastLookaheadTimeRef.current > 1000) {
+      lastLookaheadTimeRef.current = now;
+      const targetTime = Math.min(dur - 0.1, Math.max(currentBufferedEnd + 4.0, curTime + 8.0));
+      void driveStreamSeek(c, sid, {
+        time_s: targetTime,
+        duration_s: dur,
+      }).catch(() => {});
+    }
+  }, []);
+
+  const recoverStalledVideo = useCallback((reason: string) => {
+    const v = videoRef.current;
+    if (!v || v.paused || v.ended) return;
+    const cur = v.currentTime;
+    if (timeInBuffered(v, cur, 0.5)) {
+      console.debug(`[STREAM_RECOVERY] Nudging video on ${reason} at ${cur}s`);
+      try {
+        void v.play().catch(() => {});
+      } catch {
+        /* ignore */
+      }
+    } else if (!streamDoneRef.current) {
+      const sid = streamIdRef.current;
+      const c = credsRef.current;
+      if (sid && c) {
+        void driveStreamSeek(c, sid, {
+          time_s: cur,
+          duration_s: v.duration > 0 ? v.duration : undefined,
+        }).catch(() => {});
+      }
+    }
+  }, [timeInBuffered]);
 
   const getStreamBaseUrl = useCallback((url: string, sid: string) => {
     const idx = url.indexOf('/stream/');
@@ -5185,6 +5286,7 @@ export function DrivePreviewModal({
                     if (v.duration && Number.isFinite(v.duration)) {
                       setVideoDuration(v.duration);
                     }
+                    checkAndRequestLookaheadBuffer(v);
                   }
                   updateVideoBuffered();
                   captureVideoFrame();
@@ -5222,6 +5324,7 @@ export function DrivePreviewModal({
                   if (streamUrl && !streamDone && !seekWarn) {
                     setPlayerHint(t('ui.generated.buffering_014b2d2'));
                   }
+                  recoverStalledVideo('waiting');
                 }}
                 onPlay={() => {
                   setVideoIsPlaying(true);
@@ -5264,12 +5367,8 @@ export function DrivePreviewModal({
                 onStalled={() => {
                   if (streamUrl && !streamDone && !seekWarn) {
                     setPlayerHint(t('ui.generated.menunggu_data_a54699d'));
-                    // Stalled with data available — re-kick playback
-                    const v = videoRef.current;
-                    if (v && v.paused && v.readyState >= 2 && !userExplicitlyPausedRef.current) {
-                      void v.play().catch(() => undefined);
-                    }
                   }
+                  recoverStalledVideo('stalled');
                 }}
                 onError={(e) => {
                   const v = videoRef.current;

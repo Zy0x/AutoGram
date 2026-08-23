@@ -49,16 +49,20 @@ fn seek_requests() -> &'static Mutex<HashMap<String, u64>> {
 }
 
 pub fn request_progressive_range(stream_id: &str, offset: u64) -> bool {
-    // FIX Bug #5: Jika cancel_flag sudah di-remove (stream selesai fase init)
-    // tetapi StreamEntry masih ada dan belum done, tetap terima seek request.
-    // Sebelumnya seek langsung rejected jika cancel_flag tidak ada.
-    let flag_active = cancel_flags().lock().contains_key(stream_id);
-    if !flag_active {
-        // Cek apakah stream entry masih aktif dan belum done
-        match stream_server::get_entry(stream_id) {
-            Some(e) if !e.done && !e.cancelled => {}
-            _ => return false,
+    if let Some(mut e) = stream_server::get_entry(stream_id) {
+        if e.done {
+            return false;
         }
+        if e.paused || e.cancelled {
+            e.paused = false;
+            e.cancelled = false;
+            stream_server::upsert_entry(e);
+        }
+    } else {
+        return false;
+    }
+    if let Some(flag) = cancel_flags().lock().get(stream_id) {
+        flag.store(false, Ordering::SeqCst);
     }
     // 512 KB Alignment Boundary to prevent Telegram CDN offset shift / MP4 box corruption
     let aligned_offset = offset - (offset % (512 * 1024));
@@ -1447,6 +1451,7 @@ fn start_preview_stream_inner(
         // The same message always maps to the same partial file and registry entry,
         // enabling transparent cache reuse on re-open and across app restarts.
         let stream_id = format!("g{}-{}", chat_safe, message_id);
+        let mut retained_ranges = Vec::new();
 
         // ── CACHE / ACTIVE-STREAM REUSE ──────────────────────────────────────
         if let Some(existing) = stream_server::get_entry(&stream_id) {
@@ -1530,9 +1535,11 @@ fn start_preview_stream_inner(
                     });
                 }
 
-                // CASE C: Stale entry (cancelled / error) — remove registry, fall through.
-                if existing.cancelled
-                    || existing.error.is_some()
+                // CASE C: Cancelled / paused / partial entry — preserve existing downloaded ranges
+                if existing.cancelled || existing.paused {
+                    retained_ranges = existing.ranges.clone();
+                }
+                if existing.error.is_some()
                     || (existing.done
                         && !reusable_completed_stream(&existing, size, on_disk_size))
                 {
@@ -1586,7 +1593,7 @@ fn start_preview_stream_inner(
             mime: mime.clone(),
             label: name.clone(),
             done: false,
-            ranges: vec![],
+            ranges: retained_ranges,
             cancelled: false,
             error: None,
             paused: false,

@@ -3,7 +3,10 @@ mod store;
 
 use serde::{Deserialize, Serialize};
 
-pub use models::{DriveBetaStatus, DriveRecord, FolderPage, FolderRecord, IntegrityReport, SnapshotRecord};
+pub use models::{
+    DriveBetaStatus, DrivePage, DriveRecord, FolderPage, FolderRecord, IntegrityReport,
+    SnapshotRecord,
+};
 pub use store::DriveBetaStore;
 
 pub fn enabled() -> bool {
@@ -60,6 +63,14 @@ pub struct DriveScopeRequest {
     pub device_id: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListDrivesRequest {
+    pub account_id: String,
+    pub limit: Option<usize>,
+    pub offset: Option<usize>,
+}
+
 pub fn status() -> Result<DriveBetaStatus, String> {
     DriveBetaStore::open_default()?.status()
 }
@@ -72,6 +83,15 @@ pub fn create_drive(request: CreateDriveRequest) -> Result<DriveRecord, String> 
         request.storage_peer_id.as_deref(),
         request.storage_topic_id,
         request.device_id.as_deref(),
+    )
+}
+
+pub fn list_drives(request: ListDrivesRequest) -> Result<DrivePage, String> {
+    require_enabled()?;
+    DriveBetaStore::open_default()?.list_drives(
+        &request.account_id,
+        request.limit,
+        request.offset,
     )
 }
 

@@ -99,6 +99,16 @@ allow = [
     "tg_seek_stream",
     "tg_delete_messages",
     "tg_create_folder",
+    "drive_beta_status",
+    "drive_beta_create_drive",
+    "drive_beta_list_drives",
+    "drive_beta_create_folder",
+    "drive_beta_list_children",
+    "drive_beta_rename_folder",
+    "drive_beta_move_folder",
+    "drive_beta_soft_delete_folder",
+    "drive_beta_create_snapshot",
+    "drive_beta_integrity_report",
     "tg_rename_folder",
     "tg_set_folder_parent",
     "tg_delete_folder",
@@ -174,5 +184,3 @@ allow = [
     "run_worker_once",
     "write_worker_stdin"
 ]
-
-

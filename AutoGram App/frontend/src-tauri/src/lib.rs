@@ -1764,6 +1764,95 @@ async fn tg_create_folder(
         .map_err(|e| format!("create_folder task failed: {e}"))
 }
 
+// Drive Beta filesystem engine — local-first and feature-flagged. These
+// commands never replace the existing Telegram-backed [TD] folder commands.
+
+#[tauri::command]
+async fn drive_beta_status() -> Result<core::drive_beta::DriveBetaStatus, String> {
+    tauri::async_runtime::spawn_blocking(core::drive_beta::status)
+        .await
+        .map_err(|error| format!("drive_beta_status task failed: {error}"))?
+}
+
+#[tauri::command]
+async fn drive_beta_create_drive(
+    request: core::drive_beta::CreateDriveRequest,
+) -> Result<core::drive_beta::DriveRecord, String> {
+    tauri::async_runtime::spawn_blocking(move || core::drive_beta::create_drive(request))
+        .await
+        .map_err(|error| format!("drive_beta_create_drive task failed: {error}"))?
+}
+
+#[tauri::command]
+async fn drive_beta_list_drives(
+    request: core::drive_beta::ListDrivesRequest,
+) -> Result<core::drive_beta::DrivePage, String> {
+    tauri::async_runtime::spawn_blocking(move || core::drive_beta::list_drives(request))
+        .await
+        .map_err(|error| format!("drive_beta_list_drives task failed: {error}"))?
+}
+
+#[tauri::command]
+async fn drive_beta_create_folder(
+    request: core::drive_beta::FolderMutationRequest,
+) -> Result<core::drive_beta::FolderRecord, String> {
+    tauri::async_runtime::spawn_blocking(move || core::drive_beta::create_folder(request))
+        .await
+        .map_err(|error| format!("drive_beta_create_folder task failed: {error}"))?
+}
+
+#[tauri::command]
+async fn drive_beta_list_children(
+    request: core::drive_beta::ListChildrenRequest,
+) -> Result<core::drive_beta::FolderPage, String> {
+    tauri::async_runtime::spawn_blocking(move || core::drive_beta::list_children(request))
+        .await
+        .map_err(|error| format!("drive_beta_list_children task failed: {error}"))?
+}
+
+#[tauri::command]
+async fn drive_beta_rename_folder(
+    request: core::drive_beta::FolderMutationRequest,
+) -> Result<core::drive_beta::FolderRecord, String> {
+    tauri::async_runtime::spawn_blocking(move || core::drive_beta::rename_folder(request))
+        .await
+        .map_err(|error| format!("drive_beta_rename_folder task failed: {error}"))?
+}
+
+#[tauri::command]
+async fn drive_beta_move_folder(
+    request: core::drive_beta::FolderMutationRequest,
+) -> Result<core::drive_beta::FolderRecord, String> {
+    tauri::async_runtime::spawn_blocking(move || core::drive_beta::move_folder(request))
+        .await
+        .map_err(|error| format!("drive_beta_move_folder task failed: {error}"))?
+}
+
+#[tauri::command]
+async fn drive_beta_soft_delete_folder(
+    request: core::drive_beta::FolderMutationRequest,
+) -> Result<usize, String> {
+    tauri::async_runtime::spawn_blocking(move || core::drive_beta::soft_delete_folder(request))
+        .await
+        .map_err(|error| format!("drive_beta_soft_delete_folder task failed: {error}"))?
+}
+
+#[tauri::command]
+async fn drive_beta_create_snapshot(
+    request: core::drive_beta::DriveScopeRequest,
+) -> Result<core::drive_beta::SnapshotRecord, String> {
+    tauri::async_runtime::spawn_blocking(move || core::drive_beta::create_snapshot(request))
+        .await
+        .map_err(|error| format!("drive_beta_create_snapshot task failed: {error}"))?
+}
+
+#[tauri::command]
+async fn drive_beta_integrity_report() -> Result<core::drive_beta::IntegrityReport, String> {
+    tauri::async_runtime::spawn_blocking(core::drive_beta::integrity_report)
+        .await
+        .map_err(|error| format!("drive_beta_integrity_report task failed: {error}"))?
+}
+
 #[tauri::command]
 async fn tg_rename_folder(
     app: AppHandle,
@@ -2473,6 +2562,16 @@ pub fn run() {
             tg_seek_stream,
             tg_delete_messages,
             tg_create_folder,
+            drive_beta_status,
+            drive_beta_create_drive,
+            drive_beta_list_drives,
+            drive_beta_create_folder,
+            drive_beta_list_children,
+            drive_beta_rename_folder,
+            drive_beta_move_folder,
+            drive_beta_soft_delete_folder,
+            drive_beta_create_snapshot,
+            drive_beta_integrity_report,
             tg_rename_folder,
             tg_set_folder_parent,
             tg_delete_folder,

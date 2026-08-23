@@ -7,16 +7,20 @@ use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
 use super::models::{
-    DriveBetaStatus, DriveRecord, FolderPage, FolderRecord, IntegrityReport, SnapshotRecord,
+    DriveBetaStatus, DrivePage, DriveRecord, FolderPage, FolderRecord, IntegrityReport,
+    SnapshotRecord,
 };
 
 const SYSTEM_SCHEMA: &str = include_str!(
     "../../../../../database/migrations/016_drive_beta_system.sql"
 );
+const SYSTEM_HARDENING_SCHEMA: &str = include_str!(
+    "../../../../../database/migrations/018_drive_beta_phase1_hardening.sql"
+);
 const METADATA_SCHEMA: &str = include_str!(
     "../../../../../database/migrations/017_drive_beta_metadata.sql"
 );
-const SCHEMA_VERSION: i64 = 1;
+const SCHEMA_VERSION: i64 = 2;
 const DEFAULT_PAGE_SIZE: usize = 100;
 const MAX_PAGE_SIZE: usize = 200;
 
@@ -73,6 +77,8 @@ impl DriveBetaStore {
         .map_err(|error| format!("DRIVE_BETA_METADATA_PRAGMA_FAILED: {error}"))?;
         conn.execute_batch(SYSTEM_SCHEMA)
             .map_err(|error| format!("DRIVE_BETA_SYSTEM_SCHEMA_FAILED: {error}"))?;
+        conn.execute_batch(SYSTEM_HARDENING_SCHEMA)
+            .map_err(|error| format!("DRIVE_BETA_SYSTEM_HARDENING_FAILED: {error}"))?;
         conn.execute_batch(&qualify_metadata_schema(METADATA_SCHEMA))
             .map_err(|error| format!("DRIVE_BETA_METADATA_SCHEMA_FAILED: {error}"))?;
         Ok(conn)
@@ -131,6 +137,13 @@ impl DriveBetaStore {
         let tx = conn
             .transaction()
             .map_err(|error| format!("DRIVE_BETA_CREATE_TX_FAILED: {error}"))?;
+        tx.execute(
+            "INSERT INTO drive_beta_accounts(account_id, display_name, created_at, last_seen_at)
+             VALUES(?1, NULL, ?2, ?2)
+             ON CONFLICT(account_id) DO UPDATE SET last_seen_at=excluded.last_seen_at",
+            params![account_id, now],
+        )
+        .map_err(|error| format!("DRIVE_BETA_ACCOUNT_UPSERT_FAILED: {error}"))?;
         tx.execute(
             "INSERT INTO drive_beta_devices(device_id, account_id, display_name, created_at, last_seen_at)
              VALUES(?1, ?2, NULL, ?3, ?3)
@@ -200,6 +213,42 @@ impl DriveBetaStore {
             version: 1,
             created_at: now,
             updated_at: now,
+        })
+    }
+
+    pub fn list_drives(
+        &self,
+        account_id: &str,
+        limit: Option<usize>,
+        offset: Option<usize>,
+    ) -> Result<DrivePage, String> {
+        let account_id = validate_identifier(account_id, "ACCOUNT")?;
+        let limit = limit.unwrap_or(DEFAULT_PAGE_SIZE).clamp(1, MAX_PAGE_SIZE);
+        let offset = offset.unwrap_or(0);
+        let conn = self.connection()?;
+        let mut statement = conn
+            .prepare(
+                "SELECT drive_id, account_id, name, root_folder_id, storage_peer_id,
+                        storage_topic_id, state, version, created_at, updated_at
+                 FROM drive_beta_registry
+                 WHERE account_id=?1 AND deleted_at IS NULL
+                 ORDER BY updated_at DESC, drive_id
+                 LIMIT ?2 OFFSET ?3",
+            )
+            .map_err(|error| format!("DRIVE_BETA_DRIVE_LIST_PREPARE_FAILED: {error}"))?;
+        let drives = statement
+            .query_map(params![account_id, limit + 1, offset], row_to_drive)
+            .map_err(|error| format!("DRIVE_BETA_DRIVE_LIST_FAILED: {error}"))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|error| format!("DRIVE_BETA_DRIVE_LIST_ROW_FAILED: {error}"))?;
+        let has_more = drives.len() > limit;
+        let drives = drives.into_iter().take(limit).collect();
+        Ok(DrivePage {
+            account_id,
+            drives,
+            limit,
+            offset,
+            has_more,
         })
     }
 
@@ -779,6 +828,21 @@ fn row_to_folder(row: &rusqlite::Row<'_>) -> rusqlite::Result<FolderRecord> {
     })
 }
 
+fn row_to_drive(row: &rusqlite::Row<'_>) -> rusqlite::Result<DriveRecord> {
+    Ok(DriveRecord {
+        drive_id: row.get(0)?,
+        account_id: row.get(1)?,
+        name: row.get(2)?,
+        root_folder_id: row.get(3)?,
+        storage_peer_id: row.get(4)?,
+        storage_topic_id: row.get(5)?,
+        state: row.get(6)?,
+        version: row.get(7)?,
+        created_at: row.get(8)?,
+        updated_at: row.get(9)?,
+    })
+}
+
 fn map_constraint(prefix: &str, error: rusqlite::Error) -> String {
     if matches!(error, rusqlite::Error::SqliteFailure(_, Some(ref message)) if message.contains("UNIQUE constraint failed")) {
         format!("{prefix}: DRIVE_BETA_NAME_CONFLICT")
@@ -946,6 +1010,14 @@ mod tests {
             .list_children("session-b", &drive.drive_id, None, None, None)
             .expect_err("cross-account read must fail");
         assert_eq!(error, "DRIVE_BETA_DRIVE_NOT_FOUND");
+        let owner_page = store
+            .list_drives("session-a", Some(10), None)
+            .expect("owner drive list");
+        assert_eq!(owner_page.drives, vec![drive]);
+        let other_page = store
+            .list_drives("session-b", Some(10), None)
+            .expect("other drive list");
+        assert!(other_page.drives.is_empty());
         drop(store);
         let _ = std::fs::remove_dir_all(root);
     }

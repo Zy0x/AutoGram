@@ -251,17 +251,11 @@ impl Read for DemandRangeReader {
         }
 
         let mut waited = 0;
-        // FIX Bug #4: Kirim seek request HANYA sekali di awal, bukan setiap 30ms.
-        // Pengiriman ulang setiap 30ms menyebabkan seek yang diminta pengguna
-        // di-overwrite oleh posisi HTTP stream DemandRangeReader yang berbeda.
         let mut seek_signaled = false;
         loop {
             let Some(entry) = get_entry(&self.stream_id) else {
                 return Ok(0);
             };
-            if entry.cancelled || entry.paused || entry.error.is_some() {
-                return Ok(0);
-            }
 
             let ranges = merge_ranges(&entry.ranges);
             let available_end = contiguous_end_from(&ranges, self.position).min(self.end_exclusive);
@@ -273,18 +267,22 @@ impl Read for DemandRangeReader {
                 return Ok(read);
             }
 
+            if entry.error.is_some() {
+                return Ok(0);
+            }
+
             if !self.wait_for_growth || entry.done || waited > 30_000 {
                 return Ok(0);
             }
 
-            // Kirim demand HANYA sekali — jangan overwrite seek request user.
-            if !seek_signaled {
+            // Auto-signal demand if entry is cancelled/paused or waiting for bytes
+            if !seek_signaled || waited % 1000 == 0 {
                 let _ = crate::core::grammers::stream::request_progressive_range(&self.stream_id, self.position);
                 seek_signaled = true;
             }
 
-            thread::sleep(Duration::from_millis(30));
-            waited += 30;
+            thread::sleep(Duration::from_millis(25));
+            waited += 25;
         }
     }
 }
@@ -712,8 +710,9 @@ fn handle_stream(request: Request, sid: &str) {
         let have = contiguous_end_from(&entry.ranges, req_start);
         if have <= req_start {
             let _ = crate::core::grammers::stream::request_progressive_range(sid, req_start);
-            if entry.paused {
+            if entry.paused || entry.cancelled {
                 entry.paused = false;
+                entry.cancelled = false;
                 upsert_entry(entry.clone());
             }
             let mut waited = 0u32;

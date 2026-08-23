@@ -199,8 +199,20 @@ export const MediaVideoPlayer: React.FC<MediaVideoPlayerProps> = ({
         onLoadedData={() => logStreamDiag('loadeddata')}
         onCanPlay={() => logStreamDiag('canplay')}
         onCanPlayThrough={() => logStreamDiag('canplaythrough')}
-        onWaiting={() => logStreamDiag('waiting')}
-        onStalled={() => logStreamDiag('stalled')}
+        onWaiting={() => {
+          logStreamDiag('waiting');
+          const v = videoRef.current;
+          if (v && isPlaying && v.readyState >= 2) {
+            v.play().catch(() => {});
+          }
+        }}
+        onStalled={() => {
+          logStreamDiag('stalled');
+          const v = videoRef.current;
+          if (v && isPlaying && v.readyState >= 2) {
+            v.play().catch(() => {});
+          }
+        }}
         onError={() => logStreamDiag('error')}
         onProgress={handleProgress}
         onEnded={() => { logStreamDiag('ended'); if (onEnded) onEnded(); }}
