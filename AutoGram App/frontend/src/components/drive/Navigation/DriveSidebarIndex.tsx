@@ -1279,11 +1279,15 @@ export function DriveSidebar({
   // Near end of virtual list → load more pages (user scroll only — not auto full dump)
   useEffect(() => {
     if (collapsed || !chatsHasMore || chatsLoadingMore) return;
-    if (vEnd < 0 || !chatRows.length) return;
-    if (vEnd >= chatRows.length - 6) {
+    if (!filteredByTypeChats.length) {
+      if (chatsHasMore) onLoadMoreChats?.();
+      return;
+    }
+    if (vEnd < 0) return;
+    if (vEnd >= filteredByTypeChats.length - 4) {
       onLoadMoreChats?.();
     }
-  }, [vEnd, chatRows.length, chatsHasMore, chatsLoadingMore, collapsed, onLoadMoreChats]);
+  }, [vEnd, filteredByTypeChats.length, chatsHasMore, chatsLoadingMore, collapsed, onLoadMoreChats]);
 
   // Re-measure when chrome changes (not on every chatRows identity)
   useEffect(() => {
@@ -3437,8 +3441,8 @@ export function DriveSidebar({
           >
             <span className="td-folder-label">
               {chatsLoadingMore
-                ? `Memuat chat… (${chatIndex.length}+)`
-                : `Muat chat lainnya… (${chatIndex.length} termuat)`}
+                ? t('speedtest.sidebar_loading_more_chats', { count: chatIndex.length })
+                : t('speedtest.sidebar_load_more_chats', { count: chatIndex.length })}
             </span>
           </button>
         )}

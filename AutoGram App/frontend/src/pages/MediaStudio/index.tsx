@@ -3139,7 +3139,7 @@ function MediaDriveDesktop({
       const requestFolderId = activeChatFolderIdRef.current;
       const cursor = chatsCursorRef.current;
       const cr = await driveListChats(creds, {
-        limit: Math.min(CHAT_BULK_PAGE, getDrivePerfProfile().chatPage),
+        limit: Math.max(CHAT_BULK_PAGE, getDrivePerfProfile().chatPage),
         offset: cursor ? 0 : chatsOffset,
         cursor,
         chatFolderId: requestFolderId,

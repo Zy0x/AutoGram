@@ -422,6 +422,8 @@
   "sidebar_resizer_aria": "Batas Drives dan Chats",
   "sidebar_chats_header": "Daftar Chat",
   "sidebar_chats_tooltip": "Jumlah chat termuat",
+  "sidebar_loading_more_chats": "Memuat chat… ({{count}}+)",
+  "sidebar_load_more_chats": "Muat chat lainnya… ({{count}} termuat)",
   "sidebar_chat_folders_aria": "Folder Chat Telegram",
   "sidebar_sync_live": "Sinkron live",
   "sidebar_media_categories": "Kategori Media",

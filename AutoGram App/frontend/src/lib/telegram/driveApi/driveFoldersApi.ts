@@ -189,7 +189,7 @@ export async function driveListChats(
       session: creds.session,
       apiId,
       apiHash: creds.apiHash,
-      limit: Math.min(limit + offset, 200),
+      limit: Math.min(limit + offset, 2000),
     });
     if (gr?.ok && Array.isArray(gr.data)) {
       const all = gr.data.map((d: any) => mapDialogToChat(d));

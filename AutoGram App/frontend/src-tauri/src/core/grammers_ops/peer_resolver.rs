@@ -99,7 +99,7 @@ pub fn list_dialogs_blocking(
     limit: usize,
 ) -> Result<Vec<DialogEntry>, TgError> {
     let rt = runtime()?;
-    let limit = limit.clamp(1, 500);
+    let limit = limit.clamp(1, 2000);
     rt.block_on(async {
         // Auto-reconnect on "sender pool stopped" / "I/O: read 0 bytes"
         let session_name = identity.session.clone();
