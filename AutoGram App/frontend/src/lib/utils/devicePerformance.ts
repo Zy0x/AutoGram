@@ -231,7 +231,6 @@ export function isHighPerfDevice(): boolean {
   return getDrivePerfProfile().tier === 'high';
 }
 
-/** Force tier for QA: 'low' | 'mid' | 'high' | null (auto). Persists. */
 export function setPerfTierOverride(tier: PerfTier | null): void {
   overrideTier = tier;
   cached = null;
@@ -240,6 +239,12 @@ export function setPerfTierOverride(tier: PerfTier | null): void {
     else localStorage.removeItem('autogram_perf_tier');
   } catch {
     /* ignore */
+  }
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('autogram-perf-tier-changed', { detail: tier }));
+    if (tier === 'low' || tier === 'mid') {
+      window.dispatchEvent(new CustomEvent('autogram-emergency-memory-reclaim'));
+    }
   }
 }
 

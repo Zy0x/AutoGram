@@ -125,6 +125,13 @@ class LRUThumbnailCache {
     this.cache.clear();
   }
 
+  trim(): void {
+    const max = this.getMaxSize();
+    while (this.cache.size > max) {
+      this.evictLRU();
+    }
+  }
+
   private evictLRU(): void {
     const firstKey = this.cache.keys().next().value;
     if (firstKey !== undefined) {
@@ -148,6 +155,10 @@ if (typeof window !== 'undefined') {
     memCache.clear();
     softFailAt.clear();
     errorFailAt.clear();
+  });
+
+  window.addEventListener('autogram-perf-tier-changed', () => {
+    memCache.trim();
   });
 }
 
