@@ -74,7 +74,7 @@ class LRUThumbnailCache {
 
   private getMaxSize(): number {
     const tier = getDrivePerfProfile().tier;
-    return tier === 'high' ? 800 : tier === 'mid' ? 450 : 250;
+    return tier === 'high' ? 400 : tier === 'mid' ? 220 : 100;
   }
 
   get(key: string): string | undefined {
