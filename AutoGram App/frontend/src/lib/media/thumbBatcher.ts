@@ -71,7 +71,11 @@ function toOptimizedBlobUrl(url: string): string {
 
 class LRUThumbnailCache {
   private cache = new Map<string, string>();
-  private readonly MAX_SIZE = 350; // Optimized memory-lean threshold (40+ rows)
+
+  private getMaxSize(): number {
+    const tier = getDrivePerfProfile().tier;
+    return tier === 'high' ? 800 : tier === 'mid' ? 450 : 250;
+  }
 
   get(key: string): string | undefined {
     const value = this.cache.get(key);
@@ -85,7 +89,7 @@ class LRUThumbnailCache {
   set(key: string, value: string): void {
     const url = value.startsWith('data:image/') ? toOptimizedBlobUrl(value) : value;
 
-    while (this.cache.size >= this.MAX_SIZE) {
+    while (this.cache.size >= this.getMaxSize()) {
       this.evictLRU();
     }
 
@@ -316,12 +320,11 @@ function softFailMs(priorityScore?: number): number {
   return 1_500;
 }
 
-
 function batchLimit(_q: DriveThumbQuality): number {
   const configured = Math.max(2, getDrivePerfProfile().thumbBatch);
   if (!bootstrapMode) return Math.max(configured, 48);
   const tier = getDrivePerfProfile().tier;
-  const startupCap = tier === 'high' ? 64 : tier === 'mid' ? 48 : 24;
+  const startupCap = tier === 'high' ? 96 : tier === 'mid' ? 48 : 24;
   return Math.max(configured, startupCap);
 }
 
@@ -333,7 +336,7 @@ function queueMax(): number {
   const configured = getDrivePerfProfile().thumbQueueMax;
   if (!bootstrapMode) return configured;
   const tier = getDrivePerfProfile().tier;
-  const startupCap = tier === 'high' ? 160 : tier === 'mid' ? 120 : 64;
+  const startupCap = tier === 'high' ? 320 : tier === 'mid' ? 120 : 64;
   return Math.min(configured, startupCap);
 }
 
