@@ -2,6 +2,7 @@ import { memo, useEffect, useMemo, useState, type ComponentType } from 'react';
 import { Battery, Cpu, Gauge, HardDrive, ShieldCheck, SlidersHorizontal, Sparkles, Wifi, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getDrivePerfProfile, setPerfTierOverride, type PerfTier } from '../../lib/utils/devicePerformance';
+import { garbageCollector } from '../../lib/utils/garbageCollector';
 import { useTransferHardwareCapabilities } from '../../stores/transferProgressStore';
 import './Settings.css';
 
@@ -76,6 +77,8 @@ export const PerfSection = memo(function PerfSection() {
     setTier(nextTier);
     setPerfTierOverride(nextTier);
     window.dispatchEvent(new CustomEvent('autogram-perf-tier-changed', { detail: nextTier }));
+    window.dispatchEvent(new CustomEvent('autogram-emergency-memory-reclaim'));
+    void garbageCollector.runGarbageCollection();
   };
 
   const cpuName = hardwareCapabilities?.cpu?.processor_name
