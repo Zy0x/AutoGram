@@ -31796,6 +31796,109 @@ button.td-confirm-icon.is-back-btn:active {
   --td-hover: rgba(255, 255, 255, 0.06);
 }
 
+/* Drive-only nested folders stay distinct from Telegram media cards. */
+.td-drive-folder-section {
+  flex: 0 0 auto;
+  padding: 12px 14px 10px;
+  background: #090d16;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.td-drive-folder-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.td-drive-folder-section-count {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.14);
+  color: #7dd3fc;
+  text-align: center;
+  letter-spacing: 0;
+}
+
+.td-drive-folder-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+  gap: 8px;
+}
+
+.td-drive-folder-card {
+  min-width: 0;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  background: rgba(22, 32, 54, 0.72);
+  color: #f8fafc;
+  text-align: left;
+  transition: border-color 140ms ease, background-color 140ms ease, transform 140ms ease;
+}
+
+.td-drive-folder-card:hover,
+.td-drive-folder-card:focus-visible {
+  border-color: rgba(56, 189, 248, 0.62);
+  background: rgba(30, 58, 92, 0.72);
+  outline: none;
+}
+
+.td-drive-folder-card:active {
+  transform: scale(0.99);
+}
+
+.td-drive-folder-card-icon {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.14);
+  color: #fbbf24;
+}
+
+.td-drive-folder-card-name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.td-drive-folder-card-arrow {
+  flex: 0 0 auto;
+  color: #64748b;
+}
+
+@media (max-width: 640px) {
+  .td-drive-folder-section {
+    padding: 10px;
+  }
+
+  .td-drive-folder-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .td-drive-folder-card {
+    min-height: 52px;
+  }
+}
+
 /* 1. Body Canvas & Main Container */
 .td-page,
 .td-shell,
@@ -35168,4 +35271,3 @@ button.td-confirm-icon.is-back-btn:active {
   flex-shrink: 0 !important;
   max-width: none !important;
 }
-

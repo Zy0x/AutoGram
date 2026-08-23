@@ -553,7 +553,11 @@ fn cors_headers() -> Vec<Header> {
             &b"Content-Length, Content-Range, Accept-Ranges, X-AutoGram-Available, X-AutoGram-Filled, X-AutoGram-Backend"[..],
         )
         .unwrap(),
-        Header::from_bytes(&b"Cache-Control"[..], &b"no-cache"[..]).unwrap(),
+        Header::from_bytes(
+            &b"Cache-Control"[..],
+            &b"no-store, no-cache, must-revalidate"[..],
+        )
+        .unwrap(),
         Header::from_bytes(&b"X-AutoGram-Backend"[..], &b"rust"[..]).unwrap(),
     ]
 }
@@ -878,7 +882,6 @@ fn handle_stream(request: Request, sid: &str) {
         res.add_header(h);
     }
     res.add_header(Header::from_bytes(&b"Accept-Ranges"[..], &b"bytes"[..]).unwrap());
-    res.add_header(Header::from_bytes(&b"Cache-Control"[..], &b"public, max-age=31536000, immutable"[..]).unwrap());
     res.add_header(Header::from_bytes(&b"X-Content-Type-Options"[..], &b"nosniff"[..]).unwrap());
     if status == 206 {
         if let Ok(h) = Header::from_bytes(&b"Content-Range"[..], cr_str.as_bytes()) {

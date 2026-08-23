@@ -10,11 +10,69 @@ import {
 } from './driveApiUtils';
 import { isTransferJobActive } from './driveTransfersApi';
 import { driveListFiles } from './driveFilesApi';
+import {
+  driveEngineAccountId,
+  driveEngineCreateDrive,
+  driveEngineCreateFolder,
+  driveEngineLocationSubtree,
+  driveEngineLoadSidebar,
+  driveEngineMoveFolder,
+  driveEngineRenameFolder,
+  driveEngineSoftDeleteDrive,
+  driveEngineSoftDeleteFolder,
+  registerDriveEngineLocation,
+  resolveDriveEngineLocation,
+  resolveDriveEngineRoot,
+} from './driveEngineApi';
+
+function mapEngineLocationToFolder(location: Awaited<ReturnType<typeof driveEngineLoadSidebar>>[number]) {
+  return {
+    id: location.uiId,
+    name: location.name,
+    title_raw: location.name,
+    username: null,
+    is_drive_folder: true,
+    parent_id: location.parentUiId,
+    is_orphan: false,
+    engine_drive_id: location.driveId,
+    engine_folder_id: location.folderId,
+    storage_peer_id: location.storagePeerId,
+    storage_topic_id: location.storageTopicId,
+    source: 'engine' as const,
+  };
+}
+
+/**
+ * Restore production Drive trees from local SQLite without touching Telegram.
+ * This is the authoritative first-paint source for filesystem-engine Drives.
+ */
+export async function driveLoadLocalFolders(creds: DriveCredentials) {
+  if (!detectTauriRuntime()) return { status: 'success', folders: [], backend: 'drive-engine' };
+  const locations = await driveEngineLoadSidebar(driveEngineAccountId(creds.session));
+  return {
+    status: 'success',
+    folders: locations.map(mapEngineLocationToFolder),
+    backend: 'drive-engine',
+  };
+}
 
 export async function driveScanFolders(creds: DriveCredentials) {
   if (!detectTauriRuntime()) {
     throw new Error('Drive membutuhkan aplikasi desktop (Rust + Grammers).');
   }
+  const localResult = await driveLoadLocalFolders(creds).catch(() => ({
+    status: 'success',
+    folders: [],
+    backend: 'drive-engine',
+  }));
+  const localFolders = localResult.folders;
+  const engineStoragePeers = new Set(
+    localFolders.map((folder) => folder.storage_peer_id).filter((value) => value != null)
+  );
+  const mergeWithLocal = (legacyFolders: any[]) => [
+    ...localFolders,
+    ...legacyFolders.filter((folder: any) => !engineStoragePeers.has(Number(folder.id))),
+  ];
   try {
     const { tgScanFolders } = await import('../core/telegramBackend');
     const result = await tgScanFolders({
@@ -23,7 +81,7 @@ export async function driveScanFolders(creds: DriveCredentials) {
       apiHash: creds.apiHash,
     });
     if (result?.ok && result.data?.folders) {
-      const folders = result.data.folders.map((f: any) => ({
+      const legacyFolders = result.data.folders.map((f: any) => ({
         id: Number(f.id),
         name: String(f.name || f.titleRaw || f.id),
         title_raw: String(f.titleRaw || f.name || f.id),
@@ -31,7 +89,9 @@ export async function driveScanFolders(creds: DriveCredentials) {
         is_drive_folder: f.isDriveFolder !== false,
         parent_id: f.parentId ?? null,
         is_orphan: !!f.isOrphan,
+        source: 'legacy' as const,
       }));
+      const folders = mergeWithLocal(legacyFolders);
       return { status: 'success', folders, backend: 'grammers' };
     }
     // Fallback: dialog title filter without parent= (older native path)
@@ -43,7 +103,7 @@ export async function driveScanFolders(creds: DriveCredentials) {
       limit: 500,
     });
     if (dialogs?.ok && Array.isArray(dialogs.data)) {
-      const folders = dialogs.data
+      const legacyFolders = dialogs.data
         .filter((dialog: any) => /\[TD\]/i.test(String(dialog.title || '')))
         .map((dialog: any) => ({
           id: Number(dialog.id),
@@ -52,11 +112,16 @@ export async function driveScanFolders(creds: DriveCredentials) {
           username: null,
           is_drive_folder: true,
           parent_id: null,
+          source: 'legacy' as const,
         }));
+      const folders = mergeWithLocal(legacyFolders);
       return { status: 'success', folders, backend: 'grammers' };
     }
     throw new Error(result?.userMessage || result?.error?.message || 'Scan folder Grammers gagal.');
   } catch (e) {
+    if (localFolders.length > 0) {
+      return { status: 'success', folders: localFolders, backend: 'drive-engine' };
+    }
     throw new Error(`Scan folder Rust + Grammers gagal: ${String((e as Error)?.message || e)}`);
   }
 }
@@ -74,6 +139,11 @@ export async function driveBootstrap(
   const filePage = opts?.filePageSize ?? DEFAULT_FILE_PAGE;
   const chatPage = opts?.chatPageSize ?? DEFAULT_CHAT_PAGE;
   const topicId = opts?.topicId ?? null;
+  const localFoldersPromise = driveLoadLocalFolders(creds).catch(() => ({
+    status: 'success',
+    folders: [],
+    backend: 'drive-engine',
+  }));
   await ensureDriveSession(creds);
 
   // Folder scan dimulai tapi TIDAK ditunggu — grid tidak perlu menunggu folder scan.
@@ -81,7 +151,7 @@ export async function driveBootstrap(
   const foldersPromise = driveScanFolders(creds).catch(() => ({ status: 'success', folders: [] }));
 
   // Hanya chats + files yang blocking first paint
-  const [chatsRes, filesRes] = await Promise.all([
+  const [chatsRes, filesRes, localFoldersRes] = await Promise.all([
     driveListChats(creds, { limit: chatPage }).catch(() => ({
       status: 'success',
       chats: [],
@@ -93,6 +163,7 @@ export async function driveBootstrap(
       has_more: false,
       next_offset_id: null,
     })),
+    localFoldersPromise,
   ]);
 
   return {
@@ -109,8 +180,9 @@ export async function driveBootstrap(
     total_count: (filesRes as any).total_count ?? null,
     total_bytes: (filesRes as any).total_bytes ?? null,
     stats_pending: true,
-    // folders kosong di first return — caller proses folderScanPromise setelah first paint
-    folders: [],
+    // Filesystem-engine Drives are restored from SQLite immediately. The
+    // background scan only reconciles legacy [TD] Drives and storage peers.
+    folders: (localFoldersRes as any).folders || [],
     /** Caller dapat await ini setelah first paint untuk mendapatkan folder list lengkap */
     folderScanPromise: foldersPromise,
     folder_id: folderId,
@@ -247,6 +319,37 @@ export async function driveDeleteFolder(
   }
   const fid = Number(folderId);
   if (!Number.isFinite(fid)) throw new Error('folder_id required');
+  const engineLocation = resolveDriveEngineLocation(fid);
+  if (engineLocation) {
+    const id = requireGrammersIdentity(creds);
+    if (engineLocation.root) {
+      if (engineLocation.storagePeerId != null) {
+        const { tgDeleteFolder } = await import('../core/telegramBackend');
+        const remoteDelete = await tgDeleteFolder({ ...id, folderId: engineLocation.storagePeerId });
+        if (!remoteDelete?.ok) {
+          throw new Error(remoteDelete?.userMessage || remoteDelete?.error?.message || 'DRIVE_ENGINE_REMOTE_DELETE_FAILED');
+        }
+      }
+    } else if (engineLocation.storagePeerId != null) {
+      const topics = driveEngineLocationSubtree(fid)
+        .map((location) => location.storageTopicId)
+        .filter((topicId): topicId is number => topicId != null && topicId > 0);
+      for (const topicId of topics.reverse()) {
+        await driveDeleteTopic(creds, engineLocation.storagePeerId, topicId);
+      }
+    }
+    const deleted = engineLocation.root
+      ? await driveEngineSoftDeleteDrive({
+          accountId: driveEngineAccountId(creds.session),
+          driveId: engineLocation.driveId,
+        })
+      : await driveEngineSoftDeleteFolder({
+          accountId: driveEngineAccountId(creds.session),
+          driveId: engineLocation.driveId,
+          folderId: engineLocation.folderId,
+        });
+    return { status: 'success', backend: 'drive-engine', deleted };
+  }
   if (opts?.cascade && opts?.detachChildren) {
     throw new Error('Pilih cascade atau lepas anak, bukan keduanya.');
   }
@@ -301,6 +404,50 @@ export async function driveRenameFolder(
   if (!Number.isFinite(fid)) throw new Error('folder_id required');
   const clean = String(name || '').trim();
   if (!clean) throw new Error('Nama folder wajib diisi');
+  const engineLocation = resolveDriveEngineLocation(fid);
+  if (engineLocation) {
+    if (engineLocation.root && engineLocation.storagePeerId != null) {
+      const id = requireGrammersIdentity(creds);
+      const { tgRenameFolder } = await import('../core/telegramBackend');
+      const storageRename = await tgRenameFolder({
+        ...id,
+        folderId: engineLocation.storagePeerId,
+        name: clean,
+        storageMode: true,
+      });
+      if (!storageRename?.ok) {
+        throw new Error(
+          storageRename?.userMessage ||
+          storageRename?.error?.message ||
+          'DRIVE_ENGINE_STORAGE_RENAME_FAILED'
+        );
+      }
+    } else if (engineLocation.storagePeerId != null && engineLocation.storageTopicId != null) {
+      await driveRenameTopic(creds, engineLocation.storagePeerId, engineLocation.storageTopicId, clean);
+    }
+    const folder = await driveEngineRenameFolder({
+      accountId: driveEngineAccountId(creds.session),
+      driveId: engineLocation.driveId,
+      folderId: engineLocation.folderId,
+      name: clean,
+    });
+    registerDriveEngineLocation({ ...engineLocation, folderId: folder.folderId, name: folder.name });
+    return {
+      status: 'success',
+      backend: 'drive-engine',
+      folder: {
+        id: fid,
+        name: folder.name,
+        title_raw: folder.name,
+        parent_id: engineLocation.parentUiId,
+        is_drive_folder: true,
+        engine_drive_id: engineLocation.driveId,
+        engine_folder_id: folder.folderId,
+        storage_peer_id: engineLocation.storagePeerId,
+        source: 'engine' as const,
+      },
+    };
+  }
   const id = requireGrammersIdentity(creds);
   const { tgRenameFolder } = await import('../core/telegramBackend');
   const gr = await tgRenameFolder({ ...id, folderId: fid, name: clean });
@@ -329,6 +476,37 @@ export async function driveSetFolderParent(
   if (pid != null && pid === fid) {
     throw new Error('Folder tidak bisa menjadi induk dirinya sendiri.');
   }
+  const engineLocation = resolveDriveEngineLocation(fid);
+  if (engineLocation) {
+    const parent = pid == null
+      ? resolveDriveEngineRoot(engineLocation.driveId)
+      : resolveDriveEngineLocation(pid);
+    if (!parent || parent.driveId !== engineLocation.driveId) {
+      throw new Error('DRIVE_ENGINE_PARENT_SCOPE_INVALID');
+    }
+    const folder = await driveEngineMoveFolder({
+      accountId: driveEngineAccountId(creds.session),
+      driveId: engineLocation.driveId,
+      folderId: engineLocation.folderId,
+      parentId: parent.folderId,
+    });
+    registerDriveEngineLocation({ ...engineLocation, parentUiId: parent.root ? parent.uiId : parent.uiId });
+    return {
+      status: 'success',
+      backend: 'drive-engine',
+      folder: {
+        id: fid,
+        name: folder.name,
+        title_raw: folder.name,
+        parent_id: parent.uiId,
+        is_drive_folder: true,
+        engine_drive_id: engineLocation.driveId,
+        engine_folder_id: folder.folderId,
+        storage_peer_id: engineLocation.storagePeerId,
+        source: 'engine' as const,
+      },
+    };
+  }
   const id = requireGrammersIdentity(creds);
   const { tgSetFolderParent } = await import('../core/telegramBackend');
   const gr = await tgSetFolderParent({ ...id, folderId: fid, parentId: pid });
@@ -338,7 +516,7 @@ export async function driveSetFolderParent(
   return mapFolderResult(gr.data);
 }
 
-/** Create a Drive [TD] folder. Pass parentId to nest under another Drive folder. */
+/** Create a production Drive or a logical folder inside an existing Drive. */
 export async function driveCreateFolder(
   creds: DriveCredentials,
   name: string,
@@ -350,13 +528,113 @@ export async function driveCreateFolder(
       : null;
   const clean = String(name || '').trim();
   if (!clean) throw new Error('Nama folder wajib diisi');
+  const accountId = driveEngineAccountId(creds.session);
+  const parentLocation = resolveDriveEngineLocation(parentId);
+  if (parentLocation) {
+    if (parentLocation.storagePeerId == null) throw new Error('DRIVE_ENGINE_STORAGE_PEER_MISSING');
+    const remoteTopic = await driveCreateTopic(creds, parentLocation.storagePeerId, clean);
+    const storageTopicId = Number(remoteTopic.topic_id);
+    if (!Number.isFinite(storageTopicId) || storageTopicId <= 0) {
+      throw new Error('DRIVE_ENGINE_TOPIC_ID_MISSING');
+    }
+    let folder;
+    try {
+      folder = await driveEngineCreateFolder({
+        accountId,
+        driveId: parentLocation.driveId,
+        parentId: parentLocation.folderId,
+        name: clean,
+        telegramChatId: String(parentLocation.storagePeerId),
+        telegramTopicId: storageTopicId,
+      });
+    } catch (error) {
+      await driveDeleteTopic(creds, parentLocation.storagePeerId, storageTopicId).catch(() => undefined);
+      throw error;
+    }
+    const location = registerDriveEngineLocation({
+      driveId: parentLocation.driveId,
+      folderId: folder.folderId,
+      parentUiId: parentLocation.uiId,
+      name: folder.name,
+      storagePeerId: parentLocation.storagePeerId,
+      storageTopicId,
+      root: false,
+    });
+    return {
+      status: 'success',
+      backend: 'drive-engine',
+      folder: {
+        id: location.uiId,
+        name: location.name,
+        title_raw: location.name,
+        username: null,
+        parent_id: parentLocation.uiId,
+        is_drive_folder: true,
+        is_orphan: false,
+        engine_drive_id: location.driveId,
+        engine_folder_id: location.folderId,
+        storage_peer_id: location.storagePeerId,
+        storage_topic_id: location.storageTopicId,
+        source: 'engine' as const,
+      },
+    };
+  }
   const id = requireGrammersIdentity(creds);
   const { tgCreateFolder } = await import('../core/telegramBackend');
-  const gr = await tgCreateFolder({ ...id, name: clean, parentId });
+  if (parentId != null) {
+    // Existing verified Drives keep their legacy Telegram-backed hierarchy.
+    const legacy = await tgCreateFolder({ ...id, name: clean, parentId, storageMode: false });
+    if (!legacy?.ok) {
+      throw new Error(legacy?.userMessage || legacy?.error?.message || 'Buat folder Grammers gagal.');
+    }
+    return mapFolderResult(legacy.data);
+  }
+  const gr = await tgCreateFolder({ ...id, name: clean, parentId: null, storageMode: true });
   if (!gr?.ok) {
     throw new Error(gr?.userMessage || gr?.error?.message || 'Buat folder Grammers gagal.');
   }
-  return mapFolderResult(gr.data);
+  const legacyFolder = mapFolderResult(gr.data);
+  const storagePeerId = Number(legacyFolder?.folder?.id);
+  if (!Number.isFinite(storagePeerId)) return legacyFolder;
+  let drive;
+  try {
+    drive = await driveEngineCreateDrive({
+      accountId,
+      name: clean,
+      storagePeerId: String(storagePeerId),
+    });
+  } catch (error) {
+    const { tgDeleteFolder } = await import('../core/telegramBackend');
+    await tgDeleteFolder({ ...id, folderId: storagePeerId }).catch(() => undefined);
+    throw error;
+  }
+  const location = registerDriveEngineLocation({
+    driveId: drive.driveId,
+    folderId: drive.rootFolderId,
+    parentUiId: null,
+    name: drive.name,
+      storagePeerId,
+      storageTopicId: null,
+      root: true,
+  });
+  return {
+    status: 'success',
+    backend: 'drive-engine',
+    folder: {
+      id: location.uiId,
+      name: location.name,
+      title_raw: location.name,
+      username: null,
+      parent_id: null,
+      is_drive_folder: true,
+      is_orphan: false,
+      engine_drive_id: location.driveId,
+      engine_folder_id: location.folderId,
+      storage_peer_id: storagePeerId,
+      storage_topic_id: null,
+      source: 'engine' as const,
+    },
+  };
 }
 
 export async function driveIndexFolder(

@@ -81,6 +81,7 @@ export type SessionMetadata = {
 const ACTIVE_KEY = 'ACTIVE_SESSIONS';
 const METADATA_KEY = 'AUTOGRAM_SESSION_METADATA';
 const ALIASES_KEY = 'CUSTOM_SESSION_ALIASES';
+const HEALTH_KEY = 'AUTOGRAM_SESSION_HEALTH_V1';
 
 const MAX_ACTIVE_SESSIONS = 12;
 
@@ -156,6 +157,13 @@ export function deleteSessionLocalData(sessionName: string, purgeCache = false):
       const aliases = JSON.parse(rawAliases);
       delete aliases[sessionName];
       localStorage.setItem(ALIASES_KEY, JSON.stringify(aliases));
+    }
+
+    const rawHealth = localStorage.getItem(HEALTH_KEY);
+    if (rawHealth) {
+      const health = JSON.parse(rawHealth);
+      delete health[sessionName];
+      localStorage.setItem(HEALTH_KEY, JSON.stringify(health));
     }
 
     const targets = readActiveTargets();
@@ -249,6 +257,139 @@ function isUsableStatus(status: string | undefined): boolean {
 let sessionsMemCache: { at: number; verify: boolean; list: SessionOption[] } | null = null;
 let sessionsQuickCache: SessionOption[] | null = null; // stale-while-revalidate layer
 const SESSIONS_MEM_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const SESSION_HEALTH_TTL_MS = 15 * 60 * 1000;
+const SESSION_VERIFY_TIMEOUT_MS = 8_000;
+const SESSION_VERIFY_CONCURRENCY = 2;
+
+type SessionHealthRecord = {
+  status: string;
+  latencyMs?: number;
+  checkedAt: number;
+};
+
+function readSessionHealth(): Record<string, SessionHealthRecord> {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(HEALTH_KEY) || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeSessionHealth(records: Record<string, SessionHealthRecord>): void {
+  try {
+    localStorage.setItem(HEALTH_KEY, JSON.stringify(records));
+  } catch {
+    // Session health is an acceleration layer; native inventory stays authoritative.
+  }
+}
+
+function cachedHealthFor(sessionName: string): SessionHealthRecord | null {
+  const record = readSessionHealth()[sessionName];
+  if (!record || Date.now() - record.checkedAt > SESSION_HEALTH_TTL_MS) return null;
+  return record;
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = globalThis.setTimeout(() => reject(new Error('SESSION_HEALTH_TIMEOUT')), timeoutMs);
+    promise.then(
+      (value) => {
+        globalThis.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        globalThis.clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
+type AuthStatusResult = Awaited<ReturnType<typeof tgAuthStatus>>;
+
+/**
+ * Verify sessions independently with bounded concurrency. A transient timeout on
+ * one DC must never keep every launcher card in the checking state.
+ */
+export async function verifySessionOptions(
+  sessions: SessionOption[],
+  apiId: number,
+  apiHash: string,
+  authStatus: (request: { session: string; apiId: number; apiHash: string }) => Promise<AuthStatusResult> = tgAuthStatus,
+  options?: { concurrency?: number; timeoutMs?: number }
+): Promise<SessionOption[]> {
+  const concurrency = Math.max(1, Math.min(4, options?.concurrency || SESSION_VERIFY_CONCURRENCY));
+  const timeoutMs = Math.max(500, options?.timeoutMs || SESSION_VERIFY_TIMEOUT_MS);
+  const result = new Array<SessionOption>(sessions.length);
+  const health = readSessionHealth();
+  let cursor = 0;
+
+  const worker = async () => {
+    while (cursor < sessions.length) {
+      const index = cursor++;
+      const session = sessions[index];
+      const previous = health[session.name];
+      const start = performance.now();
+      try {
+        const statusResult = await withTimeout(
+          authStatus({ session: session.name, apiId, apiHash }),
+          timeoutMs
+        );
+        const latencyMs = Math.max(1, Math.round(performance.now() - start));
+        const probeSucceeded = Boolean(statusResult?.ok);
+        const authorized = Boolean(probeSucceeded && statusResult?.data?.authorized);
+        const recentConnected = previous?.status === 'connected' &&
+          Date.now() - previous.checkedAt <= SESSION_HEALTH_TTL_MS;
+        const status = authorized
+          ? 'connected'
+          : probeSucceeded
+            ? 'expired'
+            : recentConnected
+              ? 'connected'
+              : 'offline';
+        if (authorized && statusResult?.data?.user) {
+          const user = statusResult.data.user;
+          saveSessionMetadata(session.name, {
+            userFullName: user.firstName || undefined,
+            username: user.username || undefined,
+            photoBase64: user.photoBase64 || undefined,
+            telegramUserId: user.id ? String(user.id) : undefined,
+            isPremium: Boolean(user.isPremium),
+          });
+        }
+        if (probeSucceeded || !recentConnected) {
+          health[session.name] = {
+            status,
+            latencyMs: authorized ? latencyMs : undefined,
+            checkedAt: Date.now(),
+          };
+        }
+        result[index] = {
+          ...session,
+          label: getSessionDisplayName(session.name),
+          status,
+          latencyMs: authorized ? latencyMs : undefined,
+        };
+      } catch {
+        // Do not turn a proven healthy session into a dead session because one
+        // health probe timed out. It remains usable but is marked offline when
+        // there is no recent healthy evidence.
+        const recentConnected = previous?.status === 'connected' &&
+          Date.now() - previous.checkedAt <= SESSION_HEALTH_TTL_MS;
+        result[index] = {
+          ...session,
+          status: recentConnected ? 'connected' : 'offline',
+          latencyMs: recentConnected ? previous.latencyMs : undefined,
+        };
+      }
+    }
+  };
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, sessions.length) }, () => worker()));
+  writeSessionHealth(health);
+  return result;
+}
 
 /**
  * Load sessions for UI pickers.
@@ -296,46 +437,19 @@ export async function loadSelectableSessions(opts?: {
   let all: SessionOption[] = raw
     .map((s: any) => {
       const sessName = String(s?.name || '').trim();
+      const cachedHealth = cachedHealthFor(sessName);
       return {
         name: sessName,
         label: getSessionDisplayName(sessName),
-        status: String(s?.status || 'checking'),
+        status: cachedHealth?.status || String(s?.status || 'checking'),
+        latencyMs: cachedHealth?.latencyMs,
         source: s?.source ? String(s.source) : undefined,
       };
     })
     .filter((s: any) => s.name);
 
   if (verify && apiId && apiHash) {
-    const checked = await Promise.all(
-      all.map(async (session) => {
-        const start = performance.now();
-        const result = await tgAuthStatus({
-          session: session.name,
-          apiId: Number(apiId),
-          apiHash,
-        });
-        const latencyMs = Math.max(1, Math.round(performance.now() - start));
-        const isConn = !!(result?.ok && result.data?.authorized);
-        if (isConn && result?.data?.user) {
-          const u = result.data.user;
-          const uFullName = u.firstName || undefined;
-          saveSessionMetadata(session.name, {
-            userFullName: uFullName,
-            username: u.username || undefined,
-            photoBase64: u.photoBase64 || undefined,
-            telegramUserId: u.id ? String(u.id) : undefined,
-            isPremium: Boolean(u.isPremium),
-          });
-        }
-        return {
-          ...session,
-          label: getSessionDisplayName(session.name),
-          status: isConn ? 'connected' : 'expired',
-          latencyMs: isConn ? latencyMs : undefined,
-        };
-      })
-    );
-    all = checked;
+    all = await verifySessionOptions(all, Number(apiId), apiHash);
   }
 
   const usable = dedupeSessionOptionsByIdentity(all.filter((s: any) => isUsableStatus(s.status)));

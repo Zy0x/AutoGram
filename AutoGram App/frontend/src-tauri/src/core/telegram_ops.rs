@@ -865,6 +865,10 @@ pub struct PreviewStreamRequest {
     pub location_type: Option<String>,
     #[serde(default)]
     pub account_id: Option<String>,
+    #[serde(default)]
+    pub consumer_id: Option<String>,
+    #[serde(default)]
+    pub request_id: Option<String>,
 }
 
 pub fn tg_preview_stream(
@@ -892,6 +896,8 @@ pub fn tg_preview_stream(
         &identity,
         &req.chat_id,
         req.message_id,
+        req.consumer_id.as_deref(),
+        req.request_id.as_deref(),
     ) {
         Ok(r) => ok_result("grammers", r),
         Err(e) => {
@@ -1013,12 +1019,20 @@ pub struct CreateFolderRequest {
     pub api_hash: String,
     pub name: String,
     pub parent_id: Option<i64>,
+    #[serde(default)]
+    pub storage_mode: bool,
 }
 
 pub fn tg_create_folder(req: CreateFolderRequest) -> OpResult<super::drive_rpc::FolderOpResult> {
     let dir = sessions_dir_from_env();
     let identity = identity_from(req.session, req.api_id, req.api_hash);
-    match super::drive_rpc::create_folder_blocking(&dir, &identity, &req.name, req.parent_id) {
+    match super::drive_rpc::create_folder_blocking(
+        &dir,
+        &identity,
+        &req.name,
+        req.parent_id,
+        req.storage_mode,
+    ) {
         Ok(r) => ok_result("grammers", r),
         Err(e) => err_result("grammers", e),
     }
@@ -1036,9 +1050,7 @@ pub struct ChatActionRequest {
     pub message: Option<String>,
 }
 
-pub fn tg_chat_action(
-    req: ChatActionRequest,
-) -> OpResult<super::grammers_ops::ChatActionResult> {
+pub fn tg_chat_action(req: ChatActionRequest) -> OpResult<super::grammers_ops::ChatActionResult> {
     let dir = sessions_dir_from_env();
     let identity = identity_from(req.session, req.api_id, req.api_hash);
     match super::grammers_ops::chat_action_blocking(
@@ -1081,12 +1093,20 @@ pub struct RenameFolderRequest {
     pub api_hash: String,
     pub folder_id: i64,
     pub name: String,
+    #[serde(default)]
+    pub storage_mode: bool,
 }
 
 pub fn tg_rename_folder(req: RenameFolderRequest) -> OpResult<super::drive_rpc::FolderOpResult> {
     let dir = sessions_dir_from_env();
     let identity = identity_from(req.session, req.api_id, req.api_hash);
-    match super::drive_rpc::rename_folder_blocking(&dir, &identity, req.folder_id, &req.name) {
+    match super::drive_rpc::rename_folder_blocking(
+        &dir,
+        &identity,
+        req.folder_id,
+        &req.name,
+        req.storage_mode,
+    ) {
         Ok(r) => ok_result("grammers", r),
         Err(e) => err_result("grammers", e),
     }

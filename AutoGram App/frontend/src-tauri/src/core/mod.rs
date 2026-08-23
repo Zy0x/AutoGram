@@ -9,7 +9,7 @@ pub mod channel_sync_types;
 pub mod channel_sync_worker;
 pub mod config_normalize;
 pub mod doc_preview;
-pub mod drive_beta;
+pub mod drive_engine;
 pub mod drive_rpc;
 pub mod grammers;
 pub mod hardware_capability;

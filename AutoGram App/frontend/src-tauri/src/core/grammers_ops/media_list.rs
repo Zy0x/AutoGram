@@ -531,11 +531,11 @@ pub fn media_to_row(
         };
     match media {
         Media::Photo(_p) => {
-            let name = if !caption.is_empty() {
-                format!("{caption}.jpg")
-            } else {
-                format!("photo_{id}.jpg")
-            };
+            // Telegram photos do not carry a filename. Captions are message
+            // text and may contain dates, URLs or dotted sentences, so using
+            // them as a filename produces false extensions and stale index
+            // identities. Keep identity deterministic and metadata-derived.
+            let name = canonical_photo_name(id);
             let cls = crate::core::media_classifier::classify_media_item(
                 &name,
                 Some("image/jpeg"),
@@ -784,11 +784,7 @@ pub fn tl_message_to_row(
         let thumb_data_url = crate::core::grammers_media::tl_stripped_thumb_data_url(media);
         match media {
             grammers_client::tl::enums::MessageMedia::Photo(photo_media) => {
-                let name = if caption.is_empty() {
-                    format!("photo_{id}.jpg")
-                } else {
-                    truncate_first_line(caption, 60)
-                };
+                let name = canonical_photo_name(id);
                 let mut photo_size = 0u64;
                 if let Some(grammers_client::tl::enums::Photo::Photo(photo)) = &photo_media.photo {
                     for s in &photo.sizes {
@@ -1221,6 +1217,10 @@ fn fallback_document_name(id: i64, mime: Option<&str>, native_delivery: bool) ->
         ("file", "bin")
     };
     format!("{kind}_{id}.{extension}")
+}
+
+fn canonical_photo_name(message_id: i64) -> String {
+    format!("photo_{message_id}.jpg")
 }
 
 fn extract_http_urls(text: &str) -> Vec<String> {
@@ -2239,6 +2239,12 @@ mod tests {
             fallback_document_name(19024, Some("video/mp4"), false),
             "file_19024.mp4"
         );
+    }
+
+    #[test]
+    fn telegram_photo_name_never_uses_caption_as_extension() {
+        assert_eq!(canonical_photo_name(43_639), "photo_43639.jpg");
+        assert_eq!(canonical_photo_name(6), "photo_6.jpg");
     }
 
     fn dummy_row(id: i64) -> MediaFileRow {

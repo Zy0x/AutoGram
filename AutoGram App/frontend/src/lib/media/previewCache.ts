@@ -123,6 +123,16 @@ export function invalidatePreview(
 function isSolidLocalHit(hit: CachedPreview): boolean {
   if (hit.text_content != null && hit.text_content !== '') return true;
   if (hit.data_url && hit.data_url.startsWith('data:')) return true;
+  // Progressive video/audio URLs depend on an in-memory Rust stream registry.
+  // A fully-filled `.partial` file is not sufficient proof that the old URL
+  // is still registered after navigation, cancellation, or app recovery.
+  if (
+    hit.streaming ||
+    hit.preview_kind === 'stream' ||
+    hit.preview_kind === 'video'
+  ) {
+    return false;
+  }
   const p = hit.path || '';
   if (!p) return false;
   // Hollow progressive cache path — not playable alone
@@ -168,6 +178,8 @@ export async function loadPreviewCached(
     topicId?: number | null;
     locationType?: string;
     accountId?: string;
+    consumerId?: string;
+    requestId?: string;
   }
 ): Promise<CachedPreview> {
   const q = quality || 'auto';
@@ -181,7 +193,7 @@ export async function loadPreviewCached(
     return hit;
   }
   // Fresh progressive HTTP stream only — older ports die after worker bounce
-  if (!opts?.force && hit && isFreshStreamHit(hit)) {
+  if (!opts?.force && hit && isFreshStreamHit(hit) && !opts?.consumerId) {
     return hit;
   }
 
@@ -201,6 +213,8 @@ export async function loadPreviewCached(
         topicId,
         locationType: opts?.locationType,
         accountId: opts?.accountId || creds.session,
+        consumerId: opts?.consumerId,
+        requestId: opts?.requestId,
       });
       // Drop hollow progressive results that have no usable stream_url —
       // caching them causes endless "reload" when opening many videos.

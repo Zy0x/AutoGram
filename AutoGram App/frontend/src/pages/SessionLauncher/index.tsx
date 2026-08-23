@@ -87,8 +87,8 @@ export function SessionLauncher({
 
   const refreshSessions = useCallback(async (force = false, verify = false) => {
     if (force) setIsRefreshingSessions(true);
-    return loadSelectableSessions({ verify, force })
-      .then((res: SessionOption[]) => {
+    try {
+      const res = await loadSelectableSessions({ verify, force });
         if (Array.isArray(res)) {
           setSessions(res);
           setDefaultSession((current) => current || res[0]?.name || '');
@@ -115,18 +115,18 @@ export function SessionLauncher({
             })
             .catch(() => {});
         }
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (force) setIsRefreshingSessions(false);
-      });
+      return res;
+    } finally {
+      if (force) setIsRefreshingSessions(false);
+    }
   }, []);
 
   const handleManualRefresh = useCallback(async () => {
     if (isRefreshingSessions) return;
     try {
-      await refreshSessions(true, true);
-      setJustRefreshed(true);
+      const refreshed = await refreshSessions(true, true);
+      const stable = refreshed.filter((session) => hasStableSessionIdentity(session));
+      setJustRefreshed(stable.length > 0 && stable.every((session) => session.status === 'connected'));
       setTimeout(() => {
         setJustRefreshed(false);
       }, 1600);
@@ -138,18 +138,18 @@ export function SessionLauncher({
   useEffect(() => {
     // [Stale-While-Revalidate]
     // Step 1 — Paint immediately from offline disk cache (0ms, no MTProto hit)
-    refreshSessions(false, false);
+    void refreshSessions(false, false).catch(() => undefined);
 
     // Step 2 — After 2.5s delay, run live MTProto auth check in background
     // Delay avoids hammering DC while the previous Drive/Forwarder MTProto
     // session is still tearing down, preventing the 8000ms+ latency spike.
     const liveCheckTimer = setTimeout(() => {
-      refreshSessions(true, true);
+      void refreshSessions(true, true).catch(() => undefined);
     }, 2500);
 
     // Step 3 — Periodic soft refresh every 30s (cache-first, no forced MTProto)
     const interval = setInterval(() => {
-      refreshSessions(false);
+      void refreshSessions(false).catch(() => undefined);
     }, 30000);
 
     return () => {
@@ -162,7 +162,9 @@ export function SessionLauncher({
   // immediately so the new card appears without reopening the launcher or
   // waiting for the periodic poll.
   useEffect(() => {
-    const syncNow = () => refreshSessions(true, false);
+    const syncNow = () => {
+      void refreshSessions(true, false).catch(() => undefined);
+    };
     window.addEventListener(SESSION_METADATA_EVENT, syncNow);
     window.addEventListener('focus', syncNow);
     return () => {
@@ -180,7 +182,7 @@ export function SessionLauncher({
     setSessions((prev) =>
       prev.map((s) => (s.name === sessionName ? { ...s, status: 'checking' } : s))
     );
-    refreshSessions(true);
+    void refreshSessions(true, true);
   };
 
   // Handle Esc key to close photo preview modal

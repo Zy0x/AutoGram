@@ -1,10 +1,13 @@
 /**
  * Coalesce sidebar profile-photo requests into small worker batches.
- * Disk-backed on the Python side; here we only keep a memory cache.
+ * Successful photos are cached in IndexedDB and mirrored in memory. This keeps
+ * large sidebars instant after an application restart without retaining stale
+ * cross-session photos.
  * peer_id 0 = self (Saved Messages).
  */
 import { driveAvatarsBatch, type DriveCredentials } from '../telegram/driveApi';
 import { getDrivePerfProfile } from '../utils/devicePerformance';
+import { loadPersistentThumb, savePersistentThumb } from './thumbPersistentCache';
 
 type Entry = { resolve: (url: string | null) => void };
 
@@ -40,6 +43,7 @@ type QueueItem = {
 };
 
 const queue = new Map<string, QueueItem>();
+const persistentLookups = new Map<string, Promise<string | null>>();
 let timer: ReturnType<typeof setTimeout> | null = null;
 let flushBusy = false;
 let avatarsPaused = false;
@@ -91,6 +95,23 @@ function scheduleFlush() {
   }, avatarsPaused ? Math.max(220, flushMs() * 2) : flushMs());
 }
 
+function persistentAvatarKey(key: string): string {
+  return `v2:avatar:${key}`;
+}
+
+async function loadPersistentAvatar(key: string): Promise<string | null> {
+  const existing = persistentLookups.get(key);
+  if (existing) return existing;
+  const lookup = loadPersistentThumb(persistentAvatarKey(key))
+    .then((url) => {
+      if (url) memCache.set(key, url);
+      return url;
+    })
+    .finally(() => persistentLookups.delete(key));
+  persistentLookups.set(key, lookup);
+  return lookup;
+}
+
 async function flushQueue() {
   if (flushBusy || queue.size === 0) return;
   if (avatarsPaused) {
@@ -99,20 +120,17 @@ async function flushQueue() {
   }
   flushBusy = true;
 
-  // Group pending queue items by session
+  // Group pending queue items by session. Only dequeue items that will really
+  // be processed. The previous implementation removed the entire queue and
+  // then sliced each session to one batch, leaving every item above BATCH with
+  // a promise that could never settle.
   const itemsBySession = new Map<string, QueueItem[]>();
-  const keysToRemove: string[] = [];
 
-  for (const [key, item] of queue.entries()) {
+  for (const item of queue.values()) {
     const session = item.creds.session || 'unscoped';
     const list = itemsBySession.get(session) || [];
     list.push(item);
     itemsBySession.set(session, list);
-    keysToRemove.push(key);
-  }
-
-  for (const key of keysToRemove) {
-    queue.delete(key);
   }
 
   const BATCH = batchSize();
@@ -120,11 +138,15 @@ async function flushQueue() {
   for (const [session, items] of itemsBySession.entries()) {
     const creds = items[0].creds;
     const batchItems = items.slice(0, BATCH);
+    for (const item of batchItems) {
+      queue.delete(avatarKey(item.peerId, session));
+    }
     const peerIds = batchItems.map((i) => i.peerId);
 
     try {
       const res = await driveAvatarsBatch(creds, peerIds, { batchSize: BATCH });
       const avatars = (res?.avatars || {}) as Record<string, string | null>;
+      const deferred = res?.deferred === true;
       for (const item of batchItems) {
         const k = avatarKey(item.peerId, session);
         const url = avatars[String(item.peerId)] ?? null;
@@ -132,6 +154,11 @@ async function flushQueue() {
           memCache.set(k, url);
           softFailAt.delete(k);
           emptyAt.delete(k);
+          void savePersistentThumb(persistentAvatarKey(k), url);
+        } else if (deferred) {
+          // A stopped/reconnecting sender pool is not proof that this peer has
+          // no photo. Retry later instead of poisoning the 24-hour empty cache.
+          softFailAt.set(k, Date.now());
         } else {
           emptyAt.set(k, Date.now());
         }
@@ -173,11 +200,14 @@ export function requestAvatar(
     return Promise.resolve(null);
   }
 
-  return new Promise((resolve) => {
-    const item = queue.get(k) || { creds, peerId: pid, waiters: [] };
-    item.waiters.push({ resolve });
-    queue.set(k, item);
-    scheduleFlush();
+  return loadPersistentAvatar(k).then((persisted) => {
+    if (persisted) return persisted;
+    return new Promise<string | null>((resolve) => {
+      const item = queue.get(k) || { creds, peerId: pid, waiters: [] };
+      item.waiters.push({ resolve });
+      queue.set(k, item);
+      scheduleFlush();
+    });
   });
 }
 

@@ -1,4 +1,8 @@
 {
+  "drive_folder_section_title": "Folders",
+  "drive_folder_open_title": "Open {{name}}",
+  "drive_folder_no_media_title": "No media in this folder",
+  "drive_folder_no_media_desc": "Open a subfolder above or upload media to this folder.",
   "delta_sync_running": "Syncing Telegram deltas (checking for updates)...",
   "gc_running": "Cleaning RAM memory and optimizing buffers...",
   "gc_completed": "Memory cleanup complete",
@@ -1917,10 +1921,13 @@
   "remote_native_candidate": "Detected media {{index}}",
   "remote_native_badge": "NATIVE DIRECT",
   "remote_native_inspected": "Resolved by the native bounded inspector across {{count}} page(s).",
+  "drive_history_pin_navigation": "Drive history and pin navigation",
   "nav_back_drive": "Back to previous Drive",
   "nav_forward_drive": "Forward to next Drive",
   "hide_restricted_media_section_title": "Drive Content Filtering & Visibility",
   "hide_restricted_media_section_subtitle": "Clean restricted media or inaccessible notices from your Drive grid",
   "hide_restricted_media_title": "Hide Restricted & Inaccessible Media",
-  "hide_restricted_media_desc": "Automatically filter out and hide Telegram restricted notices (\"This channel can't be displayed...\") so your Drive explorer stays clean, uncluttered, and free of unopenable items."
+  "hide_restricted_media_desc": "Automatically filter out and hide Telegram restricted notices (\"This channel can't be displayed...\") so your Drive explorer stays clean, uncluttered, and free of unopenable items.",
+  "drive_engine_file_commit_failed": "The upload reached Telegram, but AutoGram could not save its Drive folder mapping. Retry the folder sync.",
+  "drive_root_limit_warning": "{{count}} root Drives are approaching Telegram's channel limit (~500). Prefer folders inside an existing Drive."
 }

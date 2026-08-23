@@ -20,6 +20,20 @@ function localizedDriveError(
   if (issue === 'unavailable') return t('speedtest.telegram_access_unavailable');
   return friendlyDriveError(error);
 }
+
+function inferUploadMime(path: string): string | null {
+  const clean = String(path || '').split(/[?#]/, 1)[0];
+  const extension = clean.includes('.') ? clean.split('.').pop()?.toLowerCase() : '';
+  const known: Record<string, string> = {
+    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
+    gif: 'image/gif', bmp: 'image/bmp', heic: 'image/heic', avif: 'image/avif',
+    mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', mkv: 'video/x-matroska',
+    mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav', flac: 'audio/flac', ogg: 'audio/ogg',
+    pdf: 'application/pdf', zip: 'application/zip', rar: 'application/vnd.rar',
+    '7z': 'application/x-7z-compressed', txt: 'text/plain', json: 'application/json',
+  };
+  return extension ? known[extension] ?? 'application/octet-stream' : null;
+}
 import { DriveTransferSettings } from '../../components/drive/Transfers/DriveTransferSettings';
 import { TelegramMessagePreviewModal } from '../../components/drive/Modals/TelegramMessagePreviewModal';
 import {
@@ -46,7 +60,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import { HardDrive, Upload, Scissors, Copy, ClipboardPaste, X, Globe, UserPlus, Loader2 } from 'lucide-react';
+import { HardDrive, Upload, Scissors, Copy, ClipboardPaste, X, Globe, UserPlus, Loader2, Folder, ChevronRight } from 'lucide-react';
 import {
   determineIndexingTier,
   calculateIndexingMetrics,
@@ -78,6 +92,7 @@ import {
   driveListChatFolders,
   driveListChats,
   driveScanFolders,
+  driveLoadLocalFolders,
   driveCreateFolder,
   driveDeleteFoldersBatch,
   driveListFiles,
@@ -182,6 +197,12 @@ import {
 } from '../../lib/telegram';
 import { shouldPreservePersistentRows } from '../../lib/telegram/persistentIndexPolicy';
 import { mediaListCache } from '../../lib/cache/multiTierCache';
+import {
+  driveEngineAccountId,
+  driveEngineCommitFile,
+  registerDriveEngineLocation,
+  resolveDriveEngineLocation,
+} from '../../lib/telegram/driveApi/driveEngineApi';
 import {
   countExactMediaBreakdown,
   countPerspectiveMedia,
@@ -516,6 +537,20 @@ function MediaDriveDesktop({
     }
   });
   const [folders, setFolders] = useState<DriveFolder[]>(() => initialSidebarCache?.folders ?? []);
+  useEffect(() => {
+    for (const folder of folders) {
+      if (!folder.engine_drive_id || !folder.engine_folder_id) continue;
+      registerDriveEngineLocation({
+        driveId: folder.engine_drive_id,
+        folderId: folder.engine_folder_id,
+        parentUiId: folder.parent_id ?? null,
+        name: folder.name,
+        storagePeerId: folder.storage_peer_id ?? null,
+        storageTopicId: folder.storage_topic_id ?? null,
+        root: folder.parent_id == null,
+      });
+    }
+  }, [folders]);
   const [chats, setChats] = useState<DriveChat[]>(() => initialSidebarCache?.chats ?? []);
   const [chatFolders, setChatFolders] = useState<DriveChatFolder[]>([
     { id: 0, title: 'Semua Chat', kind: 'all' },
@@ -715,6 +750,10 @@ function MediaDriveDesktop({
     ) => void
   >(() => {});
   const peerGen = useRef(0);
+  // Sidebar/dialog discovery is session-scoped, not peer-scoped. Keeping a
+  // separate generation prevents a fast peer navigation from cancelling the
+  // still-useful chat/folder results for the same session.
+  const sidebarGen = useRef(0);
   const bootDone = useRef(false);
   const sessionLockRetriesRef = useRef(0);
   const loadMoreLock = useRef(false);
@@ -1280,7 +1319,7 @@ function MediaDriveDesktop({
   const isChannelOrSupergroup = useMemo(() => {
     if (peerId == null || peerId === 0) return false;
     if (locationKind === 'saved') return false;
-    if (locationKind === 'drive') return true;
+    if (locationKind === 'drive' || resolveDriveEngineLocation(peerId) != null) return false;
     if (locationKind === 'chat') {
       const pNum = Number(peerId);
       if (Number.isFinite(pNum) && pNum < 0) return true;
@@ -1469,6 +1508,7 @@ function MediaDriveDesktop({
    */
   const invalidateDriveGenerations = useCallback(() => {
     peerGen.current += 1;
+    sidebarGen.current += 1;
   }, []);
 
   /** PeerChannel / missing entity → Saved Messages + wipe stored peer for this session. */
@@ -1658,7 +1698,20 @@ function MediaDriveDesktop({
     try {
       const sidebar = loadDriveSidebarSnapshot(localStorage, next);
       if (sidebar && Array.isArray(sidebar.chats)) {
-        setFolders(Array.isArray(sidebar.folders) ? sidebar.folders : []);
+        const cachedFolders = Array.isArray(sidebar.folders) ? sidebar.folders : [];
+        for (const folder of cachedFolders) {
+          if (!folder.engine_drive_id || !folder.engine_folder_id) continue;
+          registerDriveEngineLocation({
+            driveId: folder.engine_drive_id,
+            folderId: folder.engine_folder_id,
+            parentUiId: folder.parent_id ?? null,
+            name: folder.name,
+            storagePeerId: folder.storage_peer_id ?? null,
+            storageTopicId: folder.storage_topic_id ?? null,
+            root: folder.parent_id == null,
+          });
+        }
+        setFolders(cachedFolders);
         setChats(sidebar.chats);
         setChatsHasMore(!!sidebar.chatsHasMore);
         setChatsOffset(sidebar.chatsOffset || 0);
@@ -2152,6 +2205,14 @@ function MediaDriveDesktop({
         topicFilterRef.current = null;
         return;
       }
+      if (resolveDriveEngineLocation(chatId)) {
+        setTopics([]);
+        setIsForumChat(false);
+        setTopicFilter(null);
+        topicFilterRef.current = null;
+        setTopicsLoading(false);
+        return;
+      }
       if (force) {
         topicsCacheRef.current.delete(chatId);
       }
@@ -2173,22 +2234,20 @@ function MediaDriveDesktop({
           /* persistent topic cache is best-effort */
         }
       }
-      // Only skip pure users / known non-forums. Groups & channels always probe
-      // topics — hard-false is_forum previously left Group topics empty forever.
-      const kind = String(meta?.type || '').toLowerCase();
-      const looksGroupOrChannel =
-        kind === 'group' || kind === 'channel' || kind === 'supergroup' || !!meta?.is_drive_folder;
+      // `is_forum` comes from the authoritative Grammers dialog entity. A
+      // known non-forum must not pay an extra GetForumTopics round-trip every
+      // time it is opened. Unknown entities still probe and a refreshed dialog
+      // immediately flips this flag when Telegram enables forum mode.
       if (
         meta &&
         meta.is_forum === false &&
-        !cached?.is_forum &&
-        !looksGroupOrChannel &&
-        kind === 'user'
+        !cached?.is_forum
       ) {
         setTopics([]);
         setIsForumChat(false);
         setTopicFilter(null);
         topicFilterRef.current = null;
+        setTopicsLoading(false);
         return;
       }
       // Render a recent memory/persistent snapshot immediately, then revalidate.
@@ -2247,7 +2306,7 @@ function MediaDriveDesktop({
           setIsForumChat(meta?.is_forum === true);
         }
       } finally {
-        setTopicsLoading(false);
+        if (isCurrent()) setTopicsLoading(false);
       }
     },
     [creds, chats]
@@ -2492,6 +2551,7 @@ function MediaDriveDesktop({
     setStatsByType(null);
     setError(null);
     const gen = ++peerGen.current;
+    const sidebarRequestGen = ++sidebarGen.current;
     const tid = topicFilterRef.current;
     const bootKey = getDriveCacheKey(creds.session, peerId, tid);
     setSelectedIds([]);
@@ -2511,7 +2571,11 @@ function MediaDriveDesktop({
     }
 
     const bumpStatus = () => {
-      if (gen !== peerGen.current) return;
+      // Opening a chat while the sidebar boot is authenticating invalidates
+      // only the root file request. The dialog/sidebar request has its own
+      // generation and must continue, otherwise large accounts appear stuck
+      // with only the first cached rows.
+      if (gen !== peerGen.current && sidebarRequestGen !== sidebarGen.current) return;
       setStatusText(
         `${nFolders} TD · ${nChats} chats · ${
           knownTotal != null
@@ -2535,28 +2599,34 @@ function MediaDriveDesktop({
     try {
       setStatusText(t('ui.generated.memuat_drives_780fc8f'));
 
-      // Actively verify session authorization and socket health before fetching lists
-      const { tgAuthStatus } = await import('../../lib/telegram');
-      const authStartedAt = performance.now();
-      const native = await tgAuthStatus({
-        session: creds.session,
-        apiId: Number(creds.apiId),
-        apiHash: creds.apiHash,
-      });
+      // Do not perform an additional auth RPC on every peer switch. A warm
+      // Grammers session has already proven authorization; list_media remains
+      // authoritative and its error path performs reconnect/re-auth recovery.
+      // Cold application boot still verifies once before the first fetch.
+      const alreadyReady = isDriveSessionReady() || nativeDriveReadyRef.current;
+      if (!alreadyReady) {
+        const { tgAuthStatus } = await import('../../lib/telegram');
+        const authStartedAt = performance.now();
+        const native = await tgAuthStatus({
+          session: creds.session,
+          apiId: Number(creds.apiId),
+          apiHash: creds.apiHash,
+        });
 
-      if (gen !== peerGen.current) return;
-      const nativeConnected = !!native?.ok && !!native.data?.authorized;
-      reportNativeLatency(performance.now() - authStartedAt, nativeConnected);
+        if (gen !== peerGen.current && sidebarRequestGen !== sidebarGen.current) return;
+        const nativeConnected = !!native?.ok && !!native.data?.authorized;
+        reportNativeLatency(performance.now() - authStartedAt, nativeConnected);
 
-      if (!nativeConnected) {
-        setDriveReady(false);
-        nativeDriveReadyRef.current = false;
-        setLoadingFolders(false);
-        setLoadingChats(false);
-        setLoadingFiles(false);
-        const errMsg = native?.userMessage || t('accounts.status_disconnected');
-        setError(errMsg);
-        return;
+        if (!nativeConnected) {
+          setDriveReady(false);
+          nativeDriveReadyRef.current = false;
+          setLoadingFolders(false);
+          setLoadingChats(false);
+          setLoadingFiles(false);
+          const errMsg = native?.userMessage || t('accounts.status_disconnected');
+          setError(errMsg);
+          return;
+        }
       }
 
       setDriveReady(true);
@@ -2700,8 +2770,13 @@ function MediaDriveDesktop({
         // Run dialog list and file list in parallel over warm daemon session
         const chatsP = driveListChats(creds, { limit: perf.chatPage })
           .then((cr: any) => {
-            if (gen !== peerGen.current) return;
-            const list = cr.chats || [];
+            if (sidebarRequestGen !== sidebarGen.current) return;
+            const liveList: DriveChat[] = cr.chats || [];
+            // Keep the durable tail visible while the authoritative first page
+            // is reconciled. Pagination will replace/dedupe those rows lazily.
+            const cachedList = loadDriveSidebarSnapshot(localStorage, creds.session)?.chats ?? [];
+            const liveIds = new Set(liveList.map((chat) => chat.id));
+            const list = [...liveList, ...cachedList.filter((chat) => !liveIds.has(chat.id))];
             nChats = list.length;
             const cur: ChatListCursor = {
               offset_id: cr.next_offset_id ?? null,
@@ -2720,7 +2795,7 @@ function MediaDriveDesktop({
               // Re-check gen inside transition — startTransition can flush AFTER
               // a session switch cleared UI, which re-painted the previous account.
               startTransition(() => {
-                if (gen !== peerGen.current) return;
+                if (sidebarRequestGen !== sidebarGen.current) return;
                 setChats(list);
                 setChatsOffset(cr.next_offset ?? list.length);
                 setChatsHasMore(!!cr.has_more);
@@ -2729,7 +2804,7 @@ function MediaDriveDesktop({
             }
             // Telegram's current dialog title is authoritative. Preserve local
             // hierarchy metadata while repairing stale cached drive labels.
-            const liveNames = new Map<number, DriveChat>(list.map((chat: DriveChat) => [chat.id, chat]));
+            const liveNames = new Map<number, DriveChat>(liveList.map((chat: DriveChat) => [chat.id, chat]));
             setFolders((previous) => previous.map((folder) => {
               const live = liveNames.get(folder.id);
               if (!live) return folder;
@@ -2765,7 +2840,7 @@ function MediaDriveDesktop({
               nFolders = tdFromChats.length;
               const provisionalFolders = withFolderOrphanFlags(tdFromChats);
               startTransition(() => {
-                if (gen !== peerGen.current) return;
+                if (sidebarRequestGen !== sidebarGen.current) return;
                 setFolders((prev) => (prev.length > 0 ? prev : provisionalFolders));
               });
               try {
@@ -2791,21 +2866,38 @@ function MediaDriveDesktop({
             }
           })
           .catch((e: any) => {
-            if (gen === peerGen.current) setError(localizedDriveError(e, t));
+            if (sidebarRequestGen === sidebarGen.current) setError(localizedDriveError(e, t));
           })
           .finally(() => {
-            if (gen === peerGen.current) setLoadingChats(false);
+            if (sidebarRequestGen === sidebarGen.current) setLoadingChats(false);
           });
 
-        // 3) Drives [TD] background sync: reconcile alive folders from Telegram
+        // 3) Paint filesystem-engine Drives from SQLite first, then reconcile
+        // legacy [TD] Drives and engine storage peers from Telegram.
+        void driveLoadLocalFolders(creds)
+          .then((localResult) => {
+            if (sidebarRequestGen !== sidebarGen.current || !localResult.folders.length) return;
+            const localFolders = withFolderOrphanFlags(localResult.folders as DriveFolder[]);
+            nFolders = localFolders.length;
+            startTransition(() => {
+              if (sidebarRequestGen !== sidebarGen.current) return;
+              setFolders((previous) => {
+                const legacy = previous.filter((folder) => folder.source !== 'engine');
+                return withFolderOrphanFlags([...localFolders, ...legacy]);
+              });
+            });
+            setLoadingFolders(false);
+          })
+          .catch(() => { /* local Drive restore is best-effort */ });
+
         const foldersP = driveScanFolders(creds)
           .then((fr: { folders?: DriveFolder[] } | DriveFolder[]) => {
-            if (gen !== peerGen.current) return;
+            if (sidebarRequestGen !== sidebarGen.current) return;
             const list = (Array.isArray(fr) ? fr : (fr as any)?.folders || []) as DriveFolder[];
             const normalized = withFolderOrphanFlags(Array.isArray(list) ? list : []);
             const liveFolderIds = new Set(normalized.map((f) => f.id));
             startTransition(() => {
-              if (gen !== peerGen.current) return;
+              if (sidebarRequestGen !== sidebarGen.current) return;
               setFolders(normalized);
             });
             try {
@@ -2824,7 +2916,7 @@ function MediaDriveDesktop({
           })
           .catch(() => { /* ignore background scan errors */ })
           .finally(() => {
-            if (gen === peerGen.current) setLoadingFolders(false);
+            if (sidebarRequestGen === sidebarGen.current) setLoadingFolders(false);
           });
 
         // "Ready" means the grid is usable; sidebar/folders continue progressively.
@@ -3126,7 +3218,7 @@ function MediaDriveDesktop({
     if (!creds || !chatsHasMore || chatsLoadingMore || chatBulkLock.current) return;
     chatBulkLock.current = true;
     setChatsLoadingMore(true);
-    const gen = peerGen.current;
+    const gen = sidebarGen.current;
     const sessionAtStart = creds.session;
     // Pause avatar flood while paging dialogs (reduces force-close risk)
     try {
@@ -3146,19 +3238,35 @@ function MediaDriveDesktop({
       });
       // Session switch / gen invalidate: never append previous account's dialogs.
       if (
-        gen !== peerGen.current ||
+        gen !== sidebarGen.current ||
         sessionAtStart !== creds.session ||
         activeChatFolderIdRef.current !== requestFolderId
       ) {
         return;
       }
       const incoming: DriveChat[] = cr.chats || [];
+      const cached = loadDriveSidebarSnapshot(localStorage, creds.session);
+      const baseChats = cached?.chats ?? [];
+      const seenForCache = new Set(baseChats.map((chat) => chat.id));
+      const cachedMerged = [...baseChats, ...incoming.filter((chat) => !seenForCache.has(chat.id))];
       setChats((prev) => {
         const seen = new Set(prev.map((c) => c.id));
         return [...prev, ...incoming.filter((c) => !seen.has(c.id))];
       });
       setChatsOffset(cr.next_offset ?? chatsOffset + incoming.length);
       setChatsHasMore(!!cr.has_more);
+      saveDriveSidebarSnapshot(localStorage, creds.session, {
+        chats: cachedMerged,
+        chatsHasMore: !!cr.has_more,
+        chatsOffset: cr.next_offset ?? chatsOffset + incoming.length,
+        cursor: cr.has_more
+          ? {
+              offset_id: cr.next_offset_id ?? null,
+              offset_date: cr.next_offset_date ?? null,
+              offset_peer_id: cr.next_offset_peer_id ?? null,
+            }
+          : null,
+      });
       const incomingDrives = incoming
         .filter((chat) => chat.is_drive_folder)
         .map((chat): DriveFolder => ({
@@ -3401,8 +3509,9 @@ function MediaDriveDesktop({
       });
       if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return;
 
+      const isEngineLocation = locationKind === 'drive' || !!resolveDriveEngineLocation(peerId);
       const liveCandidateTotal = res.total_count == null ? null : Number(res.total_count);
-      if (completedIndexNeedsRevalidation(
+      if (!isEngineLocation && completedIndexNeedsRevalidation(
         durableWasComplete,
         durableUniqueCount,
         liveCandidateTotal
@@ -3422,7 +3531,7 @@ function MediaDriveDesktop({
         }
         staleIndexAutoResumeScopeRef.current = cacheKey;
         setStaleIndexAutoResumeToken((token) => token + 1);
-      } else if (partialIndexNeedsAutoResume(
+      } else if (!isEngineLocation && partialIndexNeedsAutoResume(
         durableWasComplete,
         durableUniqueCount,
         liveCandidateTotal
@@ -3685,8 +3794,8 @@ function MediaDriveDesktop({
       setError(localizedDriveError(e, t));
       setStatusText(t('ui.generated.list_failed_520195e'));
     } finally {
-      setLoadingFiles(false);
-      if (gen === peerGen.current) {
+      if (gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey) {
+        setLoadingFiles(false);
         // Resume thumbs after list settles
         window.setTimeout(() => {
           if (gen === peerGen.current) {
@@ -4212,6 +4321,7 @@ function MediaDriveDesktop({
 
   const handleIndexAllMetadata = useCallback(async () => {
     if (indexingActiveRef.current) return;
+    if (locationKind === 'drive' || resolveDriveEngineLocation(peerId)) return;
 
     const tid = topicFilterRef.current;
     const cacheKey = getDriveCacheKey(creds?.session || session, peerId, tid);
@@ -4976,12 +5086,15 @@ function MediaDriveDesktop({
 
   // Peer change after boot — topic discovery and file listing start independently.
   const prevPeer = useRef(peerId);
+  const pendingPeerRefreshRef = useRef(false);
   useEffect(() => {
-    if (!creds || !bootDone.current) {
-      prevPeer.current = peerId;
+    if (!creds) return;
+    if (!bootDone.current && !driveReady) {
+      if (prevPeer.current !== peerId) pendingPeerRefreshRef.current = true;
       return;
     }
-    if (prevPeer.current === peerId) return;
+    if (prevPeer.current === peerId && !pendingPeerRefreshRef.current) return;
+    pendingPeerRefreshRef.current = false;
     prevPeer.current = peerId;
 
     // Instantly wipe files and reset thumb context to prevent bleeding from previous peer
@@ -5025,7 +5138,7 @@ function MediaDriveDesktop({
       void loadTopicsForPeer(peerId, meta);
     }
     void refreshFiles();
-  }, [peerId, creds, chats.length, refreshFiles, loadTopicsForPeer, getDriveCacheKey]);
+  }, [peerId, creds, chats.length, bootRevision, driveReady, refreshFiles, loadTopicsForPeer, getDriveCacheKey]);
 
   const handleTopicFilter = useCallback(
     (t: DriveTopicFilter) => {
@@ -5528,6 +5641,8 @@ function MediaDriveDesktop({
           let orchSkipped = 0;
           let orchDone = 0;
           let orchFailed = 0;
+          const engineLocation = resolveDriveEngineLocation(task.targetFolderId ?? null);
+          const engineCommits: Array<Promise<unknown>> = [];
           for (const qi of items) {
             const mid = Number(qi.messageId || 0);
             if (mid > 0) uploadedIds.push(mid);
@@ -5548,6 +5663,43 @@ function MediaDriveDesktop({
             );
             if (st === 'failed' && qi.error) {
               uploadError = qi.error;
+            }
+            if (engineLocation && st === 'done' && mid > 0) {
+              const itemIndex = Number(qi.index || 0);
+              const sourcePath = String(qi.path || task.paths?.[itemIndex] || '');
+              const filename = String(
+                task.names?.[itemIndex]
+                || sourcePath.split(/[/\\]/).pop()
+                || `message_${mid}`
+              );
+              engineCommits.push(driveEngineCommitFile({
+                accountId: driveEngineAccountId(creds!.session),
+                driveId: engineLocation.driveId,
+                folderId: engineLocation.folderId,
+                filename,
+                size: Math.max(0, Number(qi.size || 0)),
+                mime: inferUploadMime(sourcePath),
+                telegramChatId: String(engineLocation.storagePeerId ?? studioChatIdFromFolder(task.targetFolderId)),
+                telegramTopicId: topicFromOpts != null && topicFromOpts > 0 ? topicFromOpts : null,
+                telegramMessageId: mid,
+                deviceId: creds!.session,
+              }));
+            }
+          }
+          if (engineCommits.length > 0) {
+            const commitResults = await Promise.allSettled(engineCommits);
+            const rejected = commitResults.filter((result) => result.status === 'rejected');
+            if (rejected.length > 0) {
+              const reason = rejected[0].status === 'rejected'
+                ? String(rejected[0].reason?.message || rejected[0].reason)
+                : '';
+              uploadError = String(t('speedtest.drive_engine_file_commit_failed'));
+              debugLog('drive', 'engine metadata commit failed', {
+                tid: orchOutcome.result.transferId,
+                failed: rejected.length,
+                total: engineCommits.length,
+                error: reason || 'DRIVE_ENGINE_FILE_COMMIT_FAILED',
+              });
             }
           }
           if (uploadedIds.length === 0 && orchSkipped > 0 && orchFailed === 0) {
@@ -5618,7 +5770,7 @@ function MediaDriveDesktop({
               session: creds!.session,
               apiId: Number(creds!.apiId) || 0,
               apiHash: creds!.apiHash,
-              chatId: String(task.targetFolderId ?? peerId ?? 'me'),
+              chatId: studioChatIdFromFolder(task.targetFolderId ?? peerId ?? null),
               messageId: msgId,
               destPath: destFile,
               conflictPolicy: transferSettings.downloadConflictPolicy,
@@ -5724,7 +5876,7 @@ function MediaDriveDesktop({
                   session: creds!.session,
                   apiId: Number(creds!.apiId) || 0,
                   apiHash: creds!.apiHash,
-                  chatId: String(task.targetFolderId ?? peerId ?? 'me'),
+                  chatId: studioChatIdFromFolder(task.targetFolderId ?? peerId ?? null),
                   messageId,
                   destPath: stagePath,
                   conflictPolicy: 'overwrite',
@@ -5792,7 +5944,7 @@ function MediaDriveDesktop({
             session: creds!.session,
             apiId: Number(creds!.apiId) || 0,
             apiHash: creds!.apiHash,
-            chatId: String(task.targetFolderId ?? peerId ?? 'me'),
+            chatId: studioChatIdFromFolder(task.targetFolderId ?? peerId ?? null),
             messageId: task.messageId!,
             destPath: task.savePath!,
           });
@@ -6095,22 +6247,27 @@ function MediaDriveDesktop({
               /* one-shot fallback inside driveCreateFolder */
             }
             const res = await driveCreateFolder(creds, name, { parentId });
-            if (res?.warning) {
-              setStatusText(String(res.warning));
+            const createdFolder = (res?.folder ?? null) as DriveFolder | null;
+            if ((res as any)?.warning) {
+              setStatusText(String((res as any).warning));
             }
             const newId =
-              res?.folder?.id != null && Number.isFinite(Number(res.folder.id))
-                ? Number(res.folder.id)
+              createdFolder?.id != null && Number.isFinite(Number(createdFolder.id))
+                ? Number(createdFolder.id)
                 : null;
             if (newId != null) {
               const optimisticFolder: DriveFolder = {
                 id: newId,
-                name: String(res?.folder?.name || name),
-                title_raw: String(res?.folder?.title_raw || `${name} [TD]`),
-                username: res?.folder?.username ?? null,
+                name: String(createdFolder?.name || name),
+                title_raw: String(createdFolder?.title_raw || `${name} [TD]`),
+                username: createdFolder?.username ?? null,
                 parent_id: parentId,
                 is_drive_folder: true,
                 is_orphan: false,
+                engine_drive_id: createdFolder?.engine_drive_id ?? null,
+                engine_folder_id: createdFolder?.engine_folder_id ?? null,
+                storage_peer_id: createdFolder?.storage_peer_id ?? null,
+                source: createdFolder?.source ?? 'legacy',
               };
               // CreateChannel already returned the authoritative peer. Paint it
               // immediately instead of waiting for the next paged dialog scan.
@@ -6132,8 +6289,8 @@ function MediaDriveDesktop({
               topicFilterRef.current = null;
               setStatusText(
                 parentId != null
-                  ? t('speedtest.folder_ready', { name: res?.folder?.name || name })
-                  : t('speedtest.drive_ready', { name: res?.folder?.name || name })
+                  ? t('speedtest.folder_ready', { name: createdFolder?.name || name })
+                  : t('speedtest.drive_ready', { name: createdFolder?.name || name })
               );
               // Reconcile server metadata after the optimistic paint without
               // blocking navigation to the newly created Drive.
@@ -6664,6 +6821,7 @@ function MediaDriveDesktop({
     }
     const uploadPeer =
       opts && 'targetFolderId' in (opts || {}) ? (opts!.targetFolderId as number | null) : peerId;
+    const uploadEngineLocation = resolveDriveEngineLocation(uploadPeer);
     const destLabel =
       opts?.targetLabel ||
       (uploadPeer == null ? 'Saved Messages' : breadcrumb) ||
@@ -6704,6 +6862,9 @@ function MediaDriveDesktop({
     const uploadTopicId = (() => {
       if (opts?.topicId !== undefined) {
         return opts.topicId != null && opts.topicId > 0 ? opts.topicId : null;
+      }
+      if (uploadEngineLocation?.storageTopicId != null && uploadEngineLocation.storageTopicId > 0) {
+        return uploadEngineLocation.storageTopicId;
       }
       if (!opts?.skipTopic && sameDriveLocation(uploadPeer, peerId)) {
         const activeTopicId = topicFilterRef.current;
@@ -7529,6 +7690,11 @@ function MediaDriveDesktop({
 
   const handleRename = (file: DriveFile) => {
     if (!creds) return;
+    if (selectedIds.length > 1 && selectedIds.includes(file.id)) {
+      setToolsTab('rename');
+      setToolsOpen(true);
+      return;
+    }
     setInputDlg({
       kind: 'rename',
       title: 'Ubah nama file',
@@ -7683,6 +7849,13 @@ function MediaDriveDesktop({
     );
     return t(`speedtest.telegram_restriction_reason_${key}`);
   }, [activePeerId, chats, locationKind, t]);
+
+  const visibleDriveChildFolders = useMemo(() => {
+    if (locationKind !== 'drive' || activePeerId == null) return [];
+    return folders
+      .filter((folder) => folder.parent_id != null && Number(folder.parent_id) === Number(activePeerId))
+      .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
+  }, [activePeerId, folders, locationKind]);
 
   const spaceHint = useMemo(() => {
     // Prefer location total_bytes (unique media_stats when accurate)
@@ -8014,7 +8187,7 @@ function MediaDriveDesktop({
         }
         return;
       }
-      if (e.key === 'F2' && selectedIds.length === 1) {
+      if (e.key === 'F2' && selectedIds.length > 0) {
         e.preventDefault();
         const f = findAnyFile(selectedIds[0]);
         if (f) handleRename(f);
@@ -10520,6 +10693,34 @@ function MediaDriveDesktop({
                 {t('ui.generated.lepas_di_4ee781a')} <strong>{t('ui.generated.chat_atau_folder_3196d63')}</strong> {t('ui.generated.di_sidebar_untuk_memindahkan_78818ed')}
               </div>
             )}
+            {visibleDriveChildFolders.length > 0 && (
+              <section className="td-drive-folder-section" aria-label={t('speedtest.drive_folder_section_title')}>
+                <div className="td-drive-folder-section-head">
+                  <span>{t('speedtest.drive_folder_section_title')}</span>
+                  <span className="td-drive-folder-section-count">{visibleDriveChildFolders.length}</span>
+                </div>
+                <div className="td-drive-folder-card-grid">
+                  {visibleDriveChildFolders.map((folder) => (
+                    <button
+                      key={folder.id}
+                      type="button"
+                      className="td-drive-folder-card"
+                      title={t('speedtest.drive_folder_open_title', { name: folder.name })}
+                      onClick={() => {
+                        setLocationKind('drive');
+                        setActivePeerId(folder.id);
+                        setTopicFilter(null);
+                        topicFilterRef.current = null;
+                      }}
+                    >
+                      <span className="td-drive-folder-card-icon"><Folder size={20} /></span>
+                      <span className="td-drive-folder-card-name">{folder.name}</span>
+                      <ChevronRight size={16} className="td-drive-folder-card-arrow" />
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
             <DriveExplorer
               key={`${session}::${explorerScrollKey}`}
               files={activeContentFiles}
@@ -10546,6 +10747,7 @@ function MediaDriveDesktop({
               }
               unavailableNotice={activeRestrictionNotice}
               hideRestrictedMedia={transferSettings.hideRestrictedMedia !== false}
+              hasFolderChildren={visibleDriveChildFolders.length > 0}
               sortMode={sortMode}
               onSortMode={handleSortModeChange}
               advFilter={advFilter}

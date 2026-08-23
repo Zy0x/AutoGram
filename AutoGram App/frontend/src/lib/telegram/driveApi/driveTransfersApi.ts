@@ -12,6 +12,7 @@ import {
   runDrive,
   sleep
 } from './driveApiUtils';
+import { resolveDriveEngineLocation } from './driveEngineApi';
 export async function driveDownload(
   creds: DriveCredentials,
   messageId: number,
@@ -66,7 +67,8 @@ export async function driveDownloadOpenSpawn(
     if (detectTauriRuntime()) {
       try {
         const { tgDownloadFile } = await import('../core/telegramBackend');
-        const chatId = folderId == null ? 'me' : String(folderId);
+        const engineLocation = resolveDriveEngineLocation(folderId);
+        const chatId = folderId == null ? 'me' : String(engineLocation?.storagePeerId ?? folderId);
         const apiId = Number(creds.apiId) || 0;
         const gr = await tgDownloadFile({
           session: creds.session,

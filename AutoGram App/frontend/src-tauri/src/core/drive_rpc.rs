@@ -304,6 +304,7 @@ pub fn create_folder_blocking(
     identity: &TelegramIdentity,
     name: &str,
     parent_id: Option<i64>,
+    storage_mode: bool,
 ) -> Result<FolderOpResult, TgError> {
     let rt = runtime()?;
     let clean = name.split_whitespace().collect::<Vec<_>>().join(" ");
@@ -311,8 +312,16 @@ pub fn create_folder_blocking(
         return Err(TgError::new(TgErrorCode::Internal, "Folder name required"));
     }
     let clean = strip_td_suffix(&clean);
-    let title = format!("{clean}{FOLDER_TITLE_SUFFIX}");
-    let about = compose_folder_about(parent_id);
+    let title = if storage_mode {
+        clean.clone()
+    } else {
+        format!("{clean}{FOLDER_TITLE_SUFFIX}")
+    };
+    let about = if storage_mode {
+        "autogram://drive-storage/v1".to_string()
+    } else {
+        compose_folder_about(parent_id)
+    };
 
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
@@ -324,14 +333,17 @@ pub fn create_folder_blocking(
                 {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }
-                let attempts = [
-                    (true, false), // broadcast
-                    (false, true), // megagroup
-                    (true, false),
-                    (false, true),
-                ];
+                // A production Drive is a private forum supergroup. Its forum
+                // topics are the physical Telegram backing for AutoGram's
+                // logical folders. Legacy non-storage folders retain their old
+                // channel behavior so existing verified Drives are untouched.
+                let attempts = if storage_mode {
+                    vec![(false, true, true)]
+                } else {
+                    vec![(true, false, false), (false, true, false)]
+                };
                 let mut last_err: Option<TgError> = None;
-                for (i, (broadcast, megagroup)) in attempts.iter().enumerate() {
+                for (i, (broadcast, megagroup, forum)) in attempts.iter().enumerate() {
                     if i > 0 {
                         tokio::time::sleep(std::time::Duration::from_millis(350)).await;
                     }
@@ -339,7 +351,7 @@ pub fn create_folder_blocking(
                         broadcast: *broadcast,
                         megagroup: *megagroup,
                         for_import: false,
-                        forum: false,
+                        forum: *forum,
                         title: title.clone(),
                         about: about.clone(),
                         geo_point: None,
@@ -421,13 +433,18 @@ pub fn rename_folder_blocking(
     identity: &TelegramIdentity,
     folder_id: i64,
     name: &str,
+    storage_mode: bool,
 ) -> Result<FolderOpResult, TgError> {
     let rt = runtime()?;
     let clean = strip_td_suffix(&name.split_whitespace().collect::<Vec<_>>().join(" "));
     if clean.is_empty() {
         return Err(TgError::new(TgErrorCode::Internal, "Folder name required"));
     }
-    let title = format!("{clean}{FOLDER_TITLE_SUFFIX}");
+    let title = if storage_mode {
+        clean.clone()
+    } else {
+        format!("{clean}{FOLDER_TITLE_SUFFIX}")
+    };
     let chat = folder_id.to_string();
 
     rt.block_on(async {

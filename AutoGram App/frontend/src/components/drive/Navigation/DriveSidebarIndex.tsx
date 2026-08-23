@@ -281,7 +281,7 @@ function PeerAvatar({
   fallback: React.ReactNode;
   title?: string;
 }) {
-  const cached = getCachedAvatar(peerId);
+  const cached = getCachedAvatar(peerId, creds?.session);
   const [url, setUrl] = useState<string | null>(() =>
     cached === undefined ? null : cached
   );
@@ -290,7 +290,7 @@ function PeerAvatar({
   useEffect(() => {
     let cancelled = false;
     setBroken(false);
-    const hit = getCachedAvatar(peerId);
+    const hit = getCachedAvatar(peerId, creds?.session);
     if (hit !== undefined) {
       setUrl(hit);
       return;
@@ -986,6 +986,16 @@ export function DriveSidebar({
   const folderRows = useMemo(
     () => filterFoldersFast(folders, isPathIdMode ? '' : locationQuery),
     [folders, locationQuery, isPathIdMode]
+  );
+  // A Drive is a root Telegram storage group. Logical folders/topics nested
+  // inside it must not inflate the Drives badge.
+  const rootDriveCount = useMemo(
+    () => folders.filter((folder) => folder.parent_id == null).length,
+    [folders]
+  );
+  const matchingRootDriveCount = useMemo(
+    () => folderRows.filter((folder) => folder.parent_id == null).length,
+    [folderRows]
   );
   // First load: expand every parent so nested folders are visible by default
   const treeSeededRef = useRef(false);
@@ -2236,10 +2246,10 @@ export function DriveSidebar({
       </div>
 
       {(channelLimitWarning ||
-        folders.length >= DRIVE_FOLDER_SOFT_LIMIT) && (
+        rootDriveCount >= DRIVE_FOLDER_SOFT_LIMIT) && (
         <p className="td-channel-limit-banner td-only-expanded" role="status">
           {channelLimitWarning ||
-            `Sudah ${folders.length} Drive/Folder [TD] — mendekati batas channel Telegram (~500). Prefer pindah hierarki daripada buat baru.`}
+            t('speedtest.drive_root_limit_warning', { count: rootDriveCount })}
         </p>
       )}
 
@@ -2327,9 +2337,9 @@ export function DriveSidebar({
               >
                 <HardDrive size={13} aria-hidden />
                 <span className="td-sidebar-tab-label">{t('speedtest.sidebar_tab_drives')}</span>
-                {(hasLocationQuery || folders.length > 0) && (
+                {(hasLocationQuery || rootDriveCount > 0) && (
                   <span className="td-tab-badge">
-                    {hasLocationQuery ? folderRows.length : folders.length}
+                    {hasLocationQuery ? matchingRootDriveCount : rootDriveCount}
                   </span>
                 )}
               </button>
@@ -2381,12 +2391,12 @@ export function DriveSidebar({
                 data-drop-key="tab:drives"
                 className={`td-collapsed-tab-icon${activeTab === 'drives' ? ' is-active' : ''}${overKey === 'tab:drives' ? ' is-drag-hover' : ''}`}
                 onClick={() => setActiveTab('drives')}
-                title={`${t('speedtest.sidebar_tab_drives')} (${hasLocationQuery ? folderRows.length : folders.length})`}
+                title={`${t('speedtest.sidebar_tab_drives')} (${hasLocationQuery ? matchingRootDriveCount : rootDriveCount})`}
               >
                 <HardDrive size={15} aria-hidden />
-                {(hasLocationQuery || folders.length > 0) && (
+                {(hasLocationQuery || rootDriveCount > 0) && (
                   <span className="td-collapsed-badge">
-                    {hasLocationQuery ? folderRows.length : folders.length}
+                    {hasLocationQuery ? matchingRootDriveCount : rootDriveCount}
                   </span>
                 )}
               </button>
@@ -2538,7 +2548,7 @@ export function DriveSidebar({
               >
                 <X size={11} />
                 <span>{t('ui.path_jump.btn_cancel_short')}</span>
-                <kbd className="td-path-qj-kbd">Esc</kbd>
+                <kbd className="td-path-qj-kbd">{t('ui.path_jump.key_escape')}</kbd>
               </button>
             </div>
           </div>
@@ -2871,7 +2881,7 @@ export function DriveSidebar({
               />
               <span className="td-section-toggle-label">{t('ui.generated.drives_td_d85c6ed')}</span>
               <span className="td-chat-count" title={t("speedtest.sidebar_td_count")}>
-                {hasLocationQuery ? `${folderRows.length}/${folders.length}` : folders.length}
+                {hasLocationQuery ? `${matchingRootDriveCount}/${rootDriveCount}` : rootDriveCount}
               </span>
             </button>
           )}

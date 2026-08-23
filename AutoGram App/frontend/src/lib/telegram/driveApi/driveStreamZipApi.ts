@@ -16,6 +16,8 @@ export async function drivePreview(
     topicId?: number | null;
     locationType?: string;
     accountId?: string;
+    consumerId?: string;
+    requestId?: string;
   }
 ) {
   if (!detectTauriRuntime()) {
@@ -46,6 +48,8 @@ export async function drivePreview(
       topicId: opts?.topicId ?? null,
       locationType,
       accountId: opts?.accountId || creds.session,
+      consumerId: opts?.consumerId,
+      requestId: opts?.requestId,
     };
     // WebView can paint the cached grid a few hundred milliseconds before the
     // cold Grammers command bridge is ready. Retry only a missing invoke result;

@@ -26,6 +26,17 @@ describe('normalizePeerId', () => {
 });
 
 describe('parseTelegramPathId', () => {
+  it('keeps bot ids positive instead of coercing them to channel ids', () => {
+    const r = parseTelegramPathId('U862678085/B1825028508');
+    expect(r.isPathId).toBe(true);
+    expect(r.accountSegment).toBe('862678085');
+    expect(r.chatId).toBe(1825028508);
+  });
+
+  it('normalizes explicit channel prefixes to canonical -100 ids', () => {
+    expect(parseTelegramPathId('CH2557538013/63280').chatId).toBe(-1002557538013);
+  });
+
   it('returns isPathId false for plain text', () => {
     expect(parseTelegramPathId('hello world').isPathId).toBe(false);
     expect(parseTelegramPathId('').isPathId).toBe(false);

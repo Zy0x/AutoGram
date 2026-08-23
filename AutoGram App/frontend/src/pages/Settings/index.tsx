@@ -657,17 +657,18 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
       clearPreviewCache();
       clearZipBrowserCache();
 
-      // 2. IndexedDB Caches
-      await clearPersistentThumbs();
-      await clearMediaStudioCache();
-
-      // 3. Browser caches. Account/session identity, pins, user preferences,
+      // Browser caches. Account/session identity, pins, user preferences,
       // queued transfers, and the Transfer Database are intentionally excluded.
       const clientResult = clearClientCacheStorage();
 
-      // 4. Disk Cache Backend (Rust FS: Chunk, Part, Previews, Temp)
+      // IndexedDB and Rust disk caches are independent. Clear them together so
+      // a multi-gigabyte disk cache does not wait behind browser database work.
       const { cacheClearDisk } = await import('../../lib/db/jobsApi');
-      const diskResult = await cacheClearDisk();
+      const [, , diskResult] = await Promise.all([
+        clearPersistentThumbs(),
+        clearMediaStudioCache(),
+        cacheClearDisk(),
+      ]);
       if (diskResult.status !== 'success' || diskResult.remainingBytes > 0) {
         throw new Error(`cache clear incomplete: ${diskResult.remainingBytes} bytes remain`);
       }

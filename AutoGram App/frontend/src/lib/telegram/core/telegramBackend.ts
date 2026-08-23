@@ -711,6 +711,8 @@ export async function tgPreviewStream(args: {
   topicId?: number | null;
   locationType?: string;
   accountId?: string;
+  consumerId?: string;
+  requestId?: string;
 }): Promise<TgOpResult<TgPreviewStreamResult> | null> {
   if (!detectTauriRuntime()) return null;
   try {
@@ -724,6 +726,8 @@ export async function tgPreviewStream(args: {
         topicId: args.topicId ?? null,
         locationType: args.locationType || null,
         accountId: args.accountId || args.session,
+        consumerId: args.consumerId || null,
+        requestId: args.requestId || null,
       },
     });
     debugLogLayer('rust', 'tg', 'preview_stream', {
@@ -841,6 +845,7 @@ export async function tgCreateFolder(args: {
   apiHash: string;
   name: string;
   parentId?: number | null;
+  storageMode?: boolean;
 }) {
   return tgInvoke<{ status: string; folder?: TgFolder | null; warning?: string | null; backend: string }>(
     'tg_create_folder',
@@ -848,6 +853,7 @@ export async function tgCreateFolder(args: {
       ...identity(args),
       name: args.name,
       parentId: args.parentId ?? null,
+      storageMode: !!args.storageMode,
     }
   );
 }
@@ -900,11 +906,13 @@ export async function tgRenameFolder(args: {
   apiHash: string;
   folderId: number;
   name: string;
+  storageMode?: boolean;
 }) {
   return tgInvoke<{ status: string; folder?: TgFolder | null; backend: string }>('tg_rename_folder', {
     ...identity(args),
     folderId: args.folderId,
     name: args.name,
+    storageMode: !!args.storageMode,
   });
 }
 

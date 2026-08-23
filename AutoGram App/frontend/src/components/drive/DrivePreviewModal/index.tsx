@@ -1211,6 +1211,11 @@ export function DrivePreviewModal({
   const softRetryCountRef = useRef(0);
   /** BUG-4 FIX: Timeout guard — if video hasn’t started after 30s, show error UI */
   const streamTimeoutRef = useRef<number | null>(null);
+  // A completed tiny progressive file can leave WebView2's first Range
+  // request pending before metadata is parsed; this guards a one-shot rebind.
+  const completedStreamRebindRef = useRef<string | null>(null);
+  const completedBlobUrlRef = useRef<string | null>(null);
+  const completedBlobAttemptRef = useRef<string | null>(null);
   const STREAM_TIMEOUT_MS = 30_000;
 
   // Reset captured flag + reload guards when file changes
@@ -1327,51 +1332,14 @@ export function DrivePreviewModal({
   const [isDragging, setIsDragging] = useState(false);
 
   const [srcOverride, setSrcOverride] = useState<string | null>(null);
-  const [prevFileId, setPrevFileId] = useState(file.id);
   const navDebounceTimerRef = useRef<number | null>(null);
-
-  if (file.id !== prevFileId) {
-    setPrevFileId(file.id);
-    if (navDebounceTimerRef.current != null) {
-      window.clearTimeout(navDebounceTimerRef.current);
-      navDebounceTimerRef.current = null;
-    }
-    try {
-      const v = videoRef.current;
-      if (v) {
-        v.pause();
-        v.removeAttribute('src');
-        v.load();
-      }
-    } catch {
-      /* ignore */
-    }
-    liveStreamIdRef.current = null;
-    nativeStreamReadyRef.current = false;
-    setDataUrl(null);
-    setPath(null);
-    setStreamUrl(null);
-    setStreamId(null);
-    setMime(null);
-    setPoster(null);
-    setError(null);
-    setSrcOverride(null);
-    setLoading(true);
-    setHasVideoFrame(false);
-    setTextBody(null);
-    setPreviewKind(null);
-    setBufferPct(0);
-    setStreamDone(false);
-    setPlayerHint(null);
-    setSeekWarn(null);
-    setPreviewState('loading');
-    setPreviewSource(null);
-    setPreviewIsFallback(false);
-    setPreviewWidth(null);
-    setPreviewHeight(null);
-    setPreviewByteSize(null);
-    setPreviewErrorDetail(null);
-  }
+  const prevStreamForNav = useRef<string | null>(null);
+  const previewScopeKey = `${creds?.session || ''}:${folderId ?? 'me'}:${file.id}`;
+  const previewScopeRef = useRef(previewScopeKey);
+  // A parent navigation renders before effects run. Do not let the new card
+  // briefly inherit the previous file's URL while deterministic teardown is
+  // being scheduled below.
+  const previewStateMatchesScope = previewScopeRef.current === previewScopeKey;
 
   const durationLabel = formatDriveDuration(driveFileDurationSeconds(file));
   const kindLabel = formatDriveKindLabel(file);
@@ -1625,7 +1593,8 @@ export function DrivePreviewModal({
           hit.preview_kind !== 'pdf' &&
           hit.stream_url &&
           Date.now() - hit.cachedAt < streamTtl &&
-          isHttpStreamUrl(hit.stream_url)
+          isHttpStreamUrl(hit.stream_url) &&
+          !isVideoDriveFile(file)
         )
           return;
         // Stale / partial stream: revalidate in background (soft keeps frame)
@@ -1670,6 +1639,8 @@ export function DrivePreviewModal({
             topicId: itemTopicId,
             locationType,
             accountId: itemAccountId,
+            consumerId: 'drive-preview-primary',
+            requestId: `${previewScopeKey}:${seq}`,
           });
           if (mountGenRef.current !== activeMountGen) return;
           if (seq !== loadSeq.current) return;
@@ -1725,36 +1696,86 @@ export function DrivePreviewModal({
         }, 110);
       }
     },
-    [applyResult, creds, file.id, folderId, gridThumb, neighborIds]
+    [applyResult, creds, file.id, folderId, gridThumb, neighborIds, previewScopeKey]
   );
 
   // Load when file / folder changes
   useEffect(() => {
+    // Invalidate every async result belonging to the previous identity before
+    // resetting state. This also covers navigation to ZIP/custom previews,
+    // which do not call loadPreview and previously allowed a late response to
+    // repaint the wrong media.
+    ++loadSeq.current;
+    previewScopeRef.current = previewScopeKey;
+    if (navDebounceTimerRef.current != null) {
+      window.clearTimeout(navDebounceTimerRef.current);
+      navDebounceTimerRef.current = null;
+    }
+    if (softReloadTimerRef.current != null) {
+      window.clearTimeout(softReloadTimerRef.current);
+      softReloadTimerRef.current = null;
+    }
+    try {
+      const video = videoRef.current;
+      if (video) {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+      }
+    } catch {
+      /* best-effort native media teardown */
+    }
+    const staleStreamIds = new Set(
+      [liveStreamIdRef.current, streamIdRef.current, prevStreamForNav.current].filter(
+        (sid): sid is string => Boolean(sid)
+      )
+    );
+    staleStreamIds.forEach((sid) => {
+      void driveStopStream(creds, sid, { deletePartial: false });
+    });
+    liveStreamIdRef.current = null;
+    streamIdRef.current = null;
+    prevStreamForNav.current = null;
+
     resetViewTools();
     setShowInfo(initialInfoOpen);
+    setDataUrl(null);
+    setPath(null);
+    setStreamUrl(null);
+    setStreamId(null);
+    setMime(null);
+    setPoster(null);
+    setError(null);
+    setSrcOverride(null);
+    setLoading(!isSplitCompareMode);
+    setHasVideoFrame(false);
+    setTextBody(null);
+    setPreviewKind(null);
+    setBufferPct(0);
+    setStreamDone(false);
+    setPlayerHint(null);
+    setSeekWarn(null);
+    setPreviewState('loading');
+    setPreviewSource(null);
+    setPreviewIsFallback(false);
+    setPreviewWidth(null);
+    setPreviewHeight(null);
+    setPreviewByteSize(null);
+    setPreviewErrorDetail(null);
     setMediaWidth(null);
     setMediaHeight(null);
     if (isSplitCompareMode) {
-      const hiddenStreamId = liveStreamIdRef.current || streamIdRef.current;
-      if (hiddenStreamId) {
-        void driveStopStream(creds, hiddenStreamId, { deletePartial: false });
-      }
-      liveStreamIdRef.current = null;
-      streamIdRef.current = null;
       setLoading(false);
-      setError(null);
-      setDataUrl(null);
-      setPath(null);
-      setStreamUrl(null);
-      setStreamId(null);
-      setTextBody(null);
-      setPreviewKind(null);
-      setBufferPct(0);
-      setStreamDone(false);
       return;
     }
     streamRecoverRef.current = false;
     streamMissingHitsRef.current = 0;
+    completedStreamRebindRef.current = null;
+    completedBlobAttemptRef.current = null;
+    if (completedBlobUrlRef.current) {
+      URL.revokeObjectURL(completedBlobUrlRef.current);
+      completedBlobUrlRef.current = null;
+    }
     mediaErrorCountRef.current = 0;
     mediaErrorRecoverAtRef.current = 0;
     nativeStreamReadyRef.current = false;
@@ -1787,7 +1808,7 @@ export function DrivePreviewModal({
     const q = readQualityPref();
     setQuality(q);
     loadPreview(q);
-  }, [file.id, folderId, isSplitCompareMode, initialInfoOpen, customSource?.src, customSource?.loading, customSource?.error]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [previewScopeKey, isSplitCompareMode, initialInfoOpen, customSource?.src, customSource?.loading, customSource?.error]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Synchronize dynamic updates to customSource
   useEffect(() => {
@@ -1877,7 +1898,6 @@ export function DrivePreviewModal({
   }, []);
 
   // Navigating to another file / quality: stop previous stream only
-  const prevStreamForNav = useRef<string | null>(null);
   useEffect(() => {
     const prev = prevStreamForNav.current;
     if (prev && prev !== streamId) {
@@ -1993,6 +2013,29 @@ export function DrivePreviewModal({
           setBufferPct(100);
           setPlayerHint(null);
           setSeekWarn(null);
+          if (
+            v &&
+            v.readyState < 1 &&
+            streamUrl &&
+            completedStreamRebindRef.current !== streamId
+          ) {
+            completedStreamRebindRef.current = streamId;
+            const stickyUrl = streamUrl;
+            try {
+              v.pause();
+              v.removeAttribute('src');
+              v.load();
+              v.src = stickyUrl;
+              v.load();
+              window.setTimeout(() => {
+                const current = videoRef.current;
+                if (!current || current.src !== stickyUrl) return;
+                void current.play().catch(() => undefined);
+              }, 80);
+            } catch {
+              /* the normal media error recovery remains available */
+            }
+          }
         } else if (st.status === 'missing' || st.status === 'cancelled') {
           streamMissingHitsRef.current += 1;
           const playingOk =
@@ -2164,6 +2207,72 @@ export function DrivePreviewModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional stable poll (refs for loadPreview/seekWarn)
   }, [streamId, streamDone, creds, file.size, file.id, folderId, quality]);
 
+  // Cached/completed streams bypass the progress poll above. If WebView2 kept
+  // its bootstrap Range request pending, reconnect the media element to the
+  // same completed local URL once so metadata is parsed immediately.
+  useEffect(() => {
+    if (!streamDone || !streamUrl || !isVideoDriveFile(file)) return;
+    const aborter = new AbortController();
+    const rebindTimer = window.setTimeout(() => {
+      const v = videoRef.current;
+      if (
+        !v ||
+        v.readyState >= 1 ||
+        v.error ||
+        completedStreamRebindRef.current === streamId
+      ) return;
+      completedStreamRebindRef.current = streamId || streamUrl;
+      try {
+        v.pause();
+        v.removeAttribute('src');
+        v.load();
+        v.src = streamUrl;
+        v.load();
+        void v.play().catch(() => undefined);
+      } catch {
+        /* normal media error recovery remains available */
+      }
+    }, 120);
+    // Small completed videos are cheap to copy from localhost. This is a
+    // WebView2 demuxer fallback only (zero extra Telegram traffic) for the
+    // rare case where its original progressive Range connection remains
+    // wedged after completion.
+    const blobTimer = window.setTimeout(async () => {
+      const v = videoRef.current;
+      const size = Number(file.size || 0);
+      const attemptKey = streamId || streamUrl;
+      if (
+        !v ||
+        v.readyState >= 1 ||
+        v.error ||
+        size <= 0 ||
+        size > 32 * 1024 * 1024 ||
+        completedBlobAttemptRef.current === attemptKey
+      ) return;
+      completedBlobAttemptRef.current = attemptKey;
+      try {
+        const response = await fetch(streamUrl, {
+          cache: 'no-store',
+          signal: aborter.signal,
+        });
+        if (!response.ok) return;
+        const blob = await response.blob();
+        if (aborter.signal.aborted || blob.size <= 0) return;
+        if (completedBlobUrlRef.current) URL.revokeObjectURL(completedBlobUrlRef.current);
+        const objectUrl = URL.createObjectURL(blob);
+        completedBlobUrlRef.current = objectUrl;
+        setSrcOverride(objectUrl);
+      } catch {
+        /* progressive endpoint remains the primary path */
+      }
+    }, 650);
+    return () => {
+      window.clearTimeout(rebindTimer);
+      window.clearTimeout(blobTimer);
+      aborter.abort();
+    };
+  }, [file.id, file.size, streamDone, streamId, streamUrl]);
+
   // BUG-4 FIX: Stream timeout guard — refreshes automatically as long as buffer progress advances.
   // Only triggers error UI if download is completely stuck (0 B/s) without any progress.
   useEffect(() => {
@@ -2289,9 +2398,10 @@ export function DrivePreviewModal({
   const lastLookaheadTimeRef = useRef(0);
 
   /**
-   * Proactive Lookahead Buffering:
-   * When video is actively playing and current buffer ahead drops below 5.0 seconds,
-   * proactively dispatch range requests for +8.0s so playback never starves/lags.
+   * Proactive contiguous buffering. A lookahead request must start inside the
+   * currently playable island. Jumping several seconds beyond bufferedEnd made
+   * the Rust sparse filler prioritise a later byte island and could leave a
+   * small hole exactly where playback was about to continue.
    */
   const checkAndRequestLookaheadBuffer = useCallback((v: HTMLVideoElement) => {
     if (streamDoneRef.current) return;
@@ -2320,11 +2430,13 @@ export function DrivePreviewModal({
 
     const bufferAhead = Math.max(0, currentBufferedEnd - curTime);
 
-    // If buffer ahead is under 5.0 seconds (e.g. 3-5 seconds before buffer runs out), request next chunk ahead
+    // Ask early enough for the next MTProto batch, but keep the demand target
+    // inside the current island so find_missing_offset_from advances to the
+    // first contiguous gap rather than creating a disjoint future island.
     const now = Date.now();
-    if (bufferAhead < 5.0 && now - lastLookaheadTimeRef.current > 1000) {
+    if (bufferAhead < 10.0 && now - lastLookaheadTimeRef.current > 700) {
       lastLookaheadTimeRef.current = now;
-      const targetTime = Math.min(dur - 0.1, Math.max(currentBufferedEnd + 4.0, curTime + 8.0));
+      const targetTime = Math.min(dur - 0.1, curTime + Math.min(0.5, Math.max(0.1, bufferAhead * 0.25)));
       void driveStreamSeek(c, sid, {
         time_s: targetTime,
         duration_s: dur,
@@ -2618,8 +2730,11 @@ export function DrivePreviewModal({
   }, [isVideo, isAudio, file.id]);
 
   const mediaSrc = useMemo(
-    () => customSource?.src || buildMediaSrc(streamUrl, dataUrl, path, isImage, { forVideo: isVideo || isAudio }),
-    [customSource?.src, streamUrl, dataUrl, path, isImage, isVideo, isAudio]
+    () =>
+      previewStateMatchesScope
+        ? customSource?.src || buildMediaSrc(streamUrl, dataUrl, path, isImage, { forVideo: isVideo || isAudio })
+        : null,
+    [previewStateMatchesScope, customSource?.src, streamUrl, dataUrl, path, isImage, isVideo, isAudio]
   );
 
   // Fallback sources if primary fails — never inject poster/thumb into <video>

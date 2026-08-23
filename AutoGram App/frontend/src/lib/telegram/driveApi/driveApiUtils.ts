@@ -2,6 +2,7 @@ import { runDaemonOnce } from '../../db/jobProcess';
 import { driveSessionCallFor as rawDriveSessionCallFor, ensureDriveSession, isDriveSessionReady, stopDriveSession } from '../core/driveSession';
 import { detectTauriRuntime } from '../../tauri/platform';
 import { driveSessionLeaseKey, isSessionTransferLeased } from './driveTransfersApi';
+import { resolveDriveEngineLocation } from './driveEngineApi';
 
 export const DRIVE_JOB_ID = 991002;
 /** Open/Preview download — separate from transfer so cancel open never kills upload/download. */
@@ -352,7 +353,8 @@ export async function runDrive(creds: DriveCredentials, extra: string[], retries
 
 export function folderArg(folderId: number | null | undefined): string[] {
   if (folderId === null || folderId === undefined) return [];
-  return ['--folder-id', String(folderId)];
+  const engineLocation = resolveDriveEngineLocation(folderId);
+  return ['--folder-id', String(engineLocation?.storagePeerId ?? folderId)];
 }
 
 export function requireGrammersIdentity(creds: DriveCredentials) {

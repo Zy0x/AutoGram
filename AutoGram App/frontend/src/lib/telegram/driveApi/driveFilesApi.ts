@@ -1,5 +1,5 @@
 import { detectTauriRuntime } from '../../tauri/platform';
-import type { DriveFile } from '../driveTypes';
+import { toLeanDriveFile, type DriveFile } from '../driveTypes';
 import {
   DEFAULT_FILE_PAGE,
   DriveCredentials,
@@ -37,7 +37,10 @@ export async function driveThumbnailsBatch(
   }
   try {
     const { tgThumbsBatch } = await import('../core/telegramBackend');
-    const chatId = opts?.telegramPeerId || (folderId == null ? 'me' : String(folderId));
+    const engineLocation = resolveDriveEngineLocation(folderId);
+    const chatId = opts?.telegramPeerId || (folderId == null
+      ? 'me'
+      : String(engineLocation?.storagePeerId ?? folderId));
     const apiId = Number(creds.apiId) || 0;
     const gr = await tgThumbsBatch({
       requestId: opts?.requestId,
@@ -114,6 +117,13 @@ import {
   getMediaRecordsCountByContext,
 } from '../../db/mediaStudioDb';
 import { mediaListCache } from '../../cache/multiTierCache';
+import {
+  driveEngineAccountId,
+  driveEngineListFiles,
+  driveEngineMoveFiles,
+  driveEngineSoftDeleteFiles,
+  resolveDriveEngineLocation,
+} from './driveEngineApi';
 
 const inFlightPages = new Map<string, Promise<any>>();
 
@@ -144,6 +154,7 @@ export async function driveListFiles(
   const offsetId = opts?.offsetId ?? null;
   const minId = opts?.minId ?? 0;
   const localOffset = opts?.localOffset ?? 0;
+  const engineLocation = resolveDriveEngineLocation(folderId);
 
   const mediaContext = opts?.context ?? buildDriveMediaContext(creds.session, folderId, topicId);
   const cursorFingerprint = opts?.searchCursor
@@ -154,6 +165,74 @@ export async function driveListFiles(
   // L1 In-Memory Fast Cache Check
   if (!opts?.bypassCache && mediaListCache.has(contextKey)) {
     return mediaListCache.get(contextKey);
+  }
+
+  // Production Drive folders are logical UUID locations backed by one
+  // Telegram peer. Their file membership comes from the local metadata map,
+  // never from an unscoped peer scan (which would leak sibling contents).
+  if (engineLocation) {
+    const localPage = await driveEngineListFiles({
+      accountId: driveEngineAccountId(creds.session),
+      driveId: engineLocation.driveId,
+      folderId: engineLocation.folderId,
+      limit: Math.min(200, Math.max(pageSize, 1)),
+      offset: Math.max(0, localOffset),
+      sortMode,
+      contentFilter: String(opts?.contentFilter ?? 'all'),
+    });
+    let files: DriveFile[] = localPage.files.map((file) => {
+      const mime = String(file.mime || '').toLowerCase();
+      const extension = file.filename.includes('.')
+        ? file.filename.split('.').pop()?.toLowerCase() || null
+        : null;
+      const iconType = mime.startsWith('image/')
+        ? 'image'
+        : mime.startsWith('video/')
+          ? 'video'
+          : mime.startsWith('audio/')
+            ? 'audio'
+            : 'document';
+      return toLeanDriveFile({
+        id: Number(file.telegramMessageId),
+        folder_id: folderId,
+        name: file.filename,
+        size: Number(file.size || 0),
+        mime_type: file.mime ?? null,
+        file_ext: extension,
+        created_at: new Date(file.createdAt).toISOString(),
+        icon_type: iconType,
+        topic_id: file.telegramTopicId ?? null,
+        has_thumb: iconType === 'image' || iconType === 'video',
+        as_document: iconType === 'document',
+        peer_id: file.telegramChatId,
+        account_id: creds.session,
+        peer_kind: 'channel',
+        is_saved_messages: file.telegramChatId === 'me',
+      });
+    });
+    const result = {
+      status: 'success',
+      folder_id: folderId,
+      topic_id: null,
+      files,
+      total: files.length,
+      page_size: pageSize,
+      has_more: localPage.hasMore,
+      next_offset_id: files[files.length - 1]?.id ?? null,
+      search_cursor: null,
+      lane_counts: null,
+      emitted_watermark: null,
+      lane_durability: null,
+      total_count: localPage.totalCount,
+      total_bytes: localPage.totalBytes,
+      stats_accurate: true,
+      stats_pending: false,
+      cached: true,
+      invalid_topic: false,
+      backend: 'drive-engine',
+    };
+    mediaListCache.set(contextKey, result, 15000);
+    return result;
   }
 
   // L2 Persistent Database Instant Paint Check (when opening fresh or after restart)
@@ -174,15 +253,16 @@ export async function driveListFiles(
             (await getMediaRecordsCountByContext(mediaContext, opts?.contentFilter, opts?.perspective || 'telegram')) ||
             (opts?.contentFilter && opts.contentFilter !== 'all' ? localRows.length : indexState.exactMediaCount) ||
             localRows.length;
+          const canonicalLocalRows = localRows.map(toLeanDriveFile);
           const cachedResult = {
             status: 'success',
             folder_id: folderId,
             topic_id: topicId,
-            files: localRows,
-            total: localRows.length,
+            files: canonicalLocalRows,
+            total: canonicalLocalRows.length,
             page_size: pageSize,
-            has_more: localRows.length >= pageSize && localRows.length < totalCount,
-            next_offset_id: localRows[localRows.length - 1]?.id ?? null,
+            has_more: canonicalLocalRows.length >= pageSize && canonicalLocalRows.length < totalCount,
+            next_offset_id: canonicalLocalRows[canonicalLocalRows.length - 1]?.id ?? null,
             search_cursor: null,
             lane_counts: null,
             emitted_watermark: null,
@@ -216,7 +296,9 @@ export async function driveListFiles(
     }
     try {
       const { tgListMedia } = await import('../core/telegramBackend');
-      const chatId = folderId == null ? 'me' : String(folderId);
+      const chatId = folderId == null
+        ? 'me'
+        : String(folderId);
       const apiId = Number(creds.apiId) || 0;
       const gr = await tgListMedia({
         session: creds.session,
@@ -231,18 +313,22 @@ export async function driveListFiles(
         contentFilter: opts?.contentFilter ?? null,
       });
       if (gr?.ok && gr.data?.files) {
-        let files = gr.data.files.map((f: any) => ({
+        let files = gr.data.files.map((f: any) => toLeanDriveFile({
           id: Number(f.id),
           folder_id: f.folderId ?? folderId,
           name: f.name,
           size: Number(f.size || 0),
           mime_type: f.mimeType ?? null,
+          file_ext: f.fileExt ?? f.file_ext ?? null,
+          original_name: f.originalName ?? f.original_name ?? null,
           icon_type: f.iconType || 'file',
           created_at: f.createdAt ?? undefined,
           has_thumb: !!f.hasThumb,
           as_document: !!f.asDocument,
           topic_id: f.topicId ?? topicId,
-          peer_id: f.peerId ?? f.peer_id ?? (folderId == null ? 'me' : String(folderId)),
+          peer_id: f.peerId ?? f.peer_id ?? (folderId == null
+            ? 'me'
+            : String(folderId)),
           peer_kind: f.peerKind ?? f.peer_kind ?? (folderId != null && folderId !== 0 ? 'channel' : undefined),
           peer_username: f.peerUsername ?? f.peer_username ?? undefined,
           grouped_id: f.groupedId ?? f.grouped_id ?? undefined,
@@ -251,6 +337,7 @@ export async function driveListFiles(
           telegram_subtype: f.telegramSubtype ?? f.telegram_subtype ?? undefined,
           drive_category: f.driveCategory ?? f.drive_category ?? undefined,
           drive_format: f.driveFormat ?? f.drive_format ?? undefined,
+          caption: f.caption ?? null,
           link_urls: String(f.driveFormat ?? f.drive_format ?? '')
             .split('\n')
             .map((value) => value.trim())
@@ -413,10 +500,32 @@ export async function scanAllAuthoritativePeerMedia(
  * UI already treats stats_pending; avoid spawning Telethon.
  */
 export async function driveMediaStats(
-  _creds: DriveCredentials,
+  creds: DriveCredentials,
   folderId: number | null,
   opts?: { topicId?: number | null; force?: boolean; peek?: boolean }
 ) {
+  const location = resolveDriveEngineLocation(folderId);
+  if (location) {
+    const page = await driveEngineListFiles({
+      accountId: driveEngineAccountId(creds.session),
+      driveId: location.driveId,
+      folderId: location.folderId,
+      limit: 1,
+      offset: 0,
+    });
+    return {
+      status: 'success',
+      folder_id: folderId,
+      topic_id: null,
+      total_count: page.totalCount,
+      total_bytes: page.totalBytes,
+      incomplete: false,
+      pending: false,
+      stats_pending: false,
+      accurate: true,
+      backend: 'drive-engine',
+    };
+  }
   return {
     status: 'success',
     folder_id: folderId,
@@ -447,7 +556,8 @@ export async function driveDelete(
 ) {
   const id = await resolveGrammersIdentity(creds);
   const { tgDeleteMessages } = await import('../core/telegramBackend');
-  const chatId = folderId == null ? 'me' : String(folderId);
+  const location = resolveDriveEngineLocation(folderId);
+  const chatId = folderId == null ? 'me' : String(location?.storagePeerId ?? folderId);
   const gr = await tgDeleteMessages({
     ...id,
     chatId,
@@ -455,6 +565,15 @@ export async function driveDelete(
   });
   if (!gr?.ok) {
     throw new Error(gr?.userMessage || gr?.error?.message || 'Hapus media Grammers gagal.');
+  }
+  if (location) {
+    await driveEngineSoftDeleteFiles({
+      accountId: driveEngineAccountId(creds.session),
+      driveId: location.driveId,
+      folderId: location.folderId,
+      telegramMessageIds: [messageId],
+      deviceId: creds.session,
+    });
   }
   return { status: 'success', deleted: gr.data?.deleted ?? 1, backend: 'grammers' };
 }
@@ -477,12 +596,20 @@ export async function driveDeleteBatch(
   if (!items.length) return { status: 'success', deleted: [], failed: [] };
 
   // Group items by target chatId
-  const grouped = new Map<string, number[]>();
+  const grouped = new Map<string, {
+    chatId: string;
+    ids: number[];
+    location: ReturnType<typeof resolveDriveEngineLocation>;
+  }>();
   for (const item of items) {
-    const chatId = item.folderId == null ? 'me' : String(item.folderId);
-    const existing = grouped.get(chatId) || [];
-    existing.push(item.id);
-    grouped.set(chatId, existing);
+    const location = resolveDriveEngineLocation(item.folderId);
+    const chatId = item.folderId == null
+      ? 'me'
+      : String(location?.storagePeerId ?? item.folderId);
+    const key = location ? `${chatId}:${location.driveId}:${location.folderId}` : chatId;
+    const existing = grouped.get(key) || { chatId, ids: [], location };
+    existing.ids.push(item.id);
+    grouped.set(key, existing);
   }
 
   const id = await resolveGrammersIdentity(creds);
@@ -491,7 +618,7 @@ export async function driveDeleteBatch(
   const allDeleted: number[] = [];
   const allFailed: Array<{ id: number; error: string }> = [];
 
-  for (const [chatId, ids] of grouped.entries()) {
+  for (const { chatId, ids, location } of grouped.values()) {
     try {
       const gr = await tgDeleteMessages({ ...id, chatId, messageIds: ids });
       if (gr?.ok && gr.data) {
@@ -502,6 +629,22 @@ export async function driveDeleteBatch(
         }
         if (Array.isArray(gr.data.failed)) {
           allFailed.push(...gr.data.failed);
+        }
+        if (location) {
+          const deletedIds = Array.isArray(gr.data.deletedIds)
+            ? gr.data.deletedIds
+            : gr.data.deleted > 0
+              ? ids
+              : [];
+          if (deletedIds.length > 0) {
+            await driveEngineSoftDeleteFiles({
+              accountId: driveEngineAccountId(creds.session),
+              driveId: location.driveId,
+              folderId: location.folderId,
+              telegramMessageIds: deletedIds,
+              deviceId: creds.session,
+            });
+          }
         }
       } else {
         const errStr =
@@ -575,11 +718,33 @@ export async function driveMove(
   const topicId = opts?.topicId != null && Number(opts.topicId) > 0 ? Number(opts.topicId) : null;
   const id = await resolveGrammersIdentity(creds);
   const { tgMoveMessages } = await import('../core/telegramBackend');
-  const sourceChat = fromFolderId == null ? 'me' : String(fromFolderId);
-  const destChat =
-    toFolderId === null || toFolderId === undefined ? 'me' : String(toFolderId);
+  const sourceLocation = resolveDriveEngineLocation(fromFolderId);
+  const destinationLocation = resolveDriveEngineLocation(toFolderId);
   const ids = Array.isArray(messageId) ? messageId : [messageId];
   if (!ids.length) return { status: 'success', moved: 0, backend: 'grammers' };
+  if (
+    deleteSource
+    && sourceLocation
+    && destinationLocation
+    && sourceLocation.driveId === destinationLocation.driveId
+  ) {
+    const moved = await driveEngineMoveFiles({
+      accountId: driveEngineAccountId(creds.session),
+      driveId: sourceLocation.driveId,
+      sourceFolderId: sourceLocation.folderId,
+      destinationFolderId: destinationLocation.folderId,
+      telegramMessageIds: ids,
+      deviceId: creds.session,
+    });
+    return { status: 'success', moved, backend: 'drive-engine' };
+  }
+  const sourceChat = fromFolderId == null
+    ? 'me'
+    : String(sourceLocation?.storagePeerId ?? fromFolderId);
+  const destChat =
+    toFolderId === null || toFolderId === undefined
+      ? 'me'
+      : String(destinationLocation?.storagePeerId ?? toFolderId);
   const gr = await tgMoveMessages({
     ...id,
     sourceChat,
@@ -607,6 +772,29 @@ export async function driveGetMediaStats(
 ) {
   if (!detectTauriRuntime()) return null;
   try {
+    const location = resolveDriveEngineLocation(folderId);
+    if (location) {
+      const page = await driveEngineListFiles({
+        accountId: driveEngineAccountId(creds.session),
+        driveId: location.driveId,
+        folderId: location.folderId,
+        limit: 1,
+        offset: 0,
+      });
+      return {
+        totalCount: page.totalCount,
+        totalBytes: page.totalBytes,
+        photoCount: 0,
+        videoCount: 0,
+        fileCount: page.totalCount,
+        gifCount: 0,
+        linkCount: 0,
+        audioCount: 0,
+        topicId: null,
+        isExact: true,
+        backend: 'drive-engine',
+      };
+    }
     const { tgGetMediaStatistics } = await import('../core/telegramBackend');
     const chatId = folderId == null ? 'me' : String(folderId);
     const gr = await tgGetMediaStatistics({

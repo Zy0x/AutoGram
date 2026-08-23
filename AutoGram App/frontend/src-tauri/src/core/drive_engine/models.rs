@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
-pub struct DriveBetaStatus {
+pub struct DriveEngineStatus {
     pub enabled: bool,
     pub schema_version: i64,
     pub drive_count: i64,
@@ -42,6 +42,8 @@ pub struct FolderRecord {
     pub drive_id: String,
     pub parent_id: Option<String>,
     pub name: String,
+    pub telegram_chat_id: Option<String>,
+    pub telegram_topic_id: Option<i64>,
     pub version: i64,
     pub object_hash: String,
     pub created_at: i64,
@@ -62,13 +64,57 @@ pub struct FolderPage {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct FileRecord {
+    pub file_id: String,
+    pub drive_id: String,
+    pub folder_id: String,
+    pub filename: String,
+    pub size: i64,
+    pub mime: Option<String>,
+    pub content_hash: Option<String>,
+    pub telegram_unique_id: Option<String>,
+    pub telegram_chat_id: String,
+    pub telegram_topic_id: Option<i64>,
+    pub telegram_message_id: i64,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct FilePage {
+    pub drive_id: String,
+    pub folder_id: String,
+    pub files: Vec<FileRecord>,
+    pub limit: usize,
+    pub offset: usize,
+    pub has_more: bool,
+    pub total_count: i64,
+    pub total_bytes: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct SnapshotRecord {
     pub snapshot_id: String,
     pub drive_id: String,
     pub payload_hash: String,
     pub created_at: i64,
     pub folder_count: usize,
+    pub file_count: usize,
     pub mapping_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RecoveryRecord {
+    pub snapshot_id: String,
+    pub drive_id: String,
+    pub payload_hash: String,
+    pub restored_folder_count: usize,
+    pub restored_file_count: usize,
+    pub restored_mapping_count: usize,
+    pub restored_at: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

@@ -1764,93 +1764,149 @@ async fn tg_create_folder(
         .map_err(|e| format!("create_folder task failed: {e}"))
 }
 
-// Drive Beta filesystem engine — local-first and feature-flagged. These
-// commands never replace the existing Telegram-backed [TD] folder commands.
+// Production Drive filesystem engine. Metadata is local-first while Telegram
+// remains the encrypted transport and durable media storage backend.
 
 #[tauri::command]
-async fn drive_beta_status() -> Result<core::drive_beta::DriveBetaStatus, String> {
-    tauri::async_runtime::spawn_blocking(core::drive_beta::status)
+async fn drive_engine_status() -> Result<core::drive_engine::DriveEngineStatus, String> {
+    tauri::async_runtime::spawn_blocking(core::drive_engine::status)
         .await
-        .map_err(|error| format!("drive_beta_status task failed: {error}"))?
+        .map_err(|error| format!("drive_engine_status task failed: {error}"))?
 }
 
 #[tauri::command]
-async fn drive_beta_create_drive(
-    request: core::drive_beta::CreateDriveRequest,
-) -> Result<core::drive_beta::DriveRecord, String> {
-    tauri::async_runtime::spawn_blocking(move || core::drive_beta::create_drive(request))
+async fn drive_engine_create_drive(
+    request: core::drive_engine::CreateDriveRequest,
+) -> Result<core::drive_engine::DriveRecord, String> {
+    tauri::async_runtime::spawn_blocking(move || core::drive_engine::create_drive(request))
         .await
-        .map_err(|error| format!("drive_beta_create_drive task failed: {error}"))?
+        .map_err(|error| format!("drive_engine_create_drive task failed: {error}"))?
 }
 
 #[tauri::command]
-async fn drive_beta_list_drives(
-    request: core::drive_beta::ListDrivesRequest,
-) -> Result<core::drive_beta::DrivePage, String> {
-    tauri::async_runtime::spawn_blocking(move || core::drive_beta::list_drives(request))
+async fn drive_engine_list_drives(
+    request: core::drive_engine::ListDrivesRequest,
+) -> Result<core::drive_engine::DrivePage, String> {
+    tauri::async_runtime::spawn_blocking(move || core::drive_engine::list_drives(request))
         .await
-        .map_err(|error| format!("drive_beta_list_drives task failed: {error}"))?
+        .map_err(|error| format!("drive_engine_list_drives task failed: {error}"))?
 }
 
 #[tauri::command]
-async fn drive_beta_create_folder(
-    request: core::drive_beta::FolderMutationRequest,
-) -> Result<core::drive_beta::FolderRecord, String> {
-    tauri::async_runtime::spawn_blocking(move || core::drive_beta::create_folder(request))
+async fn drive_engine_create_folder(
+    request: core::drive_engine::FolderMutationRequest,
+) -> Result<core::drive_engine::FolderRecord, String> {
+    tauri::async_runtime::spawn_blocking(move || core::drive_engine::create_folder(request))
         .await
-        .map_err(|error| format!("drive_beta_create_folder task failed: {error}"))?
+        .map_err(|error| format!("drive_engine_create_folder task failed: {error}"))?
 }
 
 #[tauri::command]
-async fn drive_beta_list_children(
-    request: core::drive_beta::ListChildrenRequest,
-) -> Result<core::drive_beta::FolderPage, String> {
-    tauri::async_runtime::spawn_blocking(move || core::drive_beta::list_children(request))
+async fn drive_engine_list_children(
+    request: core::drive_engine::ListChildrenRequest,
+) -> Result<core::drive_engine::FolderPage, String> {
+    tauri::async_runtime::spawn_blocking(move || core::drive_engine::list_children(request))
         .await
-        .map_err(|error| format!("drive_beta_list_children task failed: {error}"))?
+        .map_err(|error| format!("drive_engine_list_children task failed: {error}"))?
 }
 
 #[tauri::command]
-async fn drive_beta_rename_folder(
-    request: core::drive_beta::FolderMutationRequest,
-) -> Result<core::drive_beta::FolderRecord, String> {
-    tauri::async_runtime::spawn_blocking(move || core::drive_beta::rename_folder(request))
+async fn drive_engine_commit_file(
+    request: core::drive_engine::CommitFileRequest,
+) -> Result<core::drive_engine::FileRecord, String> {
+    tauri::async_runtime::spawn_blocking(move || core::drive_engine::commit_file(request))
         .await
-        .map_err(|error| format!("drive_beta_rename_folder task failed: {error}"))?
+        .map_err(|error| format!("drive_engine_commit_file task failed: {error}"))?
 }
 
 #[tauri::command]
-async fn drive_beta_move_folder(
-    request: core::drive_beta::FolderMutationRequest,
-) -> Result<core::drive_beta::FolderRecord, String> {
-    tauri::async_runtime::spawn_blocking(move || core::drive_beta::move_folder(request))
+async fn drive_engine_list_files(
+    request: core::drive_engine::ListFilesRequest,
+) -> Result<core::drive_engine::FilePage, String> {
+    tauri::async_runtime::spawn_blocking(move || core::drive_engine::list_files(request))
         .await
-        .map_err(|error| format!("drive_beta_move_folder task failed: {error}"))?
+        .map_err(|error| format!("drive_engine_list_files task failed: {error}"))?
 }
 
 #[tauri::command]
-async fn drive_beta_soft_delete_folder(
-    request: core::drive_beta::FolderMutationRequest,
+async fn drive_engine_soft_delete_files(
+    request: core::drive_engine::DeleteFilesRequest,
 ) -> Result<usize, String> {
-    tauri::async_runtime::spawn_blocking(move || core::drive_beta::soft_delete_folder(request))
+    tauri::async_runtime::spawn_blocking(move || core::drive_engine::soft_delete_files(request))
         .await
-        .map_err(|error| format!("drive_beta_soft_delete_folder task failed: {error}"))?
+        .map_err(|error| format!("drive_engine_soft_delete_files task failed: {error}"))?
 }
 
 #[tauri::command]
-async fn drive_beta_create_snapshot(
-    request: core::drive_beta::DriveScopeRequest,
-) -> Result<core::drive_beta::SnapshotRecord, String> {
-    tauri::async_runtime::spawn_blocking(move || core::drive_beta::create_snapshot(request))
+async fn drive_engine_move_files(
+    request: core::drive_engine::MoveFilesRequest,
+) -> Result<usize, String> {
+    tauri::async_runtime::spawn_blocking(move || core::drive_engine::move_files(request))
         .await
-        .map_err(|error| format!("drive_beta_create_snapshot task failed: {error}"))?
+        .map_err(|error| format!("drive_engine_move_files task failed: {error}"))?
 }
 
 #[tauri::command]
-async fn drive_beta_integrity_report() -> Result<core::drive_beta::IntegrityReport, String> {
-    tauri::async_runtime::spawn_blocking(core::drive_beta::integrity_report)
+async fn drive_engine_rename_folder(
+    request: core::drive_engine::FolderMutationRequest,
+) -> Result<core::drive_engine::FolderRecord, String> {
+    tauri::async_runtime::spawn_blocking(move || core::drive_engine::rename_folder(request))
         .await
-        .map_err(|error| format!("drive_beta_integrity_report task failed: {error}"))?
+        .map_err(|error| format!("drive_engine_rename_folder task failed: {error}"))?
+}
+
+#[tauri::command]
+async fn drive_engine_move_folder(
+    request: core::drive_engine::FolderMutationRequest,
+) -> Result<core::drive_engine::FolderRecord, String> {
+    tauri::async_runtime::spawn_blocking(move || core::drive_engine::move_folder(request))
+        .await
+        .map_err(|error| format!("drive_engine_move_folder task failed: {error}"))?
+}
+
+#[tauri::command]
+async fn drive_engine_soft_delete_folder(
+    request: core::drive_engine::FolderMutationRequest,
+) -> Result<usize, String> {
+    tauri::async_runtime::spawn_blocking(move || core::drive_engine::soft_delete_folder(request))
+        .await
+        .map_err(|error| format!("drive_engine_soft_delete_folder task failed: {error}"))?
+}
+
+#[tauri::command]
+async fn drive_engine_soft_delete_drive(
+    request: core::drive_engine::DriveScopeRequest,
+) -> Result<usize, String> {
+    tauri::async_runtime::spawn_blocking(move || core::drive_engine::soft_delete_drive(request))
+        .await
+        .map_err(|error| format!("drive_engine_soft_delete_drive task failed: {error}"))?
+}
+
+#[tauri::command]
+async fn drive_engine_create_snapshot(
+    request: core::drive_engine::DriveScopeRequest,
+) -> Result<core::drive_engine::SnapshotRecord, String> {
+    tauri::async_runtime::spawn_blocking(move || core::drive_engine::create_snapshot(request))
+        .await
+        .map_err(|error| format!("drive_engine_create_snapshot task failed: {error}"))?
+}
+
+#[tauri::command]
+async fn drive_engine_restore_latest_snapshot(
+    request: core::drive_engine::DriveScopeRequest,
+) -> Result<core::drive_engine::RecoveryRecord, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        core::drive_engine::restore_latest_snapshot(request)
+    })
+    .await
+    .map_err(|error| format!("drive_engine_restore_latest_snapshot task failed: {error}"))?
+}
+
+#[tauri::command]
+async fn drive_engine_integrity_report() -> Result<core::drive_engine::IntegrityReport, String> {
+    tauri::async_runtime::spawn_blocking(core::drive_engine::integrity_report)
+        .await
+        .map_err(|error| format!("drive_engine_integrity_report task failed: {error}"))?
 }
 
 #[tauri::command]
@@ -2562,16 +2618,22 @@ pub fn run() {
             tg_seek_stream,
             tg_delete_messages,
             tg_create_folder,
-            drive_beta_status,
-            drive_beta_create_drive,
-            drive_beta_list_drives,
-            drive_beta_create_folder,
-            drive_beta_list_children,
-            drive_beta_rename_folder,
-            drive_beta_move_folder,
-            drive_beta_soft_delete_folder,
-            drive_beta_create_snapshot,
-            drive_beta_integrity_report,
+            drive_engine_status,
+            drive_engine_create_drive,
+            drive_engine_list_drives,
+            drive_engine_create_folder,
+            drive_engine_list_children,
+            drive_engine_commit_file,
+            drive_engine_list_files,
+            drive_engine_soft_delete_files,
+            drive_engine_move_files,
+            drive_engine_rename_folder,
+            drive_engine_move_folder,
+            drive_engine_soft_delete_folder,
+            drive_engine_soft_delete_drive,
+            drive_engine_create_snapshot,
+            drive_engine_restore_latest_snapshot,
+            drive_engine_integrity_report,
             tg_rename_folder,
             tg_set_folder_parent,
             tg_delete_folder,

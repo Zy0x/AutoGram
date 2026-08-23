@@ -960,6 +960,7 @@
     "btn_go": "Buka Lokasi",
     "btn_open_short": "Buka",
     "btn_cancel_short": "Batal",
+    "key_escape": "Esc",
     "account_switched": "Beralih ke akun {{account}}",
     "account_not_found": "Akun {{account}} tidak terdaftar pada sesi AutoGram.",
     "account_try_current": "Coba pakai akun aktif saat ini",

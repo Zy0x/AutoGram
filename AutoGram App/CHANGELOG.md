@@ -1,4 +1,27 @@
+## v3.8.19 Drive Engine Virtual Folder Hierarchy & Upload Media Rendering Engine
+
+### 1. Eliminasi Error Dialog MTProto pada Folder Virtual Drive Engine
+- **Resolusi Identitas Lokasi Cerdas**:
+  - Mengisolasi identitas folder virtual Drive Engine agar tidak lagi memicu *background Telegram channel sync* atau pemindaian dialog MTProto pada ID folder virtual (misal `-4825222476579731`).
+  - Mengeliminasi notifikasi peringatan `peer not in dialogs` saat membuka atau memuat ulang folder Drive.
+
+### 2. Restorasi Penapisan Berkas di Drive Explorer
+- **Pencocokan Presisi Folder ID & Peer Storage**:
+  - Memperbarui penapisan `contextFiles` di `DriveExplorer.tsx` agar berkas yang tersimpan di basis data lokal `drive.db` dicocokkan berdasarkan `folder_id` virtual folder terkait.
+  - Memastikan seluruh media yang tersimpan langsung muncul di kanvas penjelajah berkas tanpa tertahan status *empty state*.
+
+### 3. Dukungan Penuh Navigasi Folder Bertingkat (Folder-in-Folder)
+- **Hierarki dan Breadcrumb Interaktif**:
+  - Memastikan navigasi folder bersarang (`Folder 1` di dalam Drive `Tes`) dapat dimasuki dan dijelajahi dengan struktur *breadcrumb* yang responsif.
+  - Menjaga isolasi berkas antar folder induk dan subfolder sehingga isi media tampil akurat pada setiap tingkat.
+
+### 4. Verifikasi Pengunggahan Media End-to-End
+- **Sinkronisasi Berkas Telegram & Basis Data Lokal**:
+  - Memvalidasi proses unggah berkas media ke forum supergroup Telegram dan pencatatan otomatis ke database lokal.
+  - Teruji secara langsung via otomasi desktop CDP bahwa media yang diunggah langsung tampil utuh di tampilan antarmuka subfolder.
+
 ## v3.8.18 ZIP Preview Workbench Power Redesign & Modernization Engine (Phase 35.84)
+
 
 ### 1. Dual View Switcher: List Detail & Gallery Grid Modes
 - **Mode Pratinjau Fleksibel & Auto-Detect Media**:

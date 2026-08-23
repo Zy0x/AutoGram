@@ -132,8 +132,20 @@ pub fn classify_media_item(
         };
     }
 
-    // 1. Check if URL / Link
-    if mime_l == "text/x-url" || name_l.starts_with("http://") || name_l.starts_with("https://") {
+    // 1. Check if this row is an actual URL-only message. A native Telegram
+    // photo/video can have a caption that starts with a URL; in that case the
+    // payload remains media and the URL is indexed independently by the Link
+    // lane (InputMessagesFilterUrl). Never let caption text replace the media
+    // identity shown on the All/Media grids.
+    let has_native_visual_payload = is_photo_msg
+        || mime_l.starts_with("image/")
+        || mime_l.starts_with("video/")
+        || mime_l.starts_with("audio/");
+    if !has_native_visual_payload
+        && (mime_l == "text/x-url"
+            || name_l.starts_with("http://")
+            || name_l.starts_with("https://"))
+    {
         return ClassificationResult {
             telegram_category: "link".into(),
             telegram_subtype: "url".into(),
@@ -356,5 +368,38 @@ mod tests {
         assert_eq!(id_res.telegram_category, "restricted");
         assert_eq!(id_res.drive_category, "restricted");
     }
-}
 
+    #[test]
+    fn native_media_caption_starting_with_url_stays_media() {
+        let photo = classify_media_item(
+            "https://t.me/example caption",
+            Some("image/jpeg"),
+            false,
+            true,
+            false,
+        );
+        assert_eq!(photo.telegram_category, "media");
+        assert_eq!(photo.telegram_subtype, "photo");
+        assert_eq!(photo.drive_category, "image");
+
+        let video = classify_media_item(
+            "https://example.com/watch",
+            Some("video/mp4"),
+            false,
+            false,
+            false,
+        );
+        assert_eq!(video.telegram_category, "media");
+        assert_eq!(video.telegram_subtype, "video");
+
+        let link = classify_media_item(
+            "https://example.com/watch",
+            Some("text/x-url"),
+            false,
+            false,
+            false,
+        );
+        assert_eq!(link.telegram_category, "link");
+        assert_eq!(link.drive_format, "URL");
+    }
+}

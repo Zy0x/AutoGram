@@ -960,6 +960,7 @@
     "btn_go": "Open Location",
     "btn_open_short": "Open",
     "btn_cancel_short": "Cancel",
+    "key_escape": "Esc",
     "account_switched": "Switched to account {{account}}",
     "account_not_found": "Account {{account}} is not registered in AutoGram sessions.",
     "account_try_current": "Try current active account",

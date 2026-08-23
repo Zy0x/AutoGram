@@ -501,7 +501,14 @@ fn stream_public_url(stream_id: &str, label: &str) -> String {
     } else {
         safe
     };
-    format!("http://127.0.0.1:{port}/stream/{stream_id}/{name}")
+    // The stream id is deterministic so the backend can reuse a completed
+    // sparse file. The URL must not be deterministic: WebView2 otherwise
+    // reuses a cached 404/aborted Range response after rapid next/previous
+    // navigation even though the Rust registry has been recreated.
+    format!(
+        "http://127.0.0.1:{port}/stream/{stream_id}/{name}?v={}",
+        now_ms()
+    )
 }
 
 fn media_to_input_location(media: &Media) -> Option<tl::enums::InputFileLocation> {
@@ -558,6 +565,67 @@ fn preview_cache_generation() -> &'static AtomicU64 {
 
 fn preview_key(session: &str, chat: &str, msg: i64) -> String {
     format!("{session}|{chat}|{msg}")
+}
+
+/// Latest explicit preview request for each UI consumer. Background warmups
+/// intentionally have no consumer id and therefore may never tear down the
+/// session-wide Grammers pool. This prevents an obsolete next/prev request
+/// from disconnecting the fresh video's sender pool during its retry path.
+fn active_preview_consumers() -> &'static Mutex<HashMap<String, String>> {
+    static MAP: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
+    MAP.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn preview_consumer_key(session: &str, consumer_id: &str) -> String {
+    format!("{session}|{consumer_id}")
+}
+
+fn register_preview_request(session: &str, consumer_id: Option<&str>, request_id: Option<&str>) {
+    let (Some(consumer_id), Some(request_id)) = (consumer_id, request_id) else {
+        return;
+    };
+    if consumer_id.is_empty() || request_id.is_empty() {
+        return;
+    }
+    active_preview_consumers()
+        .lock()
+        .insert(preview_consumer_key(session, consumer_id), request_id.to_string());
+}
+
+fn preview_request_is_current(
+    session: &str,
+    consumer_id: Option<&str>,
+    request_id: Option<&str>,
+) -> bool {
+    let (Some(consumer_id), Some(request_id)) = (consumer_id, request_id) else {
+        return true;
+    };
+    active_preview_consumers()
+        .lock()
+        .get(&preview_consumer_key(session, consumer_id))
+        .is_some_and(|current| current == request_id)
+}
+
+fn reconnect_preview_if_current(
+    session: &str,
+    consumer_id: Option<&str>,
+    request_id: Option<&str>,
+) -> bool {
+    let (Some(consumer_id), Some(request_id)) = (consumer_id, request_id) else {
+        // Background prefetch/warm work must never disconnect the shared pool.
+        return false;
+    };
+    let consumers = active_preview_consumers().lock();
+    let is_current = consumers
+        .get(&preview_consumer_key(session, consumer_id))
+        .is_some_and(|current| current == request_id);
+    if is_current {
+        // Keep the consumer lock until the cached pool is removed. A newer
+        // request can register immediately afterwards and will establish or
+        // reuse the fresh pool instead of being disconnected by this retry.
+        disconnect_cached_session(session);
+    }
+    is_current
 }
 
 /// Shared single-flight for concurrent open/prefetch of the same message.
@@ -629,6 +697,8 @@ pub fn start_preview_stream_blocking(
     identity: &TelegramIdentity,
     chat_id: &str,
     message_id: i64,
+    consumer_id: Option<&str>,
+    request_id: Option<&str>,
 ) -> Result<PreviewStreamResult, TgError> {
     if message_id <= 0 {
         return Err(TgError::new(TgErrorCode::Internal, "message_id required"));
@@ -637,6 +707,7 @@ pub fn start_preview_stream_blocking(
     let identity = identity.clone();
     let chat = chat_id.to_string();
     let session_name = identity.session.clone();
+    register_preview_request(&session_name, consumer_id, request_id);
     let key = preview_key(&session_name, &chat, message_id);
     let cache_generation = preview_cache_generation().load(Ordering::SeqCst);
 
@@ -703,7 +774,14 @@ pub fn start_preview_stream_blocking(
         // Leader stuck past 90s — drop waiter path and run our own attempt.
         drop(guard);
         preview_inflight().lock().remove(&key);
-        let result = start_preview_stream_inner(&sessions_dir, &identity, &chat, message_id);
+        let result = start_preview_stream_inner(
+            &sessions_dir,
+            &identity,
+            &chat,
+            message_id,
+            consumer_id,
+            request_id,
+        );
         if let Ok(r) = &result {
             if preview_cache_generation().load(Ordering::SeqCst) == cache_generation
                 && (usable_live_preview(r) || r.streaming || !r.path.is_empty())
@@ -717,7 +795,14 @@ pub fn start_preview_stream_blocking(
     }
 
     // Leader path — only one MTProto open per message; others wait above.
-    let result = start_preview_stream_inner(&sessions_dir, &identity, &chat, message_id);
+    let result = start_preview_stream_inner(
+        &sessions_dir,
+        &identity,
+        &chat,
+        message_id,
+        consumer_id,
+        request_id,
+    );
 
     match &result {
         Ok(r)
@@ -750,6 +835,8 @@ fn start_preview_stream_inner(
     identity: &TelegramIdentity,
     chat: &str,
     message_id: i64,
+    consumer_id: Option<&str>,
+    request_id: Option<&str>,
 ) -> Result<PreviewStreamResult, TgError> {
     let rt = runtime()?;
     let pdir = preview_dir(sessions_dir);
@@ -793,9 +880,24 @@ fn start_preview_stream_inner(
                         "preview_stream",
                         "RPC Timeout (-503) during get_messages. Reconnecting fresh socket...",
                     );
-                    disconnect_cached_session(&session_name);
+                    if !reconnect_preview_if_current(
+                        &session_name,
+                        consumer_id,
+                        request_id,
+                    ) {
+                        return Err(TgError::new(
+                            TgErrorCode::Cancelled,
+                            "PREVIEW_REQUEST_SUPERSEDED",
+                        ));
+                    }
                     tokio::time::sleep(Duration::from_millis(300)).await;
-                    if let Ok(fresh_live) = obtain_live_client(sessions_dir, identity, true, true).await {
+                    if !preview_request_is_current(&session_name, consumer_id, request_id) {
+                        return Err(TgError::new(
+                            TgErrorCode::Cancelled,
+                            "PREVIEW_REQUEST_SUPERSEDED",
+                        ));
+                    }
+                    if let Ok(fresh_live) = obtain_live_client(sessions_dir, identity, true, false).await {
                         current_live = fresh_live;
                         let fresh_peer = resolve_peer(&current_live.client, chat).await?;
                         current_live
@@ -1050,9 +1152,24 @@ fn start_preview_stream_inner(
                             "preview_stream_backoff",
                             format!("Attempt {attempt}/{max_attempts} for doc {message_id}: backoff {backoff_ms}ms, reconnecting..."),
                         );
-                        disconnect_cached_session(&session_name);
+                        if !reconnect_preview_if_current(
+                            &session_name,
+                            consumer_id,
+                            request_id,
+                        ) {
+                            return Err(TgError::new(
+                                TgErrorCode::Cancelled,
+                                "PREVIEW_REQUEST_SUPERSEDED",
+                            ));
+                        }
                         tokio::time::sleep(Duration::from_millis(backoff_ms as u64)).await;
-                        if let Ok(fresh_live) = obtain_live_client(sessions_dir, identity, true, true).await {
+                        if !preview_request_is_current(&session_name, consumer_id, request_id) {
+                            return Err(TgError::new(
+                                TgErrorCode::Cancelled,
+                                "PREVIEW_REQUEST_SUPERSEDED",
+                            ));
+                        }
+                        if let Ok(fresh_live) = obtain_live_client(sessions_dir, identity, true, false).await {
                             current_live = fresh_live;
                         }
                     }
@@ -1230,9 +1347,24 @@ fn start_preview_stream_inner(
                             "preview_stream_backoff",
                             format!("Attempt {attempt}/{max_attempts} for photo {message_id}: backoff {backoff_ms}ms, reconnecting..."),
                         );
-                        disconnect_cached_session(&session_name);
+                        if !reconnect_preview_if_current(
+                            &session_name,
+                            consumer_id,
+                            request_id,
+                        ) {
+                            return Err(TgError::new(
+                                TgErrorCode::Cancelled,
+                                "PREVIEW_REQUEST_SUPERSEDED",
+                            ));
+                        }
                         tokio::time::sleep(Duration::from_millis(backoff_ms as u64)).await;
-                        if let Ok(fresh_live) = obtain_live_client(sessions_dir, identity, true, true).await {
+                        if !preview_request_is_current(&session_name, consumer_id, request_id) {
+                            return Err(TgError::new(
+                                TgErrorCode::Cancelled,
+                                "PREVIEW_REQUEST_SUPERSEDED",
+                            ));
+                        }
+                        if let Ok(fresh_live) = obtain_live_client(sessions_dir, identity, true, false).await {
                             current_live = fresh_live;
                         }
                     }
@@ -2349,6 +2481,31 @@ mod tests {
     #[test]
     fn seek_unknown_stream_is_rejected() {
         assert!(!request_progressive_range("no-such-stream-xyz", 1024));
+    }
+
+    #[test]
+    fn preview_consumer_rejects_obsolete_navigation_request() {
+        let session = "qa-preview-consumer-session";
+        let consumer = "drive-preview-primary";
+        register_preview_request(session, Some(consumer), Some("file-a"));
+        assert!(preview_request_is_current(session, Some(consumer), Some("file-a")));
+
+        register_preview_request(session, Some(consumer), Some("file-b"));
+        assert!(!preview_request_is_current(session, Some(consumer), Some("file-a")));
+        assert!(preview_request_is_current(session, Some(consumer), Some("file-b")));
+
+        active_preview_consumers()
+            .lock()
+            .remove(&preview_consumer_key(session, consumer));
+    }
+
+    #[test]
+    fn background_preview_never_gets_shared_pool_reconnect_authority() {
+        assert!(!reconnect_preview_if_current(
+            "qa-background-preview-session",
+            None,
+            None,
+        ));
     }
 
     #[test]

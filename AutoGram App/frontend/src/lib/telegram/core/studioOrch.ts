@@ -1,12 +1,11 @@
 /**
- * Phase 3 Studio orchestrator (Rust queue + Python Telethon steps).
- * Dual-path: Rust orch is default for eligible local uploads;
- * falls back to legacy media-studio when orch is unavailable or ineligible.
+ * Studio orchestrator (Rust queue + Grammers MTProto).
  */
 import { invoke } from '@tauri-apps/api/core';
 import { detectTauriRuntime } from '../../tauri/platform';
 import type { DriveCredentials } from '../driveApi';
 import { withExclusiveTransferSession } from '../driveApi';
+import { resolveDriveEngineLocation } from '../driveApi/driveEngineApi';
 
 export type QueueItemState =
   | 'pending'
@@ -99,7 +98,11 @@ export function isStudioOrchEligible(
 /** Map Drive folder peer to studio chat_id ("me" = Saved Messages). */
 export function studioChatIdFromFolder(folderId: number | string | null | undefined): string {
   if (folderId == null) return 'me';
-  return String(folderId);
+  const numericId = Number(folderId);
+  const engineLocation = Number.isFinite(numericId)
+    ? resolveDriveEngineLocation(numericId)
+    : null;
+  return String(engineLocation?.storagePeerId ?? folderId);
 }
 
 export async function studioEnqueue(request: StudioOrchRequest): Promise<TransferRecord | null> {

@@ -3,7 +3,7 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Upload, FolderOpen, FolderPlus, Loader2, AlertTriangle, CheckCircle2, ArrowUp, ArrowDown } from 'lucide-react';
 import { DriveGridSkeleton, DriveListSkeleton, CenteredGlassmorphicProgress } from './DriveSkeleton';
-import type { DriveCredentials } from '../../../lib/telegram/driveApi';
+import { resolveDriveEngineLocation, type DriveCredentials } from '../../../lib/telegram/driveApi';
 import {
   DEFAULT_GRID_ZOOM,
   computeDriveGridLayout,
@@ -106,6 +106,8 @@ type Props = {
   totalCount?: number | null;
   unavailableNotice?: string | null;
   hideRestrictedMedia?: boolean;
+  /** Drive-only nested folders are rendered by the parent above this media lane. */
+  hasFolderChildren?: boolean;
 };
 
 const GRID_GAP = 10;
@@ -181,6 +183,7 @@ export function DriveExplorer({
   totalCount: _totalCount = null,
   unavailableNotice = null,
   hideRestrictedMedia = true,
+  hasFolderChildren = false,
 }: Props) {
   const { t } = useTranslation();
   const draggingSet = useMemo(() => new Set(draggingIds || []), [draggingIds]);
@@ -196,6 +199,7 @@ export function DriveExplorer({
     };
   }
   const [width, setWidth] = useState(800);
+  const [viewportHeight, setViewportHeight] = useState(0);
   const listContainerRef = useRef<HTMLDivElement>(null);
 
   // Resizable column widths with localStorage persistence
@@ -295,22 +299,33 @@ export function DriveExplorer({
   );
   const contextFiles = useMemo(() => {
     const accountId = creds?.session;
+    const engineLocation = resolveDriveEngineLocation(folderId);
     return files.filter((file: any) => {
       const fileAccount = file.account_id ?? file.accountId;
       if (accountId && fileAccount && String(fileAccount) !== accountId) return false;
-      const filePeer = file.peer_id ?? file.peerId ?? (
-        file.folder_id == null && file.folderId == null
+      const fileFolder = file.folder_id ?? file.folderId;
+      const filePeer = file.peer_id ?? file.peerId;
+
+      if (engineLocation) {
+        if (fileFolder != null && String(fileFolder) !== String(folderId)) {
+          return false;
+        }
+        return true;
+      }
+
+      const resolvedPeer = filePeer ?? (
+        fileFolder == null
           ? undefined
-          : String(file.folder_id ?? file.folderId)
+          : String(fileFolder)
       );
-      if (filePeer != null && String(filePeer) !== thumbPeerId) return false;
+      if (resolvedPeer != null && String(resolvedPeer) !== thumbPeerId) return false;
       if (topicId != null && topicId > 0) {
         const fileTopic = file.topic_id ?? file.topicId;
         if (Number(fileTopic) !== Number(topicId)) return false;
       }
       return true;
     });
-  }, [files, creds?.session, thumbPeerId, topicId]);
+  }, [files, creds?.session, folderId, thumbPeerId, topicId]);
 
   /**
    * Marquee state — start is fixed in **content** space so scroll mid-drag
@@ -368,6 +383,10 @@ export function DriveExplorer({
       } else {
         cancelAnimationFrame(raf);
         raf = requestAnimationFrame(apply);
+      }
+      const h = el.clientHeight || el.getBoundingClientRect().height || 0;
+      if (h > 0 && Number.isFinite(h)) {
+        setViewportHeight((prev) => (Math.abs(prev - h) < 0.5 ? prev : h));
       }
     };
     const ro = new ResizeObserver(() => {
@@ -1123,7 +1142,7 @@ export function DriveExplorer({
         onCanvasContextMenu?.(e);
       }}
     >
-      {loading ? (
+      {loading && files.length === 0 ? (
         <div style={{ padding: '16px', position: 'relative', width: '100%' }}>
           <div className="ag-loading-overlay">
             <CenteredGlassmorphicProgress isLoading={loading} />
@@ -1187,12 +1206,18 @@ export function DriveExplorer({
             <FolderOpen size={48} />
           </div>
           <h3>
-            {query || mediaFilter !== 'all' ? t('speedtest.no_match_found') : t('ui.generated.folder_ini_kosong_f7edc44')}
+            {query || mediaFilter !== 'all'
+              ? t('speedtest.no_match_found')
+              : hasFolderChildren
+                ? t('speedtest.drive_folder_no_media_title')
+                : t('ui.generated.folder_ini_kosong_f7edc44')}
           </h3>
           <p>
             {query || mediaFilter !== 'all'
               ? t('ui.generated.coba_filter_lain_hapus_kata_pencarian_atau_ganti_4f09fdb')
-              : t('ui.generated.unggah_foto_video_atau_dokumen_disimpan_di_teleg_5bde7f2')}
+              : hasFolderChildren
+                ? t('speedtest.drive_folder_no_media_desc')
+                : t('ui.generated.unggah_foto_video_atau_dokumen_disimpan_di_teleg_5bde7f2')}
           </p>
           {!query && mediaFilter === 'all' && (
             <div className="td-empty-actions">
@@ -1216,7 +1241,10 @@ export function DriveExplorer({
           className="td-list td-list-virtual"
           style={
             {
-              height: listVirtualizer.getTotalSize() + LIST_HEAD_H + LIST_PAD_BOTTOM,
+              height: Math.max(
+                listVirtualizer.getTotalSize() + LIST_HEAD_H + LIST_PAD_BOTTOM,
+                viewportHeight
+              ),
               position: 'relative',
               width: '100%',
               '--td-col-icon': '36px',
@@ -1323,7 +1351,7 @@ export function DriveExplorer({
                   }}
                   style={{
                     position: 'absolute',
-                    top: v.start + LIST_HEAD_H,
+                    top: Math.max(v.start + LIST_HEAD_H, viewportHeight - 60),
                     left: 0,
                     width: '100%',
                     padding: '6px 16px',
@@ -1472,7 +1500,10 @@ export function DriveExplorer({
         <div
           className="td-grid-virtual"
           style={{
-            height: gridVirtualizer.getTotalSize() + GRID_PAD_TOP + GRID_PAD_BOTTOM,
+            height: Math.max(
+              gridVirtualizer.getTotalSize() + GRID_PAD_TOP + GRID_PAD_BOTTOM,
+              viewportHeight
+            ),
             position: 'relative',
             width: '100%',
           }}
@@ -1490,7 +1521,7 @@ export function DriveExplorer({
                   }}
                   style={{
                     position: 'absolute',
-                    top: vRow.start + GRID_PAD_TOP,
+                    top: Math.max(vRow.start + GRID_PAD_TOP, viewportHeight - 60),
                     left: GRID_PAD_X,
                     right: GRID_PAD_X,
                     width: 'auto',

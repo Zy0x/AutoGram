@@ -194,10 +194,12 @@ function buildProfile(tier: PerfTier): DrivePerfProfile {
     fullMediaStats: true,
     thumbBatch: turbo ? 96 : 64,
     thumbFlushMs: 0,
-    thumbQueueMax: turbo ? 600 : 400,
-    thumbConcurrent: turbo ? 8 : 6,
+    // Stay below the native per-session fast-thumb semaphore (12) while
+    // keeping enough work queued to survive very fast wheel/touch scrolling.
+    thumbQueueMax: turbo ? 720 : 480,
+    thumbConcurrent: turbo ? 10 : 7,
     thumbResumeMs: 0,
-    thumbPrefetchRows: turbo ? 10 : 6,
+    thumbPrefetchRows: turbo ? 14 : 8,
     prefetchNextPage: true,
     avatarBatch: turbo ? 16 : 10,
     avatarQueueMax: turbo ? 64 : 40,

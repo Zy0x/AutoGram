@@ -14,7 +14,7 @@
 
 /** Recognised segment prefixes */
 const PREFIX_ACCOUNT = /^[Uu]$/;
-const PREFIX_DRIVE = /^[DdCcGg]$/;
+const PREFIX_DRIVE = /^(?:[DdCcGgBb]|[Cc][Hh])$/;
 const PREFIX_TOPIC = /^[Tt]$/;
 const PREFIX_MEDIA = /^[Mm]$/;
 
@@ -30,6 +30,18 @@ export type ParsedTelegramPath = {
   tmeUsername: string | null;
   confidence: 'full' | 'partial' | 'fallback';
 };
+
+function normalizePrefixedPeerId(prefix: string, raw: string): number | null {
+  // Telegram users and bots keep their positive user id. Supergroups/channels
+  // use the canonical -100... peer id. This distinction is critical for Path
+  // IDs because a bot id can be numerically large enough to look like a
+  // channel id to the generic bare-number normalizer.
+  if (/^[BbCc]$/.test(prefix)) {
+    const n = Number(raw);
+    return Number.isFinite(n) ? Math.abs(n) : null;
+  }
+  return normalizePeerId(raw);
+}
 
 const EMPTY_PATH: ParsedTelegramPath = {
   raw: '',
@@ -98,12 +110,12 @@ function parseSegments(input: string): ParsedTelegramPath | null {
   let hitCount = 0;
 
   for (const part of parts) {
-    const prefixMatch = /^([UuDdCcGgTtMm#])(-?\d+)$/.exec(part);
+    const prefixMatch = /^(CH|ch|Ch|cH|[UuDdCcGgBbTtMm#])(-?\d+)$/.exec(part);
     if (prefixMatch) {
       const prefix = prefixMatch[1];
       const valueStr = prefixMatch[2];
       if (PREFIX_ACCOUNT.test(prefix)) { accountSegment = valueStr; hitCount++; continue; }
-      if (PREFIX_DRIVE.test(prefix)) { chatId = normalizePeerId(valueStr); chatSegmentRaw = valueStr; hitCount++; continue; }
+      if (PREFIX_DRIVE.test(prefix)) { chatId = normalizePrefixedPeerId(prefix, valueStr); chatSegmentRaw = valueStr; hitCount++; continue; }
       if (PREFIX_TOPIC.test(prefix)) { topicId = Number(valueStr); hitCount++; continue; }
       if (PREFIX_MEDIA.test(prefix) || prefix === '#') { messageId = Number(valueStr); hitCount++; continue; }
     }

@@ -1006,26 +1006,33 @@ pub fn clear_disk_cache() -> Result<serde_json::Value, String> {
     // before Windows deletion. Range responses can retain a Windows handle for
     // a few seconds after the preview element closes, so bounded retries below
     // are part of Clear All rather than leaving cleanup to the background prune.
-    std::thread::sleep(std::time::Duration::from_millis(180));
+    std::thread::sleep(std::time::Duration::from_millis(60));
     let info = resolve_active_cache_dirs();
     let mut removed = 0u64;
     let mut freed_bytes = 0u64;
     let mut failed_paths = Vec::new();
 
-    fn wipe(path: &Path, removed: &mut u64, freed: &mut u64, failed: &mut Vec<String>) {
+    #[derive(Default)]
+    struct WipeStats {
+        removed: u64,
+        freed: u64,
+        failed: Vec<String>,
+    }
+
+    fn wipe(path: &Path, stats: &mut WipeStats) {
         if path.is_file() {
             let size = std::fs::metadata(path).map(|m| cache_accounted_file_size(path, &m)).unwrap_or(0);
             match std::fs::remove_file(path) {
                 Ok(()) => {
-                    *removed += 1;
-                    *freed = freed.saturating_add(size);
+                    stats.removed += 1;
+                    stats.freed = stats.freed.saturating_add(size);
                     if path.extension().and_then(|ext| ext.to_str()) == Some("partial") {
                         if let Some(stream_id) = path.file_stem().and_then(|name| name.to_str()) {
                             super::stream_server::remove_entry(stream_id);
                         }
                     }
                 }
-                Err(_) => failed.push(path.display().to_string()),
+                Err(_) => stats.failed.push(path.display().to_string()),
             }
             return;
         }
@@ -1033,61 +1040,85 @@ pub fn clear_disk_cache() -> Result<serde_json::Value, String> {
         for e in rd.flatten() {
             let p = e.path();
             if p.is_dir() {
-                wipe(&p, removed, freed, failed);
+                wipe(&p, stats);
                 let _ = std::fs::remove_dir(&p);
             } else {
                 let size = e.metadata().map(|m| cache_accounted_file_size(&p, &m)).unwrap_or(0);
                 match std::fs::remove_file(&p) {
                     Ok(()) => {
-                        *removed += 1;
-                        *freed = freed.saturating_add(size);
+                        stats.removed += 1;
+                        stats.freed = stats.freed.saturating_add(size);
                         if p.extension().and_then(|ext| ext.to_str()) == Some("partial") {
                             if let Some(stream_id) = p.file_stem().and_then(|name| name.to_str()) {
                                 super::stream_server::remove_entry(stream_id);
                             }
                         }
                     }
-                    Err(_) => failed.push(p.display().to_string()),
+                    Err(_) => stats.failed.push(p.display().to_string()),
                 }
             }
         }
     }
 
-    fn sum_owned(path: &Path, total: &mut u64) {
+    fn sum_owned(path: &Path) -> u64 {
+        let mut total = 0u64;
         if path.is_file() {
             if let Ok(metadata) = std::fs::metadata(path) {
-                *total = total.saturating_add(cache_accounted_file_size(path, &metadata));
+                total = total.saturating_add(cache_accounted_file_size(path, &metadata));
             }
-            return;
+            return total;
         }
-        let Ok(entries) = std::fs::read_dir(path) else { return; };
+        let Ok(entries) = std::fs::read_dir(path) else { return total; };
         for entry in entries.flatten() {
             let child = entry.path();
             if child.is_dir() {
-                sum_owned(&child, total);
+                total = total.saturating_add(sum_owned(&child));
             } else if let Ok(metadata) = entry.metadata() {
-                *total = total.saturating_add(cache_accounted_file_size(&child, &metadata));
+                total = total.saturating_add(cache_accounted_file_size(&child, &metadata));
             }
         }
+        total
     }
 
     let roots = cache_roots(&info);
     let mut remaining_bytes = u64::MAX;
-    for attempt in 0..=16 {
+    for attempt in 0..=12 {
         failed_paths.clear();
-        for root in &roots {
-            wipe(root, &mut removed, &mut freed_bytes, &mut failed_paths);
+        let pass = std::thread::scope(|scope| {
+            let handles: Vec<_> = roots
+                .iter()
+                .map(|root| scope.spawn(move || {
+                    let mut stats = WipeStats::default();
+                    wipe(root, &mut stats);
+                    stats
+                }))
+                .collect();
+            handles
+                .into_iter()
+                .filter_map(|handle| handle.join().ok())
+                .collect::<Vec<_>>()
+        });
+        for stats in pass {
+            removed = removed.saturating_add(stats.removed);
+            freed_bytes = freed_bytes.saturating_add(stats.freed);
+            failed_paths.extend(stats.failed);
         }
-        remaining_bytes = 0;
-        for root in &roots {
-            sum_owned(root, &mut remaining_bytes);
-        }
+        remaining_bytes = std::thread::scope(|scope| {
+            let handles: Vec<_> = roots
+                .iter()
+                .map(|root| scope.spawn(move || sum_owned(root)))
+                .collect();
+            handles
+                .into_iter()
+                .filter_map(|handle| handle.join().ok())
+                .fold(0u64, u64::saturating_add)
+        });
         if remaining_bytes == 0 && failed_paths.is_empty() {
             break;
         }
         super::grammers_media::clear_runtime_preview_cache();
-        if attempt < 16 {
-            std::thread::sleep(std::time::Duration::from_millis(250));
+        if attempt < 12 {
+            std::thread::sleep(std::time::Duration::from_millis(100));
         }
     }
     let cleared_registry_entries = super::stream_server::clear_all_entries();

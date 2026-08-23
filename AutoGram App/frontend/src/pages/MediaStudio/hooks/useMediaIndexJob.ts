@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Channel } from '@tauri-apps/api/core';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
+import { resolveDriveEngineLocation } from '../../../lib/telegram/driveApi';
 import {
   ackMediaIndexPage,
   attachMediaIndexJobChannel,
@@ -256,6 +257,11 @@ export function useMediaIndexJob(options: UseMediaIndexJobOptions): UseMediaInde
       setError(null);
       setState('preparing');
       clearFloodTimer();
+
+      if (peerId != null && resolveDriveEngineLocation(Number(peerId))) {
+        setState('completed');
+        return;
+      }
 
       try {
         const curPeer = String(peerId);

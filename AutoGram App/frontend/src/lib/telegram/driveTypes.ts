@@ -138,6 +138,14 @@ export type DriveFolder = {
   is_drive_folder?: boolean;
   /** parent_id set but parent peer missing from scan */
   is_orphan?: boolean;
+  /** Filesystem engine identity. Legacy verified [TD] Drives omit these fields. */
+  engine_drive_id?: string | null;
+  engine_folder_id?: string | null;
+  /** Telegram peer used only as the storage backend for an engine Drive. */
+  storage_peer_id?: number | null;
+  /** Forum topic backing this logical folder; roots use the forum's General topic. */
+  storage_topic_id?: number | null;
+  source?: 'legacy' | 'engine';
 };
 
 /** Soft warn before Telegram ~500 channel ceiling */
@@ -608,21 +616,54 @@ export function compareDriveFiles(a: DriveFile, b: DriveFile, mode: DriveSortMod
 
 /** Strip transient, bloated properties to keep RAM memory under 100MB for 50k+ datasets */
 export function toLeanDriveFile(f: any): DriveFile {
+  const id = typeof f.id === 'number' ? f.id : parseInt(String(f.id), 10);
+  const mimeType = String(f.mime_type ?? f.mimeType ?? '').trim().toLowerCase() || null;
+  const iconType = String(f.icon_type || f.iconType || 'file');
+  const telegramSubtype = String(f.telegram_subtype ?? f.telegramSubtype ?? '').trim().toLowerCase();
+  const asDocument = Boolean(f.as_document ?? f.asDocument ?? false);
+  const isNativeTelegramPhoto =
+    Number.isFinite(id) &&
+    id > 0 &&
+    !asDocument &&
+    (
+      telegramSubtype === 'photo' ||
+      iconType.toLowerCase() === 'photo' ||
+      (mimeType?.startsWith('image/') && iconType.toLowerCase() === 'image')
+    );
+  const canonicalPhotoName = isNativeTelegramPhoto ? `photo_${id}.jpg` : null;
+
   return {
-    id: typeof f.id === 'number' ? f.id : parseInt(String(f.id), 10),
+    id,
     folder_id: f.folder_id ?? f.folderId ?? null,
-    name: f.name || '',
+    // Telegram photos do not have a server filename. Captions must never be
+    // interpreted as filenames/extensions, including records restored from an
+    // older persistent index.
+    name: canonicalPhotoName || f.name || f.original_name || f.originalName || '',
     size: typeof f.size === 'number' ? f.size : parseInt(String(f.size || 0), 10) || 0,
-    mime_type: f.mime_type ?? f.mimeType ?? null,
-    file_ext: f.file_ext ?? f.fileExt ?? undefined,
-    icon_type: f.icon_type || f.iconType || 'file',
+    mime_type: canonicalPhotoName ? 'image/jpeg' : mimeType,
+    file_ext: canonicalPhotoName ? 'jpg' : f.file_ext ?? f.fileExt ?? undefined,
+    icon_type: iconType,
     created_at: f.created_at ?? f.createdAt ?? undefined,
     has_thumb: !!f.has_thumb || !!f.hasThumb,
-    as_document: !!f.as_document || !!f.asDocument,
+    as_document: asDocument,
+    original_name: canonicalPhotoName ? null : f.original_name ?? f.originalName ?? null,
     topic_id: f.topic_id ?? f.topicId ?? null,
     peer_id: f.peer_id ?? f.peerId ?? '',
+    account_id: f.account_id ?? f.accountId ?? null,
+    peer_kind: f.peer_kind ?? f.peerKind ?? null,
+    peer_username: f.peer_username ?? f.peerUsername ?? null,
+    grouped_id: f.grouped_id ?? f.groupedId ?? null,
     is_saved_messages: !!f.is_saved_messages,
     duration: f.duration ?? f.duration_s ?? undefined,
+    telegram_category: f.telegram_category ?? f.telegramCategory ?? null,
+    telegram_subtype: f.telegram_subtype ?? f.telegramSubtype ?? null,
+    drive_category: f.drive_category ?? f.driveCategory ?? null,
+    drive_format: f.drive_format ?? f.driveFormat ?? null,
+    link_urls: Array.isArray(f.link_urls ?? f.linkUrls) ? [...(f.link_urls ?? f.linkUrls)] : undefined,
+    caption: f.caption ?? null,
+    is_restricted: f.is_restricted ?? f.isRestricted ?? null,
+    restriction_reason: f.restriction_reason ?? f.restrictionReason ?? null,
+    restriction_code: f.restriction_code ?? f.restrictionCode ?? null,
   };
 }
 

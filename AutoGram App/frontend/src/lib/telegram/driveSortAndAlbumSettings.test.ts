@@ -6,10 +6,74 @@ import {
 import { DEFAULT_TRANSFER_SETTINGS, type DriveTransferSettings } from './driveTypes';
 import {
   compareDriveFiles,
+  driveFileDisplayName,
+  driveFileExt,
   filterAndSortDriveFiles,
+  matchesMediaFilter,
+  toLeanDriveFile,
   type DriveFile,
   type DriveSortMode,
 } from './driveTypes';
+
+describe('Telegram media identity normalization', () => {
+  it('repairs legacy caption-derived names for native Telegram photos', () => {
+    const file = toLeanDriveFile({
+      id: 43639,
+      name: '—09-06-2025',
+      mimeType: 'image/jpeg',
+      iconType: 'image',
+      asDocument: false,
+      telegramSubtype: 'photo',
+    });
+
+    expect(file.name).toBe('photo_43639.jpg');
+    expect(file.file_ext).toBe('jpg');
+    expect(driveFileExt(file)).toBe('jpg');
+    expect(driveFileDisplayName(file)).toBe('photo_43639.jpg');
+    expect(matchesMediaFilter(file, 'media', 'telegram')).toBe(true);
+    expect(matchesMediaFilter(file, 'files', 'telegram')).toBe(false);
+  });
+
+  it('preserves authoritative document filenames and delivery identity', () => {
+    const file = toLeanDriveFile({
+      id: 6,
+      name: 'caption with https://example.test/image',
+      originalName: 'telegram-image.png',
+      mimeType: 'image/png',
+      iconType: 'image',
+      asDocument: true,
+      telegramCategory: 'file',
+      telegramSubtype: 'document_image',
+      driveCategory: 'images',
+    });
+
+    expect(file.name).toBe('caption with https://example.test/image');
+    expect(file.original_name).toBe('telegram-image.png');
+    expect(driveFileExt(file)).toBe('png');
+    expect(file.as_document).toBe(true);
+    expect(file.telegram_category).toBe('file');
+    expect(matchesMediaFilter(file, 'files', 'telegram')).toBe(true);
+    expect(matchesMediaFilter(file, 'media', 'telegram')).toBe(false);
+  });
+
+  it('keeps links as a secondary lane without changing a media card identity', () => {
+    const file = toLeanDriveFile({
+      id: 99,
+      name: 'clip.mp4',
+      originalName: 'clip.mp4',
+      mimeType: 'video/mp4',
+      iconType: 'video',
+      telegramCategory: 'media',
+      telegramSubtype: 'video',
+      linkUrls: ['https://example.test/source'],
+    });
+
+    expect(file.name).toBe('clip.mp4');
+    expect(file.link_urls).toEqual(['https://example.test/source']);
+    expect(matchesMediaFilter(file, 'media', 'telegram')).toBe(true);
+    expect(matchesMediaFilter(file, 'links', 'telegram')).toBe(true);
+  });
+});
 
 const files: DriveFile[] = [
   { id: 30, name: 'beta10.jpg', size: 400, created_at: '2026-08-03T00:00:00Z' },

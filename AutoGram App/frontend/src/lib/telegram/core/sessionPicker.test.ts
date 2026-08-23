@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   dedupeSessionOptionsByIdentity,
   hasStableSessionIdentity,
+  verifySessionOptions,
   type SessionMetadata,
   type SessionOption,
 } from './sessionPicker';
@@ -42,5 +43,49 @@ describe('session identity de-duplication', () => {
       { name: 'session_1785668521', status: 'checking' },
       (name) => metadata[name] || null
     )).toBe(true);
+  });
+});
+
+describe('bounded session health verification', () => {
+  it('keeps checking other sessions when one health probe fails', async () => {
+    const sessions: SessionOption[] = [
+      { name: 'one', status: 'checking' },
+      { name: 'two', status: 'checking' },
+      { name: 'three', status: 'checking' },
+    ];
+    const result = await verifySessionOptions(
+      sessions,
+      123,
+      'hash',
+      async ({ session }) => {
+        if (session === 'two') throw new Error('temporary network error');
+        return { ok: true, data: { authorized: true } } as any;
+      },
+      { concurrency: 2, timeoutMs: 1_000 }
+    );
+    expect(result.map((item) => item.status)).toEqual(['connected', 'offline', 'connected']);
+  });
+
+  it('does not run more health probes than the configured concurrency', async () => {
+    let active = 0;
+    let maximum = 0;
+    const sessions = Array.from({ length: 7 }, (_, index) => ({
+      name: `session-${index}`,
+      status: 'checking',
+    }));
+    await verifySessionOptions(
+      sessions,
+      123,
+      'hash',
+      async () => {
+        active += 1;
+        maximum = Math.max(maximum, active);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        active -= 1;
+        return { ok: true, data: { authorized: true } } as any;
+      },
+      { concurrency: 2, timeoutMs: 1_000 }
+    );
+    expect(maximum).toBe(2);
   });
 });

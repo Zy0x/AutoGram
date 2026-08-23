@@ -2,6 +2,7 @@ import type { DriveChat, DriveFolder } from '../driveTypes';
 
 const PREFIX = 'autogram_drive_sidebar_v1_';
 export const DRIVE_SIDEBAR_CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+const DRIVE_SIDEBAR_CHAT_LIMIT = 1_000;
 
 type StorageLike = {
   getItem(key: string): string | null;
@@ -39,7 +40,7 @@ export function loadDriveSidebarSnapshot(
     }
     return {
       folders: parsed.folders.slice(0, 500),
-      chats: parsed.chats.slice(0, 200),
+      chats: parsed.chats.slice(0, DRIVE_SIDEBAR_CHAT_LIMIT),
       chatsHasMore: !!parsed.chatsHasMore,
       chatsOffset: Math.max(0, Number(parsed.chatsOffset) || parsed.chats.length),
       cursor: parsed.cursor && typeof parsed.cursor === 'object' ? parsed.cursor : null,
@@ -75,7 +76,7 @@ export function saveDriveSidebarSnapshot(
   };
   const next: DriveSidebarSnapshot = {
     folders: (update.folders ?? previous.folders).slice(0, 500),
-    chats: (update.chats ?? previous.chats).slice(0, 200),
+    chats: (update.chats ?? previous.chats).slice(0, DRIVE_SIDEBAR_CHAT_LIMIT),
     chatsHasMore: update.chatsHasMore ?? previous.chatsHasMore,
     chatsOffset: update.chatsOffset ?? previous.chatsOffset,
     cursor: update.cursor === undefined ? previous.cursor : update.cursor,
