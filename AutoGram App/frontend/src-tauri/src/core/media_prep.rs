@@ -92,7 +92,10 @@ pub fn resolve_social_media_direct_url(url: &str) -> Option<String> {
         && !u_lower.contains("tiktokcdn")
         && !u_lower.contains(".mp4")
     {
-        let api_url = format!("https://www.tikwm.com/api/?url={}&hd=1", urlencoding::encode(url));
+        let api_url = format!(
+            "https://www.tikwm.com/api/?url={}&hd=1",
+            urlencoding::encode(url)
+        );
         let agent = ureq::AgentBuilder::new()
             .timeout_connect(std::time::Duration::from_secs(10))
             .timeout_read(std::time::Duration::from_secs(15))
@@ -175,7 +178,10 @@ pub fn resolve_pikpak_direct_url(url: &str) -> Option<String> {
         "i",
     ];
 
-    let mut current_salt = format!("{}{}{}{}{}", client_id, client_version, package_name, device_id, timestamp);
+    let mut current_salt = format!(
+        "{}{}{}{}{}",
+        client_id, client_version, package_name, device_id, timestamp
+    );
     for salt in salts {
         let digest = md5::compute(format!("{}{}", current_salt, salt).as_bytes());
         current_salt = format!("{:x}", digest);
@@ -203,7 +209,10 @@ pub fn resolve_pikpak_direct_url(url: &str) -> Option<String> {
     let init_resp = agent
         .post("https://user.mypikpak.com/v1/shield/captcha/init")
         .set("Content-Type", "application/json")
-        .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36")
+        .set(
+            "User-Agent",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
+        )
         .set("x-device-id", &device_id)
         .set("x-client-id", client_id)
         .send_json(init_body)
@@ -212,14 +221,20 @@ pub fn resolve_pikpak_direct_url(url: &str) -> Option<String> {
     let init_val: serde_json::Value = init_resp.into_json().ok()?;
     let captcha_token = init_val.get("captcha_token")?.as_str()?;
 
-    let mut share_url = format!("https://api-drive.mypikpak.com/drive/v1/share?share_id={}", urlencoding::encode(&share_id));
+    let mut share_url = format!(
+        "https://api-drive.mypikpak.com/drive/v1/share?share_id={}",
+        urlencoding::encode(&share_id)
+    );
     if !pass_code.is_empty() {
         share_url.push_str(&format!("&pass_code={}", urlencoding::encode(&pass_code)));
     }
 
     let share_resp = agent
         .get(&share_url)
-        .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36")
+        .set(
+            "User-Agent",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
+        )
         .set("x-device-id", &device_id)
         .set("x-client-id", client_id)
         .set("x-captcha-token", captcha_token)
@@ -236,7 +251,12 @@ pub fn resolve_pikpak_direct_url(url: &str) -> Option<String> {
             return Some(link.to_string());
         }
     }
-    if let Some(link) = first_file.get("links").and_then(|l| l.get("download")).and_then(|d| d.get("url")).and_then(|u| u.as_str()) {
+    if let Some(link) = first_file
+        .get("links")
+        .and_then(|l| l.get("download"))
+        .and_then(|d| d.get("url"))
+        .and_then(|u| u.as_str())
+    {
         if link.starts_with("http") {
             return Some(link.to_string());
         }
@@ -314,7 +334,7 @@ pub fn download_remote_url(
             break;
         }
         written = written.saturating_add(n);
-        
+
         let now_ms = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_millis())
@@ -385,7 +405,11 @@ pub fn download_remote_url(
         ext
     };
 
-    let final_dest = if detected_ext != "bin" && !dest.to_string_lossy().ends_with(&format!(".{detected_ext}")) {
+    let final_dest = if detected_ext != "bin"
+        && !dest
+            .to_string_lossy()
+            .ends_with(&format!(".{detected_ext}"))
+    {
         let new_dest = unique_name("remote", &detected_ext);
         if fs::rename(&dest, &new_dest).is_ok() {
             new_dest
@@ -473,7 +497,8 @@ fn sniff_actual_media_extension(path: &Path) -> Option<&'static str> {
 
 fn ext_from_url_or_ctype(url: &str, ctype: &str) -> String {
     let u_lower = url.to_ascii_lowercase();
-    if u_lower.contains("photomode-image") || u_lower.contains(".jpeg") || u_lower.contains(".jpg") {
+    if u_lower.contains("photomode-image") || u_lower.contains(".jpeg") || u_lower.contains(".jpg")
+    {
         return "jpg".into();
     }
     if u_lower.contains("ies-music") || u_lower.contains("/music/") {
@@ -547,7 +572,12 @@ fn resolve_quality_preset(mode: &str) -> QualityPreset {
             buf_size: "1600k",
             audio_bitrate: "96k",
         }
-    } else if m.contains("JELAS") || m.contains("HIGH") || m.contains("HD") || m.contains("4K") || m.contains("UHD") {
+    } else if m.contains("JELAS")
+        || m.contains("HIGH")
+        || m.contains("HD")
+        || m.contains("4K")
+        || m.contains("UHD")
+    {
         QualityPreset {
             // Full UHD 4K support up to 3840px width with master bitrate cap
             vf_scale: "scale='min(3840,iw)':'-2'",
@@ -757,7 +787,10 @@ pub fn probe_audio_metadata(path: &str) -> (f64, Option<String>, Option<String>)
             if !t.is_empty() {
                 title = Some(t.to_string());
             }
-        } else if let Some(val) = line.strip_prefix("TAG:artist=").or_else(|| line.strip_prefix("TAG:performer=")) {
+        } else if let Some(val) = line
+            .strip_prefix("TAG:artist=")
+            .or_else(|| line.strip_prefix("TAG:performer="))
+        {
             let a = val.trim();
             if !a.is_empty() {
                 artist = Some(a.to_string());
@@ -879,8 +912,8 @@ pub fn extract_video_thumbnail(path: &str) -> Option<PathBuf> {
 }
 
 /// Transcode WebP / sticker formats to 100% true lossless PNG (png)
-/// preserving original dimensions, alpha transparency, and visual quality (no quality loss)
-/// for native compatibility with Telegram MTProto Photo Albums (InputMediaUploadedPhoto).
+/// preserving original dimensions, alpha transparency, and visual quality (no quality loss).
+/// Used when the output will be sent as a Document (file preserved intact, no server recompression).
 pub fn transcode_sticker_media_to_image_lossless(path: &str) -> Result<PathBuf, String> {
     let p = Path::new(path);
     if !p.is_file() {
@@ -914,7 +947,9 @@ pub fn transcode_sticker_media_to_image_lossless(path: &str) -> Result<PathBuf, 
         cmd.creation_flags(0x08000000);
     }
 
-    let output = cmd.output().map_err(|e| format!("spawn ffmpeg failed: {e}"))?;
+    let output = cmd
+        .output()
+        .map_err(|e| format!("spawn ffmpeg failed: {e}"))?;
     if output.status.success() && out_png.is_file() {
         let sz = fs::metadata(&out_png).map(|m| m.len()).unwrap_or(0);
         if sz > 0 {
@@ -930,6 +965,70 @@ pub fn transcode_sticker_media_to_image_lossless(path: &str) -> Result<PathBuf, 
     let err_msg = String::from_utf8_lossy(&output.stderr);
     Err(format!("ffmpeg webp conversion failed: {err_msg}"))
 }
+
+/// Transcode WebP / sticker formats directly to high-quality JPEG for Telegram native Photo albums.
+///
+/// Rationale: Telegram's server always re-encodes any image uploaded as a native Photo to its own
+/// internal JPEG format (~Q87–92). Sending PNG (lossless) as the source means two format
+/// conversions happen: WebP → PNG (us) then PNG → JPEG (Telegram server, unknown quality).
+/// By transcoding directly to JPEG Q92 here, only ONE lossy step occurs in the app under our
+/// control; Telegram's subsequent JPEG→JPEG re-encoding at a similar quality level introduces
+/// negligible additional degradation — far less than a fresh lossless→lossy conversion would.
+///
+/// `-q:v 2` in ffmpeg MJPEG scale (1=best … 31=worst) produces approximately JPEG Q92–95.
+pub fn transcode_webp_to_jpeg_for_photo(path: &str) -> Result<PathBuf, String> {
+    let p = Path::new(path);
+    if !p.is_file() {
+        return Err(format!("file not found: {path}"));
+    }
+    let Some(ff) = find_ffmpeg_binary() else {
+        return Err("ffmpeg binary not found for WebP→JPEG conversion".into());
+    };
+
+    let out_jpg = unique_name("transcoded_photo", "jpg");
+
+    let mut cmd = Command::new(&ff);
+    cmd.args([
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-nostdin",
+        "-y",
+        "-i",
+        path,
+        "-vframes",
+        "1",
+        // q:v 2 ≈ JPEG Q92–95. High quality, single controlled lossy step.
+        "-q:v",
+        "2",
+    ]);
+    cmd.arg(&out_jpg);
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000);
+    }
+
+    let output = cmd
+        .output()
+        .map_err(|e| format!("spawn ffmpeg failed: {e}"))?;
+    if output.status.success() && out_jpg.is_file() {
+        let sz = fs::metadata(&out_jpg).map(|m| m.len()).unwrap_or(0);
+        if sz > 0 {
+            tg_log::info(
+                BACKEND,
+                "webp_transcode_jpeg_ok",
+                format!("input={path} output={} size={sz}", out_jpg.display()),
+            );
+            return Ok(out_jpg);
+        }
+    }
+
+    let err_msg = String::from_utf8_lossy(&output.stderr);
+    Err(format!("ffmpeg webp→jpeg conversion failed: {err_msg}"))
+}
+
 
 /// Optional lean reencode for Telegram-friendly MP4 (when quality_mode suggests it).
 /// Returns the original path when the selected mode safely permits passthrough;
@@ -1001,7 +1100,20 @@ pub fn maybe_reencode_for_telegram(
                     "percent": 0
                 }),
             );
-            match transcode_sticker_media_to_image_lossless(path) {
+            // Transcode WebP directly to JPEG (Q92) so only ONE lossy step occurs
+            // under our control. Telegram's server always re-encodes native Photos to
+            // JPEG anyway; JPEG→JPEG at similar quality adds negligible degradation,
+            // unlike PNG→JPEG which is a full lossless→lossy server-side conversion.
+            // Falls back to lossless PNG if JPEG transcode fails for any reason.
+            let transcode_result = transcode_webp_to_jpeg_for_photo(path).or_else(|jpeg_err| {
+                tg_log::warn(
+                    BACKEND,
+                    "webp_jpeg_transcode_fallback",
+                    format!("jpeg failed ({jpeg_err}), retrying as lossless PNG"),
+                );
+                transcode_sticker_media_to_image_lossless(path)
+            });
+            match transcode_result {
                 Ok(out_path) => {
                     emit_transfer_event(
                         app,
@@ -1636,20 +1748,34 @@ pub fn prepare_upload_artifact_with_policy(
     ) || prepared_path_obj
         .extension()
         .and_then(|s| s.to_str())
-        .map(|ext| matches!(ext.to_ascii_lowercase().as_str(), "png" | "jpg" | "jpeg" | "webp"))
+        .map(|ext| {
+            matches!(
+                ext.to_ascii_lowercase().as_str(),
+                "png" | "jpg" | "jpeg" | "webp"
+            )
+        })
         .unwrap_or(false);
 
     if transformed {
         let validation_error = if is_image_output {
             let exists_and_nonempty = prepared_path_obj.is_file()
-                && fs::metadata(prepared_path_obj).map(|m| m.len()).unwrap_or(0) > 0;
+                && fs::metadata(prepared_path_obj)
+                    .map(|m| m.len())
+                    .unwrap_or(0)
+                    > 0;
             if !exists_and_nonempty {
-                Some("encoder_output_invalid: transcoded image output file is missing or empty".into())
+                Some(
+                    "encoder_output_invalid: transcoded image output file is missing or empty"
+                        .into(),
+                )
             } else {
                 None
             }
         } else if !prepared_path_obj.is_file()
-            || fs::metadata(prepared_path_obj).map(|m| m.len()).unwrap_or(0) == 0
+            || fs::metadata(prepared_path_obj)
+                .map(|m| m.len())
+                .unwrap_or(0)
+                == 0
         {
             Some("encoder_output_invalid: transcoded video output file is missing or empty".into())
         } else if prepared_analysis.probe_available && prepared_analysis.probe_error.is_none() {
@@ -1658,7 +1784,8 @@ pub fn prepare_upload_artifact_with_policy(
                     "encoder_output_invalid: prepared output is not a Telegram-native H.264/AAC MP4"
                         .into(),
                 )
-            } else if transform_action == super::autogram_core::transfer::TransformAction::Reencode {
+            } else if transform_action == super::autogram_core::transfer::TransformAction::Reencode
+            {
                 match (
                     source_analysis.duration_seconds,
                     prepared_analysis.duration_seconds,
