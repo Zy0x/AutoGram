@@ -22,7 +22,8 @@ impl QualityMode {
         {
             "HIGH_QUALITY" | "HIGHQUALITY" | "HQ" => Self::HighQuality,
             "DOCUMENT" | "DOC" | "FILE" | "RAW_DOCUMENT" => Self::Document,
-            "ORIGINAL" | "UNCOMPRESSED" | "RAW" | "LOSSLESS" | "PASSTHROUGH" | "DIRECT" | "NATIVE" => Self::Original,
+            "ORIGINAL" | "UNCOMPRESSED" | "RAW" | "LOSSLESS" | "PASSTHROUGH" | "DIRECT"
+            | "NATIVE" => Self::Original,
             _ => Self::Smart,
         }
     }
@@ -216,6 +217,11 @@ pub fn classify_media(path: &Path) -> MediaCategory {
     extension_fallback
 }
 
+/// Telegram rejects native Photo uploads larger than this via MTProto.
+/// Any image exceeding the limit must be sent as a Document to avoid
+/// PHOTO_INVALID_DIMENSIONS or silent server-side failure.
+const TELEGRAM_NATIVE_PHOTO_MAX_BYTES: u64 = 10 * 1024 * 1024; // 10 MB
+
 fn is_consumer_audio(path: &Path) -> bool {
     matches!(
         path.extension()
@@ -225,6 +231,14 @@ fn is_consumer_audio(path: &Path) -> bool {
             .as_str(),
         "mp3" | "m4a" | "aac" | "ogg" | "opus"
     )
+}
+
+/// Returns true when the file exists and its size exceeds Telegram's native
+/// photo upload limit. Used to auto-demote oversized images to document mode.
+fn exceeds_native_photo_limit(path: &Path) -> bool {
+    std::fs::metadata(path)
+        .map(|m| m.len() > TELEGRAM_NATIVE_PHOTO_MAX_BYTES)
+        .unwrap_or(false)
 }
 
 pub fn classify_delivery(
@@ -260,7 +274,8 @@ pub fn classify_prepared_delivery(
             MediaCategory::Audio if is_consumer_audio(path) => PayloadClass::AudioGroup,
             _ => PayloadClass::OriginalDocumentBatch,
         };
-        let as_document = payload_class != PayloadClass::NativeVisual && payload_class != PayloadClass::AudioGroup;
+        let as_document = payload_class != PayloadClass::NativeVisual
+            && payload_class != PayloadClass::AudioGroup;
         return DeliveryClassification {
             category,
             payload_class,
@@ -279,6 +294,20 @@ pub fn classify_prepared_delivery(
         MediaCategory::Audio if is_consumer_audio(path) => PayloadClass::AudioGroup,
         _ => PayloadClass::DocumentGroup,
     };
+
+    // Telegram's native Photo upload cap is 10 MB. Images larger than this are
+    // auto-demoted to Document so the original lossless file (e.g. a PNG
+    // transcoded from a WebP sticker) is sent intact instead of being silently
+    // rejected or recompressed with quality loss by the Telegram server.
+    let (payload_class, size_demoted) = if payload_class == PayloadClass::NativeVisual
+        && matches!(category, MediaCategory::JpegImage | MediaCategory::PngImage)
+        && exceeds_native_photo_limit(path)
+    {
+        (PayloadClass::DocumentGroup, true)
+    } else {
+        (payload_class, false)
+    };
+
     let transform = if transformed {
         TransformAction::Reencode
     } else {
@@ -292,6 +321,7 @@ pub fn classify_prepared_delivery(
         reason_code: match payload_class {
             PayloadClass::NativeVisual => "prepared_native_visual",
             PayloadClass::AudioGroup => "prepared_audio_document",
+            _ if size_demoted => "oversized_photo_demoted_to_document",
             _ => "safe_generic_document",
         }
         .into(),
@@ -363,5 +393,32 @@ mod tests {
         let result = classify_prepared_delivery(&path, QualityMode::Smart, false, false);
         assert_eq!(result.payload_class, PayloadClass::DocumentGroup);
         assert!(result.as_document);
+    }
+
+    #[test]
+    fn small_jpeg_under_limit_stays_native_visual() {
+        // A tiny JPEG (4 bytes of magic + filler) is well under 10 MB
+        let payload = {
+            let mut v = vec![0xff, 0xd8, 0xff, 0xdb];
+            v.extend_from_slice(&[0u8; 1024]); // 1 KB total
+            v
+        };
+        let path = fixture("small.jpg", &payload);
+        let result = classify_prepared_delivery(&path, QualityMode::Smart, false, false);
+        assert_eq!(result.payload_class, PayloadClass::NativeVisual);
+        assert!(!result.as_document);
+        assert_eq!(result.reason_code, "prepared_native_visual");
+    }
+
+    #[test]
+    fn oversized_png_is_auto_demoted_to_document() {
+        // Build a fake PNG header + enough bytes to exceed 10 MB
+        let mut payload = vec![0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+        payload.extend_from_slice(&vec![0u8; 10 * 1024 * 1024 + 1]); // 10 MB + 1 byte
+        let path = fixture("big_sticker.png", &payload);
+        let result = classify_prepared_delivery(&path, QualityMode::Smart, false, false);
+        assert_eq!(result.payload_class, PayloadClass::DocumentGroup);
+        assert!(result.as_document);
+        assert_eq!(result.reason_code, "oversized_photo_demoted_to_document");
     }
 }
