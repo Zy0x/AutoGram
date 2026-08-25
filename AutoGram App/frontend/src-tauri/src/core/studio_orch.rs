@@ -108,6 +108,7 @@ fn prepare_with_receipt(
     encoder_max_parallel: usize,
     encoder_allow_software_fallback: bool,
     target_max_bytes: Option<u64>,
+    video_transcode_scope: Option<&str>,
     app: Option<&tauri::AppHandle>,
     item_index: usize,
 ) -> Result<media_prep::PreparedUploadArtifact, String> {
@@ -137,6 +138,7 @@ fn prepare_with_receipt(
         encoder_max_parallel,
         encoder_allow_software_fallback,
         target_max_bytes,
+        video_transcode_scope,
         app,
         item_index,
     ) {
@@ -833,6 +835,11 @@ fn run_intelligent_album(
         let _ = job_queue::update_item(tid, item.index, ItemState::Preparing, None, None);
         let mut prepared = None;
         let mut prepare_error = None;
+        let video_transcode_scope = rec
+            .options
+            .get("video_transcode_scope")
+            .or_else(|| rec.options.get("videoTranscodeScope"))
+            .and_then(|v| v.as_str());
         for attempt in 0..=1 {
             match prepare_with_receipt(
                 tid,
@@ -844,6 +851,7 @@ fn run_intelligent_album(
                 encoder_max_parallel,
                 encoder_allow_software_fallback,
                 Some(primary_limit),
+                video_transcode_scope,
                 app,
                 item.index,
             ) {
@@ -1939,6 +1947,11 @@ fn run_orchestrated_grammers(
 
         let _ = job_queue::update_item(&tid, item.index, ItemState::Preparing, None, None);
         // Remote URL download + optional ffmpeg reencode (no Telethon), pass user hardware preference
+        let video_transcode_scope = rec
+            .options
+            .get("video_transcode_scope")
+            .or_else(|| rec.options.get("videoTranscodeScope"))
+            .and_then(|v| v.as_str());
         let prepared_artifact = match prepare_with_receipt(
             &tid,
             &item.path,
@@ -1952,6 +1965,7 @@ fn run_orchestrated_grammers(
                 &rec,
                 account_capability.effective_max_bytes,
             )),
+            video_transcode_scope,
             app,
             item.index,
         ) {

@@ -810,6 +810,8 @@ export type AlbumIncompatImageMode = 'document' | 'transcode';
  *  'document' = send as document with auto-thumbnail (quality preserved).
  *  'transcode' = transcode to MP4 loop animation to include in the album. */
 export type AlbumIncompatAnimMode = 'document' | 'transcode';
+
+export type VideoTranscodeScope = 'all_non_mp4' | 'common_containers' | 'legacy_broadcast' | 'none';
 export type EncoderStrategy = 'auto_adaptive' | 'hardware_preferred' | 'software_preferred' | 'hardware_only' | 'software_only' | 'specific_device' | 'disable_reencode';
 export type EncoderResourceProfile = 'eco' | 'balanced' | 'performance' | 'custom';
 export type DownloadConflictPolicy = 'ask' | 'rename' | 'overwrite' | 'skip';
@@ -905,6 +907,12 @@ export type DriveTransferSettings = {
    *  'document' = send as document with auto-thumbnail (default, quality preserved).
    *  'transcode' = transcode to MP4 loop animation to include in the album. */
   albumIncompatAnimMode: AlbumIncompatAnimMode;
+  /** Scope of video containers to automatically remux/re-encode to MP4 in Smart/HighQuality modes:
+   *  'all_non_mp4' = all video containers (MKV, MOV, WebM, AVI, WMV, TS, FLV, M2TS, VOB, OGV, 3GP, etc.)
+   *  'common_containers' = popular containers only (MKV, MOV, WebM, AVI, 3GP)
+   *  'legacy_broadcast' = legacy/broadcast formats only (WMV, TS, FLV, M2TS, VOB, OGV, F4V, ASF)
+   *  'none' = do not transcode any non-MP4 videos (send as raw documents) */
+  videoTranscodeScope: VideoTranscodeScope;
   encoderStrategy: EncoderStrategy;
   encoderResourceProfile: EncoderResourceProfile;
   encoderMaxParallel: number;
@@ -993,6 +1001,7 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   albumAlternateStrategy: 'cancel_group',
   albumIncompatImageMode: 'document',
   albumIncompatAnimMode: 'document',
+  videoTranscodeScope: 'all_non_mp4',
   encoderStrategy: 'auto_adaptive',
   encoderResourceProfile: 'balanced',
   encoderMaxParallel: 1,
@@ -1117,6 +1126,9 @@ export function loadTransferSettings(): DriveTransferSettings {
         : 'cancel_group',
       albumIncompatImageMode: p.albumIncompatImageMode === 'transcode' ? 'transcode' : 'document',
       albumIncompatAnimMode: p.albumIncompatAnimMode === 'transcode' ? 'transcode' : 'document',
+      videoTranscodeScope: (['all_non_mp4', 'common_containers', 'legacy_broadcast', 'none'].includes(p.videoTranscodeScope)
+        ? p.videoTranscodeScope
+        : 'all_non_mp4') as VideoTranscodeScope,
       encoderStrategy: ['auto_adaptive', 'hardware_preferred', 'software_preferred', 'hardware_only', 'software_only', 'specific_device', 'disable_reencode'].includes(String(p.encoderStrategy)) ? p.encoderStrategy! : DEFAULT_TRANSFER_SETTINGS.encoderStrategy,
       encoderResourceProfile: ['eco', 'balanced', 'performance', 'custom'].includes(String(p.encoderResourceProfile)) ? p.encoderResourceProfile! : DEFAULT_TRANSFER_SETTINGS.encoderResourceProfile,
       encoderMaxParallel: Math.max(1, Math.min(4, Number(p.encoderMaxParallel) || DEFAULT_TRANSFER_SETTINGS.encoderMaxParallel)),

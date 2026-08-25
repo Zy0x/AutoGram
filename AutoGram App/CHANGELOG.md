@@ -1,3 +1,31 @@
+## v3.8.21 Advanced Media Pipeline: Configurable Video Transcode Scope, Audio Album Art Extraction & Universal Media Sniffing Engine
+
+### 1. Configurable Video Transcode / Remux Scope in Transfer Settings
+- **Kendali Transcode Fleksibel per Format**:
+  - Menambahkan opsi `videoTranscodeScope` pada `DriveTransferSettings` di `TransferSettingsWorkspace.tsx` dan `DriveToolsModal.tsx`:
+    - `all_non_mp4` (Default — Rekomendasi): Mengonversi/remux seluruh kontainer video (MKV, MOV, WebM, AVI, WMV, TS, FLV, M2TS, VOB, OGV, 3GP, F4V, ASF, MPG, MXF) ke MP4 H.264 agar playable di Android & Desktop.
+    - `common_containers`: Hanya mengonversi kontainer populer (MKV, MOV, WebM, AVI, 3GP); format siaran/lawas dikirim utuh sebagai dokumen mentah.
+    - `legacy_broadcast`: Hanya mengonversi format siaran dan lawas (WMV, TS, FLV, M2TS, VOB, OGV, F4V, ASF).
+    - `none`: Tidak ada video yang di-transcode atau di-remux (seluruh video non-MP4 dikirim utuh 100% sebagai dokumen mentah berthumbnail).
+  - Berlaku secara konsisten pada mode *Smart* dan *HighQuality*.
+
+### 2. Audio Album Cover Art Thumbnail Extraction
+- **Visual Thumbnail Otomatis untuk Berkas Musik & Audio**:
+  - Memperluas `extract_video_thumbnail` di `media_prep.rs` agar mendeteksi berkas audio (`mp3`, `m4a`, `flac`, `wav`, `ogg`, `opus`, `m4b`, `alac`, `aiff`, `ape`, `wma`, `aac`).
+  - Menangkap stream gambar sampul album tersemat (*Embedded Album Art / ID3 APIC / MP4 Covr*) via FFmpeg dan mengunggahnya sebagai thumbnail JPEG 320px tajam (`-q:v 3`) ke Telegram.
+
+### 3. Deep Magic-Byte Sniffing for Remote URLs & Header Verification
+- **Pendeteksian Tipe Berkas Mentah yang Luas**:
+  - Memperluas `sniff_actual_media_extension` di `media_prep.rs` untuk mendeteksi signature biner:
+    - Gambar: `BMP` (`BM`), `TIFF` (`II*`/`MM*`), `PSD` (`8BPS`), `HEIC`/`AVIF` (ISO-BMFF brand parsing).
+    - Audio: `AAC` (ADTS frame), `M4A` (ftyp), `AIFF` (`FORM...AIFF`).
+    - Arsip: `7Z` (`7z¼¯`), `RAR` (`Rar!`), `GZ` (``), `XZ` (`ý7zXZ`), `BZIP2` (`BZh`), `ZSTD` (`(µ/ý`).
+
+### 4. Comprehensive Media & RAW Registry in quality.rs
+- **Klasifikasi Lengkap Format Media Digital**:
+  - Mendaftarkan seluruh format Kamera RAW (DNG, CR2, CR3, NEF, ARW, ORF, RW2, PEF, RAF, SRW, dll.), Next-Gen / Grafis (JXL, HIF, TGA, DDS, EXR, HDR, PSD, EPS, AI), Extended Video (WMV, TS, FLV, M2TS, VOB, OGV, F4V, ASF, MPG, MXF), Extended Audio (AIFF, ALAC, APE, M4B, AC3, DTS, AMR, DSF, DFF), E-Book (EPUB, MOBI, CBR, CBZ), dan Arsip (TGZ, TBZ2, TXZ, ZST, ISO) ke dalam `autogram-core`.
+  - Menambahkan unit test baru `raw_and_nextgen_images_are_other_image`.
+
 ## v3.8.20 Universal Document Visual Thumbnail Engine & High-Fidelity Quality-First Non-Album Media Delivery
 
 ### 1. Universal Visual Thumbnail Extraction Across All Formats

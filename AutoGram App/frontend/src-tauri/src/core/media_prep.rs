@@ -456,13 +456,48 @@ fn sniff_actual_media_extension(path: &Path) -> Option<&'static str> {
                 if n >= 12 && magic.starts_with(b"RIFF") && &magic[8..12] == b"WAVE" {
                     return Some("wav");
                 }
-                // MP4 / MOV / M4V / 3GP (ftyp / moov / mdat)
+                // AVI / RIFF
+                if n >= 12 && magic.starts_with(b"RIFF") && &magic[8..12] == b"AVI " {
+                    return Some("avi");
+                }
+                // BMP
+                if magic.starts_with(b"BM") {
+                    return Some("bmp");
+                }
+                // TIFF (Little Endian / Big Endian)
+                if magic.starts_with(b"II*\0") || magic.starts_with(b"MM\0*") {
+                    return Some("tiff");
+                }
+                // Photoshop PSD
+                if magic.starts_with(b"8BPS") {
+                    return Some("psd");
+                }
+                // MP4 / MOV / M4V / 3GP / HEIC / AVIF / M4A (ftyp / moov / mdat)
                 if (n >= 8 && &magic[4..8] == b"ftyp")
                     || (n >= 8 && &magic[4..8] == b"moov")
                     || (n >= 8 && &magic[4..8] == b"mdat")
                     || magic.starts_with(b"ftyp")
                     || magic.starts_with(b"moov")
                 {
+                    if n >= 12 && &magic[4..8] == b"ftyp" {
+                        let brand = &magic[8..12];
+                        if brand == b"heic"
+                            || brand == b"heix"
+                            || brand == b"hevc"
+                            || brand == b"heim"
+                            || brand == b"heis"
+                            || brand == b"mif1"
+                            || brand == b"msf1"
+                        {
+                            return Some("heic");
+                        }
+                        if brand == b"avif" || brand == b"avis" {
+                            return Some("avif");
+                        }
+                        if brand == b"M4A " || brand == b"M4B " || brand == b"F4A " {
+                            return Some("m4a");
+                        }
+                    }
                     return Some("mp4");
                 }
                 // Matroska / WebM
@@ -473,9 +508,17 @@ fn sniff_actual_media_extension(path: &Path) -> Option<&'static str> {
                 if magic.starts_with(b"ID3") || (magic[0] == 0xFF && (magic[1] & 0xE0) == 0xE0) {
                     return Some("mp3");
                 }
+                // AAC (ADTS)
+                if magic[0] == 0xFF && (magic[1] & 0xF6) == 0xF0 {
+                    return Some("aac");
+                }
                 // FLAC
                 if magic.starts_with(b"fLaC") {
                     return Some("flac");
+                }
+                // AIFF
+                if magic.starts_with(b"FORM") && n >= 12 && &magic[8..12] == b"AIFF" {
+                    return Some("aiff");
                 }
                 // OGG / Opus / Vorbis
                 if magic.starts_with(b"OggS") {
@@ -484,6 +527,30 @@ fn sniff_actual_media_extension(path: &Path) -> Option<&'static str> {
                 // PDF
                 if magic.starts_with(b"%PDF") {
                     return Some("pdf");
+                }
+                // 7-Zip
+                if magic.starts_with(&[0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C]) {
+                    return Some("7z");
+                }
+                // RAR
+                if magic.starts_with(b"Rar!\x1a\x07\x00") || magic.starts_with(b"Rar!\x1a\x07\x01\x00") {
+                    return Some("rar");
+                }
+                // GZIP
+                if magic.starts_with(&[0x1F, 0x8B]) {
+                    return Some("gz");
+                }
+                // XZ
+                if magic.starts_with(&[0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00]) {
+                    return Some("xz");
+                }
+                // BZIP2
+                if magic.starts_with(b"BZh") {
+                    return Some("bz2");
+                }
+                // Zstandard
+                if magic.starts_with(&[0x28, 0xB5, 0x2F, 0xFD]) {
+                    return Some("zst");
                 }
                 // ZIP
                 if magic.starts_with(&[0x50, 0x4B, 0x03, 0x04]) {
@@ -816,7 +883,31 @@ pub fn extract_video_thumbnail(path: &str) -> Option<PathBuf> {
         .to_ascii_lowercase();
     let is_video = matches!(
         ext.as_str(),
-        "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "3gpp" | "flv" | "ts" | "wmv" | "m2ts" | "vob"
+        "mp4"
+            | "mov"
+            | "qt"
+            | "mkv"
+            | "webm"
+            | "avi"
+            | "m4v"
+            | "3gp"
+            | "3g2"
+            | "3gpp"
+            | "3gpp2"
+            | "flv"
+            | "f4v"
+            | "ts"
+            | "m2ts"
+            | "mts"
+            | "vob"
+            | "wmv"
+            | "asf"
+            | "ogv"
+            | "mpg"
+            | "mpeg"
+            | "m2v"
+            | "mxf"
+            | "divx"
     );
     let is_image = matches!(
         ext.as_str(),
@@ -831,17 +922,54 @@ pub fn extract_video_thumbnail(path: &str) -> Option<PathBuf> {
             | "tif"
             | "heic"
             | "heif"
+            | "hif"
             | "avif"
+            | "avis"
+            | "jxl"
             | "svg"
+            | "svgz"
             | "ico"
+            | "cur"
             | "psd"
+            | "psb"
+            | "tga"
+            | "dds"
+            | "exr"
+            | "hdr"
             | "raw"
             | "dng"
             | "cr2"
+            | "cr3"
             | "nef"
+            | "nrw"
             | "arw"
+            | "srf"
+            | "sr2"
+            | "orf"
+            | "rw2"
+            | "pef"
+            | "raf"
+            | "srw"
+            | "x3f"
     );
-    if !is_video && !is_image {
+    let is_audio = matches!(
+        ext.as_str(),
+        "mp3"
+            | "m4a"
+            | "m4b"
+            | "aac"
+            | "ogg"
+            | "oga"
+            | "opus"
+            | "flac"
+            | "alac"
+            | "wav"
+            | "wma"
+            | "aiff"
+            | "aif"
+            | "ape"
+    );
+    if !is_video && !is_image && !is_audio {
         return None;
     }
 
@@ -854,7 +982,7 @@ pub fn extract_video_thumbnail(path: &str) -> Option<PathBuf> {
 
     // Get video duration to seek to a representative frame (10% into video for videos, 0s for images)
     let (width, height, duration) = probe_video_metadata(path);
-    let seek_time = if is_image {
+    let seek_time = if is_image || is_audio {
         0.0
     } else if duration > 0.0 {
         (duration * 0.1).min(10.0) // seek to 10% or max 10s
@@ -1070,9 +1198,11 @@ pub fn maybe_reencode_for_telegram(
     target_max_bytes: Option<u64>,
     target_planning_bytes: Option<u64>,
     target_attempt: u8,
+    video_transcode_scope: Option<&str>,
     app: Option<&tauri::AppHandle>,
     item_index: usize,
 ) -> Result<String, String> {
+    let rec_video_transcode_scope = video_transcode_scope;
     let strategy = encoder_strategy.unwrap_or("auto_adaptive");
     let strict_hardware = matches!(strategy, "hardware_only" | "specific_device");
     let strict_software = strategy == "software_only";
@@ -1167,10 +1297,46 @@ pub fn maybe_reencode_for_telegram(
         return Ok(path.to_string());
     }
 
-    let is_video = matches!(
-        ext.as_str(),
-        "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp"
-    );
+    let transcode_scope = rec_video_transcode_scope.unwrap_or("all_non_mp4");
+    let is_video = match transcode_scope {
+        "none" => ext == "mp4",
+        "common_containers" | "common_only" => matches!(
+            ext.as_str(),
+            "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "3gpp"
+        ),
+        "legacy_broadcast" => matches!(
+            ext.as_str(),
+            "mp4" | "wmv" | "ts" | "flv" | "m2ts" | "mts" | "vob" | "ogv" | "f4v" | "asf" | "mpg" | "mpeg" | "m2v" | "mxf"
+        ),
+        _ => matches!(
+            ext.as_str(),
+            "mp4"
+                | "mov"
+                | "qt"
+                | "mkv"
+                | "webm"
+                | "avi"
+                | "m4v"
+                | "3gp"
+                | "3g2"
+                | "3gpp"
+                | "3gpp2"
+                | "ts"
+                | "m2ts"
+                | "mts"
+                | "vob"
+                | "flv"
+                | "f4v"
+                | "wmv"
+                | "asf"
+                | "ogv"
+                | "mpg"
+                | "mpeg"
+                | "m2v"
+                | "mxf"
+                | "divx"
+        ),
+    };
     if !is_video {
         return Ok(path.to_string());
     }
@@ -1507,6 +1673,7 @@ pub fn maybe_reencode_for_telegram(
                     target_max_bytes,
                     target_planning_bytes,
                     target_attempt,
+                    video_transcode_scope,
                     app,
                     item_index,
                 );
@@ -1614,6 +1781,7 @@ pub fn maybe_reencode_for_telegram(
                             target_max_bytes,
                             Some(adjusted_plan),
                             target_attempt + 1,
+                            video_transcode_scope,
                             app,
                             item_index,
                         );
@@ -1676,6 +1844,7 @@ pub fn maybe_reencode_for_telegram(
             target_max_bytes,
             target_planning_bytes,
             target_attempt,
+            video_transcode_scope,
             app,
             item_index,
         );
@@ -1714,6 +1883,7 @@ pub fn prepare_upload_artifact_with_policy(
     encoder_max_parallel: usize,
     encoder_allow_software_fallback: bool,
     target_max_bytes: Option<u64>,
+    video_transcode_scope: Option<&str>,
     app: Option<&tauri::AppHandle>,
     item_index: usize,
 ) -> Result<PreparedUploadArtifact, String> {
@@ -1737,6 +1907,7 @@ pub fn prepare_upload_artifact_with_policy(
         target_max_bytes,
         None,
         0,
+        video_transcode_scope,
         app,
         item_index,
     )?;
@@ -1870,6 +2041,7 @@ pub fn prepare_upload_artifact(
         None,
         1,
         true,
+        None,
         None,
         app,
         item_index,

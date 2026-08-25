@@ -2207,6 +2207,29 @@ export function TransferSettingsWorkspace({
                     </select>
                   </div>
                 </div>
+
+                <div className="td-field-group" style={{ marginTop: '14px' }}>
+                  <label className="td-field-label">{t('speedtest.video_transcode_scope_label')}</label>
+                  <select
+                    value={draft.videoTranscodeScope || 'all_non_mp4'}
+                    disabled={!!transferActive || currentEncoderMode === 'disabled'}
+                    onChange={(e) => patch({ videoTranscodeScope: e.target.value as any })}
+                  >
+                    <option value="all_non_mp4">{t('speedtest.video_transcode_scope_all')}</option>
+                    <option value="common_containers">{t('speedtest.video_transcode_scope_common')}</option>
+                    <option value="legacy_broadcast">{t('speedtest.video_transcode_scope_legacy')}</option>
+                    <option value="none">{t('speedtest.video_transcode_scope_none')}</option>
+                  </select>
+                  <p className="td-field-hint" style={{ marginTop: '6px', fontSize: '12px', color: 'rgba(148, 163, 184, 0.9)' }}>
+                    {draft.videoTranscodeScope === 'none'
+                      ? t('speedtest.video_transcode_scope_none_desc')
+                      : draft.videoTranscodeScope === 'common_containers'
+                      ? t('speedtest.video_transcode_scope_common_desc')
+                      : draft.videoTranscodeScope === 'legacy_broadcast'
+                      ? t('speedtest.video_transcode_scope_legacy_desc')
+                      : t('speedtest.video_transcode_scope_all_desc')}
+                  </p>
+                </div>
               </div>
             </div>
 

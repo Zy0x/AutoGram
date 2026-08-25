@@ -1,6 +1,13 @@
-AutoGram Version: v3.8.20
+AutoGram Version: v3.8.21
 
 Current State:
+v3.8.21 Advanced Media Pipeline: Configurable Video Transcode Scope, Audio Album Art Extraction & Universal Media Sniffing Engine — perbaikan dan perluasan menyeluruh pada penanganan format media digital:
+1. Configurable Video Transcode Scope in Transfer Settings: Menambahkan opsi `videoTranscodeScope` di Pengaturan Transfer (`all_non_mp4` [Default], `common_containers`, `legacy_broadcast`, `none`) pada mode Smart dan HighQuality untuk memberikan kendali penuh kepada pengguna dalam menentukan kontainer video mana yang ingin di-remux/re-encode ke MP4 native atau dikirim sebagai dokumen mentah.
+2. Audio Album Cover Art Thumbnail Extraction: Memperluas `extract_video_thumbnail` di `media_prep.rs` untuk membaca stream gambar sampul album (*Embedded Album Art / ID3 APIC / MP4 Covr*) pada berkas audio (MP3, M4A, FLAC, OGG, OPUS, M4B, ALAC, AIFF, APE, WMA, AAC) dan melampirkannya sebagai thumbnail visual JPEG 320px di Telegram.
+3. Deep Magic-Byte Sniffing for Remote URLs & Extensionless Files: Memperluas `sniff_actual_media_extension` untuk mendeteksi signature biner BMP, TIFF, 7Z, RAR, GZ, XZ, BZIP2, ZSTD, AAC, PSD, AIFF, serta brand ISO-BMFF untuk HEIC, AVIF, dan M4A.
+4. Comprehensive Media & RAW Registry in quality.rs: Mendaftarkan seluruh format Kamera RAW (DNG, CR2, CR3, NEF, ARW, ORF, RW2, PEF, RAF, SRW, dll.), Next-Gen / Grafis (JXL, HIF, TGA, DDS, EXR, HDR, PSD, EPS, AI), Extended Video (WMV, TS, FLV, M2TS, VOB, OGV, F4V, ASF, MPG, MXF), Extended Audio (AIFF, ALAC, APE, M4B, AC3, DTS, AMR, DSF, DFF), E-Book (EPUB, MOBI, CBR, CBZ), dan Arsip (TGZ, TBZ2, TXZ, ZST, ISO) ke dalam `autogram-core`.
+
+Previous:
 v3.8.20 Universal Document Visual Thumbnail Engine & High-Fidelity Quality-First Non-Album Media Delivery — pembaruan menyeluruh pada penanganan format media, registry MIME type, dan jaminan kualitas delivery per-satuan:
 1. Universal Visual Thumbnail Extraction: Memperluas cakupan format media visual (`is_image` dan `is_video`) di `media_prep.rs` dan `media_transfer.rs` sehingga seluruh format gambar dan video (HEIC, HEIF, AVIF, SVG, TIFF, TIF, JFIF, BMP, WebP, ICO, PSD, RAW, DNG, CR2, NEF, ARW, WMV, TS, FLV, M2TS, VOB, dll.) secara otomatis diekstrak thumbnail JPEG 320px via FFmpeg dan dilampirkan via `.thumbnail()`.
 2. Eliminasi Dokumen Hampa di Telegram Desktop & Android: Berkas gambar/video yang dikirim sebagai dokumen murni (`as_document = true` atau mode Original) kini selalu memiliki gambar pratinjau thumbnail yang jernih di card obrolan Telegram tanpa menjadi ikon dokumen kosong.
