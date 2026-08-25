@@ -1459,12 +1459,12 @@ fn run_intelligent_album(
                         group.items.len()
                     ),
                 );
-                super::autogram_core::transfer::update_album_commit(
+                let _ = super::autogram_core::transfer::update_album_commit(
                     &commit_id,
-                    "FALLBACK_SINGLES",
+                    "REVIEW_REQUIRED",
                     &[],
                     Some(&format!("Fell back to individual uploads: {}", err_msg)),
-                )?;
+                );
 
                 // Intelligent Fallback: Upload every item in the album group individually
                 for item in group.items {

@@ -1,6 +1,11 @@
-AutoGram Version: v3.8.25
+AutoGram Version: v3.8.26
 
 Current State:
+v3.8.26 SQLite CHECK Constraint Compliance for Album Fallback Commits — perbaikan database transfer:
+1. SQLite Album Commit CHECK Constraint: Memperbaiki status commit pada `update_album_commit` saat fallback album terpicu ke `"REVIEW_REQUIRED"`, memenuhi batasan ketat SQLite CHECK constraint (`'PREPARED','UPLOADING','COMMITTING','UNKNOWN_COMMIT','RECONCILING','COMMITTED','FAILED','REVIEW_REQUIRED'`).
+2. Robust Fallback Execution: Memastikan transisi fallback cerdas berjalan mulus tanpa hambatan query database.
+
+Previous:
 v3.8.25 Grammers MTProto Direct Album Submission & Intelligent Self-Healing Multi-Media Fallback Engine — resolusi kegagalan album Telegram:
 1. Direct SendMultiMedia Input Media Dispatch: Mengeliminasi panggilan redundan `messages.UploadMedia` sebelum `messages.sendMultiMedia`, mengoper `InputMediaUploadedDocument` / `InputMediaUploadedPhoto` langsung ke `InputSingleMedia`, memusnahkan error `rpc error 400: MEDIA_EMPTY`.
 2. Intelligent Self-Healing Album Fallback: Menambahkan sistem kecerdasan pada `studio_orch.rs` di mana jika Telegram menolak pengelompokan album karena alasan apapun, engine secara otomatis dan mulus beralih ke pengiriman satuan (individual messages) tanpa menggagalkan transfer file.

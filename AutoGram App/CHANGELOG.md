@@ -1,3 +1,9 @@
+## v3.8.26 SQLite CHECK Constraint Compliance for Album Fallback Commits
+
+### 1. SQLite Schema CHECK Constraint Compliance
+- **Perbaikan Status `album_commits`**: Memperbaiki state transisi saat fallback pengiriman satuan terpicu dari string kustom non-schema menjadi `"REVIEW_REQUIRED"`.
+- **Eliminasi Kesalahan CHECK Constraint Database**: Menjamin query update pada tabel `album_commits` selalu valid dan tidak memicu error SQLite `CHECK constraint failed`.
+
 ## v3.8.25 Grammers MTProto Direct Album Submission & Intelligent Self-Healing Multi-Media Fallback Engine
 
 ### 1. Direct SendMultiMedia Media Dispatching (Eliminasi MEDIA_EMPTY)
