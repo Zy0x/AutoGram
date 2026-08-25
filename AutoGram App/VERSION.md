@@ -1,6 +1,12 @@
-AutoGram Version: v3.8.23
+AutoGram Version: v3.8.24
 
 Current State:
+v3.8.24 Unified Media Delivery & Transcoding Hub with Progressive Hierarchical Controls and Zero Conflict Architecture — konsolidasi menyeluruh seluruh aturan pemrosesan media:
+1. Unified Media Delivery & Transcoding Hub: Menyatukan seluruh pengaturan Gambar Non-Standar, Animasi/Stiker, dan Video Non-MP4 ke dalam satu tempat terpusat di Tab "Encoding & Media" dengan arsitektur 3 Pilar Hierarkis (Progressive Disclosure: Jika A dipilih → Muncul B → Muncul C).
+2. Elimination of Conflicting Legacy Interceptors: Menghapus sakelar lama dan interceptor warisan di `media_prep.rs` yang sebelumnya memaksa file .webp menjadi `photo_xxxx.jpg`, sehingga berkas gambar dengan strategi Dokumen Mentah dikirim 100% utuh bit-for-bit dengan nama asli (misal: `dyantocialong-13-08-2023-0003.webp`) dan thumbnail visual 320px tajam tanpa penurunan kualitas dan tanpa perubahan nama oleh Telegram.
+3. Clean Tab Synchronization: Menghilangkan sakelar stiker duplikat di Tab Upload dan menyelaraskan Tab Album Grouping agar mereferensikan Unified Hub yang sama tanpa duplikasi pengaturan.
+
+Previous:
 v3.8.23 Interactive Image Transcode Multi-Format Checklist with Lossless PNG & Maximum Quality JPEG (Q100 4:4:4) Support — penyempurnaan menyeluruh pada antarmuka dan pipeline transkode format gambar:
 1. Interactive Image Transcode Multi-Format Checklist UI: Menambahkan panel ceklist interaktif multi-pilihan pada Pengaturan Transfer Album yang memungkinkan pengguna mencentang/memilih secara bebas seluruh ekstensi gambar (.WEBP, .HEIC, .HEIF, .AVIF, .JXL, .TIFF, .BMP, .SVG, .PSD, .TGA, .RAW, .DNG, .CR2, .CR3, .NEF, .ARW, .ORF, .RW2, .RAF) yang ingin di-transcode atau dikirim sebagai dokumen mentah asli, lengkap dengan tombol cepat "Pilih Semua Gambar" dan "Batal Pilih Semua Gambar" serta penghitung format aktif.
 2. 100% No Loss Quality Transcoding Engine: Menyediakan opsi target format transcode gambar:

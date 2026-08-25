@@ -1,3 +1,20 @@
+## v3.8.24 Unified Media Delivery & Transcoding Hub with Progressive Hierarchical Controls and Zero Conflict Architecture
+
+### 1. Unified Media Delivery & Transcoding Hub (3 Pilar Terpadu)
+- **Pilar 1: Format Gambar Non-Standar** (`.WEBP`, `.HEIC`, `.AVIF`, `.TIFF`, `.BMP`, `.SVG`, `.PSD`, `.RAW`, dll.):
+  - Strategi Pengiriman Utama: *Kirim Dokumen Mentah Asli 100% Utuh (Lossless Document)* vs *Konversi / Transcode ke Format Native Telegram*.
+  - Progressive Disclosure: Jika Konversi dipilih, muncul pilihan Target Format (*PNG 100% Lossless* vs *JPEG Q100 4:4:4*) dan Jangkauan Format (*Semua / Web Modern / Grafis & RAW / Kustom Ceklist 19 Ekstensi*).
+- **Pilar 2: Format Animasi & Stiker** (`.GIF`, `.TGS`, `.WEBM`):
+  - Strategi Pengiriman: *Kirim Dokumen Asli Berthumbnail* vs *Transcode ke Video MP4 Loop*.
+- **Pilar 3: Format Video Non-MP4** (`.MKV`, `.MOV`, `.WEBM`, `.AVI`, `.WMV`, `.TS`, `.FLV`, dll.):
+  - Strategi Pengiriman: *Transcode / Remux ke MP4 Native (Playable di Telegram)* vs *Kirim Dokumen Mentah Asli*.
+
+### 2. Eliminasi Interceptor Warisan & Preservasi Nama Berkas Asli
+- **Perbaikan Backend di `media_prep.rs`**:
+  - Menghapus interceptor lama yang memaksa WebP menjadi JPEG lossy berpenamaan `photo_xxxx.jpg`.
+  - Berkas `.webp` dengan strategi Dokumen Mentah dikirim murni 100% bit-exact dengan nama asli `dyantocialong-13-08-2023-0003.webp`, MIME `image/webp`, dan thumbnail 320px tajam.
+  - Berkas yang di-transcode mempertahankan stem nama asli (misal `dyantocialong-13-08-2023-0003.png`).
+
 ## v3.8.23 Interactive Image Transcode Multi-Format Checklist with Lossless PNG & Maximum Quality JPEG (Q100 4:4:4) Support
 
 ### 1. Interactive Image Transcode Multi-Format Checklist UI

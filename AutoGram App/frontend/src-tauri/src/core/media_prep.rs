@@ -1226,64 +1226,7 @@ pub fn maybe_reencode_for_telegram(
         .unwrap_or("")
         .to_ascii_lowercase();
 
-    // 1:1 Lossless conversion for WebP / Sticker media if prevent_sticker_conversion is requested
-    // or if sending in photo albums where Telegram API rejects raw .webp with MEDIA_EMPTY (400)
-    if ext == "webp" || ext == "tgs" {
-        let prevent_sticker = mode.contains("PREVENT_STICKER")
-            || mode.contains("PHOTO")
-            || mode.contains("VISUAL")
-            || mode.contains("SEIMBANG")
-            || mode.contains("HEMAT")
-            || mode.contains("JELAS")
-            || mode.contains("HIGH")
-            || mode.contains("LOW")
-            || mode.contains("AUTO");
-
-        if prevent_sticker {
-            emit_transfer_event(
-                app,
-                "StudioItemPrepare",
-                serde_json::json!({
-                    "index": item_index,
-                    "path": path,
-                    "phase": "convert",
-                    "percent": 0
-                }),
-            );
-            // Transcode WebP directly to JPEG (Q92) so only ONE lossy step occurs
-            // under our control. Telegram's server always re-encodes native Photos to
-            // JPEG anyway; JPEG→JPEG at similar quality adds negligible degradation,
-            // unlike PNG→JPEG which is a full lossless→lossy server-side conversion.
-            // Falls back to lossless PNG if JPEG transcode fails for any reason.
-            let transcode_result = transcode_webp_to_jpeg_for_photo(path).or_else(|jpeg_err| {
-                tg_log::warn(
-                    BACKEND,
-                    "webp_jpeg_transcode_fallback",
-                    format!("jpeg failed ({jpeg_err}), retrying as lossless PNG"),
-                );
-                transcode_sticker_media_to_image_lossless(path)
-            });
-            match transcode_result {
-                Ok(out_path) => {
-                    emit_transfer_event(
-                        app,
-                        "StudioItemPrepare",
-                        serde_json::json!({
-                            "index": item_index,
-                            "path": out_path,
-                            "phase": "converted",
-                            "percent": 100,
-                            "output_bytes": fs::metadata(&out_path).map(|value| value.len()).unwrap_or(0)
-                        }),
-                    );
-                    return Ok(out_path.display().to_string());
-                }
-                Err(e) => {
-                    tg_log::warn(BACKEND, "webp_transcode_failed", e);
-                }
-            }
-        }
-    }
+    // Note: Image transcoding is cleanly and exclusively handled by maybe_transcode_image_for_telegram
 
     // ORIGINAL / DOCUMENT / UNCOMPRESSED / RAW / LOSSLESS / PASSTHROUGH / empty → skip video reencode
     if mode.is_empty()
@@ -2274,14 +2217,12 @@ pub fn maybe_transcode_image_for_telegram(
 
     let temp_dir = std::env::temp_dir();
     let out_ext = if is_target_png { "png" } else { "jpg" };
+    let stem = p.file_stem().and_then(|s| s.to_str()).unwrap_or("image");
     let out_file = temp_dir.join(format!(
-        "img_transcode_{}_{}_{}.{}",
+        "{}_{}_{}.{}",
+        stem,
         std::process::id(),
         item_index,
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_millis())
-            .unwrap_or(0),
         out_ext
     ));
 
