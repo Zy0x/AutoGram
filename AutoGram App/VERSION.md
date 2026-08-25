@@ -1,6 +1,12 @@
-AutoGram Version: v3.8.27
+AutoGram Version: v3.8.28
 
 Current State:
+v3.8.28 Telegram Absolute force_file Enforcement & Native WebP Document Protection — pemusnahan mutlak konversi stiker Telegram:
+1. Hardcoded force_file: true Bypass: Memperbaiki keterbatasan internal `InputMessage.document` pada grammers-client yang sebelumnya meng-hardcode `force_file = false`. Seluruh dokumen `.webp` dan format biner kini diunggah langsung melalui `InputMediaUploadedDocument` dengan `force_file: true` dan `DocumentAttributeFilename`.
+2. Absolute Non-Sticker Guarantee: Memaksa server Telegram memperlakukan berkas `.webp` 100% sebagai berkas dokumen asli (bukan stiker melayang), lengkap dengan kotak berkas, nama file asli, dan thumbnail visual tajam.
+3. Universal Drive Card Visibility: Menjamin berkas `.webp` terdaftar di indeks `InputMessagesFilterDocument` Telegram dan langsung muncul di list card Drive Explorer.
+
+Previous:
 v3.8.27 Telegram Strict Document Filename Attribute Enforcement & Anti-Sticker Guarantee — pemusnahan konversi stiker Telegram:
 1. Strict DocumentAttributeFilename Attachment: Menyematkan `DocumentAttributeFilename` secara eksplisit pada seluruh pemanggilan `InputMessage::document` di `media_transfer.rs`. Hal ini mencegah server Telegram salah mengidentifikasi berkas `.webp` sebagai stiker tanpa nama, menjamin berkas tampil utuh dengan kotak berkas, nama lengkap, dan thumbnail tajam.
 2. Full Document Indexing Parity: Dengan adanya atribut nama berkas, Telegram mengenali berkas sebagai dokumen resmi sehingga langsung terindeks di pencarian dokumen dan list card Drive AutoGram.

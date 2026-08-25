@@ -1,3 +1,10 @@
+## v3.8.28 Telegram Absolute force_file Enforcement & Native WebP Document Protection
+
+### 1. Absolute `force_file: true` MTProto Dispatch (Anti-Sticker Mutlak)
+- **Eliminasi Hardcoded `force_file: false`**: Menggantikan pembangun `InputMessage.document` bawaan dengan konstruksi langsung `tl::types::InputMediaUploadedDocument { force_file: true, ... }`.
+- **Perlakuan Dokumen Murni**: Telegram server kini diwajibkan memperlakukan setiap berkas `.webp` sebagai dokumen utuh dengan kotak file dan nama asli (`DocumentAttributeFilename`), melenyapkan konversi stiker tanpa nama.
+- **Dukungan Penuh di Seluruh Saluran Pengunggahan**: Diterapkan secara seragam pada pengunggahan satuan, pengunggahan batch album, dan pengunggahan streaming.
+
 ## v3.8.27 Telegram Strict Document Filename Attribute Enforcement & Anti-Sticker Guarantee
 
 ### 1. Strict DocumentAttributeFilename Attachment (Pemberantasan Konversi Stiker)

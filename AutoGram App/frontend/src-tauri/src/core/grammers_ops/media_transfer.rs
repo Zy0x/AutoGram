@@ -1118,15 +1118,12 @@ fn upload_prepared_album_blocking_with_app_legacy(
                     // Forum topic: attach reply_to on all media items so Telegram routes every file to topic
                     let im = im.reply_to(reply_to);
                     let final_media = if as_document {
-                        let mut doc_im = im
-                            .mime_type(mime)
-                            .document(uploaded)
-                            .attribute(Attribute::FileName(filename.to_string()));
+                        let mut thumb_raw = None;
                         if is_video || is_image || is_audio {
                             let thumb_path = extract_video_thumbnail(path_str);
                             if let Some(ref tp) = thumb_path {
                                 if let Ok(thumb_uploaded) = client.upload_file(tp).await {
-                                    doc_im = doc_im.thumbnail(thumb_uploaded);
+                                    thumb_raw = Some(thumb_uploaded.raw);
                                     tg_log::info(
                                         BACKEND,
                                         "album_doc_thumb_attached",
@@ -1136,7 +1133,22 @@ fn upload_prepared_album_blocking_with_app_legacy(
                                 let _ = std::fs::remove_file(tp);
                             }
                         }
-                        doc_im
+                        im.media(tl::types::InputMediaUploadedDocument {
+                            nosound_video: false,
+                            force_file: true,
+                            spoiler: false,
+                            file: uploaded.raw,
+                            thumb: thumb_raw,
+                            mime_type: mime.to_string(),
+                            attributes: vec![(tl::types::DocumentAttributeFilename {
+                                file_name: filename.to_string(),
+                            })
+                            .into()],
+                            stickers: None,
+                            video_cover: None,
+                            video_timestamp: None,
+                            ttl_seconds: None,
+                        })
                     } else if is_photo {
                         im.photo(uploaded)
                     } else if is_video {
@@ -1182,18 +1194,30 @@ fn upload_prepared_album_blocking_with_app_legacy(
                         }
                         audio_im
                     } else {
-                        let mut doc_im = im
-                            .mime_type(mime)
-                            .document(uploaded)
-                            .attribute(Attribute::FileName(filename.to_string()));
+                        let mut thumb_raw = None;
                         let thumb_path = extract_video_thumbnail(path_str);
                         if let Some(ref tp) = thumb_path {
                             if let Ok(thumb_uploaded) = client.upload_file(tp).await {
-                                doc_im = doc_im.thumbnail(thumb_uploaded);
+                                thumb_raw = Some(thumb_uploaded.raw);
                             }
                             let _ = std::fs::remove_file(tp);
                         }
-                        doc_im
+                        im.media(tl::types::InputMediaUploadedDocument {
+                            nosound_video: false,
+                            force_file: true,
+                            spoiler: false,
+                            file: uploaded.raw,
+                            thumb: thumb_raw,
+                            mime_type: mime.to_string(),
+                            attributes: vec![(tl::types::DocumentAttributeFilename {
+                                file_name: filename.to_string(),
+                            })
+                            .into()],
+                            stickers: None,
+                            video_cover: None,
+                            video_timestamp: None,
+                            ttl_seconds: None,
+                        })
                     };
                     let _ = silent;
                     medias.push(final_media);
@@ -1579,15 +1603,12 @@ pub fn upload_file_blocking_topic_with_app(
                 // Prefer document for fidelity; video gets thumbnail + video attributes
                 // Prefer document for fidelity; video gets thumbnail + video attributes
                 msg = if as_document {
-                    let mut doc_msg = msg
-                        .mime_type(mime)
-                        .document(uploaded)
-                        .attribute(Attribute::FileName(filename.to_string()));
+                    let mut thumb_raw = None;
                     if is_video || is_image || is_audio {
                         let thumb_path = extract_video_thumbnail(path_str);
                         if let Some(ref tp) = thumb_path {
                             if let Ok(thumb_uploaded) = client.upload_file(tp).await {
-                                doc_msg = doc_msg.thumbnail(thumb_uploaded);
+                                thumb_raw = Some(thumb_uploaded.raw);
                                 tg_log::info(
                                     BACKEND,
                                     "upload_doc_thumb_attached",
@@ -1597,7 +1618,22 @@ pub fn upload_file_blocking_topic_with_app(
                             let _ = std::fs::remove_file(tp);
                         }
                     }
-                    doc_msg
+                    msg.media(tl::types::InputMediaUploadedDocument {
+                        nosound_video: false,
+                        force_file: true,
+                        spoiler: false,
+                        file: uploaded.raw,
+                        thumb: thumb_raw,
+                        mime_type: mime.to_string(),
+                        attributes: vec![(tl::types::DocumentAttributeFilename {
+                            file_name: filename.to_string(),
+                        })
+                        .into()],
+                        stickers: None,
+                        video_cover: None,
+                        video_timestamp: None,
+                        ttl_seconds: None,
+                    })
                 } else if is_photo {
                     msg.photo(uploaded)
                 } else if is_video {
@@ -1643,18 +1679,30 @@ pub fn upload_file_blocking_topic_with_app(
                     }
                     audio_msg
                 } else {
-                    let mut doc_msg = msg
-                        .mime_type(mime)
-                        .document(uploaded)
-                        .attribute(Attribute::FileName(filename.to_string()));
+                    let mut thumb_raw = None;
                     let thumb_path = extract_video_thumbnail(path_str);
                     if let Some(ref tp) = thumb_path {
                         if let Ok(thumb_uploaded) = client.upload_file(tp).await {
-                            doc_msg = doc_msg.thumbnail(thumb_uploaded);
+                            thumb_raw = Some(thumb_uploaded.raw);
                         }
                         let _ = std::fs::remove_file(tp);
                     }
-                    doc_msg
+                    msg.media(tl::types::InputMediaUploadedDocument {
+                        nosound_video: false,
+                        force_file: true,
+                        spoiler: false,
+                        file: uploaded.raw,
+                        thumb: thumb_raw,
+                        mime_type: mime.to_string(),
+                        attributes: vec![(tl::types::DocumentAttributeFilename {
+                            file_name: filename.to_string(),
+                        })
+                        .into()],
+                        stickers: None,
+                        video_cover: None,
+                        video_timestamp: None,
+                        ttl_seconds: None,
+                    })
                 };
 
                 let sent = match client.send_message(peer, msg).await {
@@ -1897,20 +1945,32 @@ pub fn upload_file_blocking_topic_with_delivery(
                 }
 
                 msg = if as_document {
-                    let mut doc_msg = msg
-                        .mime_type(mime)
-                        .document(uploaded)
-                        .attribute(Attribute::FileName(display_filename.clone()));
+                    let mut thumb_raw = None;
                     if is_video || is_image || is_audio {
                         let thumb_path = extract_video_thumbnail(path_str);
                         if let Some(ref tp) = thumb_path {
                             if let Ok(thumb_uploaded) = client.upload_file(tp).await {
-                                doc_msg = doc_msg.thumbnail(thumb_uploaded);
+                                thumb_raw = Some(thumb_uploaded.raw);
                             }
                             let _ = std::fs::remove_file(tp);
                         }
                     }
-                    doc_msg
+                    msg.media(tl::types::InputMediaUploadedDocument {
+                        nosound_video: false,
+                        force_file: true,
+                        spoiler,
+                        file: uploaded.raw,
+                        thumb: thumb_raw,
+                        mime_type: mime.to_string(),
+                        attributes: vec![(tl::types::DocumentAttributeFilename {
+                            file_name: display_filename.clone(),
+                        })
+                        .into()],
+                        stickers: None,
+                        video_cover: None,
+                        video_timestamp: None,
+                        ttl_seconds: None,
+                    })
                 } else if is_photo {
                     msg.photo(uploaded)
                 } else if is_video {
@@ -1955,18 +2015,30 @@ pub fn upload_file_blocking_topic_with_delivery(
                     }
                     audio_msg
                 } else {
-                    let mut doc_msg = msg
-                        .mime_type(mime)
-                        .document(uploaded)
-                        .attribute(Attribute::FileName(display_filename.clone()));
+                    let mut thumb_raw = None;
                     let thumb_path = extract_video_thumbnail(path_str);
                     if let Some(ref tp) = thumb_path {
                         if let Ok(thumb_uploaded) = client.upload_file(tp).await {
-                            doc_msg = doc_msg.thumbnail(thumb_uploaded);
+                            thumb_raw = Some(thumb_uploaded.raw);
                         }
                         let _ = std::fs::remove_file(tp);
                     }
-                    doc_msg
+                    msg.media(tl::types::InputMediaUploadedDocument {
+                        nosound_video: false,
+                        force_file: true,
+                        spoiler,
+                        file: uploaded.raw,
+                        thumb: thumb_raw,
+                        mime_type: mime.to_string(),
+                        attributes: vec![(tl::types::DocumentAttributeFilename {
+                            file_name: display_filename.clone(),
+                        })
+                        .into()],
+                        stickers: None,
+                        video_cover: None,
+                        video_timestamp: None,
+                        ttl_seconds: None,
+                    })
                 };
 
                 if let Some(app) = app_handle.as_ref() {
