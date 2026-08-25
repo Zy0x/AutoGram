@@ -36,9 +36,6 @@ import {
   List,
   ListOrdered,
   Send,
-  Play,
-  Tv,
-  MonitorPlay,
   Activity,
   Image,
   PlaySquare,
@@ -2729,6 +2726,8 @@ export function TransferSettingsWorkspace({
                         <option value="atomic_strict">{t('ui.generated.strict_atomik_batal_kirim_album_ulangi_paket_1beec2e')}</option>
                         <option value="send_remaining">{t('ui.generated.fallback_individual_konversi_item_tersisa_menjad_e4ccb1a')}</option>
                       </select>
+                    </div>
+
                     {/* ALBUM INCOMPATIBLE MEDIA HANDLING SYNC BANNER */}
                     <div style={{ marginTop: '20px', padding: '16px', background: 'rgba(15, 23, 42, 0.65)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: '12px' }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
@@ -2759,8 +2758,6 @@ export function TransferSettingsWorkspace({
                           {t('speedtest.album_media_hub_sync_btn')}
                         </button>
                       </div>
-                    </div>
-                    </div>
                     </div>
                   </div>
                 </div>

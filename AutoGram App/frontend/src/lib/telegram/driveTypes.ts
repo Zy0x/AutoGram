@@ -1029,11 +1029,6 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   imageTranscodeFormats: [
     'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'
   ],
-  imageTranscodeScope: 'all_incompatible',
-  imageTranscodeTarget: 'png',
-  imageTranscodeFormats: [
-    'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'
-  ],
   encoderStrategy: 'auto_adaptive',
   encoderResourceProfile: 'balanced',
   encoderMaxParallel: 1,
@@ -1158,7 +1153,7 @@ export function loadTransferSettings(): DriveTransferSettings {
         : 'cancel_group',
       albumIncompatImageMode: p.albumIncompatImageMode === 'transcode' ? 'transcode' : 'document',
       albumIncompatAnimMode: p.albumIncompatAnimMode === 'transcode' ? 'transcode' : 'document',
-      videoTranscodeScope: (['all_non_mp4', 'common_containers', 'legacy_broadcast', 'custom', 'none'].includes(p.videoTranscodeScope)
+      videoTranscodeScope: (typeof p.videoTranscodeScope === 'string' && ['all_non_mp4', 'common_containers', 'legacy_broadcast', 'custom', 'none'].includes(p.videoTranscodeScope)
         ? p.videoTranscodeScope
         : 'all_non_mp4') as VideoTranscodeScope,
       videoTranscodeFormats: Array.isArray(p.videoTranscodeFormats) && p.videoTranscodeFormats.length > 0
@@ -1166,21 +1161,10 @@ export function loadTransferSettings(): DriveTransferSettings {
         : [
             'mkv', 'mov', 'webm', 'avi', 'wmv', 'ts', 'm2ts', 'vob', 'flv', 'ogv', '3gp', 'f4v', 'asf', 'mpg', 'mxf', 'divx'
           ],
-      imageTranscodeScope: (['all_incompatible', 'common_web', 'graphics_raw', 'custom', 'none'].includes(p.imageTranscodeScope)
+      imageTranscodeScope: (typeof p.imageTranscodeScope === 'string' && ['all_incompatible', 'common_web', 'graphics_raw', 'custom', 'none'].includes(p.imageTranscodeScope)
         ? p.imageTranscodeScope
         : 'all_incompatible') as ImageTranscodeScope,
-      imageTranscodeTarget: (['png', 'jpeg'].includes(p.imageTranscodeTarget)
-        ? p.imageTranscodeTarget
-        : 'png') as ImageTranscodeTarget,
-      imageTranscodeFormats: Array.isArray(p.imageTranscodeFormats) && p.imageTranscodeFormats.length > 0
-        ? p.imageTranscodeFormats.map((ext: any) => String(ext).toLowerCase().trim()).filter(Boolean)
-        : [
-            'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'
-          ],
-      imageTranscodeScope: (['all_incompatible', 'common_web', 'graphics_raw', 'custom', 'none'].includes(p.imageTranscodeScope)
-        ? p.imageTranscodeScope
-        : 'all_incompatible') as ImageTranscodeScope,
-      imageTranscodeTarget: (['png', 'jpeg'].includes(p.imageTranscodeTarget)
+      imageTranscodeTarget: (typeof p.imageTranscodeTarget === 'string' && ['png', 'jpeg'].includes(p.imageTranscodeTarget)
         ? p.imageTranscodeTarget
         : 'png') as ImageTranscodeTarget,
       imageTranscodeFormats: Array.isArray(p.imageTranscodeFormats) && p.imageTranscodeFormats.length > 0
