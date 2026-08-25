@@ -1,3 +1,27 @@
+## v3.8.20 Universal Document Visual Thumbnail Engine & High-Fidelity Quality-First Non-Album Media Delivery
+
+### 1. Universal Visual Thumbnail Extraction Across All Formats
+- **Ekspansi Ekstensi Media Visual & Video**:
+  - Memperluas deteksi `is_image` dan `is_video` di `media_prep.rs` (`extract_video_thumbnail`) dan seluruh fungsi unggah `media_transfer.rs`.
+  - Format gambar kini mencakup: `jpg`, `jpeg`, `jfif`, `png`, `webp`, `gif`, `bmp`, `tiff`, `tif`, `heic`, `heif`, `avif`, `svg`, `ico`, `psd`, `raw`, `dng`, `cr2`, `nef`, `arw`.
+  - Format video kini mencakup: `mp4`, `mov`, `mkv`, `webm`, `avi`, `m4v`, `3gp`, `3gpp`, `flv`, `ts`, `wmv`, `m2ts`, `vob`.
+  - Menghilangkan bug "dokumen hampa" di mana berkas HEIC/AVIF/SVG/TIFF sebelumnya tidak melampirkan thumbnail dan hanya tampil sebagai ikon dokumen generik di Telegram Desktop dan Android.
+
+### 2. Exhaustive MIME Type Registry
+- **Resolusi MIME Eksak**:
+  - Memperbaiki `infer_mime_type` di backend Rust Grammers agar setiap format terpetakan ke MIME spesifik resminya:
+    - `image/heic`, `image/heif`, `image/avif`, `image/svg+xml`, `image/tiff`, `image/x-icon`, `image/vnd.adobe.photoshop`.
+    - `video/3gpp`, `video/mp2t`, `video/x-flv`, `video/x-ms-wmv`, `video/x-ms-vob`.
+    - `audio/mp4` (m4a), `audio/aac`, `audio/opus`, `audio/x-ms-wma`.
+    - `application/x-tar`, `application/gzip`, `application/x-bzip2`, `application/x-xz`, `application/json`, `application/xml`, `text/html`, `text/csv`.
+  - Mengeliminasi fallback keliru ke `image/jpeg` atau `application/octet-stream`.
+
+### 3. Quality-First Non-Album Delivery Guarantees
+- **Integritas Mode Original (100% Lossless Intact Document)**:
+  - Berkas WebP pada mode `Original` diklasifikasikan sebagai `OriginalDocumentBatch` (`as_document: true`), menjamin transmisi biner 100% utuh tanpa re-kompresi lossy dari server Telegram.
+  - Gambar JPEG dan PNG di atas 10 MB otomatis diturunkan ke dokumen berthumbnail (*oversized photo demote*) agar tidak terjadi kegagalan dimensi atau re-kompresi paksa.
+  - Setiap dokumen visual selalu menyertakan thumbnail JPEG 320px yang diekstrak langsung via FFmpeg, menghadirkan kartu pratinjau media yang kaya visual pada antarmuka chat.
+
 ## v3.8.19 Drive Engine Virtual Folder Hierarchy & Upload Media Rendering Engine
 
 ### 1. Eliminasi Error Dialog MTProto pada Folder Virtual Drive Engine

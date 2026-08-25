@@ -267,12 +267,20 @@ pub fn classify_prepared_delivery(
     }
     if mode == QualityMode::Original {
         let payload_class = match category {
-            MediaCategory::JpegImage | MediaCategory::PngImage | MediaCategory::WebpImage => {
+            MediaCategory::JpegImage | MediaCategory::PngImage => {
                 PayloadClass::NativeVisual
             }
             MediaCategory::Mp4Video => PayloadClass::NativeVisual,
             MediaCategory::Audio if is_consumer_audio(path) => PayloadClass::AudioGroup,
             _ => PayloadClass::OriginalDocumentBatch,
+        };
+        let (payload_class, size_demoted) = if payload_class == PayloadClass::NativeVisual
+            && matches!(category, MediaCategory::JpegImage | MediaCategory::PngImage)
+            && exceeds_native_photo_limit(path)
+        {
+            (PayloadClass::OriginalDocumentBatch, true)
+        } else {
+            (payload_class, false)
         };
         let as_document = payload_class != PayloadClass::NativeVisual
             && payload_class != PayloadClass::AudioGroup;
@@ -282,7 +290,13 @@ pub fn classify_prepared_delivery(
             transform: TransformAction::PassThrough,
             as_document,
             reason_code: if as_document {
-                "original_unsupported_document".into()
+                if size_demoted {
+                    "original_oversized_photo_document".into()
+                } else if category == MediaCategory::WebpImage {
+                    "original_lossless_webp_document".into()
+                } else {
+                    "original_unsupported_document".into()
+                }
             } else {
                 "original_direct_passthrough".into()
             },
@@ -420,5 +434,16 @@ mod tests {
         assert_eq!(result.payload_class, PayloadClass::DocumentGroup);
         assert!(result.as_document);
         assert_eq!(result.reason_code, "oversized_photo_demoted_to_document");
+    }
+
+    #[test]
+    fn original_mode_webp_is_routed_to_document_lossless() {
+        let mut payload = vec![b'R', b'I', b'F', b'F', 0, 0, 0, 0, b'W', b'E', b'B', b'P'];
+        payload.extend_from_slice(&[0u8; 128]);
+        let path = fixture("sample.webp", &payload);
+        let result = classify_prepared_delivery(&path, QualityMode::Original, false, false);
+        assert_eq!(result.payload_class, PayloadClass::OriginalDocumentBatch);
+        assert!(result.as_document);
+        assert_eq!(result.reason_code, "original_lossless_webp_document");
     }
 }

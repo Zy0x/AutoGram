@@ -1,6 +1,15 @@
-AutoGram Version: v3.8.18
+AutoGram Version: v3.8.20
 
 Current State:
+v3.8.20 Universal Document Visual Thumbnail Engine & High-Fidelity Quality-First Non-Album Media Delivery — pembaruan menyeluruh pada penanganan format media, registry MIME type, dan jaminan kualitas delivery per-satuan:
+1. Universal Visual Thumbnail Extraction: Memperluas cakupan format media visual (`is_image` dan `is_video`) di `media_prep.rs` dan `media_transfer.rs` sehingga seluruh format gambar dan video (HEIC, HEIF, AVIF, SVG, TIFF, TIF, JFIF, BMP, WebP, ICO, PSD, RAW, DNG, CR2, NEF, ARW, WMV, TS, FLV, M2TS, VOB, dll.) secara otomatis diekstrak thumbnail JPEG 320px via FFmpeg dan dilampirkan via `.thumbnail()`.
+2. Eliminasi Dokumen Hampa di Telegram Desktop & Android: Berkas gambar/video yang dikirim sebagai dokumen murni (`as_document = true` atau mode Original) kini selalu memiliki gambar pratinjau thumbnail yang jernih di card obrolan Telegram tanpa menjadi ikon dokumen kosong.
+3. Exhaustive MIME Type Registry: Memperbaiki fungsi `infer_mime_type` di seluruh backend MTProto sehingga format `heic` (`image/heic`), `heif` (`image/heif`), `avif` (`image/avif`), `svg` (`image/svg+xml`), `tiff`/`tif` (`image/tiff`), `ico`, `psd`, `m4a` (`audio/mp4`), `aac`, `opus`, `ts`, `flv`, `wmv`, `wma`, `tar`, `gz`, `bz2`, `xz`, `json`, `xml`, `csv`, dll. terdaftar dengan tepat dan tidak lagi jatuh ke fallback salah.
+4. Quality-First Mode Guarantees:
+   - Mode Original: File WebP, HEIC, TIFF, BMP, dll. diarahkan ke `OriginalDocumentBatch` (`as_document: true`) untuk menjamin 100% byte-for-byte lossless (SHA256 identik tanpa kompresi server Telegram) disertai thumbnail visual preview.
+   - Mode HighQuality & Smart: Video di-encode dengan preset master atau dipassthrough jika native-compatible; foto > 10 MB diturunkan otomatis ke Dokumen berthumbnail (*auto-demote*) agar tidak ditolak atau direkompresi server.
+
+Previous:
 v3.8.18 ZIP Preview Workbench Power Redesign & Modernization Engine — perombakan menyeluruh pada antarmuka penjelajah arsip ZIP menjadi Power Workbench modern:
 1. Dual View Switcher (List Detail & Gallery Grid Modes): Mendukung tampilan tabel kompak dan galeri visual berbasis kartu beraksen neon dengan deteksi otomatis tipe arsip media/gambar.
 2. Streamlined Single Smart Size & Compression Ratio: Menghapus pemisahan kolom redundan dan menghadirkan kolom Smart Size tabular monospace dengan badge rasio hemat kompresi.

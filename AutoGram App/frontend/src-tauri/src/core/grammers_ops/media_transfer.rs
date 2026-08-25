@@ -154,9 +154,9 @@ async fn try_recover_album_from_history(
             }
 
             // Partial match — keep best result so far, retry for stragglers
-            let prev_best = best_recovered.as_ref().map_or(0, |v| {
-                v.iter().filter(|r| r.status == "done").count()
-            });
+            let prev_best = best_recovered
+                .as_ref()
+                .map_or(0, |v| v.iter().filter(|r| r.status == "done").count());
             if recovered_count > prev_best {
                 let mut out = Vec::new();
                 for (i, &mid) in best_group_mids.iter().enumerate() {
@@ -389,25 +389,56 @@ fn is_real_photo(path: &Path, ext: &str) -> bool {
 
 fn infer_mime_type(ext: &str, is_image: bool, is_video: bool) -> &'static str {
     match ext {
-        "jpg" | "jpeg" => "image/jpeg",
+        "jpg" | "jpeg" | "jfif" => "image/jpeg",
         "png" => "image/png",
         "webp" => "image/webp",
         "gif" => "image/gif",
         "bmp" => "image/bmp",
+        "tiff" | "tif" => "image/tiff",
+        "heic" => "image/heic",
+        "heif" => "image/heif",
+        "avif" => "image/avif",
+        "svg" => "image/svg+xml",
+        "ico" => "image/x-icon",
+        "psd" => "image/vnd.adobe.photoshop",
         "mp4" => "video/mp4",
+        "m4v" => "video/x-m4v",
         "mov" => "video/quicktime",
         "mkv" => "video/x-matroska",
         "webm" => "video/webm",
         "avi" => "video/x-msvideo",
+        "3gp" | "3gpp" => "video/3gpp",
+        "ts" | "m2ts" => "video/mp2t",
+        "flv" => "video/x-flv",
+        "wmv" => "video/x-ms-wmv",
+        "vob" => "video/x-ms-vob",
         "mp3" => "audio/mpeg",
+        "m4a" => "audio/mp4",
+        "aac" => "audio/aac",
         "ogg" => "audio/ogg",
+        "opus" => "audio/opus",
         "flac" => "audio/flac",
         "wav" => "audio/x-wav",
+        "wma" => "audio/x-ms-wma",
         "pdf" => "application/pdf",
         "zip" => "application/zip",
         "rar" => "application/x-rar-compressed",
         "7z" => "application/x-7z-compressed",
+        "tar" => "application/x-tar",
+        "gz" => "application/gzip",
+        "bz2" => "application/x-bzip2",
+        "xz" => "application/x-xz",
         "txt" => "text/plain",
+        "json" => "application/json",
+        "xml" => "application/xml",
+        "html" | "htm" => "text/html",
+        "csv" => "text/csv",
+        "doc" => "application/msword",
+        "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "xls" => "application/vnd.ms-excel",
+        "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "ppt" => "application/vnd.ms-powerpoint",
+        "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
         _ => {
             if is_image {
                 "image/jpeg"
@@ -626,7 +657,7 @@ pub fn upload_prepared_album_blocking_with_app(
                         .to_ascii_lowercase();
                     let is_video = matches!(
                         ext.as_str(),
-                        "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "ts" | "flv"
+                        "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "3gpp" | "ts" | "flv" | "wmv" | "m2ts" | "vob"
                     );
                     let is_audio = matches!(
                         ext.as_str(),
@@ -636,7 +667,26 @@ pub fn upload_prepared_album_blocking_with_app(
                     let is_image = is_photo
                         || matches!(
                             ext.as_str(),
-                            "jpg" | "jpeg" | "png" | "webp" | "gif" | "bmp" | "jfif" | "svg" | "heic" | "heif" | "avif"
+                            "jpg"
+                                | "jpeg"
+                                | "png"
+                                | "webp"
+                                | "gif"
+                                | "bmp"
+                                | "jfif"
+                                | "svg"
+                                | "heic"
+                                | "heif"
+                                | "avif"
+                                | "tiff"
+                                | "tif"
+                                | "ico"
+                                | "psd"
+                                | "raw"
+                                | "dng"
+                                | "cr2"
+                                | "nef"
+                                | "arw"
                         );
                     let mime = infer_mime_type(&ext, is_image, is_video);
                     let path_str = path.to_str().unwrap_or("");
@@ -1071,6 +1121,15 @@ fn upload_prepared_album_blocking_with_app_legacy(
                                 | "heic"
                                 | "heif"
                                 | "avif"
+                                | "tiff"
+                                | "tif"
+                                | "ico"
+                                | "psd"
+                                | "raw"
+                                | "dng"
+                                | "cr2"
+                                | "nef"
+                                | "arw"
                         );
                     let mime = infer_mime_type(&ext, is_image, is_video);
                     let path_str = path_buf.to_str().unwrap_or("");
@@ -1492,7 +1551,7 @@ pub fn upload_file_blocking_topic_with_app(
                     .to_ascii_lowercase();
                 let is_video = matches!(
                     ext.as_str(),
-                    "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "ts" | "flv"
+                    "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "3gpp" | "ts" | "flv" | "wmv" | "m2ts" | "vob"
                 );
                 let is_audio = matches!(
                     ext.as_str(),
@@ -1502,7 +1561,26 @@ pub fn upload_file_blocking_topic_with_app(
                 let is_image = is_photo
                     || matches!(
                         ext.as_str(),
-                        "jpg" | "jpeg" | "png" | "webp" | "gif" | "bmp" | "jfif" | "svg" | "heic" | "heif" | "avif"
+                        "jpg"
+                            | "jpeg"
+                            | "png"
+                            | "webp"
+                            | "gif"
+                            | "bmp"
+                            | "jfif"
+                            | "svg"
+                            | "heic"
+                            | "heif"
+                            | "avif"
+                            | "tiff"
+                            | "tif"
+                            | "ico"
+                            | "psd"
+                            | "raw"
+                            | "dng"
+                            | "cr2"
+                            | "nef"
+                            | "arw"
                     );
                 let mime = infer_mime_type(&ext, is_image, is_video);
                 let path_str = path_buf.to_str().unwrap_or("");
@@ -1696,7 +1774,9 @@ pub fn upload_file_blocking_topic_with_delivery(
     let reply_to = if is_self_chat {
         None
     } else {
-        topic_id.filter(|value| *value > 0).map(|value| value as i32)
+        topic_id
+            .filter(|value| *value > 0)
+            .map(|value| value as i32)
     };
     let rt = runtime()?;
 
@@ -1721,7 +1801,7 @@ pub fn upload_file_blocking_topic_with_delivery(
                     .to_ascii_lowercase();
                 let is_video = matches!(
                     ext.as_str(),
-                    "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "ts" | "flv"
+                    "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "3gpp" | "ts" | "flv" | "wmv" | "m2ts" | "vob"
                 );
                 let is_audio = matches!(
                     ext.as_str(),
@@ -1742,6 +1822,15 @@ pub fn upload_file_blocking_topic_with_delivery(
                             | "heic"
                             | "heif"
                             | "avif"
+                            | "tiff"
+                            | "tif"
+                            | "ico"
+                            | "psd"
+                            | "raw"
+                            | "dng"
+                            | "cr2"
+                            | "nef"
+                            | "arw"
                     );
                 let mime = infer_mime_type(&ext, is_image, is_video);
                 let path_str = path.to_str().unwrap_or("");
@@ -1809,9 +1898,7 @@ pub fn upload_file_blocking_topic_with_delivery(
                 } else {
                     caption.clone()
                 };
-                let mut msg = InputMessage::new()
-                    .text(effective_text)
-                    .silent(silent);
+                let mut msg = InputMessage::new().text(effective_text).silent(silent);
                 if let Some(r) = reply_to {
                     msg = msg.reply_to(Some(r));
                 }
@@ -1917,12 +2004,7 @@ pub fn upload_file_blocking_topic_with_delivery(
                 };
 
                 Ok(UploadStepResult {
-                    status: if mid.is_some() {
-                        "done"
-                    } else {
-                        "failed"
-                    }
-                    .into(),
+                    status: if mid.is_some() { "done" } else { "failed" }.into(),
                     message_id: mid,
                     error: None,
                     index,

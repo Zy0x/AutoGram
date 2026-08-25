@@ -816,11 +816,30 @@ pub fn extract_video_thumbnail(path: &str) -> Option<PathBuf> {
         .to_ascii_lowercase();
     let is_video = matches!(
         ext.as_str(),
-        "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "flv" | "ts"
+        "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "3gpp" | "flv" | "ts" | "wmv" | "m2ts" | "vob"
     );
     let is_image = matches!(
         ext.as_str(),
-        "jpg" | "jpeg" | "png" | "webp" | "gif" | "bmp" | "tiff"
+        "jpg"
+            | "jpeg"
+            | "jfif"
+            | "png"
+            | "webp"
+            | "gif"
+            | "bmp"
+            | "tiff"
+            | "tif"
+            | "heic"
+            | "heif"
+            | "avif"
+            | "svg"
+            | "ico"
+            | "psd"
+            | "raw"
+            | "dng"
+            | "cr2"
+            | "nef"
+            | "arw"
     );
     if !is_video && !is_image {
         return None;
