@@ -763,27 +763,10 @@ pub fn upload_prepared_album_blocking_with_app(
                         .into()
                     };
 
-                    let uploaded_media = client
-                        .invoke(&tl::functions::messages::UploadMedia {
-                            business_connection_id: None,
-                            peer: peer.into(),
-                            media: raw_uploaded_media,
-                        })
-                        .await
-                        .map_err(|error| map_invocation(&error))?;
-                    let mut committed_media = Media::from_raw(uploaded_media)
-                        .and_then(|media| media.to_raw_input_media())
-                        .ok_or_else(|| {
-                            TgError::new(
-                                TgErrorCode::Internal,
-                                "Telegram uploadMedia returned an unsupported album media type",
-                            )
-                        })?;
-                    match &mut committed_media {
-                        tl::enums::InputMedia::Photo(media) => media.spoiler = item.spoiler,
-                        tl::enums::InputMedia::Document(media) => media.spoiler = item.spoiler,
-                        _ => {}
-                    }
+                    // Pass raw_uploaded_media directly into InputSingleMedia
+                    // This sends InputMediaUploadedPhoto/InputMediaUploadedDocument directly to SendMultiMedia
+                    // avoiding the redundant UploadMedia call that causes MEDIA_EMPTY errors on documents/photos
+                    let committed_media = raw_uploaded_media;
                     multi_media.push(tl::enums::InputSingleMedia::Media(
                         tl::types::InputSingleMedia {
                             media: committed_media,

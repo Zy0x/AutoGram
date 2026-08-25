@@ -1448,26 +1448,138 @@ fn run_intelligent_album(
                 )?;
             }
             Err(error) => {
-                let message = format!("Album commit could not be proven: {}", error.user_message());
-                if first_error.is_none() {
-                    first_error = Some(message.clone());
-                }
+                let err_msg = error.user_message();
+                tg_log::warn(
+                    "studio_orch",
+                    "album_failed_executing_intelligent_fallback",
+                    format!(
+                        "Album upload failed ({:?}: {}). Executing intelligent self-healing fallback: sending {} items individually as single messages...",
+                        error.code(),
+                        err_msg,
+                        group.items.len()
+                    ),
+                );
                 super::autogram_core::transfer::update_album_commit(
                     &commit_id,
-                    "UNKNOWN_COMMIT",
+                    "FALLBACK_SINGLES",
                     &[],
-                    Some(&message),
+                    Some(&format!("Fell back to individual uploads: {}", err_msg)),
                 )?;
+
+                // Intelligent Fallback: Upload every item in the album group individually
                 for item in group.items {
-                    let state = ItemState::UnknownCommit;
-                    let _ = job_queue::update_item(
-                        tid,
-                        item.index,
-                        state.clone(),
-                        None,
-                        Some(message.clone()),
-                    );
-                    emit_album_item_result(app, item.index, &state, None, Some(message.clone()));
+                    if let Err(error) = job_queue::wait_while_transfer_paused(tid) {
+                        for artifact in artifacts.drain(..) {
+                            artifact.cleanup();
+                        }
+                        let _ = job_queue::set_transfer_state(tid, TransferState::Cancelled);
+                        let _ = super::autogram_core::transfer::update_transfer_run_state(tid, "CANCELLED");
+                        return Err(error);
+                    }
+                    let _ = job_queue::update_item(tid, item.index, ItemState::Uploading, None, None);
+                    let as_document = item.key.payload_class != PayloadClass::NativeVisual;
+
+                    let mut single_attempts = 0usize;
+                    let single_exec_res = loop {
+                        single_attempts += 1;
+                        let res = grammers_ops::upload_file_blocking_topic_with_delivery(
+                            sessions,
+                            delivery_identity,
+                            &rec.chat_id,
+                            &item.path,
+                            &item.caption,
+                            as_document,
+                            silent,
+                            item.spoiler,
+                            item.index,
+                            topic_id,
+                            item.key.schedule_at,
+                            item.key.send_as.clone(),
+                            app.cloned(),
+                            Some(tid.to_string()),
+                        );
+                        match res {
+                            Ok(ok_res) => break Ok(ok_res),
+                            Err(err) => {
+                                let is_network = grammers_ops::is_pool_or_transport_error(&err) || err.retryable();
+                                if is_network && single_attempts <= 3 {
+                                    let wait_secs = err.flood_wait_secs().unwrap_or((single_attempts * 2) as u32);
+                                    tg_log::warn(
+                                        "studio_orch",
+                                        "fallback_single_upload_retry",
+                                        format!(
+                                            "Fallback single upload attempt {}/3 failed with network error ({:?}): {}. Retrying in {}s...",
+                                            single_attempts, err.code(), err.user_message(), wait_secs
+                                        ),
+                                    );
+                                    grammers_ops::disconnect_cached_session(&delivery_identity.session);
+                                    std::thread::sleep(std::time::Duration::from_secs(wait_secs as u64));
+                                    continue;
+                                }
+                                break Err(err);
+                            }
+                        }
+                    };
+
+                    match single_exec_res {
+                        Ok(result) => {
+                            let state = if matches!(result.status.as_str(), "done" | "success") {
+                                any_ok = true;
+                                ItemState::Done
+                            } else {
+                                ItemState::Failed
+                            };
+                            let _ = job_queue::update_item(
+                                tid,
+                                item.index,
+                                state.clone(),
+                                result.message_id,
+                                result.error.clone(),
+                            );
+                            emit_album_item_result(app, item.index, &state, result.message_id, result.error);
+                            if matches!(state, ItemState::Done) {
+                                if let Some(ledger_identity) = ledger_identities.get(&item.index) {
+                                    persist_upload_ledger_binding(
+                                        rec,
+                                        topic_id,
+                                        &delivery_identity.session,
+                                        result.message_id,
+                                        item.index,
+                                        ledger_identity,
+                                    );
+                                }
+                            }
+                            if whole_album_identity.is_some() && matches!(state, ItemState::Done) {
+                                if let Err(error) = super::autogram_core::transfer::record_alternate_upload(
+                                    tid,
+                                    item.index,
+                                    &delivery_identity.session,
+                                    result.message_id,
+                                ) {
+                                    tg_log::warn(
+                                        "studio_orch",
+                                        "alternate_binding_persist_failed",
+                                        format!("transfer={tid} index={} error={error}", item.index),
+                                    );
+                                }
+                            }
+                        }
+                        Err(error) => {
+                            let message = error.user_message();
+                            let state = ItemState::Failed;
+                            let _ = job_queue::update_item(
+                                tid,
+                                item.index,
+                                state.clone(),
+                                None,
+                                Some(message.clone()),
+                            );
+                            emit_album_item_result(app, item.index, &state, None, Some(message.clone()));
+                            if first_error.is_none() {
+                                first_error = Some(message);
+                            }
+                        }
+                    }
                 }
             }
         }

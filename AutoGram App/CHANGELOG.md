@@ -1,3 +1,12 @@
+## v3.8.25 Grammers MTProto Direct Album Submission & Intelligent Self-Healing Multi-Media Fallback Engine
+
+### 1. Direct SendMultiMedia Media Dispatching (Eliminasi MEDIA_EMPTY)
+- **Eliminasi Roundtrip `UploadMedia` Redundan**: `media_transfer.rs` kini mengoper `InputMediaUploadedDocument` dan `InputMediaUploadedPhoto` langsung ke dalam `InputSingleMedia` saat memanggil `messages.sendMultiMedia`.
+- **Pemberantasan `rpc error 400: MEDIA_EMPTY`**: Mencegah kegagalan pengenalan `MessageMedia` oleh server Telegram yang terjadi saat mengonversi balik hasil `UploadMedia`.
+
+### 2. Intelligent Self-Healing Fallback (Zero Transfer Failure Guarantee)
+- **Sistem Kecerdasan Pengiriman Satuan**: Jika Telegram menolak pembuatan album multi-media (`sendMultiMedia`), engine di `studio_orch.rs` secara cerdas dan otomatis mengeksekusi *fallback* pengiriman tiap berkas secara satuan (single messages) dengan thumbnail visual dan caption yang utuh.
+
 ## v3.8.24 Unified Media Delivery & Transcoding Hub with Progressive Hierarchical Controls and Zero Conflict Architecture
 
 ### 1. Unified Media Delivery & Transcoding Hub (3 Pilar Terpadu)

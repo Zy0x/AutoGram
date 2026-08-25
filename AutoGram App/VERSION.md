@@ -1,6 +1,11 @@
-AutoGram Version: v3.8.24
+AutoGram Version: v3.8.25
 
 Current State:
+v3.8.25 Grammers MTProto Direct Album Submission & Intelligent Self-Healing Multi-Media Fallback Engine — resolusi kegagalan album Telegram:
+1. Direct SendMultiMedia Input Media Dispatch: Mengeliminasi panggilan redundan `messages.UploadMedia` sebelum `messages.sendMultiMedia`, mengoper `InputMediaUploadedDocument` / `InputMediaUploadedPhoto` langsung ke `InputSingleMedia`, memusnahkan error `rpc error 400: MEDIA_EMPTY`.
+2. Intelligent Self-Healing Album Fallback: Menambahkan sistem kecerdasan pada `studio_orch.rs` di mana jika Telegram menolak pengelompokan album karena alasan apapun, engine secara otomatis dan mulus beralih ke pengiriman satuan (individual messages) tanpa menggagalkan transfer file.
+
+Previous:
 v3.8.24 Unified Media Delivery & Transcoding Hub with Progressive Hierarchical Controls and Zero Conflict Architecture — konsolidasi menyeluruh seluruh aturan pemrosesan media:
 1. Unified Media Delivery & Transcoding Hub: Menyatukan seluruh pengaturan Gambar Non-Standar, Animasi/Stiker, dan Video Non-MP4 ke dalam satu tempat terpusat di Tab "Encoding & Media" dengan arsitektur 3 Pilar Hierarkis (Progressive Disclosure: Jika A dipilih → Muncul B → Muncul C).
 2. Elimination of Conflicting Legacy Interceptors: Menghapus sakelar lama dan interceptor warisan di `media_prep.rs` yang sebelumnya memaksa file .webp menjadi `photo_xxxx.jpg`, sehingga berkas gambar dengan strategi Dokumen Mentah dikirim 100% utuh bit-for-bit dengan nama asli (misal: `dyantocialong-13-08-2023-0003.webp`) dan thumbnail visual 320px tajam tanpa penurunan kualitas dan tanpa perubahan nama oleh Telegram.
