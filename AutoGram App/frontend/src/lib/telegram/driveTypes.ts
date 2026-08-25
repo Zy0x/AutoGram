@@ -619,12 +619,15 @@ export function toLeanDriveFile(f: any): DriveFile {
   const id = typeof f.id === 'number' ? f.id : parseInt(String(f.id), 10);
   const mimeType = String(f.mime_type ?? f.mimeType ?? '').trim().toLowerCase() || null;
   const iconType = String(f.icon_type || f.iconType || 'file');
+  const telegramCategory = String(f.telegram_category ?? f.telegramCategory ?? '').trim().toLowerCase();
   const telegramSubtype = String(f.telegram_subtype ?? f.telegramSubtype ?? '').trim().toLowerCase();
+  const isWebPagePreview = telegramCategory === 'link' || telegramSubtype === 'webpage';
   const asDocument = Boolean(f.as_document ?? f.asDocument ?? false);
   const isNativeTelegramPhoto =
     Number.isFinite(id) &&
     id > 0 &&
     !asDocument &&
+    !isWebPagePreview &&
     (
       telegramSubtype === 'photo' ||
       iconType.toLowerCase() === 'photo' ||
@@ -642,7 +645,7 @@ export function toLeanDriveFile(f: any): DriveFile {
     size: typeof f.size === 'number' ? f.size : parseInt(String(f.size || 0), 10) || 0,
     mime_type: canonicalPhotoName ? 'image/jpeg' : mimeType,
     file_ext: canonicalPhotoName ? 'jpg' : f.file_ext ?? f.fileExt ?? undefined,
-    icon_type: iconType,
+    icon_type: isWebPagePreview ? 'link' : iconType,
     created_at: f.created_at ?? f.createdAt ?? undefined,
     has_thumb: !!f.has_thumb || !!f.hasThumb,
     as_document: asDocument,
@@ -688,8 +691,6 @@ export function matchesMediaFilter(
   filter: DriveMediaFilter | string,
   perspective: ViewPerspective = 'telegram'
 ): boolean {
-  if (!filter || filter === 'all') return true;
-
   const mime = (f.mime_type || '').toLowerCase();
   const name = (f.name || '').toLowerCase();
   const ext = (f.file_ext || name.split('.').pop() || '').toLowerCase();
@@ -698,9 +699,17 @@ export function matchesMediaFilter(
   const drCat = (f.drive_category || f.driveCategory || '').toLowerCase();
 
   if (perspective === 'telegram') {
+    if (tgCat === 'text' && (!f.link_urls || f.link_urls.length === 0) && !name.startsWith('http') && !name.startsWith('t.me') && icon === 'text') {
+      return false;
+    }
+  }
+
+  if (!filter || filter === 'all') return true;
+
+  if (perspective === 'telegram') {
     switch (filter) {
       case 'media':
-        if (f.as_document === true || tgCat === 'file') return false;
+        if (f.as_document === true || tgCat === 'file' || tgCat === 'link' || icon === 'link' || f.telegram_subtype === 'webpage') return false;
         return (
           tgCat === 'media' ||
           icon === 'photo' ||
