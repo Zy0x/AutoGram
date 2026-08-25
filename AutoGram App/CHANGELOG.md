@@ -1,3 +1,10 @@
+## v3.8.27 Telegram Strict Document Filename Attribute Enforcement & Anti-Sticker Guarantee
+
+### 1. Strict DocumentAttributeFilename Attachment (Pemberantasan Konversi Stiker)
+- **Penyematan Atribut Nama Dokumen Eksplisit**: `media_transfer.rs` kini selalu melampirkan `DocumentAttributeFilename` pada setiap pengunggahan dokumen (`.webp`, `.heic`, `.raw`, dll.).
+- **Jaminan Anti-Stiker**: Mencegah Telegram server memperlakukan berkas `.webp` sebagai stiker melayang tanpa nama/kotak dokumen di Telegram Desktop dan Android.
+- **Visibilitas Penuh di Drive Explorer**: Berkas berformat `.webp` kini dikenali oleh filter pencarian dokumen Telegram sehingga langsung muncul di kartu media AutoGram.
+
 ## v3.8.26 SQLite CHECK Constraint Compliance for Album Fallback Commits
 
 ### 1. SQLite Schema CHECK Constraint Compliance

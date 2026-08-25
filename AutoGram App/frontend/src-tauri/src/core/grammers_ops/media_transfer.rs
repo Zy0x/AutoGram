@@ -1064,7 +1064,7 @@ fn upload_prepared_album_blocking_with_app_legacy(
                             transfer_id: tid_inner,
                         };
                         client
-                            .upload_stream(&mut progress_reader, size as usize, filename)
+                            .upload_stream(&mut progress_reader, size as usize, filename.clone())
                             .await
                             .map_err(|e| {
                                 TgError::new(TgErrorCode::Io, format!("upload_stream: {e}"))
@@ -1118,7 +1118,10 @@ fn upload_prepared_album_blocking_with_app_legacy(
                     // Forum topic: attach reply_to on all media items so Telegram routes every file to topic
                     let im = im.reply_to(reply_to);
                     let final_media = if as_document {
-                        let mut doc_im = im.mime_type(mime).document(uploaded);
+                        let mut doc_im = im
+                            .mime_type(mime)
+                            .document(uploaded)
+                            .attribute(Attribute::FileName(filename.to_string()));
                         if is_video || is_image || is_audio {
                             let thumb_path = extract_video_thumbnail(path_str);
                             if let Some(ref tp) = thumb_path {
@@ -1179,7 +1182,10 @@ fn upload_prepared_album_blocking_with_app_legacy(
                         }
                         audio_im
                     } else {
-                        let mut doc_im = im.mime_type(mime).document(uploaded);
+                        let mut doc_im = im
+                            .mime_type(mime)
+                            .document(uploaded)
+                            .attribute(Attribute::FileName(filename.to_string()));
                         let thumb_path = extract_video_thumbnail(path_str);
                         if let Some(ref tp) = thumb_path {
                             if let Ok(thumb_uploaded) = client.upload_file(tp).await {
@@ -1515,7 +1521,7 @@ pub fn upload_file_blocking_topic_with_app(
                         transfer_id: tid_inner,
                     };
                     client
-                        .upload_stream(&mut progress_reader, size as usize, filename)
+                        .upload_stream(&mut progress_reader, size as usize, filename.clone())
                         .await
                         .map_err(|e| TgError::new(TgErrorCode::Io, format!("upload_stream: {e}")))?
                 } else {
@@ -1573,7 +1579,10 @@ pub fn upload_file_blocking_topic_with_app(
                 // Prefer document for fidelity; video gets thumbnail + video attributes
                 // Prefer document for fidelity; video gets thumbnail + video attributes
                 msg = if as_document {
-                    let mut doc_msg = msg.mime_type(mime).document(uploaded);
+                    let mut doc_msg = msg
+                        .mime_type(mime)
+                        .document(uploaded)
+                        .attribute(Attribute::FileName(filename.to_string()));
                     if is_video || is_image || is_audio {
                         let thumb_path = extract_video_thumbnail(path_str);
                         if let Some(ref tp) = thumb_path {
@@ -1634,7 +1643,10 @@ pub fn upload_file_blocking_topic_with_app(
                     }
                     audio_msg
                 } else {
-                    let mut doc_msg = msg.mime_type(mime).document(uploaded);
+                    let mut doc_msg = msg
+                        .mime_type(mime)
+                        .document(uploaded)
+                        .attribute(Attribute::FileName(filename.to_string()));
                     let thumb_path = extract_video_thumbnail(path_str);
                     if let Some(ref tp) = thumb_path {
                         if let Ok(thumb_uploaded) = client.upload_file(tp).await {
@@ -1885,7 +1897,10 @@ pub fn upload_file_blocking_topic_with_delivery(
                 }
 
                 msg = if as_document {
-                    let mut doc_msg = msg.mime_type(mime).document(uploaded);
+                    let mut doc_msg = msg
+                        .mime_type(mime)
+                        .document(uploaded)
+                        .attribute(Attribute::FileName(display_filename.clone()));
                     if is_video || is_image || is_audio {
                         let thumb_path = extract_video_thumbnail(path_str);
                         if let Some(ref tp) = thumb_path {
@@ -1940,7 +1955,10 @@ pub fn upload_file_blocking_topic_with_delivery(
                     }
                     audio_msg
                 } else {
-                    let mut doc_msg = msg.mime_type(mime).document(uploaded);
+                    let mut doc_msg = msg
+                        .mime_type(mime)
+                        .document(uploaded)
+                        .attribute(Attribute::FileName(display_filename.clone()));
                     let thumb_path = extract_video_thumbnail(path_str);
                     if let Some(ref tp) = thumb_path {
                         if let Ok(thumb_uploaded) = client.upload_file(tp).await {

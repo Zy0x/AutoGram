@@ -1,6 +1,11 @@
-AutoGram Version: v3.8.26
+AutoGram Version: v3.8.27
 
 Current State:
+v3.8.27 Telegram Strict Document Filename Attribute Enforcement & Anti-Sticker Guarantee — pemusnahan konversi stiker Telegram:
+1. Strict DocumentAttributeFilename Attachment: Menyematkan `DocumentAttributeFilename` secara eksplisit pada seluruh pemanggilan `InputMessage::document` di `media_transfer.rs`. Hal ini mencegah server Telegram salah mengidentifikasi berkas `.webp` sebagai stiker tanpa nama, menjamin berkas tampil utuh dengan kotak berkas, nama lengkap, dan thumbnail tajam.
+2. Full Document Indexing Parity: Dengan adanya atribut nama berkas, Telegram mengenali berkas sebagai dokumen resmi sehingga langsung terindeks di pencarian dokumen dan list card Drive AutoGram.
+
+Previous:
 v3.8.26 SQLite CHECK Constraint Compliance for Album Fallback Commits — perbaikan database transfer:
 1. SQLite Album Commit CHECK Constraint: Memperbaiki status commit pada `update_album_commit` saat fallback album terpicu ke `"REVIEW_REQUIRED"`, memenuhi batasan ketat SQLite CHECK constraint (`'PREPARED','UPLOADING','COMMITTING','UNKNOWN_COMMIT','RECONCILING','COMMITTED','FAILED','REVIEW_REQUIRED'`).
 2. Robust Fallback Execution: Memastikan transisi fallback cerdas berjalan mulus tanpa hambatan query database.
