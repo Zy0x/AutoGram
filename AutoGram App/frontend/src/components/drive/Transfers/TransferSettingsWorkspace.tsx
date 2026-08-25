@@ -2213,11 +2213,23 @@ export function TransferSettingsWorkspace({
                   <select
                     value={draft.videoTranscodeScope || 'all_non_mp4'}
                     disabled={!!transferActive || currentEncoderMode === 'disabled'}
-                    onChange={(e) => patch({ videoTranscodeScope: e.target.value as any })}
+                    onChange={(e) => {
+                      const nextScope = e.target.value as any;
+                      const allFormats = ['mkv', 'mov', 'webm', 'avi', 'wmv', 'ts', 'm2ts', 'vob', 'flv', 'ogv', '3gp', 'f4v', 'asf', 'mpg', 'mxf', 'divx'];
+                      const commonFormats = ['mkv', 'mov', 'webm', 'avi', '3gp'];
+                      const legacyFormats = ['wmv', 'ts', 'flv', 'm2ts', 'vob', 'ogv', 'f4v', 'asf'];
+                      let nextFormats = draft.videoTranscodeFormats || allFormats;
+                      if (nextScope === 'all_non_mp4') nextFormats = allFormats;
+                      else if (nextScope === 'common_containers') nextFormats = commonFormats;
+                      else if (nextScope === 'legacy_broadcast') nextFormats = legacyFormats;
+                      else if (nextScope === 'none') nextFormats = [];
+                      patch({ videoTranscodeScope: nextScope, videoTranscodeFormats: nextFormats });
+                    }}
                   >
                     <option value="all_non_mp4">{t('speedtest.video_transcode_scope_all')}</option>
                     <option value="common_containers">{t('speedtest.video_transcode_scope_common')}</option>
                     <option value="legacy_broadcast">{t('speedtest.video_transcode_scope_legacy')}</option>
+                    <option value="custom">{t('speedtest.video_transcode_scope_custom')}</option>
                     <option value="none">{t('speedtest.video_transcode_scope_none')}</option>
                   </select>
                   <p className="td-field-hint" style={{ marginTop: '6px', fontSize: '12px', color: 'rgba(148, 163, 184, 0.9)' }}>
@@ -2227,8 +2239,113 @@ export function TransferSettingsWorkspace({
                       ? t('speedtest.video_transcode_scope_common_desc')
                       : draft.videoTranscodeScope === 'legacy_broadcast'
                       ? t('speedtest.video_transcode_scope_legacy_desc')
+                      : draft.videoTranscodeScope === 'custom'
+                      ? t('speedtest.video_transcode_scope_custom_desc')
                       : t('speedtest.video_transcode_scope_all_desc')}
                   </p>
+
+                  {/* Checklist Format Video Multi-Select */}
+                  {draft.videoTranscodeScope !== 'none' && (
+                    <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(15, 23, 42, 0.55)', border: '1px solid rgba(51, 65, 85, 0.6)', borderRadius: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(226, 232, 240, 0.9)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          {t('speedtest.video_transcode_formats_label')}
+                        </span>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button
+                            type="button"
+                            disabled={!!transferActive}
+                            onClick={() => {
+                              const allFormats = ['mkv', 'mov', 'webm', 'avi', 'wmv', 'ts', 'm2ts', 'vob', 'flv', 'ogv', '3gp', 'f4v', 'asf', 'mpg', 'mxf', 'divx'];
+                              patch({ videoTranscodeScope: 'all_non_mp4', videoTranscodeFormats: allFormats });
+                            }}
+                            style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(59, 130, 246, 0.2)', border: '1px solid rgba(59, 130, 246, 0.4)', color: '#93c5fd', cursor: 'pointer' }}
+                          >
+                            {t('speedtest.video_transcode_select_all')}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={!!transferActive}
+                            onClick={() => {
+                              patch({ videoTranscodeScope: 'custom', videoTranscodeFormats: [] });
+                            }}
+                            style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.35)', color: '#fca5a5', cursor: 'pointer' }}
+                          >
+                            {t('speedtest.video_transcode_deselect_all')}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '6px' }}>
+                        {[
+                          { ext: 'mkv', key: 'video_transcode_fmt_mkv' },
+                          { ext: 'mov', key: 'video_transcode_fmt_mov' },
+                          { ext: 'webm', key: 'video_transcode_fmt_webm' },
+                          { ext: 'avi', key: 'video_transcode_fmt_avi' },
+                          { ext: 'wmv', key: 'video_transcode_fmt_wmv' },
+                          { ext: 'ts', key: 'video_transcode_fmt_ts' },
+                          { ext: 'm2ts', key: 'video_transcode_fmt_m2ts' },
+                          { ext: 'vob', key: 'video_transcode_fmt_vob' },
+                          { ext: 'flv', key: 'video_transcode_fmt_flv' },
+                          { ext: 'ogv', key: 'video_transcode_fmt_ogv' },
+                          { ext: '3gp', key: 'video_transcode_fmt_3gp' },
+                          { ext: 'f4v', key: 'video_transcode_fmt_f4v' },
+                          { ext: 'asf', key: 'video_transcode_fmt_asf' },
+                          { ext: 'mpg', key: 'video_transcode_fmt_mpg' },
+                          { ext: 'mxf', key: 'video_transcode_fmt_mxf' },
+                          { ext: 'divx', key: 'video_transcode_fmt_divx' },
+                        ].map(({ ext, key }) => {
+                          const activeFormats = draft.videoTranscodeFormats || ['mkv', 'mov', 'webm', 'avi', 'wmv', 'ts', 'm2ts', 'vob', 'flv', 'ogv', '3gp', 'f4v', 'asf', 'mpg', 'mxf', 'divx'];
+                          const isChecked = activeFormats.includes(ext);
+                          return (
+                            <label
+                              key={ext}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '6px 8px',
+                                minHeight: '34px',
+                                background: isChecked ? 'rgba(59, 130, 246, 0.16)' : 'rgba(30, 41, 59, 0.4)',
+                                border: isChecked ? '1px solid rgba(96, 165, 250, 0.45)' : '1px solid rgba(51, 65, 85, 0.4)',
+                                borderRadius: '6px',
+                                cursor: transferActive ? 'not-allowed' : 'pointer',
+                                transition: 'all 0.15s ease',
+                                userSelect: 'none',
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                disabled={!!transferActive || currentEncoderMode === 'disabled'}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  let next = [...activeFormats];
+                                  if (checked && !next.includes(ext)) {
+                                    next.push(ext);
+                                  } else if (!checked) {
+                                    next = next.filter((item) => item !== ext);
+                                  }
+                                  patch({ videoTranscodeScope: 'custom', videoTranscodeFormats: next });
+                                }}
+                                style={{ accentColor: '#3b82f6', cursor: 'pointer' }}
+                              />
+                              <span style={{ fontSize: '11px', fontWeight: 600, color: isChecked ? '#93c5fd' : '#94a3b8' }}>
+                                .{ext.toUpperCase()}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+
+                      <div style={{ marginTop: '8px', fontSize: '11px', color: 'rgba(148, 163, 184, 0.85)' }}>
+                        {t('speedtest.video_transcode_hint_active', {
+                          count: (draft.videoTranscodeFormats || []).length,
+                          total: 16,
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -730,7 +730,7 @@ pub fn upload_prepared_album_blocking_with_app(
                             );
                         }
                         let mut thumb = None;
-                        if is_video || is_image {
+                        if is_video || is_image || is_audio {
                             if let Some(thumb_path) = extract_video_thumbnail(path_str) {
                                 if let Ok(uploaded_thumb) = client.upload_file(&thumb_path).await {
                                     thumb = Some(uploaded_thumb.raw);
@@ -749,9 +749,7 @@ pub fn upload_prepared_album_blocking_with_app(
                             spoiler: item.spoiler,
                             file: uploaded.raw,
                             thumb,
-                            mime_type: if as_document {
-                                "application/octet-stream".into()
-                            } else if is_video {
+                            mime_type: if is_video && !as_document {
                                 "video/mp4".into()
                             } else {
                                 mime.into()
@@ -1138,7 +1136,7 @@ fn upload_prepared_album_blocking_with_app_legacy(
                     let im = im.reply_to(reply_to);
                     let final_media = if as_document {
                         let mut doc_im = im.mime_type(mime).document(uploaded);
-                        if is_video || is_image {
+                        if is_video || is_image || is_audio {
                             let thumb_path = extract_video_thumbnail(path_str);
                             if let Some(ref tp) = thumb_path {
                                 if let Ok(thumb_uploaded) = client.upload_file(tp).await {
@@ -1593,7 +1591,7 @@ pub fn upload_file_blocking_topic_with_app(
                 // Prefer document for fidelity; video gets thumbnail + video attributes
                 msg = if as_document {
                     let mut doc_msg = msg.mime_type(mime).document(uploaded);
-                    if is_video || is_image {
+                    if is_video || is_image || is_audio {
                         let thumb_path = extract_video_thumbnail(path_str);
                         if let Some(ref tp) = thumb_path {
                             if let Ok(thumb_uploaded) = client.upload_file(tp).await {
@@ -1905,7 +1903,7 @@ pub fn upload_file_blocking_topic_with_delivery(
 
                 msg = if as_document {
                     let mut doc_msg = msg.mime_type(mime).document(uploaded);
-                    if is_video || is_image {
+                    if is_video || is_image || is_audio {
                         let thumb_path = extract_video_thumbnail(path_str);
                         if let Some(ref tp) = thumb_path {
                             if let Ok(thumb_uploaded) = client.upload_file(tp).await {

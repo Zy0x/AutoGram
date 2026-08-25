@@ -1,6 +1,12 @@
-AutoGram Version: v3.8.21
+AutoGram Version: v3.8.22
 
 Current State:
+v3.8.22 Interactive Video Transcode Multi-Format Checklist, Universal Exact MIME Preservation & Full Thumbnail Parity — penyempurnaan menyeluruh pada penanganan format media digital dan antarmuka konfigurasi transfer:
+1. Interactive Video Transcode Checklist UI in Drive Settings: Menyediakan antarmuka checklist interaktif multi-pilihan pada Pengaturan Transfer yang memungkinkan pengguna mencentang/memilih secara bebas seluruh format kontainer video (.MKV, .MOV, .WebM, .AVI, .WMV, .TS, .M2TS, .VOB, .FLV, .OGV, .3GP, .F4V, .ASF, .MPG, .MXF, .DivX) yang ingin di-remux/re-encode ke MP4 native atau dikirim sebagai dokumen mentah asli, lengkap dengan tombol cepat "Pilih Semua" dan "Batal Pilih Semua" serta penghitung format aktif.
+2. Universal Exact MIME Preservation in Document Delivery: Menghilangkan penimpaan MIME "application/octet-stream" pada mode pengiriman dokumen satuan (non-album) dan album di `media_transfer.rs`. Seluruh media kini mempertahankan MIME asli spesifiknya (`image/webp`, `video/x-matroska`, `audio/flac`, `image/gif`, dll.) sehingga aplikasi Telegram Android & Desktop merender kartu media interaktif yang tepat dan tidak lagi menjadi "dokumen hampa".
+3. Full Visual Thumbnail Parity for Audio & All Document Streams: Memperluas pemrosesan thumbnail pada seluruh jalur pengiriman dokumen di `media_transfer.rs` (`upload_media_group`, `transfer_album_with_rate_limit`, `transfer_single_file_with_rate_limit`, dan `transfer_single_part_with_rate_limit`) agar melampirkan thumbnail cover art berkas audio dan dokumen visual secara konsisten.
+
+Previous:
 v3.8.21 Advanced Media Pipeline: Configurable Video Transcode Scope, Audio Album Art Extraction & Universal Media Sniffing Engine — perbaikan dan perluasan menyeluruh pada penanganan format media digital:
 1. Configurable Video Transcode Scope in Transfer Settings: Menambahkan opsi `videoTranscodeScope` di Pengaturan Transfer (`all_non_mp4` [Default], `common_containers`, `legacy_broadcast`, `none`) pada mode Smart dan HighQuality untuk memberikan kendali penuh kepada pengguna dalam menentukan kontainer video mana yang ingin di-remux/re-encode ke MP4 native atau dikirim sebagai dokumen mentah.
 2. Audio Album Cover Art Thumbnail Extraction: Memperluas `extract_video_thumbnail` di `media_prep.rs` untuk membaca stream gambar sampul album (*Embedded Album Art / ID3 APIC / MP4 Covr*) pada berkas audio (MP3, M4A, FLAC, OGG, OPUS, M4B, ALAC, AIFF, APE, WMA, AAC) dan melampirkannya sebagai thumbnail visual JPEG 320px di Telegram.

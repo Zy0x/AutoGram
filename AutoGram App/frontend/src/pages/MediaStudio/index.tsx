@@ -6995,6 +6995,7 @@ function MediaDriveDesktop({
       album_incompat_image_mode: transferSettings.albumIncompatImageMode,
       album_incompat_anim_mode: transferSettings.albumIncompatAnimMode,
       video_transcode_scope: transferSettings.videoTranscodeScope,
+      video_transcode_formats: transferSettings.videoTranscodeFormats,
       encoder_strategy: transferSettings.encoderStrategy,
       encoder_resource_profile: transferSettings.encoderResourceProfile,
       encoder_max_parallel: transferSettings.encoderMaxParallel,

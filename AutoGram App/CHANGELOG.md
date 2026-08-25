@@ -1,3 +1,21 @@
+## v3.8.22 Interactive Video Transcode Multi-Format Checklist, Universal Exact MIME Preservation & Full Thumbnail Parity
+
+### 1. Interactive Video Transcode Multi-Format Checklist UI
+- **Ceklist Interaktif Lengkap di Drive Settings**:
+  - Menyediakan checklist format video fleksibel di [`TransferSettingsWorkspace.tsx`](file:///F:/AutoGram/AutoGram%20App/frontend/src/components/drive/Transfers/TransferSettingsWorkspace.tsx) dan [`DriveToolsModal.tsx`](file:///F:/AutoGram/AutoGram%20App/frontend/src/components/drive/Transfers/DriveToolsModal.tsx) dengan status aktif per ekstensi:
+    - Kontainer Modern & Populer: `.MKV`, `.MOV`, `.WebM`, `.AVI`, `.3GP`
+    - Format Siaran & Lawas: `.WMV`, `.TS`, `.M2TS`, `.VOB`, `.FLV`, `.OGV`, `.F4V`, `.ASF`, `.MPG`, `.MXF`, `.DivX`
+  - Dilengkapi tombol cepat *Pilih Semua* (*Select All*) dan *Batal Pilih Semua* (*Deselect All*), serta indikator jumlah format aktif yang tersinkronisasi langsung ke Rust Core MTProto engine.
+
+### 2. Universal Exact MIME Preservation in Document Delivery
+- **Eliminasi "Dokumen Hampa" di Telegram Android & Desktop**:
+  - Memperbaiki `media_transfer.rs` agar tidak menimpa MIME type menjadi `"application/octet-stream"` saat berkas dikirim sebagai dokumen (non-album mode atau dokumen original).
+  - Telegram kini menerima MIME type tepat (`image/webp`, `video/x-matroska`, `audio/flac`, `image/gif`, `application/pdf`, dll.) sehingga merender kartu media dengan thumbnail visual tajam dan preview interaktif.
+
+### 3. Full Visual Thumbnail Parity for Audio & All Document Streams
+- **Lampiran Thumbnail Menyeluruh**:
+  - Menyelaraskan seluruh fungsi transfer berkas (`upload_media_group`, `transfer_album_with_rate_limit`, `transfer_single_file_with_rate_limit`, `transfer_single_part_with_rate_limit`) agar memicu `extract_video_thumbnail` untuk gambar, video, dan audio (cover art) saat dikirim sebagai dokumen.
+
 ## v3.8.21 Advanced Media Pipeline: Configurable Video Transcode Scope, Audio Album Art Extraction & Universal Media Sniffing Engine
 
 ### 1. Configurable Video Transcode / Remux Scope in Transfer Settings

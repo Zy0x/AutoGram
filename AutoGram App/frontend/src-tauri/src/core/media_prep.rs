@@ -1199,6 +1199,7 @@ pub fn maybe_reencode_for_telegram(
     target_planning_bytes: Option<u64>,
     target_attempt: u8,
     video_transcode_scope: Option<&str>,
+    video_transcode_formats: Option<&[String]>,
     app: Option<&tauri::AppHandle>,
     item_index: usize,
 ) -> Result<String, String> {
@@ -1302,12 +1303,24 @@ pub fn maybe_reencode_for_telegram(
         "none" => ext == "mp4",
         "common_containers" | "common_only" => matches!(
             ext.as_str(),
-            "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "3gpp"
+            "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "3g2" | "3gpp" | "3gpp2"
         ),
         "legacy_broadcast" => matches!(
             ext.as_str(),
             "mp4" | "wmv" | "ts" | "flv" | "m2ts" | "mts" | "vob" | "ogv" | "f4v" | "asf" | "mpg" | "mpeg" | "m2v" | "mxf"
         ),
+        "custom" => {
+            if ext == "mp4" {
+                true
+            } else if let Some(ref custom_list) = video_transcode_formats {
+                custom_list.iter().any(|f| f.eq_ignore_ascii_case(&ext))
+            } else {
+                matches!(
+                    ext.as_str(),
+                    "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "ts" | "flv" | "wmv" | "m2ts" | "vob"
+                )
+            }
+        }
         _ => matches!(
             ext.as_str(),
             "mp4"
@@ -1674,6 +1687,7 @@ pub fn maybe_reencode_for_telegram(
                     target_planning_bytes,
                     target_attempt,
                     video_transcode_scope,
+                    video_transcode_formats,
                     app,
                     item_index,
                 );
@@ -1782,6 +1796,7 @@ pub fn maybe_reencode_for_telegram(
                             Some(adjusted_plan),
                             target_attempt + 1,
                             video_transcode_scope,
+                            video_transcode_formats,
                             app,
                             item_index,
                         );
@@ -1845,6 +1860,7 @@ pub fn maybe_reencode_for_telegram(
             target_planning_bytes,
             target_attempt,
             video_transcode_scope,
+            video_transcode_formats,
             app,
             item_index,
         );
@@ -1884,6 +1900,7 @@ pub fn prepare_upload_artifact_with_policy(
     encoder_allow_software_fallback: bool,
     target_max_bytes: Option<u64>,
     video_transcode_scope: Option<&str>,
+    video_transcode_formats: Option<&[String]>,
     app: Option<&tauri::AppHandle>,
     item_index: usize,
 ) -> Result<PreparedUploadArtifact, String> {
@@ -1908,6 +1925,7 @@ pub fn prepare_upload_artifact_with_policy(
         None,
         0,
         video_transcode_scope,
+        video_transcode_formats,
         app,
         item_index,
     )?;
@@ -2041,6 +2059,7 @@ pub fn prepare_upload_artifact(
         None,
         1,
         true,
+        None,
         None,
         None,
         app,

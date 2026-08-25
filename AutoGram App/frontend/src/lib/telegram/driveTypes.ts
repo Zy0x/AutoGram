@@ -811,7 +811,11 @@ export type AlbumIncompatImageMode = 'document' | 'transcode';
  *  'transcode' = transcode to MP4 loop animation to include in the album. */
 export type AlbumIncompatAnimMode = 'document' | 'transcode';
 
-export type VideoTranscodeScope = 'all_non_mp4' | 'common_containers' | 'legacy_broadcast' | 'none';
+export type VideoTranscodeScope = 'all_non_mp4' | 'common_containers' | 'legacy_broadcast' | 'custom' | 'none';
+
+export const ALL_VIDEO_TRANSCODE_FORMATS = [
+  'mkv', 'mov', 'webm', 'avi', 'wmv', 'ts', 'm2ts', 'vob', 'flv', 'ogv', '3gp', 'f4v', 'asf', 'mpg', 'mxf', 'divx'
+] as const;
 export type EncoderStrategy = 'auto_adaptive' | 'hardware_preferred' | 'software_preferred' | 'hardware_only' | 'software_only' | 'specific_device' | 'disable_reencode';
 export type EncoderResourceProfile = 'eco' | 'balanced' | 'performance' | 'custom';
 export type DownloadConflictPolicy = 'ask' | 'rename' | 'overwrite' | 'skip';
@@ -913,6 +917,8 @@ export type DriveTransferSettings = {
    *  'legacy_broadcast' = legacy/broadcast formats only (WMV, TS, FLV, M2TS, VOB, OGV, F4V, ASF)
    *  'none' = do not transcode any non-MP4 videos (send as raw documents) */
   videoTranscodeScope: VideoTranscodeScope;
+  /** Explicit list of video file extensions to remux/re-encode to MP4 (e.g. ['mkv', 'mov', 'webm']) */
+  videoTranscodeFormats: string[];
   encoderStrategy: EncoderStrategy;
   encoderResourceProfile: EncoderResourceProfile;
   encoderMaxParallel: number;
@@ -1002,6 +1008,9 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   albumIncompatImageMode: 'document',
   albumIncompatAnimMode: 'document',
   videoTranscodeScope: 'all_non_mp4',
+  videoTranscodeFormats: [
+    'mkv', 'mov', 'webm', 'avi', 'wmv', 'ts', 'm2ts', 'vob', 'flv', 'ogv', '3gp', 'f4v', 'asf', 'mpg', 'mxf', 'divx'
+  ],
   encoderStrategy: 'auto_adaptive',
   encoderResourceProfile: 'balanced',
   encoderMaxParallel: 1,
@@ -1126,9 +1135,14 @@ export function loadTransferSettings(): DriveTransferSettings {
         : 'cancel_group',
       albumIncompatImageMode: p.albumIncompatImageMode === 'transcode' ? 'transcode' : 'document',
       albumIncompatAnimMode: p.albumIncompatAnimMode === 'transcode' ? 'transcode' : 'document',
-      videoTranscodeScope: (['all_non_mp4', 'common_containers', 'legacy_broadcast', 'none'].includes(p.videoTranscodeScope)
+      videoTranscodeScope: (['all_non_mp4', 'common_containers', 'legacy_broadcast', 'custom', 'none'].includes(p.videoTranscodeScope)
         ? p.videoTranscodeScope
         : 'all_non_mp4') as VideoTranscodeScope,
+      videoTranscodeFormats: Array.isArray(p.videoTranscodeFormats) && p.videoTranscodeFormats.length > 0
+        ? p.videoTranscodeFormats.map((ext: any) => String(ext).toLowerCase().trim()).filter(Boolean)
+        : [
+            'mkv', 'mov', 'webm', 'avi', 'wmv', 'ts', 'm2ts', 'vob', 'flv', 'ogv', '3gp', 'f4v', 'asf', 'mpg', 'mxf', 'divx'
+          ],
       encoderStrategy: ['auto_adaptive', 'hardware_preferred', 'software_preferred', 'hardware_only', 'software_only', 'specific_device', 'disable_reencode'].includes(String(p.encoderStrategy)) ? p.encoderStrategy! : DEFAULT_TRANSFER_SETTINGS.encoderStrategy,
       encoderResourceProfile: ['eco', 'balanced', 'performance', 'custom'].includes(String(p.encoderResourceProfile)) ? p.encoderResourceProfile! : DEFAULT_TRANSFER_SETTINGS.encoderResourceProfile,
       encoderMaxParallel: Math.max(1, Math.min(4, Number(p.encoderMaxParallel) || DEFAULT_TRANSFER_SETTINGS.encoderMaxParallel)),
