@@ -802,6 +802,14 @@ export type AlbumPacking = 'maximum' | 'balanced' | 'custom' | 'follow_selection
 export type AlbumFailurePolicy = 'atomic_strict' | 'retry_prepare' | 'replan_group' | 'send_remaining' | 'send_failed_separately' | 'cancel_group' | 'best_effort_advanced';
 export type OversizeAction = 'auto_adaptive' | 'fit_to_limit' | 'split' | 'alternate_account' | 'skip';
 export type AlbumAlternateStrategy = 'separate_item' | 'move_whole_group' | 'cancel_group';
+/** How to handle unsupported image formats (WebP, HEIC, BMP, TIFF, etc.) when Album mode is active.
+ *  'document' = send as document with auto-thumbnail (quality preserved).
+ *  'transcode' = transcode to JPEG Q92 to include in the album. */
+export type AlbumIncompatImageMode = 'document' | 'transcode';
+/** How to handle animated/sticker formats (GIF, TGS, WebM sticker) when Album mode is active.
+ *  'document' = send as document with auto-thumbnail (quality preserved).
+ *  'transcode' = transcode to MP4 loop animation to include in the album. */
+export type AlbumIncompatAnimMode = 'document' | 'transcode';
 export type EncoderStrategy = 'auto_adaptive' | 'hardware_preferred' | 'software_preferred' | 'hardware_only' | 'software_only' | 'specific_device' | 'disable_reencode';
 export type EncoderResourceProfile = 'eco' | 'balanced' | 'performance' | 'custom';
 export type DownloadConflictPolicy = 'ask' | 'rename' | 'overwrite' | 'skip';
@@ -889,6 +897,14 @@ export type DriveTransferSettings = {
   alternateAccountPool: string;
   alternateIdentityApproved: boolean;
   albumAlternateStrategy: AlbumAlternateStrategy;
+  /** How incompatible image formats (WebP, HEIC, BMP, TIFF, etc.) are handled when Album is active.
+   *  'document' = send as document with auto-thumbnail (default, quality preserved).
+   *  'transcode' = transcode to JPEG Q92 to include in the album. */
+  albumIncompatImageMode: AlbumIncompatImageMode;
+  /** How animated/sticker formats (GIF, TGS, WebM sticker) are handled when Album is active.
+   *  'document' = send as document with auto-thumbnail (default, quality preserved).
+   *  'transcode' = transcode to MP4 loop animation to include in the album. */
+  albumIncompatAnimMode: AlbumIncompatAnimMode;
   encoderStrategy: EncoderStrategy;
   encoderResourceProfile: EncoderResourceProfile;
   encoderMaxParallel: number;
@@ -975,6 +991,8 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   alternateAccountPool: '',
   alternateIdentityApproved: false,
   albumAlternateStrategy: 'cancel_group',
+  albumIncompatImageMode: 'document',
+  albumIncompatAnimMode: 'document',
   encoderStrategy: 'auto_adaptive',
   encoderResourceProfile: 'balanced',
   encoderMaxParallel: 1,
@@ -1097,6 +1115,8 @@ export function loadTransferSettings(): DriveTransferSettings {
       albumAlternateStrategy: ['separate_item', 'move_whole_group', 'cancel_group'].includes(String(p.albumAlternateStrategy))
         ? p.albumAlternateStrategy!
         : 'cancel_group',
+      albumIncompatImageMode: p.albumIncompatImageMode === 'transcode' ? 'transcode' : 'document',
+      albumIncompatAnimMode: p.albumIncompatAnimMode === 'transcode' ? 'transcode' : 'document',
       encoderStrategy: ['auto_adaptive', 'hardware_preferred', 'software_preferred', 'hardware_only', 'software_only', 'specific_device', 'disable_reencode'].includes(String(p.encoderStrategy)) ? p.encoderStrategy! : DEFAULT_TRANSFER_SETTINGS.encoderStrategy,
       encoderResourceProfile: ['eco', 'balanced', 'performance', 'custom'].includes(String(p.encoderResourceProfile)) ? p.encoderResourceProfile! : DEFAULT_TRANSFER_SETTINGS.encoderResourceProfile,
       encoderMaxParallel: Math.max(1, Math.min(4, Number(p.encoderMaxParallel) || DEFAULT_TRANSFER_SETTINGS.encoderMaxParallel)),

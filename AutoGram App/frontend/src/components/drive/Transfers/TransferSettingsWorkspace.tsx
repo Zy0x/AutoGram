@@ -2531,6 +2531,59 @@ export function TransferSettingsWorkspace({
                         <option value="atomic_strict">{t('ui.generated.strict_atomik_batal_kirim_album_ulangi_paket_1beec2e')}</option>
                         <option value="send_remaining">{t('ui.generated.fallback_individual_konversi_item_tersisa_menjad_e4ccb1a')}</option>
                       </select>
+                    {/* ALBUM INCOMPATIBLE MEDIA HANDLING */}
+                    <div style={{ marginTop: '20px', paddingTop: '18px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                      <div style={{ marginBottom: '12px' }}>
+                        <strong style={{ fontSize: '0.82rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          {t('speedtest.album_incompat_section_title')}
+                        </strong>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.79rem', color: '#64748b' }}>
+                          {t('speedtest.album_incompat_section_desc')}
+                        </p>
+                      </div>
+
+                      {/* Group 1: Image formats */}
+                      <div className="td-field-group" style={{ marginTop: '10px' }}>
+                        <label className="td-field-label">{t('speedtest.album_incompat_image_label')}</label>
+                        <p style={{ margin: '0 0 8px', fontSize: '0.78rem', color: '#64748b' }}>
+                          {t('speedtest.album_incompat_image_desc')}
+                        </p>
+                        <select
+                          value={draft.albumIncompatImageMode || 'document'}
+                          disabled={!!transferActive}
+                          onChange={(e) => patch({ albumIncompatImageMode: e.target.value as any })}
+                        >
+                          <option value="document">{t('speedtest.album_incompat_image_document')}</option>
+                          <option value="transcode">{t('speedtest.album_incompat_image_transcode')}</option>
+                        </select>
+                        <p className="td-xfer-hint" style={{ marginTop: '6px' }}>
+                          {(draft.albumIncompatImageMode || 'document') === 'document'
+                            ? t('speedtest.album_incompat_image_document_desc')
+                            : t('speedtest.album_incompat_image_transcode_desc')}
+                        </p>
+                      </div>
+
+                      {/* Group 2: Animation/sticker formats */}
+                      <div className="td-field-group" style={{ marginTop: '14px' }}>
+                        <label className="td-field-label">{t('speedtest.album_incompat_anim_label')}</label>
+                        <p style={{ margin: '0 0 8px', fontSize: '0.78rem', color: '#64748b' }}>
+                          {t('speedtest.album_incompat_anim_desc')}
+                        </p>
+                        <select
+                          value={draft.albumIncompatAnimMode || 'document'}
+                          disabled={!!transferActive}
+                          onChange={(e) => patch({ albumIncompatAnimMode: e.target.value as any })}
+                        >
+                          <option value="document">{t('speedtest.album_incompat_anim_document')}</option>
+                          <option value="transcode">{t('speedtest.album_incompat_anim_transcode')}</option>
+                        </select>
+                        <p className="td-xfer-hint" style={{ marginTop: '6px' }}>
+                          {(draft.albumIncompatAnimMode || 'document') === 'document'
+                            ? t('speedtest.album_incompat_anim_document_desc')
+                            : t('speedtest.album_incompat_anim_transcode_desc')}
+                        </p>
+                      </div>
+                    </div>
                     </div>
                   </div>
                 </div>

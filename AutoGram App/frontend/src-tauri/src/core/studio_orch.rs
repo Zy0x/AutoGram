@@ -894,7 +894,9 @@ fn run_intelligent_album(
                 classification.as_document = true;
                 classification.reason_code = "presentation_forced_document".into();
             }
-            "force_native_media" | "original" | "native" if classification.payload_class != PayloadClass::NativeVisual => {
+            "force_native_media" | "original" | "native"
+                if classification.payload_class != PayloadClass::NativeVisual =>
+            {
                 if matches!(
                     classification.category,
                     MediaCategory::JpegImage
@@ -910,6 +912,51 @@ fn run_intelligent_album(
                 }
             }
             _ => {}
+        }
+        // Override classification for album-incompatible formats based on user settings.
+        // Only active when album mode is used; WebP/OtherImage/GIF/TGS still in NativeVisual
+        // after transcode will pass through (artifact.transformed guards that path).
+        {
+            let incompat_image_mode = rec.options
+                .get("album_incompat_image_mode")
+                .or_else(|| rec.options.get("albumIncompatImageMode"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("document");
+            let incompat_anim_mode = rec.options
+                .get("album_incompat_anim_mode")
+                .or_else(|| rec.options.get("albumIncompatAnimMode"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("document");
+            // Image formats: WebP (untranscoded), HEIC/BMP/TIFF/AVIF/SVG (OtherImage)
+            let is_incompat_image = matches!(
+                classification.category,
+                MediaCategory::WebpImage | MediaCategory::OtherImage
+            ) && classification.payload_class == PayloadClass::NativeVisual
+              && !artifact.transformed;
+            // Animation/sticker: GIF, and OtherVideo (TGS/WebM sticker) when untranscoded
+            let is_incompat_anim = matches!(
+                classification.category,
+                MediaCategory::GifImage | MediaCategory::OtherVideo
+            ) && !artifact.transformed;
+            if is_incompat_image && incompat_image_mode == "document" {
+                classification.payload_class = PayloadClass::DocumentGroup;
+                classification.as_document = true;
+                classification.reason_code = "album_incompat_image_as_document".into();
+                tg_log::info(
+                    "studio_orch",
+                    "album_incompat_image_document",
+                    format!("transfer={tid} index={} cat={:?}", item.index, classification.category),
+                );
+            } else if is_incompat_anim && incompat_anim_mode == "document" {
+                classification.payload_class = PayloadClass::DocumentGroup;
+                classification.as_document = true;
+                classification.reason_code = "album_incompat_anim_as_document".into();
+                tg_log::info(
+                    "studio_orch",
+                    "album_incompat_anim_document",
+                    format!("transfer={tid} index={} cat={:?}", item.index, classification.category),
+                );
+            }
         }
         persist_prepared_decision(
             rec,
@@ -1969,11 +2016,12 @@ fn run_orchestrated_grammers(
                 }
             }
         }
-        let item_as_document = if pres_override == Some("original") || pres_override == Some("standard") {
-            delivery.as_document
-        } else {
-            as_doc || delivery.as_document
-        };
+        let item_as_document =
+            if pres_override == Some("original") || pres_override == Some("standard") {
+                delivery.as_document
+            } else {
+                as_doc || delivery.as_document
+            };
         persist_prepared_decision(
             &rec,
             item.index,

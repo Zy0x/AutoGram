@@ -6992,6 +6992,8 @@ function MediaDriveDesktop({
         .filter(Boolean),
       alternate_identity_approved: transferSettings.alternateIdentityApproved,
       album_alternate_strategy: transferSettings.albumAlternateStrategy,
+      album_incompat_image_mode: transferSettings.albumIncompatImageMode,
+      album_incompat_anim_mode: transferSettings.albumIncompatAnimMode,
       encoder_strategy: transferSettings.encoderStrategy,
       encoder_resource_profile: transferSettings.encoderResourceProfile,
       encoder_max_parallel: transferSettings.encoderMaxParallel,
