@@ -1,3 +1,19 @@
+## v3.8.23 Interactive Image Transcode Multi-Format Checklist with Lossless PNG & Maximum Quality JPEG (Q100 4:4:4) Support
+
+### 1. Interactive Image Transcode Multi-Format Checklist UI
+- **Ceklist Khusus Format Gambar di Drive Settings**:
+  - Menambahkan checklist gambar multi-pilihan di [`TransferSettingsWorkspace.tsx`](file:///F:/AutoGram/AutoGram%20App/frontend/src/components/drive/Transfers/TransferSettingsWorkspace.tsx) dan [`DriveToolsModal.tsx`](file:///F:/AutoGram/AutoGram%20App/frontend/src/components/drive/Transfers/DriveToolsModal.tsx):
+    - Format Web & Modern: `.WEBP`, `.HEIC`, `.HEIF`, `.AVIF`, `.JXL`
+    - Format Grafis & Desain: `.TIFF`, `.BMP`, `.SVG`, `.PSD`, `.TGA`
+    - Format Kamera RAW: `.RAW`, `.DNG`, `.CR2`, `.CR3`, `.NEF`, `.ARW`, `.ORF`, `.RW2`, `.RAF`
+  - Dilengkapi tombol cepat *Pilih Semua Gambar* (*Select All*) dan *Batal Pilih Semua Gambar* (*Deselect All*), serta penghitung format aktif dinamis.
+
+### 2. 100% No Loss Quality Transcoding Engine
+- **Target Transcode PNG Lossless & JPEG Q100 4:4:4**:
+  - **PNG (100% Lossless Bit-Exact RGBA)**: Menggunakan `-pix_fmt rgba -compression_level 1` via FFmpeg di `media_prep.rs` untuk konversi tanpa pengurangan piksel dan mempertahankan alpha channel.
+  - **JPEG (100% Kualitas Maksimal Q100 4:4:4)**: Menggunakan `-pix_fmt yuvj444p -q:v 1 -qmin 1` tanpa chroma blur untuk kompatibilitas album Telegram native.
+  - Berkas yang tidak dicentang otomatis dikirim utuh 100% sebagai dokumen mentah berthumbnail visual.
+
 ## v3.8.22 Interactive Video Transcode Multi-Format Checklist, Universal Exact MIME Preservation & Full Thumbnail Parity
 
 ### 1. Interactive Video Transcode Multi-Format Checklist UI

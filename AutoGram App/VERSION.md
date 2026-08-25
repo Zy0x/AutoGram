@@ -1,6 +1,14 @@
-AutoGram Version: v3.8.22
+AutoGram Version: v3.8.23
 
 Current State:
+v3.8.23 Interactive Image Transcode Multi-Format Checklist with Lossless PNG & Maximum Quality JPEG (Q100 4:4:4) Support — penyempurnaan menyeluruh pada antarmuka dan pipeline transkode format gambar:
+1. Interactive Image Transcode Multi-Format Checklist UI: Menambahkan panel ceklist interaktif multi-pilihan pada Pengaturan Transfer Album yang memungkinkan pengguna mencentang/memilih secara bebas seluruh ekstensi gambar (.WEBP, .HEIC, .HEIF, .AVIF, .JXL, .TIFF, .BMP, .SVG, .PSD, .TGA, .RAW, .DNG, .CR2, .CR3, .NEF, .ARW, .ORF, .RW2, .RAF) yang ingin di-transcode atau dikirim sebagai dokumen mentah asli, lengkap dengan tombol cepat "Pilih Semua Gambar" dan "Batal Pilih Semua Gambar" serta penghitung format aktif.
+2. 100% No Loss Quality Transcoding Engine: Menyediakan opsi target format transcode gambar:
+   - PNG (100% Lossless Bit-Exact RGBA): Menjaga 100% integritas piksel tanpa kompresi sedikit pun dan mempertahankan transparansi alpha.
+   - JPEG (100% Kualitas Maksimal Q100 4:4:4): Konversi visual tertinggi tanpa chroma subsampling blur untuk kompatibilitas album foto Telegram native.
+3. Full Zero-Leak Tracking in Rust Engine: Mengintegrasikan `maybe_transcode_image_for_telegram` ke dalam `media_prep.rs` dan `studio_orch.rs` dengan pelacakan cleanup otomatis untuk mencegah sisa file temporer pada disk.
+
+Previous:
 v3.8.22 Interactive Video Transcode Multi-Format Checklist, Universal Exact MIME Preservation & Full Thumbnail Parity — penyempurnaan menyeluruh pada penanganan format media digital dan antarmuka konfigurasi transfer:
 1. Interactive Video Transcode Checklist UI in Drive Settings: Menyediakan antarmuka checklist interaktif multi-pilihan pada Pengaturan Transfer yang memungkinkan pengguna mencentang/memilih secara bebas seluruh format kontainer video (.MKV, .MOV, .WebM, .AVI, .WMV, .TS, .M2TS, .VOB, .FLV, .OGV, .3GP, .F4V, .ASF, .MPG, .MXF, .DivX) yang ingin di-remux/re-encode ke MP4 native atau dikirim sebagai dokumen mentah asli, lengkap dengan tombol cepat "Pilih Semua" dan "Batal Pilih Semua" serta penghitung format aktif.
 2. Universal Exact MIME Preservation in Document Delivery: Menghilangkan penimpaan MIME "application/octet-stream" pada mode pengiriman dokumen satuan (non-album) dan album di `media_transfer.rs`. Seluruh media kini mempertahankan MIME asli spesifiknya (`image/webp`, `video/x-matroska`, `audio/flac`, `image/gif`, dll.) sehingga aplikasi Telegram Android & Desktop merender kartu media interaktif yang tepat dan tidak lagi menjadi "dokumen hampa".

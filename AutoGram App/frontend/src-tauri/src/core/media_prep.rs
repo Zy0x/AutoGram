@@ -1901,6 +1901,9 @@ pub fn prepare_upload_artifact_with_policy(
     target_max_bytes: Option<u64>,
     video_transcode_scope: Option<&str>,
     video_transcode_formats: Option<&[String]>,
+    image_transcode_scope: Option<&str>,
+    image_transcode_target: Option<&str>,
+    image_transcode_formats: Option<&[String]>,
     app: Option<&tauri::AppHandle>,
     item_index: usize,
 ) -> Result<PreparedUploadArtifact, String> {
@@ -1913,22 +1916,35 @@ pub fn prepare_upload_artifact_with_policy(
         path_policy::assert_safe_transfer_path(path).map_err(|e| e.to_string())?;
         path.to_string()
     };
-    let prepared = maybe_reencode_for_telegram(
-        &local,
-        quality_mode,
-        hardware_override,
-        encoder_strategy,
-        encoder_resource_profile,
-        encoder_max_parallel,
-        encoder_allow_software_fallback,
-        target_max_bytes,
-        None,
-        0,
-        video_transcode_scope,
-        video_transcode_formats,
-        app,
-        item_index,
-    )?;
+    let prepared = {
+        let video_prepared = maybe_reencode_for_telegram(
+            &local,
+            quality_mode,
+            hardware_override,
+            encoder_strategy,
+            encoder_resource_profile,
+            encoder_max_parallel,
+            encoder_allow_software_fallback,
+            target_max_bytes,
+            None,
+            0,
+            video_transcode_scope,
+            video_transcode_formats,
+            app,
+            item_index,
+        )?;
+        if video_prepared == local {
+            maybe_transcode_image_for_telegram(
+                &local,
+                image_transcode_target,
+                image_transcode_scope,
+                image_transcode_formats,
+                item_index,
+            )?
+        } else {
+            video_prepared
+        }
+    };
     let transformed = prepared != local;
     let transform_action = if !transformed {
         super::autogram_core::transfer::TransformAction::PassThrough
@@ -2062,6 +2078,9 @@ pub fn prepare_upload_artifact(
         None,
         None,
         None,
+        None,
+        None,
+        None,
         app,
         item_index,
     )
@@ -2118,4 +2137,212 @@ mod tests {
         assert!(adjusted < 95_000_000);
         assert_eq!(adjusted, 82_045_454);
     }
+}
+
+/// Transcode non-standard images (WebP, HEIC, AVIF, TIFF, BMP, PSD, RAW, etc.)
+/// to 100% Lossless PNG (bit-exact RGBA) or Maximum Fidelity JPEG (Q100 4:4:4)
+pub fn maybe_transcode_image_for_telegram(
+    path: &str,
+    target_format: Option<&str>,
+    image_transcode_scope: Option<&str>,
+    image_transcode_formats: Option<&[String]>,
+    item_index: usize,
+) -> Result<String, String> {
+    let p = Path::new(path);
+    let ext = p
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+
+    if ext == "jpg" || ext == "jpeg" || ext == "png" {
+        return Ok(path.to_string());
+    }
+
+    let scope = image_transcode_scope.unwrap_or("all_incompatible");
+    let should_transcode = match scope {
+        "none" => false,
+        "common_web" => matches!(
+            ext.as_str(),
+            "webp" | "heic" | "heif" | "hif" | "avif" | "avis" | "jxl"
+        ),
+        "graphics_raw" => matches!(
+            ext.as_str(),
+            "bmp"
+                | "tiff"
+                | "tif"
+                | "svg"
+                | "svgz"
+                | "psd"
+                | "psb"
+                | "tga"
+                | "dds"
+                | "exr"
+                | "hdr"
+                | "ico"
+                | "raw"
+                | "dng"
+                | "cr2"
+                | "cr3"
+                | "nef"
+                | "nrw"
+                | "arw"
+                | "orf"
+                | "rw2"
+                | "pef"
+                | "raf"
+        ),
+        "custom" => {
+            if let Some(custom_list) = image_transcode_formats {
+                custom_list.iter().any(|f| f.eq_ignore_ascii_case(&ext))
+            } else {
+                matches!(
+                    ext.as_str(),
+                    "webp"
+                        | "heic"
+                        | "heif"
+                        | "avif"
+                        | "jxl"
+                        | "bmp"
+                        | "tiff"
+                        | "tif"
+                        | "svg"
+                        | "psd"
+                        | "raw"
+                        | "dng"
+                )
+            }
+        }
+        _ => matches!(
+            ext.as_str(),
+            "webp"
+                | "heic"
+                | "heif"
+                | "hif"
+                | "avif"
+                | "avis"
+                | "jxl"
+                | "bmp"
+                | "tiff"
+                | "tif"
+                | "svg"
+                | "svgz"
+                | "psd"
+                | "psb"
+                | "tga"
+                | "dds"
+                | "exr"
+                | "hdr"
+                | "ico"
+                | "cur"
+                | "raw"
+                | "dng"
+                | "cr2"
+                | "cr3"
+                | "nef"
+                | "nrw"
+                | "arw"
+                | "srf"
+                | "sr2"
+                | "orf"
+                | "rw2"
+                | "pef"
+                | "raf"
+                | "srw"
+                | "x3f"
+        ),
+    };
+
+    if !should_transcode {
+        return Ok(path.to_string());
+    }
+
+    let ffmpeg_path = match find_ffmpeg_binary() {
+        Some(p) => p,
+        None => {
+            tg_log::warn(
+                BACKEND,
+                "image_transcode_no_ffmpeg",
+                "FFmpeg not found; skipping image transcode",
+            );
+            return Ok(path.to_string());
+        }
+    };
+
+    let target_fmt = target_format.unwrap_or("png").to_ascii_lowercase();
+    let is_target_png = target_fmt == "png";
+
+    let temp_dir = std::env::temp_dir();
+    let out_ext = if is_target_png { "png" } else { "jpg" };
+    let out_file = temp_dir.join(format!(
+        "img_transcode_{}_{}_{}.{}",
+        std::process::id(),
+        item_index,
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or(0),
+        out_ext
+    ));
+
+    let mut cmd = Command::new(&ffmpeg_path);
+    cmd.arg("-y").arg("-i").arg(path);
+
+    if is_target_png {
+        // 100% Bit-exact Lossless RGBA
+        cmd.arg("-pix_fmt")
+            .arg("rgba")
+            .arg("-compression_level")
+            .arg("1");
+    } else {
+        // 100% Maximum Quality JPEG (Q100, 4:4:4 Chroma)
+        cmd.arg("-pix_fmt")
+            .arg("yuvj444p")
+            .arg("-q:v")
+            .arg("1")
+            .arg("-qmin")
+            .arg("1");
+    }
+
+    cmd.arg(&out_file);
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000);
+    }
+
+    match cmd.status() {
+        Ok(status) if status.success() && out_file.exists() => {
+            if let Ok(meta) = fs::metadata(&out_file) {
+                if meta.len() > 0 {
+                    tg_log::info(
+                        BACKEND,
+                        "image_transcode_ok",
+                        format!(
+                            "src={} target={} out={} bytes={}",
+                            path,
+                            out_ext,
+                            out_file.display(),
+                            meta.len()
+                        ),
+                    );
+                    return Ok(out_file.display().to_string());
+                }
+            }
+        }
+        Ok(status) => {
+            tg_log::warn(
+                BACKEND,
+                "image_transcode_fail",
+                format!("status={status}"),
+            );
+        }
+        Err(e) => {
+            tg_log::warn(BACKEND, "image_transcode_err", e.to_string());
+        }
+    }
+
+    let _ = fs::remove_file(&out_file);
+    Ok(path.to_string())
 }

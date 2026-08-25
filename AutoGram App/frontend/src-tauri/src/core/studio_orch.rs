@@ -110,6 +110,9 @@ fn prepare_with_receipt(
     target_max_bytes: Option<u64>,
     video_transcode_scope: Option<&str>,
     video_transcode_formats: Option<&[String]>,
+    image_transcode_scope: Option<&str>,
+    image_transcode_target: Option<&str>,
+    image_transcode_formats: Option<&[String]>,
     app: Option<&tauri::AppHandle>,
     item_index: usize,
 ) -> Result<media_prep::PreparedUploadArtifact, String> {
@@ -141,6 +144,9 @@ fn prepare_with_receipt(
         target_max_bytes,
         video_transcode_scope,
         video_transcode_formats,
+        image_transcode_scope,
+        image_transcode_target,
+        image_transcode_formats,
         app,
         item_index,
     ) {
@@ -852,6 +858,26 @@ fn run_intelligent_album(
                     .filter_map(|x| x.as_str().map(|s| s.to_ascii_lowercase()))
                     .collect()
             });
+        let image_transcode_scope = rec
+            .options
+            .get("image_transcode_scope")
+            .or_else(|| rec.options.get("imageTranscodeScope"))
+            .and_then(|v| v.as_str());
+        let image_transcode_target = rec
+            .options
+            .get("image_transcode_target")
+            .or_else(|| rec.options.get("imageTranscodeTarget"))
+            .and_then(|v| v.as_str());
+        let image_transcode_formats: Option<Vec<String>> = rec
+            .options
+            .get("image_transcode_formats")
+            .or_else(|| rec.options.get("imageTranscodeFormats"))
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|x| x.as_str().map(|s| s.to_ascii_lowercase()))
+                    .collect()
+            });
         for attempt in 0..=1 {
             match prepare_with_receipt(
                 tid,
@@ -865,6 +891,9 @@ fn run_intelligent_album(
                 Some(primary_limit),
                 video_transcode_scope,
                 video_transcode_formats.as_deref(),
+                image_transcode_scope,
+                image_transcode_target,
+                image_transcode_formats.as_deref(),
                 app,
                 item.index,
             ) {
@@ -1975,6 +2004,26 @@ fn run_orchestrated_grammers(
                     .filter_map(|x| x.as_str().map(|s| s.to_ascii_lowercase()))
                     .collect()
             });
+        let image_transcode_scope = rec
+            .options
+            .get("image_transcode_scope")
+            .or_else(|| rec.options.get("imageTranscodeScope"))
+            .and_then(|v| v.as_str());
+        let image_transcode_target = rec
+            .options
+            .get("image_transcode_target")
+            .or_else(|| rec.options.get("imageTranscodeTarget"))
+            .and_then(|v| v.as_str());
+        let image_transcode_formats: Option<Vec<String>> = rec
+            .options
+            .get("image_transcode_formats")
+            .or_else(|| rec.options.get("imageTranscodeFormats"))
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|x| x.as_str().map(|s| s.to_ascii_lowercase()))
+                    .collect()
+            });
         let prepared_artifact = match prepare_with_receipt(
             &tid,
             &item.path,
@@ -1990,6 +2039,9 @@ fn run_orchestrated_grammers(
             )),
             video_transcode_scope,
             video_transcode_formats.as_deref(),
+            image_transcode_scope,
+            image_transcode_target,
+            image_transcode_formats.as_deref(),
             app,
             item.index,
         ) {
