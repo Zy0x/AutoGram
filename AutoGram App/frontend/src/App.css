@@ -22947,9 +22947,17 @@ input[type="search"]::-webkit-search-decoration {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
   margin-bottom: 3px;
+  min-width: 0;
+}
+
+.td-session-header-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .td-session-header-row .td-label {
@@ -22957,12 +22965,27 @@ input[type="search"]::-webkit-search-decoration {
   margin-bottom: 0 !important;
   font-size: 0.65rem !important;
   letter-spacing: 0.05em !important;
+  white-space: nowrap;
 }
 
 .td-session-header-row .td-conn-indicator {
   margin: 0 !important;
   font-size: 0.65rem !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: calc(100% - 75px);
+  overflow: hidden;
+  flex-shrink: 1;
+}
+
+.td-session-header-row .td-conn-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
+  display: inline-block;
 }
 
 /* Minimalist Session Header Right & Refresh Icon Button */
@@ -22985,6 +23008,7 @@ input[type="search"]::-webkit-search-decoration {
   cursor: pointer;
   transition: background 120ms ease, color 120ms ease;
   padding: 0;
+  flex-shrink: 0;
 }
 
 .td-session-refresh-btn:hover {
@@ -22997,14 +23021,14 @@ input[type="search"]::-webkit-search-decoration {
   cursor: not-allowed;
 }
 
-/* Responsive Session Reconnect Bar - 100% Anti-Truncation across all viewports */
+/* Responsive Session Reconnect Bar - 100% Anti-Truncation & Anti-Overlap across all viewports */
 .td-session-reconnect-bar {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-top: 5px;
-  padding: 6px 8px;
-  background: color-mix(in srgb, var(--danger, #ef4444) 12%, rgba(15, 23, 42, 0.7));
+  margin-top: 6px;
+  padding: 7px 8px;
+  background: color-mix(in srgb, var(--danger, #ef4444) 12%, rgba(15, 23, 42, 0.85));
   border: 1px solid color-mix(in srgb, var(--danger, #ef4444) 28%, transparent);
   border-radius: 6px;
   width: 100%;
@@ -23013,7 +23037,7 @@ input[type="search"]::-webkit-search-decoration {
 
 .td-reconnect-actions {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 6px;
   width: 100%;
   flex-wrap: wrap;
@@ -23023,11 +23047,12 @@ input[type="search"]::-webkit-search-decoration {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  flex: 1 1 0%;
-  min-width: 76px;
+  gap: 6px;
+  flex: 1 1 120px;
+  width: 100%;
+  min-width: 0;
   min-height: 32px;
-  padding: 4px 8px;
+  padding: 6px 8px;
   border-radius: 5px;
   font-size: 0.72rem;
   font-weight: 600;
@@ -23035,18 +23060,29 @@ input[type="search"]::-webkit-search-decoration {
   border: none;
   transition: all 150ms ease;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
   touch-action: manipulation;
 }
 
+.td-reconnect-action-btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
 .td-reconnect-check-btn {
-  background: color-mix(in srgb, var(--td-primary, #3b82f6) 18%, rgba(30, 41, 59, 0.8));
+  background: color-mix(in srgb, var(--td-primary, #3b82f6) 18%, rgba(30, 41, 59, 0.85));
   color: var(--td-primary, #60a5fa);
   border: 1px solid color-mix(in srgb, var(--td-primary, #3b82f6) 35%, transparent);
 }
 
 .td-reconnect-check-btn:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--td-primary, #3b82f6) 30%, rgba(30, 41, 59, 0.9));
+  background: color-mix(in srgb, var(--td-primary, #3b82f6) 30%, rgba(30, 41, 59, 0.95));
   color: #ffffff;
+  border-color: var(--td-primary, #60a5fa);
 }
 
 .td-reconnect-check-btn:disabled {
@@ -23057,6 +23093,7 @@ input[type="search"]::-webkit-search-decoration {
 .td-reconnect-login-btn {
   background: var(--primary, #3b82f6);
   color: #ffffff;
+  border: 1px solid transparent;
 }
 
 .td-reconnect-login-btn:hover {

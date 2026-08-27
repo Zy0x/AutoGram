@@ -2052,7 +2052,28 @@ export function DriveSidebar({
               <RefreshCw size={12} className={busy || manualSpin ? 'spin' : ''} aria-hidden />
             </button>
           </div>
-          <div className={`td-conn-indicator status-${pingState?.status || (connected ? 'excellent' : 'disconnected')}`}>
+          <div
+            className={`td-conn-indicator status-${pingState?.status || (connected ? 'excellent' : 'disconnected')}`}
+            title={
+              pingState?.status === 'offline'
+                ? t('speedtest.ping_offline')
+                : pingState?.status === 'disconnected'
+                ? t('speedtest.ping_disconnected')
+                : pingState?.status === 'transferring'
+                ? t('speedtest.ping_transferring')
+                : pingState?.status === 'excellent'
+                ? `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_excellent')}`
+                : pingState?.status === 'good'
+                ? `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_good')}`
+                : pingState?.status === 'fair'
+                ? `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_fair')}`
+                : pingState?.status === 'poor'
+                ? `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_poor')}`
+                : connected
+                ? t('speedtest.ping_drive_connected')
+                : t('speedtest.ping_not_connected')
+            }
+          >
             <span className={`td-conn-dot ${pingState?.status || (connected ? 'excellent' : 'disconnected')} pulse`} />
             <span className="td-conn-text">
               {pingState?.status === 'offline' && t('speedtest.ping_offline')}

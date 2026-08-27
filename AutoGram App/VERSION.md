@@ -1,12 +1,13 @@
-AutoGram Version: v3.8.32
+AutoGram Version: v3.8.33
 
 Current State:
-v3.8.32 Zero-Flicker Seamless Sticker Animation Transition & Instant Poster Crossfade — eliminasi glitch loading pada pratinjau stiker bergerak:
-1. Instant Crisp Poster Foundation: Poster/thumbnail stiker kini langsung dirender tajam tanpa efek blur atau opasitas redup saat pertama kali dibuka, mengeliminasi lompatan visual (*layout shift*) dan transisi kasar.
-2. Seamless In-Memory Crossfade: Menggantikan tampilan badge "Loading" mendadak dengan transisi *crossfade* 200ms mulus dari poster ke lapisan animasi Lottie SVG begitu frame pertama siap.
-3. Debounced Slow-Network Indicator: Indikator loading hanya muncul jika pengunduhan stiker memakan waktu > 400ms, menjamin pembukaan stiker lokal/cepat terasa 100% instan dan bebas kedip (*zero-flicker*).
+v3.8.33 Responsive Session Header & Anti-Overlap Reconnect Action Hub — perbaikan menyeluruh tampilan header koneksi dan tombol tindakan sesi:
+1. Anti-Overlap Action Button Grid: Memperbaiki tata letak tombol "Check Connection" dan "Re-login" dengan flex-wrap adaptif dan `min-width: 0`, mencegah tumpang tindih teks pada sidebar sempit dan seluruh ukuran layar.
+2. Responsive Header Row & Text Truncation: Mencegah pemotongan teks status koneksi Telegram pada header kartu akun dengan `text-overflow: ellipsis` dan atribut `title` lengkap saat kursor diarahkan.
+3. Mobile & Narrow Viewport Polish: Penyesuaian responsif penuh pada resolusi mobile, tablet, dan desktop tanpa distorsi atau pergeseran layout.
 
 Previous:
+v3.8.32 Zero-Flicker Seamless Sticker Animation Transition & Instant Poster Crossfade — eliminasi glitch loading pada pratinjau stiker bergerak:
 v3.8.31 Native TGS Lottie Vector Animation Engine & Multi-Format Moving Preview Hub — pemutaran animasi stiker dan media bergerak di AutoGram Preview:
 1. Native TGS Lottie Engine: Mengintegrasikan dekompresi Gzip in-memory stream dan Lottie Web rendering engine 60 FPS pada `TgsLottiePlayer.tsx`, memutar stiker animasi vektor `.tgs` Telegram secara mulus dan berulang (looping) persis seperti di aplikasi Telegram asli.
 2. Multi-Format Moving Media Support: Mendukung pemutaran native seluruh format animasi Telegram & web (stiker video `.webm` transparan, animated `.webp`, `.gif`, `.apng`, dan animated `.svg`) di modal pratinjau AutoGram.

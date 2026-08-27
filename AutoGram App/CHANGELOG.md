@@ -1,3 +1,13 @@
+## v3.8.33 Responsive Session Header & Anti-Overlap Reconnect Action Hub
+
+### 1. Anti-Overlap Action Button Grid & Flexbox Polish
+- **Pencegahan Tumpang Tindih Teks Tombol**: Mengonfigurasi ulang `td-reconnect-actions` dan `td-reconnect-action-btn` dengan `flex: 1 1 120px` dan `min-width: 0`, menjamin tombol "Check Connection" dan "Re-login" membagi ruang secara seimbang atau membungkus baris (*wrap*) dengan rapi pada sidebar berukuran sempit tanpa terjadi tabrakan teks atau elemen bertumpukan (*overlapping*).
+- **Penanganan Truncation & Ellipsis**: Menambahkan aturan `text-overflow: ellipsis` dan `overflow: hidden` pada label tombol untuk memastikan kerapian visual di seluruh resolusi.
+
+### 2. Responsive Session Header & Connection Status Tooltip
+- **Perlindungan Terhadap Pemotongan Teks Status**: Mengatur `.td-session-header-row`, `.td-conn-indicator`, dan `.td-conn-text` agar menyusut (*shrink*) secara dinamis dengan batas lebar maksimum dan pemotongan berakhiran elipsis (`...`).
+- **Tooltip Status Koneksi Penuh**: Menyematkan atribut `title` lengkap pada indikator status koneksi sehingga pengguna dapat melihat rincian status latensi ping atau keterangan terputus secara jelas saat kursor diarahkan ke elemen.
+
 ## v3.8.32 Zero-Flicker Seamless Sticker Animation Transition & Instant Poster Crossfade
 
 ### 1. Zero-Flicker Seamless Sticker Animation Transition
