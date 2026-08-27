@@ -1,0 +1,190 @@
+flowchart TD
+    %% =========================================================================
+    %% AUTOGRAM MASTER UNIFIED UPLOAD & TRANSCODE WORKFLOW (.mmd)
+    %% =========================================================================
+
+    subgraph TIER0 ["TIER 0: FRONTEND UI & CONFIGURATION LAYER (React + TypeScript)"]
+        UI_INPUT["Input Berkas: File Picker / Drag & Drop / Folder / Batch Transfer"]
+        
+        subgraph SETTINGS ["Transfer Settings & Drive Tools Configuration Hub"]
+            MODE_DELIVERY["1. Delivery Mode<br/>• Auto (Rekomendasi)<br/>• Lossless Document (Bit-Exact)<br/>• Native Media (Telegram Stream)"]
+            IMG_SETTINGS["2. Image Transcoding<br/>• Target: PNG Lossless / JPEG Q100 4:4:4<br/>• Scope: All / Modern Web / Custom 19 Exts"]
+            VID_SETTINGS["3. Video Transcoding & Remux<br/>• Mode: Fast Remux Copy / Full Re-encode / Raw Doc<br/>• Accel: Auto / NVENC / QSV / AMF / CPU<br/>• CRF: 18 (Lossless) s/d 28 (Hemat) • Max Res: 4K / 1080p / 720p"]
+            STK_SETTINGS["4. Sticker Policy<br/>• Anti-Sticker ON: Transcode to MP4 Loop / Static<br/>• Raw Sticker: Kirim Asli .tgs / .webm / .webp"]
+            ALB_SETTINGS["5. Batching & Concurrency<br/>• Single Message vs Album (2-10 items)<br/>• Concurrency: 1 - 10 Parallel Lanes"]
+        end
+
+        UI_INPUT --> SETTINGS
+    end
+
+    SETTINGS -->|"Tauri IPC: studio_queue_transfer"| TIER1
+
+    subgraph TIER1 ["TIER 1: ORCHESTRATION & ACCESS CONTROL (Rust: studio_orch.rs + path_policy.rs)"]
+        AUTH_CHECK{"Validasi Path Policy & Keamanan (path_policy.rs)"}
+        BLOCK_SESSION["BLOKIR: File *.session, API Hash, Credential & System Path"]
+        REGISTER_QUEUE["Registrasi Job ID Unik ke Antrean Terkelola (job_queue.rs)"]
+        PEER_RESOLVE["Resolusi Target Telegram: Chat / Channel / Topic ID / Saved Messages ('me')"]
+
+        AUTH_CHECK -->|"Path Berbahaya"| BLOCK_SESSION
+        AUTH_CHECK -->|"Path Valid & Aman"| REGISTER_QUEUE
+        REGISTER_QUEUE --> PEER_RESOLVE
+    end
+
+    PEER_RESOLVE --> TIER2
+
+    subgraph TIER2 ["TIER 2: 4-LAYER DUPLICATE PREVENTION ENGINE (Rust: drive_engine/store.rs + SQLite)"]
+        DUP_L1{"Level 1: Cek Telegram Message ID"}
+        DUP_L2{"Level 2: Cek Telegram Unique File ID"}
+        DUP_L3{"Level 3: Cek SHA-256 Hash Konten"}
+        DUP_L4{"Level 4: Cek Nama Berkas + Ukuran Byte Eksak"}
+        
+        DUP_ACTION_SKIP["Keputusan Duplikat:<br/>Lewati (Skip) / Timpa / Salinan Bersih"]
+        DUP_PASS["Berkas Unik / Dipaksa (Force Upload)"]
+
+        DUP_L1 -->|"Ditemukan"| DUP_ACTION_SKIP
+        DUP_L1 -->|"Tidak Ada"| DUP_L2
+        DUP_L2 -->|"Ditemukan"| DUP_ACTION_SKIP
+        DUP_L2 -->|"Tidak Ada"| DUP_L3
+        DUP_L3 -->|"Cocok"| DUP_ACTION_SKIP
+        DUP_L3 -->|"Tidak Ada"| DUP_L4
+        DUP_L4 -->|"Cocok"| DUP_ACTION_SKIP
+        DUP_L4 -->|"Unik"| DUP_PASS
+    end
+
+    DUP_PASS --> TIER3
+
+    subgraph TIER3 ["TIER 3: MEDIA CLASSIFICATION & HARDWARE PROBING (Rust: media_prep.rs)"]
+        MAGIC_PROBE["Inspeksi Magic Bytes, Header & Ekstensi Nyata"]
+        HW_PROBE["FFmpeg Probe: Codec Video/Audio, Resolusi, Durasi & Enkoder GPU (NVENC/QSV/AMF/CPU)"]
+        
+        CLASSIFY{"Klasifikasi Tipe Berkas"}
+        
+        TYPE_IMAGE["Gambar Statis / Multi-Frame<br/>(.jpg, .png, .webp, .heic, .avif, .raw, .tiff, .bmp, .svg)"]
+        TYPE_TGS["Stiker Vektor Animasi<br/>(.tgs - Lottie JSON + Gzip)"]
+        TYPE_WEBM["Stiker Video Telegram<br/>(.webm - VP9 with Alpha)"]
+        TYPE_VIDEO["Berkas Video Standar / Container<br/>(.mp4, .mkv, .mov, .avi, .wmv, .flv, .ts, .m2ts)"]
+        TYPE_DOC["Dokumen, Arsip & Biner<br/>(.zip, .rar, .7z, .pdf, .docx, .iso, .exe, .bin)"]
+
+        MAGIC_PROBE --> HW_PROBE
+        HW_PROBE --> CLASSIFY
+        CLASSIFY --> TYPE_IMAGE
+        CLASSIFY --> TYPE_TGS
+        CLASSIFY --> TYPE_WEBM
+        CLASSIFY --> TYPE_VIDEO
+        CLASSIFY --> TYPE_DOC
+    end
+
+    subgraph TIER4 ["TIER 4: PREPARATION, TRANSCODING & RESILIENT THUMBNAILS (Rust: media_prep.rs)"]
+        %% Image Branch
+        TYPE_IMAGE --> CHECK_IMG_MODE{"Cek Delivery & Transcode Mode"}
+        CHECK_IMG_MODE -->|"Lossless Document"| IMG_DOC_RAW["Pertahankan Berkas Asli Bit-Exact (.webp / .heic / dll)"]
+        CHECK_IMG_MODE -->|"Transcode Aktif"| IMG_CONVERT["FFmpeg Convert: PNG 100% Lossless / JPEG Q100 4:4:4"]
+        CHECK_IMG_MODE -->|"Native Media"| IMG_NATIVE["Siapkan Format Foto Standar"]
+        
+        IMG_DOC_RAW --> GEN_IMG_THUMB["Generate Thumbnail JPEG 320px Tajam (Tanpa Probe Durasi Redundan)"]
+        IMG_CONVERT --> GEN_IMG_THUMB
+        IMG_NATIVE --> GEN_IMG_THUMB
+
+        %% TGS Branch
+        TYPE_TGS --> CHECK_TGS_MODE{"Cek Anti-Sticker Policy"}
+        CHECK_TGS_MODE -->|"Anti-Sticker ON"| TGS_TO_MP4["Render Vektor Lottie ke Video MP4 Loop 60 FPS"]
+        CHECK_TGS_MODE -->|"Anti-Sticker OFF"| TGS_RAW["Siapkan Payload Vektor .tgs Asli"]
+        TGS_TO_MP4 --> GEN_TGS_THUMB["Generate Thumbnail Pratinjau Poster"]
+        TGS_RAW --> GEN_TGS_THUMB
+
+        %% WebM Sticker Branch
+        TYPE_WEBM --> CHECK_WEBM_MODE{"Cek Delivery Mode & Anti-Sticker"}
+        CHECK_WEBM_MODE -->|"Anti-Sticker ON"| WEBM_TO_MP4["Transcode VP9 Alpha ke MP4 H.264 Standar"]
+        CHECK_WEBM_MODE -->|"Mode Stiker / Video"| WEBM_RAW["Pertahankan WebM VP9 Alpha + Atribut Video"]
+        CHECK_WEBM_MODE -->|"Mode Dokumen"| WEBM_DOC["Format Dokumen Mentah (force_file)"]
+        WEBM_TO_MP4 --> GEN_WEBM_THUMB["Ekstrak Thumbnail Frame 0 JPEG"]
+        WEBM_RAW --> GEN_WEBM_THUMB
+        WEBM_DOC --> GEN_WEBM_THUMB
+
+        %% Video Branch
+        TYPE_VIDEO --> CHECK_VID_MODE{"Cek Codec Video & Pengaturan"}
+        CHECK_VID_MODE -->|"MP4 H.264 + AAC"| VID_FAST_COPY["Fast Remux / Direct Copy (0% CPU Overhead)"]
+        CHECK_VID_MODE -->|"Non-MP4 & Re-encode ON"| VID_GPU_ENCODE["FFmpeg GPU Enkoder (NVENC/QSV/AMF) / CPU (CRF 18-28)"]
+        CHECK_VID_MODE -->|"Mode Dokumen Mentah"| VID_RAW_DOC["Kirim Video Asli Tanpa Konversi"]
+        VID_FAST_COPY --> GEN_VID_META["Ekstrak W, H, Durasi Detik + Thumbnail Frame 0"]
+        VID_GPU_ENCODE --> GEN_VID_META
+        VID_RAW_DOC --> GEN_VID_META
+
+        %% Doc & ZIP Branch
+        TYPE_DOC --> CHECK_ZIP{"Apakah Berkas .ZIP?"}
+        CHECK_ZIP -->|"Ya .ZIP"| ZIP_PREP["Persiapkan Header Metadata Ramah Sparse-Reader"]
+        CHECK_ZIP -->|"Biner Lain"| DOC_RAW["Siapkan Dokumen Asli 100% Bit-Exact"]
+
+        %% Resilient Fallback Engine
+        GEN_IMG_THUMB --> RESILIENT_THUMB{"Apakah Pembuatan Thumbnail Sukses?"}
+        GEN_TGS_THUMB --> RESILIENT_THUMB
+        GEN_WEBM_THUMB --> RESILIENT_THUMB
+        GEN_VID_META --> RESILIENT_THUMB
+        ZIP_PREP --> RESILIENT_THUMB
+        DOC_RAW --> RESILIENT_THUMB
+
+        RESILIENT_THUMB -->|"Sukses"| THUMB_ATTACHED["Lampirkan Thumbnail JPEG ke Payload MTProto"]
+        RESILIENT_THUMB -->|"Gagal / Corrupt / Format Asing"| RESILIENT_FALLBACK["RESILIENT NON-BLOCKING FALLBACK:<br/>Jangan Batalkan Transfer! Lanjutkan unggah berkas asli tanpa thumbnail"]
+    end
+
+    THUMB_ATTACHED --> TIER5
+    RESILIENT_FALLBACK --> TIER5
+
+    subgraph TIER5 ["TIER 5: MTPROTO CHUNKING & NETWORK STREAMING (Rust: media_transfer.rs + Grammers)"]
+        RATE_CTRL["Smart Rate Controller: Token Bucket Slot (1-10 Lanes) + FloodWait Auto-Backoff"]
+        
+        SPLIT_CHUNKS{"Cek Ukuran Berkas"}
+        CHUNK_SMALL["Ukuran <= 10 MB:<br/>Single Part Buffer via upload.saveFilePart"]
+        CHUNK_BIG["Ukuran > 10 MB:<br/>Parallel Multi-Part Streamer (512 KB per Part) via upload.saveBigFilePart"]
+        
+        RATE_CTRL --> SPLIT_CHUNKS
+        SPLIT_CHUNKS --> CHUNK_SMALL
+        SPLIT_CHUNKS --> CHUNK_BIG
+
+        CHUNK_SMALL --> BUILD_MTPROTO
+        CHUNK_BIG --> BUILD_MTPROTO
+
+        subgraph BUILD_MTPROTO ["Konstruksi Objek MTProto Telegram Eksak"]
+            MT_PHOTO["InputMediaUploadedPhoto { file: InputFile, ... }"]
+            MT_DOC_WEBP["InputMediaUploadedDocument { force_file: true, DocumentAttributeFilename, thumb }<br/>*Jaminan Mutlak Anti-Stiker WebP*"]
+            MT_VIDEO["InputMediaUploadedDocument { DocumentAttributeVideo(supports_streaming), DocumentAttributeFilename }"]
+            MT_STICKER["InputMediaUploadedDocument { DocumentAttributeSticker, DocumentAttributeFilename }"]
+            MT_AUDIO["InputMediaUploadedDocument { DocumentAttributeAudio, DocumentAttributeFilename }"]
+            MT_DOC_GENERIC["InputMediaUploadedDocument { force_file: true, DocumentAttributeFilename }"]
+        end
+    end
+
+    BUILD_MTPROTO --> TIER6
+
+    subgraph TIER6 ["TIER 6: SUBMISSION DISPATCH & SELF-HEALING FALLBACK (Rust: studio_orch.rs)"]
+        CHECK_ALBUM{"Apakah Pengiriman berupa BATCH ALBUM (2-10 berkas)?"}
+        
+        DISPATCH_ALBUM["Eksekusi messages.sendMultiMedia<br/>dengan Direct InputSingleMedia"]
+        DISPATCH_SINGLE["Eksekusi messages.sendMedia<br/>(Pengiriman Satuan / Single Message)"]
+
+        CHECK_ALBUM -->|"Ya Album"| DISPATCH_ALBUM
+        CHECK_ALBUM -->|"Tidak Satuan"| DISPATCH_SINGLE
+
+        DISPATCH_ALBUM --> CHECK_ALBUM_RESULT{"Status Pengiriman Album?"}
+        CHECK_ALBUM_RESULT -->|"Sukses 200 OK"| DISPATCH_SUCCESS["Transfer Berhasil Sempurna"]
+        CHECK_ALBUM_RESULT -->|"Gagal MEDIA_EMPTY / RPC 400"| SELF_HEALING["INTELLIGENT SELF-HEALING FALLBACK:<br/>Otomatis kirim ulang tiap berkas secara satuan (Single Messages)"]
+        
+        SELF_HEALING --> DISPATCH_SINGLE
+        DISPATCH_SINGLE --> CHECK_SINGLE_RESULT{"Status Pengiriman Satuan?"}
+        CHECK_SINGLE_RESULT -->|"Sukses"| DISPATCH_SUCCESS
+        CHECK_SINGLE_RESULT -->|"FloodWait"| RETRY_RATE["Rate Limiter Backoff & Auto-Resume"]
+        RETRY_RATE --> DISPATCH_SINGLE
+    end
+
+    DISPATCH_SUCCESS --> TIER7
+
+    subgraph TIER7 ["TIER 7: PERSISTENT DATABASE COMMIT, CLEANUP & LIVE UI SYNC"]
+        SQL_PERSIST["1. SQLite Database Persistence:<br/>• Catat histori ke migration_history<br/>• Update album_commits & drive_files (status: COMPLETED)"]
+        CLEANUP_DISK["2. Local Disk Cleanup:<br/>• Hapus chunk part files & cache sementara"]
+        IPC_EMIT["3. Tauri IPC Event Emission:<br/>• Emisi progres 100% & refresh event ke MediaStudio & DriveExplorer"]
+        UI_UPDATE["4. Real-Time UI Grid Update:<br/>• Berkas langsung muncul di galeri/folder Drive tanpa perlu reload"]
+
+        SQL_PERSIST --> CLEANUP_DISK
+        CLEANUP_DISK --> IPC_EMIT
+        IPC_EMIT --> UI_UPDATE
+    end
