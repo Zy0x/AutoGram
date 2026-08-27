@@ -2943,6 +2943,7 @@ export function DrivePreviewModal({
     qualities.length >= 2 ? qualities : isVideo ? defaultVideoQualities : qualities;
   const showThumbSkeleton =
     !customSource &&
+    (!isTgsDriveFile(file) || !activeSrc) &&
     (loading || ((isVideo || isImage) && !activeSrc)) &&
     !error &&
     !tooLarge &&

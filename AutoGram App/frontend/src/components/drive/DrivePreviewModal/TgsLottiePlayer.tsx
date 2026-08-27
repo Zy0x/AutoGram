@@ -79,13 +79,22 @@ export const TgsLottiePlayer: React.FC<TgsLottiePlayerProps> = ({
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const animRef = useRef<AnimationItem | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [isReady, setIsReady] = useState<boolean>(false);
+  const [showSlowLoader, setShowSlowLoader] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
+    setIsReady(false);
+    setShowSlowLoader(false);
     setError(null);
+
+    // Only show loading spinner if decompression/fetch takes > 400ms (anti-flicker)
+    const timer = window.setTimeout(() => {
+      if (active && !isReady) {
+        setShowSlowLoader(true);
+      }
+    }, 400);
 
     if (animRef.current) {
       animRef.current.destroy();
@@ -93,7 +102,7 @@ export const TgsLottiePlayer: React.FC<TgsLottiePlayerProps> = ({
     }
 
     if (!src) {
-      setLoading(false);
+      window.clearTimeout(timer);
       return;
     }
 
@@ -119,19 +128,30 @@ export const TgsLottiePlayer: React.FC<TgsLottiePlayerProps> = ({
           },
         });
 
-        anim.addEventListener('DOMLoaded', () => {
+        const markReady = () => {
           if (active) {
-            setLoading(false);
+            window.clearTimeout(timer);
+            setIsReady(true);
+            setShowSlowLoader(false);
             onLoad?.();
+          }
+        };
+
+        anim.addEventListener('DOMLoaded', markReady);
+        anim.addEventListener('drawnFrame', () => {
+          if (active && !isReady) {
+            markReady();
           }
         });
 
         anim.addEventListener('data_failed', () => {
           if (active) {
+            window.clearTimeout(timer);
             const msg = t('speedtest.tgs_lottie_invalid_data');
             const err = new Error(msg);
             setError(msg);
-            setLoading(false);
+            setIsReady(false);
+            setShowSlowLoader(false);
             onError?.(err);
           }
         });
@@ -140,16 +160,19 @@ export const TgsLottiePlayer: React.FC<TgsLottiePlayerProps> = ({
       })
       .catch((err) => {
         if (active) {
+          window.clearTimeout(timer);
           console.warn('[TgsLottiePlayer] Error loading .tgs animation:', err);
           const msg = t('speedtest.tgs_lottie_load_failed');
           setError(err?.message || msg);
-          setLoading(false);
+          setIsReady(false);
+          setShowSlowLoader(false);
           onError?.(err instanceof Error ? err : new Error(msg));
         }
       });
 
     return () => {
       active = false;
+      window.clearTimeout(timer);
       if (animRef.current) {
         animRef.current.destroy();
         animRef.current = null;
@@ -174,41 +197,46 @@ export const TgsLottiePlayer: React.FC<TgsLottiePlayerProps> = ({
       className={`relative w-full h-full flex items-center justify-center select-none overflow-hidden ${className}`}
       style={{ minWidth: 200, minHeight: 200 }}
     >
+      {/* Visual transform container for both poster and animation */}
       <div
-        ref={containerRef}
         style={transformStyle}
-        className="w-[280px] h-[280px] sm:w-[360px] sm:h-[360px] max-w-[85vw] max-h-[85vh] flex items-center justify-center"
-      />
+        className="relative w-[280px] h-[280px] sm:w-[360px] sm:h-[360px] max-w-[85vw] max-h-[85vh] flex items-center justify-center pointer-events-none"
+      >
+        {/* Instant crisp poster underneath (fades smoothly once Lottie is rendered) */}
+        {poster && (
+          <img
+            src={poster}
+            alt=""
+            className="absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity duration-200 ease-out"
+            style={{
+              opacity: isReady ? 0 : 1,
+            }}
+          />
+        )}
 
-      {loading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
-          {poster && (
-            <img
-              src={poster}
-              alt=""
-              className="w-[280px] h-[280px] sm:w-[360px] sm:h-[360px] object-contain opacity-60 filter blur-[1px]"
-            />
-          )}
-          <div className="absolute flex items-center gap-2 bg-slate-900/90 text-sky-400 text-xs px-3 py-1.5 rounded-full border border-sky-500/30 backdrop-blur-md shadow-lg">
-            <Loader2 size={14} className="animate-spin" />
-            <span>{t('speedtest.label_loading')}</span>
-          </div>
+        {/* Lottie SVG animation layer (fades in smoothly when ready) */}
+        <div
+          ref={containerRef}
+          className="absolute inset-0 w-full h-full flex items-center justify-center pointer-events-none transition-opacity duration-200 ease-out"
+          style={{
+            opacity: isReady ? 1 : 0,
+          }}
+        />
+      </div>
+
+      {/* Subtle delayed loading indicator only for genuinely slow network requests (> 400ms) */}
+      {showSlowLoader && !isReady && !error && (
+        <div className="absolute flex items-center gap-2 bg-slate-900/90 text-sky-400 text-xs px-3 py-1.5 rounded-full border border-sky-500/30 backdrop-blur-md shadow-lg pointer-events-none z-10 animate-fade-in">
+          <Loader2 size={14} className="animate-spin" />
+          <span>{t('speedtest.label_loading')}</span>
         </div>
       )}
 
-      {error && !loading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
-          {poster && (
-            <img
-              src={poster}
-              alt=""
-              className="w-[280px] h-[280px] sm:w-[360px] sm:h-[360px] object-contain opacity-80"
-            />
-          )}
-          <div className="absolute bottom-4 flex items-center gap-2 bg-amber-950/90 text-amber-300 text-xs px-3 py-1.5 rounded-full border border-amber-600/40 backdrop-blur-md shadow-lg">
-            <AlertCircle size={14} />
-            <span>{error}</span>
-          </div>
+      {/* Error display */}
+      {error && !isReady && (
+        <div className="absolute bottom-4 flex items-center gap-2 bg-amber-950/90 text-amber-300 text-xs px-3 py-1.5 rounded-full border border-amber-600/40 backdrop-blur-md shadow-lg pointer-events-none z-10">
+          <AlertCircle size={14} />
+          <span>{error}</span>
         </div>
       )}
     </div>

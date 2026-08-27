@@ -1,3 +1,12 @@
+## v3.8.32 Zero-Flicker Seamless Sticker Animation Transition & Instant Poster Crossfade
+
+### 1. Zero-Flicker Seamless Sticker Animation Transition
+- **Instant Crisp Poster Foundation**: Poster dan thumbnail stiker langsung ditampilkan secara tajam pada posisi dan ukuran aslinya tanpa efek buram atau opasitas redup, mencegah terjadinya pergeseran visual (*layout shift*).
+- **Seamless In-Memory Crossfade (200ms)**: Menggantikan kemunculan badge "Loading" yang mendadak dengan transisi *fade-in/fade-out* halus antara thumbnail statis dan lapisan animasi Lottie SVG saat frame pertama stiker telah dirender di memori.
+
+### 2. Debounced Slow-Network Indicator
+- **Pencegahan Kedipan pada Muat Cepat**: Indikator loading hanya dimunculkan jika proses pengunduhan stiker memakan waktu lebih dari 400ms. Pada pengunduhan stiker cepat (< 400ms), stiker langsung aktif bergerak secara mulus tanpa kilatan tulisan "Loading".
+
 ## v3.8.31 Native TGS Lottie Vector Animation Engine & Multi-Format Moving Preview Hub
 
 ### 1. Native TGS Lottie Vector Animation Engine (60 FPS Looping)
