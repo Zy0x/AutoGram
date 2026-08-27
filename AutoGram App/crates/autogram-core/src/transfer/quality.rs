@@ -294,13 +294,14 @@ pub fn classify_prepared_delivery(
     }
     if mode == QualityMode::Original {
         let payload_class = match category {
-            MediaCategory::JpegImage | MediaCategory::PngImage => PayloadClass::NativeVisual,
+            MediaCategory::JpegImage => PayloadClass::NativeVisual,
+            MediaCategory::PngImage => PayloadClass::OriginalDocumentBatch,
             MediaCategory::Mp4Video => PayloadClass::NativeVisual,
             MediaCategory::Audio if is_consumer_audio(path) => PayloadClass::AudioGroup,
             _ => PayloadClass::OriginalDocumentBatch,
         };
         let (payload_class, size_demoted) = if payload_class == PayloadClass::NativeVisual
-            && matches!(category, MediaCategory::JpegImage | MediaCategory::PngImage)
+            && matches!(category, MediaCategory::JpegImage)
             && exceeds_native_photo_limit(path)
         {
             (PayloadClass::OriginalDocumentBatch, true)
@@ -328,7 +329,9 @@ pub fn classify_prepared_delivery(
         };
     }
     let payload_class = match category {
-        MediaCategory::JpegImage | MediaCategory::PngImage => PayloadClass::NativeVisual,
+        MediaCategory::JpegImage => PayloadClass::NativeVisual,
+        MediaCategory::PngImage if transformed => PayloadClass::NativeVisual,
+        MediaCategory::PngImage => PayloadClass::DocumentGroup,
         MediaCategory::Mp4Video if native_video_validated => PayloadClass::NativeVisual,
         MediaCategory::Audio if is_consumer_audio(path) => PayloadClass::AudioGroup,
         _ => PayloadClass::DocumentGroup,
@@ -339,7 +342,7 @@ pub fn classify_prepared_delivery(
     // transcoded from a WebP sticker) is sent intact instead of being silently
     // rejected or recompressed with quality loss by the Telegram server.
     let (payload_class, size_demoted) = if payload_class == PayloadClass::NativeVisual
-        && matches!(category, MediaCategory::JpegImage | MediaCategory::PngImage)
+        && matches!(category, MediaCategory::JpegImage)
         && exceeds_native_photo_limit(path)
     {
         (PayloadClass::DocumentGroup, true)

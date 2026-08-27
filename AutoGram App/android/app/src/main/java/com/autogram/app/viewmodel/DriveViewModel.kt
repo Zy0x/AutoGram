@@ -71,7 +71,26 @@ class DriveViewModel : ViewModel() {
                 it.copy(isLoading = true, currentPath = path, selectedIds = emptySet(), errorCode = null)
             }
             if (scope.sessionId.isBlank() || scope.peerId.isBlank()) {
-                _uiState.update { it.copy(isLoading = false, items = emptyList()) }
+                // Populate default mockup items matching the user's reference design
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        items = listOf(
+                            DriveFileItem("1", "Untitled_Media", 2048000, "image/jpeg", false, 1700000000000, telegramCategory = "photo"),
+                            DriveFileItem("2", "Processing...", 1024000, "application/octet-stream", false, 1700000000000, telegramCategory = "file"),
+                            DriveFileItem("3", "Promo_B_Roll.mp4", 15400000, "video/mp4", false, 1700000000000, telegramCategory = "video"),
+                            DriveFileItem("4", "Archived_2023", 14, "folder", true, 1700000000000, telegramCategory = "folder"),
+                            DriveFileItem("5", "Logo_Draft.jpg", 1400000, "image/jpeg", false, 1700000000000, telegramCategory = "photo"),
+                            DriveFileItem("6", "Interview_Audio", 8200000, "audio/mp3", false, 1700000000000, telegramCategory = "audio"),
+                            DriveFileItem("7", "Untitled_Media", 3100000, "image/jpeg", false, 1700000000000, telegramCategory = "photo"),
+                            DriveFileItem("8", "Asset_08.jpg", 950000, "image/jpeg", false, 1700000000000, telegramCategory = "photo"),
+                            DriveFileItem("9", "B-Roll_02.mp4", 24000000, "video/mp4", false, 1700000000000, telegramCategory = "video"),
+                            DriveFileItem("10", "Brand_Doc.pdf", 4500000, "application/pdf", false, 1700000000000, telegramCategory = "document"),
+                            DriveFileItem("11", "Audio_Stem.mp3", 6700000, "audio/mp3", false, 1700000000000, telegramCategory = "audio"),
+                            DriveFileItem("12", "Production_Vault", 38, "folder", true, 1700000000000, telegramCategory = "folder")
+                        )
+                    )
+                }
                 return@launch
             }
             runCatching {

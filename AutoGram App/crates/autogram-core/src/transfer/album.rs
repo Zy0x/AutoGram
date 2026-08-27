@@ -140,9 +140,8 @@ fn partition_sizes(total: usize, target: usize, avoid_single: bool) -> Vec<usize
 fn groupable(class: PayloadClass, options: &AlbumPlanOptions) -> bool {
     match class {
         PayloadClass::NativeVisual => true,
-        PayloadClass::DocumentGroup | PayloadClass::SplitPartBatch => options.group_documents,
         PayloadClass::AudioGroup => options.group_audio,
-        PayloadClass::OriginalDocumentBatch => options.group_original_documents,
+        PayloadClass::DocumentGroup | PayloadClass::SplitPartBatch | PayloadClass::OriginalDocumentBatch => false,
     }
 }
 
@@ -301,7 +300,8 @@ mod tests {
     #[test]
     fn original_never_becomes_visual() {
         let p = build_album_plan(items(3, PayloadClass::OriginalDocumentBatch), &options());
-        assert!(p.groups[0].as_document);
+        assert_eq!(p.singles.len(), 3);
+        assert!(p.groups.is_empty());
     }
     #[test]
     fn contexts_are_never_mixed() {

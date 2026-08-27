@@ -393,10 +393,7 @@ pub fn build_quality_preflight(
         let album_eligible = request.group_as_album
             && matches!(
                 payload_class,
-                PayloadClass::NativeVisual
-                    | PayloadClass::DocumentGroup
-                    | PayloadClass::AudioGroup
-                    | PayloadClass::OriginalDocumentBatch
+                PayloadClass::NativeVisual | PayloadClass::AudioGroup
             );
         let duplicate_check_enabled = duplicate_probe_enabled(request);
         let duplicate_match = if duplicate_check_enabled && !remote && source_size > 0 {

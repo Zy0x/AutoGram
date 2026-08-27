@@ -21,6 +21,9 @@ import com.autogram.app.ui.components.AutoGramErrorState
 import com.autogram.app.ui.components.AutoGramSurface
 import com.autogram.app.viewmodel.*
 
+private fun childPath(base: String, name: String): String =
+    if (base == "/" || base.isBlank()) "/$name" else "${base.trimEnd('/')}/$name"
+
 @Composable
 fun DriveScreen(
     viewModel: DriveViewModel,
@@ -109,7 +112,7 @@ fun DriveScreenContent(
             )
 
             state.errorCode?.let { code ->
-                Box(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+                Box(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                     AutoGramErrorState(
                         message = stringResource(R.string.drive_error, code),
                         onRetry = onRefresh
@@ -122,7 +125,7 @@ fun DriveScreenContent(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = NeonCyan)
+                    CircularProgressIndicator(color = GoldAccent)
                 }
             } else if (filteredItems.isEmpty()) {
                 Box(
@@ -138,12 +141,13 @@ fun DriveScreenContent(
                 }
             } else {
                 if (state.isGridView) {
+                    // 3-Column Compact Grid (Matching user reference mockup)
                     LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = 160.dp),
+                        columns = GridCells.Fixed(3),
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 100.dp),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                        contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 90.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(filteredItems, key = { it.id }) { item ->
                             val isSelected = state.selectedIds.contains(item.id)
@@ -158,8 +162,8 @@ fun DriveScreenContent(
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 100.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 90.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(filteredItems, key = { it.id }) { item ->
                             val isSelected = state.selectedIds.contains(item.id)
@@ -174,28 +178,5 @@ fun DriveScreenContent(
                 }
             }
         }
-    }
-}
-
-private fun childPath(parent: String, child: String): String {
-    val normalizedParent = parent.trimEnd('/').ifEmpty { "" }
-    return "$normalizedParent/$child"
-}
-
-@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
-@Composable
-fun DriveScreenPreview() {
-    AutoGramTheme(darkTheme = true) {
-        DriveScreenContent(
-            state = DriveUiState(
-                currentPath = "/AutoGram Drive",
-                items = listOf(
-                    DriveFileItem(id = "1", name = "Photos 2026", isFolder = true, size = 0, mimeType = "inode/directory", modifiedMs = 0, telegramCategory = "folder", deliveryKind = "folder"),
-                    DriveFileItem(id = "2", name = "presentation.pdf", isFolder = false, size = 14500000, mimeType = "application/pdf", modifiedMs = 0, telegramCategory = "document", deliveryKind = "document"),
-                    DriveFileItem(id = "3", name = "vacation_video.mp4", isFolder = false, size = 54000000, mimeType = "video/mp4", modifiedMs = 0, telegramCategory = "video", deliveryKind = "video")
-                ),
-                isGridView = true
-            )
-        )
     }
 }
