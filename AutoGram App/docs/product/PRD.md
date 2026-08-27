@@ -62,3 +62,8 @@ Pesan harus difilter secara ketat sebelum ditransfer:
 - Mendukung fitur mode Gelap/Terang (*Dark/Light Mode*).
 - **Bahasa**: Mendukung Internasionalisasi (*i18n*) untuk bahasa Inggris (*default*) dan Indonesia.
 - **Menu Utama**: *Dashboard, Accounts, Profiles, Migration, Scheduler, History, Settings.*
+
+## 5. Dokumen Spesifikasi Terperinci Terkait
+- **[PRD: Unified Media Delivery, Transcoding & Transfer Engine](file:///f:/AutoGram/AutoGram%20App/docs/product/PRD_UNIFIED_MEDIA_ENGINE.md)**: Dokumen PRD terperinci mencakup seluruh tabel matriks format, transcoding, stiker Lottie, MTProto chunking, dan 7-Tier Lifecycle Architecture.
+- **[Master Upload Workflow (.mmd)](file:///f:/AutoGram/AutoGram%20App/docs/architecture/MASTER_UPLOAD_WORKFLOW.mmd)**: Diagram alur kerja lengkap dalam format Mermaid.
+
