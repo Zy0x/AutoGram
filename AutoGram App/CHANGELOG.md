@@ -1,3 +1,16 @@
+## v3.8.30 Telegram Real Sticker MTProto Detection & On-Demand Filter Stream
+
+### 1. Real Sticker MTProto Dynamic Query & On-Demand Stream
+- **Optimasi Kueri MTProto untuk Stiker**: Menggantikan kueri `messages.Search` (yang mengabaikan kueri teks kosong untuk stiker di level server Telegram) dengan `messages.GetReplies` (jika berada dalam topik forum) atau `messages.GetHistory` (jika dalam obrolan/saluran umum) saat filter tab **`[Stiker]`** aktif.
+- **Deteksi 100% Stiker Asli Telegram**: Mendeteksi seluruh stiker resmi Telegram (sticker pack), stiker animasi `.tgs` (vector Lottie), stiker video `.webm` (VP9), dan stiker melayang `.webp`.
+
+### 2. Emoji-Aware Sticker Identification & Visual Thumbnail Parity
+- **Identifikasi Emoji & Atribut Stiker**: Mengekstrak emoji `alt` dari atribut `DocumentAttributeSticker` dan `DocumentAttributeCustomEmoji` untuk penamaan berkas yang deskriptif dan mudah dikenali (misal: `sticker_😘_{id}.webp` atau `sticker_{id}.tgs`).
+- **Thumbnail Pratinjau Tajam**: Mengambil *stripped thumbnail* visual dan metadata ukuran secara instan untuk dirender sebagai kartu media di grid AutoGram.
+
+### 3. Zero-Impact Performance Guarantee
+- **Pemisahan Jalur Eksekusi**: Pemindaian stiker berjalan secara *on-demand* hanya ketika tab **`[Stiker]`** dipilih oleh pengguna, sehingga tab *All*, *Media*, dan *Files* tetap beroperasi dengan kecepatan maksimal tanpa terbebani pesan obrolan teks.
+
 ## v3.8.29 Grammers Resilient Thumbnail Fallback & Non-Blocking Upload Architecture
 
 ### 1. Resilient Thumbnail Fallback & Zero-Block Media Transfer

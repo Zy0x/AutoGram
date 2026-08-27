@@ -601,7 +601,41 @@ pub fn media_to_row(
                 .name()
                 .map(|s| s.to_string())
                 .filter(|s| !s.is_empty())
-                .unwrap_or_else(|| fallback_document_name(id, mime.as_deref(), native_delivery));
+                .unwrap_or_else(|| {
+                    if is_sticker {
+                        let alt = match doc.raw.document.as_ref() {
+                            Some(grammers_client::tl::enums::Document::Document(raw)) => {
+                                raw.attributes.iter().find_map(|attr| {
+                                    if let grammers_client::tl::enums::DocumentAttribute::Sticker(s) = attr {
+                                        if !s.alt.is_empty() {
+                                            return Some(s.alt.clone());
+                                        }
+                                    } else if let grammers_client::tl::enums::DocumentAttribute::CustomEmoji(c) = attr {
+                                        if !c.alt.is_empty() {
+                                            return Some(c.alt.clone());
+                                        }
+                                    }
+                                    None
+                                })
+                            }
+                            _ => None,
+                        };
+                        let ext = match mime.as_deref().unwrap_or("") {
+                            "application/x-tgsticker" => "tgs",
+                            "video/webm" => "webm",
+                            "image/webp" => "webp",
+                            "image/gif" => "gif",
+                            _ => "webp",
+                        };
+                        if let Some(emoji) = alt {
+                            format!("sticker_{emoji}_{id}.{ext}")
+                        } else {
+                            format!("sticker_{id}.{ext}")
+                        }
+                    } else {
+                        fallback_document_name(id, mime.as_deref(), native_delivery)
+                    }
+                });
             let mime_l = mime.as_deref().unwrap_or("").to_ascii_lowercase();
             let name_l = n.to_ascii_lowercase();
 
@@ -874,7 +908,34 @@ pub fn tl_message_to_row(
                 let native_delivery = has_native_delivery(&doc.attributes);
                 let is_sticker = has_sticker_attribute(&doc.attributes);
                 let name = raw_name.unwrap_or_else(|| {
-                    fallback_document_name(id, Some(&doc.mime_type), native_delivery)
+                    if is_sticker {
+                        let alt = doc.attributes.iter().find_map(|attr| {
+                            if let grammers_client::tl::enums::DocumentAttribute::Sticker(s) = attr {
+                                if !s.alt.is_empty() {
+                                    return Some(s.alt.clone());
+                                }
+                            } else if let grammers_client::tl::enums::DocumentAttribute::CustomEmoji(c) = attr {
+                                if !c.alt.is_empty() {
+                                    return Some(c.alt.clone());
+                                }
+                            }
+                            None
+                        });
+                        let ext = match doc.mime_type.as_str() {
+                            "application/x-tgsticker" => "tgs",
+                            "video/webm" => "webm",
+                            "image/webp" => "webp",
+                            "image/gif" => "gif",
+                            _ => "webp",
+                        };
+                        if let Some(emoji) = alt {
+                            format!("sticker_{emoji}_{id}.{ext}")
+                        } else {
+                            format!("sticker_{id}.{ext}")
+                        }
+                    } else {
+                        fallback_document_name(id, Some(&doc.mime_type), native_delivery)
+                    }
                 });
                 let mime = doc.mime_type.clone();
                 let mime_l = mime.to_ascii_lowercase();
@@ -1214,6 +1275,7 @@ fn has_sticker_attribute(attributes: &[grammers_client::tl::enums::DocumentAttri
         matches!(
             attribute,
             grammers_client::tl::enums::DocumentAttribute::Sticker(_)
+                | grammers_client::tl::enums::DocumentAttribute::CustomEmoji(_)
         )
     })
 }
@@ -1486,33 +1548,91 @@ pub fn list_filtered_media_blocking_topic(
                         ),
                     };
 
-                    let request = grammers_client::tl::functions::messages::Search {
-                        peer: (&peer).into(),
-                        q: String::new(),
-                        from_id: None,
-                        saved_peer_id: None,
-                        saved_reaction: None,
-                        top_msg_id: topic_id.filter(|value| *value > 0).map(|value| value as i32),
-                        filter,
-                        min_date: 0,
-                        max_date: 0,
-                        offset_id: offset_id.unwrap_or(0) as i32,
-                        add_offset: 0,
-                        limit: limit as i32,
-                        max_id: 0,
-                        min_id: 0,
-                        hash: 0,
-                    };
                     let guard = crate::core::telegram_rpc_guard::RpcGuardControl::default();
                     let started = Instant::now();
-                    let response = crate::core::telegram_rpc_guard::invoke_guarded_with_control(
-                        &session_name,
-                        crate::core::session_rate::RpcClass::IndexSearch,
-                        op_name,
-                        &guard,
-                        || client.invoke(&request),
-                    )
-                    .await?;
+                    let raw_request_limit = if is_sticker_filter {
+                        (limit.max(100) as i32).min(100)
+                    } else {
+                        limit as i32
+                    };
+                    let (response, _final_op_name) = if is_sticker_filter {
+                        let offset = offset_id.unwrap_or(0) as i32;
+                        if let Some(tid) = topic_id.filter(|v| *v > 0) {
+                            let req = grammers_client::tl::functions::messages::GetReplies {
+                                peer: (&peer).into(),
+                                msg_id: tid as i32,
+                                offset_id: offset,
+                                offset_date: 0,
+                                add_offset: 0,
+                                limit: raw_request_limit,
+                                max_id: 0,
+                                min_id: 0,
+                                hash: 0,
+                            };
+                            (
+                                crate::core::telegram_rpc_guard::invoke_guarded_with_control(
+                                    &session_name,
+                                    crate::core::session_rate::RpcClass::IndexSearch,
+                                    "messages.getReplies.stickers",
+                                    &guard,
+                                    || client.invoke(&req),
+                                )
+                                .await?,
+                                "messages.getReplies.stickers",
+                            )
+                        } else {
+                            let req = grammers_client::tl::functions::messages::GetHistory {
+                                peer: (&peer).into(),
+                                offset_id: offset,
+                                offset_date: 0,
+                                add_offset: 0,
+                                limit: raw_request_limit,
+                                max_id: 0,
+                                min_id: 0,
+                                hash: 0,
+                            };
+                            (
+                                crate::core::telegram_rpc_guard::invoke_guarded_with_control(
+                                    &session_name,
+                                    crate::core::session_rate::RpcClass::IndexSearch,
+                                    "messages.getHistory.stickers",
+                                    &guard,
+                                    || client.invoke(&req),
+                                )
+                                .await?,
+                                "messages.getHistory.stickers",
+                            )
+                        }
+                    } else {
+                        let request = grammers_client::tl::functions::messages::Search {
+                            peer: (&peer).into(),
+                            q: String::new(),
+                            from_id: None,
+                            saved_peer_id: None,
+                            saved_reaction: None,
+                            top_msg_id: topic_id.filter(|value| *value > 0).map(|value| value as i32),
+                            filter,
+                            min_date: 0,
+                            max_date: 0,
+                            offset_id: offset_id.unwrap_or(0) as i32,
+                            add_offset: 0,
+                            limit: limit as i32,
+                            max_id: 0,
+                            min_id: 0,
+                            hash: 0,
+                        };
+                        (
+                            crate::core::telegram_rpc_guard::invoke_guarded_with_control(
+                                &session_name,
+                                crate::core::session_rate::RpcClass::IndexSearch,
+                                op_name,
+                                &guard,
+                                || client.invoke(&request),
+                            )
+                            .await?,
+                            op_name,
+                        )
+                    };
                     let mut total_count = None;
                     let messages = match response.value {
                         grammers_client::tl::enums::messages::Messages::Messages(value) => value.messages,
@@ -1544,7 +1664,7 @@ pub fn list_filtered_media_blocking_topic(
                         // supplies the exact sticker count once available.
                         total_count = None;
                     }
-                    let has_more = raw_len >= limit && lowest_id.unwrap_or(0) > 1;
+                    let has_more = raw_len >= raw_request_limit as usize && lowest_id.unwrap_or(0) > 1;
                     let observation = LaneRpcObservation {
                         lane: SearchLane::Both,
                         latency_ms: response.latency_ms,

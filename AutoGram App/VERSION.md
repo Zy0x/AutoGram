@@ -1,6 +1,12 @@
-AutoGram Version: v3.8.29
+AutoGram Version: v3.8.30
 
 Current State:
+v3.8.30 Telegram Real Sticker MTProto Detection & On-Demand Filter Stream — pemindaian dan penayangan komprehensif stiker asli Telegram di tab [Stiker]:
+1. Real Sticker MTProto Dynamic Query: Menggantikan kueri `messages.Search` (yang mengabaikan kueri teks kosong untuk stiker) dengan `messages.GetReplies` (untuk topik forum) atau `messages.GetHistory` (untuk chat/channel) saat filter [Stiker] dibuka, memungkinkan deteksi 100% seluruh stiker Telegram resmi, stiker animasi .tgs, stiker video .webm, dan stiker melayang .webp.
+2. Emoji-Aware Sticker Identification & Fallback: Membaca atribut `DocumentAttributeSticker` dan `DocumentAttributeCustomEmoji` untuk mengekstrak emoji alt (misal `sticker_😘_{id}.webp` atau `sticker_{id}.tgs`), tipe MIME, ukuran file, dan thumbnail visual instan untuk setiap stiker.
+3. Zero-Impact Performance Guarantee: Pemindaian stiker berjalan on-demand khusus di tab [Stiker], menjamin tab All, Media, dan Files tetap berjalan secepat kilat tanpa terbebani pesan obrolan teks.
+
+Previous:
 v3.8.29 Grammers Resilient Thumbnail Fallback & Non-Blocking Upload Architecture — ketahanan penuh pengunggahan media Grammers:
 1. Resilient Non-Blocking Thumbnail System: Menghilangkan kegagalan fatal `visual document thumbnail generation failed; original media was not sent without a preview`. Kegagalan pembuatan atau pengunggahan thumbnail JPEG kini otomatis fallback dengan aman, menjamin berkas media asli (.webp, .jpg, .mp4, dll.) tetap diunggah dan terkirim 100% sukses.
 2. WebP & Single-Frame Image FFmpeg Tuning: Menghapus flag `-ss 0.0` dan probe metadata video redundan pada berkas gambar di `media_prep.rs`, mencegah galat demuxer ffmpeg saat memproses gambar `.webp`.
