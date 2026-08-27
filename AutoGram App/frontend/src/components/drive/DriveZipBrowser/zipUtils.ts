@@ -118,11 +118,16 @@ export function extractZipPasswordCandidates(messageText: string, archiveName = 
       candidates.push(value);
     }
   };
-  const labels = '(?:password|passwd|pass|pwd|kata\\s+sandi|sandi|mật\\s+khẩu|mat\\s+khau|密码|密碼|解压码|解壓碼)';
+  const labels = '(?:password|pasword|passwrod|passwd|pass|pwd|pw|kata\\s+sandi|sandi|mật\\s+khẩu|mat\\s+khau|密码|密碼|解压码|解壓碼)';
   const labelled = new RegExp(`${labels}\\s*(?:is|adalah|[:=：-])\\s*[\\x60'\"]?([^\\r\\n\\x60'\"]{2,128})`, 'giu');
   for (const match of messageText.matchAll(labelled)) add(match[1]);
   const codeAfterLabel = new RegExp(`${labels}[^\\r\\n]{0,24}[\\x60'\"]([^\\x60'\"]{2,128})[\\x60'\"]`, 'giu');
   for (const match of messageText.matchAll(codeAfterLabel)) add(match[1]);
+  // Only accept compact, separator-less forms for the unambiguous short
+  // labels. A phrase such as "no password label" must never promote the word
+  // "label" into a suggested credential.
+  const compactLabel = new RegExp('(?:^|\\s)(?:pwd|pw)\\s+([^\\s]{2,64})(?:\\s|$)', 'giu');
+  for (const match of messageText.matchAll(compactLabel)) add(match[1]);
 
   // Common archive convention: the explicit archive stem is repeated after a
   // password label; never infer arbitrary caption words as passwords.
@@ -333,4 +338,3 @@ export function clearZipBrowserCache(): void {
     /* ignore */
   }
 }
-

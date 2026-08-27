@@ -533,7 +533,9 @@ fn sniff_actual_media_extension(path: &Path) -> Option<&'static str> {
                     return Some("7z");
                 }
                 // RAR
-                if magic.starts_with(b"Rar!\x1a\x07\x00") || magic.starts_with(b"Rar!\x1a\x07\x01\x00") {
+                if magic.starts_with(b"Rar!\x1a\x07\x00")
+                    || magic.starts_with(b"Rar!\x1a\x07\x01\x00")
+                {
                     return Some("rar");
                 }
                 // GZIP
@@ -981,7 +983,11 @@ pub fn extract_video_thumbnail(path: &str) -> Option<PathBuf> {
     let out = unique_name("thumb", "jpg");
 
     // Get video duration to seek to a representative frame (10% into video for videos, 0s for images)
-    let (width, height, duration) = probe_video_metadata(path);
+    let (width, height, duration) = if is_image {
+        (0, 0, 0.0)
+    } else {
+        probe_video_metadata(path)
+    };
     let seek_time = if is_image || is_audio {
         0.0
     } else if duration > 0.0 {
@@ -999,14 +1005,19 @@ pub fn extract_video_thumbnail(path: &str) -> Option<PathBuf> {
     let scale_filter = format!("scale={}:-2", thumb_width);
 
     let mut cmd = Command::new(&ff);
-    cmd.args([
+    let mut args = vec![
         "-hide_banner",
         "-loglevel",
         "error",
         "-nostdin",
         "-y",
-        "-ss",
-        &format!("{:.1}", seek_time),
+    ];
+    let seek_str = format!("{:.1}", seek_time);
+    if !is_image && !is_audio && seek_time > 0.0 {
+        args.push("-ss");
+        args.push(&seek_str);
+    }
+    args.extend_from_slice(&[
         "-i",
         path,
         "-an",
@@ -1020,6 +1031,7 @@ pub fn extract_video_thumbnail(path: &str) -> Option<PathBuf> {
         "image2",
         out.to_str().unwrap_or("thumb.jpg"),
     ]);
+    cmd.args(&args);
 
     #[cfg(windows)]
     {
@@ -1176,7 +1188,6 @@ pub fn transcode_webp_to_jpeg_for_photo(path: &str) -> Result<PathBuf, String> {
     Err(format!("ffmpeg webp→jpeg conversion failed: {err_msg}"))
 }
 
-
 /// Optional lean reencode for Telegram-friendly MP4 (when quality_mode suggests it).
 /// Returns the original path when the selected mode safely permits passthrough;
 /// strict encoder strategies return an error when their contract cannot be met.
@@ -1250,7 +1261,20 @@ pub fn maybe_reencode_for_telegram(
         ),
         "legacy_broadcast" => matches!(
             ext.as_str(),
-            "mp4" | "wmv" | "ts" | "flv" | "m2ts" | "mts" | "vob" | "ogv" | "f4v" | "asf" | "mpg" | "mpeg" | "m2v" | "mxf"
+            "mp4"
+                | "wmv"
+                | "ts"
+                | "flv"
+                | "m2ts"
+                | "mts"
+                | "vob"
+                | "ogv"
+                | "f4v"
+                | "asf"
+                | "mpg"
+                | "mpeg"
+                | "m2v"
+                | "mxf"
         ),
         "custom" => {
             if ext == "mp4" {
@@ -1260,7 +1284,17 @@ pub fn maybe_reencode_for_telegram(
             } else {
                 matches!(
                     ext.as_str(),
-                    "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "ts" | "flv" | "wmv" | "m2ts" | "vob"
+                    "mov"
+                        | "mkv"
+                        | "webm"
+                        | "avi"
+                        | "m4v"
+                        | "3gp"
+                        | "ts"
+                        | "flv"
+                        | "wmv"
+                        | "m2ts"
+                        | "vob"
                 )
             }
         }
@@ -2031,7 +2065,10 @@ pub fn prepare_upload_artifact(
 
 #[cfg(test)]
 mod tests {
-    use super::{adjusted_target_planning_bytes, target_video_bitrate, PreparedUploadArtifact};
+    use super::{
+        adjusted_target_planning_bytes, maybe_transcode_image_for_telegram, target_video_bitrate,
+        PreparedUploadArtifact,
+    };
     use std::{fs, path::PathBuf};
 
     #[test]
@@ -2079,6 +2116,32 @@ mod tests {
         let adjusted = adjusted_target_planning_bytes(95_000_000, 100_000_000, 110_000_000);
         assert!(adjusted < 95_000_000);
         assert_eq!(adjusted, 82_045_454);
+    }
+
+    #[test]
+    fn disabled_image_transcode_preserves_non_standard_source_without_ffmpeg() {
+        let source = r"E:\Data\Upload\Upload Fix\New folder (2)\sample.webp";
+        let prepared =
+            maybe_transcode_image_for_telegram(source, Some("png"), Some("none"), Some(&[]), 0)
+                .expect("disabled transcode must not inspect or convert the file");
+
+        assert_eq!(prepared, source);
+    }
+
+    #[test]
+    fn empty_custom_image_format_list_remains_an_explicit_noop() {
+        let source = r"E:\Data\Upload\Upload Fix\New folder (2)\sample.heic";
+        let formats: Vec<String> = Vec::new();
+        let prepared = maybe_transcode_image_for_telegram(
+            source,
+            Some("png"),
+            Some("custom"),
+            Some(&formats),
+            0,
+        )
+        .expect("an empty custom list must not fall back to default formats");
+
+        assert_eq!(prepared, source);
     }
 }
 
@@ -2273,11 +2336,7 @@ pub fn maybe_transcode_image_for_telegram(
             }
         }
         Ok(status) => {
-            tg_log::warn(
-                BACKEND,
-                "image_transcode_fail",
-                format!("status={status}"),
-            );
+            tg_log::warn(BACKEND, "image_transcode_fail", format!("status={status}"));
         }
         Err(e) => {
             tg_log::warn(BACKEND, "image_transcode_err", e.to_string());

@@ -1033,6 +1033,30 @@ html, body, #root {
 .job-card-status-bar.status-completed { background: var(--success); }
 .job-card-status-bar.status-failed { background: var(--danger); }
 .job-card-status-bar.status-paused { background: var(--text-muted); }
+.job-card-status-bar.status-scanning,
+.modern-badge.stage-scanning { --job-stage-color: #a78bfa; }
+.job-card-status-bar.status-forwarding,
+.modern-badge.stage-forwarding { --job-stage-color: #38bdf8; }
+.job-card-status-bar.status-downloading,
+.modern-badge.stage-downloading { --job-stage-color: #22d3ee; }
+.job-card-status-bar.status-uploading,
+.modern-badge.stage-uploading { --job-stage-color: #fb923c; }
+.job-card-status-bar.status-committing,
+.modern-badge.stage-committing { --job-stage-color: #34d399; }
+.job-card-status-bar.status-scanning,
+.job-card-status-bar.status-forwarding,
+.job-card-status-bar.status-downloading,
+.job-card-status-bar.status-uploading,
+.job-card-status-bar.status-committing { background: var(--job-stage-color); }
+.modern-badge.stage-scanning,
+.modern-badge.stage-forwarding,
+.modern-badge.stage-downloading,
+.modern-badge.stage-uploading,
+.modern-badge.stage-committing {
+  color: var(--job-stage-color);
+  border-color: color-mix(in srgb, var(--job-stage-color) 48%, transparent);
+  background: color-mix(in srgb, var(--job-stage-color) 12%, transparent);
+}
 
 .job-tags {
   display: flex;
@@ -25839,6 +25863,80 @@ button.td-confirm-icon.is-back-btn:active {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.td-remote-resolution-trace {
+  display: grid;
+  gap: 9px;
+  margin-top: 12px;
+  padding: 11px;
+  border: 1px solid color-mix(in srgb, var(--accent-cyan, #38bdf8) 24%, var(--border-color));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent-cyan, #38bdf8) 5%, transparent);
+}
+
+.td-remote-resolution-trace-head,
+.td-remote-resolution-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.td-remote-resolution-trace-head > :first-child {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.td-remote-resolution-trace-head > :last-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #34d399;
+}
+
+.td-remote-resolution-stages {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.td-remote-resolution-stages > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px 4px;
+  border-radius: 8px;
+  background: color-mix(in srgb, #10b981 10%, var(--surface-raised, #111827));
+  color: #6ee7b7;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.td-remote-resolution-summary {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.td-remote-resolution-summary > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .td-remote-resolution-stages {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .td-remote-resolution-stages > span:last-child {
+    grid-column: 1 / -1;
+  }
 }
 
 .td-remote-platform-badge {

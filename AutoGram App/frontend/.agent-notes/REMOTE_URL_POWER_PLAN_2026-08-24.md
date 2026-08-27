@@ -1,86 +1,541 @@
-# Remote URL Power Plan
+# Remote URL Evolution Plan v3
 
-Status: execution plan, not a claim that every provider is implemented.
+## Universal Media Resolver + AI Content Operating System
 
-## Product outcome
+## 1. Product Vision
 
-Remote URL becomes a resolver and download orchestration surface for a single URL, a multi-URL message, or an authorized public crawl. It must discover the real media variants, let the user choose exactly what to fetch, and hand the selected artifacts to the existing Transfer Manager without bypassing DRM, paywalls, account access controls, or provider restrictions.
+Remote URL evolves from a URL resolver and download orchestration system
+into a Universal Media Intelligence Platform combining:
 
-## Core workflow
+-   4K Video Downloader capability
+-   JDownloader automation
+-   Social Media Manager workflow
+-   AI Content Intelligence
+-   Creator Backup System
+-   Universal Media Discovery Engine
 
-1. **Input and dry run**
-   - Accept paste, drag-and-drop text, Telegram message links, and a bounded batch list.
-   - Normalize Unicode, unwrap known tracking links, remove duplicates, and reject unsafe schemes.
-   - Dry run resolves metadata and variants but never downloads media.
-2. **Safe redirect discovery**
-   - Resolve redirects with DNS/IP revalidation on every hop, a hop limit, response-size cap, and private-network/localhost blocking.
-   - Preserve cookies only inside an encrypted per-provider vault and only after explicit user authorization.
-3. **Resolver routing**
-   - Tier A: direct file, HLS, DASH, image, and audio URLs.
-   - Tier B: official/public provider APIs where available.
-   - Tier C: maintained native extractors for stable public page metadata.
-   - Tier D: a sandboxed browser-assisted resolver for JavaScript pages, with a hard timeout and no automatic human-verification bypass.
-   - Unknown providers use conservative OpenGraph/JSON-LD/media-tag discovery.
-4. **Variant model**
-   - Return provider, canonical URL, author/title, media kind, dimensions, duration, codec/container, estimated bytes, thumbnail, subtitles, audio tracks, expiry, and required authorization.
-   - Group video/audio combinations explicitly; never label a transcoded local variant as a provider-native resolution.
-5. **User decision**
-   - Single asset: compact preview and one primary action.
-   - Multiple assets/slides: selectable grid/list with Select all, invert, filters, size estimate, and filename preview.
-   - Expiring URLs display a clear expiry/re-resolve state.
-6. **Transfer execution**
-   - Freeze a signed resolution manifest before download.
-   - Stream with resumable ranges where the origin supports them; validate content length/MIME/magic bytes and optional SHA-256.
-   - Report stages independently: Resolving, Waiting for authorization, Downloading, Merging, Verifying, and Completed.
-   - Persist resumable jobs and re-resolve only expired resources.
+Goal:
 
-## Provider capability packs
+> Discover, resolve, validate, organize, analyze, transform, and manage
+> digital content from any supported media source.
 
-Each pack implements the same resolver contract and fixture suite.
+------------------------------------------------------------------------
 
-| Pack | Required coverage |
-|---|---|
-| X/Twitter | Photos, videos, animated media, quoted/embedded posts, profile photo/banner, metadata, best/native variants |
-| Facebook | Public photos, video, reels, stories where authorized and available, albums, profile photo/banner |
-| Instagram | Public/authorized posts, carousel, reels, video, stories, highlights, profile photo; no private-content bypass |
-| Pinterest | Pins, video pins, boards, carousel/collage assets, original image variants |
-| Pixiv | Illustrations, manga pages, ugoira manifest/frame archive, novels as structured text where permitted |
-| Terabox/PikPak | Authenticated share inspection, folder navigation, explicit item selection, share-password prompt, resumable retrieval |
-| Direct/short-link family | Videy-like hosts, CDN variants, signed files, HLS/DASH, bounded JavaScript redirect chains |
+# 2. Core Architecture
 
-Provider hostnames are configuration data, not hardcoded UI branches. Closely related domains share a signature-based family resolver with hostname allowlists, redirect-policy fixtures, and kill switches.
+Remote URL architecture:
 
-## Crawl mode
+    Remote URL
 
-- Scope is explicit: one public/authorized profile, board, album, folder, or bounded URL list.
-- Before execution show discovered count, estimated bytes, date/type filters, dedup preview, rate budget, and output naming template.
-- Use cursor checkpoints and a durable queue so pause/resume never repeats completed pages.
-- Apply four-level duplicate detection: source item ID, provider unique ID, SHA-256, filename+size.
-- Stop and surface authentication, consent, robots/policy, rate-limit, or removed-content states; do not silently skip.
+    |
+    |-- URL Intelligence Layer
+    |
+    |-- Universal Media Discovery Resolver
+    |
+    |-- Provider Engine
+    |
+    |-- Transfer Manager
+    |
+    |-- AI Intelligence Layer
+    |
+    |-- Content Library
+    |
+    |-- Creator Workflow
+    |
+    |-- Social Media Management
 
-## Performance and safety architecture
+------------------------------------------------------------------------
 
-- Bounded resolver pool separated from bounded download pool; provider-specific token buckets and exponential backoff.
-- Adaptive concurrency based on latency, throttling, error rate, CPU, disk pressure, and RAM circuit breaker.
-- Stream to `.partial` files; never accumulate large payloads in React or Rust heap.
-- Cache only resolver manifests and thumbnails with expiry/ETag; secrets and signed URLs are encrypted and redacted from logs.
-- SSRF defense, decompression-bomb limits, filename/path sanitization, MIME sniffing, TLS validation, and optional malware hook.
-- Provider breaker disables a failing extractor without breaking other providers.
+# 3. Universal Media Discovery Resolver Layer
 
-## UI surfaces
+Principle:
 
-- Remote URL modal: input, Dry run, resolver timeline, variants, selection summary, and Send to Transfer Manager.
-- Batch/crawl workspace: source scope, filters, checkpoint status, failures requiring attention, and exportable manifest.
-- Provider authorization is contextual inside the resolver result, not a disconnected sidebar feature.
-- Every label, tooltip, validation, stage, and error has ID/EN locale parity.
+    URL
+     â†“
+    Analyze
+     â†“
+    Resolve
+     â†“
+    Discover Real Media Source
+     â†“
+    Validate
+     â†“
+    Download
+     â†“
+    AI Processing
+     â†“
+    Library
 
-## Phases and acceptance gates
+The system must not trust URL names, extensions, or Content-Type alone.
 
-1. **Resolver foundation**: direct files/HLS/DASH, redirect safety, manifests, dry run. Gate: deterministic fixtures and SSRF tests.
-2. **Main social providers**: X, Facebook, Instagram, Pinterest, Pixiv. Gate: single/multi assets, removed/private states, variant accuracy.
-3. **Cloud shares**: Terabox/PikPak selection and authorization. Gate: folders, password prompt, resume, expiry recovery.
-4. **Short-link families**: signature resolver and sandboxed JS fallback. Gate: redirect limits, pop-up isolation, failure clarity.
-5. **Crawl**: durable cursors, dedup, filters, batch transfer. Gate: pause/restart recovery and 10k synthetic item soak test.
-6. **Production hardening**: telemetry without secrets, provider breakers, resource budgets, signed fixture refresh.
+------------------------------------------------------------------------
 
-Release requires successful Rust tests, frontend tests/locale audit, download integrity fixtures, deliberate throttling tests, crash/restart recovery, and native `frontend.exe` QA. Unsupported or protected content must produce an honest status rather than a false success.
+# 4. URL Classification Engine
+
+Classify incoming URLs:
+
+-   Direct Media URL
+-   Social Media URL
+-   Video Platform URL
+-   CDN URL
+-   Embed / Player URL
+-   Cloud Storage URL
+-   Short Link URL
+-   Unknown Website Media URL
+
+------------------------------------------------------------------------
+
+# 5. Short Link Resolver
+
+Support:
+
+-   t.co
+-   bit.ly
+-   tinyurl
+-   s.id
+-   rb.gy
+-   goo.gl
+-   Custom redirect domains
+
+Capabilities:
+
+-   Redirect chain analysis
+-   Loop detection
+-   Hop limit
+-   Final destination discovery
+-   Security validation
+
+------------------------------------------------------------------------
+
+# 6. Provider Engine
+
+    Provider Engine
+
+    â”œâ”€â”€ URL Intelligence Layer
+    â”œâ”€â”€ Short Link Resolver
+    â”œâ”€â”€ Direct Media Resolver
+    â”œâ”€â”€ Social Resolver
+    â”œâ”€â”€ Video Platform Resolver
+    â”œâ”€â”€ CDN Resolver
+    â”œâ”€â”€ Anonymous Media Resolver
+    â”œâ”€â”€ Embed/Page Resolver
+    â”œâ”€â”€ Player Resolver
+    â”œâ”€â”€ Streaming Resolver
+    â”œâ”€â”€ Cloud Resolver
+    â”œâ”€â”€ File Host Resolver
+    â”œâ”€â”€ Image Resolver
+    â””â”€â”€ Community Resolver
+
+------------------------------------------------------------------------
+
+# 7. Social Media Resolver
+
+Supported:
+
+## Tier S
+
+-   Instagram
+-   TikTok
+-   YouTube
+-   Facebook
+-   X/Twitter
+
+Features:
+
+-   Video
+-   Image
+-   Carousel
+-   Reel
+-   Shorts
+-   Thumbnail
+-   Subtitle
+-   Metadata
+
+## Tier A
+
+-   Reddit
+-   Telegram
+-   LinkedIn
+-   Pinterest
+-   Twitch
+-   Discord
+
+------------------------------------------------------------------------
+
+# 8. Creator Platform Resolver
+
+Support:
+
+-   Patreon
+-   Substack
+-   Medium
+-   Gumroad
+-   Creator websites
+
+Features:
+
+-   Authorized backup
+-   Media archive
+-   Metadata preservation
+
+------------------------------------------------------------------------
+
+# 9. CDN Intelligence Resolver
+
+Support:
+
+-   Cloudflare CDN
+-   AWS CloudFront
+-   Akamai
+-   Fastly
+-   Custom CDN
+
+Capabilities:
+
+-   CDN detection
+-   Signed URL detection
+-   Expiry detection
+-   Origin discovery
+-   Media validation
+
+------------------------------------------------------------------------
+
+# 10. Direct Media Fingerprinting Engine
+
+Validation based on binary inspection.
+
+Support:
+
+Video: - MP4 - WebM - MOV - MKV - AVI
+
+Streaming: - HLS (.m3u8) - MPEG-DASH (.mpd) - Smooth Streaming
+
+Image: - JPG - PNG - WEBP - GIF
+
+Audio: - MP3 - M4A - AAC - OPUS
+
+------------------------------------------------------------------------
+
+# 11. Hidden Media Extraction Engine
+
+Extract hidden media sources from:
+
+HTML:
+
+-   video src
+-   source src
+
+JSON:
+
+-   videoUrl
+-   mediaUrl
+-   source
+-   file
+-   stream
+-   playlist
+
+Javascript:
+
+-   file
+-   source
+-   video
+-   url
+-   stream
+
+------------------------------------------------------------------------
+
+# 12. Embed & Player Resolver
+
+Support:
+
+-   iframe extraction
+-   HTML5 players
+-   embedded sources
+-   playlists
+
+Players:
+
+-   JWPlayer
+-   Video.js
+-   Plyr
+-   Flowplayer
+-   Custom HTML5 Player
+
+------------------------------------------------------------------------
+
+# 13. Anonymous Media Host Resolver
+
+Support host families:
+
+-   Videy
+-   Videq
+-   Videyll
+-   Vidlyx
+-   Filemoon
+-   Mixdrop
+-   Doodstream
+-   Streamtape
+-   Similar hosts
+
+Architecture:
+
+    Anonymous Media Host Family
+
+    â†“
+    Signature Detection
+
+    â†“
+    Resolver Template
+
+    â†“
+    Media Extraction
+
+------------------------------------------------------------------------
+
+# 14. Streaming Resolver
+
+Support:
+
+-   HLS
+-   MPEG-DASH
+-   Smooth Streaming
+-   WebRTC metadata workflow
+
+Features:
+
+-   Quality selection
+-   Audio selection
+-   Subtitle extraction
+
+------------------------------------------------------------------------
+
+# 15. Cloud and File Resolver
+
+Support:
+
+-   Google Drive
+-   Dropbox
+-   OneDrive
+-   Mega
+-   MediaFire
+-   WeTransfer
+-   Terabox
+-   PikPak
+
+Features:
+
+-   Authorization
+-   Folder navigation
+-   Batch selection
+-   Resume download
+
+------------------------------------------------------------------------
+
+# 16. AI Content Intelligence
+
+Features:
+
+Video:
+
+-   Speech-to-text
+-   Summary
+-   Translation
+-   Keyword extraction
+-   Chapter creation
+-   Subtitle generation
+
+Image:
+
+-   OCR
+-   Object detection
+-   Tagging
+-   Description generation
+
+------------------------------------------------------------------------
+
+# 17. Content Library
+
+    Remote Library
+
+    â”œâ”€â”€ Videos
+    â”œâ”€â”€ Images
+    â”œâ”€â”€ Audio
+    â”œâ”€â”€ Documents
+    â”œâ”€â”€ Captions
+    â”œâ”€â”€ Metadata
+    â””â”€â”€ Projects
+
+Metadata:
+
+-   Source URL
+-   Provider
+-   Creator
+-   Caption
+-   Hashtag
+-   Upload date
+-   Resolution
+-   Codec
+-   Transcript
+-   AI category
+
+------------------------------------------------------------------------
+
+# 18. Creator Backup Mode
+
+Features:
+
+-   Profile backup
+-   Album backup
+-   Date filtering
+-   Duplicate prevention
+-   Resume backup
+
+------------------------------------------------------------------------
+
+# 19. AI Repurpose Engine
+
+Convert:
+
+    Long Video
+
+    â†“
+
+    AI Processing
+
+    â†“
+
+    TikTok Clip
+    Instagram Reel
+    YouTube Short
+    X Thread
+    LinkedIn Post
+
+------------------------------------------------------------------------
+
+# 20. Social Media Management
+
+Features:
+
+-   Content calendar
+-   Scheduler
+-   Publishing queue
+-   Caption templates
+-   Hashtag management
+-   Analytics
+
+------------------------------------------------------------------------
+
+# 21. Browser Extension
+
+Support:
+
+-   Chrome
+-   Edge
+-   Firefox
+
+Workflow:
+
+    Right Click
+
+    Send to Remote URL
+
+    â†“
+
+    Resolve
+
+    â†“
+
+    Download
+
+    â†“
+
+    Analyze
+
+------------------------------------------------------------------------
+
+# 22. Mobile Integration
+
+Support:
+
+-   Android Share Intent
+-   iOS Share Sheet
+
+------------------------------------------------------------------------
+
+# 23. Security
+
+Maintain:
+
+-   SSRF protection
+-   Redirect validation
+-   Sandbox resolver
+-   Authorization control
+-   Secret encryption
+-   Signed URL protection
+-   Malware scanning hook
+
+Never bypass:
+
+-   DRM
+-   Paywall
+-   Private content
+-   Access control
+
+------------------------------------------------------------------------
+
+# 24. Roadmap
+
+## Phase 1
+
+Universal Media Intelligence Foundation:
+
+-   URL intelligence
+-   Resolver engine
+-   CDN detection
+-   Media fingerprinting
+-   Transfer Manager
+
+## Phase 2
+
+Provider Expansion:
+
+-   Social platforms
+-   Anonymous media hosts
+-   Embed resolver
+-   Player extraction
+
+## Phase 3
+
+AI Content Platform:
+
+-   Transcript
+-   OCR
+-   Summary
+-   AI classification
+
+## Phase 4
+
+Creator Platform:
+
+-   Backup
+-   Scheduler
+-   Analytics
+-   Repurpose engine
+
+## Phase 5
+
+Enterprise:
+
+-   Cloud workspace
+-   API
+-   Team collaboration
+-   SaaS billing
+
+------------------------------------------------------------------------
+
+# Final Product Definition
+
+Remote URL becomes:
+
+> The universal AI-powered system to discover, resolve, understand,
+> transform, and manage digital content from the internet.

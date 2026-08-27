@@ -25,6 +25,8 @@
   "tab_telegram_links": "Links",
   "tab_telegram_gifs": "GIFs",
   "tab_telegram_audio": "Audio",
+  "tab_telegram_stickers": "Stickers",
+  "tab_telegram_stickers_tip": "Show actual Telegram stickers only; ordinary WebP files remain files or images.",
   "tab_drive_images": "Images",
   "tab_drive_videos": "Videos",
   "tab_drive_audio": "Audio",

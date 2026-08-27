@@ -99,9 +99,11 @@ export function getSessionMetadata(sessionName: string): SessionMetadata | null 
 
 export const SESSION_METADATA_EVENT = 'autogram_session_metadata_updated';
 
-export function notifySessionMetadataChanged(): void {
+export type SessionMetadataChangeKind = 'metadata' | 'inventory';
+
+export function notifySessionMetadataChanged(kind: SessionMetadataChangeKind = 'inventory'): void {
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent(SESSION_METADATA_EVENT));
+    window.dispatchEvent(new CustomEvent(SESSION_METADATA_EVENT, { detail: { kind } }));
   }
 }
 
@@ -120,7 +122,7 @@ export function saveSessionMetadata(
       updatedAt: Date.now(),
     };
     localStorage.setItem(METADATA_KEY, JSON.stringify(store));
-    notifySessionMetadataChanged();
+    notifySessionMetadataChanged('metadata');
   } catch {
     /* ignore */
   }
@@ -138,7 +140,7 @@ export function setSessionAlias(sessionName: string, alias: string): void {
       delete aliases[sessionName];
     }
     localStorage.setItem(ALIASES_KEY, JSON.stringify(aliases));
-    notifySessionMetadataChanged();
+    notifySessionMetadataChanged('metadata');
   } catch {}
 }
 
@@ -284,10 +286,36 @@ function writeSessionHealth(records: Record<string, SessionHealthRecord>): void 
   }
 }
 
-function cachedHealthFor(sessionName: string): SessionHealthRecord | null {
+function cachedHealthFor(sessionName: string, allowStale = false): SessionHealthRecord | null {
   const record = readSessionHealth()[sessionName];
-  if (!record || Date.now() - record.checkedAt > SESSION_HEALTH_TTL_MS) return null;
+  if (!record || (!allowStale && Date.now() - record.checkedAt > SESSION_HEALTH_TTL_MS)) return null;
   return record;
+}
+
+export function sessionInventoryStatus(
+  nativeStatus: string | undefined,
+  cachedHealth: Pick<SessionHealthRecord, 'status' | 'checkedAt'> | null,
+  now = Date.now()
+): string {
+  if (!cachedHealth) return String(nativeStatus || 'checking');
+  if (now - cachedHealth.checkedAt <= SESSION_HEALTH_TTL_MS) return cachedHealth.status;
+  // A stale healthy result is useful for instant, honest paint, but must not be
+  // presented as a current live connection until the background probe wins.
+  if (cachedHealth.status === 'connected') return 'connected_stale';
+  return cachedHealth.status;
+}
+
+export function preserveVerifiedSessionStatus(
+  inventory: SessionOption[],
+  current: SessionOption[]
+): SessionOption[] {
+  return inventory.map((next) => {
+    if (next.status !== 'checking') return next;
+    const existing = current.find((item) => item.name === next.name);
+    return existing && existing.status !== 'checking'
+      ? { ...next, status: existing.status, latencyMs: existing.latencyMs }
+      : next;
+  });
 }
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
@@ -437,11 +465,11 @@ export async function loadSelectableSessions(opts?: {
   let all: SessionOption[] = raw
     .map((s: any) => {
       const sessName = String(s?.name || '').trim();
-      const cachedHealth = cachedHealthFor(sessName);
+      const cachedHealth = cachedHealthFor(sessName, true);
       return {
         name: sessName,
         label: getSessionDisplayName(sessName),
-        status: cachedHealth?.status || String(s?.status || 'checking'),
+        status: sessionInventoryStatus(String(s?.status || 'checking'), cachedHealth),
         latencyMs: cachedHealth?.latencyMs,
         source: s?.source ? String(s.source) : undefined,
       };

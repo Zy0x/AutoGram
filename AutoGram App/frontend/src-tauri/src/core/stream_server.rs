@@ -175,7 +175,8 @@ pub fn inspect_mp4_layout(path: &Path) -> Mp4Layout {
             break;
         }
 
-        let size32 = u32::from_be_bytes([header_buf[0], header_buf[1], header_buf[2], header_buf[3]]) as u64;
+        let size32 =
+            u32::from_be_bytes([header_buf[0], header_buf[1], header_buf[2], header_buf[3]]) as u64;
         let box_type = [header_buf[4], header_buf[5], header_buf[6], header_buf[7]];
 
         let (header_len, box_size) = if size32 == 1 {
@@ -183,8 +184,14 @@ pub fn inspect_mp4_layout(path: &Path) -> Mp4Layout {
                 break;
             }
             let size64 = u64::from_be_bytes([
-                header_buf[8], header_buf[9], header_buf[10], header_buf[11],
-                header_buf[12], header_buf[13], header_buf[14], header_buf[15],
+                header_buf[8],
+                header_buf[9],
+                header_buf[10],
+                header_buf[11],
+                header_buf[12],
+                header_buf[13],
+                header_buf[14],
+                header_buf[15],
             ]);
             (16, size64)
         } else if size32 == 0 {
@@ -277,7 +284,10 @@ impl Read for DemandRangeReader {
 
             // Auto-signal demand if entry is cancelled/paused or waiting for bytes
             if !seek_signaled || waited % 1000 == 0 {
-                let _ = crate::core::grammers::stream::request_progressive_range(&self.stream_id, self.position);
+                let _ = crate::core::grammers::stream::request_progressive_range(
+                    &self.stream_id,
+                    self.position,
+                );
                 seek_signaled = true;
             }
 
@@ -652,20 +662,18 @@ fn handle_stream(request: Request, sid: &str) {
             let _ = request.respond(res);
             return;
         }
-        _ => {
-            match try_recover_partial(sid) {
-                Some(recovered) => recovered,
-                None => {
-                    let mut res =
-                        Response::from_string("Stream expired").with_status_code(StatusCode(404));
-                    for h in cors_headers() {
-                        res.add_header(h);
-                    }
-                    let _ = request.respond(res);
-                    return;
+        _ => match try_recover_partial(sid) {
+            Some(recovered) => recovered,
+            None => {
+                let mut res =
+                    Response::from_string("Stream expired").with_status_code(StatusCode(404));
+                for h in cors_headers() {
+                    res.add_header(h);
                 }
+                let _ = request.respond(res);
+                return;
             }
-        }
+        },
     };
 
     let path = PathBuf::from(&entry.path);
@@ -694,11 +702,14 @@ fn handle_stream(request: Request, sid: &str) {
 
     // If start is beyond total size, return RFC 7233 416 Range Not Satisfiable
     if req_start >= total && total > 0 {
-        let mut res = Response::from_string("Range Not Satisfiable").with_status_code(StatusCode(416));
+        let mut res =
+            Response::from_string("Range Not Satisfiable").with_status_code(StatusCode(416));
         for h in cors_headers() {
             res.add_header(h);
         }
-        if let Ok(h) = Header::from_bytes(&b"Content-Range"[..], format!("bytes */{total}").as_bytes()) {
+        if let Ok(h) =
+            Header::from_bytes(&b"Content-Range"[..], format!("bytes */{total}").as_bytes())
+        {
             res.add_header(h);
         }
         let _ = request.respond(res);
@@ -730,9 +741,8 @@ fn handle_stream(request: Request, sid: &str) {
                 // di-take dan fill-loop ke posisi yang salah, re-send setiap 2s memastikan
                 // fill-loop akhirnya mendapat seek target yang benar.
                 if waited.saturating_sub(last_seek_resend_ms) >= 2_000 {
-                    let _ = crate::core::grammers::stream::request_progressive_range(
-                        sid, req_start,
-                    );
+                    let _ =
+                        crate::core::grammers::stream::request_progressive_range(sid, req_start);
                     last_seek_resend_ms = waited;
                 }
                 match get_entry(sid) {

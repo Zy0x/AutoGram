@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -59,7 +61,7 @@ fun TransferScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Bolt,
-                                contentDescription = "Smart Rate",
+                                contentDescription = stringResource(R.string.transfer_smart_rate_accessibility),
                                 tint = PrimaryBlue,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -75,6 +77,35 @@ fun TransferScreen(
         }
 
         item {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = stringResource(R.string.transfer_aggregate_progress),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = TextPrimaryDark
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.transfer_progress_percent,
+                            (state.aggregateProgress * 100).toInt()
+                        ),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = PrimaryBlue
+                    )
+                }
+                LinearProgressIndicator(
+                    progress = { state.aggregateProgress },
+                    modifier = Modifier.fillMaxWidth().height(8.dp),
+                    color = PrimaryBlue,
+                    trackColor = SurfaceElevatedDark
+                )
+            }
+        }
+
+        item {
             Text(
                 text = stringResource(R.string.transfer_active_tasks),
                 style = MaterialTheme.typography.titleLarge,
@@ -84,7 +115,7 @@ fun TransferScreen(
         }
 
         items(state.activeTasks, key = { it.id }) { task ->
-            TransferTaskCard(task = task)
+            TransferTaskCard(task = task, onTogglePause = { viewModel.togglePause(task) })
         }
 
         if (state.completedTasks.isNotEmpty()) {
@@ -98,17 +129,28 @@ fun TransferScreen(
             }
 
             items(state.completedTasks, key = { it.id }) { task ->
-                TransferTaskCard(task = task)
+                TransferTaskCard(task = task, onTogglePause = { viewModel.togglePause(task) })
             }
         }
     }
 }
 
 @Composable
-fun TransferTaskCard(task: TransferTaskItem) {
+fun TransferTaskCard(task: TransferTaskItem, onTogglePause: () -> Unit) {
     val progress = if (task.totalBytes > 0) {
         task.transferredBytes.toFloat() / task.totalBytes.toFloat()
     } else 0f
+
+    val stageColor = when (task.stage.lowercase()) {
+        "scan" -> StageScan
+        "download" -> StageDownload
+        "verify" -> StageVerify
+        "reencode", "encode", "convert" -> StageEncode
+        "upload" -> StageUpload
+        "commit" -> StageCommit
+        "reconcile" -> StageReconcile
+        else -> TextSecondaryDark
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -122,18 +164,41 @@ fun TransferTaskCard(task: TransferTaskItem) {
                 .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = task.fileName,
-                style = MaterialTheme.typography.titleMedium,
-                color = TextPrimaryDark
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = task.fileName,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = TextPrimaryDark
+                    )
+                    Text(
+                        text = stringResource(R.string.transfer_stage_value, task.stage),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = stageColor
+                    )
+                }
+                if (task.status.lowercase() !in setOf("completed", "failed", "cancelled")) {
+                    FilledTonalIconButton(onClick = onTogglePause) {
+                        Icon(
+                            imageVector = if (task.paused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                            contentDescription = stringResource(
+                                if (task.paused) R.string.transfer_action_resume else R.string.transfer_action_pause
+                            )
+                        )
+                    }
+                }
+            }
 
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(6.dp),
-                color = PrimaryBlue,
+                color = stageColor,
                 trackColor = SurfaceElevatedDark
             )
 

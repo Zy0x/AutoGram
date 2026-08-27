@@ -165,6 +165,15 @@ AutoGram App/worker/_ff_*.py
 AutoGram App/rustup-init.exe
 AutoGram App/src-tauri/target/
 
+# Repository-local Android/Rust toolchains and build outputs
+.toolchains/
+.build-cache/
+/bin/*.exe
+AutoGram App/android/.gradle/
+AutoGram App/android/local.properties
+AutoGram App/android/app/build/
+AutoGram App/android/app/src/main/jniLibs/
+
 # Local Dev Artifacts & MCP Tooling
 graphify-out/
 mcps/
@@ -177,5 +186,3 @@ AutoGram App/worker/sessions/
 # Raw audit logs & evidence
 docs/**/evidence/
 docs/**/raw/
-
-

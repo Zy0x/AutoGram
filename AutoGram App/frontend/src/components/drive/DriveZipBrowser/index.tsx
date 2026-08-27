@@ -39,7 +39,7 @@ import { ZipPasswordModal } from './ZipPasswordModal';
 import { fetchZipEntryThumbnail, isMediaThumbnailSupported } from './ZipThumbnailManager';
 import { driveZipExtractEntry, driveZipList, driveZipReadEntry } from '../../../lib/telegram/driveApi';
 import { zipExtractEntry, zipListLocal, zipPreviewEntry } from '../../../lib/tauri/rustBackend';
-import { tgDebugGetMessage } from '../../../lib/telegram/core/telegramBackend';
+import { tgDebugGetMessage, tgSearchPasswordCandidates } from '../../../lib/telegram/core/telegramBackend';
 import './DriveZipBrowser.css';
 
 export { clearZipBrowserCache } from './zipUtils';
@@ -197,7 +197,9 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
     void loadZipEntries();
   }, [loadZipEntries]);
 
-  // Extract password suggestions from Telegram message caption
+  // Extract password suggestions from the archive caption first, then perform
+  // a bounded server-side search across the same chat. This never downloads
+  // chat history and remains behind the native FloodWait guard.
   useEffect(() => {
     let cancelled = false;
     if (!creds.session || !creds.apiId || !creds.apiHash) {
@@ -205,16 +207,30 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
       return;
     }
     const resolvedPeer = (peerId || (folderId != null && folderId !== 0 ? String(folderId) : '') || 'me').trim();
-    void tgDebugGetMessage({
+    void Promise.all([
+      tgDebugGetMessage({
       session: creds.session,
       apiId: Number(creds.apiId),
       apiHash: creds.apiHash,
       peerId: resolvedPeer,
       telegramMessageId: messageId,
-    }).then((result) => {
+      }),
+      tgSearchPasswordCandidates({
+        session: creds.session,
+        apiId: Number(creds.apiId),
+        apiHash: creds.apiHash,
+        peerId: resolvedPeer,
+        anchorMessageId: messageId,
+      }),
+    ]).then(([result, chatSearch]) => {
       if (cancelled) return;
       const text = result?.ok && result.data?.found ? result.data.text || '' : '';
-      setPasswordCandidates(extractZipPasswordCandidates(text, archiveName || source.label));
+      const relatedText = chatSearch?.ok && chatSearch.data
+        ? chatSearch.data.messages.map((message) => message.text).join('\n')
+        : '';
+      setPasswordCandidates(
+        extractZipPasswordCandidates(`${text}\n${relatedText}`, archiveName || source.label)
+      );
     });
     return () => {
       cancelled = true;

@@ -12,7 +12,9 @@ use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 
-use crate::core::grammers_ops::media_list::{buffered_k_way_merge, list_media_page_async, MediaFileRow};
+use crate::core::grammers_ops::media_list::{
+    buffered_k_way_merge, list_media_page_async, MediaFileRow,
+};
 use crate::core::telegram_ops::TelegramIdentity;
 use crate::core::tg_error::TgError;
 
@@ -118,7 +120,9 @@ pub fn run_synthetic_index_benchmark(tier: IndexBenchTier) -> IndexBenchReport {
 
     let start = Instant::now();
 
-    while emitted_count < total_target && (cur_pv_id > 0 || cur_doc_id > 0 || !pending_pv.is_empty() || !pending_doc.is_empty()) {
+    while emitted_count < total_target
+        && (cur_pv_id > 0 || cur_doc_id > 0 || !pending_pv.is_empty() || !pending_doc.is_empty())
+    {
         // Replenish PV lane
         while pending_pv.len() < page_size && cur_pv_id > 0 {
             pending_pv.push(make_synthetic_row(cur_pv_id, "pv"));
@@ -128,7 +132,11 @@ pub fn run_synthetic_index_benchmark(tier: IndexBenchTier) -> IndexBenchReport {
         // Replenish DOC lane
         while pending_doc.len() < page_size && cur_doc_id > 0 {
             // 5% intentional duplicate ID to verify dual-pop deduplication
-            let id = if cur_doc_id % 40 == 1 { cur_doc_id + 1 } else { cur_doc_id };
+            let id = if cur_doc_id % 40 == 1 {
+                cur_doc_id + 1
+            } else {
+                cur_doc_id
+            };
             pending_doc.push(make_synthetic_row(id, "doc"));
             cur_doc_id -= 2;
         }

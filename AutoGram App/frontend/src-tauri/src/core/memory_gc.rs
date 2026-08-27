@@ -5,10 +5,10 @@
 //! - Runs passive SQLite WAL checkpoints without locking readers or writers.
 //! - Drops idle connection handles and compacts internal allocators.
 
+use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
-use serde::{Deserialize, Serialize};
 
 use crate::core::app_db::open_db;
 use crate::core::stream_server;
@@ -51,17 +51,19 @@ pub fn run_garbage_collection_pass() -> MemoryGcReport {
 
     // 2. Perform SQLite passive WAL checkpoint to truncate log files
     if let Ok(conn) = open_db() {
-        let res: rusqlite::Result<(i32, i32, i32)> = conn.query_row(
-            "PRAGMA wal_checkpoint(PASSIVE);",
-            [],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-        );
+        let res: rusqlite::Result<(i32, i32, i32)> =
+            conn.query_row("PRAGMA wal_checkpoint(PASSIVE);", [], |row| {
+                Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+            });
         if let Ok((_busy, log_frames, checkpointed)) = res {
             wal_frames = checkpointed;
             tg_log::info(
                 "memory_gc",
                 "wal_checkpoint",
-                format!("WAL checkpoint passive done: log_frames={}, checkpointed={}", log_frames, checkpointed),
+                format!(
+                    "WAL checkpoint passive done: log_frames={}, checkpointed={}",
+                    log_frames, checkpointed
+                ),
             );
         }
     }

@@ -18,6 +18,13 @@ val TextMutedDark = Color(0xFF6B7280)
 val SuccessGreen = Color(0xFF10B981)
 val WarningAmber = Color(0xFFF59E0B)
 val ErrorRed = Color(0xFFEF4444)
+val StageScan = Color(0xFF8B5CF6)
+val StageDownload = Color(0xFF06B6D4)
+val StageVerify = Color(0xFF14B8A6)
+val StageEncode = Color(0xFFF59E0B)
+val StageUpload = Color(0xFF3B82F6)
+val StageCommit = Color(0xFFA855F7)
+val StageReconcile = Color(0xFF10B981)
 
 // Light theme counterparts
 val BgLight = Color(0xFFF9FAFB)

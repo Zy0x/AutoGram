@@ -73,6 +73,81 @@ describe('Telegram media identity normalization', () => {
     expect(matchesMediaFilter(file, 'media', 'telegram')).toBe(true);
     expect(matchesMediaFilter(file, 'links', 'telegram')).toBe(true);
   });
+
+  it('keeps Telegram web-page preview photos out of the media lane', () => {
+    const preview = toLeanDriveFile({
+      id: 578,
+      name: 'photo_578.jpg',
+      mimeType: 'image/jpeg',
+      iconType: 'photo',
+      telegramCategory: 'link',
+      telegramSubtype: 'webpage',
+      driveFormat: 'https://t.me/saveoffbot?start=chats',
+      hasThumb: true,
+    });
+
+    expect(preview.icon_type).toBe('link');
+    expect(preview.has_thumb).toBe(true);
+    expect(matchesMediaFilter(preview, 'media', 'telegram')).toBe(false);
+    expect(matchesMediaFilter(preview, 'links', 'telegram')).toBe(true);
+  });
+
+  it('hides legacy text-only and mention rows while preserving real URL rows', () => {
+    const mention = toLeanDriveFile({
+      id: 7,
+      name: '@thuandmuda',
+      mimeType: 'text/plain',
+      iconType: 'text',
+      telegramCategory: 'text',
+      identitySource: 'telegram_text',
+      driveFormat: '@thuandmuda',
+    });
+    const link = toLeanDriveFile({
+      id: 8,
+      name: 'https://t.me/example',
+      mimeType: 'text/x-url',
+      iconType: 'link',
+      telegramCategory: 'link',
+      linkUrls: ['https://t.me/example'],
+    });
+
+    expect(matchesMediaFilter(mention, 'all', 'telegram')).toBe(false);
+    expect(matchesMediaFilter(mention, 'links', 'telegram')).toBe(false);
+    expect(matchesMediaFilter(link, 'all', 'telegram')).toBe(true);
+    expect(matchesMediaFilter(link, 'links', 'telegram')).toBe(true);
+  });
+
+  it('separates ordinary WebP documents from actual Telegram stickers', () => {
+    const webpDocument = toLeanDriveFile({
+      id: 20,
+      name: 'artwork.webp',
+      mimeType: 'image/webp',
+      iconType: 'image',
+      asDocument: true,
+      telegramCategory: 'file',
+      telegramSubtype: 'doc_photo',
+      driveCategory: 'image',
+    });
+    const sticker = toLeanDriveFile({
+      id: 21,
+      name: 'sticker_21.webp',
+      mimeType: 'image/webp',
+      iconType: 'image',
+      asDocument: true,
+      telegramCategory: 'sticker',
+      telegramSubtype: 'sticker',
+      driveCategory: 'image',
+    });
+
+    expect(matchesMediaFilter(webpDocument, 'files', 'telegram')).toBe(true);
+    expect(matchesMediaFilter(webpDocument, 'all', 'telegram')).toBe(true);
+    expect(matchesMediaFilter(webpDocument, 'stickers', 'telegram')).toBe(false);
+    expect(matchesMediaFilter(webpDocument, 'images', 'drive')).toBe(true);
+    expect(matchesMediaFilter(sticker, 'stickers', 'telegram')).toBe(true);
+    expect(matchesMediaFilter(sticker, 'all', 'telegram')).toBe(false);
+    expect(matchesMediaFilter(sticker, 'files', 'telegram')).toBe(false);
+    expect(matchesMediaFilter(sticker, 'media', 'telegram')).toBe(false);
+  });
 });
 
 const files: DriveFile[] = [

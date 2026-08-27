@@ -8,6 +8,7 @@ export type ExactMediaBreakdown = {
   gifCount: number;
   linkCount: number;
   audioCount: number;
+  stickerCount: number;
 };
 
 export type PerspectiveMediaCounts = Record<string, number>;
@@ -20,12 +21,15 @@ export function countExactMediaBreakdown(files: DriveFile[]): ExactMediaBreakdow
     gifCount: 0,
     linkCount: 0,
     audioCount: 0,
+    stickerCount: 0,
   };
 
   for (const file of files) {
     const category = String(file.telegram_category || file.telegramCategory || '').toLowerCase();
     const subtype = String(file.telegram_subtype || file.telegramSubtype || '').toLowerCase();
-    if (category === 'gif' || matchesMediaFilter(file, 'gifs', 'telegram')) {
+    if (category === 'sticker' || matchesMediaFilter(file, 'stickers', 'telegram')) {
+      counts.stickerCount += 1;
+    } else if (category === 'gif' || matchesMediaFilter(file, 'gifs', 'telegram')) {
       counts.gifCount += 1;
     } else if (category === 'link' || matchesMediaFilter(file, 'links', 'telegram')) {
       counts.linkCount += 1;
@@ -49,9 +53,14 @@ export function countPerspectiveMedia(
   perspective: ViewPerspective
 ): PerspectiveMediaCounts {
   const filters = perspective === 'telegram'
-    ? ['all', 'media', 'files', 'links', 'gifs', 'audio']
+    ? ['all', 'media', 'files', 'links', 'gifs', 'audio', 'stickers']
     : ['all', 'images', 'videos', 'audio', 'documents', 'archives'];
-  const result: PerspectiveMediaCounts = { all: files.length };
+  const result: PerspectiveMediaCounts = {
+    all: files.reduce(
+      (total, file) => total + (matchesMediaFilter(file, 'all', perspective) ? 1 : 0),
+      0
+    ),
+  };
   for (const filter of filters.slice(1)) {
     result[filter] = files.reduce(
       (total, file) => total + (matchesMediaFilter(file, filter, perspective) ? 1 : 0),

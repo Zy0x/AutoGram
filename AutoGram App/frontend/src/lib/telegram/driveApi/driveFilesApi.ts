@@ -790,6 +790,7 @@ export async function driveGetMediaStats(
         gifCount: 0,
         linkCount: 0,
         audioCount: 0,
+        stickerCount: 0,
         topicId: null,
         isExact: true,
         backend: 'drive-engine',

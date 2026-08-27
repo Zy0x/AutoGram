@@ -3,7 +3,6 @@
 pub use autogram_core;
 pub mod adaptive_rate_governor;
 pub mod capability;
-pub mod media_index_bench;
 pub mod channel_sync_manager;
 pub mod channel_sync_types;
 pub mod channel_sync_worker;
@@ -13,6 +12,7 @@ pub mod drive_engine;
 pub mod drive_rpc;
 pub mod grammers;
 pub mod hardware_capability;
+pub mod media_index_bench;
 pub use grammers as grammers_media;
 pub mod app_db;
 pub mod automations_db;

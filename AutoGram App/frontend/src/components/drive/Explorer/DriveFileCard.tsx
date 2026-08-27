@@ -87,7 +87,14 @@ function DriveFileCardInner({
     }
   });
 
-  const drFmt = (file.drive_format || file.file_ext || kindLabel || '').toUpperCase();
+  // `drive_format` from older link/text indexes can contain the entire message
+  // body. Format badges must always be structural labels, never user text.
+  const rawDriveFormat = String(file.drive_format || '').trim();
+  const drFmt = (
+    file.icon_type === 'link' || file.icon_type === 'text'
+      ? (file.file_ext || kindLabel || 'URL')
+      : ((/^https?:\/\//i.test(rawDriveFormat) ? '' : rawDriveFormat) || file.file_ext || kindLabel || '')
+  ).toUpperCase();
   let subLabel = '';
   if (file.icon_type === 'link') {
     subLabel = linkUrls.length > 1

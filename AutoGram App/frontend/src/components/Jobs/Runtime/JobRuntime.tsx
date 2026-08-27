@@ -2,6 +2,7 @@ import { Play, Pause, Terminal, ArrowLeft, RefreshCw, AlertCircle, CheckCircle, 
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo } from 'react';
 import { runDaemonOnce } from '../../../lib/tauri/workerBridge';
+import { jobsGetEvents } from '../../../lib/db/jobsApi';
 
 import { isDesktop } from '../../../lib/tauri/platform';
 import { RerunModal } from '../Modals/RerunModal';
@@ -43,6 +44,16 @@ export function JobRuntime({
         setIsFetchingLogs(true);
         const fetchLogs = async () => {
             try {
+                if (isDesktop()) {
+                    const events = await jobsGetEvents(job.id);
+                    const nativeLog = events.map((event) => {
+                      const time = new Date(event.timestamp * 1000).toLocaleTimeString([], { hour12: false });
+                      const metadata = event.metadata ? ` ${event.metadata}` : '';
+                      return `[${time}] [INFO] [${event.stage}] ${event.message}${metadata}`;
+                    }).join('\n');
+                    setHistoricalLogs(nativeLog || null);
+                    return;
+                }
                 const res = await runDaemonOnce([
                   '--action', 'get-logs',
                   '--job-id', String(job.id),
@@ -243,9 +254,12 @@ export function JobRuntime({
   let statusClass = "paused";
   let displayStatus = job.status || 'READY';
 
+  const nativeStages = new Set(['SCANNING', 'FORWARDING', 'DOWNLOADING', 'UPLOADING', 'COMMITTING']);
+  const nativeStage = nativeStages.has(statusUpper) ? statusUpper : '';
+
   if (isRunning) {
       statusClass = "running";
-      displayStatus = "RUNNING";
+      displayStatus = nativeStage ? t(`jobs.stage_${nativeStage.toLowerCase()}`) : t('jobs.stage_running');
   } else if (statusUpper === 'PAUSED' || statusUpper === 'PAUSING') {
       statusClass = "paused";
       displayStatus = "PAUSED";
@@ -291,7 +305,7 @@ export function JobRuntime({
           </button>
           <h2 className="runtime-title">
             {job.job_name || `Migration #${job.id}`}
-            <span className={`modern-badge ${statusClass}`}>
+            <span className={`modern-badge ${statusClass}${nativeStage ? ` stage-${nativeStage.toLowerCase()}` : ''}`}>
               <div className={`pulse-indicator ${pulseClass}`} />
               {displayStatus}
             </span>

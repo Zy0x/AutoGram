@@ -72,9 +72,12 @@ fn with_rate<R>(session: &str, f: impl FnOnce(&mut SessionRate) -> R) -> R {
             (RpcClass::GeneralRead, "GeneralRead"),
         ];
         for (cls, cls_name) in classes {
-            if let Ok(Some(secs)) = crate::core::autogram_core::transfer::load_class_rate_gate(session, cls_name) {
+            if let Ok(Some(secs)) =
+                crate::core::autogram_core::transfer::load_class_rate_gate(session, cls_name)
+            {
                 if secs > 0 {
-                    class_flood_until.insert(cls, Instant::now() + Duration::from_secs(u64::from(secs)));
+                    class_flood_until
+                        .insert(cls, Instant::now() + Duration::from_secs(u64::from(secs)));
                 }
             }
         }

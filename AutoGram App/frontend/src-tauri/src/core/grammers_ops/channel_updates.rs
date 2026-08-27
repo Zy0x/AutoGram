@@ -1,7 +1,7 @@
 //! channel_updates.rs — MTProto RPC for Channel PTS & Difference Recovery (P2.5)
 
-use std::path::Path;
 use grammers_client::tl;
+use std::path::Path;
 
 use crate::core::media_mutation::MediaMutation;
 use crate::core::session_rate::RpcClass;
@@ -42,10 +42,12 @@ async fn input_channel_from_peer(
     let peer = resolve_peer(client, chat_id).await?;
     let input_peer: tl::enums::InputPeer = peer.into();
     match input_peer {
-        tl::enums::InputPeer::Channel(c) => Ok(tl::enums::InputChannel::Channel(tl::types::InputChannel {
-            channel_id: c.channel_id,
-            access_hash: c.access_hash,
-        })),
+        tl::enums::InputPeer::Channel(c) => {
+            Ok(tl::enums::InputChannel::Channel(tl::types::InputChannel {
+                channel_id: c.channel_id,
+                access_hash: c.access_hash,
+            }))
+        }
         _ => Err(TgError::new(
             TgErrorCode::PeerNotFound,
             format!("chat {chat_id} is not a channel"),
@@ -170,9 +172,12 @@ pub async fn get_channel_difference_page(
                                         let (msg_id, top_id) = match &u.message {
                                             tl::enums::Message::Message(m) => {
                                                 let tid = match &m.reply_to {
-                                                    Some(tl::enums::MessageReplyHeader::Header(h)) => {
-                                                        h.reply_to_top_id.or(h.reply_to_msg_id).map(|i| i as i64)
-                                                    }
+                                                    Some(
+                                                        tl::enums::MessageReplyHeader::Header(h),
+                                                    ) => h
+                                                        .reply_to_top_id
+                                                        .or(h.reply_to_msg_id)
+                                                        .map(|i| i as i64),
                                                     _ => None,
                                                 };
                                                 (m.id as i64, tid)
@@ -181,7 +186,9 @@ pub async fn get_channel_difference_page(
                                         };
 
                                         if msg_id > 0 {
-                                            if let Some(row) = tl_message_to_row(&u.message, parsed_folder) {
+                                            if let Some(row) =
+                                                tl_message_to_row(&u.message, parsed_folder)
+                                            {
                                                 other_muts.push(MediaMutation::upsert(
                                                     &p_inner, msg_id, top_id, row,
                                                 ));

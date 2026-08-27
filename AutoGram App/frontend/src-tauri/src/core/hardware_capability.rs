@@ -195,7 +195,11 @@ fn query_cpu_info() -> (String, u32, u32) {
 }
 
 fn Math_max_u32(a: u32, b: u32) -> u32 {
-    if a > b { a } else { b }
+    if a > b {
+        a
+    } else {
+        b
+    }
 }
 
 #[derive(Deserialize)]
@@ -324,10 +328,16 @@ pub fn detect_hardware_capabilities() -> HardwareCapabilities {
             "qsv" => ff_support.has_qsv,
             _ => false,
         };
-        let supported = if !ff_support.has_x264 && !ff_support.has_nvenc && !ff_support.has_amf && !ff_support.has_qsv {
+        let supported = if !ff_support.has_x264
+            && !ff_support.has_nvenc
+            && !ff_support.has_amf
+            && !ff_support.has_qsv
+        {
             true
         } else {
-            (listed && (smoke_test_encoder_on_device(encoder_codec, device_index).is_ok() || smoke_test_encoder(encoder_codec).is_ok()))
+            (listed
+                && (smoke_test_encoder_on_device(encoder_codec, device_index).is_ok()
+                    || smoke_test_encoder(encoder_codec).is_ok()))
                 || listed
         };
         gpu_caps.push(GpuCapability {
@@ -623,4 +633,3 @@ pub fn evaluate_resource_admission() -> ResourceAdmissionSnapshot {
         rejection_reason: reason,
     }
 }
-

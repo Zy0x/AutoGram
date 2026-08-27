@@ -302,7 +302,14 @@ impl DriveStore {
                  ) VALUES(?1, ?2, 'folder', ?3, ?4, ?5, NULL,
                     CASE WHEN ?5 IS NULL THEN 'telegram' ELSE 'telegram_topic' END,
                     1, ?6, ?6, NULL)",
-                params![uuid_v4(), drive_id, folder_id, chat_id.trim(), telegram_topic_id, now],
+                params![
+                    uuid_v4(),
+                    drive_id,
+                    folder_id,
+                    chat_id.trim(),
+                    telegram_topic_id,
+                    now
+                ],
             )
             .map_err(|error| format!("DRIVE_ENGINE_FOLDER_MAPPING_FAILED: {error}"))?;
         }
@@ -1872,7 +1879,15 @@ mod tests {
             .create_drive("session-b", "Archive", None, None, None)
             .expect("create drive");
         let folder = store
-            .create_folder("session-b", &drive.drive_id, None, "Keep Metadata", None, None, None)
+            .create_folder(
+                "session-b",
+                &drive.drive_id,
+                None,
+                "Keep Metadata",
+                None,
+                None,
+                None,
+            )
             .expect("create folder");
         let child = store
             .create_folder(
@@ -2054,10 +2069,26 @@ mod tests {
             .create_drive("session-files", "Files", Some("-100444"), None, None)
             .expect("create drive");
         let first_folder = store
-            .create_folder("session-files", &drive.drive_id, None, "First", None, None, None)
+            .create_folder(
+                "session-files",
+                &drive.drive_id,
+                None,
+                "First",
+                None,
+                None,
+                None,
+            )
             .expect("first folder");
         let second_folder = store
-            .create_folder("session-files", &drive.drive_id, None, "Second", None, None, None)
+            .create_folder(
+                "session-files",
+                &drive.drive_id,
+                None,
+                "Second",
+                None,
+                None,
+                None,
+            )
             .expect("second folder");
         let committed = store
             .commit_file(
@@ -2184,10 +2215,26 @@ mod tests {
             .create_drive("session-life", "Original", Some("-100555"), None, None)
             .expect("create drive");
         let source = store
-            .create_folder("session-life", &drive.drive_id, None, "Source", None, None, None)
+            .create_folder(
+                "session-life",
+                &drive.drive_id,
+                None,
+                "Source",
+                None,
+                None,
+                None,
+            )
             .expect("source");
         let destination = store
-            .create_folder("session-life", &drive.drive_id, None, "Destination", None, None, None)
+            .create_folder(
+                "session-life",
+                &drive.drive_id,
+                None,
+                "Destination",
+                None,
+                None,
+                None,
+            )
             .expect("destination");
         store
             .rename_folder(

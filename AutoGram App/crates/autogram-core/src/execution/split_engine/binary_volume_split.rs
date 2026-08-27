@@ -63,8 +63,7 @@ pub fn split_binary_volume(
             break;
         }
 
-        let hash = crate::reliability::calculate_file_sha256(&part_path)
-            .unwrap_or_default();
+        let hash = crate::reliability::calculate_file_sha256(&part_path).unwrap_or_default();
 
         parts.push(BinaryVolumePart {
             index: part_index,

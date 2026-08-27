@@ -1116,6 +1116,7 @@ export function DriveTopBar({
                         ['links', t("speedtest.tab_telegram_links"), t("speedtest.tab_telegram_links")],
                         ['gifs', t("speedtest.tab_telegram_gifs"), t("speedtest.tab_telegram_gifs")],
                         ['audio', t("speedtest.tab_telegram_audio"), t("speedtest.tab_telegram_audio")],
+                        ['stickers', t("speedtest.tab_telegram_stickers"), t("speedtest.tab_telegram_stickers_tip")],
                       ]
                     : [
                         ['all', t("speedtest.filter_all"), t("speedtest.filter_all_tip")],

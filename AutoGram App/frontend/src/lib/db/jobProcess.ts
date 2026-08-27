@@ -109,6 +109,10 @@ export async function runDaemonOnce(
 }
 
 export async function requestJobPause(jobId: number): Promise<void> {
+  if (isTauri()) {
+    await invoke('jobs_cancel_migration', { jobId });
+    return;
+  }
   await runDaemonOnce(['--action', 'set-status', '--job-id', String(jobId), '--status', 'paused']);
 }
 

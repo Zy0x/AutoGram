@@ -4,6 +4,7 @@
     <string name="nav_drive">Drive</string>
     <string name="nav_transfer">Transfers</string>
     <string name="nav_studio">Studio</string>
+    <string name="nav_remote">Remote</string>
     <string name="nav_settings">Settings</string>
 
     <string name="drive_search_placeholder">Search files or folders…</string>
@@ -19,6 +20,17 @@
     <string name="drive_action_move">Move</string>
     <string name="drive_action_download">Download</string>
     <string name="drive_action_delete">Delete</string>
+    <string name="drive_search_accessibility">Search</string>
+    <string name="drive_toggle_view_accessibility">Switch list or grid view</string>
+    <string name="drive_item_selected_accessibility">Selected</string>
+    <string name="drive_error">Drive failed to load: %1$s</string>
+    <string name="drive_filter_all">All</string>
+    <string name="drive_filter_media">Media</string>
+    <string name="drive_filter_images">Images</string>
+    <string name="drive_filter_videos">Videos</string>
+    <string name="drive_filter_audio">Audio</string>
+    <string name="drive_filter_documents">Documents</string>
+    <string name="drive_filter_stickers">Stickers</string>
 
     <string name="transfer_title">Transfer Manager</string>
     <string name="transfer_active_tasks">Active Tasks</string>
@@ -26,10 +38,35 @@
     <string name="transfer_speed">%1$s/s</string>
     <string name="transfer_eta">ETA: %1$s</string>
     <string name="transfer_smart_rate">Smart Rate Controller Active</string>
+    <string name="transfer_smart_rate_accessibility">Smart rate controller</string>
+    <string name="transfer_aggregate_progress">Overall progress</string>
+    <string name="transfer_progress_percent">%1$d%%</string>
+    <string name="transfer_stage_value">Stage: %1$s</string>
+    <string name="transfer_action_pause">Pause transfer</string>
+    <string name="transfer_action_resume">Resume transfer</string>
 
     <string name="settings_title">AutoGram Settings</string>
     <string name="settings_telegram_accounts">Telegram Accounts</string>
     <string name="settings_hardware_encoder">Hardware Encoder</string>
     <string name="settings_storage_budget">Temporary Storage Budget</string>
     <string name="settings_version">Version 3.7.32 (Native Android Core)</string>
+    <string name="settings_hardware_accessibility">Hardware</string>
+    <string name="settings_storage_accessibility">Storage</string>
+    <string name="settings_account_accessibility">Account</string>
+    <string name="settings_encoder_value">Encoder: %1$s (Priority: %2$d)</string>
+    <string name="settings_encoder_profile">Preset: %1$s • Bitrate: %2$d kbps</string>
+    <string name="settings_hardware_loading">Loading hardware profile…</string>
+    <string name="settings_storage_capacity">Temporary capacity: %1$s</string>
+    <string name="settings_storage_threshold">Cleanup threshold (LRU): %1$d%%</string>
+    <string name="settings_account_score">Tier: %1$s • Total score: %2$d/100</string>
+
+    <string name="remote_title">Remote Link</string>
+    <string name="remote_subtitle">Analyze media links with a safe, resumable queue.</string>
+    <string name="remote_input_label">Media link</string>
+    <string name="remote_input_placeholder">https://example.com/media</string>
+    <string name="remote_action_queue">Analyze and queue</string>
+    <string name="remote_invalid_url">Enter a valid HTTP or HTTPS link.</string>
+    <string name="remote_queued">Link added to Transfer Manager.</string>
+    <string name="remote_queue_failed">The link could not be queued. Try again.</string>
+    <string name="remote_source_host">Source: %1$s</string>
 </resources>

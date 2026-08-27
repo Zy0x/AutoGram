@@ -44,20 +44,26 @@ pub fn validate_output_contract(
     contract: &OutputContract,
 ) -> Result<(), String> {
     if !output_path.exists() {
-        return Err(format!("Validation FAIL: Output file does not exist at {}", output_path.display()));
+        return Err(format!(
+            "Validation FAIL: Output file does not exist at {}",
+            output_path.display()
+        ));
     }
 
     let metadata = std::fs::metadata(output_path)
         .map_err(|e| format!("Validation FAIL: Cannot read output metadata: {e}"))?;
 
     if metadata.len() == 0 {
-        return Err(format!("Validation FAIL: Output file is 0 bytes (empty output drop)"));
+        return Err(format!(
+            "Validation FAIL: Output file is 0 bytes (empty output drop)"
+        ));
     }
 
     if metadata.len() > contract.max_size_bytes {
         return Err(format!(
             "Validation FAIL: Output size {} exceeds contract max size {}",
-            metadata.len(), contract.max_size_bytes
+            metadata.len(),
+            contract.max_size_bytes
         ));
     }
 
@@ -145,7 +151,8 @@ pub fn transcode_with_profile(
                     Ok(None) => {
                         if t0.elapsed() > timeout {
                             let _ = child.kill();
-                            let err_msg = "FFmpeg transcoding timed out after 300 seconds".to_string();
+                            let err_msg =
+                                "FFmpeg transcoding timed out after 300 seconds".to_string();
                             receipt.error_reason = Some(err_msg.clone());
                             return Err(err_msg);
                         }
@@ -187,7 +194,7 @@ mod tests {
         let temp_dir = std::env::temp_dir();
         let temp_file = temp_dir.join("autogram_test_zero_byte.mp4");
         let _ = File::create(&temp_file);
-        
+
         let contract = OutputContract::default();
         let res = validate_output_contract(&temp_file, &contract);
         let _ = std::fs::remove_file(&temp_file);
@@ -205,4 +212,3 @@ mod tests {
         assert!(res.unwrap_err().contains("does not exist"));
     }
 }
-

@@ -80,6 +80,75 @@ pub fn run_job_forward_mvp(
     }
 }
 
+/// Validate a migration against the live Grammers session without creating an
+/// execution row, writing the dedupe ledger, forwarding, downloading, or
+/// uploading anything.  Reading one item from each peer also proves that both
+/// access hashes resolve for the selected account.
+pub fn dry_run_job(job_id: i64, api_id: i64, api_hash: &str) -> Result<MigrationRunResult, String> {
+    let _ = jobs_db::log_job_event(job_id, "DRY_RUN", "Validating source and destination", None);
+    let job = jobs_db::get_job(job_id)?.ok_or_else(|| format!("job {job_id} not found"))?;
+    let source = job
+        .source_entity_id
+        .clone()
+        .filter(|s| !s.trim().is_empty())
+        .ok_or_else(|| "source_entity_id missing".to_string())?;
+    let dest = job
+        .target_entity_id
+        .clone()
+        .filter(|s| !s.trim().is_empty())
+        .ok_or_else(|| "target_entity_id missing".to_string())?;
+    let session = job
+        .profile_name
+        .clone()
+        .filter(|s| !s.trim().is_empty())
+        .ok_or_else(|| "session/profile_name missing".to_string())?;
+
+    let sessions = resolve_sessions_dir(None);
+    std::env::set_var("AUTOGRAM_SESSIONS_DIR", sessions.display().to_string());
+    let identity = TelegramIdentity {
+        session: session.clone(),
+        api_id,
+        api_hash: api_hash.to_string(),
+    };
+    let owner_id = format!("migration-job-{job_id}-dry-run");
+    let _guard =
+        session_guard::SessionGuardToken::acquire(&session, &owner_id, SessionPurpose::Migration)
+            .map_err(|e| e.user_message())?;
+
+    let source_probe = grammers_ops::list_media_blocking(&sessions, &identity, &source, 1, None)
+        .map_err(|e| e.user_message())?;
+    let destination_probe = grammers_ops::list_media_blocking(&sessions, &identity, &dest, 1, None)
+        .map_err(|e| e.user_message())?;
+
+    tg_log::info(
+        BACKEND,
+        "dry_run_ok",
+        format!(
+            "job={job_id} source_visible={} destination_visible={}",
+            source_probe.files.len(),
+            destination_probe.files.len()
+        ),
+    );
+    let _ = jobs_db::log_job_event(
+        job_id,
+        "DRY_RUN",
+        "Validation completed without changing Telegram data",
+        None,
+    );
+
+    Ok(MigrationRunResult {
+        status: "success".into(),
+        job_id,
+        execution_id: 0,
+        forwarded: 0,
+        skipped: 0,
+        failed: 0,
+        message: "Dry-run validated the Grammers session, source, and destination; no Telegram data was changed.".into(),
+        backend: "grammers".into(),
+        mode: "dry_run".into(),
+    })
+}
+
 fn run_forward(
     job_id: i64,
     api_id: i64,
@@ -105,6 +174,7 @@ fn run_forward(
 
     let exec_id = jobs_db::start_execution(job_id)?;
     let _ = jobs_db::update_execution_status(exec_id, "RUNNING", Some(0), None, None);
+    let _ = jobs_db::log_job_event(job_id, "RUNNING", "Native Grammers forward started", None);
 
     let sessions = resolve_sessions_dir(None);
     std::env::set_var("AUTOGRAM_SESSIONS_DIR", sessions.display().to_string());
@@ -145,6 +215,13 @@ fn run_forward(
                 break;
             }
 
+            let _ = jobs_db::update_execution_status(
+                exec_id,
+                "SCANNING",
+                Some(forwarded + skipped),
+                None,
+                current_offset,
+            );
             let media = grammers_ops::list_media_blocking(
                 &sessions,
                 &identity,
@@ -178,6 +255,13 @@ fn run_forward(
                 if fresh.is_empty() {
                     continue;
                 }
+                let _ = jobs_db::update_execution_status(
+                    exec_id,
+                    "FORWARDING",
+                    Some(forwarded + skipped),
+                    Some((forwarded + skipped) + (ids.len() as i64)),
+                    current_offset,
+                );
                 let mut attempt = 0u32;
                 loop {
                     attempt += 1;
@@ -255,6 +339,12 @@ fn run_clean_copy(
 
     let exec_id = jobs_db::start_execution(job_id)?;
     let _ = jobs_db::update_execution_status(exec_id, "RUNNING", Some(0), None, None);
+    let _ = jobs_db::log_job_event(
+        job_id,
+        "RUNNING",
+        "Native Grammers clean copy started",
+        None,
+    );
 
     let sessions = resolve_sessions_dir(None);
     std::env::set_var("AUTOGRAM_SESSIONS_DIR", sessions.display().to_string());
@@ -306,6 +396,13 @@ fn run_clean_copy(
                 break;
             }
 
+            let _ = jobs_db::update_execution_status(
+                exec_id,
+                "SCANNING",
+                Some(uploaded + skipped + failed),
+                None,
+                current_offset,
+            );
             let media = grammers_ops::list_media_blocking(
                 &sessions,
                 &identity,
@@ -356,6 +453,13 @@ fn run_clean_copy(
                 let dest_str = dest_path.to_string_lossy().to_string();
 
                 // Download with FloodWait retry
+                let _ = jobs_db::update_execution_status(
+                    exec_id,
+                    "DOWNLOADING",
+                    Some(uploaded + skipped + failed),
+                    Some((uploaded + skipped + failed) + (files.len() as i64)),
+                    Some(source_msg_id),
+                );
                 let mut dl_ok = false;
                 for attempt in 1..=5u32 {
                     if jobs_db::is_execution_cancelled(exec_id) {
@@ -435,6 +539,13 @@ fn run_clean_copy(
                 }
 
                 // Re-upload
+                let _ = jobs_db::update_execution_status(
+                    exec_id,
+                    "UPLOADING",
+                    Some(uploaded + skipped + failed),
+                    Some((uploaded + skipped + failed) + (files.len() as i64)),
+                    Some(source_msg_id),
+                );
                 let mut up_msg_id: Option<i64> = None;
                 for attempt in 1..=5u32 {
                     if jobs_db::is_execution_cancelled(exec_id) {
@@ -529,6 +640,14 @@ fn run_clean_copy(
                 Some(uploaded + skipped + failed),
                 None,
             );
+            let _ = jobs_db::log_job_event(
+                job_id,
+                status,
+                &format!(
+                    "Clean Copy finished: {uploaded} uploaded, {skipped} skipped, {failed} failed"
+                ),
+                None,
+            );
             Ok(MigrationRunResult {
                 status: if status == "COMPLETED" {
                     "success".into()
@@ -548,7 +667,20 @@ fn run_clean_copy(
             })
         }
         Err(e) => {
-            let _ = jobs_db::update_execution_status(exec_id, "FAILED", None, None, None);
+            let cancelled = e.to_ascii_lowercase().contains("dibatalkan");
+            let _ = jobs_db::update_execution_status(
+                exec_id,
+                if cancelled { "PAUSED" } else { "FAILED" },
+                None,
+                None,
+                None,
+            );
+            let _ = jobs_db::log_job_event(
+                job_id,
+                if cancelled { "PAUSED" } else { "FAILED" },
+                &e,
+                None,
+            );
             tg_log::error(BACKEND, "clean_copy_fail", &e);
             if e.to_ascii_lowercase().contains("not authorized") {
                 return Err(format!(
@@ -576,6 +708,12 @@ fn finish_result(
                 Some(forwarded + skipped),
                 None,
             );
+            let _ = jobs_db::log_job_event(
+                job_id,
+                "COMPLETED",
+                &format!("Forward finished: {forwarded} sent, {skipped} skipped"),
+                None,
+            );
             tg_log::info(
                 BACKEND,
                 "run_ok",
@@ -596,7 +734,20 @@ fn finish_result(
             })
         }
         Err(e) => {
-            let _ = jobs_db::update_execution_status(exec_id, "FAILED", None, None, None);
+            let cancelled = e.to_ascii_lowercase().contains("dibatalkan");
+            let _ = jobs_db::update_execution_status(
+                exec_id,
+                if cancelled { "PAUSED" } else { "FAILED" },
+                None,
+                None,
+                None,
+            );
+            let _ = jobs_db::log_job_event(
+                job_id,
+                if cancelled { "PAUSED" } else { "FAILED" },
+                &e,
+                None,
+            );
             tg_log::error(BACKEND, "run_fail", &e);
             if e.to_ascii_lowercase().contains("not authorized") {
                 return Err(format!(

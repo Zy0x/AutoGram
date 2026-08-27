@@ -365,7 +365,11 @@ pub fn preview_zip_entry_from_archive<R: Read + Seek>(
             }
             Err(e) => {
                 let s = e.to_string();
-                if s.contains("Password") || s.contains("password") || s.contains("encrypted") || s.contains("Encrypted") {
+                if s.contains("Password")
+                    || s.contains("password")
+                    || s.contains("encrypted")
+                    || s.contains("Encrypted")
+                {
                     return Ok(ZipEntryPreview {
                         name: entry_name.into(),
                         size: 0,
@@ -426,7 +430,9 @@ pub fn preview_zip_entry_from_archive<R: Read + Seek>(
             {
                 return Err("bad_password".into());
             }
-            return Err(format!("Gagal membaca stream data entri {entry_name}: {err_str}"));
+            return Err(format!(
+                "Gagal membaca stream data entri {entry_name}: {err_str}"
+            ));
         } else {
             if err_str.contains("password")
                 || err_str.contains("Password")
@@ -788,25 +794,31 @@ mod tests {
         {
             let f = File::create(&zip_path).unwrap();
             let mut z = ZipWriter::new(f);
-            let options = SimpleFileOptions::default()
-                .with_deprecated_encryption(b"password123");
+            let options = SimpleFileOptions::default().with_deprecated_encryption(b"password123");
             z.start_file("secret.txt", options).unwrap();
             z.write_all(b"top secret payload").unwrap();
             z.finish().unwrap();
         }
 
         // 1. Preview without password -> returns encrypted: true
-        let prev_no_pass = preview_zip_entry(zip_path.to_str().unwrap(), "secret.txt", None).unwrap();
+        let prev_no_pass =
+            preview_zip_entry(zip_path.to_str().unwrap(), "secret.txt", None).unwrap();
         assert!(prev_no_pass.encrypted);
         assert!(prev_no_pass.text_content.is_none());
 
         // 2. Preview with wrong password -> returns bad_password
-        let prev_bad_pass = preview_zip_entry(zip_path.to_str().unwrap(), "secret.txt", Some("wrongpass"));
+        let prev_bad_pass =
+            preview_zip_entry(zip_path.to_str().unwrap(), "secret.txt", Some("wrongpass"));
         assert!(prev_bad_pass.is_err());
         assert_eq!(prev_bad_pass.unwrap_err(), "bad_password");
 
         // 3. Preview with correct password -> returns decrypted text content
-        let prev_ok = preview_zip_entry(zip_path.to_str().unwrap(), "secret.txt", Some("password123")).unwrap();
+        let prev_ok = preview_zip_entry(
+            zip_path.to_str().unwrap(),
+            "secret.txt",
+            Some("password123"),
+        )
+        .unwrap();
         assert!(!prev_ok.encrypted);
         assert_eq!(prev_ok.text_content.unwrap(), "top secret payload");
 
@@ -830,7 +842,10 @@ mod tests {
         )
         .unwrap();
         assert_eq!(extract_ok, 18);
-        assert_eq!(std::fs::read_to_string(&target_path).unwrap(), "top secret payload");
+        assert_eq!(
+            std::fs::read_to_string(&target_path).unwrap(),
+            "top secret payload"
+        );
 
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -853,17 +868,27 @@ mod tests {
         }
 
         // 1. Preview without password -> returns encrypted: true
-        let prev_no_pass = preview_zip_entry(zip_path.to_str().unwrap(), "aes_secret.txt", None).unwrap();
+        let prev_no_pass =
+            preview_zip_entry(zip_path.to_str().unwrap(), "aes_secret.txt", None).unwrap();
         assert!(prev_no_pass.encrypted);
         assert!(prev_no_pass.text_content.is_none());
 
         // 2. Preview with wrong password -> returns bad_password
-        let prev_bad_pass = preview_zip_entry(zip_path.to_str().unwrap(), "aes_secret.txt", Some("wrongpass"));
+        let prev_bad_pass = preview_zip_entry(
+            zip_path.to_str().unwrap(),
+            "aes_secret.txt",
+            Some("wrongpass"),
+        );
         assert!(prev_bad_pass.is_err());
         assert_eq!(prev_bad_pass.unwrap_err(), "bad_password");
 
         // 3. Preview with correct password -> returns decrypted text content
-        let prev_ok = preview_zip_entry(zip_path.to_str().unwrap(), "aes_secret.txt", Some("aespassword456")).unwrap();
+        let prev_ok = preview_zip_entry(
+            zip_path.to_str().unwrap(),
+            "aes_secret.txt",
+            Some("aespassword456"),
+        )
+        .unwrap();
         assert!(!prev_ok.encrypted);
         assert_eq!(prev_ok.text_content.unwrap(), "aes 256 secret content");
 
@@ -887,9 +912,11 @@ mod tests {
         )
         .unwrap();
         assert_eq!(extract_ok, 22);
-        assert_eq!(std::fs::read_to_string(&target_path).unwrap(), "aes 256 secret content");
+        assert_eq!(
+            std::fs::read_to_string(&target_path).unwrap(),
+            "aes 256 secret content"
+        );
 
         let _ = std::fs::remove_dir_all(&dir);
     }
 }
-

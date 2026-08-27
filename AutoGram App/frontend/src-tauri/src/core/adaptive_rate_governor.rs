@@ -291,15 +291,21 @@ impl AdaptiveRateGovernor {
                 self.probe_successes = 0;
 
                 // Initial conservative stagger based on baseline p50 latency to prevent simultaneous burst
-                let conservative_stagger_ms = ((self.baseline_rpc_p50_ms / 4.0) as u32).clamp(25, 100);
-                self.min_dispatch_spacing = self.min_dispatch_spacing.max(Duration::from_millis(u64::from(conservative_stagger_ms)));
+                let conservative_stagger_ms =
+                    ((self.baseline_rpc_p50_ms / 4.0) as u32).clamp(25, 100);
+                self.min_dispatch_spacing = self
+                    .min_dispatch_spacing
+                    .max(Duration::from_millis(u64::from(conservative_stagger_ms)));
             } else {
                 self.pending_probe = false;
             }
         }
 
         // 2. Clean page epoch transition: activate pending degrade probe (2 -> 1) strictly at page start
-        if self.pending_degrade_probe && self.state == GovernorState::Stable && self.max_inflight == 2 {
+        if self.pending_degrade_probe
+            && self.state == GovernorState::Stable
+            && self.max_inflight == 2
+        {
             self.pending_degrade_probe = false;
             self.sustained_rate_before_degrade = self.current_sustained_rate;
             self.degrade_start_instant = Some(Instant::now());
@@ -327,12 +333,15 @@ impl AdaptiveRateGovernor {
         if self.useful_rows_per_rpc <= 0.0 {
             self.useful_rows_per_rpc = obs.rows_yielded as f64;
         } else {
-            self.useful_rows_per_rpc = (self.useful_rows_per_rpc * 0.9) + (obs.rows_yielded as f64 * 0.1);
+            self.useful_rows_per_rpc =
+                (self.useful_rows_per_rpc * 0.9) + (obs.rows_yielded as f64 * 0.1);
         }
 
         if obs.was_error {
             // Degraded error response: increase spacing slightly
-            self.min_dispatch_spacing = self.min_dispatch_spacing.saturating_add(Duration::from_millis(50));
+            self.min_dispatch_spacing = self
+                .min_dispatch_spacing
+                .saturating_add(Duration::from_millis(50));
             if self.state == GovernorState::ProbeInflight2 {
                 self.transition_to(GovernorState::Cooldown);
                 self.max_inflight = 1;
@@ -354,8 +363,8 @@ impl AdaptiveRateGovernor {
                 self.stable_successes += 1;
                 self.confidence_score = (self.confidence_score + 0.01).min(0.95);
                 let cur_p95 = self.rpc_samples.p95().unwrap_or(200) as f64;
-                let latency_is_elevated = self.baseline_rpc_p95_ms > 0.0
-                    && cur_p95 > self.baseline_rpc_p95_ms * 1.8;
+                let latency_is_elevated =
+                    self.baseline_rpc_p95_ms > 0.0 && cur_p95 > self.baseline_rpc_p95_ms * 1.8;
                 let severe_flood_free_decay = self.last_flood_at_ms.is_none()
                     && self.rate_decay_percent >= SEVERE_RATE_DECAY_PERCENT;
 
@@ -363,23 +372,33 @@ impl AdaptiveRateGovernor {
                 // Never add latency pacing on every success: that feedback loop previously
                 // snowballed spacing past 1.8s with zero FloodWait and collapsed throughput.
                 if severe_flood_free_decay {
-                    self.min_dispatch_spacing = self.min_dispatch_spacing.min(LATENCY_ONLY_SPACING_CAP);
-                    if self.min_dispatch_spacing > Duration::ZERO && self.stable_successes % 5 == 0 {
-                        self.min_dispatch_spacing = self.min_dispatch_spacing.saturating_sub(LATENCY_RECOVERY_STEP);
+                    self.min_dispatch_spacing =
+                        self.min_dispatch_spacing.min(LATENCY_ONLY_SPACING_CAP);
+                    if self.min_dispatch_spacing > Duration::ZERO && self.stable_successes % 5 == 0
+                    {
+                        self.min_dispatch_spacing = self
+                            .min_dispatch_spacing
+                            .saturating_sub(LATENCY_RECOVERY_STEP);
                     }
                 } else if latency_is_elevated {
-                    let cooldown_elapsed = self.last_latency_backoff_at
+                    let cooldown_elapsed = self
+                        .last_latency_backoff_at
                         .map(|last| last.elapsed() >= LATENCY_BACKOFF_COOLDOWN)
                         .unwrap_or(true);
                     if cooldown_elapsed && self.min_dispatch_spacing < LATENCY_ONLY_SPACING_CAP {
-                        self.min_dispatch_spacing = self.min_dispatch_spacing
+                        self.min_dispatch_spacing = self
+                            .min_dispatch_spacing
                             .saturating_add(LATENCY_BACKOFF_STEP)
                             .min(LATENCY_ONLY_SPACING_CAP);
                         self.last_latency_backoff_at = Some(Instant::now());
                     }
-                } else if self.min_dispatch_spacing > Duration::ZERO && self.stable_successes % 5 == 0 {
+                } else if self.min_dispatch_spacing > Duration::ZERO
+                    && self.stable_successes % 5 == 0
+                {
                     // Relieve latency-only pacing promptly after the rolling window recovers.
-                    self.min_dispatch_spacing = self.min_dispatch_spacing.saturating_sub(LATENCY_RECOVERY_STEP);
+                    self.min_dispatch_spacing = self
+                        .min_dispatch_spacing
+                        .saturating_sub(LATENCY_RECOVERY_STEP);
                 }
 
                 // Check probe eligibility (1 -> 2 promotion)
@@ -388,7 +407,8 @@ impl AdaptiveRateGovernor {
                     && self.confidence_score >= 0.6
                     && !severe_flood_free_decay
                 {
-                    let can_probe = self.last_demotion_at
+                    let can_probe = self
+                        .last_demotion_at
                         .map(|t| t.elapsed() >= Duration::from_secs(20))
                         .unwrap_or(true);
 
@@ -398,12 +418,18 @@ impl AdaptiveRateGovernor {
                 }
 
                 // Check long-haul throughput decay (2 -> 1 demotion trigger)
-                if self.max_inflight == 2 && self.state_entered_at.elapsed() >= Duration::from_secs(15) {
-                    let can_degrade_probe = self.last_promotion_at
+                if self.max_inflight == 2
+                    && self.state_entered_at.elapsed() >= Duration::from_secs(15)
+                {
+                    let can_degrade_probe = self
+                        .last_promotion_at
                         .map(|t| t.elapsed() >= Duration::from_secs(20))
                         .unwrap_or(true);
 
-                    if can_degrade_probe && self.rate_decay_percent > 18.0 && self.useful_rows_per_rpc >= 10.0 {
+                    if can_degrade_probe
+                        && self.rate_decay_percent > 18.0
+                        && self.useful_rows_per_rpc >= 10.0
+                    {
                         self.pending_degrade_probe = true;
                     }
                 }
@@ -420,15 +446,21 @@ impl AdaptiveRateGovernor {
                     self.confidence_score = (self.confidence_score * 0.8).max(0.2);
                 } else if self.probe_successes >= 20 {
                     // 2. Fair Throughput comparison: evaluate committed rows/sec during probe window vs stable rolling baseline
-                    let probe_duration = self.probe_start_instant.map(|i| i.elapsed().as_secs_f64()).unwrap_or(0.0);
-                    let probe_delta_rows = self.total_committed_rows.saturating_sub(self.probe_start_committed_rows);
+                    let probe_duration = self
+                        .probe_start_instant
+                        .map(|i| i.elapsed().as_secs_f64())
+                        .unwrap_or(0.0);
+                    let probe_delta_rows = self
+                        .total_committed_rows
+                        .saturating_sub(self.probe_start_committed_rows);
 
                     // Require at least 4.0s of probe duration and non-zero committed progress to evaluate
                     if probe_duration >= 4.0 && probe_delta_rows > 0 {
                         let probe_committed_rate = probe_delta_rows as f64 / probe_duration;
 
                         let is_rate_improved = self.baseline_rolling_committed_rate > 0.0
-                            && probe_committed_rate >= (self.baseline_rolling_committed_rate * 1.08);
+                            && probe_committed_rate
+                                >= (self.baseline_rolling_committed_rate * 1.08);
 
                         if is_rate_improved {
                             // Confirmed real throughput gain under inflight=2 against mature rolling baseline!
@@ -439,7 +471,9 @@ impl AdaptiveRateGovernor {
 
                             // Gradually relieve conservative probe stagger if stable
                             if self.min_dispatch_spacing > Duration::from_millis(0) {
-                                self.min_dispatch_spacing = self.min_dispatch_spacing.saturating_sub(Duration::from_millis(15));
+                                self.min_dispatch_spacing = self
+                                    .min_dispatch_spacing
+                                    .saturating_sub(Duration::from_millis(15));
                             }
                         } else {
                             // No improvement: rollback to inflight=1 to avoid unneeded pressure
@@ -458,14 +492,22 @@ impl AdaptiveRateGovernor {
             }
             GovernorState::DegradeProbe => {
                 self.degrade_successes += 1;
-                let degrade_duration = self.degrade_start_instant.map(|i| i.elapsed().as_secs_f64()).unwrap_or(0.0);
-                let degrade_delta_rows = self.total_committed_rows.saturating_sub(self.degrade_start_committed_rows);
+                let degrade_duration = self
+                    .degrade_start_instant
+                    .map(|i| i.elapsed().as_secs_f64())
+                    .unwrap_or(0.0);
+                let degrade_delta_rows = self
+                    .total_committed_rows
+                    .saturating_sub(self.degrade_start_committed_rows);
 
-                if self.degrade_successes >= 15 && degrade_duration >= 5.0 && degrade_delta_rows > 0 {
+                if self.degrade_successes >= 15 && degrade_duration >= 5.0 && degrade_delta_rows > 0
+                {
                     let degrade_committed_rate = degrade_delta_rows as f64 / degrade_duration;
 
                     // If inflight 1 is >= 98% of the degraded inflight 2 rate, inflight 1 is just as fast or faster!
-                    if self.sustained_rate_before_degrade <= 0.0 || degrade_committed_rate >= (self.sustained_rate_before_degrade * 0.98) {
+                    if self.sustained_rate_before_degrade <= 0.0
+                        || degrade_committed_rate >= (self.sustained_rate_before_degrade * 0.98)
+                    {
                         // Stay at inflight 1
                         self.max_inflight = 1;
                         self.last_demotion_at = Some(Instant::now());
@@ -520,19 +562,25 @@ impl AdaptiveRateGovernor {
         self.confidence_score = (self.confidence_score * 0.5).max(0.1);
 
         // Resume rate below the unsafe observed rate: add minimum 150ms pacing
-        self.min_dispatch_spacing = (self.min_dispatch_spacing + Duration::from_millis(150)).max(Duration::from_millis(200));
+        self.min_dispatch_spacing = (self.min_dispatch_spacing + Duration::from_millis(150))
+            .max(Duration::from_millis(200));
 
         let candidate_until = Instant::now() + Duration::from_secs(u64::from(wait_secs) + 10);
         self.flood_recovery_until = Some(
             self.flood_recovery_until
                 .map(|existing| existing.max(candidate_until))
-                .unwrap_or(candidate_until)
+                .unwrap_or(candidate_until),
         );
         self.transition_to(GovernorState::FloodRecovery);
     }
 
     /// Feeds IndexedDB ACK observation, maintaining rolling progress history.
-    pub fn on_ack_committed(&mut self, ack_latency_ms: u64, total_committed: u64, _committed_rate_cum: f64) {
+    pub fn on_ack_committed(
+        &mut self,
+        ack_latency_ms: u64,
+        total_committed: u64,
+        _committed_rate_cum: f64,
+    ) {
         self.total_committed_rows = total_committed;
         let now = Instant::now();
 
@@ -546,7 +594,9 @@ impl AdaptiveRateGovernor {
 
         // Prune samples older than 60s
         while let Some(front) = self.committed_samples.front() {
-            if now.duration_since(front.timestamp) > Duration::from_secs(60) && self.committed_samples.len() > 2 {
+            if now.duration_since(front.timestamp) > Duration::from_secs(60)
+                && self.committed_samples.len() > 2
+            {
                 self.committed_samples.pop_front();
             } else {
                 break;
@@ -557,8 +607,13 @@ impl AdaptiveRateGovernor {
         self.current_sustained_rate = self.committed_rows_per_sec;
 
         // Track best safe sustained rate when flood count == 0 and in Stable
-        if self.flood_count == 0 && self.state == GovernorState::Stable && self.current_sustained_rate > self.best_safe_committed_rate {
-            let sample_duration = self.committed_samples.front()
+        if self.flood_count == 0
+            && self.state == GovernorState::Stable
+            && self.current_sustained_rate > self.best_safe_committed_rate
+        {
+            let sample_duration = self
+                .committed_samples
+                .front()
                 .map(|f| now.duration_since(f.timestamp).as_secs_f64())
                 .unwrap_or(0.0);
             if sample_duration >= 8.0 {
@@ -596,14 +651,24 @@ impl AdaptiveRateGovernor {
         let ack_p95_val = self.ack_p95();
         let db_ratio = ack_p95_val as f64 / rpc_p95_val as f64;
 
-        let should_enter_db_bound = has_enough_samples && ((self.consecutive_high_acks >= 3)
-            || (self.rpc_samples.len() >= 3 && ack_p95_val > 250 && db_ratio > 2.0 && self.ack_ewma_ms > 200.0));
+        let should_enter_db_bound = has_enough_samples
+            && ((self.consecutive_high_acks >= 3)
+                || (self.rpc_samples.len() >= 3
+                    && ack_p95_val > 250
+                    && db_ratio > 2.0
+                    && self.ack_ewma_ms > 200.0));
 
-        if should_enter_db_bound && self.state != GovernorState::FloodRecovery && self.state != GovernorState::DbBound {
+        if should_enter_db_bound
+            && self.state != GovernorState::FloodRecovery
+            && self.state != GovernorState::DbBound
+        {
             self.transition_to(GovernorState::DbBound);
             self.max_inflight = 1;
             self.pending_probe = false;
-        } else if self.state == GovernorState::DbBound && self.consecutive_low_acks >= 3 && self.ack_ewma_ms < 200.0 {
+        } else if self.state == GovernorState::DbBound
+            && self.consecutive_low_acks >= 3
+            && self.ack_ewma_ms < 200.0
+        {
             self.transition_to(GovernorState::Stable);
         }
     }
@@ -620,18 +685,29 @@ impl AdaptiveRateGovernor {
     }
 
     /// Feeds resource observation (pending items buffer & persistence batch rows) to contain RAM/IPC pressure.
-    pub fn on_resource_observation(&mut self, pending_pv: usize, pending_doc: usize, persistence_batch_rows: usize) {
+    pub fn on_resource_observation(
+        &mut self,
+        pending_pv: usize,
+        pending_doc: usize,
+        persistence_batch_rows: usize,
+    ) {
         self.last_resource_observation_at = Some(Instant::now());
         let total_pending = pending_pv.saturating_add(pending_doc);
 
         if total_pending >= 600 || persistence_batch_rows >= 1000 {
-            if self.state != GovernorState::FloodRecovery && self.state != GovernorState::ResourceBound {
+            if self.state != GovernorState::FloodRecovery
+                && self.state != GovernorState::ResourceBound
+            {
                 self.transition_to(GovernorState::ResourceBound);
                 self.max_inflight = 1;
                 self.pending_probe = false;
-                self.min_dispatch_spacing = self.min_dispatch_spacing.max(Duration::from_millis(50));
+                self.min_dispatch_spacing =
+                    self.min_dispatch_spacing.max(Duration::from_millis(50));
             }
-        } else if self.state == GovernorState::ResourceBound && total_pending <= 200 && persistence_batch_rows <= 300 {
+        } else if self.state == GovernorState::ResourceBound
+            && total_pending <= 200
+            && persistence_batch_rows <= 300
+        {
             self.transition_to(GovernorState::Stable);
         }
     }
@@ -653,11 +729,16 @@ impl AdaptiveRateGovernor {
             }
         }
 
-        let dt = newest.timestamp.duration_since(baseline_sample.timestamp).as_secs_f64();
+        let dt = newest
+            .timestamp
+            .duration_since(baseline_sample.timestamp)
+            .as_secs_f64();
         if dt < 0.001 {
             return 0.0;
         }
-        let d_rows = newest.total_committed.saturating_sub(baseline_sample.total_committed);
+        let d_rows = newest
+            .total_committed
+            .saturating_sub(baseline_sample.total_committed);
         d_rows as f64 / dt
     }
 
@@ -683,8 +764,13 @@ impl AdaptiveRateGovernor {
         }
 
         let oldest = oldest_in_window?;
-        let duration_secs = newest.timestamp.duration_since(oldest.timestamp).as_secs_f64();
-        let committed_delta = newest.total_committed.saturating_sub(oldest.total_committed);
+        let duration_secs = newest
+            .timestamp
+            .duration_since(oldest.timestamp)
+            .as_secs_f64();
+        let committed_delta = newest
+            .total_committed
+            .saturating_sub(oldest.total_committed);
 
         if duration_secs >= 3.0 && sample_count >= 3 && committed_delta > 0 {
             let rate = committed_delta as f64 / duration_secs;
@@ -846,7 +932,10 @@ mod tests {
         gov.before_index_rpc(&cancel).unwrap();
         assert_eq!(gov.state(), GovernorState::ProbeInflight2);
         assert_eq!(gov.max_inflight(), 2);
-        assert!(gov.spacing_ms() >= 25, "Initial probe spacing must be conservative");
+        assert!(
+            gov.spacing_ms() >= 25,
+            "Initial probe spacing must be conservative"
+        );
     }
 
     #[tokio::test]
@@ -881,12 +970,19 @@ mod tests {
             was_error: false,
         });
 
-        assert!(gov.pending_degrade_probe, "Governor must flag pending degrade probe on severe sustained rate decay");
+        assert!(
+            gov.pending_degrade_probe,
+            "Governor must flag pending degrade probe on severe sustained rate decay"
+        );
 
         // Activate degrade probe at page boundary
         gov.before_index_rpc(&cancel).unwrap();
         assert_eq!(gov.state(), GovernorState::DegradeProbe);
-        assert_eq!(gov.max_inflight(), 1, "Inflight must demote to 1 during DegradeProbe");
+        assert_eq!(
+            gov.max_inflight(),
+            1,
+            "Inflight must demote to 1 during DegradeProbe"
+        );
 
         // Simulate degrade probe running for 6s with 500 rows/sec (faster than degraded 350 rows/sec!)
         gov.degrade_start_instant = Some(Instant::now() - Duration::from_secs(6));
@@ -903,7 +999,11 @@ mod tests {
 
         // Must transition to Stable while KEEPING max_inflight = 1!
         assert_eq!(gov.state(), GovernorState::Stable);
-        assert_eq!(gov.max_inflight(), 1, "Governor must remain at inflight 1 since it outperforms degraded inflight 2");
+        assert_eq!(
+            gov.max_inflight(),
+            1,
+            "Governor must remain at inflight 1 since it outperforms degraded inflight 2"
+        );
     }
 
     #[test]
@@ -914,7 +1014,11 @@ mod tests {
 
         // Single high ACK spike (e.g. 300ms) MUST NOT immediately trigger DbBound
         gov.on_ack_committed(300, 100, 10.0);
-        assert_ne!(gov.state(), GovernorState::DbBound, "Single ACK spike must not cause premature DbBound");
+        assert_ne!(
+            gov.state(),
+            GovernorState::DbBound,
+            "Single ACK spike must not cause premature DbBound"
+        );
 
         // Second high ACK
         gov.on_ack_committed(290, 200, 10.0);
@@ -922,17 +1026,33 @@ mod tests {
 
         // Third consecutive high ACK -> Sustained evidence triggers DbBound
         gov.on_ack_committed(310, 300, 10.0);
-        assert_eq!(gov.state(), GovernorState::DbBound, "3 consecutive high ACKs must trigger DbBound");
+        assert_eq!(
+            gov.state(),
+            GovernorState::DbBound,
+            "3 consecutive high ACKs must trigger DbBound"
+        );
         assert_eq!(gov.max_inflight(), 1);
 
         // Recovery: requires 3 consecutive low ACKs (<150ms)
         gov.on_ack_committed(40, 400, 10.0);
         gov.on_ack_committed(45, 500, 10.0);
-        assert_eq!(gov.state(), GovernorState::DbBound, "Must not exit DbBound before 3 normal ACKs");
+        assert_eq!(
+            gov.state(),
+            GovernorState::DbBound,
+            "Must not exit DbBound before 3 normal ACKs"
+        );
 
         gov.on_ack_committed(42, 600, 10.0);
-        gov.on_rpc_observation(RpcObservation { latency_ms: 100, rows_yielded: 50, was_error: false });
-        assert_eq!(gov.state(), GovernorState::Stable, "Must exit DbBound after sustained low ACKs");
+        gov.on_rpc_observation(RpcObservation {
+            latency_ms: 100,
+            rows_yielded: 50,
+            was_error: false,
+        });
+        assert_eq!(
+            gov.state(),
+            GovernorState::Stable,
+            "Must exit DbBound after sustained low ACKs"
+        );
     }
 
     #[test]
@@ -948,12 +1068,24 @@ mod tests {
 
         // High pending items buffer (pending = 400 pv + 300 doc = 700 total >= 600)
         gov.on_resource_observation(400, 300, 150);
-        assert_eq!(gov.state(), GovernorState::ResourceBound, "Excess pending items must activate ResourceBound");
-        assert_eq!(gov.max_inflight(), 1, "ResourceBound must clamp inflight to 1");
+        assert_eq!(
+            gov.state(),
+            GovernorState::ResourceBound,
+            "Excess pending items must activate ResourceBound"
+        );
+        assert_eq!(
+            gov.max_inflight(),
+            1,
+            "ResourceBound must clamp inflight to 1"
+        );
 
         // Buffer drains back to safe zone (total = 150 <= 200)
         gov.on_resource_observation(100, 50, 150);
-        assert_eq!(gov.state(), GovernorState::Stable, "ResourceBound must recover to Stable once buffer drains");
+        assert_eq!(
+            gov.state(),
+            GovernorState::Stable,
+            "ResourceBound must recover to Stable once buffer drains"
+        );
     }
 
     #[test]
@@ -1004,7 +1136,10 @@ mod tests {
             was_error: false,
         });
         assert!(gov.spacing_ms() <= 250);
-        assert!(!gov.pending_probe, "severe decay must not promote inflight while pacing recovers");
+        assert!(
+            !gov.pending_probe,
+            "severe decay must not promote inflight while pacing recovers"
+        );
 
         for _ in 0..5 {
             gov.on_rpc_observation(RpcObservation {
@@ -1013,7 +1148,10 @@ mod tests {
                 was_error: false,
             });
         }
-        assert!(gov.spacing_ms() < 250, "severe flood-free decay must relieve pacing");
+        assert!(
+            gov.spacing_ms() < 250,
+            "severe flood-free decay must relieve pacing"
+        );
     }
 
     #[test]
@@ -1029,16 +1167,28 @@ mod tests {
         // 2. Concurrent second FloodWait of 5s MUST NOT shorten the recovery window!
         gov.on_flood_wait(5);
         assert_eq!(gov.state(), GovernorState::FloodRecovery);
-        assert_eq!(gov.last_flood_wait_secs, 30, "last_flood_wait_secs must retain maximum wait");
-        assert!(gov.spacing_ms() > 250, "FloodWait pacing must remain independent of the latency-only cap");
+        assert_eq!(
+            gov.last_flood_wait_secs, 30,
+            "last_flood_wait_secs must retain maximum wait"
+        );
+        assert!(
+            gov.spacing_ms() > 250,
+            "FloodWait pacing must remain independent of the latency-only cap"
+        );
         let second_deadline = gov.flood_recovery_until.unwrap();
-        assert!(second_deadline >= first_deadline, "Concurrent shorter flood must not shorten recovery deadline");
+        assert!(
+            second_deadline >= first_deadline,
+            "Concurrent shorter flood must not shorten recovery deadline"
+        );
 
         // 3. Subsequent longer FloodWait of 45s MUST extend the deadline
         gov.on_flood_wait(45);
         assert_eq!(gov.last_flood_wait_secs, 45);
         let third_deadline = gov.flood_recovery_until.unwrap();
-        assert!(third_deadline > second_deadline, "Longer flood must extend recovery deadline");
+        assert!(
+            third_deadline > second_deadline,
+            "Longer flood must extend recovery deadline"
+        );
     }
 
     #[test]

@@ -233,150 +233,155 @@ pub fn build_quality_preflight(
                 .to_ascii_uppercase()
                 .contains("AUTO");
 
-        let (transform, payload_class, as_document, reason_code) = if force_document || mode == QualityMode::Document {
-            (
-                TransformAction::PassThrough,
-                PayloadClass::DocumentGroup,
-                true,
-                "presentation_forced_document".to_string(),
-            )
-        } else if mode == QualityMode::Original {
-            let is_supported_visual = matches!(
-                category,
-                MediaCategory::JpegImage
-                    | MediaCategory::PngImage
-                    | MediaCategory::WebpImage
-                    | MediaCategory::Mp4Video
-            ) || (remote && (source.ends_with(".jpg") || source.ends_with(".jpeg") || source.ends_with(".png") || source.ends_with(".mp4") || source.contains("photomode") || source.contains("tiktok") || source.contains("instagram")));
-            let is_supported_audio = category == MediaCategory::Audio;
-            if is_supported_visual {
+        let (transform, payload_class, as_document, reason_code) =
+            if force_document || mode == QualityMode::Document {
                 (
                     TransformAction::PassThrough,
-                    PayloadClass::NativeVisual,
-                    false,
-                    "original_passthrough_visual".to_string(),
-                )
-            } else if is_supported_audio {
-                (
-                    TransformAction::PassThrough,
-                    PayloadClass::AudioGroup,
-                    false,
-                    "original_passthrough_audio".to_string(),
-                )
-            } else {
-                rejected.push("original_forbids_transform".into());
-                (
-                    TransformAction::PassThrough,
-                    PayloadClass::OriginalDocumentBatch,
+                    PayloadClass::DocumentGroup,
                     true,
-                    "original_generic_document".to_string(),
+                    "presentation_forced_document".to_string(),
                 )
-            }
-        } else if remote {
-            warnings.push("remote_analysis_deferred".into());
-            requires_confirmation = true;
-            let looks_like_photo = source.ends_with(".jpg")
-                || source.ends_with(".jpeg")
-                || source.ends_with(".png")
-                || source.contains("photomode")
-                || source.contains("image");
-            let looks_like_audio = source.ends_with(".mp3")
-                || source.ends_with(".m4a")
-                || source.contains("audio")
-                || source.contains("music");
-            if looks_like_photo {
+            } else if mode == QualityMode::Original {
+                let is_supported_visual = matches!(
+                    category,
+                    MediaCategory::JpegImage | MediaCategory::PngImage | MediaCategory::Mp4Video
+                ) || (remote
+                    && (source.ends_with(".jpg")
+                        || source.ends_with(".jpeg")
+                        || source.ends_with(".png")
+                        || source.ends_with(".mp4")
+                        || source.contains("photomode")
+                        || source.contains("tiktok")
+                        || source.contains("instagram")));
+                let is_supported_audio = category == MediaCategory::Audio;
+                if is_supported_visual {
+                    (
+                        TransformAction::PassThrough,
+                        PayloadClass::NativeVisual,
+                        false,
+                        "original_passthrough_visual".to_string(),
+                    )
+                } else if is_supported_audio {
+                    (
+                        TransformAction::PassThrough,
+                        PayloadClass::AudioGroup,
+                        false,
+                        "original_passthrough_audio".to_string(),
+                    )
+                } else {
+                    rejected.push("original_forbids_transform".into());
+                    (
+                        TransformAction::PassThrough,
+                        PayloadClass::OriginalDocumentBatch,
+                        true,
+                        "original_generic_document".to_string(),
+                    )
+                }
+            } else if remote {
+                warnings.push("remote_analysis_deferred".into());
+                requires_confirmation = true;
+                let looks_like_photo = source.ends_with(".jpg")
+                    || source.ends_with(".jpeg")
+                    || source.ends_with(".png")
+                    || source.contains("photomode")
+                    || source.contains("image");
+                let looks_like_audio = source.ends_with(".mp3")
+                    || source.ends_with(".m4a")
+                    || source.contains("audio")
+                    || source.contains("music");
+                if looks_like_photo {
+                    (
+                        TransformAction::PassThrough,
+                        PayloadClass::NativeVisual,
+                        false,
+                        "remote_visual_stream".to_string(),
+                    )
+                } else if looks_like_audio {
+                    (
+                        TransformAction::PassThrough,
+                        PayloadClass::AudioGroup,
+                        false,
+                        "remote_audio_stream".to_string(),
+                    )
+                } else {
+                    (
+                        TransformAction::PassThrough,
+                        PayloadClass::NativeVisual,
+                        false,
+                        "remote_video_stream".to_string(),
+                    )
+                }
+            } else if is_webp_sticker && prevent_sticker {
                 (
-                    TransformAction::PassThrough,
+                    TransformAction::ConvertWebpPng,
                     PayloadClass::NativeVisual,
                     false,
-                    "remote_visual_stream".to_string(),
+                    "convert_webp_png_lossless".to_string(),
                 )
-            } else if looks_like_audio {
-                (
-                    TransformAction::PassThrough,
-                    PayloadClass::AudioGroup,
-                    false,
-                    "remote_audio_stream".to_string(),
-                )
-            } else {
-                (
-                    TransformAction::PassThrough,
-                    PayloadClass::NativeVisual,
-                    false,
-                    "remote_video_stream".to_string(),
-                )
-            }
-        } else if is_webp_sticker && prevent_sticker {
-            (
-                TransformAction::ConvertWebpPng,
-                PayloadClass::NativeVisual,
-                false,
-                "convert_webp_png_lossless".to_string(),
-            )
-        } else if category == MediaCategory::OtherVideo
-            && analysis
-                .as_ref()
-                .is_some_and(|value| value.lossless_mp4_remux_feasible())
-        {
-            rejected.push("lossy_reencode_not_needed".into());
-            (
-                TransformAction::LosslessRemux,
-                PayloadClass::NativeVisual,
-                false,
-                "lossless_remux_preferred".to_string(),
-            )
-        } else if matches!(
-            category,
-            MediaCategory::Mp4Video | MediaCategory::OtherVideo
-        ) && analysis.as_ref().is_some_and(|value| {
-            !value.is_validated_native_video()
-                && !value.has_preservation_sensitive_streams()
-                && !value.is_hdr()
-        }) && encoder_available
-        {
-            warnings.push("lossy_reencode_planned".into());
-            requires_confirmation = true;
-            (
-                TransformAction::Reencode,
-                PayloadClass::NativeVisual,
-                false,
-                "native_video_reencode_planned".to_string(),
-            )
-        } else {
-            let delivery = classify_prepared_delivery(
-                source_path,
-                mode,
-                false,
-                analysis
+            } else if category == MediaCategory::OtherVideo
+                && analysis
                     .as_ref()
-                    .is_some_and(|value| value.is_validated_native_video()),
-            );
-            if matches!(
+                    .is_some_and(|value| value.lossless_mp4_remux_feasible())
+            {
+                rejected.push("lossy_reencode_not_needed".into());
+                (
+                    TransformAction::LosslessRemux,
+                    PayloadClass::NativeVisual,
+                    false,
+                    "lossless_remux_preferred".to_string(),
+                )
+            } else if matches!(
                 category,
                 MediaCategory::Mp4Video | MediaCategory::OtherVideo
-            ) && delivery.as_document
+            ) && analysis.as_ref().is_some_and(|value| {
+                !value.is_validated_native_video()
+                    && !value.has_preservation_sensitive_streams()
+                    && !value.is_hdr()
+            }) && encoder_available
             {
-                warnings.push(
-                    if analysis
+                warnings.push("lossy_reencode_planned".into());
+                requires_confirmation = true;
+                (
+                    TransformAction::Reencode,
+                    PayloadClass::NativeVisual,
+                    false,
+                    "native_video_reencode_planned".to_string(),
+                )
+            } else {
+                let delivery = classify_prepared_delivery(
+                    source_path,
+                    mode,
+                    false,
+                    analysis
                         .as_ref()
-                        .is_some_and(|value| value.has_preservation_sensitive_streams())
-                    {
-                        "preservation_sensitive_streams".into()
-                    } else if analysis.as_ref().is_some_and(|value| value.is_hdr()) {
-                        "hdr_requires_explicit_policy".into()
-                    } else {
-                        "native_video_validation_unavailable".into()
-                    },
+                        .is_some_and(|value| value.is_validated_native_video()),
                 );
-                rejected.push("unsafe_native_payload".into());
-            }
-            (
-                delivery.transform,
-                delivery.payload_class,
-                delivery.as_document,
-                delivery.reason_code,
-            )
-        };
+                if matches!(
+                    category,
+                    MediaCategory::Mp4Video | MediaCategory::OtherVideo
+                ) && delivery.as_document
+                {
+                    warnings.push(
+                        if analysis
+                            .as_ref()
+                            .is_some_and(|value| value.has_preservation_sensitive_streams())
+                        {
+                            "preservation_sensitive_streams".into()
+                        } else if analysis.as_ref().is_some_and(|value| value.is_hdr()) {
+                            "hdr_requires_explicit_policy".into()
+                        } else {
+                            "native_video_validation_unavailable".into()
+                        },
+                    );
+                    rejected.push("unsafe_native_payload".into());
+                }
+                (
+                    delivery.transform,
+                    delivery.payload_class,
+                    delivery.as_document,
+                    delivery.reason_code,
+                )
+            };
 
         if source_size > effective_max_bytes && effective_max_bytes > 0 {
             warnings.push(format!(
@@ -552,6 +557,25 @@ mod tests {
         assert_eq!(report.items[0].transform, TransformAction::PassThrough);
         assert!(!report.items[0].as_document);
         assert_eq!(report.items[0].payload_class, PayloadClass::NativeVisual);
+    }
+
+    #[test]
+    fn original_webp_remains_a_lossless_document_even_with_album_enabled() {
+        let path = std::env::temp_dir().join("autogram-preflight-original.webp");
+        fs::write(&path, b"RIFF\x10\x00\x00\x00WEBPVP8 ").unwrap();
+        let report = build_quality_preflight(
+            &request(&path, "ORIGINAL"),
+            "fallback",
+            10,
+            1_024,
+            true,
+            TransferFeatureFlags::default(),
+        );
+        let item = &report.items[0];
+        assert_eq!(item.transform, TransformAction::PassThrough);
+        assert!(item.as_document);
+        assert_eq!(item.payload_class, PayloadClass::OriginalDocumentBatch);
+        assert_eq!(item.reason_code, "original_generic_document");
     }
 
     #[test]

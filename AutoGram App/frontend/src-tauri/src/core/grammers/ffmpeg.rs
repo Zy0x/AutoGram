@@ -4,6 +4,7 @@ use super::session::BACKEND;
 use super::thumbs::convert_avcc_to_annexb;
 use crate::core::tg_log;
 use grammers_client::media::{Downloadable, Media, PhotoSize};
+use parking_lot::Mutex;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::OnceLock;
@@ -641,10 +642,29 @@ pub struct FfmpegCapabilities {
     pub capability_hash: String,
 }
 
-static FFMPEG_CAPS: OnceLock<Option<FfmpegCapabilities>> = OnceLock::new();
+struct FfmpegCapabilityCache {
+    value: Option<FfmpegCapabilities>,
+    last_probe: Instant,
+}
+
+static FFMPEG_CAPS: OnceLock<Mutex<FfmpegCapabilityCache>> = OnceLock::new();
 
 pub fn get_ffmpeg_capabilities() -> Option<FfmpegCapabilities> {
-    FFMPEG_CAPS.get_or_init(init_ffmpeg_capabilities).clone()
+    let cache = FFMPEG_CAPS.get_or_init(|| {
+        Mutex::new(FfmpegCapabilityCache {
+            value: init_ffmpeg_capabilities(),
+            last_probe: Instant::now(),
+        })
+    });
+    let mut state = cache.lock();
+    // A missing tool is provisional. This matters when AutoGram installs or
+    // discovers FFmpeg while the desktop session is already running: the old
+    // OnceLock<Option<_>> permanently cached None until an app restart.
+    if state.value.is_none() && state.last_probe.elapsed() >= Duration::from_secs(10) {
+        state.value = init_ffmpeg_capabilities();
+        state.last_probe = Instant::now();
+    }
+    state.value.clone()
 }
 
 pub fn probe_ffmpeg_capabilities(path: &Path) -> Option<FfmpegCapabilities> {
@@ -801,7 +821,11 @@ fn collect_ffmpeg_candidates() -> Vec<PathBuf> {
                 for entry in entries.flatten() {
                     let p = entry.path();
                     if p.is_dir() {
-                        let name_lower = p.file_name().unwrap_or_default().to_string_lossy().to_lowercase();
+                        let name_lower = p
+                            .file_name()
+                            .unwrap_or_default()
+                            .to_string_lossy()
+                            .to_lowercase();
                         if name_lower.contains("formatfactory")
                             || name_lower.contains("capcut")
                             || name_lower.contains("bluestacks")

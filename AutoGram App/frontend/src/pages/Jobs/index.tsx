@@ -16,6 +16,7 @@ import {
   jobsEdit,
   jobsDelete,
   jobsRunMigration,
+  jobsDryRun,
   jobsFreshStart,
   jobsExportJson,
   jobsImportJson,
@@ -25,7 +26,9 @@ import { ConfirmModal } from '../../components/common/ConfirmModal';
 
 export type WorkspaceMode = 'list' | 'editor' | 'runtime';
 
-export function Jobs() {
+type JobsEntryView = 'jobs' | 'new' | 'history' | 'settings';
+
+export function Jobs({ entryView = 'jobs' }: { entryView?: JobsEntryView }) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<WorkspaceMode>('list');
   const [jobs, setJobs] = useState<any[]>([]);
@@ -76,6 +79,42 @@ export function Jobs() {
   useEffect(() => {
     fetchJobs();
   }, []);
+
+  // The native runner persists stage/progress in SQLite. Poll only while a
+  // command is active so the aggregate UI remains live without keeping an
+  // event listener or background timer after completion/navigation.
+  const activeJobPollKey = Object.keys(activeCommands).sort().join(',');
+  useEffect(() => {
+    if (!detectTauriRuntime() || !activeJobPollKey) return;
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const list = await jobsList();
+        if (!cancelled) setJobs(list);
+      } catch (error) {
+        console.warn('Failed to poll native job progress', error);
+      }
+    };
+    void poll();
+    const timer = window.setInterval(poll, 500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [activeJobPollKey]);
+
+  useEffect(() => {
+    if (entryView === 'new') {
+      setEditingJob(null);
+      setMode('editor');
+      return;
+    }
+    if (entryView === 'jobs' || entryView === 'history') {
+      setEditingJob(null);
+      setActiveJobId(null);
+      setMode('list');
+    }
+  }, [entryView]);
 
   // Prevent uncaught errors in this page from tearing down the webview hard
   useEffect(() => {
@@ -139,6 +178,9 @@ export function Jobs() {
 
       // Desktop: Grammers forward MVP (no Python execute-job)
       if (detectTauriRuntime()) {
+        if (!isDryRun && String(rerunMode || '').toUpperCase() === 'OVERWRITE') {
+          await jobsFreshStart(job.id);
+        }
         setActiveCommands((prev) => ({ ...prev, [job.id]: true }));
         setActiveJobId(job.id);
         setMode('runtime');
@@ -151,15 +193,17 @@ export function Jobs() {
         });
         try {
           if (isDryRun) {
+            const r = await jobsDryRun({
+              jobId: job.id,
+              apiId: Number(apiId) || 0,
+              apiHash: String(apiHash || ''),
+            });
             appendLog({
               type: 'info',
-              text: '[Grammers] Dry-run complete (job config validated).',
+              text: r.message,
               time: new Date().toLocaleTimeString(),
             });
             setRunResults((prev) => ({ ...prev, [job.id]: 'success' }));
-            setJobs((prev) =>
-              prev.map((j) => (j.id === job.id ? { ...j, status: 'COMPLETED' } : j))
-            );
           } else {
             const r = await jobsRunMigration({
               jobId: job.id,
@@ -181,9 +225,12 @@ export function Jobs() {
                 j.id === job.id
                   ? {
                       ...j,
-                      status: 'COMPLETED',
-                      processed_messages: r.forwarded,
-                      total_messages: r.forwarded,
+                      status: r.status === 'success' ? 'COMPLETED' : 'FAILED',
+                      processed_messages: r.forwarded + r.skipped + r.failed,
+                      total_messages: Math.max(
+                        Number(j.total_messages || 0),
+                        r.forwarded + r.skipped + r.failed
+                      ),
                       last_execution_id: r.executionId,
                     }
                   : j
@@ -191,14 +238,18 @@ export function Jobs() {
             );
           }
         } catch (e: any) {
+          const errorText = String(e?.message || e);
+          const wasPaused = /dibatalkan|cancelled|canceled|paused/i.test(errorText);
           appendLog({
-            type: 'error',
-            text: String(e?.message || e),
+            type: wasPaused ? 'info' : 'error',
+            text: errorText,
             time: new Date().toLocaleTimeString(),
           });
-          setRunResults((prev) => ({ ...prev, [job.id]: 'failed' }));
+          setRunResults((prev) => ({ ...prev, [job.id]: wasPaused ? 'success' : 'failed' }));
           setJobs((prev) =>
-            prev.map((j) => (j.id === job.id ? { ...j, status: 'FAILED' } : j))
+            prev.map((j) =>
+              j.id === job.id ? { ...j, status: wasPaused ? 'PAUSED' : 'FAILED' } : j
+            )
           );
         } finally {
           clearRunning(job.id);
@@ -322,7 +373,7 @@ export function Jobs() {
     } catch (err) {
       console.error('Failed to start job', err);
       clearRunning(job.id);
-      alert(`Failed to start job: ${err}`);
+      alert(t('jobs.native_start_failed', { error: String(err) }));
     }
   };
 
@@ -410,7 +461,7 @@ export function Jobs() {
       setMode('list');
     } catch (err) {
       console.error('Failed to create job', err);
-      alert(`Failed to create job: ${err}`);
+      alert(t('jobs.native_create_failed', { error: String(err) }));
     }
   };
 
@@ -515,7 +566,7 @@ export function Jobs() {
       alert(t('ui.generated.jobs_exported_successfully_to_worker_directory_09e8cc9'));
     } catch (err) {
       console.error('Failed to export jobs', err);
-      alert(`Export gagal: ${err}`);
+      alert(t('jobs.native_export_failed', { error: String(err) }));
     }
   };
 
@@ -534,7 +585,7 @@ export function Jobs() {
         const text = await file.text();
         const n = await jobsImportJson(text);
         await fetchJobs();
-        alert(`Imported ${n} job(s).`);
+        alert(t('jobs.native_import_success', { count: n }));
         return;
       }
       await runDaemonOnce(['--action', 'import-jobs']);
@@ -542,7 +593,7 @@ export function Jobs() {
       alert(t('ui.generated.jobs_imported_successfully_3f2da19'));
     } catch (err) {
       console.error('Failed to import jobs', err);
-      alert(`Import gagal: ${err}`);
+      alert(t('jobs.native_import_failed', { error: String(err) }));
     }
   };
 
@@ -555,7 +606,9 @@ export function Jobs() {
     >
       {mode === 'list' && (
         <JobsList
-          jobs={jobs}
+          jobs={entryView === 'history'
+            ? jobs.filter((job) => ['COMPLETED', 'FAILED', 'CANCELLED', 'PARTIAL_SUCCESS'].includes(String(job.status || '').toUpperCase()))
+            : jobs.filter((job) => !['COMPLETED', 'CANCELLED'].includes(String(job.status || '').toUpperCase()))}
           isLoading={isLoading}
           activeCommands={activeCommandsForUi}
           runResults={runResults}

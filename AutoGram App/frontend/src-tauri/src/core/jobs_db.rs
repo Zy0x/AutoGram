@@ -497,6 +497,16 @@ pub fn update_execution_status(
     Ok(())
 }
 
+pub fn log_job_event(
+    job_id: i64,
+    stage: &str,
+    message: &str,
+    metadata: Option<&str>,
+) -> Result<(), String> {
+    let conn = open_db()?;
+    super::autogram_core::log_job_event(&conn, job_id, stage, message, metadata)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CacheDirInfo {
     pub custom_path: Option<String>,
@@ -617,7 +627,10 @@ pub fn set_custom_cache_dir(new_path: &str, action: &str) -> Result<serde_json::
     // Verify write permissions
     let test_file = p.join(".autogram_write_test");
     if std::fs::write(&test_file, b"test").is_err() {
-        return Err(format!("Selected directory is not writable: {}", p.display()));
+        return Err(format!(
+            "Selected directory is not writable: {}",
+            p.display()
+        ));
     }
     let _ = std::fs::remove_file(&test_file);
 
@@ -630,8 +643,12 @@ pub fn set_custom_cache_dir(new_path: &str, action: &str) -> Result<serde_json::
     let _ = std::fs::create_dir_all(&new_thumbs);
 
     fn copy_dir_all(src: &Path, dst: &Path) {
-        if !src.is_dir() { return; }
-        let Ok(rd) = std::fs::read_dir(src) else { return; };
+        if !src.is_dir() {
+            return;
+        }
+        let Ok(rd) = std::fs::read_dir(src) else {
+            return;
+        };
         for e in rd.flatten() {
             let path = e.path();
             let target = dst.join(e.file_name());
@@ -674,7 +691,7 @@ pub fn reset_custom_cache_dir() -> Result<serde_json::Value, String> {
     let conn = open_db()?;
     conn.execute("DELETE FROM settings WHERE key = 'custom_cache_dir'", [])
         .map_err(|e| format!("Delete settings error: {e}"))?;
-    
+
     // Clean up empty custom directories if old path was custom
     cleanup_empty_custom_dir(&old_info);
 
@@ -683,8 +700,7 @@ pub fn reset_custom_cache_dir() -> Result<serde_json::Value, String> {
 
 const DEFAULT_CACHE_LIMIT_BYTES: u64 = 5 * 1024 * 1024 * 1024;
 
-static CACHE_OPERATION_LOCK: std::sync::OnceLock<std::sync::Mutex<()>> =
-    std::sync::OnceLock::new();
+static CACHE_OPERATION_LOCK: std::sync::OnceLock<std::sync::Mutex<()>> = std::sync::OnceLock::new();
 
 fn cache_operation_lock() -> &'static std::sync::Mutex<()> {
     CACHE_OPERATION_LOCK.get_or_init(|| std::sync::Mutex::new(()))
@@ -708,7 +724,11 @@ fn cache_accounted_file_size(path: &Path, metadata: &std::fs::Metadata) -> u64 {
             let persisted_entry = if live_entry.is_none() {
                 let mut candidates = Vec::new();
                 if let Some(cache_root) = path.parent().and_then(Path::parent) {
-                    candidates.push(cache_root.join("stream_registry").join(format!("{stream_id}.json")));
+                    candidates.push(
+                        cache_root
+                            .join("stream_registry")
+                            .join(format!("{stream_id}.json")),
+                    );
                 }
                 candidates.push(
                     std::env::temp_dir()
@@ -717,7 +737,8 @@ fn cache_accounted_file_size(path: &Path, metadata: &std::fs::Metadata) -> u64 {
                 );
                 candidates.into_iter().find_map(|registry_path| {
                     let bytes = std::fs::read(registry_path).ok()?;
-                    let entry = serde_json::from_slice::<super::stream_server::StreamEntry>(&bytes).ok()?;
+                    let entry =
+                        serde_json::from_slice::<super::stream_server::StreamEntry>(&bytes).ok()?;
                     let same_path = entry.path.eq_ignore_ascii_case(&path.display().to_string());
                     (same_path && entry.total_size == metadata.len()).then_some(entry)
                 })
@@ -838,7 +859,13 @@ pub fn calculate_cache_size() -> Result<serde_json::Value, String> {
     let now = std::time::SystemTime::now();
     let one_day = std::time::Duration::from_secs(86400);
 
-    fn walk_detailed(dir: &Path, sum: &mut u64, stale: &mut u64, now: std::time::SystemTime, one_day: std::time::Duration) {
+    fn walk_detailed(
+        dir: &Path,
+        sum: &mut u64,
+        stale: &mut u64,
+        now: std::time::SystemTime,
+        one_day: std::time::Duration,
+    ) {
         let Ok(rd) = std::fs::read_dir(dir) else {
             return;
         };
@@ -863,9 +890,7 @@ pub fn calculate_cache_size() -> Result<serde_json::Value, String> {
     if info.active_cache_dir.is_dir() {
         // Walk each child of active_cache_dir, explicitly skipping the thumbs subdir
         // (thumbs are counted separately in thumbs_bytes to avoid double-counting)
-        let thumbs_name = info.active_thumbs_dir
-            .file_name()
-            .map(|n| n.to_os_string());
+        let thumbs_name = info.active_thumbs_dir.file_name().map(|n| n.to_os_string());
         if let Ok(rd) = std::fs::read_dir(&info.active_cache_dir) {
             for entry in rd.flatten() {
                 let child = entry.path();
@@ -885,11 +910,23 @@ pub fn calculate_cache_size() -> Result<serde_json::Value, String> {
         }
     }
     if info.active_temp_dir.is_dir() {
-        walk_detailed(&info.active_temp_dir, &mut temp_bytes, &mut stale_bytes, now, one_day);
+        walk_detailed(
+            &info.active_temp_dir,
+            &mut temp_bytes,
+            &mut stale_bytes,
+            now,
+            one_day,
+        );
     }
     if info.active_thumbs_dir.is_dir() {
         let mut dummy_stale = 0u64;
-        walk_detailed(&info.active_thumbs_dir, &mut thumbs_bytes, &mut dummy_stale, now, one_day);
+        walk_detailed(
+            &info.active_thumbs_dir,
+            &mut thumbs_bytes,
+            &mut dummy_stale,
+            now,
+            one_day,
+        );
     }
 
     // Also scan legacy worker/sessions/thumbs if distinct from active_thumbs_dir
@@ -897,7 +934,13 @@ pub fn calculate_cache_size() -> Result<serde_json::Value, String> {
     let legacy_thumbs = sessions_dir.join("thumbs");
     if legacy_thumbs.is_dir() && legacy_thumbs != info.active_thumbs_dir {
         let mut dummy_stale = 0u64;
-        walk_detailed(&legacy_thumbs, &mut thumbs_bytes, &mut dummy_stale, now, one_day);
+        walk_detailed(
+            &legacy_thumbs,
+            &mut thumbs_bytes,
+            &mut dummy_stale,
+            now,
+            one_day,
+        );
     }
 
     let sys_temp = std::env::temp_dir();
@@ -917,7 +960,10 @@ pub fn calculate_cache_size() -> Result<serde_json::Value, String> {
         }
     }
 
-    let total = cache_bytes.saturating_add(temp_bytes).saturating_add(thumbs_bytes).saturating_add(sys_temp_bytes);
+    let total = cache_bytes
+        .saturating_add(temp_bytes)
+        .saturating_add(thumbs_bytes)
+        .saturating_add(sys_temp_bytes);
 
     Ok(json!({
         "status": "success",
@@ -934,11 +980,23 @@ pub fn calculate_cache_size() -> Result<serde_json::Value, String> {
     }))
 }
 
-/// Reset job progress: delete executions so next run starts clean.
+/// Reset every resumable artifact for a job so the next run is genuinely new.
 pub fn fresh_start_job(job_id: i64) -> Result<(), String> {
-    let conn = open_db()?;
-    conn.execute("DELETE FROM executions WHERE job_id = ?1", params![job_id])
+    let mut conn = open_db()?;
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    for table in [
+        "executions",
+        "migration_ledger",
+        "checkpoints",
+        "job_events",
+    ] {
+        tx.execute(
+            &format!("DELETE FROM {table} WHERE job_id = ?1"),
+            params![job_id],
+        )
         .map_err(|e| e.to_string())?;
+    }
+    tx.commit().map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -1021,7 +1079,9 @@ pub fn clear_disk_cache() -> Result<serde_json::Value, String> {
 
     fn wipe(path: &Path, stats: &mut WipeStats) {
         if path.is_file() {
-            let size = std::fs::metadata(path).map(|m| cache_accounted_file_size(path, &m)).unwrap_or(0);
+            let size = std::fs::metadata(path)
+                .map(|m| cache_accounted_file_size(path, &m))
+                .unwrap_or(0);
             match std::fs::remove_file(path) {
                 Ok(()) => {
                     stats.removed += 1;
@@ -1036,14 +1096,19 @@ pub fn clear_disk_cache() -> Result<serde_json::Value, String> {
             }
             return;
         }
-        let Ok(rd) = std::fs::read_dir(path) else { return; };
+        let Ok(rd) = std::fs::read_dir(path) else {
+            return;
+        };
         for e in rd.flatten() {
             let p = e.path();
             if p.is_dir() {
                 wipe(&p, stats);
                 let _ = std::fs::remove_dir(&p);
             } else {
-                let size = e.metadata().map(|m| cache_accounted_file_size(&p, &m)).unwrap_or(0);
+                let size = e
+                    .metadata()
+                    .map(|m| cache_accounted_file_size(&p, &m))
+                    .unwrap_or(0);
                 match std::fs::remove_file(&p) {
                     Ok(()) => {
                         stats.removed += 1;
@@ -1068,7 +1133,9 @@ pub fn clear_disk_cache() -> Result<serde_json::Value, String> {
             }
             return total;
         }
-        let Ok(entries) = std::fs::read_dir(path) else { return total; };
+        let Ok(entries) = std::fs::read_dir(path) else {
+            return total;
+        };
         for entry in entries.flatten() {
             let child = entry.path();
             if child.is_dir() {
@@ -1087,11 +1154,13 @@ pub fn clear_disk_cache() -> Result<serde_json::Value, String> {
         let pass = std::thread::scope(|scope| {
             let handles: Vec<_> = roots
                 .iter()
-                .map(|root| scope.spawn(move || {
-                    let mut stats = WipeStats::default();
-                    wipe(root, &mut stats);
-                    stats
-                }))
+                .map(|root| {
+                    scope.spawn(move || {
+                        let mut stats = WipeStats::default();
+                        wipe(root, &mut stats);
+                        stats
+                    })
+                })
                 .collect();
             handles
                 .into_iter()
@@ -1164,13 +1233,17 @@ pub fn trim_disk_cache(target_bytes: u64) -> Result<serde_json::Value, String> {
                 files.push(FileEntry {
                     path: path.to_path_buf(),
                     size,
-                    modified: metadata.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
+                    modified: metadata
+                        .modified()
+                        .unwrap_or(std::time::SystemTime::UNIX_EPOCH),
                     active,
                 });
             }
             return;
         }
-        let Ok(rd) = std::fs::read_dir(path) else { return; };
+        let Ok(rd) = std::fs::read_dir(path) else {
+            return;
+        };
         for e in rd.flatten() {
             let p = e.path();
             if p.is_dir() {
@@ -1212,7 +1285,9 @@ pub fn trim_disk_cache(target_bytes: u64) -> Result<serde_json::Value, String> {
             // Registry state, not modification time, is the authority for an
             // actively served sparse preview. Recent but idle files remain LRU
             // candidates so the configured ceiling is actually enforceable.
-            if f.active { continue; }
+            if f.active {
+                continue;
+            }
             if std::fs::remove_file(&f.path).is_ok() {
                 if f.path.extension().and_then(|ext| ext.to_str()) == Some("partial") {
                     if let Some(stream_id) = f.path.file_stem().and_then(|name| name.to_str()) {
@@ -1240,7 +1315,9 @@ pub fn trim_disk_cache(target_bytes: u64) -> Result<serde_json::Value, String> {
 pub fn cancel_execution(job_id: i64) -> Result<(), String> {
     let conn = open_db()?;
     conn.execute(
-        "UPDATE executions SET status='CANCELLED' WHERE job_id=?1 AND status='RUNNING'",
+        "UPDATE executions SET status='PAUSED'
+         WHERE job_id=?1 AND status IN
+         ('STARTING','RUNNING','SCANNING','FORWARDING','DOWNLOADING','UPLOADING','COMMITTING')",
         params![job_id],
     )
     .map_err(|e| format!("cancel execution: {e}"))?;
@@ -1328,7 +1405,11 @@ pub fn get_disk_free_space(path_str: Option<String>) -> Result<serde_json::Value
                     &mut total_free,
                 );
                 if res != 0 && total_bytes > 0 {
-                    let bytes_free = if total_free > 0 { total_free } else { free_avail };
+                    let bytes_free = if total_free > 0 {
+                        total_free
+                    } else {
+                        free_avail
+                    };
                     return Ok(json!({
                         "status": "success",
                         "free_bytes": bytes_free,

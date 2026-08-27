@@ -1,3 +1,10 @@
+## v3.8.29 Grammers Resilient Thumbnail Fallback & Non-Blocking Upload Architecture
+
+### 1. Resilient Thumbnail Fallback & Zero-Block Media Transfer
+- **Eliminasi Fatal Error Thumbnail**: Mengganti pemblokiran unggah ketat `visual document thumbnail generation failed` dengan sistem fallback adaptif yang anggun (*graceful fallback*).
+- **Jaminan Kelancaran Transfer Berkas**: Jika pembuatan atau pengunggahan thumbnail JPEG pratinjau gagal (misalnya format WebP khusus, sistem tanpa ffmpeg di PATH, atau galat demukser), berkas asli tetap diunggah dan dikirim 100% sukses ke Telegram tanpa menggagalkan proses transfer.
+- **Optimasi Ekstraksi Thumbnail WebP/Gambar**: Menghapus argumen seeking `-ss` dan probe durasi yang tidak diperlukan pada gambar statis tunggal di `media_prep.rs`, mencegah error demuxer ffmpeg pada berkas `.webp` dan format grafis lainnya.
+
 ## v3.8.28 Telegram Absolute force_file Enforcement & Native WebP Document Protection
 
 ### 1. Absolute `force_file: true` MTProto Dispatch (Anti-Sticker Mutlak)

@@ -248,7 +248,11 @@ pub(crate) struct LiveClient {
     pub client: Client,
     pub session: Arc<MemorySession>,
     pub session_path: PathBuf,
-    pub updates_rx: Arc<tokio::sync::Mutex<Option<tokio::sync::mpsc::UnboundedReceiver<grammers_session::updates::UpdatesLike>>>>,
+    pub updates_rx: Arc<
+        tokio::sync::Mutex<
+            Option<tokio::sync::mpsc::UnboundedReceiver<grammers_session::updates::UpdatesLike>>,
+        >,
+    >,
     /// Keep runner task alive
     pub _runner: tokio::task::JoinHandle<()>,
 }
@@ -508,12 +512,15 @@ pub fn download_profile_photo_blocking(
             let session_name = session_name.clone();
             Box::pin(async move {
                 use grammers_client::tl;
-                let photo_res = client.invoke(&tl::functions::photos::GetUserPhotos {
-                    user_id: tl::enums::InputUser::UserSelf,
-                    offset: 0,
-                    max_id: 0,
-                    limit: 1,
-                }).await.map_err(|e| map_invocation(&e))?;
+                let photo_res = client
+                    .invoke(&tl::functions::photos::GetUserPhotos {
+                        user_id: tl::enums::InputUser::UserSelf,
+                        offset: 0,
+                        max_id: 0,
+                        limit: 1,
+                    })
+                    .await
+                    .map_err(|e| map_invocation(&e))?;
 
                 let photos_vec = match photo_res {
                     tl::enums::photos::Photos::Photos(p) => p.photos,
@@ -535,7 +542,11 @@ pub fn download_profile_photo_blocking(
 
                 if let Err(e) = client.download_media(&media_photo, &tmp_path).await {
                     let _ = std::fs::remove_file(&tmp_path);
-                    tg_log::warn(BACKEND, "profile_photo", format!("download_media failed: {e}"));
+                    tg_log::warn(
+                        BACKEND,
+                        "profile_photo",
+                        format!("download_media failed: {e}"),
+                    );
                     return Ok(None);
                 }
 
@@ -550,7 +561,14 @@ pub fn download_profile_photo_blocking(
                     return Ok(None);
                 }
 
-                tg_log::info(BACKEND, "profile_photo", format!("downloaded successfully via photos.GetUserPhotos bytes={}", bytes.len()));
+                tg_log::info(
+                    BACKEND,
+                    "profile_photo",
+                    format!(
+                        "downloaded successfully via photos.GetUserPhotos bytes={}",
+                        bytes.len()
+                    ),
+                );
                 Ok(crate::core::grammers::thumbs::to_data_url(&bytes))
             })
         })
@@ -1269,9 +1287,7 @@ mod tests {
         assert!(is_session_password_needed(
             &"rpc error 401: SESSION_PASSWORD_NEEDED caused by auth.importLoginToken"
         ));
-        assert!(is_session_password_needed(
-            &"session_password_needed"
-        ));
+        assert!(is_session_password_needed(&"session_password_needed"));
         assert!(!is_session_password_needed(&"AUTH_TOKEN_EXPIRED"));
     }
 }

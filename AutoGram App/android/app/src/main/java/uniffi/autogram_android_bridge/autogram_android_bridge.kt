@@ -748,6 +748,20 @@ internal open class UniffiVTableCallbackInterfaceAutoGramEventListener(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -766,21 +780,35 @@ internal interface UniffiLib : Library {
 
     fun uniffi_autogram_android_bridge_fn_init_callback_vtable_autogrameventlistener(`vtable`: UniffiVTableCallbackInterfaceAutoGramEventListener,
     ): Unit
+    fun uniffi_autogram_android_bridge_fn_func_delete_drive_items(`ids`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Int
     fun uniffi_autogram_android_bridge_fn_func_emit_bridge_event(`eventType`: RustBuffer.ByValue,`payloadJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     fun uniffi_autogram_android_bridge_fn_func_get_account_scores(uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_get_hardware_profiles(uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_autogram_android_bridge_fn_func_get_runtime_status(uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_get_storage_budget(uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_init_autogram_runtime(`appStorageDir`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_autogram_android_bridge_fn_func_list_drive_items(`sessionId`: RustBuffer.ByValue,`peerId`: RustBuffer.ByValue,`topicId`: RustBuffer.ByValue,`parentPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_autogram_android_bridge_fn_func_list_transfer_tasks(uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_plan_batch_execution_summary(`totalFiles`: Int,`totalBytes`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_register_event_listener(`listener`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     fun uniffi_autogram_android_bridge_fn_func_run_container_repair(`inputPath`: RustBuffer.ByValue,`outputPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_autogram_android_bridge_fn_func_set_transfer_paused(`id`: RustBuffer.ByValue,`paused`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+    ): Byte
+    fun uniffi_autogram_android_bridge_fn_func_upsert_drive_items(`items`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Int
+    fun uniffi_autogram_android_bridge_fn_func_upsert_transfer_task(`task`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun ffi_autogram_android_bridge_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -894,21 +922,35 @@ internal interface UniffiLib : Library {
     ): Unit
     fun ffi_autogram_android_bridge_rust_future_complete_void(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    fun uniffi_autogram_android_bridge_checksum_func_delete_drive_items(
+    ): Short
     fun uniffi_autogram_android_bridge_checksum_func_emit_bridge_event(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_get_account_scores(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_get_hardware_profiles(
     ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_get_runtime_status(
+    ): Short
     fun uniffi_autogram_android_bridge_checksum_func_get_storage_budget(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_init_autogram_runtime(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_list_drive_items(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_list_transfer_tasks(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_plan_batch_execution_summary(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_register_event_listener(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_run_container_repair(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_set_transfer_paused(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_upsert_drive_items(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_upsert_transfer_task(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_method_autogrameventlistener_on_event(
     ): Short
@@ -929,6 +971,9 @@ private fun uniffiCheckContractApiVersion(lib: UniffiLib) {
 
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: UniffiLib) {
+    if (lib.uniffi_autogram_android_bridge_checksum_func_delete_drive_items() != 37540.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_autogram_android_bridge_checksum_func_emit_bridge_event() != 49474.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -938,10 +983,19 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_autogram_android_bridge_checksum_func_get_hardware_profiles() != 26151.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_get_runtime_status() != 51504.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_autogram_android_bridge_checksum_func_get_storage_budget() != 34110.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_init_autogram_runtime() != 63146.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_list_drive_items() != 39237.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_list_transfer_tasks() != 13409.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_plan_batch_execution_summary() != 17367.toShort()) {
@@ -951,6 +1005,15 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_run_container_repair() != 51620.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_set_transfer_paused() != 59974.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_upsert_drive_items() != 34742.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_upsert_transfer_task() != 12136.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_method_autogrameventlistener_on_event() != 25947.toShort()) {
@@ -1046,6 +1109,29 @@ public object FfiConverterULong: FfiConverter<ULong, Long> {
 
     override fun write(value: ULong, buf: ByteBuffer) {
         buf.putLong(value.toLong())
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterLong: FfiConverter<Long, Long> {
+    override fun lift(value: Long): Long {
+        return value
+    }
+
+    override fun read(buf: ByteBuffer): Long {
+        return buf.getLong()
+    }
+
+    override fun lower(value: Long): Long {
+        return value
+    }
+
+    override fun allocationSize(value: Long) = 8UL
+
+    override fun write(value: Long, buf: ByteBuffer) {
+        buf.putLong(value)
     }
 }
 
@@ -1256,6 +1342,198 @@ public object FfiConverterTypeAccountScoreResult: FfiConverterRustBuffer<Account
             FfiConverterDouble.write(value.`capabilityScore`, buf)
             FfiConverterDouble.write(value.`healthScore`, buf)
             FfiConverterDouble.write(value.`latencyScore`, buf)
+    }
+}
+
+
+
+data class BridgeDriveItem (
+    var `id`: kotlin.String, 
+    var `sessionId`: kotlin.String, 
+    var `peerId`: kotlin.String, 
+    var `topicId`: kotlin.Long?, 
+    var `parentPath`: kotlin.String, 
+    var `name`: kotlin.String, 
+    var `size`: kotlin.ULong, 
+    var `mimeType`: kotlin.String, 
+    var `deliveryKind`: kotlin.String, 
+    var `telegramCategory`: kotlin.String, 
+    var `isFolder`: kotlin.Boolean, 
+    var `modifiedMs`: kotlin.Long, 
+    var `thumbnailUri`: kotlin.String?
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeBridgeDriveItem: FfiConverterRustBuffer<BridgeDriveItem> {
+    override fun read(buf: ByteBuffer): BridgeDriveItem {
+        return BridgeDriveItem(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: BridgeDriveItem) = (
+            FfiConverterString.allocationSize(value.`id`) +
+            FfiConverterString.allocationSize(value.`sessionId`) +
+            FfiConverterString.allocationSize(value.`peerId`) +
+            FfiConverterOptionalLong.allocationSize(value.`topicId`) +
+            FfiConverterString.allocationSize(value.`parentPath`) +
+            FfiConverterString.allocationSize(value.`name`) +
+            FfiConverterULong.allocationSize(value.`size`) +
+            FfiConverterString.allocationSize(value.`mimeType`) +
+            FfiConverterString.allocationSize(value.`deliveryKind`) +
+            FfiConverterString.allocationSize(value.`telegramCategory`) +
+            FfiConverterBoolean.allocationSize(value.`isFolder`) +
+            FfiConverterLong.allocationSize(value.`modifiedMs`) +
+            FfiConverterOptionalString.allocationSize(value.`thumbnailUri`)
+    )
+
+    override fun write(value: BridgeDriveItem, buf: ByteBuffer) {
+            FfiConverterString.write(value.`id`, buf)
+            FfiConverterString.write(value.`sessionId`, buf)
+            FfiConverterString.write(value.`peerId`, buf)
+            FfiConverterOptionalLong.write(value.`topicId`, buf)
+            FfiConverterString.write(value.`parentPath`, buf)
+            FfiConverterString.write(value.`name`, buf)
+            FfiConverterULong.write(value.`size`, buf)
+            FfiConverterString.write(value.`mimeType`, buf)
+            FfiConverterString.write(value.`deliveryKind`, buf)
+            FfiConverterString.write(value.`telegramCategory`, buf)
+            FfiConverterBoolean.write(value.`isFolder`, buf)
+            FfiConverterLong.write(value.`modifiedMs`, buf)
+            FfiConverterOptionalString.write(value.`thumbnailUri`, buf)
+    }
+}
+
+
+
+data class BridgeRuntimeStatus (
+    var `initialized`: kotlin.Boolean, 
+    var `databasePath`: kotlin.String, 
+    var `schemaVersion`: kotlin.UInt
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeBridgeRuntimeStatus: FfiConverterRustBuffer<BridgeRuntimeStatus> {
+    override fun read(buf: ByteBuffer): BridgeRuntimeStatus {
+        return BridgeRuntimeStatus(
+            FfiConverterBoolean.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterUInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: BridgeRuntimeStatus) = (
+            FfiConverterBoolean.allocationSize(value.`initialized`) +
+            FfiConverterString.allocationSize(value.`databasePath`) +
+            FfiConverterUInt.allocationSize(value.`schemaVersion`)
+    )
+
+    override fun write(value: BridgeRuntimeStatus, buf: ByteBuffer) {
+            FfiConverterBoolean.write(value.`initialized`, buf)
+            FfiConverterString.write(value.`databasePath`, buf)
+            FfiConverterUInt.write(value.`schemaVersion`, buf)
+    }
+}
+
+
+
+data class BridgeTransferTask (
+    var `id`: kotlin.String, 
+    var `fileName`: kotlin.String, 
+    var `sourceIdentity`: kotlin.String, 
+    var `destinationIdentity`: kotlin.String, 
+    var `stage`: kotlin.String, 
+    var `status`: kotlin.String, 
+    var `totalBytes`: kotlin.ULong, 
+    var `processedBytes`: kotlin.ULong, 
+    var `speedBps`: kotlin.ULong, 
+    var `etaSeconds`: kotlin.ULong, 
+    var `attempt`: kotlin.UInt, 
+    var `paused`: kotlin.Boolean, 
+    var `errorCode`: kotlin.String?, 
+    var `updatedMs`: kotlin.Long
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeBridgeTransferTask: FfiConverterRustBuffer<BridgeTransferTask> {
+    override fun read(buf: ByteBuffer): BridgeTransferTask {
+        return BridgeTransferTask(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: BridgeTransferTask) = (
+            FfiConverterString.allocationSize(value.`id`) +
+            FfiConverterString.allocationSize(value.`fileName`) +
+            FfiConverterString.allocationSize(value.`sourceIdentity`) +
+            FfiConverterString.allocationSize(value.`destinationIdentity`) +
+            FfiConverterString.allocationSize(value.`stage`) +
+            FfiConverterString.allocationSize(value.`status`) +
+            FfiConverterULong.allocationSize(value.`totalBytes`) +
+            FfiConverterULong.allocationSize(value.`processedBytes`) +
+            FfiConverterULong.allocationSize(value.`speedBps`) +
+            FfiConverterULong.allocationSize(value.`etaSeconds`) +
+            FfiConverterUInt.allocationSize(value.`attempt`) +
+            FfiConverterBoolean.allocationSize(value.`paused`) +
+            FfiConverterOptionalString.allocationSize(value.`errorCode`) +
+            FfiConverterLong.allocationSize(value.`updatedMs`)
+    )
+
+    override fun write(value: BridgeTransferTask, buf: ByteBuffer) {
+            FfiConverterString.write(value.`id`, buf)
+            FfiConverterString.write(value.`fileName`, buf)
+            FfiConverterString.write(value.`sourceIdentity`, buf)
+            FfiConverterString.write(value.`destinationIdentity`, buf)
+            FfiConverterString.write(value.`stage`, buf)
+            FfiConverterString.write(value.`status`, buf)
+            FfiConverterULong.write(value.`totalBytes`, buf)
+            FfiConverterULong.write(value.`processedBytes`, buf)
+            FfiConverterULong.write(value.`speedBps`, buf)
+            FfiConverterULong.write(value.`etaSeconds`, buf)
+            FfiConverterUInt.write(value.`attempt`, buf)
+            FfiConverterBoolean.write(value.`paused`, buf)
+            FfiConverterOptionalString.write(value.`errorCode`, buf)
+            FfiConverterLong.write(value.`updatedMs`, buf)
     }
 }
 
@@ -1584,6 +1862,98 @@ public object FfiConverterTypeAutoGramEventListener: FfiConverterCallbackInterfa
 /**
  * @suppress
  */
+public object FfiConverterOptionalLong: FfiConverterRustBuffer<kotlin.Long?> {
+    override fun read(buf: ByteBuffer): kotlin.Long? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterLong.read(buf)
+    }
+
+    override fun allocationSize(value: kotlin.Long?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterLong.allocationSize(value)
+        }
+    }
+
+    override fun write(value: kotlin.Long?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterLong.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalString: FfiConverterRustBuffer<kotlin.String?> {
+    override fun read(buf: ByteBuffer): kotlin.String? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterString.read(buf)
+    }
+
+    override fun allocationSize(value: kotlin.String?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterString.allocationSize(value)
+        }
+    }
+
+    override fun write(value: kotlin.String?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterString.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceString: FfiConverterRustBuffer<List<kotlin.String>> {
+    override fun read(buf: ByteBuffer): List<kotlin.String> {
+        val len = buf.getInt()
+        return List<kotlin.String>(len) {
+            FfiConverterString.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<kotlin.String>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterString.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<kotlin.String>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterString.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterSequenceTypeAccountScoreResult: FfiConverterRustBuffer<List<AccountScoreResult>> {
     override fun read(buf: ByteBuffer): List<AccountScoreResult> {
         val len = buf.getInt()
@@ -1604,7 +1974,73 @@ public object FfiConverterSequenceTypeAccountScoreResult: FfiConverterRustBuffer
             FfiConverterTypeAccountScoreResult.write(it, buf)
         }
     }
-} fun `emitBridgeEvent`(`eventType`: kotlin.String, `payloadJson`: kotlin.String)
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeBridgeDriveItem: FfiConverterRustBuffer<List<BridgeDriveItem>> {
+    override fun read(buf: ByteBuffer): List<BridgeDriveItem> {
+        val len = buf.getInt()
+        return List<BridgeDriveItem>(len) {
+            FfiConverterTypeBridgeDriveItem.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<BridgeDriveItem>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeBridgeDriveItem.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<BridgeDriveItem>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeBridgeDriveItem.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeBridgeTransferTask: FfiConverterRustBuffer<List<BridgeTransferTask>> {
+    override fun read(buf: ByteBuffer): List<BridgeTransferTask> {
+        val len = buf.getInt()
+        return List<BridgeTransferTask>(len) {
+            FfiConverterTypeBridgeTransferTask.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<BridgeTransferTask>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeBridgeTransferTask.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<BridgeTransferTask>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeBridgeTransferTask.write(it, buf)
+        }
+    }
+}
+    @Throws(AutoGramBridgeException::class) fun `deleteDriveItems`(`ids`: List<kotlin.String>): kotlin.UInt {
+            return FfiConverterUInt.lift(
+    uniffiRustCallWithError(AutoGramBridgeException) { _status ->
+    UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_delete_drive_items(
+        FfiConverterSequenceString.lower(`ids`),_status)
+}
+    )
+    }
+    
+ fun `emitBridgeEvent`(`eventType`: kotlin.String, `payloadJson`: kotlin.String)
         = 
     uniffiRustCall() { _status ->
     UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_emit_bridge_event(
@@ -1633,6 +2069,16 @@ public object FfiConverterSequenceTypeAccountScoreResult: FfiConverterRustBuffer
     }
     
 
+    @Throws(AutoGramBridgeException::class) fun `getRuntimeStatus`(): BridgeRuntimeStatus {
+            return FfiConverterTypeBridgeRuntimeStatus.lift(
+    uniffiRustCallWithError(AutoGramBridgeException) { _status ->
+    UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_get_runtime_status(
+        _status)
+}
+    )
+    }
+    
+
     @Throws(AutoGramBridgeException::class) fun `getStorageBudget`(): StorageBudgetResult {
             return FfiConverterTypeStorageBudgetResult.lift(
     uniffiRustCallWithError(AutoGramBridgeException) { _status ->
@@ -1648,6 +2094,26 @@ public object FfiConverterSequenceTypeAccountScoreResult: FfiConverterRustBuffer
     uniffiRustCallWithError(AutoGramBridgeException) { _status ->
     UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_init_autogram_runtime(
         FfiConverterString.lower(`appStorageDir`),_status)
+}
+    )
+    }
+    
+
+    @Throws(AutoGramBridgeException::class) fun `listDriveItems`(`sessionId`: kotlin.String, `peerId`: kotlin.String, `topicId`: kotlin.Long?, `parentPath`: kotlin.String): List<BridgeDriveItem> {
+            return FfiConverterSequenceTypeBridgeDriveItem.lift(
+    uniffiRustCallWithError(AutoGramBridgeException) { _status ->
+    UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_list_drive_items(
+        FfiConverterString.lower(`sessionId`),FfiConverterString.lower(`peerId`),FfiConverterOptionalLong.lower(`topicId`),FfiConverterString.lower(`parentPath`),_status)
+}
+    )
+    }
+    
+
+    @Throws(AutoGramBridgeException::class) fun `listTransferTasks`(): List<BridgeTransferTask> {
+            return FfiConverterSequenceTypeBridgeTransferTask.lift(
+    uniffiRustCallWithError(AutoGramBridgeException) { _status ->
+    UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_list_transfer_tasks(
+        _status)
 }
     )
     }
@@ -1676,6 +2142,36 @@ public object FfiConverterSequenceTypeAccountScoreResult: FfiConverterRustBuffer
     uniffiRustCallWithError(AutoGramBridgeException) { _status ->
     UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_run_container_repair(
         FfiConverterString.lower(`inputPath`),FfiConverterString.lower(`outputPath`),_status)
+}
+    )
+    }
+    
+
+    @Throws(AutoGramBridgeException::class) fun `setTransferPaused`(`id`: kotlin.String, `paused`: kotlin.Boolean): kotlin.Boolean {
+            return FfiConverterBoolean.lift(
+    uniffiRustCallWithError(AutoGramBridgeException) { _status ->
+    UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_set_transfer_paused(
+        FfiConverterString.lower(`id`),FfiConverterBoolean.lower(`paused`),_status)
+}
+    )
+    }
+    
+
+    @Throws(AutoGramBridgeException::class) fun `upsertDriveItems`(`items`: List<BridgeDriveItem>): kotlin.UInt {
+            return FfiConverterUInt.lift(
+    uniffiRustCallWithError(AutoGramBridgeException) { _status ->
+    UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_upsert_drive_items(
+        FfiConverterSequenceTypeBridgeDriveItem.lower(`items`),_status)
+}
+    )
+    }
+    
+
+    @Throws(AutoGramBridgeException::class) fun `upsertTransferTask`(`task`: BridgeTransferTask): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCallWithError(AutoGramBridgeException) { _status ->
+    UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_upsert_transfer_task(
+        FfiConverterTypeBridgeTransferTask.lower(`task`),_status)
 }
     )
     }

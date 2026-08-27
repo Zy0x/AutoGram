@@ -10,7 +10,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tokio::io::{AsyncRead, AsyncSeekExt, AsyncWriteExt, ReadBuf};
 
 use grammers_client::client::PasswordToken;
-use grammers_client::media::{Attribute, InputMedia, Media};
+use grammers_client::media::{Attribute, InputMedia, Media, Uploaded};
 use grammers_client::message::InputMessage;
 use grammers_client::{tl, Client, SignInError};
 use grammers_mtsender::SenderPool;
@@ -451,6 +451,39 @@ fn infer_mime_type(ext: &str, is_image: bool, is_video: bool) -> &'static str {
     }
 }
 
+/// Telegram applies sticker semantics to `image/webp` documents even when the
+/// caller sets `force_file`. Raw/lossless WebP delivery therefore uses a
+/// neutral MIME while retaining the original `.webp` filename and bytes. The
+/// media reader restores the user-facing MIME from the filename/magic bytes.
+fn document_mime_type(ext: &str, inferred: &'static str, as_document: bool) -> &'static str {
+    if as_document && matches!(ext, "webp" | "tgs") {
+        "application/octet-stream"
+    } else {
+        inferred
+    }
+}
+
+fn upload_thumbnail_path(path: &str) -> Option<PathBuf> {
+    extract_video_thumbnail(path)
+}
+
+async fn upload_thumbnail(client: &Client, path: &str) -> Option<Uploaded> {
+    let thumbnail_path = upload_thumbnail_path(path)?;
+    let upload_result = match client.upload_file(&thumbnail_path).await {
+        Ok(uploaded) => Some(uploaded),
+        Err(error) => {
+            tg_log::warn(
+                BACKEND,
+                "thumbnail_upload_skip",
+                format!("thumbnail upload skipped: {error}"),
+            );
+            None
+        }
+    };
+    let _ = std::fs::remove_file(&thumbnail_path);
+    upload_result
+}
+
 pub fn upload_album_blocking(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
@@ -729,20 +762,13 @@ pub fn upload_prepared_album_blocking_with_app(
                                 .into(),
                             );
                         }
-                        let mut thumb = None;
-                        if is_video || is_image || is_audio {
-                            if let Some(thumb_path) = extract_video_thumbnail(path_str) {
-                                if let Ok(uploaded_thumb) = client.upload_file(&thumb_path).await {
-                                    thumb = Some(uploaded_thumb.raw);
-                                    tg_log::info(
-                                        BACKEND,
-                                        "album_thumb_attached",
-                                        format!("index={} thumb={}", item.index, thumb_path.display()),
-                                    );
-                                }
-                                let _ = std::fs::remove_file(thumb_path);
-                            }
-                        }
+                        let thumb = if is_video || is_image || is_audio {
+                            upload_thumbnail(client, path_str)
+                                .await
+                                .map(|uploaded| uploaded.raw)
+                        } else {
+                            None
+                        };
                         tl::types::InputMediaUploadedDocument {
                             nosound_video: false,
                             force_file: as_document,
@@ -752,7 +778,7 @@ pub fn upload_prepared_album_blocking_with_app(
                             mime_type: if is_video && !as_document {
                                 "video/mp4".into()
                             } else {
-                                mime.into()
+                                document_mime_type(&ext, mime, as_document).into()
                             },
                             attributes,
                             stickers: None,
@@ -1139,7 +1165,7 @@ fn upload_prepared_album_blocking_with_app_legacy(
                             spoiler: false,
                             file: uploaded.raw,
                             thumb: thumb_raw,
-                            mime_type: mime.to_string(),
+                            mime_type: document_mime_type(&ext, mime, true).to_string(),
                             attributes: vec![(tl::types::DocumentAttributeFilename {
                                 file_name: filename.to_string(),
                             })
@@ -1208,7 +1234,7 @@ fn upload_prepared_album_blocking_with_app_legacy(
                             spoiler: false,
                             file: uploaded.raw,
                             thumb: thumb_raw,
-                            mime_type: mime.to_string(),
+                            mime_type: document_mime_type(&ext, mime, true).to_string(),
                             attributes: vec![(tl::types::DocumentAttributeFilename {
                                 file_name: filename.to_string(),
                             })
@@ -1605,7 +1631,7 @@ pub fn upload_file_blocking_topic_with_app(
                 msg = if as_document {
                     let mut thumb_raw = None;
                     if is_video || is_image || is_audio {
-                        let thumb_path = extract_video_thumbnail(path_str);
+                        let thumb_path = upload_thumbnail_path(path_str);
                         if let Some(ref tp) = thumb_path {
                             if let Ok(thumb_uploaded) = client.upload_file(tp).await {
                                 thumb_raw = Some(thumb_uploaded.raw);
@@ -1624,7 +1650,7 @@ pub fn upload_file_blocking_topic_with_app(
                         spoiler: false,
                         file: uploaded.raw,
                         thumb: thumb_raw,
-                        mime_type: mime.to_string(),
+                        mime_type: document_mime_type(&ext, mime, true).to_string(),
                         attributes: vec![(tl::types::DocumentAttributeFilename {
                             file_name: filename.to_string(),
                         })
@@ -1649,7 +1675,7 @@ pub fn upload_file_blocking_topic_with_app(
                         h: vid_h as i32,
                     });
                     // Generate and upload thumbnail for video preview
-                    let thumb_path = extract_video_thumbnail(path_str);
+                    let thumb_path = upload_thumbnail_path(path_str);
                     if let Some(ref tp) = thumb_path {
                         if let Ok(thumb_uploaded) = client.upload_file(tp).await {
                             video_msg = video_msg.thumbnail(thumb_uploaded);
@@ -1670,7 +1696,7 @@ pub fn upload_file_blocking_topic_with_app(
                         title: aud_title,
                         performer: aud_artist,
                     });
-                    let thumb_path = extract_video_thumbnail(path_str);
+                    let thumb_path = upload_thumbnail_path(path_str);
                     if let Some(ref tp) = thumb_path {
                         if let Ok(thumb_uploaded) = client.upload_file(tp).await {
                             audio_msg = audio_msg.thumbnail(thumb_uploaded);
@@ -1680,7 +1706,7 @@ pub fn upload_file_blocking_topic_with_app(
                     audio_msg
                 } else {
                     let mut thumb_raw = None;
-                    let thumb_path = extract_video_thumbnail(path_str);
+                    let thumb_path = upload_thumbnail_path(path_str);
                     if let Some(ref tp) = thumb_path {
                         if let Ok(thumb_uploaded) = client.upload_file(tp).await {
                             thumb_raw = Some(thumb_uploaded.raw);
@@ -1693,7 +1719,7 @@ pub fn upload_file_blocking_topic_with_app(
                         spoiler: false,
                         file: uploaded.raw,
                         thumb: thumb_raw,
-                        mime_type: mime.to_string(),
+                        mime_type: document_mime_type(&ext, mime, true).to_string(),
                         attributes: vec![(tl::types::DocumentAttributeFilename {
                             file_name: filename.to_string(),
                         })
@@ -1842,7 +1868,19 @@ pub fn upload_file_blocking_topic_with_delivery(
                     .to_ascii_lowercase();
                 let is_video = matches!(
                     ext.as_str(),
-                    "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "3gpp" | "ts" | "flv" | "wmv" | "m2ts" | "vob"
+                    "mp4"
+                        | "mov"
+                        | "mkv"
+                        | "webm"
+                        | "avi"
+                        | "m4v"
+                        | "3gp"
+                        | "3gpp"
+                        | "ts"
+                        | "flv"
+                        | "wmv"
+                        | "m2ts"
+                        | "vob"
                 );
                 let is_audio = matches!(
                     ext.as_str(),
@@ -1945,23 +1983,20 @@ pub fn upload_file_blocking_topic_with_delivery(
                 }
 
                 msg = if as_document {
-                    let mut thumb_raw = None;
-                    if is_video || is_image || is_audio {
-                        let thumb_path = extract_video_thumbnail(path_str);
-                        if let Some(ref tp) = thumb_path {
-                            if let Ok(thumb_uploaded) = client.upload_file(tp).await {
-                                thumb_raw = Some(thumb_uploaded.raw);
-                            }
-                            let _ = std::fs::remove_file(tp);
-                        }
-                    }
+                    let thumb_raw = if is_video || is_image || is_audio {
+                        upload_thumbnail(client, path_str)
+                            .await
+                            .map(|uploaded| uploaded.raw)
+                    } else {
+                        None
+                    };
                     msg.media(tl::types::InputMediaUploadedDocument {
                         nosound_video: false,
                         force_file: true,
                         spoiler,
                         file: uploaded.raw,
                         thumb: thumb_raw,
-                        mime_type: mime.to_string(),
+                        mime_type: document_mime_type(&ext, mime, true).to_string(),
                         attributes: vec![(tl::types::DocumentAttributeFilename {
                             file_name: display_filename.clone(),
                         })
@@ -1990,12 +2025,8 @@ pub fn upload_file_blocking_topic_with_delivery(
                         w: vid_w as i32,
                         h: vid_h as i32,
                     });
-                    let thumb_path = extract_video_thumbnail(path_str);
-                    if let Some(ref tp) = thumb_path {
-                        if let Ok(thumb_uploaded) = client.upload_file(tp).await {
-                            video_msg = video_msg.thumbnail(thumb_uploaded);
-                        }
-                        let _ = std::fs::remove_file(tp);
+                    if let Some(thumb_uploaded) = upload_thumbnail(client, path_str).await {
+                        video_msg = video_msg.thumbnail(thumb_uploaded);
                     }
                     video_msg
                 } else if is_audio {
@@ -2006,30 +2037,25 @@ pub fn upload_file_blocking_topic_with_delivery(
                         title: aud_title,
                         performer: aud_artist,
                     });
-                    let thumb_path = extract_video_thumbnail(path_str);
-                    if let Some(ref tp) = thumb_path {
-                        if let Ok(thumb_uploaded) = client.upload_file(tp).await {
-                            audio_msg = audio_msg.thumbnail(thumb_uploaded);
-                        }
-                        let _ = std::fs::remove_file(tp);
+                    if let Some(thumb_uploaded) = upload_thumbnail(client, path_str).await {
+                        audio_msg = audio_msg.thumbnail(thumb_uploaded);
                     }
                     audio_msg
                 } else {
-                    let mut thumb_raw = None;
-                    let thumb_path = extract_video_thumbnail(path_str);
-                    if let Some(ref tp) = thumb_path {
-                        if let Ok(thumb_uploaded) = client.upload_file(tp).await {
-                            thumb_raw = Some(thumb_uploaded.raw);
-                        }
-                        let _ = std::fs::remove_file(tp);
-                    }
+                    let thumb_raw = if is_video || is_image || is_audio {
+                        upload_thumbnail(client, path_str)
+                            .await
+                            .map(|uploaded| uploaded.raw)
+                    } else {
+                        None
+                    };
                     msg.media(tl::types::InputMediaUploadedDocument {
                         nosound_video: false,
                         force_file: true,
                         spoiler,
                         file: uploaded.raw,
                         thumb: thumb_raw,
-                        mime_type: mime.to_string(),
+                        mime_type: document_mime_type(&ext, mime, true).to_string(),
                         attributes: vec![(tl::types::DocumentAttributeFilename {
                             file_name: display_filename.clone(),
                         })
@@ -2085,6 +2111,34 @@ pub fn upload_file_blocking_topic_with_delivery(
         })
         .await
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn raw_webp_document_uses_neutral_mime_to_avoid_sticker_coercion() {
+        assert_eq!(
+            document_mime_type("webp", "image/webp", true),
+            "application/octet-stream"
+        );
+        assert_eq!(
+            document_mime_type("webp", "image/webp", false),
+            "image/webp"
+        );
+    }
+
+    #[test]
+    fn ordinary_document_mime_is_preserved() {
+        assert_eq!(document_mime_type("heic", "image/heic", true), "image/heic");
+    }
+
+    #[test]
+    fn visual_upload_gracefully_handles_missing_thumbnail() {
+        let missing = "Z:/autogram-test/nonexistent-visual.webp";
+        assert!(upload_thumbnail_path(missing).is_none());
+    }
 }
 
 /// Full-file download (not progressive Range stream). Dual-path for open/cache of small-mid media.

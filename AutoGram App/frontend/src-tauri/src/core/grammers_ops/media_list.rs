@@ -441,8 +441,8 @@ pub struct LaneDurability {
 #[serde(rename_all = "camelCase")]
 pub struct LaneRpcObservation {
     pub lane: SearchLane,
-    pub latency_ms: u64,          // Pure MTProto network invocation latency
-    pub wall_latency_ms: u64,     // Full end-to-end wall latency including queue/pacing
+    pub latency_ms: u64,      // Pure MTProto network invocation latency
+    pub wall_latency_ms: u64, // Full end-to-end wall latency including queue/pacing
     pub attempts: u32,
     pub rows_received: usize,
     pub candidate_count: Option<usize>,
@@ -494,6 +494,7 @@ pub fn media_to_row(
     let id = msg.id() as i64;
     let created = Some(msg.date().to_rfc3339());
     let caption = msg.text().trim();
+    let caption_urls = extract_http_urls(caption);
     let Some(media) = msg.media() else {
         return None;
     };
@@ -574,7 +575,11 @@ pub fn media_to_row(
                 telegram_category: Some(cls.telegram_category),
                 telegram_subtype: Some(cls.telegram_subtype),
                 drive_category: Some(cls.drive_category),
-                drive_format: Some(cls.drive_format),
+                drive_format: Some(if caption_urls.is_empty() {
+                    cls.drive_format
+                } else {
+                    caption_urls.join("\n")
+                }),
             };
             crate::core::tg_log::info(
                 BACKEND,
@@ -585,11 +590,12 @@ pub fn media_to_row(
         }
         Media::Document(doc) => {
             let mime = doc.mime_type().map(|s| s.to_string());
-            let native_delivery = match doc.raw.document.as_ref() {
-                Some(grammers_client::tl::enums::Document::Document(raw)) => {
-                    has_native_delivery(&raw.attributes)
-                }
-                _ => false,
+            let (native_delivery, is_sticker) = match doc.raw.document.as_ref() {
+                Some(grammers_client::tl::enums::Document::Document(raw)) => (
+                    has_native_delivery(&raw.attributes),
+                    has_sticker_attribute(&raw.attributes),
+                ),
+                _ => (false, false),
             };
             let n = doc
                 .name()
@@ -662,7 +668,7 @@ pub fn media_to_row(
                 final_mime.as_deref(),
                 !native_delivery,
                 false,
-                false,
+                is_sticker,
             );
 
             let row = MediaFileRow {
@@ -696,7 +702,11 @@ pub fn media_to_row(
                 telegram_category: Some(cls.telegram_category),
                 telegram_subtype: Some(cls.telegram_subtype),
                 drive_category: Some(cls.drive_category),
-                drive_format: Some(cls.drive_format),
+                drive_format: Some(if caption_urls.is_empty() {
+                    cls.drive_format
+                } else {
+                    caption_urls.join("\n")
+                }),
             };
             crate::core::tg_log::info(
                 BACKEND,
@@ -772,6 +782,7 @@ pub fn tl_message_to_row(
     let id = m.id as i64;
     let created = chrono::DateTime::from_timestamp(m.date as i64, 0).map(|dt| dt.to_rfc3339());
     let caption = m.message.trim();
+    let message_urls = extract_message_urls(m);
     let topic_id = match &m.reply_to {
         Some(grammers_client::tl::enums::MessageReplyHeader::Header(h)) => h
             .reply_to_top_id
@@ -839,7 +850,11 @@ pub fn tl_message_to_row(
                     telegram_category: Some(cls.telegram_category),
                     telegram_subtype: Some(cls.telegram_subtype),
                     drive_category: Some(cls.drive_category),
-                    drive_format: Some(cls.drive_format),
+                    drive_format: Some(if message_urls.is_empty() {
+                        cls.drive_format
+                    } else {
+                        message_urls.join("\n")
+                    }),
                 })
             }
             grammers_client::tl::enums::MessageMedia::Document(doc_media) => {
@@ -857,8 +872,10 @@ pub fn tl_message_to_row(
                     }
                 }
                 let native_delivery = has_native_delivery(&doc.attributes);
-                let name = raw_name
-                    .unwrap_or_else(|| fallback_document_name(id, Some(&doc.mime_type), native_delivery));
+                let is_sticker = has_sticker_attribute(&doc.attributes);
+                let name = raw_name.unwrap_or_else(|| {
+                    fallback_document_name(id, Some(&doc.mime_type), native_delivery)
+                });
                 let mime = doc.mime_type.clone();
                 let mime_l = mime.to_ascii_lowercase();
                 let name_l = name.to_ascii_lowercase();
@@ -898,7 +915,7 @@ pub fn tl_message_to_row(
                     Some(&mime),
                     !native_delivery,
                     false,
-                    false,
+                    is_sticker,
                 );
                 Some(MediaFileRow {
                     id,
@@ -934,10 +951,20 @@ pub fn tl_message_to_row(
                     telegram_category: Some(cls.telegram_category),
                     telegram_subtype: Some(cls.telegram_subtype),
                     drive_category: Some(cls.drive_category),
-                    drive_format: Some(cls.drive_format),
+                    drive_format: Some(if message_urls.is_empty() {
+                        cls.drive_format
+                    } else {
+                        message_urls.join("\n")
+                    }),
                 })
             }
             grammers_client::tl::enums::MessageMedia::WebPage(ref wp) => {
+                // Telegram may attach a WebPage-shaped media object to service
+                // text and mentions. Only expose it in the media catalogue when
+                // the authoritative message actually contains a URL/entity.
+                if message_urls.is_empty() {
+                    return None;
+                }
                 let name = if caption.is_empty() {
                     format!("link_{id}")
                 } else {
@@ -974,9 +1001,15 @@ pub fn tl_message_to_row(
                     id,
                     folder_id,
                     name,
-                    size: if photo_size > 0 { photo_size } else { caption.len() as u64 },
+                    size: if photo_size > 0 {
+                        photo_size
+                    } else {
+                        caption.len() as u64
+                    },
                     mime_type: Some("text/html".to_string()),
-                    icon_type: if has_photo { "photo".to_string() } else { "link".to_string() },
+                    // A WebPage photo decorates a link preview; Telegram does
+                    // not count it as a shared-media attachment.
+                    icon_type: "link".to_string(),
                     created_at: created,
                     has_thumb: has_photo || thumb_data_url.is_some(),
                     as_document: false,
@@ -1001,17 +1034,16 @@ pub fn tl_message_to_row(
                     telegram_category: Some(cls.telegram_category),
                     telegram_subtype: Some(cls.telegram_subtype),
                     drive_category: Some(cls.drive_category),
-                    drive_format: Some(caption.to_string()),
+                    drive_format: Some(message_urls.join("\n")),
                 })
             }
             _ => {
-                if !caption.is_empty() {
+                if !message_urls.is_empty() {
                     let name = truncate_first_line(caption, 60);
-                    let is_link = caption.contains("http://") || caption.contains("https://") || caption.contains("t.me/");
-                    let icon_type = if is_link { "link".to_string() } else { "text".to_string() };
+                    let icon_type = "link".to_string();
                     let cls = crate::core::media_classifier::classify_media_item(
                         &name,
-                        if is_link { Some("text/x-url") } else { Some("text/plain") },
+                        Some("text/x-url"),
                         false,
                         false,
                         false,
@@ -1021,7 +1053,7 @@ pub fn tl_message_to_row(
                         folder_id,
                         name,
                         size: caption.len() as u64,
-                        mime_type: Some("text/plain".to_string()),
+                        mime_type: Some("text/x-url".to_string()),
                         icon_type,
                         created_at: created,
                         has_thumb: thumb_data_url.is_some(),
@@ -1047,20 +1079,18 @@ pub fn tl_message_to_row(
                         telegram_category: Some(cls.telegram_category),
                         telegram_subtype: Some(cls.telegram_subtype),
                         drive_category: Some(cls.drive_category),
-                        drive_format: Some(caption.to_string()),
+                        drive_format: Some(message_urls.join("\n")),
                     })
                 } else {
                     None
                 }
             }
         }
-    } else if !caption.is_empty() {
+    } else if !message_urls.is_empty() {
         let name = truncate_first_line(caption, 60);
-        let is_link = caption.contains("http://") || caption.contains("https://") || caption.contains("t.me/");
-        let icon_type = if is_link { "link".to_string() } else { "file".to_string() };
         let cls = crate::core::media_classifier::classify_media_item(
             &name,
-            Some("text/plain"),
+            Some("text/x-url"),
             false,
             false,
             false,
@@ -1070,8 +1100,8 @@ pub fn tl_message_to_row(
             folder_id,
             name,
             size: caption.len() as u64,
-            mime_type: Some("text/plain".to_string()),
-            icon_type,
+            mime_type: Some("text/x-url".to_string()),
+            icon_type: "link".to_string(),
             created_at: created,
             has_thumb: false,
             as_document: false,
@@ -1096,7 +1126,7 @@ pub fn tl_message_to_row(
             telegram_category: Some(cls.telegram_category),
             telegram_subtype: Some(cls.telegram_subtype),
             drive_category: Some(cls.drive_category),
-            drive_format: Some(caption.to_string()),
+            drive_format: Some(message_urls.join("\n")),
         })
     } else {
         None
@@ -1168,15 +1198,24 @@ pub fn message_topic_id(msg: &grammers_client::message::Message) -> Option<i64> 
 /// Telegram represents both native videos/GIFs and generic files as
 /// `MessageMediaDocument`. The presence of native visual attributes—not the
 /// MIME extension—determines whether clients render the item as media or FILE.
-fn has_native_delivery(
-    attributes: &[grammers_client::tl::enums::DocumentAttribute],
-) -> bool {
-    attributes.iter().any(|attr| matches!(
-        attr,
-        grammers_client::tl::enums::DocumentAttribute::Video(_)
-            | grammers_client::tl::enums::DocumentAttribute::Audio(_)
-            | grammers_client::tl::enums::DocumentAttribute::Animated
-    ))
+fn has_native_delivery(attributes: &[grammers_client::tl::enums::DocumentAttribute]) -> bool {
+    attributes.iter().any(|attr| {
+        matches!(
+            attr,
+            grammers_client::tl::enums::DocumentAttribute::Video(_)
+                | grammers_client::tl::enums::DocumentAttribute::Audio(_)
+                | grammers_client::tl::enums::DocumentAttribute::Animated
+        )
+    })
+}
+
+fn has_sticker_attribute(attributes: &[grammers_client::tl::enums::DocumentAttribute]) -> bool {
+    attributes.iter().any(|attribute| {
+        matches!(
+            attribute,
+            grammers_client::tl::enums::DocumentAttribute::Sticker(_)
+        )
+    })
 }
 
 fn fallback_document_name(id: i64, mime: Option<&str>, native_delivery: bool) -> String {
@@ -1227,7 +1266,12 @@ fn extract_http_urls(text: &str) -> Vec<String> {
     let mut urls = Vec::new();
     for token in text.split_whitespace() {
         let candidate = token
-            .trim_matches(|c: char| matches!(c, '(' | ')' | '[' | ']' | '{' | '}' | '<' | '>' | '"' | '\'' | ',' | ';'))
+            .trim_matches(|c: char| {
+                matches!(
+                    c,
+                    '(' | ')' | '[' | ']' | '{' | '}' | '<' | '>' | '"' | '\'' | ',' | ';'
+                )
+            })
             .trim_end_matches(|c: char| matches!(c, '.' | '!' | '?' | ':'));
         if (candidate.starts_with("https://") || candidate.starts_with("http://"))
             && !urls.iter().any(|existing| existing == candidate)
@@ -1314,7 +1358,13 @@ fn tl_link_to_row(
         topic_id,
         identity_source: Some("telegram_search_url".into()),
         peer_id: folder_id
-            .map(|value| if value == 0 { "me".into() } else { value.to_string() })
+            .map(|value| {
+                if value == 0 {
+                    "me".into()
+                } else {
+                    value.to_string()
+                }
+            })
             .or_else(|| Some("me".into())),
         account_id: None,
         peer_kind: None,
@@ -1322,7 +1372,14 @@ fn tl_link_to_row(
         grouped_id: m.grouped_id,
         is_saved_messages: Some(folder_id.map_or(true, |value| value == 0)),
         telegram_category: Some("link".into()),
-        telegram_subtype: Some(if urls.len() > 1 { "multiple_links" } else { "single_link" }.into()),
+        telegram_subtype: Some(
+            if urls.len() > 1 {
+                "multiple_links"
+            } else {
+                "single_link"
+            }
+            .into(),
+        ),
         drive_category: Some("link".into()),
         // The ordinary media rows use this field for a short format token. A
         // link row uses it as a compact newline-separated payload so the UI
@@ -1362,50 +1419,69 @@ pub fn list_filtered_media_blocking_topic(
                 Box::pin(async move {
                     ensure_authorized(client, &session_name).await?;
                     let peer = resolve_peer(client, &chat).await?;
-                    let (filter, op_name, is_link) = match filter_str.to_ascii_lowercase().as_str() {
+                    let (filter, op_name, is_link, is_sticker_filter) = match filter_str.to_ascii_lowercase().as_str() {
                         "links" | "link" | "url" | "urls" => (
                             grammers_client::tl::enums::MessagesFilter::InputMessagesFilterUrl,
                             "messages.search.url",
                             true,
+                            false,
                         ),
                         "files" | "file" | "document" | "documents" | "archives" | "archive" => (
                             grammers_client::tl::enums::MessagesFilter::InputMessagesFilterDocument,
                             "messages.search.document",
                             false,
+                            false,
+                        ),
+                        "stickers" | "sticker" => (
+                            // Telegram excludes real stickers from the Document
+                            // filter. Search the bounded message window and keep
+                            // only rows carrying the authoritative Sticker
+                            // document attribute below.
+                            grammers_client::tl::enums::MessagesFilter::InputMessagesFilterEmpty,
+                            "messages.search.sticker_window",
+                            false,
+                            true,
                         ),
                         "media" | "photo_video" | "photovideo" => (
                             grammers_client::tl::enums::MessagesFilter::InputMessagesFilterPhotoVideo,
                             "messages.search.photo_video",
+                            false,
                             false,
                         ),
                         "photos" | "photo" | "images" | "image" => (
                             grammers_client::tl::enums::MessagesFilter::InputMessagesFilterPhotos,
                             "messages.search.photos",
                             false,
+                            false,
                         ),
                         "videos" | "video" => (
                             grammers_client::tl::enums::MessagesFilter::InputMessagesFilterVideo,
                             "messages.search.video",
+                            false,
                             false,
                         ),
                         "gifs" | "gif" => (
                             grammers_client::tl::enums::MessagesFilter::InputMessagesFilterGif,
                             "messages.search.gif",
                             false,
+                            false,
                         ),
                         "audio" | "music" => (
                             grammers_client::tl::enums::MessagesFilter::InputMessagesFilterMusic,
                             "messages.search.music",
+                            false,
                             false,
                         ),
                         "voice" => (
                             grammers_client::tl::enums::MessagesFilter::InputMessagesFilterVoice,
                             "messages.search.voice",
                             false,
+                            false,
                         ),
                         _ => (
                             grammers_client::tl::enums::MessagesFilter::InputMessagesFilterEmpty,
                             "messages.search.empty",
+                            false,
                             false,
                         ),
                     };
@@ -1455,11 +1531,19 @@ pub fn list_filtered_media_blocking_topic(
                         grammers_client::tl::enums::Message::Message(value) => Some(value.id as i64),
                         _ => None,
                     }).min();
-                    let files: Vec<MediaFileRow> = if is_link {
+                    let mut files: Vec<MediaFileRow> = if is_link {
                         messages.iter().filter_map(|message| tl_link_to_row(message, folder_id)).collect()
                     } else {
                         messages.iter().filter_map(|message| tl_message_to_row(message, folder_id)).collect()
                     };
+                    if is_sticker_filter {
+                        files.retain(|row| row.telegram_category.as_deref() == Some("sticker"));
+                        // Telegram has no dedicated server-side sticker counter.
+                        // The document counter includes ordinary files, so exposing it
+                        // as a sticker total would be inaccurate. The full durable index
+                        // supplies the exact sticker count once available.
+                        total_count = None;
+                    }
                     let has_more = raw_len >= limit && lowest_id.unwrap_or(0) > 1;
                     let observation = LaneRpcObservation {
                         lane: SearchLane::Both,
@@ -1523,7 +1607,16 @@ pub fn list_media_blocking(
     limit: usize,
     offset_id: Option<i64>,
 ) -> Result<ListMediaResult, TgError> {
-    list_media_blocking_topic_cursor(sessions_dir, identity, chat_id, limit, offset_id, None, None, None)
+    list_media_blocking_topic_cursor(
+        sessions_dir,
+        identity,
+        chat_id,
+        limit,
+        offset_id,
+        None,
+        None,
+        None,
+    )
 }
 
 pub fn list_media_blocking_topic(
@@ -1534,7 +1627,16 @@ pub fn list_media_blocking_topic(
     offset_id: Option<i64>,
     topic_id: Option<i64>,
 ) -> Result<ListMediaResult, TgError> {
-    list_media_blocking_topic_cursor(sessions_dir, identity, chat_id, limit, offset_id, None, topic_id, None)
+    list_media_blocking_topic_cursor(
+        sessions_dir,
+        identity,
+        chat_id,
+        limit,
+        offset_id,
+        None,
+        topic_id,
+        None,
+    )
 }
 
 pub fn list_media_blocking_topic_cursor(
@@ -1601,12 +1703,20 @@ pub async fn fetch_channel_history_page_async(
                 }
                 grammers_client::tl::enums::messages::Messages::Slice(m) => {
                     total_count = Some(m.count as usize);
-                    diag = format!("GetHistory:Slice count={}, len={}", m.count, m.messages.len());
+                    diag = format!(
+                        "GetHistory:Slice count={}, len={}",
+                        m.count,
+                        m.messages.len()
+                    );
                     m.messages
                 }
                 grammers_client::tl::enums::messages::Messages::ChannelMessages(m) => {
                     total_count = Some(m.count as usize);
-                    diag = format!("GetHistory:ChannelMessages count={}, len={}", m.count, m.messages.len());
+                    diag = format!(
+                        "GetHistory:ChannelMessages count={}, len={}",
+                        m.count,
+                        m.messages.len()
+                    );
                     m.messages
                 }
                 grammers_client::tl::enums::messages::Messages::NotModified(_) => {
@@ -1670,7 +1780,16 @@ pub async fn fetch_media_lane_page_async(
     top_msg_id: Option<i32>,
     folder_id: Option<i64>,
     guard: &crate::core::telegram_rpc_guard::RpcGuardControl,
-) -> Result<(Vec<MediaFileRow>, Option<i32>, bool, Option<usize>, LaneRpcObservation), TgError> {
+) -> Result<
+    (
+        Vec<MediaFileRow>,
+        Option<i32>,
+        bool,
+        Option<usize>,
+        LaneRpcObservation,
+    ),
+    TgError,
+> {
     let (filter, op_name) = match lane {
         SearchLane::PhotoVideo => (
             grammers_client::tl::enums::MessagesFilter::InputMessagesFilterPhotoVideo,
@@ -2191,8 +2310,13 @@ mod tests {
     #[test]
     fn extracts_multiple_distinct_urls_without_trailing_punctuation() {
         assert_eq!(
-            extract_http_urls("See https://example.com/a, then https://t.me/demo. https://example.com/a"),
-            vec!["https://example.com/a".to_string(), "https://t.me/demo".to_string()]
+            extract_http_urls(
+                "See https://example.com/a, then https://t.me/demo. https://example.com/a"
+            ),
+            vec![
+                "https://example.com/a".to_string(),
+                "https://t.me/demo".to_string()
+            ]
         );
     }
 
@@ -2226,11 +2350,11 @@ mod tests {
             video_codec: None,
         });
         assert!(has_native_delivery(&[native_video]));
-        assert!(!has_native_delivery(&[
-            DocumentAttribute::Filename(grammers_client::tl::types::DocumentAttributeFilename {
+        assert!(!has_native_delivery(&[DocumentAttribute::Filename(
+            grammers_client::tl::types::DocumentAttributeFilename {
                 file_name: "sent-as-file.mp4".to_string(),
-            }),
-        ]));
+            }
+        ),]));
         assert_eq!(
             fallback_document_name(19024, Some("video/mp4"), true),
             "video_19024.mp4"
@@ -2238,6 +2362,16 @@ mod tests {
         assert_eq!(
             fallback_document_name(19024, Some("video/mp4"), false),
             "file_19024.mp4"
+        );
+    }
+
+    #[test]
+    fn plain_mentions_are_not_catalog_urls() {
+        assert!(extract_http_urls("@thuandmuda").is_empty());
+        assert!(extract_http_urls("plain Telegram service text").is_empty());
+        assert_eq!(
+            extract_http_urls("source https://t.me/thuandmuda"),
+            vec!["https://t.me/thuandmuda".to_string()]
         );
     }
 
@@ -2453,8 +2587,20 @@ mod tests {
         // Synthetic stream:
         // PV: 1000, 990, 980, 970, 960
         // DOC: 995, 985, 975, 965, 955
-        let mut pv = vec![dummy_row(1000), dummy_row(990), dummy_row(980), dummy_row(970), dummy_row(960)];
-        let mut doc = vec![dummy_row(995), dummy_row(985), dummy_row(975), dummy_row(965), dummy_row(955)];
+        let mut pv = vec![
+            dummy_row(1000),
+            dummy_row(990),
+            dummy_row(980),
+            dummy_row(970),
+            dummy_row(960),
+        ];
+        let mut doc = vec![
+            dummy_row(995),
+            dummy_row(985),
+            dummy_row(975),
+            dummy_row(965),
+            dummy_row(955),
+        ];
 
         // Page 1 with limit = 4
         let page1 = buffered_k_way_merge(&mut pv, &mut doc, 4);
@@ -2482,7 +2628,10 @@ mod tests {
         all_ids.extend(ids1);
         all_ids.extend(ids2);
         all_ids.extend(ids3);
-        assert_eq!(all_ids, vec![1000, 995, 990, 985, 980, 975, 970, 965, 960, 955]);
+        assert_eq!(
+            all_ids,
+            vec![1000, 995, 990, 985, 980, 975, 970, 965, 960, 955]
+        );
     }
 
     #[test]
@@ -2497,7 +2646,10 @@ mod tests {
         assert_eq!(ids, vec![1000, 995, 990, 985, 980]);
         // Message ID 990 appears only once!
         assert_eq!(ids.iter().filter(|&&id| id == 990).count(), 1);
-        assert_eq!(page.iter().find(|item| item.row.id == 990).unwrap().lane, SearchLane::Both);
+        assert_eq!(
+            page.iter().find(|item| item.row.id == 990).unwrap().lane,
+            SearchLane::Both
+        );
     }
 
     #[test]
@@ -2549,7 +2701,13 @@ mod tests {
     fn test_buffered_k_way_merge_uneven_lanes() {
         // PV: 1000, 900, 800, 700, 600
         // DOC: 5000
-        let mut pv = vec![dummy_row(1000), dummy_row(900), dummy_row(800), dummy_row(700), dummy_row(600)];
+        let mut pv = vec![
+            dummy_row(1000),
+            dummy_row(900),
+            dummy_row(800),
+            dummy_row(700),
+            dummy_row(600),
+        ];
         let mut doc = vec![dummy_row(5000)];
 
         let page1 = buffered_k_way_merge(&mut pv, &mut doc, 2);
@@ -2634,12 +2792,26 @@ mod tests {
 
     #[test]
     fn test_frontier_scheduler_emits_without_refetch_when_safe() {
-        let mut pv = vec![dummy_row(1050), dummy_row(1040), dummy_row(1030), dummy_row(1020)];
+        let mut pv = vec![
+            dummy_row(1050),
+            dummy_row(1040),
+            dummy_row(1030),
+            dummy_row(1020),
+        ];
         let mut doc = vec![];
         let mut emitted = Vec::new();
 
         // DOC frontier is 1000, not exhausted. All PV rows > 1000 are provably safe to emit!
-        let step = drain_provably_safe_frontier(&mut pv, &mut doc, 1000, 1000, false, false, 4, &mut emitted);
+        let step = drain_provably_safe_frontier(
+            &mut pv,
+            &mut doc,
+            1000,
+            1000,
+            false,
+            false,
+            4,
+            &mut emitted,
+        );
         assert_eq!(emitted.len(), 4);
         let emitted_ids: Vec<i64> = emitted.iter().map(|f| f.row.id).collect();
         assert_eq!(emitted_ids, vec![1050, 1040, 1030, 1020]);
@@ -2654,8 +2826,21 @@ mod tests {
         let mut emitted = Vec::new();
 
         // DOC frontier is 1000, not exhausted. PV item 990 <= 1000 cannot be emitted blindly!
-        let step = drain_provably_safe_frontier(&mut pv, &mut doc, 1000, 1000, false, false, 4, &mut emitted);
-        assert_eq!(emitted.len(), 0, "Candidate <= other frontier must NOT be emitted blindly");
+        let step = drain_provably_safe_frontier(
+            &mut pv,
+            &mut doc,
+            1000,
+            1000,
+            false,
+            false,
+            4,
+            &mut emitted,
+        );
+        assert_eq!(
+            emitted.len(),
+            0,
+            "Candidate <= other frontier must NOT be emitted blindly"
+        );
         assert_eq!(step, FrontierStep::FetchDoc);
         assert_eq!(pv.len(), 1);
     }
@@ -2667,9 +2852,22 @@ mod tests {
         let mut emitted = Vec::new();
 
         // Boundary test: PV item 1000 == DOC frontier 1000. Strict inequality (> vs >=) MUST trigger FetchDoc!
-        let step = drain_provably_safe_frontier(&mut pv, &mut doc, 1000, 1000, false, false, 1, &mut emitted);
+        let step = drain_provably_safe_frontier(
+            &mut pv,
+            &mut doc,
+            1000,
+            1000,
+            false,
+            false,
+            1,
+            &mut emitted,
+        );
         assert_eq!(emitted.len(), 0);
-        assert_eq!(step, FrontierStep::FetchDoc, "Exact equal boundary must require fetching other lane");
+        assert_eq!(
+            step,
+            FrontierStep::FetchDoc,
+            "Exact equal boundary must require fetching other lane"
+        );
     }
 
     #[test]
@@ -2679,7 +2877,8 @@ mod tests {
         let mut emitted = Vec::new();
 
         // doc_offset == 0 represents uninitialized/unknown frontier -> MUST FETCH DOC
-        let step = drain_provably_safe_frontier(&mut pv, &mut doc, 5000, 0, false, false, 1, &mut emitted);
+        let step =
+            drain_provably_safe_frontier(&mut pv, &mut doc, 5000, 0, false, false, 1, &mut emitted);
         assert_eq!(emitted.len(), 0);
         assert_eq!(step, FrontierStep::FetchDoc);
     }
@@ -2690,14 +2889,16 @@ mod tests {
         let mut doc: Vec<MediaFileRow> = (1..=100).rev().map(dummy_row).collect();
 
         let mut page1 = Vec::new();
-        let step1 = drain_provably_safe_frontier(&mut pv, &mut doc, 100, 1, true, true, 100, &mut page1);
+        let step1 =
+            drain_provably_safe_frontier(&mut pv, &mut doc, 100, 1, true, true, 100, &mut page1);
         assert_eq!(page1.len(), 100);
         assert_eq!(page1[0].row.id, 200);
         assert_eq!(page1[99].row.id, 101);
         assert_eq!(step1, FrontierStep::Finished);
 
         let mut page2 = Vec::new();
-        let step2 = drain_provably_safe_frontier(&mut pv, &mut doc, 100, 1, true, true, 100, &mut page2);
+        let step2 =
+            drain_provably_safe_frontier(&mut pv, &mut doc, 100, 1, true, true, 100, &mut page2);
         assert_eq!(page2.len(), 100);
         assert_eq!(page2[0].row.id, 100);
         assert_eq!(page2[99].row.id, 1);
@@ -2714,11 +2915,13 @@ mod tests {
         let mut emitted = Vec::new();
 
         // PV is exhausted, DOC is not -> scheduler MUST ONLY request FetchDoc
-        let step = drain_provably_safe_frontier(&mut pv, &mut doc, 50, 50, true, false, 10, &mut emitted);
+        let step =
+            drain_provably_safe_frontier(&mut pv, &mut doc, 50, 50, true, false, 10, &mut emitted);
         assert_eq!(step, FrontierStep::FetchDoc);
 
         // DOC is exhausted, PV is not -> scheduler MUST ONLY request FetchPv
-        let step2 = drain_provably_safe_frontier(&mut pv, &mut doc, 50, 50, false, true, 10, &mut emitted);
+        let step2 =
+            drain_provably_safe_frontier(&mut pv, &mut doc, 50, 50, false, true, 10, &mut emitted);
         assert_eq!(step2, FrontierStep::FetchPv);
     }
 
@@ -2731,15 +2934,41 @@ mod tests {
 
         // 1. First drain: emits 1000..951 (50 items) + 950 (1 item from Both).
         // Since DOC buffer is now empty and doc_offset = 950, next PV candidate (949) <= 950 requires FetchDoc!
-        let step1 = drain_provably_safe_frontier(&mut pv, &mut doc, 901, 950, true, false, 100, &mut emitted);
-        assert_eq!(step1, FrontierStep::FetchDoc, "Scheduler must pause PV emission and fetch DOC at boundary");
+        let step1 = drain_provably_safe_frontier(
+            &mut pv,
+            &mut doc,
+            901,
+            950,
+            true,
+            false,
+            100,
+            &mut emitted,
+        );
+        assert_eq!(
+            step1,
+            FrontierStep::FetchDoc,
+            "Scheduler must pause PV emission and fetch DOC at boundary"
+        );
         assert_eq!(emitted.len(), 51); // 1000..951 (50 items) + 950 (1 item via EmitBoth)
         assert_eq!(emitted[0].row.id, 1000);
         assert_eq!(emitted[50].row.id, 950);
-        assert_eq!(emitted[50].lane, SearchLane::Both, "Matching cross-lane 950 must be tagged Both and deduplicated");
+        assert_eq!(
+            emitted[50].lane,
+            SearchLane::Both,
+            "Matching cross-lane 950 must be tagged Both and deduplicated"
+        );
 
         // 2. DOC search completes and finds no more items (doc_exhausted = true)
-        let step2 = drain_provably_safe_frontier(&mut pv, &mut doc, 901, 950, true, true, 100, &mut emitted);
+        let step2 = drain_provably_safe_frontier(
+            &mut pv,
+            &mut doc,
+            901,
+            950,
+            true,
+            true,
+            100,
+            &mut emitted,
+        );
         assert_eq!(step2, FrontierStep::Finished);
         assert_eq!(emitted.len(), 100); // exactly 100 unique items (950 deduplicated)
         assert_eq!(emitted[51].row.id, 949);
@@ -2918,5 +3147,4 @@ mod tests {
         let short = "Hello World";
         assert_eq!(truncate_first_line(short, 60), "Hello World");
     }
-
 }

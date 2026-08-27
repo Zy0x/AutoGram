@@ -42,7 +42,11 @@ pub(crate) fn public_target(raw: &str) -> Option<String> {
         return Some(clean.to_string());
     }
     if let Ok(url) = Url::parse(clean) {
-        if url.scheme() == "tg" && url.host_str().is_some_and(|host| host.eq_ignore_ascii_case("resolve")) {
+        if url.scheme() == "tg"
+            && url
+                .host_str()
+                .is_some_and(|host| host.eq_ignore_ascii_case("resolve"))
+        {
             return url
                 .query_pairs()
                 .find(|(key, _)| key.eq_ignore_ascii_case("domain"))
@@ -56,7 +60,10 @@ pub(crate) fn public_target(raw: &str) -> Option<String> {
     let path = no_scheme
         .strip_prefix("t.me/")
         .or_else(|| no_scheme.strip_prefix("telegram.me/"))?;
-    let segments: Vec<&str> = path.split(['/', '?', '#']).filter(|s| !s.is_empty()).collect();
+    let segments: Vec<&str> = path
+        .split(['/', '?', '#'])
+        .filter(|s| !s.is_empty())
+        .collect();
     if segments.is_empty() {
         return None;
     }
@@ -104,8 +111,12 @@ fn is_bot_target(raw: &str) -> bool {
     if start_parameter(raw).is_some() {
         return true;
     }
-    public_target(raw)
-        .is_some_and(|target| target.trim_start_matches('@').to_ascii_lowercase().ends_with("bot"))
+    public_target(raw).is_some_and(|target| {
+        target
+            .trim_start_matches('@')
+            .to_ascii_lowercase()
+            .ends_with("bot")
+    })
 }
 
 pub fn inspect_chat_target_blocking(
@@ -115,9 +126,17 @@ pub fn inspect_chat_target_blocking(
 ) -> Result<ChatTargetInspection, TgError> {
     let target = target.trim().to_string();
     if target.is_empty() {
-        return Err(TgError::new(TgErrorCode::PeerNotFound, "target is required"));
+        return Err(TgError::new(
+            TgErrorCode::PeerNotFound,
+            "target is required",
+        ));
     }
-    let kind = if is_bot_target(&target) { "bot" } else { "chat" }.to_string();
+    let kind = if is_bot_target(&target) {
+        "bot"
+    } else {
+        "chat"
+    }
+    .to_string();
     if invite_hash(&target).is_some() {
         return Ok(ChatTargetInspection {
             target,
@@ -130,7 +149,12 @@ pub fn inspect_chat_target_blocking(
     }
     let lookup = public_target(&target)
         .or_else(|| private_channel_target(&target))
-        .ok_or_else(|| TgError::new(TgErrorCode::PeerNotFound, "unsupported Telegram destination"))?;
+        .ok_or_else(|| {
+            TgError::new(
+                TgErrorCode::PeerNotFound,
+                "unsupported Telegram destination",
+            )
+        })?;
     let rt = runtime()?;
     rt.block_on(async {
         with_pool_retry(&identity.session, || {
@@ -145,9 +169,11 @@ pub fn inspect_chat_target_blocking(
                     let resolved = resolve_peer(client, &lookup).await?;
                     let peer_id = super::peer_id_i64(resolved.id);
                     let mut dialogs = client.iter_dialogs();
-                    while let Some(dialog) = dialogs.next().await.map_err(|error| {
-                        TgError::new(TgErrorCode::Rpc, error.to_string())
-                    })? {
+                    while let Some(dialog) = dialogs
+                        .next()
+                        .await
+                        .map_err(|error| TgError::new(TgErrorCode::Rpc, error.to_string()))?
+                    {
                         if dialog.peer().id() == resolved.id {
                             return Ok(ChatTargetInspection {
                                 target,
@@ -161,7 +187,10 @@ pub fn inspect_chat_target_blocking(
                     }
                     let can_join = kind != "bot";
                     let display_name = if lookup.starts_with('@') {
-                        if let Ok(Some(p)) = client.resolve_username(lookup.trim_start_matches('@')).await {
+                        if let Ok(Some(p)) = client
+                            .resolve_username(lookup.trim_start_matches('@'))
+                            .await
+                        {
                             p.name().map(str::to_string)
                         } else {
                             None
@@ -238,7 +267,10 @@ pub fn chat_action_blocking(
     let action = action.trim().to_ascii_lowercase();
     let target = target.trim().to_string();
     if target.is_empty() {
-        return Err(TgError::new(TgErrorCode::PeerNotFound, "target is required"));
+        return Err(TgError::new(
+            TgErrorCode::PeerNotFound,
+            "target is required",
+        ));
     }
     if !matches!(
         action.as_str(),
@@ -250,7 +282,10 @@ pub fn chat_action_blocking(
         ));
     }
 
-    let message = message.map(str::trim).filter(|value| !value.is_empty()).map(str::to_string);
+    let message = message
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string);
     let rt = runtime()?;
     rt.block_on(async {
         with_pool_retry(&identity.session, || {
@@ -279,7 +314,8 @@ pub fn chat_action_blocking(
                                 )
                                 .await?;
                             } else {
-                                let lookup = public_target(&target).unwrap_or_else(|| target.clone());
+                                let lookup =
+                                    public_target(&target).unwrap_or_else(|| target.clone());
                                 let peer = resolve_peer(client, &lookup).await?;
                                 invoke_guarded(
                                     &session,
@@ -318,9 +354,17 @@ pub fn chat_action_blocking(
                             let text = match action.as_str() {
                                 "start_bot" => message
                                     .as_deref()
-                                    .map(|param| format!("/start {}", param.trim_start_matches("/start").trim()))
+                                    .map(|param| {
+                                        format!(
+                                            "/start {}",
+                                            param.trim_start_matches("/start").trim()
+                                        )
+                                    })
                                     .filter(|value| value.trim() != "/start")
-                                    .or_else(|| start_parameter(&target).map(|param| format!("/start {param}")))
+                                    .or_else(|| {
+                                        start_parameter(&target)
+                                            .map(|param| format!("/start {param}"))
+                                    })
                                     .unwrap_or_else(|| "/start".to_string()),
                                 "stop_bot" => "/stop".to_string(),
                                 _ => message.clone().ok_or_else(|| {
@@ -341,7 +385,10 @@ pub fn chat_action_blocking(
                                 message_id: Some(i64::from(sent.value.id())),
                             })
                         }
-                        _ => Err(TgError::new(TgErrorCode::Internal, "unreachable chat action")),
+                        _ => Err(TgError::new(
+                            TgErrorCode::Internal,
+                            "unreachable chat action",
+                        )),
                     }
                 })
             })
@@ -356,13 +403,34 @@ mod tests {
 
     #[test]
     fn parses_public_and_private_telegram_links() {
-        assert_eq!(public_target("https://t.me/example_bot"), Some("@example_bot".into()));
-        assert_eq!(invite_hash("https://t.me/+AbCd_123"), Some("AbCd_123".into()));
-        assert_eq!(invite_hash("https://t.me/joinchat/AbCd_123"), Some("AbCd_123".into()));
-        assert_eq!(invite_hash("tg://join?invite=AbCd_123"), Some("AbCd_123".into()));
-        assert_eq!(public_target("tg://resolve?domain=example_bot&start=hello"), Some("@example_bot".into()));
-        assert_eq!(start_parameter("https://t.me/example_bot?start=hello"), Some("hello".into()));
+        assert_eq!(
+            public_target("https://t.me/example_bot"),
+            Some("@example_bot".into())
+        );
+        assert_eq!(
+            invite_hash("https://t.me/+AbCd_123"),
+            Some("AbCd_123".into())
+        );
+        assert_eq!(
+            invite_hash("https://t.me/joinchat/AbCd_123"),
+            Some("AbCd_123".into())
+        );
+        assert_eq!(
+            invite_hash("tg://join?invite=AbCd_123"),
+            Some("AbCd_123".into())
+        );
+        assert_eq!(
+            public_target("tg://resolve?domain=example_bot&start=hello"),
+            Some("@example_bot".into())
+        );
+        assert_eq!(
+            start_parameter("https://t.me/example_bot?start=hello"),
+            Some("hello".into())
+        );
         assert_eq!(public_target("https://t.me/c/123456/42"), None);
-        assert_eq!(private_channel_target("https://t.me/c/123456/42"), Some("-100123456".into()));
+        assert_eq!(
+            private_channel_target("https://t.me/c/123456/42"),
+            Some("-100123456".into())
+        );
     }
 }

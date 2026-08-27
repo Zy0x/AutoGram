@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.autogram.app.R
 import com.autogram.app.theme.*
 import com.autogram.app.viewmodel.DriveViewModel
+import com.autogram.app.viewmodel.DriveMediaFilter
 
 @Composable
 fun DriveScreen(
@@ -25,8 +26,22 @@ fun DriveScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    val filteredItems = state.items.filter {
-        state.searchQuery.isBlank() || it.name.contains(state.searchQuery, ignoreCase = true)
+    val filteredItems = state.items.filter { item ->
+        val matchesSearch = state.searchQuery.isBlank() ||
+            item.name.contains(state.searchQuery, ignoreCase = true)
+        val category = item.telegramCategory.lowercase()
+        val mime = item.mimeType.lowercase()
+        val matchesType = when (state.mediaFilter) {
+            DriveMediaFilter.ALL -> true
+            DriveMediaFilter.MEDIA -> !item.isFolder && category in setOf("photo", "video", "gif")
+            DriveMediaFilter.IMAGES -> !item.isFolder && category == "photo"
+            DriveMediaFilter.VIDEOS -> !item.isFolder && category == "video"
+            DriveMediaFilter.AUDIO -> !item.isFolder && (category == "audio" || mime.startsWith("audio/"))
+            DriveMediaFilter.DOCUMENTS -> !item.isFolder &&
+                category != "sticker" && item.deliveryKind.equals("document", ignoreCase = true)
+            DriveMediaFilter.STICKERS -> !item.isFolder && category == "sticker"
+        }
+        matchesSearch && matchesType
     }
 
     Column(
@@ -36,6 +51,8 @@ fun DriveScreen(
         DriveTopBar(
             searchQuery = state.searchQuery,
             onSearchChange = viewModel::setSearchQuery,
+            mediaFilter = state.mediaFilter,
+            onMediaFilterChange = viewModel::setMediaFilter,
             isGridView = state.isGridView,
             onToggleViewMode = viewModel::toggleViewMode,
             onRefresh = { viewModel.loadFolder(state.currentPath) },
@@ -49,6 +66,23 @@ fun DriveScreen(
             onDownload = { /* Download handler */ },
             onDelete = viewModel::deleteSelected
         )
+
+        state.errorCode?.let { code ->
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                color = ErrorRed.copy(alpha = 0.14f),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text(
+                    text = stringResource(R.string.drive_error, code),
+                    modifier = Modifier.padding(12.dp),
+                    color = ErrorRed,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
 
         if (state.isLoading) {
             Box(
@@ -96,7 +130,7 @@ fun DriveScreen(
                                 if (state.selectedIds.isNotEmpty()) {
                                     viewModel.toggleItemSelection(item.id)
                                 } else if (item.isFolder) {
-                                    viewModel.loadFolder(item.name)
+                                    viewModel.loadFolder(childPath(state.currentPath, item.name))
                                 }
                             },
                             onLongClick = { viewModel.toggleItemSelection(item.id) }
@@ -118,7 +152,7 @@ fun DriveScreen(
                                 if (state.selectedIds.isNotEmpty()) {
                                     viewModel.toggleItemSelection(item.id)
                                 } else if (item.isFolder) {
-                                    viewModel.loadFolder(item.name)
+                                    viewModel.loadFolder(childPath(state.currentPath, item.name))
                                 }
                             },
                             onLongClick = { viewModel.toggleItemSelection(item.id) }
@@ -128,4 +162,9 @@ fun DriveScreen(
             }
         }
     }
+}
+
+private fun childPath(parent: String, child: String): String {
+    val normalizedParent = parent.trimEnd('/').ifEmpty { "" }
+    return "$normalizedParent/$child"
 }

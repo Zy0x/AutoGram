@@ -323,8 +323,7 @@ static CANCEL_ALL_TRANSFERS: std::sync::atomic::AtomicBool =
     std::sync::atomic::AtomicBool::new(false);
 static PAUSE_ALL_TRANSFERS: std::sync::atomic::AtomicBool =
     std::sync::atomic::AtomicBool::new(false);
-static PAUSED_TRANSFER_IDS: OnceLock<RwLock<std::collections::HashSet<String>>> =
-    OnceLock::new();
+static PAUSED_TRANSFER_IDS: OnceLock<RwLock<std::collections::HashSet<String>>> = OnceLock::new();
 
 fn cancelled_set() -> &'static RwLock<std::collections::HashSet<String>> {
     CANCELLED_TRANSFER_IDS.get_or_init(|| RwLock::new(std::collections::HashSet::new()))

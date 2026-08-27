@@ -46,17 +46,15 @@ pub fn probe_hardware_playback_capabilities() -> HardwarePlaybackProbeResult {
         .unwrap_or(0);
 
     // Mock/native DXGI probing adapter list
-    let adapters = vec![
-        GpuAdapterInfo {
-            adapter_id: "dxgi_adapter_0".into(),
-            vendor_name: "NVIDIA Corporation".into(),
-            device_name: "NVIDIA GeForce GPU".into(),
-            vendor_id: 0x10DE,
-            device_id: 0x2784,
-            dedicated_vram_mb: 8192,
-            is_hardware: true,
-        },
-    ];
+    let adapters = vec![GpuAdapterInfo {
+        adapter_id: "dxgi_adapter_0".into(),
+        vendor_name: "NVIDIA Corporation".into(),
+        device_name: "NVIDIA GeForce GPU".into(),
+        vendor_id: 0x10DE,
+        device_id: 0x2784,
+        dedicated_vram_mb: 8192,
+        is_hardware: true,
+    }];
 
     let backends = vec![
         PlaybackBackendCapability {
@@ -66,7 +64,13 @@ pub fn probe_hardware_playback_capabilities() -> HardwarePlaybackProbeResult {
             zero_copy_supported: true,
             max_resolution: "7680x4320 (8K)".into(),
             max_fps: 240,
-            supported_codecs: vec!["h264".into(), "hevc".into(), "hevc_main10".into(), "vp9".into(), "av1".into()],
+            supported_codecs: vec![
+                "h264".into(),
+                "hevc".into(),
+                "hevc_main10".into(),
+                "vp9".into(),
+                "av1".into(),
+            ],
             hdr_supported: true,
         },
         PlaybackBackendCapability {
@@ -76,7 +80,13 @@ pub fn probe_hardware_playback_capabilities() -> HardwarePlaybackProbeResult {
             zero_copy_supported: true,
             max_resolution: "7680x4320 (8K)".into(),
             max_fps: 360,
-            supported_codecs: vec!["h264".into(), "hevc".into(), "hevc_main10".into(), "vp9".into(), "av1".into()],
+            supported_codecs: vec![
+                "h264".into(),
+                "hevc".into(),
+                "hevc_main10".into(),
+                "vp9".into(),
+                "av1".into(),
+            ],
             hdr_supported: true,
         },
         PlaybackBackendCapability {
@@ -86,7 +96,13 @@ pub fn probe_hardware_playback_capabilities() -> HardwarePlaybackProbeResult {
             zero_copy_supported: true,
             max_resolution: "7680x4320 (8K)".into(),
             max_fps: 240,
-            supported_codecs: vec!["h264".into(), "hevc".into(), "hevc_main10".into(), "vp9".into(), "av1".into()],
+            supported_codecs: vec![
+                "h264".into(),
+                "hevc".into(),
+                "hevc_main10".into(),
+                "vp9".into(),
+                "av1".into(),
+            ],
             hdr_supported: true,
         },
         PlaybackBackendCapability {

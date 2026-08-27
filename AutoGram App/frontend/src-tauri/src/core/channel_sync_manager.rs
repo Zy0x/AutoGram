@@ -14,9 +14,8 @@ use tokio_util::sync::CancellationToken;
 
 use super::channel_sync_types::*;
 use super::channel_sync_worker::{
-    ChannelDifferenceSource, ChannelSyncControl, ChannelSyncDesiredState,
-    ChannelSyncEventSink, ChannelSyncWorker, GrammersChannelDifferenceSource,
-    PendingMutationBatch, now_epoch_ms,
+    now_epoch_ms, ChannelDifferenceSource, ChannelSyncControl, ChannelSyncDesiredState,
+    ChannelSyncEventSink, ChannelSyncWorker, GrammersChannelDifferenceSource, PendingMutationBatch,
 };
 use super::session_update_router::SessionUpdateRouterManager;
 use super::tg_error::{TgErrorCode, TgErrorPublic};
@@ -126,7 +125,9 @@ impl ChannelSyncManager {
 
                         let snapshot = ctrl_clone.attach_primary_and_snapshot(sink_arc).await;
                         if let Some(is_viewed) = request.is_actively_viewed {
-                            ctrl_clone.is_actively_viewed.store(is_viewed, Ordering::Release);
+                            ctrl_clone
+                                .is_actively_viewed
+                                .store(is_viewed, Ordering::Release);
                         }
 
                         return Ok(StartChannelSyncResponse {
@@ -152,7 +153,9 @@ impl ChannelSyncManager {
 
                         let snapshot = ctrl_clone.attach_primary_and_snapshot(sink_arc).await;
                         if let Some(is_viewed) = request.is_actively_viewed {
-                            ctrl_clone.is_actively_viewed.store(is_viewed, Ordering::Release);
+                            ctrl_clone
+                                .is_actively_viewed
+                                .store(is_viewed, Ordering::Release);
                         }
 
                         return Ok(StartChannelSyncResponse {
@@ -203,8 +206,12 @@ impl ChannelSyncManager {
 
             // Reserve scope & request map under write lock and drop lock immediately
             inner.workers.insert(sync_id, control.clone());
-            inner.active_channel_syncs.insert(scope_key.clone(), sync_id);
-            inner.client_request_map.insert(client_req_id.clone(), sync_id);
+            inner
+                .active_channel_syncs
+                .insert(scope_key.clone(), sync_id);
+            inner
+                .client_request_map
+                .insert(client_req_id.clone(), sync_id);
 
             (control, sync_id, ack_rx, state_tx)
         };
@@ -324,10 +331,7 @@ impl ChannelSyncManager {
         };
 
         let detached = control.detach_primary(subscriber_id, generation).await;
-        DetachChannelSyncResponse {
-            sync_id,
-            detached,
-        }
+        DetachChannelSyncResponse { sync_id, detached }
     }
 
     /// Processes an incoming storage ACK with exact single-winner atomic claim validation (P3.2 gold standard).
@@ -562,7 +566,10 @@ mod tests {
             committed_pts: Some(100),
             error_code: None,
         };
-        assert_eq!(manager.process_ack(stale_ack).await, ChannelSyncAckResult::Stale);
+        assert_eq!(
+            manager.process_ack(stale_ack).await,
+            ChannelSyncAckResult::Stale
+        );
 
         // 2. Future unexpected ACK
         let unexp_ack = ChannelSyncAck {
@@ -572,7 +579,10 @@ mod tests {
             committed_pts: Some(105),
             error_code: None,
         };
-        assert_eq!(manager.process_ack(unexp_ack).await, ChannelSyncAckResult::Unexpected);
+        assert_eq!(
+            manager.process_ack(unexp_ack).await,
+            ChannelSyncAckResult::Unexpected
+        );
 
         // 3. Winning claim on expected batch #1
         let valid_ack = ChannelSyncAck {
@@ -582,10 +592,16 @@ mod tests {
             committed_pts: Some(101),
             error_code: None,
         };
-        assert_eq!(manager.process_ack(valid_ack.clone()).await, ChannelSyncAckResult::Accepted);
+        assert_eq!(
+            manager.process_ack(valid_ack.clone()).await,
+            ChannelSyncAckResult::Accepted
+        );
 
         // 4. Duplicate claim while worker is still processing (claimed == 1)
-        assert_eq!(manager.process_ack(valid_ack.clone()).await, ChannelSyncAckResult::AlreadyAcked);
+        assert_eq!(
+            manager.process_ack(valid_ack.clone()).await,
+            ChannelSyncAckResult::AlreadyAcked
+        );
 
         // Worker drains and completes processing of batch #1
         let received = ack_rx.recv().await.unwrap();
@@ -595,7 +611,10 @@ mod tests {
         control.expected_batch_id.store(0, Ordering::Release);
 
         // 5. Subsequent duplicate ACK after worker completion
-        assert_eq!(manager.process_ack(valid_ack).await, ChannelSyncAckResult::AlreadyAcked);
+        assert_eq!(
+            manager.process_ack(valid_ack).await,
+            ChannelSyncAckResult::AlreadyAcked
+        );
     }
 
     #[tokio::test]

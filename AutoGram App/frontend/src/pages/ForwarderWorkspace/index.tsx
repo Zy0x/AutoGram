@@ -121,7 +121,7 @@ export function ForwarderWorkspace({
 
       {/* MAIN VIEWPORT */}
       <main className="ag-forwarder-main">
-        <Jobs />
+        <Jobs entryView={activeTab === 'new_job' ? 'new' : activeTab} />
       </main>
     </div>
   );

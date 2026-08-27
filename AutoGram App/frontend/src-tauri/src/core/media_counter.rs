@@ -85,7 +85,10 @@ pub fn get_media_statistics_blocking(
 
         let cache_uses_media_semantics =
             cached.total_count <= cached_media_total.max(cached.loaded_count);
-        if now.saturating_sub(cached.last_sync) < 120 && cache_uses_media_semantics && cached_media_total > 0 {
+        if now.saturating_sub(cached.last_sync) < 120
+            && cache_uses_media_semantics
+            && cached_media_total > 0
+        {
             if loaded_count > cached.loaded_count {
                 cached.loaded_count = loaded_count;
                 let _ = save_statistics(&cached);
@@ -132,7 +135,10 @@ pub fn get_media_statistics_blocking(
 
                     // If GetSearchCounters returned 0 for media and documents (common on forum supergroups with all-media scope),
                     // fallback to fast targeted messages::Search for PhotoVideo and Document to obtain the exact server counts!
-                    if breakdown.photo_count == 0 && breakdown.video_count == 0 && breakdown.file_count == 0 {
+                    if breakdown.photo_count == 0
+                        && breakdown.video_count == 0
+                        && breakdown.file_count == 0
+                    {
                         // 1. Query Photo/Video count
                         let pv_req = tl::functions::messages::Search {
                             peer: (&peer).into(),
@@ -154,7 +160,9 @@ pub fn get_media_statistics_blocking(
                         if let Ok(res) = client.invoke(&pv_req).await {
                             let count = match res {
                                 tl::enums::messages::Messages::Slice(s) => s.count.max(0) as usize,
-                                tl::enums::messages::Messages::ChannelMessages(c) => c.count.max(0) as usize,
+                                tl::enums::messages::Messages::ChannelMessages(c) => {
+                                    c.count.max(0) as usize
+                                }
                                 tl::enums::messages::Messages::Messages(m) => m.messages.len(),
                                 _ => 0,
                             };
@@ -182,14 +190,19 @@ pub fn get_media_statistics_blocking(
                         if let Ok(res) = client.invoke(&doc_req).await {
                             let count = match res {
                                 tl::enums::messages::Messages::Slice(s) => s.count.max(0) as usize,
-                                tl::enums::messages::Messages::ChannelMessages(c) => c.count.max(0) as usize,
+                                tl::enums::messages::Messages::ChannelMessages(c) => {
+                                    c.count.max(0) as usize
+                                }
                                 tl::enums::messages::Messages::Messages(m) => m.messages.len(),
                                 _ => 0,
                             };
                             breakdown.file_count = count;
                         }
 
-                        total_count = breakdown.photo_count.saturating_add(breakdown.file_count).max(loaded_count);
+                        total_count = breakdown
+                            .photo_count
+                            .saturating_add(breakdown.file_count)
+                            .max(loaded_count);
                     }
 
                     let now = std::time::SystemTime::now()
@@ -210,6 +223,7 @@ pub fn get_media_statistics_blocking(
                         gif_count: breakdown.gif_count,
                         link_count: breakdown.link_count,
                         audio_count: breakdown.audio_count,
+                        sticker_count: 0,
                         loaded_count,
                         total_bytes: 0,
                         last_sync: now,

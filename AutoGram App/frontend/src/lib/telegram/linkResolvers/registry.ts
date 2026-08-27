@@ -12,6 +12,7 @@ import { socialMediaResolver } from './providers/socialMediaResolver';
 import { knownRemoteHostResolver } from './providers/knownRemoteHostResolver';
 import { nativeDeepResolver } from './providers/nativeDeepResolver';
 import { directFileResolver } from './providers/directFileResolver';
+import { assertSafeRemoteUrl } from './urlSafety';
 
 /**
  * LinkResolverRegistry
@@ -50,6 +51,7 @@ class LinkResolverRegistry {
    */
   public async resolve(url: string, signal?: AbortSignal, options?: ResolveOptions): Promise<ResolvedMediaInfo> {
     const cleanUrl = url.trim();
+    assertSafeRemoteUrl(cleanUrl);
 
     // 1. Find matching specialized provider
     for (const provider of this.providers) {
@@ -57,7 +59,7 @@ class LinkResolverRegistry {
         try {
           const result = await provider.resolve(cleanUrl, signal, options);
           if (result && result.formats && result.formats.length > 0) {
-            return result;
+            return this.withTrace(result, cleanUrl, provider.name, 'provider');
           }
         } catch (err) {
           console.warn(`[LinkResolverRegistry] Provider ${provider.name} failed:`, err);
@@ -71,7 +73,7 @@ class LinkResolverRegistry {
       try {
         const nativeResult = await nativeDeepResolver.resolve(cleanUrl, signal, options);
         if (nativeResult && nativeResult.formats && nativeResult.formats.length > 0) {
-          return nativeResult;
+          return this.withTrace(nativeResult, cleanUrl, nativeDeepResolver.name, 'validated');
         }
       } catch {
         /* ignore */
@@ -81,7 +83,7 @@ class LinkResolverRegistry {
     // 2. Fallback to universal direct file inspector
     try {
       const fallbackResult = await directFileResolver.resolve(cleanUrl, signal);
-      if (fallbackResult) return fallbackResult;
+      if (fallbackResult) return this.withTrace(fallbackResult, cleanUrl, directFileResolver.name, 'fallback');
     } catch {
       /* ignore */
     }
@@ -89,7 +91,7 @@ class LinkResolverRegistry {
     // 3. Ultimate safe fallback
     const u = cleanUrl.split('?')[0];
     const rawName = u.split('/').filter(Boolean).pop() || 'remote_file';
-    return {
+    return this.withTrace({
       url: cleanUrl,
       platform: 'direct',
       platformName: 'Direct Download Link',
@@ -107,6 +109,26 @@ class LinkResolverRegistry {
       selectedFormatId: 'direct_raw',
       isDirectFile: true,
       resolvedAt: Date.now(),
+    }, cleanUrl, 'RawUrlFallback', 'fallback');
+  }
+
+  private withTrace(
+    result: ResolvedMediaInfo,
+    sourceUrl: string,
+    resolverName: string,
+    securityStatus: 'validated' | 'provider' | 'fallback'
+  ): ResolvedMediaInfo {
+    if (result.resolutionTrace) return result;
+    return {
+      ...result,
+      resolutionTrace: {
+        resolverName,
+        sourceUrl,
+        finalUrl: result.formats[0]?.directUrl || result.url,
+        candidateCount: result.formats.length,
+        securityStatus,
+        stages: ['analyze', 'resolve', 'discover', 'validate', 'ready'],
+      },
     };
   }
 }

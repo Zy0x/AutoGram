@@ -117,16 +117,29 @@ pub fn list_dialogs_blocking(
                             .name()
                             .map(|s| s.to_string())
                             .unwrap_or_else(|| id.to_string());
-                        let restriction_from_raw = |reasons: Option<&Vec<grammers_client::tl::enums::RestrictionReason>>| {
+                        let restriction_from_raw = |reasons: Option<
+                            &Vec<grammers_client::tl::enums::RestrictionReason>,
+                        >| {
                             reasons
                                 .and_then(|items| items.first())
                                 .map(|reason| {
-                                    let grammers_client::tl::enums::RestrictionReason::Reason(value) = reason;
+                                    let grammers_client::tl::enums::RestrictionReason::Reason(
+                                        value,
+                                    ) = reason;
                                     (Some(value.text.clone()), Some(value.reason.clone()))
                                 })
                                 .unwrap_or((None, None))
                         };
-                        let (is_user, is_bot, is_channel, is_group, is_forum, is_restricted, restriction_reason, restriction_code) = match &peer {
+                        let (
+                            is_user,
+                            is_bot,
+                            is_channel,
+                            is_group,
+                            is_forum,
+                            is_restricted,
+                            restriction_reason,
+                            restriction_code,
+                        ) = match &peer {
                             grammers_client::peer::Peer::User(user) => {
                                 let reasons = user.restriction_reason();
                                 let first = reasons.first();
@@ -144,14 +157,25 @@ pub fn list_dialogs_blocking(
                             grammers_client::peer::Peer::Channel(ch) => {
                                 let is_megagroup = ch.raw.megagroup;
                                 let is_forum = ch.raw.forum;
-                                let (reason, code) = restriction_from_raw(ch.raw.restriction_reason.as_ref());
-                                (false, false, !is_megagroup, is_megagroup, is_forum, ch.raw.restricted || reason.is_some(), reason, code)
+                                let (reason, code) =
+                                    restriction_from_raw(ch.raw.restriction_reason.as_ref());
+                                (
+                                    false,
+                                    false,
+                                    !is_megagroup,
+                                    is_megagroup,
+                                    is_forum,
+                                    ch.raw.restricted || reason.is_some(),
+                                    reason,
+                                    code,
+                                )
                             }
                             grammers_client::peer::Peer::Group(g) => {
                                 use grammers_client::tl::enums::Chat as C;
                                 let (forum, restricted, reason, code) = match &g.raw {
                                     C::Channel(c) => {
-                                        let (reason, code) = restriction_from_raw(c.restriction_reason.as_ref());
+                                        let (reason, code) =
+                                            restriction_from_raw(c.restriction_reason.as_ref());
                                         (c.forum, c.restricted || reason.is_some(), reason, code)
                                     }
                                     _ => (false, false, None, None),
@@ -354,9 +378,13 @@ pub(crate) async fn resolve_peer(
                             grammers_client::peer::Peer::Channel(c) => Some(c.title().to_string()),
                             grammers_client::peer::Peer::Group(g) => g.title().map(str::to_string),
                             grammers_client::peer::Peer::User(u) => Some(
-                                format!("{} {}", u.first_name().unwrap_or(""), u.last_name().unwrap_or(""))
-                                    .trim()
-                                    .to_string(),
+                                format!(
+                                    "{} {}",
+                                    u.first_name().unwrap_or(""),
+                                    u.last_name().unwrap_or("")
+                                )
+                                .trim()
+                                .to_string(),
                             ),
                         } {
                             if !name.is_empty() {

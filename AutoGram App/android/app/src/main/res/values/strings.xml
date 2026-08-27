@@ -4,6 +4,7 @@
     <string name="nav_drive">Drive</string>
     <string name="nav_transfer">Transfer</string>
     <string name="nav_studio">Studio</string>
+    <string name="nav_remote">Remote</string>
     <string name="nav_settings">Pengaturan</string>
 
     <string name="drive_search_placeholder">Cari berkas atau folder…</string>
@@ -19,6 +20,17 @@
     <string name="drive_action_move">Pindahkan</string>
     <string name="drive_action_download">Unduh</string>
     <string name="drive_action_delete">Hapus</string>
+    <string name="drive_search_accessibility">Cari</string>
+    <string name="drive_toggle_view_accessibility">Ubah tampilan daftar atau grid</string>
+    <string name="drive_item_selected_accessibility">Dipilih</string>
+    <string name="drive_error">Drive gagal dimuat: %1$s</string>
+    <string name="drive_filter_all">Semua</string>
+    <string name="drive_filter_media">Media</string>
+    <string name="drive_filter_images">Gambar</string>
+    <string name="drive_filter_videos">Video</string>
+    <string name="drive_filter_audio">Audio</string>
+    <string name="drive_filter_documents">Dokumen</string>
+    <string name="drive_filter_stickers">Stiker</string>
 
     <string name="transfer_title">Manajer Transfer</string>
     <string name="transfer_active_tasks">Tugas Aktif</string>
@@ -26,10 +38,35 @@
     <string name="transfer_speed">%1$s/dtk</string>
     <string name="transfer_eta">Sisa: %1$s</string>
     <string name="transfer_smart_rate">Smart Rate Controller Aktif</string>
+    <string name="transfer_smart_rate_accessibility">Pengendali laju cerdas</string>
+    <string name="transfer_aggregate_progress">Progres keseluruhan</string>
+    <string name="transfer_progress_percent">%1$d%%</string>
+    <string name="transfer_stage_value">Tahap: %1$s</string>
+    <string name="transfer_action_pause">Jeda transfer</string>
+    <string name="transfer_action_resume">Lanjutkan transfer</string>
 
     <string name="settings_title">Pengaturan AutoGram</string>
     <string name="settings_telegram_accounts">Akun Telegram</string>
     <string name="settings_hardware_encoder">Encoder Perangkat Keras</string>
     <string name="settings_storage_budget">Batas Penyimpanan Sementara</string>
     <string name="settings_version">Versi 3.7.32 (Native Android Core)</string>
+    <string name="settings_hardware_accessibility">Perangkat keras</string>
+    <string name="settings_storage_accessibility">Penyimpanan</string>
+    <string name="settings_account_accessibility">Akun</string>
+    <string name="settings_encoder_value">Encoder: %1$s (Prioritas: %2$d)</string>
+    <string name="settings_encoder_profile">Preset: %1$s • Bitrate: %2$d kbps</string>
+    <string name="settings_hardware_loading">Memuat profil perangkat keras…</string>
+    <string name="settings_storage_capacity">Kapasitas sementara: %1$s</string>
+    <string name="settings_storage_threshold">Ambang pembersihan (LRU): %1$d%%</string>
+    <string name="settings_account_score">Tingkat: %1$s • Skor total: %2$d/100</string>
+
+    <string name="remote_title">Remote Link</string>
+    <string name="remote_subtitle">Analisis tautan media dengan antrean yang aman dan dapat dilanjutkan.</string>
+    <string name="remote_input_label">Tautan media</string>
+    <string name="remote_input_placeholder">https://contoh.com/media</string>
+    <string name="remote_action_queue">Analisis dan antrekan</string>
+    <string name="remote_invalid_url">Masukkan tautan HTTP atau HTTPS yang valid.</string>
+    <string name="remote_queued">Tautan ditambahkan ke Manajer Transfer.</string>
+    <string name="remote_queue_failed">Tautan belum dapat ditambahkan. Coba lagi.</string>
+    <string name="remote_source_host">Sumber: %1$s</string>
 </resources>

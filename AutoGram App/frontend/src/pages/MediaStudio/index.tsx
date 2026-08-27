@@ -7,6 +7,7 @@ import {
   isIndexEventForActiveScope,
   partialIndexNeedsAutoResume,
 } from './indexScope';
+import { reconcileFilteredTotal } from './filterCountPolicy';
 import type { DuplicateContextInfo } from '../../components/drive/DrivePreviewModal';
 import { TransferPreflightDialog } from '../../components/drive/Transfers/TransferPreflightDialog';
 
@@ -2046,6 +2047,7 @@ function MediaDriveDesktop({
     if (viewPerspective === 'telegram' && cachedMediaBreakdown) {
       const serverMedia = (cachedMediaBreakdown.photoCount || 0) + (cachedMediaBreakdown.videoCount || 0);
       const serverFiles = cachedMediaBreakdown.fileCount || 0;
+      const serverStickers = cachedMediaBreakdown.stickerCount || 0;
       const serverTotal =
         serverMedia +
         serverFiles +
@@ -2055,12 +2057,17 @@ function MediaDriveDesktop({
 
       if (serverTotal > 0) {
         const res: Record<string, number> = {
-          all: Math.max(totalFileCount ?? 0, files.length, serverTotal),
+          all: Math.max(
+            Math.max(0, (totalFileCount ?? 0) - serverStickers),
+            localCounts?.all || 0,
+            serverTotal
+          ),
           media: filteredTotalCountMap['media'] ?? (serverMedia > 0 ? serverMedia : (localCounts?.media || 0)),
           files: filteredTotalCountMap['files'] ?? (serverFiles > 0 ? serverFiles : (localCounts?.files || 0)),
           links: filteredTotalCountMap['links'] ?? (cachedMediaBreakdown.linkCount ?? localCounts?.links ?? 0),
           gifs: filteredTotalCountMap['gifs'] ?? (cachedMediaBreakdown.gifCount ?? localCounts?.gifs ?? 0),
           audio: filteredTotalCountMap['audio'] ?? (cachedMediaBreakdown.audioCount ?? localCounts?.audio ?? 0),
+          stickers: filteredTotalCountMap['stickers'] ?? (serverStickers || localCounts?.stickers || 0),
         };
         return res;
       }
@@ -2069,12 +2076,16 @@ function MediaDriveDesktop({
     if (localCounts) {
       const res: Record<string, number> = {
         ...localCounts,
-        all: Math.max(totalFileCount ?? 0, localCounts.all || files.length),
+        all: Math.max(
+          Math.max(0, (totalFileCount ?? 0) - (localCounts.stickers || 0)),
+          localCounts.all || 0
+        ),
         files: filteredTotalCountMap['files'] ?? localCounts.files ?? 0,
         media: filteredTotalCountMap['media'] ?? localCounts.media ?? 0,
         links: filteredTotalCountMap['links'] ?? localCounts.links ?? 0,
         gifs: filteredTotalCountMap['gifs'] ?? localCounts.gifs ?? 0,
         audio: filteredTotalCountMap['audio'] ?? localCounts.audio ?? 0,
+        stickers: filteredTotalCountMap['stickers'] ?? localCounts.stickers ?? 0,
       };
       return res;
     }
@@ -2347,6 +2358,7 @@ function MediaDriveDesktop({
         gifCount: fastStats.gifCount || 0,
         linkCount: fastStats.linkCount || 0,
         audioCount: fastStats.audioCount || 0,
+        stickerCount: fastStats.stickerCount || 0,
       });
       if (fastStats.totalBytes > 0) {
         setTotalBytes(fastStats.totalBytes);
@@ -4203,21 +4215,17 @@ function MediaDriveDesktop({
       });
       if (requestSeq !== filterRequestSeqRef.current || mediaFilter !== filterKey) return;
       const next = dedupeByMsgId(response.files || []);
-      setFilteredFilesMap((prev) => ({
-        ...prev,
-        [filterKey]: dedupeByMsgId([...(prev[filterKey] || []), ...next]),
-      }));
+      const merged = dedupeByMsgId([...currentList, ...next]);
+      setFilteredFilesMap((prev) => ({ ...prev, [filterKey]: merged }));
       setFilteredHasMoreMap((prev) => ({
         ...prev,
         [filterKey]: Boolean(response.has_more),
       }));
       filteredNextOffsetMapRef.current[filterKey] = response.next_offset_id ?? null;
-      if (response.total_count != null) {
-        setFilteredTotalCountMap((prev) => ({
-          ...prev,
-          [filterKey]: Number(response.total_count),
-        }));
-      }
+      setFilteredTotalCountMap((prev) => ({
+        ...prev,
+        [filterKey]: reconcileFilteredTotal(filterKey, response.total_count, merged.length),
+      }));
     } catch (error) {
       if (requestSeq === filterRequestSeqRef.current) setError(localizedDriveError(error, t));
     } finally {
@@ -4254,12 +4262,10 @@ function MediaDriveDesktop({
           ...prev,
           [filterKey]: Boolean(response.has_more),
         }));
-        if (response.total_count != null) {
-          setFilteredTotalCountMap((prev) => ({
-            ...prev,
-            [filterKey]: Number(response.total_count),
-          }));
-        }
+        setFilteredTotalCountMap((prev) => ({
+          ...prev,
+          [filterKey]: reconcileFilteredTotal(filterKey, response.total_count, next.length),
+        }));
         filteredNextOffsetMapRef.current[filterKey] = response.next_offset_id ?? null;
       })
       .catch((error) => {
@@ -7139,6 +7145,7 @@ function MediaDriveDesktop({
         { type: 'gif', count: exactBreakdown.gifCount, bytes: 0 },
         { type: 'link', count: exactBreakdown.linkCount, bytes: 0 },
         { type: 'audio', count: exactBreakdown.audioCount, bytes: 0 },
+        { type: 'sticker', count: exactBreakdown.stickerCount, bytes: 0 },
       ].filter((row) => row.count > 0));
       setTotalFileCount(indexedFiles.length);
       setTotalBytes(exactBytes);

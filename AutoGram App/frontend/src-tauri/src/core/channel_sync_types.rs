@@ -1,8 +1,8 @@
 //! channel_sync_types.rs — Types & Wire Contracts for Rust Channel Synchronization Subsystem (P2.5)
 
-use serde::{Deserialize, Serialize};
 use super::media_mutation::MediaMutation;
 use super::telegram_ops::TelegramIdentity;
+use serde::{Deserialize, Serialize};
 
 /// Lifecycle and runtime states of an active ChannelSyncWorker.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -35,12 +35,8 @@ pub enum ChannelMutationSource {
 /// Outcome of a getChannelDifference pagination loop.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DifferenceRecoveryOutcome {
-    Synced {
-        next_short_poll_secs: Option<u32>,
-    },
-    ReconcileRequired {
-        latest_pts: i32,
-    },
+    Synced { next_short_poll_secs: Option<u32> },
+    ReconcileRequired { latest_pts: i32 },
     TerminalFailed(String),
 }
 

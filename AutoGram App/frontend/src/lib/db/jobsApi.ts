@@ -124,7 +124,11 @@ export async function jobsRunMigration(args: {
   jobId: number;
   executionId: number;
   forwarded: number;
+  skipped: number;
+  failed: number;
   message: string;
+  backend: string;
+  mode: string;
 }> {
   if (!detectTauriRuntime()) throw new Error('Jobs membutuhkan desktop app');
   return invoke('jobs_run_migration', {
@@ -133,6 +137,48 @@ export async function jobsRunMigration(args: {
     apiHash: args.apiHash,
     maxMessages: args.maxMessages ?? 100,
   });
+}
+
+export async function jobsDryRun(args: {
+  jobId: number;
+  apiId: number;
+  apiHash: string;
+}): Promise<{
+  status: string;
+  jobId: number;
+  executionId: number;
+  forwarded: number;
+  skipped: number;
+  failed: number;
+  message: string;
+  backend: string;
+  mode: string;
+}> {
+  if (!detectTauriRuntime()) throw new Error('Jobs membutuhkan desktop app');
+  return invoke('jobs_dry_run', {
+    jobId: args.jobId,
+    apiId: args.apiId,
+    apiHash: args.apiHash,
+  });
+}
+
+export async function jobsCancelMigration(jobId: number): Promise<void> {
+  if (!detectTauriRuntime()) throw new Error('Jobs membutuhkan desktop app');
+  await invoke('jobs_cancel_migration', { jobId });
+}
+
+export type NativeJobEvent = {
+  id: number;
+  job_id: number;
+  timestamp: number;
+  stage: string;
+  message: string;
+  metadata?: string | null;
+};
+
+export async function jobsGetEvents(jobId: number): Promise<NativeJobEvent[]> {
+  if (!detectTauriRuntime()) return [];
+  return invoke<NativeJobEvent[]>('autogram_get_job_events', { jobId });
 }
 
 export interface CacheSizeResult {

@@ -12,8 +12,8 @@ use parking_lot::Mutex;
 use tokio_util::sync::CancellationToken;
 
 use crate::core::session_rate::{
-    acquire_channel_sync_slot, acquire_index_slot, acquire_media_slot, acquire_preview_slot, note_error, note_flood_wait_class,
-    wait_if_flooded_class, RpcClass,
+    acquire_channel_sync_slot, acquire_index_slot, acquire_media_slot, acquire_preview_slot,
+    note_error, note_flood_wait_class, wait_if_flooded_class, RpcClass,
 };
 use crate::core::tg_error::{map_invocation, TgError, TgErrorCode};
 use crate::core::tg_log;
@@ -36,7 +36,8 @@ impl IndexDispatchGate {
     }
 
     pub fn set_spacing_ms(&self, ms: u32) {
-        self.spacing_ms.store(ms, std::sync::atomic::Ordering::Relaxed);
+        self.spacing_ms
+            .store(ms, std::sync::atomic::Ordering::Relaxed);
     }
 
     pub fn spacing_ms(&self) -> u32 {
@@ -45,7 +46,10 @@ impl IndexDispatchGate {
 
     /// Reserves a dispatch timestamp and sleeps until that timestamp is reached.
     /// Returns the instant at which actual network dispatch begins and the pacing wait duration in ms.
-    pub async fn acquire_dispatch_slot(&self, cancel: Option<&CancellationToken>) -> Result<(Instant, u64), TgError> {
+    pub async fn acquire_dispatch_slot(
+        &self,
+        cancel: Option<&CancellationToken>,
+    ) -> Result<(Instant, u64), TgError> {
         let spacing_ms = self.spacing_ms.load(std::sync::atomic::Ordering::Relaxed);
         let target_time = {
             let mut next = self.next_allowed_instant.lock().await;
@@ -211,7 +215,10 @@ where
     loop {
         if let Some(ref c) = control.cancel {
             if c.is_cancelled() {
-                return Err(TgError::new(TgErrorCode::Cancelled, "guarded operation cancelled"));
+                return Err(TgError::new(
+                    TgErrorCode::Cancelled,
+                    "guarded operation cancelled",
+                ));
             }
         }
 
@@ -259,7 +266,10 @@ where
                 // Record telemetry on success
                 {
                     let mut state = telemetry_state().lock();
-                    let lat_vec = state.recent_latencies.entry(telemetry_key.clone()).or_default();
+                    let lat_vec = state
+                        .recent_latencies
+                        .entry(telemetry_key.clone())
+                        .or_default();
                     lat_vec.push(latency_ms);
                     if lat_vec.len() > 100 {
                         lat_vec.remove(0);
@@ -267,7 +277,10 @@ where
                     let mut sorted = lat_vec.clone();
                     sorted.sort_unstable();
                     let idx = (sorted.len() as f64 * 0.95).floor() as usize;
-                    let p95_calc = sorted.get(idx.min(sorted.len().saturating_sub(1))).copied().unwrap_or(latency_ms);
+                    let p95_calc = sorted
+                        .get(idx.min(sorted.len().saturating_sub(1)))
+                        .copied()
+                        .unwrap_or(latency_ms);
 
                     let m = state.metrics.entry(telemetry_key).or_default();
                     m.total_calls += 1;
@@ -344,10 +357,17 @@ where
                         let resume_at_ms = now_ms + (u64::from(wait_secs) * 1000);
 
                         if let Some(ref obs) = control.observer {
-                            obs.on_guard_backoff_start(wait_secs, resume_at_ms, attempts, max_attempts).await;
+                            obs.on_guard_backoff_start(
+                                wait_secs,
+                                resume_at_ms,
+                                attempts,
+                                max_attempts,
+                            )
+                            .await;
                         }
 
-                        let sleep_duration = Duration::from_secs(u64::from(wait_secs)) + Duration::from_millis(50);
+                        let sleep_duration =
+                            Duration::from_secs(u64::from(wait_secs)) + Duration::from_millis(50);
                         let interrupted = if let Some(ref c) = control.cancel {
                             tokio::select! {
                                 _ = c.cancelled() => true,
@@ -359,7 +379,10 @@ where
                         };
 
                         if interrupted {
-                            return Err(TgError::new(TgErrorCode::Cancelled, "guarded flood wait cancelled"));
+                            return Err(TgError::new(
+                                TgErrorCode::Cancelled,
+                                "guarded flood wait cancelled",
+                            ));
                         }
 
                         if let Some(ref obs) = control.observer {

@@ -12,7 +12,11 @@ impl MemoryThumbCache {
     pub fn new(max_bytes: usize) -> Self {
         Self {
             items: Mutex::new(HashMap::new()),
-            max_bytes: if max_bytes == 0 { 32 * 1024 * 1024 } else { max_bytes },
+            max_bytes: if max_bytes == 0 {
+                32 * 1024 * 1024
+            } else {
+                max_bytes
+            },
         }
     }
 

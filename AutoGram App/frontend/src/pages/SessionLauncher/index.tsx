@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { invoke } from '@tauri-apps/api/core';
 import {
@@ -23,6 +23,8 @@ import {
   loadSelectableSessions,
   hasStableSessionIdentity,
   getSessionMetadata,
+  getSessionDisplayName,
+  preserveVerifiedSessionStatus,
   setSessionAlias,
   deleteSessionLocalData,
   SESSION_METADATA_EVENT,
@@ -75,7 +77,7 @@ export function SessionLauncher({
   const [deletingSessionStep2, setDeletingSessionStep2] = useState<SessionOption | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [isRefreshingSessions, setIsRefreshingSessions] = useState(false);
-  const [justRefreshed, setJustRefreshed] = useState(false);
+  const activeRefreshesRef = useRef(0);
 
   useEffect(() => {
     const handleOutsideClick = () => {
@@ -86,11 +88,14 @@ export function SessionLauncher({
   }, []);
 
   const refreshSessions = useCallback(async (force = false, verify = false) => {
-    if (force) setIsRefreshingSessions(true);
+    if (force) {
+      activeRefreshesRef.current += 1;
+      setIsRefreshingSessions(true);
+    }
     try {
       const res = await loadSelectableSessions({ verify, force });
         if (Array.isArray(res)) {
-          setSessions(res);
+          setSessions((previous) => preserveVerifiedSessionStatus(res, previous));
           setDefaultSession((current) => current || res[0]?.name || '');
 
           // Fetch self profile photo for each session
@@ -117,19 +122,17 @@ export function SessionLauncher({
         }
       return res;
     } finally {
-      if (force) setIsRefreshingSessions(false);
+      if (force) {
+        activeRefreshesRef.current = Math.max(0, activeRefreshesRef.current - 1);
+        if (activeRefreshesRef.current === 0) setIsRefreshingSessions(false);
+      }
     }
   }, []);
 
   const handleManualRefresh = useCallback(async () => {
     if (isRefreshingSessions) return;
     try {
-      const refreshed = await refreshSessions(true, true);
-      const stable = refreshed.filter((session) => hasStableSessionIdentity(session));
-      setJustRefreshed(stable.length > 0 && stable.every((session) => session.status === 'connected'));
-      setTimeout(() => {
-        setJustRefreshed(false);
-      }, 1600);
+      await refreshSessions(true, true);
     } catch {
       // Ignored
     }
@@ -162,14 +165,23 @@ export function SessionLauncher({
   // immediately so the new card appears without reopening the launcher or
   // waiting for the periodic poll.
   useEffect(() => {
-    const syncNow = () => {
+    const syncNow = (event: Event) => {
+      const kind = (event as CustomEvent<{ kind?: string }>).detail?.kind;
+      if (kind === 'metadata') {
+        setSessions((current) => current.map((session) => ({
+          ...session,
+          label: getSessionDisplayName(session.name),
+        })));
+        return;
+      }
       void refreshSessions(true, false).catch(() => undefined);
     };
+    const syncOnFocus = () => void refreshSessions(false, false).catch(() => undefined);
     window.addEventListener(SESSION_METADATA_EVENT, syncNow);
-    window.addEventListener('focus', syncNow);
+    window.addEventListener('focus', syncOnFocus);
     return () => {
       window.removeEventListener(SESSION_METADATA_EVENT, syncNow);
-      window.removeEventListener('focus', syncNow);
+      window.removeEventListener('focus', syncOnFocus);
     };
   }, [refreshSessions]);
 
@@ -221,6 +233,8 @@ export function SessionLauncher({
   const displaySessions: SessionOption[] = sessions.filter((session) =>
     hasStableSessionIdentity(session)
   );
+  const launcherSynced = displaySessions.length > 0 &&
+    displaySessions.every((session) => session.status === 'connected');
 
   return (
     <div
@@ -285,7 +299,7 @@ export function SessionLauncher({
             onClick={handleManualRefresh}
             disabled={isRefreshingSessions}
             className={`ag-launcher-refresh-btn ${isRefreshingSessions ? 'is-refreshing' : ''} ${
-              justRefreshed ? 'is-success' : ''
+              launcherSynced ? 'is-success' : ''
             }`}
             title={t('nav.refresh_sessions')}
             aria-label={t('nav.refresh_sessions')}
@@ -293,7 +307,7 @@ export function SessionLauncher({
             <span className="ag-refresh-btn-glow" aria-hidden="true" />
             <span className="ag-refresh-btn-shimmer" aria-hidden="true" />
             <span className="ag-refresh-icon-wrap" aria-hidden="true">
-              {justRefreshed ? (
+              {launcherSynced && !isRefreshingSessions ? (
                 <Check size={14} className="ag-refresh-check-icon" />
               ) : (
                 <RefreshCw
@@ -305,7 +319,7 @@ export function SessionLauncher({
             <span className="ag-refresh-label">
               {isRefreshingSessions
                 ? t('nav.refreshing')
-                : justRefreshed
+                : launcherSynced
                 ? t('nav.refreshed')
                 : t('nav.refresh')}
             </span>
@@ -554,6 +568,22 @@ export function SessionLauncher({
                         />
                         <span style={{ fontSize: '0.76rem', color: '#38bdf8', fontWeight: 600 }}>
                           {t('nav.connection_checking')}
+                        </span>
+                      </>
+                    ) : sess.status === 'connected_stale' ? (
+                      <>
+                        <span
+                          className="ag-status-dot-pulse"
+                          style={{
+                            width: '7px',
+                            height: '7px',
+                            borderRadius: '50%',
+                            backgroundColor: '#f59e0b',
+                            color: '#f59e0b',
+                          }}
+                        />
+                        <span style={{ fontSize: '0.76rem', color: '#fbbf24', fontWeight: 600 }}>
+                          {t('nav.connection_last_verified')}
                         </span>
                       </>
                     ) : sess.status === 'error' || sess.status === 'offline' ? (

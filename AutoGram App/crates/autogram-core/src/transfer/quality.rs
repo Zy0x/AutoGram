@@ -103,150 +103,29 @@ fn ext_category(path: &Path) -> MediaCategory {
         "png" => MediaCategory::PngImage,
         "webp" => MediaCategory::WebpImage,
         "gif" => MediaCategory::GifImage,
-        "bmp"
-        | "tif"
-        | "tiff"
-        | "heic"
-        | "heif"
-        | "hif"
-        | "avif"
-        | "avis"
-        | "jxl"
-        | "svg"
-        | "svgz"
-        | "ico"
-        | "cur"
-        | "psd"
-        | "psb"
-        | "tga"
-        | "dds"
-        | "exr"
-        | "hdr"
-        | "eps"
-        | "ai"
-        | "dng"
-        | "cr2"
-        | "cr3"
-        | "nef"
-        | "nrw"
-        | "arw"
-        | "srf"
-        | "sr2"
-        | "orf"
-        | "rw2"
-        | "pef"
-        | "raf"
-        | "srw"
-        | "x3f"
-        | "erf"
-        | "kdc"
-        | "dcr"
-        | "mef"
-        | "mos"
-        | "mrw" => MediaCategory::OtherImage,
+        "bmp" | "tif" | "tiff" | "heic" | "heif" | "hif" | "avif" | "avis" | "jxl" | "svg"
+        | "svgz" | "ico" | "cur" | "psd" | "psb" | "tga" | "dds" | "exr" | "hdr" | "eps" | "ai"
+        | "dng" | "cr2" | "cr3" | "nef" | "nrw" | "arw" | "srf" | "sr2" | "orf" | "rw2" | "pef"
+        | "raf" | "srw" | "x3f" | "erf" | "kdc" | "dcr" | "mef" | "mos" | "mrw" => {
+            MediaCategory::OtherImage
+        }
         "mp4" | "m4v" => MediaCategory::Mp4Video,
-        "mov"
-        | "qt"
-        | "mkv"
-        | "webm"
-        | "avi"
-        | "3gp"
-        | "3g2"
-        | "3gpp"
-        | "3gpp2"
-        | "ts"
-        | "m2ts"
-        | "mts"
-        | "vob"
-        | "flv"
-        | "f4v"
-        | "f4p"
-        | "wmv"
-        | "asf"
-        | "ogv"
-        | "rm"
-        | "rmvb"
-        | "divx"
-        | "xvid"
-        | "mxf"
-        | "dv"
-        | "mpg"
-        | "mpeg"
-        | "m2v"
-        | "mpe"
-        | "mpv" => MediaCategory::OtherVideo,
-        "mp3"
-        | "m4a"
-        | "m4b"
-        | "m4p"
-        | "m4r"
-        | "aac"
-        | "ogg"
-        | "oga"
-        | "opus"
-        | "flac"
-        | "alac"
-        | "wav"
-        | "wave"
-        | "wma"
-        | "aiff"
-        | "aif"
-        | "aifc"
-        | "ape"
-        | "tak"
-        | "tta"
-        | "wv"
-        | "dsf"
-        | "dff"
-        | "ac3"
-        | "eac3"
-        | "dts"
-        | "dtshd"
-        | "truehd"
-        | "thd"
-        | "amr"
-        | "awb"
-        | "voc"
-        | "caf"
-        | "mid"
-        | "midi"
-        | "kar"
-        | "mod"
-        | "xm"
-        | "it"
-        | "s3m" => MediaCategory::Audio,
+        "mov" | "qt" | "mkv" | "webm" | "avi" | "3gp" | "3g2" | "3gpp" | "3gpp2" | "ts"
+        | "m2ts" | "mts" | "vob" | "flv" | "f4v" | "f4p" | "wmv" | "asf" | "ogv" | "rm"
+        | "rmvb" | "divx" | "xvid" | "mxf" | "dv" | "mpg" | "mpeg" | "m2v" | "mpe" | "mpv" => {
+            MediaCategory::OtherVideo
+        }
+        "mp3" | "m4a" | "m4b" | "m4p" | "m4r" | "aac" | "ogg" | "oga" | "opus" | "flac"
+        | "alac" | "wav" | "wave" | "wma" | "aiff" | "aif" | "aifc" | "ape" | "tak" | "tta"
+        | "wv" | "dsf" | "dff" | "ac3" | "eac3" | "dts" | "dtshd" | "truehd" | "thd" | "amr"
+        | "awb" | "voc" | "caf" | "mid" | "midi" | "kar" | "mod" | "xm" | "it" | "s3m" => {
+            MediaCategory::Audio
+        }
         "pdf" => MediaCategory::PdfDocument,
-        "zip"
-        | "rar"
-        | "7z"
-        | "tar"
-        | "gz"
-        | "tgz"
-        | "bz2"
-        | "tbz2"
-        | "xz"
-        | "txz"
-        | "zst"
-        | "lz4"
-        | "iso"
-        | "cab" => MediaCategory::Archive,
-        "doc"
-        | "docx"
-        | "xls"
-        | "xlsx"
-        | "ppt"
-        | "pptx"
-        | "odt"
-        | "ods"
-        | "odp"
-        | "epub"
-        | "mobi"
-        | "azw"
-        | "azw3"
-        | "cbr"
-        | "cbz"
-        | "fb2"
-        | "djvu" => MediaCategory::OfficeDocument,
+        "zip" | "rar" | "7z" | "tar" | "gz" | "tgz" | "bz2" | "tbz2" | "xz" | "txz" | "zst"
+        | "lz4" | "iso" | "cab" => MediaCategory::Archive,
+        "doc" | "docx" | "xls" | "xlsx" | "ppt" | "pptx" | "odt" | "ods" | "odp" | "epub"
+        | "mobi" | "azw" | "azw3" | "cbr" | "cbz" | "fb2" | "djvu" => MediaCategory::OfficeDocument,
         "txt" | "md" | "csv" | "tsv" | "json" | "xml" | "html" | "htm" | "log" | "rtf" => {
             MediaCategory::TextDocument
         }
@@ -308,7 +187,11 @@ pub fn classify_media(path: &Path) -> MediaCategory {
     if h.len() >= 12 && &h[0..4] == b"RIFF" && &h[8..12] == b"AVI " {
         return MediaCategory::OtherVideo;
     }
-    if h.starts_with(b"BM") || h.starts_with(b"II*\0") || h.starts_with(b"MM\0*") || h.starts_with(b"8BPS") {
+    if h.starts_with(b"BM")
+        || h.starts_with(b"II*\0")
+        || h.starts_with(b"MM\0*")
+        || h.starts_with(b"8BPS")
+    {
         return MediaCategory::OtherImage;
     }
     if h.starts_with(b"BZh")
@@ -411,9 +294,7 @@ pub fn classify_prepared_delivery(
     }
     if mode == QualityMode::Original {
         let payload_class = match category {
-            MediaCategory::JpegImage | MediaCategory::PngImage => {
-                PayloadClass::NativeVisual
-            }
+            MediaCategory::JpegImage | MediaCategory::PngImage => PayloadClass::NativeVisual,
             MediaCategory::Mp4Video => PayloadClass::NativeVisual,
             MediaCategory::Audio if is_consumer_audio(path) => PayloadClass::AudioGroup,
             _ => PayloadClass::OriginalDocumentBatch,

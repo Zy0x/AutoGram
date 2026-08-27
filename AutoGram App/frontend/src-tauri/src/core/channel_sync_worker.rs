@@ -81,7 +81,15 @@ impl ChannelDifferenceSource for GrammersChannelDifferenceSource {
         limit: i32,
         guard_control: RpcGuardControl,
     ) -> Result<ChannelDifferenceResult, TgError> {
-        get_channel_difference_page(&self.sessions_dir, identity, chat_id, pts, limit, &guard_control).await
+        get_channel_difference_page(
+            &self.sessions_dir,
+            identity,
+            chat_id,
+            pts,
+            limit,
+            &guard_control,
+        )
+        .await
     }
 }
 
@@ -307,10 +315,12 @@ impl ChannelSyncControl {
         }
 
         self.reconcile_notify.notify_waiters();
-        let _ = self.emit_to_primary(ChannelSyncEvent::State {
-            sync_id: self.sync_id,
-            state: ChannelSyncStatus::LiveSynced,
-        }).await;
+        let _ = self
+            .emit_to_primary(ChannelSyncEvent::State {
+                sync_id: self.sync_id,
+                state: ChannelSyncStatus::LiveSynced,
+            })
+            .await;
         true
     }
 }
@@ -346,11 +356,7 @@ impl ChannelSyncWorker {
         } else {
             let pts_res = self
                 .difference_source
-                .fetch_pts(
-                    &self.request.identity,
-                    &peer_id,
-                    RpcGuardControl::default(),
-                )
+                .fetch_pts(&self.request.identity, &peer_id, RpcGuardControl::default())
                 .await;
 
             match pts_res {
@@ -378,7 +384,9 @@ impl ChannelSyncWorker {
                             emitted_at_ms: now_epoch_ms(),
                         });
                     }
-                    self.control.expected_batch_id.store(batch_id, Ordering::Release);
+                    self.control
+                        .expected_batch_id
+                        .store(batch_id, Ordering::Release);
 
                     let sent = self
                         .control
@@ -394,18 +402,15 @@ impl ChannelSyncWorker {
                     }
 
                     // Await storage ACK
-                    match Self::wait_for_ack(
-                        &self.control,
-                        &mut self.ack_rx,
-                        batch_id,
-                        &cancel,
-                    )
-                    .await
+                    match Self::wait_for_ack(&self.control, &mut self.ack_rx, batch_id, &cancel)
+                        .await
                     {
                         Ok(ack) => {
                             if ack.outcome == ChannelSyncAckOutcome::Committed {
                                 self.control.current_pts.store(pts, Ordering::Release);
-                                self.control.last_processed_batch_id.store(batch_id, Ordering::Release);
+                                self.control
+                                    .last_processed_batch_id
+                                    .store(batch_id, Ordering::Release);
                                 self.control.expected_batch_id.store(0, Ordering::Release);
                                 {
                                     let mut pb = self.control.pending_batch.write().await;
@@ -414,25 +419,33 @@ impl ChannelSyncWorker {
                             } else {
                                 let mut st = self.control.status.write().await;
                                 *st = ChannelSyncStatus::Failed;
-                                let err_msg = ack.error_code.unwrap_or_else(|| "Bootstrap commit rejected".into());
-                                let _ = self.control.emit_to_primary(ChannelSyncEvent::Failed {
-                                    sync_id,
-                                    code: "bootstrap_storage_error".into(),
-                                    message: err_msg,
-                                    recoverable: true,
-                                }).await;
+                                let err_msg = ack
+                                    .error_code
+                                    .unwrap_or_else(|| "Bootstrap commit rejected".into());
+                                let _ = self
+                                    .control
+                                    .emit_to_primary(ChannelSyncEvent::Failed {
+                                        sync_id,
+                                        code: "bootstrap_storage_error".into(),
+                                        message: err_msg,
+                                        recoverable: true,
+                                    })
+                                    .await;
                                 return;
                             }
                         }
                         Err(e) => {
                             let mut st = self.control.status.write().await;
                             *st = ChannelSyncStatus::Failed;
-                            let _ = self.control.emit_to_primary(ChannelSyncEvent::Failed {
-                                sync_id,
-                                code: "bootstrap_ack_timeout".into(),
-                                message: e,
-                                recoverable: true,
-                            }).await;
+                            let _ = self
+                                .control
+                                .emit_to_primary(ChannelSyncEvent::Failed {
+                                    sync_id,
+                                    code: "bootstrap_ack_timeout".into(),
+                                    message: e,
+                                    recoverable: true,
+                                })
+                                .await;
                             return;
                         }
                     }
@@ -441,12 +454,15 @@ impl ChannelSyncWorker {
                 Err(e) => {
                     let mut st = self.control.status.write().await;
                     *st = ChannelSyncStatus::Failed;
-                    let _ = self.control.emit_to_primary(ChannelSyncEvent::Failed {
-                        sync_id,
-                        code: "bootstrap_pts_fetch_error".into(),
-                        message: e.to_string(),
-                        recoverable: true,
-                    }).await;
+                    let _ = self
+                        .control
+                        .emit_to_primary(ChannelSyncEvent::Failed {
+                            sync_id,
+                            code: "bootstrap_pts_fetch_error".into(),
+                            message: e.to_string(),
+                            recoverable: true,
+                        })
+                        .await;
                     return;
                 }
             }
@@ -455,16 +471,21 @@ impl ChannelSyncWorker {
         // 2. Initial Baseline Gate: Check if initial authoritative reconciliation is required
         let requires_reconcile = self.request.requires_initial_reconcile.unwrap_or(false);
         if requires_reconcile {
-            self.control.reconcile_target_pts.store(initial_pts, Ordering::Release);
+            self.control
+                .reconcile_target_pts
+                .store(initial_pts, Ordering::Release);
             {
                 let mut st = self.control.status.write().await;
                 *st = ChannelSyncStatus::ReconcileRequired;
             }
-            let _ = self.control.emit_to_primary(ChannelSyncEvent::ReconcileRequired {
-                sync_id,
-                latest_pts: initial_pts,
-                reason: "Initial cached media requires authoritative reconciliation".into(),
-            }).await;
+            let _ = self
+                .control
+                .emit_to_primary(ChannelSyncEvent::ReconcileRequired {
+                    sync_id,
+                    latest_pts: initial_pts,
+                    reason: "Initial cached media requires authoritative reconciliation".into(),
+                })
+                .await;
 
             // Enter the exact same reconcile barrier!
             // Buffers incoming passive updates, suspends difference recovery & short polling until frontend finishes exhaustive scan + commit + complete_reconcile(initial_pts)
@@ -473,15 +494,20 @@ impl ChannelSyncWorker {
                 &mut self.update_rx,
                 &mut reorder_buffer,
                 &cancel,
-            ).await {
+            )
+            .await
+            {
                 let mut st = self.control.status.write().await;
                 *st = ChannelSyncStatus::Failed;
-                let _ = self.control.emit_to_primary(ChannelSyncEvent::Failed {
-                    sync_id,
-                    code: "initial_reconcile_barrier_failed".into(),
-                    message: e,
-                    recoverable: true,
-                }).await;
+                let _ = self
+                    .control
+                    .emit_to_primary(ChannelSyncEvent::Failed {
+                        sync_id,
+                        code: "initial_reconcile_barrier_failed".into(),
+                        message: e,
+                        recoverable: true,
+                    })
+                    .await;
                 return;
             }
         } else {
@@ -839,7 +865,9 @@ impl ChannelSyncWorker {
 
         // Termination cleanup
         control_ref.expected_batch_id.store(0, Ordering::Release);
-        control_ref.terminal_at_ms.store(now_epoch_ms(), Ordering::Release);
+        control_ref
+            .terminal_at_ms
+            .store(now_epoch_ms(), Ordering::Release);
         self.router.unregister_channel(parsed_channel_id).await;
 
         match loop_result {
@@ -850,12 +878,14 @@ impl ChannelSyncWorker {
             Err(e) => {
                 let mut st = control_ref.status.write().await;
                 *st = ChannelSyncStatus::Failed;
-                let _ = control_ref.emit_to_primary(ChannelSyncEvent::Failed {
-                    sync_id,
-                    code: "sync_error".into(),
-                    message: e,
-                    recoverable: true,
-                }).await;
+                let _ = control_ref
+                    .emit_to_primary(ChannelSyncEvent::Failed {
+                        sync_id,
+                        code: "sync_error".into(),
+                        message: e,
+                        recoverable: true,
+                    })
+                    .await;
             }
         }
     }
@@ -977,14 +1007,18 @@ impl ChannelSyncWorker {
             let local_pts = control.current_pts.load(Ordering::Acquire);
             let next_key = reorder_buffer.keys().next().copied();
 
-            let Some(pts) = next_key else { break; };
+            let Some(pts) = next_key else {
+                break;
+            };
             let upd = reorder_buffer.get(&pts).unwrap();
 
             if local_pts + upd.pts_count == upd.pts {
                 let upd = reorder_buffer.remove(&pts).unwrap();
                 let muts = match upd.update_type {
                     ChannelUpdateType::NewMessage(m) | ChannelUpdateType::EditMessage(m) => vec![m],
-                    ChannelUpdateType::DeleteMessages(ids) => vec![MediaMutation::delete(peer_id, ids)],
+                    ChannelUpdateType::DeleteMessages(ids) => {
+                        vec![MediaMutation::delete(peer_id, ids)]
+                    }
                     _ => Vec::new(),
                 };
 
@@ -1013,7 +1047,9 @@ impl ChannelSyncWorker {
                 }
                 control.expected_batch_id.store(batch_id, Ordering::Release);
 
-                let sent_ok = control.emit_to_primary(ChannelSyncEvent::Batch(batch_event)).await;
+                let sent_ok = control
+                    .emit_to_primary(ChannelSyncEvent::Batch(batch_event))
+                    .await;
                 if sent_ok {
                     let mut st = control.status.write().await;
                     *st = ChannelSyncStatus::WaitingAck;
@@ -1025,7 +1061,9 @@ impl ChannelSyncWorker {
                 let ack = Self::wait_for_ack(control, ack_rx, batch_id, cancel).await?;
                 if ack.outcome == ChannelSyncAckOutcome::Committed {
                     control.current_pts.store(upd.pts, Ordering::Release);
-                    control.last_processed_batch_id.store(batch_id, Ordering::Release);
+                    control
+                        .last_processed_batch_id
+                        .store(batch_id, Ordering::Release);
                     control.expected_batch_id.store(0, Ordering::Release);
                     {
                         let mut pb = control.pending_batch.write().await;
@@ -1037,7 +1075,9 @@ impl ChannelSyncWorker {
                     }
                     drained_any = true;
                 } else {
-                    return Err(ack.error_code.unwrap_or_else(|| "Storage commit failed".into()));
+                    return Err(ack
+                        .error_code
+                        .unwrap_or_else(|| "Storage commit failed".into()));
                 }
             } else if local_pts >= upd.pts {
                 // Stale or duplicate in buffer: remove
@@ -1121,7 +1161,9 @@ impl ChannelSyncWorker {
                         }
                         control.expected_batch_id.store(batch_id, Ordering::Release);
 
-                        let sent = control.emit_to_primary(ChannelSyncEvent::Batch(batch_event)).await;
+                        let sent = control
+                            .emit_to_primary(ChannelSyncEvent::Batch(batch_event))
+                            .await;
                         if sent {
                             let mut st = control.status.write().await;
                             *st = ChannelSyncStatus::WaitingAck;
@@ -1133,7 +1175,9 @@ impl ChannelSyncWorker {
                         let ack = Self::wait_for_ack(control, ack_rx, batch_id, cancel).await?;
                         if ack.outcome == ChannelSyncAckOutcome::Committed {
                             control.current_pts.store(pts, Ordering::Release);
-                            control.last_processed_batch_id.store(batch_id, Ordering::Release);
+                            control
+                                .last_processed_batch_id
+                                .store(batch_id, Ordering::Release);
                             control.expected_batch_id.store(0, Ordering::Release);
                             {
                                 let mut pb = control.pending_batch.write().await;
@@ -1144,7 +1188,9 @@ impl ChannelSyncWorker {
                                 *st = ChannelSyncStatus::LiveSynced;
                             }
                         } else {
-                            return Err(ack.error_code.unwrap_or_else(|| "Storage commit failed".into()));
+                            return Err(ack
+                                .error_code
+                                .unwrap_or_else(|| "Storage commit failed".into()));
                         }
                     } else {
                         let mut st = control.status.write().await;
@@ -1193,7 +1239,9 @@ impl ChannelSyncWorker {
                     }
                     control.expected_batch_id.store(batch_id, Ordering::Release);
 
-                    let sent = control.emit_to_primary(ChannelSyncEvent::Batch(batch_event)).await;
+                    let sent = control
+                        .emit_to_primary(ChannelSyncEvent::Batch(batch_event))
+                        .await;
                     if sent {
                         let mut st = control.status.write().await;
                         *st = ChannelSyncStatus::WaitingAck;
@@ -1205,7 +1253,9 @@ impl ChannelSyncWorker {
                     let ack = Self::wait_for_ack(control, ack_rx, batch_id, cancel).await?;
                     if ack.outcome == ChannelSyncAckOutcome::Committed {
                         control.current_pts.store(pts, Ordering::Release);
-                        control.last_processed_batch_id.store(batch_id, Ordering::Release);
+                        control
+                            .last_processed_batch_id
+                            .store(batch_id, Ordering::Release);
                         control.expected_batch_id.store(0, Ordering::Release);
                         {
                             let mut pb = control.pending_batch.write().await;
@@ -1216,7 +1266,9 @@ impl ChannelSyncWorker {
                             *st = ChannelSyncStatus::LiveSynced;
                         }
                     } else {
-                        return Err(ack.error_code.unwrap_or_else(|| "Storage commit failed".into()));
+                        return Err(ack
+                            .error_code
+                            .unwrap_or_else(|| "Storage commit failed".into()));
                     }
 
                     if is_final {
@@ -1224,17 +1276,24 @@ impl ChannelSyncWorker {
                     }
                 }
 
-                ChannelDifferenceResult::TooLong { latest_pts, timeout: _ } => {
-                    control.reconcile_target_pts.store(latest_pts, Ordering::Release);
+                ChannelDifferenceResult::TooLong {
+                    latest_pts,
+                    timeout: _,
+                } => {
+                    control
+                        .reconcile_target_pts
+                        .store(latest_pts, Ordering::Release);
                     {
                         let mut st = control.status.write().await;
                         *st = ChannelSyncStatus::ReconcileRequired;
                     }
-                    let _ = control.emit_to_primary(ChannelSyncEvent::ReconcileRequired {
-                        sync_id: control.sync_id,
-                        latest_pts,
-                        reason: "getChannelDifference returned channelDifferenceTooLong".into(),
-                    }).await;
+                    let _ = control
+                        .emit_to_primary(ChannelSyncEvent::ReconcileRequired {
+                            sync_id: control.sync_id,
+                            latest_pts,
+                            reason: "getChannelDifference returned channelDifferenceTooLong".into(),
+                        })
+                        .await;
                     return Ok(DifferenceRecoveryOutcome::ReconcileRequired { latest_pts });
                 }
             }
@@ -1327,7 +1386,9 @@ mod tests {
         });
 
         // Attach primary subscriber so emit_to_primary succeeds
-        control.attach_primary_and_snapshot(Arc::new(MockEventSink)).await;
+        control
+            .attach_primary_and_snapshot(Arc::new(MockEventSink))
+            .await;
 
         let mut reorder_buffer = BTreeMap::new();
         reorder_buffer.insert(
@@ -1345,13 +1406,15 @@ mod tests {
         let ack_tx_clone = control.ack_tx.clone();
         tokio::spawn(async move {
             tokio::time::sleep(Duration::from_millis(20)).await;
-            let _ = ack_tx_clone.send(ChannelSyncAck {
-                sync_id: 1,
-                batch_id: 1,
-                outcome: ChannelSyncAckOutcome::Committed,
-                committed_pts: Some(101),
-                error_code: None,
-            }).await;
+            let _ = ack_tx_clone
+                .send(ChannelSyncAck {
+                    sync_id: 1,
+                    batch_id: 1,
+                    outcome: ChannelSyncAckOutcome::Committed,
+                    committed_pts: Some(101),
+                    error_code: None,
+                })
+                .await;
         });
 
         let drained = ChannelSyncWorker::drain_reorder_buffer(
@@ -1429,7 +1492,10 @@ mod tests {
         .await
         .unwrap();
 
-        assert_eq!(outcome, DifferenceRecoveryOutcome::ReconcileRequired { latest_pts: 200 });
+        assert_eq!(
+            outcome,
+            DifferenceRecoveryOutcome::ReconcileRequired { latest_pts: 200 }
+        );
         let st = *control.status.read().await;
         assert_eq!(st, ChannelSyncStatus::ReconcileRequired);
         assert_eq!(control.reconcile_target_pts.load(Ordering::Acquire), 200);
@@ -1478,24 +1544,30 @@ mod tests {
                 &mut update_rx,
                 &mut reorder_buffer,
                 &cancel_clone,
-            ).await.unwrap();
+            )
+            .await
+            .unwrap();
             reorder_buffer
         });
 
         // 1. Send an old update (pts 450 <= 500) and a new update (pts 505 > 500) during barrier
-        let _ = update_tx.send(PendingChannelUpdate {
-            channel_id: 100123,
-            pts: 450,
-            pts_count: 1,
-            update_type: ChannelUpdateType::DeleteMessages(vec![1]),
-        }).await;
+        let _ = update_tx
+            .send(PendingChannelUpdate {
+                channel_id: 100123,
+                pts: 450,
+                pts_count: 1,
+                update_type: ChannelUpdateType::DeleteMessages(vec![1]),
+            })
+            .await;
 
-        let _ = update_tx.send(PendingChannelUpdate {
-            channel_id: 100123,
-            pts: 505,
-            pts_count: 1,
-            update_type: ChannelUpdateType::DeleteMessages(vec![2]),
-        }).await;
+        let _ = update_tx
+            .send(PendingChannelUpdate {
+                channel_id: 100123,
+                pts: 505,
+                pts_count: 1,
+                update_type: ChannelUpdateType::DeleteMessages(vec![2]),
+            })
+            .await;
 
         tokio::time::sleep(Duration::from_millis(50)).await;
 
@@ -1542,7 +1614,9 @@ mod tests {
         });
 
         // Attach primary subscriber
-        control.attach_primary_and_snapshot(Arc::new(MockEventSink)).await;
+        control
+            .attach_primary_and_snapshot(Arc::new(MockEventSink))
+            .await;
 
         let mock_source: Arc<dyn ChannelDifferenceSource> = Arc::new(MockDifferenceSource {
             pts: 1000,
@@ -1555,7 +1629,10 @@ mod tests {
             api_id: 123,
             api_hash: "abc".into(),
         };
-        let router = Arc::new(SessionUpdateRouter::new(PathBuf::from("sessions"), identity.clone()));
+        let router = Arc::new(SessionUpdateRouter::new(
+            PathBuf::from("sessions"),
+            identity.clone(),
+        ));
 
         let worker = ChannelSyncWorker {
             sync_id: 101,
@@ -1579,13 +1656,15 @@ mod tests {
         let ack_tx_clone = control.ack_tx.clone();
         tokio::spawn(async move {
             tokio::time::sleep(Duration::from_millis(20)).await;
-            let _ = ack_tx_clone.send(ChannelSyncAck {
-                sync_id: 101,
-                batch_id: 1,
-                outcome: ChannelSyncAckOutcome::Committed,
-                committed_pts: Some(1000),
-                error_code: None,
-            }).await;
+            let _ = ack_tx_clone
+                .send(ChannelSyncAck {
+                    sync_id: 101,
+                    batch_id: 1,
+                    outcome: ChannelSyncAckOutcome::Committed,
+                    committed_pts: Some(1000),
+                    error_code: None,
+                })
+                .await;
         });
 
         // Spawn worker
@@ -1601,12 +1680,14 @@ mod tests {
         assert_eq!(control.reconcile_target_pts.load(Ordering::Acquire), 1000);
 
         // Send a passive update with pts 1001 while in barrier
-        let _ = update_tx.send(PendingChannelUpdate {
-            channel_id: 100123,
-            pts: 1001,
-            pts_count: 1,
-            update_type: ChannelUpdateType::DeleteMessages(vec![99]),
-        }).await;
+        let _ = update_tx
+            .send(PendingChannelUpdate {
+                channel_id: 100123,
+                pts: 1001,
+                pts_count: 1,
+                update_type: ChannelUpdateType::DeleteMessages(vec![99]),
+            })
+            .await;
 
         tokio::time::sleep(Duration::from_millis(30)).await;
 
@@ -1676,14 +1757,20 @@ mod tests {
 
         let events = recorded_events.lock().unwrap().clone();
         assert_eq!(events.len(), 2);
-        assert!(matches!(events[0], ChannelSyncEvent::ReconcileRequired {
-            sync_id: 88,
-            latest_pts: 15000,
-            ..
-        }));
-        assert!(matches!(events[1], ChannelSyncEvent::State {
-            sync_id: 88,
-            state: ChannelSyncStatus::ReconcileRequired,
-        }));
+        assert!(matches!(
+            events[0],
+            ChannelSyncEvent::ReconcileRequired {
+                sync_id: 88,
+                latest_pts: 15000,
+                ..
+            }
+        ));
+        assert!(matches!(
+            events[1],
+            ChannelSyncEvent::State {
+                sync_id: 88,
+                state: ChannelSyncStatus::ReconcileRequired,
+            }
+        ));
     }
 }

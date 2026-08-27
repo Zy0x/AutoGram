@@ -28,7 +28,12 @@ pub enum CaptionDetailMode {
 
 impl CaptionDetailMode {
     pub fn parse(value: Option<&str>) -> Self {
-        match value.unwrap_or_default().trim().to_ascii_lowercase().as_str() {
+        match value
+            .unwrap_or_default()
+            .trim()
+            .to_ascii_lowercase()
+            .as_str()
+        {
             "template" => Self::Template,
             "none" | "no_caption" => Self::None,
             _ => Self::Filename,

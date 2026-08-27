@@ -8,6 +8,7 @@ import {
   jobDisplayStatus,
   getPrimaryActions,
   startArgsForAction,
+  normalizeJobStatus,
 } from '../../../lib/db/jobStatus';
 
 interface JobsListProps {
@@ -94,7 +95,12 @@ export function JobsList({
 
             const uiKind = resolveJobUiKind(job, { isRunning, runResult: result });
             const statusClass = jobStatusClass(uiKind);
-            const displayStatus = jobDisplayStatus(uiKind, job.status);
+            const rawStatus = normalizeJobStatus(job.status);
+            const nativeStages = new Set(['SCANNING', 'FORWARDING', 'DOWNLOADING', 'UPLOADING', 'COMMITTING']);
+            const nativeStage = nativeStages.has(rawStatus) ? rawStatus.toLowerCase() : '';
+            const displayStatus = nativeStage
+              ? t(`jobs.stage_${nativeStage}`)
+              : jobDisplayStatus(uiKind, job.status);
             const primaryActions = getPrimaryActions(uiKind, failedHint);
 
             let percentLabel = '0.0%';
@@ -132,7 +138,7 @@ export function JobsList({
                     onClick={() => pauseJob(job.id)}
                     title={t('jobs.pause_execution')}
                   >
-                    <Pause size={18} /> {action.label}
+                    <Pause size={18} /> {t('jobs.action_pause')}
                   </button>
                 );
               }
@@ -147,7 +153,7 @@ export function JobsList({
                     disabled={busy}
                     title={t('jobs.resume_from_checkpoint')}
                   >
-                    <Play size={18} /> {action.label}
+                    <Play size={18} /> {t('jobs.action_resume')}
                   </button>
                 );
               }
@@ -162,7 +168,7 @@ export function JobsList({
                     disabled={busy}
                     title={t("jobs.jobs_resume_exec")}
                   >
-                    <Play size={18} /> {action.label}
+                    <Play size={18} /> {t('jobs.action_run')}
                   </button>
                 );
               }
@@ -177,11 +183,11 @@ export function JobsList({
                     disabled={busy || !job.last_execution_id}
                     title={
                       job.last_execution_id
-                        ? 'Ulangi hanya pesan yang gagal (retry-execution RESUME)'
-                        : 'Tidak ada execution sebelumnya untuk retry'
+                        ? t('jobs.retry_failed_tooltip')
+                        : t('jobs.retry_unavailable_tooltip')
                     }
                   >
-                    <RefreshCw size={18} /> {action.label}
+                    <RefreshCw size={18} /> {t('jobs.action_retry_failed', { count: failedHint || '' })}
                   </button>
                 );
               }
@@ -195,7 +201,7 @@ export function JobsList({
                   disabled={busy}
                   title={t("jobs.jobs_rerun_modes_title")}
                 >
-                  <Play size={18} /> {action.label}
+                  <Play size={18} /> {t('jobs.action_rerun')}
                 </button>
               );
             };
@@ -205,13 +211,13 @@ export function JobsList({
                 key={job.id}
                 className={`job-card glass-panel job-card-shell ${statusClass}`}
               >
-                <div className={`job-card-status-bar status-${statusClass}`} />
+                <div className={`job-card-status-bar status-${nativeStage || statusClass}`} />
 
                 <div className="job-card-header">
                   <div style={{ width: '100%', minWidth: 0, maxWidth: '100%' }}>
                     <div className="job-card-title-row">
                       <h3>{job.job_name || `Migration #${job.id}`}</h3>
-                      <span className={`modern-badge ${statusClass}`}>{displayStatus}</span>
+                      <span className={`modern-badge ${statusClass}${nativeStage ? ` stage-${nativeStage}` : ''}`}>{displayStatus}</span>
                     </div>
                     <div className="job-route" title={`${sourceLabel} → ${targetLabel}`}>
                       <span>{sourceLabel}</span>

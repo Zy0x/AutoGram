@@ -1,4 +1,5 @@
 import type { LinkResolverProvider, ResolvedMediaInfo, StreamQualityFormat } from '../types';
+import { assertSafeRemoteUrl } from '../urlSafety';
 
 /**
  * Universal Direct File Resolver
@@ -16,6 +17,7 @@ export const directFileResolver: LinkResolverProvider = {
 
   async resolve(url: string, signal?: AbortSignal): Promise<ResolvedMediaInfo | null> {
     const cleanUrl = url.trim();
+    assertSafeRemoteUrl(cleanUrl);
     let title = 'remote_file';
     let ext = 'bin';
     let bytes: number | undefined;

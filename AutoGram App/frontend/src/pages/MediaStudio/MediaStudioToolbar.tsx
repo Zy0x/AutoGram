@@ -9,6 +9,7 @@ import {
   FileText,
   File,
   Link as LinkIcon,
+  Sticker,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DriveMediaFilter, DriveViewMode, DriveSortMode } from '../../lib/telegram/driveTypes';
@@ -44,6 +45,7 @@ export const MediaStudioToolbar: React.FC<MediaStudioToolbarProps> = ({
     { id: 'video', label: t('speedtest.filter_videos'), icon: <Film className="w-3.5 h-3.5 text-indigo-400" /> },
     { id: 'document', label: t('speedtest.filter_docs'), icon: <FileText className="w-3.5 h-3.5 text-amber-400" /> },
     { id: 'link', label: t('speedtest.view_links'), icon: <LinkIcon className="w-3.5 h-3.5 text-sky-400" /> },
+    { id: 'stickers', label: t('speedtest.tab_telegram_stickers'), icon: <Sticker className="w-3.5 h-3.5 text-violet-400" /> },
   ];
 
   return (

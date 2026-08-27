@@ -234,8 +234,11 @@ pub(crate) async fn connect_client(
 
     let session = open_memory_session(&g_path)?;
 
-    let SenderPool { runner, handle, updates } =
-        SenderPool::new(Arc::clone(&session), identity.api_id as i32);
+    let SenderPool {
+        runner,
+        handle,
+        updates,
+    } = SenderPool::new(Arc::clone(&session), identity.api_id as i32);
     let client = Client::new(handle);
     let runner_handle = tokio::spawn(async move {
         runner.run().await;

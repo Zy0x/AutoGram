@@ -60,7 +60,7 @@ fun SettingsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Memory,
-                            contentDescription = "Hardware",
+                            contentDescription = stringResource(R.string.settings_hardware_accessibility),
                             tint = PrimaryBlue
                         )
                         Text(
@@ -73,18 +73,26 @@ fun SettingsScreen(
                     val hw = state.hardwareProfile
                     if (hw != null) {
                         Text(
-                            text = "Encoder: ${hw.bestEncoder} (Prioritas: ${hw.priority})",
+                            text = stringResource(
+                                R.string.settings_encoder_value,
+                                hw.bestEncoder,
+                                hw.priority
+                            ),
                             style = MaterialTheme.typography.bodyLarge,
                             color = TextSecondaryDark
                         )
                         Text(
-                            text = "Preset: ${hw.preset} • Bitrate: ${hw.bitrate / 1000} kbps",
+                            text = stringResource(
+                                R.string.settings_encoder_profile,
+                                hw.preset,
+                                (hw.bitrate / 1000u).toLong()
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextMutedDark
                         )
                     } else {
                         Text(
-                            text = "Memuat hardware profile...",
+                            text = stringResource(R.string.settings_hardware_loading),
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextSecondaryDark
                         )
@@ -111,7 +119,7 @@ fun SettingsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Storage,
-                            contentDescription = "Storage",
+                            contentDescription = stringResource(R.string.settings_storage_accessibility),
                             tint = AccentCyan
                         )
                         Text(
@@ -124,12 +132,18 @@ fun SettingsScreen(
                     val storage = state.storageBudget
                     if (storage != null) {
                         Text(
-                            text = "Kapasitas Temp: ${formatFileSize(storage.maxTempBytes.toLong())}",
+                            text = stringResource(
+                                R.string.settings_storage_capacity,
+                                formatFileSize(storage.maxTempBytes.toLong())
+                            ),
                             style = MaterialTheme.typography.bodyLarge,
                             color = TextSecondaryDark
                         )
                         Text(
-                            text = "Ambang Pembersihan (LRU): ${(storage.purgeThresholdRatio * 100).toInt()}%",
+                            text = stringResource(
+                                R.string.settings_storage_threshold,
+                                (storage.purgeThresholdRatio * 100).toInt()
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextMutedDark
                         )
@@ -162,7 +176,7 @@ fun SettingsScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.AccountCircle,
-                        contentDescription = "Account",
+                        contentDescription = stringResource(R.string.settings_account_accessibility),
                         tint = PrimaryBlue,
                         modifier = Modifier.size(36.dp)
                     )
@@ -174,7 +188,11 @@ fun SettingsScreen(
                             color = TextPrimaryDark
                         )
                         Text(
-                            text = "Tier: ${acc.tier} • Skor Total: ${acc.totalScore.toInt()}/100",
+                            text = stringResource(
+                                R.string.settings_account_score,
+                                acc.tier,
+                                acc.totalScore.toInt()
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = SuccessGreen
                         )

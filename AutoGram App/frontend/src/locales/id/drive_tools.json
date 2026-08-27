@@ -25,6 +25,8 @@
   "tab_telegram_links": "Tautan",
   "tab_telegram_gifs": "GIF",
   "tab_telegram_audio": "Audio",
+  "tab_telegram_stickers": "Stiker",
+  "tab_telegram_stickers_tip": "Tampilkan hanya stiker Telegram asli; berkas WebP biasa tetap menjadi berkas atau gambar.",
   "tab_drive_images": "Gambar",
   "tab_drive_videos": "Video",
   "tab_drive_audio": "Audio",

@@ -39,9 +39,11 @@ import { formatDriveBytes } from '../../../lib/telegram/driveTypes';
 import { nativeReadClipboardText } from '../../../lib/tauri/desktopClipboard';
 import {
   resolveRemoteMediaUrl,
+  parseRemoteShareInput,
   type ResolvedMediaInfo,
   type StreamQualityFormat,
 } from '../../../lib/telegram/linkResolvers';
+import { isRemoteUrlSafetyError } from '../../../lib/telegram/linkResolvers/urlSafety';
 import {
   type DriveTransferSettings,
   resolveDefaultDeliveryMode,
@@ -89,46 +91,6 @@ function inferKindFromExt(ext: string): UrlKind {
   if (['zip', 'rar', '7z', 'tar', 'gz', 'xz', 'iso', 'bz2', 'tgz'].includes(e)) return 'zip';
   if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'epub'].includes(e)) return 'doc';
   return 'other';
-}
-
-function extractUrlAndPasscode(rawText: string): { cleanUrl: string; extractedPasscode?: string } {
-  const trimmed = rawText.trim();
-  if (!trimmed) return { cleanUrl: '' };
-
-  const parts = trimmed.split(/\s+/);
-  const firstPart = parts[0];
-
-  let extractedPasscode: string | undefined;
-  try {
-    const u = new URL(firstPart);
-    extractedPasscode =
-      u.searchParams.get('pwd') ||
-      u.searchParams.get('pass_code') ||
-      u.searchParams.get('code') ||
-      u.searchParams.get('passcode') ||
-      undefined;
-
-    if (!extractedPasscode && u.hash) {
-      const hashVal = u.hash.replace(/^#/, '').trim();
-      if (/^[a-zA-Z0-9]{4,12}$/.test(hashVal)) {
-        extractedPasscode = hashVal;
-      }
-    }
-  } catch {
-    /* ignore parse error */
-  }
-
-  if (!extractedPasscode && parts.length > 1) {
-    const rest = parts.slice(1).join(' ');
-    const m = rest.match(/(?:pwd|pass|code|password|kode|sandi|提取码|密码)[:=\s]+([a-zA-Z0-9]{4,12})/i);
-    if (m && m[1]) {
-      extractedPasscode = m[1].trim();
-    } else if (parts.length === 2 && /^[a-zA-Z0-9]{4,12}$/.test(parts[1])) {
-      extractedPasscode = parts[1].trim();
-    }
-  }
-
-  return { cleanUrl: firstPart, extractedPasscode };
 }
 
 function inferFilenameFromUrl(rawUrl: string): string {
@@ -311,7 +273,7 @@ export function RemoteUploadModal({
   const lastProbedHandoffRef = useRef('');
   useEffect(() => {
     const rawHandoff = String(initialUrl || '').trim();
-    const { cleanUrl, extractedPasscode } = extractUrlAndPasscode(rawHandoff);
+    const { cleanUrl, extractedPasscode } = parseRemoteShareInput(rawHandoff);
     const normalizedInitialUrl = cleanUrl;
     const openedNow = isOpen && !prevIsOpenRef.current;
     const receivedNewHandoff = isOpen && normalizedInitialUrl !== lastAppliedInitialUrlRef.current;
@@ -407,7 +369,7 @@ export function RemoteUploadModal({
       inspectAbortRef.current = null;
     }
 
-    const { cleanUrl, extractedPasscode } = extractUrlAndPasscode(rawUrl);
+    const { cleanUrl, extractedPasscode } = parseRemoteShareInput(rawUrl);
     const activePasscode = explicitPasscode !== undefined ? explicitPasscode : (extractedPasscode || passcode);
 
     const trimmed = cleanUrl.trim();
@@ -469,8 +431,21 @@ export function RemoteUploadModal({
         });
         return;
       }
-    } catch {
-      /* fallback */
+    } catch (error) {
+      if (isRemoteUrlSafetyError(error)) {
+        setResolvedMedia(null);
+        setInspection({
+          url: trimmed,
+          status: 'error',
+          filename: baseName,
+          size: null,
+          mimeType: null,
+          kind: inferredKind,
+        });
+        setErrorMsg(t('speedtest.remote_err_private_target'));
+        return;
+      }
+      /* Unknown-provider failures may still use the bounded HEAD fallback. */
     }
 
     try {
@@ -526,7 +501,7 @@ export function RemoteUploadModal({
         kind: inferredKind,
       });
     }
-  }, [passcode]);
+  }, [passcode, t]);
 
   useEffect(() => {
     const handoff = String(initialUrl || '').trim();
@@ -537,7 +512,7 @@ export function RemoteUploadModal({
       lastProbedHandoffRef.current === handoff
     ) return;
     lastProbedHandoffRef.current = handoff;
-    const { cleanUrl, extractedPasscode } = extractUrlAndPasscode(handoff);
+    const { cleanUrl, extractedPasscode } = parseRemoteShareInput(handoff);
     if (extractedPasscode) setPasscode(extractedPasscode);
     void probeUrl(cleanUrl, extractedPasscode);
   }, [initialUrl, isOpen, probeUrl, url]);
@@ -556,7 +531,7 @@ export function RemoteUploadModal({
   };
 
   const handleUrlChange = (val: string) => {
-    const { cleanUrl, extractedPasscode } = extractUrlAndPasscode(val);
+    const { cleanUrl, extractedPasscode } = parseRemoteShareInput(val);
     setUrl(cleanUrl);
     setPasscode(extractedPasscode || '');
     if (errorMsg) setErrorMsg('');
@@ -1359,6 +1334,43 @@ export function RemoteUploadModal({
                         )}
                         <span>{resolvedMedia.author}</span>
                       </div>
+                    )}
+                    {resolvedMedia.resolutionTrace && (
+                      <section
+                        className="td-remote-resolution-trace"
+                        aria-label={t('speedtest.remote_resolution_trace_title')}
+                      >
+                        <div className="td-remote-resolution-trace-head">
+                          <span>{t('speedtest.remote_resolution_trace_title')}</span>
+                          <span className={`is-${resolvedMedia.resolutionTrace.securityStatus}`}>
+                            <CheckCircle2 size={11} />
+                            {t(`speedtest.remote_security_${resolvedMedia.resolutionTrace.securityStatus}`)}
+                          </span>
+                        </div>
+                        <div className="td-remote-resolution-stages">
+                          {resolvedMedia.resolutionTrace.stages.map((stage) => (
+                            <span key={stage} className="is-complete">
+                              <CheckCircle2 size={11} />
+                              {t(`speedtest.remote_stage_${stage}`)}
+                            </span>
+                          ))}
+                        </div>
+                        <div className="td-remote-resolution-summary">
+                          <span>{resolvedMedia.resolutionTrace.resolverName}</span>
+                          <span>
+                            {t('speedtest.remote_resolution_candidates', {
+                              count: resolvedMedia.resolutionTrace.candidateCount,
+                            })}
+                          </span>
+                          {resolvedMedia.resolutionTrace.inspectedPages != null && (
+                            <span>
+                              {t('speedtest.remote_resolution_pages', {
+                                count: resolvedMedia.resolutionTrace.inspectedPages,
+                              })}
+                            </span>
+                          )}
+                        </div>
+                      </section>
                     )}
                   </div>
 

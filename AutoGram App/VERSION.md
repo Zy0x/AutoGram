@@ -1,6 +1,12 @@
-AutoGram Version: v3.8.28
+AutoGram Version: v3.8.29
 
 Current State:
+v3.8.29 Grammers Resilient Thumbnail Fallback & Non-Blocking Upload Architecture — ketahanan penuh pengunggahan media Grammers:
+1. Resilient Non-Blocking Thumbnail System: Menghilangkan kegagalan fatal `visual document thumbnail generation failed; original media was not sent without a preview`. Kegagalan pembuatan atau pengunggahan thumbnail JPEG kini otomatis fallback dengan aman, menjamin berkas media asli (.webp, .jpg, .mp4, dll.) tetap diunggah dan terkirim 100% sukses.
+2. WebP & Single-Frame Image FFmpeg Tuning: Menghapus flag `-ss 0.0` dan probe metadata video redundan pada berkas gambar di `media_prep.rs`, mencegah galat demuxer ffmpeg saat memproses gambar `.webp`.
+3. Infallible Album & Part Dispatch: Memastikan seluruh mode pengiriman (album, single file, single part) tidak pernah membatalkan transfer dokumen/media hanya karena ketiadaan thumbnail.
+
+Previous:
 v3.8.28 Telegram Absolute force_file Enforcement & Native WebP Document Protection — pemusnahan mutlak konversi stiker Telegram:
 1. Hardcoded force_file: true Bypass: Memperbaiki keterbatasan internal `InputMessage.document` pada grammers-client yang sebelumnya meng-hardcode `force_file = false`. Seluruh dokumen `.webp` dan format biner kini diunggah langsung melalui `InputMediaUploadedDocument` dengan `force_file: true` dan `DocumentAttributeFilename`.
 2. Absolute Non-Sticker Guarantee: Memaksa server Telegram memperlakukan berkas `.webp` 100% sebagai berkas dokumen asli (bukan stiker melayang), lengkap dengan kotak berkas, nama file asli, dan thumbnail visual tajam.

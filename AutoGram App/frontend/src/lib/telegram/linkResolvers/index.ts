@@ -6,6 +6,8 @@
 
 export * from './types';
 export * from './registry';
+export * from './shareInput';
+export * from './urlSafety';
 import { linkResolverRegistry } from './registry';
 import type { ResolvedMediaInfo, ResolveOptions } from './types';
 

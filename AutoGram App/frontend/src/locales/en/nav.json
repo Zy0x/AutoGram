@@ -22,6 +22,7 @@
   "launcher_engine": "Telegram Cloud & Migration Suite",
   "connection_strong": "{{latency}} ms · Connected",
   "connection_checking": "Checking Connection…",
+  "connection_last_verified": "Last verified · syncing live…",
   "connection_expired": "Session Expired / Unlinked",
   "connection_error": "Offline / API Error",
   "session_expired_desc": "This Telegram session has expired or unlinked.",

@@ -447,6 +447,7 @@ pub struct SaveExactMediaStatisticsRequest {
     pub gif_count: Option<usize>,
     pub link_count: Option<usize>,
     pub audio_count: Option<usize>,
+    pub sticker_count: Option<usize>,
 }
 
 pub fn tg_save_exact_media_statistics(req: SaveExactMediaStatisticsRequest) -> OpResult<bool> {
@@ -465,6 +466,7 @@ pub fn tg_save_exact_media_statistics(req: SaveExactMediaStatisticsRequest) -> O
         gif_count: req.gif_count.unwrap_or(0),
         link_count: req.link_count.unwrap_or(0),
         audio_count: req.audio_count.unwrap_or(0),
+        sticker_count: req.sticker_count.unwrap_or(0),
         loaded_count: req.exact_total,
         total_bytes: req.exact_bytes.unwrap_or(0),
         last_sync: now,
@@ -848,6 +850,146 @@ pub fn tg_debug_get_message(req: DebugGetMessageRequest) -> OpResult<DebugGetMes
     match res {
         Ok(r) => ok_result("grammers", r),
         Err(e) => err_result("grammers", e),
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchPasswordCandidatesRequest {
+    pub session: String,
+    pub api_id: i64,
+    pub api_hash: String,
+    pub peer_id: String,
+    #[serde(default)]
+    pub anchor_message_id: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PasswordCandidateMessage {
+    pub message_id: i64,
+    pub text: String,
+    pub distance: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchPasswordCandidatesResult {
+    pub searched_queries: usize,
+    pub matched_messages: usize,
+    pub messages: Vec<PasswordCandidateMessage>,
+}
+
+/// Server-side chat search for archive-password hints. This avoids scanning or
+/// downloading chat history and keeps requests behind the shared FloodWait
+/// guard. Results contain message text only and are never written to logs.
+pub fn tg_search_password_candidates(
+    req: SearchPasswordCandidatesRequest,
+) -> OpResult<SearchPasswordCandidatesResult> {
+    use crate::core::grammers_ops::{
+        ensure_authorized, resolve_peer, runtime, with_client, with_pool_retry,
+    };
+    use std::collections::HashSet;
+
+    let dir = sessions_dir_from_env();
+    let identity = TelegramIdentity {
+        session: req.session,
+        api_id: req.api_id,
+        api_hash: req.api_hash,
+    };
+    let rt = match runtime() {
+        Ok(r) => r,
+        Err(e) => return err_result("grammers", e),
+    };
+    let chat = req.peer_id.clone();
+    let anchor = req.anchor_message_id.unwrap_or(0);
+
+    let res = rt.block_on(async {
+        with_pool_retry(&identity.session, || {
+            let chat = chat.clone();
+            let session_name = identity.session.clone();
+            with_client(&dir, &identity, true, move |client| {
+                let chat = chat.clone();
+                let session_name = session_name.clone();
+                Box::pin(async move {
+                    ensure_authorized(client, &session_name).await?;
+                    let peer = resolve_peer(client, &chat).await?;
+                    // Broad stems cover common misspellings while keeping the
+                    // request count bounded. Multi-language labels are handled
+                    // without walking the full history.
+                    const QUERIES: [&str; 7] =
+                        ["pass", "pasword", "pw", "sandi", "khẩu", "密码", "解压"];
+                    let mut seen = HashSet::new();
+                    let mut matches = Vec::new();
+                    let guard = crate::core::telegram_rpc_guard::RpcGuardControl::default();
+
+                    for query in QUERIES {
+                        let request = grammers_client::tl::functions::messages::Search {
+                            peer: (&peer).into(),
+                            q: query.to_string(),
+                            from_id: None,
+                            saved_peer_id: None,
+                            saved_reaction: None,
+                            top_msg_id: None,
+                            filter: grammers_client::tl::enums::MessagesFilter::InputMessagesFilterEmpty,
+                            min_date: 0,
+                            max_date: 0,
+                            offset_id: 0,
+                            add_offset: 0,
+                            limit: 50,
+                            max_id: 0,
+                            min_id: 0,
+                            hash: 0,
+                        };
+                        let response = crate::core::telegram_rpc_guard::invoke_guarded_with_control(
+                            &session_name,
+                            crate::core::session_rate::RpcClass::GeneralRead,
+                            "messages.search.password_hint",
+                            &guard,
+                            || client.invoke(&request),
+                        )
+                        .await?;
+                        let raw = match response.value {
+                            grammers_client::tl::enums::messages::Messages::Messages(value) => value.messages,
+                            grammers_client::tl::enums::messages::Messages::Slice(value) => value.messages,
+                            grammers_client::tl::enums::messages::Messages::ChannelMessages(value) => value.messages,
+                            grammers_client::tl::enums::messages::Messages::NotModified(_) => Vec::new(),
+                        };
+                        for message in raw {
+                            let grammers_client::tl::enums::Message::Message(value) = message else {
+                                continue;
+                            };
+                            let text = value.message.trim();
+                            if text.is_empty() || !seen.insert(value.id) {
+                                continue;
+                            }
+                            matches.push(PasswordCandidateMessage {
+                                message_id: i64::from(value.id),
+                                text: text.to_string(),
+                                distance: if anchor > 0 {
+                                    (i64::from(value.id) - anchor).abs()
+                                } else {
+                                    0
+                                },
+                            });
+                        }
+                    }
+                    matches.sort_by_key(|item| (item.distance, std::cmp::Reverse(item.message_id)));
+                    matches.truncate(120);
+                    Ok(SearchPasswordCandidatesResult {
+                        searched_queries: QUERIES.len(),
+                        matched_messages: matches.len(),
+                        messages: matches,
+                    })
+                })
+            })
+        })
+        .await
+    });
+
+    match res {
+        Ok(result) => ok_result("grammers", result),
+        Err(error) => err_result("grammers", error),
     }
 }
 

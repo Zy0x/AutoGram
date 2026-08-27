@@ -80,6 +80,15 @@ export const nativeDeepResolver: LinkResolverProvider = {
       formats,
       selectedFormatId: formats[0].id,
       isDirectFile: true,
+      resolutionTrace: {
+        resolverName: this.name,
+        sourceUrl: result.sourceUrl,
+        finalUrl: result.finalUrl,
+        inspectedPages: result.inspectedPages,
+        candidateCount: formats.length,
+        securityStatus: 'validated',
+        stages: ['analyze', 'resolve', 'discover', 'validate', 'ready'],
+      },
       resolvedAt: Date.now(),
     };
   },

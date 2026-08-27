@@ -587,9 +587,10 @@ fn register_preview_request(session: &str, consumer_id: Option<&str>, request_id
     if consumer_id.is_empty() || request_id.is_empty() {
         return;
     }
-    active_preview_consumers()
-        .lock()
-        .insert(preview_consumer_key(session, consumer_id), request_id.to_string());
+    active_preview_consumers().lock().insert(
+        preview_consumer_key(session, consumer_id),
+        request_id.to_string(),
+    );
 }
 
 fn preview_request_is_current(
@@ -2488,11 +2489,23 @@ mod tests {
         let session = "qa-preview-consumer-session";
         let consumer = "drive-preview-primary";
         register_preview_request(session, Some(consumer), Some("file-a"));
-        assert!(preview_request_is_current(session, Some(consumer), Some("file-a")));
+        assert!(preview_request_is_current(
+            session,
+            Some(consumer),
+            Some("file-a")
+        ));
 
         register_preview_request(session, Some(consumer), Some("file-b"));
-        assert!(!preview_request_is_current(session, Some(consumer), Some("file-a")));
-        assert!(preview_request_is_current(session, Some(consumer), Some("file-b")));
+        assert!(!preview_request_is_current(
+            session,
+            Some(consumer),
+            Some("file-a")
+        ));
+        assert!(preview_request_is_current(
+            session,
+            Some(consumer),
+            Some("file-b")
+        ));
 
         active_preview_consumers()
             .lock()

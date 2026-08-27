@@ -22,6 +22,7 @@
   "launcher_engine": "Suite Pengelola Cloud & Migrasi",
   "connection_strong": "{{latency}} ms · Terhubung",
   "connection_checking": "Memeriksa Koneksi…",
+  "connection_last_verified": "Terakhir terverifikasi · sinkronisasi live…",
   "connection_expired": "Sesi Kadaluarsa / Keluar",
   "connection_error": "Offline / Gangguan API",
   "session_expired_desc": "Sesi Telegram ini telah kadaluarsa atau terputus.",

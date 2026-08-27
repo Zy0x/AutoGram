@@ -61,6 +61,7 @@ describe('Drive ZIP workbench navigation', () => {
       'pack.zip'
     )).toEqual(['CentreHub2026', '778899']);
     expect(extractZipPasswordCandidates('This caption has no password label', 'pack.zip')).toEqual([]);
+    expect(extractZipPasswordCandidates('pasword: typo-ok\npw 4F7x', 'pack.zip'))
+      .toEqual(['typo-ok', '4F7x']);
   });
 });
-

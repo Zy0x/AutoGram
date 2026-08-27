@@ -93,6 +93,7 @@ export type TgMediaStatisticsResult = {
   gifCount: number;
   linkCount: number;
   audioCount: number;
+  stickerCount: number;
   loadedCount: number;
   totalBytes: number;
   lastSync: number;
@@ -677,6 +678,42 @@ export async function tgDebugGetMessage(args: {
     });
   } catch (e) {
     console.warn('[tgDebugGetMessage] failed', e);
+    return null;
+  }
+}
+
+export type TgPasswordCandidateMessage = {
+  messageId: number;
+  text: string;
+  distance: number;
+};
+
+export type TgSearchPasswordCandidatesResult = {
+  searchedQueries: number;
+  matchedMessages: number;
+  messages: TgPasswordCandidateMessage[];
+};
+
+export async function tgSearchPasswordCandidates(args: {
+  session: string;
+  apiId: number;
+  apiHash: string;
+  peerId: string;
+  anchorMessageId?: number | null;
+}): Promise<TgOpResult<TgSearchPasswordCandidatesResult> | null> {
+  if (!detectTauriRuntime()) return null;
+  try {
+    return await invoke<TgOpResult<TgSearchPasswordCandidatesResult>>('tg_search_password_candidates', {
+      request: {
+        session: args.session,
+        apiId: args.apiId,
+        apiHash: args.apiHash,
+        peerId: args.peerId,
+        anchorMessageId: args.anchorMessageId ?? null,
+      },
+    });
+  } catch (e) {
+    console.warn('[tgSearchPasswordCandidates] failed', e);
     return null;
   }
 }

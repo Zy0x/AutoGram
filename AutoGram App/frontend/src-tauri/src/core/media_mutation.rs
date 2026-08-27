@@ -3,8 +3,8 @@
 //! Provides a unified wire contract for media upserts and deletes emitted across
 //! passive Telegram updates, getChannelDifference results, and authoritative reconciliation.
 
-use serde::{Deserialize, Serialize};
 use super::grammers_ops::media_list::MediaFileRow;
+use serde::{Deserialize, Serialize};
 
 /// Canonical media mutation applied atomically alongside channel PTS in IndexedDB.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -24,7 +24,12 @@ pub enum MediaMutation {
 }
 
 impl MediaMutation {
-    pub fn upsert(peer_id: impl Into<String>, message_id: i64, topic_id: Option<i64>, row: MediaFileRow) -> Self {
+    pub fn upsert(
+        peer_id: impl Into<String>,
+        message_id: i64,
+        topic_id: Option<i64>,
+        row: MediaFileRow,
+    ) -> Self {
         Self::Upsert {
             peer_id: peer_id.into(),
             message_id,

@@ -827,7 +827,7 @@ fn jobs_start_execution(job_id: i64) -> Result<i64, String> {
 }
 
 #[tauri::command]
-fn jobs_run_migration(
+async fn jobs_run_migration(
     app: AppHandle,
     job_id: i64,
     api_id: i64,
@@ -835,7 +835,31 @@ fn jobs_run_migration(
     max_messages: Option<usize>,
 ) -> Result<core::migration_run::MigrationRunResult, String> {
     ensure_sessions_dir_env(&app);
-    core::migration_run::run_job_forward_mvp(job_id, api_id, &api_hash, max_messages.unwrap_or(100))
+    tauri::async_runtime::spawn_blocking(move || {
+        core::migration_run::run_job_forward_mvp(
+            job_id,
+            api_id,
+            &api_hash,
+            max_messages.unwrap_or(100),
+        )
+    })
+    .await
+    .map_err(|e| format!("migration task failed: {e}"))?
+}
+
+#[tauri::command]
+async fn jobs_dry_run(
+    app: AppHandle,
+    job_id: i64,
+    api_id: i64,
+    api_hash: String,
+) -> Result<core::migration_run::MigrationRunResult, String> {
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || {
+        core::migration_run::dry_run_job(job_id, api_id, &api_hash)
+    })
+    .await
+    .map_err(|e| format!("dry-run task failed: {e}"))?
 }
 
 #[tauri::command]
@@ -1042,7 +1066,12 @@ async fn zip_extract_entry(
     password: Option<String>,
 ) -> Result<u64, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        core::zip_local::extract_zip_entry(&archive_path, &entry_name, &dest_path, password.as_deref())
+        core::zip_local::extract_zip_entry(
+            &archive_path,
+            &entry_name,
+            &dest_path,
+            password.as_deref(),
+        )
     })
     .await
     .map_err(|e| format!("zip extract task failed: {e}"))?
@@ -1270,7 +1299,10 @@ fn session_guard_snapshot(session: String) -> core::session_guard::SessionGuardS
 }
 
 #[tauri::command]
-async fn tg_probe_session(app: AppHandle, session: String) -> core::grammers_ops::SessionProbeResult {
+async fn tg_probe_session(
+    app: AppHandle,
+    session: String,
+) -> core::grammers_ops::SessionProbeResult {
     ensure_sessions_dir_env(&app);
     tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_probe_session(session))
         .await
@@ -1367,9 +1399,11 @@ async fn tg_inspect_chat_target(
     request: core::telegram_ops::ChatTargetInspectionRequest,
 ) -> Result<core::telegram_ops::OpResult<core::grammers_ops::ChatTargetInspection>, String> {
     ensure_sessions_dir_env(&app);
-    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_inspect_chat_target(request))
-        .await
-        .map_err(|e| format!("native chat inspection task failed: {e}"))
+    tauri::async_runtime::spawn_blocking(move || {
+        core::telegram_ops::tg_inspect_chat_target(request)
+    })
+    .await
+    .map_err(|e| format!("native chat inspection task failed: {e}"))
 }
 
 #[tauri::command]
@@ -1487,7 +1521,9 @@ async fn tg_detach_media_index_job_channel(
     subscriber_id: u64,
     generation: u64,
 ) -> Result<core::media_index_types::DetachMediaIndexJobResponse, String> {
-    Ok(manager.detach_channel(job_id, subscriber_id, generation).await)
+    Ok(manager
+        .detach_channel(job_id, subscriber_id, generation)
+        .await)
 }
 
 #[tauri::command]
@@ -1543,7 +1579,9 @@ async fn tg_start_channel_sync(
     manager
         .start_sync(
             request,
-            core::channel_sync_worker::FnChannelSyncEventSink(move |evt| on_event.send(evt).is_ok()),
+            core::channel_sync_worker::FnChannelSyncEventSink(move |evt| {
+                on_event.send(evt).is_ok()
+            }),
         )
         .await
 }
@@ -1557,7 +1595,9 @@ async fn tg_attach_channel_sync(
     manager
         .attach_channel(
             sync_id,
-            core::channel_sync_worker::FnChannelSyncEventSink(move |evt| on_event.send(evt).is_ok()),
+            core::channel_sync_worker::FnChannelSyncEventSink(move |evt| {
+                on_event.send(evt).is_ok()
+            }),
         )
         .await
 }
@@ -1569,7 +1609,9 @@ async fn tg_detach_channel_sync(
     subscriber_id: u64,
     generation: u64,
 ) -> Result<core::channel_sync_types::DetachChannelSyncResponse, String> {
-    Ok(manager.detach_channel(sync_id, subscriber_id, generation).await)
+    Ok(manager
+        .detach_channel(sync_id, subscriber_id, generation)
+        .await)
 }
 
 #[tauri::command]
@@ -1704,6 +1746,20 @@ async fn tg_debug_get_message(
     tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_debug_get_message(request))
         .await
         .map_err(|e| format!("native debug get message task failed: {e}"))
+}
+
+#[tauri::command]
+async fn tg_search_password_candidates(
+    app: AppHandle,
+    request: core::telegram_ops::SearchPasswordCandidatesRequest,
+) -> Result<core::telegram_ops::OpResult<core::telegram_ops::SearchPasswordCandidatesResult>, String>
+{
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || {
+        core::telegram_ops::tg_search_password_candidates(request)
+    })
+    .await
+    .map_err(|e| format!("native password candidate search task failed: {e}"))
 }
 
 #[tauri::command]
@@ -2147,7 +2203,10 @@ fn desktop_write_clipboard(text: String) -> Result<(), String> {
             fn OpenClipboard(h_wnd: *mut std::ffi::c_void) -> i32;
             fn CloseClipboard() -> i32;
             fn EmptyClipboard() -> i32;
-            fn SetClipboardData(u_format: u32, h_mem: *mut std::ffi::c_void) -> *mut std::ffi::c_void;
+            fn SetClipboardData(
+                u_format: u32,
+                h_mem: *mut std::ffi::c_void,
+            ) -> *mut std::ffi::c_void;
             fn GlobalAlloc(u_flags: u32, dw_bytes: usize) -> *mut std::ffi::c_void;
             fn GlobalLock(h_mem: *mut std::ffi::c_void) -> *mut u16;
             fn GlobalUnlock(h_mem: *mut std::ffi::c_void) -> i32;
@@ -2218,7 +2277,10 @@ fn fetch_remote_text_content(url: String, user_agent: Option<String>) -> Result<
     let resp = agent
         .get(u_clean)
         .set("User-Agent", &ua)
-        .set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+        .set(
+            "Accept",
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        )
         .set("Accept-Language", "en-US,en;q=0.9")
         .call()
         .map_err(|e| format!("HTTP request failed: {e}"))?;
@@ -2256,7 +2318,10 @@ fn fetch_pikpak_share_meta(
         "i",
     ];
 
-    let mut current_salt = format!("{}{}{}{}{}", client_id, client_version, package_name, device_id, timestamp);
+    let mut current_salt = format!(
+        "{}{}{}{}{}",
+        client_id, client_version, package_name, device_id, timestamp
+    );
     for salt in salts {
         let digest = md5::compute(format!("{}{}", current_salt, salt).as_bytes());
         current_salt = format!("{:x}", digest);
@@ -2292,14 +2357,22 @@ fn fetch_pikpak_share_meta(
     let init_resp = agent
         .post("https://user.mypikpak.com/v1/shield/captcha/init")
         .set("Content-Type", "application/json")
-        .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36")
+        .set(
+            "User-Agent",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
+        )
         .set("x-device-id", &device_id)
         .set("x-client-id", client_id)
         .send_json(init_body)
         .map_err(|e| format!("Captcha init failed: {e}"))?;
 
-    let init_val: serde_json::Value = init_resp.into_json().map_err(|e| format!("Parse captcha json failed: {e}"))?;
-    let captcha_token = init_val.get("captcha_token").and_then(|v| v.as_str()).unwrap_or_default();
+    let init_val: serde_json::Value = init_resp
+        .into_json()
+        .map_err(|e| format!("Parse captcha json failed: {e}"))?;
+    let captcha_token = init_val
+        .get("captcha_token")
+        .and_then(|v| v.as_str())
+        .unwrap_or_default();
 
     let target_api_url = if let Some(fid) = folder_id {
         let mut u = format!(
@@ -2340,7 +2413,10 @@ fn fetch_pikpak_share_meta(
 
     let share_resp = agent
         .get(&target_api_url)
-        .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36")
+        .set(
+            "User-Agent",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
+        )
         .set("x-device-id", &device_id)
         .set("x-client-id", client_id)
         .set("x-captcha-token", captcha_token)
@@ -2349,7 +2425,9 @@ fn fetch_pikpak_share_meta(
 
     match share_resp {
         Ok(resp) => {
-            let val: serde_json::Value = resp.into_json().map_err(|e| format!("Parse share json failed: {e}"))?;
+            let val: serde_json::Value = resp
+                .into_json()
+                .map_err(|e| format!("Parse share json failed: {e}"))?;
             Ok(val)
         }
         Err(ureq::Error::Status(code, resp)) => {
@@ -2398,9 +2476,12 @@ fn fetch_native_http(
         req.send_string(&b)
     } else {
         req.call()
-    }.map_err(|e| format!("HTTP request failed: {e}"))?;
+    }
+    .map_err(|e| format!("HTTP request failed: {e}"))?;
 
-    let text = resp.into_string().map_err(|e| format!("read body failed: {e}"))?;
+    let text = resp
+        .into_string()
+        .map_err(|e| format!("read body failed: {e}"))?;
     Ok(text)
 }
 
@@ -2443,7 +2524,11 @@ fn fetch_remote_json_metadata(url: String) -> Result<serde_json::Value, String> 
             let start = pos + 16;
             if let Some(end) = html[start..].find('"') {
                 let raw = &html[start..start + end];
-                avatar_larger = Some(raw.replace("\\u0026", "&").replace("\\u002F", "/").replace("\\", ""));
+                avatar_larger = Some(
+                    raw.replace("\\u0026", "&")
+                        .replace("\\u002F", "/")
+                        .replace("\\", ""),
+                );
             }
         }
 
@@ -2451,7 +2536,11 @@ fn fetch_remote_json_metadata(url: String) -> Result<serde_json::Value, String> 
             let start = pos + 16;
             if let Some(end) = html[start..].find('"') {
                 let raw = &html[start..start + end];
-                avatar_medium = Some(raw.replace("\\u0026", "&").replace("\\u002F", "/").replace("\\", ""));
+                avatar_medium = Some(
+                    raw.replace("\\u0026", "&")
+                        .replace("\\u002F", "/")
+                        .replace("\\", ""),
+                );
             }
         }
 
@@ -2459,7 +2548,11 @@ fn fetch_remote_json_metadata(url: String) -> Result<serde_json::Value, String> 
             let start = pos + 12;
             if let Some(end) = html[start..].find('"') {
                 let raw = &html[start..start + end];
-                nickname = Some(raw.replace("\\u0026", "&").replace("\\u002F", "/").replace("\\", ""));
+                nickname = Some(
+                    raw.replace("\\u0026", "&")
+                        .replace("\\u002F", "/")
+                        .replace("\\", ""),
+                );
             }
         }
 
@@ -2467,7 +2560,11 @@ fn fetch_remote_json_metadata(url: String) -> Result<serde_json::Value, String> 
             let start = pos + 13;
             if let Some(end) = html[start..].find('"') {
                 let raw = &html[start..start + end];
-                signature = Some(raw.replace("\\u0026", "&").replace("\\u002F", "/").replace("\\", ""));
+                signature = Some(
+                    raw.replace("\\u0026", "&")
+                        .replace("\\u002F", "/")
+                        .replace("\\", ""),
+                );
             }
         }
 
@@ -2487,7 +2584,10 @@ fn fetch_remote_json_metadata(url: String) -> Result<serde_json::Value, String> 
     }
 
     let api_url = if u_clean.contains("tiktok.com") || u_clean.contains("douyin.com") {
-        format!("https://www.tikwm.com/api/?url={}&hd=1", urlencoding::encode(u_clean))
+        format!(
+            "https://www.tikwm.com/api/?url={}&hd=1",
+            urlencoding::encode(u_clean)
+        )
     } else {
         u_clean.to_string()
     };
@@ -2613,6 +2713,7 @@ pub fn run() {
             tg_purge_inactive_sessions,
             tg_thumbs_batch,
             tg_debug_get_message,
+            tg_search_password_candidates,
             tg_preview_stream,
             tg_stop_stream,
             tg_seek_stream,
@@ -2654,6 +2755,7 @@ pub fn run() {
             jobs_delete,
             jobs_start_execution,
             jobs_run_migration,
+            jobs_dry_run,
             cache_calculate_size,
             cache_clear_disk,
             cache_trim_disk,

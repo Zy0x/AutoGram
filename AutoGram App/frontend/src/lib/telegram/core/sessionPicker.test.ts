@@ -3,6 +3,8 @@ import {
   dedupeSessionOptionsByIdentity,
   hasStableSessionIdentity,
   verifySessionOptions,
+  sessionInventoryStatus,
+  preserveVerifiedSessionStatus,
   type SessionMetadata,
   type SessionOption,
 } from './sessionPicker';
@@ -87,5 +89,31 @@ describe('bounded session health verification', () => {
       { concurrency: 2, timeoutMs: 1_000 }
     );
     expect(maximum).toBe(2);
+  });
+});
+
+describe('instant session inventory status', () => {
+  it('shows a stale healthy session as last-known while live verification runs', () => {
+    expect(sessionInventoryStatus(
+      'checking',
+      { status: 'connected', checkedAt: 1_000 },
+      1_000 + 16 * 60 * 1_000
+    )).toBe('connected_stale');
+  });
+
+  it('keeps a fresh verified status and does not invent health without evidence', () => {
+    expect(sessionInventoryStatus(
+      'checking',
+      { status: 'connected', checkedAt: 1_000 },
+      1_500
+    )).toBe('connected');
+    expect(sessionInventoryStatus('checking', null, 1_500)).toBe('checking');
+  });
+
+  it('does not let an offline inventory refresh overwrite a verified live result', () => {
+    expect(preserveVerifiedSessionStatus(
+      [{ name: 'one', status: 'checking' }],
+      [{ name: 'one', status: 'connected', latencyMs: 42 }]
+    )).toEqual([{ name: 'one', status: 'connected', latencyMs: 42 }]);
   });
 });

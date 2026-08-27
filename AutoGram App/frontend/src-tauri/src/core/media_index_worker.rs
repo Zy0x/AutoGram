@@ -15,13 +15,13 @@ use async_trait::async_trait;
 use tokio::sync::{mpsc, watch, Notify, RwLock};
 use tokio_util::sync::CancellationToken;
 
+use super::adaptive_rate_governor::{AdaptiveRateGovernor, GovernorState, RpcObservation};
 use super::grammers_ops::media_list::{
-    list_media_page_async, LaneCounts, LaneCursor, LaneDurability, LaneRpcObservation, LaneWatermark,
-    ListMediaResult, MediaFileRow, ScopedMediaSearchCursor, SearchLane, SearchScope,
+    list_media_page_async, LaneCounts, LaneCursor, LaneDurability, LaneRpcObservation,
+    LaneWatermark, ListMediaResult, MediaFileRow, ScopedMediaSearchCursor, SearchLane, SearchScope,
 };
 use super::media_index_types::*;
 use super::telegram_ops::TelegramIdentity;
-use super::adaptive_rate_governor::{AdaptiveRateGovernor, GovernorState, RpcObservation};
 use super::telegram_rpc_guard::{IndexDispatchGate, RpcGuardControl, RpcObserver};
 use super::tg_error::{TgError, TgErrorCode, TgErrorPublic};
 use super::tg_log;
@@ -513,7 +513,9 @@ impl MediaIndexJobManager {
             });
 
             inner.jobs.insert(job_id, control.clone());
-            inner.active_session_jobs.insert(session_key.clone(), job_id);
+            inner
+                .active_session_jobs
+                .insert(session_key.clone(), job_id);
             if !client_req_id.is_empty() {
                 inner.client_request_map.insert(
                     client_req_id.clone(),
@@ -649,10 +651,7 @@ impl MediaIndexJobManager {
             job.subscriber_notify.notify_waiters();
         }
 
-        DetachMediaIndexJobResponse {
-            job_id,
-            detached,
-        }
+        DetachMediaIndexJobResponse { job_id, detached }
     }
 
     /// Dispatches a storage ACK from the frontend to the matching job with atomic single-winner claim.
@@ -867,7 +866,11 @@ impl RpcObserver for WorkerRpcObserver {
         let (flood_count, last_wait, new_spacing) = {
             let mut gov = self.governor.lock().await;
             gov.on_flood_wait(wait_secs);
-            (gov.flood_count(), gov.last_flood_wait_secs(), gov.spacing_ms())
+            (
+                gov.flood_count(),
+                gov.last_flood_wait_secs(),
+                gov.spacing_ms(),
+            )
         };
 
         // Immediately update dispatch gate spacing so internal retry cannot fire with stale spacing!
@@ -884,7 +887,8 @@ impl RpcObserver for WorkerRpcObserver {
             st.metrics.last_flood_wait_secs = last_wait;
             st.updated_at_ms = now_epoch_ms();
         }
-        let _ = self.control
+        let _ = self
+            .control
             .emit_to_primary(MediaIndexEvent::Flood {
                 job_id: self.job_id,
                 wait_secs,
@@ -918,7 +922,8 @@ impl RpcObserver for WorkerRpcObserver {
             }
         }
 
-        let _ = self.control
+        let _ = self
+            .control
             .emit_to_primary(MediaIndexEvent::State {
                 job_id: self.job_id,
                 state: next_state,
@@ -930,7 +935,10 @@ impl RpcObserver for WorkerRpcObserver {
         let gap_ms_opt = {
             let mut last_ack = self.last_ack_completed.lock().await;
             last_ack.take().map(|ack_instant| {
-                dispatch_instant.duration_since(ack_instant).as_millis().min(u64::MAX as u128) as u64
+                dispatch_instant
+                    .duration_since(ack_instant)
+                    .as_millis()
+                    .min(u64::MAX as u128) as u64
             })
         };
         if let Some(gap_ms) = gap_ms_opt {
@@ -970,7 +978,8 @@ impl MediaIndexWorker {
             st.started_at_ms = Some(now_epoch_ms());
             st.updated_at_ms = now_epoch_ms();
         }
-        let _ = self.control
+        let _ = self
+            .control
             .emit_to_primary(MediaIndexEvent::State {
                 job_id,
                 state: MediaIndexJobState::Running,
@@ -978,85 +987,92 @@ impl MediaIndexWorker {
             .await;
 
         // Initialize search scope and cursor
-        let (min_id, mut search_cursor, delta_base_id, mut current_newest_id) = match &self.request.initial_state {
-            Some(st) => {
-                let s = SearchScope {
-                    account_id: session_key.clone(),
-                    peer_id: peer_id.clone(),
-                    topic_id,
-                    min_id: if mode == MediaIndexMode::DeltaSync {
-                        if st.delta_active && st.delta_base_id > 0 {
-                            st.delta_base_id as i32
+        let (min_id, mut search_cursor, delta_base_id, mut current_newest_id) =
+            match &self.request.initial_state {
+                Some(st) => {
+                    let s = SearchScope {
+                        account_id: session_key.clone(),
+                        peer_id: peer_id.clone(),
+                        topic_id,
+                        min_id: if mode == MediaIndexMode::DeltaSync {
+                            if st.delta_active && st.delta_base_id > 0 {
+                                st.delta_base_id as i32
+                            } else {
+                                st.newest_committed_id as i32
+                            }
                         } else {
-                            st.newest_committed_id as i32
+                            0
+                        },
+                    };
+
+                    let cur = if mode == MediaIndexMode::DeltaSync {
+                        if st.delta_active {
+                            ScopedMediaSearchCursor {
+                                scope: s.clone(),
+                                photo_video: LaneCursor {
+                                    fetch_offset_id: st.delta_pv_committed_offset,
+                                    exhausted: st.delta_pv_exhausted,
+                                },
+                                document: LaneCursor {
+                                    fetch_offset_id: st.delta_doc_committed_offset,
+                                    exhausted: st.delta_doc_exhausted,
+                                },
+                                pending_photo_video: Vec::new(),
+                                pending_document: Vec::new(),
+                            }
+                        } else {
+                            ScopedMediaSearchCursor {
+                                scope: s.clone(),
+                                photo_video: LaneCursor {
+                                    fetch_offset_id: 0,
+                                    exhausted: false,
+                                },
+                                document: LaneCursor {
+                                    fetch_offset_id: 0,
+                                    exhausted: false,
+                                },
+                                pending_photo_video: Vec::new(),
+                                pending_document: Vec::new(),
+                            }
                         }
                     } else {
-                        0
-                    },
-                };
-
-                let cur = if mode == MediaIndexMode::DeltaSync {
-                    if st.delta_active {
                         ScopedMediaSearchCursor {
                             scope: s.clone(),
                             photo_video: LaneCursor {
-                                fetch_offset_id: st.delta_pv_committed_offset,
-                                exhausted: st.delta_pv_exhausted,
+                                fetch_offset_id: st.pv_committed_offset,
+                                exhausted: st.pv_exhausted,
                             },
                             document: LaneCursor {
-                                fetch_offset_id: st.delta_doc_committed_offset,
-                                exhausted: st.delta_doc_exhausted,
+                                fetch_offset_id: st.doc_committed_offset,
+                                exhausted: st.doc_exhausted,
                             },
                             pending_photo_video: Vec::new(),
                             pending_document: Vec::new(),
                         }
-                    } else {
-                        ScopedMediaSearchCursor {
-                            scope: s.clone(),
-                            photo_video: LaneCursor { fetch_offset_id: 0, exhausted: false },
-                            document: LaneCursor { fetch_offset_id: 0, exhausted: false },
-                            pending_photo_video: Vec::new(),
-                            pending_document: Vec::new(),
+                    };
+
+                    let base_id = if mode == MediaIndexMode::DeltaSync {
+                        if st.delta_active && st.delta_base_id > 0 {
+                            st.delta_base_id
+                        } else {
+                            st.newest_committed_id
                         }
-                    }
-                } else {
-                    ScopedMediaSearchCursor {
-                        scope: s.clone(),
-                        photo_video: LaneCursor {
-                            fetch_offset_id: st.pv_committed_offset,
-                            exhausted: st.pv_exhausted,
-                        },
-                        document: LaneCursor {
-                            fetch_offset_id: st.doc_committed_offset,
-                            exhausted: st.doc_exhausted,
-                        },
-                        pending_photo_video: Vec::new(),
-                        pending_document: Vec::new(),
-                    }
-                };
-
-                let base_id = if mode == MediaIndexMode::DeltaSync {
-                    if st.delta_active && st.delta_base_id > 0 {
-                        st.delta_base_id
                     } else {
-                        st.newest_committed_id
-                    }
-                } else {
-                    0
-                };
+                        0
+                    };
 
-                (s.min_id as i64, Some(cur), base_id, st.newest_committed_id)
-            }
-            None => {
-                let s = SearchScope {
-                    account_id: session_key.clone(),
-                    peer_id: peer_id.clone(),
-                    topic_id,
-                    min_id: 0,
-                };
-                (0i64, None, 0i64, 0i64)
-            }
-        };
+                    (s.min_id as i64, Some(cur), base_id, st.newest_committed_id)
+                }
+                None => {
+                    let s = SearchScope {
+                        account_id: session_key.clone(),
+                        peer_id: peer_id.clone(),
+                        topic_id,
+                        min_id: 0,
+                    };
+                    (0i64, None, 0i64, 0i64)
+                }
+            };
 
         let mut ack_counter = 0u64;
         let mut total_emitted = 0u64;
@@ -1808,7 +1824,9 @@ impl MediaIndexWorker {
 
         // Terminal state cleanup and event dispatch
         self.control.expected_ack_id.store(0, Ordering::Release);
-        self.control.terminal_at_ms.store(now_epoch_ms(), Ordering::Release);
+        self.control
+            .terminal_at_ms
+            .store(now_epoch_ms(), Ordering::Release);
 
         match loop_result {
             Ok(()) => {
@@ -1818,7 +1836,8 @@ impl MediaIndexWorker {
                     st.metrics = metrics.clone();
                     st.updated_at_ms = now_epoch_ms();
                 }
-                let _ = self.control
+                let _ = self
+                    .control
                     .emit_to_primary(MediaIndexEvent::Complete(MediaIndexCompleteEvent {
                         job_id,
                         mode,
@@ -1843,14 +1862,16 @@ impl MediaIndexWorker {
                 }
 
                 if is_cancelled {
-                    let _ = self.control
+                    let _ = self
+                        .control
                         .emit_to_primary(MediaIndexEvent::State {
                             job_id,
                             state: MediaIndexJobState::Cancelled,
                         })
                         .await;
                 } else {
-                    let _ = self.control
+                    let _ = self
+                        .control
                         .emit_to_primary(MediaIndexEvent::Failed {
                             job_id,
                             code: e.code,
@@ -1876,9 +1897,9 @@ impl MediaIndexWorker {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::grammers_ops::media_list::MediaFileRow;
     use super::super::grammers_ops::{LaneRpcObservation, SearchLane};
+    use super::*;
     use std::sync::atomic::AtomicUsize;
 
     struct MockMediaPageSource {
@@ -2106,9 +2127,7 @@ mod tests {
                 committed_state: None,
                 error_code: None,
             };
-            handles.push(tokio::spawn(async move {
-                mgr.process_ack(ack).await
-            }));
+            handles.push(tokio::spawn(async move { mgr.process_ack(ack).await }));
         }
 
         let mut accepted_count = 0;
@@ -2124,7 +2143,10 @@ mod tests {
         }
 
         assert_eq!(accepted_count, 1, "Exactly one ACK must be Accepted");
-        assert_eq!(already_acked_count, 31, "31 duplicate ACKs must be AlreadyAcked");
+        assert_eq!(
+            already_acked_count, 31,
+            "31 duplicate ACKs must be AlreadyAcked"
+        );
     }
 
     #[tokio::test]
@@ -2169,7 +2191,10 @@ mod tests {
         assert!(res1.is_ok(), "First job on session must succeed");
 
         let res2 = manager.start_job(req2, FnEventSink(|_| true)).await;
-        assert!(res2.is_err(), "Second job on same session with different scope must fail");
+        assert!(
+            res2.is_err(),
+            "Second job on same session with different scope must fail"
+        );
         assert_eq!(res2.err().unwrap().code, TgErrorCode::SessionLocked);
     }
 
@@ -2213,9 +2238,18 @@ mod tests {
             let mut inner = manager.inner.write().await;
             MediaIndexJobManager::prune_terminal_jobs_locked(&mut inner);
 
-            assert!(!inner.jobs.contains_key(&job_id), "Expired job must be purged from jobs map");
-            assert!(!inner.client_request_map.contains_key("req_prune_test"), "Client request map entry must be cleaned up");
-            assert!(!inner.active_session_jobs.contains_key("sess_prune"), "Session mapping must be released");
+            assert!(
+                !inner.jobs.contains_key(&job_id),
+                "Expired job must be purged from jobs map"
+            );
+            assert!(
+                !inner.client_request_map.contains_key("req_prune_test"),
+                "Client request map entry must be cleaned up"
+            );
+            assert!(
+                !inner.active_session_jobs.contains_key("sess_prune"),
+                "Session mapping must be released"
+            );
         }
     }
 
@@ -2243,13 +2277,19 @@ mod tests {
             force_mode: None,
         };
 
-        let res1 = manager.start_job(req1.clone(), FnEventSink(|_| true)).await.unwrap();
+        let res1 = manager
+            .start_job(req1.clone(), FnEventSink(|_| true))
+            .await
+            .unwrap();
         assert_eq!(res1.reused_existing_job, false);
         assert_eq!(res1.subscriber_id, 1);
         assert_eq!(res1.generation, 1);
 
         // Same UUID + same scope -> Idempotent reuse with incremented subscriber & generation
-        let res2 = manager.start_job(req1, FnEventSink(|_| true)).await.unwrap();
+        let res2 = manager
+            .start_job(req1, FnEventSink(|_| true))
+            .await
+            .unwrap();
         assert_eq!(res2.reused_existing_job, true);
         assert_eq!(res2.job_id, res1.job_id);
         assert_eq!(res2.subscriber_id, 2);
@@ -2271,7 +2311,10 @@ mod tests {
         };
 
         let res3 = manager.start_job(req3, FnEventSink(|_| true)).await;
-        assert!(res3.is_err(), "Same client request ID for different scope must fail");
+        assert!(
+            res3.is_err(),
+            "Same client request ID for different scope must fail"
+        );
     }
 
     #[tokio::test]
@@ -2302,13 +2345,19 @@ mod tests {
         let job_id = start_res.job_id;
 
         // Attach subscriber 2 (generation 2)
-        let attach_res = manager.attach_channel(job_id, FnEventSink(|_| true)).await.unwrap();
+        let attach_res = manager
+            .attach_channel(job_id, FnEventSink(|_| true))
+            .await
+            .unwrap();
         assert_eq!(attach_res.attached, true);
         assert_eq!(attach_res.generation, 2);
         let sub2_id = attach_res.subscriber_id;
 
         // Attach subscriber 3 (generation 3)
-        let attach_res3 = manager.attach_channel(job_id, FnEventSink(|_| true)).await.unwrap();
+        let attach_res3 = manager
+            .attach_channel(job_id, FnEventSink(|_| true))
+            .await
+            .unwrap();
         assert_eq!(attach_res3.attached, true);
         assert_eq!(attach_res3.generation, 3);
 
@@ -2317,7 +2366,9 @@ mod tests {
         assert_eq!(detach_stale.detached, false);
 
         // Valid detach from subscriber 3 (gen 3) must succeed
-        let detach_valid = manager.detach_channel(job_id, attach_res3.subscriber_id, 3).await;
+        let detach_valid = manager
+            .detach_channel(job_id, attach_res3.subscriber_id, 3)
+            .await;
         assert_eq!(detach_valid.detached, true);
     }
 
@@ -2346,7 +2397,10 @@ mod tests {
         };
 
         // First start -> subscriber 1, generation 1
-        let res1 = manager.start_job(req.clone(), FnEventSink(|_| true)).await.unwrap();
+        let res1 = manager
+            .start_job(req.clone(), FnEventSink(|_| true))
+            .await
+            .unwrap();
         assert_eq!(res1.reused_existing_job, false);
         assert_eq!(res1.subscriber_id, 1);
         assert_eq!(res1.generation, 1);
@@ -2358,7 +2412,9 @@ mod tests {
         assert_eq!(res2.generation, 2);
 
         // Detaching with reused actual subscriber (2, 2) must succeed
-        let detach_res = manager.detach_channel(res2.job_id, res2.subscriber_id, res2.generation).await;
+        let detach_res = manager
+            .detach_channel(res2.job_id, res2.subscriber_id, res2.generation)
+            .await;
         assert_eq!(detach_res.detached, true);
     }
 
@@ -2386,7 +2442,10 @@ mod tests {
             force_mode: None,
         };
 
-        let start_res = manager.start_job(req.clone(), FnEventSink(|_| true)).await.unwrap();
+        let start_res = manager
+            .start_job(req.clone(), FnEventSink(|_| true))
+            .await
+            .unwrap();
         let job_id = start_res.job_id;
 
         let job = {
@@ -2438,23 +2497,31 @@ mod tests {
         job.expected_ack_id.store(42, Ordering::Release);
 
         // Before claim: reuse start should replay page 42
-        let reuse1 = manager.start_job(req.clone(), FnEventSink(|_| true)).await.unwrap();
+        let reuse1 = manager
+            .start_job(req.clone(), FnEventSink(|_| true))
+            .await
+            .unwrap();
         assert_eq!(reuse1.replayed_ack_id, Some(42));
 
         // Now claim ACK 42 (e.g. frontend sent ACK)
-        let ack_res = manager.process_ack(MediaIndexPageAck {
-            job_id,
-            ack_id: 42,
-            outcome: MediaIndexAckOutcome::Committed,
-            committed_state: None,
-            error_code: None,
-        }).await;
+        let ack_res = manager
+            .process_ack(MediaIndexPageAck {
+                job_id,
+                ack_id: 42,
+                outcome: MediaIndexAckOutcome::Committed,
+                committed_state: None,
+                error_code: None,
+            })
+            .await;
         assert_eq!(ack_res, MediaIndexAckResult::Accepted);
         assert_eq!(job.claimed_ack_id.load(Ordering::Acquire), 42);
 
         // After claim: reuse start MUST NOT replay page 42 (claimed >= expected)
         let reuse2 = manager.start_job(req, FnEventSink(|_| true)).await.unwrap();
-        assert_eq!(reuse2.replayed_ack_id, None, "Page must not replay once claimed");
+        assert_eq!(
+            reuse2.replayed_ack_id, None,
+            "Page must not replay once claimed"
+        );
     }
 
     #[tokio::test]
@@ -2626,7 +2693,11 @@ mod tests {
         observer.on_guard_backoff_end(1).await;
 
         let st = control.status.read().await.clone();
-        assert_eq!(st.state, MediaIndexJobState::FloodPaused, "Status must not be overwritten to Running upon cancellation");
+        assert_eq!(
+            st.state,
+            MediaIndexJobState::FloodPaused,
+            "Status must not be overwritten to Running upon cancellation"
+        );
     }
 
     #[tokio::test]
@@ -2685,26 +2756,47 @@ mod tests {
         };
 
         // 1. Lane 1 (PhotoVideo) enters FloodWait
-        observer.on_guard_backoff_start(15, 1700000015000, 1, 3).await;
-        assert_eq!(control.status.read().await.state, MediaIndexJobState::FloodPaused);
-        assert!(dispatch_gate.spacing_ms() >= 200, "Gate spacing must be updated immediately upon FloodWait");
+        observer
+            .on_guard_backoff_start(15, 1700000015000, 1, 3)
+            .await;
+        assert_eq!(
+            control.status.read().await.state,
+            MediaIndexJobState::FloodPaused
+        );
+        assert!(
+            dispatch_gate.spacing_ms() >= 200,
+            "Gate spacing must be updated immediately upon FloodWait"
+        );
         assert_eq!(active_guard_backoffs.load(Ordering::SeqCst), 1);
 
         // 2. Lane 2 (Document) enters concurrent FloodWait
-        observer.on_guard_backoff_start(20, 1700000020000, 1, 3).await;
-        assert_eq!(control.status.read().await.state, MediaIndexJobState::FloodPaused);
+        observer
+            .on_guard_backoff_start(20, 1700000020000, 1, 3)
+            .await;
+        assert_eq!(
+            control.status.read().await.state,
+            MediaIndexJobState::FloodPaused
+        );
         assert_eq!(active_guard_backoffs.load(Ordering::SeqCst), 2);
 
         // 3. Lane 1 finishes its backoff early
         observer.on_guard_backoff_end(1).await;
         // Status MUST remain FloodPaused because Lane 2 is still sleeping!
-        assert_eq!(control.status.read().await.state, MediaIndexJobState::FloodPaused, "Status must remain FloodPaused while Lane 2 is still in backoff");
+        assert_eq!(
+            control.status.read().await.state,
+            MediaIndexJobState::FloodPaused,
+            "Status must remain FloodPaused while Lane 2 is still in backoff"
+        );
         assert_eq!(active_guard_backoffs.load(Ordering::SeqCst), 1);
 
         // 4. Lane 2 finishes its backoff
         observer.on_guard_backoff_end(1).await;
         // Only now should state transition to Running!
-        assert_eq!(control.status.read().await.state, MediaIndexJobState::Running, "Status must transition to Running once ALL concurrent backoffs have completed");
+        assert_eq!(
+            control.status.read().await.state,
+            MediaIndexJobState::Running,
+            "Status must transition to Running once ALL concurrent backoffs have completed"
+        );
         assert_eq!(active_guard_backoffs.load(Ordering::SeqCst), 0);
     }
 
@@ -2726,7 +2818,10 @@ mod tests {
                 photo_video: Some(150_000),
                 document: Some(100_000),
             }),
-            emitted_watermark: Some(LaneWatermark { photo_video: 100, document: 0 }),
+            emitted_watermark: Some(LaneWatermark {
+                photo_video: 100,
+                document: 0,
+            }),
             lane_durability: None,
             total_count: Some(250_000),
             backend: "grammers".into(),
@@ -2754,7 +2849,10 @@ mod tests {
             has_more: false,
             next_offset_id: None,
             lane_counts: None, // 0-RPC page produces None lane_counts
-            emitted_watermark: Some(LaneWatermark { photo_video: 99, document: 0 }),
+            emitted_watermark: Some(LaneWatermark {
+                photo_video: 99,
+                document: 0,
+            }),
             lane_durability: None,
             total_count: None,
             backend: "grammers".into(),
@@ -2789,10 +2887,16 @@ mod tests {
         };
 
         let (tx_events, mut rx_events) = tokio::sync::mpsc::unbounded_channel();
-        let start_res = manager.start_job(req, FnEventSink(move |evt| {
-            let _ = tx_events.send(evt);
-            true
-        })).await.unwrap();
+        let start_res = manager
+            .start_job(
+                req,
+                FnEventSink(move |evt| {
+                    let _ = tx_events.send(evt);
+                    true
+                }),
+            )
+            .await
+            .unwrap();
 
         let job_id = start_res.job_id;
 
@@ -2804,17 +2908,23 @@ mod tests {
                 .expect("timed out waiting for terminal durable page")
                 .expect("event channel closed before terminal durable page");
             if let MediaIndexEvent::Page(page) = evt {
-                assert_eq!(page.rows.len(), 2, "terminal batch must contain both source pages");
+                assert_eq!(
+                    page.rows.len(),
+                    2,
+                    "terminal batch must contain both source pages"
+                );
                 break page.ack_id;
             }
         };
-        manager.process_ack(MediaIndexPageAck {
-            job_id,
-            ack_id: ack1,
-            outcome: MediaIndexAckOutcome::Committed,
-            committed_state: None,
-            error_code: None,
-        }).await;
+        manager
+            .process_ack(MediaIndexPageAck {
+                job_id,
+                ack_id: ack1,
+                outcome: MediaIndexAckOutcome::Committed,
+                committed_state: None,
+                error_code: None,
+            })
+            .await;
 
         // Wait for job completion
         loop {
@@ -2834,10 +2944,20 @@ mod tests {
 
         let status = job.status.read().await;
         // Verify: Exactly 1 search RPC was performed across 2 pages!
-        assert_eq!(status.metrics.search_rpc_calls, 1, "Zero-RPC page must NOT increment search_rpc_calls (+0)");
-        assert_eq!(status.metrics.page_cycles, 2, "Page cycles must advance to 2");
+        assert_eq!(
+            status.metrics.search_rpc_calls, 1,
+            "Zero-RPC page must NOT increment search_rpc_calls (+0)"
+        );
+        assert_eq!(
+            status.metrics.page_cycles, 2,
+            "Page cycles must advance to 2"
+        );
         // Verify: Candidate total estimate was preserved at 250,000 and not overwritten by zero-RPC page!
-        assert_eq!(status.metrics.candidate_total_estimate, Some(250_000), "Candidate total estimate must be preserved across zero-RPC buffered page");
+        assert_eq!(
+            status.metrics.candidate_total_estimate,
+            Some(250_000),
+            "Candidate total estimate must be preserved across zero-RPC buffered page"
+        );
     }
 
     #[tokio::test]
@@ -2860,7 +2980,10 @@ mod tests {
                 photo_video: Some(150_000),
                 document: Some(100_000),
             }),
-            emitted_watermark: Some(LaneWatermark { photo_video: 100, document: 100 }),
+            emitted_watermark: Some(LaneWatermark {
+                photo_video: 100,
+                document: 100,
+            }),
             lane_durability: None,
             total_count: Some(250_000),
             backend: "grammers".into(),
@@ -2902,22 +3025,23 @@ mod tests {
                 photo_video: Some(149_000),
                 document: None, // Document lane was NOT queried in this page
             }),
-            emitted_watermark: Some(LaneWatermark { photo_video: 99, document: 100 }),
+            emitted_watermark: Some(LaneWatermark {
+                photo_video: 99,
+                document: 100,
+            }),
             lane_durability: None,
             total_count: Some(149_000),
             backend: "grammers".into(),
             cached: false,
             search_cursor: None,
-            rpc_observations: vec![
-                LaneRpcObservation {
-                    lane: SearchLane::PhotoVideo,
-                    latency_ms: 80,
-                    wall_latency_ms: 80,
-                    attempts: 1,
-                    rows_received: 1,
-                    candidate_count: Some(149_000),
-                },
-            ],
+            rpc_observations: vec![LaneRpcObservation {
+                lane: SearchLane::PhotoVideo,
+                latency_ms: 80,
+                wall_latency_ms: 80,
+                attempts: 1,
+                rows_received: 1,
+                candidate_count: Some(149_000),
+            }],
             pv_observation: None,
             doc_observation: None,
         };
@@ -2932,7 +3056,10 @@ mod tests {
             has_more: true,
             next_offset_id: Some(98),
             lane_counts: None,
-            emitted_watermark: Some(LaneWatermark { photo_video: 98, document: 100 }),
+            emitted_watermark: Some(LaneWatermark {
+                photo_video: 98,
+                document: 100,
+            }),
             lane_durability: None,
             total_count: None,
             backend: "grammers".into(),
@@ -2957,22 +3084,23 @@ mod tests {
                 photo_video: None, // PV not queried
                 document: Some(0), // DOC queried and genuinely has 0 items
             }),
-            emitted_watermark: Some(LaneWatermark { photo_video: 98, document: 0 }),
+            emitted_watermark: Some(LaneWatermark {
+                photo_video: 98,
+                document: 0,
+            }),
             lane_durability: None,
             total_count: Some(0),
             backend: "grammers".into(),
             cached: false,
             search_cursor: None,
-            rpc_observations: vec![
-                LaneRpcObservation {
-                    lane: SearchLane::Document,
-                    latency_ms: 50,
-                    wall_latency_ms: 50,
-                    attempts: 1,
-                    rows_received: 1,
-                    candidate_count: Some(0),
-                },
-            ],
+            rpc_observations: vec![LaneRpcObservation {
+                lane: SearchLane::Document,
+                latency_ms: 50,
+                wall_latency_ms: 50,
+                attempts: 1,
+                rows_received: 1,
+                candidate_count: Some(0),
+            }],
             pv_observation: None,
             doc_observation: None,
         };
@@ -3001,10 +3129,16 @@ mod tests {
         };
 
         let (tx_events, mut rx_events) = tokio::sync::mpsc::unbounded_channel();
-        let start_res = manager.start_job(req, FnEventSink(move |evt| {
-            let _ = tx_events.send(evt);
-            true
-        })).await.unwrap();
+        let start_res = manager
+            .start_job(
+                req,
+                FnEventSink(move |evt| {
+                    let _ = tx_events.send(evt);
+                    true
+                }),
+            )
+            .await
+            .unwrap();
 
         let job_id = start_res.job_id;
 
@@ -3015,17 +3149,23 @@ mod tests {
                 .expect("timed out waiting for coalesced durable page")
                 .expect("event channel closed before coalesced durable page");
             if let MediaIndexEvent::Page(page) = evt {
-                assert_eq!(page.rows.len(), 4, "coalesced page must retain every source row");
+                assert_eq!(
+                    page.rows.len(),
+                    4,
+                    "coalesced page must retain every source row"
+                );
                 break page.ack_id;
             }
         };
-        manager.process_ack(MediaIndexPageAck {
-            job_id,
-            ack_id,
-            outcome: MediaIndexAckOutcome::Committed,
-            committed_state: None,
-            error_code: None,
-        }).await;
+        manager
+            .process_ack(MediaIndexPageAck {
+                job_id,
+                ack_id,
+                outcome: MediaIndexAckOutcome::Committed,
+                committed_state: None,
+                error_code: None,
+            })
+            .await;
 
         // Wait for complete event
         loop {
@@ -3045,22 +3185,42 @@ mod tests {
 
         let status = job.status.read().await;
         // Total search RPC calls: 2 (page 1) + 1 (page 2) + 0 (page 3) + 1 (page 4) = 4 RPCs!
-        assert_eq!(status.metrics.search_rpc_calls, 4, "Total actual search RPCs must be 4");
+        assert_eq!(
+            status.metrics.search_rpc_calls, 4,
+            "Total actual search RPCs must be 4"
+        );
         assert_eq!(status.metrics.page_cycles, 4, "Page cycles must be 4");
         // Final candidate estimate: PV 149k + DOC 0 = 149,000
-        assert_eq!(status.metrics.candidate_total_estimate, Some(149_000), "Candidate total estimate must reflect known zero for DOC");
+        assert_eq!(
+            status.metrics.candidate_total_estimate,
+            Some(149_000),
+            "Candidate total estimate must reflect known zero for DOC"
+        );
         // Verify pure RPC EWMA is present and positive
-        assert!(status.metrics.rpc_latency_ewma_ms > 0.0, "RPC latency EWMA must be computed from pure RPC observations");
-        assert!(status.metrics.page_cycle_wall_ewma_ms.is_some(), "Page cycle wall EWMA must be tracked separately");
+        assert!(
+            status.metrics.rpc_latency_ewma_ms > 0.0,
+            "RPC latency EWMA must be computed from pure RPC observations"
+        );
+        assert!(
+            status.metrics.page_cycle_wall_ewma_ms.is_some(),
+            "Page cycle wall EWMA must be tracked separately"
+        );
     }
 
     #[tokio::test]
     async fn test_adaptive_durable_commit_coalescing_and_terminal_flush() {
         let make_files = |start_id: i64, count: usize| -> Vec<MediaFileRow> {
-            (0..count).map(|i| sample_media_row(start_id + i as i64)).collect()
+            (0..count)
+                .map(|i| sample_media_row(start_id + i as i64))
+                .collect()
         };
 
-        let make_page = |start_id: i64, count: usize, next_offset: i32, has_more: bool, total_count: Option<usize>| -> ListMediaResult {
+        let make_page = |start_id: i64,
+                         count: usize,
+                         next_offset: i32,
+                         has_more: bool,
+                         total_count: Option<usize>|
+         -> ListMediaResult {
             ListMediaResult {
                 status: "ok".into(),
                 folder_id: None,
@@ -3069,8 +3229,14 @@ mod tests {
                 page_size: 100,
                 has_more,
                 next_offset_id: Some(next_offset.into()),
-                lane_counts: Some(LaneCounts { photo_video: Some(237), document: Some(0) }),
-                emitted_watermark: Some(LaneWatermark { photo_video: next_offset, document: 0 }),
+                lane_counts: Some(LaneCounts {
+                    photo_video: Some(237),
+                    document: Some(0),
+                }),
+                emitted_watermark: Some(LaneWatermark {
+                    photo_video: next_offset,
+                    document: 0,
+                }),
                 lane_durability: None,
                 total_count,
                 backend: "grammers".into(),
@@ -3104,7 +3270,11 @@ mod tests {
         let manager = MediaIndexJobManager::with_page_source(PathBuf::from("dummy"), mock_source);
         let req = StartMediaIndexJobRequest {
             client_request_id: "req_coalesce_test".into(),
-            identity: TelegramIdentity { session: "s".into(), api_id: 1, api_hash: "h".into() },
+            identity: TelegramIdentity {
+                session: "s".into(),
+                api_id: 1,
+                api_hash: "h".into(),
+            },
             peer_id: "peer_coalesce".into(),
             topic_id: None,
             page_size: Some(100),
@@ -3113,10 +3283,16 @@ mod tests {
         };
 
         let (tx_events, mut rx_events) = tokio::sync::mpsc::unbounded_channel();
-        let start_res = manager.start_job(req, FnEventSink(move |evt| {
-            let _ = tx_events.send(evt);
-            true
-        })).await.unwrap();
+        let start_res = manager
+            .start_job(
+                req,
+                FnEventSink(move |evt| {
+                    let _ = tx_events.send(evt);
+                    true
+                }),
+            )
+            .await
+            .unwrap();
 
         let job_id = start_res.job_id;
         let mut emitted_page_events = Vec::new();
@@ -3126,13 +3302,15 @@ mod tests {
                 MediaIndexEvent::Page(p) => {
                     let ack_id = p.ack_id;
                     emitted_page_events.push(p);
-                    manager.process_ack(MediaIndexPageAck {
-                        job_id,
-                        ack_id,
-                        outcome: MediaIndexAckOutcome::Committed,
-                        committed_state: None,
-                        error_code: None,
-                    }).await;
+                    manager
+                        .process_ack(MediaIndexPageAck {
+                            job_id,
+                            ack_id,
+                            outcome: MediaIndexAckOutcome::Committed,
+                            committed_state: None,
+                            error_code: None,
+                        })
+                        .await;
                 }
                 MediaIndexEvent::Complete(_) => break,
                 _ => {}
@@ -3142,16 +3320,30 @@ mod tests {
         // With base commit_target = 200:
         // Batch 1: 50 + 50 + 50 + 50 = 200 rows
         // Batch 2: 37 rows (terminal flush!)
-        assert_eq!(emitted_page_events.len(), 2, "Coalescer must emit exactly 2 durable batches for 237 total items");
+        assert_eq!(
+            emitted_page_events.len(),
+            2,
+            "Coalescer must emit exactly 2 durable batches for 237 total items"
+        );
         assert_eq!(emitted_page_events[0].rows.len(), 200);
-        assert_eq!(emitted_page_events[1].rows.len(), 37, "Terminal partial tail must cleanly flush without hanging");
+        assert_eq!(
+            emitted_page_events[1].rows.len(),
+            37,
+            "Terminal partial tail must cleanly flush without hanging"
+        );
 
         let job = {
             let inner = manager.inner.read().await;
             inner.jobs.get(&job_id).cloned().unwrap()
         };
         let status = job.status.read().await;
-        assert_eq!(status.metrics.rows_committed, 237, "Exact 237 rows must be durably committed");
-        assert_eq!(status.metrics.search_rpc_calls, 5, "Total search RPCs must match the 5 sub-fetches");
+        assert_eq!(
+            status.metrics.rows_committed, 237,
+            "Exact 237 rows must be durably committed"
+        );
+        assert_eq!(
+            status.metrics.search_rpc_calls, 5,
+            "Total search RPCs must match the 5 sub-fetches"
+        );
     }
 }

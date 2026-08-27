@@ -677,6 +677,7 @@ export type DriveMediaFilter =
   | 'links'
   | 'gifs'
   | 'audio'
+  | 'stickers'
   | 'image'
   | 'video'
   | 'document'
@@ -704,12 +705,17 @@ export function matchesMediaFilter(
     }
   }
 
-  if (!filter || filter === 'all') return true;
+  if (!filter || filter === 'all') {
+    // Real Telegram stickers live exclusively in the Stickers lane. Keeping
+    // them out of All prevents sticker inventory from inflating the normal
+    // media/file catalog while ordinary WebP documents remain visible.
+    return perspective !== 'telegram' || tgCat !== 'sticker';
+  }
 
   if (perspective === 'telegram') {
     switch (filter) {
       case 'media':
-        if (f.as_document === true || tgCat === 'file' || tgCat === 'link' || icon === 'link' || f.telegram_subtype === 'webpage') return false;
+        if (tgCat === 'sticker' || f.as_document === true || tgCat === 'file' || tgCat === 'link' || icon === 'link' || f.telegram_subtype === 'webpage') return false;
         return (
           tgCat === 'media' ||
           icon === 'photo' ||
@@ -719,7 +725,7 @@ export function matchesMediaFilter(
           mime.startsWith('video/')
         );
       case 'files':
-        if (tgCat === 'text' || tgCat === 'link' || tgCat === 'restricted' || icon === 'text' || icon === 'link') return false;
+        if (tgCat === 'sticker' || tgCat === 'text' || tgCat === 'link' || tgCat === 'restricted' || icon === 'text' || icon === 'link') return false;
         return (
           tgCat === 'file' ||
           f.as_document === true ||
@@ -744,9 +750,12 @@ export function matchesMediaFilter(
           (Array.isArray(f.link_urls) && f.link_urls.length > 0)
         );
       case 'gifs':
+        if (tgCat === 'sticker') return false;
         return tgCat === 'gif' || mime === 'image/gif' || ext === 'gif' || icon === 'gif' || (f.telegram_subtype && f.telegram_subtype.includes('gif')) === true;
       case 'audio':
         return tgCat === 'audio' || icon === 'audio' || icon === 'voice' || mime.startsWith('audio/');
+      case 'stickers':
+        return tgCat === 'sticker';
       default:
         if (filter === 'image') return icon === 'image' || icon === 'photo';
         if (filter === 'video') return icon === 'video';
@@ -1165,7 +1174,10 @@ export function loadTransferSettings(): DriveTransferSettings {
       videoTranscodeScope: (typeof p.videoTranscodeScope === 'string' && ['all_non_mp4', 'common_containers', 'legacy_broadcast', 'custom', 'none'].includes(p.videoTranscodeScope)
         ? p.videoTranscodeScope
         : 'all_non_mp4') as VideoTranscodeScope,
-      videoTranscodeFormats: Array.isArray(p.videoTranscodeFormats) && p.videoTranscodeFormats.length > 0
+      // An explicitly empty custom/none list means "convert nothing".  Do not
+      // resurrect the default list on reload; doing so made a user-selected
+      // raw-document policy silently turn back into transcoding.
+      videoTranscodeFormats: Array.isArray(p.videoTranscodeFormats)
         ? p.videoTranscodeFormats.map((ext: any) => String(ext).toLowerCase().trim()).filter(Boolean)
         : [
             'mkv', 'mov', 'webm', 'avi', 'wmv', 'ts', 'm2ts', 'vob', 'flv', 'ogv', '3gp', 'f4v', 'asf', 'mpg', 'mxf', 'divx'
@@ -1176,7 +1188,7 @@ export function loadTransferSettings(): DriveTransferSettings {
       imageTranscodeTarget: (typeof p.imageTranscodeTarget === 'string' && ['png', 'jpeg'].includes(p.imageTranscodeTarget)
         ? p.imageTranscodeTarget
         : 'png') as ImageTranscodeTarget,
-      imageTranscodeFormats: Array.isArray(p.imageTranscodeFormats) && p.imageTranscodeFormats.length > 0
+      imageTranscodeFormats: Array.isArray(p.imageTranscodeFormats)
         ? p.imageTranscodeFormats.map((ext: any) => String(ext).toLowerCase().trim()).filter(Boolean)
         : [
             'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'

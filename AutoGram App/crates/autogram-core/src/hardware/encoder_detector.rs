@@ -73,7 +73,11 @@ pub fn probe_physical_gpu_capabilities() -> PhysicalGpuReport {
                     continue;
                 }
                 hwaccels.push(trimmed.to_string());
-                if trimmed.contains("cuda") || trimmed.contains("nvenc") || trimmed.contains("dxva2") || trimmed.contains("d3d11va") {
+                if trimmed.contains("cuda")
+                    || trimmed.contains("nvenc")
+                    || trimmed.contains("dxva2")
+                    || trimmed.contains("d3d11va")
+                {
                     nvenc = true;
                 }
                 if trimmed.contains("amf") {
@@ -116,4 +120,3 @@ mod tests {
         assert!(report.primary_encoder.priority_rank() >= 1);
     }
 }
-

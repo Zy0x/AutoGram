@@ -101,7 +101,10 @@ impl SessionUpdateRouter {
                     tg_log::warn(
                         BACKEND,
                         "channel_mailbox_overflow",
-                        format!("Channel {} mailbox full. Overflow flag set for difference recovery.", channel_id),
+                        format!(
+                            "Channel {} mailbox full. Overflow flag set for difference recovery.",
+                            channel_id
+                        ),
                     );
                 }
                 Err(mpsc::error::TrySendError::Closed(_)) => {}
@@ -120,7 +123,9 @@ impl SessionUpdateRouter {
                             _ => 0,
                         };
                         let tid = match &m.reply_to {
-                            Some(tl::enums::MessageReplyHeader::Header(h)) => h.reply_to_top_id.or(h.reply_to_msg_id).map(|i| i as i64),
+                            Some(tl::enums::MessageReplyHeader::Header(h)) => {
+                                h.reply_to_top_id.or(h.reply_to_msg_id).map(|i| i as i64)
+                            }
                             _ => None,
                         };
                         (cid, m.id as i64, tid)
@@ -130,18 +135,20 @@ impl SessionUpdateRouter {
 
                 if channel_id != 0 && msg_id > 0 {
                     let peer_str = channel_id.to_string();
-                    let mutation = if let Some(row) = tl_message_to_row(&u.message, Some(channel_id)) {
-                        MediaMutation::upsert(&peer_str, msg_id, top_id, row)
-                    } else {
-                        MediaMutation::delete(&peer_str, vec![msg_id])
-                    };
+                    let mutation =
+                        if let Some(row) = tl_message_to_row(&u.message, Some(channel_id)) {
+                            MediaMutation::upsert(&peer_str, msg_id, top_id, row)
+                        } else {
+                            MediaMutation::delete(&peer_str, vec![msg_id])
+                        };
 
                     self.route_channel_update(PendingChannelUpdate {
                         channel_id,
                         pts: u.pts,
                         pts_count: u.pts_count,
                         update_type: ChannelUpdateType::NewMessage(mutation),
-                    }).await;
+                    })
+                    .await;
                 }
             }
 
@@ -153,7 +160,9 @@ impl SessionUpdateRouter {
                             _ => 0,
                         };
                         let tid = match &m.reply_to {
-                            Some(tl::enums::MessageReplyHeader::Header(h)) => h.reply_to_top_id.or(h.reply_to_msg_id).map(|i| i as i64),
+                            Some(tl::enums::MessageReplyHeader::Header(h)) => {
+                                h.reply_to_top_id.or(h.reply_to_msg_id).map(|i| i as i64)
+                            }
                             _ => None,
                         };
                         (cid, m.id as i64, tid)
@@ -163,18 +172,20 @@ impl SessionUpdateRouter {
 
                 if channel_id != 0 && msg_id > 0 {
                     let peer_str = channel_id.to_string();
-                    let mutation = if let Some(row) = tl_message_to_row(&u.message, Some(channel_id)) {
-                        MediaMutation::upsert(&peer_str, msg_id, top_id, row)
-                    } else {
-                        MediaMutation::delete(&peer_str, vec![msg_id])
-                    };
+                    let mutation =
+                        if let Some(row) = tl_message_to_row(&u.message, Some(channel_id)) {
+                            MediaMutation::upsert(&peer_str, msg_id, top_id, row)
+                        } else {
+                            MediaMutation::delete(&peer_str, vec![msg_id])
+                        };
 
                     self.route_channel_update(PendingChannelUpdate {
                         channel_id,
                         pts: u.pts,
                         pts_count: u.pts_count,
                         update_type: ChannelUpdateType::EditMessage(mutation),
-                    }).await;
+                    })
+                    .await;
                 }
             }
 
@@ -187,7 +198,8 @@ impl SessionUpdateRouter {
                     pts: u.pts,
                     pts_count: u.pts_count,
                     update_type: ChannelUpdateType::DeleteMessages(ids),
-                }).await;
+                })
+                .await;
             }
 
             tl::enums::Update::DeleteMessages(u) => {
@@ -212,7 +224,8 @@ impl SessionUpdateRouter {
                     pts: u.pts.unwrap_or(0),
                     pts_count: 0,
                     update_type: ChannelUpdateType::ChannelTooLong { pts: u.pts },
-                }).await;
+                })
+                .await;
             }
 
             _ => {}
@@ -227,11 +240,15 @@ impl SessionUpdateRouter {
             tg_log::info(
                 BACKEND,
                 "session_router_start",
-                format!("Started passive update router for session {}", router.session_key),
+                format!(
+                    "Started passive update router for session {}",
+                    router.session_key
+                ),
             );
 
             while !cancel.is_cancelled() {
-                match obtain_live_client(&router.sessions_dir, &router.identity, true, false).await {
+                match obtain_live_client(&router.sessions_dir, &router.identity, true, false).await
+                {
                     Ok(live_client) => {
                         let opt_rx = {
                             let mut guard = live_client.updates_rx.lock().await;
@@ -242,35 +259,36 @@ impl SessionUpdateRouter {
                             let client = live_client.client.clone();
                             let config = grammers_client::client::UpdatesConfiguration::default();
                             match client.stream_updates(updates_rx, config).await {
-                                Ok(mut stream) => {
-                                    loop {
-                                        tokio::select! {
-                                            _ = cancel.cancelled() => return,
-                                            next_res = stream.next_raw() => {
-                                                match next_res {
-                                                    Ok((raw_update, _state, _peers)) => {
-                                                        router.process_raw_update(&raw_update).await;
-                                                    }
-                                                    Err(e) => {
-                                                        tg_log::warn(
-                                                            BACKEND,
-                                                            "stream_update_err",
-                                                            format!("Session {} stream error: {e}", router.session_key),
-                                                        );
-                                                        disconnect_cached_session(&router.session_key);
-                                                        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-                                                        break;
-                                                    }
+                                Ok(mut stream) => loop {
+                                    tokio::select! {
+                                        _ = cancel.cancelled() => return,
+                                        next_res = stream.next_raw() => {
+                                            match next_res {
+                                                Ok((raw_update, _state, _peers)) => {
+                                                    router.process_raw_update(&raw_update).await;
+                                                }
+                                                Err(e) => {
+                                                    tg_log::warn(
+                                                        BACKEND,
+                                                        "stream_update_err",
+                                                        format!("Session {} stream error: {e}", router.session_key),
+                                                    );
+                                                    disconnect_cached_session(&router.session_key);
+                                                    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                                                    break;
                                                 }
                                             }
                                         }
                                     }
-                                }
+                                },
                                 Err(e) => {
                                     tg_log::warn(
                                         BACKEND,
                                         "stream_updates_init_failed",
-                                        format!("Session {} stream_updates failed: {e}", router.session_key),
+                                        format!(
+                                            "Session {} stream_updates failed: {e}",
+                                            router.session_key
+                                        ),
                                     );
                                     disconnect_cached_session(&router.session_key);
                                 }
@@ -360,12 +378,14 @@ mod tests {
         let (mut rx_channel_102, _overflow_102) = router.register_channel(102).await;
 
         // Route update for channel 101
-        router.route_channel_update(PendingChannelUpdate {
-            channel_id: 101,
-            pts: 50,
-            pts_count: 1,
-            update_type: ChannelUpdateType::DeleteMessages(vec![1, 2]),
-        }).await;
+        router
+            .route_channel_update(PendingChannelUpdate {
+                channel_id: 101,
+                pts: 50,
+                pts_count: 1,
+                update_type: ChannelUpdateType::DeleteMessages(vec![1, 2]),
+            })
+            .await;
 
         let received = rx_channel_101.try_recv().unwrap();
         assert_eq!(received.channel_id, 101);
@@ -378,12 +398,14 @@ mod tests {
         router.unregister_channel(101).await;
 
         // Further updates for 101 are dropped cleanly without error
-        router.route_channel_update(PendingChannelUpdate {
-            channel_id: 101,
-            pts: 51,
-            pts_count: 1,
-            update_type: ChannelUpdateType::DeleteMessages(vec![3]),
-        }).await;
+        router
+            .route_channel_update(PendingChannelUpdate {
+                channel_id: 101,
+                pts: 51,
+                pts_count: 1,
+                update_type: ChannelUpdateType::DeleteMessages(vec![3]),
+            })
+            .await;
 
         assert!(rx_channel_101.try_recv().is_err());
     }
@@ -404,23 +426,27 @@ mod tests {
 
         // Fill up the 64 slots
         for i in 0..64 {
-            router.route_channel_update(PendingChannelUpdate {
-                channel_id: 202,
-                pts: i,
-                pts_count: 1,
-                update_type: ChannelUpdateType::DeleteMessages(vec![i as i64]),
-            }).await;
+            router
+                .route_channel_update(PendingChannelUpdate {
+                    channel_id: 202,
+                    pts: i,
+                    pts_count: 1,
+                    update_type: ChannelUpdateType::DeleteMessages(vec![i as i64]),
+                })
+                .await;
         }
 
         assert!(!overflowed.load(Ordering::Acquire));
 
         // 65th update causes overflow
-        router.route_channel_update(PendingChannelUpdate {
-            channel_id: 202,
-            pts: 65,
-            pts_count: 1,
-            update_type: ChannelUpdateType::DeleteMessages(vec![65]),
-        }).await;
+        router
+            .route_channel_update(PendingChannelUpdate {
+                channel_id: 202,
+                pts: 65,
+                pts_count: 1,
+                update_type: ChannelUpdateType::DeleteMessages(vec![65]),
+            })
+            .await;
 
         assert!(overflowed.load(Ordering::Acquire));
     }

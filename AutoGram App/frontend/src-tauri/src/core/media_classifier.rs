@@ -23,9 +23,9 @@ pub enum MediaCategory {
 #[serde(rename_all = "camelCase")]
 pub struct ClassificationResult {
     pub telegram_category: String, // "media" | "file" | "link" | "gif" | "audio" | "sticker"
-    pub telegram_subtype: String,  // "photo" | "video" | "doc_photo" | "doc_video" | "archive" | "pdf" | "docx" | "url" | "music" | "voice" | "other"
-    pub drive_category: String,    // "image" | "video" | "audio" | "document" | "archive" | "web"
-    pub drive_format: String,      // "MP4" | "MKV" | "JPG" | "PNG" | "PDF" | "ZIP" | "URL" | etc.
+    pub telegram_subtype: String, // "photo" | "video" | "doc_photo" | "doc_video" | "archive" | "pdf" | "docx" | "url" | "music" | "voice" | "other"
+    pub drive_category: String,   // "image" | "video" | "audio" | "document" | "archive" | "web"
+    pub drive_format: String,     // "MP4" | "MKV" | "JPG" | "PNG" | "PDF" | "ZIP" | "URL" | etc.
     pub media_category: MediaCategory, // Spec v4.3 typed media category
 }
 
@@ -155,13 +155,16 @@ pub fn classify_media_item(
         };
     }
 
-    // 2. Check if Sticker
-    if is_sticker || mime_l == "image/webp" && name_l.starts_with("sticker_") {
+    // 2. Check if Sticker.  Extension, MIME, and filename are insufficient:
+    // Telegram accepts ordinary WebP documents (including files named
+    // `sticker_*.webp`).  Only the MTProto DocumentAttribute::Sticker signal
+    // supplied by the caller is authoritative.
+    if is_sticker {
         return ClassificationResult {
             telegram_category: "sticker".into(),
             telegram_subtype: "sticker".into(),
             drive_category: "image".into(),
-            drive_format: "WEBP".into(),
+            drive_format: ext,
             media_category,
         };
     }
@@ -239,10 +242,15 @@ pub fn classify_media_item(
 
     let has_file_extension = name_l.rfind('.').map_or(false, |idx| {
         let extension = &name_l[idx + 1..];
-        !extension.is_empty() && extension.len() <= 10 && extension.chars().all(|c| c.is_ascii_alphanumeric())
+        !extension.is_empty()
+            && extension.len() <= 10
+            && extension.chars().all(|c| c.is_ascii_alphanumeric())
     });
 
-    let is_actual_document = as_document || is_archive_format || is_doc_format || (has_file_extension && !is_web_link && mime_l != "text/plain" && mime_l != "text/html");
+    let is_actual_document = as_document
+        || is_archive_format
+        || is_doc_format
+        || (has_file_extension && !is_web_link && mime_l != "text/plain" && mime_l != "text/html");
 
     // Telegram View Classification
     let (telegram_category, telegram_subtype) = if is_photo_msg {
@@ -401,5 +409,24 @@ mod tests {
         );
         assert_eq!(link.telegram_category, "link");
         assert_eq!(link.drive_format, "URL");
+    }
+
+    #[test]
+    fn ordinary_webp_document_is_not_inferred_as_sticker() {
+        let ordinary = classify_media_item(
+            "sticker_export.webp",
+            Some("image/webp"),
+            true,
+            false,
+            false,
+        );
+        assert_eq!(ordinary.telegram_category, "file");
+        assert_eq!(ordinary.telegram_subtype, "doc_photo");
+        assert_eq!(ordinary.drive_category, "image");
+
+        let telegram_sticker =
+            classify_media_item("artwork.webp", Some("image/webp"), true, false, true);
+        assert_eq!(telegram_sticker.telegram_category, "sticker");
+        assert_eq!(telegram_sticker.drive_format, "WEBP");
     }
 }

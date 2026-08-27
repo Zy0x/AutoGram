@@ -158,4 +158,3 @@ mod tests {
         assert!(cmds.android_sh.contains("/sdcard/Download/"));
     }
 }
-

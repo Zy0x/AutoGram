@@ -697,9 +697,8 @@ fn decode_entry_bytes_direct(
     }
 
     // Encrypted entry: require password
-    let pass = password.ok_or_else(|| {
-        IoError::new(IoErrorKind::PermissionDenied, "bad_password")
-    })?;
+    let pass =
+        password.ok_or_else(|| IoError::new(IoErrorKind::PermissionDenied, "bad_password"))?;
 
     // 1. Try fast ZipCrypto first
     if comp_buf.len() >= 12 {
@@ -741,7 +740,10 @@ fn decode_entry_bytes_direct(
     let extra_len = u16::from_le_bytes([local_header[28], local_header[29]]) as usize;
     let header_prefix_len = 30 + name_len + extra_len;
     if local_header.len() < header_prefix_len {
-        return Err(IoError::new(IoErrorKind::InvalidData, "Incomplete local header"));
+        return Err(IoError::new(
+            IoErrorKind::InvalidData,
+            "Incomplete local header",
+        ));
     }
 
     let total_local_entry_len = header_prefix_len + comp_buf.len();
@@ -778,7 +780,10 @@ fn decode_entry_bytes_direct(
 
     let cursor = std::io::Cursor::new(synth_zip);
     let mut archive = zip::ZipArchive::new(cursor).map_err(|e| {
-        IoError::new(IoErrorKind::InvalidData, format!("Synthetic ZIP error: {e}"))
+        IoError::new(
+            IoErrorKind::InvalidData,
+            format!("Synthetic ZIP error: {e}"),
+        )
     })?;
 
     let mut f = archive
@@ -879,7 +884,8 @@ fn preview_zip_entry_direct(
     let mut comp_buf = vec![0u8; comp_size];
     reader.read_exact(&mut comp_buf)?;
 
-    let decomp_buf = decode_entry_bytes_direct(&full_local_header, &comp_buf, password, entry.size)?;
+    let decomp_buf =
+        decode_entry_bytes_direct(&full_local_header, &comp_buf, password, entry.size)?;
 
     let mut prev = super::zip_local::build_zip_entry_preview(&entry.name, entry.size, decomp_buf);
     prev.backend = "grammers_sparse_direct".into();
@@ -941,9 +947,19 @@ fn extract_exif_thumbnail_from_header(data: &[u8]) -> Option<Vec<u8>> {
             let read_u32 = |buf: &[u8], off: usize| -> Option<u32> {
                 if off + 4 <= buf.len() {
                     if is_le {
-                        Some(u32::from_le_bytes([buf[off], buf[off + 1], buf[off + 2], buf[off + 3]]))
+                        Some(u32::from_le_bytes([
+                            buf[off],
+                            buf[off + 1],
+                            buf[off + 2],
+                            buf[off + 3],
+                        ]))
                     } else {
-                        Some(u32::from_be_bytes([buf[off], buf[off + 1], buf[off + 2], buf[off + 3]]))
+                        Some(u32::from_be_bytes([
+                            buf[off],
+                            buf[off + 1],
+                            buf[off + 2],
+                            buf[off + 3],
+                        ]))
                     }
                 } else {
                     None
@@ -1000,7 +1016,9 @@ fn extract_mp4_cover_from_header(data: &[u8]) -> Option<Vec<u8>> {
     if let Some(covr_pos) = data.windows(4).position(|w| w == b"covr") {
         if covr_pos + 8 <= data.len() {
             let data_atom_pos = covr_pos + 8;
-            if data_atom_pos + 16 <= data.len() && &data[data_atom_pos + 4..data_atom_pos + 8] == b"data" {
+            if data_atom_pos + 16 <= data.len()
+                && &data[data_atom_pos + 4..data_atom_pos + 8] == b"data"
+            {
                 let data_len = u32::from_be_bytes([
                     data[data_atom_pos],
                     data[data_atom_pos + 1],
@@ -1093,8 +1111,10 @@ fn extract_thumbnail_direct(
 
     // If small file (< 384 KB), decompress fully
     if entry.size <= 384 * 1024 {
-        let decomp_buf = decode_entry_bytes_direct(&full_local_header, &comp_buf, password, entry.size)?;
-        let mut prev = super::zip_local::build_zip_entry_preview(&entry.name, entry.size, decomp_buf);
+        let decomp_buf =
+            decode_entry_bytes_direct(&full_local_header, &comp_buf, password, entry.size)?;
+        let mut prev =
+            super::zip_local::build_zip_entry_preview(&entry.name, entry.size, decomp_buf);
         prev.backend = "grammers_sparse_thumb_full".into();
         return Ok(prev);
     }
@@ -1142,7 +1162,11 @@ fn extract_thumbnail_direct(
     // Try MP4 cover extraction
     if let Some(cover_bytes) = extract_mp4_cover_from_header(&header_data) {
         use base64::Engine;
-        let mime = if cover_bytes.starts_with(b"\x89PNG") { "image/png" } else { "image/jpeg" };
+        let mime = if cover_bytes.starts_with(b"\x89PNG") {
+            "image/png"
+        } else {
+            "image/jpeg"
+        };
         let b64 = base64::engine::general_purpose::STANDARD.encode(&cover_bytes);
         return Ok(ZipEntryPreview {
             name: entry.name.clone(),
@@ -1159,12 +1183,16 @@ fn extract_thumbnail_direct(
     // Fallback: If image has JPEG SOI but no EXIF thumbnail and entry size is moderately sized (< 1.5MB),
     // fetch full entry preview
     if entry.size < 1536 * 1024 {
-        reader.seek(SeekFrom::Start(entry.local_header_offset + 30 + name_len as u64 + extra_len as u64))?;
+        reader.seek(SeekFrom::Start(
+            entry.local_header_offset + 30 + name_len as u64 + extra_len as u64,
+        ))?;
         let full_comp_size = entry.compressed_size as usize;
         let mut full_comp_buf = vec![0u8; full_comp_size];
         reader.read_exact(&mut full_comp_buf)?;
-        let decomp_buf = decode_entry_bytes_direct(&full_local_header, &full_comp_buf, password, entry.size)?;
-        let mut prev = super::zip_local::build_zip_entry_preview(&entry.name, entry.size, decomp_buf);
+        let decomp_buf =
+            decode_entry_bytes_direct(&full_local_header, &full_comp_buf, password, entry.size)?;
+        let mut prev =
+            super::zip_local::build_zip_entry_preview(&entry.name, entry.size, decomp_buf);
         prev.backend = "grammers_sparse_direct_fallback".into();
         return Ok(prev);
     }
@@ -1251,7 +1279,10 @@ pub async fn preview_zip_thumbnail_sparse(
                 }
                 Err(e) => {
                     let err_msg = e.to_string();
-                    if err_msg.contains("bad_password") || err_msg.contains("Password required") || err_msg.contains("PermissionDenied") {
+                    if err_msg.contains("bad_password")
+                        || err_msg.contains("Password required")
+                        || err_msg.contains("PermissionDenied")
+                    {
                         return Err(TgError::new(TgErrorCode::Io, "bad_password"));
                     }
                     return Err(TgError::new(TgErrorCode::Io, err_msg));
@@ -1259,7 +1290,10 @@ pub async fn preview_zip_thumbnail_sparse(
             }
         }
 
-        Err(TgError::new(TgErrorCode::Io, format!("Entri tidak ditemukan: {entry_name}")))
+        Err(TgError::new(
+            TgErrorCode::Io,
+            format!("Entri tidak ditemukan: {entry_name}"),
+        ))
     })
     .await
     .map_err(|e| {
@@ -1341,7 +1375,10 @@ pub async fn preview_zip_entry_sparse(
                 }
                 Err(e) => {
                     let err_msg = e.to_string();
-                    if err_msg.contains("bad_password") || err_msg.contains("Password required") || err_msg.contains("PermissionDenied") {
+                    if err_msg.contains("bad_password")
+                        || err_msg.contains("Password required")
+                        || err_msg.contains("PermissionDenied")
+                    {
                         return Err(TgError::new(TgErrorCode::Io, "bad_password"));
                     }
                     return Err(TgError::new(TgErrorCode::Io, err_msg));
@@ -1349,7 +1386,10 @@ pub async fn preview_zip_entry_sparse(
             }
         }
 
-        Err(TgError::new(TgErrorCode::Io, format!("Entri tidak ditemukan: {entry_name}")))
+        Err(TgError::new(
+            TgErrorCode::Io,
+            format!("Entri tidak ditemukan: {entry_name}"),
+        ))
     })
     .await
     .map_err(|e| {
@@ -1405,7 +1445,8 @@ fn extract_zip_entry_direct(
     let mut comp_buf = vec![0u8; comp_size];
     reader.read_exact(&mut comp_buf)?;
 
-    let decomp_buf = decode_entry_bytes_direct(&full_local_header, &comp_buf, password, entry.size)?;
+    let decomp_buf =
+        decode_entry_bytes_direct(&full_local_header, &comp_buf, password, entry.size)?;
 
     let target_p = super::path_policy::assert_safe_transfer_path(dest_path)
         .map_err(|e| IoError::new(IoErrorKind::InvalidInput, e))?;
@@ -1481,7 +1522,12 @@ pub async fn extract_zip_entry_sparse(
 
         // FAST DIRECT PATH: Extract single entry directly from local_header_offset without tail prefetch
         if let Some(ref entry) = target_entry {
-            match extract_zip_entry_direct(&mut sparse_reader, entry, &dest_path, password.as_deref()) {
+            match extract_zip_entry_direct(
+                &mut sparse_reader,
+                entry,
+                &dest_path,
+                password.as_deref(),
+            ) {
                 Ok(bytes_written) => {
                     let _ = persist_memory_session(&session, &session_path);
                     return Ok(bytes_written);
@@ -1496,7 +1542,10 @@ pub async fn extract_zip_entry_sparse(
             }
         }
 
-        Err(TgError::new(TgErrorCode::Io, format!("Entri tidak ditemukan: {entry_name}")))
+        Err(TgError::new(
+            TgErrorCode::Io,
+            format!("Entri tidak ditemukan: {entry_name}"),
+        ))
     })
     .await
     .map_err(|e| {

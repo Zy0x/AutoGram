@@ -34,6 +34,80 @@ fn option_bool(options: &serde_json::Value, snake: &str, camel: &str, default: b
         .unwrap_or(default)
 }
 
+fn is_nonstandard_image_source(path: &str) -> bool {
+    std::path::Path::new(path)
+        .extension()
+        .and_then(|value| value.to_str())
+        .map(|value| {
+            matches!(
+                value.to_ascii_lowercase().as_str(),
+                "webp"
+                    | "heic"
+                    | "heif"
+                    | "hif"
+                    | "avif"
+                    | "avis"
+                    | "jxl"
+                    | "bmp"
+                    | "tif"
+                    | "tiff"
+                    | "svg"
+                    | "svgz"
+                    | "psd"
+                    | "psb"
+                    | "tga"
+                    | "dds"
+                    | "exr"
+                    | "hdr"
+                    | "ico"
+                    | "cur"
+                    | "raw"
+                    | "dng"
+                    | "cr2"
+                    | "cr3"
+                    | "nef"
+                    | "nrw"
+                    | "arw"
+                    | "srf"
+                    | "sr2"
+                    | "orf"
+                    | "rw2"
+                    | "pef"
+                    | "raf"
+                    | "srw"
+                    | "x3f"
+                    | "erf"
+                    | "kdc"
+                    | "dcr"
+                    | "mef"
+                    | "mos"
+                    | "mrw"
+            )
+        })
+        .unwrap_or(false)
+}
+
+/// A non-standard image that was deliberately left untouched must remain a
+/// Telegram document. This source-path guard is intentionally independent of
+/// magic-byte classification: files carrying JPEG bytes under a `.webp` name
+/// are still governed by the user's lossless/raw delivery choice and must not
+/// be silently renamed or recompressed by Telegram as native photos.
+fn apply_nonstandard_source_document_guard(
+    source_path: &str,
+    transformed: bool,
+    classification: &mut DeliveryClassification,
+) -> bool {
+    if transformed || !is_nonstandard_image_source(source_path) {
+        return false;
+    }
+    if classification.payload_class == PayloadClass::NativeVisual {
+        classification.payload_class = PayloadClass::DocumentGroup;
+    }
+    classification.as_document = true;
+    classification.reason_code = "untransformed_nonstandard_source_document".into();
+    true
+}
+
 fn option_usize(options: &serde_json::Value, snake: &str, camel: &str, default: usize) -> usize {
     options
         .get(snake)
@@ -967,35 +1041,47 @@ fn run_intelligent_album(
         // Only active when album mode is used; WebP/OtherImage/GIF/TGS still in NativeVisual
         // after transcode will pass through (artifact.transformed guards that path).
         {
-            let incompat_image_mode = rec.options
+            let incompat_image_mode = rec
+                .options
                 .get("album_incompat_image_mode")
                 .or_else(|| rec.options.get("albumIncompatImageMode"))
                 .and_then(|v| v.as_str())
                 .unwrap_or("document");
-            let incompat_anim_mode = rec.options
+            let incompat_anim_mode = rec
+                .options
                 .get("album_incompat_anim_mode")
                 .or_else(|| rec.options.get("albumIncompatAnimMode"))
                 .and_then(|v| v.as_str())
                 .unwrap_or("document");
             // Image formats: WebP (untranscoded), HEIC/BMP/TIFF/AVIF/SVG (OtherImage)
+            let guarded_nonstandard_source = incompat_image_mode == "document"
+                && apply_nonstandard_source_document_guard(
+                    &item.path,
+                    artifact.transformed,
+                    &mut classification,
+                );
             let is_incompat_image = matches!(
                 classification.category,
                 MediaCategory::WebpImage | MediaCategory::OtherImage
-            ) && classification.payload_class == PayloadClass::NativeVisual
-              && !artifact.transformed;
+            ) && !artifact.transformed;
             // Animation/sticker: GIF, and OtherVideo (TGS/WebM sticker) when untranscoded
             let is_incompat_anim = matches!(
                 classification.category,
                 MediaCategory::GifImage | MediaCategory::OtherVideo
             ) && !artifact.transformed;
-            if is_incompat_image && incompat_image_mode == "document" {
+            if (guarded_nonstandard_source || is_incompat_image)
+                && incompat_image_mode == "document"
+            {
                 classification.payload_class = PayloadClass::DocumentGroup;
                 classification.as_document = true;
                 classification.reason_code = "album_incompat_image_as_document".into();
                 tg_log::info(
                     "studio_orch",
                     "album_incompat_image_document",
-                    format!("transfer={tid} index={} cat={:?}", item.index, classification.category),
+                    format!(
+                        "transfer={tid} index={} cat={:?}",
+                        item.index, classification.category
+                    ),
                 );
             } else if is_incompat_anim && incompat_anim_mode == "document" {
                 classification.payload_class = PayloadClass::DocumentGroup;
@@ -1004,7 +1090,10 @@ fn run_intelligent_album(
                 tg_log::info(
                     "studio_orch",
                     "album_incompat_anim_document",
-                    format!("transfer={tid} index={} cat={:?}", item.index, classification.category),
+                    format!(
+                        "transfer={tid} index={} cat={:?}",
+                        item.index, classification.category
+                    ),
                 );
             }
         }
@@ -1473,10 +1562,14 @@ fn run_intelligent_album(
                             artifact.cleanup();
                         }
                         let _ = job_queue::set_transfer_state(tid, TransferState::Cancelled);
-                        let _ = super::autogram_core::transfer::update_transfer_run_state(tid, "CANCELLED");
+                        let _ = super::autogram_core::transfer::update_transfer_run_state(
+                            tid,
+                            "CANCELLED",
+                        );
                         return Err(error);
                     }
-                    let _ = job_queue::update_item(tid, item.index, ItemState::Uploading, None, None);
+                    let _ =
+                        job_queue::update_item(tid, item.index, ItemState::Uploading, None, None);
                     let as_document = item.key.payload_class != PayloadClass::NativeVisual;
 
                     let mut single_attempts = 0usize;
@@ -1501,9 +1594,12 @@ fn run_intelligent_album(
                         match res {
                             Ok(ok_res) => break Ok(ok_res),
                             Err(err) => {
-                                let is_network = grammers_ops::is_pool_or_transport_error(&err) || err.retryable();
+                                let is_network = grammers_ops::is_pool_or_transport_error(&err)
+                                    || err.retryable();
                                 if is_network && single_attempts <= 3 {
-                                    let wait_secs = err.flood_wait_secs().unwrap_or((single_attempts * 2) as u32);
+                                    let wait_secs = err
+                                        .flood_wait_secs()
+                                        .unwrap_or((single_attempts * 2) as u32);
                                     tg_log::warn(
                                         "studio_orch",
                                         "fallback_single_upload_retry",
@@ -1512,8 +1608,12 @@ fn run_intelligent_album(
                                             single_attempts, err.code(), err.user_message(), wait_secs
                                         ),
                                     );
-                                    grammers_ops::disconnect_cached_session(&delivery_identity.session);
-                                    std::thread::sleep(std::time::Duration::from_secs(wait_secs as u64));
+                                    grammers_ops::disconnect_cached_session(
+                                        &delivery_identity.session,
+                                    );
+                                    std::thread::sleep(std::time::Duration::from_secs(
+                                        wait_secs as u64,
+                                    ));
                                     continue;
                                 }
                                 break Err(err);
@@ -1536,7 +1636,13 @@ fn run_intelligent_album(
                                 result.message_id,
                                 result.error.clone(),
                             );
-                            emit_album_item_result(app, item.index, &state, result.message_id, result.error);
+                            emit_album_item_result(
+                                app,
+                                item.index,
+                                &state,
+                                result.message_id,
+                                result.error,
+                            );
                             if matches!(state, ItemState::Done) {
                                 if let Some(ledger_identity) = ledger_identities.get(&item.index) {
                                     persist_upload_ledger_binding(
@@ -1550,16 +1656,21 @@ fn run_intelligent_album(
                                 }
                             }
                             if whole_album_identity.is_some() && matches!(state, ItemState::Done) {
-                                if let Err(error) = super::autogram_core::transfer::record_alternate_upload(
-                                    tid,
-                                    item.index,
-                                    &delivery_identity.session,
-                                    result.message_id,
-                                ) {
+                                if let Err(error) =
+                                    super::autogram_core::transfer::record_alternate_upload(
+                                        tid,
+                                        item.index,
+                                        &delivery_identity.session,
+                                        result.message_id,
+                                    )
+                                {
                                     tg_log::warn(
                                         "studio_orch",
                                         "alternate_binding_persist_failed",
-                                        format!("transfer={tid} index={} error={error}", item.index),
+                                        format!(
+                                            "transfer={tid} index={} error={error}",
+                                            item.index
+                                        ),
                                     );
                                 }
                             }
@@ -1574,7 +1685,13 @@ fn run_intelligent_album(
                                 None,
                                 Some(message.clone()),
                             );
-                            emit_album_item_result(app, item.index, &state, None, Some(message.clone()));
+                            emit_album_item_result(
+                                app,
+                                item.index,
+                                &state,
+                                None,
+                                Some(message.clone()),
+                            );
                             if first_error.is_none() {
                                 first_error = Some(message);
                             }
@@ -1851,13 +1968,19 @@ fn run_orchestrated_grammers(
     }
 
     // as_document from options
+    // In transfer-v4, ORIGINAL means preserve each prepared artifact without a
+    // lossy transform; it does not mean that every artifact must be sent as a
+    // Telegram document.  The per-item classifier below is the authority for
+    // WebP/HEIC/images/videos.  Forcing ORIGINAL here used to overwrite that
+    // decision and made mixed albums and explicit image conversion conflict.
     let as_doc = !feature_flags.transfer_v4
         || rec
             .options
             .get("quality_mode")
+            .or_else(|| rec.options.get("qualityMode"))
             .and_then(|v| v.as_str())
-            .map(|s| s.eq_ignore_ascii_case("ORIGINAL") || s.eq_ignore_ascii_case("DOCUMENT"))
-            .unwrap_or(true)
+            .map(|s| s.eq_ignore_ascii_case("DOCUMENT"))
+            .unwrap_or(false)
         || rec
             .options
             .get("force_document")
@@ -2218,6 +2341,11 @@ fn run_orchestrated_grammers(
                 }
             }
         }
+        apply_nonstandard_source_document_guard(
+            &item.path,
+            prepared_artifact.transformed,
+            &mut delivery,
+        );
         let item_as_document =
             if pres_override == Some("original") || pres_override == Some("standard") {
                 delivery.as_document
@@ -2784,5 +2912,47 @@ mod tests {
         }));
         assert!(!duplicate_skip_enabled(&rec, "C:\\media\\chosen.jpg"));
         assert!(duplicate_skip_enabled(&rec, "C:\\media\\other.jpg"));
+    }
+
+    #[test]
+    fn untransformed_webp_source_overrides_native_magic_byte_classification() {
+        let mut classification = DeliveryClassification {
+            category: MediaCategory::JpegImage,
+            payload_class: PayloadClass::NativeVisual,
+            transform: super::super::autogram_core::transfer::TransformAction::PassThrough,
+            as_document: false,
+            reason_code: "prepared_native_visual".into(),
+        };
+
+        assert!(apply_nonstandard_source_document_guard(
+            r"E:\upload\mislabelled.webp",
+            false,
+            &mut classification,
+        ));
+        assert_eq!(classification.payload_class, PayloadClass::DocumentGroup);
+        assert!(classification.as_document);
+        assert_eq!(
+            classification.reason_code,
+            "untransformed_nonstandard_source_document"
+        );
+    }
+
+    #[test]
+    fn transformed_webp_source_can_be_delivered_as_native_visual() {
+        let mut classification = DeliveryClassification {
+            category: MediaCategory::JpegImage,
+            payload_class: PayloadClass::NativeVisual,
+            transform: super::super::autogram_core::transfer::TransformAction::Reencode,
+            as_document: false,
+            reason_code: "prepared_native_visual".into(),
+        };
+
+        assert!(!apply_nonstandard_source_document_guard(
+            r"E:\upload\converted.webp",
+            true,
+            &mut classification,
+        ));
+        assert_eq!(classification.payload_class, PayloadClass::NativeVisual);
+        assert!(!classification.as_document);
     }
 }

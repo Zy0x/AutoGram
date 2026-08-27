@@ -45,6 +45,18 @@ export interface ResolveOptions {
   passcode?: string;
 }
 
+export type ResolutionStage = 'analyze' | 'resolve' | 'discover' | 'validate' | 'ready';
+
+export interface ResolutionTrace {
+  resolverName: string;
+  sourceUrl: string;
+  finalUrl: string;
+  inspectedPages?: number;
+  candidateCount: number;
+  securityStatus: 'validated' | 'provider' | 'fallback';
+  stages: ResolutionStage[];
+}
+
 export interface ResolvedMediaInfo {
   url: string;
   platform: PlatformKind;
@@ -64,6 +76,7 @@ export interface ResolvedMediaInfo {
   requiresPassword?: boolean;
   passwordError?: boolean;
   totalItems?: number;
+  resolutionTrace?: ResolutionTrace;
   resolvedAt: number;
 }
 
