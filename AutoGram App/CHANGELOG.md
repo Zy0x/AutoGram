@@ -1,3 +1,13 @@
+## v3.8.36 Standalone Interactive Android Native UI Simulator Window
+
+### 1. Instant Desktop App-Window Android Simulator
+- **Peluncur Jendela Mandiri (`Buka_Android_Simulator.bat`)**: Membuka jendela aplikasi desktop mandiri tanpa address bar yang memvisualisasikan antarmuka Android Native dengan frame ponsel Pixel/Galaxy presisi tinggi.
+- **Simulasi 5 Tab Penuh & Interaktif**: Mendukung pengujian navigasi langsung antara Cloud Drive, Media Studio, Live Transfer Manager, Remote Ingestion, dan Settings.
+
+### 2. Multi-Orientation & Responsive Viewport Testing
+- **Viewport Switcher Instan**: Mendukung pengujian layout dalam mode Portrait (390×844), Landscape (844×420), dan Tablet Navigation Rail (760×720).
+- **100% Zero-C Footprint**: Berjalan murni dari direktori `F:\AutoGram` tanpa instalasi tambahan atau penulisan data ke drive C:.
+
 ## v3.8.35 Android Native Compose Previews & Zero-C Isolated Preview Tooling
 
 ### 1. Jetpack Compose Interactive Previews (`@Preview`)

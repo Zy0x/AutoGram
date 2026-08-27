@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AutoGram Android Native - Interactive UI Simulator</title>
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --surface-dark: #121927;
+      --surface-elevated: #1a2333;
+      --border-dark: #243049;
+      --primary-blue: #3b82f6;
+      --primary-blue-hover: #2563eb;
+      --accent-cyan: #06b6d4;
+      --accent-violet: #8b5cf6;
+      --success-green: #10b981;
+      --error-red: #ef4444;
+      --warning-amber: #f59e0b;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: #060911;
+      color: var(--text-primary);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      overflow-x: hidden;
+    }
+
+    /* Simulator Desktop Controls Toolbar */
+    .sim-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: #111827;
+      border: 1px solid #1f2937;
+      padding: 10px 18px;
+      border-radius: 14px;
+      margin-bottom: 20px;
+      width: 100%;
+      max-width: 900px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      flex-wrap: wrap;
+    }
+
+    .sim-toolbar-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 15px;
+      color: #38bdf8;
+    }
+
+    .sim-toolbar-title span {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      color: #7dd3fc;
+      font-weight: 600;
+    }
+
+    .sim-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .sim-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .sim-btn:hover {
+      background: #334155;
+      border-color: #475569;
+    }
+
+    .sim-btn.active {
+      background: var(--primary-blue);
+      border-color: var(--primary-blue);
+      color: #fff;
+    }
+
+    /* Device Container */
+    .device-stage {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: all 0.3s ease;
+    }
+
+    .phone-frame {
+      width: 390px;
+      height: 844px;
+      background: var(--bg-dark);
+      border-radius: 46px;
+      border: 10px solid #1e2433;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 0 2px #334155;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .phone-frame.landscape {
+      width: 844px;
+      height: 420px;
+      border-radius: 36px;
+    }
+
+    .phone-frame.tablet {
+      width: 760px;
+      height: 720px;
+      border-radius: 36px;
+    }
+
+    /* Punch Hole / Notch */
+    .notch {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 14px;
+      height: 14px;
+      background: #000;
+      border-radius: 50%;
+      z-index: 999;
+      box-shadow: 0 0 2px rgba(255,255,255,0.1);
+    }
+
+    /* Android Status Bar */
+    .android-status-bar {
+      height: 38px;
+      padding: 6px 22px 0 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 600;
+      color: #cbd5e1;
+      z-index: 100;
+      background: var(--bg-dark);
+    }
+
+    .status-icons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+    }
+
+    /* Screen Viewport */
+    .app-screen-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .app-screen-content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-bottom: 12px;
+    }
+
+    .app-screen-content::-webkit-scrollbar {
+      width: 4px;
+    }
+    .app-screen-content::-webkit-scrollbar-thumb {
+      background: var(--border-dark);
+      border-radius: 4px;
+    }
+
+    /* Bottom Navigation Bar */
+    .android-nav-bar {
+      height: 64px;
+      background: var(--surface-dark);
+      border-top: 1px solid var(--border-dark);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 8px;
+      z-index: 50;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: 12px;
+      transition: all 0.2s;
+      min-width: 58px;
+      min-height: 48px;
+    }
+
+    .nav-item.active {
+      color: var(--primary-blue);
+    }
+
+    .nav-item.active .nav-icon-box {
+      background: rgba(59, 130, 246, 0.18);
+      color: var(--primary-blue);
+    }
+
+    .nav-icon-box {
+      width: 32px;
+      height: 24px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: all 0.2s;
+    }
+
+    .nav-label {
+      font-size: 10.5px;
+      font-weight: 600;
+    }
+
+    /* Android Home Pill Indicator */
+    .android-home-pill {
+      height: 18px;
+      background: var(--surface-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-bottom: 4px;
+    }
+
+    .home-indicator {
+      width: 72px;
+      height: 4px;
+      background: #475569;
+      border-radius: 4px;
+    }
+
+    /* Tablet Navigation Rail */
+    .tablet-layout {
+      display: flex;
+      flex-direction: row;
+      height: 100%;
+    }
+
+    .nav-rail {
+      width: 76px;
+      background: var(--surface-dark);
+      border-right: 1px solid var(--border-dark);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 0;
+      gap: 16px;
+    }
+
+    .rail-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 8px 10px;
+      border-radius: 12px;
+      width: 64px;
+      min-height: 48px;
+      transition: all 0.2s;
+    }
+
+    .rail-item.active {
+      color: var(--primary-blue);
+      background: rgba(59, 130, 246, 0.15);
+    }
+
+    /* Common Screen Header */
+    .screen-header {
+      padding: 16px 18px 12px 18px;
+    }
+
+    .screen-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.3px;
+    }
+
+    .screen-subtitle {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 3px;
+    }
+
+    /* Cards & Components */
+    .card {
+      background: var(--surface-dark);
+      border: 1px solid var(--border-dark);
+      border-radius: 16px;
+      padding: 14px;
+      margin: 0 16px 12px 16px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Search Bar */
+    .search-container {
+      padding: 0 16px 10px 16px;
+    }
+
+    .search-box {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border-dark);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .search-box input {
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      font-size: 13.5px;
+      outline: none;
+      width: 100%;
+    }
+
+    .search-box input::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* Filter Chips */
+    .filter-scroll {
+      display: flex;
+      gap: 8px;
+      padding: 0 16px 12px 16px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .filter-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .filter-chip {
+      background: var(--surface-dark);
+      border: 1px solid var(--border-dark);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-chip.active {
+      background: var(--primary-blue);
+      border-color: var(--primary-blue);
+      color: #fff;
+    }
+
+    /* File Grid */
+    .file-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      padding: 0 16px 16px 16px;
+    }
+
+    .phone-frame.landscape .file-grid,
+    .phone-frame.tablet .file-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .file-card {
+      background: var(--surface-dark);
+      border: 1px solid var(--border-dark);
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s;
+    }
+
+    .file-card:hover {
+      border-color: var(--primary-blue);
+      transform: translateY(-2px);
+    }
+
+    .file-card.selected {
+      border-color: var(--primary-blue);
+      background: rgba(59, 130, 246, 0.12);
+    }
+
+    .file-thumb-placeholder {
+      height: 80px;
+      background: var(--surface-elevated);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .file-card-name {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-card-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .file-card-check {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid var(--border-dark);
+      background: var(--surface-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+    }
+
+    .file-card.selected .file-card-check {
+      background: var(--primary-blue);
+      border-color: var(--primary-blue);
+      color: white;
+    }
+
+    /* Floating Selection Strip */
+    .selection-strip {
+      position: absolute;
+      bottom: 12px;
+      left: 16px;
+      right: 16px;
+      background: #1e293b;
+      border: 1px solid #3b82f6;
+      border-radius: 14px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+      animation: slideUp 0.25s ease-out;
+      z-index: 40;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .selection-strip-btn {
+      background: transparent;
+      border: none;
+      color: #93c5fd;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    .selection-strip-btn.delete {
+      color: var(--error-red);
+    }
+
+    /* Status Pill */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .status-pill.green {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success-green);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .status-pill.cyan {
+      background: rgba(6, 182, 212, 0.15);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+    }
+
+    /* Progress Bar */
+    .progress-bar-bg {
+      height: 7px;
+      background: var(--surface-elevated);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent-cyan);
+      border-radius: 10px;
+      transition: width 0.3s;
+    }
+
+    /* Metric Card */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 0 16px 12px 16px;
+    }
+
+    .metric-card {
+      background: var(--surface-dark);
+      border: 1px solid var(--border-dark);
+      border-radius: 14px;
+      padding: 12px 8px;
+      text-align: center;
+    }
+
+    .metric-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .metric-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Buttons */
+    .primary-btn {
+      background: var(--primary-blue);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .primary-btn:hover {
+      background: var(--primary-blue-hover);
+    }
+
+    /* Input Field */
+    .text-input {
+      background: rgba(26, 35, 51, 0.6);
+      border: 1px solid var(--border-dark);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: var(--text-primary);
+      font-size: 13px;
+      width: 100%;
+      outline: none;
+      margin-bottom: 10px;
+    }
+
+    .text-input:focus {
+      border-color: var(--primary-blue);
+    }
+
+    /* Screen Tab Content Visibility */
+    .tab-pane {
+      display: none;
+    }
+    .tab-pane.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SIMULATOR CONTROL DESKTOP TOOLBAR -->
+  <div class="sim-toolbar">
+    <div class="sim-toolbar-title">
+      ⚡ AutoGram Android Native
+      <span>Compose UI Simulator</span>
+    </div>
+    <div class="sim-controls">
+      <button class="sim-btn active" id="btn-portrait" onclick="setDeviceMode('portrait')">📱 Portrait (390×844)</button>
+      <button class="sim-btn" id="btn-landscape" onclick="setDeviceMode('landscape')">🔄 Landscape</button>
+      <button class="sim-btn" id="btn-tablet" onclick="setDeviceMode('tablet')">📟 Tablet (Rail Mode)</button>
+      <button class="sim-btn" onclick="resetSimulatorState()">♻️ Reset Data</button>
+    </div>
+  </div>
+
+  <!-- DEVICE FRAME CONTAINER -->
+  <div class="device-stage">
+    <div class="phone-frame" id="phone-frame">
+      <div class="notch"></div>
+
+      <!-- STATUS BAR -->
+      <div class="android-status-bar">
+        <span id="clock-display">12:30</span>
+        <div class="status-icons">
+          <span>5G</span>
+          <span>📶</span>
+          <span>98% 🔋</span>
+        </div>
+      </div>
+
+      <!-- MAIN APP CONTAINER -->
+      <div class="app-screen-container" id="app-container">
+
+        <!-- 1. CLOUD DRIVE TAB -->
+        <div class="app-screen-content tab-pane active" id="tab-drive">
+          <div class="screen-header">
+            <div class="screen-title">Cloud Drives</div>
+            <div class="screen-subtitle">Kelola media Telegram Anda dengan cepat dan aman.</div>
+          </div>
+
+          <div class="search-container">
+            <div class="search-box">
+              <span>🔍</span>
+              <input type="text" id="drive-search" placeholder="Cari berkas atau folder…" oninput="filterDriveItems()" />
+            </div>
+          </div>
+
+          <div class="filter-scroll">
+            <div class="filter-chip active" onclick="setFilterCategory(this, 'all')">Semua</div>
+            <div class="filter-chip" onclick="setFilterCategory(this, 'media')">Media</div>
+            <div class="filter-chip" onclick="setFilterCategory(this, 'photo')">Gambar</div>
+            <div class="filter-chip" onclick="setFilterCategory(this, 'video')">Video</div>
+            <div class="filter-chip" onclick="setFilterCategory(this, 'audio')">Audio</div>
+            <div class="filter-chip" onclick="setFilterCategory(this, 'document')">Dokumen</div>
+            <div class="filter-chip" onclick="setFilterCategory(this, 'sticker')">Stiker</div>
+          </div>
+
+          <div class="file-grid" id="file-grid-items">
+            <!-- Rendered by JS -->
+          </div>
+
+          <!-- Selection Floating Strip -->
+          <div class="selection-strip" id="selection-strip" style="display: none;">
+            <span style="font-size: 12px; font-weight: 600; color: #f8fafc;" id="selected-count-text">1 berkas dipilih</span>
+            <div style="display: flex; gap: 4px;">
+              <button class="selection-strip-btn" onclick="clearSelection()">Batal</button>
+              <button class="selection-strip-btn" onclick="simulateAction('Pindahkan')">Pindah</button>
+              <button class="selection-strip-btn" onclick="simulateAction('Unduh')">Unduh</button>
+              <button class="selection-strip-btn delete" onclick="deleteSelectedItems()">Hapus</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. STUDIO TAB -->
+        <div class="app-screen-content tab-pane" id="tab-studio">
+          <div class="screen-header">
+            <div class="screen-title">Media Studio</div>
+            <div class="screen-subtitle">Inspeksi & kurasi aset sebelum transfer album.</div>
+          </div>
+
+          <div class="metric-grid">
+            <div class="metric-card">
+              <div class="metric-value" style="color: var(--primary-blue);">18</div>
+              <div class="metric-label">Total Media</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" style="color: var(--accent-cyan);">12</div>
+              <div class="metric-label">Foto HD</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" style="color: var(--accent-violet);">6</div>
+              <div class="metric-label">Video 4K</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>Batch Album Dispatcher</span>
+              <span class="status-pill cyan">Siap Dikirim</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">
+              Pilih 2–10 media untuk dikelompokkan menjadi satu album Telegram berkualitas tinggi.
+            </p>
+            <button class="primary-btn" onclick="simulateAction('Membuat Album Telegram...')">
+              ✨ Rakit Album Terpilih
+            </button>
+          </div>
+
+          <div class="file-grid" id="studio-grid-items">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- 3. TRANSFER MANAGER TAB -->
+        <div class="app-screen-content tab-pane" id="tab-transfer">
+          <div class="screen-header">
+            <div class="screen-title">Manajer Transfer</div>
+            <div class="screen-subtitle">Pantau antrean, kecepatan, dan tahapan pemrosesan.</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>Progres Keseluruhan</span>
+              <span class="status-pill green">Smart Rate Aktif</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary);">
+              <span>Kecepatan: <b style="color: var(--success-green);">14.8 MB/dtk</b></span>
+              <span style="color: var(--accent-cyan); font-weight: 700;">68%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width: 68%;"></div>
+            </div>
+          </div>
+
+          <div style="padding: 0 16px 8px 16px; font-size: 13px; font-weight: 700; color: var(--text-primary);">
+            Tugas Aktif (2)
+          </div>
+
+          <div class="card" style="margin-bottom: 10px;">
+            <div class="card-title" style="font-size: 13px;">
+              <span>🎬 Matrix_Resurrections_4K.mkv</span>
+              <span class="status-pill cyan">512KB Chunk</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" id="task1-bar" style="width: 72%;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-secondary); margin-top: 4px;">
+              <span>1.72 GB / 2.40 GB</span>
+              <span style="color: var(--success-green);" id="task1-speed">11.2 MB/dtk</span>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 10px;">
+              <button class="sim-btn" style="flex: 1; justify-content: center; font-size: 11px;" id="btn-pause-1" onclick="toggleTaskPause(1)">⏸️ Jeda</button>
+              <button class="sim-btn" style="font-size: 11px; color: var(--error-red);" onclick="simulateAction('Transfer Dibatalkan')">✕ Batal</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="font-size: 13px;">
+              <span>📸 RAW_Photoset_Batch.zip</span>
+              <span class="status-pill green">Hashing SHA256</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width: 45%; background: var(--primary-blue);"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-secondary); margin-top: 4px;">
+              <span>420 MB / 930 MB</span>
+              <span style="color: var(--text-muted);">Verifikasi Duplikasi...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. REMOTE URL TAB -->
+        <div class="app-screen-content tab-pane" id="tab-remote">
+          <div class="screen-header">
+            <div class="screen-title">Remote Ingestion</div>
+            <div class="screen-subtitle">Unduh media langsung dari URL ke Telegram.</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>🌐 Web Link Importer</span>
+              <span class="status-pill cyan">SSRF Protected</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;">
+              Mendukung link video, direct file, YouTube, TikTok, dan Instagram tanpa memakan memori lokal.
+            </p>
+            <input type="text" class="text-input" id="remote-url-input" placeholder="Tempel URL (https://...)" value="https://example.com/videos/master_sample_4k.mp4" />
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <span class="status-pill cyan" style="font-size: 11px;">Host: example.com</span>
+              <span style="font-size: 11px; color: var(--success-green);">✓ Aman & Terverifikasi</span>
+            </div>
+            <button class="primary-btn" id="btn-remote-send" onclick="simulateRemoteUpload()">
+              🚀 Kirim Langsung ke Telegram
+            </button>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="font-size: 13px;">
+              <span>🛡️ Keamanan & Privasi Terjamin</span>
+            </div>
+            <p style="font-size: 11.5px; color: var(--text-secondary); line-height: 1.5;">
+              Seluruh link diproses di RAM dengan proteksi anti-SSRF dan langsung diteruskan ke MTProto Telegram tanpa jejak file di disk C:.
+            </p>
+          </div>
+        </div>
+
+        <!-- 5. SETTINGS TAB -->
+        <div class="app-screen-content tab-pane" id="tab-settings">
+          <div class="screen-header">
+            <div class="screen-title">Pengaturan</div>
+            <div class="screen-subtitle">Konfigurasi akun, performa hardware & profil transfer.</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>👤 Akun Telegram Aktif</span>
+              <span class="status-pill green">Tier A (98.5)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-top: 6px;">
+              <div style="width: 38px; height: 38px; border-radius: 50%; background: var(--primary-blue); display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                📱
+              </div>
+              <div>
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">+62 812-3456-7890</div>
+                <div style="font-size: 11px; color: var(--text-muted);">Ping Latency: 42ms • FloodWait: 0s</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">⚙️ Hardware Profiling (Rust)</div>
+            <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.6;">
+              <div>• <b>Hardware Encoder</b>: h264_mediacodec (GPU)</div>
+              <div>• <b>Bitrate Target</b>: 2.50 Mbps (Preset: Medium)</div>
+              <div>• <b>CPU Worker Thread</b>: 8 Cores (Paralel)</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>💾 Alokasi Penyimpanan</span>
+              <span style="font-size: 11px; color: var(--accent-cyan);">Drive F:</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width: 35%; background: var(--success-green);"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+              <span>Cache App: 150 MB</span>
+              <span>Kapasitas Aman: 85.8 GB</span>
+            </div>
+          </div>
+
+          <div style="text-align: center; padding: 12px; font-size: 11px; color: var(--text-muted);">
+            AutoGram v3.8.35 • Android Native Compose Engine
+          </div>
+        </div>
+
+      </div>
+
+      <!-- BOTTOM NAVIGATION BAR (SMARTPHONE) -->
+      <div class="android-nav-bar" id="bottom-nav">
+        <div class="nav-item active" onclick="switchTab('drive')">
+          <div class="nav-icon-box">📁</div>
+          <div class="nav-label">Drive</div>
+        </div>
+        <div class="nav-item" onclick="switchTab('studio')">
+          <div class="nav-icon-box">🎬</div>
+          <div class="nav-label">Studio</div>
+        </div>
+        <div class="nav-item" onclick="switchTab('transfer')">
+          <div class="nav-icon-box">⚡</div>
+          <div class="nav-label">Transfer</div>
+        </div>
+        <div class="nav-item" onclick="switchTab('remote')">
+          <div class="nav-icon-box">🔗</div>
+          <div class="nav-label">Remote</div>
+        </div>
+        <div class="nav-item" onclick="switchTab('settings')">
+          <div class="nav-icon-box">⚙️</div>
+          <div class="nav-label">Pengaturan</div>
+        </div>
+      </div>
+
+      <!-- ANDROID HOME GESTURE PILL -->
+      <div class="android-home-pill">
+        <div class="home-indicator"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Sample Data
+    const items = [
+      { id: 1, name: "Project_Assets_2026", category: "folder", size: "Folder", isFolder: true, icon: "📁" },
+      { id: 2, name: "AutoGram_Design_Hero.png", category: "photo", size: "4.8 MB", isFolder: false, icon: "🖼️" },
+      { id: 3, name: "Cinematic_Trailer_4K.mp4", category: "video", size: "128 MB", isFolder: false, icon: "🎬" },
+      { id: 4, name: "Migration_Architecture.pdf", category: "document", size: "14.5 MB", isFolder: false, icon: "📄" },
+      { id: 5, name: "Voice_Podcast_EP12.mp3", category: "audio", size: "32.1 MB", isFolder: false, icon: "🎵" },
+      { id: 6, name: "Telegram_Animated.tgs", category: "sticker", size: "64 KB", isFolder: false, icon: "✨" },
+      { id: 7, name: "Database_Backup.sqlite", category: "document", size: "5.2 MB", isFolder: false, icon: "💾" },
+      { id: 8, name: "Event_Highlight_HDR.mov", category: "video", size: "240 MB", isFolder: false, icon: "🎥" }
+    ];
+
+    let selectedIds = new Set();
+    let currentCategory = "all";
+
+    // Update Real-Time Clock
+    function updateClock() {
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      document.getElementById('clock-display').innerText = `${h}:${m}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Render Drive Items
+    function renderDrive() {
+      const grid = document.getElementById('file-grid-items');
+      const studioGrid = document.getElementById('studio-grid-items');
+      const query = document.getElementById('drive-search').value.toLowerCase();
+
+      const filtered = items.filter(it => {
+        const matchesQuery = it.name.toLowerCase().includes(query);
+        const matchesCategory = (currentCategory === "all") || (currentCategory === "media" ? ["photo", "video"].includes(it.category) : it.category === currentCategory);
+        return matchesQuery && matchesCategory;
+      });
+
+      grid.innerHTML = filtered.map(it => `
+        <div class="file-card ${selectedIds.has(it.id) ? 'selected' : ''}" onclick="toggleSelect(${it.id})">
+          <div class="file-card-check">${selectedIds.has(it.id) ? '✓' : ''}</div>
+          <div class="file-thumb-placeholder">${it.icon}</div>
+          <div class="file-card-name" title="${it.name}">${it.name}</div>
+          <div class="file-card-meta">
+            <span>${it.category.toUpperCase()}</span>
+            <span>${it.size}</span>
+          </div>
+        </div>
+      `).join('');
+
+      // Studio grid
+      const mediaOnly = items.filter(it => !it.isFolder && ["photo", "video"].includes(it.category));
+      studioGrid.innerHTML = mediaOnly.map(it => `
+        <div class="file-card ${selectedIds.has(it.id) ? 'selected' : ''}" onclick="toggleSelect(${it.id})">
+          <div class="file-card-check">${selectedIds.has(it.id) ? '✓' : ''}</div>
+          <div class="file-thumb-placeholder">${it.icon}</div>
+          <div class="file-card-name">${it.name}</div>
+          <div class="file-card-meta">
+            <span>${it.size}</span>
+            <span style="color: var(--accent-cyan);">HD Ready</span>
+          </div>
+        </div>
+      `).join('');
+
+      // Update Selection Strip
+      const strip = document.getElementById('selection-strip');
+      if (selectedIds.size > 0) {
+        strip.style.display = 'flex';
+        document.getElementById('selected-count-text').innerText = `${selectedIds.size} berkas dipilih`;
+      } else {
+        strip.style.display = 'none';
+      }
+    }
+
+    function toggleSelect(id) {
+      if (selectedIds.has(id)) selectedIds.delete(id);
+      else selectedIds.add(id);
+      renderDrive();
+    }
+
+    function clearSelection() {
+      selectedIds.clear();
+      renderDrive();
+    }
+
+    function deleteSelectedItems() {
+      const count = selectedIds.size;
+      selectedIds.clear();
+      renderDrive();
+      alert(`Berhasil menghapus ${count} berkas dari Cloud Drive.`);
+    }
+
+    function setFilterCategory(chipEl, cat) {
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      chipEl.classList.add('active');
+      currentCategory = cat;
+      renderDrive();
+    }
+
+    function filterDriveItems() {
+      renderDrive();
+    }
+
+    // Tab Switching
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      document.getElementById('tab-' + tabId).classList.add('active');
+
+      document.querySelectorAll('.nav-item').forEach((it, idx) => {
+        const tabs = ['drive', 'studio', 'transfer', 'remote', 'settings'];
+        if (tabs[idx] === tabId) it.classList.add('active');
+        else it.classList.remove('active');
+      });
+    }
+
+    // Device Viewport Modes
+    function setDeviceMode(mode) {
+      const frame = document.getElementById('phone-frame');
+      document.querySelectorAll('.sim-btn').forEach(b => b.classList.remove('active'));
+      
+      frame.classList.remove('landscape', 'tablet');
+
+      if (mode === 'portrait') {
+        document.getElementById('btn-portrait').classList.add('active');
+      } else if (mode === 'landscape') {
+        document.getElementById('btn-landscape').classList.add('active');
+        frame.classList.add('landscape');
+      } else if (mode === 'tablet') {
+        document.getElementById('btn-tablet').classList.add('active');
+        frame.classList.add('tablet');
+      }
+    }
+
+    function toggleTaskPause(taskId) {
+      const btn = document.getElementById('btn-pause-1');
+      const speed = document.getElementById('task1-speed');
+      if (btn.innerText.includes('Jeda')) {
+        btn.innerText = '▶️ Lanjutkan';
+        speed.innerText = 'Dijeda';
+        speed.style.color = 'var(--warning-amber)';
+      } else {
+        btn.innerText = '⏸️ Jeda';
+        speed.innerText = '11.2 MB/dtk';
+        speed.style.color = 'var(--success-green)';
+      }
+    }
+
+    function simulateRemoteUpload() {
+      const btn = document.getElementById('btn-remote-send');
+      btn.innerText = '⏳ Mengunggah ke MTProto...';
+      btn.style.opacity = '0.7';
+      setTimeout(() => {
+        btn.innerText = '✓ Berhasil Terkirim ke Telegram!';
+        btn.style.background = 'var(--success-green)';
+        setTimeout(() => {
+          btn.innerText = '🚀 Kirim Langsung ke Telegram';
+          btn.style.background = 'var(--primary-blue)';
+          btn.style.opacity = '1';
+        }, 2000);
+      }, 1200);
+    }
+
+    function simulateAction(text) {
+      alert(`[Aksi Simulasi]: ${text}`);
+    }
+
+    function resetSimulatorState() {
+      selectedIds.clear();
+      document.getElementById('drive-search').value = '';
+      currentCategory = 'all';
+      renderDrive();
+      switchTab('drive');
+    }
+
+    // Init
+    renderDrive();
+  </script>
+</body>
+</html>

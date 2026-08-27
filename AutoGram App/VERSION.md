@@ -1,11 +1,13 @@
-AutoGram Version: v3.8.35
+AutoGram Version: v3.8.36
 
 Current State:
-v3.8.35 Android Native Compose Previews & Zero-C Isolated Preview Tooling — dukungan pratinjau visual Jetpack Compose dan peluncur terisolasi di Drive F::
-1. Jetpack Compose Interactive Previews: Menyediakan fungsi `@Preview` pada seluruh 5 layar utama (`DriveScreen`, `StudioScreen`, `TransferScreen`, `SettingsScreen`, `RemoteUrlScreen`) dengan dummy data realistis untuk inspeksi instan di Android Studio tanpa perlu build APK utuh.
-2. Isolated Studio & Device Launchers: Menyediakan skrip 1-klik `Buka_AndroidStudio_Isolated.bat` dan `Pasang_Ke_HP_Isolated.bat` yang secara otomatis mengunci seluruh SDK, cache Gradle, dan ADB ke drive `F:\AutoGram` tanpa membebani disk C:.
+v3.8.36 Standalone Interactive Android Native UI Simulator Window — peluncur simulator jendela desktop interaktif langsung di PC:
+1. Instant Desktop App-Window Simulator: Meluncurkan jendela frame smartphone interaktif mandiri via `Buka_Android_Simulator.bat` tanpa memerlukan emulator berat atau HP fisik terhubung.
+2. Complete 5-Tab Functional Simulation: Mendukung simulasi langsung Cloud Drive, Media Studio, Live Transfer Manager (Pause/Resume/Speed), Remote Link Ingestion, dan Settings.
+3. Multi-Viewport Ergonomics: Mendukung pergantian orientasi dinamis (Portrait 390x844, Landscape 844x420, dan Tablet Navigation Rail 760x720).
 
 Previous:
+v3.8.35 Android Native Compose Previews & Zero-C Isolated Preview Tooling — dukungan pratinjau visual Jetpack Compose dan peluncur terisolasi di Drive F::
 v3.8.34 Android Native Zero-C Isolated Build Engine & Multi-ABI Packaging — dukungan kompilasi aplikasi Android Native murni di drive proyek:
 v3.8.33 Responsive Session Header & Anti-Overlap Reconnect Action Hub — perbaikan menyeluruh tampilan header koneksi dan tombol tindakan sesi:
 v3.8.32 Zero-Flicker Seamless Sticker Animation Transition & Instant Poster Crossfade — eliminasi glitch loading pada pratinjau stiker bergerak:
