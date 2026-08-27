@@ -88,7 +88,7 @@ fun SettingsScreenContent(
                             text = stringResource(
                                 R.string.settings_encoder_value,
                                 hw.bestEncoder,
-                                hw.priority
+                                hw.priority.toLong()
                             ),
                             style = MaterialTheme.typography.bodyLarge,
                             color = TextSecondaryDark

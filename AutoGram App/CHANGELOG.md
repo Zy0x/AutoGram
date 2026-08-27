@@ -1,3 +1,16 @@
+## v3.8.37 Real Google Android Virtual Device (AVD) Native Desktop Execution
+
+### 1. Zero-C Isolated Google Android Emulator & AVD Provisioning
+- **Penyediaan Mesin Emulator Resmi Google**: Mengunduh dan mengonfigurasi emulator Android QEMU (`emulator.exe`), citra sistem resmi Android 14 (`system-images;android-34;google_apis;x86_64`), dan lisensi SDK murni di `F:\AutoGram\.toolchains` tanpa menulis data ke disk C:.
+- **Pembuatan Perangkat Virtual AVD**: Membuat dan mengalokasikan disk image AVD `AutoGram_Native_Device` di direktori lokal `F:\AutoGram\.build-cache\android-avd`.
+
+### 2. Live Native Execution & 5-Screen UI Validation
+- **Eksekusi Nyata Kotlin + Jetpack Compose + Rust UniFFI**: Menjalankan APK asli `com.autogram.app` secara langsung di jendela emulator Android dengan konektivitas real-time ke subsistem Android MediaCodec (`h264_mediacodec`), engine alokasi storage, dan MTProto rate limiter.
+- **Perbaikan Format String UInt**: Memperbaiki casting format string pada `SettingsScreen.kt` untuk mencegah `IllegalFormatConversionException`.
+
+### 3. Automated 1-Click Launch Tooling
+- **`Buka_Android_Emulator.bat`**: Skrip 1-klik untuk menyalakan emulator, mendeteksi penyelesaian boot Android OS (`sys.boot_completed`), dan menginstal serta membuka aplikasi AutoGram secara otomatis.
+
 ## v3.8.36 Standalone Interactive Android Native UI Simulator Window
 
 ### 1. Instant Desktop App-Window Android Simulator

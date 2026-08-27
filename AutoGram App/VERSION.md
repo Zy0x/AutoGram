@@ -1,12 +1,13 @@
-AutoGram Version: v3.8.36
+AutoGram Version: v3.8.37
 
 Current State:
-v3.8.36 Standalone Interactive Android Native UI Simulator Window — peluncur simulator jendela desktop interaktif langsung di PC:
-1. Instant Desktop App-Window Simulator: Meluncurkan jendela frame smartphone interaktif mandiri via `Buka_Android_Simulator.bat` tanpa memerlukan emulator berat atau HP fisik terhubung.
-2. Complete 5-Tab Functional Simulation: Mendukung simulasi langsung Cloud Drive, Media Studio, Live Transfer Manager (Pause/Resume/Speed), Remote Link Ingestion, dan Settings.
-3. Multi-Viewport Ergonomics: Mendukung pergantian orientasi dinamis (Portrait 390x844, Landscape 844x420, dan Tablet Navigation Rail 760x720).
+v3.8.37 Real Google Android Virtual Device (AVD) Native Desktop Execution — penyediaan dan eksekusi langsung emulator Android OS nyata terisolasi 100% di Drive F::
+1. Fully Isolated Google Android Emulator Engine: Mengunduh dan mengonfigurasi mesin QEMU Android Emulator resmi (`emulator.exe`), citra sistem Android 14 (`system-images;android-34;google_apis;x86_64`), dan perangkat virtual AVD `AutoGram_Native_Device` murni di `F:\AutoGram\.toolchains` dan `F:\AutoGram\.build-cache\android-avd`.
+2. Live Native Execution & 5-Screen UI Validation: Menjalankan APK native Kotlin Jetpack Compose + Rust UniFFI (`com.autogram.app`) secara langsung di jendela emulator desktop dengan query hardware MediaCodec dan engine transfer aktif.
+3. 1-Click Launch Tooling: Menyediakan `AutoGram App/android/Buka_Android_Emulator.bat` untuk meluncurkan AVD, menunggu boot OS selesai, dan menginstal APK secara otomatis.
 
 Previous:
+v3.8.36 Standalone Interactive Android Native UI Simulator Window — peluncur simulator jendela desktop interaktif langsung di PC:
 v3.8.35 Android Native Compose Previews & Zero-C Isolated Preview Tooling — dukungan pratinjau visual Jetpack Compose dan peluncur terisolasi di Drive F::
 v3.8.34 Android Native Zero-C Isolated Build Engine & Multi-ABI Packaging — dukungan kompilasi aplikasi Android Native murni di drive proyek:
 v3.8.33 Responsive Session Header & Anti-Overlap Reconnect Action Hub — perbaikan menyeluruh tampilan header koneksi dan tombol tindakan sesi:
