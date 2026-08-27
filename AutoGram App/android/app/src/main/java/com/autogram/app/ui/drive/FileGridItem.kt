@@ -5,6 +5,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
@@ -14,10 +15,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.autogram.app.R
 import com.autogram.app.theme.*
 import com.autogram.app.viewmodel.DriveFileItem
@@ -33,23 +38,32 @@ fun FileGridItem(
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val categoryColor = when {
+        item.isFolder -> ElectricBlue
+        item.mimeType.startsWith("video") -> CategoryVideo
+        item.mimeType.startsWith("image") -> CategoryPhoto
+        item.mimeType.startsWith("audio") -> CategoryAudio
+        item.mimeType.contains("pdf") || item.mimeType.contains("doc") -> CategoryDoc
+        else -> CategoryDoc
+    }
+
     val border = if (isSelected) {
-        BorderStroke(2.dp, PrimaryBlue)
+        BorderStroke(1.5.dp, NeonCyan)
     } else {
-        BorderStroke(1.dp, BorderDark)
+        BorderStroke(1.dp, BorderHairline)
     }
 
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(188.dp)
+            .height(196.dp)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
             ),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) SurfaceElevatedDark else SurfaceDark
+            containerColor = if (isSelected) SurfaceElevatedDark.copy(alpha = 0.85f) else SurfaceGlass
         ),
         border = border
     ) {
@@ -57,10 +71,10 @@ fun FileGridItem(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(112.dp)
+                    .height(116.dp)
                     .padding(8.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(SurfaceElevatedDark),
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(SurfaceDeep),
                 contentAlignment = Alignment.Center
             ) {
                 if (!item.thumbnailUri.isNullOrBlank()) {
@@ -71,50 +85,75 @@ fun FileGridItem(
                         contentScale = ContentScale.Crop
                     )
                 } else {
-                    Icon(
-                        imageVector = fileIcon(item),
-                        contentDescription = item.mimeType,
-                        tint = if (item.isFolder) PrimaryBlue else TextSecondaryDark,
-                        modifier = Modifier.size(if (item.isFolder) 48.dp else 38.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .background(categoryColor.copy(alpha = 0.15f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = fileIcon(item),
+                            contentDescription = item.mimeType,
+                            tint = categoryColor,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
                 }
+
+                // Category badge
                 Surface(
-                    modifier = Modifier.align(Alignment.TopStart).padding(7.dp),
-                    color = BgDark.copy(alpha = .78f),
-                    shape = RoundedCornerShape(7.dp)
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(6.dp),
+                    color = ObsidianPrimary.copy(alpha = 0.85f),
+                    shape = RoundedCornerShape(6.dp),
+                    border = BorderStroke(0.5.dp, categoryColor.copy(alpha = 0.4f))
                 ) {
                     Text(
                         text = if (item.isFolder) stringResource(R.string.drive_badge_folder) else item.telegramCategory.uppercase(),
-                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextPrimaryDark
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold),
+                        color = categoryColor
                     )
                 }
+
                 if (isSelected) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = stringResource(R.string.drive_item_selected_accessibility),
-                        tint = PrimaryBlue,
-                        modifier = Modifier.align(Alignment.TopEnd).padding(7.dp).size(24.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(6.dp)
+                            .size(22.dp)
+                            .background(NeonCyan, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = stringResource(R.string.drive_item_selected_accessibility),
+                            tint = ObsidianPrimary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
                 }
             }
 
-            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 11.dp, vertical = 7.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
                 Text(
                     text = item.name,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = TextPrimaryDark,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (!item.isFolder) {
-                    Text(
-                        text = formatFileSize(item.size),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondaryDark
-                    )
-                }
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = if (item.isFolder) "Folder" else formatFileSize(item.size),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondaryDark
+                )
             }
         }
     }
@@ -124,6 +163,7 @@ private fun fileIcon(item: DriveFileItem) = when {
     item.isFolder -> Icons.Default.Folder
     item.mimeType.startsWith("video") -> Icons.Default.VideoLibrary
     item.mimeType.startsWith("image") -> Icons.Default.Image
+    item.mimeType.startsWith("audio") -> Icons.Default.Audiotrack
     item.mimeType.contains("pdf") -> Icons.Default.Description
     else -> Icons.AutoMirrored.Filled.InsertDriveFile
 }

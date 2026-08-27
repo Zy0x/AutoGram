@@ -16,6 +16,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.autogram.app.R
 import com.autogram.app.theme.*
+import com.autogram.app.ui.components.AutoGramEmptyState
+import com.autogram.app.ui.components.AutoGramErrorState
+import com.autogram.app.ui.components.AutoGramSurface
 import com.autogram.app.viewmodel.*
 
 @Composable
@@ -82,109 +85,91 @@ fun DriveScreenContent(
         matchesSearch && matchesType
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-    ) {
-        DriveTopBar(
-            currentPath = state.currentPath,
-            itemCount = filteredItems.size,
-            searchQuery = state.searchQuery,
-            onSearchChange = onSearchChange,
-            mediaFilter = state.mediaFilter,
-            onMediaFilterChange = onMediaFilterChange,
-            isGridView = state.isGridView,
-            onToggleViewMode = onToggleViewMode,
-            onRefresh = onRefresh,
-            onUpload = onUpload
-        )
+    AutoGramSurface(modifier = modifier) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            DriveTopBar(
+                currentPath = state.currentPath,
+                itemCount = filteredItems.size,
+                searchQuery = state.searchQuery,
+                onSearchChange = onSearchChange,
+                mediaFilter = state.mediaFilter,
+                onMediaFilterChange = onMediaFilterChange,
+                isGridView = state.isGridView,
+                onToggleViewMode = onToggleViewMode,
+                onRefresh = onRefresh,
+                onUpload = onUpload
+            )
 
-        SelectionStrip(
-            selectedCount = state.selectedIds.size,
-            onCancel = onClearSelection,
-            onMove = onMove,
-            onDownload = onDownload,
-            onDelete = onDeleteSelected
-        )
+            SelectionStrip(
+                selectedCount = state.selectedIds.size,
+                onCancel = onClearSelection,
+                onMove = onMove,
+                onDownload = onDownload,
+                onDelete = onDeleteSelected
+            )
 
-        state.errorCode?.let { code ->
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                color = ErrorRed.copy(alpha = 0.14f),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Text(
-                    text = stringResource(R.string.drive_error, code),
-                    modifier = Modifier.padding(12.dp),
-                    color = ErrorRed,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        }
-
-        if (state.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = PrimaryBlue)
-            }
-        } else if (filteredItems.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = stringResource(R.string.drive_empty_title),
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = TextPrimaryDark
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(R.string.drive_empty_subtitle),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = TextSecondaryDark
+            state.errorCode?.let { code ->
+                Box(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+                    AutoGramErrorState(
+                        message = stringResource(R.string.drive_error, code),
+                        onRetry = onRefresh
                     )
                 }
             }
-        } else {
-            if (state.isGridView) {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 158.dp),
+
+            if (state.isLoading) {
+                Box(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    contentAlignment = Alignment.Center
                 ) {
-                    items(filteredItems, key = { it.id }) { item ->
-                        val isSelected = state.selectedIds.contains(item.id)
-                        FileGridItem(
-                            item = item,
-                            isSelected = isSelected,
-                            onClick = { onItemClick(item) },
-                            onLongClick = { onItemLongClick(item) }
-                        )
-                    }
+                    CircularProgressIndicator(color = NeonCyan)
+                }
+            } else if (filteredItems.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp, vertical = 32.dp),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    AutoGramEmptyState(
+                        title = stringResource(R.string.drive_empty_title),
+                        description = stringResource(R.string.drive_empty_subtitle)
+                    )
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(filteredItems, key = { it.id }) { item ->
-                        val isSelected = state.selectedIds.contains(item.id)
-                        FileListItem(
-                            item = item,
-                            isSelected = isSelected,
-                            onClick = { onItemClick(item) },
-                            onLongClick = { onItemLongClick(item) }
-                        )
+                if (state.isGridView) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 160.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 100.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        items(filteredItems, key = { it.id }) { item ->
+                            val isSelected = state.selectedIds.contains(item.id)
+                            FileGridItem(
+                                item = item,
+                                isSelected = isSelected,
+                                onClick = { onItemClick(item) },
+                                onLongClick = { onItemLongClick(item) }
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 100.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(filteredItems, key = { it.id }) { item ->
+                            val isSelected = state.selectedIds.contains(item.id)
+                            FileListItem(
+                                item = item,
+                                isSelected = isSelected,
+                                onClick = { onItemClick(item) },
+                                onLongClick = { onItemLongClick(item) }
+                            )
+                        }
                     }
                 }
             }

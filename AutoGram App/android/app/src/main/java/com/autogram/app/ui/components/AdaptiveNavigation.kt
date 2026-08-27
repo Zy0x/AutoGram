@@ -23,11 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.autogram.app.navigation.Screen
-import com.autogram.app.theme.BorderDark
-import com.autogram.app.theme.PrimaryBlue
-import com.autogram.app.theme.SurfaceDark
-import com.autogram.app.theme.SurfaceElevatedDark
-import com.autogram.app.theme.TextMutedDark
+import com.autogram.app.theme.*
 
 internal fun navigatePrimary(navController: NavController, route: String, currentRoute: String?) {
     if (currentRoute == route) return
@@ -44,22 +40,22 @@ fun AutoGramNavigationRail(navController: NavController) {
     val currentRoute = navBackStackEntry?.destination?.route
 
     Surface(
-        modifier = Modifier.width(112.dp).fillMaxHeight(),
-        color = SurfaceDark,
-        border = BorderStroke(1.dp, BorderDark)
+        modifier = Modifier.width(108.dp).fillMaxHeight(),
+        color = SurfaceGlassStrong,
+        border = BorderStroke(1.dp, GlassBorderBrush)
     ) {
         NavigationRail(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 16.dp),
-            containerColor = SurfaceDark,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 20.dp),
+            containerColor = androidx.compose.ui.graphics.Color.Transparent,
             header = {
                 AutoGramBrand(compact = true)
                 HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 18.dp),
-                    color = BorderDark
+                    modifier = Modifier.padding(vertical = 16.dp),
+                    color = BorderHairline
                 )
             }
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Screen.items.forEach { screen ->
                     val selected = currentRoute == screen.route
                     NavigationRailItem(
@@ -76,9 +72,9 @@ fun AutoGramNavigationRail(navController: NavController) {
                         },
                         alwaysShowLabel = true,
                         colors = NavigationRailItemDefaults.colors(
-                            selectedIconColor = PrimaryBlue,
-                            selectedTextColor = PrimaryBlue,
-                            indicatorColor = SurfaceElevatedDark,
+                            selectedIconColor = NeonCyan,
+                            selectedTextColor = NeonCyan,
+                            indicatorColor = NeonCyan.copy(alpha = 0.15f),
                             unselectedIconColor = TextMutedDark,
                             unselectedTextColor = TextMutedDark
                         )

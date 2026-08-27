@@ -5,17 +5,19 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -23,17 +25,17 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.autogram.app.navigation.Screen
 import com.autogram.app.theme.AutoGramTheme
-import com.autogram.app.theme.BgDark
-import com.autogram.app.ui.components.BottomNavBar
+import com.autogram.app.theme.ObsidianPrimary
 import com.autogram.app.ui.components.AutoGramNavigationRail
+import com.autogram.app.ui.components.BottomNavBar
 import com.autogram.app.ui.drive.DriveScreen
+import com.autogram.app.ui.remote.RemoteUrlScreen
 import com.autogram.app.ui.settings.SettingsScreen
 import com.autogram.app.ui.studio.StudioScreen
-import com.autogram.app.ui.remote.RemoteUrlScreen
 import com.autogram.app.ui.transfer.TransferScreen
 import com.autogram.app.viewmodel.DriveViewModel
-import com.autogram.app.viewmodel.SettingsViewModel
 import com.autogram.app.viewmodel.RemoteUrlViewModel
+import com.autogram.app.viewmodel.SettingsViewModel
 import com.autogram.app.viewmodel.TransferViewModel
 
 class MainActivity : ComponentActivity() {
@@ -84,14 +86,9 @@ fun AutoGramAppRoot(sharedUrl: String? = null, onSharedUrlConsumed: () -> Unit =
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val useRail = maxWidth >= 720.dp
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            containerColor = BgDark,
-            bottomBar = {
-                if (!useRail) BottomNavBar(navController = navController)
-            }
-        ) { innerPadding ->
-            Row(Modifier.fillMaxSize().padding(innerPadding)) {
+        
+        Box(modifier = Modifier.fillMaxSize()) {
+            Row(Modifier.fillMaxSize()) {
                 if (useRail) AutoGramNavigationRail(navController)
                 NavHost(
                     navController = navController,
@@ -113,6 +110,15 @@ fun AutoGramAppRoot(sharedUrl: String? = null, onSharedUrlConsumed: () -> Unit =
                     composable(Screen.Settings.route) {
                         SettingsScreen(viewModel = settingsViewModel)
                     }
+                }
+            }
+
+            // Floating Glass Capsule Bottom Navigation Bar (Overlays content gracefully)
+            if (!useRail) {
+                Box(
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                ) {
+                    BottomNavBar(navController = navController)
                 }
             }
         }
