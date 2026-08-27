@@ -20,8 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.autogram.app.R
 import com.autogram.app.theme.*
 import com.autogram.app.ui.drive.formatFileSize
-import com.autogram.app.viewmodel.TransferTaskItem
-import com.autogram.app.viewmodel.TransferViewModel
+import com.autogram.app.viewmodel.*
 import com.autogram.app.ui.components.AutoGramCard
 import com.autogram.app.ui.components.ScreenHeader
 import com.autogram.app.ui.components.StatusPill
@@ -33,6 +32,19 @@ fun TransferScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
+    TransferScreenContent(
+        state = state,
+        modifier = modifier,
+        onTogglePause = { task -> viewModel.togglePause(task) }
+    )
+}
+
+@Composable
+fun TransferScreenContent(
+    state: TransferUiState,
+    modifier: Modifier = Modifier,
+    onTogglePause: (TransferTaskItem) -> Unit = {}
+) {
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
       LazyColumn(
         modifier = Modifier.fillMaxSize().widthIn(max = 980.dp).padding(horizontal = 20.dp),
@@ -69,13 +81,16 @@ fun TransferScreen(
                             (state.aggregateProgress * 100).toInt()
                         ),
                         style = MaterialTheme.typography.titleMedium,
-                        color = PrimaryBlue
+                        color = AccentCyan
                     )
                 }
+
                 LinearProgressIndicator(
                     progress = { state.aggregateProgress },
-                    modifier = Modifier.fillMaxWidth().height(8.dp),
-                    color = PrimaryBlue,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp),
+                    color = AccentCyan,
                     trackColor = SurfaceElevatedDark
                 )
             }
@@ -92,7 +107,7 @@ fun TransferScreen(
         }
 
         items(state.activeTasks, key = { it.id }) { task ->
-            TransferTaskCard(task = task, onTogglePause = { viewModel.togglePause(task) })
+            TransferTaskCard(task = task, onTogglePause = { onTogglePause(task) })
         }
 
         if (!state.isLoading && state.activeTasks.isEmpty()) {
@@ -119,7 +134,7 @@ fun TransferScreen(
             }
 
             items(state.completedTasks, key = { it.id }) { task ->
-                TransferTaskCard(task = task, onTogglePause = { viewModel.togglePause(task) })
+                TransferTaskCard(task = task, onTogglePause = { onTogglePause(task) })
             }
         }
       }
@@ -218,5 +233,34 @@ fun TransferTaskCard(task: TransferTaskItem, onTogglePause: () -> Unit) {
                 }
             }
         }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
+@Composable
+fun TransferScreenPreview() {
+    AutoGramTheme(darkTheme = true) {
+        TransferScreenContent(
+            state = TransferUiState(
+                isSmartRateActive = true,
+                aggregateProgress = 0.65f,
+                activeTasks = listOf(
+                    TransferTaskItem(
+                        id = "1",
+                        fileName = "4K_Movie_HDR.mkv",
+                        totalBytes = 2400000000,
+                        transferredBytes = 1560000000,
+                        speedBps = 14500000,
+                        etaSecs = 58,
+                        status = "Uploading (512KB chunks)",
+                        stage = "uploading",
+                        paused = false,
+                        attempt = 1,
+                        sourceIdentity = "Saved Messages",
+                        destinationIdentity = "Archive Channel"
+                    )
+                )
+            )
+        )
     }
 }

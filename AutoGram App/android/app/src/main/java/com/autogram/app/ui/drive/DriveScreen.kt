@@ -16,8 +16,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.autogram.app.R
 import com.autogram.app.theme.*
-import com.autogram.app.viewmodel.DriveViewModel
-import com.autogram.app.viewmodel.DriveMediaFilter
+import com.autogram.app.viewmodel.*
 
 @Composable
 fun DriveScreen(
@@ -26,6 +25,45 @@ fun DriveScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
+    DriveScreenContent(
+        state = state,
+        modifier = modifier,
+        onSearchChange = viewModel::setSearchQuery,
+        onMediaFilterChange = viewModel::setMediaFilter,
+        onToggleViewMode = viewModel::toggleViewMode,
+        onRefresh = { viewModel.loadFolder(state.currentPath) },
+        onUpload = { /* Launch system file picker */ },
+        onClearSelection = viewModel::clearSelection,
+        onMove = { /* Move handler */ },
+        onDownload = { /* Download handler */ },
+        onDeleteSelected = viewModel::deleteSelected,
+        onItemClick = { item ->
+            if (state.selectedIds.isNotEmpty()) {
+                viewModel.toggleItemSelection(item.id)
+            } else if (item.isFolder) {
+                viewModel.loadFolder(childPath(state.currentPath, item.name))
+            }
+        },
+        onItemLongClick = { item -> viewModel.toggleItemSelection(item.id) }
+    )
+}
+
+@Composable
+fun DriveScreenContent(
+    state: DriveUiState,
+    modifier: Modifier = Modifier,
+    onSearchChange: (String) -> Unit = {},
+    onMediaFilterChange: (DriveMediaFilter) -> Unit = {},
+    onToggleViewMode: () -> Unit = {},
+    onRefresh: () -> Unit = {},
+    onUpload: () -> Unit = {},
+    onClearSelection: () -> Unit = {},
+    onMove: () -> Unit = {},
+    onDownload: () -> Unit = {},
+    onDeleteSelected: () -> Unit = {},
+    onItemClick: (DriveFileItem) -> Unit = {},
+    onItemLongClick: (DriveFileItem) -> Unit = {}
+) {
     val filteredItems = state.items.filter { item ->
         val matchesSearch = state.searchQuery.isBlank() ||
             item.name.contains(state.searchQuery, ignoreCase = true)
@@ -52,21 +90,21 @@ fun DriveScreen(
             currentPath = state.currentPath,
             itemCount = filteredItems.size,
             searchQuery = state.searchQuery,
-            onSearchChange = viewModel::setSearchQuery,
+            onSearchChange = onSearchChange,
             mediaFilter = state.mediaFilter,
-            onMediaFilterChange = viewModel::setMediaFilter,
+            onMediaFilterChange = onMediaFilterChange,
             isGridView = state.isGridView,
-            onToggleViewMode = viewModel::toggleViewMode,
-            onRefresh = { viewModel.loadFolder(state.currentPath) },
-            onUpload = { /* Launch system file picker */ }
+            onToggleViewMode = onToggleViewMode,
+            onRefresh = onRefresh,
+            onUpload = onUpload
         )
 
         SelectionStrip(
             selectedCount = state.selectedIds.size,
-            onCancel = viewModel::clearSelection,
-            onMove = { /* Move handler */ },
-            onDownload = { /* Download handler */ },
-            onDelete = viewModel::deleteSelected
+            onCancel = onClearSelection,
+            onMove = onMove,
+            onDownload = onDownload,
+            onDelete = onDeleteSelected
         )
 
         state.errorCode?.let { code ->
@@ -128,14 +166,8 @@ fun DriveScreen(
                         FileGridItem(
                             item = item,
                             isSelected = isSelected,
-                            onClick = {
-                                if (state.selectedIds.isNotEmpty()) {
-                                    viewModel.toggleItemSelection(item.id)
-                                } else if (item.isFolder) {
-                                    viewModel.loadFolder(childPath(state.currentPath, item.name))
-                                }
-                            },
-                            onLongClick = { viewModel.toggleItemSelection(item.id) }
+                            onClick = { onItemClick(item) },
+                            onLongClick = { onItemLongClick(item) }
                         )
                     }
                 }
@@ -150,14 +182,8 @@ fun DriveScreen(
                         FileListItem(
                             item = item,
                             isSelected = isSelected,
-                            onClick = {
-                                if (state.selectedIds.isNotEmpty()) {
-                                    viewModel.toggleItemSelection(item.id)
-                                } else if (item.isFolder) {
-                                    viewModel.loadFolder(childPath(state.currentPath, item.name))
-                                }
-                            },
-                            onLongClick = { viewModel.toggleItemSelection(item.id) }
+                            onClick = { onItemClick(item) },
+                            onLongClick = { onItemLongClick(item) }
                         )
                     }
                 }
@@ -169,4 +195,22 @@ fun DriveScreen(
 private fun childPath(parent: String, child: String): String {
     val normalizedParent = parent.trimEnd('/').ifEmpty { "" }
     return "$normalizedParent/$child"
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
+@Composable
+fun DriveScreenPreview() {
+    AutoGramTheme(darkTheme = true) {
+        DriveScreenContent(
+            state = DriveUiState(
+                currentPath = "/AutoGram Drive",
+                items = listOf(
+                    DriveFileItem(id = "1", name = "Photos 2026", isFolder = true, size = 0, mimeType = "inode/directory", modifiedMs = 0, telegramCategory = "folder", deliveryKind = "folder"),
+                    DriveFileItem(id = "2", name = "presentation.pdf", isFolder = false, size = 14500000, mimeType = "application/pdf", modifiedMs = 0, telegramCategory = "document", deliveryKind = "document"),
+                    DriveFileItem(id = "3", name = "vacation_video.mp4", isFolder = false, size = 54000000, mimeType = "video/mp4", modifiedMs = 0, telegramCategory = "video", deliveryKind = "video")
+                ),
+                isGridView = true
+            )
+        )
+    }
 }

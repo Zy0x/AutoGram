@@ -1,3 +1,13 @@
+## v3.8.35 Android Native Compose Previews & Zero-C Isolated Preview Tooling
+
+### 1. Jetpack Compose Interactive Previews (`@Preview`)
+- **Deklarasi Preview di Semua Layar**: Memisahkan komponen presentasional (*State Hoisting*) dan menambahkan anotasi `@Preview` pada `DriveScreen`, `StudioScreen`, `TransferScreen`, `SettingsScreen`, dan `RemoteUrlScreen` lengkap dengan data dummy realistis.
+- **Inspeksi Instan Tanpa Build APK**: Memungkinkan desainer/pengembang melihat, berinteraksi, dan menguji layout di panel preview Android Studio tanpa proses kompilasi ulang penuh.
+
+### 2. Isolated Tooling & 1-Click Launchers
+- **`Buka_AndroidStudio_Isolated.bat`**: Skrip peluncur Android Studio dengan variabel lingkungan SDK & Gradle terkunci 100% di drive `F:\AutoGram`.
+- **`Pasang_Ke_HP_Isolated.bat`**: Skrip 1-klik via ADB untuk langsung menginstal dan membuka APK ke HP fisik atau emulator dalam 2 detik.
+
 ## v3.8.34 Android Native Zero-C Isolated Build Engine & Multi-ABI Packaging
 
 ### 1. Zero-C Isolated Build Environment & Cache Redirection

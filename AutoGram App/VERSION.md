@@ -1,12 +1,12 @@
-AutoGram Version: v3.8.34
+AutoGram Version: v3.8.35
 
 Current State:
-v3.8.34 Android Native Zero-C Isolated Build Engine & Multi-ABI Packaging — dukungan kompilasi aplikasi Android Native murni di drive proyek:
-1. Zero-C Drive Isolation: Mengalihkan 100% jalur kompilasi Gradle (`GRADLE_USER_HOME`), Java temporary (`java.io.tmpdir`), Android SDK (`ANDROID_USER_HOME`), dan Cargo target (`CARGO_TARGET_DIR`) ke drive `F:\AutoGram\.build-cache` dan `.toolchains`, menjamin disk lokal C tidak terisi byte apapun.
-2. Full Multi-ABI Rust UniFFI Compilation: Berhasil membuild jembatan Kotlin/Rust untuk seluruh 4 ABI Android (`arm64-v8a`, `armeabi-v7a`, `x86_64`, `x86`) dan mengemas APK Universal & split secara sukses.
-3. Strict Working Directory Guard: Memastikan eksekusi Gradle Wrapper selalu terikat pada root direktori Android proyek tanpa risiko missing build layout.
+v3.8.35 Android Native Compose Previews & Zero-C Isolated Preview Tooling — dukungan pratinjau visual Jetpack Compose dan peluncur terisolasi di Drive F::
+1. Jetpack Compose Interactive Previews: Menyediakan fungsi `@Preview` pada seluruh 5 layar utama (`DriveScreen`, `StudioScreen`, `TransferScreen`, `SettingsScreen`, `RemoteUrlScreen`) dengan dummy data realistis untuk inspeksi instan di Android Studio tanpa perlu build APK utuh.
+2. Isolated Studio & Device Launchers: Menyediakan skrip 1-klik `Buka_AndroidStudio_Isolated.bat` dan `Pasang_Ke_HP_Isolated.bat` yang secara otomatis mengunci seluruh SDK, cache Gradle, dan ADB ke drive `F:\AutoGram` tanpa membebani disk C:.
 
 Previous:
+v3.8.34 Android Native Zero-C Isolated Build Engine & Multi-ABI Packaging — dukungan kompilasi aplikasi Android Native murni di drive proyek:
 v3.8.33 Responsive Session Header & Anti-Overlap Reconnect Action Hub — perbaikan menyeluruh tampilan header koneksi dan tombol tindakan sesi:
 v3.8.32 Zero-Flicker Seamless Sticker Animation Transition & Instant Poster Crossfade — eliminasi glitch loading pada pratinjau stiker bergerak:
 v3.8.31 Native TGS Lottie Vector Animation Engine & Multi-Format Moving Preview Hub — pemutaran animasi stiker dan media bergerak di AutoGram Preview:

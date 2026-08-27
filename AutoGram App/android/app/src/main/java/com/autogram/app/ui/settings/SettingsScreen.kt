@@ -19,8 +19,9 @@ import androidx.compose.ui.unit.dp
 import com.autogram.app.R
 import com.autogram.app.theme.*
 import com.autogram.app.ui.drive.formatFileSize
-import com.autogram.app.viewmodel.SettingsViewModel
+import com.autogram.app.viewmodel.*
 import com.autogram.app.ui.components.ScreenHeader
+import uniffi.autogram_android_bridge.*
 
 @Composable
 fun SettingsScreen(
@@ -29,6 +30,17 @@ fun SettingsScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
+    SettingsScreenContent(
+        state = state,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun SettingsScreenContent(
+    state: SettingsUiState,
+    modifier: Modifier = Modifier
+) {
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
       LazyColumn(
         modifier = Modifier.fillMaxSize().widthIn(max = 980.dp).padding(horizontal = 20.dp),
@@ -210,5 +222,36 @@ fun SettingsScreen(
             )
         }
       }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
+@Composable
+fun SettingsScreenPreview() {
+    com.autogram.app.theme.AutoGramTheme(darkTheme = true) {
+        SettingsScreenContent(
+            state = SettingsUiState(
+                hardwareProfile = HardwareProfileSummary(
+                    bestEncoder = "h264_mediacodec",
+                    priority = 1u,
+                    bitrate = 2500000u,
+                    preset = "medium"
+                ),
+                storageBudget = StorageBudgetResult(
+                    maxTempBytes = 10000000000UL,
+                    purgeThresholdRatio = 0.85f
+                ),
+                accounts = listOf(
+                    AccountScoreResult(
+                        accountId = "+62 812-3456-7890",
+                        tier = "Tier A (Healthy)",
+                        totalScore = 98.5,
+                        capabilityScore = 100.0,
+                        healthScore = 98.0,
+                        latencyScore = 97.5
+                    )
+                )
+            )
+        )
     }
 }

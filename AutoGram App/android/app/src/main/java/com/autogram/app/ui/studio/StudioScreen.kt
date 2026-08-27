@@ -30,16 +30,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.autogram.app.R
-import com.autogram.app.theme.AccentCyan
-import com.autogram.app.theme.AccentViolet
-import com.autogram.app.theme.PrimaryBlue
-import com.autogram.app.theme.TextMutedDark
-import com.autogram.app.theme.TextPrimaryDark
+import com.autogram.app.theme.*
 import com.autogram.app.ui.components.MetricCard
 import com.autogram.app.ui.components.ScreenHeader
 import com.autogram.app.ui.drive.FileGridItem
-import com.autogram.app.viewmodel.DriveMediaFilter
-import com.autogram.app.viewmodel.DriveViewModel
+import com.autogram.app.viewmodel.*
 
 @Composable
 fun StudioScreen(
@@ -47,6 +42,24 @@ fun StudioScreen(
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
+
+    StudioScreenContent(
+        state = state,
+        modifier = modifier,
+        onRefresh = { viewModel.loadFolder(state.currentPath) },
+        onMediaFilterChange = viewModel::setMediaFilter,
+        onToggleSelection = viewModel::toggleItemSelection
+    )
+}
+
+@Composable
+fun StudioScreenContent(
+    state: DriveUiState,
+    modifier: Modifier = Modifier,
+    onRefresh: () -> Unit = {},
+    onMediaFilterChange: (DriveMediaFilter) -> Unit = {},
+    onToggleSelection: (String) -> Unit = {}
+) {
     val mediaItems = state.items.filter { !it.isFolder && it.telegramCategory.lowercase() != "sticker" }
     val imageCount = mediaItems.count { it.telegramCategory.equals("photo", true) }
     val videoCount = mediaItems.count { it.telegramCategory.equals("video", true) }
@@ -68,7 +81,7 @@ fun StudioScreen(
                     titleRes = R.string.studio_title,
                     subtitleRes = R.string.studio_subtitle,
                     action = {
-                        IconButton(onClick = { viewModel.loadFolder(state.currentPath) }) {
+                        IconButton(onClick = onRefresh) {
                             Icon(Icons.Default.Refresh, stringResource(R.string.drive_action_refresh), tint = TextPrimaryDark)
                         }
                     }
@@ -109,7 +122,7 @@ fun StudioScreen(
                     ).forEach { (filter, label) ->
                         FilterChip(
                             selected = state.mediaFilter == filter,
-                            onClick = { viewModel.setMediaFilter(filter) },
+                            onClick = { onMediaFilterChange(filter) },
                             label = { Text(stringResource(label)) }
                         )
                     }
@@ -132,12 +145,29 @@ fun StudioScreen(
                         FileGridItem(
                             item = item,
                             isSelected = state.selectedIds.contains(item.id),
-                            onClick = { viewModel.toggleItemSelection(item.id) },
-                            onLongClick = { viewModel.toggleItemSelection(item.id) }
+                            onClick = { onToggleSelection(item.id) },
+                            onLongClick = { onToggleSelection(item.id) }
                         )
                     }
                 }
             }
         }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
+@Composable
+fun StudioScreenPreview() {
+    AutoGramTheme(darkTheme = true) {
+        StudioScreenContent(
+            state = DriveUiState(
+                currentPath = "/Media Studio",
+                items = listOf(
+                    DriveFileItem(id = "1", name = "Cinematic_Trailer.mp4", isFolder = false, size = 125000000, mimeType = "video/mp4", modifiedMs = 0, telegramCategory = "video", deliveryKind = "video"),
+                    DriveFileItem(id = "2", name = "Hero_Artwork.png", isFolder = false, size = 4800000, mimeType = "image/png", modifiedMs = 0, telegramCategory = "photo", deliveryKind = "photo"),
+                    DriveFileItem(id = "3", name = "Cyber_Theme.webp", isFolder = false, size = 1200000, mimeType = "image/webp", modifiedMs = 0, telegramCategory = "photo", deliveryKind = "document")
+                )
+            )
+        )
     }
 }
