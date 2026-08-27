@@ -112,12 +112,12 @@ fun StudioScreenContent(
                         border = BorderStroke(1.dp, BorderHairline)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.Refresh, stringResource(R.string.drive_action_refresh), tint = NeonCyan, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Refresh, stringResource(R.string.drive_action_refresh), tint = ChampagneGold, modifier = Modifier.size(18.dp))
                         }
                     }
                 }
 
-                // Compact 3-Column Glass Metric Cards
+                // Compact 3-Column Glass Metric Cards (Stitch Soft Luxury)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -126,21 +126,21 @@ fun StudioScreenContent(
                         icon = Icons.Default.Collections,
                         value = mediaItems.size.toString(),
                         label = stringResource(R.string.studio_metric_media),
-                        accent = NeonCyan,
+                        accent = ChampagneGold,
                         modifier = Modifier.weight(1f)
                     )
                     AutoGramMetricCard(
                         icon = Icons.Default.Image,
                         value = imageCount.toString(),
                         label = stringResource(R.string.studio_metric_images),
-                        accent = ElectricBlue,
+                        accent = MutedIceCyan,
                         modifier = Modifier.weight(1f)
                     )
                     AutoGramMetricCard(
                         icon = Icons.Default.Movie,
                         value = videoCount.toString(),
                         label = stringResource(R.string.studio_metric_videos),
-                        accent = CategoryVideo,
+                        accent = SoftViolet,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -149,7 +149,7 @@ fun StudioScreenContent(
                 if (state.selectedIds.isNotEmpty()) {
                     AutoGramGlassCard(
                         modifier = Modifier.fillMaxWidth(),
-                        borderColor = NeonCyan.copy(alpha = 0.4f),
+                        borderColor = ChampagneGold.copy(alpha = 0.4f),
                         containerColor = SurfaceGlassStrong
                     ) {
                         Row(
@@ -173,7 +173,7 @@ fun StudioScreenContent(
                             AutoGramGlowButton(
                                 text = "✨ Rakit Album",
                                 onClick = { /* Build album */ },
-                                brush = CyanToBlueBrush,
+                                brush = ChampagneToCyanBrush,
                                 modifier = Modifier.height(38.dp)
                             )
                         }
@@ -188,7 +188,7 @@ fun StudioScreenContent(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     listOf(
-                        DriveMediaFilter.ALL to (R.string.drive_filter_all to NeonCyan),
+                        DriveMediaFilter.ALL to (R.string.drive_filter_all to ChampagneGold),
                         DriveMediaFilter.IMAGES to (R.string.drive_filter_images to CategoryPhoto),
                         DriveMediaFilter.VIDEOS to (R.string.drive_filter_videos to CategoryVideo),
                         DriveMediaFilter.AUDIO to (R.string.drive_filter_audio to CategoryAudio)

@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.autogram.app.R
 import com.autogram.app.theme.*
 
@@ -35,10 +37,44 @@ fun AutoGramSurface(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(ObsidianPrimary)
+            .background(CanvasWarmTitanium)
             .background(AmbientBackgroundBrush)
     ) {
         content()
+    }
+}
+
+@Composable
+fun AutoGramBrand(modifier: Modifier = Modifier, compact: Boolean = false) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Surface(
+            shape = CircleShape,
+            color = ChampagneGold.copy(alpha = 0.15f),
+            modifier = Modifier.size(if (compact) 32.dp else 40.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    Icons.Default.Bolt,
+                    contentDescription = null,
+                    tint = ChampagneGold,
+                    modifier = Modifier.size(if (compact) 18.dp else 22.dp)
+                )
+            }
+        }
+        if (!compact) {
+            Text(
+                text = "AutoGram",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp
+                ),
+                color = TextPrimaryDark
+            )
+        }
     }
 }
 
@@ -60,6 +96,35 @@ fun AutoGramGlassCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             content()
+        }
+    }
+}
+
+@Composable
+fun AutoGramDoubleBezelCard(
+    modifier: Modifier = Modifier,
+    outerShape: RoundedCornerShape = RoundedCornerShape(22.dp),
+    innerShape: RoundedCornerShape = RoundedCornerShape(16.dp),
+    borderColor: Color = BorderHairline,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Surface(
+        modifier = modifier,
+        shape = outerShape,
+        color = SurfaceGlassSoft,
+        border = BorderStroke(1.dp, borderColor)
+    ) {
+        Box(modifier = Modifier.padding(3.dp)) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = innerShape,
+                color = SurfaceGlass,
+                border = BorderStroke(0.5.dp, Color(0x10FFFFFF))
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    content()
+                }
+            }
         }
     }
 }
@@ -99,36 +164,39 @@ fun AutoGramMetricCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .background(accent.copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
-            }
-            if (deltaText != null) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = deltaText,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = accent,
-                    fontWeight = FontWeight.Bold
+                    text = value,
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    ),
+                    color = TextPrimaryDark
+                )
+                Spacer(Modifier.height(1.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                    color = TextSecondaryDark,
+                    maxLines = 1
                 )
             }
+
+            Surface(
+                shape = CircleShape,
+                color = accent.copy(alpha = 0.12f),
+                modifier = Modifier.size(34.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(17.dp)
+                    )
+                }
+            }
         }
-        Spacer(Modifier.height(12.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.headlineMedium,
-            color = TextPrimaryDark,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(Modifier.height(2.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = TextSecondaryDark
-        )
     }
 }
 
@@ -138,17 +206,16 @@ fun AutoGramGlowButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
-    brush: Brush = CyanToBlueBrush,
-    enabled: Boolean = true,
-    isLoading: Boolean = false
+    brush: Brush = ChampagneToCyanBrush,
+    enabled: Boolean = true
 ) {
     Surface(
         onClick = onClick,
-        enabled = enabled && !isLoading,
-        shape = RoundedCornerShape(14.dp),
+        enabled = enabled,
         modifier = modifier
-            .height(52.dp)
+            .height(44.dp)
             .clip(RoundedCornerShape(14.dp)),
+        shape = RoundedCornerShape(14.dp),
         color = Color.Transparent
     ) {
         Box(
@@ -157,29 +224,22 @@ fun AutoGramGlowButton(
                 .background(if (enabled) brush else Brush.linearGradient(listOf(Color(0xFF334155), Color(0xFF1E293B)))),
             contentAlignment = Alignment.Center
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(22.dp),
-                    color = Color.White,
-                    strokeWidth = 2.5.dp
-                )
-            } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                ) {
-                    if (icon != null) {
-                        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                    }
-                    Text(
-                        text = text,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        fontWeight = FontWeight.SemiBold
-                    )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 18.dp)
+            ) {
+                if (icon != null) {
+                    Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                 }
+                Text(
+                    text = text,
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.3.sp
+                    )
+                )
             }
         }
     }
@@ -187,37 +247,61 @@ fun AutoGramGlowButton(
 
 @Composable
 fun AutoGramStatusDot(
-    color: Color = NeonCyan,
-    isPulsing: Boolean = true,
+    color: Color,
+    modifier: Modifier = Modifier,
+    isPulsing: Boolean = false,
     size: Dp = 8.dp
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val alpha by if (isPulsing) {
-        infiniteTransition.animateFloat(
-            initialValue = 0.4f,
-            targetValue = 1.0f,
+    if (isPulsing) {
+        val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+        val alpha by infiniteTransition.animateFloat(
+            initialValue = 0.3f,
+            targetValue = 1f,
             animationSpec = infiniteRepeatable(
-                animation = tween(800, easing = LinearEasing),
+                animation = tween(900, easing = LinearEasing),
                 repeatMode = RepeatMode.Reverse
             ),
-            label = "alpha"
+            label = "pulseAlpha"
         )
-    } else {
-        rememberUpdatedState(1.0f)
-    }
+        val scale by infiniteTransition.animateFloat(
+            initialValue = 0.8f,
+            targetValue = 1.2f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(900, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "pulseScale"
+        )
 
-    Box(
-        modifier = Modifier
-            .size(size)
-            .background(color.copy(alpha = alpha), CircleShape)
-    )
+        Box(modifier = modifier.size(size * 1.5f), contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier
+                    .size(size * scale)
+                    .clip(CircleShape)
+                    .background(color.copy(alpha = alpha * 0.35f))
+            )
+            Box(
+                modifier = Modifier
+                    .size(size)
+                    .clip(CircleShape)
+                    .background(color)
+            )
+        }
+    } else {
+        Box(
+            modifier = modifier
+                .size(size)
+                .clip(CircleShape)
+                .background(color)
+        )
+    }
 }
 
 @Composable
 fun StatusPill(
     text: String,
+    color: Color = ChampagneGold,
     modifier: Modifier = Modifier,
-    color: Color = NeonCyan,
     isLive: Boolean = false
 ) {
     Surface(
@@ -227,70 +311,40 @@ fun StatusPill(
         border = BorderStroke(1.dp, color.copy(alpha = 0.35f))
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            AutoGramStatusDot(color = color, isPulsing = isLive, size = 6.dp)
+            if (isLive) {
+                AutoGramStatusDot(color = color, isPulsing = true, size = 6.dp)
+            }
             Text(
                 text = text,
-                color = color,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
+                color = color
             )
         }
-    }
-}
-
-@Composable
-fun ScreenHeader(
-    @StringRes titleRes: Int,
-    @StringRes subtitleRes: Int,
-    modifier: Modifier = Modifier,
-    action: (@Composable () -> Unit)? = null
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = stringResource(titleRes),
-                style = MaterialTheme.typography.headlineLarge,
-                color = TextPrimaryDark,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(3.dp))
-            Text(
-                text = stringResource(subtitleRes),
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondaryDark
-            )
-        }
-        action?.invoke()
     }
 }
 
 @Composable
 fun AutoGramProgressBar(
     progress: Float,
+    brush: Brush = ChampagneToCyanBrush,
     modifier: Modifier = Modifier,
-    brush: Brush = CyanToBlueBrush,
-    trackColor: Color = SurfaceDeep,
-    height: Dp = 8.dp
+    height: Dp = 5.dp
 ) {
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(height)
             .clip(CircleShape)
-            .background(trackColor)
+            .background(SurfaceDeep)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxHeight()
-                .fillMaxWidth(fraction = progress.coerceIn(0f, 1f))
+                .fillMaxWidth(progress.coerceIn(0f, 1f))
                 .clip(CircleShape)
                 .background(brush)
         )
@@ -301,40 +355,44 @@ fun AutoGramProgressBar(
 fun AutoGramEmptyState(
     title: String,
     description: String,
-    modifier: Modifier = Modifier,
-    icon: ImageVector = Icons.Default.Inbox
+    icon: ImageVector = Icons.Default.FolderOpen,
+    modifier: Modifier = Modifier
 ) {
     AutoGramGlassCard(
         modifier = modifier.fillMaxWidth(),
-        containerColor = SurfaceGlassSoft
+        containerColor = SurfaceGlassSoft,
+        borderColor = BorderHairline
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp),
+                .padding(vertical = 32.dp, horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(PrimaryBlue.copy(alpha = 0.12f), CircleShape),
-                contentAlignment = Alignment.Center
+            Surface(
+                shape = CircleShape,
+                color = ChampagneGold.copy(alpha = 0.12f),
+                modifier = Modifier.size(56.dp)
             ) {
-                Icon(icon, contentDescription = null, tint = AccentCyan, modifier = Modifier.size(28.dp))
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = ChampagneGold,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
-            Spacer(Modifier.height(14.dp))
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge,
-                color = TextPrimaryDark,
-                fontWeight = FontWeight.SemiBold
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = TextPrimaryDark
             )
-            Spacer(Modifier.height(4.dp))
             Text(
                 text = description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextMutedDark,
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                color = TextSecondaryDark,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }
@@ -349,68 +407,60 @@ fun AutoGramErrorState(
 ) {
     AutoGramGlassCard(
         modifier = modifier.fillMaxWidth(),
-        borderColor = Danger.copy(alpha = 0.35f),
-        containerColor = Danger.copy(alpha = 0.08f)
+        borderColor = SoftCoral.copy(alpha = 0.35f),
+        containerColor = SurfaceGlass
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = Danger, modifier = Modifier.size(36.dp))
-            Spacer(Modifier.height(10.dp))
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyLarge,
-                color = TextPrimaryDark,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-            Spacer(Modifier.height(14.dp))
-            AutoGramGlowButton(
-                text = "Coba Lagi",
+            Icon(Icons.Default.ErrorOutline, null, tint = SoftCoral, modifier = Modifier.size(36.dp))
+            Text(text = message, color = TextPrimaryDark, style = MaterialTheme.typography.bodyMedium)
+            Button(
                 onClick = onRetry,
-                brush = Brush.horizontalGradient(listOf(Danger, AccentAmber)),
-                modifier = Modifier.width(160.dp)
-            )
+                colors = ButtonDefaults.buttonColors(containerColor = SoftCoral)
+            ) {
+                Text(stringResource(R.string.drive_action_refresh), color = Color.White)
+            }
         }
     }
 }
 
 @Composable
-fun AutoGramBrand(modifier: Modifier = Modifier, compact: Boolean = false) {
+fun ScreenHeader(
+    @StringRes titleRes: Int,
+    @StringRes subtitleRes: Int,
+    modifier: Modifier = Modifier,
+    action: (@Composable () -> Unit)? = null
+) {
     Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(if (compact) 40.dp else 46.dp)
-                .background(CyanToBlueBrush, RoundedCornerShape(12.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Bolt,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(if (compact) 22.dp else 26.dp)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(titleRes),
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 24.sp,
+                    letterSpacing = (-0.3).sp
+                ),
+                color = TextPrimaryDark
+            )
+            Spacer(Modifier.height(1.dp))
+            Text(
+                text = stringResource(subtitleRes),
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                color = TextSecondaryDark
             )
         }
-        if (!compact) {
-            Column {
-                Text(
-                    text = stringResource(R.string.app_name),
-                    color = TextPrimaryDark,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = stringResource(R.string.app_tagline),
-                    color = TextSecondaryDark,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
+        if (action != null) {
+            Spacer(Modifier.width(12.dp))
+            action()
         }
     }
 }

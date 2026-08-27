@@ -90,21 +90,21 @@ fun TransferScreenContent(
                     if (state.isSmartRateActive) {
                         StatusPill(
                             text = stringResource(R.string.transfer_smart_rate),
-                            color = Emerald,
+                            color = DustySage,
                             isLive = true
                         )
                     }
                 }
             }
 
-            // Spacious Cyber Speedometer Hub
+            // Spacious Cyber Speedometer Hub (Stitch Soft Luxury)
             item {
                 val totalSpeedBps = state.activeTasks.sumOf { it.speedBps }
                 val formattedSpeed = if (totalSpeedBps > 0) formatFileSize(totalSpeedBps) + "/s" else "0.0 B/s"
 
                 AutoGramGlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    borderColor = NeonCyan.copy(alpha = 0.25f),
+                    borderColor = ChampagneGold.copy(alpha = 0.25f),
                     containerColor = SurfaceGlassStrong
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -117,23 +117,23 @@ fun TransferScreenContent(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                AutoGramStatusDot(color = NeonCyan, isPulsing = totalSpeedBps > 0, size = 6.dp)
+                                AutoGramStatusDot(color = ChampagneGold, isPulsing = totalSpeedBps > 0, size = 6.dp)
                                 Text(
                                     text = "THROUGHPUT ENGINE",
                                     style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp, fontSize = 10.sp),
-                                    color = NeonCyan,
+                                    color = ChampagneGold,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
                             Surface(
-                                color = Emerald.copy(alpha = 0.12f),
+                                color = DustySage.copy(alpha = 0.12f),
                                 shape = RoundedCornerShape(6.dp)
                             ) {
                                 Text(
                                     text = "MTProto 512KB",
                                     modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                    color = Emerald,
+                                    color = DustySage,
                                     fontWeight = FontWeight.Medium
                                 )
                             }
@@ -167,14 +167,14 @@ fun TransferScreenContent(
                                 style = MaterialTheme.typography.headlineMedium.copy(
                                     fontSize = 22.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = NeonCyan
+                                    color = ChampagneGold
                                 )
                             )
                         }
 
                         AutoGramProgressBar(
                             progress = state.aggregateProgress,
-                            brush = CyanToBlueBrush,
+                            brush = ChampagneToCyanBrush,
                             height = 6.dp
                         )
 
@@ -190,7 +190,7 @@ fun TransferScreenContent(
                             Text(
                                 text = "Selesai: ${state.completedTasks.size}",
                                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                                color = Emerald
+                                color = DustySage
                             )
                         }
                     }
@@ -211,14 +211,14 @@ fun TransferScreenContent(
                     )
                     if (state.activeTasks.isNotEmpty()) {
                         Surface(
-                            color = NeonCyan.copy(alpha = 0.15f),
+                            color = ChampagneGold.copy(alpha = 0.15f),
                             shape = CircleShape
                         ) {
                             Text(
                                 text = "${state.activeTasks.size}",
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = NeonCyan
+                                color = ChampagneGold
                             )
                         }
                     }
@@ -277,7 +277,7 @@ fun CyberTransferTaskCard(task: TransferTaskItem, onTogglePause: () -> Unit) {
 
     AutoGramGlassCard(
         modifier = Modifier.fillMaxWidth(),
-        borderColor = if (!task.paused && task.speedBps > 0) NeonCyan.copy(alpha = 0.35f) else BorderHairline,
+        borderColor = if (!task.paused && task.speedBps > 0) ChampagneGold.copy(alpha = 0.35f) else BorderHairline,
         containerColor = SurfaceGlass
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -306,8 +306,8 @@ fun CyberTransferTaskCard(task: TransferTaskItem, onTogglePause: () -> Unit) {
                     Surface(
                         onClick = onTogglePause,
                         shape = CircleShape,
-                        color = if (task.paused) ElectricBlue.copy(alpha = 0.15f) else Amber.copy(alpha = 0.15f),
-                        border = BorderStroke(1.dp, if (task.paused) ElectricBlue.copy(alpha = 0.4f) else Amber.copy(alpha = 0.4f)),
+                        color = if (task.paused) ChampagneGold.copy(alpha = 0.15f) else WarmAmber.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, if (task.paused) ChampagneGold.copy(alpha = 0.4f) else WarmAmber.copy(alpha = 0.4f)),
                         modifier = Modifier.size(36.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
@@ -316,7 +316,7 @@ fun CyberTransferTaskCard(task: TransferTaskItem, onTogglePause: () -> Unit) {
                                 contentDescription = stringResource(
                                     if (task.paused) R.string.transfer_action_resume else R.string.transfer_action_pause
                                 ),
-                                tint = if (task.paused) ElectricBlue else Amber,
+                                tint = if (task.paused) ChampagneGold else WarmAmber,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -346,12 +346,12 @@ fun CyberTransferTaskCard(task: TransferTaskItem, onTogglePause: () -> Unit) {
                     val isCurrent = index == currentStageIndex
                     val pillBg = when {
                         isCurrent -> stageColor.copy(alpha = 0.2f)
-                        isDone -> Emerald.copy(alpha = 0.12f)
+                        isDone -> DustySage.copy(alpha = 0.12f)
                         else -> SurfaceDeep.copy(alpha = 0.5f)
                     }
                     val pillColor = when {
                         isCurrent -> stageColor
-                        isDone -> Emerald
+                        isDone -> DustySage
                         else -> TextMutedDark
                     }
 
@@ -366,7 +366,7 @@ fun CyberTransferTaskCard(task: TransferTaskItem, onTogglePause: () -> Unit) {
                             horizontalArrangement = Arrangement.spacedBy(3.dp)
                         ) {
                             if (isDone) {
-                                Icon(Icons.Default.Check, null, tint = Emerald, modifier = Modifier.size(10.dp))
+                                Icon(Icons.Default.Check, null, tint = DustySage, modifier = Modifier.size(10.dp))
                             } else if (isCurrent) {
                                 AutoGramStatusDot(color = stageColor, isPulsing = true, size = 4.dp)
                             }
@@ -383,7 +383,7 @@ fun CyberTransferTaskCard(task: TransferTaskItem, onTogglePause: () -> Unit) {
 
             AutoGramProgressBar(
                 progress = progress,
-                brush = Brush.horizontalGradient(listOf(stageColor, NeonCyan)),
+                brush = Brush.horizontalGradient(listOf(stageColor, ChampagneGold)),
                 height = 5.dp
             )
 
@@ -401,7 +401,7 @@ fun CyberTransferTaskCard(task: TransferTaskItem, onTogglePause: () -> Unit) {
                     Text(
                         text = stringResource(R.string.transfer_speed, formatFileSize(task.speedBps)),
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
-                        color = NeonCyan
+                        color = ChampagneGold
                     )
                 } else {
                     Text(

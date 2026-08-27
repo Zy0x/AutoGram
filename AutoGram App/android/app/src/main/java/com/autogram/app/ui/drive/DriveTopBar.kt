@@ -74,7 +74,7 @@ fun DriveTopBar(
                     Icon(
                         imageVector = Icons.Default.Folder,
                         contentDescription = null,
-                        tint = NeonCyan,
+                        tint = ChampagneGold,
                         modifier = Modifier.size(13.dp)
                     )
                     Text(
@@ -88,12 +88,12 @@ fun DriveTopBar(
 
             StatusPill(
                 text = pluralStringResource(R.plurals.drive_item_count, itemCount, itemCount),
-                color = NeonCyan,
+                color = ChampagneGold,
                 isLive = true
             )
         }
 
-        // Search & Controls Row (Clean 44dp height)
+        // Search & Controls Row (Clean 46dp height)
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -116,7 +116,7 @@ fun DriveTopBar(
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = stringResource(R.string.drive_search_accessibility),
-                        tint = NeonCyan,
+                        tint = MutedIceCyan,
                         modifier = Modifier.size(18.dp)
                     )
                 },
@@ -156,7 +156,7 @@ fun DriveTopBar(
                     Icon(
                         if (isGridView) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
                         stringResource(R.string.drive_toggle_view_accessibility),
-                        tint = NeonCyan,
+                        tint = ChampagneGold,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -173,7 +173,7 @@ fun DriveTopBar(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(CyanToBlueBrush),
+                        .background(ChampagneToCyanBrush),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Icons.Default.Add, stringResource(R.string.drive_action_upload), tint = Color.White, modifier = Modifier.size(20.dp))
@@ -191,12 +191,12 @@ fun DriveTopBar(
             DriveMediaFilter.entries.forEach { filter ->
                 val isSelected = mediaFilter == filter
                 val filterColor = when (filter) {
-                    DriveMediaFilter.ALL -> NeonCyan
+                    DriveMediaFilter.ALL -> ChampagneGold
                     DriveMediaFilter.MEDIA, DriveMediaFilter.VIDEOS -> CategoryVideo
                     DriveMediaFilter.IMAGES -> CategoryPhoto
                     DriveMediaFilter.AUDIO -> CategoryAudio
                     DriveMediaFilter.DOCUMENTS -> CategoryDoc
-                    DriveMediaFilter.STICKERS -> Emerald
+                    DriveMediaFilter.STICKERS -> DustySage
                 }
 
                 val chipBg by animateColorAsState(

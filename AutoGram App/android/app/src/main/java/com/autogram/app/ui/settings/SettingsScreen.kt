@@ -84,7 +84,7 @@ fun SettingsScreenContent(
                         )
                     }
 
-                    StatusPill(text = "System Ready", color = Emerald, isLive = true)
+                    StatusPill(text = "System Ready", color = DustySage, isLive = true)
                 }
             }
 
@@ -99,10 +99,10 @@ fun SettingsScreenContent(
 
             if (state.accounts.isEmpty()) {
                 item {
-                    // Active Telegram Account Mock/Default Card
+                    // Active Telegram Account Mock/Default Card (Stitch Soft Luxury)
                     AutoGramGlassCard(
                         modifier = Modifier.fillMaxWidth(),
-                        borderColor = NeonCyan.copy(alpha = 0.25f),
+                        borderColor = ChampagneGold.copy(alpha = 0.25f),
                         containerColor = SurfaceGlassStrong
                     ) {
                         Row(
@@ -113,7 +113,7 @@ fun SettingsScreenContent(
                             Box(
                                 modifier = Modifier
                                     .size(46.dp)
-                                    .background(CyanToBlueBrush, CircleShape),
+                                    .background(ChampagneToCyanBrush, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(Icons.Default.AccountCircle, null, tint = Color.White, modifier = Modifier.size(28.dp))
@@ -129,19 +129,19 @@ fun SettingsScreenContent(
                                 Text(
                                     text = "Online • DC4 Production • Ping 42 ms",
                                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                                    color = NeonCyan
+                                    color = ChampagneGold
                                 )
                             }
 
                             Surface(
-                                color = Emerald.copy(alpha = 0.15f),
+                                color = DustySage.copy(alpha = 0.15f),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text(
                                     text = "Tier A (99.8%)",
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                    color = Emerald,
+                                    color = DustySage,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -163,7 +163,7 @@ fun SettingsScreenContent(
                             Box(
                                 modifier = Modifier
                                     .size(44.dp)
-                                    .background(CyanToBlueBrush, CircleShape),
+                                    .background(ChampagneToCyanBrush, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(Icons.Default.AccountCircle, null, tint = Color.White, modifier = Modifier.size(24.dp))
@@ -182,7 +182,7 @@ fun SettingsScreenContent(
                                 )
                             }
 
-                            StatusPill(text = "Tier ${account.tier}", color = Emerald, isLive = true)
+                            StatusPill(text = "Tier ${account.tier}", color = DustySage, isLive = true)
                         }
                     }
                 }
@@ -211,11 +211,11 @@ fun SettingsScreenContent(
                         ) {
                             Surface(
                                 shape = CircleShape,
-                                color = ElectricViolet.copy(alpha = 0.15f),
+                                color = SoftViolet.copy(alpha = 0.15f),
                                 modifier = Modifier.size(36.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.Memory, null, tint = ElectricViolet, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.Memory, null, tint = SoftViolet, modifier = Modifier.size(18.dp))
                                 }
                             }
                             Column {
@@ -244,7 +244,7 @@ fun SettingsScreenContent(
                                 Column(modifier = Modifier.padding(10.dp)) {
                                     Text("ENCODER", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = TextMutedDark)
                                     Spacer(Modifier.height(2.dp))
-                                    Text("h264_mediacodec", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp), color = NeonCyan)
+                                    Text("h264_mediacodec", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp), color = ChampagneGold)
                                 }
                             }
                             Surface(
@@ -286,11 +286,11 @@ fun SettingsScreenContent(
                         ) {
                             Surface(
                                 shape = CircleShape,
-                                color = NeonCyan.copy(alpha = 0.15f),
+                                color = MutedIceCyan.copy(alpha = 0.15f),
                                 modifier = Modifier.size(36.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.Storage, null, tint = NeonCyan, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.Storage, null, tint = MutedIceCyan, modifier = Modifier.size(18.dp))
                                 }
                             }
                             Column {
@@ -309,7 +309,7 @@ fun SettingsScreenContent(
 
                         AutoGramProgressBar(
                             progress = 0.08f,
-                            brush = CyanToBlueBrush,
+                            brush = ChampagneToCyanBrush,
                             height = 5.dp
                         )
 
@@ -318,7 +318,7 @@ fun SettingsScreenContent(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("Budget: 20.0 GB", style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), color = TextSecondaryDark)
-                            Text("Batas Pembersihan: 90%", style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), color = Amber)
+                            Text("Batas Pembersihan: 90%", style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), color = WarmAmber)
                         }
                     }
                 }
@@ -333,12 +333,12 @@ fun SettingsScreenContent(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "AutoGram Android Native v3.8.39",
+                        text = "AutoGram Android Native v3.8.41",
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold),
-                        color = NeonCyan
+                        color = ChampagneGold
                     )
                     Text(
-                        text = "Cyber Dark Glassmorphism Engine • MTProto via Grammers",
+                        text = "Stitch Soft Luxury Engine • MTProto via Grammers",
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
                         color = TextMutedDark
                     )

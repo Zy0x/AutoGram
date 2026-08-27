@@ -59,7 +59,7 @@ fun BottomNavBar(navController: NavController) {
                     val isSelected = currentRoute == screen.route
                     
                     val animatedIconColor by animateColorAsState(
-                        targetValue = if (isSelected) NeonCyan else TextMutedDark,
+                        targetValue = if (isSelected) ChampagneGold else TextMutedDark,
                         animationSpec = tween(durationMillis = 180),
                         label = "iconColor"
                     )
@@ -71,7 +71,7 @@ fun BottomNavBar(navController: NavController) {
                     )
 
                     val pillBackground = if (isSelected) {
-                        NeonCyan.copy(alpha = 0.14f)
+                        ChampagneGold.copy(alpha = 0.14f)
                     } else {
                         Color.Transparent
                     }
@@ -83,7 +83,7 @@ fun BottomNavBar(navController: NavController) {
                             .background(pillBackground)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication = rememberRipple(bounded = true, color = NeonCyan)
+                                indication = rememberRipple(bounded = true, color = ChampagneGold)
                             ) {
                                 if (currentRoute != screen.route) {
                                     navigatePrimary(navController, screen.route, currentRoute)
