@@ -2047,6 +2047,15 @@
   "remote_stage_validate": "Validasi",
   "remote_stage_ready": "Siap",
   "remote_resolution_candidates": "{{count}} kandidat",
+  "remote_security_validated": "Jaringan tervalidasi",
+  "remote_security_provider": "Penyedia terverifikasi",
+  "remote_security_fallback": "Sumber fallback",
+  "remote_stage_analyze": "Analisis",
+  "remote_stage_resolve": "Resolusi",
+  "remote_stage_discover": "Temukan",
+  "remote_stage_validate": "Validasi",
+  "remote_stage_ready": "Siap",
+  "remote_resolution_candidates": "{{count}} kandidat",
   "remote_resolution_pages": "{{count}} halaman diperiksa",
   "drive_history_pin_navigation": "Riwayat dan navigasi pin Drive",
   "nav_back_drive": "Kembali ke Drive sebelumnya",
@@ -2056,5 +2065,7 @@
   "hide_restricted_media_title": "Sembunyikan Media & Saluran yang Dibatasi",
   "hide_restricted_media_desc": "Otomatis memfilter dan menyembunyikan berkas / pesan peringatan Telegram yang tidak dapat ditampilkan (\"This channel can't be displayed...\") agar tampilan Drive tetap rapi dan bersih dari media rusak.",
   "drive_engine_file_commit_failed": "Unggahan sudah sampai ke Telegram, tetapi AutoGram tidak dapat menyimpan pemetaan folder Drive. Coba sinkronkan folder kembali.",
-  "drive_root_limit_warning": "{{count}} Drive utama mendekati batas channel Telegram (~500). Utamakan folder di dalam Drive yang sudah ada."
+  "drive_root_limit_warning": "{{count}} Drive utama mendekati batas channel Telegram (~500). Utamakan folder di dalam Drive yang sudah ada.",
+  "tgs_lottie_invalid_data": "Data animasi stiker tidak valid.",
+  "tgs_lottie_load_failed": "Gagal memuat animasi stiker."
 }

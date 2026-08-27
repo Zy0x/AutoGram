@@ -1,6 +1,12 @@
-AutoGram Version: v3.8.30
+AutoGram Version: v3.8.31
 
 Current State:
+v3.8.31 Native TGS Lottie Vector Animation Engine & Multi-Format Moving Preview Hub — pemutaran animasi stiker dan media bergerak di AutoGram Preview:
+1. Native TGS Lottie Engine: Mengintegrasikan dekompresi Gzip in-memory stream dan Lottie Web rendering engine 60 FPS pada `TgsLottiePlayer.tsx`, memutar stiker animasi vektor `.tgs` Telegram secara mulus dan berulang (looping) persis seperti di aplikasi Telegram asli.
+2. Multi-Format Moving Media Support: Mendukung pemutaran native seluruh format animasi Telegram & web (stiker video `.webm` transparan, animated `.webp`, `.gif`, `.apng`, dan animated `.svg`) di modal pratinjau AutoGram.
+3. Interactive Canvas Controls & Zoom/Pan: Mendukung zoom interaktif, pan geser, rotasi, dan flip pada animasi stiker bergerak dengan performa akselerasi GPU tinggi.
+
+Previous:
 v3.8.30 Telegram Real Sticker MTProto Detection & On-Demand Filter Stream — pemindaian dan penayangan komprehensif stiker asli Telegram di tab [Stiker]:
 1. Real Sticker MTProto Dynamic Query: Menggantikan kueri `messages.Search` (yang mengabaikan kueri teks kosong untuk stiker) dengan `messages.GetReplies` (untuk topik forum) atau `messages.GetHistory` (untuk chat/channel) saat filter [Stiker] dibuka, memungkinkan deteksi 100% seluruh stiker Telegram resmi, stiker animasi .tgs, stiker video .webm, dan stiker melayang .webp.
 2. Emoji-Aware Sticker Identification & Fallback: Membaca atribut `DocumentAttributeSticker` dan `DocumentAttributeCustomEmoji` untuk mengekstrak emoji alt (misal `sticker_😘_{id}.webp` atau `sticker_{id}.tgs`), tipe MIME, ukuran file, dan thumbnail visual instan untuk setiap stiker.

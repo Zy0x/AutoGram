@@ -95,10 +95,12 @@ import {
   isTextDriveFile,
   isOfficeDriveFile,
   isZipDriveFile,
+  isTgsDriveFile,
   type DriveFile,
   type DriveFolder,
   type DriveChat,
 } from '../../../lib/telegram/driveTypes';
+import { TgsLottiePlayer } from './TgsLottiePlayer';
 import { DriveZipBrowser } from '../DriveZipBrowser';
 import {
   ensureLocalDocument,
@@ -5179,32 +5181,54 @@ export function DrivePreviewModal({
                   : 'Gulir untuk zoom (25%–600%, default 100%) · double-klik untuk perbesar'
               }
             >
-              <img
-                key={`${file.id}-${srcOverride || 'primary'}`}
-                src={activeSrc!}
-                alt={displayName}
-                className="drive-preview-media drive-preview-img"
-                draggable={false}
-                style={{
-                  transform: mediaTransform,
-                  transformOrigin: 'center center',
-                  pointerEvents: 'none',
-                }}
-                onLoad={(e) => {
-                  const img = e.currentTarget;
-                  setMediaWidth(img.naturalWidth);
-                  setMediaHeight(img.naturalHeight);
-                  setLoading(false);
-                  setError(null);
-                  captureImageFrame(img);
-                }}
-                onError={() => {
-                  if (!tryNextSrc()) {
-                    setError(t('ui.generated.gagal_menampilkan_gambar_coba_download_atau_buka_824c3ec'));
-                  }
-                }}
-              />
-              {loading && (
+              {isTgsDriveFile(file) ? (
+                <TgsLottiePlayer
+                  key={`${file.id}-${srcOverride || 'tgs'}`}
+                  src={activeSrc!}
+                  poster={poster || gridThumb}
+                  zoom={zoom}
+                  rotation={rotation}
+                  flipH={flipH}
+                  flipV={flipV}
+                  pan={pan}
+                  onLoad={() => {
+                    setLoading(false);
+                    setError(null);
+                  }}
+                  onError={() => {
+                    if (!tryNextSrc()) {
+                      setError(t('ui.generated.gagal_menampilkan_gambar_coba_download_atau_buka_824c3ec'));
+                    }
+                  }}
+                />
+              ) : (
+                <img
+                  key={`${file.id}-${srcOverride || 'primary'}`}
+                  src={activeSrc!}
+                  alt={displayName}
+                  className="drive-preview-media drive-preview-img"
+                  draggable={false}
+                  style={{
+                    transform: mediaTransform,
+                    transformOrigin: 'center center',
+                    pointerEvents: 'none',
+                  }}
+                  onLoad={(e) => {
+                    const img = e.currentTarget;
+                    setMediaWidth(img.naturalWidth);
+                    setMediaHeight(img.naturalHeight);
+                    setLoading(false);
+                    setError(null);
+                    captureImageFrame(img);
+                  }}
+                  onError={() => {
+                    if (!tryNextSrc()) {
+                      setError(t('ui.generated.gagal_menampilkan_gambar_coba_download_atau_buka_824c3ec'));
+                    }
+                  }}
+                />
+              )}
+              {loading && !isTgsDriveFile(file) && (
                 <div className="drive-preview-loading-chip">
                   <Loader2 size={14} className="spin" /> {t('ui.generated.memuat_full_651e1dd')}
                 </div>

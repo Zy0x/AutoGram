@@ -1739,6 +1739,15 @@ export function isZipDriveFile(file: DriveFile): boolean {
   return name.endsWith('.zip');
 }
 
+export function isTgsDriveFile(file: DriveFile): boolean {
+  const ext = driveFileExt(file);
+  if (ext === 'tgs') return true;
+  const mime = (file.mime_type || '').toLowerCase();
+  if (mime === 'application/x-tgsticker' || mime.includes('tgsticker')) return true;
+  const name = (file.original_name || file.name || '').toLowerCase();
+  return name.endsWith('.tgs');
+}
+
 export function isTextDriveFile(file: DriveFile): boolean {
   if (file.icon_type === 'link') return false;
   if (isPdfDriveFile(file) || isImageDriveFile(file) || isVideoDriveFile(file) || isAudioDriveFile(file)) return false;

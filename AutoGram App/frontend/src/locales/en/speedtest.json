@@ -2046,6 +2046,14 @@
   "remote_stage_discover": "Discover",
   "remote_stage_validate": "Validate",
   "remote_stage_ready": "Ready",
+  "remote_security_validated": "Network validated",
+  "remote_security_provider": "Provider verified",
+  "remote_security_fallback": "Fallback source",
+  "remote_stage_analyze": "Analyze",
+  "remote_stage_resolve": "Resolve",
+  "remote_stage_discover": "Discover",
+  "remote_stage_validate": "Validate",
+  "remote_stage_ready": "Ready",
   "remote_resolution_candidates": "{{count}} candidate(s)",
   "remote_resolution_pages": "{{count}} page(s) inspected",
   "drive_history_pin_navigation": "Drive history and pin navigation",
@@ -2056,5 +2064,7 @@
   "hide_restricted_media_title": "Hide Restricted & Inaccessible Media",
   "hide_restricted_media_desc": "Automatically filter out and hide Telegram restricted notices (\"This channel can't be displayed...\") so your Drive explorer stays clean, uncluttered, and free of unopenable items.",
   "drive_engine_file_commit_failed": "The upload reached Telegram, but AutoGram could not save its Drive folder mapping. Retry the folder sync.",
-  "drive_root_limit_warning": "{{count}} root Drives are approaching Telegram's channel limit (~500). Prefer folders inside an existing Drive."
+  "drive_root_limit_warning": "{{count}} root Drives are approaching Telegram's channel limit (~500). Prefer folders inside an existing Drive.",
+  "tgs_lottie_invalid_data": "Invalid animated sticker data.",
+  "tgs_lottie_load_failed": "Failed to load animated sticker."
 }

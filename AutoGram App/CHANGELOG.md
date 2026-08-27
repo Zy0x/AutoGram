@@ -1,3 +1,16 @@
+## v3.8.31 Native TGS Lottie Vector Animation Engine & Multi-Format Moving Preview Hub
+
+### 1. Native TGS Lottie Vector Animation Engine (60 FPS Looping)
+- **Dukungan Penuh Animasi Stiker `.TGS`**: Mengintegrasikan decoding Gzip in-memory stream dan Lottie Web Vector Engine pada `TgsLottiePlayer.tsx`, memungkinkan stiker vektor animasi Telegram `.tgs` bergerak mulus, hidup, dan berulang (*looping*) secara interaktif.
+- **In-Memory Decompression & Fallback**: Mendekompresi stream byte Gzip menjadi JSON Lottie di memori RAM tanpa menulis berkas perantara ke disk, lengkap dengan pemulihan anggun ke poster pratinjau jika format tidak valid.
+
+### 2. Multi-Format Moving Media Support (Stiker Video, WebP Bergerak, GIF, APNG)
+- **Stiker Video `.WEBM` & Klip Transparan**: Memutar stiker video Telegram VP9/AV1 berlatar belakang transparan secara otomatis dan *looping*.
+- **Animasi Gambar Lengkap**: Memuat stream berkas asli untuk memutar animasi pada berkas animated `.webp`, `.gif`, `.apng`, dan vector `.svg`.
+
+### 3. Kontrol Interaktif & Transformasi GPU
+- **Zoom & Pan Presisi**: Mendukung pembesaran hingga 600%, rotasi bebas, serta flip horizontal/vertikal pada animasi stiker bergerak yang sedang diputar.
+
 ## v3.8.30 Telegram Real Sticker MTProto Detection & On-Demand Filter Stream
 
 ### 1. Real Sticker MTProto Dynamic Query & On-Demand Stream
