@@ -1,12 +1,13 @@
-AutoGram Version: v3.8.43
+AutoGram Version: v3.8.44
 
 Current State:
-v3.8.43 Telegram Album Grouping & Independent Incompatible Media Delivery Architecture — perbaikan pemisahan cerdas berkas album MTProto:
-1. Selective Media Album Grouping: Mengelompokkan berkas foto visual (JPEG/visual yang kompatibel) ke dalam satu album Telegram (`messages.sendMultiMedia`), sementara seluruh berkas yang tidak kompatibel dengan album Telegram (dokumen gambar PNG asli/lossless, WebP, HEIC, animasi, dokumen umum) secara otomatis dialihkan ke pengiriman pesan terpisah/individu (`plan.singles`).
-2. MTProto SendMultiMedia Two-Phase Dispatch: Mengintegrasikan konversi `messages.UploadMedia` sebelum dispatch `SendMultiMedia` untuk memperoleh `InputMediaPhoto` / `InputMediaDocument` yang valid pada server Telegram, mengeliminasi error `400: MEDIA_INVALID` dan mencegah kegagalan fallback album.
-3. High-Fidelity Lossless Document Fallback: Memastikan seluruh dokumen gambar yang tidak dialbumkan dikirimkan dengan thumbnail berkualitas tinggi tanpa penurunan kompresi server Telegram.
+v3.8.44 Universal Multi-Format Photo Grid Album & Transparent Non-Image Fallback Architecture — dukungan penuh album grid visual untuk seluruh format gambar:
+1. Universal Visual Photo Grid Album: Mendukung pengelompokan seluruh format gambar (JPEG, PNG, WebP, HEIC, AVIF, TIFF, BMP) ke dalam album grid foto Telegram asli (`messages.sendMultiMedia` dengan `InputMediaPhoto`), memanfaatkan konversi otomatis berkas non-JPEG ke JPEG kualitas tinggi (Q100, 4:4:4 Chroma) dan prapendaftaran server via `messages.UploadMedia`.
+2. Transparent Non-Image Document Segregation: Berkas non-gambar dan dokumen murni (PDF, ZIP, RAR, EXE, TXT) yang tidak mendukung grid album foto secara otomatis dipisahkan dan dikirimkan sebagai dokumen individual mandiri (`plan.singles`) tanpa mengganggu atau membatalkan pembuatan album grid foto.
+3. Telegram Album Capacity Chunking: Membagi berkas gambar visual secara cerdas sesuai limit MTProto (maksimal 10 foto per grup album) menjadi beberapa album grid terpisah yang rapi.
 
 Previous:
+v3.8.43 Telegram Album Grouping & Independent Incompatible Media Delivery Architecture — perbaikan pemisahan cerdas berkas album MTProto:
 v3.8.42 Android Native Compact 3-Column Grid & Precision Floating Dock Architecture — perombakan tata letak presisi sesuai acuan desain:
 v3.8.41 Android Native Google Stitch Soft Luxury & Kinetic Design Architecture — penerapan sistem desain Google Stitch bernuansa mewah, animatif, elegan, minimalis, dan palet warna lembut (soft palette):
 v3.8.40 Android Native Ultra-Clean & Spacious Viewport Architecture — penyempurnaan hierarki visual, ruang pandang lega, dan ergonomi navigasi:

@@ -1,3 +1,13 @@
+## v3.8.44 Universal Multi-Format Photo Grid Album & Transparent Non-Image Fallback Architecture
+
+### 1. Universal Visual Photo Grid Album
+- **Dukungan Grid Menyeluruh untuk Format Gambar**: Seluruh format gambar visual (JPEG, PNG, WebP, HEIC, AVIF, TIFF, BMP) kini secara otomatis dipersiapkan dan dikelompokkan ke dalam Telegram Photo Grid Album (`messages.sendMultiMedia` dengan `InputMediaPhoto`).
+- **Transcoding Kualitas Tinggi Otomatis**: Format non-JPEG (seperti WebP & HEIC) secara otomatis ditranscode menjadi JPEG beresolusi penuh (Q100, 4:4:4 Chroma) untuk pengiriman album grid visual tanpa kompresi buram.
+- **Dukungan Batas 10 Item MTProto**: Menangani kumpulan gambar dalam jumlah banyak dengan memecahnya secara elegan menjadi kelompok album grid maksimal 10 foto per album sesuai batas protokol Telegram.
+
+### 2. Transparent Non-Image Document Segregation
+- **Pemisahan Mandiri Dokumen Non-Visual**: Berkas non-gambar dan dokumen murni (PDF, ZIP, RAR, EXE, TXT) yang tidak mendukung grid album foto tetap dikirimkan sebagai dokumen individual mandiri (`plan.singles`) tanpa menggagalkan album grid foto.
+
 ## v3.8.43 Telegram Album Grouping & Independent Incompatible Media Delivery Architecture
 
 ### 1. Selective Media Album Grouping & Document Segregation
