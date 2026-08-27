@@ -1,3 +1,11 @@
+## v3.8.38 Android Native Instant Live-Reload & Fast-Patch Engine
+
+### 1. Live Auto-Reload Watcher (`AutoGram_Live_Reload.bat`)
+- **Pembaruan Otomatis Real-Time**: Memantau seluruh direktori sumber Kotlin (`.kt`) dan resource XML (`res/`). Setiap kali berkas disimpan, sistem secara otomatis mengompilasi delta dan memperbarui aplikasi di emulator tanpa perlu intervensi manual.
+
+### 2. Fast-Patch Inkremental (`Perbarui_Emulator_Cepat.bat`)
+- **Kompilasi Inkremental Sub-Detik**: Memanfaatkan Gradle configuration cache untuk memperbarui dan me-restart Activity di emulator dalam hitungan detik secara 100% terisolasi di Drive `F:\AutoGram`.
+
 ## v3.8.37 Real Google Android Virtual Device (AVD) Native Desktop Execution
 
 ### 1. Zero-C Isolated Google Android Emulator & AVD Provisioning
