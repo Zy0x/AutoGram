@@ -3,22 +3,22 @@ package com.autogram.app.theme
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-// Obsidian & Background Hierarchy
-val ObsidianPrimary = Color(0xFF060911)
-val ObsidianSecondary = Color(0xFF0B0F19)
-val SurfaceDeep = Color(0xFF101521)
+// Obsidian & Ultra-Clean Dark Palette
+val ObsidianPrimary = Color(0xFF050811)
+val ObsidianSecondary = Color(0xFF090D18)
+val SurfaceDeep = Color(0xFF0D1322)
 val BgDark = ObsidianPrimary
-val SurfaceDark = Color(0xFF0D1729)
-val SurfaceElevatedDark = Color(0xFF142239)
+val SurfaceDark = Color(0xFF0E1526)
+val SurfaceElevatedDark = Color(0xFF131D31)
 
-// Glass Surfaces (Translucent tokens)
-val SurfaceGlass = Color(0xBF121927)       // rgba(18, 25, 39, 0.75)
-val SurfaceGlassStrong = Color(0xE6121927) // rgba(18, 25, 39, 0.90)
-val SurfaceGlassSoft = Color(0x8C141C2C)   // rgba(20, 28, 44, 0.55)
-val SurfaceDock = Color(0xD90D1524)        // rgba(13, 21, 36, 0.85)
+// Refined Glass Surfaces (Lighter, subtle translucent luxury)
+val SurfaceGlass = Color(0x990E1627)       // rgba(14, 22, 39, 0.60)
+val SurfaceGlassStrong = Color(0xCC0E1627) // rgba(14, 22, 39, 0.80)
+val SurfaceGlassSoft = Color(0x59111B30)   // rgba(17, 27, 48, 0.35)
+val SurfaceDock = Color(0xD9090F1C)        // rgba(9, 15, 28, 0.85)
 
-// Accent Colors
-val NeonCyan = Color(0xFF06B6D4)
+// Refined Accent Colors (Sophisticated, non-oversaturated)
+val NeonCyan = Color(0xFF00E5FF)
 val ElectricBlue = Color(0xFF3B82F6)
 val ElectricViolet = Color(0xFF8B5CF6)
 val Emerald = Color(0xFF10B981)
@@ -31,10 +31,10 @@ val AccentCyan = NeonCyan
 val AccentAmber = Amber
 val AccentViolet = ElectricViolet
 
-// Text Hierarchy
-val TextPrimaryDark = Color(0xFFF8FAFC)
-val TextSecondaryDark = Color(0xFF94A3B8)
-val TextMutedDark = Color(0xFF64748B)
+// High-Legibility Typography Contrast
+val TextPrimaryDark = Color(0xFFFFFFFF)
+val TextSecondaryDark = Color(0xFFA0AEC0)
+val TextMutedDark = Color(0xFF718096)
 
 // Status & Semantic Colors
 val SuccessGreen = Emerald
@@ -58,11 +58,11 @@ val CategoryDoc = ElectricBlue
 val CategoryArchive = Emerald
 val CategoryError = Danger
 
-// Hairline Borders
-val BorderHairline = Color(0x14FFFFFF)   // rgba(255,255,255,0.08)
-val BorderActive = Color(0x403B82F6)     // rgba(59,130,246,0.25)
-val BorderCyanGlow = Color(0x6606B6D4)   // rgba(6,182,212,0.40)
-val BorderDark = Color(0xFF1E293B)
+// Hairline Borders (Ultra-thin & clean)
+val BorderHairline = Color(0x14FFFFFF)   // 1px 8% white
+val BorderActive = Color(0x4000E5FF)     // 25% cyan
+val BorderCyanGlow = Color(0x5500E5FF)   // 33% cyan glow
+val BorderDark = Color(0x1AFFFFFF)
 
 // Reusable Gradient Brushes
 val CyanToBlueBrush = Brush.horizontalGradient(
@@ -83,9 +83,9 @@ val AmberToOrangeBrush = Brush.horizontalGradient(
 
 val GlassBorderBrush = Brush.linearGradient(
     colors = listOf(
-        Color(0x33FFFFFF),
-        Color(0x0DFFFFFF),
-        Color(0x1A3B82F6)
+        Color(0x2EFFFFFF),
+        Color(0x08FFFFFF),
+        Color(0x1F00E5FF)
     )
 )
 
@@ -99,11 +99,11 @@ val ActiveGlassBorderBrush = Brush.linearGradient(
 
 val AmbientBackgroundBrush = Brush.radialGradient(
     colors = listOf(
-        Color(0x1A06B6D4), // Soft Cyan Bloom
-        Color(0x0D3B82F6), // Soft Blue Bloom
+        Color(0x1400E5FF), // Soft Cyan Bloom
+        Color(0x0A3B82F6), // Soft Blue Bloom
         Color.Transparent
     ),
-    radius = 1200f
+    radius = 1400f
 )
 
 // Light theme fallback counterparts

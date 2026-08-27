@@ -1,3 +1,12 @@
+## v3.8.40 Android Native Ultra-Clean & Spacious Viewport Architecture
+
+### 1. Spacious Minimalist Header & Controls
+- **Eliminasi Tumpukan Kotak Berlebih**: Mengganti kotak breadcrumbs bertingkat dengan alur inline elegan `Root › Telegram Cloud`, kolom pencarian circular pill ramping (46dp), dan tombol tindakan 1-sentuhan (42dp).
+- **Perluasan Viewport Area Konten**: Membuka ruang vertikal lebih dari 35% lebih luas pada layar Cloud Drives, Media Studio, dan Transfers sehingga daftar berkas dan galeri media terlihat leluasa.
+
+### 2. Equal-Weight Floating Capsule Dock
+- **Distribusi Lebar Proporsional**: Mengatur bobot tab navigasi (`weight 1f`) pada kapsul melayang dengan padding terkalibrasi sehingga teks label ("Settings", "Transfers", dll.) tampil utuh 100% tanpa terpotong pada berbagai kepadatan layar.
+
 ## v3.8.39 Android Native Total UI Redesign: Cyber Dark Glassmorphism & Ambient Glow
 
 ### 1. Cyber Dark Design System & Translucent Glass Tokens

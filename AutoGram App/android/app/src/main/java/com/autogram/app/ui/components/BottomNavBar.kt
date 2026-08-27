@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -34,24 +35,24 @@ fun BottomNavBar(navController: NavController) {
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(68.dp)
-                .clip(RoundedCornerShape(24.dp)),
-            shape = RoundedCornerShape(24.dp),
+                .height(64.dp)
+                .clip(CircleShape),
+            shape = CircleShape,
             color = SurfaceDock,
             border = BorderStroke(1.dp, GlassBorderBrush),
-            shadowElevation = 16.dp
+            shadowElevation = 20.dp
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 6.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
+                horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Screen.items.forEach { screen ->
@@ -59,25 +60,26 @@ fun BottomNavBar(navController: NavController) {
                     
                     val animatedIconColor by animateColorAsState(
                         targetValue = if (isSelected) NeonCyan else TextMutedDark,
-                        animationSpec = tween(durationMillis = 200),
+                        animationSpec = tween(durationMillis = 180),
                         label = "iconColor"
                     )
                     
                     val animatedTextColor by animateColorAsState(
                         targetValue = if (isSelected) TextPrimaryDark else TextMutedDark,
-                        animationSpec = tween(durationMillis = 200),
+                        animationSpec = tween(durationMillis = 180),
                         label = "textColor"
                     )
 
                     val pillBackground = if (isSelected) {
-                        NeonCyan.copy(alpha = 0.15f)
+                        NeonCyan.copy(alpha = 0.14f)
                     } else {
                         Color.Transparent
                     }
 
                     Column(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
+                            .weight(1f)
+                            .clip(CircleShape)
                             .background(pillBackground)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
@@ -87,28 +89,27 @@ fun BottomNavBar(navController: NavController) {
                                     navigatePrimary(navController, screen.route, currentRoute)
                                 }
                             }
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
-                            .defaultMinSize(minWidth = 52.dp, minHeight = 48.dp),
+                            .padding(vertical = 6.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = screen.icon,
-                                contentDescription = stringResource(screen.titleRes),
-                                tint = animatedIconColor,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                        Spacer(Modifier.height(3.dp))
+                        Icon(
+                            imageVector = screen.icon,
+                            contentDescription = stringResource(screen.titleRes),
+                            tint = animatedIconColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.height(2.dp))
                         Text(
                             text = stringResource(screen.titleRes),
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                fontSize = 9.5.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                letterSpacing = 0.1.sp
                             ),
                             color = animatedTextColor,
-                            maxLines = 1
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }

@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.sp
 import com.autogram.app.R
 import com.autogram.app.theme.*
 import com.autogram.app.ui.components.AutoGramStatusDot
-import com.autogram.app.ui.components.ScreenHeader
 import com.autogram.app.ui.components.StatusPill
 import com.autogram.app.viewmodel.DriveMediaFilter
 
@@ -44,210 +43,202 @@ fun DriveTopBar(
     onRefresh: () -> Unit,
     onUpload: () -> Unit
 ) {
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val compact = maxWidth < 620.dp
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Spacious Clean Header Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            ScreenHeader(
-                titleRes = R.string.drive_title,
-                subtitleRes = R.string.drive_subtitle,
-                action = {
-                    StatusPill(
-                        text = pluralStringResource(R.plurals.drive_item_count, itemCount, itemCount),
-                        color = NeonCyan,
-                        isLive = true
-                    )
-                }
-            )
-
-            // Breadcrumb path display
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = SurfaceGlassSoft,
-                shape = RoundedCornerShape(10.dp),
-                border = BorderStroke(1.dp, BorderHairline)
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.drive_title),
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-0.3).sp
+                    ),
+                    color = TextPrimaryDark
+                )
+                Spacer(Modifier.height(1.dp))
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.FolderOpen,
+                        imageVector = Icons.Default.Folder,
                         contentDescription = null,
-                        tint = AccentCyan,
-                        modifier = Modifier.size(16.dp)
+                        tint = NeonCyan,
+                        modifier = Modifier.size(13.dp)
                     )
                     Text(
-                        text = if (currentPath.isBlank() || currentPath == "/") "Root / Telegram Cloud" else currentPath,
+                        text = if (currentPath.isBlank() || currentPath == "/") "Root › Telegram Cloud" else currentPath.replace("/", " › "),
                         color = TextSecondaryDark,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Medium,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                         maxLines = 1
                     )
                 }
             }
 
-            // Search Bar & Actions Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                TextField(
-                    value = searchQuery,
-                    onValueChange = onSearchChange,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(52.dp),
-                    placeholder = {
-                        Text(
-                            stringResource(R.string.drive_search_placeholder),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextMutedDark
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = stringResource(R.string.drive_search_accessibility),
-                            tint = NeonCyan
-                        )
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(14.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = SurfaceGlass,
-                        unfocusedContainerColor = SurfaceGlassSoft,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        focusedTextColor = TextPrimaryDark,
-                        unfocusedTextColor = TextPrimaryDark
-                    )
-                )
+            StatusPill(
+                text = pluralStringResource(R.plurals.drive_item_count, itemCount, itemCount),
+                color = NeonCyan,
+                isLive = true
+            )
+        }
 
-                DriveActions(isGridView, onRefresh, onToggleViewMode, onUpload)
+        // Search & Controls Row (Clean 44dp height)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            TextField(
+                value = searchQuery,
+                onValueChange = onSearchChange,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(46.dp),
+                placeholder = {
+                    Text(
+                        stringResource(R.string.drive_search_placeholder),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                        color = TextMutedDark
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = stringResource(R.string.drive_search_accessibility),
+                        tint = NeonCyan,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                singleLine = true,
+                shape = CircleShape,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = SurfaceGlass,
+                    unfocusedContainerColor = SurfaceGlassSoft,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedTextColor = TextPrimaryDark,
+                    unfocusedTextColor = TextPrimaryDark
+                )
+            )
+
+            // Minimalist Action Icons
+            Surface(
+                onClick = onRefresh,
+                modifier = Modifier.size(42.dp),
+                shape = CircleShape,
+                color = SurfaceGlass,
+                border = BorderStroke(1.dp, BorderHairline)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Refresh, stringResource(R.string.drive_action_refresh), tint = TextSecondaryDark, modifier = Modifier.size(18.dp))
+                }
             }
 
-            // Category Filter Chips
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Surface(
+                onClick = onToggleViewMode,
+                modifier = Modifier.size(42.dp),
+                shape = CircleShape,
+                color = SurfaceGlass,
+                border = BorderStroke(1.dp, BorderHairline)
             ) {
-                DriveMediaFilter.entries.forEach { filter ->
-                    val isSelected = mediaFilter == filter
-                    val filterColor = when (filter) {
-                        DriveMediaFilter.ALL -> NeonCyan
-                        DriveMediaFilter.MEDIA, DriveMediaFilter.VIDEOS -> CategoryVideo
-                        DriveMediaFilter.IMAGES -> CategoryPhoto
-                        DriveMediaFilter.AUDIO -> CategoryAudio
-                        DriveMediaFilter.DOCUMENTS -> CategoryDoc
-                        DriveMediaFilter.STICKERS -> Emerald
-                    }
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        if (isGridView) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
+                        stringResource(R.string.drive_toggle_view_accessibility),
+                        tint = NeonCyan,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
 
-                    val chipBg by animateColorAsState(
-                        targetValue = if (isSelected) filterColor.copy(alpha = 0.18f) else SurfaceGlassSoft,
-                        label = "chipBg"
-                    )
-                    val chipBorder by animateColorAsState(
-                        targetValue = if (isSelected) filterColor.copy(alpha = 0.6f) else BorderHairline,
-                        label = "chipBorder"
-                    )
-                    val chipText by animateColorAsState(
-                        targetValue = if (isSelected) TextPrimaryDark else TextSecondaryDark,
-                        label = "chipText"
-                    )
-
-                    Surface(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .clickable { onMediaFilterChange(filter) },
-                        shape = CircleShape,
-                        color = chipBg,
-                        border = BorderStroke(1.dp, chipBorder)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            if (isSelected) {
-                                AutoGramStatusDot(color = filterColor, isPulsing = false, size = 6.dp)
-                            }
-                            Text(
-                                text = stringResource(filter.labelResource()),
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    fontSize = 12.sp
-                                ),
-                                color = chipText
-                            )
-                        }
-                    }
+            Surface(
+                onClick = onUpload,
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape),
+                shape = CircleShape,
+                color = Color.Transparent
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(CyanToBlueBrush),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Add, stringResource(R.string.drive_action_upload), tint = Color.White, modifier = Modifier.size(20.dp))
                 }
             }
         }
-    }
-}
 
-@Composable
-private fun DriveActions(
-    isGridView: Boolean,
-    onRefresh: () -> Unit,
-    onToggleViewMode: () -> Unit,
-    onUpload: () -> Unit
-) {
-    Surface(
-        onClick = onRefresh,
-        modifier = Modifier.size(48.dp),
-        shape = RoundedCornerShape(14.dp),
-        color = SurfaceGlass,
-        border = BorderStroke(1.dp, BorderHairline)
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(Icons.Default.Refresh, stringResource(R.string.drive_action_refresh), tint = TextSecondaryDark, modifier = Modifier.size(20.dp))
-        }
-    }
-    Surface(
-        onClick = onToggleViewMode,
-        modifier = Modifier.size(48.dp),
-        shape = RoundedCornerShape(14.dp),
-        color = SurfaceGlass,
-        border = BorderStroke(1.dp, BorderHairline)
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                if (isGridView) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
-                stringResource(R.string.drive_toggle_view_accessibility),
-                tint = NeonCyan,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-    }
-    Surface(
-        onClick = onUpload,
-        modifier = Modifier
-            .size(48.dp)
-            .clip(RoundedCornerShape(14.dp)),
-        shape = RoundedCornerShape(14.dp),
-        color = Color.Transparent
-    ) {
-        Box(
+        // Minimalist Filter Tabs
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .background(CyanToBlueBrush),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Icon(Icons.Default.Add, stringResource(R.string.drive_action_upload), tint = Color.White, modifier = Modifier.size(22.dp))
+            DriveMediaFilter.entries.forEach { filter ->
+                val isSelected = mediaFilter == filter
+                val filterColor = when (filter) {
+                    DriveMediaFilter.ALL -> NeonCyan
+                    DriveMediaFilter.MEDIA, DriveMediaFilter.VIDEOS -> CategoryVideo
+                    DriveMediaFilter.IMAGES -> CategoryPhoto
+                    DriveMediaFilter.AUDIO -> CategoryAudio
+                    DriveMediaFilter.DOCUMENTS -> CategoryDoc
+                    DriveMediaFilter.STICKERS -> Emerald
+                }
+
+                val chipBg by animateColorAsState(
+                    targetValue = if (isSelected) filterColor.copy(alpha = 0.16f) else Color.Transparent,
+                    label = "chipBg"
+                )
+                val chipBorder by animateColorAsState(
+                    targetValue = if (isSelected) filterColor.copy(alpha = 0.45f) else BorderHairline,
+                    label = "chipBorder"
+                )
+                val chipText by animateColorAsState(
+                    targetValue = if (isSelected) TextPrimaryDark else TextMutedDark,
+                    label = "chipText"
+                )
+
+                Surface(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .clickable { onMediaFilterChange(filter) },
+                    shape = CircleShape,
+                    color = chipBg,
+                    border = BorderStroke(1.dp, chipBorder)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        if (isSelected) {
+                            AutoGramStatusDot(color = filterColor, isPulsing = false, size = 5.dp)
+                        }
+                        Text(
+                            text = stringResource(filter.labelResource()),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 11.sp
+                            ),
+                            color = chipText
+                        )
+                    }
+                }
+            }
         }
     }
 }

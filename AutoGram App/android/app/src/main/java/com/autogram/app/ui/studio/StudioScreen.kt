@@ -78,31 +78,49 @@ fun StudioScreenContent(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                ScreenHeader(
-                    titleRes = R.string.studio_title,
-                    subtitleRes = R.string.studio_subtitle,
-                    action = {
-                        Surface(
-                            onClick = onRefresh,
-                            modifier = Modifier.size(44.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            color = SurfaceGlass,
-                            border = BorderStroke(1.dp, BorderHairline)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.Refresh, stringResource(R.string.drive_action_refresh), tint = NeonCyan, modifier = Modifier.size(20.dp))
-                            }
-                        }
-                    }
-                )
-
-                // 3-Column Glass Metric Cards
+                // Spacious Clean Header Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.studio_title),
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = (-0.3).sp
+                            ),
+                            color = TextPrimaryDark
+                        )
+                        Text(
+                            text = stringResource(R.string.studio_subtitle),
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            color = TextSecondaryDark
+                        )
+                    }
+
+                    Surface(
+                        onClick = onRefresh,
+                        modifier = Modifier.size(42.dp),
+                        shape = CircleShape,
+                        color = SurfaceGlass,
+                        border = BorderStroke(1.dp, BorderHairline)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.Refresh, stringResource(R.string.drive_action_refresh), tint = NeonCyan, modifier = Modifier.size(18.dp))
+                        }
+                    }
+                }
+
+                // Compact 3-Column Glass Metric Cards
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     AutoGramMetricCard(
                         icon = Icons.Default.Collections,
@@ -147,7 +165,7 @@ fun StudioScreenContent(
                                 )
                                 Text(
                                     text = "${state.selectedIds.size} media dipilih untuk dirakit",
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                                     color = TextSecondaryDark
                                 )
                             }
@@ -156,7 +174,7 @@ fun StudioScreenContent(
                                 text = "✨ Rakit Album",
                                 onClick = { /* Build album */ },
                                 brush = CyanToBlueBrush,
-                                modifier = Modifier.height(40.dp)
+                                modifier = Modifier.height(38.dp)
                             )
                         }
                     }
@@ -167,7 +185,7 @@ fun StudioScreenContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     listOf(
                         DriveMediaFilter.ALL to (R.string.drive_filter_all to NeonCyan),
@@ -179,11 +197,11 @@ fun StudioScreenContent(
                         val isSelected = state.mediaFilter == filter
 
                         val chipBg by animateColorAsState(
-                            targetValue = if (isSelected) accent.copy(alpha = 0.18f) else SurfaceGlassSoft,
+                            targetValue = if (isSelected) accent.copy(alpha = 0.16f) else Color.Transparent,
                             label = "chipBg"
                         )
                         val chipBorder by animateColorAsState(
-                            targetValue = if (isSelected) accent.copy(alpha = 0.6f) else BorderHairline,
+                            targetValue = if (isSelected) accent.copy(alpha = 0.45f) else BorderHairline,
                             label = "chipBorder"
                         )
 
@@ -196,20 +214,20 @@ fun StudioScreenContent(
                             border = BorderStroke(1.dp, chipBorder)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
                                 if (isSelected) {
-                                    AutoGramStatusDot(color = accent, isPulsing = false, size = 6.dp)
+                                    AutoGramStatusDot(color = accent, isPulsing = false, size = 5.dp)
                                 }
                                 Text(
                                     text = stringResource(labelRes),
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        fontSize = 12.sp
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        fontSize = 11.sp
                                     ),
-                                    color = if (isSelected) TextPrimaryDark else TextSecondaryDark
+                                    color = if (isSelected) TextPrimaryDark else TextMutedDark
                                 )
                             }
                         }
@@ -217,53 +235,38 @@ fun StudioScreenContent(
                 }
             }
 
-            if (visible.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 24.dp, vertical = 32.dp),
-                    contentAlignment = Alignment.TopCenter
-                ) {
+            // Gallery Grid with Expansive Space
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 20.dp)
+            ) {
+                if (visible.isEmpty()) {
                     AutoGramEmptyState(
                         title = stringResource(R.string.studio_empty),
-                        description = "Unggah foto atau video ke Telegram Cloud untuk melihat galeri studio."
+                        description = "Unggah foto atau video ke Telegram Cloud untuk melihat galeri studio.",
+                        icon = Icons.Default.Collections
                     )
-                }
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 160.dp),
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 100.dp),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    items(visible, key = { it.id }) { item ->
-                        FileGridItem(
-                            item = item,
-                            isSelected = state.selectedIds.contains(item.id),
-                            onClick = { onToggleSelection(item.id) },
-                            onLongClick = { onToggleSelection(item.id) }
-                        )
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 130.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(top = 8.dp, bottom = 100.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(visible, key = { it.id }) { item ->
+                            FileGridItem(
+                                item = item,
+                                isSelected = state.selectedIds.contains(item.id),
+                                onClick = { onToggleSelection(item.id) },
+                                onLongClick = { onToggleSelection(item.id) }
+                            )
+                        }
                     }
                 }
             }
         }
-    }
-}
-
-@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
-@Composable
-fun StudioScreenPreview() {
-    AutoGramTheme(darkTheme = true) {
-        StudioScreenContent(
-            state = DriveUiState(
-                currentPath = "/Media Studio",
-                items = listOf(
-                    DriveFileItem(id = "1", name = "Cinematic_Trailer.mp4", isFolder = false, size = 125000000, mimeType = "video/mp4", modifiedMs = 0, telegramCategory = "video", deliveryKind = "video"),
-                    DriveFileItem(id = "2", name = "Hero_Artwork.png", isFolder = false, size = 4800000, mimeType = "image/png", modifiedMs = 0, telegramCategory = "photo", deliveryKind = "photo"),
-                    DriveFileItem(id = "3", name = "Cyber_Theme.webp", isFolder = false, size = 1200000, mimeType = "image/webp", modifiedMs = 0, telegramCategory = "photo", deliveryKind = "document")
-                )
-            )
-        )
     }
 }

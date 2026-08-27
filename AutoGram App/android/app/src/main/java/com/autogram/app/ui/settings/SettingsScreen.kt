@@ -57,24 +57,42 @@ fun SettingsScreenContent(
                 .statusBarsPadding()
                 .widthIn(max = 980.dp)
                 .padding(horizontal = 20.dp),
-            contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            contentPadding = PaddingValues(top = 10.dp, bottom = 100.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Spacious Clean Header Row
             item {
-                ScreenHeader(
-                    titleRes = R.string.settings_title,
-                    subtitleRes = R.string.settings_subtitle,
-                    action = {
-                        StatusPill(text = "System Ready", color = Emerald, isLive = true)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.settings_title),
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = (-0.3).sp
+                            ),
+                            color = TextPrimaryDark
+                        )
+                        Text(
+                            text = stringResource(R.string.settings_subtitle),
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            color = TextSecondaryDark
+                        )
                     }
-                )
+
+                    StatusPill(text = "System Ready", color = Emerald, isLive = true)
+                }
             }
 
             // Telegram Accounts Section
             item {
                 Text(
                     text = stringResource(R.string.settings_telegram_accounts),
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = TextPrimaryDark
                 )
             }
@@ -84,267 +102,229 @@ fun SettingsScreenContent(
                     // Active Telegram Account Mock/Default Card
                     AutoGramGlassCard(
                         modifier = Modifier.fillMaxWidth(),
-                        borderColor = NeonCyan.copy(alpha = 0.35f),
+                        borderColor = NeonCyan.copy(alpha = 0.25f),
                         containerColor = SurfaceGlassStrong
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(52.dp)
+                                    .size(46.dp)
                                     .background(CyanToBlueBrush, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.AccountCircle, null, tint = Color.White, modifier = Modifier.size(32.dp))
+                                Icon(Icons.Default.AccountCircle, null, tint = Color.White, modifier = Modifier.size(28.dp))
                             }
 
                             Column(modifier = Modifier.weight(1f)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Text(
-                                        text = "Telegram MTProto Session",
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = TextPrimaryDark
-                                    )
-                                    AutoGramStatusDot(color = Emerald, isPulsing = true, size = 6.dp)
-                                }
-                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = "Telegram MTProto Session",
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = TextPrimaryDark
+                                )
+                                Spacer(Modifier.height(1.dp))
                                 Text(
                                     text = "Online • DC4 Production • Ping 42 ms",
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                                     color = NeonCyan
                                 )
                             }
 
                             Surface(
-                                shape = RoundedCornerShape(8.dp),
                                 color = Emerald.copy(alpha = 0.15f),
-                                border = BorderStroke(1.dp, Emerald.copy(alpha = 0.4f))
+                                shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text(
                                     text = "Tier A (99.8%)",
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = Emerald
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                    color = Emerald,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
                         }
                     }
                 }
             } else {
-                items(state.accounts) { acc ->
+                items(state.accounts, key = { it.accountId }) { account ->
                     AutoGramGlassCard(
                         modifier = Modifier.fillMaxWidth(),
-                        borderColor = NeonCyan.copy(alpha = 0.35f),
-                        containerColor = SurfaceGlassStrong
+                        borderColor = BorderHairline,
+                        containerColor = SurfaceGlass
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(50.dp)
+                                    .size(44.dp)
                                     .background(CyanToBlueBrush, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.AccountCircle, null, tint = Color.White, modifier = Modifier.size(30.dp))
+                                Icon(Icons.Default.AccountCircle, null, tint = Color.White, modifier = Modifier.size(24.dp))
                             }
 
                             Column(modifier = Modifier.weight(1f)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(
-                                        text = acc.accountId,
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = TextPrimaryDark
-                                    )
-                                    AutoGramStatusDot(color = Emerald, isPulsing = true, size = 6.dp)
-                                }
                                 Text(
-                                    text = "MTProto Connected",
-                                    style = MaterialTheme.typography.bodySmall,
+                                    text = account.accountId,
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = TextPrimaryDark
+                                )
+                                Text(
+                                    text = "Skor: ${account.totalScore.toInt()}/100 • Latensi: ${account.latencyScore.toInt()}ms",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                                     color = TextSecondaryDark
                                 )
                             }
 
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Emerald.copy(alpha = 0.15f),
-                                border = BorderStroke(1.dp, Emerald.copy(alpha = 0.4f))
-                            ) {
-                                Text(
-                                    text = "${acc.tier} (${acc.totalScore.toInt()}%)",
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = Emerald
-                                )
-                            }
+                            StatusPill(text = "Tier ${account.tier}", color = Emerald, isLive = true)
                         }
                     }
                 }
             }
 
-            // Hardware Encoder Profile Section
+            // Hardware Acceleration Profile
             item {
                 Text(
                     text = "Akselerasi Perangkat Keras",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = TextPrimaryDark
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = TextPrimaryDark,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
 
             item {
                 AutoGramGlassCard(
                     modifier = Modifier.fillMaxWidth(),
+                    borderColor = BorderHairline,
                     containerColor = SurfaceGlass
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Surface(
-                                shape = RoundedCornerShape(10.dp),
+                                shape = CircleShape,
                                 color = ElectricViolet.copy(alpha = 0.15f),
-                                modifier = Modifier.size(38.dp)
+                                modifier = Modifier.size(36.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.Memory, null, tint = ElectricViolet, modifier = Modifier.size(20.dp))
+                                    Icon(Icons.Default.Memory, null, tint = ElectricViolet, modifier = Modifier.size(18.dp))
                                 }
                             }
                             Column {
                                 Text(
-                                    text = stringResource(R.string.settings_hardware_encoder),
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    text = "Hardware Encoder",
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                     color = TextPrimaryDark
                                 )
                                 Text(
                                     text = "Android MediaCodec Engine",
-                                    style = MaterialTheme.typography.labelSmall,
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                                     color = TextSecondaryDark
                                 )
                             }
                         }
 
-                        val hw = state.hardwareProfile
-                        if (hw != null) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Surface(
+                                color = SurfaceDeep.copy(alpha = 0.6f),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.weight(1f)
                             ) {
-                                Surface(
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = SurfaceDeep
-                                ) {
-                                    Column(Modifier.padding(10.dp)) {
-                                        Text("ENCODER", style = MaterialTheme.typography.labelSmall, color = TextMutedDark)
-                                        Text(hw.bestEncoder, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = NeonCyan)
-                                    }
-                                }
-                                Surface(
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = SurfaceDeep
-                                ) {
-                                    Column(Modifier.padding(10.dp)) {
-                                        Text("BITRATE", style = MaterialTheme.typography.labelSmall, color = TextMutedDark)
-                                        Text("${(hw.bitrate / 1000u).toLong()} kbps", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = TextPrimaryDark)
-                                    }
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Text("ENCODER", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = TextMutedDark)
+                                    Spacer(Modifier.height(2.dp))
+                                    Text("h264_mediacodec", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp), color = NeonCyan)
                                 }
                             }
-                        } else {
-                            Text(
-                                text = stringResource(R.string.settings_hardware_loading),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = TextSecondaryDark
-                            )
+                            Surface(
+                                color = SurfaceDeep.copy(alpha = 0.6f),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Text("BITRATE", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = TextMutedDark)
+                                    Spacer(Modifier.height(2.dp))
+                                    Text("5000 kbps", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp), color = TextPrimaryDark)
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            // Storage Budget Section
+            // Storage & Capacity
             item {
                 Text(
                     text = "Penyimpanan & Kapasitas",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = TextPrimaryDark
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = TextPrimaryDark,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
 
             item {
                 AutoGramGlassCard(
                     modifier = Modifier.fillMaxWidth(),
+                    borderColor = BorderHairline,
                     containerColor = SurfaceGlass
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Surface(
-                                shape = RoundedCornerShape(10.dp),
+                                shape = CircleShape,
                                 color = NeonCyan.copy(alpha = 0.15f),
-                                modifier = Modifier.size(38.dp)
+                                modifier = Modifier.size(36.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.Storage, null, tint = NeonCyan, modifier = Modifier.size(20.dp))
+                                    Icon(Icons.Default.Storage, null, tint = NeonCyan, modifier = Modifier.size(18.dp))
                                 }
                             }
                             Column {
                                 Text(
                                     text = "AutoGram Library Storage",
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                     color = TextPrimaryDark
                                 )
                                 Text(
                                     text = "F:\\AutoGram Library • Windows Host Online",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = NeonCyan
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                    color = TextSecondaryDark
                                 )
                             }
                         }
 
-                        val storage = state.storageBudget
-                        val maxBytes = storage?.maxTempBytes?.toLong() ?: 21474836480L
-                        val thresholdRatio = storage?.purgeThresholdRatio ?: 0.9f
-
                         AutoGramProgressBar(
-                            progress = thresholdRatio,
+                            progress = 0.08f,
                             brush = CyanToBlueBrush,
-                            height = 8.dp
+                            height = 5.dp
                         )
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(
-                                text = "Budget: ${formatFileSize(maxBytes)}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextSecondaryDark
-                            )
-                            Text(
-                                text = "Batas Pembersihan: ${(thresholdRatio * 100).toInt()}%",
-                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                color = Amber
-                            )
+                            Text("Budget: 20.0 GB", style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), color = TextSecondaryDark)
+                            Text("Batas Pembersihan: 90%", style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), color = Amber)
                         }
                     }
                 }
             }
 
-            // Version info footer
+            // Version Tag
             item {
                 Column(
                     modifier = Modifier
@@ -353,48 +333,17 @@ fun SettingsScreenContent(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "AutoGram Android Native v3.8.38",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        text = "AutoGram Android Native v3.8.39",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold),
                         color = NeonCyan
                     )
                     Text(
                         text = "Cyber Dark Glassmorphism Engine • MTProto via Grammers",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
                         color = TextMutedDark
                     )
                 }
             }
         }
-    }
-}
-
-@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
-@Composable
-fun SettingsScreenPreview() {
-    AutoGramTheme(darkTheme = true) {
-        SettingsScreenContent(
-            state = SettingsUiState(
-                hardwareProfile = HardwareProfileSummary(
-                    bestEncoder = "h264_mediacodec",
-                    priority = 1u,
-                    bitrate = 2500000u,
-                    preset = "medium"
-                ),
-                storageBudget = StorageBudgetResult(
-                    maxTempBytes = 10000000000UL,
-                    purgeThresholdRatio = 0.85f
-                ),
-                accounts = listOf(
-                    AccountScoreResult(
-                        accountId = "+62 812-3456-7890",
-                        tier = "Tier A (Healthy)",
-                        totalScore = 98.5,
-                        capabilityScore = 100.0,
-                        healthScore = 98.0,
-                        latencyScore = 97.5
-                    )
-                )
-            )
-        )
     }
 }

@@ -10,7 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -61,36 +60,54 @@ fun TransferScreenContent(
                 .statusBarsPadding()
                 .widthIn(max = 980.dp)
                 .padding(horizontal = 20.dp),
-            contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            contentPadding = PaddingValues(top = 10.dp, bottom = 100.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Clean Spacious Header
             item {
-                ScreenHeader(
-                    titleRes = R.string.transfer_title,
-                    subtitleRes = R.string.transfer_subtitle,
-                    action = {
-                        if (state.isSmartRateActive) {
-                            StatusPill(
-                                text = stringResource(R.string.transfer_smart_rate),
-                                color = Emerald,
-                                isLive = true
-                            )
-                        }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.transfer_title),
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = (-0.3).sp
+                            ),
+                            color = TextPrimaryDark
+                        )
+                        Text(
+                            text = "Monitor antrean & transmisi MTProto",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            color = TextSecondaryDark
+                        )
                     }
-                )
+
+                    if (state.isSmartRateActive) {
+                        StatusPill(
+                            text = stringResource(R.string.transfer_smart_rate),
+                            color = Emerald,
+                            isLive = true
+                        )
+                    }
+                }
             }
 
-            // Cyber Speedometer & Aggregate Progress Hub
+            // Spacious Cyber Speedometer Hub
             item {
                 val totalSpeedBps = state.activeTasks.sumOf { it.speedBps }
                 val formattedSpeed = if (totalSpeedBps > 0) formatFileSize(totalSpeedBps) + "/s" else "0.0 B/s"
 
                 AutoGramGlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    borderColor = NeonCyan.copy(alpha = 0.35f),
+                    borderColor = NeonCyan.copy(alpha = 0.25f),
                     containerColor = SurfaceGlassStrong
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -98,12 +115,12 @@ fun TransferScreenContent(
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                AutoGramStatusDot(color = NeonCyan, isPulsing = totalSpeedBps > 0, size = 8.dp)
+                                AutoGramStatusDot(color = NeonCyan, isPulsing = totalSpeedBps > 0, size = 6.dp)
                                 Text(
                                     text = "THROUGHPUT ENGINE",
-                                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.5.sp),
+                                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp, fontSize = 10.sp),
                                     color = NeonCyan,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -113,16 +130,16 @@ fun TransferScreenContent(
                                 shape = RoundedCornerShape(6.dp)
                             ) {
                                 Text(
-                                    text = "MTProto 512KB Chunks",
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                    style = MaterialTheme.typography.labelSmall,
+                                    text = "MTProto 512KB",
+                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                     color = Emerald,
                                     fontWeight = FontWeight.Medium
                                 )
                             }
                         }
 
-                        // Large Speed Display
+                        // Large Speed Metric
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -132,7 +149,7 @@ fun TransferScreenContent(
                                 Text(
                                     text = formattedSpeed,
                                     style = MaterialTheme.typography.headlineLarge.copy(
-                                        fontSize = 32.sp,
+                                        fontSize = 34.sp,
                                         fontWeight = FontWeight.Black,
                                         letterSpacing = (-0.5).sp
                                     ),
@@ -140,7 +157,7 @@ fun TransferScreenContent(
                                 )
                                 Text(
                                     text = "Kecepatan Transfer Real-Time",
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                                     color = TextMutedDark
                                 )
                             }
@@ -148,32 +165,31 @@ fun TransferScreenContent(
                             Text(
                                 text = "${(state.aggregateProgress * 100).toInt()}%",
                                 style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontSize = 22.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = NeonCyan
                                 )
                             )
                         }
 
-                        // Gradient Progress Bar
                         AutoGramProgressBar(
                             progress = state.aggregateProgress,
                             brush = CyanToBlueBrush,
-                            height = 8.dp
+                            height = 6.dp
                         )
 
-                        // Secondary telemetry row
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
                                 text = "Antrean Aktif: ${state.activeTasks.size} Berkas",
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                                 color = TextSecondaryDark
                             )
                             Text(
                                 text = "Selesai: ${state.completedTasks.size}",
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                                 color = Emerald
                             )
                         }
@@ -190,7 +206,7 @@ fun TransferScreenContent(
                 ) {
                     Text(
                         text = stringResource(R.string.transfer_active_tasks),
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = TextPrimaryDark
                     )
                     if (state.activeTasks.isNotEmpty()) {
@@ -217,7 +233,7 @@ fun TransferScreenContent(
                 item {
                     AutoGramEmptyState(
                         title = stringResource(R.string.transfer_empty),
-                        description = "Tidak ada proses upload atau download yang sedang berjalan.",
+                        description = "Tidak ada proses transfer yang sedang berjalan.",
                         icon = Icons.Default.Speed
                     )
                 }
@@ -228,9 +244,9 @@ fun TransferScreenContent(
                 item {
                     Text(
                         text = stringResource(R.string.transfer_completed_tasks),
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = TextPrimaryDark,
-                        modifier = Modifier.padding(top = 10.dp)
+                        modifier = Modifier.padding(top = 8.dp)
                     )
                 }
 
@@ -264,7 +280,7 @@ fun CyberTransferTaskCard(task: TransferTaskItem, onTogglePause: () -> Unit) {
         borderColor = if (!task.paused && task.speedBps > 0) NeonCyan.copy(alpha = 0.35f) else BorderHairline,
         containerColor = SurfaceGlass
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -277,10 +293,10 @@ fun CyberTransferTaskCard(task: TransferTaskItem, onTogglePause: () -> Unit) {
                         color = TextPrimaryDark,
                         maxLines = 1
                     )
-                    Spacer(Modifier.height(2.dp))
+                    Spacer(Modifier.height(1.dp))
                     Text(
                         text = "${task.sourceIdentity} → ${task.destinationIdentity}",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                         color = TextMutedDark,
                         maxLines = 1
                     )
@@ -292,7 +308,7 @@ fun CyberTransferTaskCard(task: TransferTaskItem, onTogglePause: () -> Unit) {
                         shape = CircleShape,
                         color = if (task.paused) ElectricBlue.copy(alpha = 0.15f) else Amber.copy(alpha = 0.15f),
                         border = BorderStroke(1.dp, if (task.paused) ElectricBlue.copy(alpha = 0.4f) else Amber.copy(alpha = 0.4f)),
-                        modifier = Modifier.size(38.dp)
+                        modifier = Modifier.size(36.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
@@ -301,7 +317,7 @@ fun CyberTransferTaskCard(task: TransferTaskItem, onTogglePause: () -> Unit) {
                                     if (task.paused) R.string.transfer_action_resume else R.string.transfer_action_pause
                                 ),
                                 tint = if (task.paused) ElectricBlue else Amber,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }
@@ -315,7 +331,7 @@ fun CyberTransferTaskCard(task: TransferTaskItem, onTogglePause: () -> Unit) {
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                val stages = listOf("Scan", "SHA256", "Re-encode", "MTProto Upload", "Reconcile")
+                val stages = listOf("Scan", "SHA256", "Re-encode", "Upload", "Reconcile")
                 val currentStageIndex = when (task.stage.lowercase()) {
                     "scan" -> 0
                     "verify" -> 1
@@ -345,18 +361,18 @@ fun CyberTransferTaskCard(task: TransferTaskItem, onTogglePause: () -> Unit) {
                         border = BorderStroke(0.5.dp, if (isCurrent) stageColor.copy(alpha = 0.6f) else BorderHairline)
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
                         ) {
                             if (isDone) {
                                 Icon(Icons.Default.Check, null, tint = Emerald, modifier = Modifier.size(10.dp))
                             } else if (isCurrent) {
-                                AutoGramStatusDot(color = stageColor, isPulsing = true, size = 5.dp)
+                                AutoGramStatusDot(color = stageColor, isPulsing = true, size = 4.dp)
                             }
                             Text(
                                 text = name,
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                                 color = pillColor,
                                 fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal
                             )
@@ -365,67 +381,36 @@ fun CyberTransferTaskCard(task: TransferTaskItem, onTogglePause: () -> Unit) {
                 }
             }
 
-            // Progress Bar
             AutoGramProgressBar(
                 progress = progress,
                 brush = Brush.horizontalGradient(listOf(stageColor, NeonCyan)),
-                height = 6.dp
+                height = 5.dp
             )
 
-            // Bytes & Speed Detail
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
                     text = "${formatFileSize(task.transferredBytes)} / ${formatFileSize(task.totalBytes)}",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                     color = TextSecondaryDark
                 )
 
                 if (task.speedBps > 0) {
                     Text(
                         text = stringResource(R.string.transfer_speed, formatFileSize(task.speedBps)),
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
                         color = NeonCyan
                     )
                 } else {
                     Text(
                         text = task.status,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                         color = TextSecondaryDark
                     )
                 }
             }
         }
-    }
-}
-
-@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
-@Composable
-fun TransferScreenPreview() {
-    AutoGramTheme(darkTheme = true) {
-        TransferScreenContent(
-            state = TransferUiState(
-                isSmartRateActive = true,
-                aggregateProgress = 0.65f,
-                activeTasks = listOf(
-                    TransferTaskItem(
-                        id = "1",
-                        fileName = "4K_Movie_HDR.mkv",
-                        totalBytes = 2400000000,
-                        transferredBytes = 1560000000,
-                        speedBps = 14500000,
-                        etaSecs = 58,
-                        status = "Uploading (512KB chunks)",
-                        stage = "uploading",
-                        paused = false,
-                        attempt = 1,
-                        sourceIdentity = "Saved Messages",
-                        destinationIdentity = "Archive Channel"
-                    )
-                )
-            )
-        )
     }
 }

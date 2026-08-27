@@ -1,12 +1,13 @@
-AutoGram Version: v3.8.39
+AutoGram Version: v3.8.40
 
 Current State:
-v3.8.39 Android Native Total UI Redesign: Cyber Dark Glassmorphism & Ambient Glow — perombakan menyeluruh desain antarmuka Android Native:
-1. Cyber Dark Design System: Mengintegrasikan palet obsidian gelap (`#060911`, `#0B0F19`), kartu kaca translucent (*frosted glass*), aksen neon cyan/electric blue terkalibrasi, serta kode warna media terstandarisasi.
-2. Floating Glass Capsule Navigation Dock: Bilah navigasi bawah mengambang (*dock capsule*) dengan efek translucent blur, pendaran indikator aktif, dan target sentuh $\ge 48\text{dp}$.
-3. Complete 5-Screen Glass Transformation: Merombak Cloud Drives (breadcrumbs & format badges), Transfer Manager (Cyber Speedometer & Multi-Stage Pipeline), Media Studio (3-column glass metrics & Album Builder), Remote Link (Cyber Terminal Ingestion & SSRF safety), dan Settings (Telegram Account card, GPU MediaCodec profiling, storage capacity gauge).
+v3.8.40 Android Native Ultra-Clean & Spacious Viewport Architecture — penyempurnaan hierarki visual, ruang pandang lega, dan ergonomi navigasi:
+1. Spacious Minimalist Header & Controls: Mengintegrasikan judul, breadcrumbs folder inline `Root › Telegram Cloud`, kolom pencarian circular pill (46dp), dan tombol aksi 1-sentuhan (42dp) tanpa kontainer bertumpuk yang memakan ruang.
+2. Expansive Content Viewport: Memperluas area scroll berkas dan galeri studio dengan rasio layar optimal dan margin yang lega (20dp).
+3. Equal-Weight Floating Capsule Dock: Bilah navigasi kapsul melayang dengan pembagian bobot proporsional (weight 1f) dan proteksi teks utuh tanpa pemotongan label.
 
 Previous:
+v3.8.39 Android Native Total UI Redesign: Cyber Dark Glassmorphism & Ambient Glow — perombakan menyeluruh desain antarmuka Android Native:
 v3.8.38 Android Native Instant Live-Reload & Fast-Patch Engine — sistem pembaruan antarmuka otomatis dan inkremental cepat ke emulator aktif:
 v3.8.37 Real Google Android Virtual Device (AVD) Native Desktop Execution — penyediaan dan eksekusi langsung emulator Android OS nyata terisolasi 100% di Drive F::
 v3.8.36 Standalone Interactive Android Native UI Simulator Window — peluncur simulator jendela desktop interaktif langsung di PC:
