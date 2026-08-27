@@ -20,6 +20,7 @@ import com.autogram.app.R
 import com.autogram.app.theme.*
 import com.autogram.app.ui.drive.formatFileSize
 import com.autogram.app.viewmodel.SettingsViewModel
+import com.autogram.app.ui.components.ScreenHeader
 
 @Composable
 fun SettingsScreen(
@@ -28,17 +29,16 @@ fun SettingsScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp),
+    Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+      LazyColumn(
+        modifier = Modifier.fillMaxSize().widthIn(max = 980.dp).padding(horizontal = 20.dp),
+        contentPadding = PaddingValues(vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+      ) {
         item {
-            Text(
-                text = stringResource(R.string.settings_title),
-                style = MaterialTheme.typography.headlineMedium,
-                color = TextPrimaryDark
+            ScreenHeader(
+                titleRes = R.string.settings_title,
+                subtitleRes = R.string.settings_subtitle
             )
         }
 
@@ -209,5 +209,6 @@ fun SettingsScreen(
                 modifier = Modifier.padding(vertical = 16.dp)
             )
         }
+      }
     }
 }

@@ -5,6 +5,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -14,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -22,8 +25,10 @@ import com.autogram.app.navigation.Screen
 import com.autogram.app.theme.AutoGramTheme
 import com.autogram.app.theme.BgDark
 import com.autogram.app.ui.components.BottomNavBar
+import com.autogram.app.ui.components.AutoGramNavigationRail
 import com.autogram.app.ui.drive.DriveScreen
 import com.autogram.app.ui.settings.SettingsScreen
+import com.autogram.app.ui.studio.StudioScreen
 import com.autogram.app.ui.remote.RemoteUrlScreen
 import com.autogram.app.ui.transfer.TransferScreen
 import com.autogram.app.viewmodel.DriveViewModel
@@ -39,7 +44,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         sharedUrl = extractSharedUrl(intent)
         setContent {
-            AutoGramTheme {
+            AutoGramTheme(darkTheme = true) {
                 AutoGramAppRoot(sharedUrl = sharedUrl, onSharedUrlConsumed = { sharedUrl = null })
             }
         }
@@ -77,32 +82,38 @@ fun AutoGramAppRoot(sharedUrl: String? = null, onSharedUrlConsumed: () -> Unit =
         }
     }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = BgDark,
-        bottomBar = {
-            BottomNavBar(navController = navController)
-        }
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Drive.route,
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            composable(Screen.Drive.route) {
-                DriveScreen(viewModel = driveViewModel)
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val useRail = maxWidth >= 720.dp
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = BgDark,
+            bottomBar = {
+                if (!useRail) BottomNavBar(navController = navController)
             }
-            composable(Screen.Transfer.route) {
-                TransferScreen(viewModel = transferViewModel)
-            }
-            composable(Screen.Studio.route) {
-                DriveScreen(viewModel = driveViewModel) // Studio / Media view
-            }
-            composable(Screen.Remote.route) {
-                RemoteUrlScreen(viewModel = remoteUrlViewModel)
-            }
-            composable(Screen.Settings.route) {
-                SettingsScreen(viewModel = settingsViewModel)
+        ) { innerPadding ->
+            Row(Modifier.fillMaxSize().padding(innerPadding)) {
+                if (useRail) AutoGramNavigationRail(navController)
+                NavHost(
+                    navController = navController,
+                    startDestination = Screen.Drive.route,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    composable(Screen.Drive.route) {
+                        DriveScreen(viewModel = driveViewModel)
+                    }
+                    composable(Screen.Transfer.route) {
+                        TransferScreen(viewModel = transferViewModel)
+                    }
+                    composable(Screen.Studio.route) {
+                        StudioScreen(viewModel = driveViewModel)
+                    }
+                    composable(Screen.Remote.route) {
+                        RemoteUrlScreen(viewModel = remoteUrlViewModel)
+                    }
+                    composable(Screen.Settings.route) {
+                        SettingsScreen(viewModel = settingsViewModel)
+                    }
+                }
             }
         }
     }

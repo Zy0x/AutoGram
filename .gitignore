@@ -124,7 +124,7 @@ legacy_scripts/
 
 # Remote automation / CDP debug tooling (local only — not product source)
 remote-automation-suite/
-remote/
+/remote/
 .webview2_data/
 **/.webview2_data/
 remote/reports/logs/
@@ -186,3 +186,6 @@ AutoGram App/worker/sessions/
 # Raw audit logs & evidence
 docs/**/evidence/
 docs/**/raw/
+AutoGram App/frontend/remote/
+remote/
+

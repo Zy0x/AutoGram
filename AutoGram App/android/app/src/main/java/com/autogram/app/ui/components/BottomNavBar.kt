@@ -11,9 +11,9 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.autogram.app.navigation.Screen
-import com.autogram.app.theme.BorderDark
 import com.autogram.app.theme.PrimaryBlue
 import com.autogram.app.theme.SurfaceDark
+import com.autogram.app.theme.SurfaceElevatedDark
 import com.autogram.app.theme.TextMutedDark
 
 @Composable
@@ -22,7 +22,7 @@ fun BottomNavBar(navController: NavController) {
     val currentRoute = navBackStackEntry?.destination?.route
 
     NavigationBar(
-        modifier = Modifier.height(64.dp),
+        modifier = Modifier.height(76.dp),
         containerColor = SurfaceDark,
         tonalElevation = 4.dp
     ) {
@@ -45,13 +45,7 @@ fun BottomNavBar(navController: NavController) {
                 selected = isSelected,
                 onClick = {
                     if (currentRoute != screen.route) {
-                        navController.navigate(screen.route) {
-                            popUpTo(Screen.Drive.route) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
+                        navigatePrimary(navController, screen.route, currentRoute)
                     }
                 },
                 colors = NavigationBarItemDefaults.colors(
@@ -59,7 +53,7 @@ fun BottomNavBar(navController: NavController) {
                     selectedTextColor = PrimaryBlue,
                     unselectedIconColor = TextMutedDark,
                     unselectedTextColor = TextMutedDark,
-                    indicatorColor = SurfaceDark
+                    indicatorColor = SurfaceElevatedDark
                 )
             )
         }

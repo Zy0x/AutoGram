@@ -1,12 +1,13 @@
-AutoGram Version: v3.8.33
+AutoGram Version: v3.8.34
 
 Current State:
-v3.8.33 Responsive Session Header & Anti-Overlap Reconnect Action Hub — perbaikan menyeluruh tampilan header koneksi dan tombol tindakan sesi:
-1. Anti-Overlap Action Button Grid: Memperbaiki tata letak tombol "Check Connection" dan "Re-login" dengan flex-wrap adaptif dan `min-width: 0`, mencegah tumpang tindih teks pada sidebar sempit dan seluruh ukuran layar.
-2. Responsive Header Row & Text Truncation: Mencegah pemotongan teks status koneksi Telegram pada header kartu akun dengan `text-overflow: ellipsis` dan atribut `title` lengkap saat kursor diarahkan.
-3. Mobile & Narrow Viewport Polish: Penyesuaian responsif penuh pada resolusi mobile, tablet, dan desktop tanpa distorsi atau pergeseran layout.
+v3.8.34 Android Native Zero-C Isolated Build Engine & Multi-ABI Packaging — dukungan kompilasi aplikasi Android Native murni di drive proyek:
+1. Zero-C Drive Isolation: Mengalihkan 100% jalur kompilasi Gradle (`GRADLE_USER_HOME`), Java temporary (`java.io.tmpdir`), Android SDK (`ANDROID_USER_HOME`), dan Cargo target (`CARGO_TARGET_DIR`) ke drive `F:\AutoGram\.build-cache` dan `.toolchains`, menjamin disk lokal C tidak terisi byte apapun.
+2. Full Multi-ABI Rust UniFFI Compilation: Berhasil membuild jembatan Kotlin/Rust untuk seluruh 4 ABI Android (`arm64-v8a`, `armeabi-v7a`, `x86_64`, `x86`) dan mengemas APK Universal & split secara sukses.
+3. Strict Working Directory Guard: Memastikan eksekusi Gradle Wrapper selalu terikat pada root direktori Android proyek tanpa risiko missing build layout.
 
 Previous:
+v3.8.33 Responsive Session Header & Anti-Overlap Reconnect Action Hub — perbaikan menyeluruh tampilan header koneksi dan tombol tindakan sesi:
 v3.8.32 Zero-Flicker Seamless Sticker Animation Transition & Instant Poster Crossfade — eliminasi glitch loading pada pratinjau stiker bergerak:
 v3.8.31 Native TGS Lottie Vector Animation Engine & Multi-Format Moving Preview Hub — pemutaran animasi stiker dan media bergerak di AutoGram Preview:
 1. Native TGS Lottie Engine: Mengintegrasikan dekompresi Gzip in-memory stream dan Lottie Web rendering engine 60 FPS pada `TgsLottiePlayer.tsx`, memutar stiker animasi vektor `.tgs` Telegram secara mulus dan berulang (looping) persis seperti di aplikasi Telegram asli.

@@ -21,14 +21,26 @@ if (-not $SkipBootstrap) {
     & (Join-Path $PSScriptRoot "bootstrap_toolchain.ps1")
 }
 
+$tempDir = Join-Path $cacheRoot "temp"
+$gradleHome = Join-Path $cacheRoot "gradle"
+$androidUserHome = Join-Path $cacheRoot "android-user-home"
+New-Item -ItemType Directory -Force -Path $tempDir, $gradleHome, $androidUserHome | Out-Null
+
+$env:TEMP = $tempDir
+$env:TMP = $tempDir
 $env:JAVA_HOME = $jdkRoot
 $env:ANDROID_HOME = $sdkRoot
 $env:ANDROID_SDK_ROOT = $sdkRoot
 $env:ANDROID_NDK_HOME = Join-Path $sdkRoot "ndk\27.0.12077973"
-$env:GRADLE_USER_HOME = Join-Path $cacheRoot "gradle"
+$env:ANDROID_USER_HOME = $androidUserHome
+Remove-Item env:ANDROID_PREFS_ROOT -ErrorAction SilentlyContinue
+$env:ANDROID_EMULATOR_HOME = Join-Path $cacheRoot "android-emulator"
+$env:ANDROID_AVD_HOME = Join-Path $cacheRoot "android-avd"
+$env:GRADLE_USER_HOME = $gradleHome
 $env:RUSTUP_HOME = Join-Path $toolchainRoot "rustup"
 $env:CARGO_HOME = $cargoRoot
 $env:CARGO_TARGET_DIR = Join-Path $cacheRoot "cargo-target"
+$env:GRADLE_OPTS = "-Djava.io.tmpdir=`"$tempDir`" -Dorg.gradle.user.home=`"$gradleHome`""
 $fDriveToolchain = Get-ChildItem -LiteralPath (Join-Path $env:RUSTUP_HOME "toolchains") -Directory |
     Where-Object { $_.Name -like "autogram-stable-*-windows-msvc" } |
     Select-Object -First 1
@@ -70,17 +82,22 @@ if (-not $SkipNative) {
     }
 }
 
-Write-Host "[3/4] Running Android unit tests and lint..."
-$gradleWrapper = Join-Path $PSScriptRoot "gradlew.bat"
-& $gradleWrapper --no-daemon --stacktrace testDebugUnitTest lintDebug
-if ($LASTEXITCODE -ne 0) { throw "Android tests or lint failed" }
+Push-Location $PSScriptRoot
+try {
+    Write-Host "[3/4] Running Android unit tests and lint..."
+    $gradleWrapper = Join-Path $PSScriptRoot "gradlew.bat"
+    & $gradleWrapper --no-daemon --project-dir $PSScriptRoot --stacktrace testDebugUnitTest lintDebug
+    if ($LASTEXITCODE -ne 0) { throw "Android tests or lint failed" }
 
-Write-Host "[4/4] Assembling Android APK..."
-$assembleTask = if ($Variant -eq "Release") { "assembleRelease" } else { "assembleDebug" }
-& $gradleWrapper --no-daemon --stacktrace $assembleTask
-if ($LASTEXITCODE -ne 0) { throw "Android APK assembly failed" }
+    Write-Host "[4/4] Assembling Android APK..."
+    $assembleTask = if ($Variant -eq "Release") { "assembleRelease" } else { "assembleDebug" }
+    & $gradleWrapper --no-daemon --project-dir $PSScriptRoot --stacktrace $assembleTask
+    if ($LASTEXITCODE -ne 0) { throw "Android APK assembly failed" }
 
-$apkFolder = Join-Path $PSScriptRoot "app\build\outputs\apk\$($Variant.ToLowerInvariant())"
-Get-ChildItem -LiteralPath $apkFolder -Filter "*.apk" | ForEach-Object {
-    Write-Host "APK: $($_.FullName) ($([math]::Round($_.Length / 1MB, 2)) MB)"
+    $apkFolder = Join-Path $PSScriptRoot "app\build\outputs\apk\$($Variant.ToLowerInvariant())"
+    Get-ChildItem -LiteralPath $apkFolder -Filter "*.apk" | ForEach-Object {
+        Write-Host "APK: $($_.FullName) ($([math]::Round($_.Length / 1MB, 2)) MB)"
+    }
+} finally {
+    Pop-Location
 }

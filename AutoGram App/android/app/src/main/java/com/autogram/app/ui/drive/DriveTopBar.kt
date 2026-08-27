@@ -5,19 +5,25 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.unit.dp
 import com.autogram.app.R
 import com.autogram.app.theme.*
 import com.autogram.app.viewmodel.DriveMediaFilter
+import com.autogram.app.ui.components.ScreenHeader
+import com.autogram.app.ui.components.StatusPill
 
 @Composable
 fun DriveTopBar(
+    currentPath: String,
+    itemCount: Int,
     searchQuery: String,
     onSearchChange: (String) -> Unit,
     mediaFilter: DriveMediaFilter,
@@ -27,16 +33,30 @@ fun DriveTopBar(
     onRefresh: () -> Unit,
     onUpload: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val compact = maxWidth < 620.dp
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            ScreenHeader(
+                titleRes = R.string.drive_title,
+                subtitleRes = R.string.drive_subtitle,
+                action = {
+                    if (!compact) StatusPill(pluralStringResource(R.plurals.drive_item_count, itemCount, itemCount))
+                }
+            )
+            Text(
+                text = currentPath.ifBlank { "/" },
+                color = TextMutedDark,
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
             TextField(
                 value = searchQuery,
                 onValueChange = onSearchChange,
@@ -67,68 +87,63 @@ fun DriveTopBar(
                 )
             )
 
-            IconButton(
-                onClick = onRefresh,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = stringResource(R.string.drive_action_refresh),
-                    tint = TextSecondaryDark
-                )
+                if (!compact) {
+                    DriveActions(isGridView, onRefresh, onToggleViewMode, onUpload)
+                }
             }
-
-            IconButton(
-                onClick = onToggleViewMode,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = if (isGridView) Icons.Default.ViewList else Icons.Default.GridView,
-                    contentDescription = stringResource(R.string.drive_toggle_view_accessibility),
-                    tint = TextPrimaryDark
-                )
+            if (compact) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    StatusPill(pluralStringResource(R.plurals.drive_item_count, itemCount, itemCount), Modifier.weight(1f))
+                    DriveActions(isGridView, onRefresh, onToggleViewMode, onUpload)
+                }
             }
-
-            IconButton(
-                onClick = onUpload,
-                modifier = Modifier.size(48.dp),
-                colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = PrimaryBlue,
-                    contentColor = TextPrimaryDark
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(R.string.drive_action_upload)
-                )
+                DriveMediaFilter.entries.forEach { filter ->
+                    FilterChip(
+                        selected = mediaFilter == filter,
+                        onClick = { onMediaFilterChange(filter) },
+                        label = { Text(stringResource(filter.labelResource())) },
+                        leadingIcon = if (filter == DriveMediaFilter.STICKERS) {
+                            {
+                                Icon(Icons.Default.EmojiEmotions, null, modifier = Modifier.size(18.dp))
+                            }
+                        } else null
+                    )
+                }
             }
         }
+    }
+}
 
-
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            DriveMediaFilter.entries.forEach { filter ->
-                FilterChip(
-                    selected = mediaFilter == filter,
-                    onClick = { onMediaFilterChange(filter) },
-                    label = { Text(stringResource(filter.labelResource())) },
-                    leadingIcon = if (filter == DriveMediaFilter.STICKERS) {
-                        {
-                            Icon(
-                                imageVector = Icons.Default.EmojiEmotions,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    } else null
-                )
-            }
-        }
+@Composable
+private fun DriveActions(
+    isGridView: Boolean,
+    onRefresh: () -> Unit,
+    onToggleViewMode: () -> Unit,
+    onUpload: () -> Unit
+) {
+    IconButton(onClick = onRefresh, modifier = Modifier.size(48.dp)) {
+        Icon(Icons.Default.Refresh, stringResource(R.string.drive_action_refresh), tint = TextSecondaryDark)
+    }
+    IconButton(onClick = onToggleViewMode, modifier = Modifier.size(48.dp)) {
+        Icon(
+            if (isGridView) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
+            stringResource(R.string.drive_toggle_view_accessibility),
+            tint = TextPrimaryDark
+        )
+    }
+    IconButton(
+        onClick = onUpload,
+        modifier = Modifier.size(48.dp),
+        colors = IconButtonDefaults.iconButtonColors(containerColor = PrimaryBlue, contentColor = TextPrimaryDark)
+    ) {
+        Icon(Icons.Default.Add, stringResource(R.string.drive_action_upload))
     }
 }
 

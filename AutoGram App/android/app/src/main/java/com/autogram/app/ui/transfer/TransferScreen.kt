@@ -22,6 +22,9 @@ import com.autogram.app.theme.*
 import com.autogram.app.ui.drive.formatFileSize
 import com.autogram.app.viewmodel.TransferTaskItem
 import com.autogram.app.viewmodel.TransferViewModel
+import com.autogram.app.ui.components.AutoGramCard
+import com.autogram.app.ui.components.ScreenHeader
+import com.autogram.app.ui.components.StatusPill
 
 @Composable
 fun TransferScreen(
@@ -30,54 +33,27 @@ fun TransferScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
+    Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+      LazyColumn(
+        modifier = Modifier.fillMaxSize().widthIn(max = 980.dp).padding(horizontal = 20.dp),
+        contentPadding = PaddingValues(vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+      ) {
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.transfer_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = TextPrimaryDark
-                )
-
-                if (state.isSmartRateActive) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = SurfaceElevatedDark,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryBlue)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Bolt,
-                                contentDescription = stringResource(R.string.transfer_smart_rate_accessibility),
-                                tint = PrimaryBlue,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = stringResource(R.string.transfer_smart_rate),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = PrimaryBlue
-                            )
-                        }
+            ScreenHeader(
+                titleRes = R.string.transfer_title,
+                subtitleRes = R.string.transfer_subtitle,
+                action = {
+                    if (state.isSmartRateActive) {
+                        StatusPill(stringResource(R.string.transfer_smart_rate), color = SuccessGreen)
                     }
                 }
-            }
+            )
         }
 
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+          AutoGramCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -103,6 +79,7 @@ fun TransferScreen(
                     trackColor = SurfaceElevatedDark
                 )
             }
+          }
         }
 
         item {
@@ -116,6 +93,19 @@ fun TransferScreen(
 
         items(state.activeTasks, key = { it.id }) { task ->
             TransferTaskCard(task = task, onTogglePause = { viewModel.togglePause(task) })
+        }
+
+        if (!state.isLoading && state.activeTasks.isEmpty()) {
+            item {
+                AutoGramCard(Modifier.fillMaxWidth()) {
+                    Text(
+                        stringResource(R.string.transfer_empty),
+                        modifier = Modifier.padding(24.dp),
+                        color = TextMutedDark,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
         }
 
         if (state.completedTasks.isNotEmpty()) {
@@ -132,6 +122,7 @@ fun TransferScreen(
                 TransferTaskCard(task = task, onTogglePause = { viewModel.togglePause(task) })
             }
         }
+      }
     }
 }
 

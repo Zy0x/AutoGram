@@ -5,6 +5,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Shapes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
@@ -43,6 +45,14 @@ private val LightColorScheme = lightColorScheme(
     error = ErrorRed
 )
 
+private val AutoGramShapes = Shapes(
+    extraSmall = RoundedCornerShape(8),
+    small = RoundedCornerShape(12),
+    medium = RoundedCornerShape(16),
+    large = RoundedCornerShape(22),
+    extraLarge = RoundedCornerShape(30)
+)
+
 @Composable
 fun AutoGramTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -66,6 +76,7 @@ fun AutoGramTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = AutoGramShapes,
         content = content
     )
 }

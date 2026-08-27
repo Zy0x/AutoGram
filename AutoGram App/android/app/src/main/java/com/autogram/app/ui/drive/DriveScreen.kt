@@ -49,6 +49,8 @@ fun DriveScreen(
             .fillMaxSize()
     ) {
         DriveTopBar(
+            currentPath = state.currentPath,
+            itemCount = filteredItems.size,
             searchQuery = state.searchQuery,
             onSearchChange = viewModel::setSearchQuery,
             mediaFilter = state.mediaFilter,
@@ -115,11 +117,11 @@ fun DriveScreen(
         } else {
             if (state.isGridView) {
                 LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 150.dp),
+                    columns = GridCells.Adaptive(minSize = 158.dp),
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(filteredItems, key = { it.id }) { item ->
                         val isSelected = state.selectedIds.contains(item.id)

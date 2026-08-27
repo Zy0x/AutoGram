@@ -2,7 +2,6 @@ package com.autogram.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import java.net.URI
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,12 +27,12 @@ class RemoteUrlViewModel : ViewModel() {
 
     fun updateUrl(value: String) {
         val clean = value.trim()
-        _uiState.update { it.copy(url = value, host = parseHost(clean), result = null) }
+        _uiState.update { it.copy(url = value, host = RemoteUrlValidator.parseHost(clean), result = null) }
     }
 
     fun queue() {
         val clean = _uiState.value.url.trim()
-        val host = parseHost(clean)
+        val host = RemoteUrlValidator.parseHost(clean)
         if (host == null) {
             _uiState.update { it.copy(result = RemoteQueueResult.INVALID) }
             return
@@ -64,12 +63,5 @@ class RemoteUrlViewModel : ViewModel() {
                 _uiState.update { it.copy(isSubmitting = false, result = RemoteQueueResult.FAILED) }
             }
         }
-    }
-
-    private fun parseHost(value: String): String? = try {
-        val uri = URI(value)
-        if ((uri.scheme == "http" || uri.scheme == "https") && !uri.host.isNullOrBlank()) uri.host else null
-    } catch (_: Exception) {
-        null
     }
 }

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">AutoGram</string>
+    <string name="app_tagline">Telegram Cloud Suite</string>
     <string name="nav_drive">Drive</string>
     <string name="nav_transfer">Transfer</string>
     <string name="nav_studio">Studio</string>
@@ -8,14 +9,21 @@
     <string name="nav_settings">Pengaturan</string>
 
     <string name="drive_search_placeholder">Cari berkas atau folder…</string>
+    <string name="drive_title">Cloud Drives</string>
+    <string name="drive_subtitle">Kelola media Telegram Anda dengan cepat dan aman.</string>
+    <plurals name="drive_item_count">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d item</item>
+    </plurals>
+    <string name="drive_badge_folder">Folder</string>
     <string name="drive_empty_title">Belum Ada Berkas</string>
     <string name="drive_empty_subtitle">Unggah atau sinkronkan berkas dari akun Telegram Anda.</string>
     <string name="drive_action_upload">Unggah</string>
-    <string name="drive_action_remote">Remote</string>
-    <string name="drive_action_download_zip">Unduh ZIP</string>
     <string name="drive_action_refresh">Segarkan</string>
-    <string name="drive_action_tools">Alat</string>
-    <string name="drive_selected_count">%1$d berkas dipilih</string>
+    <plurals name="drive_selected_count">
+        <item quantity="one">%1$d berkas dipilih</item>
+        <item quantity="other">%1$d berkas dipilih</item>
+    </plurals>
     <string name="drive_action_cancel">Batal</string>
     <string name="drive_action_move">Pindahkan</string>
     <string name="drive_action_download">Unduh</string>
@@ -33,12 +41,12 @@
     <string name="drive_filter_stickers">Stiker</string>
 
     <string name="transfer_title">Manajer Transfer</string>
+    <string name="transfer_subtitle">Pantau antrean, kecepatan, dan tahapan pemrosesan.</string>
+    <string name="transfer_empty">Belum ada transfer aktif.</string>
     <string name="transfer_active_tasks">Tugas Aktif</string>
     <string name="transfer_completed_tasks">Selesai</string>
     <string name="transfer_speed">%1$s/dtk</string>
-    <string name="transfer_eta">Sisa: %1$s</string>
     <string name="transfer_smart_rate">Smart Rate Controller Aktif</string>
-    <string name="transfer_smart_rate_accessibility">Pengendali laju cerdas</string>
     <string name="transfer_aggregate_progress">Progres keseluruhan</string>
     <string name="transfer_progress_percent">%1$d%%</string>
     <string name="transfer_stage_value">Tahap: %1$s</string>
@@ -46,6 +54,7 @@
     <string name="transfer_action_resume">Lanjutkan transfer</string>
 
     <string name="settings_title">Pengaturan AutoGram</string>
+    <string name="settings_subtitle">Perangkat, penyimpanan, akun, dan preferensi aplikasi.</string>
     <string name="settings_telegram_accounts">Akun Telegram</string>
     <string name="settings_hardware_encoder">Encoder Perangkat Keras</string>
     <string name="settings_storage_budget">Batas Penyimpanan Sementara</string>
@@ -69,4 +78,16 @@
     <string name="remote_queued">Tautan ditambahkan ke Manajer Transfer.</string>
     <string name="remote_queue_failed">Tautan belum dapat ditambahkan. Coba lagi.</string>
     <string name="remote_source_host">Sumber: %1$s</string>
+    <string name="remote_ready">Resolver siap</string>
+    <string name="remote_workspace_title">Ruang kerja tautan media</string>
+    <string name="remote_workspace_description">Tempel atau bagikan tautan ke AutoGram. Resolver akan menganalisis sumber lalu mengirimkannya ke antrean transfer yang dapat dilanjutkan.</string>
+    <string name="remote_safe_title">Pemrosesan terisolasi</string>
+    <string name="remote_safe_description">Tautan diperiksa sebelum diproses dan tidak akan membuka halaman berbahaya di dalam aplikasi.</string>
+
+    <string name="studio_title">Media Studio</string>
+    <string name="studio_subtitle">Jelajahi, pilih, dan siapkan media dalam satu ruang visual.</string>
+    <string name="studio_metric_media">Media</string>
+    <string name="studio_metric_images">Gambar</string>
+    <string name="studio_metric_videos">Video</string>
+    <string name="studio_empty">Belum ada media yang cocok dengan filter ini.</string>
 </resources>

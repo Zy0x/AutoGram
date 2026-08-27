@@ -2,18 +2,20 @@ package com.autogram.app.theme
 
 import androidx.compose.ui.graphics.Color
 
-val BgDark = Color(0xFF121316)
-val SurfaceDark = Color(0xFF1B1D22)
-val SurfaceElevatedDark = Color(0xFF242730)
-val BorderDark = Color(0xFF2E323D)
+val BgDark = Color(0xFF07101F)
+val SurfaceDark = Color(0xFF0D1729)
+val SurfaceElevatedDark = Color(0xFF142239)
+val BorderDark = Color(0xFF243651)
 
-val PrimaryBlue = Color(0xFF3B82F6)
-val PrimaryBlueHover = Color(0xFF2563EB)
-val AccentCyan = Color(0xFF06B6D4)
+val PrimaryBlue = Color(0xFF3D8BFF)
+val PrimaryBlueHover = Color(0xFF2675E8)
+val AccentCyan = Color(0xFF34D3FF)
+val AccentAmber = Color(0xFFFFB020)
+val AccentViolet = Color(0xFF9B8CFF)
 
-val TextPrimaryDark = Color(0xFFF3F4F6)
-val TextSecondaryDark = Color(0xFF9CA3AF)
-val TextMutedDark = Color(0xFF6B7280)
+val TextPrimaryDark = Color(0xFFF7FAFF)
+val TextSecondaryDark = Color(0xFFA8B8CE)
+val TextMutedDark = Color(0xFF71839D)
 
 val SuccessGreen = Color(0xFF10B981)
 val WarningAmber = Color(0xFFF59E0B)

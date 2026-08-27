@@ -81,13 +81,25 @@ if (-not (Test-Path -LiteralPath (Join-Path $gradleRoot "bin\gradle.bat"))) {
     Expand-Archive -LiteralPath $gradleArchive -DestinationPath $toolchainRoot -Force
 }
 
+$tempDir = Join-Path $cacheRoot "temp"
+$gradleHome = Join-Path $cacheRoot "gradle"
+$androidUserHome = Join-Path $cacheRoot "android-user-home"
+New-Item -ItemType Directory -Force -Path $tempDir, $gradleHome, $androidUserHome | Out-Null
+
+$env:TEMP = $tempDir
+$env:TMP = $tempDir
 $env:JAVA_HOME = $jdkRoot
 $env:ANDROID_HOME = $sdkRoot
 $env:ANDROID_SDK_ROOT = $sdkRoot
-$env:GRADLE_USER_HOME = Join-Path $cacheRoot "gradle"
+$env:ANDROID_USER_HOME = $androidUserHome
+Remove-Item env:ANDROID_PREFS_ROOT -ErrorAction SilentlyContinue
+$env:ANDROID_EMULATOR_HOME = Join-Path $cacheRoot "android-emulator"
+$env:ANDROID_AVD_HOME = Join-Path $cacheRoot "android-avd"
+$env:GRADLE_USER_HOME = $gradleHome
 $env:RUSTUP_HOME = $rustupRoot
 $env:CARGO_HOME = $cargoRoot
 $env:CARGO_TARGET_DIR = Join-Path $cacheRoot "cargo-target"
+$env:GRADLE_OPTS = "-Djava.io.tmpdir=`"$tempDir`" -Dorg.gradle.user.home=`"$gradleHome`""
 $env:PATH = "$(Join-Path $jdkRoot 'bin');$(Join-Path $sdkRoot 'platform-tools');$(Join-Path $sdkRoot 'cmdline-tools\latest\bin');$(Join-Path $cargoRoot 'bin');$(Join-Path $cargoTools 'bin');$env:PATH"
 
 function Repair-RustupProxyCopies {

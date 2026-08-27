@@ -3,20 +3,26 @@ package com.autogram.app.ui.drive
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.autogram.app.R
 import com.autogram.app.theme.*
 import com.autogram.app.viewmodel.DriveFileItem
+import coil.compose.AsyncImage
+import java.util.Locale
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -36,7 +42,7 @@ fun FileGridItem(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(130.dp)
+            .height(188.dp)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
@@ -47,46 +53,59 @@ fun FileGridItem(
         ),
         border = border
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(10.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+        Column(Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(112.dp)
+                    .padding(8.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(SurfaceElevatedDark),
+                contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = when {
-                        item.isFolder -> Icons.Default.Folder
-                        item.mimeType.startsWith("video") -> Icons.Default.VideoLibrary
-                        item.mimeType.startsWith("image") -> Icons.Default.Image
-                        item.mimeType.contains("pdf") -> Icons.Default.Description
-                        else -> Icons.Default.InsertDriveFile
-                    },
-                    contentDescription = item.mimeType,
-                    tint = if (item.isFolder) PrimaryBlue else TextPrimaryDark,
-                    modifier = Modifier.size(32.dp)
-                )
-
+                if (!item.thumbnailUri.isNullOrBlank()) {
+                    AsyncImage(
+                        model = item.thumbnailUri,
+                        contentDescription = item.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = fileIcon(item),
+                        contentDescription = item.mimeType,
+                        tint = if (item.isFolder) PrimaryBlue else TextSecondaryDark,
+                        modifier = Modifier.size(if (item.isFolder) 48.dp else 38.dp)
+                    )
+                }
+                Surface(
+                    modifier = Modifier.align(Alignment.TopStart).padding(7.dp),
+                    color = BgDark.copy(alpha = .78f),
+                    shape = RoundedCornerShape(7.dp)
+                ) {
+                    Text(
+                        text = if (item.isFolder) stringResource(R.string.drive_badge_folder) else item.telegramCategory.uppercase(),
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextPrimaryDark
+                    )
+                }
                 if (isSelected) {
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = stringResource(R.string.drive_item_selected_accessibility),
                         tint = PrimaryBlue,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.align(Alignment.TopEnd).padding(7.dp).size(24.dp)
                     )
                 }
             }
 
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 11.dp, vertical = 7.dp)) {
                 Text(
                     text = item.name,
                     style = MaterialTheme.typography.titleMedium,
                     color = TextPrimaryDark,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 if (!item.isFolder) {
@@ -101,9 +120,17 @@ fun FileGridItem(
     }
 }
 
+private fun fileIcon(item: DriveFileItem) = when {
+    item.isFolder -> Icons.Default.Folder
+    item.mimeType.startsWith("video") -> Icons.Default.VideoLibrary
+    item.mimeType.startsWith("image") -> Icons.Default.Image
+    item.mimeType.contains("pdf") -> Icons.Default.Description
+    else -> Icons.AutoMirrored.Filled.InsertDriveFile
+}
+
 fun formatFileSize(bytes: Long): String {
     if (bytes <= 0) return "0 B"
     val units = arrayOf("B", "KB", "MB", "GB", "TB")
     val digitGroups = (Math.log10(bytes.toDouble()) / Math.log10(1024.0)).toInt()
-    return String.format("%.1f %s", bytes / Math.pow(1024.0, digitGroups.toDouble()), units[digitGroups])
+    return String.format(Locale.getDefault(), "%.1f %s", bytes / Math.pow(1024.0, digitGroups.toDouble()), units[digitGroups])
 }
