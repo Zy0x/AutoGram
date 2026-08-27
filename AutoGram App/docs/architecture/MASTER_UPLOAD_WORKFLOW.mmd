@@ -1,17 +1,18 @@
 flowchart TD
-    %% =========================================================================
-    %% AUTOGRAM MASTER UNIFIED UPLOAD & TRANSCODE WORKFLOW (.mmd)
+    %% ==========================================================================================
+    %% AUTOGRAM GRAND MASTER UNIFIED UPLOAD, TRANSCODE & LIFECYCLE WORKFLOW (.mmd)
     %% =========================================================================
 
     subgraph TIER0 ["TIER 0: FRONTEND UI & CONFIGURATION LAYER (React + TypeScript)"]
         UI_INPUT["Input Berkas: File Picker / Drag & Drop / Folder / Batch Transfer"]
         
         subgraph SETTINGS ["Transfer Settings & Drive Tools Configuration Hub"]
-            MODE_DELIVERY["1. Delivery Mode<br/>• Auto (Rekomendasi)<br/>• Lossless Document (Bit-Exact)<br/>• Native Media (Telegram Stream)"]
-            IMG_SETTINGS["2. Image Transcoding<br/>• Target: PNG Lossless / JPEG Q100 4:4:4<br/>• Scope: All / Modern Web / Custom 19 Exts"]
-            VID_SETTINGS["3. Video Transcoding & Remux<br/>• Mode: Fast Remux Copy / Full Re-encode / Raw Doc<br/>• Accel: Auto / NVENC / QSV / AMF / CPU<br/>• CRF: 18 (Lossless) s/d 28 (Hemat) • Max Res: 4K / 1080p / 720p"]
-            STK_SETTINGS["4. Sticker Policy<br/>• Anti-Sticker ON: Transcode to MP4 Loop / Static<br/>• Raw Sticker: Kirim Asli .tgs / .webm / .webp"]
-            ALB_SETTINGS["5. Batching & Concurrency<br/>• Single Message vs Album (2-10 items)<br/>• Concurrency: 1 - 10 Parallel Lanes"]
+            MODE_DELIVERY["1. Delivery Mode<br/>• Auto (Rekomendasi Cerdas)<br/>• Lossless Document (Bit-Exact 100%)<br/>• Native Media (Telegram Stream / Player)"]
+            IMG_SETTINGS["2. Image Transcoding Matrix<br/>• Target Format: PNG 100% Lossless / JPEG Q100 4:4:4<br/>• Scope: All / Modern Web / Desain & RAW / Custom 19 Exts"]
+            VID_SETTINGS["3. Video Transcoding & Remux Matrix<br/>• Mode: Fast Remux Copy / Full GPU Re-encode / Raw Doc<br/>• Accel: Auto / NVENC (Nvidia) / QSV (Intel) / AMF (AMD) / CPU<br/>• CRF: 18 s/d 28 • Max Res: 4K / 1080p / 720p / 480p / Source"]
+            AUD_SETTINGS["4. Audio & Voice Policy<br/>• Music Stream: ID3 Tags, Cover Art, Performer & Title<br/>• Voice Note: Opus Codec + Waveform Generation"]
+            STK_SETTINGS["5. Sticker & Animation Policy<br/>• Anti-Sticker ON: Transcode to MP4 Loop / Static<br/>• Raw Sticker: Kirim Asli .tgs / .webm / .webp"]
+            ALB_SETTINGS["6. Batching & Concurrency Hub<br/>• Single Message vs Batch Album (2-10 items)<br/>• Concurrency: 1 - 10 Parallel MTProto Lanes"]
         end
 
         UI_INPUT --> SETTINGS
@@ -21,7 +22,7 @@ flowchart TD
 
     subgraph TIER1 ["TIER 1: ORCHESTRATION & ACCESS CONTROL (Rust: studio_orch.rs + path_policy.rs)"]
         AUTH_CHECK{"Validasi Path Policy & Keamanan (path_policy.rs)"}
-        BLOCK_SESSION["BLOKIR: File *.session, API Hash, Credential & System Path"]
+        BLOCK_SESSION["BLOKIR: File *.session, API Hash, Credential, .git & System Path"]
         REGISTER_QUEUE["Registrasi Job ID Unik ke Antrean Terkelola (job_queue.rs)"]
         PEER_RESOLVE["Resolusi Target Telegram: Chat / Channel / Topic ID / Saved Messages ('me')"]
 
@@ -53,82 +54,139 @@ flowchart TD
 
     DUP_PASS --> TIER3
 
-    subgraph TIER3 ["TIER 3: MEDIA CLASSIFICATION & HARDWARE PROBING (Rust: media_prep.rs)"]
+    subgraph TIER3 ["TIER 3: MEDIA CLASSIFICATION & HARDWARE PROBING (Rust: media_prep.rs + media_classifier.rs)"]
         MAGIC_PROBE["Inspeksi Magic Bytes, Header & Ekstensi Nyata"]
         HW_PROBE["FFmpeg Probe: Codec Video/Audio, Resolusi, Durasi & Enkoder GPU (NVENC/QSV/AMF/CPU)"]
         
-        CLASSIFY{"Klasifikasi Tipe Berkas"}
+        CLASSIFY{"Klasifikasi Tipe Media & Berkas"}
         
-        TYPE_IMAGE["Gambar Statis / Multi-Frame<br/>(.jpg, .png, .webp, .heic, .avif, .raw, .tiff, .bmp, .svg)"]
-        TYPE_TGS["Stiker Vektor Animasi<br/>(.tgs - Lottie JSON + Gzip)"]
-        TYPE_WEBM["Stiker Video Telegram<br/>(.webm - VP9 with Alpha)"]
-        TYPE_VIDEO["Berkas Video Standar / Container<br/>(.mp4, .mkv, .mov, .avi, .wmv, .flv, .ts, .m2ts)"]
-        TYPE_DOC["Dokumen, Arsip & Biner<br/>(.zip, .rar, .7z, .pdf, .docx, .iso, .exe, .bin)"]
+        %% Category Nodes
+        CAT_IMG_STD["Gambar Standar<br/>(.jpg, .jpeg, .png)"]
+        CAT_IMG_RAW["Kamera RAW & Web Modern<br/>(.raw, .cr2, .nef, .arw, .dng, .heic, .avif, .jxl)"]
+        CAT_IMG_DESIGN["Desain & Grafis Cetak<br/>(.psd, .ai, .svg, .tiff, .bmp, .tga)"]
+        CAT_STK_VEC["Stiker Vektor Telegram<br/>(.tgs - Lottie JSON + Gzip)"]
+        CAT_STK_VID["Stiker Video & Animasi<br/>(.webm VP9 Alpha, .gif, .apng)"]
+        CAT_VID_STD["Video Standar & Apple<br/>(.mp4, .m4v, .mov ProRes)"]
+        CAT_VID_CONT["Video Container & Broadcast<br/>(.mkv, .avi, .wmv, .flv, .ts, .m2ts, .3gp)"]
+        CAT_VID_NOTE["Pesan Video Bulat Telescope<br/>(.mp4 1:1 Aspect Ratio)"]
+        CAT_AUD_MUSIC["Audio Musik & Lossless<br/>(.mp3, .m4a, .aac, .flac, .wav, .alac)"]
+        CAT_AUD_VOICE["Pesan Suara Voice Note<br/>(.ogg Opus)"]
+        CAT_DOC_OFFICE["Dokumen PDF, Office & Teks<br/>(.pdf, .docx, .xlsx, .pptx, .txt, .md)"]
+        CAT_DOC_CODE["Berkas Kode Sumber<br/>(.ts, .rs, .py, .json, .sql, .html)"]
+        CAT_ARCH_BIN["Arsip & Installer Biner<br/>(.zip Sparse-Reader, .rar, .7z, .apk, .exe, .iso)"]
 
         MAGIC_PROBE --> HW_PROBE
         HW_PROBE --> CLASSIFY
-        CLASSIFY --> TYPE_IMAGE
-        CLASSIFY --> TYPE_TGS
-        CLASSIFY --> TYPE_WEBM
-        CLASSIFY --> TYPE_VIDEO
-        CLASSIFY --> TYPE_DOC
+        CLASSIFY --> CAT_IMG_STD
+        CLASSIFY --> CAT_IMG_RAW
+        CLASSIFY --> CAT_IMG_DESIGN
+        CLASSIFY --> CAT_STK_VEC
+        CLASSIFY --> CAT_STK_VID
+        CLASSIFY --> CAT_VID_STD
+        CLASSIFY --> CAT_VID_CONT
+        CLASSIFY --> CAT_VID_NOTE
+        CLASSIFY --> CAT_AUD_MUSIC
+        CLASSIFY --> CAT_AUD_VOICE
+        CLASSIFY --> CAT_DOC_OFFICE
+        CLASSIFY --> CAT_DOC_CODE
+        CLASSIFY --> CAT_ARCH_BIN
     end
 
     subgraph TIER4 ["TIER 4: PREPARATION, TRANSCODING & RESILIENT THUMBNAILS (Rust: media_prep.rs)"]
-        %% Image Branch
-        TYPE_IMAGE --> CHECK_IMG_MODE{"Cek Delivery & Transcode Mode"}
-        CHECK_IMG_MODE -->|"Lossless Document"| IMG_DOC_RAW["Pertahankan Berkas Asli Bit-Exact (.webp / .heic / dll)"]
-        CHECK_IMG_MODE -->|"Transcode Aktif"| IMG_CONVERT["FFmpeg Convert: PNG 100% Lossless / JPEG Q100 4:4:4"]
-        CHECK_IMG_MODE -->|"Native Media"| IMG_NATIVE["Siapkan Format Foto Standar"]
-        
-        IMG_DOC_RAW --> GEN_IMG_THUMB["Generate Thumbnail JPEG 320px Tajam (Tanpa Probe Durasi Redundan)"]
-        IMG_CONVERT --> GEN_IMG_THUMB
-        IMG_NATIVE --> GEN_IMG_THUMB
+        %% Branch 1: Gambar Standar
+        CAT_IMG_STD --> CHECK_IMG_STD{"Mode Delivery"}
+        CHECK_IMG_STD -->|"Lossless Document"| IMG_STD_DOC["Kirim Dokumen Utuh (force_file)"]
+        CHECK_IMG_STD -->|"Media Native / Auto"| IMG_STD_PHOTO["Kirim sebagai Foto Galeri Telegram"]
+        IMG_STD_DOC --> GEN_THUMB_IMG["Generate Thumbnail JPEG 320px Tajam"]
+        IMG_STD_PHOTO --> GEN_THUMB_IMG
 
-        %% TGS Branch
-        TYPE_TGS --> CHECK_TGS_MODE{"Cek Anti-Sticker Policy"}
+        %% Branch 2: Kamera RAW & Web Modern
+        CAT_IMG_RAW --> CHECK_RAW_MODE{"Cek Pengaturan Transcode"}
+        CHECK_RAW_MODE -->|"Lossless Document"| RAW_DOC["Pertahankan Bit-Exact 100% (force_file)"]
+        CHECK_RAW_MODE -->|"Transcode Aktif"| RAW_TRANS["FFmpeg Convert: PNG 100% Lossless / JPEG Q100 4:4:4"]
+        RAW_DOC --> GEN_THUMB_RAW["Ekstrak Embedded Thumbnail dari RAW / HEIC"]
+        RAW_TRANS --> GEN_THUMB_RAW
+
+        %% Branch 3: Desain & Grafis
+        CAT_IMG_DESIGN --> DESIGN_DOC["Pertahankan PSD/AI/SVG Asli + force_file"]
+        DESIGN_DOC --> GEN_THUMB_DESIGN["Ekstrak Flat Layer Preview untuk Thumbnail 320px"]
+
+        %% Branch 4: Stiker Vektor .TGS
+        CAT_STK_VEC --> CHECK_TGS_MODE{"Cek Anti-Sticker Policy"}
         CHECK_TGS_MODE -->|"Anti-Sticker ON"| TGS_TO_MP4["Render Vektor Lottie ke Video MP4 Loop 60 FPS"]
         CHECK_TGS_MODE -->|"Anti-Sticker OFF"| TGS_RAW["Siapkan Payload Vektor .tgs Asli"]
-        TGS_TO_MP4 --> GEN_TGS_THUMB["Generate Thumbnail Pratinjau Poster"]
-        TGS_RAW --> GEN_TGS_THUMB
+        TGS_TO_MP4 --> GEN_THUMB_TGS["Generate Poster Pratinjau Thumbnail"]
+        TGS_RAW --> GEN_THUMB_TGS
 
-        %% WebM Sticker Branch
-        TYPE_WEBM --> CHECK_WEBM_MODE{"Cek Delivery Mode & Anti-Sticker"}
-        CHECK_WEBM_MODE -->|"Anti-Sticker ON"| WEBM_TO_MP4["Transcode VP9 Alpha ke MP4 H.264 Standar"]
-        CHECK_WEBM_MODE -->|"Mode Stiker / Video"| WEBM_RAW["Pertahankan WebM VP9 Alpha + Atribut Video"]
-        CHECK_WEBM_MODE -->|"Mode Dokumen"| WEBM_DOC["Format Dokumen Mentah (force_file)"]
-        WEBM_TO_MP4 --> GEN_WEBM_THUMB["Ekstrak Thumbnail Frame 0 JPEG"]
-        WEBM_RAW --> GEN_WEBM_THUMB
-        WEBM_DOC --> GEN_WEBM_THUMB
+        %% Branch 5: Stiker Video & GIF
+        CAT_STK_VID --> CHECK_VIDSTK_MODE{"Cek Anti-Sticker Policy"}
+        CHECK_VIDSTK_MODE -->|"Anti-Sticker ON"| VIDSTK_TO_MP4["Transcode VP9 Alpha ke MP4 H.264 Standar"]
+        CHECK_VIDSTK_MODE -->|"Anti-Sticker OFF"| VIDSTK_RAW["Pertahankan WebM Alpha / GIF Native Stream"]
+        VIDSTK_TO_MP4 --> GEN_THUMB_VIDSTK["Ekstrak Thumbnail Frame 0 JPEG"]
+        VIDSTK_RAW --> GEN_THUMB_VIDSTK
 
-        %% Video Branch
-        TYPE_VIDEO --> CHECK_VID_MODE{"Cek Codec Video & Pengaturan"}
-        CHECK_VID_MODE -->|"MP4 H.264 + AAC"| VID_FAST_COPY["Fast Remux / Direct Copy (0% CPU Overhead)"]
-        CHECK_VID_MODE -->|"Non-MP4 & Re-encode ON"| VID_GPU_ENCODE["FFmpeg GPU Enkoder (NVENC/QSV/AMF) / CPU (CRF 18-28)"]
-        CHECK_VID_MODE -->|"Mode Dokumen Mentah"| VID_RAW_DOC["Kirim Video Asli Tanpa Konversi"]
-        VID_FAST_COPY --> GEN_VID_META["Ekstrak W, H, Durasi Detik + Thumbnail Frame 0"]
-        VID_GPU_ENCODE --> GEN_VID_META
-        VID_RAW_DOC --> GEN_VID_META
+        %% Branch 6: Video Standar & Apple MOV
+        CAT_VID_STD --> CHECK_VID_CODEC{"Cek Codec MOV/MP4"}
+        CHECK_VID_CODEC -->|"H.264 / AAC Compatible"| VID_FAST_COPY["Fast Remux / Direct Copy (0% CPU Overhead)"]
+        CHECK_VID_CODEC -->|"ProRes / HEVC 10-bit"| VID_GPU_TRANS["FFmpeg GPU Re-encode (NVENC/QSV/AMF)"]
+        VID_FAST_COPY --> GEN_THUMB_VID["Ekstrak W, H, Durasi Detik + Thumbnail Frame 0"]
+        VID_GPU_TRANS --> GEN_THUMB_VID
 
-        %% Doc & ZIP Branch
-        TYPE_DOC --> CHECK_ZIP{"Apakah Berkas .ZIP?"}
-        CHECK_ZIP -->|"Ya .ZIP"| ZIP_PREP["Persiapkan Header Metadata Ramah Sparse-Reader"]
-        CHECK_ZIP -->|"Biner Lain"| DOC_RAW["Siapkan Dokumen Asli 100% Bit-Exact"]
+        %% Branch 7: Video Container & Broadcast
+        CAT_VID_CONT --> CHECK_CONT_MODE{"Cek Delivery Mode"}
+        CHECK_CONT_MODE -->|"Auto / Media Native"| CONT_TRANS["FFmpeg GPU Transcode Container ke MP4 H.264"]
+        CHECK_CONT_MODE -->|"Document Lossless"| CONT_DOC["Kirim Video Asli Mentah (force_file)"]
+        CONT_TRANS --> GEN_THUMB_VID
+        CONT_DOC --> GEN_THUMB_VID
 
-        %% Resilient Fallback Engine
-        GEN_IMG_THUMB --> RESILIENT_THUMB{"Apakah Pembuatan Thumbnail Sukses?"}
-        GEN_TGS_THUMB --> RESILIENT_THUMB
-        GEN_WEBM_THUMB --> RESILIENT_THUMB
-        GEN_VID_META --> RESILIENT_THUMB
-        ZIP_PREP --> RESILIENT_THUMB
-        DOC_RAW --> RESILIENT_THUMB
+        %% Branch 8: Video Bulat Telescope
+        CAT_VID_NOTE --> VID_NOTE_PREP["Validasi Rasio 1:1, Durasi <= 60 detik, MP4 Codec"]
+        VID_NOTE_PREP --> GEN_THUMB_NOTE["Generate Poster Lingkaran"]
 
-        RESILIENT_THUMB -->|"Sukses"| THUMB_ATTACHED["Lampirkan Thumbnail JPEG ke Payload MTProto"]
-        RESILIENT_THUMB -->|"Gagal / Corrupt / Format Asing"| RESILIENT_FALLBACK["RESILIENT NON-BLOCKING FALLBACK:<br/>Jangan Batalkan Transfer! Lanjutkan unggah berkas asli tanpa thumbnail"]
+        %% Branch 9: Audio Musik & Lossless
+        CAT_AUD_MUSIC --> AUD_ID3_PARSE["Ekstraksi ID3 Tag: Title, Performer, Album, Durasi"]
+        AUD_ID3_PARSE --> GEN_THUMB_AUD["Ekstrak Embedded Cover Album Art (JPEG)"]
+
+        %% Branch 10: Pesan Suara Voice
+        CAT_AUD_VOICE --> AUD_VOICE_PREP["Validasi Opus Codec + Generate Waveform Bytes (Peak Array)"]
+
+        %% Branch 11: Dokumen PDF, Office, & Teks
+        CAT_DOC_OFFICE --> CHECK_PDF{"Apakah Berkas PDF?"}
+        CHECK_PDF -->|"Ya PDF"| PDF_COVER["Ekstrak Halaman Sampul 1 sebagai Thumbnail JPEG"]
+        CHECK_PDF -->|"Office / Teks"| OFFICE_RAW["Format Dokumen Utuh + Ikon Standar"]
+        PDF_COVER --> RESILIENT_THUMB
+        OFFICE_RAW --> RESILIENT_THUMB
+
+        %% Branch 12: Berkas Kode Sumber
+        CAT_DOC_CODE --> CODE_RAW["Preservasi Teks Utuh (Mendukung VSCode Syntax Highlighter di AutoGram)"]
+        CODE_RAW --> RESILIENT_THUMB
+
+        %% Branch 13: Arsip & Installer Biner
+        CAT_ARCH_BIN --> CHECK_ZIP_SPARSE{"Apakah Berkas .ZIP?"}
+        CHECK_ZIP_SPARSE -->|"Ya .ZIP"| ZIP_SPARSE["Persiapkan Header Metadata Ramah Sparse-Reader"]
+        CHECK_ZIP_SPARSE -->|"Biner Lain / APK / ISO"| BIN_RAW["Preservasi Biner 100% Bit-Exact (Pemberian Ikon APK/EXE)"]
+        ZIP_SPARSE --> RESILIENT_THUMB
+        BIN_RAW --> RESILIENT_THUMB
+
+        %% Hub Pengumpulan Thumbnail
+        GEN_THUMB_IMG --> RESILIENT_THUMB
+        GEN_THUMB_RAW --> RESILIENT_THUMB
+        GEN_THUMB_DESIGN --> RESILIENT_THUMB
+        GEN_THUMB_TGS --> RESILIENT_THUMB
+        GEN_THUMB_VIDSTK --> RESILIENT_THUMB
+        GEN_THUMB_VID --> RESILIENT_THUMB
+        GEN_THUMB_NOTE --> RESILIENT_THUMB
+        GEN_THUMB_AUD --> RESILIENT_THUMB
+        AUD_VOICE_PREP --> RESILIENT_THUMB
+
+        %% Resilient Fallback Router
+        RESILIENT_THUMB{"Apakah Thumbnail Sukses Dibuat?"}
+        RESILIENT_THUMB -->|"Sukses"| THUMB_OK["Lampirkan Thumbnail JPEG ke Objek MTProto"]
+        RESILIENT_THUMB -->|"Gagal / Corrupt / Format Langka"| THUMB_FAIL["RESILIENT NON-BLOCKING FALLBACK:<br/>Jangan Batalkan Transfer! Lanjutkan unggah berkas asli tanpa thumbnail"]
     end
 
-    THUMB_ATTACHED --> TIER5
-    RESILIENT_FALLBACK --> TIER5
+    THUMB_OK --> TIER5
+    THUMB_FAIL --> TIER5
 
     subgraph TIER5 ["TIER 5: MTPROTO CHUNKING & NETWORK STREAMING (Rust: media_transfer.rs + Grammers)"]
         RATE_CTRL["Smart Rate Controller: Token Bucket Slot (1-10 Lanes) + FloodWait Auto-Backoff"]
@@ -145,12 +203,14 @@ flowchart TD
         CHUNK_BIG --> BUILD_MTPROTO
 
         subgraph BUILD_MTPROTO ["Konstruksi Objek MTProto Telegram Eksak"]
-            MT_PHOTO["InputMediaUploadedPhoto { file: InputFile, ... }"]
-            MT_DOC_WEBP["InputMediaUploadedDocument { force_file: true, DocumentAttributeFilename, thumb }<br/>*Jaminan Mutlak Anti-Stiker WebP*"]
-            MT_VIDEO["InputMediaUploadedDocument { DocumentAttributeVideo(supports_streaming), DocumentAttributeFilename }"]
-            MT_STICKER["InputMediaUploadedDocument { DocumentAttributeSticker, DocumentAttributeFilename }"]
-            MT_AUDIO["InputMediaUploadedDocument { DocumentAttributeAudio, DocumentAttributeFilename }"]
-            MT_DOC_GENERIC["InputMediaUploadedDocument { force_file: true, DocumentAttributeFilename }"]
+            MT_PHOTO["InputMediaUploadedPhoto { file: InputFile, ... }<br/>(Foto Galeri Chat)"]
+            MT_DOC_WEBP["InputMediaUploadedDocument { force_file: true, DocumentAttributeFilename, thumb }<br/>*(Jaminan Mutlak Anti-Stiker WebP)*"]
+            MT_VIDEO["InputMediaUploadedDocument { DocumentAttributeVideo(supports_streaming), DocumentAttributeFilename }<br/>(Video Streaming Player)"]
+            MT_VID_NOTE["InputMediaUploadedDocument { DocumentAttributeVideo(round_message: true) }<br/>(Pesan Video Bulat)"]
+            MT_STICKER["InputMediaUploadedDocument { DocumentAttributeSticker(alt), DocumentAttributeFilename }<br/>(Stiker Vektor/Video)"]
+            MT_AUDIO["InputMediaUploadedDocument { DocumentAttributeAudio(title, performer), thumb }<br/>(Pemutar Musik)"]
+            MT_VOICE["InputMediaUploadedDocument { DocumentAttributeAudio(voice: true, waveform) }<br/>(Pesan Suara Waveform)"]
+            MT_DOC_GENERIC["InputMediaUploadedDocument { force_file: true, DocumentAttributeFilename, thumb }<br/>(Dokumen, Arsip, Kode & Biner)"]
         end
     end
 
