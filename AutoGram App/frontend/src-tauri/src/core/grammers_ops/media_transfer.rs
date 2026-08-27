@@ -777,10 +777,67 @@ pub fn upload_prepared_album_blocking_with_app(
                         .into()
                     };
 
-                    // Pass raw_uploaded_media directly into InputSingleMedia
-                    // This sends InputMediaUploadedPhoto/InputMediaUploadedDocument directly to SendMultiMedia
-                    // avoiding the redundant UploadMedia call that causes MEDIA_EMPTY errors on documents/photos
-                    let committed_media = raw_uploaded_media;
+                    // Convert raw uploaded media to committed InputMediaPhoto / InputMediaDocument via UploadMedia
+                    // This is required by Telegram MTProto messages.sendMultiMedia endpoint to prevent MEDIA_INVALID
+                    let peer_input: tl::enums::InputPeer = peer.into();
+                    let committed_media = match client
+                        .invoke(&tl::functions::messages::UploadMedia {
+                            business_connection_id: None,
+                            peer: peer_input,
+                            media: raw_uploaded_media.clone(),
+                        })
+                        .await
+                    {
+                        Ok(tl::enums::MessageMedia::Photo(photo_media)) => {
+                            if let Some(tl::enums::Photo::Photo(photo)) = photo_media.photo {
+                                tl::types::InputMediaPhoto {
+                                    spoiler: item.spoiler,
+                                    id: tl::types::InputPhoto {
+                                        id: photo.id,
+                                        access_hash: photo.access_hash,
+                                        file_reference: photo.file_reference,
+                                    }
+                                    .into(),
+                                    ttl_seconds: None,
+                                    live_photo: false,
+                                    video: None,
+                                }
+                                .into()
+                            } else {
+                                raw_uploaded_media
+                            }
+                        }
+                        Ok(tl::enums::MessageMedia::Document(doc_media)) => {
+                            if let Some(tl::enums::Document::Document(doc)) = doc_media.document {
+                                tl::types::InputMediaDocument {
+                                    spoiler: item.spoiler,
+                                    id: tl::types::InputDocument {
+                                        id: doc.id,
+                                        access_hash: doc.access_hash,
+                                        file_reference: doc.file_reference,
+                                    }
+                                    .into(),
+                                    ttl_seconds: None,
+                                    query: None,
+                                    video_cover: None,
+                                    video_timestamp: None,
+                                }
+                                .into()
+                            } else {
+                                raw_uploaded_media
+                            }
+                        }
+                        Ok(_) => raw_uploaded_media,
+                        Err(e) => {
+                            tg_log::warn(
+                                BACKEND,
+                                "upload_media_album_error",
+                                format!("UploadMedia for album failed: {e:?}, using raw media"),
+                            );
+                            raw_uploaded_media
+                        }
+                    };
+
                     multi_media.push(tl::enums::InputSingleMedia::Media(
                         tl::types::InputSingleMedia {
                             media: committed_media,

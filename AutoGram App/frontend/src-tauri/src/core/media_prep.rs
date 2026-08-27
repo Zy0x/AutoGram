@@ -2275,7 +2275,7 @@ pub fn maybe_transcode_image_for_telegram(
         }
     };
 
-    let target_fmt = target_format.unwrap_or("png").to_ascii_lowercase();
+    let target_fmt = target_format.unwrap_or("jpg").to_ascii_lowercase();
     let is_target_png = target_fmt == "png";
 
     let temp_dir = std::env::temp_dir();

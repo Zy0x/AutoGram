@@ -330,7 +330,6 @@ pub fn classify_prepared_delivery(
     }
     let payload_class = match category {
         MediaCategory::JpegImage => PayloadClass::NativeVisual,
-        MediaCategory::PngImage if transformed => PayloadClass::NativeVisual,
         MediaCategory::PngImage => PayloadClass::DocumentGroup,
         MediaCategory::Mp4Video if native_video_validated => PayloadClass::NativeVisual,
         MediaCategory::Audio if is_consumer_audio(path) => PayloadClass::AudioGroup,
@@ -342,7 +341,6 @@ pub fn classify_prepared_delivery(
     // transcoded from a WebP sticker) is sent intact instead of being silently
     // rejected or recompressed with quality loss by the Telegram server.
     let (payload_class, size_demoted) = if payload_class == PayloadClass::NativeVisual
-        && matches!(category, MediaCategory::JpegImage)
         && exceeds_native_photo_limit(path)
     {
         (PayloadClass::DocumentGroup, true)
@@ -385,8 +383,8 @@ mod tests {
 
     #[test]
     fn magic_wins_over_misleading_extension() {
-        let path = fixture("fake.jpg", b"%PDF-1.7\n");
-        assert_eq!(classify_media(&path), MediaCategory::PdfDocument);
+        let path = fixture("fake.mp4", &[0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+        assert_eq!(classify_media(&path), MediaCategory::JpegImage);
     }
 
     #[test]
@@ -417,10 +415,23 @@ mod tests {
 
     #[test]
     fn iso_bmff_brands_do_not_all_become_video() {
-        let heic = fixture("photo.bin", b"\0\0\0\x18ftypheic\0\0\0\0mif1");
-        let m4a = fixture("sound.bin", b"\0\0\0\x18ftypM4A \0\0\0\0isom");
-        assert_eq!(classify_media(&heic), MediaCategory::OtherImage);
-        assert_eq!(classify_media(&m4a), MediaCategory::Audio);
+        // 'avif' brand
+        let mut avif = vec![0, 0, 0, 0x1c, b'f', b't', b'y', b'p', b'a', b'v', b'i', b'f'];
+        avif.extend_from_slice(&[0u8; 16]);
+        let path = fixture("sample.avif", &avif);
+        assert_eq!(classify_media(&path), MediaCategory::OtherImage);
+
+        // 'isom' brand -> Mp4Video
+        let mut mp4 = vec![0, 0, 0, 0x1c, b'f', b't', b'y', b'p', b'i', b's', b'o', b'm'];
+        mp4.extend_from_slice(&[0u8; 16]);
+        let path = fixture("sample.mp4", &mp4);
+        assert_eq!(classify_media(&path), MediaCategory::Mp4Video);
+
+        // Audio brands: 'M4A ', 'M4B '
+        let mut m4a = vec![0, 0, 0, 0x1c, b'f', b't', b'y', b'p', b'M', b'4', b'A', b' '];
+        m4a.extend_from_slice(&[0u8; 16]);
+        let path = fixture("audio.m4a", &m4a);
+        assert_eq!(classify_media(&path), MediaCategory::Audio);
     }
 
     #[test]
@@ -453,11 +464,11 @@ mod tests {
     }
 
     #[test]
-    fn oversized_png_is_auto_demoted_to_document() {
-        // Build a fake PNG header + enough bytes to exceed 10 MB
-        let mut payload = vec![0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+    fn oversized_photo_is_auto_demoted_to_document() {
+        // Build a fake JPEG header + enough bytes to exceed 10 MB
+        let mut payload = vec![0xff, 0xd8, 0xff, 0xdb];
         payload.extend_from_slice(&vec![0u8; 10 * 1024 * 1024 + 1]); // 10 MB + 1 byte
-        let path = fixture("big_sticker.png", &payload);
+        let path = fixture("big_photo.jpg", &payload);
         let result = classify_prepared_delivery(&path, QualityMode::Smart, false, false);
         assert_eq!(result.payload_class, PayloadClass::DocumentGroup);
         assert!(result.as_document);

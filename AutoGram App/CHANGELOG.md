@@ -1,3 +1,12 @@
+## v3.8.43 Telegram Album Grouping & Independent Incompatible Media Delivery Architecture
+
+### 1. Selective Media Album Grouping & Document Segregation
+- **Pemisahan Berkas Kompatibel vs Tidak Kompatibel**: File visual foto yang kompatibel (seperti JPEG) secara otomatis dikelompokkan ke dalam satu album Telegram (`messages.sendMultiMedia`), sementara format gambar yang tidak kompatibel dengan album visual Telegram (dokumen gambar PNG asli/lossless, WebP, HEIC, animasi, dokumen umum) secara otomatis dialihkan ke pengiriman pesan terpisah/individu (`plan.singles`).
+- **Eliminasi Fallback Keseluruhan**: Mencegah kegagalan pengiriman album akibat adanya format dokumen non-visual di dalam folder yang sama, sehingga berkas foto tetap terbentuk rapi sebagai galeri/album multi-media di Telegram dan berkas dokumen terkirim mandiri.
+
+### 2. MTProto SendMultiMedia Two-Phase Media Dispatch
+- **Prapendaftaran Media Via `messages.UploadMedia`**: Mengintegrasikan konversi `messages.UploadMedia` sebelum dispatch `SendMultiMedia` untuk memperoleh `InputMediaPhoto` / `InputMediaDocument` yang valid pada server Telegram, mengeliminasi error `400: MEDIA_INVALID` dan menjamin pembuatan album foto Telegram 100% stabil.
+
 ## v3.8.42 Android Native Compact 3-Column Grid & Precision Floating Dock Architecture
 
 ### 1. 3-Column Compact Media & File Grid

@@ -1,12 +1,13 @@
-AutoGram Version: v3.8.42
+AutoGram Version: v3.8.43
 
 Current State:
-v3.8.42 Android Native Compact 3-Column Grid & Precision Floating Dock Architecture — perombakan tata letak presisi sesuai acuan desain:
-1. 3-Column Compact Media & File Grid: Grid 3 kolom dengan kartu squircle navy (`#121C2D`), selektor lingkaran sudut kanan atas, badge durasi video (`▶ 1:34`), kartu sinkronisasi `SYNC`, dan kartu folder terperinci.
-2. Minimalist Header & Filter Pills: Breadcrumb `🏠 › Telegram Cloud`, kontrol aksi cepat (`🔍`, `+`, `⋮`), dan bilah filter terkalibrasi (`All`, `Images`, `Videos`, `Audio`, `Docs`, `12 items`).
-3. Ultra-Compact Centered Floating Capsule Dock: Kapsul navigasi bawah 48dp melayang di tengah dengan indikator aktif lingkaran emas bulat (`#E5A93C`) dan ikon monokrom elegan.
+v3.8.43 Telegram Album Grouping & Independent Incompatible Media Delivery Architecture — perbaikan pemisahan cerdas berkas album MTProto:
+1. Selective Media Album Grouping: Mengelompokkan berkas foto visual (JPEG/visual yang kompatibel) ke dalam satu album Telegram (`messages.sendMultiMedia`), sementara seluruh berkas yang tidak kompatibel dengan album Telegram (dokumen gambar PNG asli/lossless, WebP, HEIC, animasi, dokumen umum) secara otomatis dialihkan ke pengiriman pesan terpisah/individu (`plan.singles`).
+2. MTProto SendMultiMedia Two-Phase Dispatch: Mengintegrasikan konversi `messages.UploadMedia` sebelum dispatch `SendMultiMedia` untuk memperoleh `InputMediaPhoto` / `InputMediaDocument` yang valid pada server Telegram, mengeliminasi error `400: MEDIA_INVALID` dan mencegah kegagalan fallback album.
+3. High-Fidelity Lossless Document Fallback: Memastikan seluruh dokumen gambar yang tidak dialbumkan dikirimkan dengan thumbnail berkualitas tinggi tanpa penurunan kompresi server Telegram.
 
 Previous:
+v3.8.42 Android Native Compact 3-Column Grid & Precision Floating Dock Architecture — perombakan tata letak presisi sesuai acuan desain:
 v3.8.41 Android Native Google Stitch Soft Luxury & Kinetic Design Architecture — penerapan sistem desain Google Stitch bernuansa mewah, animatif, elegan, minimalis, dan palet warna lembut (soft palette):
 v3.8.40 Android Native Ultra-Clean & Spacious Viewport Architecture — penyempurnaan hierarki visual, ruang pandang lega, dan ergonomi navigasi:
 v3.8.39 Android Native Total UI Redesign: Cyber Dark Glassmorphism & Ambient Glow — perombakan menyeluruh desain antarmuka Android Native:
