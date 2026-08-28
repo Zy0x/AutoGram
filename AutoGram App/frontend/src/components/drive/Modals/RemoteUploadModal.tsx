@@ -41,6 +41,8 @@ import type { DriveCredentials } from '../../../lib/telegram/driveApi/driveApiUt
 import { driveListTopics } from '../../../lib/telegram/driveApi/driveFoldersApi';
 import { PeerAvatar } from '../Navigation/sidebarUtils';
 import { formatDriveBytes } from '../../../lib/telegram/driveTypes';
+import { invoke } from '@tauri-apps/api/core';
+import { detectTauriRuntime } from '../../../lib/tauri/platform';
 import { nativeReadClipboardText } from '../../../lib/tauri/desktopClipboard';
 import {
   resolveRemoteMediaUrl,
@@ -1622,7 +1624,7 @@ export function RemoteUploadModal({
                             </div>
                             <div className="td-remote-active-player-badges">
                               <span className="td-remote-item-card-badge">
-                                {getFormatDisplayBadge(activePreviewChosenFmt, t) || activePreviewChosenFmt?.resolution || t('speedtest.remote_badge_hd')}
+                                {(activePreviewChosenFmt && getFormatDisplayBadge(activePreviewChosenFmt, t)) || activePreviewChosenFmt?.resolution || t('speedtest.remote_badge_hd')}
                               </span>
                               {activePreviewChosenFmt?.filesizeBytes ? (
                                 <span className="td-remote-item-card-size">

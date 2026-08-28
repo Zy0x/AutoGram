@@ -34,7 +34,7 @@ describe('streamrizzResolver', () => {
       </html>
     `;
 
-    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any, opts: any) => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url: any, opts: any) => {
       if (opts?.method === 'HEAD') {
         return new Response(null, {
           status: 200,
