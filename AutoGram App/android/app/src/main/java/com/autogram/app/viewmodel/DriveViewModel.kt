@@ -152,6 +152,18 @@ class DriveViewModel : ViewModel() {
         _uiState.update { it.copy(selectedIds = emptySet()) }
     }
 
+    fun selectAll(allItems: List<DriveFileItem>) {
+        _uiState.update { it.copy(selectedIds = allItems.map { item -> item.id }.toSet()) }
+    }
+
+    fun invertSelection(allItems: List<DriveFileItem>) {
+        _uiState.update { current ->
+            val allIds = allItems.map { it.id }.toSet()
+            val inverted = allIds - current.selectedIds
+            current.copy(selectedIds = inverted)
+        }
+    }
+
     fun deleteSelected() {
         viewModelScope.launch {
             val ids = _uiState.value.selectedIds.toList()

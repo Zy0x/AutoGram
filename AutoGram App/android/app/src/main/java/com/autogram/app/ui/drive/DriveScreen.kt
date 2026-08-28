@@ -40,8 +40,13 @@ fun DriveScreen(
         onRefresh = { viewModel.loadFolder(state.currentPath) },
         onUpload = { /* Launch system file picker */ },
         onClearSelection = viewModel::clearSelection,
-        onMove = { /* Move handler */ },
-        onDownload = { /* Download handler */ },
+        onSelectAll = { viewModel.selectAll(state.items) },
+        onInvertSelection = { viewModel.invertSelection(state.items) },
+        onDownloadZip = { /* Download batch as ZIP */ },
+        onCleanForward = { /* Clean copy transfer */ },
+        onMoveFolder = { /* Move handler */ },
+        onCopyLinks = { /* Copy telegram cloud links */ },
+        onTagCategory = { /* Tag category handler */ },
         onDeleteSelected = viewModel::deleteSelected,
         onItemClick = { item ->
             if (state.selectedIds.isNotEmpty()) {
@@ -64,8 +69,13 @@ fun DriveScreenContent(
     onRefresh: () -> Unit = {},
     onUpload: () -> Unit = {},
     onClearSelection: () -> Unit = {},
-    onMove: () -> Unit = {},
-    onDownload: () -> Unit = {},
+    onSelectAll: () -> Unit = {},
+    onInvertSelection: () -> Unit = {},
+    onDownloadZip: () -> Unit = {},
+    onCleanForward: () -> Unit = {},
+    onMoveFolder: () -> Unit = {},
+    onCopyLinks: () -> Unit = {},
+    onTagCategory: () -> Unit = {},
     onDeleteSelected: () -> Unit = {},
     onItemClick: (DriveFileItem) -> Unit = {},
     onItemLongClick: (DriveFileItem) -> Unit = {}
@@ -93,6 +103,7 @@ fun DriveScreenContent(
             DriveTopBar(
                 currentPath = state.currentPath,
                 itemCount = filteredItems.size,
+                selectedCount = state.selectedIds.size,
                 searchQuery = state.searchQuery,
                 onSearchChange = onSearchChange,
                 mediaFilter = state.mediaFilter,
@@ -100,15 +111,16 @@ fun DriveScreenContent(
                 isGridView = state.isGridView,
                 onToggleViewMode = onToggleViewMode,
                 onRefresh = onRefresh,
-                onUpload = onUpload
-            )
-
-            SelectionStrip(
-                selectedCount = state.selectedIds.size,
-                onCancel = onClearSelection,
-                onMove = onMove,
-                onDownload = onDownload,
-                onDelete = onDeleteSelected
+                onUpload = onUpload,
+                onClearSelection = onClearSelection,
+                onSelectAll = onSelectAll,
+                onInvertSelection = onInvertSelection,
+                onDownloadZip = onDownloadZip,
+                onCleanForward = onCleanForward,
+                onMoveFolder = onMoveFolder,
+                onCopyLinks = onCopyLinks,
+                onTagCategory = onTagCategory,
+                onDeleteSelected = onDeleteSelected
             )
 
             state.errorCode?.let { code ->

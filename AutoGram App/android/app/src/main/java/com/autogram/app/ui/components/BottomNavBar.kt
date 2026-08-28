@@ -38,19 +38,18 @@ fun BottomNavBar(navController: NavController) {
     ) {
         Surface(
             modifier = Modifier
-                .width(250.dp)
-                .height(48.dp)
+                .wrapContentWidth()
+                .height(52.dp)
                 .clip(CircleShape),
             shape = CircleShape,
-            color = SurfaceDock,
-            border = BorderStroke(1.dp, CardNavyBorder),
-            shadowElevation = 16.dp
+            color = Color(0xF00B1C30),
+            border = BorderStroke(1.dp, Color(0x26FFFFFF)),
+            shadowElevation = 20.dp
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 6.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Screen.items.forEach { screen ->
@@ -67,23 +66,24 @@ fun BottomNavBar(navController: NavController) {
 
                     if (isSelected) {
                         Surface(
-                            modifier = Modifier.size(34.dp),
+                            modifier = Modifier.size(38.dp),
                             shape = CircleShape,
-                            color = GoldAccent
+                            color = GoldAccent.copy(alpha = 0.18f),
+                            border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.35f))
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = screenIcon,
                                     contentDescription = stringResource(screen.titleRes),
-                                    tint = CanvasDeepNavy,
-                                    modifier = Modifier.size(18.dp)
+                                    tint = GoldAccent,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
                     } else {
                         Box(
                             modifier = Modifier
-                                .size(34.dp)
+                                .size(38.dp)
                                 .clip(CircleShape)
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
@@ -99,7 +99,7 @@ fun BottomNavBar(navController: NavController) {
                                 imageVector = screenIcon,
                                 contentDescription = stringResource(screen.titleRes),
                                 tint = TextSecondaryDark,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }

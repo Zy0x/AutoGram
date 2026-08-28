@@ -40,6 +40,15 @@
     <string name="drive_filter_documents">Documents</string>
     <string name="drive_filter_stickers">Stickers</string>
 
+    <string name="drive_action_select_all">Select All</string>
+    <string name="drive_action_invert_selection">Invert Selection</string>
+    <string name="drive_action_download_zip">Download as ZIP</string>
+    <string name="drive_action_clean_forward">Clean-Copy Forward</string>
+    <string name="drive_action_move_folder">Move to Folder</string>
+    <string name="drive_action_copy_links">Copy Cloud Links</string>
+    <string name="drive_action_tag_category">Batch Tag</string>
+    <string name="drive_action_delete_selected">Delete Selected</string>
+
     <string name="transfer_title">Transfer Manager</string>
     <string name="transfer_subtitle">Monitor queues, speed, and processing stages.</string>
     <string name="transfer_empty">No active transfers yet.</string>
@@ -47,6 +56,24 @@
     <string name="transfer_completed_tasks">Completed</string>
     <string name="transfer_speed">%1$s/s</string>
     <string name="transfer_smart_rate">Smart Rate Controller Active</string>
+    <string name="transfer_mtproto_safe">⚡ MTProto Safe · 4 Streams</string>
+    <string name="transfer_tab_active">Active (%1$d)</string>
+    <string name="transfer_tab_history">History (%1$d)</string>
+    <string name="transfer_action_clear_all">Clear All</string>
+    <string name="transfer_metric_speed">Speed</string>
+    <string name="transfer_metric_peak">Peak</string>
+    <string name="transfer_metric_eta">ETA</string>
+    <string name="transfer_metric_volume">Volume</string>
+    <string name="transfer_metric_target">Target</string>
+    <string name="transfer_action_pause_all">Pause All</string>
+    <string name="transfer_action_cancel_all">Cancel All</string>
+    <string name="transfer_action_open_folder">Open Folder</string>
+    <string name="transfer_section_active_queue">Active Queue (%1$d Files)</string>
+    <string name="transfer_section_history">Recently Completed</string>
+    <string name="transfer_status_queued">Queued (Queue #%1$d)</string>
+    <string name="transfer_status_skipped">Skipped · SHA256 Match</string>
+    <string name="transfer_status_done">Completed</string>
+    <string name="transfer_saved_messages">Saved Messages</string>
     <string name="transfer_aggregate_progress">Overall progress</string>
     <string name="transfer_progress_percent">%1$d%%</string>
     <string name="transfer_stage_value">Stage: %1$s</string>
@@ -58,7 +85,7 @@
     <string name="settings_telegram_accounts">Telegram Accounts</string>
     <string name="settings_hardware_encoder">Hardware Encoder</string>
     <string name="settings_storage_budget">Temporary Storage Budget</string>
-    <string name="settings_version">Version 3.7.32 (Native Android Core)</string>
+    <string name="settings_version">Version 3.8.46 (Native Android Core)</string>
     <string name="settings_hardware_accessibility">Hardware</string>
     <string name="settings_storage_accessibility">Storage</string>
     <string name="settings_account_accessibility">Account</string>

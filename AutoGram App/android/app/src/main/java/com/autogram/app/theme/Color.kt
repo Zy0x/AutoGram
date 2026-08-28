@@ -7,36 +7,36 @@ import androidx.compose.ui.graphics.Color
 // AutoGram Compact Modern Palette (Dark Navy & Warm Gold Accent)
 // =============================================================================
 
-// Background & Canvas (Deep Navy Obsidian)
-val CanvasDeepNavy = Color(0xFF090E17)          // #090E17 Main dark canvas
+// Background & Canvas (Deep Obsidian Midnight & Titanium Slate)
+val CanvasDeepNavy = Color(0xFF031427)          // #031427 Main dark canvas
 val CanvasWarmTitanium = CanvasDeepNavy
-val CanvasSecondaryTitanium = Color(0xFF0E1624)
-val SurfaceDeep = Color(0xFF0F1827)
+val CanvasSecondaryTitanium = Color(0xFF0C0F17) // #0C0F17 Container
+val SurfaceDeep = Color(0xFF08162B)
 val BgDark = CanvasDeepNavy
-val SurfaceDark = Color(0xFF131D2E)
-val SurfaceElevatedDark = Color(0xFF19253B)
+val SurfaceDark = Color(0xFF0C0F17)
+val SurfaceElevatedDark = Color(0xFF102034)     // #102034 Elevated surface
 
 val ObsidianPrimary = CanvasDeepNavy
 val ObsidianSecondary = CanvasSecondaryTitanium
 
 // Card & Container Surfaces
-val CardNavyBg = Color(0xFF121C2D)              // #121C2D Card background
-val CardNavyBorder = Color(0xFF1E2D44)          // #1E2D44 Card border
-val SurfaceGlass = Color(0xD9121C2D)
-val SurfaceGlassStrong = Color(0xF2121C2D)
-val SurfaceGlassSoft = Color(0x66121C2D)
-val SurfaceDock = Color(0xF20F1726)
+val CardNavyBg = Color(0xFF102034)              // #102034 Card background
+val CardNavyBorder = Color(0x26FFFFFF)          // rgba(255,255,255,0.15)
+val SurfaceGlass = Color(0xD9102034)
+val SurfaceGlassStrong = Color(0xF2102034)
+val SurfaceGlassSoft = Color(0x66102034)
+val SurfaceDock = Color(0xF20B1C30)             // #0B1C30 Dock
 
-// Gold & Accent System (Matching user reference mockup)
-val GoldAccent = Color(0xFFE5A93C)              // #E5A93C Amber Gold
-val GoldAccentLight = Color(0xFFFBD38D)
+// Gold & Accent System (Titanium Soft Luxury)
+val GoldAccent = Color(0xFFE9C176)              // #E9C176 Champagne Ochre
+val GoldAccentLight = Color(0xFFFFDEA5)
 val ChampagneGold = GoldAccent
 val ChampagneLight = GoldAccentLight
-val MutedIceCyan = Color(0xFF38BDF8)            // Cyan folder & image accent
-val DustySage = Color(0xFF34D399)               // Success & live
+val MutedIceCyan = Color(0xFF54D8E8)            // #54D8E8 Electric Ice Cyan
+val DustySage = Color(0xFF4ADE80)               // #4ADE80 Mint Success
 val SoftViolet = Color(0xFFA78BFA)              // Video
-val WarmAmber = Color(0xFFFBBF24)               // Audio
-val SoftCoral = Color(0xFFF87171)               // Danger
+val WarmAmber = Color(0xFFE9C176)               // Audio / Amber
+val SoftCoral = Color(0xFFFFB4AB)               // #FFB4AB Soft Coral Danger
 
 // Semantic Mapping
 val NeonCyan = MutedIceCyan
