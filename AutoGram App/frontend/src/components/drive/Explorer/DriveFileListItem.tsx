@@ -182,16 +182,7 @@ function DriveFileListItemInner({
         onContextMenu(e);
       }}
       draggable={!onMediaDragPrime}
-      onPointerDown={(e) => {
-        if (e.ctrlKey || e.metaKey) {
-          e.preventDefault();
-          return;
-        }
-        if (e.shiftKey) {
-          e.preventDefault();
-        }
-        onPointerDown(e);
-      }}
+      onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}

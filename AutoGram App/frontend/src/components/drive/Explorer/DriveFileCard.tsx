@@ -408,16 +408,7 @@ function DriveFileCardInner({
       // Pointer-only internal DnD when prime handler is present (avoids HTML5 vs pointer war).
       // HTML5 drag kept only as rare fallback without prime (browser / tests).
       draggable={!onMediaDragPrime}
-      onPointerDown={(e) => {
-        if (e.ctrlKey || e.metaKey) {
-          e.preventDefault();
-          return;
-        }
-        if (e.shiftKey) {
-          e.preventDefault();
-        }
-        onPointerDown(e);
-      }}
+      onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={(e) => {

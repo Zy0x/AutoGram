@@ -72,7 +72,7 @@ export function usePointerDragPrime(
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (e.ctrlKey || e.metaKey) {
+      if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) {
         pointerDown.current = null;
         movedPastThreshold.current = false;
         primed.current = false;
