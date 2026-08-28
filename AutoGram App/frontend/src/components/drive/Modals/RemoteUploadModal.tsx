@@ -693,9 +693,13 @@ export function RemoteUploadModal({
     : '';
   const activePreviewChosenFmt = activePreviewItem?.formats.find((f) => f.id === activePreviewChosenFmtId) || activePreviewItem?.formats[0];
 
-  const [activePlayableUrl, setActivePlayableUrl] = useState<string>('');
+  const singleChosenFormat = useMemo(() => {
+    return resolvedMedia?.formats.find((f) => f.id === selectedFormatId) || resolvedMedia?.formats[0];
+  }, [resolvedMedia, selectedFormatId]);
 
-  const targetMediaForPlayback = effectiveMediaItems.length > 1 ? activePreviewChosenFmt : chosenFormat;
+  const targetMediaForPlayback = effectiveMediaItems.length > 1 ? activePreviewChosenFmt : singleChosenFormat;
+
+  const [activePlayableUrl, setActivePlayableUrl] = useState<string>('');
 
   useEffect(() => {
     let isCancelled = false;
