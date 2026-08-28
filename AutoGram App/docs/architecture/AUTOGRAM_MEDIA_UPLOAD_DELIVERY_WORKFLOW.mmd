@@ -1,0 +1,261 @@
+%% AutoGram — runtime upload & media-delivery workflow
+%% Source of truth: AutoGram App/frontend/src/pages/MediaStudio/index.tsx,
+%% frontend/src-tauri/src/core/studio_orch.rs,
+%% frontend/src-tauri/src/core/grammers_ops/media_transfer.rs, and
+%% crates/autogram-core/src/transfer/{preflight,quality,album}.rs.
+%% The older diagrams that state a hard 9-item album limit are historical;
+%% the active planner clamps the selected grid to 2..10 and TELEGRAM_ALBUM_MAX=10.
+
+flowchart TD
+    START([User starts media delivery]) --> INPUT_KIND{Input source?}
+
+    subgraph UI_LOCAL["A. Local-media entry points"]
+        LOCAL_PICK["Drive Explorer / Media Studio selection\nfile paths, drag-drop, ZIP entry materialized path"]
+        LOCAL_ACTION["Upload action / context menu / batch action"]
+        LOCAL_PICK --> LOCAL_ACTION
+    end
+
+    subgraph UI_REMOTE["B. Remote URL entry — 3-stage / 3-pillar Remote Upload"]
+        R1["Pillar 1 — Universal Smart Input\nSingle URL or batch URLs\ntrim + protocol check (http/https)"]
+        R2["Pillar 2 — Adaptive Media Canvas\nresolveRemoteMediaUrl → provider registry\npreview, metadata, thumbnail, candidate formats"]
+        R3{"Provider result has usable formats?"}
+        R3_NO["No provider result\ntry native deep resolver (desktop)\nthen direct-file inspector / raw URL fallback\npreflight marks remote analysis deferred"]
+        R3_YES["Supported/provider result\nplatform + format candidates + direct URL(s)\nmay include albumImages / allAlbumUrls"]
+        R4{"Album pack selected?"}
+        R4_YES["Expand to all albumImages/allAlbumUrls\n(one URL per selected photo)"]
+        R4_NO["Use selected directUrl\n(one remote item)"]
+        R5["Pillar 3 — Delivery Matrix\nmode: Auto | Uncompressed/Original | Document\nchoose destination chat/Drive peer + optional forum topic"]
+        R1 --> R2 --> R3
+        R3 -->|yes| R3_YES --> R4
+        R3 -->|no| R3_NO --> R4
+        R4 -->|yes| R4_YES --> R5
+        R4 -->|no| R4_NO --> R5
+    end
+
+    INPUT_KIND -->|"local path(s)"| LOCAL_ACTION
+    INPUT_KIND -->|"remote URL(s)"| R1
+    LOCAL_ACTION --> NORMALIZE
+    R5 --> REMOTE_SUBMIT["RemoteUploadModal.handleSubmit\nmap mode → qualityMode/presentationOverride\nonUpload(urls, destination, options)"] --> NORMALIZE
+
+    subgraph ENQUEUE["C. Media Studio queue admission"]
+        NORMALIZE["runUploadPaths\ntrim quotes; accept local path or http(s) URL"]
+        VALID{"Valid paths and non-empty?"}
+        REJECT["UI error: invalid path / empty input"]
+        RACE{"Same upload set enqueued in last 2 seconds?"}
+        DROP_RACE["Reject duplicate enqueue (drop-race guard)"]
+        DEST["Resolve destination\npeer/folder → chat_id ('me' for Saved Messages)\nexplicit topicId > storage topic > active topic unless skipTopic"]
+        NAME["Derive display names\ncustomFilename; remote URL filename fallback"]
+        PREFLIGHT["Invoke Tauri quality_preflight"]
+        NORMALIZE --> VALID
+        VALID -->|no| REJECT
+        VALID -->|yes| RACE
+        RACE -->|yes| DROP_RACE
+        RACE -->|no| DEST --> NAME --> PREFLIGHT
+    end
+
+    subgraph PREFLIGHT_FLOW["D. Read-only preflight and user confirmation"]
+        CAP["Resolve account capability\nGrammers session: premium, max parts, effective max bytes, caption UTF-16 limit\nlive → cached → free fallback"]
+        FLAGS["Resolve and snapshot feature flags\nAUTOGRAM_TRANSFER_V4_ENABLED\nintelligent_albums / oversize_routing / encoder_orchestration"]
+        ITEM_LOOP["For each input item"]
+        REMOTE_DEFER{"Remote URL?"}
+        REMOTE_PROVISIONAL["No local bytes yet\ncategory inferred from URL/provider\nrequires confirmation: remote_analysis_deferred"]
+        LOCAL_ANALYZE["Local analyze_media\nmagic bytes win over extension\ncategory: JPEG/PNG/WebP/GIF/other image, MP4/other video, audio, PDF/archive/office/text/executable/db/unknown"]
+        MODE{"Delivery mode / presentation override"}
+        DOC["DOCUMENT or force_document\npass-through → DocumentGroup / document=true"]
+        ORIGINAL["ORIGINAL / uncompressed\nJPEG/PNG/MP4 → NativeVisual\nconsumer audio → AudioGroup\nunsupported → OriginalDocumentBatch\nJPEG/PNG > 10 MB → document demotion"]
+        SMART["SMART / automatic\nJPEG/PNG or validated native MP4 → NativeVisual\nconsumer audio → AudioGroup\nother/unsafe → DocumentGroup"]
+        TRANSFORM["Plan/record transform\nremote download; image convert WebP/etc.;\nvideo lossless remux or H.264/AAC reencode\nwith hardware/CPU policy and validation"]
+        ALB_ELIG["albumEligible = groupAsAlbum &&\n(payload NativeVisual or AudioGroup)"]
+        DUP_SCAN["If duplicate policy SKIP and local:\nlookup ledger by session + destination + topic + SHA256 + filename + size"]
+        DUP_FOUND{"Exact or probable ledger match?"}
+        DUP_EXACT["Exact SHA256 → default choice Skip\nUI can override to Send anyway"]
+        DUP_PROB["Probable filename+size → confirmation\nnot auto-skipped by backend"]
+        OVERSIZE_PRE["size > effective max → warning + confirmation\noversize action selected later"]
+        CAPTION_PRE["Validate global/per-item caption\nUTF-16 limit; truncate warning or blocking fail\nalbum summary is provisional"]
+        REPORT["QualityPreflightReport\nitems, category, transform, payload, albumEligible,\nwarnings, duplicates, engine mode, albumGridSize, planned sizes"]
+        CONFIRM{"User confirms preflight?"}
+        CANCEL_PRE["Cancel; no queue task"]
+        CAP --> FLAGS --> ITEM_LOOP
+        ITEM_LOOP --> REMOTE_DEFER
+        REMOTE_DEFER -->|yes| REMOTE_PROVISIONAL --> MODE
+        REMOTE_DEFER -->|no| LOCAL_ANALYZE --> MODE
+        MODE -->|Document| DOC --> TRANSFORM
+        MODE -->|Original| ORIGINAL --> TRANSFORM
+        MODE -->|Auto/Smart| SMART --> TRANSFORM
+        TRANSFORM --> ALB_ELIG --> DUP_SCAN --> DUP_FOUND
+        DUP_FOUND -->|exact| DUP_EXACT --> OVERSIZE_PRE
+        DUP_FOUND -->|probable| DUP_PROB --> OVERSIZE_PRE
+        DUP_FOUND -->|none/remote| OVERSIZE_PRE
+        OVERSIZE_PRE --> CAPTION_PRE --> REPORT --> CONFIRM
+        CONFIRM -->|no| CANCEL_PRE
+    end
+
+    PREFLIGHT --> CAP
+    CONFIRM -->|yes| QUEUE_TASK
+
+    subgraph QUEUE_RUN["E. Queue task and desktop runtime boundary"]
+        QUEUE_TASK["Filter items user chose to skip\nretain force-upload paths\nbuild frozen options object"]
+        QUEUE_TASK --> UI_QUEUE["Seed/append Transfer Manager UI session\nqueued → processNextQueueTask"]
+        UI_QUEUE --> DESKTOP{"Tauri desktop + every path studio-eligible?"}
+        DESKTOP -->|no| DESKTOP_FAIL["Fail: upload requires local file or http(s) URL"]
+        DESKTOP -->|yes| EXCLUSIVE["studioRunUploadDefault\nexclusive transfer session lease\nTauri invoke('studio_run_orchestrated')\nno Telethon/Python fallback"]
+        EXCLUSIVE --> RUST_START
+    end
+
+    subgraph RUST_BOOT["F. Rust/Grammers orchestrator bootstrap"]
+        RUST_START["run_orchestrated_grammers"]
+        CREATE["create TransferRecord; clear cancel; state RUNNING"]
+        FREEZE["freeze transfer profile + resolved feature flags\nSQLite transfer_runs snapshot"]
+        SESSION["resolve_sessions_dir(None); session guard\nbest-effort legacy session import → Grammers"]
+        CAP_EVENT["resolve account capability\nemit TransferCapabilityResolved"]
+        DELIVERY_SWITCH{"intelligent albums enabled\nand groupAsAlbum=true\nand item count ≥ 2?"}
+        RUST_START --> CREATE --> FREEZE --> SESSION --> CAP_EVENT --> DELIVERY_SWITCH
+    end
+
+    EXCLUSIVE --> RUST_START
+
+    subgraph ALBUM_PATH["G. Album path — prepare, partition, commit"]
+        ALB_PREP["Prepare every item before any album commit\nretry preparation once per item\nremote download → encode/remux/convert → validate artifact"]
+        ALB_CLASS["Classify prepared output\napply presentation override\nnonstandard untransformed image guard\nWebP/other image/GIF/other video incompatibility policy"]
+        ALB_DUP["Hash prepared artifact; exact ledger match → ItemState::Skipped\npersist source + prepared identities"]
+        ALB_SIZE{"Prepared item > effective account limit?"}
+        ALB_ROUTE{"Oversize routing enabled and action?"}
+        ALB_SKIP["Skip item; emit StudioItemDone(skipped)"]
+        ALB_ALT_ITEM["Alternate account for item\nrequires explicit approval, eligible Grammers session,\ncapacity, flood gate, and destination send rights"]
+        ALB_SPLIT["Split engine at ~95% of limit\nupload parts as documents; send manifest with single caption"]
+        ALB_REJECT["Fail item / require structural replan confirmation"]
+        ALB_BUCKET["Build PreparedAlbumItem with compatibility key:\naccount, peer, topic/reply_to, send_as, schedule_at, silent, payload class"]
+        ALB_WHOLE_ALT{"Whole-album alternate requested\nand largest item exceeds primary limit?"}
+        ALB_WHOLE_ALT_OK["After all preparation, resolve one alternate sender\nonly if policy permits replan + approval + capacity"]
+        ALB_WHOLE_ALT_FAIL["Fail whole album preflight; no album commit"]
+        CAPTION["Freeze caption policy\nglobal album summary assigned once to a surviving item\nper-item captions otherwise; UTF-16 enforcement"]
+        PLAN["build_album_plan\nif disabled/Never → singles\nBTreeMap compatibility buckets; preserve item index order"]
+        GROUP_RULE{"Payload groupable and bucket size ≥ 2?"}
+        GROUP["PlannedAlbumGroup\nNativeVisual always groupable\nAudioGroup only if group_audio=true\npartition target = selected grid 2..10\navoid single remainder (e.g. 11 → 9+2)"]
+        SINGLE_FROM_PLAN["Planner single\nDocumentGroup, OriginalDocumentBatch, SplitPartBatch\nare currently not groupable; also remainder 1"]
+        COMMIT_INTENT["Create album commit intent + random item IDs\nSQLite state COMMITTING; items UPLOADING"]
+        ALB_PREP --> ALB_CLASS --> ALB_DUP --> ALB_SIZE
+        ALB_SIZE -->|no| ALB_BUCKET
+        ALB_SIZE -->|yes| ALB_ROUTE
+        ALB_ROUTE -->|skip| ALB_SKIP
+        ALB_ROUTE -->|alternate item| ALB_ALT_ITEM
+        ALB_ROUTE -->|split/default| ALB_SPLIT
+        ALB_ROUTE -->|disabled| ALB_REJECT
+        ALB_BUCKET --> ALB_WHOLE_ALT
+        ALB_WHOLE_ALT -->|yes| ALB_WHOLE_ALT_OK --> CAPTION
+        ALB_WHOLE_ALT -->|no| CAPTION
+        ALB_WHOLE_ALT_OK --> PLAN
+        CAPTION --> PLAN --> GROUP_RULE
+        GROUP_RULE -->|yes| GROUP --> COMMIT_INTENT
+        GROUP_RULE -->|no| SINGLE_FROM_PLAN
+    end
+
+    DELIVERY_SWITCH -->|yes| ALB_PREP
+
+    subgraph SINGLE_PATH["H. Single path — album disabled or planner singles"]
+        SINGLE_PREP["For each item: wait pause boundary;\nprepare artifact; classify delivery; persist decision"]
+        SINGLE_DUP{"Exact prepared SHA256 duplicate?"}
+        SINGLE_SKIP["ItemState::Skipped; no Telegram send"]
+        SINGLE_SIZE{"Oversize?"}
+        SINGLE_ROUTE["skip / alternate-account / split + manifest\nusing same oversize resolver"]
+        SINGLE_SEND["upload_file_blocking_topic_with_delivery"]
+        SINGLE_PREP --> SINGLE_DUP
+        SINGLE_DUP -->|yes| SINGLE_SKIP
+        SINGLE_DUP -->|no| SINGLE_SIZE
+        SINGLE_SIZE -->|yes| SINGLE_ROUTE
+        SINGLE_SIZE -->|no| SINGLE_SEND
+    end
+
+    DELIVERY_SWITCH -->|no| SINGLE_PREP
+    SINGLE_FROM_PLAN --> SINGLE_PREP
+    ALB_SKIP --> ALB_NEXT["Continue next plan item/group"]
+    ALB_ALT_ITEM --> ALB_NEXT
+    ALB_SPLIT --> ALB_NEXT
+    ALB_REJECT --> ALB_NEXT
+
+    subgraph GRAMMERS_SEND["I. Grammers MTProto media construction and delivery"]
+        UPLOAD_BYTES["Upload bytes with client.upload_stream (progress)\nor upload_file fallback"]
+        TYPE_MAP{"Effective delivery payload?"}
+        PHOTO["Native visual photo\nInputMediaUploadedPhoto / messages.sendMessage photo\nspoiler supported"]
+        VIDEO["Native visual validated MP4\nInputMediaUploadedDocument with Video attribute\nsupports_streaming=true, duration, width/height, thumbnail"]
+        AUDIO["Consumer audio\nDocument with Audio attribute\nduration, title, performer, cover thumbnail"]
+        DOCUMENT["Document/original/unsupported\nforce_file=true, filename + MIME + optional thumbnail"]
+        UPLOAD_MEDIA["Album only: messages.UploadMedia\nconvert uploaded media to InputMediaPhoto/Document\nprevents MEDIA_INVALID in sendMultiMedia"]
+        SEND_RPC{"Album group or single?"}
+        SEND_ALBUM["messages.sendMultiMedia / send_album\nall items share peer + topic reply_to + silent/schedule/send_as\ncommit phase emitted"]
+        SEND_SINGLE["client.send_message\npeer + optional forum reply_to + silent\nscheduled send when configured"]
+        UPLOAD_BYTES --> TYPE_MAP
+        TYPE_MAP -->|photo| PHOTO
+        TYPE_MAP -->|validated video| VIDEO
+        TYPE_MAP -->|audio| AUDIO
+        TYPE_MAP -->|document/other| DOCUMENT
+        PHOTO --> SEND_RPC
+        VIDEO --> SEND_RPC
+        AUDIO --> SEND_RPC
+        DOCUMENT --> SEND_RPC
+        SEND_RPC -->|album| UPLOAD_MEDIA --> SEND_ALBUM
+        SEND_RPC -->|single| SEND_SINGLE
+    end
+
+    COMMIT_INTENT --> UPLOAD_BYTES
+    SINGLE_SEND --> UPLOAD_BYTES
+
+    subgraph RECOVERY["J. Retry, recovery, reconciliation, and persistence"]
+        RPC_RESULT{"RPC result?"}
+        NET_RETRY{"Retryable transport/FloodWait?\nmax 3 attempts"}
+        RETRY["Disconnect cached session; backoff\nFloodWait seconds or 2/4/6s default"]
+        ALB_HISTORY["Album history recovery\nup to 5 progressive waits; match grouped_id\nfilter by chat/topic/time and expected count"]
+        SINGLE_HISTORY["Single history recovery\nmatch recent message when send response is uncertain"]
+        VERIFIED["Verify grouped_id / message IDs\nmark album commit COMMITTED\nrecord upload ledger bindings"]
+        PARTIAL["Partial result → REVIEW_REQUIRED\nper-item Done/Failed; retain commit evidence"]
+        ALB_FALLBACK["Current orchestrator fallback after album error:\nmark REVIEW_REQUIRED, then send group items individually\n(with retry and ledger binding)"]
+        FAILED["Item Failed / transfer FAILED\nemit StudioItemDone or StudioFailed"]
+        CLEANUP["Remove prepared/download/split temp artifacts\nupdate durable transfer run state"]
+        RPC_RESULT -->|success| VERIFIED
+        RPC_RESULT -->|error| NET_RETRY
+        NET_RETRY -->|yes| RETRY --> UPLOAD_BYTES
+        NET_RETRY -->|no album| SINGLE_HISTORY
+        NET_RETRY -->|no album group| ALB_HISTORY
+        ALB_HISTORY -->|full match| VERIFIED
+        ALB_HISTORY -->|inconclusive| ALB_FALLBACK
+        SINGLE_HISTORY -->|matched| VERIFIED
+        SINGLE_HISTORY -->|not matched| FAILED
+        ALB_FALLBACK --> SINGLE_SEND
+        VERIFIED --> CLEANUP
+        PARTIAL --> CLEANUP
+        FAILED --> CLEANUP
+    end
+
+    SEND_ALBUM --> RPC_RESULT
+    SEND_SINGLE --> RPC_RESULT
+
+    subgraph OUTCOME["K. Observable outcome"]
+        EVENTS["Tauri transfer-event stream\nStudioStarted, capability, prepare/reencode/upload progress,\nCommitting, StudioItemDone, StudioFinished/StudioFailed"]
+        UI_STATUS["Transfer Manager renders queued/preparing/uploading/\ncommitting/unknown_commit/reconciling/done/skipped/failed"]
+        DB["SQLite durable records\ntransfer_runs, transfer_items_v4, album commits/random IDs,\nencoder receipts, upload ledger, alternate bindings"]
+        FINAL{"Any successful or skipped item?"}
+        COMPLETE["Completed when done>0 and all accounted\n(or mixed done/failed per finalize rules)"]
+        TOTAL_FAIL["Failed when no item succeeded\nor fatal auth/session/config error"]
+        EVENTS --> UI_STATUS
+        DB --> FINAL
+        FINAL -->|yes| COMPLETE
+        FINAL -->|no| TOTAL_FAIL
+    end
+
+    CLEANUP --> EVENTS
+    CLEANUP --> DB
+    DESKTOP_FAIL --> TOTAL_FAIL
+    REJECT --> TOTAL_FAIL
+    DROP_RACE --> TOTAL_FAIL
+    CANCEL_PRE --> TOTAL_FAIL
+
+    classDef ui fill:#e8f1ff,stroke:#356ae6,color:#10234a;
+    classDef decision fill:#fff4cc,stroke:#b8860b,color:#4a3500;
+    classDef engine fill:#e8fff1,stroke:#2d8a57,color:#123d24;
+    classDef risk fill:#ffe7e7,stroke:#be4b4b,color:#4b1717;
+    classDef store fill:#f2eaff,stroke:#7a4db3,color:#2b164a;
+    class LOCAL_PICK,LOCAL_ACTION,R1,R2,R3_YES,R3_NO,R4_YES,R4_NO,R5,REMOTE_SUBMIT,NORMALIZE,REJECT,DROP_RACE,DEST,NAME,QUEUE_TASK,UI_QUEUE,DESKTOP_FAIL,EXCLUSIVE,EVENTS,UI_STATUS ui;
+    class INPUT_KIND,R3,R4,VALID,RACE,REMOTE_DEFER,MODE,DUP_FOUND,CONFIRM,DESKTOP,DELIVERY_SWITCH,ALB_SIZE,ALB_ROUTE,ALB_WHOLE_ALT,GROUP_RULE,TYPE_MAP,SEND_RPC,RPC_RESULT,NET_RETRY,FINAL decision;
+    class CAP,FLAGS,ITEM_LOOP,LOCAL_ANALYZE,REMOTE_PROVISIONAL,DOC,ORIGINAL,SMART,TRANSFORM,ALB_ELIG,DUP_SCAN,OVERSIZE_PRE,CAPTION_PRE,REPORT,RUST_START,CREATE,FREEZE,SESSION,CAP_EVENT,ALB_PREP,ALB_CLASS,ALB_DUP,ALB_BUCKET,CAPTION,PLAN,GROUP,SINGLE_FROM_PLAN,SINGLE_PREP,SINGLE_DUP,SINGLE_SIZE,SINGLE_ROUTE,UPLOAD_BYTES,PHOTO,VIDEO,AUDIO,DOCUMENT,UPLOAD_MEDIA,SEND_ALBUM,SEND_SINGLE,RETRY,ALB_HISTORY,SINGLE_HISTORY,ALB_FALLBACK,VERIFIED,PARTIAL,CLEANUP engine;
+    class REJECT,DROP_RACE,CANCEL_PRE,ALB_SKIP,ALB_ALT_ITEM,ALB_SPLIT,ALB_REJECT,SINGLE_SKIP,SINGLE_HISTORY,FAILED,DESKTOP_FAIL,TOTAL_FAIL risk;
+    class DB,COMPLETE,TOTAL_FAIL store;
