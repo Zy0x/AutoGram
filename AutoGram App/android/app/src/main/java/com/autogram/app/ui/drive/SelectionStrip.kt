@@ -1,4 +1,4 @@
-package com.autogram.app.ui.drive
+﻿package com.autogram.app.ui.drive
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
@@ -8,15 +8,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -27,6 +24,8 @@ import com.autogram.app.theme.*
 fun SelectionStrip(
     selectedCount: Int,
     onCancel: () -> Unit,
+    onCleanForward: () -> Unit = {},
+    onTagCategory: () -> Unit = {},
     onMove: () -> Unit,
     onDownload: () -> Unit,
     onDelete: () -> Unit,
@@ -39,26 +38,25 @@ fun SelectionStrip(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(20.dp),
-        color = SurfaceDock,
+        color = Color(0xF2081524),
         shadowElevation = 12.dp,
-        border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.45f))
+        border = BorderStroke(1.5.dp, GoldAccent.copy(alpha = 0.6f))
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 8.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
                 .horizontalScroll(rememberScrollState()),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(end = 12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 IconButton(
                     onClick = onCancel,
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(36.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
@@ -69,63 +67,93 @@ fun SelectionStrip(
                 }
 
                 Surface(
-                    color = NeonCyan.copy(alpha = 0.15f),
+                    color = GoldAccent.copy(alpha = 0.15f),
                     shape = CircleShape
                 ) {
                     Text(
-                        text = pluralStringResource(R.plurals.drive_selected_count, selectedCount, selectedCount),
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                        color = NeonCyan,
+                        text = "$selectedCount Dipilih",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = GoldAccent,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
                 }
             }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // Clean-Copy Forward Button
+            Surface(
+                onClick = onCleanForward,
+                shape = RoundedCornerShape(10.dp),
+                color = MutedIceCyan.copy(alpha = 0.15f)
             ) {
-                Surface(
-                    onClick = onMove,
-                    shape = RoundedCornerShape(10.dp),
-                    color = ElectricBlue.copy(alpha = 0.15f)
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Send, null, tint = ElectricBlue, modifier = Modifier.size(16.dp))
-                        Text(stringResource(R.string.drive_action_move), color = ElectricBlue, style = MaterialTheme.typography.labelMedium)
-                    }
+                    Icon(Icons.AutoMirrored.Filled.Send, null, tint = MutedIceCyan, modifier = Modifier.size(15.dp))
+                    Text("Teruskan", color = MutedIceCyan, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
                 }
+            }
 
-                Surface(
-                    onClick = onDownload,
-                    shape = RoundedCornerShape(10.dp),
-                    color = Emerald.copy(alpha = 0.15f)
+            // Tag Category Button
+            Surface(
+                onClick = onTagCategory,
+                shape = RoundedCornerShape(10.dp),
+                color = SoftViolet.copy(alpha = 0.15f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(Icons.Default.Download, null, tint = Emerald, modifier = Modifier.size(16.dp))
-                        Text(stringResource(R.string.drive_action_download), color = Emerald, style = MaterialTheme.typography.labelMedium)
-                    }
+                    Icon(Icons.Default.Label, null, tint = SoftViolet, modifier = Modifier.size(15.dp))
+                    Text("Tag", color = SoftViolet, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
                 }
+            }
 
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.size(40.dp)
+            // Move Button
+            Surface(
+                onClick = onMove,
+                shape = RoundedCornerShape(10.dp),
+                color = Color(0x22FFFFFF)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = stringResource(R.string.drive_action_delete),
-                        tint = Danger,
-                        modifier = Modifier.size(18.dp)
-                    )
+                    Icon(Icons.Default.DriveFileMove, null, tint = Color.White, modifier = Modifier.size(15.dp))
+                    Text(stringResource(R.string.drive_action_move), color = Color.White, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
                 }
+            }
+
+            // Download Button
+            Surface(
+                onClick = onDownload,
+                shape = RoundedCornerShape(10.dp),
+                color = DustySage.copy(alpha = 0.15f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(Icons.Default.Download, null, tint = DustySage, modifier = Modifier.size(15.dp))
+                    Text(stringResource(R.string.drive_action_download), color = DustySage, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+                }
+            }
+
+            // Delete Button
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = stringResource(R.string.drive_action_delete),
+                    tint = SoftCoral,
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     }

@@ -54,6 +54,9 @@ fun SettingsScreenContent(
     var smartBackoffEnabled by remember { mutableStateOf(true) }
     var amoledThemeEnabled by remember { mutableStateOf(false) }
     var isAddAccountDialogOpen by remember { mutableStateOf(false) }
+    var isLogsModalOpen by remember { mutableStateOf(false) }
+    var isCacheModalOpen by remember { mutableStateOf(false) }
+    var isApiSetupOpen by remember { mutableStateOf(false) }
     var actionToastMessage by remember { mutableStateOf<String?>(null) }
 
     AutoGramSurface(modifier = modifier) {
@@ -328,25 +331,27 @@ fun SettingsScreenContent(
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             OutlinedButton(
-                                onClick = { actionToastMessage = "Thumbnail cache berhasil dibersihkan!" },
+                                onClick = { isCacheModalOpen = true },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(10.dp),
-                                border = BorderStroke(1.dp, Color(0x33FFFFFF))
+                                border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.5f))
                             ) {
+                                Icon(Icons.Default.CleaningServices, null, tint = GoldAccent, modifier = Modifier.size(15.dp))
+                                Spacer(Modifier.width(4.dp))
                                 Text(
-                                    text = "Bersihkan Thumb",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                                    color = TextPrimaryDark
+                                    text = "Kelola Spesifik",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold),
+                                    color = GoldAccent
                                 )
                             }
                             OutlinedButton(
-                                onClick = { actionToastMessage = "Unduhan sementara berhasil dibersihkan!" },
+                                onClick = { actionToastMessage = "Seluruh cache MTProto berhasil dibersihkan!" },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(10.dp),
                                 border = BorderStroke(1.dp, Color(0x33FFFFFF))
                             ) {
                                 Text(
-                                    text = "Bersihkan Temp",
+                                    text = "Bersihkan Semua",
                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                                     color = TextPrimaryDark
                                 )
@@ -422,7 +427,62 @@ fun SettingsScreenContent(
                 }
             }
 
-            // 5. DATABASE BACKUP & EXPORT
+            // 5. DIAGNOSTIK & KREDENSIAL MTPROTO
+            item {
+                Text(
+                    text = "Diagnostik & Kredensial MTProto",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = TextPrimaryDark,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
+            item {
+                AutoGramGlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    borderColor = BorderHairline,
+                    containerColor = SurfaceGlass
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { isLogsModalOpen = true },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, MutedIceCyan.copy(alpha = 0.5f))
+                            ) {
+                                Icon(Icons.Default.Terminal, null, tint = MutedIceCyan, modifier = Modifier.size(15.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    text = "Log MTProto",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold),
+                                    color = MutedIceCyan
+                                )
+                            }
+
+                            OutlinedButton(
+                                onClick = { isApiSetupOpen = true },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, ChampagneGold.copy(alpha = 0.5f))
+                            ) {
+                                Icon(Icons.Default.VpnKey, null, tint = ChampagneGold, modifier = Modifier.size(15.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    text = "Kredensial API",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold),
+                                    color = ChampagneGold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 6. DATABASE BACKUP & EXPORT
             item {
                 Text(
                     text = stringResource(R.string.settings_section_database),
@@ -495,6 +555,25 @@ fun SettingsScreenContent(
                     )
                 }
             }
+        }
+
+        // Modals
+        if (isLogsModalOpen) {
+            SettingsDebugLogsModal(onDismiss = { isLogsModalOpen = false })
+        }
+
+        if (isCacheModalOpen) {
+            SettingsSpecificCacheModal(
+                onDismiss = { isCacheModalOpen = false },
+                onClean = { actionToastMessage = "Cache terpilih berhasil dibersihkan!" }
+            )
+        }
+
+        if (isApiSetupOpen) {
+            SettingsApiSetupModal(
+                onDismiss = { isApiSetupOpen = false },
+                onSave = { _, _ -> actionToastMessage = "Kredensial API Telegram berhasil disimpan!" }
+            )
         }
 
         // MTProto Add Account Dialog

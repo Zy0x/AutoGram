@@ -212,4 +212,70 @@
     <string name="settings_account_otp_label">MTProto OTP Code</string>
     <string name="settings_account_action_login">Log In via MTProto</string>
     <string name="settings_account_success">Telegram account added successfully!</string>
+
+    <!-- Transfer Detail Suite -->
+    <string name="transfer_detail_title">Transfer Inspector Details</string>
+    <string name="transfer_detail_dc">Data Center (DC): %1$s</string>
+    <string name="transfer_detail_streams">Concurrent Streams: %1$d Channels</string>
+    <string name="transfer_detail_eta">Estimated Remaining (ETA): %1$s</string>
+    <string name="transfer_detail_elapsed">Elapsed Time: %1$s</string>
+    <string name="transfer_detail_retry">Retry Count: %1$d times</string>
+    <string name="transfer_detail_action_rerun">Rerun Task</string>
+    <string name="transfer_detail_action_delete">Remove from Queue</string>
+    <string name="transfer_detail_action_drive">Show in Drive</string>
+
+    <!-- Transfer Caption Suite -->
+    <string name="transfer_caption_title">Smart Caption &amp; Tag Editor</string>
+    <string name="transfer_caption_hint">Write caption or insert template tags...</string>
+    <string name="transfer_caption_tags_label">Template Tag Shortcuts</string>
+    <string name="transfer_caption_preview_label">Live Markdown Preview</string>
+    <string name="transfer_caption_save">Apply Caption</string>
+
+    <!-- Transfer Clean Reset -->
+    <string name="transfer_reset_title">Queue Reset &amp; Fresh Start</string>
+    <string name="transfer_reset_desc">This action will re-queue all failed tasks and clean corrupt transfer offsets.</string>
+    <string name="transfer_reset_confirm">Reset &amp; Restart</string>
+
+    <!-- Drive Chat Destination Modal -->
+    <string name="drive_dest_title">Select Chat Destination Target</string>
+    <string name="drive_dest_saved">Saved Messages</string>
+    <string name="drive_dest_vip">VIP Channel / Cloud Backup</string>
+    <string name="drive_dest_custom">Custom Channel / Group</string>
+    <string name="drive_dest_custom_hint">Enter Chat ID (e.g., -100123456789)</string>
+    <string name="drive_dest_apply">Use This Target</string>
+
+    <!-- Drive Tag Category Modal -->
+    <string name="drive_tag_title">Manage File Category Tags</string>
+    <string name="drive_tag_select">Select Category for %1$d selected files</string>
+    <string name="drive_tag_apply">Save File Tag</string>
+
+    <!-- Drive Move Folder Modal -->
+    <string name="drive_move_title">Move Files to Folder</string>
+    <string name="drive_move_select_target">Select Telegram Cloud target folder</string>
+    <string name="drive_move_here">Move to This Folder</string>
+
+    <!-- Drive Confirm Delete Modal -->
+    <string name="drive_delete_confirm_title">Confirm Delete Files</string>
+    <string name="drive_delete_confirm_desc">Are you sure you want to delete %1$d selected files from Telegram Cloud? Deleted files cannot be recovered.</string>
+    <string name="drive_delete_action_confirm">Permanently Delete</string>
+
+    <!-- Settings Debug Logs Modal -->
+    <string name="settings_logs_title">Live MTProto &amp; System Logs</string>
+    <string name="settings_logs_filter_all">ALL</string>
+    <string name="settings_logs_filter_info">INFO</string>
+    <string name="settings_logs_filter_warn">WARN</string>
+    <string name="settings_logs_filter_error">ERROR</string>
+    <string name="settings_logs_copy">Copy Logs</string>
+    <string name="settings_logs_clear">Clear</string>
+
+    <!-- Settings Specific Cache Modal -->
+    <string name="settings_cache_detail_title">Specific Cache Cleaner</string>
+    <string name="settings_cache_vacuum_db">Vacuum SQLite Database</string>
+    <string name="settings_cache_clean_selected">Clean Selected</string>
+
+    <!-- Settings API Setup Modal -->
+    <string name="settings_api_title">Custom Telegram API Config</string>
+    <string name="settings_api_id_label">Telegram App API ID</string>
+    <string name="settings_api_hash_label">Telegram App API HASH</string>
+    <string name="settings_api_save">Save API Credentials</string>
 </resources>

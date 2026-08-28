@@ -212,4 +212,70 @@
     <string name="settings_account_otp_label">Kode OTP MTProto</string>
     <string name="settings_account_action_login">Masuk via MTProto</string>
     <string name="settings_account_success">Akun Telegram berhasil ditambahkan!</string>
+
+    <!-- Transfer Detail Suite -->
+    <string name="transfer_detail_title">Inspektor Detail Transfer</string>
+    <string name="transfer_detail_dc">Pusat Data (DC): %1$s</string>
+    <string name="transfer_detail_streams">Stream Konkuren: %1$d Jalur</string>
+    <string name="transfer_detail_eta">Estimasi Sisa Waktu (ETA): %1$s</string>
+    <string name="transfer_detail_elapsed">Waktu Berjalan: %1$s</string>
+    <string name="transfer_detail_retry">Percobaan Ulang: %1$d kali</string>
+    <string name="transfer_detail_action_rerun">Ulangi Tugas (Rerun)</string>
+    <string name="transfer_detail_action_delete">Hapus dari Antrean</string>
+    <string name="transfer_detail_action_drive">Tampilkan di Drive</string>
+
+    <!-- Transfer Caption Suite -->
+    <string name="transfer_caption_title">Editor Caption &amp; Tag Cerdas</string>
+    <string name="transfer_caption_hint">Tulis caption atau gunakan template tag...</string>
+    <string name="transfer_caption_tags_label">Pintasan Template Tag</string>
+    <string name="transfer_caption_preview_label">Pratinjau Markdown Langsung</string>
+    <string name="transfer_caption_save">Terapkan Caption</string>
+
+    <!-- Transfer Clean Reset -->
+    <string name="transfer_reset_title">Reset Antrean &amp; Fresh Start</string>
+    <string name="transfer_reset_desc">Tindakan ini akan mengulang seluruh tugas yang gagal dan membersihkan offset transfer yang tertunda.</string>
+    <string name="transfer_reset_confirm">Reset &amp; Mulai Ulang</string>
+
+    <!-- Drive Chat Destination Modal -->
+    <string name="drive_dest_title">Pilih Target Tujuan Chat</string>
+    <string name="drive_dest_saved">Pesan Tersimpan (Saved Messages)</string>
+    <string name="drive_dest_vip">Kanal VIP / Backup Cloud</string>
+    <string name="drive_dest_custom">Kanal / Grup Kustom</string>
+    <string name="drive_dest_custom_hint">Masukkan Chat ID (misal: -100123456789)</string>
+    <string name="drive_dest_apply">Gunakan Target Ini</string>
+
+    <!-- Drive Tag Category Modal -->
+    <string name="drive_tag_title">Kelola Tag &amp; Kategori Berkas</string>
+    <string name="drive_tag_select">Pilih Kategori untuk %1$d berkas terpilih</string>
+    <string name="drive_tag_apply">Simpan Tag Berkas</string>
+
+    <!-- Drive Move Folder Modal -->
+    <string name="drive_move_title">Pindahkan Berkas ke Folder</string>
+    <string name="drive_move_select_target">Pilih direktori tujuan Telegram Cloud</string>
+    <string name="drive_move_here">Pindahkan ke Folder Ini</string>
+
+    <!-- Drive Confirm Delete Modal -->
+    <string name="drive_delete_confirm_title">Konfirmasi Hapus Berkas</string>
+    <string name="drive_delete_confirm_desc">Apakah Anda yakin ingin menghapus %1$d berkas terpilih dari Telegram Cloud? Berkas yang dihapus tidak dapat dikembalikan.</string>
+    <string name="drive_delete_action_confirm">Hapus Permanen</string>
+
+    <!-- Settings Debug Logs Modal -->
+    <string name="settings_logs_title">Log Sistem &amp; MTProto Live</string>
+    <string name="settings_logs_filter_all">SEMUA</string>
+    <string name="settings_logs_filter_info">INFO</string>
+    <string name="settings_logs_filter_warn">WARN</string>
+    <string name="settings_logs_filter_error">ERROR</string>
+    <string name="settings_logs_copy">Salin Log</string>
+    <string name="settings_logs_clear">Bersihkan</string>
+
+    <!-- Settings Specific Cache Modal -->
+    <string name="settings_cache_detail_title">Pembersih Cache Spesifik</string>
+    <string name="settings_cache_vacuum_db">Vacuum Database SQLite</string>
+    <string name="settings_cache_clean_selected">Bersihkan yang Dipilih</string>
+
+    <!-- Settings API Setup Modal -->
+    <string name="settings_api_title">Konfigurasi Telegram API Kustom</string>
+    <string name="settings_api_id_label">Telegram App API ID</string>
+    <string name="settings_api_hash_label">Telegram App API HASH</string>
+    <string name="settings_api_save">Simpan Kredensial API</string>
 </resources>

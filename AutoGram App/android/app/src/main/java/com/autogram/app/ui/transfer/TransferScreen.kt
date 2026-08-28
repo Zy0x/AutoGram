@@ -67,73 +67,85 @@ fun TransferScreenContent(
     onClearCompleted: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(0) } // 0 = Aktif, 1 = Riwayat
+    var selectedDetailTask by remember { mutableStateOf<TransferTaskItem?>(null) }
+    var isCaptionModalOpen by remember { mutableStateOf(false) }
 
     AutoGramSurface(modifier = modifier) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-        ) {
-            // =========================================================================
-            // TOP APP BAR (Matching Stitch Screen: Transfer Manager Compact Stream)
-            // =========================================================================
-            Row(
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-                    .background(Color(0xD9031427))
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxSize()
+                    .statusBarsPadding()
             ) {
-                // Left: Cyan Dot + Title + Active Badge + MTProto Safe
+                // =========================================================================
+                // TOP APP BAR (Matching Stitch Screen: Transfer Manager Compact Stream)
+                // =========================================================================
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .background(Color(0xD9031427))
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    AutoGramStatusDot(color = MutedIceCyan, isPulsing = true, size = 7.dp)
-                    Text(
-                        text = stringResource(R.string.transfer_title),
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.5.sp
-                        ),
-                        color = TextPrimaryDark
-                    )
-                    Surface(
-                        color = MutedIceCyan.copy(alpha = 0.15f),
-                        shape = CircleShape,
-                        border = BorderStroke(0.5.dp, MutedIceCyan.copy(alpha = 0.35f))
+                    // Left: Cyan Dot + Title + Active Badge + MTProto Safe
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        AutoGramStatusDot(color = MutedIceCyan, isPulsing = true, size = 7.dp)
                         Text(
-                            text = "${state.activeTasks.size} Berjalan",
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.SemiBold
+                            text = stringResource(R.string.transfer_title),
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.5.sp
                             ),
-                            color = MutedIceCyan
+                            color = TextPrimaryDark
                         )
+                        Surface(
+                            color = MutedIceCyan.copy(alpha = 0.15f),
+                            shape = CircleShape,
+                            border = BorderStroke(0.5.dp, MutedIceCyan.copy(alpha = 0.35f))
+                        ) {
+                            Text(
+                                text = "${state.activeTasks.size} Berjalan",
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = MutedIceCyan
+                            )
+                        }
                     }
-                }
 
-                // Right: Segmented Toggle (Aktif / Riwayat) + Clear Button
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = CardNavyBg,
-                        border = BorderStroke(1.dp, CardNavyBorder)
+                    // Right: Caption Button + Segmented Toggle (Aktif / Riwayat)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Row(modifier = Modifier.padding(2.dp)) {
-                            // Tab 0: Aktif
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = if (selectedTab == 0) SurfaceElevatedDark else Color.Transparent,
-                                modifier = Modifier.clickable { selectedTab = 0 }
-                            ) {
+                        IconButton(
+                            onClick = { isCaptionModalOpen = true },
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(GoldAccent.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                        ) {
+                            Icon(Icons.Default.EditNote, "Caption", tint = GoldAccent, modifier = Modifier.size(18.dp))
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = CardNavyBg,
+                            border = BorderStroke(1.dp, CardNavyBorder)
+                        ) {
+                            Row(modifier = Modifier.padding(2.dp)) {
+                                // Tab 0: Aktif
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = if (selectedTab == 0) SurfaceElevatedDark else Color.Transparent,
+                                    modifier = Modifier.clickable { selectedTab = 0 }
+                                ) {
                                 Text(
                                     text = "Aktif (${state.activeTasks.size})",
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -234,6 +246,7 @@ fun TransferScreenContent(
                     items(state.activeTasks, key = { it.id }) { task ->
                         CompactQueueItemCard(
                             task = task,
+                            onClick = { selectedDetailTask = task },
                             onTogglePause = { onTogglePause(task) },
                             onCancel = { /* Cancel single task */ }
                         )
@@ -256,12 +269,33 @@ fun TransferScreenContent(
                     }
 
                     items(state.completedTasks, key = { it.id }) { task ->
-                        CompactHistoryItemRow(task = task)
+                        CompactHistoryItemRow(
+                            task = task,
+                            onClick = { selectedDetailTask = task }
+                        )
                     }
                 }
             }
+
+            // Transfer Detail Modal
+            val currentDetail = selectedDetailTask
+            if (currentDetail != null) {
+                TransferDetailModal(
+                    task = currentDetail,
+                    onDismiss = { selectedDetailTask = null },
+                    onTogglePause = { onTogglePause(currentDetail) }
+                )
+            }
+
+            // Transfer Caption Modal
+            if (isCaptionModalOpen) {
+                TransferCaptionModal(
+                    onDismiss = { isCaptionModalOpen = false }
+                )
+            }
         }
     }
+}
 }
 
 @Composable
@@ -543,6 +577,7 @@ fun MetricCell(
 @Composable
 fun CompactQueueItemCard(
     task: TransferTaskItem,
+    onClick: () -> Unit = {},
     onTogglePause: () -> Unit,
     onCancel: () -> Unit
 ) {
@@ -555,7 +590,9 @@ fun CompactQueueItemCard(
     } else if (task.stage == "upload") 0.82f else if (task.stage == "reencode") 0.52f else 0f
 
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
         color = Color(0xE6102034),
         border = BorderStroke(1.dp, Color(0x1FFFFFFF))
@@ -689,11 +726,16 @@ fun CompactQueueItemCard(
 }
 
 @Composable
-fun CompactHistoryItemRow(task: TransferTaskItem) {
+fun CompactHistoryItemRow(
+    task: TransferTaskItem,
+    onClick: () -> Unit = {}
+) {
     val isSkipped = task.status.lowercase() == "skipped"
 
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         shape = RoundedCornerShape(8.dp),
         color = Color(0x66102034),
         border = BorderStroke(1.dp, Color(0x0FFFFFFF))

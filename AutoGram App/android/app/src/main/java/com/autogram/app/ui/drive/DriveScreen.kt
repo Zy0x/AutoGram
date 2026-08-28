@@ -31,6 +31,10 @@ fun DriveScreen(
     var previewItem by remember { mutableStateOf<DriveFileItem?>(null) }
     var zipArchiveItem by remember { mutableStateOf<DriveFileItem?>(null) }
     var isDriveToolsOpen by remember { mutableStateOf(false) }
+    var isDestinationModalOpen by remember { mutableStateOf(false) }
+    var isTagModalOpen by remember { mutableStateOf(false) }
+    var isMoveModalOpen by remember { mutableStateOf(false) }
+    var isDeleteConfirmOpen by remember { mutableStateOf(false) }
 
     DriveScreenContent(
         state = state,
@@ -44,11 +48,11 @@ fun DriveScreen(
         onSelectAll = { viewModel.selectAll(state.items) },
         onInvertSelection = { viewModel.invertSelection(state.items) },
         onDownloadZip = { /* Download batch as ZIP */ },
-        onCleanForward = { /* Clean copy transfer */ },
-        onMoveFolder = { /* Move handler */ },
+        onCleanForward = { isDestinationModalOpen = true },
+        onMoveFolder = { isMoveModalOpen = true },
         onCopyLinks = { /* Copy telegram cloud links */ },
-        onTagCategory = { /* Tag category handler */ },
-        onDeleteSelected = viewModel::deleteSelected,
+        onTagCategory = { isTagModalOpen = true },
+        onDeleteSelected = { isDeleteConfirmOpen = true },
         onOpenTools = { isDriveToolsOpen = true },
         onItemClick = { item ->
             if (state.selectedIds.isNotEmpty()) {
@@ -85,6 +89,35 @@ fun DriveScreen(
         DriveToolsModal(
             allItems = state.items,
             onDismiss = { isDriveToolsOpen = false }
+        )
+    }
+
+    if (isDestinationModalOpen) {
+        DriveChatDestinationModal(
+            onDismiss = { isDestinationModalOpen = false },
+            onSelectTarget = { /* Target applied */ }
+        )
+    }
+
+    if (isTagModalOpen) {
+        DriveTagCategoryModal(
+            selectedCount = state.selectedIds.size,
+            onDismiss = { isTagModalOpen = false }
+        )
+    }
+
+    if (isMoveModalOpen) {
+        DriveMoveFolderModal(
+            selectedCount = state.selectedIds.size,
+            onDismiss = { isMoveModalOpen = false }
+        )
+    }
+
+    if (isDeleteConfirmOpen) {
+        DriveConfirmDeleteModal(
+            selectedCount = state.selectedIds.size,
+            onDismiss = { isDeleteConfirmOpen = false },
+            onConfirmDelete = { viewModel.deleteSelected() }
         )
     }
 }
