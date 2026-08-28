@@ -2161,7 +2161,7 @@ pub fn maybe_transcode_image_for_telegram(
         .unwrap_or("")
         .to_ascii_lowercase();
 
-    if ext == "jpg" || ext == "jpeg" || ext == "png" {
+    if ext == "jpg" || ext == "jpeg" || ext == "jfif" {
         return Ok(path.to_string());
     }
 
@@ -2170,7 +2170,7 @@ pub fn maybe_transcode_image_for_telegram(
         "none" => false,
         "common_web" => matches!(
             ext.as_str(),
-            "webp" | "heic" | "heif" | "hif" | "avif" | "avis" | "jxl"
+            "png" | "webp" | "heic" | "heif" | "hif" | "avif" | "avis" | "jxl"
         ),
         "graphics_raw" => matches!(
             ext.as_str(),
@@ -2204,7 +2204,8 @@ pub fn maybe_transcode_image_for_telegram(
             } else {
                 matches!(
                     ext.as_str(),
-                    "webp"
+                    "png"
+                        | "webp"
                         | "heic"
                         | "heif"
                         | "avif"
@@ -2221,7 +2222,8 @@ pub fn maybe_transcode_image_for_telegram(
         }
         _ => matches!(
             ext.as_str(),
-            "webp"
+            "png"
+                | "webp"
                 | "heic"
                 | "heif"
                 | "hif"

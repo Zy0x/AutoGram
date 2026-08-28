@@ -835,7 +835,7 @@ export type ImageTranscodeScope = 'all_incompatible' | 'common_web' | 'graphics_
 export type ImageTranscodeTarget = 'png' | 'jpeg';
 
 export const ALL_IMAGE_TRANSCODE_FORMATS = [
-  'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'
+  'png', 'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'
 ] as const;
 
 export const ALL_VIDEO_TRANSCODE_FORMATS = [
@@ -1043,9 +1043,9 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
     'mkv', 'mov', 'webm', 'avi', 'wmv', 'ts', 'm2ts', 'vob', 'flv', 'ogv', '3gp', 'f4v', 'asf', 'mpg', 'mxf', 'divx'
   ],
   imageTranscodeScope: 'all_incompatible',
-  imageTranscodeTarget: 'png',
+  imageTranscodeTarget: 'jpeg',
   imageTranscodeFormats: [
-    'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'
+    'png', 'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'
   ],
   encoderStrategy: 'auto_adaptive',
   encoderResourceProfile: 'balanced',
@@ -1187,11 +1187,11 @@ export function loadTransferSettings(): DriveTransferSettings {
         : 'all_incompatible') as ImageTranscodeScope,
       imageTranscodeTarget: (typeof p.imageTranscodeTarget === 'string' && ['png', 'jpeg'].includes(p.imageTranscodeTarget)
         ? p.imageTranscodeTarget
-        : 'png') as ImageTranscodeTarget,
+        : 'jpeg') as ImageTranscodeTarget,
       imageTranscodeFormats: Array.isArray(p.imageTranscodeFormats)
         ? p.imageTranscodeFormats.map((ext: any) => String(ext).toLowerCase().trim()).filter(Boolean)
         : [
-            'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'
+            'png', 'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'
           ],
       encoderStrategy: ['auto_adaptive', 'hardware_preferred', 'software_preferred', 'hardware_only', 'software_only', 'specific_device', 'disable_reencode'].includes(String(p.encoderStrategy)) ? p.encoderStrategy! : DEFAULT_TRANSFER_SETTINGS.encoderStrategy,
       encoderResourceProfile: ['eco', 'balanced', 'performance', 'custom'].includes(String(p.encoderResourceProfile)) ? p.encoderResourceProfile! : DEFAULT_TRANSFER_SETTINGS.encoderResourceProfile,

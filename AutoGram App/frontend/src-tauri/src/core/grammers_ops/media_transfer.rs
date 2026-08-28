@@ -1023,8 +1023,60 @@ pub fn upload_prepared_album_blocking_with_app(
                         .iter()
                         .filter_map(|item| item.message_id)
                         .collect();
-                    let grouped_id = verify_album_messages(client, peer, &committed_ids, topic_id)
-                        .await?;
+                    let grouped_id = match verify_album_messages(
+                        client,
+                        peer,
+                        &committed_ids,
+                        topic_id,
+                    )
+                    .await
+                    {
+                        Ok(value) => value,
+                        Err(verification_error) => {
+                            // Telegram may return updateMessageID entries in
+                            // an order that does not line up with the
+                            // NewChannelMessage updates.  The album can still
+                            // be committed successfully, but trusting that
+                            // provisional mapping used to classify a valid
+                            // album as ungrouped and silently re-send every
+                            // item as singles.  Reconcile by grouped_id before
+                            // allowing the orchestrator's single-message
+                            // fallback.
+                            if let Some(recovered) = try_recover_album_from_history(
+                                client,
+                                peer,
+                                &chat,
+                                topic_id,
+                                &expected_indices,
+                                batch_start_ts,
+                            )
+                            .await
+                            {
+                                let recovered_ids: Vec<i64> = recovered
+                                    .iter()
+                                    .filter_map(|item| item.message_id)
+                                    .collect();
+                                if recovered_ids.len() == expected_indices.len() {
+                                    let recovered_grouped_id = verify_album_messages(
+                                        client,
+                                        peer,
+                                        &recovered_ids,
+                                        topic_id,
+                                    )
+                                    .await?;
+                                    if let Some(commit_id) = commit_id.as_deref() {
+                                        crate::core::autogram_core::transfer::verify_album_commit_intent(
+                                            commit_id,
+                                            Some(recovered_grouped_id),
+                                        )
+                                        .map_err(|error| TgError::new(TgErrorCode::Io, error))?;
+                                    }
+                                    return Ok(recovered);
+                                }
+                            }
+                            return Err(verification_error);
+                        }
+                    };
                     if let Some(commit_id) = commit_id.as_deref() {
                         crate::core::autogram_core::transfer::verify_album_commit_intent(
                             commit_id,

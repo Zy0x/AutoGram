@@ -1,3 +1,18 @@
+## v3.8.45 3-Pillar Unified Media Delivery & Non-Standard Image Architecture
+
+### 1. Non-Standard Image Processing & PNG Realignment (Pillar 1)
+- **Klasifikasi Presisi Format Non-Standar**: Mengklasifikasikan format `.PNG` bersama format web/grafis/RAW lainnya sebagai format non-standar Telegram, mengingat endpoint foto Telegram selalu mere-encode gambar menjadi JPEG lossy.
+- **Mode Dokumen Mentah Uncompressed 100% Bit-Exact**: Opsi *Send 100% Lossless Raw Document* mengirimkan seluruh berkas asli (.png, .webp, .heic, dll.) utuh tanpa re-encoding dengan thumbnail visual 320px tajam.
+- **Target Konversi Tunggal JPG MAX & Eliminasi Target PNG**: Menghapus dropdown konversi target ke PNG yang redundan, menetapkan target tunggal ke JPG Kualitas Maksimal (Q100 4:4:4 Chroma) untuk album grid Telegram.
+- **Dukungan Penuh 20 Format Gambar**: Memperluas checklist pemilihan format gambar menjadi 20 format lengkap (`PNG`, `WEBP`, `HEIC`, `HEIF`, `AVIF`, `JXL`, `TIFF`, `BMP`, `SVG`, `PSD`, `TGA`, `RAW`, `DNG`, `CR2`, `CR3`, `NEF`, `ARW`, `ORF`, `RW2`, `RAF`).
+
+### 2. Animation & Sticker Delivery Nomenclature (Pillar 2)
+- **Penyesuaian Label "Send as document"**: Mengubah label opsi dokumen mentah pada Pilar 2 menjadi *Send as document* untuk pengiriman berkas animasi (.gif) dan stiker (.tgs, .webm) asli uncompressed dengan thumbnail.
+- **Transcode MP4 Loop Kualitas Maksimal**: Opsi transcode mengonversi animasi menjadi berkas video MP4 loop H.264 kualitas maksimal agar dapat diputar langsung di chat Telegram.
+
+### 3. Synchronized Album Grouping & Document Separation
+- **Penyelarasan Album Grid Foto**: Gambar yang di-transcode ke JPG High-MAX secara otomatis bergabung ke dalam Photo Grid Album (maksimal 10 item per album), sementara berkas dokumen mentah dipisahkan secara cerdas tanpa membatalkan album foto.
+
 ## v3.8.44 Universal Multi-Format Photo Grid Album & Transparent Non-Image Fallback Architecture
 
 ### 1. Universal Visual Photo Grid Album

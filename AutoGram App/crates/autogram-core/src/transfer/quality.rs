@@ -294,13 +294,18 @@ pub fn classify_prepared_delivery(
     }
     if mode == QualityMode::Original {
         let payload_class = match category {
-            MediaCategory::JpegImage | MediaCategory::PngImage => PayloadClass::NativeVisual,
+            // Telegram's native photo path always normalizes PNG to a server
+            // generated JPEG.  Keep PNG lossless by using document delivery;
+            // the orchestrator's explicit `force_native_media` override can
+            // still opt into Telegram's photo conversion when desired.
+            MediaCategory::JpegImage => PayloadClass::NativeVisual,
+            MediaCategory::PngImage => PayloadClass::OriginalDocumentBatch,
             MediaCategory::Mp4Video => PayloadClass::NativeVisual,
             MediaCategory::Audio if is_consumer_audio(path) => PayloadClass::AudioGroup,
             _ => PayloadClass::OriginalDocumentBatch,
         };
         let (payload_class, size_demoted) = if payload_class == PayloadClass::NativeVisual
-            && matches!(category, MediaCategory::JpegImage | MediaCategory::PngImage)
+            && matches!(category, MediaCategory::JpegImage)
             && exceeds_native_photo_limit(path)
         {
             (PayloadClass::OriginalDocumentBatch, true)
@@ -328,7 +333,11 @@ pub fn classify_prepared_delivery(
         };
     }
     let payload_class = match category {
-        MediaCategory::JpegImage | MediaCategory::PngImage => PayloadClass::NativeVisual,
+        MediaCategory::JpegImage => PayloadClass::NativeVisual,
+        // Preserve PNG bytes and extension. Telegram converts uploaded photos
+        // to JPEG, so PNG must be sent as a document unless explicitly forced
+        // to native media by the user.
+        MediaCategory::PngImage => PayloadClass::DocumentGroup,
         MediaCategory::Mp4Video if native_video_validated => PayloadClass::NativeVisual,
         MediaCategory::Audio if is_consumer_audio(path) => PayloadClass::AudioGroup,
         _ => PayloadClass::DocumentGroup,
@@ -339,7 +348,7 @@ pub fn classify_prepared_delivery(
     // transcoded from a WebP sticker) is sent intact instead of being silently
     // rejected or recompressed with quality loss by the Telegram server.
     let (payload_class, size_demoted) = if payload_class == PayloadClass::NativeVisual
-        && matches!(category, MediaCategory::JpegImage | MediaCategory::PngImage)
+        && matches!(category, MediaCategory::JpegImage)
         && exceeds_native_photo_limit(path)
     {
         (PayloadClass::DocumentGroup, true)
@@ -401,6 +410,22 @@ mod tests {
         let result = classify_delivery(&path, QualityMode::Document, false);
         assert!(result.as_document);
         assert_eq!(result.payload_class, PayloadClass::OriginalDocumentBatch);
+    }
+
+    #[test]
+    fn png_is_document_in_original_mode_to_preserve_lossless_bytes() {
+        let path = fixture("art.png", b"\x89PNG\r\n\x1a\n");
+        let result = classify_delivery(&path, QualityMode::Original, false);
+        assert!(result.as_document);
+        assert_eq!(result.payload_class, PayloadClass::OriginalDocumentBatch);
+    }
+
+    #[test]
+    fn png_is_document_in_smart_mode_to_avoid_server_jpeg_conversion() {
+        let path = fixture("art.png", b"\x89PNG\r\n\x1a\n");
+        let result = classify_delivery(&path, QualityMode::Smart, false);
+        assert!(result.as_document);
+        assert_eq!(result.payload_class, PayloadClass::DocumentGroup);
     }
 
     #[test]

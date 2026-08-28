@@ -148,6 +148,10 @@ pub fn build_quality_preflight(
         request.presentation_override.as_deref(),
         Some("force_document") | Some("document")
     );
+    let force_native_media = matches!(
+        request.presentation_override.as_deref(),
+        Some("force_native_media") | Some("native") | Some("original")
+    );
     let mut items = Vec::with_capacity(request.paths.len());
 
     for (index, source) in request.paths.iter().enumerate() {
@@ -244,11 +248,13 @@ pub fn build_quality_preflight(
             } else if mode == QualityMode::Original {
                 let is_supported_visual = matches!(
                     category,
-                    MediaCategory::JpegImage | MediaCategory::PngImage | MediaCategory::Mp4Video
+                    // PNG is deliberately excluded: Telegram's native photo
+                    // endpoint converts it to JPEG.  Users can opt into that
+                    // conversion with the explicit native-media override.
+                    MediaCategory::JpegImage | MediaCategory::Mp4Video
                 ) || (remote
                     && (source.ends_with(".jpg")
                         || source.ends_with(".jpeg")
-                        || source.ends_with(".png")
                         || source.ends_with(".mp4")
                         || source.contains("photomode")
                         || source.contains("tiktok")
@@ -314,9 +320,12 @@ pub fn build_quality_preflight(
             } else if is_webp_sticker && prevent_sticker {
                 (
                     TransformAction::ConvertWebpPng,
-                    PayloadClass::NativeVisual,
-                    false,
-                    "convert_webp_png_lossless".to_string(),
+                    // The lossless PNG result must not be sent through
+                    // Telegram's photo endpoint (which would JPEG-normalize
+                    // it).  Runtime classification applies the same rule.
+                    PayloadClass::DocumentGroup,
+                    true,
+                    "convert_webp_png_lossless_document".to_string(),
                 )
             } else if category == MediaCategory::OtherVideo
                 && analysis
@@ -382,6 +391,24 @@ pub fn build_quality_preflight(
                     delivery.reason_code,
                 )
             };
+
+        // Keep preflight identical to the runtime override semantics.  This
+        // is intentionally opt-in because native PNG delivery is lossy on
+        // Telegram (server-side JPEG normalization).
+        let (transform, payload_class, as_document, reason_code) = if force_native_media
+            && category == MediaCategory::PngImage
+            && !force_document
+            && mode != QualityMode::Document
+        {
+            (
+                TransformAction::PassThrough,
+                PayloadClass::NativeVisual,
+                false,
+                "forced_native_media_png_server_conversion".to_string(),
+            )
+        } else {
+            (transform, payload_class, as_document, reason_code)
+        };
 
         if source_size > effective_max_bytes && effective_max_bytes > 0 {
             warnings.push(format!(
@@ -554,6 +581,24 @@ mod tests {
         assert_eq!(report.items[0].transform, TransformAction::PassThrough);
         assert!(!report.items[0].as_document);
         assert_eq!(report.items[0].payload_class, PayloadClass::NativeVisual);
+    }
+
+    #[test]
+    fn png_preflight_matches_lossless_runtime_delivery() {
+        let path = std::env::temp_dir().join("autogram-preflight-lossless.png");
+        fs::write(&path, b"\x89PNG\r\n\x1a\n").unwrap();
+        let report = build_quality_preflight(
+            &request(&path, "ORIGINAL"),
+            "fallback",
+            10,
+            1_024,
+            true,
+            TransferFeatureFlags::default(),
+        );
+        let item = &report.items[0];
+        assert!(item.as_document);
+        assert_eq!(item.payload_class, PayloadClass::OriginalDocumentBatch);
+        assert!(!item.album_eligible);
     }
 
     #[test]

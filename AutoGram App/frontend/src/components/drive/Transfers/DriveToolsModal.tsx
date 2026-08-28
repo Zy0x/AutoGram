@@ -2129,10 +2129,11 @@ export function TransferSettingsWorkspace({
                           preventStickerConversion: false,
                         });
                       } else {
-                        const allImgs = ['webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'];
+                        const allImgs = ['png', 'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'];
                         patch({
                           imageTranscodeScope: 'all_incompatible',
                           imageTranscodeFormats: allImgs,
+                          imageTranscodeTarget: 'jpeg',
                           albumIncompatImageMode: 'transcode',
                           preventStickerConversion: true,
                         });
@@ -2152,65 +2153,45 @@ export function TransferSettingsWorkspace({
                 {/* Tingkat 2, 3, & 4: Progressive Disclosure saat Konversi Aktif */}
                 {draft.imageTranscodeScope !== 'none' && (
                   <div style={{ marginTop: '14px', padding: '12px', background: 'rgba(15, 23, 42, 0.45)', border: '1px solid rgba(51, 65, 85, 0.5)', borderRadius: '10px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
-                      <div>
-                        <label className="td-field-label" style={{ fontSize: '11px', color: '#94a3b8' }}>
-                          {t('speedtest.image_transcode_target_label')}
-                        </label>
-                        <select
-                          value={draft.imageTranscodeTarget || 'png'}
-                          disabled={!!transferActive}
-                          onChange={(e) => patch({ imageTranscodeTarget: e.target.value as any })}
-                        >
-                          <option value="png">{t('speedtest.image_transcode_target_png')}</option>
-                          <option value="jpeg">{t('speedtest.image_transcode_target_jpeg')}</option>
-                        </select>
-                        <p className="td-field-hint" style={{ fontSize: '11px', marginTop: '4px' }}>
-                          {draft.imageTranscodeTarget === 'jpeg'
-                            ? t('speedtest.image_transcode_target_jpeg_desc')
-                            : t('speedtest.image_transcode_target_png_desc')}
-                        </p>
-                      </div>
-
-                      <div>
-                        <label className="td-field-label" style={{ fontSize: '11px', color: '#94a3b8' }}>
-                          {t('speedtest.image_transcode_scope_label')}
-                        </label>
-                        <select
-                          value={draft.imageTranscodeScope || 'all_incompatible'}
-                          disabled={!!transferActive}
-                          onChange={(e) => {
-                            const nextScope = e.target.value as any;
-                            const allImgs = ['webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'];
-                            const commonImgs = ['webp', 'heic', 'heif', 'avif', 'jxl'];
-                            const graphicsImgs = ['tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'];
-                            let nextFormats = draft.imageTranscodeFormats || allImgs;
-                            if (nextScope === 'all_incompatible') nextFormats = allImgs;
-                            else if (nextScope === 'common_web') nextFormats = commonImgs;
-                            else if (nextScope === 'graphics_raw') nextFormats = graphicsImgs;
-                            else if (nextScope === 'none') nextFormats = [];
-                            patch({
-                              imageTranscodeScope: nextScope,
-                              imageTranscodeFormats: nextFormats,
-                              albumIncompatImageMode: nextScope === 'none' ? 'document' : 'transcode',
-                            });
-                          }}
-                        >
-                          <option value="all_incompatible">{t('speedtest.image_transcode_scope_all')}</option>
-                          <option value="common_web">{t('speedtest.image_transcode_scope_common')}</option>
-                          <option value="graphics_raw">{t('speedtest.image_transcode_scope_graphics')}</option>
-                          <option value="custom">{t('speedtest.image_transcode_scope_custom')}</option>
-                        </select>
-                        <p className="td-field-hint" style={{ fontSize: '11px', marginTop: '4px' }}>
-                          {draft.imageTranscodeScope === 'common_web'
-                            ? t('speedtest.image_transcode_scope_common_desc')
-                            : draft.imageTranscodeScope === 'graphics_raw'
-                            ? t('speedtest.image_transcode_scope_graphics_desc')
-                            : draft.imageTranscodeScope === 'custom'
-                            ? t('speedtest.image_transcode_scope_custom_desc')
-                            : t('speedtest.image_transcode_scope_all_desc')}
-                        </p>
-                      </div>
+                    <div>
+                      <label className="td-field-label" style={{ fontSize: '11px', color: '#94a3b8' }}>
+                        {t('speedtest.image_transcode_scope_label')}
+                      </label>
+                      <select
+                        value={draft.imageTranscodeScope || 'all_incompatible'}
+                        disabled={!!transferActive}
+                        onChange={(e) => {
+                          const nextScope = e.target.value as any;
+                          const allImgs = ['png', 'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'];
+                          const commonImgs = ['png', 'webp', 'heic', 'heif', 'avif', 'jxl'];
+                          const graphicsImgs = ['tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'];
+                          let nextFormats = draft.imageTranscodeFormats || allImgs;
+                          if (nextScope === 'all_incompatible') nextFormats = allImgs;
+                          else if (nextScope === 'common_web') nextFormats = commonImgs;
+                          else if (nextScope === 'graphics_raw') nextFormats = graphicsImgs;
+                          else if (nextScope === 'none') nextFormats = [];
+                          patch({
+                            imageTranscodeScope: nextScope,
+                            imageTranscodeFormats: nextFormats,
+                            imageTranscodeTarget: 'jpeg',
+                            albumIncompatImageMode: nextScope === 'none' ? 'document' : 'transcode',
+                          });
+                        }}
+                      >
+                        <option value="all_incompatible">{t('speedtest.image_transcode_scope_all')}</option>
+                        <option value="common_web">{t('speedtest.image_transcode_scope_common')}</option>
+                        <option value="graphics_raw">{t('speedtest.image_transcode_scope_graphics')}</option>
+                        <option value="custom">{t('speedtest.image_transcode_scope_custom')}</option>
+                      </select>
+                      <p className="td-field-hint" style={{ fontSize: '11px', marginTop: '4px' }}>
+                        {draft.imageTranscodeScope === 'common_web'
+                          ? t('speedtest.image_transcode_scope_common_desc')
+                          : draft.imageTranscodeScope === 'graphics_raw'
+                          ? t('speedtest.image_transcode_scope_graphics_desc')
+                          : draft.imageTranscodeScope === 'custom'
+                          ? t('speedtest.image_transcode_scope_custom_desc')
+                          : t('speedtest.image_transcode_scope_all_desc')}
+                      </p>
                     </div>
 
                     {/* Interactive Checklist saat Custom Scope */}
@@ -2224,8 +2205,8 @@ export function TransferSettingsWorkspace({
                             type="button"
                             disabled={!!transferActive}
                             onClick={() => {
-                              const allImgs = ['webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'];
-                              patch({ imageTranscodeScope: 'all_incompatible', imageTranscodeFormats: allImgs, albumIncompatImageMode: 'transcode' });
+                              const allImgs = ['png', 'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'];
+                              patch({ imageTranscodeScope: 'all_incompatible', imageTranscodeFormats: allImgs, imageTranscodeTarget: 'jpeg', albumIncompatImageMode: 'transcode' });
                             }}
                             style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.2)', border: '1px solid rgba(56, 189, 248, 0.4)', color: '#7dd3fc', cursor: 'pointer' }}
                           >
@@ -2246,6 +2227,7 @@ export function TransferSettingsWorkspace({
 
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(105px, 1fr))', gap: '6px' }}>
                         {[
+                          { ext: 'png', key: 'image_transcode_fmt_png' },
                           { ext: 'webp', key: 'image_transcode_fmt_webp' },
                           { ext: 'heic', key: 'image_transcode_fmt_heic' },
                           { ext: 'heif', key: 'image_transcode_fmt_heic' },
@@ -2266,7 +2248,7 @@ export function TransferSettingsWorkspace({
                           { ext: 'rw2', key: 'image_transcode_fmt_rw2' },
                           { ext: 'raf', key: 'image_transcode_fmt_raf' },
                         ].map(({ ext }) => {
-                          const activeFormats = draft.imageTranscodeFormats || ['webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'];
+                          const activeFormats = draft.imageTranscodeFormats || ['png', 'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'];
                           const isChecked = activeFormats.includes(ext);
                           return (
                             <label
@@ -2300,6 +2282,7 @@ export function TransferSettingsWorkspace({
                                   patch({
                                     imageTranscodeScope: 'custom',
                                     imageTranscodeFormats: next,
+                                    imageTranscodeTarget: 'jpeg',
                                     albumIncompatImageMode: next.length > 0 ? 'transcode' : 'document',
                                   });
                                 }}
@@ -2316,7 +2299,7 @@ export function TransferSettingsWorkspace({
                       <div style={{ marginTop: '8px', fontSize: '11px', color: 'rgba(148, 163, 184, 0.85)' }}>
                         {t('speedtest.image_transcode_hint_active', {
                           count: (draft.imageTranscodeFormats || []).length,
-                          total: 19,
+                          total: 20,
                         })}
                       </div>
                     </div>
