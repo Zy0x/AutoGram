@@ -185,4 +185,31 @@
     <string name="remote_target_saved">Pesan Tersimpan (Saved Messages)</string>
     <string name="remote_strip_caption">Hapus Teks/Caption Asli</string>
     <string name="remote_dedup_check">Pencegahan Duplikasi 4-Level</string>
+
+    <!-- Studio 2:3 & Transcode Suite -->
+    <string name="studio_view_poster_23">Poster 2:3</string>
+    <string name="studio_view_compact_11">Grid 1:1</string>
+    <string name="studio_view_list">Daftar</string>
+    <string name="studio_sort_date">Terbaru</string>
+    <string name="studio_sort_size">Ukuran</string>
+    <string name="studio_sort_duration">Durasi</string>
+    <string name="studio_action_batch_transcode">Transcode Batch</string>
+    <string name="studio_action_batch_queue">Antrekan Transfer</string>
+    <string name="studio_action_build_album">✨ Rakit Album</string>
+    <string name="studio_selected_counter">%1$d media dipilih</string>
+
+    <!-- Studio Transcode Modal -->
+    <string name="studio_transcode_title">Preset Transcode Video</string>
+    <string name="studio_codec_label">Target Codec</string>
+    <string name="studio_resolution_label">Resolusi Output</string>
+    <string name="studio_audio_norm">Normalisasi Audio (EBU R128)</string>
+    <string name="studio_auto_split">Bagi Video Otomatis (&gt; 2 GB)</string>
+    <string name="studio_action_start_transcode">Mulai Transcode &amp; Antrekan</string>
+    <string name="studio_transcode_queued">Tugas transcode berhasil ditambahkan ke antrean!</string>
+
+    <!-- Settings Account Dialog -->
+    <string name="settings_account_phone_label">Nomor Telepon Telegram</string>
+    <string name="settings_account_otp_label">Kode OTP MTProto</string>
+    <string name="settings_account_action_login">Masuk via MTProto</string>
+    <string name="settings_account_success">Akun Telegram berhasil ditambahkan!</string>
 </resources>
