@@ -370,6 +370,9 @@ fn classify_platform(host: &str) -> String {
     let entries = [
         ("facebook", "Facebook"),
         ("fb.watch", "Facebook"),
+        ("streamrizz", "StreamRizz"),
+        ("overfetch", "Overfetch"),
+        ("vidoy", "Vidoy"),
         ("terabox", "Terabox"),
         ("1024tera", "Terabox"),
         ("pikpak", "PikPak"),

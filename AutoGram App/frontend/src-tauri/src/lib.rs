@@ -2485,6 +2485,48 @@ fn fetch_native_http(
     Ok(text)
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoteHeadMeta {
+    pub status: u16,
+    pub content_length: Option<u64>,
+    pub content_type: Option<String>,
+}
+
+#[tauri::command]
+fn fetch_remote_head_meta(
+    url: String,
+    headers: Option<std::collections::HashMap<String, String>>,
+) -> Result<RemoteHeadMeta, String> {
+    let u_clean = url.trim();
+    if u_clean.is_empty() {
+        return Err("empty URL".into());
+    }
+    let agent = ureq::AgentBuilder::new()
+        .timeout_connect(std::time::Duration::from_secs(8))
+        .timeout_read(std::time::Duration::from_secs(10))
+        .redirects(8)
+        .build();
+
+    let mut req = agent.head(u_clean);
+    if let Some(h) = headers {
+        for (k, v) in h {
+            req = req.set(&k, &v);
+        }
+    }
+    let resp = req.call().map_err(|e| format!("HEAD request failed: {e}"))?;
+    let status = resp.status();
+    let content_length = resp
+        .header("content-length")
+        .and_then(|v| v.parse::<u64>().ok());
+    let content_type = resp.header("content-type").map(|v| v.to_string());
+    Ok(RemoteHeadMeta {
+        status,
+        content_length,
+        content_type,
+    })
+}
+
 #[tauri::command]
 fn fetch_remote_json_metadata(url: String) -> Result<serde_json::Value, String> {
     let u_clean = url.trim();
@@ -2631,6 +2673,7 @@ pub fn run() {
             fetch_native_http,
             fetch_remote_json_metadata,
             fetch_remote_text_content,
+            fetch_remote_head_meta,
             resolve_remote_link_deep,
             desktop_read_clipboard,
             desktop_write_clipboard,

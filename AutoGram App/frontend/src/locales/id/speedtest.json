@@ -570,6 +570,8 @@
   "remote_web_handoff_desc": "Tautan ini mengarah ke halaman web interaktif. Jika halaman memerlukan login akun, verifikasi, atau sandi akses, silakan buka di peramban web terlebih dahulu.",
   "remote_btn_open_web": "Buka Halaman Web",
   "remote_pikpak_batch_pack": "Semua Berkas ({{count}} File{{size}} - Unduh Paket)",
+  "remote_streamrizz_batch_pack": "Semua Video Folder ({{count}} Video{{size}} - Unduh Paket)",
+  "remote_info_tag_streamrizz": "StreamRizz / Vidoy",
   "account_saved_messages": "Pesan Tersimpan (Saved Messages)",
   "url_placeholder_example": "https://example.com/file.zip",
   "uploading_status": "Mengunggah...",

@@ -9,6 +9,7 @@ allow = [
     "fetch_native_http",
     "fetch_remote_json_metadata",
     "fetch_remote_text_content",
+    "fetch_remote_head_meta",
     "resolve_remote_link_deep",
     "desktop_read_clipboard",
     "desktop_write_clipboard",

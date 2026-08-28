@@ -187,6 +187,11 @@ function getFormatDisplayLabel(
     const sizeStr = fmt.filesizeBytes ? ` ~${formatDriveBytes(fmt.filesizeBytes)}` : '';
     return t('speedtest.remote_pikpak_batch_pack', { count, size: sizeStr });
   }
+  if (fmt.id === 'streamrizz_all_files_pack') {
+    const count = resolvedMedia?.totalItems || resolvedMedia?.formats.filter((f) => !f.isAlbumPack).length || 0;
+    const sizeStr = fmt.filesizeBytes ? ` ~${formatDriveBytes(fmt.filesizeBytes)}` : '';
+    return t('speedtest.remote_streamrizz_batch_pack', { count, size: sizeStr });
+  }
   if (fmt.id.startsWith('tiktok_photo_')) {
     const total = resolvedMedia?.albumImages?.length || 1;
     const match = fmt.id.match(/photo_(\d+)/);
@@ -694,7 +699,7 @@ export function RemoteUploadModal({
       setSubmitting(true);
       try {
         let activeResolved = resolvedMedia;
-        if (!activeResolved && (targetUrl.includes('tiktok.com') || targetUrl.includes('douyin.com') || targetUrl.includes('youtube.com') || targetUrl.includes('youtu.be') || targetUrl.includes('instagram.com') || targetUrl.includes('terabox') || targetUrl.includes('pikpak') || targetUrl.includes('pinterest.com') || targetUrl.includes('pixiv.net'))) {
+        if (!activeResolved && (targetUrl.includes('tiktok.com') || targetUrl.includes('douyin.com') || targetUrl.includes('youtube.com') || targetUrl.includes('youtu.be') || targetUrl.includes('instagram.com') || targetUrl.includes('terabox') || targetUrl.includes('pikpak') || targetUrl.includes('streamrizz.com') || targetUrl.includes('vidoy') || targetUrl.includes('overfetch.video') || targetUrl.includes('pinterest.com') || targetUrl.includes('pixiv.net'))) {
           try {
             activeResolved = await resolveRemoteMediaUrl(targetUrl, undefined, { passcode });
           } catch {
@@ -866,6 +871,7 @@ export function RemoteUploadModal({
           </div>
           <div className="td-remote-info-tags">
             <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_pikpak')}</span>
+            <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_streamrizz')}</span>
             <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_gdrive')}</span>
             <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_dropbox')}</span>
             <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_mediafire')}</span>

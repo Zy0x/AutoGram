@@ -1,4 +1,5 @@
 import type { LinkResolverProvider, ResolvedMediaInfo, ResolveOptions } from './types';
+import { streamrizzResolver } from './providers/streamrizzResolver';
 import { pikpakResolver } from './providers/pikpakResolver';
 import { youtubeResolver } from './providers/youtubeResolver';
 import { tiktokResolver } from './providers/tiktokResolver';
@@ -20,6 +21,7 @@ import { assertSafeRemoteUrl } from './urlSafety';
  */
 class LinkResolverRegistry {
   private providers: LinkResolverProvider[] = [
+    streamrizzResolver,
     pikpakResolver,
     tiktokResolver,
     youtubeResolver,

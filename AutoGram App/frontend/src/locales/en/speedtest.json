@@ -570,6 +570,8 @@
   "remote_web_handoff_desc": "This link points to an interactive web page. If the page requires account login, verification, or a passcode, please open it in your browser first.",
   "remote_btn_open_web": "Open Web Page",
   "remote_pikpak_batch_pack": "All Files ({{count}} Files{{size}} - Batch Pack)",
+  "remote_streamrizz_batch_pack": "All Folder Videos ({{count}} Videos{{size}} - Batch Pack)",
+  "remote_info_tag_streamrizz": "StreamRizz / Vidoy",
   "account_saved_messages": "Saved Messages",
   "url_placeholder_example": "https://example.com/file.zip",
   "uploading_status": "Uploading...",
