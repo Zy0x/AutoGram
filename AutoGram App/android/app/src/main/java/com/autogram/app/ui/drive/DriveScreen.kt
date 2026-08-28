@@ -73,7 +73,9 @@ fun DriveScreen(
     if (currentPreview != null) {
         DrivePreviewModal(
             item = currentPreview,
-            onDismiss = { previewItem = null }
+            allItems = state.items,
+            onDismiss = { previewItem = null },
+            onNavigateItem = { previewItem = it }
         )
     }
 
