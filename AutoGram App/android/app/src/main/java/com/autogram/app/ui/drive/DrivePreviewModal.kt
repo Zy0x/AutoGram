@@ -50,7 +50,7 @@ import com.autogram.app.viewmodel.DriveFileItem
 /**
  * Truncate filename in the middle with ellipsis (e.g., "production_master...4k.mp4")
  */
-private fun middleTruncateFilename(filename: String, maxLength: Int = 26): String {
+private fun middleTruncateFilename(filename: String, maxLength: Int = 24): String {
     if (filename.length <= maxLength) return filename
     val extIndex = filename.lastIndexOf('.')
     val ext = if (extIndex != -1) filename.substring(extIndex) else ""
@@ -74,10 +74,14 @@ fun DrivePreviewModal(
     val context = LocalContext.current
     var currentItem by remember(item) { mutableStateOf(item) }
 
-    // Desktop UI State Variables
+    // UI States
     var isInfoSheetOpen by remember { mutableStateOf(false) }
     var isDiagnosticsOpen by remember { mutableStateOf(false) }
     var isFullscreen by remember { mutableStateOf(false) }
+    var isMoreMenuOpen by remember { mutableStateOf(false) }
+    var isFilmstripVisible by remember { mutableStateOf(true) }
+
+    // Video & Playback States
     var isPlaying by remember { mutableStateOf(true) }
     var isMuted by remember { mutableStateOf(false) }
     var playbackSpeed by remember { mutableFloatStateOf(1.0f) }
@@ -88,7 +92,6 @@ fun DrivePreviewModal(
     var progress by remember { mutableFloatStateOf(0.35f) }
     var isLooping by remember { mutableStateOf(false) }
     var aspectRatioMode by remember { mutableIntStateOf(0) } // 0=Fit, 1=Fill, 2=16:9, 3=4:3, 4=Stretch
-    var isFilmstripVisible by remember { mutableStateOf(true) }
 
     // File Category Detection
     val isPhoto = currentItem.mimeType.startsWith("image") || currentItem.telegramCategory.equals("photo", ignoreCase = true)
@@ -114,225 +117,300 @@ fun DrivePreviewModal(
                 .background(CanvasDeepNavy.copy(alpha = 0.98f))
         ) {
             // =========================================================================
-            // 1. DESKTOP-GRADE HEADER TOOLBAR (MediaHeaderToolbar)
+            // 1. CLEAN & COMPACT HEADER TOOLBAR (Minimalist & Organized)
             // =========================================================================
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .zIndex(15f)
-                    .statusBarsPadding()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Left: Close Button + File Info & Counter
+            if (!isFullscreen) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .zIndex(15f)
+                        .statusBarsPadding()
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(Color(0x33FFFFFF), CircleShape)
+                    // Left: Close Button + File Information & Counter
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = stringResource(R.string.preview_action_close),
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-
-                    Column {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        IconButton(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .size(38.dp)
+                                .background(Color(0x26FFFFFF), CircleShape)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(7.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        when {
-                                            isVideo -> CategoryVideo
-                                            isPhoto -> CategoryPhoto
-                                            isAudio -> CategoryAudio
-                                            isZip -> GoldAccent
-                                            isPdf -> CategoryDoc
-                                            else -> MutedIceCyan
-                                        }
-                                    )
-                            )
-                            Text(
-                                text = middleTruncateFilename(currentItem.name, 22),
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.5.sp
-                                ),
-                                color = Color.White,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = stringResource(R.string.preview_action_close),
+                                tint = Color.White,
+                                modifier = Modifier.size(19.dp)
                             )
                         }
 
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = "(${formatFileSize(currentItem.size)})",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontSize = 10.sp,
-                                    fontFamily = FontFamily.Monospace
-                                ),
-                                color = TextSecondaryDark
-                            )
-                            if (allItems.isNotEmpty() && currentIndex != -1) {
-                                Text(
-                                    text = "• ${currentIndex + 1}/${allItems.size}",
-                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
-                                    color = MutedIceCyan
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(7.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            when {
+                                                isVideo -> CategoryVideo
+                                                isPhoto -> CategoryPhoto
+                                                isAudio -> CategoryAudio
+                                                isZip -> GoldAccent
+                                                isPdf -> CategoryDoc
+                                                else -> MutedIceCyan
+                                            }
+                                        )
                                 )
+                                Text(
+                                    text = middleTruncateFilename(currentItem.name, 22),
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp
+                                    ),
+                                    color = Color.White,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                Text(
+                                    text = formatFileSize(currentItem.size),
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontSize = 10.5.sp,
+                                        fontFamily = FontFamily.Monospace
+                                    ),
+                                    color = TextSecondaryDark
+                                )
+                                if (allItems.isNotEmpty() && currentIndex != -1) {
+                                    Text(
+                                        text = "• ${currentIndex + 1}/${allItems.size}",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontSize = 10.5.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        ),
+                                        color = MutedIceCyan
+                                    )
+                                }
                             }
                         }
                     }
-                }
 
-                // Right: Full Suite Actions (Prev, Next, Diag, Open System, Print, Download, Info, Fullscreen)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    // Previous File
-                    if (allItems.isNotEmpty()) {
+                    // Right: Primary Action (Download) + 3-Dot Overflow Menu
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        // Quick Download Button (Primary)
                         IconButton(
-                            onClick = {
-                                if (hasPrev) {
-                                    val prevItem = allItems[currentIndex - 1]
-                                    currentItem = prevItem
-                                    onNavigateItem?.invoke(prevItem)
+                            onClick = { onDownload(currentItem) },
+                            modifier = Modifier
+                                .size(38.dp)
+                                .background(MutedIceCyan.copy(alpha = 0.15f), CircleShape)
+                                .border(1.dp, MutedIceCyan.copy(alpha = 0.35f), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Download,
+                                contentDescription = stringResource(R.string.preview_action_download),
+                                tint = MutedIceCyan,
+                                modifier = Modifier.size(19.dp)
+                            )
+                        }
+
+                        // 3-Dot Overflow Menu Button
+                        Box {
+                            IconButton(
+                                onClick = { isMoreMenuOpen = true },
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .background(Color(0x26FFFFFF), CircleShape)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = stringResource(R.string.preview_menu_more),
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            // Clean Dropdown Menu
+                            DropdownMenu(
+                                expanded = isMoreMenuOpen,
+                                onDismissRequest = { isMoreMenuOpen = false },
+                                modifier = Modifier
+                                    .background(Color(0xF50B1C30), RoundedCornerShape(14.dp))
+                                    .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(14.dp))
+                                    .widthIn(min = 220.dp)
+                            ) {
+                                // 1. Stream & GPU Diagnostics
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = stringResource(R.string.preview_menu_diagnostics),
+                                            fontSize = 12.5.sp,
+                                            color = if (isDiagnosticsOpen) MutedIceCyan else Color.White
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.QueryStats,
+                                            null,
+                                            tint = if (isDiagnosticsOpen) MutedIceCyan else TextSecondaryDark,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    },
+                                    onClick = {
+                                        isDiagnosticsOpen = !isDiagnosticsOpen
+                                        isMoreMenuOpen = false
+                                    }
+                                )
+
+                                // 2. File Metadata & Telemetry
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = stringResource(R.string.preview_menu_metadata),
+                                            fontSize = 12.5.sp,
+                                            color = if (isInfoSheetOpen) GoldAccent else Color.White
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Info,
+                                            null,
+                                            tint = if (isInfoSheetOpen) GoldAccent else TextSecondaryDark,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    },
+                                    onClick = {
+                                        isInfoSheetOpen = !isInfoSheetOpen
+                                        isMoreMenuOpen = false
+                                    }
+                                )
+
+                                // 3. Duplicate Compare (if Video)
+                                if (isVideo) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = stringResource(R.string.preview_menu_split),
+                                                fontSize = 12.5.sp,
+                                                color = if (isDuplicateCompareOpen) MutedIceCyan else Color.White
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.Compare,
+                                                null,
+                                                tint = if (isDuplicateCompareOpen) MutedIceCyan else TextSecondaryDark,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        },
+                                        onClick = {
+                                            isDuplicateCompareOpen = !isDuplicateCompareOpen
+                                            isMoreMenuOpen = false
+                                        }
+                                    )
                                 }
-                            },
-                            enabled = hasPrev,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ChevronLeft,
-                                contentDescription = stringResource(R.string.preview_nav_prev),
-                                tint = if (hasPrev) Color.White else Color(0x40FFFFFF),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
 
-                        // Next File
-                        IconButton(
-                            onClick = {
-                                if (hasNext) {
-                                    val nextItem = allItems[currentIndex + 1]
-                                    currentItem = nextItem
-                                    onNavigateItem?.invoke(nextItem)
+                                // 4. Open in System External App
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = stringResource(R.string.preview_menu_open_system),
+                                            fontSize = 12.5.sp,
+                                            color = Color.White
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.OpenInNew, null, tint = TextSecondaryDark, modifier = Modifier.size(18.dp))
+                                    },
+                                    onClick = {
+                                        isMoreMenuOpen = false
+                                        Toast.makeText(context, context.getString(R.string.preview_open_system_app), Toast.LENGTH_SHORT).show()
+                                    }
+                                )
+
+                                // 5. Print Document (if PDF)
+                                if (isPdf) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = stringResource(R.string.preview_pdf_print),
+                                                fontSize = 12.5.sp,
+                                                color = Color.White
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Print, null, tint = CategoryDoc, modifier = Modifier.size(18.dp))
+                                        },
+                                        onClick = {
+                                            isMoreMenuOpen = false
+                                            Toast.makeText(context, context.getString(R.string.preview_pdf_print), Toast.LENGTH_SHORT).show()
+                                        }
+                                    )
                                 }
-                            },
-                            enabled = hasNext,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ChevronRight,
-                                contentDescription = stringResource(R.string.preview_nav_next),
-                                tint = if (hasNext) Color.White else Color(0x40FFFFFF),
-                                modifier = Modifier.size(20.dp)
-                            )
+
+                                HorizontalDivider(color = Color(0x1FFFFFFF), modifier = Modifier.padding(vertical = 4.dp))
+
+                                // 6. Toggle Filmstrip
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = stringResource(R.string.preview_menu_filmstrip_toggle),
+                                            fontSize = 12.5.sp,
+                                            color = Color.White
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            if (isFilmstripVisible) Icons.Default.ViewSidebar else Icons.Default.ViewStream,
+                                            null,
+                                            tint = if (isFilmstripVisible) MutedIceCyan else TextSecondaryDark,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    },
+                                    onClick = {
+                                        isFilmstripVisible = !isFilmstripVisible
+                                        isMoreMenuOpen = false
+                                    }
+                                )
+
+                                // 7. Fullscreen Toggle
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = stringResource(R.string.preview_menu_fullscreen),
+                                            fontSize = 12.5.sp,
+                                            color = Color.White
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                                            null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    },
+                                    onClick = {
+                                        isFullscreen = !isFullscreen
+                                        isMoreMenuOpen = false
+                                    }
+                                )
+                            }
                         }
-                    }
-
-                    // Open in System App
-                    IconButton(
-                        onClick = {
-                            Toast.makeText(context, context.getString(R.string.preview_open_system_app), Toast.LENGTH_SHORT).show()
-                        },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.OpenInNew,
-                            contentDescription = stringResource(R.string.preview_open_system_app),
-                            tint = TextSecondaryDark,
-                            modifier = Modifier.size(17.dp)
-                        )
-                    }
-
-                    // Print PDF Document
-                    if (isPdf) {
-                        IconButton(
-                            onClick = {
-                                Toast.makeText(context, context.getString(R.string.preview_pdf_print), Toast.LENGTH_SHORT).show()
-                            },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Print,
-                                contentDescription = stringResource(R.string.preview_pdf_print),
-                                tint = TextSecondaryDark,
-                                modifier = Modifier.size(17.dp)
-                            )
-                        }
-                    }
-
-                    // Stream Diagnostics Toggle (Desktop Activity Icon)
-                    IconButton(
-                        onClick = { isDiagnosticsOpen = !isDiagnosticsOpen },
-                        modifier = Modifier
-                            .size(32.dp)
-                            .background(if (isDiagnosticsOpen) MutedIceCyan.copy(alpha = 0.25f) else Color.Transparent, CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.QueryStats,
-                            contentDescription = stringResource(R.string.preview_diag_title),
-                            tint = if (isDiagnosticsOpen) MutedIceCyan else TextSecondaryDark,
-                            modifier = Modifier.size(17.dp)
-                        )
-                    }
-
-                    // Quick Download
-                    IconButton(
-                        onClick = { onDownload(currentItem) },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Download,
-                            contentDescription = stringResource(R.string.preview_action_download),
-                            tint = MutedIceCyan,
-                            modifier = Modifier.size(17.dp)
-                        )
-                    }
-
-                    // Info / Metadata Toggle
-                    IconButton(
-                        onClick = { isInfoSheetOpen = !isInfoSheetOpen },
-                        modifier = Modifier
-                            .size(32.dp)
-                            .background(if (isInfoSheetOpen) GoldAccent.copy(alpha = 0.25f) else Color.Transparent, CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = stringResource(R.string.preview_action_info),
-                            tint = if (isInfoSheetOpen) GoldAccent else TextSecondaryDark,
-                            modifier = Modifier.size(17.dp)
-                        )
-                    }
-
-                    // Fullscreen Toggle
-                    IconButton(
-                        onClick = { isFullscreen = !isFullscreen },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
-                            contentDescription = if (isFullscreen) stringResource(R.string.preview_fullscreen_exit) else stringResource(R.string.preview_fullscreen_enter),
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp)
-                        )
                     }
                 }
             }
@@ -343,7 +421,10 @@ fun DrivePreviewModal(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = if (isFullscreen) 0.dp else 68.dp, bottom = if (isFullscreen) 0.dp else 84.dp),
+                    .padding(
+                        top = if (isFullscreen) 0.dp else 68.dp,
+                        bottom = if (isFullscreen || !isFilmstripVisible) 0.dp else 64.dp
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 when {
@@ -379,8 +460,7 @@ fun DrivePreviewModal(
                             isLooping = isLooping,
                             onToggleLoop = { isLooping = !isLooping },
                             aspectRatioMode = aspectRatioMode,
-                            onToggleAspectRatio = { aspectRatioMode = (aspectRatioMode + 1) % 5 },
-                            onToggleSplitCompare = { isDuplicateCompareOpen = !isDuplicateCompareOpen }
+                            onToggleAspectRatio = { aspectRatioMode = (aspectRatioMode + 1) % 5 }
                         )
                     }
                     isAudio -> {
@@ -411,7 +491,7 @@ fun DrivePreviewModal(
                 }
 
                 // =========================================================================
-                // 3. PLAYBACK & STREAM DIAGNOSTICS HUD (PlaybackDiagnosticsPanel)
+                // 3. PLAYBACK & STREAM DIAGNOSTICS HUD
                 // =========================================================================
                 AnimatedVisibility(
                     visible = isDiagnosticsOpen,
@@ -419,29 +499,80 @@ fun DrivePreviewModal(
                     exit = fadeOut() + shrinkVertically(),
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(top = 10.dp, end = 12.dp)
+                        .padding(top = 10.dp, end = 14.dp)
                         .zIndex(25f)
                 ) {
                     PlaybackDiagnosticsHUD(onClose = { isDiagnosticsOpen = false })
                 }
+
+                // =========================================================================
+                // 4. FLOATING SUBTLE EDGE NAVIGATION ARROWS (Prev / Next)
+                // =========================================================================
+                if (allItems.isNotEmpty() && !isFullscreen) {
+                    if (hasPrev) {
+                        IconButton(
+                            onClick = {
+                                val prevItem = allItems[currentIndex - 1]
+                                currentItem = prevItem
+                                onNavigateItem?.invoke(prevItem)
+                            },
+                            modifier = Modifier
+                                .align(Alignment.CenterStart)
+                                .padding(start = 6.dp)
+                                .size(36.dp)
+                                .background(Color(0x40000000), CircleShape)
+                                .zIndex(12f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ChevronLeft,
+                                contentDescription = stringResource(R.string.preview_nav_prev),
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+
+                    if (hasNext) {
+                        IconButton(
+                            onClick = {
+                                val nextItem = allItems[currentIndex + 1]
+                                currentItem = nextItem
+                                onNavigateItem?.invoke(nextItem)
+                            },
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(end = 6.dp)
+                                .size(36.dp)
+                                .background(Color(0x40000000), CircleShape)
+                                .zIndex(12f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = stringResource(R.string.preview_nav_next),
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                }
             }
 
             // =========================================================================
-            // 4. DESKTOP THUMBNAIL FILMSTRIP (SplitSidepanelThumbStrip)
+            // 5. COMPACT BOTTOM FILMSTRIP
             // =========================================================================
-            if (allItems.isNotEmpty() && !isFullscreen) {
+            if (allItems.isNotEmpty() && !isFullscreen && isFilmstripVisible) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .padding(bottom = if (isInfoSheetOpen) 220.dp else 12.dp)
+                        .padding(bottom = if (isInfoSheetOpen) 220.dp else 10.dp)
                         .zIndex(10f)
                 ) {
                     LazyRow(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         items(allItems) { fileItem ->
@@ -452,19 +583,19 @@ fun DrivePreviewModal(
                                     onNavigateItem?.invoke(fileItem)
                                 },
                                 shape = RoundedCornerShape(8.dp),
-                                color = if (isSelected) MutedIceCyan.copy(alpha = 0.25f) else Color(0x330F172A),
+                                color = if (isSelected) MutedIceCyan.copy(alpha = 0.22f) else Color(0x330F172A),
                                 border = BorderStroke(
                                     if (isSelected) 1.5.dp else 0.5.dp,
                                     if (isSelected) MutedIceCyan else Color(0x26FFFFFF)
                                 ),
                                 modifier = Modifier
-                                    .width(72.dp)
-                                    .height(44.dp)
+                                    .width(68.dp)
+                                    .height(38.dp)
                             ) {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .padding(4.dp),
+                                        .padding(horizontal = 5.dp, vertical = 2.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
@@ -478,16 +609,16 @@ fun DrivePreviewModal(
                                         },
                                         contentDescription = null,
                                         tint = if (isSelected) MutedIceCyan else TextSecondaryDark,
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(14.dp)
                                     )
                                     Text(
                                         text = fileItem.name,
                                         style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 9.sp,
+                                            fontSize = 8.5.sp,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                         ),
                                         color = if (isSelected) Color.White else TextSecondaryDark,
-                                        maxLines = 2,
+                                        maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                 }
@@ -498,7 +629,7 @@ fun DrivePreviewModal(
             }
 
             // =========================================================================
-            // 5. BOTTOM METADATA & TELEMETRY DRAWER (Expandable with zIndex 20)
+            // 6. BOTTOM METADATA & TELEMETRY DRAWER (Expandable with zIndex 20)
             // =========================================================================
             AnimatedVisibility(
                 visible = isInfoSheetOpen,
@@ -578,7 +709,7 @@ fun DrivePreviewModal(
 private fun PlaybackDiagnosticsHUD(onClose: () -> Unit) {
     Surface(
         modifier = Modifier.width(280.dp),
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(12.dp),
         color = Color(0xF20F172A),
         border = BorderStroke(1.dp, MutedIceCyan.copy(alpha = 0.4f)),
         shadowElevation = 12.dp
@@ -627,7 +758,7 @@ private fun PlaybackDiagnosticsHUD(onClose: () -> Unit) {
 
             HorizontalDivider(color = Color(0x1FFFFFFF))
 
-            DiagRow(label = stringResource(R.string.preview_diag_backend), value = "Vulkan Hardware Video Acceleration", color = DustySage)
+            DiagRow(label = stringResource(R.string.preview_diag_backend), value = "Vulkan Hardware Acceleration", color = DustySage)
             DiagRow(label = stringResource(R.string.preview_diag_gpu), value = "Adreno / Mali GPU Pipeline", color = Color.White)
             DiagRow(label = stringResource(R.string.preview_diag_zero_copy), value = stringResource(R.string.preview_diag_zero_copy_active), color = DustySage)
             DiagRow(label = stringResource(R.string.preview_diag_profile), value = "HEVC Main10 @ Level 5.1 (4K 60FPS)", color = GoldAccent)
@@ -702,7 +833,7 @@ private fun DiagRow(label: String, value: String, color: Color) {
 }
 
 /**
- * Desktop-Grade Media Video Player Suite with Dual-Progress Scrubber, Transcode Qualities, and Aspect Ratios
+ * Compact Video Player Suite with Transcode Qualities and Aspect Ratios
  */
 @Composable
 private fun MediaVideoPlayerSuite(
@@ -724,8 +855,7 @@ private fun MediaVideoPlayerSuite(
     isLooping: Boolean,
     onToggleLoop: () -> Unit,
     aspectRatioMode: Int,
-    onToggleAspectRatio: () -> Unit,
-    onToggleSplitCompare: () -> Unit
+    onToggleAspectRatio: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -763,16 +893,19 @@ private fun MediaVideoPlayerSuite(
                         color = Color(0xCC000000),
                         shape = CircleShape,
                         border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.5f)),
-                        modifier = Modifier.height(32.dp)
+                        modifier = Modifier.height(30.dp)
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
                                 text = selectedQuality,
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                ),
                                 color = GoldAccent
                             )
                             Icon(Icons.Default.ArrowDropDown, null, tint = GoldAccent, modifier = Modifier.size(12.dp))
@@ -796,58 +929,34 @@ private fun MediaVideoPlayerSuite(
                     }
                 }
 
-                // Top Right Overlay: Aspect Ratio & Split Compare Mode
-                Row(
+                // Top Right Overlay: Aspect Ratio Chip
+                Surface(
+                    onClick = onToggleAspectRatio,
+                    color = Color(0xCC000000),
+                    shape = CircleShape,
+                    border = BorderStroke(1.dp, Color(0x40FFFFFF)),
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
-                        .zIndex(5f),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .height(30.dp)
+                        .zIndex(5f)
                 ) {
-                    // Split Compare Toggle
-                    Surface(
-                        onClick = onToggleSplitCompare,
-                        color = Color(0xCC000000),
-                        shape = CircleShape,
-                        border = BorderStroke(1.dp, MutedIceCyan.copy(alpha = 0.5f)),
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            Icon(
-                                imageVector = Icons.Default.Compare,
-                                contentDescription = "Split Compare",
-                                tint = MutedIceCyan,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
+                    val aspectText = when (aspectRatioMode) {
+                        1 -> stringResource(R.string.preview_video_aspect_fill)
+                        2 -> stringResource(R.string.preview_video_aspect_16_9)
+                        3 -> stringResource(R.string.preview_aspect_4_3)
+                        4 -> stringResource(R.string.preview_aspect_stretch)
+                        else -> stringResource(R.string.preview_video_aspect_fit)
                     }
-
-                    // Aspect Ratio
-                    Surface(
-                        onClick = onToggleAspectRatio,
-                        color = Color(0xCC000000),
-                        shape = CircleShape,
-                        border = BorderStroke(1.dp, Color(0x40FFFFFF)),
-                        modifier = Modifier.height(36.dp)
-                    ) {
-                        val aspectText = when (aspectRatioMode) {
-                            1 -> stringResource(R.string.preview_video_aspect_fill)
-                            2 -> stringResource(R.string.preview_video_aspect_16_9)
-                            3 -> stringResource(R.string.preview_aspect_4_3)
-                            4 -> stringResource(R.string.preview_aspect_stretch)
-                            else -> stringResource(R.string.preview_video_aspect_fit)
-                        }
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxHeight().padding(horizontal = 10.dp)) {
-                            Text(
-                                text = aspectText,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 10.5.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                color = Color.White
-                            )
-                        }
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxHeight().padding(horizontal = 10.dp)) {
+                        Text(
+                            text = aspectText,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = Color.White
+                        )
                     }
                 }
             }
@@ -1019,7 +1128,7 @@ private fun MediaVideoPlayerSuite(
 }
 
 /**
- * Desktop-Grade ImageViewer with Floating Controls matching desktop ImageViewer.tsx 1:1
+ * ImageViewer with Clean Floating Controls
  */
 @Composable
 private fun ImageViewerSuite(item: DriveFileItem) {
@@ -1091,7 +1200,7 @@ private fun ImageViewerSuite(item: DriveFileItem) {
             }
         }
 
-        // Floating Image Controls Toolbar (matching desktop 1:1)
+        // Floating Image Controls Toolbar
         Surface(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -1189,7 +1298,7 @@ private fun ImageViewerSuite(item: DriveFileItem) {
 }
 
 /**
- * Hi-Fi Media Audio Player Suite matching desktop MediaAudioPlayer.tsx 1:1
+ * Hi-Fi Media Audio Player Suite
  */
 @Composable
 private fun MediaAudioPlayerSuite(
@@ -1377,7 +1486,7 @@ private fun MediaAudioPlayerSuite(
 }
 
 /**
- * TGS / Lottie Vector Sticker Viewer matching desktop TgsLottiePlayer.tsx 1:1
+ * TGS / Lottie Vector Sticker Viewer
  */
 @Composable
 private fun TgsLottieViewer(item: DriveFileItem) {
@@ -1392,8 +1501,7 @@ private fun TgsLottieViewer(item: DriveFileItem) {
     ) {
         // Sticker Stage Canvas
         Surface(
-            modifier = Modifier
-                .size(220.dp),
+            modifier = Modifier.size(220.dp),
             shape = RoundedCornerShape(16.dp),
             color = when (bgMode) {
                 1 -> Color(0xFFE2E8F0)
@@ -1459,7 +1567,7 @@ private fun TgsLottieViewer(item: DriveFileItem) {
 }
 
 /**
- * Side-by-Side Duplicate Compare Player matching desktop SplitVideoPlayer.tsx
+ * Side-by-Side Duplicate Compare Player
  */
 @Composable
 private fun SplitComparePlayer(item: DriveFileItem, onClose: () -> Unit) {
@@ -1527,7 +1635,7 @@ private fun SplitComparePlayer(item: DriveFileItem, onClose: () -> Unit) {
             }
         }
 
-        // Action Buttons: Keep Only This vs Delete Duplicate
+        // Action Buttons
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1564,7 +1672,7 @@ private fun SplitComparePlayer(item: DriveFileItem, onClose: () -> Unit) {
 }
 
 /**
- * VSCode-Style Syntax Code Viewer matching desktop VSCodeCodeViewer.tsx 1:1
+ * VSCode-Style Syntax Code Viewer with Search Query
  */
 @Composable
 private fun VSCodeSyntaxViewer(item: DriveFileItem) {
@@ -1701,7 +1809,7 @@ private fun VSCodeSyntaxViewer(item: DriveFileItem) {
 }
 
 /**
- * PDF Document Viewer with Page Counter
+ * PDF Document Viewer
  */
 @Composable
 private fun PdfDocumentViewer(item: DriveFileItem) {
@@ -1798,7 +1906,7 @@ private fun GenericDocumentViewer(item: DriveFileItem) {
 }
 
 /**
- * Sparse ZIP Archive Explorer matching desktop DriveZipBrowser
+ * Sparse ZIP Archive Explorer
  */
 @Composable
 private fun SparseZipArchiveViewer(item: DriveFileItem) {

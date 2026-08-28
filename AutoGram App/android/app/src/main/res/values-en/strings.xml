@@ -350,8 +350,13 @@
     <string name="preview_meta_dup_level1">Level 1: Message ID (Matched)</string>
     <string name="preview_meta_dup_level2">Level 2: Telegram Unique ID (Matched)</string>
     <string name="preview_meta_dup_level3">Level 3: SHA256 Checksum (Matched)</string>
-    <string name="preview_meta_dup_level4">Level 4: Filename + Size (Matched)</string>
-    <string name="preview_filmstrip_title">Folder Files Strip</string>
     <string name="preview_code_search_placeholder">Search in code...</string>
     <string name="preview_code_matches">%1$d matches</string>
+    <string name="preview_menu_more">More Options</string>
+    <string name="preview_menu_diagnostics">Stream &amp; GPU Diagnostics</string>
+    <string name="preview_menu_metadata">File Details &amp; Telemetry</string>
+    <string name="preview_menu_split">Compare Duplicate</string>
+    <string name="preview_menu_open_system">Open in System App</string>
+    <string name="preview_menu_filmstrip_toggle">Toggle Filmstrip</string>
+    <string name="preview_menu_fullscreen">Toggle Fullscreen</string>
 </resources>

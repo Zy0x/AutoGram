@@ -350,8 +350,13 @@
     <string name="preview_meta_dup_level1">Level 1: Message ID (Cocok)</string>
     <string name="preview_meta_dup_level2">Level 2: Telegram Unique ID (Cocok)</string>
     <string name="preview_meta_dup_level3">Level 3: SHA256 Checksum (Cocok)</string>
-    <string name="preview_meta_dup_level4">Level 4: Filename + Ukuran (Cocok)</string>
-    <string name="preview_filmstrip_title">Daftar Berkas Folder</string>
     <string name="preview_code_search_placeholder">Cari di dalam kode...</string>
     <string name="preview_code_matches">%1$d kecocokan</string>
+    <string name="preview_menu_more">Opsi Lainnya</string>
+    <string name="preview_menu_diagnostics">Diagnostik Stream &amp; GPU</string>
+    <string name="preview_menu_metadata">Detail &amp; Telemetri Berkas</string>
+    <string name="preview_menu_split">Bandingkan Duplikat</string>
+    <string name="preview_menu_open_system">Buka di Aplikasi Sistem</string>
+    <string name="preview_menu_filmstrip_toggle">Tampilkan/Sembunyikan Filmstrip</string>
+    <string name="preview_menu_fullscreen">Layar Penuh</string>
 </resources>
