@@ -23,6 +23,7 @@ allow = [
     "preview_local_document",
     "path_policy_check",
     "stream_server_port",
+    "get_remote_stream_proxy_url",
     "stream_status_local",
     "stream_register_local",
     "stream_unregister",

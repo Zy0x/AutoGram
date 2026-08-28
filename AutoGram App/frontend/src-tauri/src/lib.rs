@@ -1008,6 +1008,22 @@ fn stream_server_port() -> u16 {
 }
 
 #[tauri::command]
+fn get_remote_stream_proxy_url(url: String, referer: Option<String>) -> Result<String, String> {
+    let u_clean = url.trim();
+    if u_clean.is_empty() {
+        return Err("empty URL".into());
+    }
+    let port = core::stream_server::stream_port();
+    if port == 0 {
+        return Ok(u_clean.to_string());
+    }
+    let ref_val = referer.unwrap_or_else(|| "https://streamrizz.com/".to_string());
+    let enc_url = urlencoding::encode(u_clean);
+    let enc_ref = urlencoding::encode(&ref_val);
+    Ok(format!("http://127.0.0.1:{port}/proxy_remote?url={enc_url}&referer={enc_ref}"))
+}
+
+#[tauri::command]
 fn stream_status_local(stream_id: String) -> core::stream_server::StreamStatusDto {
     core::stream_server::status_of(&stream_id)
 }
@@ -2687,6 +2703,7 @@ pub fn run() {
             preview_local_document,
             path_policy_check,
             stream_server_port,
+            get_remote_stream_proxy_url,
             stream_status_local,
             stream_register_local,
             stream_unregister,

@@ -1026,6 +1026,11 @@ fn handle(request: Request) {
         return;
     }
 
+    if (method == Method::Get || method == Method::Head) && (url == "/proxy_remote" || url.starts_with("/proxy_remote?") || url.starts_with("/proxy_remote/")) {
+        handle_remote_proxy(request);
+        return;
+    }
+
     if method == Method::Get && (url == "/health" || url.starts_with("/health?")) {
         let mut res = Response::from_string(r#"{"ok":true,"backend":"rust"}"#)
             .with_status_code(StatusCode(200));
@@ -1041,6 +1046,109 @@ fn handle(request: Request) {
         res.add_header(h);
     }
     let _ = request.respond(res);
+}
+
+fn handle_remote_proxy(request: Request) {
+    let raw_url = request.url().to_string();
+    let query_str = raw_url.split_once('?').map(|x| x.1).unwrap_or("");
+    let mut target_url = String::new();
+    let mut referer = "https://streamrizz.com/".to_string();
+
+    for pair in query_str.split('&') {
+        if let Some((k, v)) = pair.split_once('=') {
+            if let Ok(decoded_k) = urlencoding::decode(k) {
+                if let Ok(decoded_v) = urlencoding::decode(v) {
+                    if decoded_k == "url" {
+                        target_url = decoded_v.to_string();
+                    } else if decoded_k == "referer" {
+                        referer = decoded_v.to_string();
+                    }
+                }
+            }
+        }
+    }
+
+    if target_url.trim().is_empty() {
+        let mut res = Response::from_string("missing url parameter").with_status_code(StatusCode(400));
+        for h in cors_headers() {
+            res.add_header(h);
+        }
+        let _ = request.respond(res);
+        return;
+    }
+
+    let agent = ureq::AgentBuilder::new()
+        .timeout_connect(Duration::from_secs(10))
+        .timeout_read(Duration::from_secs(45))
+        .redirects(8)
+        .build();
+
+    let is_head = request.method() == &Method::Head;
+    let mut upstream_req = if is_head {
+        agent.head(&target_url)
+    } else {
+        agent.get(&target_url)
+    };
+
+    upstream_req = upstream_req
+        .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+        .set("Referer", &referer);
+
+    for hdr in request.headers() {
+        if hdr.field.equiv("range") {
+            upstream_req = upstream_req.set("Range", hdr.value.as_str());
+        }
+    }
+
+    match upstream_req.call() {
+        Ok(resp) => {
+            let status = resp.status();
+            let content_type = resp.header("content-type").unwrap_or("video/mp4").to_string();
+            let content_range = resp.header("content-range").map(|s| s.to_string());
+            let content_len = resp.header("content-length").and_then(|s| s.parse::<u64>().ok());
+
+            let reader: Box<dyn std::io::Read + Send + 'static> = if is_head {
+                Box::new(std::io::empty())
+            } else {
+                Box::new(resp.into_reader())
+            };
+            let mut out_res = Response::new(
+                StatusCode(status),
+                vec![],
+                reader,
+                if is_head { Some(0) } else { content_len.map(|l| l as usize) },
+                None,
+            );
+
+            for h in cors_headers() {
+                out_res.add_header(h);
+            }
+            if let Ok(h) = Header::from_bytes(&b"Content-Type"[..], content_type.as_bytes()) {
+                out_res.add_header(h);
+            }
+            if let Ok(h) = Header::from_bytes(&b"Accept-Ranges"[..], &b"bytes"[..]) {
+                out_res.add_header(h);
+            }
+            if let Some(cr) = content_range {
+                if let Ok(h) = Header::from_bytes(&b"Content-Range"[..], cr.as_bytes()) {
+                    out_res.add_header(h);
+                }
+            }
+            let _ = request.respond(out_res);
+        }
+        Err(e) => {
+            let mut res = Response::from_string(format!("Proxy upstream error: {e}"))
+                .with_status_code(StatusCode(502));
+            for h in cors_headers() {
+                res.add_header(h);
+            }
+            let _ = request.respond(res);
+        }
+    }
+}
+
+pub fn get_port() -> u16 {
+    PORT.load(Ordering::SeqCst)
 }
 
 /// Start server on 127.0.0.1:0 (ephemeral). Idempotent.

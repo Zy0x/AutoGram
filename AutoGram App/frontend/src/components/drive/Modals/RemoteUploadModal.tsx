@@ -693,6 +693,41 @@ export function RemoteUploadModal({
     : '';
   const activePreviewChosenFmt = activePreviewItem?.formats.find((f) => f.id === activePreviewChosenFmtId) || activePreviewItem?.formats[0];
 
+  const [activePlayableUrl, setActivePlayableUrl] = useState<string>('');
+
+  const targetMediaForPlayback = effectiveMediaItems.length > 1 ? activePreviewChosenFmt : chosenFormat;
+
+  useEffect(() => {
+    let isCancelled = false;
+    const rawUrl = targetMediaForPlayback?.directUrl;
+    if (!rawUrl) {
+      setActivePlayableUrl('');
+      return;
+    }
+
+    const referer = targetMediaForPlayback?.headers?.Referer || (
+      rawUrl.includes('overfetch.video') || rawUrl.includes('vidoy') || rawUrl.includes('streamrizz')
+        ? 'https://streamrizz.com/'
+        : undefined
+    );
+
+    if (detectTauriRuntime() && referer) {
+      invoke<string>('get_remote_stream_proxy_url', { url: rawUrl, referer })
+        .then((proxied) => {
+          if (!isCancelled) setActivePlayableUrl(proxied);
+        })
+        .catch(() => {
+          if (!isCancelled) setActivePlayableUrl(rawUrl);
+        });
+    } else {
+      setActivePlayableUrl(rawUrl);
+    }
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [targetMediaForPlayback?.directUrl, targetMediaForPlayback?.headers?.Referer]);
+
   const handleToggleItem = useCallback((itemId: string) => {
     setSelectedMediaItemIds((prev) => {
       const next = new Set(prev);
@@ -1552,8 +1587,8 @@ export function RemoteUploadModal({
                           <div className="td-remote-active-player-canvas">
                             {activePreviewChosenFmt?.directUrl && activePreviewItem.kind === 'video' ? (
                               <video
-                                key={activePreviewChosenFmt.directUrl}
-                                src={activePreviewChosenFmt.directUrl}
+                                key={activePlayableUrl || activePreviewChosenFmt.directUrl}
+                                src={activePlayableUrl || activePreviewChosenFmt.directUrl}
                                 poster={activePreviewItem.thumbnailUrl}
                                 controls
                                 preload="metadata"
