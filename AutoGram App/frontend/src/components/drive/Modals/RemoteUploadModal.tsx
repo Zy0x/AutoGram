@@ -1592,15 +1592,21 @@ export function RemoteUploadModal({
                         <div className="td-remote-active-player-wrap">
                           <div className="td-remote-active-player-canvas">
                             {activePreviewChosenFmt?.directUrl && activePreviewItem.kind === 'video' ? (
-                              <video
-                                key={activePlayableUrl || activePreviewChosenFmt.directUrl}
-                                src={activePlayableUrl || activePreviewChosenFmt.directUrl}
-                                poster={activePreviewItem.thumbnailUrl}
-                                controls
-                                preload="metadata"
-                                playsInline
-                                className="td-remote-active-player-video"
-                              />
+                              activePlayableUrl ? (
+                                <video
+                                  key={activePlayableUrl}
+                                  src={activePlayableUrl}
+                                  poster={activePreviewItem.thumbnailUrl}
+                                  controls
+                                  preload="metadata"
+                                  playsInline
+                                  className="td-remote-active-player-video"
+                                />
+                              ) : (
+                                <div className="td-remote-item-thumb-fallback flex items-center justify-center">
+                                  <Loader2 size={28} className="animate-spin text-sky-400" />
+                                </div>
+                              )
                             ) : activePreviewItem.thumbnailUrl ? (
                               <img
                                 src={activePreviewItem.thumbnailUrl}

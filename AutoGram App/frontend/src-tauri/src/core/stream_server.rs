@@ -1157,8 +1157,13 @@ pub fn ensure_started(registry: PathBuf) -> u16 {
     if current != 0 {
         return current;
     }
-    let _ = REGISTRY_DIR.set(registry);
-    let _ = fs::create_dir_all(REGISTRY_DIR.get().unwrap());
+    let reg_dir = if registry.is_dir() {
+        registry
+    } else {
+        registry.parent().map(|p| p.to_path_buf()).unwrap_or(registry)
+    };
+    let _ = fs::create_dir_all(&reg_dir);
+    let _ = REGISTRY_DIR.set(reg_dir);
 
     let server = match Server::http("127.0.0.1:0") {
         Ok(s) => s,

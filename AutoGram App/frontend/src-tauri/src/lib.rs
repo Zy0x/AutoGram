@@ -1003,17 +1003,30 @@ fn path_policy_check(path: String) -> Result<bool, String> {
 }
 
 #[tauri::command]
-fn stream_server_port() -> u16 {
-    core::stream_server::stream_port()
+fn stream_server_port(app: tauri::AppHandle) -> u16 {
+    let mut port = core::stream_server::stream_port();
+    if port == 0 {
+        if let Ok(worker) = resolve_worker_dir(&app) {
+            let reg = worker.join("cache").join("stream_registry");
+            port = core::stream_server::ensure_started(reg);
+        }
+    }
+    port
 }
 
 #[tauri::command]
-fn get_remote_stream_proxy_url(url: String, referer: Option<String>) -> Result<String, String> {
+fn get_remote_stream_proxy_url(app: tauri::AppHandle, url: String, referer: Option<String>) -> Result<String, String> {
     let u_clean = url.trim();
     if u_clean.is_empty() {
         return Err("empty URL".into());
     }
-    let port = core::stream_server::stream_port();
+    let mut port = core::stream_server::stream_port();
+    if port == 0 {
+        if let Ok(worker) = resolve_worker_dir(&app) {
+            let reg = worker.join("cache").join("stream_registry");
+            port = core::stream_server::ensure_started(reg);
+        }
+    }
     if port == 0 {
         return Ok(u_clean.to_string());
     }
@@ -2883,16 +2896,23 @@ pub fn run() {
             // Active RAM Garbage Collection and WAL maintenance daemon (45s period)
             core::memory_gc::start_background_gc_daemon(45);
             // Hybrid: start Rust Range HTTP server (Python GetFile publishes registry)
-            if let Ok(worker) = resolve_worker_dir(app.handle()) {
-                let reg = worker.join("cache").join("stream_registry");
-                let port = core::stream_server::ensure_started(reg);
-                if port > 0 {
-                    crate::core::tg_log::info(
-                        "stream_server",
-                        "listening",
-                        format!("host=127.0.0.1 port={port}"),
-                    );
-                }
+            let stream_reg = resolve_worker_dir(app.handle())
+                .map(|w| w.join("cache").join("stream_registry"))
+                .unwrap_or_else(|_| {
+                    app.handle()
+                        .path()
+                        .app_data_dir()
+                        .unwrap_or_else(|_| std::env::temp_dir())
+                        .join("cache")
+                        .join("stream_registry")
+                });
+            let port = core::stream_server::ensure_started(stream_reg);
+            if port > 0 {
+                crate::core::tg_log::info(
+                    "stream_server",
+                    "listening",
+                    format!("host=127.0.0.1 port={port}"),
+                );
             }
             // The configured cache ceiling is a backend invariant, not a
             // Settings-page suggestion. Keep enforcing it while the desktop app

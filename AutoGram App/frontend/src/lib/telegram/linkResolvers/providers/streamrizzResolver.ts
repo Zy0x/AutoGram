@@ -143,6 +143,18 @@ async function resolveVideoDetail(
   }
 }
 
+function inferVideoResolutionBadge(title?: string): string {
+  if (!title) return 'HD';
+  const t = title.toLowerCase();
+  if (t.includes('8k') || t.includes('4320p')) return '8K ULTRA HD';
+  if (t.includes('4k') || t.includes('2160p') || t.includes('uhd')) return '4K UHD';
+  if (t.includes('2k') || t.includes('1440p') || t.includes('qhd')) return '2K QHD';
+  if (t.includes('1080p') || t.includes('1080') || t.includes('fhd')) return '1080p FULL HD';
+  if (t.includes('720p') || t.includes('720')) return '720p HD';
+  if (t.includes('480p') || t.includes('480') || t.includes('sd')) return '480p SD';
+  return 'HD';
+}
+
 /**
  * StreamRizz & Vidoy Link Resolver
  * Detects single videos and multi-video folders/directories on streamrizz.com, vidoy.com, etc.
@@ -281,7 +293,7 @@ export const streamrizzResolver: LinkResolverProvider = {
           directUrl: v.directUrl,
           headers: { Referer: 'https://streamrizz.com/' },
           isVideo: true,
-          badge: 'STREAMRIZZ HD',
+          badge: inferVideoResolutionBadge(rawTitle),
           thumbnailUrl: v.thumbnailUrl,
         };
 
@@ -336,7 +348,7 @@ export const streamrizzResolver: LinkResolverProvider = {
         directUrl: video.directUrl,
         headers: { Referer: 'https://streamrizz.com/' },
         isVideo: true,
-        badge: 'STREAMRIZZ HD',
+        badge: inferVideoResolutionBadge(video.title),
       };
 
       return {
