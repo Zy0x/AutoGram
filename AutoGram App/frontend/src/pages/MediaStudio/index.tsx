@@ -8308,6 +8308,107 @@ function MediaDriveDesktop({
     handleRename,
   ]);
 
+  // Mouse Back / Forward button navigation (Button 3 = Back, Button 4 = Forward)
+  useEffect(() => {
+    const handleMouseBackForward = (e: MouseEvent) => {
+      // If a preview modal or internal drag is active, yield to that component
+      if (previewFile || isInternalMediaDragActive()) return;
+
+      if (e.button === 3 || e.button === 4) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (e.button === 3) {
+          // 1. Close open menus/drawers/dialogs first
+          if (contextMenu) {
+            setContextMenu(null);
+            return;
+          }
+          if (confirmDlg) {
+            setConfirmDlg(null);
+            return;
+          }
+          if (inputDlg) {
+            setInputDlg(null);
+            return;
+          }
+          if (destPicker) {
+            setDestPicker(null);
+            return;
+          }
+          if (drawerOpen) {
+            closeDrawer();
+            return;
+          }
+          if (toolsOpen) {
+            setToolsOpen(false);
+            return;
+          }
+          // 2. Clear item selection if any selected
+          if (selectedIds.length > 0) {
+            clearSelection();
+            return;
+          }
+          // 3. Location / Folder History Back
+          const h = navBack(navHist);
+          if (h) {
+            navSkipRef.current = true;
+            setNavHist(h);
+            const loc = navCurrent(h);
+            setLocationKind(loc.kind);
+            setActivePeerId(loc.id);
+            setTopicFilter(null);
+            topicFilterRef.current = null;
+            return;
+          }
+          // 4. Nested drive folder parent navigation
+          if (locationKind === 'drive' && activePeerId != null) {
+            const folder = folders.find((f) => f.id === activePeerId);
+            if (folder?.parent_id != null) {
+              setLocationKind('drive');
+              setActivePeerId(folder.parent_id);
+              return;
+            }
+          }
+        } else if (e.button === 4) {
+          // Location / Folder History Forward
+          const h = navForward(navHist);
+          if (h) {
+            navSkipRef.current = true;
+            setNavHist(h);
+            const loc = navCurrent(h);
+            setLocationKind(loc.kind);
+            setActivePeerId(loc.id);
+            setTopicFilter(null);
+            topicFilterRef.current = null;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('auxclick', handleMouseBackForward, true);
+    window.addEventListener('mouseup', handleMouseBackForward, true);
+    return () => {
+      window.removeEventListener('auxclick', handleMouseBackForward, true);
+      window.removeEventListener('mouseup', handleMouseBackForward, true);
+    };
+  }, [
+    activePeerId,
+    clearSelection,
+    closeDrawer,
+    confirmDlg,
+    contextMenu,
+    destPicker,
+    drawerOpen,
+    folders,
+    inputDlg,
+    locationKind,
+    navHist,
+    previewFile,
+    selectedIds.length,
+    toolsOpen,
+  ]);
+
   // Desktop: drawer is unused in dual-pane mode (>= 900x600) — clear sticky open after resize
   useEffect(() => {
     const onResize = () => {

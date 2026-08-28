@@ -2531,109 +2531,6 @@ export function DrivePreviewModal({
     }
   }, [loopVideo, streamUrl, path]);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-      if (isZip) return;
-
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-        if (qualityOpen) {
-          setQualityOpen(false);
-          return;
-        }
-        if (rateOpen) {
-          setRateOpen(false);
-          return;
-        }
-        if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => undefined);
-          return;
-        }
-        onClose();
-        return;
-      }
-
-      // Debounce rapid nav so stream RPC doesn't pile up
-      if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-        if (navLock.current) return;
-        navLock.current = true;
-        window.setTimeout(() => {
-          navLock.current = false;
-        }, 180);
-        if (duplicateContext && duplicateContext.activeFilteredGroups.length > 0) {
-          if (e.shiftKey) {
-            // Shift + Arrow = Direct Group Jump
-            if (e.key === 'ArrowRight') {
-              const nextIdx = duplicateContext.currentGroupIndex + 1;
-              const nextGroup = duplicateContext.activeFilteredGroups[nextIdx];
-              if (nextGroup && duplicateContext.onNavigateGroup) {
-                duplicateContext.onNavigateGroup(nextIdx, nextGroup.files[0]);
-              }
-            } else if (e.key === 'ArrowLeft') {
-              const prevIdx = duplicateContext.currentGroupIndex - 1;
-              const prevGroup = duplicateContext.activeFilteredGroups[prevIdx];
-              if (prevGroup && duplicateContext.onNavigateGroup) {
-                duplicateContext.onNavigateGroup(prevIdx, prevGroup.files[0]);
-              }
-            }
-          } else {
-            // Normal Arrow = Intelligent Sequential Intra-Group First
-            if (e.key === 'ArrowRight') {
-              handleSequentialNext();
-            } else if (e.key === 'ArrowLeft') {
-              handleSequentialPrev();
-            }
-          }
-          return;
-        }
-
-        if (e.key === 'ArrowRight' && hasNext && onNext) onNext();
-        if (e.key === 'ArrowLeft' && hasPrev && onPrev) onPrev();
-        return;
-      }
-
-      if (e.key === '+' || e.key === '=') {
-        e.preventDefault();
-        // Center-focused zoom (no cursor)
-        applyZoomAt(zoomRef.current + ZOOM_STEP, null);
-      }
-      if (e.key === '-' || e.key === '_') {
-        e.preventDefault();
-        applyZoomAt(zoomRef.current - ZOOM_STEP, null);
-      }
-      if (e.key === '0' && !e.ctrlKey) {
-        resetZoom();
-      }
-      if (e.key === 'r' || e.key === 'R') setRotation((r) => (r + 90) % 360);
-      if (e.key === 'f' || e.key === 'F') toggleFullscreen();
-      if (e.key === 'i' || e.key === 'I') setShowInfo((v) => !v);
-      // Mute only applies to video (use file meta — available before stream resolves)
-      const fileIsVideo = isVideoDriveFile(file) && !isImageDriveFile(file);
-      if ((e.key === 'm' || e.key === 'M') && fileIsVideo) setMuted((m) => !m);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-    // applyZoomAt / resetZoom read latest via refs / setState — stable enough
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    onClose,
-    onNext,
-    onPrev,
-    hasNext,
-    hasPrev,
-    qualityOpen,
-    rateOpen,
-    file,
-    duplicateContext,
-    handleSequentialNext,
-    handleSequentialPrev,
-  ]);
-
   /** Place fixed menus near trigger — never clipped by toolbar; flip up if near bottom */
   const placeMenuNear = useCallback((btn: HTMLElement | null, estH = 240) => {
     if (!btn || typeof window === 'undefined') return null;
@@ -2721,6 +2618,151 @@ export function DrivePreviewModal({
   const isText = mediaKind === 'text';
   const isZip = mediaKind === 'zip';
   const isDocOther = mediaKind === 'other';
+
+  const handleCloseOrDismiss = useCallback(() => {
+    if (qualityOpen) {
+      setQualityOpen(false);
+      return true;
+    }
+    if (rateOpen) {
+      setRateOpen(false);
+      return true;
+    }
+    if (showInfo) {
+      setShowInfo(false);
+      return true;
+    }
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => undefined);
+      return true;
+    }
+    onClose();
+    return true;
+  }, [onClose, qualityOpen, rateOpen, showInfo]);
+
+  // Mouse Back / Forward button navigation (Button 3 = Back, Button 4 = Forward)
+  useEffect(() => {
+    if (isZip) return; // Yield to DriveZipBrowser
+
+    const handleMouseBackForward = (e: MouseEvent) => {
+      if (e.button === 3 || e.button === 4) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (e.button === 3) {
+          // Back Button: dismiss menu/info/fullscreen or close preview modal
+          handleCloseOrDismiss();
+        } else if (e.button === 4) {
+          // Forward Button: next media in sequence
+          if (hasNext && onNext) {
+            onNext();
+          }
+        }
+      }
+    };
+
+    window.addEventListener('auxclick', handleMouseBackForward, true);
+    window.addEventListener('mouseup', handleMouseBackForward, true);
+    return () => {
+      window.removeEventListener('auxclick', handleMouseBackForward, true);
+      window.removeEventListener('mouseup', handleMouseBackForward, true);
+    };
+  }, [handleCloseOrDismiss, hasNext, isZip, onNext]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (isZip) return;
+
+      if (
+        e.key === 'Escape' ||
+        e.key === 'Backspace' ||
+        (e.altKey && e.key === 'ArrowLeft') ||
+        e.key === 'BrowserBack'
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleCloseOrDismiss();
+        return;
+      }
+
+      // Debounce rapid nav so stream RPC doesn't pile up
+      if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        if (navLock.current) return;
+        navLock.current = true;
+        window.setTimeout(() => {
+          navLock.current = false;
+        }, 180);
+        if (duplicateContext && duplicateContext.activeFilteredGroups.length > 0) {
+          if (e.shiftKey) {
+            // Shift + Arrow = Direct Group Jump
+            if (e.key === 'ArrowRight') {
+              const nextIdx = duplicateContext.currentGroupIndex + 1;
+              const nextGroup = duplicateContext.activeFilteredGroups[nextIdx];
+              if (nextGroup && duplicateContext.onNavigateGroup) {
+                duplicateContext.onNavigateGroup(nextIdx, nextGroup.files[0]);
+              }
+            } else if (e.key === 'ArrowLeft') {
+              const prevIdx = duplicateContext.currentGroupIndex - 1;
+              const prevGroup = duplicateContext.activeFilteredGroups[prevIdx];
+              if (prevGroup && duplicateContext.onNavigateGroup) {
+                duplicateContext.onNavigateGroup(prevIdx, prevGroup.files[0]);
+              }
+            }
+          } else {
+            // Normal Arrow = Intelligent Sequential Intra-Group First
+            if (e.key === 'ArrowRight') {
+              handleSequentialNext();
+            } else if (e.key === 'ArrowLeft') {
+              handleSequentialPrev();
+            }
+          }
+          return;
+        }
+
+        if (e.key === 'ArrowRight' && hasNext && onNext) onNext();
+        if (e.key === 'ArrowLeft' && hasPrev && onPrev) onPrev();
+        return;
+      }
+
+      if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        // Center-focused zoom (no cursor)
+        applyZoomAt(zoomRef.current + ZOOM_STEP, null);
+      }
+      if (e.key === '-' || e.key === '_') {
+        e.preventDefault();
+        applyZoomAt(zoomRef.current - ZOOM_STEP, null);
+      }
+      if (e.key === '0' && !e.ctrlKey) {
+        resetZoom();
+      }
+      if (e.key === 'r' || e.key === 'R') setRotation((r) => (r + 90) % 360);
+      if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+      if (e.key === 'i' || e.key === 'I') setShowInfo((v) => !v);
+      // Mute only applies to video (use file meta — available before stream resolves)
+      const fileIsVideo = isVideoDriveFile(file) && !isImageDriveFile(file);
+      if ((e.key === 'm' || e.key === 'M') && fileIsVideo) setMuted((m) => !m);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // applyZoomAt / resetZoom read latest via refs / setState — stable enough
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    handleCloseOrDismiss,
+    onNext,
+    onPrev,
+    hasNext,
+    hasPrev,
+    isZip,
+    file,
+    duplicateContext,
+    handleSequentialNext,
+    handleSequentialPrev,
+  ]);
 
   // Close video/audio-only menus when media kind changes (e.g. next to a photo)
   useEffect(() => {
