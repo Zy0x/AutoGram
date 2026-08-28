@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -152,37 +153,29 @@ fun DriveTopBar(
 
                     // 3-Dot Active Button with Dropdown
                     Box {
-                        Surface(
+                        IconButton(
+                            onClick = { isSelectionMenuOpen = true },
                             modifier = Modifier
                                 .size(36.dp)
-                                .clip(CircleShape)
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = rememberRipple(bounded = true, color = GoldAccent)
-                                ) { isSelectionMenuOpen = true },
-                            shape = CircleShape,
-                            color = GoldAccent.copy(alpha = 0.2f),
-                            border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.4f))
+                                .background(GoldAccent.copy(alpha = 0.2f), CircleShape)
+                                .border(1.dp, GoldAccent.copy(alpha = 0.4f), CircleShape)
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.MoreVert,
-                                    contentDescription = "Bulk Actions",
-                                    tint = GoldAccent,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Bulk Actions",
+                                tint = GoldAccent,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
 
                         // Floating Frosted Glass Dropdown Menu
                         DropdownMenu(
                             expanded = isSelectionMenuOpen,
                             onDismissRequest = { isSelectionMenuOpen = false },
-                            offset = DpOffset(x = (-8).dp, y = 4.dp),
                             modifier = Modifier
                                 .width(230.dp)
-                                .background(Color(0xF50B1C30))
-                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color(0xF50B1C30), RoundedCornerShape(16.dp))
+                                .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(16.dp))
                         ) {
                             // 1. Pilih Semua
                             DropdownMenuItem(
@@ -466,11 +459,10 @@ fun DriveTopBar(
                         DropdownMenu(
                             expanded = isNormalMenuOpen,
                             onDismissRequest = { isNormalMenuOpen = false },
-                            offset = DpOffset(x = (-8).dp, y = 4.dp),
                             modifier = Modifier
                                 .width(200.dp)
-                                .background(Color(0xF50B1C30))
-                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color(0xF50B1C30), RoundedCornerShape(14.dp))
+                                .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(14.dp))
                         ) {
                             DropdownMenuItem(
                                 text = {

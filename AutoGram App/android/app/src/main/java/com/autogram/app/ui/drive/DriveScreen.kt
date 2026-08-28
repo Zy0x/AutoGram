@@ -49,10 +49,14 @@ fun DriveScreen(
         onTagCategory = { /* Tag category handler */ },
         onDeleteSelected = viewModel::deleteSelected,
         onItemClick = { item ->
-            if (state.selectedIds.isNotEmpty()) {
+            if (item.isFolder) {
+                if (state.selectedIds.isNotEmpty()) {
+                    viewModel.toggleItemSelection(item.id)
+                } else {
+                    viewModel.loadFolder(childPath(state.currentPath, item.name))
+                }
+            } else {
                 viewModel.toggleItemSelection(item.id)
-            } else if (item.isFolder) {
-                viewModel.loadFolder(childPath(state.currentPath, item.name))
             }
         },
         onItemLongClick = { item -> viewModel.toggleItemSelection(item.id) }

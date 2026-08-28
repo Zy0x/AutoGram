@@ -30,7 +30,7 @@ function Reload-App {
     Write-Host "[AutoGram Fast-Patch] Mengompilasi perubahan Kotlin/UI inkremental..." -ForegroundColor Cyan
     
     # 1. Fast incremental install with isolated F: drive cache
-    & $gradleBat -p $androidAppRoot -g $env:GRADLE_USER_HOME -Djava.io.tmpdir=$env:TEMP :app:installDebug --configuration-cache -q
+    & $gradleBat -p $androidAppRoot -g $env:GRADLE_USER_HOME "-Djava.io.tmpdir=$env:TEMP" :app:installDebug --configuration-cache -q
     
     # 2. Instant activity restart
     & $adbExe shell am start -n com.autogram.app/.MainActivity | Out-Null

@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -225,12 +226,15 @@ fun FileGridItem(
                 }
             }
 
-            // Top-Right Circle Checkbox
+            // Top-Right Circle Checkbox (Direct 1-tap select)
             Box(
                 modifier = Modifier
                     .padding(top = 6.dp, end = 6.dp)
-                    .size(16.dp)
+                    .size(24.dp)
                     .align(Alignment.TopEnd)
+                    .clip(CircleShape)
+                    .clickable { onLongClick() }
+                    .padding(4.dp)
                     .clip(CircleShape)
                     .background(if (isSelected) GoldAccent else Color.Transparent)
                     .border(

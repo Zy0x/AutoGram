@@ -333,7 +333,7 @@ fun SettingsScreenContent(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "AutoGram Android Native v3.8.41",
+                        text = "AutoGram Android Native v3.8.46",
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold),
                         color = ChampagneGold
                     )
