@@ -736,28 +736,215 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
     });
   };
 
+  const pathParts = useMemo(() => currentPath.split('/').filter(Boolean), [currentPath]);
+  const canNavigateUp = pathParts.length > 0 || sources.length > 1;
+
+  const handleNavigateBack = useCallback(() => {
+    // 1. Close single entry code/image preview if active
+    if (previewEntry) {
+      setPreviewEntry(null);
+      setPreview(null);
+      setPreviewLocalUrl(null);
+      setPreviewError(null);
+      return true;
+    }
+    // 2. Close context menu if open
+    if (contextMenu) {
+      setContextMenu(null);
+      return true;
+    }
+    // 3. Close extraction modal if open
+    if (showExtractModal) {
+      setShowExtractModal(false);
+      return true;
+    }
+    // 4. Close password prompt if open
+    if (passwordAction) {
+      setPasswordAction(null);
+      return true;
+    }
+    // 5. Deselect all items if items are selected
+    if (selectedEntries.size > 0) {
+      setSelectedEntries(new Set());
+      setLastSelectedName(null);
+      return true;
+    }
+    // 6. Navigate up to parent folder in current archive
+    if (pathParts.length > 1) {
+      const parentPath = `${pathParts.slice(0, -1).join('/')}/`;
+      setCurrentPath(parentPath);
+      setSelectedEntries(new Set());
+      setLastSelectedName(null);
+      return true;
+    }
+    if (pathParts.length === 1) {
+      setCurrentPath('');
+      setSelectedEntries(new Set());
+      setLastSelectedName(null);
+      return true;
+    }
+    // 7. Pop nested archive if currently inside a nested zip
+    if (sources.length > 1) {
+      setSources((current) => current.slice(0, -1));
+      setCurrentPath('');
+      setSelectedEntries(new Set());
+      setLastSelectedName(null);
+      return true;
+    }
+    return false;
+  }, [contextMenu, passwordAction, pathParts, previewEntry, selectedEntries.size, showExtractModal, sources.length]);
+
+  // Mouse Back button listener (Button 3 / XButton1)
+  useEffect(() => {
+    const onAuxClick = (e: MouseEvent) => {
+      if (e.button === 3 || e.button === 4) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.button === 3) {
+          const handled = handleNavigateBack();
+          if (!handled && onClose) {
+            onClose();
+          }
+        }
+      }
+    };
+    const onMouseUp = (e: MouseEvent) => {
+      if (e.button === 3 || e.button === 4) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.button === 3) {
+          const handled = handleNavigateBack();
+          if (!handled && onClose) {
+            onClose();
+          }
+        }
+      }
+    };
+    window.addEventListener('auxclick', onAuxClick, true);
+    window.addEventListener('mouseup', onMouseUp, true);
+    return () => {
+      window.removeEventListener('auxclick', onAuxClick, true);
+      window.removeEventListener('mouseup', onMouseUp, true);
+    };
+  }, [handleNavigateBack, onClose]);
+
+  // Touch & Trackpad Back Swipe Gesture
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const lastWheelNavRef = useRef<number>(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      touchStartRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        time: Date.now(),
+      };
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current || e.changedTouches.length === 0) return;
+    const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
+    const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
+    const elapsed = Date.now() - touchStartRef.current.time;
+    touchStartRef.current = null;
+
+    // Left-to-right swipe (Back gesture)
+    if (dx > 55 && Math.abs(dy) < 45 && elapsed < 500) {
+      const handled = handleNavigateBack();
+      if (!handled && onClose) {
+        onClose();
+      }
+    }
+  };
+
+  const handleWheelGesture = useCallback(
+    (e: WheelEvent) => {
+      // Two-finger horizontal back swipe on trackpad (swipe right: negative deltaX)
+      if (Math.abs(e.deltaX) > 40 && Math.abs(e.deltaY) < 25) {
+        const now = Date.now();
+        if (e.deltaX < -40 && now - lastWheelNavRef.current > 450) {
+          lastWheelNavRef.current = now;
+          const handled = handleNavigateBack();
+          if (!handled && onClose) {
+            onClose();
+          }
+        }
+      }
+    },
+    [handleNavigateBack, onClose]
+  );
+
+  useEffect(() => {
+    const el = contentSurfaceRef.current;
+    if (!el) return;
+    el.addEventListener('wheel', handleWheelGesture, { passive: true });
+    return () => el.removeEventListener('wheel', handleWheelGesture);
+  }, [handleWheelGesture]);
+
   // Keyboard Controller
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Avoid intercepting inputs inside search / modals
-      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+      const target = e.target as HTMLElement;
+      const isInput = target && ['INPUT', 'TEXTAREA'].includes(target.tagName);
+      if (isInput) {
+        if (e.key === 'Escape') {
+          target.blur();
+          return;
+        }
         return;
       }
 
-      if (e.key === 'Escape') {
-        if (previewEntry) {
-          setPreviewEntry(null);
-        } else if (contextMenu) {
-          setContextMenu(null);
-        } else if (selectedEntries.size > 0) {
-          setSelectedEntries(new Set());
-        } else if (onClose) {
+      // Backspace: navigate up to parent directory or close
+      if (e.key === 'Backspace') {
+        e.preventDefault();
+        e.stopPropagation();
+        const handled = handleNavigateBack();
+        if (!handled && onClose && selectedEntries.size === 0) {
           onClose();
         }
-      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+        return;
+      }
+
+      // Alt+ArrowLeft or BrowserBack: standard Back navigation
+      if ((e.altKey && e.key === 'ArrowLeft') || e.key === 'BrowserBack') {
+        e.preventDefault();
+        e.stopPropagation();
+        const handled = handleNavigateBack();
+        if (!handled && onClose) {
+          onClose();
+        }
+        return;
+      }
+
+      // Alt+ArrowUp: navigate up one level
+      if (e.altKey && e.key === 'ArrowUp') {
+        e.preventDefault();
+        e.stopPropagation();
+        handleNavigateBack();
+        return;
+      }
+
+      // Escape: close sub-view / deselect / parent directory / close
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        const handled = handleNavigateBack();
+        if (!handled && onClose) {
+          onClose();
+        }
+        return;
+      }
+
+      // Ctrl/Cmd + A: select all
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
         e.preventDefault();
         selectAll();
-      } else if (e.key === ' ' || e.key === 'Enter') {
+        return;
+      }
+
+      // Space / Enter: preview selected file
+      if (e.key === ' ' || e.key === 'Enter') {
         if (lastSelectedName) {
           const entry = files.find((f) => f.name === lastSelectedName);
           if (entry) {
@@ -770,7 +957,15 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [contextMenu, files, handlePreview, lastSelectedName, onClose, previewEntry, selectedEntries.size]);
+  }, [
+    canNavigateUp,
+    files,
+    handleNavigateBack,
+    handlePreview,
+    lastSelectedName,
+    onClose,
+    selectedEntries.size,
+  ]);
 
   const visibleTotalCount = dirs.length + files.length;
   const isAllSelected = selectedEntries.size === visibleTotalCount && visibleTotalCount > 0;
@@ -814,6 +1009,8 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
         ref={contentSurfaceRef}
         className={`dzb-content-surface ${marqueeBox ? 'is-marquee' : ''}`}
         onPointerDown={handleSurfacePointerDown}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         {marqueeBox && (
           <div

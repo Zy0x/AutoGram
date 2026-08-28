@@ -2536,6 +2536,7 @@ export function DrivePreviewModal({
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (isZip) return;
 
       if (e.key === 'Escape') {
         e.preventDefault();

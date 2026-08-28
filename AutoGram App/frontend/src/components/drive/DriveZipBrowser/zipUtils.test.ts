@@ -64,4 +64,18 @@ describe('Drive ZIP workbench navigation', () => {
     expect(extractZipPasswordCandidates('pasword: typo-ok\npw 4F7x', 'pack.zip'))
       .toEqual(['typo-ok', '4F7x']);
   });
+
+  it('computes parent path for navigation up from subdirectories', () => {
+    const getParentPath = (currentPath: string) => {
+      const parts = currentPath.split('/').filter(Boolean);
+      if (parts.length > 1) return `${parts.slice(0, -1).join('/')}/`;
+      return '';
+    };
+
+    expect(getParentPath('root/folder_1/')).toBe('root/');
+    expect(getParentPath('root/folder_1/sub_folder/')).toBe('root/folder_1/');
+    expect(getParentPath('public/')).toBe('');
+    expect(getParentPath('')).toBe('');
+  });
 });
+
