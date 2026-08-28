@@ -188,4 +188,6 @@ docs/**/evidence/
 docs/**/raw/
 AutoGram App/frontend/remote/
 remote/
+.agent-notes/
+AutoGram App/.agent-notes/
 
