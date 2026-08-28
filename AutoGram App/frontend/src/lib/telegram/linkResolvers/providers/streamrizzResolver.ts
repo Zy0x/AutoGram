@@ -188,16 +188,24 @@ export const streamrizzResolver: LinkResolverProvider = {
       folderTitle = folderTitle.replace(/ - StreamRizz$/i, '').trim();
 
       // Extract video cards
-      const cardRegex =
-        /<article[^>]*class="[^"]*drive-file-card[^"]*"[^>]*>[\s\S]*?<a[^>]*href="\/d\/([^"]+)"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"[\s\S]*?<a[^>]*href="\/d\/[^"]*"[^>]*title="([^"]+)"/gi;
-      const matches = [...html.matchAll(cardRegex)];
-
+      const articleBlocks = html.match(/<article[^>]*class="[^"]*drive-file-card[^"]*"[^>]*>[\s\S]*?<\/article>/gi) || [];
       const videoEntries: Array<{ id: string; thumb?: string; title?: string }> = [];
-      if (matches.length > 0) {
-        for (const m of matches) {
-          videoEntries.push({ id: m[1], thumb: m[2], title: m[3] });
+
+      for (const block of articleBlocks) {
+        const idMatch = block.match(/href="\/d\/([a-zA-Z0-9_-]+)"/i);
+        const thumbMatch = block.match(/<img[^>]*src="([^"]+)"/i);
+        const titleMatch = block.match(/title="([^"]+)"/i) || block.match(/class="[^"]*file-name[^"]*"[^>]*>([^<]+)<\/a>/i);
+
+        if (idMatch) {
+          videoEntries.push({
+            id: idMatch[1],
+            thumb: thumbMatch ? thumbMatch[1] : undefined,
+            title: titleMatch ? titleMatch[1].trim() : undefined,
+          });
         }
-      } else {
+      }
+
+      if (videoEntries.length === 0) {
         const linkRegex = /<a[^>]*href="\/d\/([a-zA-Z0-9_-]+)"[^>]*title="([^"]*)"/gi;
         const linkMatches = [...html.matchAll(linkRegex)];
         const seenIds = new Set<string>();

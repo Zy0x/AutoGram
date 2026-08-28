@@ -26499,12 +26499,25 @@ button.td-confirm-icon.is-back-btn:active {
   box-shadow: 0 0 14px rgba(56, 189, 248, 0.25), 0 4px 14px rgba(0, 0, 0, 0.4);
 }
 
+.td-remote-media-item-card.is-active-preview {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.45);
+}
+
+.td-remote-media-item-card.is-active-preview .td-remote-item-play-icon-badge {
+  background: #38bdf8;
+  color: #0b1120;
+}
+
 .td-remote-item-thumb-wrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  height: 98px;
+  min-height: 98px;
+  flex: 0 0 98px;
   background: #060913;
   overflow: hidden;
+  display: block;
 }
 
 .td-remote-item-thumb-img {
@@ -26530,21 +26543,32 @@ button.td-confirm-icon.is-back-btn:active {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.25);
   color: #ffffff;
-  pointer-events: none;
+  transition: all 140ms ease;
+}
+
+.td-remote-item-thumb-wrap:hover .td-remote-item-play-overlay {
+  background: rgba(0, 0, 0, 0.45);
 }
 
 .td-remote-item-play-icon-badge {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.75);
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+  transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.td-remote-item-thumb-wrap:hover .td-remote-item-play-icon-badge {
+  transform: scale(1.12);
+  border-color: #38bdf8;
+  color: #38bdf8;
 }
 
 .td-remote-item-index-badge {
@@ -26564,20 +26588,27 @@ button.td-confirm-icon.is-back-btn:active {
   position: absolute;
   top: 4px;
   right: 4px;
-  width: 24px;
-  height: 24px;
-  min-width: 24px;
-  min-height: 24px;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  min-height: 26px;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(15, 23, 42, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
   color: #94a3b8;
   cursor: pointer;
   transition: all 120ms ease;
   padding: 0;
+  z-index: 2;
+}
+
+.td-remote-item-checkbox:hover {
+  border-color: #38bdf8;
+  color: #38bdf8;
+  transform: scale(1.08);
 }
 
 .td-remote-item-checkbox.checked {
@@ -26585,6 +26616,76 @@ button.td-confirm-icon.is-back-btn:active {
   border-color: #38bdf8;
   color: #0b1120;
   box-shadow: 0 2px 8px rgba(56, 189, 248, 0.5);
+}
+
+/* Active Video Preview Player at the Top of Multi-Card Pane */
+.td-remote-active-player-wrap {
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #060913;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+}
+
+.td-remote-active-player-canvas {
+  position: relative;
+  width: 100%;
+  height: 175px;
+  background: #030712;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.td-remote-active-player-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000000;
+}
+
+.td-remote-active-player-poster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.td-remote-active-player-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(15, 23, 42, 0.85);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.td-remote-active-player-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.td-remote-active-player-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #f8fafc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.td-remote-active-player-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .td-remote-item-card-body {

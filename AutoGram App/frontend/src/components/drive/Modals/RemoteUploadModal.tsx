@@ -268,6 +268,7 @@ export function RemoteUploadModal({
   const [selectedMediaItemIds, setSelectedMediaItemIds] = useState<Set<string>>(new Set());
   const [itemSelectedFormats, setItemSelectedFormats] = useState<Record<string, string>>({});
   const [itemFilterText, setItemFilterText] = useState('');
+  const [activePreviewItemId, setActivePreviewItemId] = useState<string>('');
 
   const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0);
 
@@ -673,12 +674,24 @@ export function RemoteUploadModal({
       }
       setItemSelectedFormats(fmtMap);
       setItemFilterText('');
+      setActivePreviewItemId(effectiveMediaItems[0]?.id || '');
     } else {
       setSelectedMediaItemIds(new Set());
       setItemSelectedFormats({});
       setItemFilterText('');
+      setActivePreviewItemId('');
     }
   }, [effectiveMediaItems]);
+
+  const activePreviewItem = useMemo(() => {
+    if (!effectiveMediaItems || effectiveMediaItems.length === 0) return null;
+    return effectiveMediaItems.find((item) => item.id === activePreviewItemId) || effectiveMediaItems[0];
+  }, [effectiveMediaItems, activePreviewItemId]);
+
+  const activePreviewChosenFmtId = activePreviewItem
+    ? itemSelectedFormats[activePreviewItem.id] || activePreviewItem.selectedFormatId || activePreviewItem.formats[0]?.id
+    : '';
+  const activePreviewChosenFmt = activePreviewItem?.formats.find((f) => f.id === activePreviewChosenFmtId) || activePreviewItem?.formats[0];
 
   const handleToggleItem = useCallback((itemId: string) => {
     setSelectedMediaItemIds((prev) => {
@@ -1532,7 +1545,56 @@ export function RemoteUploadModal({
                   </div>
 
                   {effectiveMediaItems.length > 1 ? (
-                    <div className="td-remote-multicard-section">
+                    <div className="td-remote-multicard-container">
+                      {/* Active Live Media Preview Player at the Top */}
+                      {activePreviewItem && (
+                        <div className="td-remote-active-player-wrap">
+                          <div className="td-remote-active-player-canvas">
+                            {activePreviewChosenFmt?.directUrl && activePreviewItem.kind === 'video' ? (
+                              <video
+                                key={activePreviewChosenFmt.directUrl}
+                                src={activePreviewChosenFmt.directUrl}
+                                poster={activePreviewItem.thumbnailUrl}
+                                controls
+                                preload="metadata"
+                                playsInline
+                                className="td-remote-active-player-video"
+                              />
+                            ) : activePreviewItem.thumbnailUrl ? (
+                              <img
+                                src={activePreviewItem.thumbnailUrl}
+                                alt={activePreviewItem.title}
+                                className="td-remote-active-player-poster"
+                                loading="lazy"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              <div className="td-remote-item-thumb-fallback">
+                                <Film size={36} />
+                              </div>
+                            )}
+                          </div>
+                          <div className="td-remote-active-player-meta">
+                            <div className="td-remote-active-player-title-wrap">
+                              <Film size={15} className="text-cyan-400 shrink-0" />
+                              <span className="td-remote-active-player-title" title={activePreviewItem.title}>
+                                {activePreviewItem.title}
+                              </span>
+                            </div>
+                            <div className="td-remote-active-player-badges">
+                              <span className="td-remote-item-card-badge">
+                                {getFormatDisplayBadge(activePreviewChosenFmt, t) || activePreviewChosenFmt?.resolution || t('speedtest.remote_badge_hd')}
+                              </span>
+                              {activePreviewChosenFmt?.filesizeBytes ? (
+                                <span className="td-remote-item-card-size">
+                                  ~{formatDriveBytes(activePreviewChosenFmt.filesizeBytes)}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="td-remote-multicard-toolbar">
                         <div className="td-remote-multicard-counter-wrap">
                           <Layers size={15} className="td-remote-multicard-counter-icon" />
@@ -1600,13 +1662,14 @@ export function RemoteUploadModal({
                         <div className="td-remote-multicard-grid">
                           {filteredMediaItems.map((item, idx) => {
                             const isSelected = selectedMediaItemIds.has(item.id);
+                            const isActivePreview = item.id === activePreviewItem?.id;
                             const chosenFmtId = itemSelectedFormats[item.id] || item.selectedFormatId || item.formats[0]?.id;
                             const chosenFmt = item.formats.find((f) => f.id === chosenFmtId) || item.formats[0];
 
                             return (
                               <div
                                 key={item.id}
-                                className={`td-remote-media-item-card ${isSelected ? 'selected' : ''}`}
+                                className={`td-remote-media-item-card ${isSelected ? 'selected' : ''} ${isActivePreview ? 'is-active-preview' : ''}`}
                                 onClick={() => handleToggleItem(item.id)}
                                 role="checkbox"
                                 aria-checked={isSelected}
@@ -1618,7 +1681,14 @@ export function RemoteUploadModal({
                                   }
                                 }}
                               >
-                                <div className="td-remote-item-thumb-wrap">
+                                <div
+                                  className="td-remote-item-thumb-wrap"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActivePreviewItemId(item.id);
+                                  }}
+                                  title={item.title}
+                                >
                                   {item.thumbnailUrl ? (
                                     <img
                                       src={item.thumbnailUrl}
