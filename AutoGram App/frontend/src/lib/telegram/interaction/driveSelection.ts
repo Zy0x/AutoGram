@@ -150,8 +150,9 @@ export function shouldStartExplorerMarquee(input: {
   ctrlKey?: boolean;
   metaKey?: boolean;
 }): boolean {
-  if (input.button !== 0 || input.overControl || input.overCard) return false;
-  return true;
+  if (input.button !== 0 || input.overControl) return false;
+  if (!input.overCard) return true;
+  return Boolean(input.ctrlKey || input.metaKey);
 }
 
 export function applyMarqueeSelection(

@@ -14,10 +14,13 @@ describe('shouldStartExplorerMarquee', () => {
     expect(shouldStartExplorerMarquee({ button: 0, overCard: false, overControl: false })).toBe(true);
   });
 
-  it('never starts marquee over a card so card click, shift-range, ctrl-toggle, and DnD own the gesture', () => {
+  it('lets a plain card gesture remain card drag', () => {
     expect(shouldStartExplorerMarquee({ button: 0, overCard: true, overControl: false })).toBe(false);
-    expect(shouldStartExplorerMarquee({ button: 0, overCard: true, overControl: false, ctrlKey: true })).toBe(false);
-    expect(shouldStartExplorerMarquee({ button: 0, overCard: true, overControl: false, metaKey: true })).toBe(false);
+  });
+
+  it('allows Ctrl or Cmd marquee to prime over a card', () => {
+    expect(shouldStartExplorerMarquee({ button: 0, overCard: true, overControl: false, ctrlKey: true })).toBe(true);
+    expect(shouldStartExplorerMarquee({ button: 0, overCard: true, overControl: false, metaKey: true })).toBe(true);
   });
 
   it('never steals nested controls or non-primary pointers', () => {

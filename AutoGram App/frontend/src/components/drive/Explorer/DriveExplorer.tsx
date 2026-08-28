@@ -932,7 +932,15 @@ export function DriveExplorer({
       const dx = clientX - startClientX;
       const dy = clientY - startClientY;
       if (!m.moved && Math.hypot(dx, dy) < MARQUEE_THRESHOLD) return;
-      m.moved = true;
+      if (!m.moved) {
+        m.moved = true;
+        try {
+          el.setPointerCapture(m.pointerId);
+        } catch {
+          /* ignore */
+        }
+        document.body.classList.add('td-marquee-active');
+      }
 
       const contentRect = normalizeContentRect(
         m.startContentX,
@@ -999,8 +1007,7 @@ export function DriveExplorer({
       return;
     }
 
-    // Start marquee on empty surface
-    el.setPointerCapture(e.pointerId);
+    // Start candidate marquee (pointer capture and visual marquee are deferred until moved past threshold)
     const mode = marqueeModeFromKeys(e);
     const cbox = el.getBoundingClientRect();
     const start = clientPointToContent(
@@ -1022,7 +1029,6 @@ export function DriveExplorer({
       baseSelected: [...selectedIds],
       moved: false,
     };
-    document.body.classList.add('td-marquee-active');
     liveSelectedRef.current = null;
     setMarqueeBox(null);
     setLiveSelected(null);
@@ -1074,7 +1080,10 @@ export function DriveExplorer({
     if (!moved) {
       // Click empty — clear unless additive key held without drag
       if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-        onClearSelection?.();
+        const targetKind = getPointerTargetKind(e.target);
+        if (!targetKind.overCard) {
+          onClearSelection?.();
+        }
       }
       return;
     }
