@@ -4,9 +4,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.*
@@ -44,9 +46,9 @@ fun FileListItem(
     }
 
     val border = if (isSelected) {
-        BorderStroke(1.5.dp, NeonCyan)
+        BorderStroke(1.5.dp, GoldAccent)
     } else {
-        BorderStroke(1.dp, BorderHairline)
+        BorderStroke(1.dp, CardNavyBorder)
     }
 
     Card(
@@ -59,7 +61,7 @@ fun FileListItem(
             ),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) SurfaceElevatedDark.copy(alpha = 0.85f) else SurfaceGlass
+            containerColor = if (isSelected) SurfaceElevatedDark else CardNavyBg
         ),
         border = border
     ) {
@@ -100,7 +102,7 @@ fun FileListItem(
                                 item.mimeType.contains("pdf") -> Icons.Default.Description
                                 else -> Icons.AutoMirrored.Filled.InsertDriveFile
                             },
-                            contentDescription = item.mimeType,
+                            contentDescription = null,
                             tint = categoryColor,
                             modifier = Modifier.size(20.dp)
                         )
@@ -108,15 +110,17 @@ fun FileListItem(
                 }
             }
 
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Text(
                     text = item.name,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                     color = TextPrimaryDark,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(Modifier.height(2.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -142,18 +146,25 @@ fun FileListItem(
                 }
             }
 
-            if (isSelected) {
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .background(NeonCyan, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
+            // Selection Circle Indicator
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(if (isSelected) GoldAccent else Color.Transparent)
+                    .border(
+                        1.5.dp,
+                        if (isSelected) GoldAccent else Color(0x408CA0B8),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isSelected) {
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = stringResource(R.string.drive_item_selected_accessibility),
-                        tint = ObsidianPrimary,
-                        modifier = Modifier.size(16.dp)
+                        tint = CanvasDeepNavy,
+                        modifier = Modifier.size(12.dp)
                     )
                 }
             }
