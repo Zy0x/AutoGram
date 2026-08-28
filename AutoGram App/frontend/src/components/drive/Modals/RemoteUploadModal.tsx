@@ -29,6 +29,11 @@ import {
   User,
   Info,
   KeyRound,
+  CheckSquare,
+  Square,
+  Search,
+  Circle,
+  Play,
 } from 'lucide-react';
 import type { DriveDestChoice, DriveDestPickerState } from './DriveDestinationPicker';
 import { DriveDestinationPicker } from './DriveDestinationPicker';
@@ -42,6 +47,7 @@ import {
   parseRemoteShareInput,
   type ResolvedMediaInfo,
   type StreamQualityFormat,
+  type ResolvedMediaItem,
 } from '../../../lib/telegram/linkResolvers';
 import { isRemoteUrlSafetyError } from '../../../lib/telegram/linkResolvers/urlSafety';
 import {
@@ -62,6 +68,7 @@ interface RemoteUploadModalProps {
     destination: DriveDestChoice,
     opts?: {
       customFilename?: string;
+      customFilenames?: string[];
       asDocument?: boolean;
       qualityMode?: string;
       presentationOverride?: 'document' | 'original' | 'standard' | 'compressed';
@@ -258,6 +265,9 @@ export function RemoteUploadModal({
 
   const [resolvedMedia, setResolvedMedia] = useState<ResolvedMediaInfo | null>(null);
   const [selectedFormatId, setSelectedFormatId] = useState<string>('');
+  const [selectedMediaItemIds, setSelectedMediaItemIds] = useState<Set<string>>(new Set());
+  const [itemSelectedFormats, setItemSelectedFormats] = useState<Record<string, string>>({});
+  const [itemFilterText, setItemFilterText] = useState('');
 
   const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0);
 
@@ -292,6 +302,9 @@ export function RemoteUploadModal({
       setInspection(null);
       setResolvedMedia(null);
       setSelectedFormatId('');
+      setSelectedMediaItemIds(new Set());
+      setItemSelectedFormats({});
+      setItemFilterText('');
       setActiveSlideIndex(0);
       setSelectedDest(currentDestination || { id: null, label: 'Saved Messages', kind: 'saved' });
       setErrorMsg('');
@@ -302,6 +315,9 @@ export function RemoteUploadModal({
       lastAppliedInitialUrlRef.current = '';
       lastProbedHandoffRef.current = '';
       setPasscode('');
+      setSelectedMediaItemIds(new Set());
+      setItemSelectedFormats({});
+      setItemFilterText('');
     }
     prevIsOpenRef.current = isOpen;
   }, [isOpen, currentDestination, initialUrl, transferSettings]);
@@ -629,6 +645,86 @@ export function RemoteUploadModal({
     };
   }, [selectedDest.label, selectedDest.topicName, selectedDest.topicId]);
 
+  const effectiveMediaItems: ResolvedMediaItem[] = useMemo(() => {
+    if (!resolvedMedia) return [];
+    if (resolvedMedia.mediaItems && resolvedMedia.mediaItems.length > 0) {
+      return resolvedMedia.mediaItems;
+    }
+    const nonPackFormats = (resolvedMedia.formats || []).filter((f) => !f.isAlbumPack);
+    if (nonPackFormats.length > 1) {
+      return nonPackFormats.map((f, idx) => ({
+        id: `fmt_item_${idx}_${f.id}`,
+        title: f.customTitle || f.label || `Media ${idx + 1}`,
+        thumbnailUrl: f.thumbnailUrl || resolvedMedia.thumbnailUrl,
+        kind: (f.isVideo ? 'video' : f.isAudio ? 'audio' : f.isImage ? 'image' : 'other') as any,
+        selectedFormatId: f.id,
+        formats: [f],
+      }));
+    }
+    return [];
+  }, [resolvedMedia]);
+
+  useEffect(() => {
+    if (effectiveMediaItems.length > 0) {
+      setSelectedMediaItemIds(new Set(effectiveMediaItems.map((item) => item.id)));
+      const fmtMap: Record<string, string> = {};
+      for (const item of effectiveMediaItems) {
+        fmtMap[item.id] = item.selectedFormatId || item.formats[0]?.id || '';
+      }
+      setItemSelectedFormats(fmtMap);
+      setItemFilterText('');
+    } else {
+      setSelectedMediaItemIds(new Set());
+      setItemSelectedFormats({});
+      setItemFilterText('');
+    }
+  }, [effectiveMediaItems]);
+
+  const handleToggleItem = useCallback((itemId: string) => {
+    setSelectedMediaItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSelectAllItems = useCallback(() => {
+    setSelectedMediaItemIds(new Set(effectiveMediaItems.map((item) => item.id)));
+  }, [effectiveMediaItems]);
+
+  const handleDeselectAllItems = useCallback(() => {
+    setSelectedMediaItemIds(new Set());
+  }, []);
+
+  const handleItemFormatChange = useCallback((itemId: string, formatId: string) => {
+    setItemSelectedFormats((prev) => ({
+      ...prev,
+      [itemId]: formatId,
+    }));
+  }, []);
+
+  const selectedItems = useMemo(() => {
+    return effectiveMediaItems.filter((item) => selectedMediaItemIds.has(item.id));
+  }, [effectiveMediaItems, selectedMediaItemIds]);
+
+  const selectedBytes = useMemo(() => {
+    return selectedItems.reduce((acc, item) => {
+      const chosenFmtId = itemSelectedFormats[item.id] || item.selectedFormatId || item.formats[0]?.id;
+      const chosenFmt = item.formats.find((f) => f.id === chosenFmtId) || item.formats[0];
+      return acc + (chosenFmt?.filesizeBytes || 0);
+    }, 0);
+  }, [selectedItems, itemSelectedFormats]);
+
+  const filteredMediaItems = useMemo(() => {
+    if (!itemFilterText.trim()) return effectiveMediaItems;
+    const query = itemFilterText.trim().toLowerCase();
+    return effectiveMediaItems.filter((item) => item.title.toLowerCase().includes(query));
+  }, [effectiveMediaItems, itemFilterText]);
+
   const handleSelectSlide = (idx: number) => {
     setActiveSlideIndex(idx);
     const matchingFormat = resolvedMedia?.formats.find(
@@ -693,6 +789,61 @@ export function RemoteUploadModal({
       }
       if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
         setErrorMsg(t('speedtest.remote_err_invalid_protocol'));
+        return;
+      }
+
+      // Multi-media card upload flow
+      if (effectiveMediaItems.length > 1) {
+        if (selectedItems.length === 0) {
+          setErrorMsg(t('speedtest.remote_btn_select_at_least_one'));
+          return;
+        }
+
+        setSubmitting(true);
+        try {
+          const uploadUrls: string[] = [];
+          const uploadFilenames: string[] = [];
+
+          for (const item of selectedItems) {
+            const chosenFmtId = itemSelectedFormats[item.id] || item.selectedFormatId || item.formats[0]?.id;
+            const chosenFmt = item.formats.find((f) => f.id === chosenFmtId) || item.formats[0];
+            if (chosenFmt?.directUrl) {
+              uploadUrls.push(chosenFmt.directUrl);
+              uploadFilenames.push(getEffectiveFormatFilename(chosenFmt, resolvedMedia));
+            }
+          }
+
+          if (uploadUrls.length === 0) {
+            setErrorMsg(t('speedtest.remote_btn_select_at_least_one'));
+            return;
+          }
+
+          const effectiveQualityMode =
+            deliveryMode === 'uncompressed'
+              ? 'ORIGINAL'
+              : deliveryMode === 'document'
+                ? 'DOCUMENT'
+                : 'SMART';
+          const effectivePresentation =
+            deliveryMode === 'document'
+              ? 'document'
+              : deliveryMode === 'uncompressed'
+                ? 'original'
+                : 'standard';
+
+          await onUpload(uploadUrls, selectedDest, {
+            customFilename: uploadFilenames.length === 1 ? (customFilename.trim() || uploadFilenames[0]) : undefined,
+            customFilenames: uploadFilenames,
+            asDocument: deliveryMode === 'document',
+            qualityMode: effectiveQualityMode,
+            presentationOverride: effectivePresentation,
+          });
+          onClose();
+        } catch (err: any) {
+          setErrorMsg(err?.message || t('ui.generated.gagal_melakukan_remote_upload_9dd65cb'));
+        } finally {
+          setSubmitting(false);
+        }
         return;
       }
 
@@ -1380,142 +1531,322 @@ export function RemoteUploadModal({
                     )}
                   </div>
 
-                  <div className="td-remote-big-canvas-wrap">
-                    {activeSlideUrl ? (
-                      <div className="td-remote-big-canvas-inner">
-                        <img
-                          src={activeSlideUrl}
-                          alt={resolvedMedia.title}
-                          className="td-remote-big-canvas-img"
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                        />
-                        <div className="td-remote-canvas-badge-overlay">
-                          {resolvedMedia.albumImages && resolvedMedia.albumImages.length > 1 && (
-                            <span className="td-remote-canvas-slide-tag">
-                              <ImageIcon size={12} />
-                              <span>
-                                {t('speedtest.remote_split_slide_preview', {
-                                  idx: activeSlideIndex + 1,
-                                  total: resolvedMedia.albumImages.length,
-                                })}
-                              </span>
+                  {effectiveMediaItems.length > 1 ? (
+                    <div className="td-remote-multicard-section">
+                      <div className="td-remote-multicard-toolbar">
+                        <div className="td-remote-multicard-counter-wrap">
+                          <Layers size={15} className="td-remote-multicard-counter-icon" />
+                          <span>
+                            {t('speedtest.remote_multicard_count', {
+                              selected: selectedMediaItemIds.size,
+                              total: effectiveMediaItems.length,
+                            })}
+                          </span>
+                          {selectedBytes > 0 && (
+                            <span className="td-remote-multicard-size-badge">
+                              ~{formatDriveBytes(selectedBytes)}
                             </span>
                           )}
-                          {resolvedMedia.durationSec ? (
-                            <span className="td-remote-canvas-duration-tag">
-                              {formatMediaDuration(resolvedMedia.durationSec)}
-                            </span>
-                          ) : null}
+                        </div>
+                        <div className="td-remote-multicard-actions">
+                          <button
+                            type="button"
+                            className="td-remote-multicard-btn"
+                            onClick={handleSelectAllItems}
+                            disabled={submitting || selectedMediaItemIds.size === effectiveMediaItems.length}
+                          >
+                            <CheckSquare size={13} />
+                            <span>{t('speedtest.remote_btn_select_all')}</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="td-remote-multicard-btn"
+                            onClick={handleDeselectAllItems}
+                            disabled={submitting || selectedMediaItemIds.size === 0}
+                          >
+                            <Square size={13} />
+                            <span>{t('speedtest.remote_btn_deselect_all')}</span>
+                          </button>
                         </div>
                       </div>
-                    ) : resolvedMedia.formats[0]?.badge === 'remote_web_page' || resolvedMedia.formats[0]?.label === 'remote_web_page_handoff' ? (
-                      <div className="td-remote-big-canvas-fallback td-remote-web-page-card">
-                        <ExternalLink size={32} className="td-remote-fallback-icon" />
-                        <span className="td-remote-web-handoff-title">{t('speedtest.remote_web_handoff_title')}</span>
-                        <p className="td-remote-web-handoff-desc">{t('speedtest.remote_web_handoff_desc')}</p>
-                        <button
-                          type="button"
-                          className="td-remote-open-web-card-btn"
-                          onClick={() => handleOpenInBrowser(resolvedMedia.url)}
-                        >
-                          <ExternalLink size={13} />
-                          <span>{t('speedtest.remote_btn_open_web')}</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="td-remote-big-canvas-fallback">
-                        <Film size={36} className="td-remote-fallback-icon" />
-                        <span>{t('drive_tools.remote_platform_stream_fallback', { platform: resolvedMedia.platformName })}</span>
-                      </div>
-                    )}
-                  </div>
 
-                  {resolvedMedia.albumImages && resolvedMedia.albumImages.length > 1 && (
-                    <div className="td-remote-album-strip-container">
-                      <div className="td-remote-album-strip-header">
-                        <span className="td-remote-album-strip-count">
-                          <ImageIcon size={12} />
-                          <span>{t('speedtest.remote_album_strip_count', { count: resolvedMedia.albumImages.length })}</span>
-                        </span>
-                        <span className="td-remote-album-strip-active-note">
-                          {t('speedtest.remote_split_slide_preview', {
-                            idx: activeSlideIndex + 1,
-                            total: resolvedMedia.albumImages.length,
-                          })}
-                        </span>
-                      </div>
-                      <div className="td-remote-album-strip">
-                        {resolvedMedia.albumImages.map((imgUrl, idx) => {
-                          const isActive = idx === activeSlideIndex;
-                          return (
+                      {effectiveMediaItems.length > 4 && (
+                        <div className="td-remote-multicard-search">
+                          <Search size={13} />
+                          <input
+                            type="text"
+                            value={itemFilterText}
+                            onChange={(e) => setItemFilterText(e.target.value)}
+                            placeholder={t('speedtest.remote_filter_media_placeholder')}
+                            spellCheck={false}
+                          />
+                          {itemFilterText && (
                             <button
-                              key={idx}
                               type="button"
-                              className={`td-remote-album-thumb-wrap ${isActive ? 'active' : ''}`}
-                              onClick={() => handleSelectSlide(idx)}
-                              title={t('speedtest.remote_photo_n', {
-                                idx: idx + 1,
-                                total: resolvedMedia.albumImages?.length || 0,
-                              })}
+                              onClick={() => setItemFilterText('')}
+                              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
                             >
-                              <img
-                                src={imgUrl}
-                                alt={`Slide ${idx + 1}`}
-                                className="td-remote-album-thumb"
-                                loading="lazy"
-                                referrerPolicy="no-referrer"
-                              />
-                              <span className="td-remote-album-thumb-idx">#{idx + 1}</span>
-                              {isActive && (
-                                <span className="td-remote-album-thumb-check">
-                                  <CheckCircle2 size={10} />
+                              <X size={12} />
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {filteredMediaItems.length === 0 ? (
+                        <div className="td-remote-multicard-empty">
+                          {t('speedtest.remote_no_filter_match')}
+                        </div>
+                      ) : (
+                        <div className="td-remote-multicard-grid">
+                          {filteredMediaItems.map((item, idx) => {
+                            const isSelected = selectedMediaItemIds.has(item.id);
+                            const chosenFmtId = itemSelectedFormats[item.id] || item.selectedFormatId || item.formats[0]?.id;
+                            const chosenFmt = item.formats.find((f) => f.id === chosenFmtId) || item.formats[0];
+
+                            return (
+                              <div
+                                key={item.id}
+                                className={`td-remote-media-item-card ${isSelected ? 'selected' : ''}`}
+                                onClick={() => handleToggleItem(item.id)}
+                                role="checkbox"
+                                aria-checked={isSelected}
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                  if (e.key === ' ' || e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleToggleItem(item.id);
+                                  }
+                                }}
+                              >
+                                <div className="td-remote-item-thumb-wrap">
+                                  {item.thumbnailUrl ? (
+                                    <img
+                                      src={item.thumbnailUrl}
+                                      alt={item.title}
+                                      className="td-remote-item-thumb-img"
+                                      loading="lazy"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                  ) : (
+                                    <div className="td-remote-item-thumb-fallback">
+                                      {item.kind === 'video' ? (
+                                        <Film size={24} />
+                                      ) : item.kind === 'audio' ? (
+                                        <Music size={24} />
+                                      ) : item.kind === 'image' ? (
+                                        <ImageIcon size={24} />
+                                      ) : (
+                                        <FileText size={24} />
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {item.kind === 'video' && (
+                                    <div className="td-remote-item-play-overlay">
+                                      <span className="td-remote-item-play-icon-badge">
+                                        <Play size={12} fill="currentColor" />
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  <span className="td-remote-item-index-badge">#{idx + 1}</span>
+
+                                  <button
+                                    type="button"
+                                    className={`td-remote-item-checkbox ${isSelected ? 'checked' : ''}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleToggleItem(item.id);
+                                    }}
+                                    aria-label={isSelected ? t('speedtest.remote_btn_deselect_all') : t('speedtest.remote_btn_select_all')}
+                                  >
+                                    {isSelected ? <CheckCircle2 size={15} /> : <Circle size={15} />}
+                                  </button>
+                                </div>
+
+                                <div className="td-remote-item-card-body">
+                                  <div className="td-remote-item-card-title" title={item.title}>
+                                    {item.title}
+                                  </div>
+
+                                  <div className="td-remote-item-card-controls">
+                                    {item.formats.length > 1 ? (
+                                      <select
+                                        className="td-remote-item-format-select"
+                                        value={chosenFmtId}
+                                        onChange={(e) => {
+                                          e.stopPropagation();
+                                          handleItemFormatChange(item.id, e.target.value);
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {item.formats.map((f) => (
+                                          <option key={f.id} value={f.id}>
+                                            {f.resolution || f.qualityTier || f.label}
+                                            {f.filesizeBytes ? ` (~${formatDriveBytes(f.filesizeBytes)})` : ''}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    ) : (
+                                      <div className="td-remote-item-card-meta">
+                                        <span className="td-remote-item-card-badge">
+                                          {getFormatDisplayBadge(chosenFmt, t) || chosenFmt?.resolution || chosenFmt?.qualityTier || t('speedtest.remote_badge_hd')}
+                                        </span>
+                                        <span className="td-remote-item-card-size">
+                                          {chosenFmt?.filesizeBytes
+                                            ? `~${formatDriveBytes(chosenFmt.filesizeBytes)}`
+                                            : t('speedtest.remote_inspect_size_unknown')}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="td-remote-big-canvas-wrap">
+                        {activeSlideUrl ? (
+                          <div className="td-remote-big-canvas-inner">
+                            <img
+                              src={activeSlideUrl}
+                              alt={resolvedMedia.title}
+                              className="td-remote-big-canvas-img"
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="td-remote-canvas-badge-overlay">
+                              {resolvedMedia.albumImages && resolvedMedia.albumImages.length > 1 && (
+                                <span className="td-remote-canvas-slide-tag">
+                                  <ImageIcon size={12} />
+                                  <span>
+                                    {t('speedtest.remote_split_slide_preview', {
+                                      idx: activeSlideIndex + 1,
+                                      total: resolvedMedia.albumImages.length,
+                                    })}
+                                  </span>
                                 </span>
                               )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {resolvedMedia.formats.length > 0 && (
-                    <div className="td-remote-formats-container">
-                      <label className="td-input-label">
-                        {t('speedtest.remote_split_select_format_hint')}
-                      </label>
-                      <div className="td-remote-quality-grid">
-                        {resolvedMedia.formats.map((fmt) => {
-                          const isSelected = selectedFormatId === fmt.id;
-                          return (
-                            <button
-                              key={fmt.id}
-                              type="button"
-                              className={`td-remote-quality-chip ${isSelected ? 'active' : ''} tier-${fmt.qualityTier} ${fmt.isAlbumPack ? 'album-pack' : ''}`}
-                              onClick={() => handleSelectFormat(fmt)}
-                              disabled={submitting}
-                            >
-                              <div className="td-remote-quality-chip-top">
-                                <span className="td-remote-quality-chip-title">
-                                  {getFormatDisplayLabel(fmt, resolvedMedia, t)}
+                              {resolvedMedia.durationSec ? (
+                                <span className="td-remote-canvas-duration-tag">
+                                  {formatMediaDuration(resolvedMedia.durationSec)}
                                 </span>
-                                {isSelected && <CheckCircle2 size={13} className="td-remote-chip-active-ico" />}
-                              </div>
-                              <div className="td-remote-quality-chip-meta">
-                                {getFormatDisplayBadge(fmt, t) && (
-                                  <span className="td-remote-quality-chip-badge">{getFormatDisplayBadge(fmt, t)}</span>
-                                )}
-                                {fmt.filesizeBytes ? (
-                                  <span className="td-remote-quality-chip-size">
-                                    ~{formatDriveBytes(fmt.filesizeBytes)}
-                                  </span>
-                                ) : null}
-                              </div>
+                              ) : null}
+                            </div>
+                          </div>
+                        ) : resolvedMedia.formats[0]?.badge === 'remote_web_page' || resolvedMedia.formats[0]?.label === 'remote_web_page_handoff' ? (
+                          <div className="td-remote-big-canvas-fallback td-remote-web-page-card">
+                            <ExternalLink size={32} className="td-remote-fallback-icon" />
+                            <span className="td-remote-web-handoff-title">{t('speedtest.remote_web_handoff_title')}</span>
+                            <p className="td-remote-web-handoff-desc">{t('speedtest.remote_web_handoff_desc')}</p>
+                            <button
+                              type="button"
+                              className="td-remote-open-web-card-btn"
+                              onClick={() => handleOpenInBrowser(resolvedMedia.url)}
+                            >
+                              <ExternalLink size={13} />
+                              <span>{t('speedtest.remote_btn_open_web')}</span>
                             </button>
-                          );
-                        })}
+                          </div>
+                        ) : (
+                          <div className="td-remote-big-canvas-fallback">
+                            <Film size={36} className="td-remote-fallback-icon" />
+                            <span>{t('drive_tools.remote_platform_stream_fallback', { platform: resolvedMedia.platformName })}</span>
+                          </div>
+                        )}
                       </div>
-                    </div>
+
+                      {resolvedMedia.albumImages && resolvedMedia.albumImages.length > 1 && (
+                        <div className="td-remote-album-strip-container">
+                          <div className="td-remote-album-strip-header">
+                            <span className="td-remote-album-strip-count">
+                              <ImageIcon size={12} />
+                              <span>{t('speedtest.remote_album_strip_count', { count: resolvedMedia.albumImages.length })}</span>
+                            </span>
+                            <span className="td-remote-album-strip-active-note">
+                              {t('speedtest.remote_split_slide_preview', {
+                                idx: activeSlideIndex + 1,
+                                total: resolvedMedia.albumImages.length,
+                              })}
+                            </span>
+                          </div>
+                          <div className="td-remote-album-strip">
+                            {resolvedMedia.albumImages.map((imgUrl, idx) => {
+                              const isActive = idx === activeSlideIndex;
+                              return (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  className={`td-remote-album-thumb-wrap ${isActive ? 'active' : ''}`}
+                                  onClick={() => handleSelectSlide(idx)}
+                                  title={t('speedtest.remote_photo_n', {
+                                    idx: idx + 1,
+                                    total: resolvedMedia.albumImages?.length || 0,
+                                  })}
+                                >
+                                  <img
+                                    src={imgUrl}
+                                    alt={`Slide ${idx + 1}`}
+                                    className="td-remote-album-thumb"
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer"
+                                  />
+                                  <span className="td-remote-album-thumb-idx">#{idx + 1}</span>
+                                  {isActive && (
+                                    <span className="td-remote-album-thumb-check">
+                                      <CheckCircle2 size={10} />
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {resolvedMedia.formats.length > 0 && (
+                        <div className="td-remote-formats-container">
+                          <label className="td-input-label">
+                            {t('speedtest.remote_split_select_format_hint')}
+                          </label>
+                          <div className="td-remote-quality-grid">
+                            {resolvedMedia.formats.map((fmt) => {
+                              const isSelected = selectedFormatId === fmt.id;
+                              return (
+                                <button
+                                  key={fmt.id}
+                                  type="button"
+                                  className={`td-remote-quality-chip ${isSelected ? 'active' : ''} tier-${fmt.qualityTier} ${fmt.isAlbumPack ? 'album-pack' : ''}`}
+                                  onClick={() => handleSelectFormat(fmt)}
+                                  disabled={submitting}
+                                >
+                                  <div className="td-remote-quality-chip-top">
+                                    <span className="td-remote-quality-chip-title">
+                                      {getFormatDisplayLabel(fmt, resolvedMedia, t)}
+                                    </span>
+                                    {isSelected && <CheckCircle2 size={13} className="td-remote-chip-active-ico" />}
+                                  </div>
+                                  <div className="td-remote-quality-chip-meta">
+                                    {getFormatDisplayBadge(fmt, t) && (
+                                      <span className="td-remote-quality-chip-badge">{getFormatDisplayBadge(fmt, t)}</span>
+                                    )}
+                                    {fmt.filesizeBytes ? (
+                                      <span className="td-remote-quality-chip-size">
+                                        ~{formatDriveBytes(fmt.filesizeBytes)}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               ) : inspection?.status === 'inspecting' ? (
@@ -1595,7 +1926,9 @@ export function RemoteUploadModal({
             className="td-confirm-btn primary td-remote-submit-btn"
             disabled={
               submitting ||
-              (tab === 'single' ? !url.trim() : batchUrls.length === 0)
+              (tab === 'single'
+                ? !url.trim() || (effectiveMediaItems.length > 1 && selectedMediaItemIds.size === 0)
+                : batchUrls.length === 0)
             }
           >
             {submitting ? (
@@ -1608,7 +1941,14 @@ export function RemoteUploadModal({
                 <Link2 size={15} strokeWidth={2.25} />
                 <span>
                   {tab === 'single'
-                    ? t('speedtest.remote_btn_start_single')
+                    ? effectiveMediaItems.length > 1
+                      ? selectedMediaItemIds.size === 0
+                        ? t('speedtest.remote_btn_select_at_least_one')
+                        : t('speedtest.remote_btn_upload_count', {
+                            count: selectedMediaItemIds.size,
+                            size: selectedBytes > 0 ? ` (~${formatDriveBytes(selectedBytes)})` : '',
+                          })
+                      : t('speedtest.remote_btn_start_single')
                     : t('speedtest.remote_btn_start_batch', { count: batchUrls.length })}
                 </span>
               </>

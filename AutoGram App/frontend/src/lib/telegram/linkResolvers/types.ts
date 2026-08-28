@@ -39,6 +39,17 @@ export interface StreamQualityFormat {
   badge?: string; // e.g. "8K ULTRA", "4K UHD", "NO WATERMARK", "320 KBPS"
   customTitle?: string;
   customFilename?: string;
+  thumbnailUrl?: string;
+}
+
+export interface ResolvedMediaItem {
+  id: string;
+  title: string;
+  thumbnailUrl?: string;
+  durationSec?: number;
+  kind?: 'video' | 'image' | 'audio' | 'doc' | 'zip' | 'other';
+  selectedFormatId?: string;
+  formats: StreamQualityFormat[];
 }
 
 export interface ResolveOptions {
@@ -70,6 +81,7 @@ export interface ResolvedMediaInfo {
   description?: string;
   formats: StreamQualityFormat[];
   selectedFormatId: string;
+  mediaItems?: ResolvedMediaItem[];
   isDirectFile?: boolean;
   requiresHeaders?: boolean;
   customHeaders?: Record<string, string>;

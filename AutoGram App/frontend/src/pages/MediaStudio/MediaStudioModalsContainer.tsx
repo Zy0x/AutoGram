@@ -84,7 +84,13 @@ export interface MediaStudioModalsContainerProps {
   handleRemoteUpload: (
     urls: string | string[],
     destination: DriveDestChoice,
-    opts?: { customFilename?: string; asDocument?: boolean }
+    opts?: {
+      customFilename?: string;
+      customFilenames?: string[];
+      asDocument?: boolean;
+      qualityMode?: string;
+      presentationOverride?: 'document' | 'original' | 'standard' | 'compressed';
+    }
   ) => Promise<void>;
   onOpenTelegramLink?: (url: string) => void;
   onBrowseTelegramDrive?: (url: string) => void;

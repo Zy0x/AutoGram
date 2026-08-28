@@ -255,13 +255,14 @@ export const streamrizzResolver: LinkResolverProvider = {
         });
       }
 
-      // Individual video formats
+      // Individual video formats and media items
+      const mediaItems = [];
       for (let i = 0; i < resolvedVideos.length; i++) {
         const v = resolvedVideos[i];
         const rawTitle = v.title || `Video_${v.id}.mp4`;
         const filename = rawTitle.toLowerCase().endsWith('.mp4') ? rawTitle : `${rawTitle}.mp4`;
 
-        formats.push({
+        const fmt: StreamQualityFormat = {
           id: `streamrizz_video_${i}_${v.id}`,
           label: filename,
           customTitle: rawTitle,
@@ -273,6 +274,18 @@ export const streamrizzResolver: LinkResolverProvider = {
           headers: { Referer: 'https://streamrizz.com/' },
           isVideo: true,
           badge: 'STREAMRIZZ HD',
+          thumbnailUrl: v.thumbnailUrl,
+        };
+
+        formats.push(fmt);
+
+        mediaItems.push({
+          id: `streamrizz_item_${i}_${v.id}`,
+          title: rawTitle,
+          thumbnailUrl: v.thumbnailUrl,
+          kind: 'video' as const,
+          selectedFormatId: fmt.id,
+          formats: [fmt],
         });
       }
 
@@ -284,6 +297,7 @@ export const streamrizzResolver: LinkResolverProvider = {
         thumbnailUrl: resolvedVideos[0]?.thumbnailUrl,
         description: `StreamRizz Folder containing ${resolvedVideos.length} videos.`,
         formats,
+        mediaItems,
         selectedFormatId: formats[0]?.id || 'streamrizz_all_files_pack',
         totalItems: resolvedVideos.length,
         isDirectFile: true,

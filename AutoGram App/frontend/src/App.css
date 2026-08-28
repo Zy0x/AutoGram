@@ -26361,6 +26361,307 @@ button.td-confirm-icon.is-back-btn:active {
 .tier-720p .td-remote-quality-chip-badge { color: #818cf8; }
 .tier-audio .td-remote-quality-chip-badge { color: #34d399; }
 
+/* Multi-Media Cards Container & Responsive Grid */
+.td-remote-multicard-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.td-remote-multicard-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+.td-remote-multicard-counter-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.td-remote-multicard-counter-icon {
+  color: #38bdf8;
+  flex-shrink: 0;
+}
+
+.td-remote-multicard-size-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  white-space: nowrap;
+}
+
+.td-remote-multicard-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.td-remote-multicard-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 140ms ease;
+  min-height: 28px;
+}
+
+.td-remote-multicard-btn:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #ffffff;
+}
+
+.td-remote-multicard-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(10, 15, 29, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.td-remote-multicard-search input {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 0.8rem;
+  outline: none;
+  width: 100%;
+}
+
+.td-remote-multicard-search input::placeholder {
+  color: #64748b;
+}
+
+.td-remote-multicard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  max-height: 380px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 2px 2px 8px 2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(56, 189, 248, 0.3) transparent;
+}
+
+.td-remote-media-item-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  user-select: none;
+  text-align: left;
+}
+
+.td-remote-media-item-card:hover {
+  border-color: rgba(56, 189, 248, 0.45);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.td-remote-media-item-card.selected {
+  border-color: #38bdf8 !important;
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.12) 0%, rgba(15, 23, 42, 0.85) 100%);
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.25), 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.td-remote-item-thumb-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #060913;
+  overflow: hidden;
+}
+
+.td-remote-item-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.td-remote-item-thumb-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  background: radial-gradient(circle at center, rgba(30, 41, 59, 0.4) 0%, #030712 100%);
+}
+
+.td-remote-item-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+  color: #ffffff;
+  pointer-events: none;
+}
+
+.td-remote-item-play-icon-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.td-remote-item-index-badge {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #f8fafc;
+  pointer-events: none;
+}
+
+.td-remote-item-checkbox {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 120ms ease;
+  padding: 0;
+}
+
+.td-remote-item-checkbox.checked {
+  background: #38bdf8;
+  border-color: #38bdf8;
+  color: #0b1120;
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.5);
+}
+
+.td-remote-item-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px 10px;
+  flex: 1;
+}
+
+.td-remote-item-card-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+}
+
+.td-remote-item-card-controls {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.td-remote-item-format-select {
+  width: 100%;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(10, 15, 29, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #38bdf8;
+  outline: none;
+  cursor: pointer;
+}
+
+.td-remote-item-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  font-size: 0.7rem;
+}
+
+.td-remote-item-card-badge {
+  font-weight: 700;
+  color: #38bdf8;
+  font-size: 0.68rem;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.12);
+}
+
+.td-remote-item-card-size {
+  font-weight: 600;
+  color: #94a3b8;
+  font-size: 0.68rem;
+}
+
+.td-remote-multicard-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 16px;
+  color: #64748b;
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-align: center;
+}
+
 /* Ready Placeholder State in Live Preview Canvas */
 .td-remote-preview-ready {
   display: flex;

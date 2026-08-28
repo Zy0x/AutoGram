@@ -118,5 +118,12 @@ describe('streamrizzResolver', () => {
     expect(res?.formats[2].customTitle).toBe('Video 2.mp4');
     expect(res?.formats[2].directUrl).toBe('https://mp4-01.overfetch.video/rf-vid2');
     expect(res?.formats[2].filesizeBytes).toBe(20000000);
+
+    // Media items
+    expect(res?.mediaItems?.length).toBe(2);
+    expect(res?.mediaItems?.[0].title).toBe('Video 1.mp4');
+    expect(res?.mediaItems?.[0].formats[0].filesizeBytes).toBe(10000000);
+    expect(res?.mediaItems?.[1].title).toBe('Video 2.mp4');
+    expect(res?.mediaItems?.[1].formats[0].filesizeBytes).toBe(20000000);
   });
 });

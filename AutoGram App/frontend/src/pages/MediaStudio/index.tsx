@@ -6795,6 +6795,7 @@ function MediaDriveDesktop({
       presentationOverride?: 'document' | 'original' | 'standard' | 'compressed';
       qualityMode?: string;
       customFilename?: string;
+      customFilenames?: string[];
     }
   ) => {
     if (!creds || !paths.length) return;
@@ -6834,6 +6835,9 @@ function MediaDriveDesktop({
       'Drive';
     const label = `→ ${destLabel}`;
     let names = cleanPaths.map((p, idx) => {
+      if (opts?.customFilenames && opts.customFilenames[idx]) {
+        return opts.customFilenames[idx];
+      }
       if (opts?.customFilename) {
         if (cleanPaths.length === 1) {
           return opts.customFilename;
