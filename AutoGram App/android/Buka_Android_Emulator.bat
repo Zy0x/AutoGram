@@ -19,8 +19,10 @@ set "PATH=%JAVA_HOME%\bin;%ANDROID_SDK_ROOT%\platform-tools;%ANDROID_SDK_ROOT%\e
 set "AVD_NAME=AutoGram_Native_Device"
 set "EMULATOR_EXE=%ANDROID_SDK_ROOT%\emulator\emulator.exe"
 set "ADB_EXE=%ANDROID_SDK_ROOT%\platform-tools\adb.exe"
-set "APK_PATH=%~dp0app\build\outputs\apk\debug\app-universal-debug.apk"
+set "APK_PATH=%~dp0app\build\outputs\apk\debug\app-debug.apk"
+if not exist "%APK_PATH%" set "APK_PATH=%~dp0app\build\outputs\apk\debug\app-universal-debug.apk"
 if not exist "%APK_PATH%" set "APK_PATH=%~dp0app\build\outputs\apk\debug\app-x86_64-debug.apk"
+if not exist "%APK_PATH%" set "APK_PATH=%~dp0app\build\outputs\apk\debug\app-arm64-v8a-debug.apk"
 
 echo [1/3] Menjalankan Google Android Emulator (%AVD_NAME%)...
 start "AutoGram Android Emulator" "%EMULATOR_EXE%" -avd %AVD_NAME% -gpu auto -no-snapshot-load
@@ -38,17 +40,22 @@ if not "!BOOT_STATUS!"=="1" (
 )
 
 echo.
-echo [3/3] Memasang AutoGram Native APK ke Emulator...
+echo [3/3] Memasang & Membuka AutoGram Native di Emulator...
 if exist "%APK_PATH%" (
     "%ADB_EXE%" install -r "%APK_PATH%"
     "%ADB_EXE%" shell am start -n com.autogram.app/com.autogram.app.MainActivity
-    echo.
-    echo ========================================================
-    echo  AutoGram Berhasil Terbuka dan Berjalan di Emulator!
-    echo ========================================================
 ) else (
-    echo [ERROR] Berkas APK tidak ditemukan di: %APK_PATH%
+    echo [INFO] Berkas APK belum ada. Melakukan kompilasi & instalasi cepat...
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0quick_reload.ps1"
 )
 
+echo.
+echo ========================================================
+echo  AutoGram Berhasil Terbuka dan Berjalan di Emulator!
+echo.
+echo  TIP LIVE RELOAD:
+echo  Jalankan 'AutoGram_Live_Reload.bat' di terminal terpisah
+echo  agar setiap perubahan UI / kode otomatis update dalam 2-3 detik!
+echo ========================================================
 echo Jendela emulator sedang aktif di layar Anda.
 pause
