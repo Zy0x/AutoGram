@@ -185,13 +185,13 @@ fun DriveScreenContent(
                 }
             } else {
                 if (state.isGridView) {
-                    // 3-Column Compact Grid (Matching user reference mockup)
+                    // 2-Column 2:3 Cinematic Poster Grid
                     LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
+                        columns = GridCells.Fixed(2),
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 90.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(filteredItems, key = { it.id }) { item ->
                             val isSelected = state.selectedIds.contains(item.id)

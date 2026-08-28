@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import com.autogram.app.R
 import com.autogram.app.theme.*
 import com.autogram.app.ui.components.*
+import com.autogram.app.ui.drive.DrivePreviewModal
 import com.autogram.app.ui.drive.FileGridItem
 import com.autogram.app.viewmodel.*
 
@@ -55,6 +56,7 @@ fun StudioScreenContent(
 ) {
     var isPoster23Mode by remember { mutableStateOf(true) }
     var isTranscodeModalOpen by remember { mutableStateOf(false) }
+    var previewItem by remember { mutableStateOf<DriveFileItem?>(null) }
     var toastMessage by remember { mutableStateOf<String?>(null) }
 
     val mediaItems = state.items.filter { !it.isFolder && it.telegramCategory.lowercase() != "sticker" }
@@ -249,14 +251,26 @@ fun StudioScreenContent(
                                     StudioMediaCard23(
                                         item = item,
                                         isSelected = state.selectedIds.contains(item.id),
-                                        onClick = { onToggleSelection(item.id) },
+                                        onClick = {
+                                            if (state.selectedIds.isNotEmpty()) {
+                                                onToggleSelection(item.id)
+                                            } else {
+                                                previewItem = item
+                                            }
+                                        },
                                         onLongClick = { onToggleSelection(item.id) }
                                     )
                                 } else {
                                     FileGridItem(
                                         item = item,
                                         isSelected = state.selectedIds.contains(item.id),
-                                        onClick = { onToggleSelection(item.id) },
+                                        onClick = {
+                                            if (state.selectedIds.isNotEmpty()) {
+                                                onToggleSelection(item.id)
+                                            } else {
+                                                previewItem = item
+                                            }
+                                        },
                                         onLongClick = { onToggleSelection(item.id) }
                                     )
                                 }
@@ -351,6 +365,15 @@ fun StudioScreenContent(
                     onStartTranscode = {
                         toastMessage = "Tugas transcode batch berhasil ditambahkan ke Manajer Transfer!"
                     }
+                )
+            }
+
+            // 7. Fullscreen Media Previewer Modal
+            val currentPreview = previewItem
+            if (currentPreview != null) {
+                DrivePreviewModal(
+                    item = currentPreview,
+                    onDismiss = { previewItem = null }
                 )
             }
         }

@@ -1,4 +1,4 @@
-package com.autogram.app.ui.drive
+﻿package com.autogram.app.ui.drive
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -42,10 +43,30 @@ fun FileGridItem(
     val isVideo = item.mimeType.startsWith("video") || item.telegramCategory.equals("video", ignoreCase = true)
     val isAudio = item.mimeType.startsWith("audio") || item.telegramCategory.equals("audio", ignoreCase = true)
     val isImage = item.mimeType.startsWith("image") || item.telegramCategory.equals("photo", ignoreCase = true)
+    val isZip = item.name.endsWith(".zip", ignoreCase = true) || item.mimeType.contains("zip", ignoreCase = true)
     val isSync = item.name.contains("Processing", ignoreCase = true) || item.name.contains("Sync", ignoreCase = true)
 
+    val formatBadgeText = when {
+        item.isFolder -> "FOLDER"
+        isZip -> "SPARSE ZIP"
+        isVideo -> if (item.size > 20_000_000) "4K UHD" else "1080p 60F"
+        isImage -> "PHOTO HD"
+        isAudio -> "AUDIO MP3"
+        item.mimeType.contains("pdf", ignoreCase = true) -> "PDF DOC"
+        else -> item.telegramCategory.uppercase()
+    }
+
+    val formatBadgeColor = when {
+        item.isFolder -> MutedIceCyan
+        isZip -> ChampagneGold
+        isVideo -> CategoryVideo
+        isImage -> CategoryPhoto
+        isAudio -> CategoryAudio
+        else -> TextSecondaryDark
+    }
+
     val border = when {
-        isSelected -> BorderStroke(1.5.dp, GoldAccent)
+        isSelected -> BorderStroke(2.dp, GoldAccent)
         isSync -> BorderStroke(1.dp, GoldAccent.copy(alpha = 0.5f))
         else -> BorderStroke(1.dp, CardNavyBorder)
     }
@@ -53,19 +74,20 @@ fun FileGridItem(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(132.dp)
+            .aspectRatio(2f / 3f)
+            .clip(RoundedCornerShape(16.dp))
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
             ),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) SurfaceElevatedDark else CardNavyBg
         ),
         border = border
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Background Image for Photos/Videos with thumbnail
+            // 1. Full-Bleed Thumbnail or Thematic Center Icon
             if (!item.thumbnailUri.isNullOrBlank()) {
                 AsyncImage(
                     model = item.thumbnailUri,
@@ -73,203 +95,230 @@ fun FileGridItem(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
-                // Bottom vignette gradient
+            } else if (item.isFolder) {
+                // Folder 2:3 Center Presentation
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .align(Alignment.BottomCenter)
+                        .fillMaxSize()
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color(0xDD090E17))
+                                listOf(SurfaceGlassStrong, SurfaceDeep)
                             )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MutedIceCyan.copy(alpha = 0.12f),
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Folder,
+                                    contentDescription = null,
+                                    tint = MutedIceCyan,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            text = item.name,
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            ),
+                            color = TextPrimaryDark,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 10.dp)
                         )
-                )
-            } else if (item.isFolder) {
-                // Folder Center Layout (matching user reference mockup)
-                Column(
+                        Text(
+                            text = "${(item.size % 20 + 5)} items",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            color = TextSecondaryDark
+                        )
+                    }
+                }
+            } else {
+                // Media / Document 2:3 Placeholder Presentation
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 6.dp, vertical = 12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                        .background(SurfaceDeep),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Folder,
+                        imageVector = when {
+                            isVideo -> Icons.Default.Videocam
+                            isImage -> Icons.Default.Image
+                            isAudio -> Icons.Default.Audiotrack
+                            isZip -> Icons.Default.FolderZip
+                            else -> Icons.AutoMirrored.Filled.InsertDriveFile
+                        },
                         contentDescription = null,
-                        tint = MutedIceCyan.copy(alpha = 0.75f),
-                        modifier = Modifier.size(34.dp)
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = item.name,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
-                        ),
-                        color = TextPrimaryDark,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = "${(item.size % 20 + 5)} items",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                        color = TextMutedDark,
-                        textAlign = TextAlign.Center
+                        tint = formatBadgeColor.copy(alpha = 0.35f),
+                        modifier = Modifier.size(54.dp)
                     )
                 }
-            } else if (isSync) {
-                // Sync / Processing Center Layout
+            }
+
+            // 2. Cinematic Dark Vignette Overlay
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0x66000000),
+                                Color.Transparent,
+                                Color(0x99000000),
+                                Color(0xFA040D1A)
+                            )
+                        )
+                    )
+            )
+
+            // 3. Top Row: Format Pill (Left) + Selection Circle (Right)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    color = Color(0xCC051120),
+                    shape = RoundedCornerShape(6.dp),
+                    border = BorderStroke(0.5.dp, formatBadgeColor.copy(alpha = 0.5f))
+                ) {
+                    Text(
+                        text = formatBadgeText,
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.3.sp
+                        ),
+                        color = formatBadgeColor
+                    )
+                }
+
+                // 1-Tap Select Circle
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .clickable { onLongClick() }
+                        .background(if (isSelected) GoldAccent else Color(0x55000000))
+                        .border(
+                            1.5.dp,
+                            if (isSelected) GoldAccent else Color(0x88FFFFFF),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isSelected) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = stringResource(R.string.drive_item_selected_accessibility),
+                            tint = CanvasDeepNavy,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+            }
+
+            // 4. Center Play Button for Videos
+            if (isVideo && !isSelected) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(Color(0x77000000))
+                        .border(1.dp, Color(0x55FFFFFF), CircleShape)
+                        .align(Alignment.Center),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            // 5. Bottom Info Overlay
+            if (!item.isFolder) {
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 6.dp, vertical = 12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = 10.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = Color.Transparent,
-                        border = BorderStroke(1.5.dp, GoldAccent),
-                        modifier = Modifier.size(28.dp)
+                    Text(
+                        text = item.name,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        ),
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.MoreHoriz,
-                                contentDescription = null,
-                                tint = GoldAccent,
-                                modifier = Modifier.size(16.dp)
+                        Text(
+                            text = formatFileSize(item.size),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = TextSecondaryDark
+                        )
+
+                        if (isVideo) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Memory,
+                                    contentDescription = null,
+                                    tint = GoldAccent,
+                                    modifier = Modifier.size(11.dp)
+                                )
+                                Text(
+                                    text = "NVENC",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 9.5.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = GoldAccent
+                                )
+                            }
+                        } else if (isZip) {
+                            Text(
+                                text = "RAM Stream",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = ChampagneGold
                             )
                         }
                     }
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = "SYNC",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 8.5.sp,
-                            letterSpacing = 0.8.sp
-                        ),
-                        color = GoldAccent
-                    )
                 }
-            } else {
-                // Audio / Doc / Image Type Icon Center Layout
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 6.dp, vertical = 12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    val icon = when {
-                        isImage -> Icons.Default.Image
-                        isAudio -> Icons.Default.MusicNote
-                        else -> Icons.Default.InsertDriveFile
-                    }
-                    val extLabel = when {
-                        isImage -> "JPG"
-                        isAudio -> "MP3"
-                        item.mimeType.contains("pdf") -> "PDF"
-                        else -> "FILE"
-                    }
-
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = MutedIceCyan.copy(alpha = 0.7f),
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = extLabel,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 8.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp
-                        ),
-                        color = TextSecondaryDark
-                    )
-                }
-            }
-
-            // Top-Left Video Duration Badge [▶ 1:34]
-            if (isVideo) {
-                Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = Color(0xCC000000),
-                    modifier = Modifier
-                        .padding(top = 6.dp, start = 6.dp)
-                        .align(Alignment.TopStart)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(9.dp)
-                        )
-                        Text(
-                            text = if (item.size % 2 == 0L) "1:34" else "0:45",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 8.5.sp,
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = Color.White
-                        )
-                    }
-                }
-            }
-
-            // Top-Right Circle Checkbox (Direct 1-tap select)
-            Box(
-                modifier = Modifier
-                    .padding(top = 6.dp, end = 6.dp)
-                    .size(24.dp)
-                    .align(Alignment.TopEnd)
-                    .clip(CircleShape)
-                    .clickable { onLongClick() }
-                    .padding(4.dp)
-                    .clip(CircleShape)
-                    .background(if (isSelected) GoldAccent else Color.Transparent)
-                    .border(
-                        1.5.dp,
-                        if (isSelected) GoldAccent else Color(0x408CA0B8),
-                        CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                if (isSelected) {
-                    Icon(
-                        Icons.Default.Check,
-                        contentDescription = null,
-                        tint = CanvasDeepNavy,
-                        modifier = Modifier.size(10.dp)
-                    )
-                }
-            }
-
-            // Bottom Filename Text (for non-folder cards)
-            if (!item.isFolder) {
-                Text(
-                    text = item.name,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 10.sp,
-                        fontWeight = if (isSync) FontWeight.SemiBold else FontWeight.Normal
-                    ),
-                    color = if (isSync) GoldAccent else TextPrimaryDark,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 6.dp, vertical = 6.dp)
-                        .align(Alignment.BottomStart)
-                )
             }
         }
     }
@@ -282,4 +331,3 @@ fun formatFileSize(bytes: Long): String {
     val value = bytes / Math.pow(1024.0, digitGroups.toDouble())
     return String.format(java.util.Locale.US, "%.1f %s", value, units[digitGroups])
 }
-
