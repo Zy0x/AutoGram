@@ -7,9 +7,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -30,6 +28,9 @@ fun DriveScreen(
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
+    var previewItem by remember { mutableStateOf<DriveFileItem?>(null) }
+    var zipArchiveItem by remember { mutableStateOf<DriveFileItem?>(null) }
+    var isDriveToolsOpen by remember { mutableStateOf(false) }
 
     DriveScreenContent(
         state = state,
@@ -48,19 +49,44 @@ fun DriveScreen(
         onCopyLinks = { /* Copy telegram cloud links */ },
         onTagCategory = { /* Tag category handler */ },
         onDeleteSelected = viewModel::deleteSelected,
+        onOpenTools = { isDriveToolsOpen = true },
         onItemClick = { item ->
-            if (item.isFolder) {
-                if (state.selectedIds.isNotEmpty()) {
-                    viewModel.toggleItemSelection(item.id)
-                } else {
-                    viewModel.loadFolder(childPath(state.currentPath, item.name))
-                }
-            } else {
+            if (state.selectedIds.isNotEmpty()) {
                 viewModel.toggleItemSelection(item.id)
+            } else if (item.isFolder) {
+                viewModel.loadFolder(childPath(state.currentPath, item.name))
+            } else if (item.name.endsWith(".zip", ignoreCase = true)) {
+                zipArchiveItem = item
+            } else {
+                previewItem = item
             }
         },
         onItemLongClick = { item -> viewModel.toggleItemSelection(item.id) }
     )
+
+    // Modals
+    val currentPreview = previewItem
+    if (currentPreview != null) {
+        DrivePreviewModal(
+            item = currentPreview,
+            onDismiss = { previewItem = null }
+        )
+    }
+
+    val currentZip = zipArchiveItem
+    if (currentZip != null) {
+        ZipExplorerModal(
+            archiveItem = currentZip,
+            onDismiss = { zipArchiveItem = null }
+        )
+    }
+
+    if (isDriveToolsOpen) {
+        DriveToolsModal(
+            allItems = state.items,
+            onDismiss = { isDriveToolsOpen = false }
+        )
+    }
 }
 
 @Composable
@@ -81,6 +107,7 @@ fun DriveScreenContent(
     onCopyLinks: () -> Unit = {},
     onTagCategory: () -> Unit = {},
     onDeleteSelected: () -> Unit = {},
+    onOpenTools: () -> Unit = {},
     onItemClick: (DriveFileItem) -> Unit = {},
     onItemLongClick: (DriveFileItem) -> Unit = {}
 ) {
@@ -124,7 +151,8 @@ fun DriveScreenContent(
                 onMoveFolder = onMoveFolder,
                 onCopyLinks = onCopyLinks,
                 onTagCategory = onTagCategory,
-                onDeleteSelected = onDeleteSelected
+                onDeleteSelected = onDeleteSelected,
+                onOpenTools = onOpenTools
             )
 
             state.errorCode?.let { code ->

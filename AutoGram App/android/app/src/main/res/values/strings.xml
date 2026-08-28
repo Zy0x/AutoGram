@@ -117,4 +117,72 @@
     <string name="studio_metric_images">Gambar</string>
     <string name="studio_metric_videos">Video</string>
     <string name="studio_empty">Belum ada media yang cocok dengan filter ini.</string>
+
+    <!-- Media Preview Modal -->
+    <string name="preview_title">Pratinjau Berkas</string>
+    <string name="preview_action_download">Unduh Berkas</string>
+    <string name="preview_action_info">Info Teknis</string>
+    <string name="preview_action_close">Tutup Pratinjau</string>
+    <string name="preview_metadata_title">Detail &amp; Telemetri Berkas</string>
+    <string name="preview_meta_size">Ukuran Berkas</string>
+    <string name="preview_meta_mime">Tipe MIME</string>
+    <string name="preview_meta_hash">SHA256 Hash</string>
+    <string name="preview_meta_msgid">Telegram Message ID</string>
+    <string name="preview_meta_date">Terakhir Dimodifikasi</string>
+    <string name="preview_playback_speed">Kecepatan Putar: %1$sx</string>
+    <string name="preview_transcode_status">Akselerasi GPU: Aktif (60 FPS)</string>
+    <string name="preview_zoom_hint">Ketuk dua kali atau cubit untuk zoom</string>
+
+    <!-- In-Memory Sparse ZIP Explorer -->
+    <string name="zip_title">Penjelajah Arsip ZIP</string>
+    <string name="zip_entries_count">%1$d berkas di dalam arsip</string>
+    <string name="zip_search_placeholder">Cari berkas di dalam ZIP…</string>
+    <string name="zip_action_extract_selected">Ekstrak Terpilih</string>
+    <string name="zip_action_extract_all">Ekstrak Semua</string>
+    <string name="zip_extracting">Mengekstrak berkas…</string>
+    <string name="zip_extracted_success">Berkas berhasil diekstrak ke penyimpanan!</string>
+    <string name="zip_in_memory_stream">Streaming Byte-Range In-Memory (Hemat Kuota)</string>
+    <string name="zip_empty">Tidak ada berkas yang ditemukan dalam arsip.</string>
+
+    <!-- Drive Tools Suite -->
+    <string name="tools_title">Alat Analisis Drive</string>
+    <string name="tools_tab_duplicates">Pembersih Duplikat</string>
+    <string name="tools_tab_space">Penggunaan Ruang</string>
+    <string name="tools_dup_found">%1$d berkas duplikat terdeteksi</string>
+    <string name="tools_dup_reclaimable">Dapat dihemat: %1$s</string>
+    <string name="tools_dup_clean_auto">Bersihkan Duplikat Otomatis</string>
+    <string name="tools_dup_cleaned_success">Duplikat berhasil dibersihkan!</string>
+    <string name="tools_dup_empty">Tidak ditemukan file duplikat. Cloud Anda bersih!</string>
+    <string name="tools_space_total">Total Penggunaan: %1$s</string>
+    <string name="tools_space_breakdown">Proporsi Kategori Media</string>
+    <string name="tools_space_largest">Berkas Terbesar</string>
+
+    <!-- Advanced Settings Suite -->
+    <string name="settings_section_accounts">Manajemen Multi-Akun</string>
+    <string name="settings_action_add_account">Tambah Akun</string>
+    <string name="settings_action_switch_account">Ganti Akun</string>
+    <string name="settings_dialog_login_title">Masuk Akun Telegram</string>
+    <string name="settings_dialog_login_qr">Pindai Kode QR MTProto</string>
+    <string name="settings_dialog_login_phone">Nomor Telepon &amp; OTP</string>
+    <string name="settings_section_network">Jaringan &amp; Konkurensi MTProto</string>
+    <string name="settings_stream_concurrency">Stream Paralel: %1$d Streams</string>
+    <string name="settings_chunk_size">Ukuran Blok Chunk: %1$s</string>
+    <string name="settings_smart_backoff">Smart FloodWait Backoff (Anti-Banned)</string>
+    <string name="settings_section_cache">Pengelolaan Cache &amp; Storage</string>
+    <string name="settings_cache_clear_thumbs">Bersihkan Cache Thumbnail</string>
+    <string name="settings_cache_clear_downloads">Bersihkan Unduhan Sementara</string>
+    <string name="settings_cache_cleared">Cache berhasil dibersihkan!</string>
+    <string name="settings_section_theme">Tampilan &amp; Aksesibilitas</string>
+    <string name="settings_theme_amoled">Mode AMOLED Pure Black</string>
+    <string name="settings_language_toggle">Bahasa: Bahasa Indonesia</string>
+    <string name="settings_section_database">Pusat Data &amp; Cadangan</string>
+    <string name="settings_action_export_backup">Ekspor Backup Database</string>
+    <string name="settings_backup_success">Database berhasil diekspor!</string>
+
+    <!-- Forwarder Clean-Copy Pipeline -->
+    <string name="remote_section_clean_copy">Konfigurasi Clean-Copy</string>
+    <string name="remote_target_channel">Target Tujuan: %1$s</string>
+    <string name="remote_target_saved">Pesan Tersimpan (Saved Messages)</string>
+    <string name="remote_strip_caption">Hapus Teks/Caption Asli</string>
+    <string name="remote_dedup_check">Pencegahan Duplikasi 4-Level</string>
 </resources>

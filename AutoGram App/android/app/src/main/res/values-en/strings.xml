@@ -117,4 +117,72 @@
     <string name="studio_metric_images">Images</string>
     <string name="studio_metric_videos">Videos</string>
     <string name="studio_empty">No media matches this filter yet.</string>
+
+    <!-- Media Preview Modal -->
+    <string name="preview_title">File Preview</string>
+    <string name="preview_action_download">Download File</string>
+    <string name="preview_action_info">Technical Info</string>
+    <string name="preview_action_close">Close Preview</string>
+    <string name="preview_metadata_title">File Details &amp; Telemetry</string>
+    <string name="preview_meta_size">File Size</string>
+    <string name="preview_meta_mime">MIME Type</string>
+    <string name="preview_meta_hash">SHA256 Hash</string>
+    <string name="preview_meta_msgid">Telegram Message ID</string>
+    <string name="preview_meta_date">Last Modified</string>
+    <string name="preview_playback_speed">Playback Speed: %1$sx</string>
+    <string name="preview_transcode_status">GPU Acceleration: Active (60 FPS)</string>
+    <string name="preview_zoom_hint">Double-tap or pinch to zoom</string>
+
+    <!-- In-Memory Sparse ZIP Explorer -->
+    <string name="zip_title">ZIP Archive Explorer</string>
+    <string name="zip_entries_count">%1$d files in archive</string>
+    <string name="zip_search_placeholder">Search files inside ZIP…</string>
+    <string name="zip_action_extract_selected">Extract Selected</string>
+    <string name="zip_action_extract_all">Extract All</string>
+    <string name="zip_extracting">Extracting file…</string>
+    <string name="zip_extracted_success">File successfully extracted to storage!</string>
+    <string name="zip_in_memory_stream">In-Memory Byte-Range Streaming (Zero Quota Waste)</string>
+    <string name="zip_empty">No files found inside the archive.</string>
+
+    <!-- Drive Tools Suite -->
+    <string name="tools_title">Drive Analysis Tools</string>
+    <string name="tools_tab_duplicates">Duplicate Cleaner</string>
+    <string name="tools_tab_space">Space Usage</string>
+    <string name="tools_dup_found">%1$d duplicate files detected</string>
+    <string name="tools_dup_reclaimable">Reclaimable space: %1$s</string>
+    <string name="tools_dup_clean_auto">Clean Duplicates Automatically</string>
+    <string name="tools_dup_cleaned_success">Duplicates successfully cleaned!</string>
+    <string name="tools_dup_empty">No duplicate files found. Your cloud is clean!</string>
+    <string name="tools_space_total">Total Storage: %1$s</string>
+    <string name="tools_space_breakdown">Media Category Breakdown</string>
+    <string name="tools_space_largest">Largest Files</string>
+
+    <!-- Advanced Settings Suite -->
+    <string name="settings_section_accounts">Multi-Account Management</string>
+    <string name="settings_action_add_account">Add Account</string>
+    <string name="settings_action_switch_account">Switch Account</string>
+    <string name="settings_dialog_login_title">Log In to Telegram</string>
+    <string name="settings_dialog_login_qr">Scan MTProto QR Code</string>
+    <string name="settings_dialog_login_phone">Phone Number &amp; OTP</string>
+    <string name="settings_section_network">Network &amp; MTProto Concurrency</string>
+    <string name="settings_stream_concurrency">Parallel Streams: %1$d Streams</string>
+    <string name="settings_chunk_size">Chunk Block Size: %1$s</string>
+    <string name="settings_smart_backoff">Smart FloodWait Backoff (Anti-Banned)</string>
+    <string name="settings_section_cache">Cache &amp; Storage Management</string>
+    <string name="settings_cache_clear_thumbs">Clear Thumbnail Cache</string>
+    <string name="settings_cache_clear_downloads">Clear Temporary Downloads</string>
+    <string name="settings_cache_cleared">Cache cleared successfully!</string>
+    <string name="settings_section_theme">Appearance &amp; Accessibility</string>
+    <string name="settings_theme_amoled">AMOLED Pure Black Mode</string>
+    <string name="settings_language_toggle">Language: English</string>
+    <string name="settings_section_database">Data &amp; Backup Center</string>
+    <string name="settings_action_export_backup">Export Database Backup</string>
+    <string name="settings_backup_success">Database exported successfully!</string>
+
+    <!-- Forwarder Clean-Copy Pipeline -->
+    <string name="remote_section_clean_copy">Clean-Copy Configuration</string>
+    <string name="remote_target_channel">Destination Target: %1$s</string>
+    <string name="remote_target_saved">Saved Messages</string>
+    <string name="remote_strip_caption">Strip Original Text/Caption</string>
+    <string name="remote_dedup_check">4-Level Duplicate Prevention</string>
 </resources>

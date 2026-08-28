@@ -51,7 +51,8 @@ fun DriveTopBar(
     onMoveFolder: () -> Unit,
     onCopyLinks: () -> Unit,
     onTagCategory: () -> Unit,
-    onDeleteSelected: () -> Unit
+    onDeleteSelected: () -> Unit,
+    onOpenTools: () -> Unit = {}
 ) {
     var isSearchExpanded by remember { mutableStateOf(false) }
     var isSelectionMenuOpen by remember { mutableStateOf(false) }
@@ -483,6 +484,27 @@ fun DriveTopBar(
                                 onClick = {
                                     isNormalMenuOpen = false
                                     onToggleViewMode()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = stringResource(R.string.tools_title),
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.5.sp),
+                                        color = TextPrimaryDark
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Analytics,
+                                        contentDescription = null,
+                                        tint = GoldAccent,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
+                                onClick = {
+                                    isNormalMenuOpen = false
+                                    onOpenTools()
                                 }
                             )
                             DropdownMenuItem(

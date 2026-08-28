@@ -12,8 +12,8 @@ android {
         applicationId = "com.autogram.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 3846
-        versionName = "3.8.46"
+        versionCode = 3850
+        versionName = "3.8.50"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
