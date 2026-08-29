@@ -1614,141 +1614,128 @@ export function RemoteUploadModal({
 
                   <div className="td-remote-field-group td-remote-form-card">
                     <label className="td-input-label">{t('speedtest.remote_delivery_mode_label')}</label>
-                    <div className="td-remote-mode-selector">
+                    <div className="td-remote-mode-pills">
                       <button
                         type="button"
-                        className={`td-remote-mode-btn ${deliveryMode === 'uncompressed' ? 'active' : ''}`}
+                        className={`td-remote-mode-pill${deliveryMode === 'uncompressed' ? ' active uncompressed' : ''}`}
                         onClick={() => setDeliveryMode('uncompressed')}
                         disabled={submitting}
+                        title={t('speedtest.remote_mode_uncompressed_hint')}
                       >
-                        <span className="td-remote-mode-icon uncompressed">
-                          <Film size={15} />
-                        </span>
-                        <div className="td-remote-mode-text">
-                          <span className="td-remote-mode-title">{t('speedtest.remote_mode_uncompressed')}</span>
-                          <span className="td-remote-mode-desc">{t('speedtest.remote_mode_uncompressed_hint')}</span>
-                        </div>
-                        {deliveryMode === 'uncompressed' && (
-                          <span className="td-remote-mode-active-indicator">
-                            <CheckCircle2 size={13} />
-                          </span>
-                        )}
+                        <Film size={13} />
+                        <span>{t('speedtest.remote_mode_uncompressed')}</span>
+                        {deliveryMode === 'uncompressed' && <Check size={11} />}
                       </button>
                       <button
                         type="button"
-                        className={`td-remote-mode-btn ${deliveryMode === 'auto' ? 'active' : ''}`}
+                        className={`td-remote-mode-pill${deliveryMode === 'auto' ? ' active auto' : ''}`}
                         onClick={() => setDeliveryMode('auto')}
                         disabled={submitting}
+                        title={t('speedtest.remote_mode_auto_hint')}
                       >
-                        <span className="td-remote-mode-icon auto">
-                          <Zap size={15} />
-                        </span>
-                        <div className="td-remote-mode-text">
-                          <span className="td-remote-mode-title">{t('speedtest.remote_mode_auto')}</span>
-                          <span className="td-remote-mode-desc">{t('speedtest.remote_mode_auto_hint')}</span>
-                        </div>
-                        {deliveryMode === 'auto' && (
-                          <span className="td-remote-mode-active-indicator">
-                            <CheckCircle2 size={13} />
-                          </span>
-                        )}
+                        <Zap size={13} />
+                        <span>{t('speedtest.remote_mode_auto')}</span>
+                        {deliveryMode === 'auto' && <Check size={11} />}
                       </button>
                       <button
                         type="button"
-                        className={`td-remote-mode-btn ${deliveryMode === 'document' ? 'active' : ''}`}
+                        className={`td-remote-mode-pill${deliveryMode === 'document' ? ' active doc' : ''}`}
                         onClick={() => setDeliveryMode('document')}
                         disabled={submitting}
+                        title={t('speedtest.remote_mode_doc_hint')}
                       >
-                        <span className="td-remote-mode-icon doc">
-                          <FileText size={15} />
-                        </span>
-                        <div className="td-remote-mode-text">
-                          <span className="td-remote-mode-title">{t('speedtest.remote_mode_doc')}</span>
-                          <span className="td-remote-mode-desc">{t('speedtest.remote_mode_doc_hint')}</span>
-                        </div>
-                        {deliveryMode === 'document' && (
-                          <span className="td-remote-mode-active-indicator">
-                            <CheckCircle2 size={13} />
-                          </span>
-                        )}
+                        <FileText size={13} />
+                        <span>{t('speedtest.remote_mode_doc')}</span>
+                        {deliveryMode === 'document' && <Check size={11} />}
                       </button>
                     </div>
                   </div>
 
-                  {/* Smart Delivery Engine Status */}
-                  <div className="td-remote-field-group td-remote-form-card td-remote-engine-card">
+                  {/* Smart Delivery Engine Status — Compact */}
+                  <div className="td-remote-field-group td-remote-form-card td-remote-engine-card td-remote-engine-compact">
                     <div className="td-remote-engine-header">
                       <div className="td-remote-engine-title-wrap">
-                        <CloudLightning size={14} className="text-cyan-400" />
+                        <CloudLightning size={13} className="text-cyan-400" />
                         <span className="td-remote-engine-title">{t('drive_tools.remote_engine_mode_title')}</span>
                       </div>
                       {effectiveRemoteEngine === 'cloud_fetch' ? (
                         <span className="td-remote-engine-badge zero-quota">
-                          <Sparkles size={11} />
+                          <Sparkles size={10} />
                           <span>{t('drive_tools.remote_zero_quota_badge')}</span>
                         </span>
                       ) : (
                         <span className="td-remote-engine-badge zero-disk">
-                          <Zap size={11} />
+                          <Zap size={10} />
                           <span>{t('drive_tools.remote_zero_disk_badge')}</span>
                         </span>
                       )}
                     </div>
-                    <p className="td-remote-engine-desc">
-                      {effectiveRemoteEngine === 'cloud_fetch'
-                        ? t('drive_tools.remote_zero_quota_desc')
-                        : t('drive_tools.remote_zero_disk_desc')}
-                    </p>
-                    <label className="td-input-label" htmlFor="td-remote-engine-mode">
-                      {t('drive_tools.remote_engine_selector_label')}
-                    </label>
-                    <select
-                      id="td-remote-engine-mode"
-                      className="td-input-field"
-                      value={remoteEngineMode}
-                      disabled={submitting}
-                      onChange={(event) => {
-                        const next = event.target.value as RemoteEngineMode;
-                        setRemoteEngineMode(next);
-                        try { localStorage.setItem('autogram_remote_engine_mode', next); } catch { /* best effort */ }
-                      }}
-                    >
-                      <option value="auto">{t('drive_tools.remote_engine_auto')}</option>
-                      <option value="cloud_fetch">{t('drive_tools.remote_engine_cloud_fetch')}</option>
-                      <option value="storage_local">{t('drive_tools.remote_engine_storage_local')}</option>
-                    </select>
 
-                    {(remoteEngineMode === 'storage_local' || remoteEngineMode === 'auto') && (
-                      <div className="td-remote-storage-policy-group" style={{ marginTop: 10 }}>
-                        <label className="td-input-label" htmlFor="td-remote-storage-policy">
-                          {t('drive_tools.remote_storage_policy_label')}
-                        </label>
-                        <select
-                          id="td-remote-storage-policy"
-                          className="td-input-field"
-                          value={storagePolicy}
+                    {/* Engine Mode Pills */}
+                    <div className="td-remote-engine-pills">
+                      {(['auto', 'cloud_fetch', 'storage_local'] as RemoteEngineMode[]).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          className={`td-remote-engine-pill${remoteEngineMode === mode ? ' active' : ''}`}
                           disabled={submitting}
-                          onChange={(e) => setStoragePolicy(e.target.value as StorageLocalPolicy)}
+                          onClick={() => {
+                            setRemoteEngineMode(mode);
+                            try { localStorage.setItem('autogram_remote_engine_mode', mode); } catch { /* ok */ }
+                          }}
                         >
-                          <option value="telegram">{t('drive_tools.remote_policy_telegram')}</option>
-                          <option value="custom_disk">{t('drive_tools.remote_policy_custom_disk')}</option>
-                          <option value="disk_and_telegram">{t('drive_tools.remote_policy_disk_and_telegram')}</option>
-                        </select>
+                          {mode === 'auto' && <Zap size={11} />}
+                          {mode === 'cloud_fetch' && <Sparkles size={11} />}
+                          {mode === 'storage_local' && <Folder size={11} />}
+                          <span>
+                            {mode === 'auto' ? t('drive_tools.remote_engine_auto') :
+                             mode === 'cloud_fetch' ? t('drive_tools.remote_engine_cloud_fetch') :
+                             t('drive_tools.remote_engine_storage_local')}
+                          </span>
+                          {remoteEngineMode === mode && <Check size={10} />}
+                        </button>
+                      ))}
+                    </div>
 
+                    {/* Storage Policy Pills — shown only when local storage is relevant */}
+                    {(remoteEngineMode === 'storage_local' || remoteEngineMode === 'auto') && (
+                      <div className="td-remote-policy-row">
+                        <span className="td-remote-policy-label">{t('drive_tools.remote_storage_policy_label')}</span>
+                        <div className="td-remote-engine-pills">
+                          {(['telegram', 'custom_disk', 'disk_and_telegram'] as StorageLocalPolicy[]).map((pol) => (
+                            <button
+                              key={pol}
+                              type="button"
+                              className={`td-remote-engine-pill${storagePolicy === pol ? ' active' : ''}`}
+                              disabled={submitting}
+                              onClick={() => setStoragePolicy(pol)}
+                            >
+                              {pol === 'telegram' && <Zap size={11} />}
+                              {pol === 'custom_disk' && <Folder size={11} />}
+                              {pol === 'disk_and_telegram' && <Layers size={11} />}
+                              <span>
+                                {pol === 'telegram' ? t('drive_tools.remote_policy_telegram') :
+                                 pol === 'custom_disk' ? t('drive_tools.remote_policy_custom_disk') :
+                                 t('drive_tools.remote_policy_disk_and_telegram')}
+                              </span>
+                              {storagePolicy === pol && <Check size={10} />}
+                            </button>
+                          ))}
+                        </div>
                         {(storagePolicy === 'custom_disk' || storagePolicy === 'disk_and_telegram') && (
-                          <div style={{ marginTop: 8, display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
                             <input
                               type="text"
                               className="td-input-field"
                               placeholder={t('drive_tools.remote_custom_disk_path_label')}
                               value={customDiskPath}
                               onChange={(e) => setCustomDiskPath(e.target.value)}
-                              style={{ flex: 1 }}
+                              style={{ flex: 1, height: 32, fontSize: '0.78rem' }}
                             />
                             <button
                               type="button"
                               className="td-chip-btn"
-                              style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4, height: 34 }}
+                              style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4, height: 32 }}
                               onClick={async () => {
                                 try {
                                   const { open } = await import('@tauri-apps/plugin-dialog');
@@ -1759,7 +1746,7 @@ export function RemoteUploadModal({
                                 }
                               }}
                             >
-                              <Folder size={13} />
+                              <Folder size={12} />
                               <span>{t('drive_tools.remote_custom_disk_browse')}</span>
                             </button>
                           </div>
@@ -1857,31 +1844,29 @@ export function RemoteUploadModal({
                                 preload="metadata"
                                 playsInline
                                 className="td-remote-big-canvas-video td-remote-active-player-video"
-                                ref={(el) => {
-                                  if (el) {
-                                    const checkDur = () => {
-                                      if (el.duration && isFinite(el.duration) && el.duration > 0) {
-                                        const d = Math.round(el.duration);
-                                        setActiveVideoDuration(d);
-                                        if (activePreviewItem) {
-                                          setItemDurations((prev) => ({ ...prev, [activePreviewItem.id]: d }));
-                                        }
-                                      }
-                                    };
-                                    checkDur();
-                                    el.addEventListener('loadedmetadata', checkDur);
-                                    el.addEventListener('durationchange', checkDur);
-                                    el.addEventListener('canplay', checkDur);
-                                    el.addEventListener('timeupdate', checkDur);
-                                  }
-                                }}
                                 onLoadedMetadata={(e) => {
                                   const dur = e.currentTarget.duration;
                                   if (dur && isFinite(dur) && dur > 0) {
                                     const d = Math.round(dur);
                                     setActiveVideoDuration(d);
                                     if (activePreviewItem) {
-                                      setItemDurations((prev) => ({ ...prev, [activePreviewItem.id]: d }));
+                                      setItemDurations((prev) => {
+                                        if (prev[activePreviewItem.id] === d) return prev;
+                                        return { ...prev, [activePreviewItem.id]: d };
+                                      });
+                                    }
+                                  }
+                                }}
+                                onDurationChange={(e) => {
+                                  const dur = e.currentTarget.duration;
+                                  if (dur && isFinite(dur) && dur > 0) {
+                                    const d = Math.round(dur);
+                                    setActiveVideoDuration((prev) => (prev === d ? prev : d));
+                                    if (activePreviewItem) {
+                                      setItemDurations((prev) => {
+                                        if (prev[activePreviewItem.id] === d) return prev;
+                                        return { ...prev, [activePreviewItem.id]: d };
+                                      });
                                     }
                                   }
                                 }}

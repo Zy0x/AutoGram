@@ -27616,106 +27616,133 @@ button.td-confirm-icon.is-back-btn:active {
   color: #ffffff;
 }
 
-/* Delivery Mode Selector */
-.td-remote-mode-selector {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
 
-@media (max-width: 580px) {
-  .td-remote-mode-selector {
-    grid-template-columns: 1fr;
-  }
-}
-
-.td-remote-mode-btn {
-  position: relative;
+/* Delivery Mode Pill Selector (compact row) */
+.td-remote-mode-pills {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  flex-wrap: wrap;
   gap: 6px;
-  padding: 8px 10px;
-  background: rgba(10, 15, 29, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 11px;
-  cursor: pointer;
-  text-align: left;
-  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
-  color: #94a3b8;
-  min-height: 64px;
 }
 
-.td-remote-mode-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: #e2e8f0;
-  transform: translateY(-1px);
-}
-
-.td-remote-mode-btn.active {
-  background: linear-gradient(145deg, rgba(56, 189, 248, 0.16), rgba(99, 102, 241, 0.12));
-  border-color: #38bdf8;
-  color: #38bdf8;
-  box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
-}
-
-.td-remote-mode-icon {
+.td-remote-mode-pill {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.06);
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(10, 15, 29, 0.55);
   color: #94a3b8;
-  flex-shrink: 0;
+  font-size: 0.77rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.td-remote-mode-pill:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #e2e8f0;
+}
+
+.td-remote-mode-pill.active {
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.td-remote-mode-pill.active.uncompressed {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.35), rgba(99, 102, 241, 0.3));
+  border-color: rgba(192, 132, 252, 0.5);
+  color: #dda6ff;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.25);
+}
+
+.td-remote-mode-pill.active.auto {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(99, 102, 241, 0.22));
+  border-color: rgba(56, 189, 248, 0.55);
+  color: #7dd3fc;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.22);
+}
+
+.td-remote-mode-pill.active.doc {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.28), rgba(161, 98, 7, 0.2));
+  border-color: rgba(250, 204, 21, 0.5);
+  color: #fde68a;
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.2);
+}
+
+.td-remote-mode-pill:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Engine Pills — compact horizontal row */
+.td-remote-engine-compact {
+  gap: 8px !important;
+}
+
+.td-remote-engine-compact .td-remote-engine-header {
+  margin-bottom: 0;
+}
+
+.td-remote-engine-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.td-remote-engine-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 15, 29, 0.5);
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
   transition: all 140ms ease;
+  white-space: nowrap;
+  line-height: 1;
 }
 
-.td-remote-mode-btn.active .td-remote-mode-icon.auto {
-  background: rgba(56, 189, 248, 0.25);
+.td-remote-engine-pill:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+}
+
+.td-remote-engine-pill.active {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.45);
   color: #38bdf8;
-}
-.td-remote-mode-btn.active .td-remote-mode-icon.uncompressed {
-  background: rgba(168, 85, 247, 0.25);
-  color: #c084fc;
-}
-.td-remote-mode-btn.active .td-remote-mode-icon.doc {
-  background: rgba(234, 179, 8, 0.25);
-  color: #facc15;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.18);
 }
 
-.td-remote-mode-active-indicator {
-  position: absolute;
-  top: 7px;
-  right: 7px;
-  color: #38bdf8;
+.td-remote-engine-pill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.td-remote-mode-text {
+/* Storage Policy Row */
+.td-remote-policy-row {
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  gap: 5px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.td-remote-mode-title {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: inherit;
-  line-height: 1.2;
-}
-
-.td-remote-mode-desc {
-  font-size: 0.67rem;
+.td-remote-policy-label {
+  font-size: 0.7rem;
+  font-weight: 600;
   color: #64748b;
-  margin-top: 2px;
-  line-height: 1.25;
-}
-
-.td-remote-mode-btn.active .td-remote-mode-desc {
-  color: #93c5fd;
-  opacity: 0.95;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 /* Remote Smart Delivery Engine (Zero Quota / Zero Disk) */

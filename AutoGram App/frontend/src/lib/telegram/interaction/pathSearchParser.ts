@@ -13,10 +13,10 @@
  */
 
 /** Recognised segment prefixes */
-const PREFIX_ACCOUNT = /^[Uu]$/;
-const PREFIX_DRIVE = /^(?:[DdCcGgBb]|[Cc][Hh])$/;
-const PREFIX_TOPIC = /^[Tt]$/;
-const PREFIX_MEDIA = /^[Mm]$/;
+export const PREFIX_ACCOUNT = /^[Uu]$/;
+export const PREFIX_PEER = /^(?:[DdCcGgBb]|[Cc][Hh]|[Ss][Mm])$/;
+export const PREFIX_TOPIC = /^[Tt]$/;
+export const PREFIX_MEDIA = /^[Mm]$/;
 
 /** Parsed Telegram path result */
 export type ParsedTelegramPath = {
@@ -28,6 +28,8 @@ export type ParsedTelegramPath = {
   topicId: number | null;
   messageId: number | null;
   tmeUsername: string | null;
+  isSavedMessages: boolean;
+  peerPrefix: 'U' | 'SM' | 'D' | 'CH' | 'G' | 'B' | 'C' | string | null;
   confidence: 'full' | 'partial' | 'fallback';
 };
 
@@ -36,7 +38,7 @@ function normalizePrefixedPeerId(prefix: string, raw: string): number | null {
   // use the canonical -100... peer id. This distinction is critical for Path
   // IDs because a bot id can be numerically large enough to look like a
   // channel id to the generic bare-number normalizer.
-  if (/^[BbCc]$/.test(prefix)) {
+  if (/^[BbCc]$/i.test(prefix)) {
     const n = Number(raw);
     return Number.isFinite(n) ? Math.abs(n) : null;
   }
@@ -52,6 +54,8 @@ const EMPTY_PATH: ParsedTelegramPath = {
   topicId: null,
   messageId: null,
   tmeUsername: null,
+  isSavedMessages: false,
+  peerPrefix: null,
   confidence: 'fallback',
 };
 
@@ -79,7 +83,8 @@ function parseTmeUrl(input: string): ParsedTelegramPath | null {
     return {
       raw: input, isPathId: true, accountSegment: null,
       chatId, chatSegmentRaw: channelMatch[1],
-      topicId, messageId, tmeUsername: null, confidence: 'full',
+      topicId, messageId, tmeUsername: null,
+      isSavedMessages: false, peerPrefix: 'CH', confidence: 'full',
     };
   }
   const publicMatch = TME_PUBLIC_RE.exec(input);
@@ -92,7 +97,8 @@ function parseTmeUrl(input: string): ParsedTelegramPath | null {
     return {
       raw: input, isPathId: true, accountSegment: null,
       chatId: null, chatSegmentRaw: null,
-      topicId, messageId, tmeUsername: username, confidence: 'partial',
+      topicId, messageId, tmeUsername: username,
+      isSavedMessages: false, peerPrefix: null, confidence: 'partial',
     };
   }
   return null;
@@ -107,19 +113,59 @@ function parseSegments(input: string): ParsedTelegramPath | null {
   let chatSegmentRaw: string | null = null;
   let topicId: number | null = null;
   let messageId: number | null = null;
+  let isSavedMessages = false;
+  let peerPrefix: 'U' | 'SM' | 'D' | 'CH' | 'G' | 'B' | 'C' | string | null = null;
   let hitCount = 0;
 
   for (const part of parts) {
-    const prefixMatch = /^(CH|ch|Ch|cH|[UuDdCcGgBbTtMm#])(-?\d+)$/.exec(part);
-    if (prefixMatch) {
-      const prefix = prefixMatch[1];
-      const valueStr = prefixMatch[2];
-      if (PREFIX_ACCOUNT.test(prefix)) { accountSegment = valueStr; hitCount++; continue; }
-      if (PREFIX_DRIVE.test(prefix)) { chatId = normalizePrefixedPeerId(prefix, valueStr); chatSegmentRaw = valueStr; hitCount++; continue; }
-      if (PREFIX_TOPIC.test(prefix)) { topicId = Number(valueStr); hitCount++; continue; }
-      if (PREFIX_MEDIA.test(prefix) || prefix === '#') { messageId = Number(valueStr); hitCount++; continue; }
+    // 1. Saved Messages standalone token (SM / sm / saved / saved_messages)
+    if (/^(?:SM|sm|saved|saved_messages)$/i.test(part)) {
+      isSavedMessages = true;
+      peerPrefix = 'SM';
+      chatSegmentRaw = 'SM';
+      chatId = null;
+      hitCount++;
+      continue;
     }
 
+    // 2. Prefixed token with numeric ID (e.g. U8542241823, D-1003214112048, CH2557538013, G-1003905658859, B1825028508, C8420671507, SM0, T8, M20213, #20213)
+    const prefixMatch = /^(CH|ch|Ch|cH|SM|sm|Sm|sM|[UuDdCcGgBbTtMm#])(-?\d*)$/.exec(part);
+    if (prefixMatch) {
+      const prefix = prefixMatch[1].toUpperCase();
+      const valueStr = prefixMatch[2];
+      if (prefix === 'U') {
+        accountSegment = valueStr || null;
+        hitCount++;
+        continue;
+      }
+      if (prefix === 'SM') {
+        isSavedMessages = true;
+        peerPrefix = 'SM';
+        chatSegmentRaw = 'SM';
+        chatId = null;
+        hitCount++;
+        continue;
+      }
+      if (/^(?:D|C|G|B|CH)$/.test(prefix)) {
+        peerPrefix = prefix;
+        chatId = valueStr ? normalizePrefixedPeerId(prefix, valueStr) : null;
+        chatSegmentRaw = valueStr || prefix;
+        hitCount++;
+        continue;
+      }
+      if (prefix === 'T') {
+        topicId = valueStr ? Number(valueStr) : null;
+        hitCount++;
+        continue;
+      }
+      if (prefix === 'M' || prefix === '#') {
+        messageId = valueStr ? Number(valueStr) : null;
+        hitCount++;
+        continue;
+      }
+    }
+
+    // 3. Pure numeric ID (peer or media)
     const pureNumMatch = /^(-?\d+)$/.exec(part);
     if (pureNumMatch) {
       const num = Number(pureNumMatch[1]);
@@ -127,33 +173,58 @@ function parseSegments(input: string): ParsedTelegramPath | null {
       if (parts.length === 1 && !/^-?\d{5,}$/.test(part) && num >= 0) {
         continue;
       }
-      if (chatId === null && chatSegmentRaw === null) {
-        chatId = normalizePeerId(pureNumMatch[1]); chatSegmentRaw = pureNumMatch[1];
-      } else if (messageId === null) { messageId = num; }
-      hitCount++; continue;
+      if (chatId === null && chatSegmentRaw === null && !isSavedMessages) {
+        chatId = normalizePeerId(pureNumMatch[1]);
+        chatSegmentRaw = pureNumMatch[1];
+      } else if (messageId === null) {
+        messageId = num;
+      }
+      hitCount++;
+      continue;
     }
 
+    // 4. @username match
     const usernameMatch = /^@([A-Za-z][A-Za-z0-9_]{3,31})$/.exec(part);
     if (usernameMatch) {
-      if (chatId === null && chatSegmentRaw === null) chatSegmentRaw = usernameMatch[1];
-      else if (!accountSegment) accountSegment = usernameMatch[1];
-      hitCount++; continue;
+      if (chatId === null && chatSegmentRaw === null && !isSavedMessages) {
+        chatSegmentRaw = usernameMatch[1];
+      } else if (!accountSegment) {
+        accountSegment = usernameMatch[1];
+      }
+      hitCount++;
+      continue;
     }
 
+    // 5. Bare username match (if we already have at least one hit)
     const bareUsernameMatch = /^([A-Za-z][A-Za-z0-9_]{3,31})$/.exec(part);
     if (bareUsernameMatch && hitCount > 0) {
-      if (chatId === null && chatSegmentRaw === null) { chatSegmentRaw = bareUsernameMatch[1]; hitCount++; }
+      if (chatId === null && chatSegmentRaw === null && !isSavedMessages) {
+        chatSegmentRaw = bareUsernameMatch[1];
+        hitCount++;
+      }
       continue;
     }
   }
 
   if (hitCount === 0) return null;
-  const hasChatTarget = chatId !== null || chatSegmentRaw !== null;
+  const hasChatTarget = chatId !== null || chatSegmentRaw !== null || isSavedMessages;
   const isPathId = hasChatTarget || accountSegment !== null;
   const confidence: 'full' | 'partial' | 'fallback' =
     hitCount >= 2 ? 'full' : isPathId ? 'partial' : 'fallback';
 
-  return { raw: input, isPathId, accountSegment, chatId, chatSegmentRaw, topicId, messageId, tmeUsername: null, confidence };
+  return {
+    raw: input,
+    isPathId,
+    accountSegment,
+    chatId,
+    chatSegmentRaw,
+    topicId,
+    messageId,
+    tmeUsername: null,
+    isSavedMessages,
+    peerPrefix,
+    confidence,
+  };
 }
 
 export function parseTelegramPathId(query: string): ParsedTelegramPath {
@@ -165,24 +236,52 @@ export function parseTelegramPathId(query: string): ParsedTelegramPath {
     if (tme) return tme;
   }
 
+  if (/^(?:SM|sm|saved|saved_messages)$/i.test(trimmed)) {
+    return {
+      ...EMPTY_PATH,
+      raw: trimmed,
+      isPathId: true,
+      isSavedMessages: true,
+      peerPrefix: 'SM',
+      chatSegmentRaw: 'SM',
+      confidence: 'full',
+    };
+  }
+
   const seg = parseSegments(trimmed);
   if (seg && seg.isPathId) return seg;
 
   const userMatch = /^@([A-Za-z][A-Za-z0-9_]{3,31})$/.exec(trimmed);
   if (userMatch) {
     return {
-      raw: trimmed, isPathId: true, accountSegment: null,
-      chatId: null, chatSegmentRaw: userMatch[1],
-      topicId: null, messageId: null, tmeUsername: null, confidence: 'partial',
+      raw: trimmed,
+      isPathId: true,
+      accountSegment: null,
+      chatId: null,
+      chatSegmentRaw: userMatch[1],
+      topicId: null,
+      messageId: null,
+      tmeUsername: null,
+      isSavedMessages: false,
+      peerPrefix: null,
+      confidence: 'partial',
     };
   }
 
   const numMatch = /^-?\d{5,}$/.exec(trimmed);
   if (numMatch) {
     return {
-      raw: trimmed, isPathId: true, accountSegment: null,
-      chatId: normalizePeerId(trimmed), chatSegmentRaw: trimmed,
-      topicId: null, messageId: null, tmeUsername: null, confidence: 'partial',
+      raw: trimmed,
+      isPathId: true,
+      accountSegment: null,
+      chatId: normalizePeerId(trimmed),
+      chatSegmentRaw: trimmed,
+      topicId: null,
+      messageId: null,
+      tmeUsername: null,
+      isSavedMessages: false,
+      peerPrefix: null,
+      confidence: 'partial',
     };
   }
 
@@ -205,7 +304,15 @@ export function describePath(
 
   const loc =
     resolved?.chatName ||
-    (p.tmeUsername ? `@${p.tmeUsername}` : p.chatSegmentRaw ? `D${p.chatSegmentRaw}` : null);
+    (p.isSavedMessages
+      ? t('speedtest.saved_messages')
+      : p.tmeUsername
+        ? `@${p.tmeUsername}`
+        : p.chatSegmentRaw
+          ? `${p.peerPrefix || ''}${p.chatSegmentRaw}`
+          : p.chatId !== null
+            ? `${p.peerPrefix || 'D'}${p.chatId}`
+            : null);
   if (loc) parts.push(`${t('ui.path_jump.location')}: ${loc}`);
 
   const top = resolved?.topicName || (p.topicId !== null ? `T${p.topicId}` : null);

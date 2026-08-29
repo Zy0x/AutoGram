@@ -1780,7 +1780,14 @@ function MediaDriveDesktop({
       let resolvedChatId: number | null = path.chatId;
       let resolvedLocationKind: 'saved' | 'drive' | 'chat' | null = null;
 
-      if (resolvedChatId !== null) {
+      if (path.isSavedMessages || path.chatSegmentRaw?.toUpperCase() === 'SM') {
+        setLocationKind('saved');
+        setActivePeerId(null);
+        setTopicFilter(null);
+        topicFilterRef.current = null;
+        resolvedLocationKind = 'saved';
+        resolvedChatId = null;
+      } else if (resolvedChatId !== null) {
         // Multi-level match in folders
         const matchFolder = currentFolders.find((f) => {
           const fid = f.id;

@@ -817,10 +817,13 @@ export function DriveSidebar({
       }
     }
 
-    // 2. Chat / Drive Name
+    // 2. Chat / Drive / Saved Messages Name
     let chatName: string | null = null;
     let chatTooltip: string | null = null;
-    if (parsedPath.chatId !== null) {
+    if (parsedPath.isSavedMessages) {
+      chatName = t('speedtest.saved_messages');
+      chatTooltip = t('speedtest.saved_messages');
+    } else if (parsedPath.chatId !== null) {
       const cid = parsedPath.chatId;
       const matchFolder = folders.find((f) => {
         const fid = f.id;
