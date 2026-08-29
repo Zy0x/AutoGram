@@ -1,4 +1,4 @@
-import type { LinkResolverProvider, ResolvedMediaInfo, ResolvedMediaItem, StreamQualityFormat, ResolveOptions } from './types';
+import type { LinkResolverProvider, ResolvedMediaInfo, StreamQualityFormat, ResolveOptions } from './types';
 import { videeResolver } from './providers/videeResolver';
 import { streamrizzResolver } from './providers/streamrizzResolver';
 import { pikpakResolver } from './providers/pikpakResolver';
