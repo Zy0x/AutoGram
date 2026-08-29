@@ -56,12 +56,25 @@ async function fetchRemoteHtml(url: string, signal?: AbortSignal, referer?: stri
 }
 
 /**
- * Probes the content length of direct stream URLs. Uses a GET byte-range
- * request (bytes=0-1) rather than HEAD because presigned S3 / Cloudflare R2
- * endpoints return 403 Forbidden for HEAD requests.
+ * Probes the content length of direct stream URLs.
  */
 async function probeDirectStreamLength(url: string, referer?: string): Promise<number | undefined> {
   if (!url || !url.startsWith('http')) return undefined;
+
+  if (detectTauriRuntime()) {
+    try {
+      const meta = await invoke<{ status: number; contentLength?: number }>('fetch_remote_head_meta', {
+        url,
+        headers: referer ? { Referer: referer } : undefined,
+      });
+      if (meta && meta.contentLength && meta.contentLength > 0) {
+        return meta.contentLength;
+      }
+    } catch {
+      /* fallback */
+    }
+  }
+
   try {
     const headers: Record<string, string> = {
       'User-Agent':
@@ -286,8 +299,8 @@ export const videeResolver: LinkResolverProvider = {
         folderTitle = `Videe Folder (${rawEntries.length} Videos)`;
       }
 
-      // Resolve the first batch of videos in parallel (first 6 items to keep response fast)
-      const primaryCount = Math.min(rawEntries.length, 6);
+      // Resolve the initial batch of videos in parallel (e.g. 10 items)
+      const primaryCount = Math.min(rawEntries.length, 10);
       const resolvedFirstChunk = await Promise.all(
         rawEntries
           .slice(0, primaryCount)
@@ -323,35 +336,40 @@ export const videeResolver: LinkResolverProvider = {
           allAlbumUrls: validUrls,
           isVideo: true,
           badge: `ALL ${rawEntries.length} VIDEOS`,
+          thumbnailUrl: validResolved[0]?.thumbnailUrl,
         });
       }
 
-      // 2. Individual video formats
-      for (let i = 0; i < validResolved.length; i++) {
-        const v = validResolved[i];
-        const rawTitle = v.title || `Videe_${v.id}.mp4`;
+      // 2. Individual video formats and media items for the full collection
+      for (let i = 0; i < rawEntries.length; i++) {
+        const entry = rawEntries[i];
+        const resolvedMatch = validResolved.find((r) => r.id === entry.id);
+
+        const rawTitle = entry.title || `Videe_${entry.id}.mp4`;
         const filename = rawTitle.toLowerCase().endsWith('.mp4') ? rawTitle : `${rawTitle}.mp4`;
+        const directUrl = resolvedMatch?.directUrl || `https://videe.cc/v/${entry.id}`;
+        const thumb = resolvedMatch?.thumbnailUrl || entry.thumb || `https://videe.cc/thumbnails/${entry.id}.jpeg`;
 
         const fmt: StreamQualityFormat = {
-          id: `videe_video_${i}_${v.id}`,
+          id: `videe_video_${i}_${entry.id}`,
           label: filename,
           customTitle: rawTitle,
           customFilename: filename,
           qualityTier: 'original',
           ext: 'mp4',
-          filesizeBytes: v.filesizeBytes,
-          directUrl: v.directUrl,
+          filesizeBytes: resolvedMatch?.filesizeBytes,
+          directUrl,
           isVideo: true,
           badge: 'DIRECT HD',
-          thumbnailUrl: v.thumbnailUrl,
+          thumbnailUrl: thumb,
         };
 
         formats.push(fmt);
 
         mediaItems.push({
-          id: `videe_item_${i}_${v.id}`,
+          id: `videe_item_${i}_${entry.id}`,
           title: rawTitle,
-          thumbnailUrl: v.thumbnailUrl,
+          thumbnailUrl: thumb,
           kind: 'video' as const,
           selectedFormatId: fmt.id,
           formats: [fmt],
@@ -363,7 +381,7 @@ export const videeResolver: LinkResolverProvider = {
         platform: 'direct',
         platformName: 'Videe Collection',
         title: folderTitle,
-        thumbnailUrl: validResolved[0]?.thumbnailUrl,
+        thumbnailUrl: validResolved[0]?.thumbnailUrl || rawEntries[0]?.thumb,
         description: `Videe folder containing ${rawEntries.length} videos.`,
         formats,
         mediaItems,

@@ -2406,7 +2406,11 @@ fn desktop_write_clipboard(text: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn fetch_remote_text_content(url: String, user_agent: Option<String>) -> Result<String, String> {
+fn fetch_remote_text_content(
+    url: String,
+    user_agent: Option<String>,
+    headers: Option<std::collections::HashMap<String, String>>,
+) -> Result<String, String> {
     let u_clean = url.trim();
     if u_clean.is_empty() {
         return Err("empty URL".into());
@@ -2414,20 +2418,29 @@ fn fetch_remote_text_content(url: String, user_agent: Option<String>) -> Result<
     let agent = ureq::AgentBuilder::new()
         .timeout_connect(std::time::Duration::from_secs(10))
         .timeout_read(std::time::Duration::from_secs(15))
+        .redirects(8)
         .build();
 
     let ua = user_agent.unwrap_or_else(|| {
-        "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1".to_string()
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36".to_string()
     });
 
-    let resp = agent
+    let mut req = agent
         .get(u_clean)
         .set("User-Agent", &ua)
         .set(
             "Accept",
             "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         )
-        .set("Accept-Language", "en-US,en;q=0.9")
+        .set("Accept-Language", "en-US,en;q=0.9");
+
+    if let Some(h) = headers {
+        for (k, v) in h {
+            req = req.set(&k, &v);
+        }
+    }
+
+    let resp = req
         .call()
         .map_err(|e| format!("HTTP request failed: {e}"))?;
 
@@ -2655,22 +2668,54 @@ fn fetch_remote_head_meta(
         .build();
 
     let mut req = agent.head(u_clean);
-    if let Some(h) = headers {
+    if let Some(ref h) = headers {
         for (k, v) in h {
-            req = req.set(&k, &v);
+            req = req.set(k, v);
         }
     }
-    let resp = req.call().map_err(|e| format!("HEAD request failed: {e}"))?;
-    let status = resp.status();
-    let content_length = resp
-        .header("content-length")
-        .and_then(|v| v.parse::<u64>().ok());
-    let content_type = resp.header("content-type").map(|v| v.to_string());
-    Ok(RemoteHeadMeta {
-        status,
-        content_length,
-        content_type,
-    })
+
+    match req.call() {
+        Ok(resp) => {
+            let status = resp.status();
+            let content_length = resp
+                .header("content-length")
+                .and_then(|v| v.parse::<u64>().ok());
+            let content_type = resp.header("content-type").map(|v| v.to_string());
+            Ok(RemoteHeadMeta {
+                status,
+                content_length,
+                content_type,
+            })
+        }
+        Err(_) => {
+            // Fallback to GET with Range: bytes=0-1 (handles Cloudflare R2 / S3 presigned URLs that block HEAD)
+            let mut get_req = agent
+                .get(u_clean)
+                .set("Range", "bytes=0-1")
+                .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
+            if let Some(ref h) = headers {
+                for (k, v) in h {
+                    get_req = get_req.set(k, v);
+                }
+            }
+            let resp = get_req.call().map_err(|e| format!("HEAD and GET range request failed: {e}"))?;
+            let status = resp.status();
+            let content_length = resp
+                .header("content-range")
+                .and_then(|cr| {
+                    cr.split('/').last().and_then(|tot| tot.parse::<u64>().ok())
+                })
+                .or_else(|| {
+                    resp.header("content-length").and_then(|v| v.parse::<u64>().ok())
+                });
+            let content_type = resp.header("content-type").map(|v| v.to_string());
+            Ok(RemoteHeadMeta {
+                status,
+                content_length,
+                content_type,
+            })
+        }
+    }
 }
 
 #[tauri::command]
