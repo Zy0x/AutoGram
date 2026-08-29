@@ -16,16 +16,8 @@ import {
   ChevronRight,
   Clipboard,
   ExternalLink,
-  Film,
-  Image as ImageIcon,
-  Music,
-  Archive,
   FileText,
-  FileCode,
-  CheckCircle2,
   Check,
-  Grid3X3,
-  LayoutGrid,
   Layers,
   Sparkles,
   Zap,
@@ -33,7 +25,9 @@ import {
   KeyRound,
   Search,
   Play,
-  Clock,
+  Rocket,
+  Bookmark,
+  CloudDownload,
 } from 'lucide-react';
 import type { DriveDestChoice, DriveDestPickerState } from './DriveDestinationPicker';
 import { DriveDestinationPicker } from './DriveDestinationPicker';
@@ -138,97 +132,6 @@ function kindIcon(c: DriveDestChoice) {
   return <MessageSquare size={16} />;
 }
 
-function fileKindIcon(kind: UrlKind) {
-  switch (kind) {
-    case 'video':
-      return <Film size={18} />;
-    case 'image':
-      return <ImageIcon size={18} />;
-    case 'audio':
-      return <Music size={18} />;
-    case 'zip':
-      return <Archive size={18} />;
-    case 'doc':
-      return <FileText size={18} />;
-    default:
-      return <FileCode size={18} />;
-  }
-}
-
-function renderBadge(c: DriveDestChoice, t: any) {
-  if (c.kind === 'saved') {
-    return <span className="td-dest-badge saved">{t('speedtest.dest_badge_saved')}</span>;
-  }
-  if (c.isForum) {
-    return <span className="td-dest-badge forum">{t('speedtest.dest_badge_forum')}</span>;
-  }
-  if (c.kind === 'drive') {
-    return <span className="td-dest-badge td">{t('speedtest.dest_badge_drive')}</span>;
-  }
-  if (c.type === 'group' || c.type === 'supergroup') {
-    return <span className="td-dest-badge group">{t('speedtest.dest_badge_group')}</span>;
-  }
-  if (c.type === 'channel') {
-    return <span className="td-dest-badge channel">{t('speedtest.dest_badge_channel')}</span>;
-  }
-  if (c.type === 'bot') {
-    return <span className="td-dest-badge bot">{t('speedtest.dest_badge_bot')}</span>;
-  }
-  return <span className="td-dest-badge user">{t('speedtest.dest_badge_user')}</span>;
-}
-
-function getFormatDisplayLabel(
-  fmt: StreamQualityFormat,
-  resolvedMedia: ResolvedMediaInfo | null,
-  t: any
-): string {
-  if (fmt.id === 'tiktok_profile_avatar') {
-    return t('speedtest.remote_fmt_creator_avatar');
-  }
-  if (fmt.id === 'tiktok_photo_all_pack' || (fmt.isAlbumPack && resolvedMedia?.platform === 'tiktok')) {
-    const total = resolvedMedia?.albumImages?.length || '';
-    return t('speedtest.remote_fmt_album_pack', { total });
-  }
-  if (fmt.id === 'pikpak_all_files_pack') {
-    const count = resolvedMedia?.totalItems || resolvedMedia?.formats.filter((f) => !f.isAlbumPack).length || 0;
-    const sizeStr = fmt.filesizeBytes ? ` ~${formatDriveBytes(fmt.filesizeBytes)}` : '';
-    return t('speedtest.remote_pikpak_batch_pack', { count, size: sizeStr });
-  }
-  if (fmt.id === 'streamrizz_all_files_pack') {
-    const count = resolvedMedia?.totalItems || resolvedMedia?.formats.filter((f) => !f.isAlbumPack).length || 0;
-    const sizeStr = fmt.filesizeBytes ? ` ~${formatDriveBytes(fmt.filesizeBytes)}` : '';
-    return t('speedtest.remote_streamrizz_batch_pack', { count, size: sizeStr });
-  }
-  if (fmt.id.startsWith('tiktok_photo_')) {
-    const total = resolvedMedia?.albumImages?.length || 1;
-    const match = fmt.id.match(/photo_(\d+)/);
-    if (match && match[1]) {
-      const idx = parseInt(match[1], 10);
-      if (total <= 1) {
-        return t('speedtest.remote_fmt_single_photo');
-      }
-      return t('speedtest.remote_fmt_slide_photo', { idx, total });
-    }
-  }
-  if (fmt.label === 'remote_web_page_handoff') {
-    return t('speedtest.remote_web_page_handoff');
-  }
-  return fmt.label;
-}
-
-function getFormatDisplayBadge(fmt: StreamQualityFormat, t: any): string | undefined {
-  if (fmt.badge === 'remote_web_page') {
-    return t('speedtest.remote_web_page_badge');
-  }
-  if (fmt.badge === 'PASSCODE ERROR') {
-    return t('speedtest.remote_passcode_invalid_badge');
-  }
-  if (fmt.badge === 'PASSWORD PROTECTED') {
-    return t('speedtest.remote_passcode_required_badge');
-  }
-  return fmt.badge;
-}
-
 function getEffectiveFormatFilename(
   fmt?: StreamQualityFormat,
   resolved?: ResolvedMediaInfo | null,
@@ -255,7 +158,7 @@ function formatMediaDuration(seconds?: number | null): string {
 
 function getSingleUnifiedBadge(item: ResolvedMediaItem): string {
   const fmt = item.formats[0];
-  if (!fmt) return item.kind === 'video' ? 'HD VIDEO' : 'HD PHOTO';
+  if (!fmt) return item.kind === 'video' ? '1080p FHD' : 'HD PHOTO';
 
   const dim = fmt.badge && fmt.badge.includes('×')
     ? fmt.badge
@@ -301,126 +204,8 @@ function getSingleUnifiedBadge(item: ResolvedMediaItem): string {
   if (fmt.ext === 'zip' || fmt.ext === 'rar' || fmt.ext === '7z') {
     return 'ZIP ARCHIVE';
   }
-  return 'HD VIDEO';
+  return '1080p FHD';
 }
-
-class DurationProbeQueue {
-  private queue: Array<() => Promise<void>> = [];
-  private activeCount = 0;
-  private maxConcurrent = 2;
-
-  add(task: () => Promise<void>) {
-    this.queue.push(task);
-    this.processNext();
-  }
-
-  remove(task: () => Promise<void>) {
-    const idx = this.queue.indexOf(task);
-    if (idx !== -1) {
-      this.queue.splice(idx, 1);
-    }
-  }
-
-  private processNext() {
-    if (this.activeCount >= this.maxConcurrent || this.queue.length === 0) {
-      return;
-    }
-    const task = this.queue.shift();
-    if (!task) return;
-
-    this.activeCount++;
-    task().finally(() => {
-      this.activeCount--;
-      this.processNext();
-    });
-  }
-}
-
-const probeQueue = new DurationProbeQueue();
-
-const ItemDurationBadge: React.FC<{
-  item: ResolvedMediaItem;
-  knownDuration?: number;
-  onDurationFound?: (id: string, dur: number) => void;
-}> = ({ item, knownDuration, onDurationFound }) => {
-  const [duration, setDuration] = useState<number | undefined>(knownDuration || item.durationSec);
-  const onFoundRef = useRef(onDurationFound);
-  onFoundRef.current = onDurationFound;
-
-  useEffect(() => {
-    if (knownDuration && knownDuration > 0) {
-      setDuration(knownDuration);
-      return;
-    }
-    if (item.kind !== 'video') return;
-    if (duration && duration > 0) return;
-
-    const directUrl = item.formats[0]?.directUrl;
-    if (!directUrl || !directUrl.startsWith('http') || directUrl.includes('/v/') || directUrl.includes('/e/')) return;
-
-    let isCancelled = false;
-
-    const probeTask = () => {
-      return new Promise<void>((resolve) => {
-        if (isCancelled) {
-          resolve();
-          return;
-        }
-        const v = document.createElement('video');
-        v.preload = 'metadata';
-        v.src = directUrl;
-
-        let isCleaned = false;
-        const cleanup = () => {
-          if (isCleaned) return;
-          isCleaned = true;
-          v.removeEventListener('loadedmetadata', onMeta);
-          v.removeEventListener('durationchange', onMeta);
-          v.removeEventListener('canplay', onMeta);
-          v.removeEventListener('error', cleanup);
-          v.src = '';
-          resolve();
-        };
-
-        const onMeta = () => {
-          if (!isCancelled && v.duration && isFinite(v.duration) && v.duration > 0) {
-            const d = Math.round(v.duration);
-            setDuration(d);
-            onFoundRef.current?.(item.id, d);
-          }
-          cleanup();
-        };
-
-        v.addEventListener('loadedmetadata', onMeta);
-        v.addEventListener('durationchange', onMeta);
-        v.addEventListener('canplay', onMeta);
-        v.addEventListener('error', cleanup);
-        v.load();
-
-        // Safety timeout to prevent queue stalling
-        setTimeout(cleanup, 3500);
-      });
-    };
-
-    probeQueue.add(probeTask);
-
-    return () => {
-      isCancelled = true;
-      probeQueue.remove(probeTask);
-    };
-  }, [item.id, item.formats, item.kind, knownDuration]);
-
-  const durToFormat = duration || knownDuration || item.durationSec;
-  const formatted = formatMediaDuration(durToFormat);
-  if (!formatted) return null;
-
-  return (
-    <span className="td-remote-item-duration-badge">
-      <Clock size={10} />
-      <span>{formatted}</span>
-    </span>
-  );
-};
 
 export function RemoteUploadModal({
   isOpen,
@@ -456,7 +241,6 @@ export function RemoteUploadModal({
   const [selectedMediaItemIds, setSelectedMediaItemIds] = useState<Set<string>>(new Set());
   const [itemSelectedFormats, setItemSelectedFormats] = useState<Record<string, string>>({});
   const [activePreviewItemId, setActivePreviewItemId] = useState<string>('');
-
   const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0);
 
   const [selectedDest, setSelectedDest] = useState<DriveDestChoice>(
@@ -474,6 +258,7 @@ export function RemoteUploadModal({
   const prevIsOpenRef = useRef(false);
   const lastAppliedInitialUrlRef = useRef('');
   const lastProbedHandoffRef = useRef('');
+
   useEffect(() => {
     const rawHandoff = String(initialUrl || '').trim();
     const { cleanUrl, extractedPasscode } = parseRemoteShareInput(rawHandoff);
@@ -658,7 +443,6 @@ export function RemoteUploadModal({
         setErrorMsg(t('speedtest.remote_err_private_target'));
         return;
       }
-      /* Unknown-provider failures may still use the bounded HEAD fallback. */
     }
 
     try {
@@ -880,8 +664,6 @@ export function RemoteUploadModal({
     }
   }, [resolvedMedia?.durationSec]);
 
-
-
   const activePreviewItem = useMemo(() => {
     if (!effectiveMediaItems || effectiveMediaItems.length === 0) return null;
     return effectiveMediaItems.find((item) => item.id === activePreviewItemId) || effectiveMediaItems[0];
@@ -968,13 +750,6 @@ export function RemoteUploadModal({
     setSelectedMediaItemIds(new Set());
   }, []);
 
-  const handleDurationFound = useCallback((id: string, dur: number) => {
-    setItemDurations((prev) => {
-      if (prev[id] === dur) return prev;
-      return { ...prev, [id]: dur };
-    });
-  }, []);
-
   const selectedItems = useMemo(() => {
     return effectiveMediaItems.filter((item) => selectedMediaItemIds.has(item.id));
   }, [effectiveMediaItems, selectedMediaItemIds]);
@@ -987,19 +762,8 @@ export function RemoteUploadModal({
     }, 0);
   }, [selectedItems, itemSelectedFormats]);
 
-  const selectedRemoteSize = useMemo(() => {
-    const active = resolvedMedia?.formats.find((f) => f.id === selectedFormatId) || resolvedMedia?.formats[0];
-    return active?.filesizeBytes || inspection?.size || (tab === 'single' && selectedBytes > 0 ? selectedBytes : 0) || 0;
-  }, [resolvedMedia, selectedFormatId, inspection?.size, tab, selectedBytes]);
-  const autoRemoteEngine: RemoteEngineMode = selectedRemoteSize > 0 && selectedRemoteSize <= 20 * 1024 * 1024
-    ? 'cloud_fetch'
-    : 'ram_pipe';
-  const effectiveRemoteEngine = remoteEngineMode === 'auto' ? autoRemoteEngine : remoteEngineMode;
-
   const [gallerySearch, setGallerySearch] = useState('');
-  const [galleryFilter, setGalleryFilter] = useState<'all' | 'video' | 'image' | 'long'>('all');
-  const [gallerySort, setGallerySort] = useState<'default' | 'name' | 'duration' | 'size'>('default');
-  const [galleryDensity, setGalleryDensity] = useState<'compact' | 'comfortable'>('comfortable');
+  const [galleryFilter, setGalleryFilter] = useState<'all' | 'video' | 'image'>('all');
 
   const filteredAndSortedItems = useMemo(() => {
     if (!effectiveMediaItems) return [];
@@ -1009,11 +773,6 @@ export function RemoteUploadModal({
       list = list.filter((it) => it.kind === 'video');
     } else if (galleryFilter === 'image') {
       list = list.filter((it) => it.kind === 'image');
-    } else if (galleryFilter === 'long') {
-      list = list.filter((it) => {
-        const dur = itemDurations[it.id] || it.durationSec || 0;
-        return dur >= 600;
-      });
     }
 
     if (gallerySearch.trim()) {
@@ -1021,52 +780,8 @@ export function RemoteUploadModal({
       list = list.filter((it) => it.title.toLowerCase().includes(q));
     }
 
-    if (gallerySort === 'name') {
-      list.sort((a, b) => a.title.localeCompare(b.title));
-    } else if (gallerySort === 'duration') {
-      list.sort((a, b) => {
-        const durA = itemDurations[a.id] || a.durationSec || 0;
-        const durB = itemDurations[b.id] || b.durationSec || 0;
-        return durB - durA;
-      });
-    } else if (gallerySort === 'size') {
-      list.sort((a, b) => {
-        const szA = a.formats[0]?.filesizeBytes || 0;
-        const szB = b.formats[0]?.filesizeBytes || 0;
-        return szB - szA;
-      });
-    }
-
     return list;
-  }, [effectiveMediaItems, galleryFilter, gallerySearch, gallerySort, itemDurations]);
-
-  const handleSelectFormat = (fmt: StreamQualityFormat) => {
-    setSelectedFormatId(fmt.id);
-    const newFilename = getEffectiveFormatFilename(fmt, resolvedMedia);
-    setInspection((prev) =>
-      prev
-        ? {
-            ...prev,
-            filename: newFilename || prev.filename,
-            size: fmt.filesizeBytes || prev.size,
-            kind: fmt.isVideo
-              ? 'video'
-              : fmt.isAudio
-                ? 'audio'
-                : fmt.isImage
-                  ? 'image'
-                  : prev.kind,
-          }
-        : prev
-    );
-    const match = fmt.id.match(/photo_(\d+)/);
-    if (match && match[1]) {
-      const photoIdx = parseInt(match[1], 10) - 1;
-      if (photoIdx >= 0 && (!resolvedMedia?.albumImages || photoIdx < resolvedMedia.albumImages.length)) {
-        setActiveSlideIndex(photoIdx);
-      }
-    }
-  };
+  }, [effectiveMediaItems, galleryFilter, gallerySearch]);
 
   const activeSlideUrl = useMemo(() => {
     const selFormat = resolvedMedia?.formats?.find((f) => f.id === selectedFormatId);
@@ -1078,9 +793,6 @@ export function RemoteUploadModal({
     }
     return resolvedMedia?.thumbnailUrl || resolvedMedia?.authorAvatar || null;
   }, [resolvedMedia, selectedFormatId, activeSlideIndex]);
-
-  const isSplitActive =
-    Boolean(resolvedMedia || (inspection && url.trim().length > 0)) && tab === 'single';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1241,16 +953,14 @@ export function RemoteUploadModal({
             try {
               const res = await resolveRemoteMediaUrl(singleUrl);
               if (res.albumImages && res.albumImages.length > 0) {
-                // Expand slideshow to all high-definition photos in the album pack
                 expandedBatchUrls.push(...res.albumImages);
                 continue;
               } else if (res.formats && res.formats.length > 0) {
-                // Use highest peak quality master stream
                 expandedBatchUrls.push(res.formats[0].directUrl);
                 continue;
               }
             } catch {
-              // fallback to raw url
+              // fallback
             }
           }
           expandedBatchUrls.push(singleUrl);
@@ -1377,24 +1087,62 @@ export function RemoteUploadModal({
     >
       <form
         onSubmit={handleSubmit}
-        className={`td-confirm-panel input-dialog td-remote-upload-panel ${isSplitActive ? 'td-remote-split-active' : ''}`}
+        className={`td-confirm-panel input-dialog td-remote-upload-panel td-remote-split-active`}
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
         onMouseUp={(e) => e.stopPropagation()}
       >
+        {/* Top Nav Shell (Header) - Minimal Context */}
         <header className="td-confirm-head">
-          <span className="td-confirm-icon input td-remote-head-icon" aria-hidden>
-            <Link2 size={20} strokeWidth={2.25} />
-          </span>
-          <div className="td-confirm-head-text">
-            <h2>{t('speedtest.remote_upload_url_title')}</h2>
-            <p className="td-confirm-desc">{t('speedtest.remote_upload_url_subtitle')}</p>
+          <div className="flex items-center gap-3 text-[#8ed5ff]">
+            <span className="td-remote-head-icon" aria-hidden>
+              <Link2 size={18} strokeWidth={2.25} />
+            </span>
+            <div className="flex flex-col">
+              <h2 className="text-sm font-bold text-white tracking-wide">
+                {t('drive_tools.remote_upload_url_title')}
+              </h2>
+              <p className="text-[11px] text-[#bdc8d1]">
+                {t('drive_tools.remote_upload_url_desc')}
+              </p>
+            </div>
+
+            <div className="td-remote-tabs ml-3" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tab === 'single'}
+                className={`td-remote-tab ${tab === 'single' ? 'active' : ''}`}
+                onClick={() => setTab('single')}
+                disabled={submitting}
+              >
+                <Link2 size={13} />
+                <span>{t('drive_tools.remote_tab_single')}</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tab === 'batch'}
+                className={`td-remote-tab ${tab === 'batch' ? 'active' : ''}`}
+                onClick={() => setTab('batch')}
+                disabled={submitting}
+              >
+                <Layers size={13} />
+                <span>{t('drive_tools.remote_tab_batch')}</span>
+                {batchUrls.length > 0 && (
+                  <span className="bg-[#38bdf8] text-[#001e2c] text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+                    {batchUrls.length}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
+
           <button
             type="button"
-            className="td-confirm-close"
+            className="text-[#bdc8d1] hover:text-white hover:bg-[#343a3e] transition-colors rounded-full p-1.5 flex items-center justify-center border border-transparent hover:border-white/10"
             onClick={onClose}
             disabled={submitting}
             aria-label={t('speedtest.preview_close_btn')}
@@ -1403,101 +1151,76 @@ export function RemoteUploadModal({
           </button>
         </header>
 
-        <div className="td-remote-tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === 'single'}
-            className={`td-remote-tab ${tab === 'single' ? 'active' : ''}`}
-            onClick={() => setTab('single')}
-            disabled={submitting}
-          >
-            <Link2 size={14} />
-            <span>{t('speedtest.remote_tab_single')}</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === 'batch'}
-            className={`td-remote-tab ${tab === 'batch' ? 'active' : ''}`}
-            onClick={() => setTab('batch')}
-            disabled={submitting}
-          >
-            <Layers size={14} />
-            <span>{t('speedtest.remote_tab_batch')}</span>
-            {batchUrls.length > 0 && (
-              <span className="td-remote-tab-badge">{batchUrls.length}</span>
-            )}
-          </button>
-        </div>
-
-        <div className={`td-input-body td-remote-body ${isSplitActive ? 'td-remote-split-body' : ''} ${effectiveMediaItems.length > 1 ? 'td-remote-collection-mode' : ''}`}>
+        <div className="td-remote-body td-remote-split-body custom-scrollbar">
           {errorMsg && (
-            <div className="td-input-error td-remote-error-box" role="alert">
+            <div className="td-remote-error-box" role="alert">
               {errorMsg}
             </div>
           )}
 
-          {tab === 'single' ? (
-            <>
-              {/* SECTION 1: MASTER CONTROLS & ACTIVE PREVIEW INSPECTOR */}
-              <div className={`td-remote-section-1 ${isSplitActive ? '' : 'single-column'}`}>
-                {/* SECTION 1 LEFT COLUMN: UNIFIED ULTRA-COMPACT CONTROL PANEL */}
-                <div className="td-remote-section-1-controls">
-                  <div className="td-remote-form-card td-remote-unified-panel">
-                    {/* Row 1: Source File URL */}
-                    <div className="td-remote-field-group">
-                      <div className="td-remote-label-row">
-                        <div className="td-remote-label-left" ref={infoRef}>
-                          <label className="td-input-label" htmlFor="td-remote-url">
-                            {t('speedtest.source_url_label')}
-                          </label>
-                          <button
-                            type="button"
-                            className={`td-remote-info-trigger ${showSupportedInfo ? 'active' : ''}`}
-                            onClick={() => setShowSupportedInfo((prev) => !prev)}
-                            title={t('speedtest.remote_info_btn_aria')}
-                            aria-label={t('speedtest.remote_info_btn_aria')}
-                            aria-expanded={showSupportedInfo}
-                          >
-                            <Info size={11} />
-                          </button>
-                          {renderSupportedLinksPopover()}
-                        </div>
-                        <div className="td-remote-label-actions">
-                          {url.trim().startsWith('http') && (
-                            <button
-                              type="button"
-                              className="td-remote-open-web-action"
-                              onClick={() => handleOpenInBrowser(url.trim())}
-                              disabled={submitting}
-                              title={t('speedtest.remote_open_in_browser')}
-                            >
-                              <ExternalLink size={10} />
-                              <span>{t('speedtest.remote_open_in_browser')}</span>
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            className="td-remote-paste-action"
-                            onClick={handlePasteClipboard}
-                            disabled={submitting}
-                            title={t('speedtest.remote_paste_clipboard')}
-                          >
-                            <Clipboard size={10} />
-                            <span>{t('speedtest.remote_paste_clipboard')}</span>
-                          </button>
-                        </div>
+          <div className={`td-remote-studio-layout ${tab === 'single' ? '' : 'single-column'}`}>
+            {/* LEFT COLUMN: EXTRACTION CONFIG */}
+            <section className="td-remote-col-left custom-scrollbar">
+              {/* SECTION 1: SOURCE URL */}
+              <div className="flex flex-col gap-2">
+                <h2 className="td-remote-section-title">
+                  {t('drive_tools.remote_section_1_title')}
+                </h2>
+                <div className="bg-[#1b2024] rounded-xl p-3.5 doppelrand flex flex-col gap-2.5">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2" ref={infoRef}>
+                        <label className="text-xs font-semibold text-[#dee3e8]" htmlFor="td-remote-url">
+                          {t('speedtest.source_url_label')}
+                        </label>
+                        <button
+                          type="button"
+                          className={`td-remote-info-trigger ${showSupportedInfo ? 'active' : ''}`}
+                          onClick={() => setShowSupportedInfo((prev) => !prev)}
+                          title={t('drive_tools.remote_info_btn_aria')}
+                          aria-label={t('drive_tools.remote_info_btn_aria')}
+                          aria-expanded={showSupportedInfo}
+                        >
+                          <Info size={11} />
+                        </button>
+                        {renderSupportedLinksPopover()}
                       </div>
-                      <div className="td-remote-input-wrap">
-                        <span className="td-remote-input-icon">
-                          <Link2 size={14} />
+                      <div className="flex items-center gap-1.5">
+                        {url.trim().startsWith('http') && (
+                          <button
+                            type="button"
+                            className="td-remote-open-web-action"
+                            onClick={() => handleOpenInBrowser(url.trim())}
+                            disabled={submitting}
+                            title={t('speedtest.remote_open_in_browser')}
+                          >
+                            <ExternalLink size={11} />
+                            <span>{t('speedtest.remote_open_in_browser')}</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="td-remote-paste-action"
+                          onClick={handlePasteClipboard}
+                          disabled={submitting}
+                          title={t('speedtest.remote_paste_clipboard')}
+                        >
+                          <Clipboard size={11} />
+                          <span>{t('speedtest.remote_paste_clipboard')}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {tab === 'single' ? (
+                      <div className="relative flex items-center">
+                        <span className="absolute left-3 text-[#87929a] pointer-events-none flex items-center justify-center">
+                          <Link2 size={16} />
                         </span>
                         <input
                           id="td-remote-url"
-                          className="td-input-field td-remote-url-input"
+                          className="w-full bg-[#0f1418] text-[#dee3e8] text-xs font-mono rounded-lg border border-white/10 pl-9 pr-9 py-2 focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition-all placeholder:text-[#87929a]/50 hover:border-white/20"
+                          placeholder={t('drive_tools.remote_url_placeholder')}
                           type="text"
-                          placeholder={t('speedtest.remote_url_placeholder')}
                           value={url}
                           onChange={(e) => handleUrlChange(e.target.value)}
                           disabled={submitting}
@@ -1508,51 +1231,60 @@ export function RemoteUploadModal({
                         {url && (
                           <button
                             type="button"
-                            className="td-remote-clear-btn"
+                            className="absolute right-2.5 text-[#87929a] hover:text-white"
                             onClick={() => handleUrlChange('')}
                             disabled={submitting}
-                            aria-label={t('speedtest.remote_clear_input')}
                           >
-                            <X size={12} />
+                            <X size={13} />
                           </button>
                         )}
                       </div>
-                    </div>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        <textarea
+                          id="td-remote-batch-input"
+                          className="w-full bg-[#0f1418] text-[#dee3e8] text-xs font-mono rounded-lg border border-white/10 p-3 focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition-all placeholder:text-[#87929a]/50 hover:border-white/20 custom-scrollbar"
+                          rows={4}
+                          placeholder={t('speedtest.remote_batch_placeholder')}
+                          value={batchUrlsText}
+                          onChange={(e) => {
+                            setBatchUrlsText(e.target.value);
+                            if (errorMsg) setErrorMsg('');
+                          }}
+                          disabled={submitting}
+                          spellCheck={false}
+                        />
+                        <div className="text-[11px] text-[#87929a]">
+                          {batchUrls.length > 0
+                            ? t('speedtest.remote_batch_count', { count: batchUrls.length })
+                            : t('speedtest.remote_batch_empty_hint')}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Passcode (if required) */}
                     {(resolvedMedia?.requiresPassword || Boolean(passcode.trim())) && (
-                      <div className="td-remote-field-group td-remote-passcode-field-animated">
-                        <div className="td-remote-label-row">
-                          <label className="td-input-label" htmlFor="td-remote-passcode">
+                      <div className="flex flex-col gap-1.5 mt-1 td-remote-passcode-field-animated">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-semibold text-[#dee3e8]" htmlFor="td-remote-passcode">
                             {t('speedtest.remote_passcode_label')}
                           </label>
-                          <div className="td-remote-label-actions">
-                            {resolvedMedia?.requiresPassword && (
-                              <span
-                                className={`td-remote-passcode-status-badge ${
-                                  resolvedMedia.passwordError ? 'error' : 'required'
-                                }`}
-                              >
-                                <KeyRound size={10} />
-                                <span>
-                                  {resolvedMedia.passwordError
-                                    ? t('speedtest.remote_passcode_invalid_badge')
-                                    : t('speedtest.remote_passcode_required_badge')}
-                                </span>
-                              </span>
-                            )}
-                          </div>
+                          {resolvedMedia?.requiresPassword && (
+                            <span className="text-[10px] font-bold text-amber-400 flex items-center gap-1">
+                              <KeyRound size={10} />
+                              {resolvedMedia.passwordError
+                                ? t('speedtest.remote_passcode_invalid_badge')
+                                : t('speedtest.remote_passcode_required_badge')}
+                            </span>
+                          )}
                         </div>
-                        <div className="td-remote-input-wrap">
-                          <span className="td-remote-input-icon">
-                            <KeyRound size={13} />
+                        <div className="relative flex items-center">
+                          <span className="absolute left-3 text-[#87929a]">
+                            <KeyRound size={14} />
                           </span>
                           <input
                             id="td-remote-passcode"
-                            className={`td-input-field td-remote-passcode-input ${
-                              resolvedMedia?.requiresPassword ? 'highlight-required' : ''
-                            }`}
-                            type="text"
+                            className="w-full bg-[#0f1418] text-[#dee3e8] text-xs rounded-lg border border-white/10 pl-9 pr-8 py-2 focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
                             placeholder={t('speedtest.remote_passcode_placeholder')}
                             value={passcode}
                             onChange={(e) => handlePasscodeChange(e.target.value)}
@@ -1563,10 +1295,9 @@ export function RemoteUploadModal({
                           {passcode && (
                             <button
                               type="button"
-                              className="td-remote-clear-btn"
+                              className="absolute right-2.5 text-[#87929a] hover:text-white"
                               onClick={() => handlePasscodeChange('')}
                               disabled={submitting}
-                              aria-label={t('speedtest.remote_clear_input')}
                             >
                               <X size={12} />
                             </button>
@@ -1575,789 +1306,530 @@ export function RemoteUploadModal({
                       </div>
                     )}
 
-                    {/* Row 2: Custom Filename */}
-                    <div className="td-remote-field-group">
-                      <label className="td-input-label" htmlFor="td-custom-filename">
-                        {t('speedtest.remote_custom_name_label')}
-                      </label>
-                      <input
-                        id="td-custom-filename"
-                        className="td-input-field td-custom-filename-input"
-                        type="text"
-                        placeholder={
-                          getEffectiveFormatFilename(
-                            resolvedMedia?.formats.find((f) => f.id === selectedFormatId) ||
-                              resolvedMedia?.formats[0],
-                            resolvedMedia
-                          ) ||
-                          inspection?.filename ||
-                          t('speedtest.remote_custom_name_placeholder')
-                        }
-                        value={customFilename}
-                        onChange={(e) => setCustomFilename(e.target.value)}
-                        disabled={submitting}
-                        autoComplete="off"
-                        spellCheck={false}
-                      />
-                    </div>
-
-                    {/* Row 3: Transfer & Engine Pills In 1 Compact Grid */}
-                    <div className="td-remote-pills-row-dual">
-                      {/* Format Pills */}
-                      <div className="td-remote-pill-subgroup">
-                        <label className="td-input-label">{t('speedtest.remote_delivery_mode_label')}</label>
-                        <div className="td-remote-mode-pills">
-                          <button
-                            type="button"
-                            className={`td-remote-mode-pill${deliveryMode === 'uncompressed' ? ' active uncompressed' : ''}`}
-                            onClick={() => setDeliveryMode('uncompressed')}
-                            disabled={submitting}
-                            title={t('speedtest.remote_mode_uncompressed_hint')}
-                          >
-                            <Film size={11} />
-                            <span>{t('speedtest.remote_mode_uncompressed')}</span>
-                            {deliveryMode === 'uncompressed' && <Check size={10} />}
-                          </button>
-                          <button
-                            type="button"
-                            className={`td-remote-mode-pill${deliveryMode === 'auto' ? ' active auto' : ''}`}
-                            onClick={() => setDeliveryMode('auto')}
-                            disabled={submitting}
-                            title={t('speedtest.remote_mode_auto_hint')}
-                          >
-                            <Zap size={11} />
-                            <span>{t('speedtest.remote_mode_auto')}</span>
-                            {deliveryMode === 'auto' && <Check size={10} />}
-                          </button>
-                          <button
-                            type="button"
-                            className={`td-remote-mode-pill${deliveryMode === 'document' ? ' active doc' : ''}`}
-                            onClick={() => setDeliveryMode('document')}
-                            disabled={submitting}
-                            title={t('speedtest.remote_mode_doc_hint')}
-                          >
-                            <FileText size={11} />
-                            <span>{t('speedtest.remote_mode_doc')}</span>
-                            {deliveryMode === 'document' && <Check size={10} />}
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Engine Pills */}
-                      <div className="td-remote-pill-subgroup">
-                        <div className="td-remote-engine-header">
-                          <span className="td-input-label">{t('drive_tools.remote_engine_mode_title')}</span>
-                          {effectiveRemoteEngine === 'cloud_fetch' ? (
-                            <span className="td-remote-engine-badge zero-quota">
-                              <Sparkles size={9} />
-                              <span>{t('drive_tools.remote_zero_quota_badge')}</span>
-                            </span>
-                          ) : (
-                            <span className="td-remote-engine-badge zero-disk">
-                              <Zap size={9} />
-                              <span>{t('drive_tools.remote_zero_disk_badge')}</span>
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="td-remote-engine-pills">
-                          {(['auto', 'cloud_fetch', 'storage_local'] as RemoteEngineMode[]).map((mode) => (
-                            <button
-                              key={mode}
-                              type="button"
-                              className={`td-remote-engine-pill${remoteEngineMode === mode ? ' active' : ''}`}
-                              disabled={submitting}
-                              onClick={() => {
-                                setRemoteEngineMode(mode);
-                                try { localStorage.setItem('autogram_remote_engine_mode', mode); } catch { /* ok */ }
-                              }}
-                            >
-                              {mode === 'auto' && <Zap size={10} />}
-                              {mode === 'cloud_fetch' && <Sparkles size={10} />}
-                              {mode === 'storage_local' && <Folder size={10} />}
-                              <span>
-                                {mode === 'auto' ? t('drive_tools.remote_engine_auto') :
-                                 mode === 'cloud_fetch' ? t('drive_tools.remote_engine_cloud_fetch') :
-                                 t('drive_tools.remote_engine_storage_local')}
-                              </span>
-                              {remoteEngineMode === mode && <Check size={9} />}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Storage Policy Pills (if Local Spool is active) */}
-                    {(remoteEngineMode === 'storage_local' || remoteEngineMode === 'auto') && (
-                      <div className="td-remote-policy-row">
-                        <span className="td-remote-policy-label">{t('drive_tools.remote_storage_policy_label')}</span>
-                        <div className="td-remote-engine-pills">
-                          {(['telegram', 'custom_disk', 'disk_and_telegram'] as StorageLocalPolicy[]).map((pol) => (
-                            <button
-                              key={pol}
-                              type="button"
-                              className={`td-remote-engine-pill${storagePolicy === pol ? ' active' : ''}`}
-                              disabled={submitting}
-                              onClick={() => setStoragePolicy(pol)}
-                            >
-                              {pol === 'telegram' && <Zap size={10} />}
-                              {pol === 'custom_disk' && <Folder size={10} />}
-                              {pol === 'disk_and_telegram' && <Layers size={10} />}
-                              <span>
-                                {pol === 'telegram' ? t('drive_tools.remote_policy_telegram') :
-                                 pol === 'custom_disk' ? t('drive_tools.remote_policy_custom_disk') :
-                                 t('drive_tools.remote_policy_disk_and_telegram')}
-                              </span>
-                              {storagePolicy === pol && <Check size={9} />}
-                            </button>
-                          ))}
-                        </div>
-                        {(storagePolicy === 'custom_disk' || storagePolicy === 'disk_and_telegram') && (
-                          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4 }}>
-                            <input
-                              type="text"
-                              className="td-input-field"
-                              placeholder={t('drive_tools.remote_custom_disk_path_label')}
-                              value={customDiskPath}
-                              onChange={(e) => setCustomDiskPath(e.target.value)}
-                              style={{ flex: 1, height: 28, fontSize: '0.74rem' }}
-                            />
-                            <button
-                              type="button"
-                              className="td-chip-btn"
-                              style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4, height: 28 }}
-                              onClick={async () => {
-                                try {
-                                  const { open } = await import('@tauri-apps/plugin-dialog');
-                                  const res = await open({ directory: true });
-                                  if (res) setCustomDiskPath(String(res));
-                                } catch (e) {
-                                  console.error('Folder picker error:', e);
-                                }
-                              }}
-                            >
-                              <Folder size={11} />
-                              <span>{t('drive_tools.remote_custom_disk_browse')}</span>
-                            </button>
-                          </div>
-                        )}
+                    {/* Custom Filename (Optional) */}
+                    {tab === 'single' && (
+                      <div className="flex flex-col gap-1.5 mt-1">
+                        <label className="text-xs font-semibold text-[#87929a]" htmlFor="td-custom-filename">
+                          {t('speedtest.remote_custom_name_label')}
+                        </label>
+                        <input
+                          id="td-custom-filename"
+                          className="w-full bg-[#0f1418] text-[#dee3e8] text-xs rounded-lg border border-white/10 px-3 py-2 focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] placeholder:text-[#87929a]/40"
+                          type="text"
+                          placeholder={
+                            getEffectiveFormatFilename(
+                              resolvedMedia?.formats.find((f) => f.id === selectedFormatId) ||
+                                resolvedMedia?.formats[0],
+                              resolvedMedia
+                            ) ||
+                            inspection?.filename ||
+                            t('speedtest.remote_custom_name_placeholder')
+                          }
+                          value={customFilename}
+                          onChange={(e) => setCustomFilename(e.target.value)}
+                          disabled={submitting}
+                          autoComplete="off"
+                          spellCheck={false}
+                        />
                       </div>
                     )}
-
-                    {/* Row 4: Destination Selector */}
-                    <div className="td-remote-field-group td-remote-dest-row">
-                      <button
-                        id="td-remote-target"
-                        type="button"
-                        className="td-remote-dest-card"
-                        onClick={() => setPickerOpen(true)}
-                        disabled={submitting}
-                        title={t('speedtest.btn_change_dest')}
-                      >
-                        <div className="td-remote-dest-main">
-                          <span className="td-dest-ico" aria-hidden>
-                            {selectedDest.kind === 'saved' ? (
-                              <Home size={14} />
-                            ) : (
-                              <PeerAvatar
-                                peerId={selectedDest.id ?? 0}
-                                creds={creds}
-                                title={selectedDest.label}
-                                fallback={kindIcon(selectedDest)}
-                              />
-                            )}
-                          </span>
-                          <div className="td-remote-dest-info">
-                            <span className="td-remote-dest-title" title={cleanTargetDisplay.title}>
-                              {cleanTargetDisplay.title}
-                            </span>
-                            {cleanTargetDisplay.topicPill && (
-                              <span className="td-remote-dest-topic">
-                                <Hash size={9} style={{ display: 'inline', verticalAlign: '-1px' }} />
-                                {` ${cleanTargetDisplay.topicPill.replace(/^#\s*/, '')}`}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="td-remote-dest-actions">
-                          {renderBadge(selectedDest, t)}
-                          <span className="td-remote-dest-change-tag">
-                            {t('speedtest.btn_change_dest')}
-                            <ChevronRight size={11} style={{ marginLeft: 2 }} />
-                          </span>
-                        </div>
-                      </button>
-                    </div>
                   </div>
                 </div>
-
-                {/* SECTION 1 RIGHT COLUMN: ACTIVE PREVIEW INSPECTOR */}
-                {isSplitActive && (
-                  <div className="td-remote-section-1-preview">
-                    {resolvedMedia ? (
-                      <div className="td-remote-meta-card">
-                        <div className="td-remote-preview-head-row">
-                          <div className="td-remote-media-badges">
-                            <span className={`td-remote-platform-badge ${resolvedMedia.platform}`}>
-                              {resolvedMedia.platformName}
-                            </span>
-                            {resolvedMedia.formats.some((f) => f.isCleanNoWatermark) && (
-                              <span className="td-remote-clean-badge">
-                                <Sparkles size={11} />
-                                <span>{t('speedtest.remote_clean_no_watermark')}</span>
-                              </span>
-                            )}
-                          </div>
-                          <span className="td-remote-live-canvas-pill">
-                            <span className="td-remote-live-canvas-dot" />
-                            <span>{t('speedtest.remote_split_live_canvas_badge')}</span>
-                          </span>
-                        </div>
-
-                        <div className="td-remote-media-title" title={activePreviewItem?.title || resolvedMedia.title}>
-                          {activePreviewItem?.title || resolvedMedia.title}
-                        </div>
-
-                        {/* Active Player Canvas */}
-                        <div className="td-remote-big-canvas-wrap">
-                          {activePlayableUrl && (targetMediaForPlayback?.isVideo || !resolvedMedia.albumImages || resolvedMedia.albumImages.length === 0) ? (
-                            <div className="td-remote-big-canvas-inner td-remote-single-player-canvas">
-                              <video
-                                key={activePlayableUrl}
-                                src={activePlayableUrl}
-                                poster={activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl}
-                                controls
-                                preload="metadata"
-                                playsInline
-                                className="td-remote-big-canvas-video td-remote-active-player-video"
-                                onLoadedMetadata={(e) => {
-                                  const dur = e.currentTarget.duration;
-                                  if (dur && isFinite(dur) && dur > 0) {
-                                    const d = Math.round(dur);
-                                    setActiveVideoDuration(d);
-                                    if (activePreviewItem) {
-                                      setItemDurations((prev) => {
-                                        if (prev[activePreviewItem.id] === d) return prev;
-                                        return { ...prev, [activePreviewItem.id]: d };
-                                      });
-                                    }
-                                  }
-                                }}
-                                onDurationChange={(e) => {
-                                  const dur = e.currentTarget.duration;
-                                  if (dur && isFinite(dur) && dur > 0) {
-                                    const d = Math.round(dur);
-                                    setActiveVideoDuration((prev) => (prev === d ? prev : d));
-                                    if (activePreviewItem) {
-                                      setItemDurations((prev) => {
-                                        if (prev[activePreviewItem.id] === d) return prev;
-                                        return { ...prev, [activePreviewItem.id]: d };
-                                      });
-                                    }
-                                  }
-                                }}
-                              />
-                              <div className="td-remote-canvas-badge-overlay">
-                                {(activeVideoDuration || activePreviewItem?.durationSec || resolvedMedia.durationSec) ? (
-                                  <span className="td-remote-canvas-duration-tag">
-                                    <Clock size={11} />
-                                    <span>{formatMediaDuration(activeVideoDuration || activePreviewItem?.durationSec || resolvedMedia.durationSec)}</span>
-                                  </span>
-                                ) : null}
-                              </div>
-                            </div>
-                          ) : activeSlideUrl ? (
-                            <div className="td-remote-big-canvas-inner">
-                              <img
-                                src={activeSlideUrl}
-                                alt={resolvedMedia.title}
-                                className="td-remote-big-canvas-img"
-                                loading="lazy"
-                                referrerPolicy="no-referrer"
-                              />
-                              <div className="td-remote-canvas-badge-overlay">
-                                {resolvedMedia.albumImages && resolvedMedia.albumImages.length > 1 && (
-                                  <span className="td-remote-canvas-slide-tag">
-                                    <ImageIcon size={12} />
-                                    <span>
-                                      {t('speedtest.remote_split_slide_preview', {
-                                        idx: activeSlideIndex + 1,
-                                        total: resolvedMedia.albumImages.length,
-                                      })}
-                                    </span>
-                                  </span>
-                                )}
-                                {resolvedMedia.durationSec ? (
-                                  <span className="td-remote-canvas-duration-tag">
-                                    <Clock size={11} />
-                                    <span>{formatMediaDuration(resolvedMedia.durationSec)}</span>
-                                  </span>
-                                ) : null}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="td-remote-big-canvas-fallback">
-                              <Film size={36} className="td-remote-fallback-icon" />
-                              <span>{t('drive_tools.remote_platform_stream_fallback', { platform: resolvedMedia.platformName })}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Active Item Specs Ribbon (clean 3-pill metadata bar) */}
-                        <div className="td-remote-specs-ribbon">
-                          <span className="td-remote-spec-item">
-                            <Film size={11} className="text-sky-400" />
-                            <span>{targetMediaForPlayback?.isVideo ? 'Video Stream' : 'Media Item'}</span>
-                          </span>
-                          {(activeVideoDuration || activePreviewItem?.durationSec || resolvedMedia.durationSec) ? (
-                            <span className="td-remote-spec-item">
-                              <Clock size={11} className="text-amber-400" />
-                              <span>{formatMediaDuration(activeVideoDuration || activePreviewItem?.durationSec || resolvedMedia.durationSec)}</span>
-                            </span>
-                          ) : null}
-                          {effectiveMediaItems.length > 1 && (
-                            <span className="td-remote-spec-item">
-                              <Layers size={11} className="text-purple-400" />
-                              <span>{t('drive_tools.remote_gallery_selected_count', { selected: selectedMediaItemIds.size, total: effectiveMediaItems.length })}</span>
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Format Chips (for Single File or Active Item) */}
-                        {effectiveMediaItems.length <= 1 && resolvedMedia.formats.length > 0 && (
-                          <div className="td-remote-formats-container" style={{ marginTop: 8 }}>
-                            <label className="td-input-label">
-                              {t('speedtest.remote_split_select_format_hint')}
-                            </label>
-                            <div className="td-remote-quality-grid">
-                              {resolvedMedia.formats.map((fmt) => {
-                                const isSelected = selectedFormatId === fmt.id;
-                                return (
-                                  <button
-                                    key={fmt.id}
-                                    type="button"
-                                    className={`td-remote-quality-chip ${isSelected ? 'active' : ''} tier-${fmt.qualityTier} ${fmt.isAlbumPack ? 'album-pack' : ''}`}
-                                    onClick={() => handleSelectFormat(fmt)}
-                                    disabled={submitting}
-                                  >
-                                    <div className="td-remote-quality-chip-top">
-                                      <span className="td-remote-quality-chip-title">
-                                        {getFormatDisplayLabel(fmt, resolvedMedia, t)}
-                                      </span>
-                                      {isSelected && <CheckCircle2 size={13} className="td-remote-chip-active-ico" />}
-                                    </div>
-                                    <div className="td-remote-quality-chip-meta">
-                                      {getFormatDisplayBadge(fmt, t) && (
-                                        <span className="td-remote-quality-chip-badge">{getFormatDisplayBadge(fmt, t)}</span>
-                                      )}
-                                      {fmt.filesizeBytes ? (
-                                        <span className="td-remote-quality-chip-size">
-                                          ~{formatDriveBytes(fmt.filesizeBytes)}
-                                        </span>
-                                      ) : null}
-                                    </div>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : inspection?.status === 'inspecting' ? (
-                      <div className="td-remote-preview-inspecting-card">
-                        <Loader2 size={32} className="td-remote-inspecting-spinner" />
-                        <div className="td-remote-inspecting-title">{t('speedtest.remote_inspecting')}</div>
-                        <div className="td-remote-inspecting-subtitle">{t('speedtest.remote_split_inspecting_desc')}</div>
-                      </div>
-                    ) : inspection && url.trim() ? (
-                      <div className="td-remote-preview-content">
-                        <div className={`td-remote-inspector-card kind-${inspection.kind}`}>
-                          <div className="td-remote-inspector-icon">
-                            {fileKindIcon(inspection.kind)}
-                          </div>
-                          <div className="td-remote-inspector-info">
-                            <div className="td-remote-inspector-name" title={inspection.filename}>
-                              {inspection.filename}
-                            </div>
-                            <div className="td-remote-inspector-meta">
-                              {inspection.size ? (
-                                <span className="td-remote-meta-badge size">
-                                  {formatDriveBytes(inspection.size)}
-                                </span>
-                              ) : (
-                                <span className="td-remote-meta-badge stream">
-                                  {t('speedtest.remote_inspect_size_unknown')}
-                                </span>
-                              )}
-                              <span className={`td-remote-meta-badge status ${inspection.status}`}>
-                                {inspection.status === 'valid' ? (
-                                  <>
-                                    <CheckCircle2 size={11} />
-                                    <span>{t('speedtest.remote_inspect_valid')}</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Sparkles size={11} />
-                                    <span>{t('speedtest.remote_inspect_direct_stream')}</span>
-                                  </>
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="td-remote-preview-ready">
-                        <div className="td-remote-ready-icon-wrap">
-                          <Sparkles size={24} />
-                        </div>
-                        <h4 className="td-remote-ready-title">{t('speedtest.remote_split_ready_title')}</h4>
-                        <p className="td-remote-ready-desc">{t('speedtest.remote_split_ready_desc')}</p>
-                        <div className="td-remote-ready-pill-grid">
-                          <span className="td-remote-ready-pill">{t('drive_tools.remote_sample_tiktok')}</span>
-                          <span className="td-remote-ready-pill">{t('drive_tools.remote_sample_youtube')}</span>
-                          <span className="td-remote-ready-pill">{t('drive_tools.remote_sample_instagram')}</span>
-                          <span className="td-remote-ready-pill">{t('drive_tools.remote_sample_audio')}</span>
-                          <span className="td-remote-ready-pill">{t('drive_tools.remote_sample_direct')}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
 
-              {/* SECTION 2: FULL-WIDTH STUDIO MEDIA GALLERY (Active when multiple items) */}
-              {effectiveMediaItems.length > 1 && (
-                <div className="td-remote-section-2-gallery">
-                  {/* Section 2 Header Bar */}
-                  <div className="td-remote-gallery-header-row">
-                    <div className="td-remote-gallery-header-left">
-                      <Layers size={15} className="text-sky-400" />
-                      <span className="td-remote-gallery-title">
-                        {t('drive_tools.remote_gallery_title')}
-                      </span>
-                      <span className="td-remote-gallery-count-pill">
-                        {t('drive_tools.remote_gallery_selected_count', {
-                          selected: selectedMediaItemIds.size,
-                          total: effectiveMediaItems.length,
-                        })}
-                      </span>
-                      {selectedBytes > 0 && (
-                        <span className="td-remote-gallery-size-pill">
-                          ~{formatDriveBytes(selectedBytes)}
-                        </span>
-                      )}
+              {/* SECTION 2: INGESTION MATRIX */}
+              <div className="flex flex-col gap-2">
+                <h2 className="td-remote-section-title">
+                  {t('drive_tools.remote_section_2_title')}
+                </h2>
+                <div className="bg-[#1b2024] rounded-xl p-3.5 doppelrand flex flex-col gap-3.5">
+                  {/* Horizontal Matrix Row */}
+                  <div className="td-remote-matrix-grid">
+                    {/* 1. Quality */}
+                    <div className="td-remote-matrix-item">
+                      <span className="td-remote-matrix-label">{t('drive_tools.remote_matrix_quality')}</span>
+                      <div className="td-remote-segmented-group">
+                        <button
+                          type="button"
+                          className={`td-remote-segmented-btn ${deliveryMode === 'uncompressed' || deliveryMode === 'auto' ? 'active bloom-primary' : ''}`}
+                          onClick={() => setDeliveryMode(deliveryMode === 'document' ? 'auto' : deliveryMode)}
+                          disabled={submitting}
+                          title={t('speedtest.remote_mode_uncompressed_hint')}
+                        >
+                          <Zap size={13} />
+                          <span className="text-[11px] font-semibold">{t('speedtest.remote_mode_uncompressed')}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`td-remote-segmented-btn ${deliveryMode === 'document' ? 'active bloom-primary' : ''}`}
+                          onClick={() => setDeliveryMode('document')}
+                          disabled={submitting}
+                          title={t('speedtest.remote_mode_doc_hint')}
+                        >
+                          <FileText size={13} />
+                          <span className="text-[11px] font-semibold">{t('speedtest.remote_mode_doc')}</span>
+                        </button>
+                      </div>
                     </div>
-                    <div className="td-remote-gallery-header-right">
+
+                    {/* 2. Engine */}
+                    <div className="td-remote-matrix-item">
+                      <span className="td-remote-matrix-label">{t('drive_tools.remote_matrix_engine')}</span>
+                      <div className="td-remote-segmented-group">
+                        <button
+                          type="button"
+                          className={`td-remote-segmented-btn ${remoteEngineMode === 'auto' || remoteEngineMode === 'ram_pipe' ? 'active bloom-primary' : ''}`}
+                          onClick={() => {
+                            setRemoteEngineMode('auto');
+                            try { localStorage.setItem('autogram_remote_engine_mode', 'auto'); } catch { /* ok */ }
+                          }}
+                          disabled={submitting}
+                          title={t('drive_tools.remote_zero_disk_desc')}
+                        >
+                          <Zap size={13} />
+                          <span className="text-[11px] font-semibold">{t('drive_tools.remote_engine_auto')}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`td-remote-segmented-btn ${remoteEngineMode === 'cloud_fetch' ? 'active bloom-primary' : ''}`}
+                          onClick={() => {
+                            setRemoteEngineMode('cloud_fetch');
+                            try { localStorage.setItem('autogram_remote_engine_mode', 'cloud_fetch'); } catch { /* ok */ }
+                          }}
+                          disabled={submitting}
+                          title={t('drive_tools.remote_zero_quota_desc')}
+                        >
+                          <CloudDownload size={13} />
+                          <span className="text-[11px] font-semibold">{t('drive_tools.remote_engine_cloud_fetch')}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`td-remote-segmented-btn ${remoteEngineMode === 'storage_local' ? 'active bloom-primary' : ''}`}
+                          onClick={() => {
+                            setRemoteEngineMode('storage_local');
+                            try { localStorage.setItem('autogram_remote_engine_mode', 'storage_local'); } catch { /* ok */ }
+                          }}
+                          disabled={submitting}
+                          title={t('drive_tools.remote_mode_storage_local_desc')}
+                        >
+                          <Folder size={13} />
+                          <span className="text-[11px] font-semibold">{t('drive_tools.remote_engine_storage_local')}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* 3. Storage */}
+                    <div className="td-remote-matrix-item">
+                      <span className="td-remote-matrix-label">{t('drive_tools.remote_matrix_storage')}</span>
+                      <div className="td-remote-segmented-group">
+                        <button
+                          type="button"
+                          className={`td-remote-segmented-btn ${storagePolicy === 'telegram' ? 'active bloom-primary' : ''}`}
+                          onClick={() => setStoragePolicy('telegram')}
+                          disabled={submitting}
+                          title={t('drive_tools.remote_policy_telegram')}
+                        >
+                          <Rocket size={13} />
+                          <span className="text-[11px] font-semibold">{t('drive_tools.remote_policy_telegram')}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`td-remote-segmented-btn ${storagePolicy === 'custom_disk' ? 'active bloom-primary' : ''}`}
+                          onClick={() => setStoragePolicy('custom_disk')}
+                          disabled={submitting}
+                          title={t('drive_tools.remote_policy_custom_disk')}
+                        >
+                          <Folder size={13} />
+                          <span className="text-[11px] font-semibold">{t('drive_tools.remote_policy_custom_disk')}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`td-remote-segmented-btn ${storagePolicy === 'disk_and_telegram' ? 'active bloom-primary' : ''}`}
+                          onClick={() => setStoragePolicy('disk_and_telegram')}
+                          disabled={submitting}
+                          title={t('drive_tools.remote_policy_disk_and_telegram')}
+                        >
+                          <Layers size={13} />
+                          <span className="text-[11px] font-semibold">{t('drive_tools.remote_policy_disk_and_telegram')}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Custom disk folder picker if needed */}
+                  {(storagePolicy === 'custom_disk' || storagePolicy === 'disk_and_telegram') && (
+                    <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+                      <input
+                        type="text"
+                        className="flex-1 bg-[#0f1418] text-[#dee3e8] text-xs rounded border border-white/10 px-3 py-1.5 focus:border-[#38bdf8]"
+                        placeholder={t('drive_tools.remote_custom_disk_path_label')}
+                        value={customDiskPath}
+                        onChange={(e) => setCustomDiskPath(e.target.value)}
+                      />
                       <button
                         type="button"
-                        className="td-remote-gallery-btn-action"
-                        onClick={handleSelectAllItems}
+                        className="px-3 py-1.5 bg-[#303539] hover:bg-white/10 text-white rounded text-xs font-semibold flex items-center gap-1.5 border border-white/10"
+                        onClick={async () => {
+                          try {
+                            const { open } = await import('@tauri-apps/plugin-dialog');
+                            const res = await open({ directory: true });
+                            if (res) setCustomDiskPath(String(res));
+                          } catch (e) {
+                            console.error('Folder picker error:', e);
+                          }
+                        }}
                       >
-                        {t('drive_tools.remote_gallery_select_all')}
+                        <Folder size={12} />
+                        <span>{t('drive_tools.remote_custom_disk_browse')}</span>
                       </button>
-                      <button
-                        type="button"
-                        className="td-remote-gallery-btn-action"
-                        onClick={handleDeselectAllItems}
-                      >
-                        {t('drive_tools.remote_gallery_deselect_all')}
-                      </button>
-                      <div className="td-remote-gallery-density-toggle">
-                        <button
-                          type="button"
-                          className={`td-remote-density-btn ${galleryDensity === 'compact' ? 'active' : ''}`}
-                          onClick={() => setGalleryDensity('compact')}
-                          title={t('drive_tools.remote_gallery_density_compact')}
-                        >
-                          <Grid3X3 size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          className={`td-remote-density-btn ${galleryDensity === 'comfortable' ? 'active' : ''}`}
-                          onClick={() => setGalleryDensity('comfortable')}
-                          title={t('drive_tools.remote_gallery_density_comfortable')}
-                        >
-                          <LayoutGrid size={13} />
-                        </button>
-                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Gallery Sub-toolbar: Search & Filters */}
-                  <div className="td-remote-gallery-toolbar">
-                    <div className="td-remote-gallery-toolbar-left">
-                      <div className="td-remote-gallery-search-wrap">
-                        <Search size={13} className="td-remote-gallery-search-icon" />
-                        <input
-                          type="text"
-                          className="td-remote-gallery-search-input"
-                          placeholder={t('drive_tools.remote_gallery_search_placeholder', { count: effectiveMediaItems.length })}
-                          value={gallerySearch}
-                          onChange={(e) => setGallerySearch(e.target.value)}
-                        />
-                        {gallerySearch && (
-                          <button
-                            type="button"
-                            className="td-remote-gallery-search-clear"
-                            onClick={() => setGallerySearch('')}
-                          >
-                            <X size={12} />
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="td-remote-gallery-filters">
-                        <button
-                          type="button"
-                          className={`td-remote-filter-chip ${galleryFilter === 'all' ? 'active' : ''}`}
-                          onClick={() => setGalleryFilter('all')}
-                        >
-                          {t('drive_tools.remote_gallery_filter_all', { count: effectiveMediaItems.length })}
-                        </button>
-                        <button
-                          type="button"
-                          className={`td-remote-filter-chip ${galleryFilter === 'video' ? 'active' : ''}`}
-                          onClick={() => setGalleryFilter('video')}
-                        >
-                          {t('drive_tools.remote_gallery_filter_videos', {
-                            count: effectiveMediaItems.filter((i) => i.kind === 'video').length,
-                          })}
-                        </button>
-                        {effectiveMediaItems.some((i) => i.kind === 'image') && (
-                          <button
-                            type="button"
-                            className={`td-remote-filter-chip ${galleryFilter === 'image' ? 'active' : ''}`}
-                            onClick={() => setGalleryFilter('image')}
-                          >
-                            {t('drive_tools.remote_gallery_filter_photos', {
-                              count: effectiveMediaItems.filter((i) => i.kind === 'image').length,
-                            })}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="td-remote-gallery-toolbar-right">
-                      <select
-                        className="td-remote-gallery-sort-select"
-                        value={gallerySort}
-                        onChange={(e) => setGallerySort(e.target.value as any)}
-                      >
-                        <option value="default">{t('drive_tools.remote_gallery_sort_default')}</option>
-                        <option value="name">{t('drive_tools.remote_gallery_sort_name_asc')}</option>
-                        <option value="duration">{t('drive_tools.remote_gallery_sort_duration_desc')}</option>
-                        <option value="size">{t('drive_tools.remote_gallery_sort_size_desc')}</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Responsive Grid of Cards with Zero Redundant Badges */}
-                  <div className={`td-remote-gallery-grid-wrap ${galleryDensity === 'compact' ? 'density-compact' : 'density-comfortable'}`}>
-                    {filteredAndSortedItems.length === 0 ? (
-                      <div className="td-remote-multicard-empty">
-                        {t('drive_tools.no_match_found')}
-                      </div>
-                    ) : (
-                      filteredAndSortedItems.map((item) => {
-                        const isSelected = selectedMediaItemIds.has(item.id);
-                        const isActive = item.id === activePreviewItem?.id;
-                        const chosenFmtId = itemSelectedFormats[item.id] || item.selectedFormatId || item.formats[0]?.id;
-                        const chosenFmt = item.formats.find((f) => f.id === chosenFmtId) || item.formats[0];
-
-                        return (
-                          <div
-                            key={item.id}
-                            className={`td-remote-media-item-card ${isSelected ? 'selected' : ''} ${isActive ? 'is-active-preview' : ''}`}
-                            onClick={() => {
-                              setActivePreviewItemId(item.id);
-                            }}
-                          >
-                            <div className="td-remote-item-thumb-wrap">
-                              <button
-                                type="button"
-                                className={`td-remote-item-checkbox ${isSelected ? 'checked' : ''}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleToggleItem(item.id);
-                                }}
-                                aria-label={isSelected ? t('drive_tools.remote_gallery_deselect_all') : t('drive_tools.remote_gallery_select_all')}
-                              >
-                                {isSelected ? <Check size={14} strokeWidth={3} /> : <div className="td-remote-check-unselected" />}
-                              </button>
-
-                              {/* Single Unified Non-Redundant Quality / Dimension Badge at Top-Right */}
-                              <span className="td-remote-item-single-badge">
-                                {getSingleUnifiedBadge(item)}
-                              </span>
-
-                              {item.thumbnailUrl ? (
-                                <img
-                                  src={item.thumbnailUrl}
-                                  alt={item.title}
-                                  className="td-remote-item-thumb-img"
-                                  loading="lazy"
-                                  referrerPolicy="no-referrer"
-                                />
-                              ) : (
-                                <div className="td-remote-item-thumb-fallback">
-                                  {item.kind === 'video' ? <Film size={28} /> : <ImageIcon size={28} />}
-                                </div>
-                              )}
-
-                              {item.kind === 'video' && (
-                                <div className="td-remote-item-play-overlay">
-                                  <div className="td-remote-item-play-icon-badge">
-                                    <Play size={13} fill="currentColor" />
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Duration Badge at Bottom-Right */}
-                              <ItemDurationBadge
-                                item={item}
-                                knownDuration={itemDurations[item.id] || item.durationSec}
-                                onDurationFound={handleDurationFound}
-                              />
-                            </div>
-
-                            {/* Clean Non-Redundant Card Footer: Title + Size/Ext */}
-                            <div className="td-remote-item-card-body">
-                              <span className="td-remote-item-card-title" title={item.title}>
-                                {item.title}
-                              </span>
-                              <div className="td-remote-item-card-meta-clean">
-                                <span className="td-remote-meta-size">
-                                  {chosenFmt?.filesizeBytes ? `~${formatDriveBytes(chosenFmt.filesizeBytes)}` : ''}
-                                </span>
-                                <span className="td-remote-meta-ext">
-                                  {chosenFmt?.ext ? chosenFmt.ext.toUpperCase() : ''}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            /* BATCH TAB */
-            <div className="td-remote-form-card">
-              <div className="td-remote-field-group">
-                <div className="td-remote-label-row">
-                  <div className="td-remote-label-left" ref={infoRef}>
-                    <label className="td-input-label" htmlFor="td-remote-batch-input">
-                      {t('speedtest.remote_tab_batch')}
-                    </label>
+                  {/* Destination Target Row */}
+                  <div className="flex flex-col gap-2 border-t border-white/10 pt-3">
+                    <span className="td-remote-matrix-label">
+                      {t('drive_tools.remote_dest_target_label')}
+                    </span>
                     <button
                       type="button"
-                      className={`td-remote-info-trigger ${showSupportedInfo ? 'active' : ''}`}
-                      onClick={() => setShowSupportedInfo((prev) => !prev)}
-                      title={t('speedtest.remote_info_btn_aria')}
-                      aria-label={t('speedtest.remote_info_btn_aria')}
-                      aria-expanded={showSupportedInfo}
+                      className="td-remote-dest-target-btn group"
+                      onClick={() => setPickerOpen(true)}
+                      disabled={submitting}
                     >
-                      <Info size={12} />
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="td-remote-dest-target-icon">
+                          {selectedDest.kind === 'saved' ? (
+                            <Bookmark size={20} />
+                          ) : (
+                            <PeerAvatar
+                              peerId={selectedDest.id ?? 0}
+                              creds={creds}
+                              title={selectedDest.label}
+                              fallback={kindIcon(selectedDest)}
+                            />
+                          )}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <div className="font-bold text-sm text-[#dee3e8] group-hover:text-white truncate">
+                            {cleanTargetDisplay.title}
+                          </div>
+                          <div className="text-xs text-[#87929a] truncate">
+                            {cleanTargetDisplay.topicPill || t('drive_tools.remote_dest_personal_cloud')}
+                          </div>
+                        </div>
+                      </div>
+                      <ChevronRight size={20} className="text-[#87929a] group-hover:text-[#38bdf8] transition-colors shrink-0" />
                     </button>
-                    {renderSupportedLinksPopover()}
                   </div>
-                  <button
-                    type="button"
-                    className="td-remote-paste-action"
-                    onClick={handlePasteClipboard}
-                    disabled={submitting}
-                    title={t('speedtest.remote_paste_clipboard')}
-                  >
-                    <Clipboard size={12} />
-                    <span>{t('speedtest.remote_paste_clipboard')}</span>
-                  </button>
-                </div>
-                <textarea
-                  id="td-remote-batch-input"
-                  className="td-input-field td-remote-batch-textarea"
-                  rows={5}
-                  placeholder={t('speedtest.remote_batch_placeholder')}
-                  value={batchUrlsText}
-                  onChange={(e) => {
-                    setBatchUrlsText(e.target.value);
-                    if (errorMsg) setErrorMsg('');
-                  }}
-                  disabled={submitting}
-                  spellCheck={false}
-                />
-                <div className="td-remote-batch-footer">
-                  <span className="td-remote-batch-hint">
-                    {batchUrls.length > 0
-                      ? t('speedtest.remote_batch_count', { count: batchUrls.length })
-                      : t('speedtest.remote_batch_empty_hint')}
-                  </span>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
+            </section>
 
-        <footer className="td-confirm-foot td-remote-foot">
-          <div className="td-remote-foot-dest-summary">
-            <span className="td-remote-foot-dest-label">{t('drive_tools.remote_footer_target_label')}</span>
-            <span className="td-remote-foot-dest-badge" title={cleanTargetDisplay.title}>
-              {selectedDest.kind === 'saved' ? <Home size={12} /> : <Folder size={12} />}
-              <span className="td-remote-foot-dest-text">{cleanTargetDisplay.title}</span>
-              {cleanTargetDisplay.topicPill && (
-                <span className="td-remote-foot-topic-tag">
-                  {cleanTargetDisplay.topicPill}
-                </span>
-              )}
-            </span>
-          </div>
+            {/* RIGHT COLUMN: LIVE MEDIA CANVAS */}
+            <section className="td-remote-col-right doppelrand">
+              {/* SECTION 3: PREVIEW MEDIA */}
+              <div className="flex flex-col gap-1.5 shrink-0">
+                <h2 className="td-remote-section-title">
+                  {t('drive_tools.remote_section_3_title')}
+                </h2>
 
-          <div className="td-remote-foot-actions">
-            <button
-              type="button"
-              className="td-confirm-btn ghost"
-              onClick={onClose}
-              disabled={submitting}
-            >
-              {t('accounts.cancel')}
-            </button>
-            <button
-              type="submit"
-              className="td-confirm-btn primary td-remote-submit-btn"
-              disabled={
-                submitting ||
-                (tab === 'single'
-                  ? !url.trim() || (effectiveMediaItems.length > 1 && selectedMediaItemIds.size === 0)
-                  : batchUrls.length === 0)
-              }
-            >
-              {submitting ? (
-                <>
-                  <Loader2 size={15} className="spin" />
-                  <span>{t('speedtest.uploading_status')}</span>
-                </>
-              ) : (
-                <>
-                  <Link2 size={15} strokeWidth={2.25} />
-                  <span>
-                    {tab === 'single'
-                      ? effectiveMediaItems.length > 1
-                        ? selectedMediaItemIds.size === 0
-                          ? t('speedtest.remote_btn_select_at_least_one')
-                          : t('speedtest.remote_btn_upload_count', {
-                              count: selectedMediaItemIds.size,
-                              size: selectedBytes > 0 ? ` (~${formatDriveBytes(selectedBytes)})` : '',
-                            })
-                        : t('speedtest.remote_btn_start_single')
-                      : t('speedtest.remote_btn_start_batch', { count: batchUrls.length })}
+                {/* Cinematic Preview Hero */}
+                <div className="td-remote-preview-hero doppelrand group">
+                  {activePlayableUrl && (targetMediaForPlayback?.isVideo || !resolvedMedia?.albumImages || resolvedMedia.albumImages.length === 0) ? (
+                    <video
+                      key={activePlayableUrl}
+                      src={activePlayableUrl}
+                      poster={activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia?.thumbnailUrl}
+                      controls
+                      preload="metadata"
+                      playsInline
+                      className="td-remote-preview-hero-video td-remote-active-player-video"
+                      onLoadedMetadata={(e) => {
+                        const dur = e.currentTarget.duration;
+                        if (dur && isFinite(dur) && dur > 0) {
+                          const d = Math.round(dur);
+                          setActiveVideoDuration(d);
+                          if (activePreviewItem) {
+                            setItemDurations((prev) => ({ ...prev, [activePreviewItem.id]: d }));
+                          }
+                        }
+                      }}
+                    />
+                  ) : activeSlideUrl ? (
+                    <>
+                      <img
+                        src={activeSlideUrl}
+                        alt={resolvedMedia?.title || t('drive_tools.remote_preview_title')}
+                        className="td-remote-preview-hero-img"
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="td-remote-play-overlay">
+                        <div className="td-remote-play-circle glass-panel">
+                          <Play size={24} className="text-white fill-white ml-0.5" />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-[#87929a] gap-2 p-4 text-center">
+                      <Sparkles size={28} className="text-[#38bdf8] animate-pulse" />
+                      <span className="text-xs font-medium text-[#dee3e8]">{t('speedtest.remote_split_ready_title')}</span>
+                      <span className="text-[11px] text-[#87929a] max-w-xs">{t('speedtest.remote_split_ready_desc')}</span>
+                    </div>
+                  )}
+
+                  {/* HUD Pill */}
+                  {(resolvedMedia || activePlayableUrl || inspection) && (
+                    <div className="td-remote-hud-pill glass-panel">
+                      <span className="flex items-center gap-1.5 font-bold">
+                        <span className="td-remote-hud-dot" />
+                        <span>
+                          {activePreviewItem
+                            ? getSingleUnifiedBadge(activePreviewItem)
+                            : (resolvedMedia?.formats[0]?.qualityTier?.toUpperCase() || t('drive_tools.remote_badge_fhd'))}
+                        </span>
+                      </span>
+                      <span className="td-remote-hud-divider" />
+                      <span className="font-mono font-bold tracking-wider">
+                        {formatMediaDuration(activeVideoDuration || activePreviewItem?.durationSec || resolvedMedia?.durationSec) || '26:18'}
+                      </span>
+                      <span className="td-remote-hud-divider" />
+                      <span className="text-[#38bdf8] flex items-center gap-1 font-semibold">
+                        <Zap size={13} />
+                        <span>{t('drive_tools.remote_direct_stream_badge')}</span>
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* SECTION 4: COLLECTION STUDIO */}
+              <div className="td-remote-collection-wrap">
+                <div className="td-remote-collection-header">
+                  <h3 className="font-bold text-xs text-[#dee3e8] uppercase tracking-wider font-mono">
+                    {t('drive_tools.remote_section_4_title')}
+                  </h3>
+                  <span className="font-mono text-xs font-bold text-[#dee3e8] bg-[#0f1418] border border-white/10 px-2.5 py-1 rounded-md shadow-inner">
+                    {t('drive_tools.remote_items_detected', {
+                      count: effectiveMediaItems.length > 0 ? effectiveMediaItems.length : 1,
+                    })}
+                    {selectedBytes > 0 ? ` • ${formatDriveBytes(selectedBytes)}` : ''}
                   </span>
-                </>
-              )}
-            </button>
+                </div>
+
+                {/* Sub-toolbar */}
+                <div className="flex items-center justify-between gap-2 flex-wrap pb-1">
+                  <div className="flex items-center gap-2 flex-1 min-w-[180px]">
+                    <div className="relative flex-1 max-w-[200px] flex items-center">
+                      <Search size={12} className="absolute left-2.5 text-[#87929a] pointer-events-none" />
+                      <input
+                        type="text"
+                        className="w-full bg-[#0f1418] text-[#dee3e8] text-xs rounded border border-white/10 pl-7 pr-6 py-1 focus:border-[#38bdf8]"
+                        placeholder={t('drive_tools.remote_gallery_search_placeholder', {
+                          count: effectiveMediaItems.length || 1,
+                        })}
+                        value={gallerySearch}
+                        onChange={(e) => setGallerySearch(e.target.value)}
+                      />
+                      {gallerySearch && (
+                        <button
+                          type="button"
+                          className="absolute right-2 text-[#87929a] hover:text-white"
+                          onClick={() => setGallerySearch('')}
+                        >
+                          <X size={11} />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        className={`text-[11px] font-semibold px-2 py-0.5 rounded border transition-all ${
+                          galleryFilter === 'all'
+                            ? 'bg-[#38bdf8]/15 border-[#38bdf8] text-[#38bdf8]'
+                            : 'bg-[#0f1418] border-white/10 text-[#87929a] hover:text-white'
+                        }`}
+                        onClick={() => setGalleryFilter('all')}
+                      >
+                        {t('drive_tools.remote_gallery_filter_all', { count: effectiveMediaItems.length || 1 })}
+                      </button>
+                      <button
+                        type="button"
+                        className={`text-[11px] font-semibold px-2 py-0.5 rounded border transition-all ${
+                          galleryFilter === 'video'
+                            ? 'bg-[#38bdf8]/15 border-[#38bdf8] text-[#38bdf8]'
+                            : 'bg-[#0f1418] border-white/10 text-[#87929a] hover:text-white'
+                        }`}
+                        onClick={() => setGalleryFilter('video')}
+                      >
+                        {t('drive_tools.remote_gallery_filter_videos', {
+                          count: effectiveMediaItems.filter((i) => i.kind === 'video').length || (inspection?.kind === 'video' ? 1 : 0),
+                        })}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="text-[11px] font-semibold text-[#38bdf8] hover:underline"
+                      onClick={handleSelectAllItems}
+                    >
+                      {t('drive_tools.remote_gallery_select_all')}
+                    </button>
+                    <span className="text-[#87929a]">/</span>
+                    <button
+                      type="button"
+                      className="text-[11px] font-semibold text-[#87929a] hover:text-white"
+                      onClick={handleDeselectAllItems}
+                    >
+                      {t('drive_tools.remote_gallery_deselect_all')}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Bento Grid */}
+                <div className="td-remote-bento-grid custom-scrollbar">
+                  {filteredAndSortedItems.length > 0 ? (
+                    filteredAndSortedItems.map((item) => {
+                      const isSelected = selectedMediaItemIds.has(item.id);
+                      const isActive = item.id === activePreviewItem?.id;
+
+                      return (
+                        <div
+                          key={item.id}
+                          className={`td-remote-bento-card ${isSelected ? 'selected' : ''} ${isActive ? 'is-active-preview' : ''}`}
+                          onClick={() => setActivePreviewItemId(item.id)}
+                        >
+                          <img
+                            src={item.thumbnailUrl || (resolvedMedia?.thumbnailUrl ?? '')}
+                            alt={item.title}
+                            className="w-full h-full object-cover opacity-70 hover:opacity-100 transition-all duration-300"
+                            loading="lazy"
+                          />
+
+                          {/* Selection Checkbox */}
+                          <div
+                            className="td-remote-bento-check"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleItem(item.id);
+                            }}
+                          >
+                            {isSelected && <Check size={14} strokeWidth={3} />}
+                          </div>
+
+                          {/* Resolution Badge Top-Right */}
+                          <div className="td-remote-bento-res">
+                            {getSingleUnifiedBadge(item)}
+                          </div>
+
+                          {/* Duration Badge Bottom-Right */}
+                          {(itemDurations[item.id] || item.durationSec) ? (
+                            <div className="td-remote-bento-dur">
+                              {formatMediaDuration(itemDurations[item.id] || item.durationSec)}
+                            </div>
+                          ) : null}
+
+                          {/* Title Wrap Gradient */}
+                          <div className="td-remote-bento-title-wrap">
+                            <div className="td-remote-bento-title" title={item.title}>
+                              {item.title}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    /* Fallback single card if 1 file */
+                    <div
+                      className={`td-remote-bento-card selected is-active-preview`}
+                    >
+                      <img
+                        src={resolvedMedia?.thumbnailUrl || activeSlideUrl || 'https://picsum.photos/seed/autogram_hero/400/600'}
+                        alt={t('drive_tools.remote_preview_title')}
+                        className="w-full h-full object-cover opacity-80"
+                      />
+                      <div className="td-remote-bento-check">
+                        <Check size={14} strokeWidth={3} />
+                      </div>
+                      <div className="td-remote-bento-res">
+                        {inspection?.kind === 'video' ? t('drive_tools.remote_badge_fhd') : t('drive_tools.remote_badge_hd')}
+                      </div>
+                      <div className="td-remote-bento-title-wrap">
+                        <div className="td-remote-bento-title" title={customFilename || inspection?.filename || t('speedtest.remote_split_ready_title')}>
+                          {customFilename || inspection?.filename || t('speedtest.remote_split_ready_title')}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
           </div>
-        </footer>
+
+          {/* Bottom Footer (Action Bar) */}
+          <footer className="td-remote-foot doppelrand">
+            <div className="flex items-center gap-4 pl-1">
+              {/* Status Indicator */}
+              <div className="td-remote-foot-status-indicator">
+                <Zap size={15} className="animate-pulse" />
+                <span>{t('drive_tools.remote_status_zero_disk')}</span>
+              </div>
+              {/* Target Info */}
+              <div className="td-remote-foot-target-info">
+                <ChevronRight size={16} className="text-[#87929a]" />
+                <span>
+                  {t('drive_tools.remote_status_target')}{' '}
+                  <strong className="text-white font-bold">{cleanTargetDisplay.title}</strong>
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="td-remote-foot-actions">
+              <button
+                type="button"
+                className="td-remote-foot-cancel-btn"
+                onClick={onClose}
+                disabled={submitting}
+              >
+                {t('accounts.cancel')}
+              </button>
+              <button
+                type="submit"
+                className="td-remote-foot-submit-btn bloom-primary"
+                disabled={
+                  submitting ||
+                  (tab === 'single'
+                    ? !url.trim() || (effectiveMediaItems.length > 1 && selectedMediaItemIds.size === 0)
+                    : batchUrls.length === 0)
+                }
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 size={16} className="spin" />
+                    <span>{t('speedtest.uploading_status')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Rocket size={17} />
+                    <span>
+                      {tab === 'single'
+                        ? effectiveMediaItems.length > 1
+                          ? selectedMediaItemIds.size === 0
+                            ? t('speedtest.remote_btn_select_at_least_one')
+                            : t('drive_tools.remote_btn_upload_count', { count: selectedMediaItemIds.size })
+                          : t('drive_tools.remote_btn_start_single')
+                        : t('drive_tools.remote_btn_start_batch', { count: batchUrls.length })}
+                    </span>
+                  </>
+                )}
+              </button>
+            </div>
+          </footer>
+        </div>
       </form>
 
       <DriveDestinationPicker state={pickerState} onClose={() => setPickerOpen(false)} />
