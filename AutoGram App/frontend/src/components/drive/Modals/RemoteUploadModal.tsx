@@ -2176,7 +2176,9 @@ export function RemoteUploadModal({
 
                             <div className="td-remote-gallery-toolbar-right">
                               <div className="td-remote-sort-wrap">
-                                <ArrowUpDown size={11} className="td-remote-sort-icon" />
+                                <span className="td-remote-sort-icon-wrap">
+                                  <ArrowUpDown size={11} />
+                                </span>
                                 <select
                                   className="td-remote-gallery-sort-select"
                                   value={gallerySort}
@@ -2259,20 +2261,17 @@ export function RemoteUploadModal({
 
                                     {/* CARD BODY: gradient overlay (grid) or side (list) */}
                                     <div className="td-remote-item-card-body">
-                                      {/* BOTTOM-LEFT: filename + size */}
-                                      <div className="td-remote-card-info">
-                                        <span className="td-remote-item-card-title" title={itemCustomNames[item.id] || item.title}>
-                                          {itemCustomNames[item.id] || item.title}
-                                        </span>
+                                      {/* Filename — top line */}
+                                      <span className="td-remote-item-card-title" title={itemCustomNames[item.id] || item.title}>
+                                        {itemCustomNames[item.id] || item.title}
+                                      </span>
+                                      {/* Bottom row: size left + duration right */}
+                                      <div className="td-remote-card-meta-row">
                                         {chosenFmt?.filesizeBytes ? (
                                           <span className="td-remote-meta-size">
                                             ~{formatDriveBytes(chosenFmt.filesizeBytes)}
                                           </span>
-                                        ) : null}
-                                      </div>
-
-                                      {/* BOTTOM-RIGHT: duration */}
-                                      <div className="td-remote-card-duration">
+                                        ) : <span />}
                                         <ItemDurationBadge
                                           item={item}
                                           knownDuration={itemDurations[item.id] || item.durationSec}

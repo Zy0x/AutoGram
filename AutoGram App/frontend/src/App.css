@@ -26889,40 +26889,63 @@ button.td-confirm-icon.is-back-btn:active {
   display: block;
 }
 
-/* Sort wrap with icon */
+/* Sort wrap — clean pill with icon fused to select */
 .td-remote-sort-wrap {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 5px;
-  padding: 0 2px 0 6px;
-  height: 22px;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  height: 26px;
+  overflow: hidden;
   transition: border-color 140ms ease;
+  cursor: pointer;
 }
 
 .td-remote-sort-wrap:hover,
 .td-remote-sort-wrap:focus-within {
-  border-color: rgba(56, 189, 248, 0.4);
+  border-color: rgba(56, 189, 248, 0.45);
 }
 
-.td-remote-sort-icon {
+.td-remote-sort-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px 0 7px;
   color: #64748b;
-  flex: 0 0 auto;
   pointer-events: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  height: 100%;
+}
+
+.td-remote-sort-wrap:hover .td-remote-sort-icon-wrap,
+.td-remote-sort-wrap:focus-within .td-remote-sort-icon-wrap {
+  color: #38bdf8;
 }
 
 .td-remote-sort-wrap .td-remote-gallery-sort-select {
   background: transparent;
   border: none !important;
-  padding: 0 14px 0 0;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 0 22px 0 6px;
   height: 100%;
   border-radius: 0;
-  box-shadow: none !important;
+  font-size: 0.63rem;
+  font-weight: 600;
+  color: #94a3b8;
+  cursor: pointer;
+  appearance: auto;
+  min-width: 80px;
 }
 
-.td-remote-item-thumb-fallback {
+.td-remote-sort-wrap:hover .td-remote-gallery-sort-select,
+.td-remote-sort-wrap:focus-within .td-remote-gallery-sort-select {
+  color: #e2e8f0;
+}
+
+/* Gallery Grid Container (Scrollable Flex Body) */
+.td-remote-gallery-grid-wrap {
   width: 100%;
   height: 100%;
   display: flex;
@@ -26997,7 +27020,8 @@ button.td-confirm-icon.is-back-btn:active {
   backdrop-filter: blur(2px);
 }
 
-/* CARD BODY: grid-mode = absolute bottom overlay */
+
+/* Grid card body: flex-column — title on top, meta-row below */
 .td-remote-media-item-card.card-grid-mode .td-remote-item-card-body {
   position: absolute;
   bottom: 0;
@@ -27006,29 +27030,19 @@ button.td-confirm-icon.is-back-btn:active {
   padding: 20px 6px 6px;
   background: linear-gradient(to top, rgba(3,7,18,0.97) 0%, rgba(3,7,18,0.7) 55%, transparent 100%);
   display: flex;
-  flex-direction: row;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 4px;
+  flex-direction: column;
+  gap: 3px;
   pointer-events: none;
   z-index: 3;
 }
 
-/* Bottom-left: filename + size stacked */
-.td-remote-card-info {
+/* Meta row: size left + duration right on same line */
+.td-remote-card-meta-row {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
   min-width: 0;
-  flex: 1 1 auto;
-}
-
-/* Bottom-right: duration only */
-.td-remote-card-duration {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: flex-end;
-  padding-bottom: 1px;
 }
 
 .td-remote-item-card-body {
