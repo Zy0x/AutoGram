@@ -131,9 +131,7 @@ export const socialMediaResolver: LinkResolverProvider = {
     return (
       normalized.includes('instagram.com') ||
       normalized.includes('facebook.com') ||
-      normalized.includes('fb.watch') ||
-      normalized.includes('twitter.com') ||
-      normalized.includes('x.com')
+      normalized.includes('fb.watch')
     );
   },
 

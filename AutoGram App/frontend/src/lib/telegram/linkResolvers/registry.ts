@@ -7,6 +7,7 @@ import { gdriveResolver } from './providers/gdriveResolver';
 import { dropboxResolver } from './providers/dropboxResolver';
 import { mediafireResolver } from './providers/mediafireResolver';
 import { teraboxResolver } from './providers/teraboxResolver';
+import { twitterResolver } from './providers/twitterResolver';
 import { pinterestResolver } from './providers/pinterestResolver';
 import { pixivResolver } from './providers/pixivResolver';
 import { socialMediaResolver } from './providers/socialMediaResolver';
@@ -25,6 +26,7 @@ class LinkResolverRegistry {
     pikpakResolver,
     tiktokResolver,
     youtubeResolver,
+    twitterResolver,
     gdriveResolver,
     dropboxResolver,
     mediafireResolver,

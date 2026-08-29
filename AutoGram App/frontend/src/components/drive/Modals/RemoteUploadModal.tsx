@@ -653,17 +653,6 @@ export function RemoteUploadModal({
     if (resolvedMedia.mediaItems && resolvedMedia.mediaItems.length > 0) {
       return resolvedMedia.mediaItems;
     }
-    const nonPackFormats = (resolvedMedia.formats || []).filter((f) => !f.isAlbumPack);
-    if (nonPackFormats.length > 1) {
-      return nonPackFormats.map((f, idx) => ({
-        id: `fmt_item_${idx}_${f.id}`,
-        title: f.customTitle || f.label || `Media ${idx + 1}`,
-        thumbnailUrl: f.thumbnailUrl || resolvedMedia.thumbnailUrl,
-        kind: (f.isVideo ? 'video' : f.isAudio ? 'audio' : f.isImage ? 'image' : 'other') as any,
-        selectedFormatId: f.id,
-        formats: [f],
-      }));
-    }
     return [];
   }, [resolvedMedia]);
 
