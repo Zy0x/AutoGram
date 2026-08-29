@@ -1609,50 +1609,52 @@ export function RemoteUploadModal({
                     </div>
                   )}
 
-                  {/* Row 4: Destination Selector */}
-                  <div className="td-remote-field-group td-remote-dest-row">
-                    <button
-                      id="td-remote-target"
-                      type="button"
-                      className="td-remote-dest-card"
-                      onClick={() => setPickerOpen(true)}
-                      disabled={submitting}
-                      title={t('speedtest.btn_change_dest')}
-                    >
-                      <div className="td-remote-dest-main">
-                        <span className="td-dest-ico" aria-hidden>
-                          {selectedDest.kind === 'saved' ? (
-                            <Home size={14} />
-                          ) : (
-                            <PeerAvatar
-                              peerId={selectedDest.id ?? 0}
-                              creds={creds}
-                              title={selectedDest.label}
-                              fallback={kindIcon(selectedDest)}
-                            />
-                          )}
-                        </span>
-                        <div className="td-remote-dest-info">
-                          <span className="td-remote-dest-title" title={cleanTargetDisplay.title}>
-                            {cleanTargetDisplay.title}
+                  {/* Row 4: Destination Selector (Hidden when Local Disk Only) */}
+                  {storagePolicy !== 'custom_disk' && (
+                    <div className="td-remote-field-group td-remote-dest-row">
+                      <button
+                        id="td-remote-target"
+                        type="button"
+                        className="td-remote-dest-card"
+                        onClick={() => setPickerOpen(true)}
+                        disabled={submitting}
+                        title={t('speedtest.btn_change_dest')}
+                      >
+                        <div className="td-remote-dest-main">
+                          <span className="td-dest-ico" aria-hidden>
+                            {selectedDest.kind === 'saved' ? (
+                              <Home size={14} />
+                            ) : (
+                              <PeerAvatar
+                                peerId={selectedDest.id ?? 0}
+                                creds={creds}
+                                title={selectedDest.label}
+                                fallback={kindIcon(selectedDest)}
+                              />
+                            )}
                           </span>
-                          {cleanTargetDisplay.topicPill && (
-                            <span className="td-remote-dest-topic">
-                              <Hash size={9} style={{ display: 'inline', verticalAlign: '-1px' }} />
-                              {` ${cleanTargetDisplay.topicPill.replace(/^#\s*/, '')}`}
+                          <div className="td-remote-dest-info">
+                            <span className="td-remote-dest-title" title={cleanTargetDisplay.title}>
+                              {cleanTargetDisplay.title}
                             </span>
-                          )}
+                            {cleanTargetDisplay.topicPill && (
+                              <span className="td-remote-dest-topic">
+                                <Hash size={9} style={{ display: 'inline', verticalAlign: '-1px' }} />
+                                {` ${cleanTargetDisplay.topicPill.replace(/^#\s*/, '')}`}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div className="td-remote-dest-actions">
-                        {renderBadge(selectedDest, t)}
-                        <span className="td-remote-dest-change-tag">
-                          {t('speedtest.btn_change_dest')}
-                          <ChevronRight size={11} style={{ marginLeft: 2 }} />
-                        </span>
-                      </div>
-                    </button>
-                  </div>
+                        <div className="td-remote-dest-actions">
+                          {renderBadge(selectedDest, t)}
+                          <span className="td-remote-dest-change-tag">
+                            {t('speedtest.btn_change_dest')}
+                            <ChevronRight size={11} style={{ marginLeft: 2 }} />
+                          </span>
+                        </div>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -2143,15 +2145,24 @@ export function RemoteUploadModal({
         <footer className="td-confirm-foot td-remote-foot">
           <div className="td-remote-foot-dest-summary">
             <span className="td-remote-foot-dest-label">{t('drive_tools.remote_footer_target_label')}</span>
-            <span className="td-remote-foot-dest-badge" title={cleanTargetDisplay.title}>
-              {selectedDest.kind === 'saved' ? <Home size={12} /> : <Folder size={12} />}
-              <span className="td-remote-foot-dest-text">{cleanTargetDisplay.title}</span>
-              {cleanTargetDisplay.topicPill && (
-                <span className="td-remote-foot-topic-tag">
-                  {cleanTargetDisplay.topicPill}
+            {storagePolicy === 'custom_disk' ? (
+              <span className="td-remote-foot-dest-badge" title={customDiskPath || t('drive_tools.remote_custom_disk_path_label')}>
+                <Folder size={12} />
+                <span className="td-remote-foot-dest-text">
+                  {customDiskPath ? customDiskPath.split(/[\\/]/).filter(Boolean).pop() || customDiskPath : t('drive_tools.remote_policy_custom_disk')}
                 </span>
-              )}
-            </span>
+              </span>
+            ) : (
+              <span className="td-remote-foot-dest-badge" title={cleanTargetDisplay.title}>
+                {selectedDest.kind === 'saved' ? <Home size={12} /> : <Folder size={12} />}
+                <span className="td-remote-foot-dest-text">{cleanTargetDisplay.title}</span>
+                {cleanTargetDisplay.topicPill && (
+                  <span className="td-remote-foot-topic-tag">
+                    {cleanTargetDisplay.topicPill}
+                  </span>
+                )}
+              </span>
+            )}
           </div>
 
           <div className="td-remote-foot-actions">
