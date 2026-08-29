@@ -80,10 +80,23 @@ describe('twitterResolver', () => {
     expect(result?.formats.length).toBe(3);
     expect(result?.formats[0]).toMatchObject({
       qualityTier: '720p',
-      badge: '720p HD',
+      badge: '720 × 1280',
+      label: '720p HD (720 × 1280)',
       ext: 'mp4',
       isVideo: true,
       directUrl: 'https://video.twimg.com/amplify_video/2056648295632805888/vid/avc1/720x1280/FN8YWkWeQugzkULS.mp4?tag=27',
+    });
+    expect(result?.formats[1]).toMatchObject({
+      qualityTier: '480p',
+      badge: '480 × 852',
+      label: '480p SD (480 × 852)',
+      ext: 'mp4',
+    });
+    expect(result?.formats[2]).toMatchObject({
+      qualityTier: '360p',
+      badge: '320 × 568',
+      label: '320p (320 × 568)',
+      ext: 'mp4',
     });
   });
 

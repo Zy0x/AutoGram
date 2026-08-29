@@ -28,24 +28,25 @@ function inferTierAndBadge(
   bitrate?: number
 ): { tier: QualityTier; badge: string; resolution: string } {
   const shortDim = width && height ? Math.min(width, height) : (width || height || 0);
+  const dimStr = width && height ? `${width} × ${height}` : '';
 
   if (shortDim >= 2100) {
-    return { tier: '4k', badge: '4K UHD', resolution: '2160p (4K)' };
+    return { tier: '4k', badge: dimStr || '4K UHD', resolution: dimStr ? `4K UHD (${dimStr})` : '4K UHD' };
   }
   if (shortDim >= 1400) {
-    return { tier: '2k', badge: '2K QHD', resolution: '1440p (2K)' };
+    return { tier: '2k', badge: dimStr || '2K QHD', resolution: dimStr ? `2K QHD (${dimStr})` : '2K QHD' };
   }
   if (shortDim >= 1000) {
-    return { tier: '1080p', badge: '1080p FHD', resolution: '1080p Full HD' };
+    return { tier: '1080p', badge: dimStr || '1080p FHD', resolution: dimStr ? `1080p FHD (${dimStr})` : '1080p Full HD' };
   }
   if (shortDim >= 700) {
-    return { tier: '720p', badge: '720p HD', resolution: '720p HD' };
+    return { tier: '720p', badge: dimStr || '720p HD', resolution: dimStr ? `720p HD (${dimStr})` : '720p HD' };
   }
   if (shortDim >= 450) {
-    return { tier: '480p', badge: '480p SD', resolution: '480p SD' };
+    return { tier: '480p', badge: dimStr || '480p SD', resolution: dimStr ? `480p SD (${dimStr})` : '480p SD' };
   }
   if (shortDim > 0) {
-    return { tier: '360p', badge: `${shortDim}p`, resolution: `${shortDim}p` };
+    return { tier: '360p', badge: dimStr || `${shortDim}p`, resolution: dimStr ? `${shortDim}p (${dimStr})` : `${shortDim}p` };
   }
   if (bitrate && bitrate > 1500000) {
     return { tier: '720p', badge: '720p HD', resolution: '720p HD' };
@@ -57,7 +58,7 @@ function inferTierAndBadge(
 }
 
 function parseDimensionsFromUrl(url: string): { width?: number; height?: number } {
-  const match = url.match(/\/(\d{3,4})x(\d{3,4})\//i);
+  const match = url.match(/[/_](\d{2,5})x(\d{2,5})[/._]/i);
   if (match) {
     return { width: parseInt(match[1], 10), height: parseInt(match[2], 10) };
   }
