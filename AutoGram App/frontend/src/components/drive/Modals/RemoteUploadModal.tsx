@@ -26,6 +26,7 @@ import {
   Layers,
   Sparkles,
   Zap,
+  CloudLightning,
   User,
   Info,
   KeyRound,
@@ -1457,6 +1458,36 @@ export function RemoteUploadModal({
                   )}
                 </button>
               </div>
+            </div>
+
+            {/* Smart Delivery Engine Status (Zero Quota / Zero Disk) */}
+            <div className="td-remote-field-group td-remote-form-card td-remote-engine-card">
+              <div className="td-remote-engine-header">
+                <div className="td-remote-engine-title-wrap">
+                  <CloudLightning size={14} className="text-cyan-400" />
+                  <span className="td-remote-engine-title">{t('drive_tools.remote_engine_mode_title')}</span>
+                </div>
+                {(((resolvedMedia?.formats.find((f) => f.id === selectedFormatId) || resolvedMedia?.formats[0])?.filesizeBytes || inspection?.size || (tab === 'single' && selectedBytes > 0 ? selectedBytes : 0)) > 0 &&
+                ((resolvedMedia?.formats.find((f) => f.id === selectedFormatId) || resolvedMedia?.formats[0])?.filesizeBytes || inspection?.size || (tab === 'single' && selectedBytes > 0 ? selectedBytes : 0)) <= 20 * 1024 * 1024) ||
+                ((((resolvedMedia?.formats.find((f) => f.id === selectedFormatId) || resolvedMedia?.formats[0])?.filesizeBytes || inspection?.size || 0) === 0) && (resolvedMedia?.kind === 'image' || inspection?.kind === 'image')) ? (
+                  <span className="td-remote-engine-badge zero-quota">
+                    <Sparkles size={11} />
+                    <span>{t('drive_tools.remote_zero_quota_badge')}</span>
+                  </span>
+                ) : (
+                  <span className="td-remote-engine-badge zero-disk">
+                    <Zap size={11} />
+                    <span>{t('drive_tools.remote_zero_disk_badge')}</span>
+                  </span>
+                )}
+              </div>
+              <p className="td-remote-engine-desc">
+                {(((resolvedMedia?.formats.find((f) => f.id === selectedFormatId) || resolvedMedia?.formats[0])?.filesizeBytes || inspection?.size || (tab === 'single' && selectedBytes > 0 ? selectedBytes : 0)) > 0 &&
+                ((resolvedMedia?.formats.find((f) => f.id === selectedFormatId) || resolvedMedia?.formats[0])?.filesizeBytes || inspection?.size || (tab === 'single' && selectedBytes > 0 ? selectedBytes : 0)) <= 20 * 1024 * 1024) ||
+                ((((resolvedMedia?.formats.find((f) => f.id === selectedFormatId) || resolvedMedia?.formats[0])?.filesizeBytes || inspection?.size || 0) === 0) && (resolvedMedia?.kind === 'image' || inspection?.kind === 'image'))
+                  ? t('drive_tools.remote_zero_quota_desc')
+                  : t('drive_tools.remote_zero_disk_desc')}
+              </p>
             </div>
 
             <div className="td-remote-field-group td-remote-form-card">

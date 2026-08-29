@@ -14,6 +14,8 @@ import {
   Send,
   Settings,
   Video,
+  Sparkles,
+  Zap,
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -359,6 +361,19 @@ export function TransferPreflightDialog({
                         <Video size={11} aria-hidden />
                         <span>{t('speedtest.preflight_transform_badge_reencode_video')}</span>
                       </span>
+                    )}
+                    {(item.sourcePath.startsWith('http://') || item.sourcePath.startsWith('https://')) && (
+                      item.sourceSize > 0 && item.sourceSize <= 20 * 1024 * 1024 ? (
+                        <span className="td-preflight-engine-tag is-cloud-fetch">
+                          <Sparkles size={10} aria-hidden />
+                          <span>{t('drive_tools.remote_zero_quota_badge')}</span>
+                        </span>
+                      ) : (
+                        <span className="td-preflight-engine-tag is-ram-pipe">
+                          <Zap size={10} aria-hidden />
+                          <span>{t('drive_tools.remote_zero_disk_badge')}</span>
+                        </span>
+                      )
                     )}
                   </div>
                   <span>{formatDriveBytes(item.sourceSize)}</span>
