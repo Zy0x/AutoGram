@@ -25749,29 +25749,20 @@ button.td-confirm-icon.is-back-btn:active {
   box-shadow: 0 2px 8px rgba(56, 189, 248, 0.2);
 }
 
-.td-remote-body {
+.td-remote-body,
+.td-remote-body.td-remote-split-body {
   flex: 1 1 0% !important;
   min-height: 0 !important;
   max-height: none !important;
-  padding: 0 24px 16px !important;
+  padding: 0 22px 14px !important;
   display: flex;
   flex-direction: column;
   gap: 12px;
   overflow-y: auto !important;
   overflow-x: hidden !important;
+  scroll-behavior: smooth;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
-}
-
-.td-remote-body.td-remote-split-body {
-  flex: 1 1 0% !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  padding: 0 20px 8px !important;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  overflow: hidden !important;
 }
 
 /* Section 1: Ingestion Controls (Full Width) */
@@ -25780,11 +25771,8 @@ button.td-confirm-icon.is-back-btn:active {
   flex-direction: column;
   width: 100%;
   padding: 4px 0 2px;
-  flex: 0 0 auto;
-}
-
-.td-remote-split-body .td-remote-section-1 {
-  padding: 0;
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
 }
 
 .td-remote-section-1-controls {
@@ -25792,7 +25780,6 @@ button.td-confirm-icon.is-back-btn:active {
   flex-direction: column;
   gap: 6px;
   width: 100%;
-  min-width: 0;
 }
 
 .td-remote-unified-panel {
@@ -25804,12 +25791,6 @@ button.td-confirm-icon.is-back-btn:active {
   flex-direction: column;
   gap: 7px;
   width: 100%;
-}
-
-.td-remote-split-body .td-remote-unified-panel {
-  padding: 6px 10px;
-  gap: 4px;
-  border-radius: 10px;
 }
 
 /* Triplet Compact Row: Delivery Format + Transfer Engine + Storage Policy in 1 Row */
@@ -26143,42 +26124,56 @@ button.td-confirm-icon.is-back-btn:active {
   overflow: hidden !important;
 }
 
-.td-remote-meta-card {
+/* STREAM PREVIEW SECTION: Side-by-Side Player and Media Cards Gallery (Fills Tab-to-Footer on Scroll) */
+.td-remote-preview-section {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 8px 10px;
-  border-radius: 12px;
+  width: 100%;
+  min-width: 0;
+  flex: 0 0 calc(85vh - 170px) !important;
+  min-height: calc(85vh - 170px) !important;
+  height: calc(85vh - 170px) !important;
+  flex-shrink: 0 !important;
+  scroll-snap-align: start;
+}
+
+.td-remote-meta-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
   background: rgba(15, 23, 42, 0.65);
   border: 1px solid rgba(255, 255, 255, 0.08);
   width: 100%;
-  flex: 1 1 0% !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
+  height: 100%;
+  flex: 1 1 0%;
+  min-height: 0;
 }
 
 .td-remote-stream-split-wrap {
   display: grid;
-  grid-template-columns: minmax(320px, 1.15fr) minmax(320px, 1.25fr);
-  gap: 10px;
+  grid-template-columns: minmax(360px, 1.15fr) minmax(340px, 1.25fr);
+  gap: 14px;
   width: 100%;
   height: 100%;
-  flex: 1 1 0% !important;
-  min-height: 0 !important;
+  flex: 1 1 0%;
+  min-height: 0;
   align-items: stretch;
 }
 
 @media (max-width: 1080px) {
   .td-remote-stream-split-wrap {
     grid-template-columns: 1fr;
-    gap: 8px;
+    gap: 12px;
   }
 }
 
 .td-remote-stream-player-col {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
   width: 100%;
   height: 100%;
@@ -26189,18 +26184,18 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-stream-gallery-col {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
   width: 100%;
   height: 100%;
   min-height: 0;
   background: rgba(10, 15, 29, 0.45);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 8px 10px;
+  border-radius: 12px;
+  padding: 10px 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
   overflow: hidden;
-  flex: 1 1 0% !important;
+  flex: 1 1 0%;
 }
 
 .td-remote-stream-gallery-col .td-remote-gallery-grid-wrap {
@@ -26210,7 +26205,7 @@ button.td-confirm-icon.is-back-btn:active {
   height: auto !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
-  padding: 4px 2px 6px;
+  padding: 4px 2px 8px;
   scrollbar-width: thin;
   scrollbar-color: rgba(56, 189, 248, 0.3) transparent;
 }
@@ -26219,18 +26214,18 @@ button.td-confirm-icon.is-back-btn:active {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 8px;
   flex: 0 0 auto;
 }
 
 .td-remote-media-title {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: #f8fafc;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.2;
+  line-height: 1.3;
   flex: 0 0 auto;
 }
 
@@ -26241,9 +26236,9 @@ button.td-confirm-icon.is-back-btn:active {
   background: #000000;
   border: 1px solid rgba(255, 255, 255, 0.12);
   position: relative;
-  flex: 1 1 0% !important;
-  min-height: 180px;
-  max-height: none;
+  flex: 1 1 0%;
+  min-height: 280px;
+  max-height: calc(85vh - 270px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.55);
   display: flex;
   align-items: center;

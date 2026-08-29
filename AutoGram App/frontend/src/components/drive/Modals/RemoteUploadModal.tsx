@@ -368,6 +368,7 @@ export function RemoteUploadModal({
   const [activeTripletInfo, setActiveTripletInfo] = useState<'delivery' | 'engine' | 'policy' | null>(null);
   const infoRef = useRef<HTMLDivElement | null>(null);
   const tripletInfoRef = useRef<HTMLDivElement | null>(null);
+  const previewSectionRef = useRef<HTMLDivElement | null>(null);
 
   const inspectAbortRef = useRef<AbortController | null>(null);
   const inspectTimerRef = useRef<number | null>(null);
@@ -988,6 +989,12 @@ export function RemoteUploadModal({
 
   const isSplitActive =
     Boolean(resolvedMedia || (inspection && url.trim().length > 0)) && tab === 'single';
+
+  useEffect(() => {
+    if (isSplitActive && previewSectionRef.current) {
+      previewSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [isSplitActive, resolvedMedia?.title]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1839,7 +1846,7 @@ export function RemoteUploadModal({
 
           {/* STREAM PREVIEW SECTION: Side-by-Side Player & Media Cards Gallery */}
           {isSplitActive && (
-            <div className="td-remote-preview-section">
+            <div ref={previewSectionRef} className="td-remote-preview-section">
               {resolvedMedia ? (
                 <div className="td-remote-meta-card">
                   <div className="td-remote-stream-split-wrap">
