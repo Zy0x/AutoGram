@@ -5679,12 +5679,18 @@ function MediaDriveDesktop({
                 || sourcePath.split(/[/\\]/).pop()
                 || `message_${mid}`
               );
+              const sourceSize = Number(
+                qi.size ||
+                (task.options?.sourceSizes as number[] | undefined)?.[itemIndex] ||
+                (task.options?.source_sizes as number[] | undefined)?.[itemIndex] ||
+                0
+              );
               engineCommits.push(driveEngineCommitFile({
                 accountId: driveEngineAccountId(creds!.session),
                 driveId: engineLocation.driveId,
                 folderId: engineLocation.folderId,
                 filename,
-                size: Math.max(0, Number(qi.size || 0)),
+                size: sourceSize,
                 mime: inferUploadMime(sourcePath),
                 telegramChatId: String(engineLocation.storagePeerId ?? studioChatIdFromFolder(task.targetFolderId)),
                 telegramTopicId: topicFromOpts != null && topicFromOpts > 0 ? topicFromOpts : null,
@@ -6936,6 +6942,9 @@ function MediaDriveDesktop({
       cleanPaths = cleanPaths.filter((path) => !skippedPaths.has(path));
       duplicateForceUploadPaths = decision.forceUploadPaths.filter((path) => !skippedPaths.has(path));
       names = cleanPaths.map((path, idx) => {
+        if (opts?.customFilenames && opts.customFilenames[idx]) {
+          return opts.customFilenames[idx];
+        }
         if (opts?.customFilename) {
           if (cleanPaths.length === 1) {
             return opts.customFilename;
@@ -6954,7 +6963,8 @@ function MediaDriveDesktop({
                 const u = new URL(path);
                 const rawSegment = u.pathname.split('/').filter(Boolean).pop();
                 if (rawSegment && !rawSegment.startsWith('?')) {
-                  const decoded = decodeURIComponent(rawSegment);
+                  let decoded = decodeURIComponent(rawSegment);
+                  if (decoded.includes('?')) decoded = decoded.split('?')[0];
                   if (decoded.includes('.')) return decoded;
                   if (path.includes('photomode') || path.includes('image') || path.includes('avatar')) return `${decoded}.jpg`;
                   if (path.includes('music') || path.includes('audio')) return `${decoded}.mp3`;
