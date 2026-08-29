@@ -813,6 +813,7 @@ export function RemoteUploadModal({
     }
   }, [effectiveMediaItems]);
 
+
   useEffect(() => {
     if (resolvedMedia?.durationSec) {
       setItemDurations((prev) => ({
@@ -822,6 +823,62 @@ export function RemoteUploadModal({
     }
   }, [resolvedMedia?.durationSec]);
 
+  // Background duration loader: probe video metadata for items without duration
+  useEffect(() => {
+    if (effectiveMediaItems.length === 0) return;
+
+    const videoEls: HTMLVideoElement[] = [];
+
+    effectiveMediaItems.forEach((item) => {
+      // Only probe video items that have no duration yet
+      if (item.kind !== 'video') return;
+
+      // Find any format with a direct URL
+      const fmt = item.formats.find((f) => f.directUrl) || item.formats[0];
+      if (!fmt?.directUrl) return;
+
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.muted = true;
+      // Some sources require crossOrigin; try without first
+      video.src = fmt.directUrl;
+      videoEls.push(video);
+
+      const onMeta = () => {
+        const dur = video.duration;
+        if (dur && isFinite(dur) && dur > 0) {
+          setItemDurations((prev) => {
+            // Only update if not already set
+            if (prev[item.id]) return prev;
+            return { ...prev, [item.id]: Math.round(dur) };
+          });
+        }
+        cleanup();
+      };
+
+      const cleanup = () => {
+        video.removeEventListener('loadedmetadata', onMeta);
+        video.removeEventListener('error', onErr);
+        video.src = '';
+        try { video.load(); } catch (_) {}
+      };
+
+      const onErr = () => cleanup();
+
+      video.addEventListener('loadedmetadata', onMeta);
+      video.addEventListener('error', onErr);
+      video.load();
+    });
+
+    return () => {
+      // Cleanup all probes on unmount / items change
+      videoEls.forEach((v) => {
+        v.src = '';
+        try { v.load(); } catch (_) {}
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveMediaItems]);
 
 
   const activePreviewItem = useMemo(() => {
@@ -2284,13 +2341,22 @@ export function RemoteUploadModal({
 
                                     {/* CARD BODY: gradient overlay (grid) or side (list) */}
                                     <div className="td-remote-item-card-body">
-                                      {/* Filename — top line, extension preserved in truncation */}
-                                      <span
-                                        className="td-remote-item-card-title"
-                                        title={itemCustomNames[item.id] || item.title}
-                                      >
-                                        {truncateWithExt(itemCustomNames[item.id] || item.title, 22)}
-                                      </span>
+                                      {/* Filename — top line, extension always preserved */}
+                                      {(() => {
+                                        const rawName = itemCustomNames[item.id] || item.title;
+                                        // If title lacks extension, append it from format
+                                        const ext = chosenFmt?.ext ? `.${chosenFmt.ext}` : '';
+                                        const hasExt = ext && rawName.toLowerCase().endsWith(ext.toLowerCase());
+                                        const effectiveName = hasExt || !ext ? rawName : `${rawName}${ext}`;
+                                        return (
+                                          <span
+                                            className="td-remote-item-card-title"
+                                            title={effectiveName}
+                                          >
+                                            {truncateWithExt(effectiveName, 22)}
+                                          </span>
+                                        );
+                                      })()}
                                       {/* Bottom row: size left + duration right */}
                                       <div className="td-remote-card-meta-row">
                                         {chosenFmt?.filesizeBytes ? (
