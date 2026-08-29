@@ -57,6 +57,7 @@ import {
   type DriveTransferSettings,
   resolveDefaultDeliveryMode,
 } from '../Transfers/transferSettingsModel';
+import type { RemoteEngineMode } from '../../../lib/telegram/driveTypes';
 
 interface RemoteUploadModalProps {
   isOpen: boolean;
@@ -77,6 +78,7 @@ interface RemoteUploadModalProps {
       asDocument?: boolean;
       qualityMode?: string;
       presentationOverride?: 'document' | 'original' | 'standard' | 'compressed';
+      remoteEngineMode?: RemoteEngineMode;
     }
   ) => Promise<void>;
 }
@@ -270,6 +272,11 @@ export function RemoteUploadModal({
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(() =>
     resolveDefaultDeliveryMode(transferSettings)
   );
+  const [remoteEngineMode, setRemoteEngineMode] = useState<RemoteEngineMode>(() => {
+    const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('autogram_remote_engine_mode') : null;
+    if (stored === 'cloud_fetch' || stored === 'ram_pipe') return stored;
+    return transferSettings?.remoteEngineMode || 'auto';
+  });
   const [inspection, setInspection] = useState<UrlInspection | null>(null);
 
   const [resolvedMedia, setResolvedMedia] = useState<ResolvedMediaInfo | null>(null);
@@ -309,6 +316,10 @@ export function RemoteUploadModal({
       setCustomFilename('');
       setBatchUrlsText('');
       setDeliveryMode(resolveDefaultDeliveryMode(transferSettings));
+      const storedEngine = typeof localStorage !== 'undefined' ? localStorage.getItem('autogram_remote_engine_mode') : null;
+      setRemoteEngineMode(storedEngine === 'cloud_fetch' || storedEngine === 'ram_pipe'
+        ? storedEngine
+        : (transferSettings?.remoteEngineMode || 'auto'));
       setInspection(null);
       setResolvedMedia(null);
       setSelectedFormatId('');
@@ -769,6 +780,15 @@ export function RemoteUploadModal({
     }, 0);
   }, [selectedItems, itemSelectedFormats]);
 
+  const selectedRemoteSize = useMemo(() => {
+    const active = resolvedMedia?.formats.find((f) => f.id === selectedFormatId) || resolvedMedia?.formats[0];
+    return active?.filesizeBytes || inspection?.size || (tab === 'single' && selectedBytes > 0 ? selectedBytes : 0) || 0;
+  }, [resolvedMedia, selectedFormatId, inspection?.size, tab, selectedBytes]);
+  const autoRemoteEngine: RemoteEngineMode = selectedRemoteSize > 0 && selectedRemoteSize <= 20 * 1024 * 1024
+    ? 'cloud_fetch'
+    : 'ram_pipe';
+  const effectiveRemoteEngine = remoteEngineMode === 'auto' ? autoRemoteEngine : remoteEngineMode;
+
   const filteredMediaItems = useMemo(() => {
     if (!itemFilterText.trim()) return effectiveMediaItems;
     const query = itemFilterText.trim().toLowerCase();
@@ -893,6 +913,7 @@ export function RemoteUploadModal({
             asDocument: deliveryMode === 'document',
             qualityMode: effectiveQualityMode,
             presentationOverride: effectivePresentation,
+            remoteEngineMode,
           });
           onClose();
         } catch (err: any) {
@@ -952,6 +973,7 @@ export function RemoteUploadModal({
           asDocument: deliveryMode === 'document',
           qualityMode: effectiveQualityMode,
           presentationOverride: effectivePresentation,
+          remoteEngineMode,
         });
         onClose();
       } catch (err: any) {
@@ -1012,6 +1034,7 @@ export function RemoteUploadModal({
           asDocument: deliveryMode === 'document',
           qualityMode: effectiveQualityMode,
           presentationOverride: effectivePresentation,
+          remoteEngineMode,
         });
         onClose();
       } catch (err: any) {
@@ -1460,16 +1483,14 @@ export function RemoteUploadModal({
               </div>
             </div>
 
-            {/* Smart Delivery Engine Status (Zero Quota / Zero Disk) */}
+            {/* Smart Delivery Engine Status (Telegram external fetch / bounded RAM pipe) */}
             <div className="td-remote-field-group td-remote-form-card td-remote-engine-card">
               <div className="td-remote-engine-header">
                 <div className="td-remote-engine-title-wrap">
                   <CloudLightning size={14} className="text-cyan-400" />
                   <span className="td-remote-engine-title">{t('drive_tools.remote_engine_mode_title')}</span>
                 </div>
-                {(((resolvedMedia?.formats.find((f) => f.id === selectedFormatId) || resolvedMedia?.formats[0])?.filesizeBytes || inspection?.size || (tab === 'single' && selectedBytes > 0 ? selectedBytes : 0)) > 0 &&
-                ((resolvedMedia?.formats.find((f) => f.id === selectedFormatId) || resolvedMedia?.formats[0])?.filesizeBytes || inspection?.size || (tab === 'single' && selectedBytes > 0 ? selectedBytes : 0)) <= 20 * 1024 * 1024) ||
-                ((((resolvedMedia?.formats.find((f) => f.id === selectedFormatId) || resolvedMedia?.formats[0])?.filesizeBytes || inspection?.size || 0) === 0) && (resolvedMedia?.kind === 'image' || inspection?.kind === 'image')) ? (
+                {effectiveRemoteEngine === 'cloud_fetch' ? (
                   <span className="td-remote-engine-badge zero-quota">
                     <Sparkles size={11} />
                     <span>{t('drive_tools.remote_zero_quota_badge')}</span>
@@ -1482,11 +1503,30 @@ export function RemoteUploadModal({
                 )}
               </div>
               <p className="td-remote-engine-desc">
-                {(((resolvedMedia?.formats.find((f) => f.id === selectedFormatId) || resolvedMedia?.formats[0])?.filesizeBytes || inspection?.size || (tab === 'single' && selectedBytes > 0 ? selectedBytes : 0)) > 0 &&
-                ((resolvedMedia?.formats.find((f) => f.id === selectedFormatId) || resolvedMedia?.formats[0])?.filesizeBytes || inspection?.size || (tab === 'single' && selectedBytes > 0 ? selectedBytes : 0)) <= 20 * 1024 * 1024) ||
-                ((((resolvedMedia?.formats.find((f) => f.id === selectedFormatId) || resolvedMedia?.formats[0])?.filesizeBytes || inspection?.size || 0) === 0) && (resolvedMedia?.kind === 'image' || inspection?.kind === 'image'))
+                {effectiveRemoteEngine === 'cloud_fetch'
                   ? t('drive_tools.remote_zero_quota_desc')
                   : t('drive_tools.remote_zero_disk_desc')}
+              </p>
+              <label className="td-input-label" htmlFor="td-remote-engine-mode">
+                {t('drive_tools.remote_engine_selector_label')}
+              </label>
+              <select
+                id="td-remote-engine-mode"
+                className="td-input-field"
+                value={remoteEngineMode}
+                disabled={submitting}
+                onChange={(event) => {
+                  const next = event.target.value as RemoteEngineMode;
+                  setRemoteEngineMode(next);
+                  try { localStorage.setItem('autogram_remote_engine_mode', next); } catch { /* best effort */ }
+                }}
+              >
+                <option value="auto">{t('drive_tools.remote_engine_auto')}</option>
+                <option value="cloud_fetch">{t('drive_tools.remote_engine_cloud_fetch')}</option>
+                <option value="ram_pipe">{t('drive_tools.remote_engine_ram_pipe')}</option>
+              </select>
+              <p className="td-remote-engine-desc td-remote-engine-note">
+                {t('drive_tools.remote_engine_selector_hint')}
               </p>
             </div>
 

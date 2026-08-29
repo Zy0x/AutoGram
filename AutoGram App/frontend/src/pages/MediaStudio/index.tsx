@@ -235,6 +235,7 @@ import type {
   DriveViewMode,
   ViewPerspective,
   TransferSession,
+  RemoteEngineMode,
 } from '../../lib/telegram/driveTypes';
 import {
   DEFAULT_TRANSFER_SETTINGS,
@@ -6793,6 +6794,7 @@ function MediaDriveDesktop({
       topicId?: number | null;
       skipTopic?: boolean;
       presentationOverride?: 'document' | 'original' | 'standard' | 'compressed';
+      remoteEngineMode?: RemoteEngineMode;
       qualityMode?: string;
       customFilename?: string;
       customFilenames?: string[];
@@ -6917,6 +6919,7 @@ function MediaDriveDesktop({
       });
       const enrichedReport: QualityPreflightReport = {
         ...report,
+        remoteEngineMode: opts?.remoteEngineMode || transferSettings.remoteEngineMode || 'auto',
         items: report.items.map((item, idx) => ({
           ...item,
           sourceName: (names && names[idx]) ? names[idx] : item.sourceName,
@@ -7038,6 +7041,7 @@ function MediaDriveDesktop({
       guardrail_threshold_days: transferSettings.guardrailThresholdDays ?? 7,
       topic_scope: transferSettings.topicScope || 'selected_plus_general',
       max_reupload_per_hour: transferSettings.maxReuploadPerHour ?? 10,
+      remote_engine_mode: opts?.remoteEngineMode || transferSettings.remoteEngineMode || 'auto',
     };
     // Upload into selected forum topic: explicit topicId overrides, otherwise fall back to current active topic
     if (uploadTopicId != null) options.topic_id = uploadTopicId;
@@ -7113,6 +7117,7 @@ function MediaDriveDesktop({
       customFilenames?: string[];
       sourceSizes?: number[];
       thumbnailUrls?: string[];
+      remoteEngineMode?: RemoteEngineMode;
       asDocument?: boolean;
       qualityMode?: string;
       presentationOverride?: 'document' | 'original' | 'standard' | 'compressed';
@@ -7131,6 +7136,7 @@ function MediaDriveDesktop({
       customFilenames: opts?.customFilenames,
       sourceSizes: opts?.sourceSizes,
       thumbnailUrls: opts?.thumbnailUrls,
+      remoteEngineMode: opts?.remoteEngineMode,
     });
   };
 

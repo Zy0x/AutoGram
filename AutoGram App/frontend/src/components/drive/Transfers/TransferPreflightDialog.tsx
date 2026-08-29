@@ -33,6 +33,7 @@ import type {
   QualityPreflightReport,
   TransferDuplicateChoice,
 } from '../../../lib/transfer/qualityPreflight';
+import type { RemoteEngineMode } from '../../../lib/telegram/driveTypes';
 
 function transferPreviewSource(path: string, thumbnailUrl?: string | null): string | null {
   if (thumbnailUrl && (thumbnailUrl.startsWith('http://') || thumbnailUrl.startsWith('https://') || thumbnailUrl.startsWith('data:'))) {
@@ -363,7 +364,8 @@ export function TransferPreflightDialog({
                       </span>
                     )}
                     {(item.sourcePath.startsWith('http://') || item.sourcePath.startsWith('https://')) && (
-                      item.sourceSize > 0 && item.sourceSize <= 20 * 1024 * 1024 ? (
+                      ((report.remoteEngineMode as RemoteEngineMode | undefined) === 'cloud_fetch' ||
+                        (report.remoteEngineMode !== 'ram_pipe' && item.sourceSize > 0 && item.sourceSize <= 20 * 1024 * 1024)) ? (
                         <span className="td-preflight-engine-tag is-cloud-fetch">
                           <Sparkles size={10} aria-hidden />
                           <span>{t('drive_tools.remote_zero_quota_badge')}</span>

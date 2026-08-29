@@ -418,6 +418,10 @@ pub fn download_remote_url(
     let mut last_emit_ms = 0u128;
 
     loop {
+        if crate::core::job_queue::is_any_transfer_cancelled() {
+            let _ = fs::remove_file(&dest);
+            return Err("download cancelled by user".into());
+        }
         let n = reader
             .read(&mut buf)
             .map_err(|e| format!("read body: {e}"))?;

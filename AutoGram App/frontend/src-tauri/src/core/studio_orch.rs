@@ -915,6 +915,78 @@ fn run_intelligent_album(
         }
         let spoiler = item_spoiler(&rec.options, item.index);
         let _ = job_queue::update_item(tid, item.index, ItemState::Preparing, None, None);
+
+        // Direct handling for remote URLs: bypass local disk download & ffmpeg preparation
+        if media_prep::is_remote_url(&item.path) {
+            let remote_as_document = rec
+                .options
+                .get("presentation_override")
+                .or_else(|| rec.options.get("presentationOverride"))
+                .and_then(|value| value.as_str())
+                .is_some_and(|value| value == "document" || value == "force_document");
+            let remote_engine_mode = rec
+                .options
+                .get("remote_engine_mode")
+                .or_else(|| rec.options.get("remoteEngineMode"))
+                .and_then(|value| value.as_str())
+                .unwrap_or("auto");
+            let item_caption = normalized_item_captions
+                .get(&item.index)
+                .cloned()
+                .unwrap_or_else(|| item.caption.clone());
+            let file_name = if !item.caption.trim().is_empty() {
+                item.caption.clone()
+            } else {
+                item.path.rsplit('/').next().unwrap_or("remote_media").to_string()
+            };
+
+            match grammers_ops::upload_remote_url_blocking_topic_with_app(
+                sessions,
+                identity,
+                &rec.chat_id,
+                &item.path,
+                &item_caption,
+                remote_as_document,
+                silent,
+                spoiler,
+                item.index,
+                topic_id,
+                schedule_at,
+                app.cloned(),
+                Some(tid.to_string()),
+                remote_engine_mode,
+            ) {
+                Ok(result) => {
+                    any_ok = true;
+                    let state = ItemState::Done;
+                    let _ = job_queue::update_item(
+                        tid,
+                        item.index,
+                        state.clone(),
+                        result.message_id,
+                        None,
+                    );
+                    emit_album_item_result(app, item.index, &state, result.message_id, None);
+                }
+                Err(error) => {
+                    let message = error.user_message();
+                    let state = ItemState::Failed;
+                    let _ = job_queue::update_item(
+                        tid,
+                        item.index,
+                        state.clone(),
+                        None,
+                        Some(message.clone()),
+                    );
+                    emit_album_item_result(app, item.index, &state, None, Some(message.clone()));
+                    if first_error.is_none() {
+                        first_error = Some(message);
+                    }
+                }
+            }
+            continue;
+        }
+
         let mut prepared = None;
         let mut prepare_error = None;
         let video_transcode_scope = rec
@@ -2223,6 +2295,92 @@ fn run_orchestrated_grammers(
         }
 
         let _ = job_queue::update_item(&tid, item.index, ItemState::Preparing, None, None);
+        // Remote URLs use a dedicated transport path: Telegram external media
+        // for small objects, or a bounded in-memory pipe for larger objects.
+        // This deliberately bypasses media_prep's temp-file downloader.
+        if media_prep::is_remote_url(&item.path) {
+            let remote_as_document = as_doc
+                || rec
+                    .options
+                    .get("presentation_override")
+                    .or_else(|| rec.options.get("presentationOverride"))
+                    .and_then(|value| value.as_str())
+                    .is_some_and(|value| value == "document" || value == "force_document");
+            let remote_engine_mode = rec
+                .options
+                .get("remote_engine_mode")
+                .or_else(|| rec.options.get("remoteEngineMode"))
+                .and_then(|value| value.as_str())
+                .unwrap_or("auto");
+            match grammers_ops::upload_remote_url_blocking_topic_with_app(
+                &sessions,
+                &identity,
+                &rec.chat_id,
+                &item.path,
+                item_caption,
+                remote_as_document,
+                silent,
+                spoiler,
+                item.index,
+                topic_id,
+                schedule_at,
+                app.cloned(),
+                Some(tid.clone()),
+                remote_engine_mode,
+            ) {
+                Ok(result) => {
+                    any_ok = true;
+                    let _ = job_queue::update_item(
+                        &tid,
+                        item.index,
+                        ItemState::Done,
+                        result.message_id,
+                        None,
+                    );
+                    if let Some(app) = app {
+                        use tauri::Emitter;
+                        let _ = app.emit(
+                            "transfer-event",
+                            serde_json::json!({
+                                "type": "StudioItemDone",
+                                "index": item.index,
+                                "status": "done",
+                                "message_id": result.message_id,
+                                "path": file_name,
+                                "engine": result.backend,
+                            }),
+                        );
+                    }
+                }
+                Err(error) => {
+                    let message = error.user_message();
+                    let _ = job_queue::update_item(
+                        &tid,
+                        item.index,
+                        ItemState::Failed,
+                        None,
+                        Some(message.clone()),
+                    );
+                    if let Some(app) = app {
+                        use tauri::Emitter;
+                        let _ = app.emit(
+                            "transfer-event",
+                            serde_json::json!({
+                                "type": "StudioItemDone",
+                                "index": item.index,
+                                "status": "failed",
+                                "error": message,
+                                "path": file_name,
+                            }),
+                        );
+                    }
+                    if first_fatal.is_none() {
+                        first_fatal = Some(message);
+                    }
+                }
+            }
+            continue;
+        }
         // Remote URL download + optional ffmpeg reencode (no Telethon), pass user hardware preference
         let video_transcode_scope = rec
             .options

@@ -555,6 +555,62 @@ async fn quality_preflight(
     .map_err(|error| format!("quality preflight task failed: {error}"))?
 }
 
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct TgSendRemoteUrlCloudRequest {
+    session: String,
+    api_id: i64,
+    api_hash: String,
+    chat_id: String,
+    url: String,
+    #[serde(default)]
+    caption: String,
+    #[serde(default)]
+    as_document: bool,
+    #[serde(default)]
+    silent: bool,
+    #[serde(default)]
+    spoiler: bool,
+    topic_id: Option<i64>,
+    schedule_date: Option<i64>,
+    #[serde(default)]
+    index: usize,
+    transfer_id: Option<String>,
+}
+
+/// Explicit cloud-fetch command for a direct URL <=20 MiB. Telegram fetches
+/// the media through Grammers' external-media constructor; this command never
+/// creates a local temporary file and rejects unknown/oversize objects.
+#[tauri::command]
+fn tg_send_remote_url_cloud(
+    app: AppHandle,
+    request: TgSendRemoteUrlCloudRequest,
+) -> Result<core::telegram_ops::UploadStepResult, String> {
+    let sessions = core::grammers_ops::resolve_sessions_dir(None);
+    let identity = core::telegram_ops::TelegramIdentity {
+        session: request.session,
+        api_id: request.api_id,
+        api_hash: request.api_hash,
+    };
+    core::grammers_ops::upload_remote_url_blocking_topic_with_app(
+        &sessions,
+        &identity,
+        &request.chat_id,
+        &request.url,
+        &request.caption,
+        request.as_document,
+        request.silent,
+        request.spoiler,
+        request.index,
+        request.topic_id,
+        request.schedule_date,
+        Some(app),
+        request.transfer_id,
+        "cloud_fetch",
+    )
+    .map_err(|error| error.user_message())
+}
+
 /// Write one line to a long-lived worker's stdin (drive-serve JSON-RPC).
 #[tauri::command]
 fn write_worker_stdin(job_id: i64, line: String) -> Result<(), String> {
@@ -2882,6 +2938,7 @@ pub fn run() {
             studio_cancel_transfer,
             studio_set_transfer_paused,
             quality_preflight,
+            tg_send_remote_url_cloud,
             get_available_disk_space,
             get_custom_cache_dir,
             set_custom_cache_dir,

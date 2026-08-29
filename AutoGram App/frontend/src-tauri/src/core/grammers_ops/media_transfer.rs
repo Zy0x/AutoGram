@@ -1,6 +1,7 @@
 //! Submodule extracted from grammers_ops.rs
 
 use std::collections::HashMap;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -1501,6 +1502,348 @@ pub struct ProgressAsyncReader<R> {
     pub app_handle: Option<tauri::AppHandle>,
     pub item_index: usize,
     pub transfer_id: Option<String>,
+}
+
+const REMOTE_CLOUD_FETCH_MAX_BYTES: u64 = 20 * 1024 * 1024;
+
+/// Bounded in-memory reader for a remote response. `poll_read` performs a small
+/// blocking read, but the orchestrator already runs on a dedicated Tokio
+/// runtime and this keeps the response out of the filesystem entirely.
+struct RemoteUrlReader {
+    inner: Box<dyn Read + Send>,
+}
+
+impl AsyncRead for RemoteUrlReader {
+    fn poll_read(
+        mut self: Pin<&mut Self>,
+        _cx: &mut Context<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<std::io::Result<()>> {
+        // `ReadBuf` may expose only a small tail (for example 144 bytes).
+        // Reading directly into its unfilled slice guarantees that we never
+        // advance beyond the remaining capacity; the previous implementation
+        // read a full 128 KiB scratch chunk and then panicked in `put_slice`.
+        let unfilled = buf.initialize_unfilled();
+        if unfilled.is_empty() {
+            return Poll::Ready(Ok(()));
+        }
+        match self.inner.read(unfilled) {
+            Ok(0) => Poll::Ready(Ok(())),
+            Ok(n) => {
+                buf.advance(n);
+                Poll::Ready(Ok(()))
+            }
+            Err(error) => Poll::Ready(Err(error)),
+        }
+    }
+}
+
+fn remote_engine_choice(value: &str, size: Option<u64>) -> &'static str {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "cloud_fetch" | "cloud" | "direct" => "cloud_fetch",
+        "ram_pipe" | "ram" | "stream" => "ram_pipe",
+        _ => match size {
+            Some(bytes) if bytes <= REMOTE_CLOUD_FETCH_MAX_BYTES => "cloud_fetch",
+            _ => "ram_pipe",
+        },
+    }
+}
+
+fn remote_head(url: &str) -> Result<(Option<u64>, String), TgError> {
+    let agent = crate::core::media_prep::create_resilient_http_agent();
+    let mut req = agent.head(url);
+    req = req.set(
+        "User-Agent",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 AutoGram/4.0",
+    );
+    req = req.set("Accept", "*/*");
+    if url.contains("twimg.com") || url.contains("x.com") || url.contains("twitter.com") {
+        req = req.set("Referer", "https://x.com/");
+    } else if url.contains("pixiv.net") || url.contains("pximg.net") {
+        req = req.set("Referer", "https://www.pixiv.net/");
+    } else if url.contains("tiktok.com") || url.contains("tikwm.com") {
+        req = req.set("Referer", "https://www.tiktok.com/");
+    }
+
+    let response = req.call().or_else(|_| {
+        let mut get_req = agent.get(url);
+        get_req = get_req.set(
+            "User-Agent",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 AutoGram/4.0",
+        );
+        get_req = get_req.set("Accept", "*/*");
+        if url.contains("twimg.com") || url.contains("x.com") || url.contains("twitter.com") {
+            get_req = get_req.set("Referer", "https://x.com/");
+        } else if url.contains("pixiv.net") || url.contains("pximg.net") {
+            get_req = get_req.set("Referer", "https://www.pixiv.net/");
+        } else if url.contains("tiktok.com") || url.contains("tikwm.com") {
+            get_req = get_req.set("Referer", "https://www.tiktok.com/");
+        }
+        get_req.call()
+    }).map_err(|error| TgError::new(TgErrorCode::Io, format!("remote HEAD/GET failed: {error}")))?;
+
+    let size = response
+        .header("content-length")
+        .and_then(|value| value.parse::<u64>().ok());
+    let content_type = response
+        .header("content-type")
+        .unwrap_or("application/octet-stream")
+        .split(';')
+        .next()
+        .unwrap_or("application/octet-stream")
+        .trim()
+        .to_ascii_lowercase();
+    Ok((size, content_type))
+}
+
+fn remote_extension(url: &str, content_type: &str) -> String {
+    let from_url = url::Url::parse(url)
+        .ok()
+        .and_then(|parsed| {
+            parsed
+                .path_segments()
+                .and_then(|mut segments| segments.next_back())
+                .map(|name| name.rsplit_once('.').map(|(_, ext)| ext.to_ascii_lowercase()))
+                .flatten()
+        })
+        .filter(|ext| ext.len() <= 8 && ext.chars().all(|c| c.is_ascii_alphanumeric()));
+    if let Some(ext) = from_url {
+        return ext;
+    }
+    match content_type {
+        "image/jpeg" => "jpg",
+        "image/png" => "png",
+        "image/webp" => "webp",
+        "image/gif" => "gif",
+        "video/mp4" => "mp4",
+        "audio/mpeg" => "mp3",
+        "audio/ogg" => "ogg",
+        _ => "bin",
+    }
+    .to_string()
+}
+
+/// Deliver a direct remote URL without creating a temporary file. Small known
+/// objects use Telegram's external-media constructor (zero media bytes on the
+/// local link); larger objects use a bounded RAM pipe (zero persistent disk,
+/// but necessarily non-zero local network quota).
+pub fn upload_remote_url_blocking_topic_with_app(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    chat_id: &str,
+    url: &str,
+    caption: &str,
+    as_document: bool,
+    silent: bool,
+    spoiler: bool,
+    index: usize,
+    topic_id: Option<i64>,
+    schedule_date: Option<i64>,
+    app_handle: Option<tauri::AppHandle>,
+    transfer_id: Option<String>,
+    engine_mode: &str,
+) -> Result<UploadStepResult, TgError> {
+    let url = url.trim();
+    if !(url.starts_with("http://") || url.starts_with("https://")) {
+        return Err(TgError::new(TgErrorCode::PathRejected, "remote URL must use http or https"));
+    }
+    let (size, content_type) = remote_head(url)?;
+    let selected_engine = remote_engine_choice(engine_mode, size);
+    if selected_engine == "cloud_fetch" && size.is_none() {
+        return Err(TgError::new(
+            TgErrorCode::Io,
+            "cloud fetch requires a remote Content-Length; choose RAM stream for unknown-size URLs",
+        ));
+    }
+    if selected_engine == "cloud_fetch" && size.is_some_and(|bytes| bytes > REMOTE_CLOUD_FETCH_MAX_BYTES) {
+        return Err(TgError::new(
+            TgErrorCode::Io,
+            "remote object exceeds 20 MiB cloud-fetch limit; choose RAM stream",
+        ));
+    }
+    if let Some(app) = &app_handle {
+        use tauri::Emitter;
+        let _ = app.emit(
+            "transfer-event",
+            serde_json::json!({
+                "type": "StudioProgress",
+                "index": index,
+                "percent": 0.0,
+                "transferred": 0,
+                "total": size.unwrap_or(0),
+                "phase": if selected_engine == "cloud_fetch" { "cloud_fetch" } else { "upload" },
+                "engine": selected_engine
+            }),
+        );
+    }
+
+    let ext = remote_extension(url, &content_type);
+    let filename = if !caption.trim().is_empty() && !caption.contains("~tplv") && !caption.starts_with("http") {
+        let clean = caption.split('\n').next().unwrap_or(caption).trim();
+        if clean.ends_with(&format!(".{ext}")) {
+            clean.to_string()
+        } else {
+            format!("{clean}.{ext}")
+        }
+    } else {
+        format!("Remote_Media.{ext}")
+    };
+    let chat = chat_id.to_string();
+    let is_self_chat = matches!(
+        chat.to_ascii_lowercase().as_str(),
+        "me" | "self" | "saved" | "saved messages" | "saved_messages" | "pesan tersimpan" | "0"
+    );
+    let reply_to = if is_self_chat {
+        None
+    } else {
+        topic_id.filter(|value| *value > 0).map(|value| value as i32)
+    };
+    let caption = caption.to_string();
+    let url = url.to_string();
+    let rt = runtime()?;
+    rt.block_on(async {
+        with_client(sessions_dir, identity, true, |client| {
+            let app_handle = app_handle.clone();
+            let transfer_id = transfer_id.clone();
+            let filename = filename.clone();
+            let content_type = content_type.clone();
+            let url = url.clone();
+            let caption = caption.clone();
+            Box::pin(async move {
+                if !client.is_authorized().await.map_err(|error| map_invocation(&error))? {
+                    return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
+                }
+                let peer = resolve_peer(client, &chat).await?;
+                let mut msg = InputMessage::new().text(caption).silent(silent);
+                if let Some(reply) = reply_to {
+                    msg = msg.reply_to(Some(reply));
+                }
+                let sent = if selected_engine == "cloud_fetch" {
+                    let is_photo = content_type.starts_with("image/") && !as_document;
+                    if is_photo {
+                        msg = msg.photo_url(url);
+                    } else {
+                        msg = msg.media(
+                            tl::types::InputMediaDocumentExternal {
+                                spoiler,
+                                url,
+                                ttl_seconds: None,
+                                video_cover: None,
+                                video_timestamp: None,
+                            },
+                        );
+                    }
+                    if let Some(timestamp) = schedule_date {
+                        msg = msg.schedule_date(Some(SystemTime::UNIX_EPOCH + Duration::from_secs(timestamp.max(0) as u64)));
+                    }
+                    client.send_message(peer, msg).await.map_err(|error| map_invocation(&error))?
+                } else {
+                    let agent = crate::core::media_prep::create_resilient_http_agent();
+                    let mut req = agent.get(&url);
+                    req = req.set(
+                        "User-Agent",
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 AutoGram/4.0",
+                    );
+                    req = req.set("Accept", "*/*");
+                    if url.contains("twimg.com") || url.contains("x.com") || url.contains("twitter.com") {
+                        req = req.set("Referer", "https://x.com/");
+                    } else if url.contains("pixiv.net") || url.contains("pximg.net") {
+                        req = req.set("Referer", "https://www.pixiv.net/");
+                    } else if url.contains("tiktok.com") || url.contains("tikwm.com") {
+                        req = req.set("Referer", "https://www.tiktok.com/");
+                    }
+                    let response = req
+                        .call()
+                        .map_err(|error| TgError::new(TgErrorCode::Io, format!("remote GET failed: {error}")))?;
+                    let total = size
+                        .or_else(|| response.header("content-length").and_then(|value| value.parse::<u64>().ok()))
+                        .ok_or_else(|| TgError::new(TgErrorCode::Io, "RAM stream requires a remote Content-Length"))?;
+                    if total == 0 || total > 4 * 1024 * 1024 * 1024 {
+                        return Err(TgError::new(TgErrorCode::Io, "remote object has an invalid or unsupported size"));
+                    }
+                    let reader = RemoteUrlReader { inner: Box::new(response.into_reader()) };
+                    let mut progress = ProgressAsyncReader {
+                        inner: reader,
+                        stage: "upload".into(),
+                        total_bytes: total,
+                        current_bytes: 0,
+                        last_emit_time: Instant::now(),
+                        last_emit_bytes: 0,
+                        app_handle: app_handle.clone(),
+                        item_index: index,
+                        transfer_id: transfer_id.clone(),
+                    };
+                    let uploaded = client
+                        .upload_stream(&mut progress, total as usize, filename.clone())
+                        .await
+                        .map_err(|error| TgError::new(TgErrorCode::Io, format!("remote upload_stream: {error}")))?;
+                    if as_document || !content_type.starts_with("image/") {
+                        msg = msg.mime_type(&content_type).document(uploaded);
+                    } else {
+                        msg = msg.photo(uploaded);
+                    }
+                    if let Some(timestamp) = schedule_date {
+                        msg = msg.schedule_date(Some(SystemTime::UNIX_EPOCH + Duration::from_secs(timestamp.max(0) as u64)));
+                    }
+                    client.send_message(peer, msg).await.map_err(|error| map_invocation(&error))?
+                };
+                Ok(UploadStepResult {
+                    status: "done".into(),
+                    message_id: Some(sent.id() as i64),
+                    error: None,
+                    index,
+                    backend: Some(format!("grammers_remote_{selected_engine}")),
+                })
+            })
+        })
+        .await
+    })
+}
+
+#[cfg(test)]
+mod remote_engine_tests {
+    use super::{remote_engine_choice, remote_extension, RemoteUrlReader, REMOTE_CLOUD_FETCH_MAX_BYTES};
+    use std::io::Cursor;
+    use tokio::io::AsyncReadExt;
+
+    #[test]
+    fn auto_uses_cloud_only_for_known_small_objects() {
+        assert_eq!(remote_engine_choice("auto", Some(1)), "cloud_fetch");
+        assert_eq!(
+            remote_engine_choice("auto", Some(REMOTE_CLOUD_FETCH_MAX_BYTES + 1)),
+            "ram_pipe"
+        );
+        assert_eq!(remote_engine_choice("auto", None), "ram_pipe");
+    }
+
+    #[test]
+    fn explicit_mode_is_respected() {
+        assert_eq!(remote_engine_choice("cloud_fetch", Some(99)), "cloud_fetch");
+        assert_eq!(remote_engine_choice("ram_pipe", Some(1)), "ram_pipe");
+    }
+
+    #[test]
+    fn extension_ignores_query_string_and_falls_back_to_mime() {
+        assert_eq!(
+            remote_extension("https://video.example/a/file.mp4?token=abc", "application/octet-stream"),
+            "mp4"
+        );
+        assert_eq!(
+            remote_extension("https://example.invalid/no-name", "image/jpeg"),
+            "jpg"
+        );
+    }
+
+    #[tokio::test]
+    async fn remote_reader_respects_small_readbuf_capacity() {
+        let payload = vec![0xA5; 16 * 1024];
+        let mut reader = RemoteUrlReader {
+            inner: Box::new(Cursor::new(payload.clone())),
+        };
+        let mut output = Vec::new();
+        reader.read_to_end(&mut output).await.unwrap();
+        assert_eq!(output, payload);
+    }
 }
 
 impl<R: AsyncRead + Unpin> AsyncRead for ProgressAsyncReader<R> {

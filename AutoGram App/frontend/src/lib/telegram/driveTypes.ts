@@ -852,6 +852,8 @@ export type PlaybackFpsMode = 'adaptive' | 'follow_source' | 'follow_display' | 
 
 export type ScanMode = 'normal' | 'smart' | 'forensic';
 export type TopicScope = 'selected_only' | 'selected_plus_general' | 'all_topics';
+/** Remote URL transport preference. */
+export type RemoteEngineMode = 'auto' | 'cloud_fetch' | 'ram_pipe';
 
 /** Upload + download preferences for Media Studio (persisted in localStorage). */
 export type DriveTransferSettings = {
@@ -977,6 +979,8 @@ export type DriveTransferSettings = {
   playbackShowDiagnostics?: boolean;
   /** Automatically filter out and hide restricted/inaccessible messages and media (e.g. "This channel can't be displayed...") */
   hideRestrictedMedia?: boolean;
+  /** Remote URL transport preference. Auto uses cloud fetch for known <=20 MiB direct files. */
+  remoteEngineMode?: RemoteEngineMode;
 };
 
 export type DriveTransferSettingsProfile = {
@@ -1064,6 +1068,7 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   playbackSeekCacheMb: 256,
   playbackShowDiagnostics: false,
   hideRestrictedMedia: true,
+  remoteEngineMode: 'auto',
 };
 
 export const QUALITY_MODE_OPTIONS: {
@@ -1201,6 +1206,9 @@ export function loadTransferSettings(): DriveTransferSettings {
       downloadResumePartial: p.downloadResumePartial !== false,
       downloadIntegrity: p.downloadIntegrity === 'sha256' ? 'sha256' : 'size',
       hideRestrictedMedia: p.hideRestrictedMedia !== false,
+      remoteEngineMode: p.remoteEngineMode === 'cloud_fetch' || p.remoteEngineMode === 'ram_pipe'
+        ? p.remoteEngineMode
+        : DEFAULT_TRANSFER_SETTINGS.remoteEngineMode,
     };
   } catch {
     return { ...DEFAULT_TRANSFER_SETTINGS };

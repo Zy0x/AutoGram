@@ -375,6 +375,14 @@ pub fn is_transfer_cancelled(transfer_id: &str) -> bool {
     false
 }
 
+pub fn is_any_transfer_cancelled() -> bool {
+    if CANCEL_ALL_TRANSFERS.load(std::sync::atomic::Ordering::SeqCst) {
+        return true;
+    }
+    let set = cancelled_set().read();
+    !set.is_empty()
+}
+
 pub fn set_transfer_paused(transfer_id: Option<&str>, paused: bool) {
     if let Some(transfer_id) = transfer_id {
         if paused {

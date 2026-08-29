@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import type { RemoteEngineMode } from '../telegram/driveTypes';
 
 export type PreflightTransform = 'pass_through' | 'lossless_remux' | 'reencode' | 'convert_webp_png';
 export type PreflightPayload = 'native_visual' | 'document_group' | 'audio_group' | 'original_document_batch' | 'split_part_batch';
@@ -49,6 +50,7 @@ export interface QualityPreflightReport {
   transformReencodeCount?: number;
   albumGridSize: number;
   plannedAlbumSizes: number[];
+  remoteEngineMode?: RemoteEngineMode;
 }
 
 export interface QualityPreflightRequest {
