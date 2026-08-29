@@ -259,53 +259,56 @@ function formatMediaDuration(seconds?: number | null): string {
 
 function getSingleUnifiedBadge(item: ResolvedMediaItem): string {
   const fmt = item.formats[0];
-  if (!fmt) return item.kind === 'video' ? 'HD VIDEO' : 'HD PHOTO';
+  if (!fmt) return item.kind === 'image' ? 'PHOTO' : 'HD';
 
+  // Try to get resolution from badge or resolution field
   const dim = fmt.badge && fmt.badge.includes('×')
     ? fmt.badge
     : fmt.resolution && fmt.resolution.includes('x')
-      ? fmt.resolution
-      : null;
-  const tier = fmt.qualityTier && fmt.qualityTier !== 'original'
-    ? fmt.qualityTier.toUpperCase()
-    : fmt.label?.includes('HD')
-      ? 'HD'
+      ? fmt.resolution.replace('x', '×')
       : null;
 
-  if (dim && tier) {
-    const cleanTier =
-      tier === '4K'
-        ? '4K UHD'
-        : tier === '2K'
-          ? '2K QHD'
-          : tier === '1080P'
-            ? '1080p FHD'
-            : tier === '720P'
-              ? '720p HD'
-              : tier;
-    return `${cleanTier} • ${dim}`;
+  // Determine quality tier
+  const rawTier = fmt.qualityTier && fmt.qualityTier !== 'original'
+    ? fmt.qualityTier.toUpperCase()
+    : fmt.label?.toUpperCase().includes('4K')
+      ? '4K'
+      : fmt.label?.toUpperCase().includes('1080')
+        ? '1080P'
+        : fmt.label?.toUpperCase().includes('720')
+          ? '720P'
+          : fmt.label?.includes('HD')
+            ? 'HD'
+            : null;
+
+  // Standard HD tiers
+  const isStandardHD = rawTier && ['HD', '720P', '1080P', '2K', '4K'].includes(rawTier);
+
+  const tierLabel =
+    rawTier === '4K' ? '4K' :
+    rawTier === '2K' ? '2K' :
+    rawTier === '1080P' ? '1080p' :
+    rawTier === '720P' ? '720p' :
+    rawTier === 'HD' ? 'HD' : null;
+
+  if (isStandardHD && tierLabel && dim) {
+    // e.g. "HD · 720×1280"
+    return `${tierLabel} · ${dim}`;
   }
+  if (isStandardHD && tierLabel) {
+    return tierLabel;
+  }
+  // Non-standard: show resolution directly
   if (dim) {
     return dim;
   }
-  if (tier) {
-    return tier === '4K'
-      ? '4K UHD'
-      : tier === '2K'
-        ? '2K QHD'
-        : tier === '1080P'
-          ? '1080p FHD'
-          : tier === '720P'
-            ? '720p HD'
-            : tier;
+  if (fmt.ext === 'zip' || fmt.ext === 'rar' || fmt.ext === '7z') {
+    return 'ZIP';
   }
   if (fmt.isImage || item.kind === 'image') {
-    return 'HD PHOTO';
+    return 'PHOTO';
   }
-  if (fmt.ext === 'zip' || fmt.ext === 'rar' || fmt.ext === '7z') {
-    return 'ZIP ARCHIVE';
-  }
-  return 'HD VIDEO';
+  return 'HD';
 }
 
 const ItemDurationBadge: React.FC<{
@@ -2211,22 +2214,7 @@ export function RemoteUploadModal({
                                     }}
                                   >
                                     <div className="td-remote-item-thumb-wrap">
-                                      <button
-                                        type="button"
-                                        className={`td-remote-item-checkbox ${isSelected ? 'checked' : ''}`}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleToggleItem(item.id);
-                                        }}
-                                        aria-label={isSelected ? t('drive_tools.remote_gallery_deselect_all') : t('drive_tools.remote_gallery_select_all')}
-                                      >
-                                        {isSelected ? <Check size={14} strokeWidth={3} /> : <div className="td-remote-check-unselected" />}
-                                      </button>
-
-                                      <span className="td-remote-item-single-badge">
-                                        {getSingleUnifiedBadge(item)}
-                                      </span>
-
+                                      {/* Thumbnail or fallback */}
                                       {item.thumbnailUrl ? (
                                         <img
                                           src={item.thumbnailUrl}
@@ -2241,31 +2229,54 @@ export function RemoteUploadModal({
                                         </div>
                                       )}
 
-                                      {item.kind === 'video' && (
+                                      {/* TOP-LEFT: Quality pill badge */}
+                                      <span className="td-remote-item-quality-badge">
+                                        {getSingleUnifiedBadge(item)}
+                                      </span>
+
+                                      {/* TOP-RIGHT: Selection checkbox */}
+                                      <button
+                                        type="button"
+                                        className={`td-remote-item-checkbox ${isSelected ? 'checked' : ''}`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleToggleItem(item.id);
+                                        }}
+                                        aria-label={isSelected ? t('drive_tools.remote_gallery_deselect_all') : t('drive_tools.remote_gallery_select_all')}
+                                      >
+                                        {isSelected ? <Check size={14} strokeWidth={3} /> : <div className="td-remote-check-unselected" />}
+                                      </button>
+
+                                      {/* Play icon for videos */}
+                                      {item.kind === 'video' && galleryViewMode === 'list' && (
                                         <div className="td-remote-item-play-overlay">
                                           <div className="td-remote-item-play-icon-badge">
                                             <Play size={13} fill="currentColor" />
                                           </div>
                                         </div>
                                       )}
-
-                                      <ItemDurationBadge
-                                        item={item}
-                                        knownDuration={itemDurations[item.id] || item.durationSec}
-                                      />
                                     </div>
 
+                                    {/* CARD BODY: gradient overlay (grid) or side (list) */}
                                     <div className="td-remote-item-card-body">
-                                      <span className="td-remote-item-card-title" title={itemCustomNames[item.id] || item.title}>
-                                        {itemCustomNames[item.id] || item.title}
-                                      </span>
-                                      <div className="td-remote-item-card-meta-clean">
-                                        <span className="td-remote-meta-size">
-                                          {chosenFmt?.filesizeBytes ? `~${formatDriveBytes(chosenFmt.filesizeBytes)}` : ''}
+                                      {/* BOTTOM-LEFT: filename + size */}
+                                      <div className="td-remote-card-info">
+                                        <span className="td-remote-item-card-title" title={itemCustomNames[item.id] || item.title}>
+                                          {itemCustomNames[item.id] || item.title}
                                         </span>
-                                        <span className="td-remote-meta-ext">
-                                          {chosenFmt?.ext ? chosenFmt.ext.toUpperCase() : ''}
-                                        </span>
+                                        {chosenFmt?.filesizeBytes ? (
+                                          <span className="td-remote-meta-size">
+                                            ~{formatDriveBytes(chosenFmt.filesizeBytes)}
+                                          </span>
+                                        ) : null}
+                                      </div>
+
+                                      {/* BOTTOM-RIGHT: duration */}
+                                      <div className="td-remote-card-duration">
+                                        <ItemDurationBadge
+                                          item={item}
+                                          knownDuration={itemDurations[item.id] || item.durationSec}
+                                        />
                                       </div>
                                     </div>
                                   </div>
