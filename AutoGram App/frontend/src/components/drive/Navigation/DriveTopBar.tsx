@@ -20,6 +20,7 @@ import {
   Pin,
   PinOff,
   Copy,
+  FolderTree,
   Edit2,
   Globe,
   FolderArchive,
@@ -49,6 +50,7 @@ import type {
 import { MediaSelect } from './MediaSelect';
 import { DriveStorageInfoBadge } from './DriveStorageInfoBadge';
 import { copyTextWithFallback } from '../../../lib/utils/debugMode';
+import { nativeWriteClipboardText } from '../../../lib/tauri/desktopClipboard';
 import {
   DRIVE_GRID_ZOOM_LEVELS,
   DRIVE_SORT_OPTIONS,
@@ -116,7 +118,8 @@ type Props = {
   onAddTopic?: () => void;
   onDeleteTopic?: (topicId: number, title: string) => void;
   onRenameTopic?: (topicId: number, title: string) => void;
-  onCopyTopicId?: (topicId: number, topicPath: string) => void;
+  onCopyTopicId?: (topicId: number, topicPath?: string) => void;
+  onCopyTopicPathId?: (topicId: number, topicPath?: string) => void;
   topicsLoading?: boolean;
   onDropOnTopic?: (topicId: number | null, topicTitle: string, e: React.DragEvent) => void;
   /** Open Drive power tools (dup/rename/copy/filter/space) */
@@ -212,6 +215,7 @@ export function DriveTopBar({
   onDeleteTopic,
   onRenameTopic,
   onCopyTopicId,
+  onCopyTopicPathId,
   topicsLoading,
   onDropOnTopic,
   onOpenTools,
@@ -1388,10 +1392,28 @@ export function DriveTopBar({
                 borderRadius: '8px',
                 padding: '4px',
                 minWidth: '160px',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.5)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  const { topicId } = topicContextMenu;
+                  setTopicContextMenu(null);
+                  const idStr = String(topicId);
+                  void (async () => {
+                    const ok = await nativeWriteClipboardText(idStr);
+                    if (!ok) {
+                      await copyTextWithFallback(idStr);
+                    }
+                    onCopyTopicId?.(topicId, idStr);
+                  })();
+                }}
+              >
+                <Copy size={14} />
+                <span>{t('speedtest.copy_topic_id')}</span>
+              </button>
               <button
                 type="button"
                 role="menuitem"
@@ -1402,20 +1424,26 @@ export function DriveTopBar({
                     .filter((s) => s.kind !== 'topic')
                     .map((s) => (s.id != null ? String(s.id) : null))
                     .filter((s): s is string => Boolean(s));
-                  const topicPath =
+                  const fallbackTopicPath =
                     parentSegments.length > 0
                       ? '/' + [...parentSegments, String(topicId)].join('/')
                       : `/${topicId}`;
 
-                  void copyTextWithFallback(topicPath).then((ok: any) => {
-                    if (ok) {
-                      onCopyTopicId?.(topicId, topicPath);
-                    }
-                  });
+                  if (onCopyTopicPathId) {
+                    onCopyTopicPathId(topicId, fallbackTopicPath);
+                  } else {
+                    void (async () => {
+                      const ok = await nativeWriteClipboardText(fallbackTopicPath);
+                      if (!ok) {
+                        await copyTextWithFallback(fallbackTopicPath);
+                      }
+                      onCopyTopicId?.(topicId, fallbackTopicPath);
+                    })();
+                  }
                 }}
               >
-                <Copy size={14} />
-                <span>{t('speedtest.copy_topic_id')}</span>
+                <FolderTree size={14} />
+                <span>{t('speedtest.ctx_menu_copy_path_id')}</span>
               </button>
               {onRenameTopic && (
                 <button

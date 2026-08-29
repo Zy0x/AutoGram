@@ -371,6 +371,8 @@ import { DriveTransferManager } from '../../components/drive/Transfers/DriveTran
 import { transferProgressStore } from '../../stores/transferProgressStore';
 import { DownloadAllZipModal, type ZipCategory } from '../../components/drive/Modals/DownloadAllZipModal';
 import { TelegramChatActionModal } from '../../components/drive/Modals/TelegramChatActionModal';
+import { buildMediaPathId } from '../../components/drive/utils/mediaPathId';
+import { nativeWriteClipboardText } from '../../lib/tauri/desktopClipboard';
 import {
   tgInspectChatTarget,
   tgChatAction,
@@ -10459,8 +10461,28 @@ function MediaDriveDesktop({
             onAddTopic={handleCreateTopic}
             onDeleteTopic={handleDeleteTopic}
             onRenameTopic={handleRenameTopic}
-            onCopyTopicId={(_topicId, topicPath) => {
-              setStatusText(`ID Topik disalin: ${topicPath}`);
+            onCopyTopicId={(topicId) => {
+              const idStr = String(topicId);
+              setStatusText(t('speedtest.copy_id_success', { value: idStr }));
+            }}
+            onCopyTopicPathId={(topicId) => {
+              const accountUserId = getSessionMetadata(session || '')?.telegramUserId ||
+                String(session || '').replace(/^session_/, '') || '0';
+              const activeChat = chats.find((chat) => Number(chat.id) === Number(activePeerId)) || null;
+              const path = buildMediaPathId({
+                accountUserId,
+                locationKind,
+                peerId: activePeerId,
+                topicId,
+                chat: activeChat,
+              });
+              void nativeWriteClipboardText(path).then((ok) => {
+                if (ok) {
+                  setStatusText(t('speedtest.copy_path_id_success', { value: path }));
+                } else {
+                  setStatusText(path);
+                }
+              });
             }}
             topicsLoading={topicsLoading}
             onDropOnTopic={handleDropOnTopic}
