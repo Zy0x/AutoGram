@@ -25818,71 +25818,91 @@ button.td-confirm-icon.is-back-btn:active {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  padding-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .td-remote-pill-subgroup {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
 }
 
 .td-remote-mode-pills,
 .td-remote-engine-pills {
   display: flex;
-  flex-wrap: wrap;
   gap: 4px;
+  width: 100%;
 }
 
 .td-remote-mode-pill,
 .td-remote-engine-pill {
+  flex: 1 1 0%;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: 3px 8px;
-  border-radius: 999px;
+  padding: 4px 6px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(10, 15, 29, 0.6);
+  background: rgba(10, 15, 29, 0.7);
   color: #94a3b8;
-  font-size: 0.7rem;
+  font-size: 0.69rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 130ms ease;
   white-space: nowrap;
   line-height: 1;
+  text-align: center;
 }
 
 .td-remote-mode-pill:hover:not(:disabled),
 .td-remote-engine-pill:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.22);
   color: #f1f5f9;
 }
 
 .td-remote-mode-pill.active.uncompressed {
   background: linear-gradient(135deg, rgba(168, 85, 247, 0.35), rgba(99, 102, 241, 0.3));
-  border-color: rgba(192, 132, 252, 0.5);
+  border-color: rgba(192, 132, 252, 0.6);
   color: #e9d5ff;
 }
 
 .td-remote-mode-pill.active.auto,
 .td-remote-engine-pill.active {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(99, 102, 241, 0.22));
-  border-color: rgba(56, 189, 248, 0.55);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(99, 102, 241, 0.25));
+  border-color: rgba(56, 189, 248, 0.6);
   color: #7dd3fc;
 }
 
 .td-remote-mode-pill.active.doc {
-  background: linear-gradient(135deg, rgba(234, 179, 8, 0.28), rgba(161, 98, 7, 0.2));
-  border-color: rgba(250, 204, 21, 0.5);
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.28), rgba(161, 98, 7, 0.22));
+  border-color: rgba(250, 204, 21, 0.6);
   color: #fef08a;
 }
 
+.td-remote-policy-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.td-remote-policy-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .td-remote-dest-row {
-  padding-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .td-remote-dest-card {
@@ -25891,10 +25911,10 @@ button.td-confirm-icon.is-back-btn:active {
   justify-content: space-between;
   gap: 8px;
   width: 100%;
-  padding: 5px 8px;
-  border-radius: 7px;
+  padding: 6px 10px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   cursor: pointer;
   color: #cbd5e1;
   text-align: left;
@@ -25902,20 +25922,20 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-remote-dest-card:hover {
-  border-color: rgba(56, 189, 248, 0.35);
+  border-color: rgba(56, 189, 248, 0.4);
   background: rgba(255, 255, 255, 0.06);
 }
 
 .td-remote-dest-main {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
   flex: 1;
 }
 
 .td-remote-dest-title {
-  font-size: 0.74rem;
+  font-size: 0.76rem;
   font-weight: 600;
   color: #f8fafc;
   overflow: hidden;
@@ -25924,23 +25944,24 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-remote-dest-topic {
-  font-size: 0.65rem;
+  font-size: 0.67rem;
   font-weight: 700;
   color: #38bdf8;
-  padding: 0 4px;
-  border-radius: 3px;
+  padding: 1px 6px;
+  border-radius: 4px;
   background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.25);
 }
 
 .td-remote-dest-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
 .td-remote-dest-change-tag {
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   color: #38bdf8;
   font-weight: 600;
   display: inline-flex;
@@ -25959,8 +25980,8 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-meta-card {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 8px 10px;
+  gap: 6px;
+  padding: 8px 12px;
   border-radius: 10px;
   background: rgba(15, 23, 42, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -25975,7 +25996,7 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-remote-media-title {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: #f8fafc;
   white-space: nowrap;
@@ -25988,28 +26009,29 @@ button.td-confirm-icon.is-back-btn:active {
   width: 100%;
   border-radius: 8px;
   overflow: hidden;
-  background: #020617;
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   position: relative;
-  max-height: 130px;
+  max-height: 160px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
 .td-remote-big-canvas-inner {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  max-height: 130px;
+  max-height: 160px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #020617;
+  background: #000000;
   overflow: hidden;
 }
 
 .td-remote-big-canvas-video {
   width: 100%;
   height: 100%;
-  max-height: 130px;
+  max-height: 160px;
   object-fit: contain;
   background: #000000;
   outline: none;
@@ -26018,20 +26040,20 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-specs-ribbon {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   flex-wrap: wrap;
-  padding-top: 2px;
+  padding-top: 3px;
 }
 
 .td-remote-spec-item {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 2px 6px;
+  gap: 4px;
+  padding: 3px 8px;
   border-radius: 5px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  font-size: 0.66rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.68rem;
   font-weight: 600;
   color: #cbd5e1;
 }

@@ -304,114 +304,12 @@ function getSingleUnifiedBadge(item: ResolvedMediaItem): string {
   return 'HD VIDEO';
 }
 
-class DurationProbeQueue {
-  private queue: Array<() => Promise<void>> = [];
-  private activeCount = 0;
-  private maxConcurrent = 2;
-
-  add(task: () => Promise<void>) {
-    this.queue.push(task);
-    this.processNext();
-  }
-
-  remove(task: () => Promise<void>) {
-    const idx = this.queue.indexOf(task);
-    if (idx !== -1) {
-      this.queue.splice(idx, 1);
-    }
-  }
-
-  private processNext() {
-    if (this.activeCount >= this.maxConcurrent || this.queue.length === 0) {
-      return;
-    }
-    const task = this.queue.shift();
-    if (!task) return;
-
-    this.activeCount++;
-    task().finally(() => {
-      this.activeCount--;
-      this.processNext();
-    });
-  }
-}
-
-const probeQueue = new DurationProbeQueue();
-
 const ItemDurationBadge: React.FC<{
   item: ResolvedMediaItem;
   knownDuration?: number;
-  onDurationFound?: (id: string, dur: number) => void;
-}> = ({ item, knownDuration, onDurationFound }) => {
-  const [duration, setDuration] = useState<number | undefined>(knownDuration || item.durationSec);
-  const onFoundRef = useRef(onDurationFound);
-  onFoundRef.current = onDurationFound;
-
-  useEffect(() => {
-    if (knownDuration && knownDuration > 0) {
-      setDuration(knownDuration);
-      return;
-    }
-    if (item.kind !== 'video') return;
-    if (duration && duration > 0) return;
-
-    const directUrl = item.formats[0]?.directUrl;
-    if (!directUrl || !directUrl.startsWith('http') || directUrl.includes('/v/') || directUrl.includes('/e/')) return;
-
-    let isCancelled = false;
-
-    const probeTask = () => {
-      return new Promise<void>((resolve) => {
-        if (isCancelled) {
-          resolve();
-          return;
-        }
-        const v = document.createElement('video');
-        v.preload = 'metadata';
-        v.src = directUrl;
-
-        let isCleaned = false;
-        const cleanup = () => {
-          if (isCleaned) return;
-          isCleaned = true;
-          v.removeEventListener('loadedmetadata', onMeta);
-          v.removeEventListener('durationchange', onMeta);
-          v.removeEventListener('canplay', onMeta);
-          v.removeEventListener('error', cleanup);
-          v.src = '';
-          resolve();
-        };
-
-        const onMeta = () => {
-          if (!isCancelled && v.duration && isFinite(v.duration) && v.duration > 0) {
-            const d = Math.round(v.duration);
-            setDuration(d);
-            onFoundRef.current?.(item.id, d);
-          }
-          cleanup();
-        };
-
-        v.addEventListener('loadedmetadata', onMeta);
-        v.addEventListener('durationchange', onMeta);
-        v.addEventListener('canplay', onMeta);
-        v.addEventListener('error', cleanup);
-        v.load();
-
-        // Safety timeout to prevent queue stalling
-        setTimeout(cleanup, 3500);
-      });
-    };
-
-    probeQueue.add(probeTask);
-
-    return () => {
-      isCancelled = true;
-      probeQueue.remove(probeTask);
-    };
-  }, [item.id, item.formats, item.kind, knownDuration]);
-
-  const durToFormat = duration || knownDuration || item.durationSec;
-  const formatted = formatMediaDuration(durToFormat);
+}> = ({ item, knownDuration }) => {
+  const dur = knownDuration || item.durationSec || item.formats[0]?.durationSec;
+  const formatted = formatMediaDuration(dur);
   if (!formatted) return null;
 
   return (
@@ -968,12 +866,7 @@ export function RemoteUploadModal({
     setSelectedMediaItemIds(new Set());
   }, []);
 
-  const handleDurationFound = useCallback((id: string, dur: number) => {
-    setItemDurations((prev) => {
-      if (prev[id] === dur) return prev;
-      return { ...prev, [id]: dur };
-    });
-  }, []);
+
 
   const selectedItems = useMemo(() => {
     return effectiveMediaItems.filter((item) => selectedMediaItemIds.has(item.id));
@@ -1857,14 +1750,6 @@ export function RemoteUploadModal({
                                   }
                                 }}
                               />
-                              <div className="td-remote-canvas-badge-overlay">
-                                {(activeVideoDuration || activePreviewItem?.durationSec || resolvedMedia.durationSec) ? (
-                                  <span className="td-remote-canvas-duration-tag">
-                                    <Clock size={11} />
-                                    <span>{formatMediaDuration(activeVideoDuration || activePreviewItem?.durationSec || resolvedMedia.durationSec)}</span>
-                                  </span>
-                                ) : null}
-                              </div>
                             </div>
                           ) : activeSlideUrl ? (
                             <div className="td-remote-big-canvas-inner">
@@ -2217,7 +2102,6 @@ export function RemoteUploadModal({
                               <ItemDurationBadge
                                 item={item}
                                 knownDuration={itemDurations[item.id] || item.durationSec}
-                                onDurationFound={handleDurationFound}
                               />
                             </div>
 
