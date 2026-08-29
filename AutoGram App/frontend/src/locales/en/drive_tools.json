@@ -1768,5 +1768,9 @@
   "remote_direct_stream_badge": "Direct Stream",
   "remote_preview_title": "Media Preview",
   "remote_badge_fhd": "1080p FHD",
-  "remote_badge_hd": "HD MEDIA"
+  "remote_badge_hd": "HD MEDIA",
+  "remote_platform_recognized": "Recognized Platform",
+  "remote_quality_formats_available": "Available Streams ({{count}})",
+  "remote_active_preview_inspect": "Active Live Preview",
+  "remote_btn_upload_single": "Start Ingestion"
 }

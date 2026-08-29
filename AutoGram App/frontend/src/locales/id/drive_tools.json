@@ -1768,5 +1768,9 @@
   "remote_direct_stream_badge": "Streaming Langsung",
   "remote_preview_title": "Pratinjau Media",
   "remote_badge_fhd": "1080p FHD",
-  "remote_badge_hd": "MEDIA HD"
+  "remote_badge_hd": "MEDIA HD",
+  "remote_platform_recognized": "Platform Terdeteksi",
+  "remote_quality_formats_available": "Format Tersedia ({{count}})",
+  "remote_active_preview_inspect": "Pratinjau Aktif Langsung",
+  "remote_btn_upload_single": "Mulai Pengunggahan"
 }

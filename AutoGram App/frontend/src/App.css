@@ -25698,6 +25698,32 @@ button.td-confirm-icon.is-back-btn:active {
   background: rgba(255, 255, 255, 0.22);
 }
 
+/* ==========================================================================
+   REMOTE URL STUDIO — MODERN ELEGANT TIERED WORKSPACE
+   ========================================================================== */
+
+@keyframes tdStudioModalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes tdFadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .td-confirm-panel.td-remote-upload-panel,
 .td-remote-upload-panel {
   display: flex !important;
@@ -25709,16 +25735,17 @@ button.td-confirm-icon.is-back-btn:active {
   max-height: calc(100dvh - 28px) !important;
   height: auto !important;
   min-height: 0 !important;
-  border-radius: 16px !important;
-  background: #0f1418 !important;
-  backdrop-filter: blur(28px) saturate(190%) !important;
+  border-radius: 18px !important;
+  background: #0b0f13 !important;
+  backdrop-filter: blur(32px) saturate(200%) !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
   box-shadow:
-    0 32px 80px -15px rgba(0, 0, 0, 0.9),
+    0 32px 80px -15px rgba(0, 0, 0, 0.95),
     0 0 0 1px rgba(255, 255, 255, 0.08) inset,
-    0 1px 0 rgba(255, 255, 255, 0.18) inset !important;
+    0 1px 0 rgba(255, 255, 255, 0.22) inset !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
+  animation: tdStudioModalIn 220ms cubic-bezier(0.16, 1, 0.3, 1) !important;
   transition: max-width 240ms cubic-bezier(0.16, 1, 0.3, 1), width 240ms cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
@@ -25732,9 +25759,10 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-remote-upload-panel .td-confirm-head {
-  padding: 12px 20px !important;
-  background: #1b2024 !important;
-  border-bottom: 1px solid #3e484f !important;
+  padding: 14px 22px !important;
+  background: #131920 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
   flex: 0 0 auto !important;
   display: flex !important;
   align-items: center !important;
@@ -25742,15 +25770,15 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-remote-head-icon {
-  width: 34px !important;
-  height: 34px !important;
-  min-width: 34px !important;
-  min-height: 34px !important;
-  border-radius: 8px !important;
-  background: rgba(56, 189, 248, 0.15) !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(2, 132, 199, 0.1)) !important;
   color: #38bdf8 !important;
   border: 1px solid rgba(56, 189, 248, 0.4) !important;
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.2) !important;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25) !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -25760,11 +25788,11 @@ button.td-confirm-icon.is-back-btn:active {
   flex: 0 0 auto !important;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px;
-  background: rgba(10, 15, 18, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(8, 12, 16, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 10px;
 }
 
 .td-remote-tab {
@@ -25773,16 +25801,16 @@ button.td-confirm-icon.is-back-btn:active {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 5px 12px;
+  padding: 6px 14px;
   font-size: 0.78rem;
   font-weight: 600;
   color: #87929a;
   background: transparent;
   border: none;
-  border-radius: 6px;
+  border-radius: 7px;
   cursor: pointer;
-  transition: all 140ms ease;
-  min-height: 28px;
+  transition: all 150ms ease;
+  min-height: 30px;
 }
 
 .td-remote-tab:hover:not(:disabled) {
@@ -25792,19 +25820,19 @@ button.td-confirm-icon.is-back-btn:active {
 
 .td-remote-tab.active {
   color: #ffffff;
-  background: #303539;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  background: #252e37;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
 }
 
 .td-remote-body {
   flex: 1 1 0% !important;
   min-height: 0 !important;
   max-height: none !important;
-  padding: 16px 20px !important;
+  padding: 18px 22px !important;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   overflow-y: auto !important;
   overflow-x: hidden !important;
   scrollbar-width: thin;
@@ -25815,7 +25843,7 @@ button.td-confirm-icon.is-back-btn:active {
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding: 16px 20px !important;
+  padding: 18px 22px !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
   flex: 1 1 0% !important;
@@ -25835,26 +25863,57 @@ button.td-confirm-icon.is-back-btn:active {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   font-weight: 700;
-  color: #8ed5ff;
+  color: #7bd0ff;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.td-remote-form-card {
-  background: #1b2024;
-  border-radius: 12px;
-  padding: 14px;
+.td-remote-card-shell {
+  background: #12181f;
+  border-radius: 14px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
-/* Ingestion Matrix Row */
+.td-remote-card-shell:hover {
+  border-color: rgba(255, 255, 255, 0.13);
+}
+
+/* Platform Recognition Badge */
+.td-remote-platform-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid;
+  animation: tdFadeSlideUp 180ms ease-out;
+}
+
+/* Ingestion Matrix Grid */
 .td-remote-matrix-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .td-remote-matrix-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
 }
 
 .td-remote-matrix-item {
@@ -25865,96 +25924,105 @@ button.td-confirm-icon.is-back-btn:active {
 
 .td-remote-matrix-label {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10.5px;
+  font-weight: 700;
   color: #87929a;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .td-remote-segmented-group {
   display: flex;
-  background: #0f1418;
-  border-radius: 6px;
+  background: #080c10;
+  border-radius: 8px;
   padding: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  gap: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 3px;
 }
 
 .td-remote-segmented-btn {
   flex: 1;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   padding: 6px 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  border-radius: 4px;
+  gap: 5px;
+  border-radius: 6px;
   border: none;
   background: transparent;
-  color: #bdc8d1;
+  color: #a2b0ba;
   cursor: pointer;
-  transition: all 130ms ease;
+  transition: all 140ms ease;
   white-space: nowrap;
 }
 
 .td-remote-segmented-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
   color: #ffffff;
 }
 
 .td-remote-segmented-btn.active {
-  background: #303539;
+  background: #252e37;
   color: #38bdf8;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+  font-weight: 700;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.22);
 }
 
-/* Destination Target Row */
+/* Destination Target Card */
 .td-remote-dest-target-btn {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  background: #0f1418;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 14px;
+  background: #080c10;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
   cursor: pointer;
   text-align: left;
-  transition: all 140ms ease;
+  transition: all 160ms ease;
 }
 
 .td-remote-dest-target-btn:hover {
   border-color: rgba(56, 189, 248, 0.5);
-  background: #252b2e;
+  background: #121820;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.12);
 }
 
 .td-remote-dest-target-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 6px;
-  background: rgba(56, 189, 248, 0.12);
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  background: rgba(56, 189, 248, 0.14);
   color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: background 140ms ease;
+  transition: all 160ms ease;
 }
 
 .td-remote-dest-target-btn:hover .td-remote-dest-target-icon {
-  background: rgba(56, 189, 248, 0.22);
+  background: rgba(56, 189, 248, 0.24);
+  border-color: rgba(56, 189, 248, 0.6);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
 }
 
 /* Cinematic Preview Hero */
 .td-remote-preview-hero {
   position: relative;
   width: 100%;
-  height: 240px;
-  max-height: 320px;
-  border-radius: 12px;
+  height: 260px;
+  max-height: 340px;
+  border-radius: 14px;
   overflow: hidden;
-  background: #000000;
+  background: #050709;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.15);
   flex-shrink: 0;
   cursor: pointer;
 }
@@ -25964,13 +26032,13 @@ button.td-confirm-icon.is-back-btn:active {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.85;
+  opacity: 0.9;
   transition: all 500ms ease;
 }
 
 .td-remote-preview-hero:hover .td-remote-preview-hero-img {
   opacity: 1;
-  transform: scale(1.03);
+  transform: scale(1.02);
 }
 
 .td-remote-play-overlay {
@@ -25983,37 +26051,43 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-remote-play-circle {
-  width: 54px;
-  height: 54px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  transition: all 200ms ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  transition: all 220ms ease;
 }
 
 .td-remote-preview-hero:hover .td-remote-play-circle {
-  border-color: rgba(255, 255, 255, 0.6);
-  transform: scale(1.08);
+  border-color: rgba(56, 189, 248, 0.8);
+  background: rgba(15, 23, 42, 0.9);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+  transform: scale(1.1);
 }
 
-/* HUD Pill */
+/* Glass HUD Pill */
 .td-remote-hud-pill {
   position: absolute;
-  bottom: 10px;
-  left: 10px;
+  bottom: 12px;
+  left: 12px;
   border-radius: 999px;
-  padding: 4px 12px;
+  padding: 5px 14px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  gap: 9px;
+  background: rgba(8, 12, 16, 0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   font-size: 11px;
   font-weight: 600;
   color: #ffffff;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
   z-index: 5;
 }
 
@@ -26022,25 +26096,63 @@ button.td-confirm-icon.is-back-btn:active {
   height: 8px;
   border-radius: 50%;
   background: #38bdf8;
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.9);
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 .td-remote-hud-divider {
   width: 1px;
   height: 12px;
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Format Pill Selector */
+.td-remote-format-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+
+.td-remote-format-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #080c10;
+  color: #87929a;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.td-remote-format-pill:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+.td-remote-format-pill.active {
+  background: #252e37;
+  color: #38bdf8;
+  font-weight: 700;
+  border-color: rgba(56, 189, 248, 0.4);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
 }
 
 /* Collection Studio Bento Grid */
 .td-remote-collection-wrap {
   flex: 1 1 auto;
-  background: #1b2024;
-  border-radius: 12px;
-  padding: 14px;
+  background: #12181f;
+  border-radius: 14px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   overflow: hidden;
   min-height: 220px;
 }
@@ -26050,14 +26162,14 @@ button.td-confirm-icon.is-back-btn:active {
   align-items: center;
   justify-content: space-between;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
 }
 
 .td-remote-bento-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+  gap: 12px;
   overflow-y: auto;
   padding-right: 4px;
   max-height: 420px;
@@ -26067,63 +26179,64 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-bento-card {
   position: relative;
   aspect-ratio: 2 / 3;
-  border-radius: 8px;
-  background: #0f1418;
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: #080c10;
+  border: 2px solid rgba(255, 255, 255, 0.08);
   overflow: hidden;
   cursor: pointer;
-  transition: all 200ms ease;
+  transition: all 220ms cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
 }
 
 .td-remote-bento-card:hover {
+  transform: translateY(-2px) scale(1.02);
   border-color: #38bdf8;
-  box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.7), 0 0 18px rgba(56, 189, 248, 0.25);
 }
 
 .td-remote-bento-card.selected {
   border-color: #38bdf8 !important;
-  box-shadow: 0 0 16px rgba(56, 189, 248, 0.3) !important;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.35) !important;
 }
 
 .td-remote-bento-card.is-active-preview {
   border-color: #7bd0ff !important;
-  box-shadow: 0 0 18px rgba(123, 208, 255, 0.4) !important;
+  box-shadow: 0 0 20px rgba(123, 208, 255, 0.45) !important;
 }
 
 .td-remote-bento-check {
   position: absolute;
-  top: 6px;
-  left: 6px;
+  top: 7px;
+  left: 7px;
   width: 22px;
   height: 22px;
-  border-radius: 4px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  background: rgba(0, 0, 0, 0.5);
+  border-radius: 5px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 5;
-  transition: all 130ms ease;
+  transition: all 140ms ease;
 }
 
 .td-remote-bento-card.selected .td-remote-bento-check {
   border-color: #38bdf8;
   background: #38bdf8;
-  color: #0f1418;
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+  color: #080c10;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
 }
 
 .td-remote-bento-res {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(4px);
-  padding: 2px 6px;
-  border-radius: 4px;
+  top: 7px;
+  right: 7px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(6px);
+  padding: 2px 7px;
+  border-radius: 5px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -26132,17 +26245,17 @@ button.td-confirm-icon.is-back-btn:active {
 
 .td-remote-bento-dur {
   position: absolute;
-  bottom: 6px;
-  right: 6px;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(4px);
-  padding: 2px 6px;
-  border-radius: 4px;
+  bottom: 7px;
+  right: 7px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(6px);
+  padding: 2px 7px;
+  border-radius: 5px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
   color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  border: 1px solid rgba(56, 189, 248, 0.35);
   z-index: 5;
 }
 
@@ -26170,10 +26283,12 @@ button.td-confirm-icon.is-back-btn:active {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 16px !important;
-  background: #1b2024 !important;
-  border-radius: 12px !important;
+  gap: 14px;
+  padding: 12px 18px !important;
+  background: #131920 !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset;
   margin-top: 10px;
   flex-shrink: 0;
 }
@@ -26181,7 +26296,7 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-foot-status-indicator {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   font-size: 11px;
   font-weight: 700;
   color: #38bdf8;
@@ -26203,16 +26318,16 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-foot-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
 }
 
 .td-remote-foot-cancel-btn {
-  padding: 8px 18px;
-  border-radius: 8px;
+  padding: 9px 18px;
+  border-radius: 9px;
   font-size: 13px;
   font-weight: 600;
-  background: #303539;
+  background: #252e37;
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #ffffff;
   cursor: pointer;
@@ -26225,24 +26340,24 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-remote-foot-submit-btn {
-  padding: 8px 20px;
-  border-radius: 8px;
+  padding: 9px 22px;
+  border-radius: 9px;
   font-size: 13px;
   font-weight: 700;
-  background: #38bdf8;
+  background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
   color: #001e2c;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
-  transition: all 140ms ease;
-  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);
+  gap: 7px;
+  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 18px rgba(56, 189, 248, 0.4);
 }
 
 .td-remote-foot-submit-btn:hover:not(:disabled) {
-  background: #7bd0ff;
-  box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+  background: linear-gradient(135deg, #7bd0ff 0%, #38bdf8 100%);
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.6);
   transform: scale(1.02);
 }
 
