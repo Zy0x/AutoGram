@@ -64,4 +64,5 @@ pub mod tg_error;
 pub mod tg_log;
 pub mod transfer_journal;
 pub mod transfer_state;
+pub mod remote_transfer;
 pub mod zip_local;

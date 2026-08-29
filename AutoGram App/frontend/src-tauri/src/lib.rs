@@ -612,6 +612,66 @@ fn tg_send_remote_url_cloud(
     .map_err(|error| error.user_message())
 }
 
+#[tauri::command]
+fn remote_transfer_preflight(
+    request: core::remote_transfer::models::RemotePreflightRequest,
+) -> Result<core::remote_transfer::models::RemotePreflightReport, String> {
+    core::remote_transfer::RemoteTransferEngine::preflight(&request)
+}
+
+#[tauri::command]
+fn remote_transfer_create(
+    job: core::remote_transfer::models::RemoteTransferJob,
+) -> Result<String, String> {
+    let job_id = job.job_id.clone();
+    core::remote_transfer::RemoteTransferStore::insert_job(&job)?;
+    Ok(job_id)
+}
+
+#[tauri::command]
+fn remote_transfer_pause(job_id: String) -> Result<(), String> {
+    core::remote_transfer::RemoteTransferEngine::pause_job(&job_id)
+}
+
+#[tauri::command]
+fn remote_transfer_resume(
+    app: AppHandle,
+    job_id: String,
+    session: String,
+    api_id: i64,
+    api_hash: String,
+) -> Result<core::telegram_ops::UploadStepResult, String> {
+    let identity = core::telegram_ops::TelegramIdentity {
+        session,
+        api_id,
+        api_hash,
+    };
+    core::remote_transfer::RemoteTransferEngine::execute_job_sync(&job_id, &identity, Some(&app))
+}
+
+#[tauri::command]
+fn remote_transfer_cancel(job_id: String) -> Result<(), String> {
+    core::remote_transfer::RemoteTransferEngine::cancel_job(&job_id)
+}
+
+#[tauri::command]
+fn remote_transfer_cleanup(job_id: String) -> Result<(), String> {
+    core::remote_transfer::RemoteTransferEngine::cleanup_job(&job_id)
+}
+
+#[tauri::command]
+fn remote_transfer_list_recovery() -> Result<Vec<core::remote_transfer::models::RemoteRecoveryItem>, String> {
+    core::remote_transfer::RemoteTransferStore::list_recoverable_jobs()
+}
+
+#[tauri::command]
+fn remote_transfer_get_job(
+    job_id: String,
+) -> Result<Option<core::remote_transfer::models::RemoteTransferJob>, String> {
+    core::remote_transfer::RemoteTransferStore::get_job(&job_id)
+}
+
+
 /// Write one line to a long-lived worker's stdin (drive-serve JSON-RPC).
 #[tauri::command]
 fn write_worker_stdin(job_id: i64, line: String) -> Result<(), String> {
@@ -2940,6 +3000,14 @@ pub fn run() {
             studio_set_transfer_paused,
             quality_preflight,
             tg_send_remote_url_cloud,
+            remote_transfer_preflight,
+            remote_transfer_create,
+            remote_transfer_pause,
+            remote_transfer_resume,
+            remote_transfer_cancel,
+            remote_transfer_cleanup,
+            remote_transfer_list_recovery,
+            remote_transfer_get_job,
             get_available_disk_space,
             get_custom_cache_dir,
             set_custom_cache_dir,

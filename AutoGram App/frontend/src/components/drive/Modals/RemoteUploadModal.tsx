@@ -57,7 +57,7 @@ import {
   type DriveTransferSettings,
   resolveDefaultDeliveryMode,
 } from '../Transfers/transferSettingsModel';
-import type { RemoteEngineMode } from '../../../lib/telegram/driveTypes';
+import type { RemoteEngineMode, StorageLocalPolicy } from '../../../lib/telegram/driveTypes';
 
 interface RemoteUploadModalProps {
   isOpen: boolean;
@@ -79,6 +79,8 @@ interface RemoteUploadModalProps {
       qualityMode?: string;
       presentationOverride?: 'document' | 'original' | 'standard' | 'compressed';
       remoteEngineMode?: RemoteEngineMode;
+      storagePolicy?: StorageLocalPolicy;
+      customDiskPath?: string;
     }
   ) => Promise<void>;
 }
@@ -274,9 +276,11 @@ export function RemoteUploadModal({
   );
   const [remoteEngineMode, setRemoteEngineMode] = useState<RemoteEngineMode>(() => {
     const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('autogram_remote_engine_mode') : null;
-    if (stored === 'cloud_fetch' || stored === 'ram_pipe') return stored;
+    if (stored === 'cloud_fetch' || stored === 'storage_local' || stored === 'ram_pipe') return stored as RemoteEngineMode;
     return transferSettings?.remoteEngineMode || 'auto';
   });
+  const [storagePolicy, setStoragePolicy] = useState<StorageLocalPolicy>('telegram');
+  const [customDiskPath, setCustomDiskPath] = useState<string>('');
   const [inspection, setInspection] = useState<UrlInspection | null>(null);
 
   const [resolvedMedia, setResolvedMedia] = useState<ResolvedMediaInfo | null>(null);
@@ -914,6 +918,8 @@ export function RemoteUploadModal({
             qualityMode: effectiveQualityMode,
             presentationOverride: effectivePresentation,
             remoteEngineMode,
+            storagePolicy,
+            customDiskPath: customDiskPath.trim() || undefined,
           });
           onClose();
         } catch (err: any) {
@@ -974,6 +980,8 @@ export function RemoteUploadModal({
           qualityMode: effectiveQualityMode,
           presentationOverride: effectivePresentation,
           remoteEngineMode,
+          storagePolicy,
+          customDiskPath: customDiskPath.trim() || undefined,
         });
         onClose();
       } catch (err: any) {
@@ -1035,6 +1043,8 @@ export function RemoteUploadModal({
           qualityMode: effectiveQualityMode,
           presentationOverride: effectivePresentation,
           remoteEngineMode,
+          storagePolicy,
+          customDiskPath: customDiskPath.trim() || undefined,
         });
         onClose();
       } catch (err: any) {
@@ -1523,11 +1533,62 @@ export function RemoteUploadModal({
               >
                 <option value="auto">{t('drive_tools.remote_engine_auto')}</option>
                 <option value="cloud_fetch">{t('drive_tools.remote_engine_cloud_fetch')}</option>
-                <option value="ram_pipe">{t('drive_tools.remote_engine_ram_pipe')}</option>
+                <option value="storage_local">{t('drive_tools.remote_engine_storage_local')}</option>
               </select>
               <p className="td-remote-engine-desc td-remote-engine-note">
-                {t('drive_tools.remote_engine_selector_hint')}
+                {remoteEngineMode === 'storage_local'
+                  ? t('drive_tools.remote_mode_storage_local_desc')
+                  : t('drive_tools.remote_engine_selector_hint')}
               </p>
+
+              {(remoteEngineMode === 'storage_local' || remoteEngineMode === 'auto') && (
+                <div className="td-remote-storage-policy-group" style={{ marginTop: 10 }}>
+                  <label className="td-input-label" htmlFor="td-remote-storage-policy">
+                    {t('drive_tools.remote_storage_policy_label')}
+                  </label>
+                  <select
+                    id="td-remote-storage-policy"
+                    className="td-input-field"
+                    value={storagePolicy}
+                    disabled={submitting}
+                    onChange={(e) => setStoragePolicy(e.target.value as StorageLocalPolicy)}
+                  >
+                    <option value="telegram">{t('drive_tools.remote_policy_telegram')}</option>
+                    <option value="custom_disk">{t('drive_tools.remote_policy_custom_disk')}</option>
+                    <option value="disk_and_telegram">{t('drive_tools.remote_policy_disk_and_telegram')}</option>
+                  </select>
+
+                  {(storagePolicy === 'custom_disk' || storagePolicy === 'disk_and_telegram') && (
+                    <div style={{ marginTop: 8, display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        className="td-input-field"
+                        placeholder={t('drive_tools.remote_custom_disk_path_label')}
+                        value={customDiskPath}
+                        onChange={(e) => setCustomDiskPath(e.target.value)}
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        className="td-chip-btn"
+                        style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4, height: 34 }}
+                        onClick={async () => {
+                          try {
+                            const { open } = await import('@tauri-apps/plugin-dialog');
+                            const res = await open({ directory: true });
+                            if (res) setCustomDiskPath(String(res));
+                          } catch (e) {
+                            console.error('Folder picker error:', e);
+                          }
+                        }}
+                      >
+                        <Folder size={13} />
+                        <span>{t('drive_tools.remote_custom_disk_browse')}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="td-remote-field-group td-remote-form-card">

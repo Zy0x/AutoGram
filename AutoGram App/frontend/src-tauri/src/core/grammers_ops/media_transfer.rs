@@ -1504,7 +1504,7 @@ pub struct ProgressAsyncReader<R> {
     pub transfer_id: Option<String>,
 }
 
-const REMOTE_CLOUD_FETCH_MAX_BYTES: u64 = 20 * 1024 * 1024;
+pub(crate) const REMOTE_CLOUD_FETCH_MAX_BYTES: u64 = 20 * 1024 * 1024;
 
 /// Bounded in-memory reader for a remote response. `poll_read` performs a small
 /// blocking read, but the orchestrator already runs on a dedicated Tokio
@@ -1549,7 +1549,7 @@ fn remote_engine_choice(value: &str, size: Option<u64>) -> &'static str {
     }
 }
 
-fn remote_head(url: &str) -> Result<(Option<u64>, String), TgError> {
+pub(crate) fn remote_head(url: &str) -> Result<(Option<u64>, String), TgError> {
     let agent = crate::core::media_prep::create_resilient_http_agent();
     let mut req = agent.head(url);
     req = req.set(
@@ -1596,7 +1596,7 @@ fn remote_head(url: &str) -> Result<(Option<u64>, String), TgError> {
     Ok((size, content_type))
 }
 
-fn remote_extension(url: &str, content_type: &str) -> String {
+pub(crate) fn remote_extension(url: &str, content_type: &str) -> String {
     let from_url = url::Url::parse(url)
         .ok()
         .and_then(|parsed| {

@@ -456,7 +456,43 @@ impl DriveStore {
             telegram_message_id,
         )?;
         if let Some(file_id) = duplicate_id {
-            return query_file_by_id(&tx, &drive_id, &file_id);
+            // A remote upload can be committed twice: the first pass may only
+            // know the path (and therefore record size=0), while the resolver
+            // supplies authoritative Telegram metadata on the next pass.
+            // Refresh the existing row instead of returning the stale 0-byte
+            // record. Never replace a known size with an unknown zero.
+            let existing_size: i64 = tx
+                .query_row(
+                    "SELECT size FROM drive_meta.drive_beta_files
+                     WHERE drive_id=?1 AND file_id=?2 AND deleted_at IS NULL",
+                    params![drive_id, file_id],
+                    |row| row.get(0),
+                )
+                .map_err(|error| format!("DRIVE_ENGINE_FILE_LOOKUP_FAILED: {error}"))?;
+            if existing_size == 0 && size > 0 {
+                tx.execute(
+                    "UPDATE drive_meta.drive_beta_files
+                     SET size=?1, mime=COALESCE(?2, mime),
+                         content_hash=COALESCE(?3, content_hash),
+                         telegram_unique_id=COALESCE(?4, telegram_unique_id),
+                         updated_at=?5
+                     WHERE drive_id=?6 AND file_id=?7 AND deleted_at IS NULL",
+                    params![
+                        size,
+                        mime,
+                        content_hash,
+                        telegram_unique_id,
+                        now,
+                        drive_id,
+                        file_id,
+                    ],
+                )
+                .map_err(|error| format!("DRIVE_ENGINE_FILE_REFRESH_FAILED: {error}"))?;
+            }
+            let refreshed = query_file_by_id(&tx, &drive_id, &file_id)?;
+            tx.commit()
+                .map_err(|error| format!("DRIVE_ENGINE_FILE_COMMIT_FAILED: {error}"))?;
+            return Ok(refreshed);
         }
 
         let file_id = uuid_v4();
@@ -1799,6 +1835,79 @@ mod tests {
             DriveStore::open_at(root.clone()).expect("open test store"),
             root,
         )
+    }
+
+    #[test]
+    fn remote_commit_refreshes_unknown_size_without_regressing_metadata() {
+        let (store, root) = test_store("remote-refresh");
+        let drive = store
+            .create_drive("session-remote", "Remote", Some("-1001"), None, None)
+            .expect("create drive");
+        let folder = store
+            .create_folder(
+                "session-remote",
+                &drive.drive_id,
+                None,
+                "Inbox",
+                Some("-1001"),
+                None,
+                None,
+            )
+            .expect("create folder");
+        let first = store
+            .commit_file(
+                "session-remote",
+                &drive.drive_id,
+                &folder.folder_id,
+                "remote.mp4",
+                0,
+                None,
+                None,
+                None,
+                "-1001",
+                None,
+                77,
+                None,
+            )
+            .expect("initial path-only commit");
+        assert_eq!(first.size, 0);
+        let refreshed = store
+            .commit_file(
+                "session-remote",
+                &drive.drive_id,
+                &folder.folder_id,
+                "remote.mp4",
+                141_692_144,
+                Some("video/mp4"),
+                None,
+                None,
+                "-1001",
+                None,
+                77,
+                None,
+            )
+            .expect("authoritative remote commit");
+        assert_eq!(refreshed.size, 141_692_144);
+        assert_eq!(refreshed.mime.as_deref(), Some("video/mp4"));
+        let unknown_again = store
+            .commit_file(
+                "session-remote",
+                &drive.drive_id,
+                &folder.folder_id,
+                "remote.mp4",
+                0,
+                None,
+                None,
+                None,
+                "-1001",
+                None,
+                77,
+                None,
+            )
+            .expect("path-only retry");
+        assert_eq!(unknown_again.size, 141_692_144);
+        drop(store);
+        let _ = std::fs::remove_dir_all(root);
     }
 
     #[test]

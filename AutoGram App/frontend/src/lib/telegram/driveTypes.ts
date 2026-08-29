@@ -853,7 +853,10 @@ export type PlaybackFpsMode = 'adaptive' | 'follow_source' | 'follow_display' | 
 export type ScanMode = 'normal' | 'smart' | 'forensic';
 export type TopicScope = 'selected_only' | 'selected_plus_general' | 'all_topics';
 /** Remote URL transport preference. */
-export type RemoteEngineMode = 'auto' | 'cloud_fetch' | 'ram_pipe';
+export type RemoteEngineMode = 'auto' | 'cloud_fetch' | 'storage_local' | 'ram_pipe';
+
+/** Storage local sub-policy for remote transmission. */
+export type StorageLocalPolicy = 'telegram' | 'custom_disk' | 'disk_and_telegram';
 
 /** Upload + download preferences for Media Studio (persisted in localStorage). */
 export type DriveTransferSettings = {

@@ -6801,6 +6801,8 @@ function MediaDriveDesktop({
       skipTopic?: boolean;
       presentationOverride?: 'document' | 'original' | 'standard' | 'compressed';
       remoteEngineMode?: RemoteEngineMode;
+      storagePolicy?: StorageLocalPolicy;
+      customDiskPath?: string;
       qualityMode?: string;
       customFilename?: string;
       customFilenames?: string[];
@@ -7052,8 +7054,11 @@ function MediaDriveDesktop({
       topic_scope: transferSettings.topicScope || 'selected_plus_general',
       max_reupload_per_hour: transferSettings.maxReuploadPerHour ?? 10,
       remote_engine_mode: opts?.remoteEngineMode || transferSettings.remoteEngineMode || 'auto',
+      source_sizes: opts?.sourceSizes,
       thumbnail_urls: opts?.thumbnailUrls,
       custom_filenames: opts?.customFilenames || names,
+      storage_policy: opts?.storagePolicy || 'telegram',
+      custom_disk_path: opts?.customDiskPath,
     };
     // Upload into selected forum topic: explicit topicId overrides, otherwise fall back to current active topic
     if (uploadTopicId != null) options.topic_id = uploadTopicId;
@@ -7130,6 +7135,8 @@ function MediaDriveDesktop({
       sourceSizes?: number[];
       thumbnailUrls?: string[];
       remoteEngineMode?: RemoteEngineMode;
+      storagePolicy?: StorageLocalPolicy;
+      customDiskPath?: string;
       asDocument?: boolean;
       qualityMode?: string;
       presentationOverride?: 'document' | 'original' | 'standard' | 'compressed';
@@ -7149,6 +7156,8 @@ function MediaDriveDesktop({
       sourceSizes: opts?.sourceSizes,
       thumbnailUrls: opts?.thumbnailUrls,
       remoteEngineMode: opts?.remoteEngineMode,
+      storagePolicy: opts?.storagePolicy,
+      customDiskPath: opts?.customDiskPath,
     });
   };
 

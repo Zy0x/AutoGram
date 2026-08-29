@@ -292,7 +292,11 @@ export function DriveExplorer({
     },
     [onSortMode, sortMode]
   );
-  const thumbPeerId = folderId == null ? 'me' : String(folderId);
+  // Drive Engine folder IDs are UI handles; thumbnail RPCs must use the
+  // Telegram storage peer associated with that folder.
+  const thumbPeerId = folderId == null
+    ? 'me'
+    : String(resolveDriveEngineLocation(folderId)?.storagePeerId ?? folderId);
   const thumbContextOptions = useMemo(
     () => ({ peerId: thumbPeerId, topicId, locationType }),
     [thumbPeerId, topicId, locationType]

@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Eye, Download, Trash2, Check, Loader2, Play, Scissors, Copy, ImageOff } from 'lucide-react';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
+import { resolveDriveEngineLocation } from '../../../lib/telegram/driveApi';
 import {
   canShowDriveThumb,
   driveFileDisplayName,
@@ -159,7 +160,9 @@ function DriveFileCardInner({
     (file.thumb_data_url || file.thumbDataUrl || '') as string;
   // The mounted explorer context is authoritative. A stale row must never be
   // allowed to redirect a thumbnail request into another account/location.
-  const itemPeerId = folderId != null && folderId !== 0 ? String(folderId) : 'me';
+  const itemPeerId = folderId != null && folderId !== 0
+    ? String(resolveDriveEngineLocation(folderId)?.storagePeerId ?? folderId)
+    : 'me';
   const itemTopicId = contextTopicId;
   const itemLocationType = itemPeerId === 'me' ? 'saved_messages' : 'group';
   const thumbLocator = { peerId: itemPeerId, topicId: itemTopicId };
