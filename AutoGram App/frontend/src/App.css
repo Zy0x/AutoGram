@@ -26753,16 +26753,20 @@ button.td-confirm-icon.is-back-btn:active {
 
 /* =============================================
    Grid card: Drive-style poster card
-   aspect-ratio on the CARD so grid rows are uniform
+   Uses padding-top 150% trick for reliable 2:3
+   aspect ratio across all Chromium/WebView2
    ============================================= */
 .td-remote-media-item-card.card-grid-mode {
   position: relative;
   display: block;
   overflow: hidden;
-  aspect-ratio: 2 / 3;    /* controls card height — uniform rows */
+  /* 2:3 = height is 150% of width — reliable cross-browser */
+  padding-top: 150%;
+  aspect-ratio: unset;
+  height: 0;
 }
 
-/* Thumb-wrap fills the ENTIRE card absolutely */
+/* Thumb-wrap fills the ENTIRE card via absolute inset */
 .td-remote-media-item-card.card-grid-mode .td-remote-item-thumb-wrap {
   position: absolute !important;
   inset: 0 !important;
@@ -26778,6 +26782,15 @@ button.td-confirm-icon.is-back-btn:active {
   height: 100% !important;
   object-fit: cover;
   display: block;
+}
+
+.td-remote-media-item-card.card-grid-mode .td-remote-item-thumb-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
 }
 
 /* Card body: bottom gradient overlay */
