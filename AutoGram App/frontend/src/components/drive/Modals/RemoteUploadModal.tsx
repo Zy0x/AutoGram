@@ -29,7 +29,6 @@ import {
   Layers,
   Sparkles,
   Zap,
-  CloudLightning,
   Info,
   KeyRound,
   Search,
@@ -1443,10 +1442,10 @@ export function RemoteUploadModal({
             <>
               {/* SECTION 1: MASTER CONTROLS & ACTIVE PREVIEW INSPECTOR */}
               <div className={`td-remote-section-1 ${isSplitActive ? '' : 'single-column'}`}>
-                {/* SECTION 1 LEFT COLUMN: CONTROLS & SETTINGS */}
+                {/* SECTION 1 LEFT COLUMN: UNIFIED ULTRA-COMPACT CONTROL PANEL */}
                 <div className="td-remote-section-1-controls">
-                  {/* Card 1: Source URL & Passcode & Custom Name */}
-                  <div className="td-remote-form-card">
+                  <div className="td-remote-form-card td-remote-unified-panel">
+                    {/* Row 1: Source File URL */}
                     <div className="td-remote-field-group">
                       <div className="td-remote-label-row">
                         <div className="td-remote-label-left" ref={infoRef}>
@@ -1461,7 +1460,7 @@ export function RemoteUploadModal({
                             aria-label={t('speedtest.remote_info_btn_aria')}
                             aria-expanded={showSupportedInfo}
                           >
-                            <Info size={12} />
+                            <Info size={11} />
                           </button>
                           {renderSupportedLinksPopover()}
                         </div>
@@ -1474,7 +1473,7 @@ export function RemoteUploadModal({
                               disabled={submitting}
                               title={t('speedtest.remote_open_in_browser')}
                             >
-                              <ExternalLink size={11} />
+                              <ExternalLink size={10} />
                               <span>{t('speedtest.remote_open_in_browser')}</span>
                             </button>
                           )}
@@ -1485,14 +1484,14 @@ export function RemoteUploadModal({
                             disabled={submitting}
                             title={t('speedtest.remote_paste_clipboard')}
                           >
-                            <Clipboard size={11} />
+                            <Clipboard size={10} />
                             <span>{t('speedtest.remote_paste_clipboard')}</span>
                           </button>
                         </div>
                       </div>
                       <div className="td-remote-input-wrap">
                         <span className="td-remote-input-icon">
-                          <Link2 size={15} />
+                          <Link2 size={14} />
                         </span>
                         <input
                           id="td-remote-url"
@@ -1514,12 +1513,13 @@ export function RemoteUploadModal({
                             disabled={submitting}
                             aria-label={t('speedtest.remote_clear_input')}
                           >
-                            <X size={13} />
+                            <X size={12} />
                           </button>
                         )}
                       </div>
                     </div>
 
+                    {/* Passcode (if required) */}
                     {(resolvedMedia?.requiresPassword || Boolean(passcode.trim())) && (
                       <div className="td-remote-field-group td-remote-passcode-field-animated">
                         <div className="td-remote-label-row">
@@ -1533,7 +1533,7 @@ export function RemoteUploadModal({
                                   resolvedMedia.passwordError ? 'error' : 'required'
                                 }`}
                               >
-                                <KeyRound size={11} />
+                                <KeyRound size={10} />
                                 <span>
                                   {resolvedMedia.passwordError
                                     ? t('speedtest.remote_passcode_invalid_badge')
@@ -1545,7 +1545,7 @@ export function RemoteUploadModal({
                         </div>
                         <div className="td-remote-input-wrap">
                           <span className="td-remote-input-icon">
-                            <KeyRound size={14} />
+                            <KeyRound size={13} />
                           </span>
                           <input
                             id="td-remote-passcode"
@@ -1568,13 +1568,14 @@ export function RemoteUploadModal({
                               disabled={submitting}
                               aria-label={t('speedtest.remote_clear_input')}
                             >
-                              <X size={13} />
+                              <X size={12} />
                             </button>
                           )}
                         </div>
                       </div>
                     )}
 
+                    {/* Row 2: Custom Filename */}
                     <div className="td-remote-field-group">
                       <label className="td-input-label" htmlFor="td-custom-filename">
                         {t('speedtest.remote_custom_name_label')}
@@ -1599,160 +1600,152 @@ export function RemoteUploadModal({
                         spellCheck={false}
                       />
                     </div>
-                  </div>
 
-                  {/* Card 2: Transfer Options & Engine Pills */}
-                  <div className="td-remote-form-card td-remote-options-card">
-                    {/* Delivery Format Pills */}
-                    <div className="td-remote-field-group">
-                      <label className="td-input-label">{t('speedtest.remote_delivery_mode_label')}</label>
-                      <div className="td-remote-mode-pills">
-                        <button
-                          type="button"
-                          className={`td-remote-mode-pill${deliveryMode === 'uncompressed' ? ' active uncompressed' : ''}`}
-                          onClick={() => setDeliveryMode('uncompressed')}
-                          disabled={submitting}
-                          title={t('speedtest.remote_mode_uncompressed_hint')}
-                        >
-                          <Film size={12} />
-                          <span>{t('speedtest.remote_mode_uncompressed')}</span>
-                          {deliveryMode === 'uncompressed' && <Check size={11} />}
-                        </button>
-                        <button
-                          type="button"
-                          className={`td-remote-mode-pill${deliveryMode === 'auto' ? ' active auto' : ''}`}
-                          onClick={() => setDeliveryMode('auto')}
-                          disabled={submitting}
-                          title={t('speedtest.remote_mode_auto_hint')}
-                        >
-                          <Zap size={12} />
-                          <span>{t('speedtest.remote_mode_auto')}</span>
-                          {deliveryMode === 'auto' && <Check size={11} />}
-                        </button>
-                        <button
-                          type="button"
-                          className={`td-remote-mode-pill${deliveryMode === 'document' ? ' active doc' : ''}`}
-                          onClick={() => setDeliveryMode('document')}
-                          disabled={submitting}
-                          title={t('speedtest.remote_mode_doc_hint')}
-                        >
-                          <FileText size={12} />
-                          <span>{t('speedtest.remote_mode_doc')}</span>
-                          {deliveryMode === 'document' && <Check size={11} />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Engine Pills */}
-                    <div className="td-remote-field-group td-remote-engine-group">
-                      <div className="td-remote-engine-header">
-                        <div className="td-remote-engine-title-wrap">
-                          <CloudLightning size={12} className="text-cyan-400" />
-                          <span className="td-remote-engine-title">{t('drive_tools.remote_engine_mode_title')}</span>
-                        </div>
-                        {effectiveRemoteEngine === 'cloud_fetch' ? (
-                          <span className="td-remote-engine-badge zero-quota">
-                            <Sparkles size={9} />
-                            <span>{t('drive_tools.remote_zero_quota_badge')}</span>
-                          </span>
-                        ) : (
-                          <span className="td-remote-engine-badge zero-disk">
-                            <Zap size={9} />
-                            <span>{t('drive_tools.remote_zero_disk_badge')}</span>
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="td-remote-engine-pills">
-                        {(['auto', 'cloud_fetch', 'storage_local'] as RemoteEngineMode[]).map((mode) => (
+                    {/* Row 3: Transfer & Engine Pills In 1 Compact Grid */}
+                    <div className="td-remote-pills-row-dual">
+                      {/* Format Pills */}
+                      <div className="td-remote-pill-subgroup">
+                        <label className="td-input-label">{t('speedtest.remote_delivery_mode_label')}</label>
+                        <div className="td-remote-mode-pills">
                           <button
-                            key={mode}
                             type="button"
-                            className={`td-remote-engine-pill${remoteEngineMode === mode ? ' active' : ''}`}
+                            className={`td-remote-mode-pill${deliveryMode === 'uncompressed' ? ' active uncompressed' : ''}`}
+                            onClick={() => setDeliveryMode('uncompressed')}
                             disabled={submitting}
-                            onClick={() => {
-                              setRemoteEngineMode(mode);
-                              try { localStorage.setItem('autogram_remote_engine_mode', mode); } catch { /* ok */ }
-                            }}
+                            title={t('speedtest.remote_mode_uncompressed_hint')}
                           >
-                            {mode === 'auto' && <Zap size={10} />}
-                            {mode === 'cloud_fetch' && <Sparkles size={10} />}
-                            {mode === 'storage_local' && <Folder size={10} />}
-                            <span>
-                              {mode === 'auto' ? t('drive_tools.remote_engine_auto') :
-                               mode === 'cloud_fetch' ? t('drive_tools.remote_engine_cloud_fetch') :
-                               t('drive_tools.remote_engine_storage_local')}
-                            </span>
-                            {remoteEngineMode === mode && <Check size={10} />}
+                            <Film size={11} />
+                            <span>{t('speedtest.remote_mode_uncompressed')}</span>
+                            {deliveryMode === 'uncompressed' && <Check size={10} />}
                           </button>
-                        ))}
+                          <button
+                            type="button"
+                            className={`td-remote-mode-pill${deliveryMode === 'auto' ? ' active auto' : ''}`}
+                            onClick={() => setDeliveryMode('auto')}
+                            disabled={submitting}
+                            title={t('speedtest.remote_mode_auto_hint')}
+                          >
+                            <Zap size={11} />
+                            <span>{t('speedtest.remote_mode_auto')}</span>
+                            {deliveryMode === 'auto' && <Check size={10} />}
+                          </button>
+                          <button
+                            type="button"
+                            className={`td-remote-mode-pill${deliveryMode === 'document' ? ' active doc' : ''}`}
+                            onClick={() => setDeliveryMode('document')}
+                            disabled={submitting}
+                            title={t('speedtest.remote_mode_doc_hint')}
+                          >
+                            <FileText size={11} />
+                            <span>{t('speedtest.remote_mode_doc')}</span>
+                            {deliveryMode === 'document' && <Check size={10} />}
+                          </button>
+                        </div>
                       </div>
 
-                      {/* Storage Policy Pills — shown only when local storage is relevant */}
-                      {(remoteEngineMode === 'storage_local' || remoteEngineMode === 'auto') && (
-                        <div className="td-remote-policy-row">
-                          <span className="td-remote-policy-label">{t('drive_tools.remote_storage_policy_label')}</span>
-                          <div className="td-remote-engine-pills">
-                            {(['telegram', 'custom_disk', 'disk_and_telegram'] as StorageLocalPolicy[]).map((pol) => (
-                              <button
-                                key={pol}
-                                type="button"
-                                className={`td-remote-engine-pill${storagePolicy === pol ? ' active' : ''}`}
-                                disabled={submitting}
-                                onClick={() => setStoragePolicy(pol)}
-                              >
-                                {pol === 'telegram' && <Zap size={10} />}
-                                {pol === 'custom_disk' && <Folder size={10} />}
-                                {pol === 'disk_and_telegram' && <Layers size={10} />}
-                                <span>
-                                  {pol === 'telegram' ? t('drive_tools.remote_policy_telegram') :
-                                   pol === 'custom_disk' ? t('drive_tools.remote_policy_custom_disk') :
-                                   t('drive_tools.remote_policy_disk_and_telegram')}
-                                </span>
-                                {storagePolicy === pol && <Check size={9} />}
-                              </button>
-                            ))}
-                          </div>
-                          {(storagePolicy === 'custom_disk' || storagePolicy === 'disk_and_telegram') && (
-                            <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 5 }}>
-                              <input
-                                type="text"
-                                className="td-input-field"
-                                placeholder={t('drive_tools.remote_custom_disk_path_label')}
-                                value={customDiskPath}
-                                onChange={(e) => setCustomDiskPath(e.target.value)}
-                                style={{ flex: 1, height: 30, fontSize: '0.76rem' }}
-                              />
-                              <button
-                                type="button"
-                                className="td-chip-btn"
-                                style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4, height: 30 }}
-                                onClick={async () => {
-                                  try {
-                                    const { open } = await import('@tauri-apps/plugin-dialog');
-                                    const res = await open({ directory: true });
-                                    if (res) setCustomDiskPath(String(res));
-                                  } catch (e) {
-                                    console.error('Folder picker error:', e);
-                                  }
-                                }}
-                              >
-                                <Folder size={11} />
-                                <span>{t('drive_tools.remote_custom_disk_browse')}</span>
-                              </button>
-                            </div>
+                      {/* Engine Pills */}
+                      <div className="td-remote-pill-subgroup">
+                        <div className="td-remote-engine-header">
+                          <span className="td-input-label">{t('drive_tools.remote_engine_mode_title')}</span>
+                          {effectiveRemoteEngine === 'cloud_fetch' ? (
+                            <span className="td-remote-engine-badge zero-quota">
+                              <Sparkles size={9} />
+                              <span>{t('drive_tools.remote_zero_quota_badge')}</span>
+                            </span>
+                          ) : (
+                            <span className="td-remote-engine-badge zero-disk">
+                              <Zap size={9} />
+                              <span>{t('drive_tools.remote_zero_disk_badge')}</span>
+                            </span>
                           )}
                         </div>
-                      )}
-                    </div>
-                  </div>
 
-                  {/* Card 3: Destination Selector */}
-                  <div className="td-remote-form-card td-remote-dest-card-container">
-                    <label className="td-input-label" htmlFor="td-remote-target">
-                      {t('speedtest.destination_folder_label')}
-                    </label>
-                    <div className="td-remote-dest-wrap">
+                        <div className="td-remote-engine-pills">
+                          {(['auto', 'cloud_fetch', 'storage_local'] as RemoteEngineMode[]).map((mode) => (
+                            <button
+                              key={mode}
+                              type="button"
+                              className={`td-remote-engine-pill${remoteEngineMode === mode ? ' active' : ''}`}
+                              disabled={submitting}
+                              onClick={() => {
+                                setRemoteEngineMode(mode);
+                                try { localStorage.setItem('autogram_remote_engine_mode', mode); } catch { /* ok */ }
+                              }}
+                            >
+                              {mode === 'auto' && <Zap size={10} />}
+                              {mode === 'cloud_fetch' && <Sparkles size={10} />}
+                              {mode === 'storage_local' && <Folder size={10} />}
+                              <span>
+                                {mode === 'auto' ? t('drive_tools.remote_engine_auto') :
+                                 mode === 'cloud_fetch' ? t('drive_tools.remote_engine_cloud_fetch') :
+                                 t('drive_tools.remote_engine_storage_local')}
+                              </span>
+                              {remoteEngineMode === mode && <Check size={9} />}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Storage Policy Pills (if Local Spool is active) */}
+                    {(remoteEngineMode === 'storage_local' || remoteEngineMode === 'auto') && (
+                      <div className="td-remote-policy-row">
+                        <span className="td-remote-policy-label">{t('drive_tools.remote_storage_policy_label')}</span>
+                        <div className="td-remote-engine-pills">
+                          {(['telegram', 'custom_disk', 'disk_and_telegram'] as StorageLocalPolicy[]).map((pol) => (
+                            <button
+                              key={pol}
+                              type="button"
+                              className={`td-remote-engine-pill${storagePolicy === pol ? ' active' : ''}`}
+                              disabled={submitting}
+                              onClick={() => setStoragePolicy(pol)}
+                            >
+                              {pol === 'telegram' && <Zap size={10} />}
+                              {pol === 'custom_disk' && <Folder size={10} />}
+                              {pol === 'disk_and_telegram' && <Layers size={10} />}
+                              <span>
+                                {pol === 'telegram' ? t('drive_tools.remote_policy_telegram') :
+                                 pol === 'custom_disk' ? t('drive_tools.remote_policy_custom_disk') :
+                                 t('drive_tools.remote_policy_disk_and_telegram')}
+                              </span>
+                              {storagePolicy === pol && <Check size={9} />}
+                            </button>
+                          ))}
+                        </div>
+                        {(storagePolicy === 'custom_disk' || storagePolicy === 'disk_and_telegram') && (
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4 }}>
+                            <input
+                              type="text"
+                              className="td-input-field"
+                              placeholder={t('drive_tools.remote_custom_disk_path_label')}
+                              value={customDiskPath}
+                              onChange={(e) => setCustomDiskPath(e.target.value)}
+                              style={{ flex: 1, height: 28, fontSize: '0.74rem' }}
+                            />
+                            <button
+                              type="button"
+                              className="td-chip-btn"
+                              style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4, height: 28 }}
+                              onClick={async () => {
+                                try {
+                                  const { open } = await import('@tauri-apps/plugin-dialog');
+                                  const res = await open({ directory: true });
+                                  if (res) setCustomDiskPath(String(res));
+                                } catch (e) {
+                                  console.error('Folder picker error:', e);
+                                }
+                              }}
+                            >
+                              <Folder size={11} />
+                              <span>{t('drive_tools.remote_custom_disk_browse')}</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Row 4: Destination Selector */}
+                    <div className="td-remote-field-group td-remote-dest-row">
                       <button
                         id="td-remote-target"
                         type="button"
@@ -1764,7 +1757,7 @@ export function RemoteUploadModal({
                         <div className="td-remote-dest-main">
                           <span className="td-dest-ico" aria-hidden>
                             {selectedDest.kind === 'saved' ? (
-                              <Home size={15} />
+                              <Home size={14} />
                             ) : (
                               <PeerAvatar
                                 peerId={selectedDest.id ?? 0}
@@ -1780,7 +1773,7 @@ export function RemoteUploadModal({
                             </span>
                             {cleanTargetDisplay.topicPill && (
                               <span className="td-remote-dest-topic">
-                                <Hash size={10} style={{ display: 'inline', verticalAlign: '-1px' }} />
+                                <Hash size={9} style={{ display: 'inline', verticalAlign: '-1px' }} />
                                 {` ${cleanTargetDisplay.topicPill.replace(/^#\s*/, '')}`}
                               </span>
                             )}
@@ -1790,7 +1783,7 @@ export function RemoteUploadModal({
                           {renderBadge(selectedDest, t)}
                           <span className="td-remote-dest-change-tag">
                             {t('speedtest.btn_change_dest')}
-                            <ChevronRight size={12} style={{ marginLeft: 2 }} />
+                            <ChevronRight size={11} style={{ marginLeft: 2 }} />
                           </span>
                         </div>
                       </button>
