@@ -1326,12 +1326,12 @@ export function RemoteUploadModal({
                           )}
                         </div>
                         <div className="relative flex items-center">
-                          <span className="absolute left-3 text-[#87929a]">
+                          <span className="absolute left-3 text-[#87929a] pointer-events-none">
                             <KeyRound size={14} />
                           </span>
                           <input
                             id="td-remote-passcode"
-                            className="w-full bg-[#0f1418] text-[#dee3e8] text-xs rounded-lg border border-white/10 pl-9 pr-8 py-2 focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
+                            className="w-full bg-[#080c10] text-[#dee3e8] text-xs rounded-lg border border-white/10 pl-9 pr-8 py-2.5 focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition-all placeholder:text-[#87929a]/40"
                             placeholder={t('speedtest.remote_passcode_placeholder')}
                             value={passcode}
                             onChange={(e) => handlePasscodeChange(e.target.value)}
@@ -1355,13 +1355,13 @@ export function RemoteUploadModal({
 
                     {/* Custom Filename (Optional) */}
                     {tab === 'single' && (
-                      <div className="flex flex-col gap-1.5 mt-1">
+                      <div className="flex flex-col gap-1.5 mt-0.5">
                         <label className="text-xs font-semibold text-[#87929a]" htmlFor="td-custom-filename">
                           {t('speedtest.remote_custom_name_label')}
                         </label>
                         <input
                           id="td-custom-filename"
-                          className="w-full bg-[#0f1418] text-[#dee3e8] text-xs rounded-lg border border-white/10 px-3 py-2 focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] placeholder:text-[#87929a]/40"
+                          className="w-full bg-[#080c10] text-[#dee3e8] text-xs font-mono rounded-lg border border-white/10 px-3 py-2.5 focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition-all placeholder:text-[#87929a]/40"
                           type="text"
                           placeholder={
                             getEffectiveFormatFilename(
@@ -1641,10 +1641,12 @@ export function RemoteUploadModal({
                       </div>
                     </>
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-[#87929a] gap-2 p-4 text-center">
-                      <Sparkles size={28} className="text-[#38bdf8] animate-pulse" />
-                      <span className="text-xs font-medium text-[#dee3e8]">{t('speedtest.remote_split_ready_title')}</span>
-                      <span className="text-[11px] text-[#87929a] max-w-xs">{t('speedtest.remote_split_ready_desc')}</span>
+                    <div className="w-full h-full flex flex-col items-center justify-center text-[#87929a] gap-2.5 p-6 text-center">
+                      <div className="w-12 h-12 rounded-2xl bg-[#38bdf8]/10 border border-[#38bdf8]/25 text-[#38bdf8] flex items-center justify-center mb-0.5 shadow-[0_0_20px_rgba(56,189,248,0.15)]">
+                        <Sparkles size={22} className="animate-pulse" />
+                      </div>
+                      <span className="text-sm font-bold text-white tracking-wide">{t('speedtest.remote_split_ready_title')}</span>
+                      <span className="text-xs text-[#87929a] max-w-sm leading-relaxed">{t('speedtest.remote_split_ready_desc')}</span>
                     </div>
                   )}
 
