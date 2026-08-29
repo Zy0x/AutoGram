@@ -2325,6 +2325,25 @@ export function RemoteUploadModal({
                   {customDiskPath ? customDiskPath.split(/[\\/]/).filter(Boolean).pop() || customDiskPath : t('drive_tools.remote_policy_custom_disk')}
                 </span>
               </span>
+            ) : storagePolicy === 'disk_and_telegram' ? (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0, flexWrap: 'wrap' }}>
+                <span className="td-remote-foot-dest-badge" title={cleanTargetDisplay.title}>
+                  {selectedDest.kind === 'saved' ? <Home size={12} /> : <Folder size={12} />}
+                  <span className="td-remote-foot-dest-text">{cleanTargetDisplay.title}</span>
+                  {cleanTargetDisplay.topicPill && (
+                    <span className="td-remote-foot-topic-tag">
+                      {cleanTargetDisplay.topicPill}
+                    </span>
+                  )}
+                </span>
+                <span className="td-remote-foot-dest-plus">+</span>
+                <span className="td-remote-foot-dest-badge" title={customDiskPath || t('drive_tools.remote_custom_disk_path_label')}>
+                  <Folder size={12} />
+                  <span className="td-remote-foot-dest-text">
+                    {customDiskPath ? customDiskPath.split(/[\\/]/).filter(Boolean).pop() || customDiskPath : t('drive_tools.remote_policy_custom_disk')}
+                  </span>
+                </span>
+              </div>
             ) : (
               <span className="td-remote-foot-dest-badge" title={cleanTargetDisplay.title}>
                 {selectedDest.kind === 'saved' ? <Home size={12} /> : <Folder size={12} />}
@@ -2364,17 +2383,41 @@ export function RemoteUploadModal({
                 </>
               ) : (
                 <>
-                  <Link2 size={15} strokeWidth={2.25} />
+                  {storagePolicy === 'custom_disk' ? (
+                    <Folder size={15} strokeWidth={2.25} />
+                  ) : storagePolicy === 'disk_and_telegram' ? (
+                    <Layers size={15} strokeWidth={2.25} />
+                  ) : (
+                    <Link2 size={15} strokeWidth={2.25} />
+                  )}
                   <span>
                     {tab === 'single'
                       ? effectiveMediaItems.length > 1
                         ? selectedMediaItemIds.size === 0
                           ? t('speedtest.remote_btn_select_at_least_one')
+                          : storagePolicy === 'custom_disk'
+                          ? t('drive_tools.remote_btn_save_count', {
+                              count: selectedMediaItemIds.size,
+                              size: selectedBytes > 0 ? ` (~${formatDriveBytes(selectedBytes)})` : '',
+                            })
+                          : storagePolicy === 'disk_and_telegram'
+                          ? t('drive_tools.remote_btn_save_upload_count', {
+                              count: selectedMediaItemIds.size,
+                              size: selectedBytes > 0 ? ` (~${formatDriveBytes(selectedBytes)})` : '',
+                            })
                           : t('speedtest.remote_btn_upload_count', {
                               count: selectedMediaItemIds.size,
                               size: selectedBytes > 0 ? ` (~${formatDriveBytes(selectedBytes)})` : '',
                             })
+                        : storagePolicy === 'custom_disk'
+                        ? t('drive_tools.remote_btn_save_single')
+                        : storagePolicy === 'disk_and_telegram'
+                        ? t('drive_tools.remote_btn_save_upload_single')
                         : t('speedtest.remote_btn_start_single')
+                      : storagePolicy === 'custom_disk'
+                      ? t('drive_tools.remote_btn_save_batch', { count: batchUrls.length })
+                      : storagePolicy === 'disk_and_telegram'
+                      ? t('drive_tools.remote_btn_save_upload_batch', { count: batchUrls.length })
                       : t('speedtest.remote_btn_start_batch', { count: batchUrls.length })}
                   </span>
                 </>

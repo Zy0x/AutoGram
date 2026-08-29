@@ -26681,6 +26681,13 @@ button.td-confirm-icon.is-back-btn:active {
   white-space: nowrap;
 }
 
+.td-remote-foot-dest-plus {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  padding: 0 1px;
+}
+
 .td-remote-foot-topic-tag {
   font-size: 0.66rem;
   font-weight: 700;
