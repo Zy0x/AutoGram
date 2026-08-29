@@ -130,18 +130,6 @@ function inferFilenameFromUrl(rawUrl: string): string {
   }
 }
 
-function formatMediaDuration(sec?: number): string | null {
-  if (!sec || isNaN(sec) || sec <= 0) return null;
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  const h = Math.floor(m / 60);
-  const remM = m % 60;
-  if (h > 0) {
-    return `${h}:${remM.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  }
-  return `${remM}:${s.toString().padStart(2, '0')}`;
-}
-
 function kindIcon(c: DriveDestChoice) {
   if (c.kind === 'saved') return <Home size={16} />;
   if (c.kind === 'drive') return <Folder size={16} />;

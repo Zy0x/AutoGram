@@ -236,6 +236,7 @@ import type {
   ViewPerspective,
   TransferSession,
   RemoteEngineMode,
+  StorageLocalPolicy,
 } from '../../lib/telegram/driveTypes';
 import {
   DEFAULT_TRANSFER_SETTINGS,

@@ -40,6 +40,7 @@ export interface StreamQualityFormat {
   customTitle?: string;
   customFilename?: string;
   thumbnailUrl?: string;
+  durationSec?: number;
 }
 
 export interface ResolvedMediaItem {

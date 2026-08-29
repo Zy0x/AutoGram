@@ -16,7 +16,7 @@ describe('videeResolver', () => {
   });
 
   it('resolves videy.co direct CDN video', async () => {
-    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any, opts: any) => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url: any, opts: any) => {
       if (opts?.method === 'GET' && opts?.headers?.Range) {
         return new Response(new Uint8Array(2), {
           status: 206,
@@ -75,7 +75,7 @@ describe('videeResolver', () => {
       </html>
     `;
 
-    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any, opts: any) => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any, _opts: any) => {
       const urlStr = String(url);
       if (urlStr.includes('/v/')) {
         return new Response(singleVideoHtml, { status: 200 });
