@@ -25691,8 +25691,8 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-upload-panel.td-remote-split-active,
 .td-confirm-panel.td-remote-upload-panel.td-remote-collection-mode,
 .td-remote-upload-panel.td-remote-collection-mode {
-  max-width: min(1260px, calc(100vw - 32px)) !important;
-  width: min(1260px, calc(100vw - 32px)) !important;
+  max-width: min(840px, calc(100vw - 32px)) !important;
+  width: min(840px, calc(100vw - 32px)) !important;
   max-height: min(92vh, 880px) !important;
 }
 
@@ -25755,52 +25755,35 @@ button.td-confirm-icon.is-back-btn:active {
   box-shadow: 0 2px 8px rgba(56, 189, 248, 0.2);
 }
 
-.td-remote-body {
+.td-remote-body,
+.td-remote-body.td-remote-split-body {
   flex: 1 1 0% !important;
   min-height: 0 !important;
   max-height: none !important;
   padding: 0 20px 14px !important;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   overflow-y: auto !important;
   overflow-x: hidden !important;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
-.td-remote-body.td-remote-split-body {
+/* Section 1: Ingestion Controls (Full Width) */
+.td-remote-section-1 {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  padding: 0 20px 14px !important;
-  overflow: hidden !important;
-  flex: 1 1 0% !important;
-  min-height: 0 !important;
-}
-
-/* Section 1: Top Inspector Bar (Compact ~160px height) */
-.td-remote-section-1 {
-  display: grid;
-  grid-template-columns: minmax(340px, 400px) minmax(0, 1fr);
-  gap: 12px;
-  align-items: stretch;
   width: 100%;
-  padding: 6px 0 8px;
+  padding: 4px 0 2px;
   flex: 0 0 auto;
-}
-
-.td-remote-section-1.single-column {
-  grid-template-columns: 1fr;
-  max-width: 520px;
-  margin: 0 auto;
-  padding: 4px 0 0;
 }
 
 .td-remote-section-1-controls {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  width: 100%;
   min-width: 0;
 }
 
@@ -25812,6 +25795,7 @@ button.td-confirm-icon.is-back-btn:active {
   display: flex;
   flex-direction: column;
   gap: 7px;
+  width: 100%;
 }
 
 .td-remote-pill-subgroup {
@@ -25995,59 +25979,62 @@ button.td-confirm-icon.is-back-btn:active {
   align-items: center;
 }
 
-/* Section 1 Right Column: Active Preview Inspector */
-.td-remote-section-1-preview {
+/* STREAM PREVIEW SECTION: Placed after Section 1 (Full Width) */
+.td-remote-preview-section {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  width: 100%;
   min-width: 0;
-  min-height: 0;
+  flex: 0 0 auto;
 }
 
 .td-remote-meta-card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  background: rgba(15, 23, 42, 0.6);
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.65);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  height: 100%;
+  width: 100%;
 }
 
 .td-remote-preview-head-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 8px;
 }
 
 .td-remote-media-title {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: #f8fafc;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.25;
+  line-height: 1.3;
 }
 
 .td-remote-big-canvas-wrap {
   width: 100%;
-  border-radius: 8px;
+  max-width: 580px;
+  margin: 0 auto;
+  border-radius: 10px;
   overflow: hidden;
   background: #000000;
   border: 1px solid rgba(255, 255, 255, 0.12);
   position: relative;
-  max-height: 160px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  max-height: 240px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
 }
 
 .td-remote-big-canvas-inner {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  max-height: 160px;
+  max-height: 240px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -26058,7 +26045,7 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-big-canvas-video {
   width: 100%;
   height: 100%;
-  max-height: 160px;
+  max-height: 240px;
   object-fit: contain;
   background: #000000;
   outline: none;
