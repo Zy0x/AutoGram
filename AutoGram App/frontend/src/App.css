@@ -26753,25 +26753,24 @@ button.td-confirm-icon.is-back-btn:active {
 
 /* =============================================
    Grid card: Drive-style poster card
-   - Full 2:3 portrait thumbnail fills the card
-   - Filename + meta overlaid at bottom via gradient
+   aspect-ratio on the CARD so grid rows are uniform
    ============================================= */
 .td-remote-media-item-card.card-grid-mode {
-  display: block;
   position: relative;
+  display: block;
   overflow: hidden;
+  aspect-ratio: 2 / 3;    /* controls card height — uniform rows */
 }
 
-/* Thumb-wrap fills the ENTIRE card, no separate body below */
+/* Thumb-wrap fills the ENTIRE card absolutely */
 .td-remote-media-item-card.card-grid-mode .td-remote-item-thumb-wrap {
-  position: relative;
+  position: absolute !important;
+  inset: 0 !important;
   width: 100% !important;
-  aspect-ratio: 2 / 3 !important;
-  height: auto !important;
-  min-height: 0 !important;
+  height: 100% !important;
+  aspect-ratio: unset !important;
   background: #030712;
   overflow: hidden;
-  display: block;
 }
 
 .td-remote-media-item-card.card-grid-mode .td-remote-item-thumb-img {
@@ -26781,18 +26780,19 @@ button.td-confirm-icon.is-back-btn:active {
   display: block;
 }
 
-/* Card body becomes bottom overlay with gradient */
+/* Card body: bottom gradient overlay */
 .td-remote-media-item-card.card-grid-mode .td-remote-item-card-body {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 18px 6px 5px;
-  background: linear-gradient(to top, rgba(3, 7, 18, 0.95) 0%, rgba(3, 7, 18, 0.7) 55%, transparent 100%);
+  padding: 22px 6px 6px;
+  background: linear-gradient(to top, rgba(3,7,18,0.96) 0%, rgba(3,7,18,0.65) 60%, transparent 100%);
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   pointer-events: none;
+  z-index: 3;
 }
 
 .td-remote-media-item-card.card-grid-mode .td-remote-item-card-title {
@@ -26803,7 +26803,7 @@ button.td-confirm-icon.is-back-btn:active {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
 }
 
 .td-remote-media-item-card.card-grid-mode .td-remote-item-card-meta-clean {
@@ -26816,13 +26816,13 @@ button.td-confirm-icon.is-back-btn:active {
 
 .td-remote-media-item-card.card-grid-mode .td-remote-meta-size {
   color: #94a3b8;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9);
 }
 
 .td-remote-media-item-card.card-grid-mode .td-remote-meta-ext {
-  background: rgba(56, 189, 248, 0.18);
+  background: rgba(56,189,248,0.2);
   color: #38bdf8;
-  padding: 0 3px;
+  padding: 1px 4px;
   border-radius: 2px;
   font-size: 0.56rem;
   font-weight: 700;
