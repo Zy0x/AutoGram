@@ -25782,7 +25782,7 @@ button.td-confirm-icon.is-back-btn:active {
 /* Section 1: Top Inspector Bar (Compact ~160px height) */
 .td-remote-section-1 {
   display: grid;
-  grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+  grid-template-columns: minmax(340px, 400px) minmax(0, 1fr);
   gap: 12px;
   align-items: stretch;
   width: 100%;
@@ -25792,9 +25792,9 @@ button.td-confirm-icon.is-back-btn:active {
 
 .td-remote-section-1.single-column {
   grid-template-columns: 1fr;
-  max-width: 580px;
+  max-width: 520px;
   margin: 0 auto;
-  padding: 6px 0 0;
+  padding: 4px 0 0;
 }
 
 .td-remote-section-1-controls {
@@ -25805,21 +25805,13 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-remote-unified-panel {
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(15, 23, 42, 0.65);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 8px 10px;
+  border-radius: 12px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
-}
-
-.td-remote-pills-row-dual {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  padding-top: 5px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  gap: 7px;
 }
 
 .td-remote-pill-subgroup {
@@ -25827,12 +25819,14 @@ button.td-confirm-icon.is-back-btn:active {
   flex-direction: column;
   gap: 4px;
   min-width: 0;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .td-remote-mode-pills,
 .td-remote-engine-pills {
   display: flex;
-  gap: 4px;
+  gap: 5px;
   width: 100%;
 }
 
@@ -25840,16 +25834,17 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-engine-pill {
   flex: 1 1 0%;
   min-width: 0;
+  min-height: 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 4px 6px;
-  border-radius: 6px;
+  gap: 5px;
+  padding: 5px 8px;
+  border-radius: 7px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(10, 15, 29, 0.7);
   color: #94a3b8;
-  font-size: 0.69rem;
+  font-size: 0.72rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 130ms ease;
@@ -26975,356 +26970,6 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 
-/* Delivery Mode Pill Selector (compact row) */
-.td-remote-mode-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.td-remote-mode-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(10, 15, 29, 0.55);
-  color: #94a3b8;
-  font-size: 0.77rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
-  white-space: nowrap;
-  line-height: 1;
-}
-
-.td-remote-mode-pill:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.25);
-  color: #e2e8f0;
-}
-
-.td-remote-mode-pill.active {
-  color: #ffffff;
-  border-color: transparent;
-}
-
-.td-remote-mode-pill.active.uncompressed {
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.35), rgba(99, 102, 241, 0.3));
-  border-color: rgba(192, 132, 252, 0.5);
-  color: #dda6ff;
-  box-shadow: 0 0 10px rgba(168, 85, 247, 0.25);
-}
-
-.td-remote-mode-pill.active.auto {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(99, 102, 241, 0.22));
-  border-color: rgba(56, 189, 248, 0.55);
-  color: #7dd3fc;
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.22);
-}
-
-.td-remote-mode-pill.active.doc {
-  background: linear-gradient(135deg, rgba(234, 179, 8, 0.28), rgba(161, 98, 7, 0.2));
-  border-color: rgba(250, 204, 21, 0.5);
-  color: #fde68a;
-  box-shadow: 0 0 10px rgba(234, 179, 8, 0.2);
-}
-
-.td-remote-mode-pill:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-/* Engine Pills — compact horizontal row */
-.td-remote-engine-compact {
-  gap: 8px !important;
-}
-
-.td-remote-engine-compact .td-remote-engine-header {
-  margin-bottom: 0;
-}
-
-.td-remote-engine-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.td-remote-engine-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(10, 15, 29, 0.5);
-  color: #94a3b8;
-  font-size: 0.72rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 140ms ease;
-  white-space: nowrap;
-  line-height: 1;
-}
-
-.td-remote-engine-pill:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.06);
-  color: #e2e8f0;
-}
-
-.td-remote-engine-pill.active {
-  background: rgba(56, 189, 248, 0.18);
-  border-color: rgba(56, 189, 248, 0.45);
-  color: #38bdf8;
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.18);
-}
-
-.td-remote-engine-pill:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Storage Policy Row */
-.td-remote-policy-row {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.td-remote-policy-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-/* Remote Smart Delivery Engine (Zero Quota / Zero Disk) */
-.td-remote-engine-card {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  background: rgba(15, 23, 42, 0.55);
-  border: 1px solid rgba(56, 189, 248, 0.18);
-  border-radius: 12px;
-  padding: 10px 12px;
-}
-
-.td-remote-engine-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.td-remote-engine-title-wrap {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.td-remote-engine-title {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #e2e8f0;
-}
-
-.td-remote-engine-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 999px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.td-remote-engine-badge.zero-quota {
-  background: rgba(16, 185, 129, 0.18);
-  color: #34d399;
-  border: 1px solid rgba(52, 211, 153, 0.35);
-  box-shadow: 0 0 10px rgba(52, 211, 153, 0.15);
-}
-
-.td-remote-engine-badge.zero-disk {
-  background: rgba(56, 189, 248, 0.18);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
-}
-
-.td-remote-engine-desc {
-  font-size: 0.7rem;
-  color: #94a3b8;
-  line-height: 1.35;
-  margin: 0;
-}
-
-.td-preflight-engine-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 6px;
-}
-
-.td-preflight-engine-tag.is-cloud-fetch {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border: 1px solid rgba(52, 211, 153, 0.3);
-}
-
-.td-preflight-engine-tag.is-ram-pipe {
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.3);
-}
-
-/* Remote URL Target Destination Selector Card */
-.td-remote-dest-wrap {
-  width: 100%;
-}
-
-.td-remote-dest-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 8px 12px;
-  background: rgba(10, 15, 29, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 11px;
-  color: var(--td-text, #fff);
-  cursor: pointer;
-  text-align: left;
-  transition: all 140ms ease;
-  min-height: 48px;
-  box-sizing: border-box;
-}
-
-.td-remote-dest-card:hover:not(:disabled) {
-  background: rgba(56, 189, 248, 0.08);
-  border-color: #38bdf8;
-}
-
-.td-remote-dest-card:focus-visible {
-  outline: 2px solid #38bdf8;
-  outline-offset: 2px;
-}
-
-.td-remote-dest-card:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.td-remote-dest-main {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  flex: 1;
-}
-
-.td-remote-dest-main .td-dest-ico {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.08);
-  flex-shrink: 0;
-}
-
-.td-remote-dest-info {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.td-remote-dest-title {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--td-text, #fff);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.td-remote-dest-topic {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #38bdf8;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  margin-top: 3px;
-  padding: 1px 7px;
-  border-radius: 4px;
-  background: rgba(56, 189, 248, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  width: fit-content;
-}
-
-.td-remote-dest-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  margin-left: 10px;
-}
-
-.td-remote-dest-change-tag {
-  display: inline-flex;
-  align-items: center;
-  font-size: 0.74rem;
-  font-weight: 600;
-  color: #38bdf8;
-  padding: 3px 9px;
-  border-radius: 6px;
-  background: rgba(56, 189, 248, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  transition: all 120ms ease;
-}
-
-.td-remote-dest-card:hover .td-remote-dest-change-tag {
-  background: rgba(56, 189, 248, 0.22);
-  border-color: rgba(56, 189, 248, 0.45);
-  color: #7dd3fc;
-}
-
-.td-remote-foot {
-  padding: 14px 24px 18px !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-  background: rgba(10, 15, 29, 0.5) !important;
-}
-
-.td-remote-submit-btn {
-  background: linear-gradient(135deg, #0284c7, #4f46e5) !important;
-  color: #ffffff !important;
-  border: none !important;
-  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.4) !important;
-  padding: 9px 20px !important;
-  border-radius: 10px !important;
-  font-weight: 700 !important;
-  letter-spacing: -0.01em !important;
-  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-.td-remote-submit-btn:hover:not(:disabled) {
-  box-shadow: 0 6px 24px rgba(2, 132, 199, 0.6) !important;
-  transform: translateY(-1px) !important;
-  filter: brightness(1.08) !important;
-}
 
 /* Responsive Breakpoints for Remote Upload (Viewport Width & Height Adaptive) */
 @media (max-width: 900px), (max-height: 540px) {
@@ -27352,114 +26997,13 @@ button.td-confirm-icon.is-back-btn:active {
   }
 }
 
-/* Compact viewport height rules (e.g. 400px - 580px height or landscape mobile/compact window) */
+/* Compact viewport height rules */
 @media (max-height: 580px) {
   .td-confirm-panel.td-remote-upload-panel,
   .td-remote-upload-panel {
     max-height: calc(100vh - 16px) !important;
     max-height: calc(100dvh - 16px) !important;
-    border-radius: 14px !important;
-  }
-
-  .td-remote-upload-panel .td-confirm-head {
-    padding: 10px 18px 8px !important;
-  }
-
-  .td-remote-upload-panel .td-confirm-head-icon {
-    width: 32px !important;
-    height: 32px !important;
-    border-radius: 8px !important;
-  }
-
-  .td-remote-upload-panel .td-confirm-head h2 {
-    font-size: 0.96rem !important;
-    line-height: 1.2 !important;
-  }
-
-  .td-remote-upload-panel .td-confirm-desc {
-    font-size: 0.72rem !important;
-    margin-top: 1px !important;
-  }
-
-  .td-remote-upload-panel .td-remote-tabs {
-    margin: 0 18px 8px !important;
-    padding: 3px !important;
-    gap: 4px !important;
-  }
-
-  .td-remote-upload-panel .td-remote-tab {
-    padding: 5px 10px !important;
-    min-height: 30px !important;
-    font-size: 0.78rem !important;
-  }
-
-  .td-remote-upload-panel .td-remote-body {
-    padding: 2px 18px 12px !important;
-    gap: 8px !important;
-  }
-
-  .td-remote-upload-panel .td-remote-form-card {
-    padding: 8px 10px !important;
-    gap: 5px !important;
-    border-radius: 10px !important;
-  }
-
-  .td-remote-upload-panel .td-input-label {
-    font-size: 0.74rem !important;
-    margin-bottom: 2px !important;
-  }
-
-  .td-remote-upload-panel .td-input-field {
-    font-size: 0.82rem !important;
-    min-height: 34px !important;
-    height: 34px !important;
-  }
-
-  .td-remote-upload-panel .td-remote-url-input {
-    padding-left: 36px !important;
-    padding-right: 32px !important;
-  }
-
-  .td-remote-upload-panel .td-custom-filename-input {
-    padding: 6px 10px !important;
-  }
-
-  .td-remote-upload-panel .td-remote-batch-textarea {
-    min-height: 64px !important;
-    padding: 6px 10px !important;
-  }
-
-  .td-remote-upload-panel .td-remote-mode-pills {
-    gap: 4px !important;
-  }
-
-  .td-remote-upload-panel .td-remote-mode-pill {
-    padding: 4px 10px !important;
-    font-size: 0.73rem !important;
-  }
-
-  .td-remote-upload-panel .td-remote-foot {
-    padding: 8px 18px 10px !important;
-  }
-
-  .td-remote-upload-panel .td-confirm-btn {
-    padding: 6px 14px !important;
-    font-size: 0.82rem !important;
-    min-height: 32px !important;
-    border-radius: 8px !important;
-  }
-}
-
-/* Compact viewport width rules (e.g. <= 550px mobile/narrow window) */
-@media (max-width: 550px) {
-  .td-confirm-panel.td-remote-upload-panel,
-  .td-remote-upload-panel {
-    max-width: calc(100vw - 16px) !important;
-    width: calc(100vw - 16px) !important;
-  }
-
-  .td-remote-mode-pills {
-    flex-direction: column !important;
+    border-radius: 12px !important;
   }
 }
 
