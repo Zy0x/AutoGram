@@ -582,7 +582,7 @@
   "remote_passcode_placeholder": "Masukkan kode akses tautan (opsional / jika ada)...",
   "remote_passcode_required_badge": "Perlu Sandi",
   "remote_passcode_invalid_badge": "Sandi Salah",
-  "remote_open_in_browser": "Buka di Web",
+  "remote_open_in_browser": "Buka di Browser",
   "remote_open_web_for_code": "Buka Web Sumber",
   "remote_web_handoff_title": "Tautan Halaman Web Interaktif",
   "remote_web_handoff_desc": "Tautan ini mengarah ke halaman web interaktif. Jika halaman memerlukan login akun, verifikasi, atau sandi akses, silakan buka di peramban web terlebih dahulu.",

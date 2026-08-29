@@ -495,6 +495,7 @@
   "remote_err_empty": "Please enter a valid file URL",
   "remote_err_invalid_protocol": "URL must begin with http:// or https://",
   "remote_err_no_batch_urls": "No valid http/https URLs found in text",
+  "remote_open_in_browser": "Open in Browser",
   "remote_album_full_pack": "All Photos ({{count}} HD Photos - Full Album)",
   "remote_album_full_pack_desc": "Upload entire photo album simultaneously as a Telegram Media Group",
   "remote_photo_n": "Photo {{idx}} of {{total}} (Clean HD)",

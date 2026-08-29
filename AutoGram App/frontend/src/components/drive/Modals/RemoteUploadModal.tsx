@@ -1489,7 +1489,8 @@ export function RemoteUploadModal({
                             disabled={submitting}
                             title={t('speedtest.remote_open_in_browser')}
                           >
-                            <ExternalLink size={10} />
+                            <ExternalLink size={11} />
+                            <span>{t('speedtest.remote_open_in_browser')}</span>
                           </button>
                         )}
                         <button
