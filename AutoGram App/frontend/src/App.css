@@ -26751,12 +26751,18 @@ button.td-confirm-icon.is-back-btn:active {
   box-shadow: 0 0 12px rgba(167, 139, 250, 0.4);
 }
 
-/* Grid card: true 2:3 portrait thumbnail — fills entire card top area */
+/* =============================================
+   Grid card: Drive-style poster card
+   - Full 2:3 portrait thumbnail fills the card
+   - Filename + meta overlaid at bottom via gradient
+   ============================================= */
 .td-remote-media-item-card.card-grid-mode {
-  display: flex;
-  flex-direction: column;
+  display: block;
+  position: relative;
+  overflow: hidden;
 }
 
+/* Thumb-wrap fills the ENTIRE card, no separate body below */
 .td-remote-media-item-card.card-grid-mode .td-remote-item-thumb-wrap {
   position: relative;
   width: 100% !important;
@@ -26766,7 +26772,6 @@ button.td-confirm-icon.is-back-btn:active {
   background: #030712;
   overflow: hidden;
   display: block;
-  flex: 0 0 auto;
 }
 
 .td-remote-media-item-card.card-grid-mode .td-remote-item-thumb-img {
@@ -26774,6 +26779,53 @@ button.td-confirm-icon.is-back-btn:active {
   height: 100% !important;
   object-fit: cover;
   display: block;
+}
+
+/* Card body becomes bottom overlay with gradient */
+.td-remote-media-item-card.card-grid-mode .td-remote-item-card-body {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 18px 6px 5px;
+  background: linear-gradient(to top, rgba(3, 7, 18, 0.95) 0%, rgba(3, 7, 18, 0.7) 55%, transparent 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  pointer-events: none;
+}
+
+.td-remote-media-item-card.card-grid-mode .td-remote-item-card-title {
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+
+.td-remote-media-item-card.card-grid-mode .td-remote-item-card-meta-clean {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.58rem;
+  font-weight: 600;
+}
+
+.td-remote-media-item-card.card-grid-mode .td-remote-meta-size {
+  color: #94a3b8;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+.td-remote-media-item-card.card-grid-mode .td-remote-meta-ext {
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+  padding: 0 3px;
+  border-radius: 2px;
+  font-size: 0.56rem;
+  font-weight: 700;
 }
 
 /* List card: horizontal layout */
