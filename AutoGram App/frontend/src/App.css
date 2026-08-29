@@ -25773,13 +25773,16 @@ button.td-confirm-icon.is-back-btn:active {
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
+
 .td-remote-body.td-remote-split-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
-  gap: 22px;
-  align-items: start;
-  padding: 4px 24px 22px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0 24px 22px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
+
 
 .td-remote-left-pane {
   display: flex;
@@ -26832,18 +26835,21 @@ button.td-confirm-icon.is-back-btn:active {
    AutoGram 2-Section Studio Redesign Layouts
    ========================================================================== */
 
+/* Section 1: full width, 2-column internal layout (controls | preview) */
 .td-remote-section-1 {
   display: grid;
-  grid-template-columns: minmax(320px, 1fr) minmax(340px, 1.15fr);
+  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
   gap: 16px;
   align-items: stretch;
   width: 100%;
+  padding: 16px 0 12px;
 }
 
 .td-remote-section-1.single-column {
   grid-template-columns: 1fr;
-  max-width: 680px;
+  max-width: 620px;
   margin: 0 auto;
+  padding: 16px 0 0;
 }
 
 .td-remote-section-1-controls {
@@ -26851,6 +26857,7 @@ button.td-confirm-icon.is-back-btn:active {
   flex-direction: column;
   gap: 10px;
   min-width: 0;
+  overflow: visible;
 }
 
 .td-remote-section-1-preview {
@@ -26858,18 +26865,19 @@ button.td-confirm-icon.is-back-btn:active {
   flex-direction: column;
   gap: 10px;
   min-width: 0;
-  height: 100%;
+  min-height: 0;
 }
 
+/* Section 2: full width gallery below Section 1 */
 .td-remote-section-2-gallery {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 14px;
-  padding-top: 14px;
+  gap: 10px;
+  padding-top: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   width: 100%;
 }
+
 
 .td-remote-gallery-toolbar {
   display: flex;
@@ -27044,15 +27052,13 @@ button.td-confirm-icon.is-back-btn:active {
   color: #38bdf8;
 }
 
+
 .td-remote-gallery-grid-wrap {
   width: 100%;
-  max-height: 380px;
-  overflow-y: auto;
   overflow-x: hidden;
-  padding: 4px 2px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(56, 189, 248, 0.3) transparent;
+  padding: 4px 2px 12px;
 }
+
 
 .td-remote-gallery-grid-wrap.density-comfortable {
   display: grid;
@@ -27977,11 +27983,15 @@ button.td-confirm-icon.is-back-btn:active {
   }
 
   .td-remote-body.td-remote-split-body {
-    grid-template-columns: 1fr !important;
-    gap: 16px;
+    padding: 0 16px 16px !important;
   }
 
-  .td-remote-right-pane {
+  .td-remote-section-1 {
+    grid-template-columns: 1fr !important;
+    padding: 12px 0 8px !important;
+  }
+
+  .td-remote-section-1-preview {
     order: -1;
   }
 
@@ -28067,22 +28077,13 @@ button.td-confirm-icon.is-back-btn:active {
     padding: 6px 10px !important;
   }
 
-  .td-remote-upload-panel .td-remote-mode-selector {
-    gap: 6px !important;
+  .td-remote-upload-panel .td-remote-mode-pills {
+    gap: 4px !important;
   }
 
-  .td-remote-upload-panel .td-remote-mode-btn {
-    padding: 6px 8px !important;
-    min-height: 38px !important;
-    border-radius: 8px !important;
-  }
-
-  .td-remote-upload-panel .td-remote-mode-title {
-    font-size: 0.76rem !important;
-  }
-
-  .td-remote-upload-panel .td-remote-mode-desc {
-    font-size: 0.66rem !important;
+  .td-remote-upload-panel .td-remote-mode-pill {
+    padding: 4px 10px !important;
+    font-size: 0.73rem !important;
   }
 
   .td-remote-upload-panel .td-remote-foot {
@@ -28105,10 +28106,11 @@ button.td-confirm-icon.is-back-btn:active {
     width: calc(100vw - 16px) !important;
   }
 
-  .td-remote-upload-panel .td-remote-mode-selector {
-    grid-template-columns: 1fr !important;
+  .td-remote-mode-pills {
+    flex-direction: column !important;
   }
 }
+
 
 .td-file-card.is-clipboard-copy .td-file-card-inner {
   border: 1.5px solid #a78bfa !important;
