@@ -35,6 +35,8 @@ import {
   Play,
   Clock,
   HardDrive,
+  Pencil,
+  RotateCcw,
 } from 'lucide-react';
 import type { DriveDestChoice, DriveDestPickerState } from './DriveDestinationPicker';
 import { DriveDestinationPicker } from './DriveDestinationPicker';
@@ -811,15 +813,71 @@ export function RemoteUploadModal({
 
   const targetMediaForPlayback = effectiveMediaItems.length > 1 ? activePreviewChosenFmt : singleChosenFormat;
 
-  const [activePlayableUrl, setActivePlayableUrl] = useState<string>('');
-  const [activeVideoDuration, setActiveVideoDuration] = useState<number | null>(null);
+  const [itemCustomNames, setItemCustomNames] = useState<Record<string, string>>({});
+  const [isEditingActiveName, setIsEditingActiveName] = useState(false);
+  const [editingNameValue, setEditingNameValue] = useState('');
 
   useEffect(() => {
-    setActiveVideoDuration(null);
+    setIsEditingActiveName(false);
+    setEditingNameValue('');
+  }, [activePreviewItemId, resolvedMedia?.title]);
+
+  const activeItemOriginalName = useMemo(() => {
+    if (activePreviewItem) {
+      const chosenFmtId = itemSelectedFormats[activePreviewItem.id] || activePreviewItem.selectedFormatId || activePreviewItem.formats[0]?.id;
+      const chosenFmt = activePreviewItem.formats.find((f) => f.id === chosenFmtId) || activePreviewItem.formats[0];
+      return getEffectiveFormatFilename(chosenFmt, resolvedMedia) || activePreviewItem.title || 'media.mp4';
+    }
+    if (resolvedMedia) {
+      const chosenFmt = resolvedMedia.formats.find((f) => f.id === selectedFormatId) || resolvedMedia.formats[0];
+      return getEffectiveFormatFilename(chosenFmt, resolvedMedia) || resolvedMedia.title || 'media.mp4';
+    }
+    return '';
+  }, [activePreviewItem, itemSelectedFormats, resolvedMedia, selectedFormatId]);
+
+  const activeItemCurrentName = useMemo(() => {
+    if (activePreviewItem) {
+      return itemCustomNames[activePreviewItem.id] || activeItemOriginalName;
+    }
+    return customFilename.trim() || activeItemOriginalName;
+  }, [activePreviewItem, itemCustomNames, activeItemOriginalName, customFilename]);
+
+  const isNameModified = useMemo(() => {
+    return Boolean(activeItemCurrentName && activeItemCurrentName !== activeItemOriginalName);
+  }, [activeItemCurrentName, activeItemOriginalName]);
+
+  const saveCurrentEditingName = useCallback(() => {
+    const trimmed = editingNameValue.trim();
+    if (activePreviewItem) {
+      setItemCustomNames((prev) => ({
+        ...prev,
+        [activePreviewItem.id]: trimmed || activeItemOriginalName,
+      }));
+    } else {
+      setCustomFilename(trimmed);
+    }
+    setIsEditingActiveName(false);
+  }, [editingNameValue, activePreviewItem, activeItemOriginalName]);
+
+  const resetActiveName = useCallback(() => {
+    if (activePreviewItem) {
+      setItemCustomNames((prev) => {
+        const next = { ...prev };
+        delete next[activePreviewItem.id];
+        return next;
+      });
+    } else {
+      setCustomFilename('');
+    }
+    setIsEditingActiveName(false);
+  }, [activePreviewItem]);
+
+  const [activePlayableUrl, setActivePlayableUrl] = useState<string>('');
+
+  useEffect(() => {
     const v = document.querySelector('.td-remote-active-player-video') as HTMLVideoElement | null;
     if (v && v.duration && isFinite(v.duration) && v.duration > 0) {
       const d = Math.round(v.duration);
-      setActiveVideoDuration(d);
       if (activePreviewItem) {
         setItemDurations((prev) => ({ ...prev, [activePreviewItem.id]: d }));
       }
@@ -1030,7 +1088,9 @@ export function RemoteUploadModal({
             const chosenFmt = item.formats.find((f) => f.id === chosenFmtId) || item.formats[0];
             if (chosenFmt?.directUrl) {
               uploadUrls.push(chosenFmt.directUrl);
-              uploadFilenames.push(getEffectiveFormatFilename(chosenFmt, resolvedMedia));
+              const origName = getEffectiveFormatFilename(chosenFmt, resolvedMedia) || item.title;
+              const finalName = itemCustomNames[item.id]?.trim() || origName;
+              uploadFilenames.push(finalName);
               uploadSizes.push(chosenFmt.filesizeBytes || 0);
               uploadThumbs.push(chosenFmt.thumbnailUrl || item.thumbnailUrl || resolvedMedia?.thumbnailUrl || '');
             }
@@ -1852,24 +1912,6 @@ export function RemoteUploadModal({
                   <div className="td-remote-stream-split-wrap">
                     {/* Left Column: Player & Active Stream Details */}
                     <div className="td-remote-stream-player-col">
-                      <div className="td-remote-preview-head-row">
-                        <div className="td-remote-media-badges">
-                          <span className={`td-remote-platform-badge ${resolvedMedia.platform}`}>
-                            {resolvedMedia.platformName}
-                          </span>
-                          {resolvedMedia.formats.some((f) => f.isCleanNoWatermark) && (
-                            <span className="td-remote-clean-badge">
-                              <Sparkles size={11} />
-                              <span>{t('speedtest.remote_clean_no_watermark')}</span>
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="td-remote-media-title" title={activePreviewItem?.title || resolvedMedia.title}>
-                        {activePreviewItem?.title || resolvedMedia.title}
-                      </div>
-
                       {/* Active Player Canvas */}
                       <div className="td-remote-big-canvas-wrap">
                         {activePlayableUrl && (targetMediaForPlayback?.isVideo || !resolvedMedia.albumImages || resolvedMedia.albumImages.length === 0) ? (
@@ -1886,7 +1928,6 @@ export function RemoteUploadModal({
                                 const dur = e.currentTarget.duration;
                                 if (dur && isFinite(dur) && dur > 0) {
                                   const d = Math.round(dur);
-                                  setActiveVideoDuration(d);
                                   if (activePreviewItem) {
                                     setItemDurations((prev) => {
                                       if (prev[activePreviewItem.id] === d) return prev;
@@ -1899,7 +1940,6 @@ export function RemoteUploadModal({
                                 const dur = e.currentTarget.duration;
                                 if (dur && isFinite(dur) && dur > 0) {
                                   const d = Math.round(dur);
-                                  setActiveVideoDuration((prev) => (prev === d ? prev : d));
                                   if (activePreviewItem) {
                                     setItemDurations((prev) => {
                                       if (prev[activePreviewItem.id] === d) return prev;
@@ -1947,23 +1987,73 @@ export function RemoteUploadModal({
                         )}
                       </div>
 
-                      {/* Active Item Specs Ribbon */}
-                      <div className="td-remote-specs-ribbon">
-                        <span className="td-remote-spec-item">
-                          <Film size={11} className="text-sky-400" />
-                          <span>{targetMediaForPlayback?.isVideo ? t('drive_tools.remote_spec_video_stream') : t('drive_tools.remote_spec_media_item')}</span>
-                        </span>
-                        {(activeVideoDuration || activePreviewItem?.durationSec || resolvedMedia.durationSec) ? (
-                          <span className="td-remote-spec-item">
-                            <Clock size={11} className="text-amber-400" />
-                            <span>{formatMediaDuration(activeVideoDuration || activePreviewItem?.durationSec || resolvedMedia.durationSec)}</span>
-                          </span>
-                        ) : null}
-                        {effectiveMediaItems.length > 1 && (
-                          <span className="td-remote-spec-item">
-                            <Layers size={11} className="text-purple-400" />
-                            <span>{t('drive_tools.remote_gallery_selected_count', { selected: selectedMediaItemIds.size, total: effectiveMediaItems.length })}</span>
-                          </span>
+                      {/* Active Item Editable Filename Bar (Replacing Specs Ribbon) */}
+                      <div className="td-remote-stream-filename-bar">
+                        {isEditingActiveName ? (
+                          <div className="td-remote-filename-edit-form">
+                            <input
+                              type="text"
+                              value={editingNameValue}
+                              onChange={(e) => setEditingNameValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  saveCurrentEditingName();
+                                } else if (e.key === 'Escape') {
+                                  e.preventDefault();
+                                  setIsEditingActiveName(false);
+                                }
+                              }}
+                              className="td-remote-filename-input"
+                              placeholder={t('drive_tools.remote_filename_placeholder')}
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              onClick={saveCurrentEditingName}
+                              className="td-remote-name-action-btn td-remote-name-save-btn"
+                              title={t('drive_tools.remote_save_filename')}
+                            >
+                              <Check size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setIsEditingActiveName(false)}
+                              className="td-remote-name-action-btn td-remote-name-cancel-btn"
+                              title={t('drive_tools.remote_cancel_edit_filename')}
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="td-remote-filename-display">
+                            <span className="td-remote-filename-text" title={activeItemCurrentName}>
+                              {activeItemCurrentName}
+                            </span>
+                            <div className="td-remote-filename-actions">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingNameValue(activeItemCurrentName);
+                                  setIsEditingActiveName(true);
+                                }}
+                                className="td-remote-name-action-btn"
+                                title={t('drive_tools.remote_edit_filename')}
+                              >
+                                <Pencil size={12} />
+                              </button>
+                              {isNameModified && (
+                                <button
+                                  type="button"
+                                  onClick={resetActiveName}
+                                  className="td-remote-name-action-btn td-remote-name-reset-btn"
+                                  title={t('drive_tools.remote_reset_filename')}
+                                >
+                                  <RotateCcw size={12} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -2161,8 +2251,8 @@ export function RemoteUploadModal({
                                     </div>
 
                                     <div className="td-remote-item-card-body">
-                                      <span className="td-remote-item-card-title" title={item.title}>
-                                        {item.title}
+                                      <span className="td-remote-item-card-title" title={itemCustomNames[item.id] || item.title}>
+                                        {itemCustomNames[item.id] || item.title}
                                       </span>
                                       <div className="td-remote-item-card-meta-clean">
                                         <span className="td-remote-meta-size">
