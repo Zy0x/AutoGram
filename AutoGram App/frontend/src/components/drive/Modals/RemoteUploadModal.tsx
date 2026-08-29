@@ -472,16 +472,20 @@ export function RemoteUploadModal({
 
   useEffect(() => {
     if (!showSupportedInfo && !activeTripletInfo) return;
-    const onDocClick = (e: MouseEvent) => {
-      if (infoRef.current && !infoRef.current.contains(e.target as Node)) {
+    const onDocClick = (e: MouseEvent | PointerEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (showSupportedInfo && infoRef.current && !infoRef.current.contains(target as Node)) {
         setShowSupportedInfo(false);
       }
-      if (tripletInfoRef.current && !tripletInfoRef.current.contains(e.target as Node)) {
+      if (activeTripletInfo && tripletInfoRef.current && !tripletInfoRef.current.contains(target as Node)) {
+        if (target && target.closest('.td-remote-col-info-btn')) {
+          return;
+        }
         setActiveTripletInfo(null);
       }
     };
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
+    document.addEventListener('pointerdown', onDocClick, true);
+    return () => document.removeEventListener('pointerdown', onDocClick, true);
   }, [showSupportedInfo, activeTripletInfo]);
 
   const probeUrl = useCallback(async (rawUrl: string, explicitPasscode?: string) => {
@@ -1291,14 +1295,14 @@ export function RemoteUploadModal({
           </span>
           <button
             type="button"
-            className="td-remote-info-popover-close"
+            className="td-remote-info-close"
             onClick={(e) => {
               e.stopPropagation();
               setActiveTripletInfo(null);
             }}
             aria-label={t('speedtest.preview_close_btn')}
           >
-            <X size={11} />
+            <X size={13} />
           </button>
         </div>
 

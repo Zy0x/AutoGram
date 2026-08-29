@@ -26955,22 +26955,29 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-remote-info-close {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   color: #94a3b8;
   cursor: pointer;
-  transition: all 120ms ease;
+  padding: 0;
+  transition: all 140ms ease;
+  flex-shrink: 0;
 }
 
 .td-remote-info-close:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+}
+
+.td-remote-info-close:active {
+  transform: scale(0.92);
 }
 
 .td-remote-info-group {
