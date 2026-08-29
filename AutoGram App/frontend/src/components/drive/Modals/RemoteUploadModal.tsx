@@ -257,24 +257,6 @@ function formatMediaDuration(seconds?: number | null): string {
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
-/**
- * Truncates a filename while preserving the extension.
- * e.g. "Video makanan bu....mp4"
- */
-function truncateWithExt(filename: string, maxLen = 20): string {
-  if (filename.length <= maxLen) return filename;
-  const dotIdx = filename.lastIndexOf('.');
-  if (dotIdx <= 0) {
-    // No extension
-    return filename.slice(0, maxLen - 3) + '...';
-  }
-  const ext = filename.slice(dotIdx);       // e.g. ".mp4"
-  const name = filename.slice(0, dotIdx);   // e.g. "Video makanan bu"
-  const maxName = maxLen - ext.length - 3;  // reserve space for "..." + ext
-  if (maxName <= 0) return filename.slice(0, maxLen - 3) + '...';
-  return name.slice(0, maxName) + '...' + ext;
-}
-
 function getSingleUnifiedBadge(item: ResolvedMediaItem): string {
   const fmt = item.formats[0];
   if (!fmt) return item.kind === 'image' ? 'PHOTO' : 'HD';
@@ -2395,19 +2377,27 @@ export function RemoteUploadModal({
 
                                     {/* CARD BODY: gradient overlay (grid) or side (list) */}
                                     <div className="td-remote-item-card-body">
-                                      {/* Filename — top line, extension always preserved */}
+                                      {/* Filename — top line, extension always preserved at the end */}
                                       {(() => {
                                         const rawName = itemCustomNames[item.id] || item.title;
-                                        // If title lacks extension, append it from format
-                                        const ext = chosenFmt?.ext ? `.${chosenFmt.ext}` : '';
-                                        const hasExt = ext && rawName.toLowerCase().endsWith(ext.toLowerCase());
-                                        const effectiveName = hasExt || !ext ? rawName : `${rawName}${ext}`;
+                                        const fallbackExt = chosenFmt?.ext ? `.${chosenFmt.ext.toLowerCase()}` : '';
+                                        const lastDot = rawName.lastIndexOf('.');
+                                        let baseName = rawName;
+                                        let extName = fallbackExt;
+
+                                        if (lastDot > 0) {
+                                          baseName = rawName.slice(0, lastDot);
+                                          extName = rawName.slice(lastDot);
+                                        }
+
+                                        const fullDisplayName = `${baseName}${extName}`;
                                         return (
                                           <span
                                             className="td-remote-item-card-title"
-                                            title={effectiveName}
+                                            title={fullDisplayName}
                                           >
-                                            {truncateWithExt(effectiveName, 22)}
+                                            <span className="td-remote-title-base">{baseName}</span>
+                                            {extName ? <span className="td-remote-title-ext">{extName}</span> : null}
                                           </span>
                                         );
                                       })()}

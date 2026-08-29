@@ -26809,13 +26809,14 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-remote-media-item-card.card-grid-mode .td-remote-item-card-title {
+  display: flex;
+  align-items: baseline;
+  width: 100%;
+  min-width: 0;
   font-size: 0.64rem;
   font-weight: 700;
   color: #f1f5f9;
   line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   text-shadow: 0 1px 3px rgba(0,0,0,0.9);
 }
 
@@ -27053,14 +27054,30 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-remote-item-card-title {
+  display: flex;
+  align-items: baseline;
+  width: 100%;
+  min-width: 0;
   font-size: 0.64rem;
   font-weight: 700;
   color: #f1f5f9;
   line-height: 1.2;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+}
+
+.td-remote-title-base {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.td-remote-title-ext {
+  white-space: nowrap;
+  flex: 0 0 auto;
+  color: #e2e8f0;
+  margin-left: 2px;
 }
 
 .td-remote-meta-size {
