@@ -159,12 +159,14 @@ export const twitterResolver: LinkResolverProvider = {
                 filesizeBytes: estimatedBytes,
                 ext: 'mp4',
                 directUrl,
+                headers: { Referer: 'https://x.com/' },
                 isVideo: true,
                 isAudio: false,
                 isImage: false,
                 isCleanNoWatermark: true,
                 badge,
                 thumbnailUrl,
+                durationSec,
               });
             }
 
@@ -184,12 +186,14 @@ export const twitterResolver: LinkResolverProvider = {
                   resolution,
                   ext: 'mp4',
                   directUrl,
+                  headers: { Referer: 'https://x.com/' },
                   isVideo: true,
                   isAudio: false,
                   isImage: false,
                   isCleanNoWatermark: true,
                   badge,
                   thumbnailUrl,
+                  durationSec,
                 });
               }
             }

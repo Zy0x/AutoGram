@@ -876,6 +876,10 @@ export function RemoteUploadModal({
     const referer = targetMediaForPlayback?.headers?.Referer || (
       rawUrl.includes('overfetch.video') || rawUrl.includes('vidoy') || rawUrl.includes('streamrizz')
         ? 'https://streamrizz.com/'
+        : rawUrl.includes('twimg.com') || rawUrl.includes('twitter.com') || rawUrl.includes('x.com')
+        ? 'https://x.com/'
+        : rawUrl.includes('tiktok.com') || rawUrl.includes('tiktokcdn.com')
+        ? 'https://www.tiktok.com/'
         : undefined
     );
 
@@ -2207,7 +2211,60 @@ export function RemoteUploadModal({
                   ) : (
                     <>
                       <div className="td-remote-big-canvas-wrap">
-                        {activeSlideUrl ? (
+                        {activePlayableUrl && (singleChosenFormat?.isVideo || !resolvedMedia.albumImages || resolvedMedia.albumImages.length === 0) ? (
+                          <div className="td-remote-big-canvas-inner td-remote-single-player-canvas">
+                            <video
+                              key={activePlayableUrl}
+                              src={activePlayableUrl}
+                              poster={activeSlideUrl || resolvedMedia.thumbnailUrl}
+                              controls
+                              preload="metadata"
+                              playsInline
+                              className="td-remote-big-canvas-video td-remote-active-player-video"
+                              ref={(el) => {
+                                if (el) {
+                                  const checkDur = () => {
+                                    if (el.duration && isFinite(el.duration) && el.duration > 0) {
+                                      const d = Math.round(el.duration);
+                                      setActiveVideoDuration(d);
+                                    }
+                                  };
+                                  checkDur();
+                                  el.addEventListener('loadedmetadata', checkDur);
+                                  el.addEventListener('durationchange', checkDur);
+                                  el.addEventListener('canplay', checkDur);
+                                  el.addEventListener('timeupdate', checkDur);
+                                }
+                              }}
+                              onLoadedMetadata={(e) => {
+                                const dur = e.currentTarget.duration;
+                                if (dur && isFinite(dur) && dur > 0) {
+                                  setActiveVideoDuration(Math.round(dur));
+                                }
+                              }}
+                              onDurationChange={(e) => {
+                                const dur = e.currentTarget.duration;
+                                if (dur && isFinite(dur) && dur > 0) {
+                                  setActiveVideoDuration(Math.round(dur));
+                                }
+                              }}
+                              onCanPlay={(e) => {
+                                const dur = e.currentTarget.duration;
+                                if (dur && isFinite(dur) && dur > 0) {
+                                  setActiveVideoDuration(Math.round(dur));
+                                }
+                              }}
+                            />
+                            <div className="td-remote-canvas-badge-overlay">
+                              {(activeVideoDuration || resolvedMedia.durationSec) ? (
+                                <span className="td-remote-canvas-duration-tag">
+                                  <Clock size={11} />
+                                  <span>{formatMediaDuration(activeVideoDuration || resolvedMedia.durationSec)}</span>
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        ) : activeSlideUrl ? (
                           <div className="td-remote-big-canvas-inner">
                             <img
                               src={activeSlideUrl}
@@ -2230,7 +2287,8 @@ export function RemoteUploadModal({
                               )}
                               {resolvedMedia.durationSec ? (
                                 <span className="td-remote-canvas-duration-tag">
-                                  {formatMediaDuration(resolvedMedia.durationSec)}
+                                  <Clock size={11} />
+                                  <span>{formatMediaDuration(resolvedMedia.durationSec)}</span>
                                 </span>
                               ) : null}
                             </div>
