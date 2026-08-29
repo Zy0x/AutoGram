@@ -35,6 +35,7 @@ import {
   Search,
   Circle,
   Play,
+  Clock,
 } from 'lucide-react';
 import type { DriveDestChoice, DriveDestPickerState } from './DriveDestinationPicker';
 import { DriveDestinationPicker } from './DriveDestinationPicker';
@@ -253,6 +254,84 @@ function getEffectiveFormatFilename(
   if (!rawTitle) return `remote_file.${fmt?.ext || fallbackExt || 'mp4'}`;
   return rawTitle.includes('.') ? rawTitle : `${rawTitle}.${fmt?.ext || fallbackExt || 'mp4'}`;
 }
+
+function formatMediaDuration(seconds?: number | null): string {
+  if (!seconds || seconds <= 0 || !isFinite(seconds)) return '';
+  const total = Math.round(seconds);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h > 0) {
+    return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+  }
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+const ItemDurationBadge: React.FC<{
+  item: ResolvedMediaItem;
+  knownDuration?: number;
+  onDurationFound?: (id: string, dur: number) => void;
+}> = ({ item, knownDuration, onDurationFound }) => {
+  const [duration, setDuration] = useState<number | undefined>(knownDuration || item.durationSec);
+  const onFoundRef = useRef(onDurationFound);
+  onFoundRef.current = onDurationFound;
+
+  useEffect(() => {
+    if (knownDuration && knownDuration > 0) {
+      setDuration(knownDuration);
+      return;
+    }
+    if (item.kind !== 'video') return;
+    if (duration && duration > 0) return;
+
+    const directUrl = item.formats[0]?.directUrl;
+    if (!directUrl || !directUrl.startsWith('http') || directUrl.includes('/v/')) return;
+
+    let isCancelled = false;
+    const v = document.createElement('video');
+    v.preload = 'metadata';
+    v.src = directUrl;
+
+    const onMeta = () => {
+      if (!isCancelled && v.duration && isFinite(v.duration) && v.duration > 0) {
+        const d = Math.round(v.duration);
+        setDuration(d);
+        onFoundRef.current?.(item.id, d);
+      }
+      cleanup();
+    };
+
+    const cleanup = () => {
+      v.removeEventListener('loadedmetadata', onMeta);
+      v.removeEventListener('durationchange', onMeta);
+      v.removeEventListener('canplay', onMeta);
+      v.removeEventListener('error', cleanup);
+      v.src = '';
+    };
+
+    v.addEventListener('loadedmetadata', onMeta);
+    v.addEventListener('durationchange', onMeta);
+    v.addEventListener('canplay', onMeta);
+    v.addEventListener('error', cleanup);
+    v.load();
+
+    return () => {
+      isCancelled = true;
+      cleanup();
+    };
+  }, [item.id, item.formats, item.kind, knownDuration]);
+
+  const durToFormat = duration || knownDuration || item.durationSec;
+  const formatted = formatMediaDuration(durToFormat);
+  if (!formatted) return null;
+
+  return (
+    <span className="td-remote-item-duration-badge">
+      <Clock size={10} />
+      <span>{formatted}</span>
+    </span>
+  );
+};
 
 export function RemoteUploadModal({
   isOpen,
@@ -678,23 +757,94 @@ export function RemoteUploadModal({
     return [];
   }, [resolvedMedia]);
 
+  const [itemDurations, setItemDurations] = useState<Record<string, number>>({});
+
   useEffect(() => {
     if (effectiveMediaItems.length > 0) {
       setSelectedMediaItemIds(new Set(effectiveMediaItems.map((item) => item.id)));
       const fmtMap: Record<string, string> = {};
+      const durMap: Record<string, number> = {};
       for (const item of effectiveMediaItems) {
         fmtMap[item.id] = item.selectedFormatId || item.formats[0]?.id || '';
+        if (item.durationSec && item.durationSec > 0) {
+          durMap[item.id] = item.durationSec;
+        } else if (item.formats[0]?.durationSec && item.formats[0].durationSec > 0) {
+          durMap[item.id] = item.formats[0].durationSec;
+        }
       }
       setItemSelectedFormats(fmtMap);
+      setItemDurations((prev) => ({ ...durMap, ...prev }));
       setItemFilterText('');
       setActivePreviewItemId(effectiveMediaItems[0]?.id || '');
     } else {
       setSelectedMediaItemIds(new Set());
       setItemSelectedFormats({});
+      setItemDurations({});
       setItemFilterText('');
       setActivePreviewItemId('');
     }
   }, [effectiveMediaItems]);
+
+  useEffect(() => {
+    if (resolvedMedia?.durationSec) {
+      setItemDurations((prev) => ({
+        ...prev,
+        __main__: resolvedMedia.durationSec!,
+      }));
+    }
+  }, [resolvedMedia?.durationSec]);
+
+  // Parallel metadata duration probe for all video cards in the gallery
+  useEffect(() => {
+    if (effectiveMediaItems.length === 0) return;
+    let isCancelled = false;
+
+    const probeList = effectiveMediaItems.filter(
+      (it) => it.kind === 'video' && (!itemDurations[it.id] || itemDurations[it.id] <= 0)
+    );
+
+    if (probeList.length === 0) return;
+
+    probeList.forEach((item) => {
+      const directUrl = item.formats[0]?.directUrl;
+      if (!directUrl || !directUrl.startsWith('http') || directUrl.includes('/v/')) return;
+
+      const v = document.createElement('video');
+      v.preload = 'metadata';
+      v.src = directUrl;
+
+      const onMeta = () => {
+        if (!isCancelled && v.duration && isFinite(v.duration) && v.duration > 0) {
+          setItemDurations((prev) => {
+            const rounded = Math.round(v.duration);
+            if (prev[item.id] === rounded) return prev;
+            return {
+              ...prev,
+              [item.id]: rounded,
+            };
+          });
+        }
+        cleanup();
+      };
+
+      const cleanup = () => {
+        v.removeEventListener('loadedmetadata', onMeta);
+        v.removeEventListener('durationchange', onMeta);
+        v.removeEventListener('canplay', onMeta);
+        v.removeEventListener('error', cleanup);
+        v.src = '';
+      };
+
+      v.addEventListener('loadedmetadata', onMeta);
+      v.addEventListener('durationchange', onMeta);
+      v.addEventListener('canplay', onMeta);
+      v.addEventListener('error', cleanup);
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [effectiveMediaItems, itemDurations]);
 
   const activePreviewItem = useMemo(() => {
     if (!effectiveMediaItems || effectiveMediaItems.length === 0) return null;
@@ -713,6 +863,19 @@ export function RemoteUploadModal({
   const targetMediaForPlayback = effectiveMediaItems.length > 1 ? activePreviewChosenFmt : singleChosenFormat;
 
   const [activePlayableUrl, setActivePlayableUrl] = useState<string>('');
+  const [activeVideoDuration, setActiveVideoDuration] = useState<number | null>(null);
+
+  useEffect(() => {
+    setActiveVideoDuration(null);
+    const v = document.querySelector('.td-remote-active-player-video') as HTMLVideoElement | null;
+    if (v && v.duration && isFinite(v.duration) && v.duration > 0) {
+      const d = Math.round(v.duration);
+      setActiveVideoDuration(d);
+      if (activePreviewItem) {
+        setItemDurations((prev) => ({ ...prev, [activePreviewItem.id]: d }));
+      }
+    }
+  }, [activePlayableUrl, activePreviewItem]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -1742,6 +1905,66 @@ export function RemoteUploadModal({
                                   preload="metadata"
                                   playsInline
                                   className="td-remote-active-player-video"
+                                  ref={(el) => {
+                                    if (el) {
+                                      const checkDur = () => {
+                                        if (el.duration && isFinite(el.duration) && el.duration > 0) {
+                                          const d = Math.round(el.duration);
+                                          setActiveVideoDuration(d);
+                                          if (activePreviewItem) {
+                                            setItemDurations((prev) => {
+                                              if (prev[activePreviewItem.id] === d) return prev;
+                                              return { ...prev, [activePreviewItem.id]: d };
+                                            });
+                                          }
+                                        }
+                                      };
+                                      checkDur();
+                                      el.addEventListener('loadedmetadata', checkDur);
+                                      el.addEventListener('durationchange', checkDur);
+                                      el.addEventListener('canplay', checkDur);
+                                      el.addEventListener('timeupdate', checkDur);
+                                    }
+                                  }}
+                                  onLoadedMetadata={(e) => {
+                                    const dur = e.currentTarget.duration;
+                                    if (dur && isFinite(dur) && dur > 0) {
+                                      const d = Math.round(dur);
+                                      setActiveVideoDuration(d);
+                                      if (activePreviewItem) {
+                                        setItemDurations((prev) => ({
+                                          ...prev,
+                                          [activePreviewItem.id]: d,
+                                        }));
+                                      }
+                                    }
+                                  }}
+                                  onDurationChange={(e) => {
+                                    const dur = e.currentTarget.duration;
+                                    if (dur && isFinite(dur) && dur > 0) {
+                                      const d = Math.round(dur);
+                                      setActiveVideoDuration(d);
+                                      if (activePreviewItem) {
+                                        setItemDurations((prev) => ({
+                                          ...prev,
+                                          [activePreviewItem.id]: d,
+                                        }));
+                                      }
+                                    }
+                                  }}
+                                  onCanPlay={(e) => {
+                                    const dur = e.currentTarget.duration;
+                                    if (dur && isFinite(dur) && dur > 0) {
+                                      const d = Math.round(dur);
+                                      setActiveVideoDuration(d);
+                                      if (activePreviewItem) {
+                                        setItemDurations((prev) => ({
+                                          ...prev,
+                                          [activePreviewItem.id]: d,
+                                        }));
+                                      }
+                                    }
+                                  }}
                                 />
                               ) : (
                                 <div className="td-remote-item-thumb-fallback flex items-center justify-center">
@@ -1773,6 +1996,12 @@ export function RemoteUploadModal({
                               <span className="td-remote-item-card-badge">
                                 {(activePreviewChosenFmt && getFormatDisplayBadge(activePreviewChosenFmt, t)) || activePreviewChosenFmt?.resolution || t('speedtest.remote_badge_hd')}
                               </span>
+                              {activePreviewItem && formatMediaDuration(activeVideoDuration || itemDurations[activePreviewItem.id] || activePreviewItem.durationSec) ? (
+                                <span className="td-remote-active-player-duration">
+                                  <Clock size={12} />
+                                  <span>{formatMediaDuration(activeVideoDuration || itemDurations[activePreviewItem.id] || activePreviewItem.durationSec)}</span>
+                                </span>
+                              ) : null}
                               {activePreviewChosenFmt?.filesizeBytes ? (
                                 <span className="td-remote-item-card-size">
                                   ~{formatDriveBytes(activePreviewChosenFmt.filesizeBytes)}
@@ -1820,31 +2049,32 @@ export function RemoteUploadModal({
                         </div>
                       </div>
 
-                      {effectiveMediaItems.length > 4 && (
-                        <div className="td-remote-multicard-search">
-                          <Search size={13} />
+                      <div className="td-remote-multicard-search-row">
+                        <div className="td-remote-multicard-search-box">
+                          <Search size={14} className="td-remote-multicard-search-icon" />
                           <input
                             type="text"
                             value={itemFilterText}
                             onChange={(e) => setItemFilterText(e.target.value)}
                             placeholder={t('speedtest.remote_filter_media_placeholder')}
-                            spellCheck={false}
+                            className="td-remote-multicard-search-input"
                           />
                           {itemFilterText && (
                             <button
                               type="button"
                               onClick={() => setItemFilterText('')}
-                              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
+                              className="td-remote-multicard-search-clear"
+                              aria-label={t('common.cancel')}
                             >
                               <X size={12} />
                             </button>
                           )}
                         </div>
-                      )}
+                      </div>
 
                       {filteredMediaItems.length === 0 ? (
                         <div className="td-remote-multicard-empty">
-                          {t('speedtest.remote_no_filter_match')}
+                          <span>{t('speedtest.remote_no_filter_match')}</span>
                         </div>
                       ) : (
                         <div className="td-remote-multicard-grid">
@@ -1853,6 +2083,8 @@ export function RemoteUploadModal({
                             const isActivePreview = item.id === activePreviewItem?.id;
                             const chosenFmtId = itemSelectedFormats[item.id] || item.selectedFormatId || item.formats[0]?.id;
                             const chosenFmt = item.formats.find((f) => f.id === chosenFmtId) || item.formats[0];
+                            const itemDuration = itemDurations[item.id] || item.durationSec;
+                            const durationText = item.kind === 'video' ? formatMediaDuration(itemDuration) : '';
 
                             return (
                               <div
@@ -1907,6 +2139,19 @@ export function RemoteUploadModal({
                                     </div>
                                   )}
 
+                                  {item.kind === 'video' && (
+                                    <ItemDurationBadge
+                                      item={item}
+                                      knownDuration={itemDurations[item.id]}
+                                      onDurationFound={(id, dur) => {
+                                        setItemDurations((prev) => {
+                                          if (prev[id] === dur) return prev;
+                                          return { ...prev, [id]: dur };
+                                        });
+                                      }}
+                                    />
+                                  )}
+
                                   <span className="td-remote-item-index-badge">#{idx + 1}</span>
 
                                   <button
@@ -1950,6 +2195,12 @@ export function RemoteUploadModal({
                                         <span className="td-remote-item-card-badge">
                                           {getFormatDisplayBadge(chosenFmt, t) || chosenFmt?.resolution || chosenFmt?.qualityTier || t('speedtest.remote_badge_hd')}
                                         </span>
+                                        {item.kind === 'video' && durationText ? (
+                                          <span className="td-remote-item-card-duration">
+                                            <Clock size={10} />
+                                            <span>{durationText}</span>
+                                          </span>
+                                        ) : null}
                                         <span className="td-remote-item-card-size">
                                           {chosenFmt?.filesizeBytes
                                             ? `~${formatDriveBytes(chosenFmt.filesizeBytes)}`

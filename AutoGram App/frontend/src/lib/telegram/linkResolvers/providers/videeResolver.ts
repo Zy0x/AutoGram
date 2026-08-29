@@ -299,15 +299,19 @@ export const videeResolver: LinkResolverProvider = {
         folderTitle = `Videe Folder (${rawEntries.length} Videos)`;
       }
 
-      // Resolve the initial batch of videos in parallel (e.g. 10 items)
-      const primaryCount = Math.min(rawEntries.length, 10);
-      const resolvedFirstChunk = await Promise.all(
-        rawEntries
-          .slice(0, primaryCount)
-          .map((item) => resolveVideeSingleVideo(item.id, item.title, item.thumb, signal))
-      );
+      // Resolve all items in parallel batches of 15
+      const validResolved: VideeVideoItem[] = [];
+      const batchSize = 15;
+      for (let i = 0; i < rawEntries.length; i += batchSize) {
+        const chunk = rawEntries.slice(i, i + batchSize);
+        const resolvedChunk = await Promise.all(
+          chunk.map((item) => resolveVideeSingleVideo(item.id, item.title, item.thumb, signal))
+        );
+        for (const item of resolvedChunk) {
+          if (item) validResolved.push(item);
+        }
+      }
 
-      const validResolved = resolvedFirstChunk.filter((v): v is VideeVideoItem => v !== null);
       if (validResolved.length === 0 && rawEntries.length > 0) {
         // Fallback: try resolving first item directly
         const first = await resolveVideeSingleVideo(rawEntries[0].id, rawEntries[0].title, rawEntries[0].thumb, signal);

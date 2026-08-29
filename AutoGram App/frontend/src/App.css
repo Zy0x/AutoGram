@@ -26747,6 +26747,52 @@ button.td-confirm-icon.is-back-btn:active {
   background: rgba(56, 189, 248, 0.12);
 }
 
+.td-remote-item-card-duration {
+  font-weight: 700;
+  color: #38bdf8;
+  font-size: 0.68rem;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.14);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.td-remote-item-duration-badge {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  background: rgba(5, 10, 20, 0.85);
+  backdrop-filter: blur(6px);
+  color: #f8fafc;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 1.5px 5.5px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  z-index: 3;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.td-remote-active-player-duration {
+  font-weight: 700;
+  color: #38bdf8;
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .td-remote-item-card-size {
   font-weight: 600;
   color: #94a3b8;
