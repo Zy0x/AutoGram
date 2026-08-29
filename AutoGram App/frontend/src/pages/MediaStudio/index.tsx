@@ -6796,6 +6796,8 @@ function MediaDriveDesktop({
       qualityMode?: string;
       customFilename?: string;
       customFilenames?: string[];
+      sourceSizes?: number[];
+      thumbnailUrls?: string[];
     }
   ) => {
     if (!creds || !paths.length) return;
@@ -6897,6 +6899,9 @@ function MediaDriveDesktop({
         apiId: Number(creds.apiId) || 0,
         apiHash: creds.apiHash,
         paths: cleanPaths,
+        customFilenames: names,
+        sourceSizes: opts?.sourceSizes,
+        thumbnailUrls: opts?.thumbnailUrls,
         qualityMode: transferSettings.qualityMode,
         presentationOverride: opts?.presentationOverride ?? transferSettings.presentationOverride,
         groupAsAlbum: transferSettings.groupAsAlbum,
@@ -6910,7 +6915,16 @@ function MediaDriveDesktop({
         topicId: uploadTopicId,
         preventStickerConversion: transferSettings.preventStickerConversion,
       });
-      const decision = await reviewPreflight(report);
+      const enrichedReport: QualityPreflightReport = {
+        ...report,
+        items: report.items.map((item, idx) => ({
+          ...item,
+          sourceName: (names && names[idx]) ? names[idx] : item.sourceName,
+          sourceSize: (opts?.sourceSizes && opts.sourceSizes[idx]) ? opts.sourceSizes[idx] : item.sourceSize,
+          thumbnailUrl: item.thumbnailUrl || (opts?.thumbnailUrls && opts.thumbnailUrls[idx]) || null,
+        })),
+      };
+      const decision = await reviewPreflight(enrichedReport);
       if (!decision.approved) {
         setStatusText(String(t('speedtest.preflight_cancelled')));
         return;
@@ -7096,6 +7110,9 @@ function MediaDriveDesktop({
     dest: DriveDestChoice,
     opts?: {
       customFilename?: string;
+      customFilenames?: string[];
+      sourceSizes?: number[];
+      thumbnailUrls?: string[];
       asDocument?: boolean;
       qualityMode?: string;
       presentationOverride?: 'document' | 'original' | 'standard' | 'compressed';
@@ -7111,6 +7128,9 @@ function MediaDriveDesktop({
       presentationOverride: opts?.presentationOverride ?? (opts?.asDocument ? 'document' : undefined),
       qualityMode: opts?.qualityMode,
       customFilename: opts?.customFilename,
+      customFilenames: opts?.customFilenames,
+      sourceSizes: opts?.sourceSizes,
+      thumbnailUrls: opts?.thumbnailUrls,
     });
   };
 

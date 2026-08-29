@@ -87,6 +87,8 @@ export interface MediaStudioModalsContainerProps {
     opts?: {
       customFilename?: string;
       customFilenames?: string[];
+      sourceSizes?: number[];
+      thumbnailUrls?: string[];
       asDocument?: boolean;
       qualityMode?: string;
       presentationOverride?: 'document' | 'original' | 'standard' | 'compressed';

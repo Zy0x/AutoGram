@@ -71,6 +71,8 @@ interface RemoteUploadModalProps {
     opts?: {
       customFilename?: string;
       customFilenames?: string[];
+      sourceSizes?: number[];
+      thumbnailUrls?: string[];
       asDocument?: boolean;
       qualityMode?: string;
       presentationOverride?: 'document' | 'original' | 'standard' | 'compressed';
@@ -81,6 +83,10 @@ interface RemoteUploadModalProps {
 type RemoteUploadTab = 'single' | 'batch';
 type DeliveryMode = 'auto' | 'uncompressed' | 'document';
 type UrlKind = 'video' | 'image' | 'audio' | 'zip' | 'doc' | 'other';
+
+function sanitizeFilename(name: string): string {
+  return name.replace(/[/\\?%*:|"<>]/g, '_').replace(/[\r\n\t]+/g, ' ').trim();
+}
 
 interface UrlInspection {
   url: string;
@@ -238,7 +244,7 @@ function getEffectiveFormatFilename(
 ): string {
   if (!resolved && !fmt) return '';
   if (fmt?.customFilename) return fmt.customFilename;
-  const rawTitle = fmt?.customTitle || resolved?.title || '';
+  const rawTitle = sanitizeFilename(fmt?.customTitle || resolved?.title || '');
   if (!rawTitle) return `remote_file.${fmt?.ext || fallbackExt || 'mp4'}`;
   return rawTitle.includes('.') ? rawTitle : `${rawTitle}.${fmt?.ext || fallbackExt || 'mp4'}`;
 }
@@ -846,6 +852,8 @@ export function RemoteUploadModal({
         try {
           const uploadUrls: string[] = [];
           const uploadFilenames: string[] = [];
+          const uploadSizes: number[] = [];
+          const uploadThumbs: string[] = [];
 
           for (const item of selectedItems) {
             const chosenFmtId = itemSelectedFormats[item.id] || item.selectedFormatId || item.formats[0]?.id;
@@ -853,6 +861,8 @@ export function RemoteUploadModal({
             if (chosenFmt?.directUrl) {
               uploadUrls.push(chosenFmt.directUrl);
               uploadFilenames.push(getEffectiveFormatFilename(chosenFmt, resolvedMedia));
+              uploadSizes.push(chosenFmt.filesizeBytes || 0);
+              uploadThumbs.push(chosenFmt.thumbnailUrl || item.thumbnailUrl || resolvedMedia?.thumbnailUrl || '');
             }
           }
 
@@ -877,6 +887,8 @@ export function RemoteUploadModal({
           await onUpload(uploadUrls, selectedDest, {
             customFilename: uploadFilenames.length === 1 ? (customFilename.trim() || uploadFilenames[0]) : undefined,
             customFilenames: uploadFilenames,
+            sourceSizes: uploadSizes,
+            thumbnailUrls: uploadThumbs,
             asDocument: deliveryMode === 'document',
             qualityMode: effectiveQualityMode,
             presentationOverride: effectivePresentation,
@@ -893,7 +905,7 @@ export function RemoteUploadModal({
       setSubmitting(true);
       try {
         let activeResolved = resolvedMedia;
-        if (!activeResolved && (targetUrl.includes('tiktok.com') || targetUrl.includes('douyin.com') || targetUrl.includes('youtube.com') || targetUrl.includes('youtu.be') || targetUrl.includes('instagram.com') || targetUrl.includes('terabox') || targetUrl.includes('pikpak') || targetUrl.includes('streamrizz.com') || targetUrl.includes('vidoy') || targetUrl.includes('overfetch.video') || targetUrl.includes('pinterest.com') || targetUrl.includes('pixiv.net'))) {
+        if (!activeResolved && (targetUrl.includes('tiktok.com') || targetUrl.includes('douyin.com') || targetUrl.includes('youtube.com') || targetUrl.includes('youtu.be') || targetUrl.includes('instagram.com') || targetUrl.includes('terabox') || targetUrl.includes('pikpak') || targetUrl.includes('streamrizz.com') || targetUrl.includes('vidoy') || targetUrl.includes('overfetch.video') || targetUrl.includes('pinterest.com') || targetUrl.includes('pixiv.net') || targetUrl.includes('twitter.com') || targetUrl.includes('x.com'))) {
           try {
             activeResolved = await resolveRemoteMediaUrl(targetUrl, undefined, { passcode });
           } catch {
@@ -913,6 +925,11 @@ export function RemoteUploadModal({
           customFilename.trim() ||
           getEffectiveFormatFilename(activeFormat, activeResolved);
 
+        const uploadSizes = activeFormat?.filesizeBytes ? [activeFormat.filesizeBytes] : undefined;
+        const uploadThumbs = (activeFormat?.thumbnailUrl || activeResolved?.thumbnailUrl)
+          ? [activeFormat?.thumbnailUrl || activeResolved?.thumbnailUrl!]
+          : undefined;
+
         const effectiveQualityMode =
           deliveryMode === 'uncompressed'
             ? 'ORIGINAL'
@@ -928,6 +945,9 @@ export function RemoteUploadModal({
 
         await onUpload(uploadUrls, selectedDest, {
           customFilename: effectiveFilename,
+          customFilenames: [effectiveFilename],
+          sourceSizes: uploadSizes,
+          thumbnailUrls: uploadThumbs,
           asDocument: deliveryMode === 'document',
           qualityMode: effectiveQualityMode,
           presentationOverride: effectivePresentation,

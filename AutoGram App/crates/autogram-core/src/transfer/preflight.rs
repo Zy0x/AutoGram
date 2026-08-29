@@ -13,6 +13,9 @@ pub struct QualityPreflightRequest {
     pub api_id: i64,
     pub api_hash: String,
     pub paths: Vec<String>,
+    pub custom_filenames: Option<Vec<String>>,
+    pub source_sizes: Option<Vec<u64>>,
+    pub thumbnail_urls: Option<Vec<String>>,
     pub quality_mode: Option<String>,
     pub presentation_override: Option<String>,
     pub group_as_album: bool,
@@ -57,6 +60,7 @@ pub struct QualityPreflightItem {
     pub rejected_alternatives: Vec<String>,
     pub requires_confirmation: bool,
     pub duplicate_match: Option<QualityPreflightDuplicateMatch>,
+    pub thumbnail_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -106,12 +110,16 @@ fn album_partition_sizes(total: usize, requested: usize, avoid_single: bool) -> 
 
 fn source_name(path: &str, index: usize) -> String {
     if path.starts_with("http://") || path.starts_with("https://") {
-        return path
-            .split(['/', '?', '#'])
+        let path_without_query = path.split(['?', '#']).next().unwrap_or(path);
+        let file_segment = path_without_query
+            .split('/')
             .filter(|part| !part.is_empty())
             .next_back()
-            .unwrap_or("remote-file")
-            .to_string();
+            .unwrap_or("remote-media");
+        if file_segment.contains('.') {
+            return file_segment.to_string();
+        }
+        return format!("remote-media-{}", index + 1);
     }
     Path::new(path)
         .file_name()
@@ -157,13 +165,33 @@ pub fn build_quality_preflight(
     for (index, source) in request.paths.iter().enumerate() {
         let remote = is_remote(source);
         let source_path = Path::new(source);
-        let source_size = if remote {
+        let resolved_name = request
+            .custom_filenames
+            .as_ref()
+            .and_then(|names| names.get(index))
+            .filter(|name| !name.trim().is_empty())
+            .cloned()
+            .unwrap_or_else(|| source_name(source, index));
+        let resolved_size = request
+            .source_sizes
+            .as_ref()
+            .and_then(|sizes| sizes.get(index).copied())
+            .filter(|&size| size > 0);
+        let source_size = if let Some(size) = resolved_size {
+            size
+        } else if remote {
             0
         } else {
             std::fs::metadata(source_path)
                 .map(|metadata| metadata.len())
                 .unwrap_or(0)
         };
+        let thumbnail_url = request
+            .thumbnail_urls
+            .as_ref()
+            .and_then(|thumbs| thumbs.get(index))
+            .filter(|t| !t.trim().is_empty())
+            .cloned();
         let analysis = (!remote).then(|| analyze_media(source_path));
         let category = analysis
             .as_ref()
@@ -462,7 +490,7 @@ pub fn build_quality_preflight(
         items.push(QualityPreflightItem {
             index,
             source_path: source.clone(),
-            source_name: source_name(source, index),
+            source_name: resolved_name,
             source_size,
             category,
             transform,
@@ -474,6 +502,7 @@ pub fn build_quality_preflight(
             rejected_alternatives: rejected,
             requires_confirmation,
             duplicate_match,
+            thumbnail_url,
         });
     }
     let caption = request.global_caption.as_deref().unwrap_or_default().trim();
@@ -551,6 +580,9 @@ mod tests {
             api_id: 1,
             api_hash: String::new(),
             paths: vec![path.display().to_string()],
+            custom_filenames: None,
+            source_sizes: None,
+            thumbnail_urls: None,
             quality_mode: Some(mode.into()),
             presentation_override: Some("automatic".into()),
             group_as_album: true,

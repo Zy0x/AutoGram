@@ -32,8 +32,16 @@ import type {
   TransferDuplicateChoice,
 } from '../../../lib/transfer/qualityPreflight';
 
-function transferPreviewSource(path: string): string | null {
-  if (path.startsWith('http://') || path.startsWith('https://')) return null;
+function transferPreviewSource(path: string, thumbnailUrl?: string | null): string | null {
+  if (thumbnailUrl && (thumbnailUrl.startsWith('http://') || thumbnailUrl.startsWith('https://') || thumbnailUrl.startsWith('data:'))) {
+    return thumbnailUrl;
+  }
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    if (path.match(/\.(jpe?g|png|webp|gif)($|\?)/i)) {
+      return path;
+    }
+    return null;
+  }
   return convertFileSrc(path);
 }
 
@@ -320,7 +328,7 @@ export function TransferPreflightDialog({
 
         <div className="td-preflight-items">
           {visibleItems.map((item) => {
-            const previewSource = transferPreviewSource(item.sourcePath);
+            const previewSource = transferPreviewSource(item.sourcePath, item.thumbnailUrl);
             const duplicate = item.duplicateMatch;
             const choice = choices[item.sourcePath] || 'upload';
             const isExpanded = expandedDetails[item.sourcePath] || false;

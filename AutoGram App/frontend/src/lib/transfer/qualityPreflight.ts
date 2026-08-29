@@ -29,6 +29,7 @@ export interface QualityPreflightItem {
   rejectedAlternatives: string[];
   requiresConfirmation: boolean;
   duplicateMatch: QualityPreflightDuplicateMatch | null;
+  thumbnailUrl?: string | null;
 }
 
 export interface QualityPreflightReport {
@@ -55,6 +56,9 @@ export interface QualityPreflightRequest {
   apiId: number;
   apiHash: string;
   paths: string[];
+  customFilenames?: string[];
+  sourceSizes?: number[];
+  thumbnailUrls?: string[];
   qualityMode: string;
   presentationOverride: string;
   groupAsAlbum: boolean;
