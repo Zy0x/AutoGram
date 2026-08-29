@@ -30,36 +30,88 @@ function isVideoFormat(fmt: StreamQualityFormat): boolean {
   );
 }
 
-function probeVideoDuration(url: string, timeoutMs = 8000): Promise<number | undefined> {
-  return new Promise((resolve) => {
-    if (typeof document === 'undefined') return resolve(undefined);
+async function probeVideoDuration(url: string, timeoutMs = 10000): Promise<number | undefined> {
+  if (typeof document === 'undefined') return undefined;
+
+  // Strategy 1: fetch first 512 KB via Range request → blob URL → video element
+  // This bypasses CORS because fetch in Tauri WebView2 uses native HTTP (no CORS policy).
+  // A 512 KB prefix is enough for MP4 files with faststart (moov at beginning).
+  try {
+    const ctrl = new AbortController();
+    const fetchTimer = setTimeout(() => ctrl.abort(), timeoutMs - 1000);
+    let blobUrl: string | undefined;
+    try {
+      const resp = await fetch(url, {
+        headers: { Range: 'bytes=0-524287' }, // first 512 KB
+        signal: ctrl.signal,
+      });
+      if (resp.ok || resp.status === 206) {
+        const buf = await resp.arrayBuffer();
+        const blob = new Blob([buf], { type: 'video/mp4' });
+        blobUrl = URL.createObjectURL(blob);
+      }
+    } finally {
+      clearTimeout(fetchTimer);
+    }
+
+    if (blobUrl) {
+      const dur = await new Promise<number | undefined>((res) => {
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        video.muted = true;
+        video.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;pointer-events:none;opacity:0;';
+        document.body.appendChild(video);
+
+        let done = false;
+        const tid = setTimeout(() => finish(undefined), 6000);
+        const finish = (d?: number) => {
+          if (done) return; done = true;
+          clearTimeout(tid);
+          video.pause();
+          video.src = '';
+          try { video.load(); } catch (_) {}
+          document.body.removeChild(video);
+          URL.revokeObjectURL(blobUrl!);
+          res(d);
+        };
+        video.addEventListener('loadedmetadata', () => {
+          const d = video.duration;
+          finish(isFinite(d) && d > 0 ? Math.round(d) : undefined);
+        }, { once: true });
+        video.addEventListener('error', () => finish(undefined), { once: true });
+        video.src = blobUrl;
+        video.load();
+      });
+      if (dur) return dur;
+    }
+  } catch {
+    // fetch failed (CORS, network, abort) — fall through to direct video probe
+  }
+
+  // Strategy 2: direct URL fallback (works if server allows cross-origin video)
+  return new Promise<number | undefined>((resolve) => {
     const video = document.createElement('video');
     video.preload = 'metadata';
     video.muted = true;
+    video.crossOrigin = 'anonymous';
+    video.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;pointer-events:none;opacity:0;';
+    document.body.appendChild(video);
 
     let done = false;
+    const tid = setTimeout(() => finish(undefined), timeoutMs);
     const finish = (dur?: number) => {
-      if (done) return;
-      done = true;
+      if (done) return; done = true;
       clearTimeout(tid);
-      video.removeEventListener('loadedmetadata', onMeta);
-      video.removeEventListener('error', onErr);
-      // Release the resource immediately
       video.src = '';
       try { video.load(); } catch (_) {}
+      try { document.body.removeChild(video); } catch (_) {}
       resolve(dur);
     };
-
-    const onMeta = () => {
+    video.addEventListener('loadedmetadata', () => {
       const d = video.duration;
       finish(isFinite(d) && d > 0 ? Math.round(d) : undefined);
-    };
-    const onErr = () => finish(undefined);
-
-    const tid = setTimeout(() => finish(undefined), timeoutMs);
-
-    video.addEventListener('loadedmetadata', onMeta, { once: true });
-    video.addEventListener('error', onErr, { once: true });
+    }, { once: true });
+    video.addEventListener('error', () => finish(undefined), { once: true });
     video.src = url;
     video.load();
   });

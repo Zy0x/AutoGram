@@ -823,62 +823,107 @@ export function RemoteUploadModal({
     }
   }, [resolvedMedia?.durationSec]);
 
-  // Background duration loader: probe video metadata for items without duration
-  useEffect(() => {
-    if (effectiveMediaItems.length === 0) return;
+  // Probe single item duration via Tauri local streaming proxy
+  const probeSingleItemDuration = useCallback(async (item: ResolvedMediaItem) => {
+    if (item.kind !== 'video') return;
+    if (itemDurations[item.id] || (item.durationSec && item.durationSec > 0)) return;
 
-    const videoEls: HTMLVideoElement[] = [];
+    const fmt = item.formats.find((f) => f.directUrl) || item.formats[0];
+    const rawUrl = fmt?.directUrl;
+    if (!rawUrl) return;
 
-    effectiveMediaItems.forEach((item) => {
-      // Only probe video items that have no duration yet
-      if (item.kind !== 'video') return;
+    const referer =
+      fmt.headers?.Referer ||
+      (rawUrl.includes('overfetch.video') || rawUrl.includes('vidoy') || rawUrl.includes('streamrizz')
+        ? 'https://streamrizz.com/'
+        : rawUrl.includes('twimg.com') || rawUrl.includes('twitter.com') || rawUrl.includes('x.com')
+        ? 'https://x.com/'
+        : rawUrl.includes('tiktok.com') || rawUrl.includes('tiktokcdn.com')
+        ? 'https://www.tiktok.com/'
+        : undefined);
 
-      // Find any format with a direct URL
-      const fmt = item.formats.find((f) => f.directUrl) || item.formats[0];
-      if (!fmt?.directUrl) return;
+    let playUrl = rawUrl;
+    if (detectTauriRuntime() && referer) {
+      try {
+        playUrl = await invoke<string>('get_remote_stream_proxy_url', { url: rawUrl, referer });
+      } catch {
+        playUrl = rawUrl;
+      }
+    }
 
+    await new Promise<void>((resolve) => {
       const video = document.createElement('video');
       video.preload = 'metadata';
       video.muted = true;
-      // Some sources require crossOrigin; try without first
-      video.src = fmt.directUrl;
-      videoEls.push(video);
+      video.style.cssText =
+        'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;pointer-events:none;opacity:0;';
+      document.body.appendChild(video);
 
-      const onMeta = () => {
-        const dur = video.duration;
-        if (dur && isFinite(dur) && dur > 0) {
+      let done = false;
+      const tid = setTimeout(() => finish(), 4000);
+
+      const finish = (durSec?: number) => {
+        if (done) return;
+        done = true;
+        clearTimeout(tid);
+        video.src = '';
+        try {
+          video.load();
+        } catch (_) {}
+        try {
+          document.body.removeChild(video);
+        } catch (_) {}
+
+        if (durSec && isFinite(durSec) && durSec > 0) {
+          const d = Math.round(durSec);
           setItemDurations((prev) => {
-            // Only update if not already set
-            if (prev[item.id]) return prev;
-            return { ...prev, [item.id]: Math.round(dur) };
+            if (prev[item.id] === d) return prev;
+            return { ...prev, [item.id]: d };
           });
         }
-        cleanup();
+        resolve();
       };
 
-      const cleanup = () => {
-        video.removeEventListener('loadedmetadata', onMeta);
-        video.removeEventListener('error', onErr);
-        video.src = '';
-        try { video.load(); } catch (_) {}
-      };
-
-      const onErr = () => cleanup();
-
-      video.addEventListener('loadedmetadata', onMeta);
-      video.addEventListener('error', onErr);
+      video.addEventListener('loadedmetadata', () => finish(video.duration), { once: true });
+      video.addEventListener('error', () => finish(), { once: true });
+      video.src = playUrl;
       video.load();
     });
+  }, [itemDurations]);
+
+  // Background duration loader: automatically probe video metadata across all effectiveMediaItems
+  useEffect(() => {
+    if (effectiveMediaItems.length === 0) return;
+
+    let isCancelled = false;
+
+    // Process with concurrency pool of 2
+    const runQueue = async () => {
+      const itemsToProbe = effectiveMediaItems.filter(
+        (it) => it.kind === 'video' && !itemDurations[it.id] && (!it.durationSec || it.durationSec <= 0)
+      );
+
+      let index = 0;
+      const worker = async () => {
+        while (index < itemsToProbe.length && !isCancelled) {
+          const current = itemsToProbe[index++];
+          if (current) {
+            await probeSingleItemDuration(current);
+          }
+        }
+      };
+
+      const concurrency = 2;
+      const workers = Array.from({ length: Math.min(concurrency, itemsToProbe.length) }, () => worker());
+      await Promise.all(workers);
+    };
+
+    runQueue();
 
     return () => {
-      // Cleanup all probes on unmount / items change
-      videoEls.forEach((v) => {
-        v.src = '';
-        try { v.load(); } catch (_) {}
-      });
+      isCancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveMediaItems]);
+  }, [effectiveMediaItems, probeSingleItemDuration, itemDurations]);
 
 
   const activePreviewItem = useMemo(() => {
@@ -2304,6 +2349,15 @@ export function RemoteUploadModal({
                                           className="td-remote-item-thumb-img"
                                           loading="lazy"
                                           referrerPolicy="no-referrer"
+                                          onLoad={() => {
+                                            if (
+                                              item.kind === 'video' &&
+                                              !itemDurations[item.id] &&
+                                              (!item.durationSec || item.durationSec <= 0)
+                                            ) {
+                                              probeSingleItemDuration(item);
+                                            }
+                                          }}
                                         />
                                       ) : (
                                         <div className="td-remote-item-thumb-fallback">
