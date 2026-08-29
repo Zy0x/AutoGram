@@ -1454,33 +1454,7 @@ export function RemoteUploadModal({
                     </div>
                   )}
 
-                  {/* Row 2: Custom Filename */}
-                  <div className="td-remote-field-group">
-                    <label className="td-input-label" htmlFor="td-custom-filename">
-                      {t('speedtest.remote_custom_name_label')}
-                    </label>
-                    <input
-                      id="td-custom-filename"
-                      className="td-input-field td-custom-filename-input"
-                      type="text"
-                      placeholder={
-                        getEffectiveFormatFilename(
-                          resolvedMedia?.formats.find((f) => f.id === selectedFormatId) ||
-                            resolvedMedia?.formats[0],
-                          resolvedMedia
-                        ) ||
-                        inspection?.filename ||
-                        t('speedtest.remote_custom_name_placeholder')
-                      }
-                      value={customFilename}
-                      onChange={(e) => setCustomFilename(e.target.value)}
-                      disabled={submitting}
-                      autoComplete="off"
-                      spellCheck={false}
-                    />
-                  </div>
-
-                  {/* Row 3: Triplet Compact Row (Media Delivery Format, Transfer Engine, Storage Policy in 1 Row) */}
+                  {/* Row 2: Triplet Compact Row (Media Delivery Format, Transfer Engine, Storage Policy in 1 Row) */}
                   <div className="td-remote-triplet-row">
                     {/* Col 1: Media Delivery Format */}
                     <div className="td-remote-triplet-col col-delivery">
