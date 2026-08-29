@@ -26749,14 +26749,28 @@ button.td-confirm-icon.is-back-btn:active {
   box-shadow: 0 0 12px rgba(167, 139, 250, 0.4);
 }
 
-/* Grid card: 2:3 portrait thumbnail */
+/* Grid card: true 2:3 portrait thumbnail — fills entire card top area */
+.td-remote-media-item-card.card-grid-mode {
+  display: flex;
+  flex-direction: column;
+}
+
 .td-remote-media-item-card.card-grid-mode .td-remote-item-thumb-wrap {
   position: relative;
-  width: 100%;
-  aspect-ratio: 2 / 3;
-  height: auto;
+  width: 100% !important;
+  aspect-ratio: 2 / 3 !important;
+  height: auto !important;
+  min-height: 0 !important;
   background: #030712;
   overflow: hidden;
+  display: block;
+  flex: 0 0 auto;
+}
+
+.td-remote-media-item-card.card-grid-mode .td-remote-item-thumb-img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
   display: block;
 }
 
@@ -26770,10 +26784,10 @@ button.td-confirm-icon.is-back-btn:active {
 
 .td-remote-media-item-card.card-list-mode .td-remote-item-thumb-wrap {
   position: relative;
-  width: 56px;
-  height: 56px;
-  flex: 0 0 56px;
-  aspect-ratio: 1;
+  width: 56px !important;
+  height: 56px !important;
+  flex: 0 0 56px !important;
+  aspect-ratio: unset !important;
   background: #030712;
   overflow: hidden;
   display: block;
@@ -26806,6 +26820,39 @@ button.td-confirm-icon.is-back-btn:active {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+/* Sort wrap with icon */
+.td-remote-sort-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 5px;
+  padding: 0 2px 0 6px;
+  height: 22px;
+  transition: border-color 140ms ease;
+}
+
+.td-remote-sort-wrap:hover,
+.td-remote-sort-wrap:focus-within {
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.td-remote-sort-icon {
+  color: #64748b;
+  flex: 0 0 auto;
+  pointer-events: none;
+}
+
+.td-remote-sort-wrap .td-remote-gallery-sort-select {
+  background: transparent;
+  border: none !important;
+  padding: 0 14px 0 0;
+  height: 100%;
+  border-radius: 0;
+  box-shadow: none !important;
 }
 
 .td-remote-item-thumb-fallback {

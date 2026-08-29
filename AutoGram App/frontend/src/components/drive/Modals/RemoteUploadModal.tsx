@@ -37,6 +37,7 @@ import {
   HardDrive,
   Pencil,
   RotateCcw,
+  ArrowUpDown,
 } from 'lucide-react';
 import type { DriveDestChoice, DriveDestPickerState } from './DriveDestinationPicker';
 import { DriveDestinationPicker } from './DriveDestinationPicker';
@@ -2171,17 +2172,20 @@ export function RemoteUploadModal({
                             </div>
 
                             <div className="td-remote-gallery-toolbar-right">
-                              <select
-                                className="td-remote-gallery-sort-select"
-                                value={gallerySort}
-                                onChange={(e) => setGallerySort(e.target.value as any)}
-                                title={t('drive_tools.remote_gallery_sort_label')}
-                              >
-                                <option value="default">{t('drive_tools.remote_gallery_sort_default')}</option>
-                                <option value="name">{t('drive_tools.remote_gallery_sort_name_asc')}</option>
-                                <option value="duration">{t('drive_tools.remote_gallery_sort_duration_desc')}</option>
-                                <option value="size">{t('drive_tools.remote_gallery_sort_size_desc')}</option>
-                              </select>
+                              <div className="td-remote-sort-wrap">
+                                <ArrowUpDown size={11} className="td-remote-sort-icon" />
+                                <select
+                                  className="td-remote-gallery-sort-select"
+                                  value={gallerySort}
+                                  onChange={(e) => setGallerySort(e.target.value as any)}
+                                  title={t('drive_tools.remote_gallery_sort_label')}
+                                >
+                                  <option value="default">{t('drive_tools.remote_gallery_sort_default')}</option>
+                                  <option value="name">{t('drive_tools.remote_gallery_sort_name_asc')}</option>
+                                  <option value="duration">{t('drive_tools.remote_gallery_sort_duration_desc')}</option>
+                                  <option value="size">{t('drive_tools.remote_gallery_sort_size_desc')}</option>
+                                </select>
+                              </div>
                             </div>
                           </div>
 
