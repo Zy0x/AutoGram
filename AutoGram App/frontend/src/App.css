@@ -26838,60 +26838,223 @@ button.td-confirm-icon.is-back-btn:active {
 /* Section 1: full width, 2-column internal layout (controls | preview) */
 .td-remote-section-1 {
   display: grid;
-  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: minmax(290px, 350px) minmax(0, 1fr);
+  gap: 14px;
   align-items: stretch;
   width: 100%;
-  padding: 16px 0 12px;
+  padding: 12px 0 8px;
 }
 
 .td-remote-section-1.single-column {
   grid-template-columns: 1fr;
-  max-width: 620px;
+  max-width: 600px;
   margin: 0 auto;
-  padding: 16px 0 0;
+  padding: 12px 0 0;
 }
 
 .td-remote-section-1-controls {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
-  overflow: visible;
 }
 
 .td-remote-section-1-preview {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
   min-height: 0;
 }
 
-/* Section 2: full width gallery below Section 1 */
+/* Unified Form Cards */
+.td-remote-form-card {
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all 140ms ease;
+}
+
+.td-remote-form-card:focus-within {
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(15, 23, 42, 0.7);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.td-remote-options-card {
+  gap: 8px;
+}
+
+.td-remote-engine-group {
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Active Preview Meta Card */
+.td-remote-meta-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  height: 100%;
+}
+
+.td-remote-preview-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.td-remote-media-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #f8fafc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+/* Controlled Canvas Size */
+.td-remote-big-canvas-wrap {
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #030712;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+.td-remote-big-canvas-inner {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #020617;
+  overflow: hidden;
+}
+
+.td-remote-big-canvas-video {
+  width: 100%;
+  height: 100%;
+  max-height: 200px;
+  object-fit: contain;
+  background: #000000;
+  outline: none;
+}
+
+/* Specs Ribbon (3-pill metadata strip) */
+.td-remote-specs-ribbon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+
+.td-remote-spec-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+/* Section 2: Full-width Gallery Studio */
 .td-remote-section-2-gallery {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding-top: 12px;
+  gap: 8px;
+  padding-top: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   width: 100%;
 }
 
+/* Section 2 Header Bar */
+.td-remote-gallery-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 2px 0 4px;
+}
 
+.td-remote-gallery-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.td-remote-gallery-title {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: -0.01em;
+}
+
+.td-remote-gallery-count-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #38bdf8;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  white-space: nowrap;
+}
+
+.td-remote-gallery-size-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #a78bfa;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(167, 139, 250, 0.12);
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  white-space: nowrap;
+}
+
+.td-remote-gallery-header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Gallery Sub-toolbar */
 .td-remote-gallery-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
-  padding: 2px 2px 6px;
+  padding: 0 0 4px;
 }
 
 .td-remote-gallery-toolbar-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex: 1;
   min-width: 220px;
   flex-wrap: wrap;
@@ -26900,39 +27063,39 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-gallery-search-wrap {
   position: relative;
   flex: 1;
-  max-width: 280px;
-  min-width: 180px;
+  max-width: 240px;
+  min-width: 160px;
   display: flex;
   align-items: center;
 }
 
 .td-remote-gallery-search-input {
   width: 100%;
-  padding: 6px 26px 6px 30px;
-  border-radius: 8px;
+  padding: 5px 24px 5px 26px;
+  border-radius: 6px;
   background: rgba(15, 23, 42, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: #f8fafc;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   outline: none;
-  transition: all 140ms ease;
+  transition: all 120ms ease;
 }
 
 .td-remote-gallery-search-input:focus {
   border-color: #38bdf8;
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.25);
 }
 
 .td-remote-gallery-search-icon {
   position: absolute;
-  left: 9px;
+  left: 8px;
   color: #64748b;
   pointer-events: none;
 }
 
 .td-remote-gallery-search-clear {
   position: absolute;
-  right: 7px;
+  right: 6px;
   color: #64748b;
   background: none;
   border: none;
@@ -26950,28 +27113,28 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-gallery-filters {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 
 .td-remote-filter-chip {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 6px;
+  padding: 3px 8px;
+  border-radius: 5px;
   background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   color: #94a3b8;
   cursor: pointer;
-  transition: all 140ms ease;
+  transition: all 120ms ease;
 }
 
 .td-remote-filter-chip:hover {
-  border-color: rgba(56, 189, 248, 0.4);
+  border-color: rgba(56, 189, 248, 0.35);
   color: #f1f5f9;
 }
 
 .td-remote-filter-chip.active {
-  background: rgba(56, 189, 248, 0.16);
+  background: rgba(56, 189, 248, 0.15);
   border-color: #38bdf8;
   color: #38bdf8;
   font-weight: 700;
@@ -26980,40 +27143,29 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-gallery-toolbar-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .td-remote-gallery-sort-select {
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  padding: 5px 8px;
+  padding: 4px 8px;
   border-radius: 6px;
   background: rgba(15, 23, 42, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: #cbd5e1;
   outline: none;
   cursor: pointer;
 }
 
-.td-remote-gallery-stat-badge {
-  font-size: 0.74rem;
-  font-weight: 700;
-  color: #38bdf8;
-  padding: 4px 10px;
-  border-radius: 6px;
-  background: rgba(56, 189, 248, 0.1);
-  border: 1px solid rgba(56, 189, 248, 0.2);
-  white-space: nowrap;
-}
-
 .td-remote-gallery-btn-action {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  padding: 4px 9px;
-  border-radius: 6px;
+  padding: 3px 8px;
+  border-radius: 5px;
   background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: #cbd5e1;
   cursor: pointer;
   transition: all 120ms ease;
@@ -27030,12 +27182,12 @@ button.td-confirm-icon.is-back-btn:active {
   align-items: center;
   background: rgba(15, 23, 42, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  padding: 2px;
+  border-radius: 5px;
+  padding: 1px;
 }
 
 .td-remote-density-btn {
-  padding: 3px 6px;
+  padding: 3px 5px;
   border: none;
   background: none;
   color: #64748b;
@@ -27052,35 +27204,37 @@ button.td-confirm-icon.is-back-btn:active {
   color: #38bdf8;
 }
 
-
 .td-remote-gallery-grid-wrap {
   width: 100%;
+  max-height: 320px;
+  overflow-y: auto;
   overflow-x: hidden;
-  padding: 4px 2px 12px;
+  padding: 4px 2px 10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(56, 189, 248, 0.3) transparent;
 }
-
 
 .td-remote-gallery-grid-wrap.density-comfortable {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
 }
 
 .td-remote-gallery-grid-wrap.density-compact {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+  gap: 6px;
 }
 
 .td-remote-item-single-badge {
   position: absolute;
-  top: 5px;
-  right: 5px;
-  font-size: 0.65rem;
+  top: 4px;
+  right: 4px;
+  font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  padding: 2px 6px;
-  border-radius: 5px;
+  padding: 1px 5px;
+  border-radius: 4px;
   background: rgba(5, 10, 20, 0.88);
   backdrop-filter: blur(8px);
   color: #38bdf8;
@@ -27098,7 +27252,7 @@ button.td-confirm-icon.is-back-btn:active {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   font-weight: 600;
   color: #94a3b8;
   margin-top: 2px;
@@ -27121,6 +27275,71 @@ button.td-confirm-icon.is-back-btn:active {
   border: 1.5px solid rgba(255, 255, 255, 0.4);
 }
 
+/* Footer Destination Summary & Actions */
+.td-remote-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 24px 12px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.td-remote-foot-dest-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.td-remote-foot-dest-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.td-remote-foot-dest-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  font-size: 0.74rem;
+  font-weight: 600;
+  max-width: 280px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.td-remote-foot-dest-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-remote-foot-topic-tag {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #38bdf8;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: rgba(56, 189, 248, 0.15);
+}
+
+.td-remote-foot-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 /* Ready Placeholder State in Live Preview Canvas */
 .td-remote-preview-ready {
   display: flex;
@@ -27128,17 +27347,18 @@ button.td-confirm-icon.is-back-btn:active {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 36px 20px;
-  background: radial-gradient(circle at center, rgba(56, 189, 248, 0.1) 0%, rgba(15, 23, 42, 0.6) 80%);
-  border: 1px dashed rgba(56, 189, 248, 0.3);
-  border-radius: 14px;
-  gap: 12px;
-  min-height: 250px;
+  padding: 24px 16px;
+  background: radial-gradient(circle at center, rgba(56, 189, 248, 0.08) 0%, rgba(15, 23, 42, 0.6) 80%);
+  border: 1px dashed rgba(56, 189, 248, 0.25);
+  border-radius: 12px;
+  gap: 8px;
+  min-height: 200px;
+  height: 100%;
 }
 
 .td-remote-ready-icon-wrap {
-  width: 58px;
-  height: 58px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(99, 102, 241, 0.22));
   border: 1px solid rgba(56, 189, 248, 0.45);
@@ -27146,7 +27366,7 @@ button.td-confirm-icon.is-back-btn:active {
   align-items: center;
   justify-content: center;
   color: #38bdf8;
-  box-shadow: 0 0 24px rgba(56, 189, 248, 0.25);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
   animation: td-glow-pulse 3s infinite ease-in-out;
 }
 
