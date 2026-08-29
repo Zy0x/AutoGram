@@ -7042,6 +7042,8 @@ function MediaDriveDesktop({
       topic_scope: transferSettings.topicScope || 'selected_plus_general',
       max_reupload_per_hour: transferSettings.maxReuploadPerHour ?? 10,
       remote_engine_mode: opts?.remoteEngineMode || transferSettings.remoteEngineMode || 'auto',
+      thumbnail_urls: opts?.thumbnailUrls,
+      custom_filenames: opts?.customFilenames || names,
     };
     // Upload into selected forum topic: explicit topicId overrides, otherwise fall back to current active topic
     if (uploadTopicId != null) options.topic_id = uploadTopicId;

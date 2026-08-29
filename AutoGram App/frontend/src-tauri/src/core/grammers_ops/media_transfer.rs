@@ -1642,6 +1642,7 @@ pub fn upload_remote_url_blocking_topic_with_app(
     app_handle: Option<tauri::AppHandle>,
     transfer_id: Option<String>,
     engine_mode: &str,
+    thumbnail_url: Option<&str>,
 ) -> Result<UploadStepResult, TgError> {
     let url = url.trim();
     if !(url.starts_with("http://") || url.starts_with("https://")) {
@@ -1688,6 +1689,11 @@ pub fn upload_remote_url_blocking_topic_with_app(
     } else {
         format!("Remote_Media.{ext}")
     };
+    let is_photo = (content_type.starts_with("image/") || ext == "jpg" || ext == "jpeg" || ext == "png" || ext == "webp") && !as_document;
+    let is_video = (content_type.starts_with("video/") || ext == "mp4" || ext == "mov" || ext == "mkv" || ext == "webm" || ext == "m4v") && !as_document;
+    let is_audio = (content_type.starts_with("audio/") || ext == "mp3" || ext == "m4a" || ext == "aac" || ext == "ogg" || ext == "flac") && !as_document;
+    let thumbnail_url_owned = thumbnail_url.map(str::to_string);
+
     let chat = chat_id.to_string();
     let is_self_chat = matches!(
         chat.to_ascii_lowercase().as_str(),
@@ -1709,6 +1715,7 @@ pub fn upload_remote_url_blocking_topic_with_app(
             let content_type = content_type.clone();
             let url = url.clone();
             let caption = caption.clone();
+            let thumbnail_url_owned = thumbnail_url_owned.clone();
             Box::pin(async move {
                 if !client.is_authorized().await.map_err(|error| map_invocation(&error))? {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
@@ -1718,11 +1725,24 @@ pub fn upload_remote_url_blocking_topic_with_app(
                 if let Some(reply) = reply_to {
                     msg = msg.reply_to(Some(reply));
                 }
+
+                // Download small remote thumbnail (~30-50 KB) if thumbnail_url is present
+                let thumb_file = thumbnail_url_owned
+                    .as_deref()
+                    .and_then(crate::core::media_prep::download_remote_thumbnail);
+                let mut thumb_uploaded = None;
+                if let Some(ref tf) = thumb_file {
+                    if let Ok(t_up) = client.upload_file(tf).await {
+                        thumb_uploaded = Some(t_up);
+                    }
+                    let _ = std::fs::remove_file(tf);
+                }
+
                 let sent = if selected_engine == "cloud_fetch" {
-                    let is_photo = content_type.starts_with("image/") && !as_document;
                     if is_photo {
                         msg = msg.photo_url(url);
                     } else {
+                        let thumb_raw = thumb_uploaded.map(|u| u.raw);
                         msg = msg.media(
                             tl::types::InputMediaDocumentExternal {
                                 spoiler,
@@ -1777,11 +1797,53 @@ pub fn upload_remote_url_blocking_topic_with_app(
                         .upload_stream(&mut progress, total as usize, filename.clone())
                         .await
                         .map_err(|error| TgError::new(TgErrorCode::Io, format!("remote upload_stream: {error}")))?;
-                    if as_document || !content_type.starts_with("image/") {
-                        msg = msg.mime_type(&content_type).document(uploaded);
-                    } else {
+
+                    if is_photo {
                         msg = msg.photo(uploaded);
+                    } else if is_video {
+                        let mut video_msg = msg.mime_type("video/mp4").document(uploaded);
+                        video_msg = video_msg.attribute(Attribute::Video {
+                            round_message: false,
+                            supports_streaming: true,
+                            duration: std::time::Duration::from_secs(0),
+                            w: 0,
+                            h: 0,
+                        });
+                        if let Some(t_up) = thumb_uploaded {
+                            video_msg = video_msg.thumbnail(t_up);
+                        }
+                        msg = video_msg;
+                    } else if is_audio {
+                        let mut audio_msg = msg.mime_type(&content_type).document(uploaded);
+                        audio_msg = audio_msg.attribute(Attribute::Audio {
+                            duration: std::time::Duration::from_secs(0),
+                            title: Some(filename.clone()),
+                            performer: Some("".to_string()),
+                        });
+                        if let Some(t_up) = thumb_uploaded {
+                            audio_msg = audio_msg.thumbnail(t_up);
+                        }
+                        msg = audio_msg;
+                    } else {
+                        let thumb_raw = thumb_uploaded.map(|u| u.raw);
+                        msg = msg.media(tl::types::InputMediaUploadedDocument {
+                            nosound_video: false,
+                            force_file: true,
+                            spoiler,
+                            file: uploaded.raw,
+                            thumb: thumb_raw,
+                            mime_type: content_type.clone(),
+                            attributes: vec![(tl::types::DocumentAttributeFilename {
+                                file_name: filename.clone(),
+                            })
+                            .into()],
+                            stickers: None,
+                            video_cover: None,
+                            video_timestamp: None,
+                            ttl_seconds: None,
+                        });
                     }
+
                     if let Some(timestamp) = schedule_date {
                         msg = msg.schedule_date(Some(SystemTime::UNIX_EPOCH + Duration::from_secs(timestamp.max(0) as u64)));
                     }

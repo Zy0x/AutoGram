@@ -607,6 +607,7 @@ fn tg_send_remote_url_cloud(
         Some(app),
         request.transfer_id,
         "cloud_fetch",
+        None,
     )
     .map_err(|error| error.user_message())
 }

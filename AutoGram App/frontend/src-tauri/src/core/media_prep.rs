@@ -525,6 +525,54 @@ pub fn download_remote_url(
     Ok(final_dest)
 }
 
+/// Downloads a remote thumbnail image (e.g. from Twitter/TikTok/YouTube) into a temporary JPG file.
+pub fn download_remote_thumbnail(thumb_url: &str) -> Option<PathBuf> {
+    let thumb_url = thumb_url.trim();
+    if thumb_url.is_empty() || !(thumb_url.starts_with("http://") || thumb_url.starts_with("https://")) {
+        return None;
+    }
+    let agent = create_resilient_http_agent();
+    let mut req = agent.get(thumb_url);
+    req = req.set(
+        "User-Agent",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 AutoGram/4.0",
+    );
+    req = req.set("Accept", "image/*,*/*");
+    if thumb_url.contains("twimg.com") || thumb_url.contains("x.com") || thumb_url.contains("twitter.com") {
+        req = req.set("Referer", "https://x.com/");
+    } else if thumb_url.contains("pixiv.net") || thumb_url.contains("pximg.net") {
+        req = req.set("Referer", "https://www.pixiv.net/");
+    } else if thumb_url.contains("tiktok.com") || thumb_url.contains("tikwm.com") {
+        req = req.set("Referer", "https://www.tiktok.com/");
+    }
+    let resp = req.call().ok()?;
+    let dest = unique_name("remote_thumb", "jpg");
+    use std::io::{Read, Write};
+    let mut reader = resp.into_reader();
+    let mut file = fs::File::create(&dest).ok()?;
+    let mut buf = [0u8; 16 * 1024];
+    let mut total_read = 0usize;
+    while let Ok(n) = reader.read(&mut buf) {
+        if n == 0 {
+            break;
+        }
+        total_read += n;
+        if total_read > 5 * 1024 * 1024 {
+            break;
+        }
+        if file.write_all(&buf[..n]).is_err() {
+            let _ = fs::remove_file(&dest);
+            return None;
+        }
+    }
+    if total_read > 32 {
+        Some(dest)
+    } else {
+        let _ = fs::remove_file(&dest);
+        None
+    }
+}
+
 fn sniff_actual_media_extension(path: &Path) -> Option<&'static str> {
     if let Ok(mut file) = fs::File::open(path) {
         use std::io::Read;

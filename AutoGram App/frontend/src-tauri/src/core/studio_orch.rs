@@ -940,6 +940,14 @@ fn run_intelligent_album(
                 item.path.rsplit('/').next().unwrap_or("remote_media").to_string()
             };
 
+            let thumbnail_url = rec
+                .options
+                .get("thumbnail_urls")
+                .or_else(|| rec.options.get("thumbnailUrls"))
+                .and_then(|v| v.as_array())
+                .and_then(|arr| arr.get(item.index).or_else(|| arr.first()))
+                .and_then(|v| v.as_str());
+
             match grammers_ops::upload_remote_url_blocking_topic_with_app(
                 sessions,
                 identity,
@@ -955,6 +963,7 @@ fn run_intelligent_album(
                 app.cloned(),
                 Some(tid.to_string()),
                 remote_engine_mode,
+                thumbnail_url,
             ) {
                 Ok(result) => {
                     any_ok = true;
@@ -2312,6 +2321,13 @@ fn run_orchestrated_grammers(
                 .or_else(|| rec.options.get("remoteEngineMode"))
                 .and_then(|value| value.as_str())
                 .unwrap_or("auto");
+            let thumbnail_url = rec
+                .options
+                .get("thumbnail_urls")
+                .or_else(|| rec.options.get("thumbnailUrls"))
+                .and_then(|v| v.as_array())
+                .and_then(|arr| arr.get(item.index).or_else(|| arr.first()))
+                .and_then(|v| v.as_str());
             match grammers_ops::upload_remote_url_blocking_topic_with_app(
                 &sessions,
                 &identity,
@@ -2327,6 +2343,7 @@ fn run_orchestrated_grammers(
                 app.cloned(),
                 Some(tid.clone()),
                 remote_engine_mode,
+                thumbnail_url,
             ) {
                 Ok(result) => {
                     any_ok = true;
