@@ -1832,169 +1832,381 @@ export function RemoteUploadModal({
               </div>
             </div>
 
-          {/* STREAM PREVIEW SECTION: Placed after Section 1 (Full-Width Inspector) */}
+          {/* STREAM PREVIEW SECTION: Side-by-Side Player & Media Cards Gallery */}
           {isSplitActive && (
             <div className="td-remote-preview-section">
               {resolvedMedia ? (
                 <div className="td-remote-meta-card">
-                  <div className="td-remote-preview-head-row">
-                    <div className="td-remote-media-badges">
-                      <span className={`td-remote-platform-badge ${resolvedMedia.platform}`}>
-                        {resolvedMedia.platformName}
-                      </span>
-                      {resolvedMedia.formats.some((f) => f.isCleanNoWatermark) && (
-                        <span className="td-remote-clean-badge">
-                          <Sparkles size={11} />
-                          <span>{t('speedtest.remote_clean_no_watermark')}</span>
-                        </span>
-                      )}
-                    </div>
-                    <span className="td-remote-live-canvas-pill">
-                      <span className="td-remote-live-canvas-dot" />
-                      <span>{t('speedtest.remote_split_live_canvas_badge')}</span>
-                    </span>
-                  </div>
-
-                  <div className="td-remote-media-title" title={activePreviewItem?.title || resolvedMedia.title}>
-                    {activePreviewItem?.title || resolvedMedia.title}
-                  </div>
-
-                  {/* Active Player Canvas */}
-                  <div className="td-remote-big-canvas-wrap">
-                    {activePlayableUrl && (targetMediaForPlayback?.isVideo || !resolvedMedia.albumImages || resolvedMedia.albumImages.length === 0) ? (
-                      <div className="td-remote-big-canvas-inner td-remote-single-player-canvas">
-                        <video
-                          key={activePlayableUrl}
-                          src={activePlayableUrl}
-                          poster={activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl}
-                          controls
-                          preload="metadata"
-                          playsInline
-                          className="td-remote-big-canvas-video td-remote-active-player-video"
-                          onLoadedMetadata={(e) => {
-                            const dur = e.currentTarget.duration;
-                            if (dur && isFinite(dur) && dur > 0) {
-                              const d = Math.round(dur);
-                              setActiveVideoDuration(d);
-                              if (activePreviewItem) {
-                                setItemDurations((prev) => {
-                                  if (prev[activePreviewItem.id] === d) return prev;
-                                  return { ...prev, [activePreviewItem.id]: d };
-                                });
-                              }
-                            }
-                          }}
-                          onDurationChange={(e) => {
-                            const dur = e.currentTarget.duration;
-                            if (dur && isFinite(dur) && dur > 0) {
-                              const d = Math.round(dur);
-                              setActiveVideoDuration((prev) => (prev === d ? prev : d));
-                              if (activePreviewItem) {
-                                setItemDurations((prev) => {
-                                  if (prev[activePreviewItem.id] === d) return prev;
-                                  return { ...prev, [activePreviewItem.id]: d };
-                                });
-                              }
-                            }
-                          }}
-                        />
-                      </div>
-                    ) : activeSlideUrl ? (
-                      <div className="td-remote-big-canvas-inner">
-                        <img
-                          src={activeSlideUrl}
-                          alt={resolvedMedia.title}
-                          className="td-remote-big-canvas-img"
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                        />
-                        <div className="td-remote-canvas-badge-overlay">
-                          {resolvedMedia.albumImages && resolvedMedia.albumImages.length > 1 && (
-                            <span className="td-remote-canvas-slide-tag">
-                              <ImageIcon size={12} />
-                              <span>
-                                {t('speedtest.remote_split_slide_preview', {
-                                  idx: activeSlideIndex + 1,
-                                  total: resolvedMedia.albumImages.length,
-                                })}
-                              </span>
+                  <div className="td-remote-stream-split-wrap">
+                    {/* Left Column: Player & Active Stream Details */}
+                    <div className="td-remote-stream-player-col">
+                      <div className="td-remote-preview-head-row">
+                        <div className="td-remote-media-badges">
+                          <span className={`td-remote-platform-badge ${resolvedMedia.platform}`}>
+                            {resolvedMedia.platformName}
+                          </span>
+                          {resolvedMedia.formats.some((f) => f.isCleanNoWatermark) && (
+                            <span className="td-remote-clean-badge">
+                              <Sparkles size={11} />
+                              <span>{t('speedtest.remote_clean_no_watermark')}</span>
                             </span>
                           )}
-                          {resolvedMedia.durationSec ? (
-                            <span className="td-remote-canvas-duration-tag">
-                              <Clock size={11} />
-                              <span>{formatMediaDuration(resolvedMedia.durationSec)}</span>
-                            </span>
-                          ) : null}
                         </div>
                       </div>
-                    ) : (
-                      <div className="td-remote-big-canvas-fallback">
-                        <Film size={36} className="td-remote-fallback-icon" />
-                        <span>{t('drive_tools.remote_platform_stream_fallback', { platform: resolvedMedia.platformName })}</span>
+
+                      <div className="td-remote-media-title" title={activePreviewItem?.title || resolvedMedia.title}>
+                        {activePreviewItem?.title || resolvedMedia.title}
                       </div>
-                    )}
-                  </div>
 
-                  {/* Active Item Specs Ribbon */}
-                  <div className="td-remote-specs-ribbon">
-                    <span className="td-remote-spec-item">
-                      <Film size={11} className="text-sky-400" />
-                      <span>{targetMediaForPlayback?.isVideo ? t('drive_tools.remote_spec_video_stream') : t('drive_tools.remote_spec_media_item')}</span>
-                    </span>
-                    {(activeVideoDuration || activePreviewItem?.durationSec || resolvedMedia.durationSec) ? (
-                      <span className="td-remote-spec-item">
-                        <Clock size={11} className="text-amber-400" />
-                        <span>{formatMediaDuration(activeVideoDuration || activePreviewItem?.durationSec || resolvedMedia.durationSec)}</span>
-                      </span>
-                    ) : null}
-                    {effectiveMediaItems.length > 1 && (
-                      <span className="td-remote-spec-item">
-                        <Layers size={11} className="text-purple-400" />
-                        <span>{t('drive_tools.remote_gallery_selected_count', { selected: selectedMediaItemIds.size, total: effectiveMediaItems.length })}</span>
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Format Chips (for Single File or Active Item) */}
-                  {effectiveMediaItems.length <= 1 && resolvedMedia.formats.length > 0 && (
-                    <div className="td-remote-formats-container" style={{ marginTop: 8 }}>
-                      <label className="td-input-label">
-                        {t('speedtest.remote_split_select_format_hint')}
-                      </label>
-                      <div className="td-remote-quality-grid">
-                        {resolvedMedia.formats.map((fmt) => {
-                          const isSelected = selectedFormatId === fmt.id;
-                          return (
-                            <button
-                              key={fmt.id}
-                              type="button"
-                              className={`td-remote-quality-chip ${isSelected ? 'active' : ''} tier-${fmt.qualityTier} ${fmt.isAlbumPack ? 'album-pack' : ''}`}
-                              onClick={() => handleSelectFormat(fmt)}
-                              disabled={submitting}
-                            >
-                              <div className="td-remote-quality-chip-top">
-                                <span className="td-remote-quality-chip-title">
-                                  {getFormatDisplayLabel(fmt, resolvedMedia, t)}
-                                </span>
-                                {isSelected && <CheckCircle2 size={13} className="td-remote-chip-active-ico" />}
-                              </div>
-                              <div className="td-remote-quality-chip-meta">
-                                {getFormatDisplayBadge(fmt, t) && (
-                                  <span className="td-remote-quality-chip-badge">{getFormatDisplayBadge(fmt, t)}</span>
-                                )}
-                                {fmt.filesizeBytes ? (
-                                  <span className="td-remote-quality-chip-size">
-                                    ~{formatDriveBytes(fmt.filesizeBytes)}
+                      {/* Active Player Canvas */}
+                      <div className="td-remote-big-canvas-wrap">
+                        {activePlayableUrl && (targetMediaForPlayback?.isVideo || !resolvedMedia.albumImages || resolvedMedia.albumImages.length === 0) ? (
+                          <div className="td-remote-big-canvas-inner td-remote-single-player-canvas">
+                            <video
+                              key={activePlayableUrl}
+                              src={activePlayableUrl}
+                              poster={activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl}
+                              controls
+                              preload="metadata"
+                              playsInline
+                              className="td-remote-big-canvas-video td-remote-active-player-video"
+                              onLoadedMetadata={(e) => {
+                                const dur = e.currentTarget.duration;
+                                if (dur && isFinite(dur) && dur > 0) {
+                                  const d = Math.round(dur);
+                                  setActiveVideoDuration(d);
+                                  if (activePreviewItem) {
+                                    setItemDurations((prev) => {
+                                      if (prev[activePreviewItem.id] === d) return prev;
+                                      return { ...prev, [activePreviewItem.id]: d };
+                                    });
+                                  }
+                                }
+                              }}
+                              onDurationChange={(e) => {
+                                const dur = e.currentTarget.duration;
+                                if (dur && isFinite(dur) && dur > 0) {
+                                  const d = Math.round(dur);
+                                  setActiveVideoDuration((prev) => (prev === d ? prev : d));
+                                  if (activePreviewItem) {
+                                    setItemDurations((prev) => {
+                                      if (prev[activePreviewItem.id] === d) return prev;
+                                      return { ...prev, [activePreviewItem.id]: d };
+                                    });
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+                        ) : activeSlideUrl ? (
+                          <div className="td-remote-big-canvas-inner">
+                            <img
+                              src={activeSlideUrl}
+                              alt={resolvedMedia.title}
+                              className="td-remote-big-canvas-img"
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="td-remote-canvas-badge-overlay">
+                              {resolvedMedia.albumImages && resolvedMedia.albumImages.length > 1 && (
+                                <span className="td-remote-canvas-slide-tag">
+                                  <ImageIcon size={12} />
+                                  <span>
+                                    {t('speedtest.remote_split_slide_preview', {
+                                      idx: activeSlideIndex + 1,
+                                      total: resolvedMedia.albumImages.length,
+                                    })}
                                   </span>
-                                ) : null}
-                              </div>
-                            </button>
-                          );
-                        })}
+                                </span>
+                              )}
+                              {resolvedMedia.durationSec ? (
+                                <span className="td-remote-canvas-duration-tag">
+                                  <Clock size={11} />
+                                  <span>{formatMediaDuration(resolvedMedia.durationSec)}</span>
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="td-remote-big-canvas-fallback">
+                            <Film size={36} className="td-remote-fallback-icon" />
+                            <span>{t('drive_tools.remote_platform_stream_fallback', { platform: resolvedMedia.platformName })}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Active Item Specs Ribbon */}
+                      <div className="td-remote-specs-ribbon">
+                        <span className="td-remote-spec-item">
+                          <Film size={11} className="text-sky-400" />
+                          <span>{targetMediaForPlayback?.isVideo ? t('drive_tools.remote_spec_video_stream') : t('drive_tools.remote_spec_media_item')}</span>
+                        </span>
+                        {(activeVideoDuration || activePreviewItem?.durationSec || resolvedMedia.durationSec) ? (
+                          <span className="td-remote-spec-item">
+                            <Clock size={11} className="text-amber-400" />
+                            <span>{formatMediaDuration(activeVideoDuration || activePreviewItem?.durationSec || resolvedMedia.durationSec)}</span>
+                          </span>
+                        ) : null}
+                        {effectiveMediaItems.length > 1 && (
+                          <span className="td-remote-spec-item">
+                            <Layers size={11} className="text-purple-400" />
+                            <span>{t('drive_tools.remote_gallery_selected_count', { selected: selectedMediaItemIds.size, total: effectiveMediaItems.length })}</span>
+                          </span>
+                        )}
                       </div>
                     </div>
-                  )}
+
+                    {/* Right Column: Media Cards Gallery or Format Selection */}
+                    <div className="td-remote-stream-gallery-col">
+                      {effectiveMediaItems.length > 1 ? (
+                        <>
+                          <div className="td-remote-gallery-header-row">
+                            <div className="td-remote-gallery-header-left">
+                              <Layers size={14} className="text-sky-400" />
+                              <span className="td-remote-gallery-title">
+                                {t('drive_tools.remote_gallery_title')}
+                              </span>
+                              <span className="td-remote-gallery-count-pill">
+                                {t('drive_tools.remote_gallery_selected_count', {
+                                  selected: selectedMediaItemIds.size,
+                                  total: effectiveMediaItems.length,
+                                })}
+                              </span>
+                              {selectedBytes > 0 && (
+                                <span className="td-remote-gallery-size-pill">
+                                  ~{formatDriveBytes(selectedBytes)}
+                                </span>
+                              )}
+                            </div>
+                            <div className="td-remote-gallery-header-right">
+                              <button
+                                type="button"
+                                className="td-remote-gallery-btn-action"
+                                onClick={handleSelectAllItems}
+                              >
+                                {t('drive_tools.remote_gallery_select_all')}
+                              </button>
+                              <button
+                                type="button"
+                                className="td-remote-gallery-btn-action"
+                                onClick={handleDeselectAllItems}
+                              >
+                                {t('drive_tools.remote_gallery_deselect_all')}
+                              </button>
+                              <div className="td-remote-gallery-density-toggle">
+                                <button
+                                  type="button"
+                                  className={`td-remote-density-btn ${galleryDensity === 'compact' ? 'active' : ''}`}
+                                  onClick={() => setGalleryDensity('compact')}
+                                  title={t('drive_tools.remote_gallery_density_compact')}
+                                >
+                                  <Grid3X3 size={12} />
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`td-remote-density-btn ${galleryDensity === 'comfortable' ? 'active' : ''}`}
+                                  onClick={() => setGalleryDensity('comfortable')}
+                                  title={t('drive_tools.remote_gallery_density_comfortable')}
+                                >
+                                  <LayoutGrid size={12} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Search & Filters */}
+                          <div className="td-remote-gallery-toolbar">
+                            <div className="td-remote-gallery-toolbar-left">
+                              <div className="td-remote-gallery-search-wrap">
+                                <Search size={12} className="td-remote-gallery-search-icon" />
+                                <input
+                                  type="text"
+                                  className="td-remote-gallery-search-input"
+                                  placeholder={t('drive_tools.remote_gallery_search_placeholder', { count: effectiveMediaItems.length })}
+                                  value={gallerySearch}
+                                  onChange={(e) => setGallerySearch(e.target.value)}
+                                />
+                                {gallerySearch && (
+                                  <button
+                                    type="button"
+                                    className="td-remote-gallery-search-clear"
+                                    onClick={() => setGallerySearch('')}
+                                  >
+                                    <X size={11} />
+                                  </button>
+                                )}
+                              </div>
+
+                              <div className="td-remote-gallery-filters">
+                                <button
+                                  type="button"
+                                  className={`td-remote-filter-chip ${galleryFilter === 'all' ? 'active' : ''}`}
+                                  onClick={() => setGalleryFilter('all')}
+                                >
+                                  {t('drive_tools.remote_gallery_filter_all', { count: effectiveMediaItems.length })}
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`td-remote-filter-chip ${galleryFilter === 'video' ? 'active' : ''}`}
+                                  onClick={() => setGalleryFilter('video')}
+                                >
+                                  {t('drive_tools.remote_gallery_filter_videos', {
+                                    count: effectiveMediaItems.filter((i) => i.kind === 'video').length,
+                                  })}
+                                </button>
+                                {effectiveMediaItems.some((i) => i.kind === 'image') && (
+                                  <button
+                                    type="button"
+                                    className={`td-remote-filter-chip ${galleryFilter === 'image' ? 'active' : ''}`}
+                                    onClick={() => setGalleryFilter('image')}
+                                  >
+                                    {t('drive_tools.remote_gallery_filter_photos', {
+                                      count: effectiveMediaItems.filter((i) => i.kind === 'image').length,
+                                    })}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="td-remote-gallery-toolbar-right">
+                              <select
+                                className="td-remote-gallery-sort-select"
+                                value={gallerySort}
+                                onChange={(e) => setGallerySort(e.target.value as any)}
+                              >
+                                <option value="default">{t('drive_tools.remote_gallery_sort_default')}</option>
+                                <option value="name">{t('drive_tools.remote_gallery_sort_name_asc')}</option>
+                                <option value="duration">{t('drive_tools.remote_gallery_sort_duration_desc')}</option>
+                                <option value="size">{t('drive_tools.remote_gallery_sort_size_desc')}</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Scrollable Media Cards */}
+                          <div className={`td-remote-gallery-grid-wrap ${galleryDensity === 'compact' ? 'density-compact' : 'density-comfortable'}`}>
+                            {filteredAndSortedItems.length === 0 ? (
+                              <div className="td-remote-multicard-empty">
+                                {t('drive_tools.no_match_found')}
+                              </div>
+                            ) : (
+                              filteredAndSortedItems.map((item) => {
+                                const isSelected = selectedMediaItemIds.has(item.id);
+                                const isActive = item.id === activePreviewItem?.id;
+                                const chosenFmtId = itemSelectedFormats[item.id] || item.selectedFormatId || item.formats[0]?.id;
+                                const chosenFmt = item.formats.find((f) => f.id === chosenFmtId) || item.formats[0];
+
+                                return (
+                                  <div
+                                    key={item.id}
+                                    className={`td-remote-media-item-card ${isSelected ? 'selected' : ''} ${isActive ? 'is-active-preview' : ''}`}
+                                    onClick={() => {
+                                      setActivePreviewItemId(item.id);
+                                    }}
+                                  >
+                                    <div className="td-remote-item-thumb-wrap">
+                                      <button
+                                        type="button"
+                                        className={`td-remote-item-checkbox ${isSelected ? 'checked' : ''}`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleToggleItem(item.id);
+                                        }}
+                                        aria-label={isSelected ? t('drive_tools.remote_gallery_deselect_all') : t('drive_tools.remote_gallery_select_all')}
+                                      >
+                                        {isSelected ? <Check size={14} strokeWidth={3} /> : <div className="td-remote-check-unselected" />}
+                                      </button>
+
+                                      <span className="td-remote-item-single-badge">
+                                        {getSingleUnifiedBadge(item)}
+                                      </span>
+
+                                      {item.thumbnailUrl ? (
+                                        <img
+                                          src={item.thumbnailUrl}
+                                          alt={item.title}
+                                          className="td-remote-item-thumb-img"
+                                          loading="lazy"
+                                          referrerPolicy="no-referrer"
+                                        />
+                                      ) : (
+                                        <div className="td-remote-item-thumb-fallback">
+                                          {item.kind === 'video' ? <Film size={28} /> : <ImageIcon size={28} />}
+                                        </div>
+                                      )}
+
+                                      {item.kind === 'video' && (
+                                        <div className="td-remote-item-play-overlay">
+                                          <div className="td-remote-item-play-icon-badge">
+                                            <Play size={13} fill="currentColor" />
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      <ItemDurationBadge
+                                        item={item}
+                                        knownDuration={itemDurations[item.id] || item.durationSec}
+                                      />
+                                    </div>
+
+                                    <div className="td-remote-item-card-body">
+                                      <span className="td-remote-item-card-title" title={item.title}>
+                                        {item.title}
+                                      </span>
+                                      <div className="td-remote-item-card-meta-clean">
+                                        <span className="td-remote-meta-size">
+                                          {chosenFmt?.filesizeBytes ? `~${formatDriveBytes(chosenFmt.filesizeBytes)}` : ''}
+                                        </span>
+                                        <span className="td-remote-meta-ext">
+                                          {chosenFmt?.ext ? chosenFmt.ext.toUpperCase() : ''}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        </>
+                      ) : resolvedMedia.formats.length > 0 ? (
+                        <div className="td-remote-formats-container">
+                          <label className="td-input-label">
+                            {t('speedtest.remote_split_select_format_hint')}
+                          </label>
+                          <div className="td-remote-quality-grid">
+                            {resolvedMedia.formats.map((fmt) => {
+                              const isSelected = selectedFormatId === fmt.id;
+                              return (
+                                <button
+                                  key={fmt.id}
+                                  type="button"
+                                  className={`td-remote-quality-chip ${isSelected ? 'active' : ''} tier-${fmt.qualityTier} ${fmt.isAlbumPack ? 'album-pack' : ''}`}
+                                  onClick={() => handleSelectFormat(fmt)}
+                                  disabled={submitting}
+                                >
+                                  <div className="td-remote-quality-chip-top">
+                                    <span className="td-remote-quality-chip-title">
+                                      {getFormatDisplayLabel(fmt, resolvedMedia, t)}
+                                    </span>
+                                    {isSelected && <CheckCircle2 size={13} className="td-remote-chip-active-ico" />}
+                                  </div>
+                                  <div className="td-remote-quality-chip-meta">
+                                    {getFormatDisplayBadge(fmt, t) && (
+                                      <span className="td-remote-quality-chip-badge">{getFormatDisplayBadge(fmt, t)}</span>
+                                    )}
+                                    {fmt.filesizeBytes ? (
+                                      <span className="td-remote-quality-chip-size">
+                                        ~{formatDriveBytes(fmt.filesizeBytes)}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
               ) : inspection?.status === 'inspecting' ? (
                 <div className="td-remote-preview-inspecting-card">
@@ -2042,222 +2254,7 @@ export function RemoteUploadModal({
               ) : null}
             </div>
           )}
-
-          {/* SECTION 2: FULL-WIDTH STUDIO MEDIA GALLERY (Active when multiple items) */}
-          {effectiveMediaItems.length > 1 && (
-            <div className="td-remote-section-2-gallery">
-              <div className="td-remote-gallery-header-row">
-                <div className="td-remote-gallery-header-left">
-                  <Layers size={15} className="text-sky-400" />
-                  <span className="td-remote-gallery-title">
-                    {t('drive_tools.remote_gallery_title')}
-                  </span>
-                  <span className="td-remote-gallery-count-pill">
-                    {t('drive_tools.remote_gallery_selected_count', {
-                      selected: selectedMediaItemIds.size,
-                      total: effectiveMediaItems.length,
-                    })}
-                  </span>
-                      {selectedBytes > 0 && (
-                        <span className="td-remote-gallery-size-pill">
-                          ~{formatDriveBytes(selectedBytes)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="td-remote-gallery-header-right">
-                      <button
-                        type="button"
-                        className="td-remote-gallery-btn-action"
-                        onClick={handleSelectAllItems}
-                      >
-                        {t('drive_tools.remote_gallery_select_all')}
-                      </button>
-                      <button
-                        type="button"
-                        className="td-remote-gallery-btn-action"
-                        onClick={handleDeselectAllItems}
-                      >
-                        {t('drive_tools.remote_gallery_deselect_all')}
-                      </button>
-                      <div className="td-remote-gallery-density-toggle">
-                        <button
-                          type="button"
-                          className={`td-remote-density-btn ${galleryDensity === 'compact' ? 'active' : ''}`}
-                          onClick={() => setGalleryDensity('compact')}
-                          title={t('drive_tools.remote_gallery_density_compact')}
-                        >
-                          <Grid3X3 size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          className={`td-remote-density-btn ${galleryDensity === 'comfortable' ? 'active' : ''}`}
-                          onClick={() => setGalleryDensity('comfortable')}
-                          title={t('drive_tools.remote_gallery_density_comfortable')}
-                        >
-                          <LayoutGrid size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Gallery Sub-toolbar: Search & Filters */}
-                  <div className="td-remote-gallery-toolbar">
-                    <div className="td-remote-gallery-toolbar-left">
-                      <div className="td-remote-gallery-search-wrap">
-                        <Search size={13} className="td-remote-gallery-search-icon" />
-                        <input
-                          type="text"
-                          className="td-remote-gallery-search-input"
-                          placeholder={t('drive_tools.remote_gallery_search_placeholder', { count: effectiveMediaItems.length })}
-                          value={gallerySearch}
-                          onChange={(e) => setGallerySearch(e.target.value)}
-                        />
-                        {gallerySearch && (
-                          <button
-                            type="button"
-                            className="td-remote-gallery-search-clear"
-                            onClick={() => setGallerySearch('')}
-                          >
-                            <X size={12} />
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="td-remote-gallery-filters">
-                        <button
-                          type="button"
-                          className={`td-remote-filter-chip ${galleryFilter === 'all' ? 'active' : ''}`}
-                          onClick={() => setGalleryFilter('all')}
-                        >
-                          {t('drive_tools.remote_gallery_filter_all', { count: effectiveMediaItems.length })}
-                        </button>
-                        <button
-                          type="button"
-                          className={`td-remote-filter-chip ${galleryFilter === 'video' ? 'active' : ''}`}
-                          onClick={() => setGalleryFilter('video')}
-                        >
-                          {t('drive_tools.remote_gallery_filter_videos', {
-                            count: effectiveMediaItems.filter((i) => i.kind === 'video').length,
-                          })}
-                        </button>
-                        {effectiveMediaItems.some((i) => i.kind === 'image') && (
-                          <button
-                            type="button"
-                            className={`td-remote-filter-chip ${galleryFilter === 'image' ? 'active' : ''}`}
-                            onClick={() => setGalleryFilter('image')}
-                          >
-                            {t('drive_tools.remote_gallery_filter_photos', {
-                              count: effectiveMediaItems.filter((i) => i.kind === 'image').length,
-                            })}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="td-remote-gallery-toolbar-right">
-                      <select
-                        className="td-remote-gallery-sort-select"
-                        value={gallerySort}
-                        onChange={(e) => setGallerySort(e.target.value as any)}
-                      >
-                        <option value="default">{t('drive_tools.remote_gallery_sort_default')}</option>
-                        <option value="name">{t('drive_tools.remote_gallery_sort_name_asc')}</option>
-                        <option value="duration">{t('drive_tools.remote_gallery_sort_duration_desc')}</option>
-                        <option value="size">{t('drive_tools.remote_gallery_sort_size_desc')}</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Responsive Grid of Cards with Zero Redundant Badges */}
-                  <div className={`td-remote-gallery-grid-wrap ${galleryDensity === 'compact' ? 'density-compact' : 'density-comfortable'}`}>
-                    {filteredAndSortedItems.length === 0 ? (
-                      <div className="td-remote-multicard-empty">
-                        {t('drive_tools.no_match_found')}
-                      </div>
-                    ) : (
-                      filteredAndSortedItems.map((item) => {
-                        const isSelected = selectedMediaItemIds.has(item.id);
-                        const isActive = item.id === activePreviewItem?.id;
-                        const chosenFmtId = itemSelectedFormats[item.id] || item.selectedFormatId || item.formats[0]?.id;
-                        const chosenFmt = item.formats.find((f) => f.id === chosenFmtId) || item.formats[0];
-
-                        return (
-                          <div
-                            key={item.id}
-                            className={`td-remote-media-item-card ${isSelected ? 'selected' : ''} ${isActive ? 'is-active-preview' : ''}`}
-                            onClick={() => {
-                              setActivePreviewItemId(item.id);
-                            }}
-                          >
-                            <div className="td-remote-item-thumb-wrap">
-                              <button
-                                type="button"
-                                className={`td-remote-item-checkbox ${isSelected ? 'checked' : ''}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleToggleItem(item.id);
-                                }}
-                                aria-label={isSelected ? t('drive_tools.remote_gallery_deselect_all') : t('drive_tools.remote_gallery_select_all')}
-                              >
-                                {isSelected ? <Check size={14} strokeWidth={3} /> : <div className="td-remote-check-unselected" />}
-                              </button>
-
-                              {/* Single Unified Non-Redundant Quality / Dimension Badge at Top-Right */}
-                              <span className="td-remote-item-single-badge">
-                                {getSingleUnifiedBadge(item)}
-                              </span>
-
-                              {item.thumbnailUrl ? (
-                                <img
-                                  src={item.thumbnailUrl}
-                                  alt={item.title}
-                                  className="td-remote-item-thumb-img"
-                                  loading="lazy"
-                                  referrerPolicy="no-referrer"
-                                />
-                              ) : (
-                                <div className="td-remote-item-thumb-fallback">
-                                  {item.kind === 'video' ? <Film size={28} /> : <ImageIcon size={28} />}
-                                </div>
-                              )}
-
-                              {item.kind === 'video' && (
-                                <div className="td-remote-item-play-overlay">
-                                  <div className="td-remote-item-play-icon-badge">
-                                    <Play size={13} fill="currentColor" />
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Duration Badge at Bottom-Right */}
-                              <ItemDurationBadge
-                                item={item}
-                                knownDuration={itemDurations[item.id] || item.durationSec}
-                              />
-                            </div>
-
-                            {/* Clean Non-Redundant Card Footer: Title + Size/Ext */}
-                            <div className="td-remote-item-card-body">
-                              <span className="td-remote-item-card-title" title={item.title}>
-                                {item.title}
-                              </span>
-                              <div className="td-remote-item-card-meta-clean">
-                                <span className="td-remote-meta-size">
-                                  {chosenFmt?.filesizeBytes ? `~${formatDriveBytes(chosenFmt.filesizeBytes)}` : ''}
-                                </span>
-                                <span className="td-remote-meta-ext">
-                                  {chosenFmt?.ext ? chosenFmt.ext.toUpperCase() : ''}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              )}
-            </>
+        </>
           ) : (
             /* BATCH TAB */
             <div className="td-remote-form-card">
