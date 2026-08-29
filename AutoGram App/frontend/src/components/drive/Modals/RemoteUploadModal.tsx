@@ -34,6 +34,7 @@ import {
   Search,
   Play,
   Clock,
+  HardDrive,
 } from 'lucide-react';
 import type { DriveDestChoice, DriveDestPickerState } from './DriveDestinationPicker';
 import { DriveDestinationPicker } from './DriveDestinationPicker';
@@ -1482,8 +1483,13 @@ export function RemoteUploadModal({
                   {/* Row 3: Triplet Compact Row (Media Delivery Format, Transfer Engine, Storage Policy in 1 Row) */}
                   <div className="td-remote-triplet-row">
                     {/* Col 1: Media Delivery Format */}
-                    <div className="td-remote-triplet-col">
-                      <span className="td-input-label">{t('speedtest.remote_delivery_mode_label')}</span>
+                    <div className="td-remote-triplet-col col-delivery">
+                      <div className="td-remote-triplet-header">
+                        <span className="td-remote-triplet-title">
+                          <Film size={11} className="text-purple-400" />
+                          <span>{t('speedtest.remote_delivery_mode_label')}</span>
+                        </span>
+                      </div>
                       <div className="td-remote-mode-pills">
                         <button
                           type="button"
@@ -1522,9 +1528,12 @@ export function RemoteUploadModal({
                     </div>
 
                     {/* Col 2: Transfer Engine */}
-                    <div className="td-remote-triplet-col">
-                      <div className="td-remote-engine-header">
-                        <span className="td-input-label">{t('drive_tools.remote_engine_mode_title')}</span>
+                    <div className="td-remote-triplet-col col-engine">
+                      <div className="td-remote-triplet-header">
+                        <span className="td-remote-triplet-title">
+                          <Zap size={11} className="text-sky-400" />
+                          <span>{t('drive_tools.remote_engine_mode_title')}</span>
+                        </span>
                         {effectiveRemoteEngine === 'cloud_fetch' ? (
                           <span className="td-remote-engine-badge zero-quota">
                             <Sparkles size={9} />
@@ -1564,9 +1573,12 @@ export function RemoteUploadModal({
                     </div>
 
                     {/* Col 3: Storage Policy */}
-                    <div className="td-remote-triplet-col">
-                      <div className="td-remote-engine-header">
-                        <span className="td-input-label">{t('drive_tools.remote_storage_policy_label')}</span>
+                    <div className="td-remote-triplet-col col-policy">
+                      <div className="td-remote-triplet-header">
+                        <span className="td-remote-triplet-title">
+                          <HardDrive size={11} className="text-emerald-400" />
+                          <span>{t('drive_tools.remote_storage_policy_label')}</span>
+                        </span>
                       </div>
                       <div className="td-remote-engine-pills">
                         {(['telegram', 'custom_disk', 'disk_and_telegram'] as StorageLocalPolicy[]).map((pol) => (
