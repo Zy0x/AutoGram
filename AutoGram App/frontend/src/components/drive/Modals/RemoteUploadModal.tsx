@@ -24,8 +24,8 @@ import {
   FileCode,
   CheckCircle2,
   Check,
-  Grid3X3,
   LayoutGrid,
+  List,
   Layers,
   Sparkles,
   Zap,
@@ -965,7 +965,7 @@ export function RemoteUploadModal({
   const [gallerySearch, setGallerySearch] = useState('');
   const [galleryFilter, setGalleryFilter] = useState<'all' | 'video' | 'image' | 'long'>('all');
   const [gallerySort, setGallerySort] = useState<'default' | 'name' | 'duration' | 'size'>('default');
-  const [galleryDensity, setGalleryDensity] = useState<'compact' | 'comfortable'>('comfortable');
+  const [galleryViewMode, setGalleryViewMode] = useState<'grid' | 'list'>('grid');
 
   const filteredAndSortedItems = useMemo(() => {
     if (!effectiveMediaItems) return [];
@@ -2098,25 +2098,25 @@ export function RemoteUploadModal({
                               <div className="td-remote-gallery-density-toggle">
                                 <button
                                   type="button"
-                                  className={`td-remote-density-btn ${galleryDensity === 'compact' ? 'active' : ''}`}
-                                  onClick={() => setGalleryDensity('compact')}
-                                  title={t('drive_tools.remote_gallery_density_compact')}
+                                  className={`td-remote-density-btn ${galleryViewMode === 'grid' ? 'active' : ''}`}
+                                  onClick={() => setGalleryViewMode('grid')}
+                                  title={t('drive_tools.remote_gallery_view_grid')}
                                 >
-                                  <Grid3X3 size={12} />
+                                  <LayoutGrid size={12} />
                                 </button>
                                 <button
                                   type="button"
-                                  className={`td-remote-density-btn ${galleryDensity === 'comfortable' ? 'active' : ''}`}
-                                  onClick={() => setGalleryDensity('comfortable')}
-                                  title={t('drive_tools.remote_gallery_density_comfortable')}
+                                  className={`td-remote-density-btn ${galleryViewMode === 'list' ? 'active' : ''}`}
+                                  onClick={() => setGalleryViewMode('list')}
+                                  title={t('drive_tools.remote_gallery_view_list')}
                                 >
-                                  <LayoutGrid size={12} />
+                                  <List size={12} />
                                 </button>
                               </div>
                             </div>
                           </div>
 
-                          {/* Search & Filters */}
+                          {/* Search & Filters + Sort inline */}
                           <div className="td-remote-gallery-toolbar">
                             <div className="td-remote-gallery-toolbar-left">
                               <div className="td-remote-gallery-search-wrap">
@@ -2175,6 +2175,7 @@ export function RemoteUploadModal({
                                 className="td-remote-gallery-sort-select"
                                 value={gallerySort}
                                 onChange={(e) => setGallerySort(e.target.value as any)}
+                                title={t('drive_tools.remote_gallery_sort_label')}
                               >
                                 <option value="default">{t('drive_tools.remote_gallery_sort_default')}</option>
                                 <option value="name">{t('drive_tools.remote_gallery_sort_name_asc')}</option>
@@ -2185,7 +2186,7 @@ export function RemoteUploadModal({
                           </div>
 
                           {/* Scrollable Media Cards */}
-                          <div className={`td-remote-gallery-grid-wrap ${galleryDensity === 'compact' ? 'density-compact' : 'density-comfortable'}`}>
+                          <div className={`td-remote-gallery-grid-wrap ${galleryViewMode === 'list' ? 'view-list' : 'view-grid'}`}>
                             {filteredAndSortedItems.length === 0 ? (
                               <div className="td-remote-multicard-empty">
                                 {t('drive_tools.no_match_found')}
@@ -2200,7 +2201,7 @@ export function RemoteUploadModal({
                                 return (
                                   <div
                                     key={item.id}
-                                    className={`td-remote-media-item-card ${isSelected ? 'selected' : ''} ${isActive ? 'is-active-preview' : ''}`}
+                                    className={`td-remote-media-item-card ${isSelected ? 'selected' : ''} ${isActive ? 'is-active-preview' : ''} ${galleryViewMode === 'list' ? 'card-list-mode' : 'card-grid-mode'}`}
                                     onClick={() => {
                                       setActivePreviewItemId(item.id);
                                     }}
