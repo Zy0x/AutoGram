@@ -1158,11 +1158,9 @@ export function RemoteUploadModal({
             </div>
           )}
 
-          <div className={`td-remote-studio-layout ${tab === 'single' ? '' : 'single-column'}`}>
-            {/* LEFT COLUMN: EXTRACTION CONFIG */}
-            <section className="td-remote-col-left custom-scrollbar">
-              {/* SECTION 1: SOURCE URL */}
-              <div className="flex flex-col gap-2">
+          <div className="td-remote-studio-layout">
+            {/* SECTION 1: SOURCE URL */}
+            <div className="flex flex-col gap-2">
                 <h2 className="td-remote-section-title">
                   {t('drive_tools.remote_section_1_title')}
                 </h2>
@@ -1523,12 +1521,9 @@ export function RemoteUploadModal({
                   </div>
                 </div>
               </div>
-            </section>
 
-            {/* RIGHT COLUMN: LIVE MEDIA CANVAS */}
-            <section className="td-remote-col-right doppelrand">
               {/* SECTION 3: PREVIEW MEDIA */}
-              <div className="flex flex-col gap-1.5 shrink-0">
+              <div className="flex flex-col gap-2">
                 <h2 className="td-remote-section-title">
                   {t('drive_tools.remote_section_3_title')}
                 </h2>
@@ -1603,12 +1598,13 @@ export function RemoteUploadModal({
                 </div>
               </div>
 
-              {/* SECTION 4: COLLECTION STUDIO */}
-              <div className="td-remote-collection-wrap">
+            {/* SECTION 4: COLLECTION STUDIO */}
+            <div className="flex flex-col gap-2">
+              <h2 className="td-remote-section-title">
+                {t('drive_tools.remote_section_4_title')}
+              </h2>
+              <div className="td-remote-collection-wrap doppelrand">
                 <div className="td-remote-collection-header">
-                  <h3 className="font-bold text-xs text-[#dee3e8] uppercase tracking-wider font-mono">
-                    {t('drive_tools.remote_section_4_title')}
-                  </h3>
                   <span className="font-mono text-xs font-bold text-[#dee3e8] bg-[#0f1418] border border-white/10 px-2.5 py-1 rounded-md shadow-inner">
                     {t('drive_tools.remote_items_detected', {
                       count: effectiveMediaItems.length > 0 ? effectiveMediaItems.length : 1,
@@ -1766,7 +1762,7 @@ export function RemoteUploadModal({
                   )}
                 </div>
               </div>
-            </section>
+            </div>
           </div>
 
           {/* Bottom Footer (Action Bar) */}

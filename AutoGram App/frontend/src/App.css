@@ -25702,8 +25702,8 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-upload-panel {
   display: flex !important;
   flex-direction: column !important;
-  max-width: min(1320px, calc(100vw - 28px)) !important;
-  width: min(1320px, calc(100vw - 28px)) !important;
+  max-width: min(960px, calc(100vw - 28px)) !important;
+  width: min(960px, calc(100vw - 28px)) !important;
   min-width: min(320px, calc(100vw - 28px)) !important;
   max-height: calc(100vh - 28px) !important;
   max-height: calc(100dvh - 28px) !important;
@@ -25726,9 +25726,9 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-upload-panel.td-remote-split-active,
 .td-confirm-panel.td-remote-upload-panel.td-remote-collection-mode,
 .td-remote-upload-panel.td-remote-collection-mode {
-  max-width: min(1320px, calc(100vw - 32px)) !important;
-  width: min(1320px, calc(100vw - 32px)) !important;
-  max-height: min(94vh, 920px) !important;
+  max-width: min(960px, calc(100vw - 32px)) !important;
+  width: min(960px, calc(100vw - 32px)) !important;
+  max-height: min(92vh, 900px) !important;
 }
 
 .td-remote-upload-panel .td-confirm-head {
@@ -25816,48 +25816,19 @@ button.td-confirm-icon.is-back-btn:active {
   flex-direction: column;
   gap: 0;
   padding: 16px 20px !important;
-  overflow: hidden !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
   flex: 1 1 0% !important;
   min-height: 0 !important;
 }
 
-/* 2-Column Split Workspace */
+/* Vertical Tiered Studio Workspace */
 .td-remote-studio-layout {
-  display: grid;
-  grid-template-columns: minmax(320px, 38%) minmax(0, 62%);
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  align-items: stretch;
   width: 100%;
-  height: 100%;
-  flex: 1 1 0%;
-  min-height: 0;
-}
-
-.td-remote-studio-layout.single-column {
-  grid-template-columns: 1fr;
-  max-width: 680px;
-  margin: 0 auto;
-}
-
-.td-remote-col-left {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-width: 0;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.td-remote-col-right {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-width: 0;
-  min-height: 0;
-  background: #1b2024;
-  border-radius: 12px;
-  padding: 14px;
-  overflow: hidden;
+  flex: 1 1 auto;
 }
 
 .td-remote-section-title {
@@ -25979,9 +25950,9 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-preview-hero {
   position: relative;
   width: 100%;
-  height: 180px;
-  max-height: 220px;
-  border-radius: 8px;
+  height: 240px;
+  max-height: 320px;
+  border-radius: 12px;
   overflow: hidden;
   background: #000000;
   flex-shrink: 0;
@@ -26063,20 +26034,22 @@ button.td-confirm-icon.is-back-btn:active {
 
 /* Collection Studio Bento Grid */
 .td-remote-collection-wrap {
-  flex: 1 1 0%;
+  flex: 1 1 auto;
+  background: #1b2024;
+  border-radius: 12px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   overflow: hidden;
-  min-height: 0;
-  margin-top: 4px;
+  min-height: 220px;
 }
 
 .td-remote-collection-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 6px;
+  padding-bottom: 8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
 }
@@ -26087,8 +26060,8 @@ button.td-confirm-icon.is-back-btn:active {
   gap: 10px;
   overflow-y: auto;
   padding-right: 4px;
-  flex: 1 1 0%;
-  min-height: 0;
+  max-height: 420px;
+  min-height: 160px;
 }
 
 .td-remote-bento-card {
