@@ -255,6 +255,40 @@ function formatMediaDuration(seconds?: number | null): string {
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
+class DurationProbeQueue {
+  private queue: Array<() => Promise<void>> = [];
+  private activeCount = 0;
+  private maxConcurrent = 2;
+
+  add(task: () => Promise<void>) {
+    this.queue.push(task);
+    this.processNext();
+  }
+
+  remove(task: () => Promise<void>) {
+    const idx = this.queue.indexOf(task);
+    if (idx !== -1) {
+      this.queue.splice(idx, 1);
+    }
+  }
+
+  private processNext() {
+    if (this.activeCount >= this.maxConcurrent || this.queue.length === 0) {
+      return;
+    }
+    const task = this.queue.shift();
+    if (!task) return;
+
+    this.activeCount++;
+    task().finally(() => {
+      this.activeCount--;
+      this.processNext();
+    });
+  }
+}
+
+const probeQueue = new DurationProbeQueue();
+
 const ItemDurationBadge: React.FC<{
   item: ResolvedMediaItem;
   knownDuration?: number;
@@ -273,39 +307,57 @@ const ItemDurationBadge: React.FC<{
     if (duration && duration > 0) return;
 
     const directUrl = item.formats[0]?.directUrl;
-    if (!directUrl || !directUrl.startsWith('http') || directUrl.includes('/v/')) return;
+    if (!directUrl || !directUrl.startsWith('http') || directUrl.includes('/v/') || directUrl.includes('/e/')) return;
 
     let isCancelled = false;
-    const v = document.createElement('video');
-    v.preload = 'metadata';
-    v.src = directUrl;
 
-    const onMeta = () => {
-      if (!isCancelled && v.duration && isFinite(v.duration) && v.duration > 0) {
-        const d = Math.round(v.duration);
-        setDuration(d);
-        onFoundRef.current?.(item.id, d);
-      }
-      cleanup();
+    const probeTask = () => {
+      return new Promise<void>((resolve) => {
+        if (isCancelled) {
+          resolve();
+          return;
+        }
+        const v = document.createElement('video');
+        v.preload = 'metadata';
+        v.src = directUrl;
+
+        let isCleaned = false;
+        const cleanup = () => {
+          if (isCleaned) return;
+          isCleaned = true;
+          v.removeEventListener('loadedmetadata', onMeta);
+          v.removeEventListener('durationchange', onMeta);
+          v.removeEventListener('canplay', onMeta);
+          v.removeEventListener('error', cleanup);
+          v.src = '';
+          resolve();
+        };
+
+        const onMeta = () => {
+          if (!isCancelled && v.duration && isFinite(v.duration) && v.duration > 0) {
+            const d = Math.round(v.duration);
+            setDuration(d);
+            onFoundRef.current?.(item.id, d);
+          }
+          cleanup();
+        };
+
+        v.addEventListener('loadedmetadata', onMeta);
+        v.addEventListener('durationchange', onMeta);
+        v.addEventListener('canplay', onMeta);
+        v.addEventListener('error', cleanup);
+        v.load();
+
+        // Safety timeout to prevent queue stalling
+        setTimeout(cleanup, 3500);
+      });
     };
 
-    const cleanup = () => {
-      v.removeEventListener('loadedmetadata', onMeta);
-      v.removeEventListener('durationchange', onMeta);
-      v.removeEventListener('canplay', onMeta);
-      v.removeEventListener('error', cleanup);
-      v.src = '';
-    };
-
-    v.addEventListener('loadedmetadata', onMeta);
-    v.addEventListener('durationchange', onMeta);
-    v.addEventListener('canplay', onMeta);
-    v.addEventListener('error', cleanup);
-    v.load();
+    probeQueue.add(probeTask);
 
     return () => {
       isCancelled = true;
-      cleanup();
+      probeQueue.remove(probeTask);
     };
   }, [item.id, item.formats, item.kind, knownDuration]);
 
@@ -782,57 +834,7 @@ export function RemoteUploadModal({
     }
   }, [resolvedMedia?.durationSec]);
 
-  // Parallel metadata duration probe for all video cards in the gallery
-  useEffect(() => {
-    if (effectiveMediaItems.length === 0) return;
-    let isCancelled = false;
 
-    const probeList = effectiveMediaItems.filter(
-      (it) => it.kind === 'video' && (!itemDurations[it.id] || itemDurations[it.id] <= 0)
-    );
-
-    if (probeList.length === 0) return;
-
-    probeList.forEach((item) => {
-      const directUrl = item.formats[0]?.directUrl;
-      if (!directUrl || !directUrl.startsWith('http') || directUrl.includes('/v/')) return;
-
-      const v = document.createElement('video');
-      v.preload = 'metadata';
-      v.src = directUrl;
-
-      const onMeta = () => {
-        if (!isCancelled && v.duration && isFinite(v.duration) && v.duration > 0) {
-          setItemDurations((prev) => {
-            const rounded = Math.round(v.duration);
-            if (prev[item.id] === rounded) return prev;
-            return {
-              ...prev,
-              [item.id]: rounded,
-            };
-          });
-        }
-        cleanup();
-      };
-
-      const cleanup = () => {
-        v.removeEventListener('loadedmetadata', onMeta);
-        v.removeEventListener('durationchange', onMeta);
-        v.removeEventListener('canplay', onMeta);
-        v.removeEventListener('error', cleanup);
-        v.src = '';
-      };
-
-      v.addEventListener('loadedmetadata', onMeta);
-      v.addEventListener('durationchange', onMeta);
-      v.addEventListener('canplay', onMeta);
-      v.addEventListener('error', cleanup);
-    });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [effectiveMediaItems, itemDurations]);
 
   const activePreviewItem = useMemo(() => {
     if (!effectiveMediaItems || effectiveMediaItems.length === 0) return null;

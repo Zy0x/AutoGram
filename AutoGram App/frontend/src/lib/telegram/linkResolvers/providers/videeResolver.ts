@@ -116,7 +116,8 @@ async function resolveVideeSingleVideo(
   videoId: string,
   hintTitle?: string,
   hintThumb?: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  skipProbeLength = false
 ): Promise<VideeVideoItem | null> {
   const embedUrl = `https://videe.cc/v/${videoId}`;
   const referer = `https://videe.cc/e/${videoId}`;
@@ -164,7 +165,7 @@ async function resolveVideeSingleVideo(
       }
     }
 
-    const filesizeBytes = await probeDirectStreamLength(directUrl, referer);
+    const filesizeBytes = skipProbeLength ? undefined : await probeDirectStreamLength(directUrl, referer);
 
     return {
       id: videoId,
@@ -299,22 +300,20 @@ export const videeResolver: LinkResolverProvider = {
         folderTitle = `Videe Folder (${rawEntries.length} Videos)`;
       }
 
-      // Resolve all items in parallel batches of 15
+      // Eagerly resolve the initial batch of videos (first 6 items) for instant live preview playback
+      const eagerCount = Math.min(rawEntries.length, 6);
       const validResolved: VideeVideoItem[] = [];
-      const batchSize = 15;
-      for (let i = 0; i < rawEntries.length; i += batchSize) {
-        const chunk = rawEntries.slice(i, i + batchSize);
-        const resolvedChunk = await Promise.all(
-          chunk.map((item) => resolveVideeSingleVideo(item.id, item.title, item.thumb, signal))
-        );
-        for (const item of resolvedChunk) {
-          if (item) validResolved.push(item);
-        }
+      const resolvedChunk = await Promise.all(
+        rawEntries
+          .slice(0, eagerCount)
+          .map((item) => resolveVideeSingleVideo(item.id, item.title, item.thumb, signal, true))
+      );
+      for (const item of resolvedChunk) {
+        if (item) validResolved.push(item);
       }
 
       if (validResolved.length === 0 && rawEntries.length > 0) {
-        // Fallback: try resolving first item directly
-        const first = await resolveVideeSingleVideo(rawEntries[0].id, rawEntries[0].title, rawEntries[0].thumb, signal);
+        const first = await resolveVideeSingleVideo(rawEntries[0].id, rawEntries[0].title, rawEntries[0].thumb, signal, false);
         if (first) validResolved.push(first);
       }
 
