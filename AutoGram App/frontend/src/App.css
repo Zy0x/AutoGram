@@ -25792,13 +25792,35 @@ button.td-confirm-icon.is-back-btn:active {
   width: 100%;
 }
 
+/* Triplet Compact Row: Delivery Format + Transfer Engine + Storage Policy in 1 Row */
+.td-remote-triplet-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.td-remote-triplet-col {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .td-remote-triplet-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
 .td-remote-pill-subgroup {
   display: flex;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
-  padding-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .td-remote-mode-pills,
@@ -25816,13 +25838,13 @@ button.td-confirm-icon.is-back-btn:active {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  padding: 5px 8px;
+  gap: 4px;
+  padding: 5px 6px;
   border-radius: 7px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(10, 15, 29, 0.7);
   color: #94a3b8;
-  font-size: 0.72rem;
+  font-size: 0.71rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 130ms ease;
@@ -25861,20 +25883,22 @@ button.td-confirm-icon.is-back-btn:active {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
+  min-height: 16px;
 }
 
 .td-remote-engine-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 0.65rem;
+  gap: 3px;
+  font-size: 0.63rem;
   font-weight: 700;
-  padding: 1.5px 6px;
+  padding: 1px 5px;
   border-radius: 999px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  white-space: nowrap;
 }
 
 .td-remote-engine-badge.zero-quota {
@@ -25893,16 +25917,6 @@ button.td-confirm-icon.is-back-btn:active {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding-top: 5px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
-}
-
-.td-remote-policy-label {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .td-remote-dest-row {
