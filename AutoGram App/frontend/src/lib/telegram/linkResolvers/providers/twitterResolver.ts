@@ -31,22 +31,22 @@ function inferTierAndBadge(
   const dimStr = width && height ? `${width} × ${height}` : '';
 
   if (shortDim >= 2100) {
-    return { tier: '4k', badge: dimStr || '4K UHD', resolution: dimStr ? `4K UHD (${dimStr})` : '4K UHD' };
+    return { tier: '4k', badge: dimStr || '4K UHD', resolution: '4K UHD' };
   }
   if (shortDim >= 1400) {
-    return { tier: '2k', badge: dimStr || '2K QHD', resolution: dimStr ? `2K QHD (${dimStr})` : '2K QHD' };
+    return { tier: '2k', badge: dimStr || '2K QHD', resolution: '2K QHD' };
   }
   if (shortDim >= 1000) {
-    return { tier: '1080p', badge: dimStr || '1080p FHD', resolution: dimStr ? `1080p FHD (${dimStr})` : '1080p Full HD' };
+    return { tier: '1080p', badge: dimStr || '1080p FHD', resolution: '1080p FHD' };
   }
   if (shortDim >= 700) {
-    return { tier: '720p', badge: dimStr || '720p HD', resolution: dimStr ? `720p HD (${dimStr})` : '720p HD' };
+    return { tier: '720p', badge: dimStr || '720p HD', resolution: '720p HD' };
   }
   if (shortDim >= 450) {
-    return { tier: '480p', badge: dimStr || '480p SD', resolution: dimStr ? `480p SD (${dimStr})` : '480p SD' };
+    return { tier: '480p', badge: dimStr || '480p SD', resolution: '480p SD' };
   }
   if (shortDim > 0) {
-    return { tier: '360p', badge: dimStr || `${shortDim}p`, resolution: dimStr ? `${shortDim}p (${dimStr})` : `${shortDim}p` };
+    return { tier: '360p', badge: dimStr || `${shortDim}p`, resolution: `${shortDim}p` };
   }
   if (bitrate && bitrate > 1500000) {
     return { tier: '720p', badge: '720p HD', resolution: '720p HD' };
