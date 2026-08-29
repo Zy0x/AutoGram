@@ -257,6 +257,24 @@ function formatMediaDuration(seconds?: number | null): string {
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
+/**
+ * Truncates a filename while preserving the extension.
+ * e.g. "Video makanan bu....mp4"
+ */
+function truncateWithExt(filename: string, maxLen = 20): string {
+  if (filename.length <= maxLen) return filename;
+  const dotIdx = filename.lastIndexOf('.');
+  if (dotIdx <= 0) {
+    // No extension
+    return filename.slice(0, maxLen - 3) + '...';
+  }
+  const ext = filename.slice(dotIdx);       // e.g. ".mp4"
+  const name = filename.slice(0, dotIdx);   // e.g. "Video makanan bu"
+  const maxName = maxLen - ext.length - 3;  // reserve space for "..." + ext
+  if (maxName <= 0) return filename.slice(0, maxLen - 3) + '...';
+  return name.slice(0, maxName) + '...' + ext;
+}
+
 function getSingleUnifiedBadge(item: ResolvedMediaItem): string {
   const fmt = item.formats[0];
   if (!fmt) return item.kind === 'image' ? 'PHOTO' : 'HD';
@@ -315,7 +333,9 @@ const ItemDurationBadge: React.FC<{
   item: ResolvedMediaItem;
   knownDuration?: number;
 }> = ({ item, knownDuration }) => {
-  const dur = knownDuration || item.durationSec || item.formats[0]?.durationSec;
+  // Scan all formats for any durationSec — not just index 0
+  const fmtDur = item.formats.find((f) => f.durationSec && f.durationSec > 0)?.durationSec;
+  const dur = knownDuration || item.durationSec || fmtDur;
   const formatted = formatMediaDuration(dur);
   if (!formatted) return null;
 
@@ -773,10 +793,13 @@ export function RemoteUploadModal({
       const durMap: Record<string, number> = {};
       for (const item of effectiveMediaItems) {
         fmtMap[item.id] = item.selectedFormatId || item.formats[0]?.id || '';
-        if (item.durationSec && item.durationSec > 0) {
-          durMap[item.id] = item.durationSec;
-        } else if (item.formats[0]?.durationSec && item.formats[0].durationSec > 0) {
-          durMap[item.id] = item.formats[0].durationSec;
+        // Scan ALL formats for a valid durationSec — some resolvers put it on non-first formats
+        const itemDur =
+          item.durationSec && item.durationSec > 0
+            ? item.durationSec
+            : item.formats.find((f) => f.durationSec && f.durationSec > 0)?.durationSec;
+        if (itemDur) {
+          durMap[item.id] = itemDur;
         }
       }
       setItemSelectedFormats(fmtMap);
@@ -2261,9 +2284,12 @@ export function RemoteUploadModal({
 
                                     {/* CARD BODY: gradient overlay (grid) or side (list) */}
                                     <div className="td-remote-item-card-body">
-                                      {/* Filename — top line */}
-                                      <span className="td-remote-item-card-title" title={itemCustomNames[item.id] || item.title}>
-                                        {itemCustomNames[item.id] || item.title}
+                                      {/* Filename — top line, extension preserved in truncation */}
+                                      <span
+                                        className="td-remote-item-card-title"
+                                        title={itemCustomNames[item.id] || item.title}
+                                      >
+                                        {truncateWithExt(itemCustomNames[item.id] || item.title, 22)}
                                       </span>
                                       {/* Bottom row: size left + duration right */}
                                       <div className="td-remote-card-meta-row">
