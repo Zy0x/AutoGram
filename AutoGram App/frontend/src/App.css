@@ -25879,6 +25879,38 @@ button.td-confirm-icon.is-back-btn:active {
   color: #fef08a;
 }
 
+.td-remote-engine-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.td-remote-engine-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1.5px 6px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.td-remote-engine-badge.zero-quota {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.td-remote-engine-badge.zero-disk {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
 .td-remote-policy-row {
   display: flex;
   flex-direction: column;
@@ -26051,6 +26083,85 @@ button.td-confirm-icon.is-back-btn:active {
   font-size: 0.68rem;
   font-weight: 600;
   color: #cbd5e1;
+}
+
+/* Format chips selector */
+.td-remote-formats-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.td-remote-quality-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+}
+
+.td-remote-quality-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  background: rgba(10, 15, 29, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 130ms ease;
+  text-align: left;
+  min-width: 120px;
+}
+
+.td-remote-quality-chip:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #f1f5f9;
+}
+
+.td-remote-quality-chip.active {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(99, 102, 241, 0.15));
+  border-color: #38bdf8;
+  color: #f8fafc;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+.td-remote-quality-chip-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.td-remote-quality-chip-title {
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: inherit;
+}
+
+.td-remote-chip-active-ico {
+  color: #38bdf8;
+}
+
+.td-remote-quality-chip-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.td-remote-quality-chip-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #38bdf8;
+  text-transform: uppercase;
+}
+
+.td-remote-quality-chip-size {
+  font-size: 0.62rem;
+  color: #94a3b8;
 }
 
 /* SECTION 2: FULL-WIDTH STUDIO GALLERY (Takes all remaining height) */
