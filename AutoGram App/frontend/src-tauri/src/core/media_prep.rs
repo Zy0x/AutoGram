@@ -48,6 +48,104 @@ impl Drop for EncoderPermit {
     }
 }
 
+use std::net::ToSocketAddrs;
+
+struct SmartDoHResolver;
+
+impl ureq::Resolver for SmartDoHResolver {
+    fn resolve(&self, netloc: &str) -> std::io::Result<Vec<std::net::SocketAddr>> {
+        // 1. Try standard system DNS first
+        if let Ok(addrs) = netloc.to_socket_addrs() {
+            let list: Vec<std::net::SocketAddr> = addrs.collect();
+            if !list.is_empty() {
+                return Ok(list);
+            }
+        }
+
+        // 2. Extract host and port
+        let (host, port) = if let Some((h, p)) = netloc.rsplit_once(':') {
+            (h, p.parse::<u16>().unwrap_or(443))
+        } else {
+            (netloc, 443)
+        };
+
+        if let Ok(ip) = host.parse::<std::net::IpAddr>() {
+            return Ok(vec![std::net::SocketAddr::new(ip, port)]);
+        }
+
+        // 3. Fallback: Query Cloudflare DoH (1.1.1.1)
+        let doh_url = format!("https://1.1.1.1/dns-query?name={}&type=A", urlencoding::encode(host));
+        let doh_agent = ureq::builder()
+            .timeout_connect(std::time::Duration::from_secs(5))
+            .timeout_read(std::time::Duration::from_secs(5))
+            .build();
+
+        if let Ok(resp) = doh_agent
+            .get(&doh_url)
+            .set("Accept", "application/dns-json")
+            .call()
+        {
+            if let Ok(json_val) = resp.into_json::<serde_json::Value>() {
+                if let Some(answers) = json_val.get("Answer").and_then(|v| v.as_array()) {
+                    let mut resolved = Vec::new();
+                    for ans in answers {
+                        if ans.get("type").and_then(|t| t.as_u64()) == Some(1) {
+                            if let Some(ip_str) = ans.get("data").and_then(|d| d.as_str()) {
+                                if let Ok(ip) = ip_str.parse::<std::net::IpAddr>() {
+                                    resolved.push(std::net::SocketAddr::new(ip, port));
+                                }
+                            }
+                        }
+                    }
+                    if !resolved.is_empty() {
+                        return Ok(resolved);
+                    }
+                }
+            }
+        }
+
+        // 4. Fallback: Query Google DoH (8.8.8.8)
+        let google_doh_url = format!("https://dns.google/resolve?name={}&type=A", urlencoding::encode(host));
+        if let Ok(resp) = doh_agent
+            .get(&google_doh_url)
+            .set("Accept", "application/dns-json")
+            .call()
+        {
+            if let Ok(json_val) = resp.into_json::<serde_json::Value>() {
+                if let Some(answers) = json_val.get("Answer").and_then(|v| v.as_array()) {
+                    let mut resolved = Vec::new();
+                    for ans in answers {
+                        if ans.get("type").and_then(|t| t.as_u64()) == Some(1) {
+                            if let Some(ip_str) = ans.get("data").and_then(|d| d.as_str()) {
+                                if let Ok(ip) = ip_str.parse::<std::net::IpAddr>() {
+                                    resolved.push(std::net::SocketAddr::new(ip, port));
+                                }
+                            }
+                        }
+                    }
+                    if !resolved.is_empty() {
+                        return Ok(resolved);
+                    }
+                }
+            }
+        }
+
+        Err(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            format!("DoH DNS resolution failed for host: {netloc}"),
+        ))
+    }
+}
+
+pub fn create_resilient_http_agent() -> ureq::Agent {
+    ureq::builder()
+        .timeout_connect(std::time::Duration::from_secs(20))
+        .timeout_read(std::time::Duration::from_secs(300))
+        .redirects(8)
+        .resolver(SmartDoHResolver)
+        .build()
+}
+
 fn temp_dir() -> PathBuf {
     let base = std::env::temp_dir().join("autogram_studio_prep");
     let _ = fs::create_dir_all(&base);
@@ -96,10 +194,7 @@ pub fn resolve_social_media_direct_url(url: &str) -> Option<String> {
             "https://www.tikwm.com/api/?url={}&hd=1",
             urlencoding::encode(url)
         );
-        let agent = ureq::AgentBuilder::new()
-            .timeout_connect(std::time::Duration::from_secs(10))
-            .timeout_read(std::time::Duration::from_secs(15))
-            .build();
+        let agent = create_resilient_http_agent();
         if let Ok(resp) = agent.get(&api_url).call() {
             if let Ok(json_val) = resp.into_json::<serde_json::Value>() {
                 if let Some(data) = json_val.get("data") {
@@ -286,11 +381,7 @@ pub fn download_remote_url(
         url.chars().take(120).collect::<String>(),
     );
 
-    let agent = ureq::AgentBuilder::new()
-        .timeout_connect(std::time::Duration::from_secs(20))
-        .timeout_read(std::time::Duration::from_secs(300))
-        .redirects(8)
-        .build();
+    let agent = create_resilient_http_agent();
 
     let mut req = agent.get(url);
     req = req.set(
