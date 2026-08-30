@@ -49,6 +49,7 @@ import {
   ArrowUp,
   ArrowDown,
   User,
+  SlidersHorizontal,
 } from 'lucide-react';
 import type { DriveDestChoice, DriveDestPickerState } from './DriveDestinationPicker';
 import { DriveDestinationPicker } from './DriveDestinationPicker';
@@ -257,6 +258,45 @@ function getFormatDisplayBadge(fmt: StreamQualityFormat, t: any): string | undef
     return undefined;
   }
   return fmt.badge;
+}
+
+function getBadgeModifierClass(badgeText?: string): string {
+  if (!badgeText) return '';
+  const b = badgeText.toUpperCase();
+  if (b.includes('HDR') || b.includes('VISION') || b.includes('DOLBY') || b.includes('8K')) return 'badge-hdr';
+  if (b.includes('60FPS') || b.includes('120FPS') || b.includes('60 FPS') || b.includes('60P') || b.includes('FPS')) return 'badge-fps';
+  if (b.includes('KBPS') || b.includes('AUDIO') || b.includes('HI-RES')) return 'badge-audio';
+  return '';
+}
+
+export type BatchQualityPreference = 'best' | '1080p' | '720p' | 'audio';
+
+function selectFormatByPreference(formats?: StreamQualityFormat[], pref?: BatchQualityPreference): StreamQualityFormat | undefined {
+  if (!formats || formats.length === 0) return undefined;
+  const p = pref || '1080p';
+  if (p === 'audio') {
+    const audioFmt = formats.find((f) => f.isAudio || f.qualityTier === 'audio');
+    if (audioFmt) return audioFmt;
+  }
+  if (p === '720p') {
+    const p720 = formats.find((f) => f.qualityTier === '720p' || f.resolution?.includes('720'));
+    if (p720) return p720;
+  }
+  if (p === '1080p') {
+    const p1080 = formats.find((f) => f.qualityTier === '1080p' || f.resolution?.includes('1080'));
+    if (p1080) return p1080;
+  }
+  if (p === 'best') {
+    const top =
+      formats.find((f) => f.qualityTier === '8k') ||
+      formats.find((f) => f.qualityTier === '4k') ||
+      formats.find((f) => f.qualityTier === '2k') ||
+      formats.find((f) => f.qualityTier === '1080p') ||
+      formats.find((f) => f.isVideo) ||
+      formats[0];
+    if (top) return top;
+  }
+  return formats.find((f) => f.qualityTier === '1080p') || formats[0];
 }
 
 const KNOWN_MEDIA_EXTENSIONS = new Set([
@@ -790,6 +830,7 @@ export function RemoteUploadModal({
   const [copiedUrlGroupId, setCopiedUrlGroupId] = useState<string | null>(null);
   const [batchItemDurations, setBatchItemDurations] = useState<Record<string, number>>({});
   const [batchPlayableUrl, setBatchPlayableUrl] = useState<string>('');
+  const [batchQualityPreference, setBatchQualityPreference] = useState<BatchQualityPreference>('1080p');
   const batchInspectAbortRef = useRef<AbortController | null>(null);
   const batchClickTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
@@ -1413,11 +1454,16 @@ export function RemoteUploadModal({
   }, [activePreviewItem, itemSelectedFormats, resolvedMedia, selectedFormatId, activeTargetExt]);
 
   const activeItemCurrentName = useMemo(() => {
+    let raw = '';
     if (activePreviewItem) {
-      return itemCustomNames[activePreviewItem.id] || activeItemOriginalName;
+      raw = itemCustomNames[activePreviewItem.id] || activeItemOriginalName;
+    } else {
+      raw = customFilename.trim() || activeItemOriginalName;
     }
-    return customFilename.trim() || activeItemOriginalName;
-  }, [activePreviewItem, itemCustomNames, activeItemOriginalName, customFilename]);
+    if (!raw) return '';
+    const { base } = splitFilenameAndExt(raw, activeTargetExt);
+    return `${base}.${activeTargetExt}`;
+  }, [activePreviewItem, itemCustomNames, activeItemOriginalName, customFilename, activeTargetExt]);
 
   const isNameModified = useMemo(() => {
     return Boolean(activeItemCurrentName && activeItemCurrentName !== activeItemOriginalName);
@@ -1878,7 +1924,7 @@ export function RemoteUploadModal({
           const items: BatchMediaItem[] = [];
           if (res.mediaItems && res.mediaItems.length > 0) {
             res.mediaItems.forEach((mItem, mIdx) => {
-              const bestFmt = mItem.formats[0];
+              const bestFmt = selectFormatByPreference(mItem.formats, batchQualityPreference) || mItem.formats[0];
               const ext = bestFmt?.ext || (mItem.kind === 'image' ? 'jpg' : 'mp4');
               const filename = sanitizeFilename(mItem.title.endsWith(`.${ext}`) ? mItem.title : `${mItem.title}.${ext}`);
               const isVid = mItem.kind === 'video' || bestFmt?.isVideo || ext === 'mp4' || ext === 'mkv' || ext === 'webm';
@@ -1904,7 +1950,7 @@ export function RemoteUploadModal({
               if (!firstValidItem) firstValidItem = itemObj;
             });
           } else if (res.formats && res.formats.length > 0) {
-            const masterFmt = res.formats[0];
+            const masterFmt = selectFormatByPreference(res.formats, batchQualityPreference) || res.formats[0];
             if (masterFmt.isAlbumPack && masterFmt.allAlbumUrls && masterFmt.allAlbumUrls.length > 0) {
               masterFmt.allAlbumUrls.forEach((imgUrl, imgIdx) => {
                 const filename = `Photo_${imgIdx + 1}_${Date.now()}.jpg`;
@@ -2140,7 +2186,7 @@ export function RemoteUploadModal({
 
       if (res.mediaItems && res.mediaItems.length > 0) {
         res.mediaItems.forEach((mItem, mIdx) => {
-          const bestFmt = mItem.formats[0];
+          const bestFmt = selectFormatByPreference(mItem.formats, batchQualityPreference) || mItem.formats[0];
           const ext = bestFmt?.ext || (mItem.kind === 'image' ? 'jpg' : 'mp4');
           const filename = sanitizeFilename(mItem.title.endsWith(`.${ext}`) ? mItem.title : `${mItem.title}.${ext}`);
           const isVid = mItem.kind === 'video' || bestFmt?.isVideo || ext === 'mp4' || ext === 'mkv' || ext === 'webm';
@@ -2164,7 +2210,7 @@ export function RemoteUploadModal({
           items.push(itemObj);
         });
       } else if (res.formats && res.formats.length > 0) {
-        const masterFmt = res.formats[0];
+        const masterFmt = selectFormatByPreference(res.formats, batchQualityPreference) || res.formats[0];
         const ext = masterFmt.ext || 'mp4';
         const filename = sanitizeFilename(res.title.endsWith(`.${ext}`) ? res.title : `${res.title}.${ext}`);
         const isVid = masterFmt.isVideo || ext === 'mp4' || ext === 'mkv' || ext === 'webm';
@@ -3829,7 +3875,9 @@ export function RemoteUploadModal({
                                   </div>
                                   <div className="td-remote-quality-chip-meta">
                                     {getFormatDisplayBadge(fmt, t) && (
-                                      <span className="td-remote-quality-chip-badge">{getFormatDisplayBadge(fmt, t)}</span>
+                                      <span className={`td-remote-quality-chip-badge ${getBadgeModifierClass(getFormatDisplayBadge(fmt, t))}`}>
+                                        {getFormatDisplayBadge(fmt, t)}
+                                      </span>
                                     )}
                                     {fmt.filesizeBytes ? (
                                       <span className="td-remote-quality-chip-size">
@@ -3926,6 +3974,25 @@ export function RemoteUploadModal({
                         <Clipboard size={12} />
                         <span>{t('drive.remote_paste_clipboard')}</span>
                       </button>
+                    </div>
+                  </div>
+                  <div className="td-remote-batch-quality-bar">
+                    <div className="td-remote-batch-quality-label">
+                      <SlidersHorizontal size={13} style={{ color: '#38bdf8' }} />
+                      <span>{t('drive.remote_batch_quality_label')}</span>
+                    </div>
+                    <div className="td-remote-batch-quality-select-wrap">
+                      <select
+                        className="td-remote-batch-quality-select"
+                        value={batchQualityPreference}
+                        onChange={(e) => setBatchQualityPreference(e.target.value as BatchQualityPreference)}
+                        disabled={submitting || batchInspecting}
+                      >
+                        <option value="best">{t('drive.remote_batch_quality_best')}</option>
+                        <option value="1080p">{t('drive.remote_batch_quality_1080p')}</option>
+                        <option value="720p">{t('drive.remote_batch_quality_720p')}</option>
+                        <option value="audio">{t('drive.remote_batch_quality_audio')}</option>
+                      </select>
                     </div>
                   </div>
                   <textarea
