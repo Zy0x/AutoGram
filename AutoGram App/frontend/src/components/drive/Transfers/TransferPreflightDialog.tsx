@@ -6,10 +6,14 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Copy,
   CopyCheck,
+  FileCode,
   FileSearch,
   FileText,
   Film,
+  Folder,
+  Globe,
   HardDrive,
   Image as ImageIcon,
   ImageOff,
@@ -252,6 +256,162 @@ function TelegramDuplicateThumb({
           <span>{loading ? t('drive.preflight_existing_thumb_loading') : t('drive.preflight_existing_thumb_missing')}</span>
         </div>
       )}
+    </div>
+  );
+}
+
+function PreflightTransferInfoBento({
+  item,
+  report,
+  creds,
+}: {
+  item: QualityPreflightItem;
+  report: QualityPreflightReport;
+  creds: DriveCredentials | null;
+}) {
+  const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
+
+  const isRemoteUrl = item.sourcePath.startsWith('http://') || item.sourcePath.startsWith('https://');
+  let domain = '';
+  if (isRemoteUrl) {
+    try {
+      domain = new URL(item.sourcePath).hostname;
+    } catch {
+      domain = 'remote';
+    }
+  }
+
+  const handleCopy = (text: string) => {
+    try {
+      void navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // MIME & Extension
+  const dotIdx = item.sourceName.lastIndexOf('.');
+  const ext = dotIdx > 0 ? item.sourceName.slice(dotIdx + 1).toLowerCase() : '';
+  const extMap: Record<string, string> = {
+    mp4: 'video/mp4',
+    mov: 'video/quicktime',
+    mkv: 'video/x-matroska',
+    webm: 'video/webm',
+    avi: 'video/x-msvideo',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    webp: 'image/webp',
+    gif: 'image/gif',
+    mp3: 'audio/mpeg',
+    flac: 'audio/flac',
+    wav: 'audio/wav',
+    m4a: 'audio/mp4',
+    ogg: 'audio/ogg',
+    zip: 'application/zip',
+    pdf: 'application/pdf',
+    bin: 'application/octet-stream',
+  };
+  const mimeType = extMap[ext] || (item.category === 'video' ? 'video/mp4' : item.category === 'photo' ? 'image/jpeg' : item.category === 'audio' ? 'audio/mpeg' : 'application/octet-stream');
+
+  // Delivery Mode
+  const deliveryLabel = item.asDocument || item.payloadClass === 'document_group' || item.payloadClass === 'original_document_batch'
+    ? t('drive.preflight_bento_delivery_doc')
+    : item.category === 'video'
+    ? t('drive.preflight_bento_delivery_stream')
+    : item.category === 'photo'
+    ? t('drive.preflight_bento_delivery_photo')
+    : item.category === 'audio'
+    ? t('drive.preflight_bento_delivery_audio')
+    : t('drive.preflight_bento_delivery_doc');
+
+  // Engine Mode Name
+  const engineLabel = report.remoteEngineMode === 'cloud_fetch'
+    ? 'Zero Quota Cloud Direct'
+    : report.remoteEngineMode === 'ram_pipe'
+    ? 'Zero Disk RAM-Pipe'
+    : 'Smart MTProto V4';
+
+  return (
+    <div className="td-preflight-info-bento">
+      {/* 1. Source & Domain Card */}
+      <div className="td-preflight-bento-card is-source">
+        <div className="td-preflight-bento-head">
+          <div className="td-preflight-bento-icon is-source">
+            {isRemoteUrl ? <Globe size={13} aria-hidden /> : <Folder size={13} aria-hidden />}
+          </div>
+          <span className="td-preflight-bento-label">{t('drive.preflight_bento_source_title')}</span>
+          <button
+            type="button"
+            className={`td-preflight-bento-copy ${copied ? 'is-copied' : ''}`}
+            onClick={() => handleCopy(item.sourcePath)}
+            title={isRemoteUrl ? t('drive.preflight_bento_copy_url') : t('drive.preflight_bento_copy_path')}
+          >
+            {copied ? <Check size={11} aria-hidden /> : <Copy size={11} aria-hidden />}
+            <span>{copied ? t('drive.preflight_bento_copied') : (isRemoteUrl ? t('drive.preflight_bento_copy_url') : t('drive.preflight_bento_copy_path'))}</span>
+          </button>
+        </div>
+        <div className="td-preflight-bento-value is-path" title={item.sourcePath}>
+          {domain && <span className="td-preflight-bento-tag is-domain">{domain}</span>}
+          <span className="td-preflight-bento-text">{item.sourcePath}</span>
+        </div>
+      </div>
+
+      {/* 2. Destination Telegram Card */}
+      <div className="td-preflight-bento-card is-dest">
+        <div className="td-preflight-bento-head">
+          <div className="td-preflight-bento-icon is-dest">
+            <Send size={13} aria-hidden />
+          </div>
+          <span className="td-preflight-bento-label">{t('drive.preflight_bento_dest_title')}</span>
+        </div>
+        <div className="td-preflight-bento-value">
+          <span className="td-preflight-bento-tag is-saved">
+            {item.duplicateMatch?.destinationId === 'me' ? 'Saved Messages' : (item.duplicateMatch?.destinationId || 'Saved Messages (Cloud)')}
+          </span>
+          <span className="td-preflight-bento-subtext">
+            {creds?.session ? `Sesi: ${creds.session}` : 'Akun Utama • AutoGram MTProto'}
+          </span>
+        </div>
+      </div>
+
+      {/* 3. Format & Delivery Card */}
+      <div className="td-preflight-bento-card is-delivery">
+        <div className="td-preflight-bento-head">
+          <div className="td-preflight-bento-icon is-delivery">
+            <FileCode size={13} aria-hidden />
+          </div>
+          <span className="td-preflight-bento-label">{t('drive.preflight_bento_delivery_title')}</span>
+        </div>
+        <div className="td-preflight-bento-value">
+          <div className="td-preflight-bento-tags-row">
+            <span className="td-preflight-bento-tag is-ext">.{ext ? ext.toUpperCase() : 'FILE'}</span>
+            <span className="td-preflight-bento-mime">{mimeType}</span>
+          </div>
+          <span className="td-preflight-bento-subtext">{deliveryLabel}</span>
+        </div>
+      </div>
+
+      {/* 4. Engine & Integrity Card */}
+      <div className="td-preflight-bento-card is-integrity">
+        <div className="td-preflight-bento-head">
+          <div className="td-preflight-bento-icon is-integrity">
+            <ShieldCheck size={13} aria-hidden />
+          </div>
+          <span className="td-preflight-bento-label">{t('drive.preflight_bento_integrity_title')}</span>
+        </div>
+        <div className="td-preflight-bento-value">
+          <div className="td-preflight-bento-tags-row">
+            <span className="td-preflight-bento-tag is-engine">{engineLabel}</span>
+          </div>
+          <span className="td-preflight-bento-subtext">
+            {item.duplicateMatch ? t('drive.preflight_bento_integrity_dup') : t('drive.preflight_bento_integrity_clean')}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -869,13 +1029,9 @@ export function TransferPreflightDialog({
                   </div>
                 )}
 
-                {/* Expandable technical details */}
+                {/* Expandable transfer info bento */}
                 {isExpanded && !duplicate && (
-                  <dl className="td-preflight-tech-dl">
-                    <div><dt>{t('drive.preflight_category')}</dt><dd>{t(`drive.preflight_category_${item.category}`)}</dd></div>
-                    <div><dt>{t('drive.preflight_transform')}</dt><dd>{t(`drive.preflight_transform_${item.transform}`)}</dd></div>
-                    <div><dt>{t('drive.preflight_payload')}</dt><dd>{t(`drive.preflight_payload_${item.payloadClass}`)}</dd></div>
-                  </dl>
+                  <PreflightTransferInfoBento item={item} report={report} creds={creds} />
                 )}
               </article>
             );
