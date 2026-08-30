@@ -61,7 +61,7 @@ export function JobsList({
           <button type="button" className="btn btn-secondary" onClick={exportJobs} title={t("jobs.jobs_export_title")}>
             <Upload size={16} /> <span>{t('ui.generated.export_f3e4fad')}</span>
           </button>
-          <button type="button" className="btn btn-secondary" onClick={fetchJobs} disabled={isLoading} title={t('speedtest.sidebar_btn_refresh')}>
+          <button type="button" className="btn btn-secondary" onClick={fetchJobs} disabled={isLoading} title={t('drive.sidebar_btn_refresh')}>
             <RefreshCw size={16} className={isLoading ? 'spin' : ''} />
           </button>
           <button type="button" className="btn btn-primary" onClick={onNewJob}>

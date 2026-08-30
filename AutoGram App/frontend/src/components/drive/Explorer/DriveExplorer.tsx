@@ -1167,7 +1167,7 @@ export function DriveExplorer({
           <div className="td-empty-icon" style={{ opacity: 0.8, color: 'inherit' }}>
             <AlertTriangle size={48} />
           </div>
-          <h3>{t('speedtest.telegram_restriction_title')}</h3>
+          <h3>{t('drive.telegram_restriction_title')}</h3>
           <p style={{ maxWidth: '680px', margin: '0 auto', opacity: 0.9 }}>{unavailableNotice}</p>
         </div>
       ) : error && files.length === 0 ? (
@@ -1175,7 +1175,7 @@ export function DriveExplorer({
           <div className="td-empty-icon" style={{ opacity: 0.8, color: 'inherit' }}>
             <AlertTriangle size={48} />
           </div>
-          <h3>{t('speedtest.load_location_failed')}</h3>
+          <h3>{t('drive.load_location_failed')}</h3>
           <p style={{ maxWidth: '600px', margin: '0 auto', opacity: 0.9 }}>{error}</p>
         </div>
       ) : (
@@ -1201,14 +1201,14 @@ export function DriveExplorer({
           type="button"
           className="td-floating-top-pill"
           onClick={handleContentNotice}
-          title={t('speedtest.scroll_to_top_title')}
+          title={t('drive.scroll_to_top_title')}
         >
           <ArrowUp size={13} className="td-floating-top-icon" />
           <span className="td-floating-top-text">
-            {t(`speedtest.content_notice_${contentNotice.kind}`, { count: contentNotice.count })}
+            {t(`drive.content_notice_${contentNotice.kind}`, { count: contentNotice.count })}
           </span>
           <span className="td-floating-top-action">
-            {t('speedtest.view_top_action')}
+            {t('drive.view_top_action')}
           </span>
         </button>
       )}
@@ -1220,16 +1220,16 @@ export function DriveExplorer({
           </div>
           <h3>
             {query || mediaFilter !== 'all'
-              ? t('speedtest.no_match_found')
+              ? t('drive.no_match_found')
               : hasFolderChildren
-                ? t('speedtest.drive_folder_no_media_title')
+                ? t('drive.drive_folder_no_media_title')
                 : t('ui.generated.folder_ini_kosong_f7edc44')}
           </h3>
           <p>
             {query || mediaFilter !== 'all'
               ? t('ui.generated.coba_filter_lain_hapus_kata_pencarian_atau_ganti_4f09fdb')
               : hasFolderChildren
-                ? t('speedtest.drive_folder_no_media_desc')
+                ? t('drive.drive_folder_no_media_desc')
                 : t('ui.generated.unggah_foto_video_atau_dokumen_disimpan_di_teleg_5bde7f2')}
           </p>
           {!query && mediaFilter === 'all' && (
@@ -1240,7 +1240,7 @@ export function DriveExplorer({
               {onCreateFolder && (
                 <button type="button" className="td-btn-secondary" onClick={onCreateFolder}>
                   <FolderPlus size={16} />{' '}
-                  {folderId != null ? t('speedtest.ctx_menu_create_subfolder') : t('speedtest.ctx_menu_default_create_drive')}
+                  {folderId != null ? t('drive.ctx_menu_create_subfolder') : t('drive.ctx_menu_default_create_drive')}
                 </button>
               )}
             </div>
@@ -1280,9 +1280,9 @@ export function DriveExplorer({
               className={`td-col-header td-list-name${sortMode.startsWith('name_') ? ' is-sorted' : ''}`}
               role="columnheader"
               onClick={() => handleHeaderSortClick('name')}
-              title={t('speedtest.col_name')}
+              title={t('drive.col_name')}
             >
-              <span className="td-col-header-text">{t('speedtest.col_name')}</span>
+              <span className="td-col-header-text">{t('drive.col_name')}</span>
               {sortMode === 'name_asc' && <ArrowUp size={12} className="td-col-sort-icon" />}
               {sortMode === 'name_desc' && <ArrowDown size={12} className="td-col-sort-icon" />}
               <div
@@ -1299,9 +1299,9 @@ export function DriveExplorer({
               className={`td-col-header td-list-date${sortMode === 'newest' || sortMode === 'oldest' ? ' is-sorted' : ''}`}
               role="columnheader"
               onClick={() => handleHeaderSortClick('date')}
-              title={t('speedtest.col_date_modified')}
+              title={t('drive.col_date_modified')}
             >
-              <span className="td-col-header-text">{t('speedtest.col_date_modified')}</span>
+              <span className="td-col-header-text">{t('drive.col_date_modified')}</span>
               {sortMode === 'newest' && <ArrowDown size={12} className="td-col-sort-icon" />}
               {sortMode === 'oldest' && <ArrowUp size={12} className="td-col-sort-icon" />}
               <div
@@ -1318,9 +1318,9 @@ export function DriveExplorer({
               className={`td-col-header td-list-type${sortMode.startsWith('type_') ? ' is-sorted' : ''}`}
               role="columnheader"
               onClick={() => handleHeaderSortClick('type')}
-              title={t('speedtest.col_type')}
+              title={t('drive.col_type')}
             >
-              <span className="td-col-header-text">{t('speedtest.col_type')}</span>
+              <span className="td-col-header-text">{t('drive.col_type')}</span>
               {sortMode === 'type_asc' && <ArrowUp size={12} className="td-col-sort-icon" />}
               {sortMode === 'type_desc' && <ArrowDown size={12} className="td-col-sort-icon" />}
               <div
@@ -1337,9 +1337,9 @@ export function DriveExplorer({
               className={`td-col-header td-list-size${sortMode.startsWith('size_') ? ' is-sorted' : ''}`}
               role="columnheader"
               onClick={() => handleHeaderSortClick('size')}
-              title={t('speedtest.col_size')}
+              title={t('drive.col_size')}
             >
-              <span className="td-col-header-text">{t('speedtest.col_size')}</span>
+              <span className="td-col-header-text">{t('drive.col_size')}</span>
               {sortMode === 'size_desc' && <ArrowDown size={12} className="td-col-sort-icon" />}
               {sortMode === 'size_asc' && <ArrowUp size={12} className="td-col-sort-icon" />}
               <div
@@ -1391,7 +1391,7 @@ export function DriveExplorer({
                           }}
                         >
                           <Loader2 size={16} className="spin text-blue-400" />
-                          <span>{t('speedtest.loading_more')}</span>
+                          <span>{t('drive.loading_more')}</span>
                         </div>
                       );
                     }
@@ -1411,7 +1411,7 @@ export function DriveExplorer({
                             cursor: 'pointer',
                           }}
                         >
-                          <span>{t('speedtest.scroll_to_load_more')}</span>
+                          <span>{t('drive.scroll_to_load_more')}</span>
                         </div>
                       );
                     }
@@ -1435,7 +1435,7 @@ export function DriveExplorer({
                           }}
                         >
                           <CheckCircle2 size={16} className="text-emerald-400" />
-                          <span>{t('speedtest.filter_all')} {displayed.length} {t('ui.generated.media_terverifikasi_3e52334')}</span>
+                          <span>{t('drive.filter_all')} {displayed.length} {t('ui.generated.media_terverifikasi_3e52334')}</span>
                         </div>
                       );
                     }
@@ -1562,7 +1562,7 @@ export function DriveExplorer({
                           }}
                         >
                           <Loader2 size={16} className="spin text-blue-400" />
-                          <span>{t('speedtest.loading_more')}</span>
+                          <span>{t('drive.loading_more')}</span>
                         </div>
                       );
                     }
@@ -1583,7 +1583,7 @@ export function DriveExplorer({
                             transition: 'all 0.2s ease',
                           }}
                         >
-                          <span>{t('speedtest.scroll_to_load_more')}</span>
+                          <span>{t('drive.scroll_to_load_more')}</span>
                         </div>
                       );
                     }
@@ -1606,7 +1606,7 @@ export function DriveExplorer({
                           }}
                         >
                           <CheckCircle2 size={16} className="text-emerald-400" />
-                          <span>{t('speedtest.filter_all')} {displayed.length} {t('ui.generated.media_terverifikasi_3e52334')}</span>
+                          <span>{t('drive.filter_all')} {displayed.length} {t('ui.generated.media_terverifikasi_3e52334')}</span>
                         </div>
                       );
                     }

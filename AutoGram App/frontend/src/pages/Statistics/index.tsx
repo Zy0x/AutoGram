@@ -108,7 +108,7 @@ export function Statistics() {
             <HardDrive size={18} /> {t('ui.generated.export_csv_5755f9a')}
           </button>
           <button type="button" className="btn btn-secondary" onClick={fetchStats} disabled={isLoading}>
-            <RefreshCw size={18} className={isLoading ? 'spin' : ''} /> {t('speedtest.sidebar_btn_refresh')}
+            <RefreshCw size={18} className={isLoading ? 'spin' : ''} /> {t('drive.sidebar_btn_refresh')}
           </button>
         </div>
       </header>

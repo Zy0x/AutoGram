@@ -29,7 +29,7 @@ export const SidebarRecentsSection: React.FC<SidebarRecentsSectionProps> = ({
       >
         <span className="flex items-center gap-1.5">
           <Clock size={12} className="text-indigo-400" />
-          {t('speedtest.sidebar_recents_header')}
+          {t('drive.sidebar_recents_header')}
         </span>
         <span className="text-[10px] text-slate-500 font-mono">{recents.length}</span>
       </div>

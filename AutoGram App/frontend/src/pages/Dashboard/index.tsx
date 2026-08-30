@@ -87,7 +87,7 @@ export function Dashboard({ onNavigate }: Props) {
             className="btn btn-primary"
             onClick={() => go('media-studio')}
             disabled={!drivesOk}
-            title={!drivesOk ? t('speedtest.drives_desktop_only') : undefined}
+            title={!drivesOk ? t('drive.drives_desktop_only') : undefined}
           >
             {t('dashboard.open_drives')}
           </button>

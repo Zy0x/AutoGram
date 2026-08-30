@@ -88,7 +88,7 @@ export const MediaStudioOverlays: React.FC<MediaStudioOverlaysProps> = ({
               </button>
             )}
             <button type="button" className="td-chip-btn" onClick={() => setError(null)}>
-              {t('speedtest.preview_close_btn')}
+              {t('drive.preview_close_btn')}
             </button>
           </div>
         </div>

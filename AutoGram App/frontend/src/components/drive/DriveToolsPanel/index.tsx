@@ -104,13 +104,13 @@ function ToolTabIntro({
     <section className="td-tools-tab-intro">
       <div className="td-tools-tab-intro-icon"><Icon size={20} /></div>
       <div className="td-tools-tab-intro-copy">
-        <h3>{t(`speedtest.tools_tab_${tab}`)}</h3>
-        <p>{t(`speedtest.tools_tab_${descriptionKey}_desc`)}</p>
+        <h3>{t(`drive.tools_tab_${tab}`)}</h3>
+        <p>{t(`drive.tools_tab_${descriptionKey}_desc`)}</p>
       </div>
       <div className="td-tools-tab-intro-meta">
         <span title={locationLabel}>{locationLabel}</span>
-        <span>{t('speedtest.tools_file_count', { count: fileCount })}</span>
-        {selectedCount > 0 && <span className="accent">{t('speedtest.tools_selected_count', { count: selectedCount })}</span>}
+        <span>{t('drive.tools_file_count', { count: fileCount })}</span>
+        {selectedCount > 0 && <span className="accent">{t('drive.tools_selected_count', { count: selectedCount })}</span>}
       </div>
     </section>
   );
@@ -250,10 +250,10 @@ export function DriveToolsPanel({
       : space.totalBytes;
   const scopeLabel =
     isForum && topicFilter != null
-      ? t('speedtest.tools_scope_topic')
+      ? t('drive.tools_scope_topic')
       : isForum
-        ? t('speedtest.tools_scope_forum')
-        : t('speedtest.tools_scope_location');
+        ? t('drive.tools_scope_forum')
+        : t('drive.tools_scope_location');
   const typeRows =
     locationStatsAccurate && locationByType && locationByType.length > 0
       ? locationByType
@@ -292,7 +292,7 @@ export function DriveToolsPanel({
       className="td-tools-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label={t('speedtest.tools_modal_title')}
+      aria-label={t('drive.tools_modal_title')}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -309,8 +309,8 @@ export function DriveToolsPanel({
               type="button"
               className={`td-header-sidebar-toggle ${isSidebarCollapsed ? 'is-collapsed' : ''}`}
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              title={t(isSidebarCollapsed ? 'speedtest.sidebar_expand_tooltip' : 'speedtest.sidebar_collapse_tooltip')}
-              aria-label={t(isSidebarCollapsed ? 'speedtest.sidebar_expand_tooltip' : 'speedtest.sidebar_collapse_tooltip')}
+              title={t(isSidebarCollapsed ? 'drive.sidebar_expand_tooltip' : 'drive.sidebar_collapse_tooltip')}
+              aria-label={t(isSidebarCollapsed ? 'drive.sidebar_expand_tooltip' : 'drive.sidebar_collapse_tooltip')}
             >
               <div className="td-header-toggle-icon">
                 <SlidersHorizontal size={18} />
@@ -319,7 +319,7 @@ export function DriveToolsPanel({
                 </span>
               </div>
               <div className="td-tools-title-text">
-                <h2>{t('speedtest.tools_title')}</h2>
+                <h2>{t('drive.tools_title')}</h2>
                 <div className="td-tools-sub" title={locationLabel}>
                   <span className="td-tools-loc-dot"></span>
                   <span>{locationLabel}</span>
@@ -337,7 +337,7 @@ export function DriveToolsPanel({
                 onChange={(e) => {
                   setToolsSearchQuery(e.target.value);
                 }}
-                placeholder={t('speedtest.search_placeholder_short')}
+                placeholder={t('drive.search_placeholder_short')}
                 className="td-header-search-input"
               />
               {toolsSearchQuery.trim() !== '' && (
@@ -397,7 +397,7 @@ export function DriveToolsPanel({
               )}
             </div>
 
-            <button type="button" className="td-icon-btn td-tools-close" onClick={onClose} aria-label={t("speedtest.close_esc")}>
+            <button type="button" className="td-icon-btn td-tools-close" onClick={onClose} aria-label={t("drive.close_esc")}>
               <X size={18} />
             </button>
           </div>
@@ -406,7 +406,7 @@ export function DriveToolsPanel({
         <div className="td-tools-layout">
           <aside
             className={`td-tools-sidebar ${isSidebarCollapsed ? 'is-collapsed' : ''}`}
-            aria-label={t("speedtest.categories_aria")}
+            aria-label={t("drive.categories_aria")}
           >
             {/* SIDEBAR NAV GROUPS & ITEMS */}
             {TOOL_GROUPS.map((group, groupIdx) => (
@@ -416,7 +416,7 @@ export function DriveToolsPanel({
                 {group.tabs.map((tItem) => {
                   const Icon = tItem.icon;
                   const isActive = tab === tItem.id;
-                  const tabLabel = t(`speedtest.tools_tab_${tItem.id}`);
+                  const tabLabel = t(`drive.tools_tab_${tItem.id}`);
                   return (
                     <button
                       key={tItem.id}
@@ -470,49 +470,49 @@ export function DriveToolsPanel({
               <div className="td-tools-stats-hero">
                 <div className="td-tools-stats-main">
                   <span className="td-tools-stats-count">{displayCount.toLocaleString('id-ID')}</span>
-                  <span className="td-tools-stats-label">{t("speedtest.files_in_scope", { scope: scopeLabel })}</span>
+                  <span className="td-tools-stats-label">{t("drive.files_in_scope", { scope: scopeLabel })}</span>
                   <span className="td-tools-stats-bytes">({formatDriveBytes(displayBytes)})</span>
                 </div>
                 <div className="td-tools-stats-status">
                   {locationStatsAccurate ? (
-                    <span className="td-tools-badge-ok">{t('speedtest.accurate_metadata')}</span>
+                    <span className="td-tools-badge-ok">{t('drive.accurate_metadata')}</span>
                   ) : locationStatsLoading ? (
-                    <span className="td-tools-badge-busy">{t('speedtest.tools_counting')}</span>
+                    <span className="td-tools-badge-busy">{t('drive.tools_counting')}</span>
                   ) : (
-                    <span className="td-tools-badge-est">{t('speedtest.approx_loaded')}</span>
+                    <span className="td-tools-badge-est">{t('drive.approx_loaded')}</span>
                   )}
                 </div>
               </div>
 
               <p className="td-tools-hint">
                 {locationStatsAccurate ? (
-                  <>{t("speedtest.accurate_total_hint", { scope: scopeLabel })}</>
+                  <>{t("drive.accurate_total_hint", { scope: scopeLabel })}</>
                 ) : locationStatsLoading ? (
-                  <>{t('speedtest.walk_media_notice')}</>
+                  <>{t('drive.walk_media_notice')}</>
                 ) : (
-                  <>{t('speedtest.walk_grid_notice')}</>
+                  <>{t('drive.walk_grid_notice')}</>
                 )}
               </p>
 
               {space.fileCount > 0 && (
                 <p className="td-tools-muted">
-                  {t('speedtest.tools_grid_loaded', {
+                  {t('drive.tools_grid_loaded', {
                     count: space.fileCount.toLocaleString(),
                     size: formatDriveBytes(space.totalBytes),
-                    more: filesHasMore ? t('speedtest.tools_scroll_more') : '',
+                    more: filesHasMore ? t('drive.tools_scroll_more') : '',
                   })}
                 </p>
               )}
 
               <h4 className="td-tools-h">
-                {typeFromStats ? t("speedtest.by_type_all_loc") : t("speedtest.by_type_grid_loaded")}
+                {typeFromStats ? t("drive.by_type_all_loc") : t("drive.by_type_grid_loaded")}
               </h4>
               <div className="td-tools-bars">
                 {typeRows.length === 0 && (
                   <p className="td-tools-muted">
                     {locationStatsLoading
-                      ? t('speedtest.tools_waiting_count')
-                      : t('speedtest.tools_no_usage_data')}
+                      ? t('drive.tools_waiting_count')
+                      : t('drive.tools_no_usage_data')}
                   </p>
                 )}
                 {typeRows.map((row: any) => {
@@ -540,7 +540,7 @@ export function DriveToolsPanel({
 
               {space.largest.length > 0 && (
                 <>
-                  <h4 className="td-tools-h">{t('speedtest.top_largest_files')}</h4>
+                  <h4 className="td-tools-h">{t('drive.top_largest_files')}</h4>
                   <ul className="td-tools-largest-list">
                     {space.largest.map((f: any) => (
                       <li key={f.id} className="td-tools-largest-item">
@@ -550,7 +550,7 @@ export function DriveToolsPanel({
                             type="button"
                             className="td-tools-linkrow"
                             onClick={() => onPreviewFile(f)}
-                            title={t('speedtest.tools_preview_file', { name: f.name })}
+                            title={t('drive.tools_preview_file', { name: f.name })}
                           >
                             <span className="td-tools-fname" title={f.name}>
                               {f.name}
@@ -577,10 +577,10 @@ export function DriveToolsPanel({
             <div className="td-tools-section">
               <div className="td-tools-lead-box">
                 <p className="td-tools-lead">
-                  <strong>{selectedFiles.length ? t('speedtest.rename_scope_selected', { count: selectedFiles.length }) : t('speedtest.rename_scope_view', { count: 50 })}</strong>.
+                  <strong>{selectedFiles.length ? t('drive.rename_scope_selected', { count: selectedFiles.length }) : t('drive.rename_scope_view', { count: 50 })}</strong>.
                 </p>
                 <div className="td-tools-tokens">
-                  <span className="td-tools-token-label">{t('speedtest.token_label')}</span>
+                  <span className="td-tools-token-label">{t('drive.token_label')}</span>
                   <code className="td-token-badge">{t('ui.generated.n_411c9b4')}</code>
                   <code className="td-token-badge">{t('ui.generated.n_3_7e709a0')}</code>
                   <code className="td-token-badge">{t('ui.generated.name_18f628e')}</code>
@@ -591,7 +591,7 @@ export function DriveToolsPanel({
 
               <div className="td-tools-rename-grid">
                 <label className="td-tools-field td-flex-grow">
-                  {t('speedtest.rename_pattern_label')}
+                  {t('drive.rename_pattern_label')}
                   <input
                     value={pattern}
                     onChange={(e) => setPattern(e.target.value)}
@@ -600,7 +600,7 @@ export function DriveToolsPanel({
                   />
                 </label>
                 <label className="td-tools-field td-w-sm">
-                  {t('speedtest.start_from_label')}
+                  {t('drive.start_from_label')}
                   <input
                     type="number"
                     min={0}
@@ -611,10 +611,10 @@ export function DriveToolsPanel({
                 </label>
               </div>
 
-              <h4 className="td-tools-h">{t('speedtest.rename_preview_title')}</h4>
+              <h4 className="td-tools-h">{t('drive.rename_preview_title')}</h4>
               <div className="td-tools-preview-container">
                 {renamePreview.length === 0 ? (
-                  <p className="td-tools-empty">{t('speedtest.rename_no_change')}</p>
+                  <p className="td-tools-empty">{t('drive.rename_no_change')}</p>
                 ) : (
                   <ul className="td-tools-preview-list mono">
                     {renamePreview.map((r: any) => (
@@ -642,7 +642,7 @@ export function DriveToolsPanel({
                     )
                   }
                 >
-                  <Check size={15} /> {t('speedtest.btn_apply_rename')}
+                  <Check size={15} /> {t('drive.btn_apply_rename')}
                 </button>
               </div>
             </div>
@@ -651,14 +651,14 @@ export function DriveToolsPanel({
           {tab === 'filter' && (
             <div className="td-tools-section">
               <p className="td-tools-lead">
-                {t('speedtest.adv_filter_desc')}
+                {t('drive.adv_filter_desc')}
                 {isAdvFilterActive(advFilter) && (
-                  <span className="td-tools-active"> · {t("speedtest.filter_active_badge")}</span>
+                  <span className="td-tools-active"> · {t("drive.filter_active_badge")}</span>
                 )}
               </p>
               <div className="td-tools-grid2">
                 <label className="td-tools-field">
-                  {t('speedtest.filter_min_bytes')}
+                  {t('drive.filter_min_bytes')}
                   <input
                     type="number"
                     min={0}
@@ -674,7 +674,7 @@ export function DriveToolsPanel({
                   />
                 </label>
                 <label className="td-tools-field">
-                  {t('speedtest.filter_max_bytes')}
+                  {t('drive.filter_max_bytes')}
                   <input
                     type="number"
                     min={0}
@@ -690,7 +690,7 @@ export function DriveToolsPanel({
                   />
                 </label>
                 <label className="td-tools-field">
-                  {t('speedtest.filter_from_date')}
+                  {t('drive.filter_from_date')}
                   <input
                     type="date"
                     className="td-tools-input td-tools-date"
@@ -701,7 +701,7 @@ export function DriveToolsPanel({
                   />
                 </label>
                 <label className="td-tools-field">
-                  {t('speedtest.filter_to_date')}
+                  {t('drive.filter_to_date')}
                   <input
                     type="date"
                     className="td-tools-input td-tools-date"
@@ -712,7 +712,7 @@ export function DriveToolsPanel({
                   />
                 </label>
                 <label className="td-tools-field">
-                  {t('speedtest.filter_extension')}
+                  {t('drive.filter_extension')}
                   <input
                     className="td-tools-input"
                     value={advFilter.ext ?? ''}
@@ -722,12 +722,12 @@ export function DriveToolsPanel({
                         ext: e.target.value.replace(/^\./, '') || null,
                       })
                     }
-                    placeholder={t('speedtest.filter_extension_ph')}
+                    placeholder={t('drive.filter_extension_ph')}
                     spellCheck={false}
                   />
                 </label>
                 <label className="td-tools-field">
-                  {t('speedtest.filter_message_id')}
+                  {t('drive.filter_message_id')}
                   <input
                     type="number"
                     min={0}
@@ -739,14 +739,14 @@ export function DriveToolsPanel({
                         messageId: e.target.value === '' ? null : Number(e.target.value),
                       })
                     }
-                    placeholder={t("speedtest.msg_id_ph")}
+                    placeholder={t("drive.msg_id_ph")}
                   />
                 </label>
               </div>
 
               <div className="td-tools-card-hint">
                 <p className="td-tools-hint-text">
-                  {t("speedtest.adv_filter_shortcut_hint")}
+                  {t("drive.adv_filter_shortcut_hint")}
                 </p>
               </div>
 
@@ -756,10 +756,10 @@ export function DriveToolsPanel({
                   className="btn btn-ghost td-tools-btn-reset"
                   onClick={() => onAdvFilter({ ...EMPTY_ADV_FILTER })}
                 >
-                  <RotateCcw size={14} /> {t('speedtest.btn_reset_filter')}
+                  <RotateCcw size={14} /> {t('drive.btn_reset_filter')}
                 </button>
                 <button type="button" className="btn btn-primary td-tools-btn-submit" onClick={onClose}>
-                  <Check size={15} /> {t('speedtest.btn_apply_filter')}
+                  <Check size={15} /> {t('drive.btn_apply_filter')}
                 </button>
               </div>
             </div>
@@ -1132,7 +1132,7 @@ function DupTab({
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('ui.generated.salinan_dihapus_37a5689')}</span>
-              <strong style={{ fontSize: '1.15rem', color: '#f87171', fontWeight: 800 }}>{idsToDelete.length} {t('speedtest.tab_telegram_files')}</strong>
+              <strong style={{ fontSize: '1.15rem', color: '#f87171', fontWeight: 800 }}>{idsToDelete.length} {t('drive.tab_telegram_files')}</strong>
             </div>
 
             <div style={{ width: '1px', height: '24px', background: 'rgba(255, 255, 255, 0.1)' }} />
@@ -1172,12 +1172,12 @@ function DupTab({
                     const isScopedTopic = isForum && topicFilter != null;
                     if (filesHasMore) {
                       return isScopedTopic
-                        ? t('speedtest.scan_index_topic', { total: targetTotal.toLocaleString('id-ID') })
-                        : t('speedtest.scan_index_chat', { total: targetTotal.toLocaleString('id-ID') });
+                        ? t('drive.scan_index_topic', { total: targetTotal.toLocaleString('id-ID') })
+                        : t('drive.scan_index_chat', { total: targetTotal.toLocaleString('id-ID') });
                     }
                     return isScopedTopic
-                      ? t('speedtest.rescan_index_topic', { total: loadedCount.toLocaleString('id-ID') })
-                      : t('speedtest.rescan_index_chat', { total: loadedCount.toLocaleString('id-ID') });
+                      ? t('drive.rescan_index_topic', { total: loadedCount.toLocaleString('id-ID') })
+                      : t('drive.rescan_index_chat', { total: loadedCount.toLocaleString('id-ID') });
                   })()}
                 </span>
               </button>
@@ -1210,7 +1210,7 @@ function DupTab({
         {isScanning && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '2px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#38bdf8', fontWeight: 600 }}>
-              <span>{t('speedtest.duplicate_shared_index_progress', {
+              <span>{t('drive.duplicate_shared_index_progress', {
                 processed: scanProgress.processed.toLocaleString('id-ID'),
                 total: scanProgressTotal.toLocaleString('id-ID'),
               })}</span>
@@ -1255,22 +1255,22 @@ function DupTab({
           </button>
 
           <div className="td-tools-dup-preference-list" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <label className="td-tools-check-inline" title={t("speedtest.smart_pref_tooltip")} style={{ fontSize: '0.75rem', margin: 0 }}>
+            <label className="td-tools-check-inline" title={t("drive.smart_pref_tooltip")} style={{ fontSize: '0.75rem', margin: 0 }}>
               <input
                 type="checkbox"
                 checked={keepNewest}
                 onChange={(e) => setKeepNewest(e.target.checked)}
               />
-              <span>{t('speedtest.default_keep_newest')}</span>
+              <span>{t('drive.default_keep_newest')}</span>
             </label>
 
-            <label className="td-tools-check-inline" title={t("speedtest.prefer_split_mode_tooltip")} style={{ fontSize: '0.75rem', margin: 0 }}>
+            <label className="td-tools-check-inline" title={t("drive.prefer_split_mode_tooltip")} style={{ fontSize: '0.75rem', margin: 0 }}>
               <input
                 type="checkbox"
                 checked={preferSplitPreview}
                 onChange={(e) => handleTogglePreferSplitPreview(e.target.checked)}
               />
-              <span>{t('speedtest.prefer_split_mode')}</span>
+              <span>{t('drive.prefer_split_mode')}</span>
             </label>
           </div>
         </div>
@@ -1279,11 +1279,11 @@ function DupTab({
         {showModeSettings && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', paddingTop: '4px' }}>
             {[
-              { id: 'all_levels', label: t('speedtest.dup_mode_all_levels') },
-              { id: 'hash_unique', label: t('speedtest.dup_mode_hash_unique') },
-              { id: 'name_size', label: t('speedtest.dup_mode_name_size') },
-              { id: 'size_only', label: t('speedtest.dup_mode_size_only') },
-              { id: 'message_clone', label: t('speedtest.dup_mode_message_clone') },
+              { id: 'all_levels', label: t('drive.dup_mode_all_levels') },
+              { id: 'hash_unique', label: t('drive.dup_mode_hash_unique') },
+              { id: 'name_size', label: t('drive.dup_mode_name_size') },
+              { id: 'size_only', label: t('drive.dup_mode_size_only') },
+              { id: 'message_clone', label: t('drive.dup_mode_message_clone') },
             ].map((m) => (
               <button
                 key={m.id}
@@ -1379,11 +1379,11 @@ function DupTab({
             }}
           >
             {[
-              { id: 'all', label: t('speedtest.duplicate_filter_all'), icon: Grid, count: categoryCounts.all },
-              { id: 'image', label: t('speedtest.duplicate_filter_image'), icon: Image, count: categoryCounts.image },
-              { id: 'video', label: t('speedtest.duplicate_filter_video'), icon: Film, count: categoryCounts.video },
-              { id: 'document', label: t('speedtest.duplicate_filter_document'), icon: FileText, count: categoryCounts.document },
-              { id: 'audio', label: t('speedtest.duplicate_filter_audio'), icon: Music, count: categoryCounts.audio },
+              { id: 'all', label: t('drive.duplicate_filter_all'), icon: Grid, count: categoryCounts.all },
+              { id: 'image', label: t('drive.duplicate_filter_image'), icon: Image, count: categoryCounts.image },
+              { id: 'video', label: t('drive.duplicate_filter_video'), icon: Film, count: categoryCounts.video },
+              { id: 'document', label: t('drive.duplicate_filter_document'), icon: FileText, count: categoryCounts.document },
+              { id: 'audio', label: t('drive.duplicate_filter_audio'), icon: Music, count: categoryCounts.audio },
             ].map((tab) => {
               const IconComp = tab.icon;
               const isActive = filterType === tab.id;
@@ -1437,7 +1437,7 @@ function DupTab({
               type="button"
               disabled={busy}
               onClick={applySmartAll}
-              title={t('speedtest.per_group_keep_one')}
+              title={t('drive.per_group_keep_one')}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -1461,7 +1461,7 @@ function DupTab({
               type="button"
               disabled={busy}
               onClick={clearAllMarks}
-              title={t('speedtest.keep_all_groups')}
+              title={t('drive.keep_all_groups')}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -1486,7 +1486,7 @@ function DupTab({
 
       {groupsWithAllMarked > 0 && (
         <p className="td-tools-dup-warn" role="status" style={{ margin: 0 }}>
-          <AlertTriangle size={13} /> {t('speedtest.dup_all_marked_warning', { count: groupsWithAllMarked })}
+          <AlertTriangle size={13} /> {t('drive.dup_all_marked_warning', { count: groupsWithAllMarked })}
         </p>
       )}
 
@@ -1543,7 +1543,7 @@ function DupTab({
                   <AlertTriangle size={12} />
                   <span className="td-tools-dup-head-main">
                     {g.reasonLabel || g.reason}
-                    {' · '}{t('speedtest.dup_group_counts', { files: g.files.length, keep: keepInGroup, delete: markedInGroup })}
+                    {' · '}{t('drive.dup_group_counts', { files: g.files.length, keep: keepInGroup, delete: markedInGroup })}
                   </span>
                   <span className="td-tools-dup-head-actions">
                     <button
@@ -1551,7 +1551,7 @@ function DupTab({
                       className="td-tools-dup-mini"
                       disabled={busy}
                       onClick={() => markGroupExtras(g)}
-                      title={t('speedtest.keep_one_check_rest')}
+                      title={t('drive.keep_one_check_rest')}
                     >
                       {t('ui.generated.pilih_1_e8f7262')}
                     </button>
@@ -1560,7 +1560,7 @@ function DupTab({
                       className="td-tools-dup-mini"
                       disabled={busy}
                       onClick={() => clearGroupMarks(g)}
-                      title={t('speedtest.keep_all_in_group')}
+                      title={t('drive.keep_all_in_group')}
                     >
                       {t('ui.generated.simpan_semua_79d5ddf')}
                     </button>
@@ -1579,7 +1579,7 @@ function DupTab({
                           isPreferredKeep ? ' is-preferred-keep' : ''
                         }`}
                       >
-                        <label className="td-tools-dup-check" title={t("speedtest.check_delete_tooltip")}>
+                        <label className="td-tools-dup-check" title={t("drive.check_delete_tooltip")}>
                           <input
                             type="checkbox"
                             checked={marked}
@@ -1618,7 +1618,7 @@ function DupTab({
                             openGroupPreview(gIdx, f);
                           }}
                           disabled={!canPreview}
-                          title={canPreview ? t('speedtest.tools_preview_file', { name: label }) : label}
+                          title={canPreview ? t('drive.tools_preview_file', { name: label }) : label}
                           aria-label={canPreview ? `Pratinjau ${label}` : label}
                         >
                           <DupFileThumb file={f} creds={creds} folderId={folderId} />
@@ -1632,7 +1632,7 @@ function DupTab({
                               <span
                                 className={`td-tools-dup-badge${marked ? ' is-del' : ' is-keep'}`}
                               >
-                                {marked ? t('speedtest.badge_tag_delete') : isPreferredKeep ? t('speedtest.badge_tag_keep_default') : t('speedtest.badge_tag_keep')}
+                                {marked ? t('drive.badge_tag_delete') : isPreferredKeep ? t('drive.badge_tag_keep_default') : t('drive.badge_tag_keep')}
                               </span>
                             </span>
                           </div>
@@ -1722,7 +1722,7 @@ function DupTab({
         >
           <Trash2 size={15} style={{ color: idsToDelete.length ? '#ffffff' : '#64748b', flexShrink: 0 }} />
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {t('speedtest.preview_delete_btn')} {idsToDelete.length.toLocaleString('id-ID')} {t('ui.generated.berkas_duplikat_terpilih_548987c')}{formatDriveBytes(selectedWaste)})
+            {t('drive.preview_delete_btn')} {idsToDelete.length.toLocaleString('id-ID')} {t('ui.generated.berkas_duplikat_terpilih_548987c')}{formatDriveBytes(selectedWaste)})
           </span>
         </button>
       </div>

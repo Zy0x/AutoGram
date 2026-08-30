@@ -42,7 +42,7 @@ function toFormat(candidate: NativeCandidate, index: number): StreamQualityForma
   const isImage = mime.startsWith('image/') || ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'].includes(ext);
   return {
     id: `native_deep_${index}`,
-    label: String(i18n.t('speedtest.remote_native_candidate', { index: index + 1 })),
+    label: String(i18n.t('drive.remote_native_candidate', { index: index + 1 })),
     qualityTier: 'original',
     ext,
     directUrl: candidate.url,
@@ -50,7 +50,7 @@ function toFormat(candidate: NativeCandidate, index: number): StreamQualityForma
     isVideo,
     isAudio,
     isImage,
-    badge: String(i18n.t('speedtest.remote_native_badge')),
+    badge: String(i18n.t('drive.remote_native_badge')),
   };
 }
 
@@ -76,7 +76,7 @@ export const nativeDeepResolver: LinkResolverProvider = {
       platform: 'direct',
       platformName: result.platformName,
       title: result.title || result.platformName,
-      description: String(i18n.t('speedtest.remote_native_inspected', { count: result.inspectedPages })),
+      description: String(i18n.t('drive.remote_native_inspected', { count: result.inspectedPages })),
       formats,
       selectedFormatId: formats[0].id,
       isDirectFile: true,

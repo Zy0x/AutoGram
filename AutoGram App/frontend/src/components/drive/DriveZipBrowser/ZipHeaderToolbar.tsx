@@ -87,19 +87,19 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
   const [showSortMenu, setShowSortMenu] = useState(false);
 
   const categories: { id: Category; label: string; icon: React.ReactNode }[] = [
-    { id: 'all', label: t('speedtest.zip_cat_all'), icon: <File size={13} /> },
-    { id: 'image', label: t('speedtest.zip_cat_image'), icon: <ImageIcon size={13} /> },
-    { id: 'media', label: t('speedtest.zip_cat_media'), icon: <Film size={13} /> },
-    { id: 'doc', label: t('speedtest.zip_cat_doc'), icon: <FileText size={13} /> },
-    { id: 'archive', label: t('speedtest.zip_cat_archive'), icon: <Archive size={13} /> },
+    { id: 'all', label: t('drive.zip_cat_all'), icon: <File size={13} /> },
+    { id: 'image', label: t('drive.zip_cat_image'), icon: <ImageIcon size={13} /> },
+    { id: 'media', label: t('drive.zip_cat_media'), icon: <Film size={13} /> },
+    { id: 'doc', label: t('drive.zip_cat_doc'), icon: <FileText size={13} /> },
+    { id: 'archive', label: t('drive.zip_cat_archive'), icon: <Archive size={13} /> },
   ];
 
   const sortOptions: { id: SortOption; label: string }[] = [
-    { id: 'name-asc', label: t('speedtest.zip_sort_name_asc') },
-    { id: 'name-desc', label: t('speedtest.zip_sort_name_desc') },
-    { id: 'size-desc', label: t('speedtest.zip_sort_size_desc') },
-    { id: 'size-asc', label: t('speedtest.zip_sort_size_asc') },
-    { id: 'type', label: t('speedtest.zip_sort_type') },
+    { id: 'name-asc', label: t('drive.zip_sort_name_asc') },
+    { id: 'name-desc', label: t('drive.zip_sort_name_desc') },
+    { id: 'size-desc', label: t('drive.zip_sort_size_desc') },
+    { id: 'size-asc', label: t('drive.zip_sort_size_asc') },
+    { id: 'type', label: t('drive.zip_sort_type') },
   ];
 
   const pathParts = currentPath.split('/').filter(Boolean);
@@ -116,7 +116,7 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
     }
   };
 
-  const rawTitle = archiveName || t('speedtest.zip_archive_explorer');
+  const rawTitle = archiveName || t('drive.zip_archive_explorer');
   const truncatedTitle = middleTruncateFilename(rawTitle, 40);
 
   return (
@@ -130,7 +130,7 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
               type="button"
               onClick={onBackNested}
               className="dzb-back-nested-btn"
-              title={t('speedtest.zip_back_parent')}
+              title={t('drive.zip_back_parent')}
             >
               <CornerUpLeft size={16} />
             </button>
@@ -148,14 +148,14 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
 
               {nestedDepth > 0 && (
                 <span className="dzb-badge-nested">
-                  {t('speedtest.zip_nested_depth', { count: nestedDepth })}
+                  {t('drive.zip_nested_depth', { count: nestedDepth })}
                 </span>
               )}
 
               {isPasswordProtected && (
-                <span className="dzb-badge-locked" title={t('speedtest.zip_protected')}>
+                <span className="dzb-badge-locked" title={t('drive.zip_protected')}>
                   <Lock size={12} />
-                  <span>{t('speedtest.zip_protected')}</span>
+                  <span>{t('drive.zip_protected')}</span>
                 </span>
               )}
             </div>
@@ -164,15 +164,15 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
               <span className="dzb-meta-stat">{formatDriveBytes(totalBytes)}</span>
               <span className="dzb-meta-dot">·</span>
               <span className="dzb-meta-stat">
-                {t('speedtest.zip_meta_files', { count: totalFiles })}
+                {t('drive.zip_meta_files', { count: totalFiles })}
               </span>
               {dominantType !== 'mixed' && (
                 <>
                   <span className="dzb-meta-dot">·</span>
                   <span className="dzb-meta-type">
                     {dominantType === 'images'
-                      ? t('speedtest.zip_dominant_images')
-                      : t('speedtest.zip_dominant_media')}
+                      ? t('drive.zip_dominant_images')
+                      : t('drive.zip_dominant_media')}
                   </span>
                 </>
               )}
@@ -188,14 +188,14 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
               onClick={onLoadAllThumbnails}
               disabled={isLoadingAllMedia}
               className="dzb-btn-load-all-media"
-              title={t('speedtest.zip_preview_all_media', { count: unloadedMediaCount })}
+              title={t('drive.zip_preview_all_media', { count: unloadedMediaCount })}
             >
               {isLoadingAllMedia ? (
                 <Loader2 size={14} className="animate-spin" />
               ) : (
                 <Eye size={14} />
               )}
-              <span>{t('speedtest.zip_preview_all_media', { count: unloadedMediaCount })}</span>
+              <span>{t('drive.zip_preview_all_media', { count: unloadedMediaCount })}</span>
             </button>
           )}
 
@@ -204,7 +204,7 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
               type="button"
               onClick={() => onViewModeChange('list')}
               className={`dzb-view-btn ${viewMode === 'list' ? 'active' : ''}`}
-              title={t('speedtest.zip_view_list')}
+              title={t('drive.zip_view_list')}
             >
               <List size={16} />
             </button>
@@ -212,7 +212,7 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
               type="button"
               onClick={() => onViewModeChange('grid')}
               className={`dzb-view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-              title={t('speedtest.zip_view_grid')}
+              title={t('drive.zip_view_grid')}
             >
               <LayoutGrid size={16} />
             </button>
@@ -223,10 +223,10 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
               type="button"
               onClick={onExtractAll}
               className="dzb-btn-save-archive"
-              title={t('speedtest.zip_btn_extract_all')}
+              title={t('drive.zip_btn_extract_all')}
             >
               <FolderInput size={15} />
-              <span>{t('speedtest.zip_btn_extract_all')}</span>
+              <span>{t('drive.zip_btn_extract_all')}</span>
             </button>
           )}
 
@@ -235,10 +235,10 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
               type="button"
               onClick={onDownloadZip}
               className="dzb-btn-save-archive"
-              title={t('speedtest.zip_save_archive')}
+              title={t('drive.zip_save_archive')}
             >
               <Download size={15} />
-              <span>{t('speedtest.zip_save_archive')}</span>
+              <span>{t('drive.zip_save_archive')}</span>
             </button>
           )}
 
@@ -247,7 +247,7 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
               type="button"
               onClick={onClose}
               className="dzb-close-btn"
-              title={t('speedtest.zip_close')}
+              title={t('drive.zip_close')}
             >
               <X size={18} />
             </button>
@@ -258,7 +258,7 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
       {/* LAYER 2: Command & Breadcrumbs Navigation Bar */}
       <div className="dzb-command-bar">
         {/* Breadcrumb Path Bar */}
-        <nav className="dzb-breadcrumbs-bar" aria-label={t('speedtest.zip_breadcrumbs')}>
+        <nav className="dzb-breadcrumbs-bar" aria-label={t('drive.zip_breadcrumbs')}>
           <button
             type="button"
             onClick={handleNavigateUp}
@@ -266,12 +266,12 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
             className="dzb-crumb-up-btn"
             title={
               pathParts.length > 0
-                ? t('speedtest.zip_up_one_level')
+                ? t('drive.zip_up_one_level')
                 : nestedDepth > 0
-                ? t('speedtest.zip_back_parent')
-                : t('speedtest.zip_up_disabled')
+                ? t('drive.zip_back_parent')
+                : t('drive.zip_up_disabled')
             }
-            aria-label={t('speedtest.zip_up_one_level')}
+            aria-label={t('drive.zip_up_one_level')}
           >
             <ArrowUp size={13} strokeWidth={2.4} />
           </button>
@@ -280,10 +280,10 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
             type="button"
             onClick={() => onNavigateDir('')}
             className={`dzb-crumb-item ${pathParts.length === 0 ? 'active' : ''}`}
-            title={t('speedtest.zip_back_to_root')}
+            title={t('drive.zip_back_to_root')}
           >
             <Home size={13} />
-            <span>{t('speedtest.zip_root')}</span>
+            <span>{t('drive.zip_root')}</span>
           </button>
 
           {pathParts.map((part, index) => {
@@ -305,7 +305,7 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
 
           {pathParts.length > 0 && (
             <span className="dzb-folder-count">
-              ({t('speedtest.zip_items_count', { count: currentFolderItemCount })})
+              ({t('drive.zip_items_count', { count: currentFolderItemCount })})
             </span>
           )}
         </nav>
@@ -319,7 +319,7 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder={t('speedtest.ph_search_zip')}
+              placeholder={t('drive.ph_search_zip')}
               className="dzb-search-input"
             />
             {searchQuery && (
@@ -327,7 +327,7 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
                 type="button"
                 onClick={() => onSearchChange('')}
                 className="dzb-search-clear-btn"
-                title={t('speedtest.zip_clear_search')}
+                title={t('drive.zip_clear_search')}
               >
                 <X size={13} />
               </button>
@@ -362,7 +362,7 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
                 type="button"
                 onClick={() => setShowSortMenu(!showSortMenu)}
                 className="dzb-sort-trigger-btn"
-                title={t('speedtest.zip_sort_by')}
+                title={t('drive.zip_sort_by')}
               >
                 <ArrowUpDown size={14} />
                 <span>{sortOptions.find((s) => s.id === sortOption)?.label}</span>

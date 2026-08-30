@@ -176,24 +176,24 @@ function fileKindIcon(kind: UrlKind) {
 
 function renderBadge(c: DriveDestChoice, t: any) {
   if (c.kind === 'saved') {
-    return <span className="td-dest-badge saved">{t('speedtest.dest_badge_saved')}</span>;
+    return <span className="td-dest-badge saved">{t('drive.dest_badge_saved')}</span>;
   }
   if (c.isForum) {
-    return <span className="td-dest-badge forum">{t('speedtest.dest_badge_forum')}</span>;
+    return <span className="td-dest-badge forum">{t('drive.dest_badge_forum')}</span>;
   }
   if (c.kind === 'drive') {
-    return <span className="td-dest-badge td">{t('speedtest.dest_badge_drive')}</span>;
+    return <span className="td-dest-badge td">{t('drive.dest_badge_drive')}</span>;
   }
   if (c.type === 'group' || c.type === 'supergroup') {
-    return <span className="td-dest-badge group">{t('speedtest.dest_badge_group')}</span>;
+    return <span className="td-dest-badge group">{t('drive.dest_badge_group')}</span>;
   }
   if (c.type === 'channel') {
-    return <span className="td-dest-badge channel">{t('speedtest.dest_badge_channel')}</span>;
+    return <span className="td-dest-badge channel">{t('drive.dest_badge_channel')}</span>;
   }
   if (c.type === 'bot') {
-    return <span className="td-dest-badge bot">{t('speedtest.dest_badge_bot')}</span>;
+    return <span className="td-dest-badge bot">{t('drive.dest_badge_bot')}</span>;
   }
-  return <span className="td-dest-badge user">{t('speedtest.dest_badge_user')}</span>;
+  return <span className="td-dest-badge user">{t('drive.dest_badge_user')}</span>;
 }
 
 function getFormatDisplayLabel(
@@ -202,21 +202,21 @@ function getFormatDisplayLabel(
   t: any
 ): string {
   if (fmt.id === 'tiktok_profile_avatar') {
-    return t('speedtest.remote_fmt_creator_avatar');
+    return t('drive.remote_fmt_creator_avatar');
   }
   if (fmt.id === 'tiktok_photo_all_pack' || (fmt.isAlbumPack && resolvedMedia?.platform === 'tiktok')) {
     const total = resolvedMedia?.albumImages?.length || '';
-    return t('speedtest.remote_fmt_album_pack', { total });
+    return t('drive.remote_fmt_album_pack', { total });
   }
   if (fmt.id === 'pikpak_all_files_pack') {
     const count = resolvedMedia?.totalItems || resolvedMedia?.formats.filter((f) => !f.isAlbumPack).length || 0;
     const sizeStr = fmt.filesizeBytes ? ` ~${formatDriveBytes(fmt.filesizeBytes)}` : '';
-    return t('speedtest.remote_pikpak_batch_pack', { count, size: sizeStr });
+    return t('drive.remote_pikpak_batch_pack', { count, size: sizeStr });
   }
   if (fmt.id === 'streamrizz_all_files_pack') {
     const count = resolvedMedia?.totalItems || resolvedMedia?.formats.filter((f) => !f.isAlbumPack).length || 0;
     const sizeStr = fmt.filesizeBytes ? ` ~${formatDriveBytes(fmt.filesizeBytes)}` : '';
-    return t('speedtest.remote_streamrizz_batch_pack', { count, size: sizeStr });
+    return t('drive.remote_streamrizz_batch_pack', { count, size: sizeStr });
   }
   if (fmt.id.startsWith('tiktok_photo_')) {
     const total = resolvedMedia?.albumImages?.length || 1;
@@ -224,26 +224,26 @@ function getFormatDisplayLabel(
     if (match && match[1]) {
       const idx = parseInt(match[1], 10);
       if (total <= 1) {
-        return t('speedtest.remote_fmt_single_photo');
+        return t('drive.remote_fmt_single_photo');
       }
-      return t('speedtest.remote_fmt_slide_photo', { idx, total });
+      return t('drive.remote_fmt_slide_photo', { idx, total });
     }
   }
   if (fmt.label === 'remote_web_page_handoff') {
-    return t('speedtest.remote_web_page_handoff');
+    return t('drive.remote_web_page_handoff');
   }
   return fmt.label;
 }
 
 function getFormatDisplayBadge(fmt: StreamQualityFormat, t: any): string | undefined {
   if (fmt.badge === 'remote_web_page') {
-    return t('speedtest.remote_web_page_badge');
+    return t('drive.remote_web_page_badge');
   }
   if (fmt.badge === 'PASSCODE ERROR') {
-    return t('speedtest.remote_passcode_invalid_badge');
+    return t('drive.remote_passcode_invalid_badge');
   }
   if (fmt.badge === 'PASSWORD PROTECTED') {
-    return t('speedtest.remote_passcode_required_badge');
+    return t('drive.remote_passcode_required_badge');
   }
   return fmt.badge;
 }
@@ -854,7 +854,7 @@ export function RemoteUploadModal({
           mimeType: null,
           kind: inferredKind,
         });
-        setErrorMsg(t('speedtest.remote_err_private_target'));
+        setErrorMsg(t('drive.remote_err_private_target'));
         return;
       }
       /* Unknown-provider failures may still use the bounded HEAD fallback. */
@@ -998,8 +998,8 @@ export function RemoteUploadModal({
   const pickerState = useMemo<DriveDestPickerState | null>(() => {
     if (!pickerOpen) return null;
     return {
-      title: t('speedtest.remote_upload_select_target'),
-      detail: t('speedtest.remote_upload_select_target_desc'),
+      title: t('drive.remote_upload_select_target'),
+      detail: t('drive.remote_upload_select_target_desc'),
       choices: destinations,
       creds,
       onConfirm: (choice: DriveDestChoice) => {
@@ -1527,7 +1527,7 @@ export function RemoteUploadModal({
 
   const handleInspectBatchUrls = useCallback(async () => {
     if (!batchUrls.length) {
-      setErrorMsg(t('speedtest.remote_err_no_batch_urls'));
+      setErrorMsg(t('drive.remote_err_no_batch_urls'));
       return;
     }
     setErrorMsg('');
@@ -1676,7 +1676,7 @@ export function RemoteUploadModal({
           updatedGroups[idx] = {
             ...updatedGroups[idx],
             status: 'error',
-            errorMessage: err?.message || t('speedtest.remote_batch_error_title'),
+            errorMessage: err?.message || t('drive.remote_batch_error_title'),
             items: [],
           };
         } finally {
@@ -1836,7 +1836,7 @@ export function RemoteUploadModal({
       setBatchGroups((prev) =>
         prev.map((g) =>
           g.id === groupId
-            ? { ...g, status: 'error', errorMessage: err?.message || t('speedtest.remote_batch_error_title') }
+            ? { ...g, status: 'error', errorMessage: err?.message || t('drive.remote_batch_error_title') }
             : g
         )
       );
@@ -1887,18 +1887,18 @@ export function RemoteUploadModal({
     if (tab === 'single') {
       const targetUrl = url.trim();
       if (!targetUrl) {
-        setErrorMsg(t('speedtest.remote_err_empty'));
+        setErrorMsg(t('drive.remote_err_empty'));
         return;
       }
       if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-        setErrorMsg(t('speedtest.remote_err_invalid_protocol'));
+        setErrorMsg(t('drive.remote_err_invalid_protocol'));
         return;
       }
 
       // Multi-media card upload flow
       if (effectiveMediaItems.length > 1) {
         if (selectedItems.length === 0) {
-          setErrorMsg(t('speedtest.remote_btn_select_at_least_one'));
+          setErrorMsg(t('drive.remote_btn_select_at_least_one'));
           return;
         }
 
@@ -1923,7 +1923,7 @@ export function RemoteUploadModal({
           }
 
           if (uploadUrls.length === 0) {
-            setErrorMsg(t('speedtest.remote_btn_select_at_least_one'));
+            setErrorMsg(t('drive.remote_btn_select_at_least_one'));
             return;
           }
 
@@ -2033,7 +2033,7 @@ export function RemoteUploadModal({
       }
 
       if (selectedBatchItems.length === 0) {
-        setErrorMsg(t('speedtest.remote_batch_no_selected_hint'));
+        setErrorMsg(t('drive.remote_batch_no_selected_hint'));
         return;
       }
 
@@ -2109,13 +2109,13 @@ export function RemoteUploadModal({
         <div className="td-remote-info-popover-header">
           <span className="td-remote-info-popover-title">
             <Info size={13} className="td-remote-info-title-icon" />
-            <span>{t('speedtest.remote_info_popover_title')}</span>
+            <span>{t('drive.remote_info_popover_title')}</span>
           </span>
           <button
             type="button"
             className="td-remote-info-close"
             onClick={() => setShowSupportedInfo(false)}
-            aria-label={t('speedtest.preview_close_btn')}
+            aria-label={t('drive.preview_close_btn')}
           >
             <X size={13} />
           </button>
@@ -2124,36 +2124,36 @@ export function RemoteUploadModal({
         {/* Section 1: Social & Video */}
         <div className="td-remote-info-group">
           <div className="td-remote-info-group-title">
-            {t('speedtest.remote_info_cat_social')}
+            {t('drive.remote_info_cat_social')}
           </div>
           <div className="td-remote-info-tags">
-            <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_tiktok')}</span>
-            <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_youtube')}</span>
-            <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_instagram')}</span>
-            <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_pinterest')}</span>
-            <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_pixiv')}</span>
-            <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_terabox')}</span>
+            <span className="td-remote-info-tag">{t('drive.remote_info_tag_tiktok')}</span>
+            <span className="td-remote-info-tag">{t('drive.remote_info_tag_youtube')}</span>
+            <span className="td-remote-info-tag">{t('drive.remote_info_tag_instagram')}</span>
+            <span className="td-remote-info-tag">{t('drive.remote_info_tag_pinterest')}</span>
+            <span className="td-remote-info-tag">{t('drive.remote_info_tag_pixiv')}</span>
+            <span className="td-remote-info-tag">{t('drive.remote_info_tag_terabox')}</span>
           </div>
         </div>
 
         {/* Section 2: Cloud & Direct */}
         <div className="td-remote-info-group">
           <div className="td-remote-info-group-title">
-            {t('speedtest.remote_info_cat_cloud')}
+            {t('drive.remote_info_cat_cloud')}
           </div>
           <div className="td-remote-info-tags">
-            <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_pikpak')}</span>
-            <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_streamrizz')}</span>
-            <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_gdrive')}</span>
-            <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_dropbox')}</span>
-            <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_mediafire')}</span>
-            <span className="td-remote-info-tag">{t('speedtest.remote_info_tag_direct')}</span>
+            <span className="td-remote-info-tag">{t('drive.remote_info_tag_pikpak')}</span>
+            <span className="td-remote-info-tag">{t('drive.remote_info_tag_streamrizz')}</span>
+            <span className="td-remote-info-tag">{t('drive.remote_info_tag_gdrive')}</span>
+            <span className="td-remote-info-tag">{t('drive.remote_info_tag_dropbox')}</span>
+            <span className="td-remote-info-tag">{t('drive.remote_info_tag_mediafire')}</span>
+            <span className="td-remote-info-tag">{t('drive.remote_info_tag_direct')}</span>
           </div>
         </div>
 
         <div className="td-remote-info-footer">
           <Zap size={11} className="td-remote-info-footer-icon" />
-          <span>{t('speedtest.remote_info_footer_note')}</span>
+          <span>{t('drive.remote_info_footer_note')}</span>
         </div>
       </div>
     );
@@ -2186,7 +2186,7 @@ export function RemoteUploadModal({
               e.stopPropagation();
               setActiveTripletInfo(null);
             }}
-            aria-label={t('speedtest.preview_close_btn')}
+            aria-label={t('drive.preview_close_btn')}
           >
             <X size={13} />
           </button>
@@ -2196,7 +2196,7 @@ export function RemoteUploadModal({
           <>
             <div className="td-remote-triplet-popover-item">
               <span className="td-remote-triplet-popover-key" style={{ color: '#c084fc' }}>
-                <Film size={10} /> {t('speedtest.remote_mode_uncompressed')}
+                <Film size={10} /> {t('drive.remote_mode_uncompressed')}
               </span>
               <span className="td-remote-triplet-popover-desc">
                 {t('drive_tools.remote_info_delivery_uncompressed')}
@@ -2204,7 +2204,7 @@ export function RemoteUploadModal({
             </div>
             <div className="td-remote-triplet-popover-item">
               <span className="td-remote-triplet-popover-key" style={{ color: '#38bdf8' }}>
-                <Zap size={10} /> {t('speedtest.remote_mode_auto')}
+                <Zap size={10} /> {t('drive.remote_mode_auto')}
               </span>
               <span className="td-remote-triplet-popover-desc">
                 {t('drive_tools.remote_info_delivery_auto')}
@@ -2212,7 +2212,7 @@ export function RemoteUploadModal({
             </div>
             <div className="td-remote-triplet-popover-item">
               <span className="td-remote-triplet-popover-key" style={{ color: '#facc15' }}>
-                <FileText size={10} /> {t('speedtest.remote_mode_doc')}
+                <FileText size={10} /> {t('drive.remote_mode_doc')}
               </span>
               <span className="td-remote-triplet-popover-desc">
                 {t('drive_tools.remote_info_delivery_doc')}
@@ -2305,15 +2305,15 @@ export function RemoteUploadModal({
             <Link2 size={20} strokeWidth={2.25} />
           </span>
           <div className="td-confirm-head-text">
-            <h2>{t('speedtest.remote_upload_url_title')}</h2>
-            <p className="td-confirm-desc">{t('speedtest.remote_upload_url_subtitle')}</p>
+            <h2>{t('drive.remote_upload_url_title')}</h2>
+            <p className="td-confirm-desc">{t('drive.remote_upload_url_subtitle')}</p>
           </div>
           <button
             type="button"
             className="td-confirm-close"
             onClick={onClose}
             disabled={submitting}
-            aria-label={t('speedtest.preview_close_btn')}
+            aria-label={t('drive.preview_close_btn')}
           >
             <X size={18} />
           </button>
@@ -2329,7 +2329,7 @@ export function RemoteUploadModal({
             disabled={submitting}
           >
             <Link2 size={14} />
-            <span>{t('speedtest.remote_tab_single')}</span>
+            <span>{t('drive.remote_tab_single')}</span>
           </button>
           <button
             type="button"
@@ -2340,7 +2340,7 @@ export function RemoteUploadModal({
             disabled={submitting}
           >
             <Layers size={14} />
-            <span>{t('speedtest.remote_tab_batch')}</span>
+            <span>{t('drive.remote_tab_batch')}</span>
             {batchUrls.length > 0 && (
               <span className="td-remote-tab-badge">{batchUrls.length}</span>
             )}
@@ -2364,7 +2364,7 @@ export function RemoteUploadModal({
                     <div className="td-remote-field-group">
                       <div className="td-remote-label-row">
                         <label className="td-input-label" htmlFor="td-remote-url">
-                          <span>{t('speedtest.source_url_label')}</span>
+                          <span>{t('drive.source_url_label')}</span>
                         </label>
                       <div className="td-remote-label-actions">
                         {url.trim() && (
@@ -2373,10 +2373,10 @@ export function RemoteUploadModal({
                             className="td-remote-browser-action"
                             onClick={() => handleOpenInBrowser(url.trim())}
                             disabled={submitting}
-                            title={t('speedtest.remote_open_in_browser')}
+                            title={t('drive.remote_open_in_browser')}
                           >
                             <ExternalLink size={11} />
-                            <span>{t('speedtest.remote_open_in_browser')}</span>
+                            <span>{t('drive.remote_open_in_browser')}</span>
                           </button>
                         )}
                         <button
@@ -2384,10 +2384,10 @@ export function RemoteUploadModal({
                           className="td-remote-paste-action"
                           onClick={handlePasteClipboard}
                           disabled={submitting}
-                          title={t('speedtest.remote_paste_clipboard')}
+                          title={t('drive.remote_paste_clipboard')}
                         >
                           <Clipboard size={10} />
-                          <span>{t('speedtest.remote_paste_clipboard')}</span>
+                          <span>{t('drive.remote_paste_clipboard')}</span>
                         </button>
                       </div>
                     </div>
@@ -2399,7 +2399,7 @@ export function RemoteUploadModal({
                         id="td-remote-url"
                         className="td-input-field td-remote-url-input"
                         type="text"
-                        placeholder={t('speedtest.remote_url_placeholder')}
+                        placeholder={t('drive.remote_url_placeholder')}
                         value={url}
                         onChange={(e) => handleUrlChange(e.target.value)}
                         disabled={submitting}
@@ -2413,7 +2413,7 @@ export function RemoteUploadModal({
                           className="td-remote-clear-btn"
                           onClick={() => handleUrlChange('')}
                           disabled={submitting}
-                          aria-label={t('speedtest.remote_clear_input')}
+                          aria-label={t('drive.remote_clear_input')}
                         >
                           <X size={12} />
                         </button>
@@ -2426,7 +2426,7 @@ export function RemoteUploadModal({
                     <div className="td-remote-field-group td-remote-passcode-field-animated">
                       <div className="td-remote-label-row">
                         <label className="td-input-label" htmlFor="td-remote-passcode">
-                          {t('speedtest.remote_passcode_label')}
+                          {t('drive.remote_passcode_label')}
                         </label>
                         <div className="td-remote-label-actions">
                           {resolvedMedia?.requiresPassword && (
@@ -2438,8 +2438,8 @@ export function RemoteUploadModal({
                               <KeyRound size={10} />
                               <span>
                                 {resolvedMedia.passwordError
-                                  ? t('speedtest.remote_passcode_invalid_badge')
-                                  : t('speedtest.remote_passcode_required_badge')}
+                                  ? t('drive.remote_passcode_invalid_badge')
+                                  : t('drive.remote_passcode_required_badge')}
                               </span>
                             </span>
                           )}
@@ -2455,7 +2455,7 @@ export function RemoteUploadModal({
                             resolvedMedia?.requiresPassword ? 'highlight-required' : ''
                           }`}
                           type="text"
-                          placeholder={t('speedtest.remote_passcode_placeholder')}
+                          placeholder={t('drive.remote_passcode_placeholder')}
                           value={passcode}
                           onChange={(e) => handlePasscodeChange(e.target.value)}
                           disabled={submitting}
@@ -2468,7 +2468,7 @@ export function RemoteUploadModal({
                             className="td-remote-clear-btn"
                             onClick={() => handlePasscodeChange('')}
                             disabled={submitting}
-                            aria-label={t('speedtest.remote_clear_input')}
+                            aria-label={t('drive.remote_clear_input')}
                           >
                             <X size={12} />
                           </button>
@@ -2484,7 +2484,7 @@ export function RemoteUploadModal({
                       <div className="td-remote-triplet-header">
                         <span className="td-remote-triplet-title">
                           <Film size={11} className="text-purple-400" />
-                          <span>{t('speedtest.remote_delivery_mode_label')}</span>
+                          <span>{t('drive.remote_delivery_mode_label')}</span>
                         </span>
                         <button
                           type="button"
@@ -2506,10 +2506,10 @@ export function RemoteUploadModal({
                           className={`td-remote-mode-pill${deliveryMode === 'uncompressed' ? ' active uncompressed' : ''}`}
                           onClick={() => setDeliveryMode('uncompressed')}
                           disabled={submitting}
-                          title={t('speedtest.remote_mode_uncompressed_hint')}
+                          title={t('drive.remote_mode_uncompressed_hint')}
                         >
                           <Film size={11} />
-                          <span>{t('speedtest.remote_mode_uncompressed')}</span>
+                          <span>{t('drive.remote_mode_uncompressed')}</span>
                           {deliveryMode === 'uncompressed' && <Check size={10} />}
                         </button>
                         <button
@@ -2517,10 +2517,10 @@ export function RemoteUploadModal({
                           className={`td-remote-mode-pill${deliveryMode === 'auto' ? ' active auto' : ''}`}
                           onClick={() => setDeliveryMode('auto')}
                           disabled={submitting}
-                          title={t('speedtest.remote_mode_auto_hint')}
+                          title={t('drive.remote_mode_auto_hint')}
                         >
                           <Zap size={11} />
-                          <span>{t('speedtest.remote_mode_auto')}</span>
+                          <span>{t('drive.remote_mode_auto')}</span>
                           {deliveryMode === 'auto' && <Check size={10} />}
                         </button>
                         <button
@@ -2528,10 +2528,10 @@ export function RemoteUploadModal({
                           className={`td-remote-mode-pill${deliveryMode === 'document' ? ' active doc' : ''}`}
                           onClick={() => setDeliveryMode('document')}
                           disabled={submitting}
-                          title={t('speedtest.remote_mode_doc_hint')}
+                          title={t('drive.remote_mode_doc_hint')}
                         >
                           <FileText size={11} />
-                          <span>{t('speedtest.remote_mode_doc')}</span>
+                          <span>{t('drive.remote_mode_doc')}</span>
                           {deliveryMode === 'document' && <Check size={10} />}
                         </button>
                       </div>
@@ -2682,7 +2682,7 @@ export function RemoteUploadModal({
                         className="td-remote-dest-card"
                         onClick={() => setPickerOpen(true)}
                         disabled={submitting}
-                        title={t('speedtest.btn_change_dest')}
+                        title={t('drive.btn_change_dest')}
                       >
                         <div className="td-remote-dest-main">
                           <span className="td-dest-ico" aria-hidden>
@@ -2712,7 +2712,7 @@ export function RemoteUploadModal({
                         <div className="td-remote-dest-actions">
                           {renderBadge(selectedDest, t)}
                           <span className="td-remote-dest-change-tag">
-                            {t('speedtest.btn_change_dest')}
+                            {t('drive.btn_change_dest')}
                             <ChevronRight size={11} style={{ marginLeft: 2 }} />
                           </span>
                         </div>
@@ -2793,7 +2793,7 @@ export function RemoteUploadModal({
                                 <span className="td-remote-canvas-slide-tag">
                                   <ImageIcon size={12} />
                                   <span>
-                                    {t('speedtest.remote_split_slide_preview', {
+                                    {t('drive.remote_split_slide_preview', {
                                       idx: activeSlideIndex + 1,
                                       total: resolvedMedia.albumImages.length,
                                     })}
@@ -3382,7 +3382,7 @@ export function RemoteUploadModal({
                       ) : resolvedMedia.formats.length > 0 ? (
                         <div className="td-remote-formats-container">
                           <label className="td-input-label">
-                            {t('speedtest.remote_split_select_format_hint')}
+                            {t('drive.remote_split_select_format_hint')}
                           </label>
                           <div className="td-remote-quality-grid">
                             {resolvedMedia.formats.map((fmt) => {
@@ -3423,8 +3423,8 @@ export function RemoteUploadModal({
               ) : inspection?.status === 'inspecting' ? (
                 <div className="td-remote-preview-inspecting-card">
                   <Loader2 size={32} className="td-remote-inspecting-spinner" />
-                  <div className="td-remote-inspecting-title">{t('speedtest.remote_inspecting')}</div>
-                  <div className="td-remote-inspecting-subtitle">{t('speedtest.remote_split_inspecting_desc')}</div>
+                  <div className="td-remote-inspecting-title">{t('drive.remote_inspecting')}</div>
+                  <div className="td-remote-inspecting-subtitle">{t('drive.remote_split_inspecting_desc')}</div>
                 </div>
               ) : inspection && url.trim() ? (
                 <div className="td-remote-preview-content">
@@ -3443,19 +3443,19 @@ export function RemoteUploadModal({
                           </span>
                         ) : (
                           <span className="td-remote-meta-badge stream">
-                            {t('speedtest.remote_inspect_size_unknown')}
+                            {t('drive.remote_inspect_size_unknown')}
                           </span>
                         )}
                         <span className={`td-remote-meta-badge status ${inspection.status}`}>
                           {inspection.status === 'valid' ? (
                             <>
                               <CheckCircle2 size={11} />
-                              <span>{t('speedtest.remote_inspect_valid')}</span>
+                              <span>{t('drive.remote_inspect_valid')}</span>
                             </>
                           ) : (
                             <>
                               <Sparkles size={11} />
-                              <span>{t('speedtest.remote_inspect_direct_stream')}</span>
+                              <span>{t('drive.remote_inspect_direct_stream')}</span>
                             </>
                           )}
                         </span>
@@ -3475,14 +3475,14 @@ export function RemoteUploadModal({
                   <div className="td-remote-label-row">
                     <div className="td-remote-label-left" ref={infoRef}>
                       <label className="td-input-label" htmlFor="td-remote-batch-input">
-                        {t('speedtest.remote_tab_batch')}
+                        {t('drive.remote_tab_batch')}
                       </label>
                       <button
                         type="button"
                         className={`td-remote-info-trigger ${showSupportedInfo ? 'active' : ''}`}
                         onClick={() => setShowSupportedInfo((prev) => !prev)}
-                        title={t('speedtest.remote_info_btn_aria')}
-                        aria-label={t('speedtest.remote_info_btn_aria')}
+                        title={t('drive.remote_info_btn_aria')}
+                        aria-label={t('drive.remote_info_btn_aria')}
                         aria-expanded={showSupportedInfo}
                       >
                         <Info size={12} />
@@ -3496,10 +3496,10 @@ export function RemoteUploadModal({
                           className="td-remote-quick-btn"
                           onClick={() => setIsEditingBatchText(false)}
                           disabled={submitting || batchInspecting}
-                          title={t('speedtest.remote_batch_expand_group')}
+                          title={t('drive.remote_batch_expand_group')}
                         >
                           <LayoutGrid size={12} />
-                          <span>{t('speedtest.remote_resolved_media_title')}</span>
+                          <span>{t('drive.remote_resolved_media_title')}</span>
                         </button>
                       )}
                       <button
@@ -3507,10 +3507,10 @@ export function RemoteUploadModal({
                         className="td-remote-paste-action"
                         onClick={handlePasteClipboard}
                         disabled={submitting || batchInspecting}
-                        title={t('speedtest.remote_paste_clipboard')}
+                        title={t('drive.remote_paste_clipboard')}
                       >
                         <Clipboard size={12} />
-                        <span>{t('speedtest.remote_paste_clipboard')}</span>
+                        <span>{t('drive.remote_paste_clipboard')}</span>
                       </button>
                     </div>
                   </div>
@@ -3518,7 +3518,7 @@ export function RemoteUploadModal({
                     id="td-remote-batch-input"
                     className="td-input-field td-remote-batch-textarea"
                     rows={6}
-                    placeholder={t('speedtest.remote_batch_placeholder')}
+                    placeholder={t('drive.remote_batch_placeholder')}
                     value={batchUrlsText}
                     onChange={(e) => {
                       setBatchUrlsText(e.target.value);
@@ -3530,8 +3530,8 @@ export function RemoteUploadModal({
                   <div className="td-remote-batch-footer">
                     <span className="td-remote-batch-hint">
                       {batchUrls.length > 0
-                        ? t('speedtest.remote_batch_count', { count: batchUrls.length })
-                        : t('speedtest.remote_batch_empty_hint')}
+                        ? t('drive.remote_batch_count', { count: batchUrls.length })
+                        : t('drive.remote_batch_empty_hint')}
                     </span>
                     <button
                       type="button"
@@ -3543,7 +3543,7 @@ export function RemoteUploadModal({
                         <>
                           <Loader2 size={13} className="spin" />
                           <span>
-                            {t('speedtest.remote_batch_inspecting_status', {
+                            {t('drive.remote_batch_inspecting_status', {
                               current: batchInspectProgress.current,
                               total: batchInspectProgress.total,
                             })}
@@ -3552,7 +3552,7 @@ export function RemoteUploadModal({
                       ) : (
                         <>
                           <Search size={13} />
-                          <span>{t('speedtest.remote_batch_inspect_btn')}</span>
+                          <span>{t('drive.remote_batch_inspect_btn')}</span>
                         </>
                       )}
                     </button>
@@ -3593,10 +3593,10 @@ export function RemoteUploadModal({
                         <div className="td-remote-split-empty-canvas">
                           <Film size={40} className="td-remote-split-empty-ico" />
                           <div className="td-remote-split-empty-title">
-                            {t('speedtest.remote_split_preview_title')}
+                            {t('drive.remote_split_preview_title')}
                           </div>
                           <p className="td-remote-split-empty-text">
-                            {t('speedtest.remote_split_ready_desc')}
+                            {t('drive.remote_split_ready_desc')}
                           </p>
                         </div>
                       )}
@@ -3632,12 +3632,12 @@ export function RemoteUploadModal({
                             {selectedBatchItemIds.has(focusedBatchItem.id) ? (
                               <>
                                 <Check size={11} strokeWidth={3} />
-                                <span>{t('speedtest.preflight_include_item')}</span>
+                                <span>{t('drive.preflight_include_item')}</span>
                               </>
                             ) : (
                               <>
                                 <Square size={11} />
-                                <span>{t('speedtest.preflight_skip_item')}</span>
+                                <span>{t('drive.preflight_skip_item')}</span>
                               </>
                             )}
                           </button>
@@ -3653,8 +3653,8 @@ export function RemoteUploadModal({
                     <div className="td-remote-gallery-title">
                       <Layers size={15} />
                       <span>
-                        {t('speedtest.remote_batch_all_groups_ready', { count: batchGroups.length })}
-                        {allBatchItems.length > 0 ? ` (${t('speedtest.remote_batch_item_count', { count: allBatchItems.length })})` : ''}
+                        {t('drive.remote_batch_all_groups_ready', { count: batchGroups.length })}
+                        {allBatchItems.length > 0 ? ` (${t('drive.remote_batch_item_count', { count: allBatchItems.length })})` : ''}
                       </span>
                     </div>
 
@@ -3663,20 +3663,20 @@ export function RemoteUploadModal({
                         type="button"
                         className="td-remote-quick-btn"
                         onClick={() => setIsEditingBatchText(true)}
-                        title={t('speedtest.remote_batch_edit_urls')}
+                        title={t('drive.remote_batch_edit_urls')}
                       >
                         <Pencil size={12} />
-                        <span>{t('speedtest.remote_batch_edit_urls')}</span>
+                        <span>{t('drive.remote_batch_edit_urls')}</span>
                       </button>
                       <button
                         type="button"
                         className="td-remote-quick-btn"
                         onClick={handleInspectBatchUrls}
                         disabled={batchInspecting}
-                        title={t('speedtest.remote_batch_reinspect_btn')}
+                        title={t('drive.remote_batch_reinspect_btn')}
                       >
                         <RefreshCw size={12} className={batchInspecting ? 'spin' : ''} />
-                        <span>{t('speedtest.remote_batch_reinspect_btn')}</span>
+                        <span>{t('drive.remote_batch_reinspect_btn')}</span>
                       </button>
                       <button
                         type="button"
@@ -3704,28 +3704,28 @@ export function RemoteUploadModal({
                       className={`td-remote-filter-pill ${batchFilterType === 'all' ? 'active' : ''}`}
                       onClick={() => setBatchFilterType('all')}
                     >
-                      {t('speedtest.remote_batch_filter_all')} ({allBatchItems.length})
+                      {t('drive.remote_batch_filter_all')} ({allBatchItems.length})
                     </button>
                     <button
                       type="button"
                       className={`td-remote-filter-pill ${batchFilterType === 'video' ? 'active' : ''}`}
                       onClick={() => setBatchFilterType('video')}
                     >
-                      {t('speedtest.remote_batch_filter_video')} ({allBatchItems.filter((i) => i.isVideo).length})
+                      {t('drive.remote_batch_filter_video')} ({allBatchItems.filter((i) => i.isVideo).length})
                     </button>
                     <button
                       type="button"
                       className={`td-remote-filter-pill ${batchFilterType === 'photo' ? 'active' : ''}`}
                       onClick={() => setBatchFilterType('photo')}
                     >
-                      {t('speedtest.remote_batch_filter_photo')} ({allBatchItems.filter((i) => i.kind === 'photo').length})
+                      {t('drive.remote_batch_filter_photo')} ({allBatchItems.filter((i) => i.kind === 'photo').length})
                     </button>
                     <button
                       type="button"
                       className={`td-remote-filter-pill ${batchFilterType === 'selected' ? 'active' : ''}`}
                       onClick={() => setBatchFilterType('selected')}
                     >
-                      {t('speedtest.remote_batch_filter_selected')} ({selectedBatchItems.length})
+                      {t('drive.remote_batch_filter_selected')} ({selectedBatchItems.length})
                     </button>
                   </div>
 
@@ -3757,7 +3757,7 @@ export function RemoteUploadModal({
                               </span>
                               {group.status === 'success' && (
                                 <span className="td-remote-batch-group-badge">
-                                  {t('speedtest.remote_batch_item_count', { count: group.items.length })}{groupTotalBytes > 0 ? ` · ~${formatDriveBytes(groupTotalBytes)}` : ''}
+                                  {t('drive.remote_batch_item_count', { count: group.items.length })}{groupTotalBytes > 0 ? ` · ~${formatDriveBytes(groupTotalBytes)}` : ''}
                                 </span>
                               )}
                             </div>
@@ -3770,15 +3770,15 @@ export function RemoteUploadModal({
                                   onClick={() => handleToggleBatchGroup(group.id, !allGroupSelected)}
                                 >
                                   {allGroupSelected
-                                    ? t('speedtest.remote_batch_group_deselect_all')
-                                    : t('speedtest.remote_batch_group_select_all')}
+                                    ? t('drive.remote_batch_group_deselect_all')
+                                    : t('drive.remote_batch_group_select_all')}
                                 </button>
                               )}
                               <button
                                 type="button"
                                 className="td-remote-batch-group-collapse-btn"
                                 onClick={() => handleToggleGroupCollapse(group.id)}
-                                aria-label={group.collapsed ? t('speedtest.remote_batch_expand_group') : t('speedtest.remote_batch_collapse_group')}
+                                aria-label={group.collapsed ? t('drive.remote_batch_expand_group') : t('drive.remote_batch_collapse_group')}
                               >
                                 {group.collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
                               </button>
@@ -3790,12 +3790,12 @@ export function RemoteUploadModal({
                               {group.status === 'resolving' ? (
                                 <div className="td-remote-batch-resolving-row">
                                   <Loader2 size={16} className="spin" />
-                                  <span>{t('speedtest.remote_inspecting')}</span>
+                                  <span>{t('drive.remote_inspecting')}</span>
                                 </div>
                               ) : group.status === 'error' ? (
                                 <div className="td-remote-batch-error-card">
                                   <div className="td-remote-batch-error-msg">
-                                    {group.errorMessage || t('speedtest.remote_batch_error_title')}
+                                    {group.errorMessage || t('drive.remote_batch_error_title')}
                                   </div>
                                   <div className="td-remote-batch-error-actions">
                                     <button
@@ -3804,7 +3804,7 @@ export function RemoteUploadModal({
                                       onClick={() => handleRetryBatchGroup(group.id)}
                                     >
                                       <RotateCcw size={12} />
-                                      <span>{t('speedtest.remote_batch_retry_link')}</span>
+                                      <span>{t('drive.remote_batch_retry_link')}</span>
                                     </button>
                                     <button
                                       type="button"
@@ -3812,7 +3812,7 @@ export function RemoteUploadModal({
                                       onClick={() => handleRemoveBatchGroup(group.id)}
                                     >
                                       <Trash2 size={12} />
-                                      <span>{t('speedtest.remote_batch_remove_link')}</span>
+                                      <span>{t('drive.remote_batch_remove_link')}</span>
                                     </button>
                                   </div>
                                 </div>
@@ -3971,13 +3971,13 @@ export function RemoteUploadModal({
               {submitting ? (
                 <>
                   <Loader2 size={15} className="spin" />
-                  <span>{t('speedtest.uploading_status')}</span>
+                  <span>{t('drive.uploading_status')}</span>
                 </>
               ) : batchInspecting ? (
                 <>
                   <Loader2 size={15} className="spin" />
                   <span>
-                    {t('speedtest.remote_batch_inspecting_status', {
+                    {t('drive.remote_batch_inspecting_status', {
                       current: batchInspectProgress.current,
                       total: batchInspectProgress.total,
                     })}
@@ -3996,7 +3996,7 @@ export function RemoteUploadModal({
                     {tab === 'single'
                       ? effectiveMediaItems.length > 1
                         ? selectedMediaItemIds.size === 0
-                          ? t('speedtest.remote_btn_select_at_least_one')
+                          ? t('drive.remote_btn_select_at_least_one')
                           : storagePolicy === 'custom_disk'
                           ? t('drive_tools.remote_btn_save_count', {
                               count: selectedMediaItemIds.size,
@@ -4007,7 +4007,7 @@ export function RemoteUploadModal({
                               count: selectedMediaItemIds.size,
                               size: selectedBytes > 0 ? ` (~${formatDriveBytes(selectedBytes)})` : '',
                             })
-                          : t('speedtest.remote_btn_upload_count', {
+                          : t('drive.remote_btn_upload_count', {
                               count: selectedMediaItemIds.size,
                               size: selectedBytes > 0 ? ` (~${formatDriveBytes(selectedBytes)})` : '',
                             })
@@ -4015,10 +4015,10 @@ export function RemoteUploadModal({
                         ? t('drive_tools.remote_btn_save_single')
                         : storagePolicy === 'disk_and_telegram'
                         ? t('drive_tools.remote_btn_save_upload_single')
-                        : t('speedtest.remote_btn_start_single')
+                        : t('drive.remote_btn_start_single')
                       : batchGroups.length > 0 && !isEditingBatchText
                       ? selectedBatchItems.length === 0
-                        ? t('speedtest.remote_batch_no_selected_hint')
+                        ? t('drive.remote_batch_no_selected_hint')
                         : storagePolicy === 'custom_disk'
                         ? t('drive_tools.remote_btn_save_count', {
                             count: selectedBatchItems.length,
@@ -4029,11 +4029,11 @@ export function RemoteUploadModal({
                             count: selectedBatchItems.length,
                             size: selectedBatchBytes > 0 ? ` (~${formatDriveBytes(selectedBatchBytes)})` : '',
                           })
-                        : t('speedtest.remote_batch_upload_btn', {
+                        : t('drive.remote_batch_upload_btn', {
                             count: selectedBatchItems.length,
                             size: selectedBatchBytes > 0 ? `~${formatDriveBytes(selectedBatchBytes)}` : '',
                           })
-                      : t('speedtest.remote_batch_inspect_btn')}
+                      : t('drive.remote_batch_inspect_btn')}
                   </span>
                 </>
               )}

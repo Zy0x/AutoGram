@@ -53,7 +53,7 @@ export const JobFilterSettings: React.FC<JobFilterSettingsProps> = ({
             disabled={disabled}
             className="rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
           />
-          <span className="text-slate-200">{t('speedtest.tab_drive_videos')}</span>
+          <span className="text-slate-200">{t('drive.tab_drive_videos')}</span>
         </label>
         <label className="flex items-center gap-2 p-2 bg-slate-950/60 rounded-lg border border-slate-800/80 cursor-pointer text-xs">
           <input
@@ -63,7 +63,7 @@ export const JobFilterSettings: React.FC<JobFilterSettingsProps> = ({
             disabled={disabled}
             className="rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
           />
-          <span className="text-slate-200">{t('speedtest.tab_drive_images')}</span>
+          <span className="text-slate-200">{t('drive.tab_drive_images')}</span>
         </label>
         <label className="flex items-center gap-2 p-2 bg-slate-950/60 rounded-lg border border-slate-800/80 cursor-pointer text-xs">
           <input

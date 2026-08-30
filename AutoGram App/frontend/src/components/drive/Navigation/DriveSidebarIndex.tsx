@@ -120,7 +120,7 @@ function writeSecOpen(key: string, open: boolean): void {
 }
 
 function formatRelativeAccessTime(timestamp: number | undefined, t: (key: string, opts?: any) => string): string {
-  if (!timestamp) return t('speedtest.time_recently');
+  if (!timestamp) return t('drive.time_recently');
   const now = Date.now();
   const diffMs = Math.max(0, now - timestamp);
   const diffMin = Math.floor(diffMs / 60000);
@@ -128,18 +128,18 @@ function formatRelativeAccessTime(timestamp: number | undefined, t: (key: string
   const diffDays = Math.floor(diffMs / 86400000);
 
   if (diffMin < 1) {
-    return t('speedtest.time_just_now');
+    return t('drive.time_just_now');
   }
   if (diffMin < 60) {
-    return t('speedtest.time_minutes_ago', { count: diffMin });
+    return t('drive.time_minutes_ago', { count: diffMin });
   }
   if (diffHours < 24) {
-    return t('speedtest.time_hours_ago', { count: diffHours });
+    return t('drive.time_hours_ago', { count: diffHours });
   }
   if (diffDays === 1) {
-    return t('speedtest.time_yesterday');
+    return t('drive.time_yesterday');
   }
-  return t('speedtest.time_days_ago', { count: diffDays });
+  return t('drive.time_days_ago', { count: diffDays });
 }
 
 type Props = {
@@ -607,17 +607,17 @@ export function DriveSidebar({
   const [isCompactSearchActive, setIsCompactSearchActive] = useState<boolean>(false);
 
   const getPingTooltip = () => {
-    if (pingState?.status === 'transferring') return t('speedtest.ping_transferring');
-    if (!pingState) return connected ? t('speedtest.ping_drive_connected') : t('speedtest.ping_connected');
-    if (pingState.status === 'offline') return t('speedtest.ping_offline');
-    if (pingState.status === 'disconnected') return t('speedtest.ping_disconnected');
+    if (pingState?.status === 'transferring') return t('drive.ping_transferring');
+    if (!pingState) return connected ? t('drive.ping_drive_connected') : t('drive.ping_connected');
+    if (pingState.status === 'offline') return t('drive.ping_offline');
+    if (pingState.status === 'disconnected') return t('drive.ping_disconnected');
     
     const msLabel = pingState.ms != null ? `${pingState.ms} ms` : '';
     let label = 'Koneksi';
-    if (pingState.status === 'excellent') label = t('speedtest.ping_excellent');
-    if (pingState.status === 'good') label = t('speedtest.ping_good');
-    if (pingState.status === 'fair') label = t('speedtest.ping_fair');
-    if (pingState.status === 'poor') label = t('speedtest.ping_poor');
+    if (pingState.status === 'excellent') label = t('drive.ping_excellent');
+    if (pingState.status === 'good') label = t('drive.ping_good');
+    if (pingState.status === 'fair') label = t('drive.ping_fair');
+    if (pingState.status === 'poor') label = t('drive.ping_poor');
 
     return `Telegram: ${label} ${msLabel ? `(${msLabel})` : ''}`;
   };
@@ -821,8 +821,8 @@ export function DriveSidebar({
     let chatName: string | null = null;
     let chatTooltip: string | null = null;
     if (parsedPath.isSavedMessages) {
-      chatName = t('speedtest.saved_messages');
-      chatTooltip = t('speedtest.saved_messages');
+      chatName = t('drive.saved_messages');
+      chatTooltip = t('drive.saved_messages');
     } else if (parsedPath.chatId !== null) {
       const cid = parsedPath.chatId;
       const matchFolder = folders.find((f) => {
@@ -1099,12 +1099,12 @@ export function DriveSidebar({
   const [chatFoldersScrolled, setChatFoldersScrolled] = useState(false);
   const [typeFilterMenuPosition, setTypeFilterMenuPosition] = useState({ left: 0, top: 0 });
 
-  const activeChatTypeLabel = chatTypeFilter === 'all' ? t('speedtest.filter_all_chats') :
-    chatTypeFilter === 'user' ? t('speedtest.filter_private') :
-    chatTypeFilter === 'group' ? t('speedtest.filter_groups') :
-    chatTypeFilter === 'channel' ? t('speedtest.filter_channels') :
-    chatTypeFilter === 'bot' ? t('speedtest.filter_bots') :
-    t('speedtest.filter_forums');
+  const activeChatTypeLabel = chatTypeFilter === 'all' ? t('drive.filter_all_chats') :
+    chatTypeFilter === 'user' ? t('drive.filter_private') :
+    chatTypeFilter === 'group' ? t('drive.filter_groups') :
+    chatTypeFilter === 'channel' ? t('drive.filter_channels') :
+    chatTypeFilter === 'bot' ? t('drive.filter_bots') :
+    t('drive.filter_forums');
 
   const toggleTypeFilterMenu = useCallback((event?: ReactMouseEvent<HTMLButtonElement>) => {
     const rect = event?.currentTarget.getBoundingClientRect() || typeFilterButtonRef.current?.getBoundingClientRect();
@@ -1995,8 +1995,8 @@ export function DriveSidebar({
               onExitToApp();
               onCloseDrawer?.();
             }}
-            title={t("speedtest.sidebar_back_to_app")}
-            aria-label={t("speedtest.sidebar_back_to_app")}
+            title={t("drive.sidebar_back_to_app")}
+            aria-label={t("drive.sidebar_back_to_app")}
           >
             <ArrowLeft size={18} />
           </button>
@@ -2014,14 +2014,14 @@ export function DriveSidebar({
           }}
           title={
             isCollapseAllowed
-              ? (effectiveCollapsed ? t('speedtest.sidebar_expand_tooltip') : t('speedtest.sidebar_collapse_tooltip'))
-              : t('speedtest.sidebar_close_tooltip')
+              ? (effectiveCollapsed ? t('drive.sidebar_expand_tooltip') : t('drive.sidebar_collapse_tooltip'))
+              : t('drive.sidebar_close_tooltip')
           }
           aria-expanded={isCollapseAllowed ? !effectiveCollapsed : undefined}
           aria-label={
             isCollapseAllowed
-              ? (effectiveCollapsed ? t('speedtest.sidebar_expand_tooltip') : t('speedtest.sidebar_collapse_tooltip'))
-              : t('speedtest.sidebar_close_tooltip')
+              ? (effectiveCollapsed ? t('drive.sidebar_expand_tooltip') : t('drive.sidebar_collapse_tooltip'))
+              : t('drive.sidebar_close_tooltip')
           }
         >
           <div className="td-sidebar-logo">
@@ -2034,8 +2034,8 @@ export function DriveSidebar({
             )}
           </div>
           <div className="td-sidebar-brand-text">
-            <strong>{t('speedtest.header_drive_title')}</strong>
-            <span>{t('speedtest.header_drive_subtitle')}</span>
+            <strong>{t('drive.header_drive_title')}</strong>
+            <span>{t('drive.header_drive_subtitle')}</span>
           </div>
         </button>
       </div>
@@ -2043,12 +2043,12 @@ export function DriveSidebar({
       <div className="td-sidebar-session td-only-expanded">
         <div className="td-session-header-row">
           <div className="td-session-header-left">
-            <label className="td-label">{t("speedtest.session_header")}</label>
+            <label className="td-label">{t("drive.session_header")}</label>
             <button
               type="button"
               className={`td-session-refresh-btn${busy || manualSpin ? ' is-refreshing' : ''}`}
-              title={t("speedtest.sidebar_refresh_all")}
-              aria-label={t("speedtest.sidebar_refresh_tooltip")}
+              title={t("drive.sidebar_refresh_all")}
+              aria-label={t("drive.sidebar_refresh_tooltip")}
               onClick={handleRefreshClick}
               disabled={busy}
             >
@@ -2059,34 +2059,34 @@ export function DriveSidebar({
             className={`td-conn-indicator status-${pingState?.status || (connected ? 'excellent' : 'disconnected')}`}
             title={
               pingState?.status === 'offline'
-                ? t('speedtest.ping_offline')
+                ? t('drive.ping_offline')
                 : pingState?.status === 'disconnected'
-                ? t('speedtest.ping_disconnected')
+                ? t('drive.ping_disconnected')
                 : pingState?.status === 'transferring'
-                ? t('speedtest.ping_transferring')
+                ? t('drive.ping_transferring')
                 : pingState?.status === 'excellent'
-                ? `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_excellent')}`
+                ? `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('drive.ping_excellent')}`
                 : pingState?.status === 'good'
-                ? `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_good')}`
+                ? `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('drive.ping_good')}`
                 : pingState?.status === 'fair'
-                ? `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_fair')}`
+                ? `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('drive.ping_fair')}`
                 : pingState?.status === 'poor'
-                ? `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_poor')}`
+                ? `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('drive.ping_poor')}`
                 : connected
-                ? t('speedtest.ping_drive_connected')
-                : t('speedtest.ping_not_connected')
+                ? t('drive.ping_drive_connected')
+                : t('drive.ping_not_connected')
             }
           >
             <span className={`td-conn-dot ${pingState?.status || (connected ? 'excellent' : 'disconnected')} pulse`} />
             <span className="td-conn-text">
-              {pingState?.status === 'offline' && t('speedtest.ping_offline')}
-              {pingState?.status === 'disconnected' && t('speedtest.ping_disconnected')}
-              {pingState?.status === 'transferring' && t('speedtest.ping_transferring')}
-              {pingState?.status === 'excellent' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_excellent')}`}
-              {pingState?.status === 'good' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_good')}`}
-              {pingState?.status === 'fair' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_fair')}`}
-              {pingState?.status === 'poor' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_poor')}`}
-              {!pingState && (connected ? t('speedtest.ping_drive_connected') : t('speedtest.ping_not_connected'))}
+              {pingState?.status === 'offline' && t('drive.ping_offline')}
+              {pingState?.status === 'disconnected' && t('drive.ping_disconnected')}
+              {pingState?.status === 'transferring' && t('drive.ping_transferring')}
+              {pingState?.status === 'excellent' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('drive.ping_excellent')}`}
+              {pingState?.status === 'good' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('drive.ping_good')}`}
+              {pingState?.status === 'fair' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('drive.ping_fair')}`}
+              {pingState?.status === 'poor' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('drive.ping_poor')}`}
+              {!pingState && (connected ? t('drive.ping_drive_connected') : t('drive.ping_not_connected'))}
             </span>
           </div>
         </div>
@@ -2107,10 +2107,10 @@ export function DriveSidebar({
                 className="td-reconnect-action-btn td-reconnect-check-btn"
                 onClick={handleRefreshClick}
                 disabled={busy || manualSpin}
-                title={t('speedtest.sidebar_refresh_tooltip')}
+                title={t('drive.sidebar_refresh_tooltip')}
               >
                 <RefreshCw size={12} className={busy || manualSpin ? 'spin' : ''} />
-                <span>{busy || manualSpin ? t('accounts.status_checking') : t('speedtest.btn_check_connection')}</span>
+                <span>{busy || manualSpin ? t('accounts.status_checking') : t('drive.btn_check_connection')}</span>
               </button>
               {onOpenRelogModal && (
                 <button
@@ -2163,8 +2163,8 @@ export function DriveSidebar({
                   locationSearchRef.current?.focus();
                 }, 100);
               }}
-              title={t("speedtest.sidebar_search_title")}
-              aria-label={t("speedtest.sidebar_search_aria")}
+              title={t("drive.sidebar_search_title")}
+              aria-label={t("drive.sidebar_search_aria")}
             >
               <Search size={18} />
             </button>
@@ -2180,9 +2180,9 @@ export function DriveSidebar({
               spellCheck={false}
               value={locationQuery}
               onChange={(e) => onChatQuery(e.target.value)}
-              placeholder={t("speedtest.sidebar_search_location_ph")}
-              aria-label={t("speedtest.sidebar_search_aria")}
-              title={t("speedtest.sidebar_search_title")}
+              placeholder={t("drive.sidebar_search_location_ph")}
+              aria-label={t("drive.sidebar_search_aria")}
+              title={t("drive.sidebar_search_title")}
               onKeyDown={(e) => {
                 if (e.key === 'Escape') {
                   if (!locationQuery) {
@@ -2207,8 +2207,8 @@ export function DriveSidebar({
             <button
               type="button"
               className="td-location-search-clear"
-              title={t('speedtest.clear_search')}
-              aria-label={t("speedtest.sidebar_clear_search")}
+              title={t('drive.clear_search')}
+              aria-label={t("drive.sidebar_clear_search")}
               onClick={() => {
                 onChatQuery('');
                 setIsCompactSearchActive(false);
@@ -2246,7 +2246,7 @@ export function DriveSidebar({
             >
               <FolderPlus size={16} aria-hidden className="td-btn-add-icon" />
               <span className="td-rail-btn-label">
-                {createIsSubfolder ? t('speedtest.btn_create_folder') : t('speedtest.btn_create_drive')}
+                {createIsSubfolder ? t('drive.btn_create_folder') : t('drive.btn_create_drive')}
               </span>
             </button>
 
@@ -2260,8 +2260,8 @@ export function DriveSidebar({
                   locationSearchRef.current?.select();
                 }, 30);
               }}
-              title={t("speedtest.sidebar_search_title")}
-              aria-label={t("speedtest.sidebar_search_aria")}
+              title={t("drive.sidebar_search_title")}
+              aria-label={t("drive.sidebar_search_aria")}
             >
               <Search size={16} />
             </button>
@@ -2273,7 +2273,7 @@ export function DriveSidebar({
         rootDriveCount >= DRIVE_FOLDER_SOFT_LIMIT) && (
         <p className="td-channel-limit-banner td-only-expanded" role="status">
           {channelLimitWarning ||
-            t('speedtest.drive_root_limit_warning', { count: rootDriveCount })}
+            t('drive.drive_root_limit_warning', { count: rootDriveCount })}
         </p>
       )}
 
@@ -2298,9 +2298,9 @@ export function DriveSidebar({
                 spellCheck={false}
                 value={locationQuery}
                 onChange={(e) => onChatQuery(e.target.value)}
-                placeholder={t("speedtest.sidebar_search_location_ph")}
-                aria-label={t("speedtest.sidebar_search_aria")}
-                title={t("speedtest.sidebar_search_title")}
+                placeholder={t("drive.sidebar_search_location_ph")}
+                aria-label={t("drive.sidebar_search_aria")}
+                title={t("drive.sidebar_search_title")}
                 onDragOver={(e) => e.stopPropagation()}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && isPathIdMode && parsedPath.isPathId) {
@@ -2317,8 +2317,8 @@ export function DriveSidebar({
                 <button
                   type="button"
                   className="td-location-search-clear"
-                  title={t('speedtest.clear_search')}
-                  aria-label={t("speedtest.sidebar_clear_search")}
+                  title={t('drive.clear_search')}
+                  aria-label={t("drive.sidebar_clear_search")}
                   onClick={() => onChatQuery('')}
                 >
                   <X size={14} />
@@ -2338,10 +2338,10 @@ export function DriveSidebar({
                 data-drop-key="tab:recent"
                 className={`td-sidebar-tab-btn${activeTab === 'recent' ? ' is-active' : ''}${overKey === 'tab:recent' ? ' is-drag-hover' : ''}`}
                 onClick={() => setActiveTab('recent')}
-                title={t('speedtest.sidebar_recents_header')}
+                title={t('drive.sidebar_recents_header')}
               >
                 <Clock size={13} aria-hidden />
-                <span className="td-sidebar-tab-label">{t('speedtest.sidebar_tab_recent')}</span>
+                <span className="td-sidebar-tab-label">{t('drive.sidebar_tab_recent')}</span>
                 {(hasLocationQuery || filteredRecents.length > 0) && (
                   <span className="td-tab-badge">
                     {hasLocationQuery ? matchingRecents.length : filteredRecents.length}
@@ -2360,7 +2360,7 @@ export function DriveSidebar({
                 title={t('ui.generated.drives_td_d85c6ed')}
               >
                 <HardDrive size={13} aria-hidden />
-                <span className="td-sidebar-tab-label">{t('speedtest.sidebar_tab_drives')}</span>
+                <span className="td-sidebar-tab-label">{t('drive.sidebar_tab_drives')}</span>
                 {(hasLocationQuery || rootDriveCount > 0) && (
                   <span className="td-tab-badge">
                     {hasLocationQuery ? matchingRootDriveCount : rootDriveCount}
@@ -2379,7 +2379,7 @@ export function DriveSidebar({
                 title={t('ui.generated.daftar_chat_71a8e93')}
               >
                 <MessageSquare size={13} aria-hidden />
-                <span className="td-sidebar-tab-label">{t('speedtest.sidebar_tab_telegram')}</span>
+                <span className="td-sidebar-tab-label">{t('drive.sidebar_tab_telegram')}</span>
                 {(hasLocationQuery || chats.length > 0) && (
                   <span className="td-tab-badge">
                     {hasLocationQuery ? chatRows.length : (chatIndex.length || chats.length)}
@@ -2399,7 +2399,7 @@ export function DriveSidebar({
                 data-drop-key="tab:recent"
                 className={`td-collapsed-tab-icon${activeTab === 'recent' ? ' is-active' : ''}${overKey === 'tab:recent' ? ' is-drag-hover' : ''}`}
                 onClick={() => setActiveTab('recent')}
-                title={`${t('speedtest.sidebar_tab_recent')} (${hasLocationQuery ? matchingRecents.length : filteredRecents.length})`}
+                title={`${t('drive.sidebar_tab_recent')} (${hasLocationQuery ? matchingRecents.length : filteredRecents.length})`}
               >
                 <Clock size={15} aria-hidden />
                 {(hasLocationQuery || filteredRecents.length > 0) && (
@@ -2415,7 +2415,7 @@ export function DriveSidebar({
                 data-drop-key="tab:drives"
                 className={`td-collapsed-tab-icon${activeTab === 'drives' ? ' is-active' : ''}${overKey === 'tab:drives' ? ' is-drag-hover' : ''}`}
                 onClick={() => setActiveTab('drives')}
-                title={`${t('speedtest.sidebar_tab_drives')} (${hasLocationQuery ? matchingRootDriveCount : rootDriveCount})`}
+                title={`${t('drive.sidebar_tab_drives')} (${hasLocationQuery ? matchingRootDriveCount : rootDriveCount})`}
               >
                 <HardDrive size={15} aria-hidden />
                 {(hasLocationQuery || rootDriveCount > 0) && (
@@ -2431,7 +2431,7 @@ export function DriveSidebar({
                 data-drop-key="tab:chats"
                 className={`td-collapsed-tab-icon${activeTab === 'chats' ? ' is-active' : ''}${overKey === 'tab:chats' ? ' is-drag-hover' : ''}`}
                 onClick={() => setActiveTab('chats')}
-                title={`${t('speedtest.sidebar_tab_telegram')} (${hasLocationQuery ? chatRows.length : (chatIndex.length || chats.length)})`}
+                title={`${t('drive.sidebar_tab_telegram')} (${hasLocationQuery ? chatRows.length : (chatIndex.length || chats.length)})`}
               >
                 <MessageSquare size={15} aria-hidden />
                 {(hasLocationQuery || chats.length > 0) && (
@@ -2478,10 +2478,10 @@ export function DriveSidebar({
           <p className="td-location-search-meta td-only-expanded">
             {layoutModel === 'model_a'
               ? activeTab === 'recent'
-                ? `${matchingRecents.length} ${t('speedtest.sidebar_tab_recent')}`
+                ? `${matchingRecents.length} ${t('drive.sidebar_tab_recent')}`
                 : activeTab === 'drives'
-                  ? `${folderRows.length} ${t('speedtest.sidebar_tab_drives')}`
-                  : `${chatRows.length} ${t('speedtest.sidebar_tab_telegram')}`
+                  ? `${folderRows.length} ${t('drive.sidebar_tab_drives')}`
+                  : `${chatRows.length} ${t('drive.sidebar_tab_telegram')}`
               : `${[
                   showSaved ? 1 : 0,
                   matchingRecents.length,
@@ -2588,7 +2588,7 @@ export function DriveSidebar({
                 <DropRow
                   dropKeyStr={key}
                   className={`td-quick-item ${locationKind === 'saved' ? 'active' : ''}`}
-                  title={t('speedtest.sidebar_saved_messages_tooltip')}
+                  title={t('drive.sidebar_saved_messages_tooltip')}
                   isOver={overKey === key}
                   invalidTarget={isSelf(key)}
                   dragLive={dragLive}
@@ -2601,16 +2601,16 @@ export function DriveSidebar({
                     onLocationContextMenu?.({
                       locationKind: 'saved',
                       id: null,
-                      name: t('speedtest.saved_messages') || 'Saved Messages',
+                      name: t('drive.saved_messages') || 'Saved Messages',
                       x: e.clientX,
                       y: e.clientY,
                     });
                   }}
                 >
                   <span className="td-folder-ico">
-                    <PeerAvatar peerId={0} creds={creds} title={t('speedtest.saved_messages')} fallback={<Home size={15} />} />
+                    <PeerAvatar peerId={0} creds={creds} title={t('drive.saved_messages')} fallback={<Home size={15} />} />
                   </span>
-                  <span className="td-folder-label td-only-expanded">{t('speedtest.saved_messages')}</span>
+                  <span className="td-folder-label td-only-expanded">{t('drive.saved_messages')}</span>
                 </DropRow>
               );
             })()}
@@ -2675,7 +2675,7 @@ export function DriveSidebar({
               <DropRow
                 dropKeyStr={key}
                 className={`td-folder-row ${locationKind === 'saved' ? 'active' : ''}`}
-                title={t("speedtest.sidebar_saved_messages_tooltip")}
+                title={t("drive.sidebar_saved_messages_tooltip")}
                 isOver={overKey === key}
                 invalidTarget={isSelf(key)}
                 dragLive={dragLive}
@@ -2697,11 +2697,11 @@ export function DriveSidebar({
                   <PeerAvatar
                     peerId={0}
                     creds={creds}
-                    title={t('speedtest.saved_messages')}
+                    title={t('drive.saved_messages')}
                     fallback={<Home size={16} />}
                   />
                 </span>
-                <span className="td-folder-label">{t("speedtest.saved_messages")}</span>
+                <span className="td-folder-label">{t("drive.saved_messages")}</span>
               </DropRow>
             );
           })()}
@@ -2765,13 +2765,13 @@ export function DriveSidebar({
           <div className="td-recents" data-recent="1">
             <div className="td-recents-header td-only-expanded">
               <Clock size={12} className="td-recents-icon" aria-hidden />
-              <span className="td-recents-title">{t("speedtest.sidebar_recents_header")}</span>
+              <span className="td-recents-title">{t("drive.sidebar_recents_header")}</span>
               <span className="td-recents-count">
                 {hasLocationQuery ? `${matchingRecents.length}/${filteredRecents.length}` : filteredRecents.length}
               </span>
             </div>
             {hasLocationQuery && matchingRecents.length === 0 ? (
-              <p className="td-sidebar-hint td-only-expanded">{t('speedtest.sidebar_recents_empty')}</p>
+              <p className="td-sidebar-hint td-only-expanded">{t('drive.sidebar_recents_empty')}</p>
             ) : (
               <div className="td-recents-list">
                 {matchingRecents.slice(0, 8).map((r: any) => {
@@ -2904,19 +2904,19 @@ export function DriveSidebar({
                 aria-hidden
               />
               <span className="td-section-toggle-label">{t('ui.generated.drives_td_d85c6ed')}</span>
-              <span className="td-chat-count" title={t("speedtest.sidebar_td_count")}>
+              <span className="td-chat-count" title={t("drive.sidebar_td_count")}>
                 {hasLocationQuery ? `${matchingRootDriveCount}/${rootDriveCount}` : rootDriveCount}
               </span>
             </button>
           )}
           {foldersExpanded && folders.length === 0 && !loadingFolders && !hasLocationQuery && (
             <p className="td-sidebar-hint td-only-expanded">
-              <strong>{t('speedtest.perspective_drive_short')}</strong> {t('ui.generated.root_penanda_7790d14')} <code>{t('ui.generated.td_1294383')}</code>{t('ui.generated.buka_drive_lalu_d92c640')}{' '}
+              <strong>{t('drive.perspective_drive_short')}</strong> {t('ui.generated.root_penanda_7790d14')} <code>{t('ui.generated.td_1294383')}</code>{t('ui.generated.buka_drive_lalu_d92c640')}{' '}
               <strong>{t('ui.generated.folder_0d9a3d4')}</strong>{t('ui.generated.folder_bisa_berisi_folder_lagi_chat_di_bawah_bba5941')}
             </p>
           )}
           {foldersExpanded && hasLocationQuery && folderRows.length === 0 && folders.length > 0 && (
-            <p className="td-sidebar-hint td-only-expanded">{t('speedtest.sidebar_drives_empty')}</p>
+            <p className="td-sidebar-hint td-only-expanded">{t('drive.sidebar_drives_empty')}</p>
           )}
           {foldersExpanded &&
             displayFolderTreeRows.map(({ folder: f, depth, hasChildren }) => {
@@ -2975,7 +2975,7 @@ export function DriveSidebar({
                         className="td-folder-tree-toggle"
                         aria-label={isOpen ? 'Ciutkan folder' : 'Perluas folder'}
                         aria-expanded={isOpen}
-                        title={isOpen ? t('speedtest.sidebar_collapse_subfolder') : t('speedtest.sidebar_expand_subfolder')}
+                        title={isOpen ? t('drive.sidebar_collapse_subfolder') : t('drive.sidebar_expand_subfolder')}
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -3010,12 +3010,12 @@ export function DriveSidebar({
                   <span className="td-folder-label">{f.name}</span>
                   {/* Badges only on roots / orphan when searching or in stacked model */}
                   {itemKind === 'drive' && !f.is_orphan && depth === 0 && (layoutModel === 'model_c' || hasLocationQuery) && (
-                    <span className="td-badge-drive td-only-expanded" title={t("speedtest.sidebar_drive_root")}>
-                      {t('speedtest.perspective_drive_short')}
+                    <span className="td-badge-drive td-only-expanded" title={t("drive.sidebar_drive_root")}>
+                      {t('drive.perspective_drive_short')}
                     </span>
                   )}
                   {f.is_orphan && (
-                    <span className="td-folder-orphan-badge td-only-expanded" title={t("speedtest.sidebar_orphan_parent")}>
+                    <span className="td-folder-orphan-badge td-only-expanded" title={t("drive.sidebar_orphan_parent")}>
                       {t('ui.generated.yatim_fbb507d')}
                     </span>
                   )}
@@ -3037,7 +3037,7 @@ export function DriveSidebar({
               <DropRow
                 dropKeyStr={key}
                 className="td-folder-row active td-section-pinned"
-                title={`${f.name} (${t('speedtest.active_folder_click_header')})`}
+                title={`${f.name} (${t('drive.active_folder_click_header')})`}
                 isOver={overKey === key}
                 invalidTarget={isSelf(key)}
                 dragLive={dragLive}
@@ -3066,7 +3066,7 @@ export function DriveSidebar({
           <div
             className="td-zone-divider"
             role="separator"
-            aria-label={t("speedtest.sidebar_resizer_aria")}
+            aria-label={t("drive.sidebar_resizer_aria")}
           >
             <span className="td-zone-divider-line" aria-hidden />
           </div>
@@ -3105,9 +3105,9 @@ export function DriveSidebar({
               className={`td-section-chevron ${chatsExpanded ? 'is-open' : ''}`}
               aria-hidden
             />
-            <span className="td-section-toggle-label">{t("speedtest.sidebar_chats_header")}</span>
+            <span className="td-section-toggle-label">{t("drive.sidebar_chats_header")}</span>
             {chatIndex.length > 0 && (
-              <span className="td-chat-count" title={t("speedtest.sidebar_chats_tooltip")}>
+              <span className="td-chat-count" title={t("drive.sidebar_chats_tooltip")}>
                 {hasLocationQuery
                   ? `${chatRows.length}/${chatIndex.length}`
                   : chatIndex.length}
@@ -3118,7 +3118,7 @@ export function DriveSidebar({
         )}
         {chatsExpanded && chatFolders.length > 0 && (
           <div className="td-chat-folders-wrap td-only-expanded">
-            <span className="td-chat-folders-label">{t("speedtest.sidebar_chat_folders_header")}</span>
+            <span className="td-chat-folders-label">{t("drive.sidebar_chat_folders_header")}</span>
             <div
               ref={chatFoldersScrollerRef}
               className={`td-chat-folders-row${chatFoldersScrolled ? ' is-scrolled' : ''}`}
@@ -3137,7 +3137,7 @@ export function DriveSidebar({
                 className={`td-chat-type-filter-compact td-chat-type-filter-pill${chatTypeFilter !== 'all' ? ' active' : ''}${chatFoldersScrolled ? ' is-visible' : ''}`}
                 onClick={toggleTypeFilterMenu}
                 title={activeChatTypeLabel}
-                aria-label={`${t('speedtest.filter_by_type')}: ${activeChatTypeLabel}`}
+                aria-label={`${t('drive.filter_by_type')}: ${activeChatTypeLabel}`}
                 aria-expanded={typeFilterMenuOpen}
                 tabIndex={chatFoldersScrolled ? 0 : -1}
               >
@@ -3150,8 +3150,8 @@ export function DriveSidebar({
                   type="button"
                   className={`td-chat-folder-chip td-chat-type-filter-pill ${chatTypeFilter !== 'all' ? 'active' : ''}`}
                   onClick={toggleTypeFilterMenu}
-                  title={t('speedtest.filter_by_type')}
-                  aria-label={t('speedtest.filter_by_type')}
+                  title={t('drive.filter_by_type')}
+                  aria-label={t('drive.filter_by_type')}
                   aria-expanded={typeFilterMenuOpen}
                 >
                   <Filter size={13} className="td-filter-icon" />
@@ -3172,7 +3172,7 @@ export function DriveSidebar({
                       onClick={() => { setChatTypeFilter('all'); setTypeFilterMenuOpen(false); }}
                     >
                       <Sparkles size={14} style={{ color: '#f59e0b' }} />
-                      <span>{t('speedtest.filter_all_chats')}</span>
+                      <span>{t('drive.filter_all_chats')}</span>
                       {chatTypeFilter === 'all' && <Check size={13} style={{ marginLeft: 'auto', color: '#f59e0b' }} />}
                     </button>
                     <button
@@ -3181,7 +3181,7 @@ export function DriveSidebar({
                       onClick={() => { setChatTypeFilter('user'); setTypeFilterMenuOpen(false); }}
                     >
                       <User size={14} style={{ color: '#38bdf8' }} />
-                      <span>{t('speedtest.filter_private')}</span>
+                      <span>{t('drive.filter_private')}</span>
                       {chatTypeFilter === 'user' && <Check size={13} style={{ marginLeft: 'auto', color: '#f59e0b' }} />}
                     </button>
                     <button
@@ -3190,7 +3190,7 @@ export function DriveSidebar({
                       onClick={() => { setChatTypeFilter('group'); setTypeFilterMenuOpen(false); }}
                     >
                       <Users size={14} style={{ color: '#818cf8' }} />
-                      <span>{t('speedtest.filter_groups')}</span>
+                      <span>{t('drive.filter_groups')}</span>
                       {chatTypeFilter === 'group' && <Check size={13} style={{ marginLeft: 'auto', color: '#f59e0b' }} />}
                     </button>
                     <button
@@ -3199,7 +3199,7 @@ export function DriveSidebar({
                       onClick={() => { setChatTypeFilter('channel'); setTypeFilterMenuOpen(false); }}
                     >
                       <Radio size={14} style={{ color: '#34d399' }} />
-                      <span>{t('speedtest.filter_channels')}</span>
+                      <span>{t('drive.filter_channels')}</span>
                       {chatTypeFilter === 'channel' && <Check size={13} style={{ marginLeft: 'auto', color: '#f59e0b' }} />}
                     </button>
                     <button
@@ -3208,7 +3208,7 @@ export function DriveSidebar({
                       onClick={() => { setChatTypeFilter('bot'); setTypeFilterMenuOpen(false); }}
                     >
                       <Bot size={14} style={{ color: '#c084fc' }} />
-                      <span>{t('speedtest.filter_bots')}</span>
+                      <span>{t('drive.filter_bots')}</span>
                       {chatTypeFilter === 'bot' && <Check size={13} style={{ marginLeft: 'auto', color: '#f59e0b' }} />}
                     </button>
                     <button
@@ -3217,7 +3217,7 @@ export function DriveSidebar({
                       onClick={() => { setChatTypeFilter('forum'); setTypeFilterMenuOpen(false); }}
                     >
                       <MessagesSquare size={14} style={{ color: '#f472b6' }} />
-                      <span>{t('speedtest.filter_forums')}</span>
+                      <span>{t('drive.filter_forums')}</span>
                       {chatTypeFilter === 'forum' && <Check size={13} style={{ marginLeft: 'auto', color: '#f59e0b' }} />}
                     </button>
                   </div>,
@@ -3225,7 +3225,7 @@ export function DriveSidebar({
                 )}
               </div>
 
-              <div className="td-chat-folders" role="tablist" aria-label={t("speedtest.sidebar_chat_folders_aria")}>
+              <div className="td-chat-folders" role="tablist" aria-label={t("drive.sidebar_chat_folders_aria")}>
               {chatFolders.map((folder) => {
                 const active = folder.id === activeChatFolderId;
                 return (
@@ -3239,7 +3239,7 @@ export function DriveSidebar({
                     tabIndex={active ? 0 : -1}
                     className={`td-chat-folder-chip${active ? ' active' : ''}${overKey === chatFolderDropKey(folder.id) ? ' is-drag-hover is-drop-over' : ''}`}
                     style={{ '--td-chat-folder-color': telegramFolderColor(folder.color) } as React.CSSProperties}
-                    title={`${folder.id === 0 ? t("speedtest.all_chats") : folder.title}${folder.kind === 'shared' ? ` · ${t("speedtest.shared_telegram_folder")}` : ''}`}
+                    title={`${folder.id === 0 ? t("drive.all_chats") : folder.title}${folder.kind === 'shared' ? ` · ${t("drive.shared_telegram_folder")}` : ''}`}
                     onClick={() => onSelectChatFolder?.(folder.id)}
                     onPointerEnter={() => {
                       if (!anyDragLive) return;
@@ -3281,7 +3281,7 @@ export function DriveSidebar({
                     }}
                   >
                     {folder.emoticon && <span aria-hidden>{folder.emoticon}</span>}
-                    <span>{folder.id === 0 ? t("speedtest.all_chats") : folder.title}</span>
+                    <span>{folder.id === 0 ? t("drive.all_chats") : folder.title}</span>
                   </button>
                 );
               })}
@@ -3356,9 +3356,9 @@ export function DriveSidebar({
                       {c.is_forum && (
                         <span
                           className="td-badge-forum td-only-expanded"
-                          title={t('speedtest.group_with_topics')}
+                          title={t('drive.group_with_topics')}
                         >
-                          {t('speedtest.label_topic')}
+                          {t('drive.label_topic')}
                         </span>
                       )}
                     </DropRow>
@@ -3395,9 +3395,9 @@ export function DriveSidebar({
                         }`}
                         title={
                           isSelf(key)
-                            ? `${c.name} — ${t('speedtest.source_location_choose_other')}`
-                            : `${c.name} (${c.type}) — ${t('speedtest.right_click_menu')}${
-                                c.is_forum ? ` · ${t('speedtest.label_topic')}` : ''
+                            ? `${c.name} — ${t('drive.source_location_choose_other')}`
+                            : `${c.name} (${c.type}) — ${t('drive.right_click_menu')}${
+                                c.is_forum ? ` · ${t('drive.label_topic')}` : ''
                               }`
                         }
                         isOver={overKey === key}
@@ -3445,7 +3445,7 @@ export function DriveSidebar({
               <DropRow
                 dropKeyStr={key}
                 className="td-folder-row active td-section-pinned"
-                title={`${c.name} (${t('speedtest.active_chat_click_header')})`}
+                title={`${c.name} (${t('drive.active_chat_click_header')})`}
                 isOver={overKey === key}
                 invalidTarget={isSelf(key)}
                 dragLive={dragLive}
@@ -3475,8 +3475,8 @@ export function DriveSidebar({
           >
             <span className="td-folder-label">
               {chatsLoadingMore
-                ? t('speedtest.sidebar_loading_more_chats', { count: chatIndex.length })
-                : t('speedtest.sidebar_load_more_chats', { count: chatIndex.length })}
+                ? t('drive.sidebar_loading_more_chats', { count: chatIndex.length })
+                : t('drive.sidebar_load_more_chats', { count: chatIndex.length })}
             </span>
           </button>
         )}
@@ -3497,7 +3497,7 @@ export function DriveSidebar({
               }}
             >
               <RefreshCw className="w-3 h-3 animate-pulse" />
-              {t('speedtest.btn_retry')}
+              {t('drive.btn_retry')}
             </button>
           </div>
         ) : (

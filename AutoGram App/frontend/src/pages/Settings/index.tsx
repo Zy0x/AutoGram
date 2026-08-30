@@ -698,7 +698,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
     } catch (err) {
       console.error('Failed to clear cache', err);
       setClearStatus('error');
-      showToast('error', String(t('speedtest.cache_clear_error')));
+      showToast('error', String(t('drive.cache_clear_error')));
     } finally {
       setIsClearing(false);
     }
@@ -721,7 +721,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
       }
     } catch (err) {
       console.error('Failed to purge orphaned sessions', err);
-      showToast('error', String(t('speedtest.cache_clear_error')));
+      showToast('error', String(t('drive.cache_clear_error')));
     } finally {
       setIsPurgingOrphans(false);
     }

@@ -34,11 +34,11 @@ export const ThumbnailImage: React.FC<ThumbnailImageProps> = ({
     return (
       <div
         className={`w-full h-full flex flex-col items-center justify-center bg-slate-900/80 p-2 text-center select-none ${className}`}
-        title={t('speedtest.thumbnail_corrupted')}
+        title={t('drive.thumbnail_corrupted')}
       >
         <ImageOff size={28} className="text-rose-500/80 mb-1" />
         <span className="text-[10px] font-medium text-rose-400 leading-tight">
-          {t('speedtest.thumbnail_corrupted_short')}
+          {t('drive.thumbnail_corrupted_short')}
         </span>
       </div>
     );

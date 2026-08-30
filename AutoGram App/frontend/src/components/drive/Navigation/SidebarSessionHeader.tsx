@@ -34,7 +34,7 @@ export const SidebarSessionHeader: React.FC<SidebarSessionHeaderProps> = ({
           type="button"
           onClick={onExitToApp}
           className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-all"
-          title={t('speedtest.sidebar_back_to_app')}
+          title={t('drive.sidebar_back_to_app')}
         >
           <ArrowLeft size={16} />
         </button>
@@ -62,7 +62,7 @@ export const SidebarSessionHeader: React.FC<SidebarSessionHeaderProps> = ({
             ? 'bg-red-500/20 text-red-300 border border-red-500/40 hover:bg-red-500/30'
             : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
         }`}
-        title={t('speedtest.sidebar_refresh_tooltip')}
+        title={t('drive.sidebar_refresh_tooltip')}
       >
         {loadingDrive ? (
           <Loader2 size={16} className="animate-spin text-indigo-400" />

@@ -288,7 +288,7 @@ export const MediaVideoPlayer: React.FC<MediaVideoPlayerProps> = ({
             <button
               onClick={toggleFullscreen}
               className="p-2 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-all"
-              title={t("speedtest.fullscreen")}
+              title={t("drive.fullscreen")}
             >
               {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </button>

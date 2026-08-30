@@ -147,7 +147,7 @@ export const TgsLottiePlayer: React.FC<TgsLottiePlayerProps> = ({
         anim.addEventListener('data_failed', () => {
           if (active) {
             window.clearTimeout(timer);
-            const msg = t('speedtest.tgs_lottie_invalid_data');
+            const msg = t('drive.tgs_lottie_invalid_data');
             const err = new Error(msg);
             setError(msg);
             setIsReady(false);
@@ -162,7 +162,7 @@ export const TgsLottiePlayer: React.FC<TgsLottiePlayerProps> = ({
         if (active) {
           window.clearTimeout(timer);
           console.warn('[TgsLottiePlayer] Error loading .tgs animation:', err);
-          const msg = t('speedtest.tgs_lottie_load_failed');
+          const msg = t('drive.tgs_lottie_load_failed');
           setError(err?.message || msg);
           setIsReady(false);
           setShowSlowLoader(false);
@@ -228,7 +228,7 @@ export const TgsLottiePlayer: React.FC<TgsLottiePlayerProps> = ({
       {showSlowLoader && !isReady && !error && (
         <div className="absolute flex items-center gap-2 bg-slate-900/90 text-sky-400 text-xs px-3 py-1.5 rounded-full border border-sky-500/30 backdrop-blur-md shadow-lg pointer-events-none z-10 animate-fade-in">
           <Loader2 size={14} className="animate-spin" />
-          <span>{t('speedtest.label_loading')}</span>
+          <span>{t('drive.label_loading')}</span>
         </div>
       )}
 

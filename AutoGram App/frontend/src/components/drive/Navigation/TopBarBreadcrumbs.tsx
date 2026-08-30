@@ -30,15 +30,15 @@ export const TopBarBreadcrumbs: React.FC<TopBarBreadcrumbsProps> = ({
       >
         {locationKind === 'saved' ? (
           <>
-            <Home size={14} className="text-amber-400" /> {t('speedtest.saved_messages')}
+            <Home size={14} className="text-amber-400" /> {t('drive.saved_messages')}
           </>
         ) : locationKind === 'chat' ? (
           <>
-            <MessageSquare size={14} className="text-emerald-400" /> {t('speedtest.zip_dest_chat')}
+            <MessageSquare size={14} className="text-emerald-400" /> {t('drive.zip_dest_chat')}
           </>
         ) : (
           <>
-            <Folder size={14} className="text-indigo-400" /> {t('speedtest.drive_root')}
+            <Folder size={14} className="text-indigo-400" /> {t('drive.drive_root')}
           </>
         )}
       </button>

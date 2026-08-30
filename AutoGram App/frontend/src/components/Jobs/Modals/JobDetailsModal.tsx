@@ -39,7 +39,7 @@ export function JobDetailsModal({ job, fallbackTriggered, onClose }: JobDetailsM
             <Settings size={20} color="var(--primary)" style={{ flexShrink: 0 }} />
             {t('ui.generated.job_configuration_details_332db71')}
           </h3>
-          <button type="button" onClick={onClose} className="btn-tertiary" aria-label={t('speedtest.preview_close_btn')}>
+          <button type="button" onClick={onClose} className="btn-tertiary" aria-label={t('drive.preview_close_btn')}>
             <X size={20} />
           </button>
         </div>
@@ -53,7 +53,7 @@ export function JobDetailsModal({ job, fallbackTriggered, onClose }: JobDetailsM
               <DetailItem label={t('ui.generated.job_id_7707976')} value={job.id} />
               <DetailItem label={t('jobs.col_job_name')} value={job.job_name} />
               <DetailItem label={t('ui.generated.profile_session_0adb384')} value={job.profile_name || config.session} />
-              <DetailItem label={t('speedtest.mode_label')} value={
+              <DetailItem label={t('drive.mode_label')} value={
                 fallbackTriggered 
                   ? <span style={{ color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '4px' }} title={i18n.t("jobs.chat_restrictions_fallback")}><Shield size={14} /> {i18n.t("jobs.fallback_clean_copy_label")}</span>
                   : (job.transfer_mode || config.mode)
@@ -64,7 +64,7 @@ export function JobDetailsModal({ job, fallbackTriggered, onClose }: JobDetailsM
 
           <div style={{ marginBottom: '24px' }}>
             <h4 style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 12px 0' }}>
-              <Sliders size={16} /> {t('speedtest.tools_tab_settings')}
+              <Sliders size={16} /> {t('drive.tools_tab_settings')}
             </h4>
             <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
               <DetailItem label={t('ui.generated.fetch_direction_d73cc40')} value={config.fetchDirection || config.fetch_direction || 'Newest First'} />

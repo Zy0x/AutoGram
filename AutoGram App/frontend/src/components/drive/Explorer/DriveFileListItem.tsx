@@ -22,10 +22,10 @@ type Props = {
 
 export function getDriveFileTypeLabel(file: DriveFile, t: (key: string, opts?: any) => string): string {
   if (file.icon_type === 'folder') {
-    return t('speedtest.file_type_folder');
+    return t('drive.file_type_folder');
   }
   if (file.icon_type === 'link') {
-    return t('speedtest.file_type_link');
+    return t('drive.file_type_link');
   }
   const mime = (file.mime_type || '').toLowerCase();
   const name = (file.name || file.original_name || '').toLowerCase();
@@ -35,57 +35,57 @@ export function getDriveFileTypeLabel(file: DriveFile, t: (key: string, opts?: a
   // Images
   if (icon === 'image' || icon === 'photo' || mime.startsWith('image/')) {
     const format = ext ? ext.toUpperCase() : 'Image';
-    return t('speedtest.file_type_image_fmt', { format });
+    return t('drive.file_type_image_fmt', { format });
   }
 
   // Videos
   if (icon === 'video' || mime.startsWith('video/')) {
     const format = ext ? ext.toUpperCase() : 'Video';
-    return t('speedtest.file_type_video_fmt', { format });
+    return t('drive.file_type_video_fmt', { format });
   }
 
   // Audio / Voice
   if (icon === 'audio' || icon === 'voice' || mime.startsWith('audio/')) {
     const format = ext ? ext.toUpperCase() : 'Audio';
-    return t('speedtest.file_type_audio_fmt', { format });
+    return t('drive.file_type_audio_fmt', { format });
   }
 
   // Archives
   if (['zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz', 'iso'].includes(ext)) {
     const format = ext ? ext.toUpperCase() : 'ZIP';
-    return t('speedtest.file_type_archive_fmt', { format });
+    return t('drive.file_type_archive_fmt', { format });
   }
 
   // PDF
   if (ext === 'pdf' || mime === 'application/pdf') {
-    return t('speedtest.file_type_pdf');
+    return t('drive.file_type_pdf');
   }
 
   // Documents
   if (['txt', 'log', 'md', 'rtf'].includes(ext) || mime.startsWith('text/')) {
-    return t('speedtest.file_type_text');
+    return t('drive.file_type_text');
   }
   if (['doc', 'docx'].includes(ext)) {
-    return t('speedtest.file_type_word');
+    return t('drive.file_type_word');
   }
   if (['xls', 'xlsx', 'csv'].includes(ext)) {
-    return t('speedtest.file_type_excel');
+    return t('drive.file_type_excel');
   }
   if (['ppt', 'pptx'].includes(ext)) {
-    return t('speedtest.file_type_ppt');
+    return t('drive.file_type_ppt');
   }
 
   // Executables
   if (['exe', 'msi', 'apk', 'app', 'dmg'].includes(ext)) {
-    return t('speedtest.file_type_app');
+    return t('drive.file_type_app');
   }
 
   // Generic extension fallback
   if (ext) {
-    return t('speedtest.file_type_ext_fmt', { ext: ext.toUpperCase() });
+    return t('drive.file_type_ext_fmt', { ext: ext.toUpperCase() });
   }
 
-  return t('speedtest.file_type_generic');
+  return t('drive.file_type_generic');
 }
 
 function DriveFileListItemInner({
@@ -212,15 +212,15 @@ function DriveFileListItemInner({
       </div>
       <div className="td-list-name" title={displayName}>
         {isCut && (
-          <span className="td-clipboard-badge is-cut" title={t('speedtest.clipboard_cut_badge')}>
+          <span className="td-clipboard-badge is-cut" title={t('drive.clipboard_cut_badge')}>
             <Scissors size={10} />
-            <span>{t('speedtest.clipboard_cut_tag')}</span>
+            <span>{t('drive.clipboard_cut_tag')}</span>
           </span>
         )}
         {isCopy && (
-          <span className="td-clipboard-badge is-copy" title={t('speedtest.clipboard_copy_badge')}>
+          <span className="td-clipboard-badge is-copy" title={t('drive.clipboard_copy_badge')}>
             <Copy size={10} />
-            <span>{t('speedtest.clipboard_copy_tag')}</span>
+            <span>{t('drive.clipboard_copy_tag')}</span>
           </span>
         )}
         <span>{displayName}</span>

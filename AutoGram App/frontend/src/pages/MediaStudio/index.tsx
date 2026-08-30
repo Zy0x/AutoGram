@@ -16,9 +16,9 @@ function localizedDriveError(
   t: (key: string, options?: Record<string, unknown>) => string
 ): string {
   const issue = telegramAccessIssue(error);
-  if (issue === 'restricted') return t('speedtest.telegram_access_restricted');
-  if (issue === 'private') return t('speedtest.telegram_access_private');
-  if (issue === 'unavailable') return t('speedtest.telegram_access_unavailable');
+  if (issue === 'restricted') return t('drive.telegram_access_restricted');
+  if (issue === 'private') return t('drive.telegram_access_private');
+  if (issue === 'unavailable') return t('drive.telegram_access_unavailable');
   return friendlyDriveError(error);
 }
 
@@ -468,7 +468,7 @@ export function MediaStudio({
           </p>
           {onExitToApp && (
             <button type="button" className="btn btn-primary" style={{ marginTop: 16 }} onClick={onExitToApp}>
-              {t('speedtest.sidebar_back_to_app')}
+              {t('drive.sidebar_back_to_app')}
             </button>
           )}
         </div>
@@ -1131,12 +1131,12 @@ function MediaDriveDesktop({
         direction: 'upload',
         names: record.items.map((item) => item.path.split(/[/\\]/).pop() || item.path),
         destination: record.chatId,
-        label: t('speedtest.recovered_transfer_label'),
+        label: t('drive.recovered_transfer_label'),
       });
       recovered.jobKey = record.transferId;
       recovered.active = false;
       recovered.startedAt = Number(record.createdAtMs) || Date.now();
-      recovered.banner = t('speedtest.recovered_transfer_banner', { count: unresolved.length });
+      recovered.banner = t('drive.recovered_transfer_banner', { count: unresolved.length });
       recovered.items = recovered.items.map((item, index) => {
         const persisted = record.items[index];
         const state = persisted?.state;
@@ -3731,7 +3731,7 @@ function MediaDriveDesktop({
             : `${knownTotal} files${topicNote}`
         );
       } else {
-        setStatusText(i18n.t("speedtest.status_loaded_files", { count: page.length, more: hasMore ? "+" : "", topicNote }));
+        setStatusText(i18n.t("drive.status_loaded_files", { count: page.length, more: hasMore ? "+" : "", topicNote }));
       }
       // Always refine unique count+size in background (never freeze at page size 28/40).
       // Only skip when server already proved the whole location is smaller than one page.
@@ -3896,7 +3896,7 @@ function MediaDriveDesktop({
           active: true,
           processed: evt.processedCount,
           total: evt.totalCount,
-          text: t('speedtest.index_progress_detail', {
+          text: t('drive.index_progress_detail', {
             processed: Number(evt.processedCount || 0).toLocaleString(),
             total: Number(evt.totalCount || 0).toLocaleString(),
             percent: evt.totalCount > 0
@@ -4096,7 +4096,7 @@ function MediaDriveDesktop({
         }
         setStatusText(
           excludedMessages > 0
-            ? t('speedtest.media_index_reconciled', {
+            ? t('drive.media_index_reconciled', {
                 media: exactCount.toLocaleString(),
                 skipped: excludedMessages.toLocaleString(),
               })
@@ -4382,14 +4382,14 @@ function MediaDriveDesktop({
       eta: initialMetrics.etaFormatted,
       isPaused: false,
       text: initialTotal > 0
-        ? t('speedtest.index_progress_detail', {
+        ? t('drive.index_progress_detail', {
             processed: initialProcessed.toLocaleString(),
             total: initialTotal.toLocaleString(),
             percent: initialMetrics.percent,
           })
-        : t('speedtest.index_progress_count_only', { processed: initialProcessed.toLocaleString() }),
+        : t('drive.index_progress_count_only', { processed: initialProcessed.toLocaleString() }),
     });
-    setStatusText(t('speedtest.index_all_running'));
+    setStatusText(t('drive.index_all_running'));
 
     const gen = peerGen.current;
 
@@ -4409,7 +4409,7 @@ function MediaDriveDesktop({
 
     if (targetMode === 'delta_sync') {
       console.info('[Indexer] Previous backfill is complete; running live 2-way delta sync to check Telegram server changes');
-      setStatusText(t('speedtest.delta_sync_running'));
+      setStatusText(t('drive.delta_sync_running'));
     }
 
     let accumulatedNewFiles: DriveFile[] = [];
@@ -4469,7 +4469,7 @@ function MediaDriveDesktop({
               if (gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey) {
                 setIndexingJob((prev: any) => prev ? {
                   ...prev,
-                  text: t('speedtest.db_error_paused') || 'Kesalahan database: pengindeksan dijeda demi menjaga integritas data'
+                  text: t('drive.db_error_paused') || 'Kesalahan database: pengindeksan dijeda demi menjaga integritas data'
                 } : prev);
               }
               return;
@@ -4523,12 +4523,12 @@ function MediaDriveDesktop({
                 eta: metrics.etaFormatted,
                 isPaused: indexingPausedRef.current,
                 text: curTotal > 0
-                  ? t('speedtest.index_progress_detail', {
+                  ? t('drive.index_progress_detail', {
                       processed: curLoaded.toLocaleString(),
                       total: curTotal.toLocaleString(),
                       percent: metrics.percent,
                     })
-                  : t('speedtest.index_progress_count_only', { processed: curLoaded.toLocaleString() }),
+                  : t('drive.index_progress_count_only', { processed: curLoaded.toLocaleString() }),
               });
             }
           } else if (event.type === 'state') {
@@ -4558,7 +4558,7 @@ function MediaDriveDesktop({
             if (activeFilesCacheKeyRef.current !== cacheKey) return;
             setIndexingJob((prev: any) => prev ? {
               ...prev,
-              text: t('speedtest.floodwait_countdown', { seconds: event.waitSecs }) || `FloodWait: menunggu ${event.waitSecs}s...`
+              text: t('drive.floodwait_countdown', { seconds: event.waitSecs }) || `FloodWait: menunggu ${event.waitSecs}s...`
             } : prev);
           } else if (event.type === 'complete') {
             console.info('[Indexer] TERMINAL COMPLETE', event.mode, event.totalEmittedRows, event.metrics);
@@ -4629,7 +4629,7 @@ function MediaDriveDesktop({
             setIndexingAllActive(false);
             if (activeFilesCacheKeyRef.current === cacheKey) {
               setIndexingJob({ active: false, processed: 0, total: 0, text: '', isPaused: false });
-              setStatusText(t('speedtest.index_failed_error', { message: event.message }));
+              setStatusText(t('drive.index_failed_error', { message: event.message }));
             }
           }
         }
@@ -4777,7 +4777,7 @@ function MediaDriveDesktop({
           const recountDelay = tier === 'high' ? 1_500 : tier === 'mid' ? 3_000 : 6_000;
           scheduleMediaStats({ force: true, delayMs: recountDelay });
         }
-        setStatusText(i18n.t("speedtest.status_live_sync", { count: merged.length, more: res.has_more ? "+" : "" }));
+        setStatusText(i18n.t("drive.status_live_sync", { count: merged.length, more: res.has_more ? "+" : "" }));
       } catch {
         // Smart backoff: retain the last visible data and reduce Telegram load.
         liveSyncFailuresRef.current += 1;
@@ -5455,7 +5455,7 @@ function MediaDriveDesktop({
     liveSyncLastAtRef.current.delete(activeFilesCacheKeyRef.current);
     liveSyncBackoffUntilRef.current = 0;
     liveSyncFailuresRef.current = 0;
-    setStatusText(t('speedtest.ctx_menu_refresh'));
+    setStatusText(t('drive.ctx_menu_refresh'));
 
     await Promise.allSettled([
       refreshFiles(0, { preserveError: true, bypassCache: true }),
@@ -5547,7 +5547,7 @@ function MediaDriveDesktop({
 
     try {
       if (task.options?.dry_run === true) {
-        setStatusText(String(t('speedtest.dry_run_checking')));
+        setStatusText(String(t('drive.dry_run_checking')));
         if (task.kind === 'upload') {
           await driveListFiles(creds, task.targetFolderId ?? null, {
             pageSize: 1,
@@ -5566,21 +5566,21 @@ function MediaDriveDesktop({
               messageId
             );
             if (!result?.file) {
-              throw new Error(t('speedtest.dry_run_item_missing', { id: messageId }));
+              throw new Error(t('drive.dry_run_item_missing', { id: messageId }));
             }
           }
         }
         setTransfer((current) => ({
           ...current,
           active: true,
-          banner: t('speedtest.dry_run_success'),
+          banner: t('drive.dry_run_success'),
           items: current.items.map((item, index) =>
             index >= task.startIndex && index < task.startIndex + task.names.length
-              ? { ...item, status: 'done' as const, phase: 'dry_run', percent: 100, note: t('speedtest.dry_run_verified') }
+              ? { ...item, status: 'done' as const, phase: 'dry_run', percent: 100, note: t('drive.dry_run_verified') }
               : item
           ),
         }));
-        setStatusText(String(t('speedtest.dry_run_success')));
+        setStatusText(String(t('drive.dry_run_success')));
         return;
       }
 
@@ -5716,7 +5716,7 @@ function MediaDriveDesktop({
               const reason = rejected[0].status === 'rejected'
                 ? String(rejected[0].reason?.message || rejected[0].reason)
                 : '';
-              uploadError = String(t('speedtest.drive_engine_file_commit_failed'));
+              uploadError = String(t('drive.drive_engine_file_commit_failed'));
               debugLog('drive', 'engine metadata commit failed', {
                 tid: orchOutcome.result.transferId,
                 failed: rejected.length,
@@ -5835,7 +5835,7 @@ function MediaDriveDesktop({
           setStatusText(`Download selesai: ${successCount}/${totalCount} berkas`);
         } else {
           setStatusText(t('ui.generated.download_gagal_19e7bc6'));
-          setError(t('speedtest.download_failed'));
+          setError(t('drive.download_failed'));
         }
       } else if (task.kind === 'download_zip') {
         const completedEntries: Array<{ sourcePath: string; archiveName: string }> = [];
@@ -5920,11 +5920,11 @@ function MediaDriveDesktop({
                   success = true;
                   break;
                 } else {
-                  lastErr = result?.userMessage || result?.error?.message || t('speedtest.download_failed');
+                  lastErr = result?.userMessage || result?.error?.message || t('drive.download_failed');
                   const floodMatch = lastErr.match(/flood[_\s]wait[_\s](\d+)/i) || lastErr.match(/wait\s+(\d+)\s+seconds/i);
                   if (floodMatch) {
                     const waitSec = Math.min(60, parseInt(floodMatch[1], 10) || 5);
-                    setStatusText(t('speedtest.zip_floodwait_pause_notice', { seconds: waitSec }));
+                    setStatusText(t('drive.zip_floodwait_pause_notice', { seconds: waitSec }));
                     await new Promise((r) => setTimeout(r, waitSec * 1000));
                   } else {
                     await new Promise((r) => setTimeout(r, attempt * 1500));
@@ -5937,17 +5937,17 @@ function MediaDriveDesktop({
             }
 
             if (!success) {
-              throw new Error(lastErr || t('speedtest.download_failed'));
+              throw new Error(lastErr || t('drive.download_failed'));
             }
           });
 
-          if (!completedEntries.length) throw new Error(t('speedtest.zip_no_completed_files'));
+          if (!completedEntries.length) throw new Error(t('drive.zip_no_completed_files'));
           const { invoke } = await import('@tauri-apps/api/core');
           await invoke('zip_create_from_files', {
             outputPath: task.savePath,
             entries: completedEntries,
           });
-          setStatusText(t('speedtest.zip_saved_success', {
+          setStatusText(t('drive.zip_saved_success', {
             count: completedEntries.length,
             path: task.savePath,
           }));
@@ -6245,14 +6245,14 @@ function MediaDriveDesktop({
     setError(null);
     setInputDlg({
       kind: 'create-folder',
-      title: parentId != null ? String(t('speedtest.create_folder_title')) : String(t('speedtest.create_drive_title')),
+      title: parentId != null ? String(t('drive.create_folder_title')) : String(t('drive.create_drive_title')),
       description:
         parentId != null
-          ? String(t('speedtest.create_folder_desc', { parentName, defaultValue: `Di dalam “${parentName}”. Folder bisa berisi subfolder.` }))
-          : String(t('speedtest.create_drive_desc')),
-      label: parentId != null ? String(t('speedtest.folder_name_label')) : String(t('speedtest.drive_name_label')),
-      placeholder: parentId != null ? String(t('speedtest.folder_name_ph')) : String(t('speedtest.drive_name_ph')),
-      confirmLabel: parentId != null ? String(t('speedtest.create_folder_btn')) : String(t('speedtest.create_drive_btn')),
+          ? String(t('drive.create_folder_desc', { parentName, defaultValue: `Di dalam “${parentName}”. Folder bisa berisi subfolder.` }))
+          : String(t('drive.create_drive_desc')),
+      label: parentId != null ? String(t('drive.folder_name_label')) : String(t('drive.drive_name_label')),
+      placeholder: parentId != null ? String(t('drive.folder_name_ph')) : String(t('drive.drive_name_ph')),
+      confirmLabel: parentId != null ? String(t('drive.create_folder_btn')) : String(t('drive.create_drive_btn')),
       onConfirm: (name: any) => {
         void (async () => {
           try {
@@ -6312,8 +6312,8 @@ function MediaDriveDesktop({
               topicFilterRef.current = null;
               setStatusText(
                 parentId != null
-                  ? t('speedtest.folder_ready', { name: createdFolder?.name || name })
-                  : t('speedtest.drive_ready', { name: createdFolder?.name || name })
+                  ? t('drive.folder_ready', { name: createdFolder?.name || name })
+                  : t('drive.drive_ready', { name: createdFolder?.name || name })
               );
               // Reconcile server metadata after the optimistic paint without
               // blocking navigation to the newly created Drive.
@@ -6907,7 +6907,7 @@ function MediaDriveDesktop({
     let duplicateForceUploadPaths: string[] = [];
 
     try {
-      setStatusText(String(t('speedtest.preflight_running')));
+      setStatusText(String(t('drive.preflight_running')));
       lastPreflightRequestRef.current = {
         creds,
         cleanPaths,
@@ -6947,7 +6947,7 @@ function MediaDriveDesktop({
       };
       const decision = await reviewPreflight(enrichedReport);
       if (!decision.approved) {
-        setStatusText(String(t('speedtest.preflight_cancelled')));
+        setStatusText(String(t('drive.preflight_cancelled')));
         return false;
       }
       const skippedPaths = new Set(decision.skippedPaths);
@@ -6990,12 +6990,12 @@ function MediaDriveDesktop({
           : path.split(/[/\\]/).pop() || path;
       });
       if (!cleanPaths.length) {
-        setStatusText(String(t('speedtest.preflight_all_duplicates_skipped')));
+        setStatusText(String(t('drive.preflight_all_duplicates_skipped')));
         return false;
       }
     } catch (preflightError) {
-      setError(`${t('speedtest.preflight_failed')}: ${String((preflightError as Error)?.message || preflightError)}`);
-      setStatusText(String(t('speedtest.preflight_cancelled')));
+      setError(`${t('drive.preflight_failed')}: ${String((preflightError as Error)?.message || preflightError)}`);
+      setStatusText(String(t('drive.preflight_cancelled')));
       return false;
     }
 
@@ -7193,7 +7193,7 @@ function MediaDriveDesktop({
         if (currentCount === previousCount) stalled += 1;
         else stalled = 0;
         previousCount = currentCount;
-        if (stalled >= 4) throw new Error(t('speedtest.zip_index_stalled'));
+        if (stalled >= 4) throw new Error(t('drive.zip_index_stalled'));
       }
       const indexedFiles = dedupeByMsgId(liveFilesRef.current);
       const exactBreakdown = countExactMediaBreakdown(indexedFiles);
@@ -7271,8 +7271,8 @@ function MediaDriveDesktop({
       const { save } = await import('@tauri-apps/plugin-dialog');
       const savePath = await save({
         defaultPath: `autogram_${peerId ?? 'saved'}_${topicFilterRef.current ?? 'all'}.zip`,
-        title: t('speedtest.zip_save_title'),
-        filters: [{ name: t('speedtest.zip_archive_filter'), extensions: ['zip'] }],
+        title: t('drive.zip_save_title'),
+        filters: [{ name: t('drive.zip_archive_filter'), extensions: ['zip'] }],
       });
       if (!savePath) return;
       const { tempDir, join } = await import('@tauri-apps/api/path');
@@ -7305,7 +7305,7 @@ function MediaDriveDesktop({
         direction: 'download',
         names,
         totals: selectedFiles.map((file) => file.size || 0),
-        label: t('speedtest.zip_transfer_label', { count: names.length }),
+        label: t('drive.zip_transfer_label', { count: names.length }),
         destination: savePath,
       }));
       transferQueueRef.current.push(newTask);
@@ -7902,16 +7902,16 @@ function MediaDriveDesktop({
       folders.find((f) => samePeer(f.id))?.name ||
       pins.find((entry) => samePeer(entry.id))?.label ||
       recents.find((entry) => samePeer(entry.id))?.label;
-    if (locationKind === 'saved') return t('speedtest.saved_messages');
+    if (locationKind === 'saved') return t('drive.saved_messages');
     if (locationKind === 'drive') {
       return (
         knownLabel ||
-        t('speedtest.location_drive_fallback', { id: activePeerId })
+        t('drive.location_drive_fallback', { id: activePeerId })
       );
     }
     return (
       knownLabel ||
-      t('speedtest.location_chat_fallback', { id: activePeerId })
+      t('drive.location_chat_fallback', { id: activePeerId })
     );
   }, [locationKind, activePeerId, folders, chats, pins, recents, t]);
 
@@ -7923,7 +7923,7 @@ function MediaDriveDesktop({
       activeChat.restriction_code,
       activeChat.restriction_reason
     );
-    return t(`speedtest.telegram_restriction_reason_${key}`);
+    return t(`drive.telegram_restriction_reason_${key}`);
   }, [activePeerId, chats, locationKind, t]);
 
   const visibleDriveChildFolders = useMemo(() => {
@@ -7974,7 +7974,7 @@ function MediaDriveDesktop({
       setPins(res.pins);
       if (res.replacedItem) {
         setStatusText(
-          t('speedtest.pin_limit_replaced', {
+          t('drive.pin_limit_replaced', {
             old: res.replacedItem.label,
             new: label,
           })
@@ -8897,7 +8897,7 @@ function MediaDriveDesktop({
       }
       if (parsed.kind === 'topic') {
         if (parsed.id == null) {
-          return { kind: 'topic', id: null, label: t('speedtest.all_media_pill') };
+          return { kind: 'topic', id: null, label: t('drive.all_media_pill') };
         }
         const tp = topics.find((x) => x.id === parsed.id);
         return { kind: 'topic', id: parsed.id, label: tp?.title || `Topik #${parsed.id}` };
@@ -9122,7 +9122,7 @@ function MediaDriveDesktop({
           if (chatFolderId != null) {
             endDriveDrag();
             clearMediaDragUi();
-            setStatusText(t('speedtest.drag_chat_folder_opened'));
+            setStatusText(t('drive.drag_chat_folder_opened'));
             return;
           }
           if (isDropKeySameAsSource(key, payload.fromFolderId)) {
@@ -10471,7 +10471,7 @@ function MediaDriveDesktop({
             onRenameTopic={handleRenameTopic}
             onCopyTopicId={(topicId) => {
               const idStr = String(topicId);
-              setStatusText(t('speedtest.copy_id_success', { value: idStr }));
+              setStatusText(t('drive.copy_id_success', { value: idStr }));
             }}
             onCopyTopicPathId={(topicId) => {
               const accountUserId = getSessionMetadata(session || '')?.telegramUserId ||
@@ -10486,7 +10486,7 @@ function MediaDriveDesktop({
               });
               void nativeWriteClipboardText(path).then((ok) => {
                 if (ok) {
-                  setStatusText(t('speedtest.copy_path_id_success', { value: path }));
+                  setStatusText(t('drive.copy_path_id_success', { value: path }));
                 } else {
                   setStatusText(path);
                 }
@@ -10891,9 +10891,9 @@ function MediaDriveDesktop({
               </div>
             )}
             {visibleDriveChildFolders.length > 0 && (
-              <section className="td-drive-folder-section" aria-label={t('speedtest.drive_folder_section_title')}>
+              <section className="td-drive-folder-section" aria-label={t('drive.drive_folder_section_title')}>
                 <div className="td-drive-folder-section-head">
-                  <span>{t('speedtest.drive_folder_section_title')}</span>
+                  <span>{t('drive.drive_folder_section_title')}</span>
                   <span className="td-drive-folder-section-count">{visibleDriveChildFolders.length}</span>
                 </div>
                 <div className="td-drive-folder-card-grid">
@@ -10902,7 +10902,7 @@ function MediaDriveDesktop({
                       key={folder.id}
                       type="button"
                       className="td-drive-folder-card"
-                      title={t('speedtest.drive_folder_open_title', { name: folder.name })}
+                      title={t('drive.drive_folder_open_title', { name: folder.name })}
                       onClick={() => {
                         setLocationKind('drive');
                         setActivePeerId(folder.id);
@@ -11162,7 +11162,7 @@ function MediaDriveDesktop({
         }}
       />
       {clipboard && clipboard.messageIds.length > 0 && (
-        <aside className="td-clipboard-floating-bar" aria-label={t('speedtest.clipboard_banner_label')}>
+        <aside className="td-clipboard-floating-bar" aria-label={t('drive.clipboard_banner_label')}>
           <div className="td-clipboard-floating-info">
             <span className={`td-clipboard-floating-icon ${clipboard.mode}`}>
               {clipboard.mode === 'cut' ? <Scissors size={15} /> : <Copy size={15} />}
@@ -11170,17 +11170,17 @@ function MediaDriveDesktop({
             <div className="td-clipboard-floating-text">
               <span className="td-clipboard-floating-title">
                 {clipboard.mode === 'cut'
-                  ? t('speedtest.clipboard_cut_active', {
+                  ? t('drive.clipboard_cut_active', {
                       count: clipboard.messageIds.length,
                       defaultValue: `${clipboard.messageIds.length} berkas dipotong (Cut)`,
                     })
-                  : t('speedtest.clipboard_copy_active', {
+                  : t('drive.clipboard_copy_active', {
                       count: clipboard.messageIds.length,
                       defaultValue: `${clipboard.messageIds.length} berkas disalin (Copy)`,
                     })}
               </span>
               <span className="td-clipboard-floating-desc">
-                {t('speedtest.clipboard_paste_hint')}
+                {t('drive.clipboard_paste_hint')}
               </span>
             </div>
           </div>
@@ -11196,14 +11196,14 @@ function MediaDriveDesktop({
               title={t('drive_tools.shortcut_ctrl_v')}
             >
               <ClipboardPaste size={14} />
-              <span>{t('speedtest.clipboard_paste_here')}</span>
+              <span>{t('drive.clipboard_paste_here')}</span>
             </button>
             <button
               type="button"
               className="td-clipboard-cancel-btn"
               onClick={() => setDriveClipboard(null)}
               title={t('drive_tools.shortcut_esc')}
-              aria-label={t('speedtest.clipboard_cancel')}
+              aria-label={t('drive.clipboard_cancel')}
             >
               <X size={14} />
             </button>

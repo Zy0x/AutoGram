@@ -20,21 +20,21 @@ export function buildEncoderHardwareOptions(
   if (isDetecting || !hardwareCapabilities) {
     return [{
       value: 'detecting',
-      label: String(t('speedtest.gpu_detecting_label')),
-      description: String(t('speedtest.gpu_detecting_desc')),
+      label: String(t('drive.gpu_detecting_label')),
+      description: String(t('drive.gpu_detecting_desc')),
       disabled: true,
     }];
   }
 
   const options: EncoderHardwareOption[] = [{
     value: 'auto',
-    label: String(t('speedtest.gpu_auto_label')),
+    label: String(t('drive.gpu_auto_label')),
     description: hardwareCapabilities.best_encoder
-      ? String(t('speedtest.gpu_auto_detected_desc', {
+      ? String(t('drive.gpu_auto_detected_desc', {
           backend: hardwareCapabilities.best_encoder.encoder_backend.toUpperCase(),
           device: hardwareCapabilities.best_encoder.device_name,
         }))
-      : String(t('speedtest.gpu_auto_desc')),
+      : String(t('drive.gpu_auto_desc')),
   }];
 
   const genericBackends = new Set<string>();
@@ -47,11 +47,11 @@ export function buildEncoderHardwareOptions(
     genericBackends.add(value);
     options.push({
       value,
-      label: String(t('speedtest.gpu_detected_label', {
+      label: String(t('drive.gpu_detected_label', {
         name: gpu.name,
         backend: gpu.backend_id.toUpperCase(),
       })),
-      description: String(t('speedtest.gpu_detected_desc', {
+      description: String(t('drive.gpu_detected_desc', {
         encoder: gpu.encoder_codec,
         priority: gpu.priority_rank,
         index: gpu.device_index,

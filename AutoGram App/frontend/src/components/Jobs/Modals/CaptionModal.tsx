@@ -20,7 +20,7 @@ function parseTelegramMarkdown(text: string) {
     .replace(/__(.*?)__/g, '<u>$1</u>')
     .replace(/_(.*?)_/g, '<i>$1</i>')
     .replace(/~(.*?)~/g, '<s>$1</s>')
-    .replace(/\|\|(.*?)\|\|/g, '<span style="background: rgba(255,255,255,0.1); color: transparent; border-radius: 4px; cursor: pointer; padding: 0 4px;" title="' + i18n.t('speedtest.spoiler_title') + '">$1</span>')
+    .replace(/\|\|(.*?)\|\|/g, '<span style="background: rgba(255,255,255,0.1); color: transparent; border-radius: 4px; cursor: pointer; padding: 0 4px;" title="' + i18n.t('drive.spoiler_title') + '">$1</span>')
     .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" style="color: #58a6ff; text-decoration: none;">$1</a>')
     .replace(/`(.*?)`/g, '<code style="color: #f0f6fc; font-family: monospace; background: rgba(0,0,0,0.3); padding: 2px 4px; border-radius: 4px;">$1</code>')
     .replace(/\n/g, '<br/>');
@@ -53,7 +53,7 @@ export const CaptionModal: React.FC<CaptionModalProps> = ({ isOpen, onClose, ini
             <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '4px' }}>
                <button onClick={() => setViewMode('edit')} style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', background: viewMode === 'edit' ? 'var(--primary)' : 'transparent', color: viewMode === 'edit' ? '#fff' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.2s' }}>{t('ui.generated.edit_5301648')}</button>
                <button onClick={() => setViewMode('split')} style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', background: viewMode === 'split' ? 'var(--primary)' : 'transparent', color: viewMode === 'split' ? '#fff' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.2s' }}>{t('ui.generated.split_fc8230b')}</button>
-               <button onClick={() => setViewMode('preview')} style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', background: viewMode === 'preview' ? 'var(--primary)' : 'transparent', color: viewMode === 'preview' ? '#fff' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.2s' }}>{t('speedtest.tooltip_preview')}</button>
+               <button onClick={() => setViewMode('preview')} style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', background: viewMode === 'preview' ? 'var(--primary)' : 'transparent', color: viewMode === 'preview' ? '#fff' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.2s' }}>{t('drive.tooltip_preview')}</button>
             </div>
             <div style={{ width: '1px', height: '24px', background: 'var(--border)' }} />
             <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem', padding: '4px' }}>✕</button>

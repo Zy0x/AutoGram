@@ -29,7 +29,7 @@ export function RerunModal({ jobName, successCount, onClose, onConfirm }: RerunM
             <Play size={20} className="text-primary" style={{ flexShrink: 0 }} />
             {t('ui.generated.re_run_job_cf0f2a4')}
           </h3>
-          <button type="button" onClick={onClose} className="btn-tertiary" aria-label={t('speedtest.preview_close_btn')}>
+          <button type="button" onClick={onClose} className="btn-tertiary" aria-label={t('drive.preview_close_btn')}>
             <X size={20} />
           </button>
         </div>

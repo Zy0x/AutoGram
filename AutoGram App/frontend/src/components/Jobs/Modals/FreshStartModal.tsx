@@ -18,7 +18,7 @@ export function FreshStartModal({ jobName, onClose, onConfirm }: FreshStartModal
             <AlertTriangle size={20} style={{ flexShrink: 0 }} />
             {t('ui.generated.fresh_start_konfirmasi_9f9c996')}
           </h3>
-          <button type="button" onClick={onClose} className="btn-tertiary" aria-label={t('speedtest.preview_close_btn')}>
+          <button type="button" onClick={onClose} className="btn-tertiary" aria-label={t('drive.preview_close_btn')}>
             <X size={20} />
           </button>
         </div>

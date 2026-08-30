@@ -41,7 +41,7 @@ export const SpaceUsageTab: React.FC<SpaceUsageTabProps> = ({
         </div>
         <div className="text-right font-mono">
           <span className="text-base font-bold text-indigo-400">{formatDriveBytes(totalBytes)}</span>
-          <p className="text-[10px] text-slate-500">{t('speedtest.used_capacity')}</p>
+          <p className="text-[10px] text-slate-500">{t('drive.used_capacity')}</p>
         </div>
       </div>
 
@@ -51,32 +51,32 @@ export const SpaceUsageTab: React.FC<SpaceUsageTabProps> = ({
         </h4>
 
         <div className="h-3 w-full bg-slate-950 rounded-full overflow-hidden flex">
-          <div style={{ width: `${calcPct(videoBytes)}%` }} className="bg-indigo-500" title={t('speedtest.tab_drive_videos')} />
-          <div style={{ width: `${calcPct(imageBytes)}%` }} className="bg-emerald-500" title={t('speedtest.tab_drive_images')} />
+          <div style={{ width: `${calcPct(videoBytes)}%` }} className="bg-indigo-500" title={t('drive.tab_drive_videos')} />
+          <div style={{ width: `${calcPct(imageBytes)}%` }} className="bg-emerald-500" title={t('drive.tab_drive_images')} />
           <div style={{ width: `${calcPct(audioBytes)}%` }} className="bg-amber-500" title={t('dashboard.filter_audio')} />
-          <div style={{ width: `${calcPct(archiveBytes)}%` }} className="bg-purple-500" title={t('speedtest.tab_drive_archives')} />
-          <div style={{ width: `${calcPct(otherBytes)}%` }} className="bg-slate-600" title={t('speedtest.cat_other')} />
+          <div style={{ width: `${calcPct(archiveBytes)}%` }} className="bg-purple-500" title={t('drive.tab_drive_archives')} />
+          <div style={{ width: `${calcPct(otherBytes)}%` }} className="bg-slate-600" title={t('drive.cat_other')} />
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 text-xs">
           <div className="p-2 bg-slate-950/60 rounded-lg border border-slate-800/80">
-            <span className="text-indigo-400 font-medium">{t('speedtest.space_cat_videos')}</span>
+            <span className="text-indigo-400 font-medium">{t('drive.space_cat_videos')}</span>
             <p className="font-mono text-slate-200 mt-0.5">{formatDriveBytes(videoBytes)} ({calcPct(videoBytes)}%)</p>
           </div>
           <div className="p-2 bg-slate-950/60 rounded-lg border border-slate-800/80">
-            <span className="text-emerald-400 font-medium">{t('speedtest.space_cat_images')}</span>
+            <span className="text-emerald-400 font-medium">{t('drive.space_cat_images')}</span>
             <p className="font-mono text-slate-200 mt-0.5">{formatDriveBytes(imageBytes)} ({calcPct(imageBytes)}%)</p>
           </div>
           <div className="p-2 bg-slate-950/60 rounded-lg border border-slate-800/80">
-            <span className="text-amber-400 font-medium">{t('speedtest.space_cat_audio')}</span>
+            <span className="text-amber-400 font-medium">{t('drive.space_cat_audio')}</span>
             <p className="font-mono text-slate-200 mt-0.5">{formatDriveBytes(audioBytes)} ({calcPct(audioBytes)}%)</p>
           </div>
           <div className="p-2 bg-slate-950/60 rounded-lg border border-slate-800/80">
-            <span className="text-purple-400 font-medium">{t('speedtest.space_cat_archives')}</span>
+            <span className="text-purple-400 font-medium">{t('drive.space_cat_archives')}</span>
             <p className="font-mono text-slate-200 mt-0.5">{formatDriveBytes(archiveBytes)} ({calcPct(archiveBytes)}%)</p>
           </div>
           <div className="p-2 bg-slate-950/60 rounded-lg border border-slate-800/80">
-            <span className="text-slate-400 font-medium">{t('speedtest.space_cat_other')}</span>
+            <span className="text-slate-400 font-medium">{t('drive.space_cat_other')}</span>
             <p className="font-mono text-slate-200 mt-0.5">{formatDriveBytes(otherBytes)} ({calcPct(otherBytes)}%)</p>
           </div>
         </div>

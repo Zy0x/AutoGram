@@ -493,20 +493,20 @@ export function DriveTopBar({
   const selectionToolbar = (
     <div className="td-selection-strip is-beside-search" role="toolbar" aria-label={t('ui.generated.aksi_seleksi_e8c5093')}>
       <div className="td-selection-strip-left">
-        <span className="td-selection-count" title={t("speedtest.topbar_selected_count_tooltip", { count: selectedCount })}>
+        <span className="td-selection-count" title={t("drive.topbar_selected_count_tooltip", { count: selectedCount })}>
           <MousePointerClick size={14} strokeWidth={2} aria-hidden />
           <strong>{selectedCount}</strong>
-          <span className="td-selection-count-label">{t('speedtest.topbar_selected')}</span>
+          <span className="td-selection-count-label">{t('drive.topbar_selected')}</span>
         </span>
         {onSelectAll && (
           <button
             type="button"
             className="td-chip-btn"
             onClick={onSelectAll}
-            title={t('speedtest.select_visible_all')}
+            title={t('drive.select_visible_all')}
           >
             <ListChecks size={15} strokeWidth={2} aria-hidden />
-            <span className="td-chip-label">{t('speedtest.topbar_select_all')}</span>
+            <span className="td-chip-label">{t('drive.topbar_select_all')}</span>
           </button>
         )}
         {onInvertSelection && (
@@ -514,20 +514,20 @@ export function DriveTopBar({
             type="button"
             className="td-chip-btn"
             onClick={onInvertSelection}
-            title={t("speedtest.topbar_invert_tooltip")}
+            title={t("drive.topbar_invert_tooltip")}
           >
             <ArrowLeftRight size={15} strokeWidth={2} aria-hidden />
-            <span className="td-chip-label">{t('speedtest.topbar_invert')}</span>
+            <span className="td-chip-label">{t('drive.topbar_invert')}</span>
           </button>
         )}
         <button
           type="button"
           className="td-chip-btn"
           onClick={onClearSelection}
-          title={t("speedtest.topbar_deselect_all_tooltip")}
+          title={t("drive.topbar_deselect_all_tooltip")}
         >
           <SquareX size={15} strokeWidth={2} aria-hidden />
-          <span className="td-chip-label">{t('speedtest.topbar_cancel')}</span>
+          <span className="td-chip-label">{t('drive.topbar_cancel')}</span>
         </button>
         <div className="td-selection-divider" aria-hidden="true" />
       </div>
@@ -545,7 +545,7 @@ export function DriveTopBar({
             }
           >
             <SendHorizontal size={15} strokeWidth={2} aria-hidden />
-            <span className="td-chip-label">{t('speedtest.topbar_move')}</span>
+            <span className="td-chip-label">{t('drive.topbar_move')}</span>
           </button>
         )}
         <button
@@ -553,20 +553,20 @@ export function DriveTopBar({
           className="td-chip-btn"
           onClick={onDownload}
           disabled={!!actionsDisabled}
-          title={actionsDisabled ? t('speedtest.topbar_wait_transfer') : t('speedtest.topbar_download_sel')}
+          title={actionsDisabled ? t('drive.topbar_wait_transfer') : t('drive.topbar_download_sel')}
         >
           <Download size={15} strokeWidth={2} aria-hidden />
-          <span className="td-chip-label">{t('speedtest.topbar_download')}</span>
+          <span className="td-chip-label">{t('drive.topbar_download')}</span>
         </button>
         <button
           type="button"
           className="td-chip-btn danger"
           onClick={onDelete}
           disabled={!!actionsDisabled}
-          title={actionsDisabled ? t('speedtest.topbar_wait_transfer') : t('speedtest.topbar_delete_sel')}
+          title={actionsDisabled ? t('drive.topbar_wait_transfer') : t('drive.topbar_delete_sel')}
         >
           <Trash2 size={15} strokeWidth={2} aria-hidden />
-          <span className="td-chip-label">{t('speedtest.topbar_delete')}</span>
+          <span className="td-chip-label">{t('drive.topbar_delete')}</span>
         </button>
       </div>
     </div>
@@ -589,8 +589,8 @@ export function DriveTopBar({
               type="button"
               className="td-icon-btn td-menu-btn"
               onClick={onOpenLocations}
-              title={t('speedtest.open_location_list')}
-              aria-label={t("speedtest.open_location_list")}
+              title={t('drive.open_location_list')}
+              aria-label={t("drive.open_location_list")}
             >
               <Menu size={18} />
             </button>
@@ -599,7 +599,7 @@ export function DriveTopBar({
             <div
               className="td-nav-history-group"
               role="group"
-              aria-label={t('speedtest.drive_history_pin_navigation')}
+              aria-label={t('drive.drive_history_pin_navigation')}
             >
               {onNavBack && (
                 <button
@@ -607,8 +607,8 @@ export function DriveTopBar({
                   className={`td-nav-history-btn td-nav-history-prev ${!canNavBack ? 'is-disabled' : ''}`}
                   disabled={!canNavBack}
                   onClick={onNavBack}
-                  title={`${t('speedtest.nav_back_drive')} (Alt+←)`}
-                  aria-label={t('speedtest.nav_back_drive')}
+                  title={`${t('drive.nav_back_drive')} (Alt+←)`}
+                  aria-label={t('drive.nav_back_drive')}
                 >
                   <ChevronLeft size={14} strokeWidth={2.2} />
                 </button>
@@ -619,8 +619,8 @@ export function DriveTopBar({
                   className={`td-nav-history-btn td-nav-history-next ${!canNavForward ? 'is-disabled' : ''}`}
                   disabled={!canNavForward}
                   onClick={onNavForward}
-                  title={`${t('speedtest.nav_forward_drive')} (Alt+→)`}
-                  aria-label={t('speedtest.nav_forward_drive')}
+                  title={`${t('drive.nav_forward_drive')} (Alt+→)`}
+                  aria-label={t('drive.nav_forward_drive')}
                 >
                   <ChevronRight size={14} strokeWidth={2.2} />
                 </button>
@@ -630,8 +630,8 @@ export function DriveTopBar({
                   type="button"
                   className={`td-nav-history-btn td-nav-history-pin ${isPinned ? 'active is-pinned' : ''}`}
                   onClick={onTogglePin}
-                  title={isPinned ? t('speedtest.topbar_unpin_loc') : t('speedtest.topbar_pin_loc')}
-                  aria-label={isPinned ? t("speedtest.topbar_unpin_loc") : t("speedtest.topbar_pin_loc")}
+                  title={isPinned ? t('drive.topbar_unpin_loc') : t('drive.topbar_pin_loc')}
+                  aria-label={isPinned ? t("drive.topbar_unpin_loc") : t("drive.topbar_pin_loc")}
                 >
                   {isPinned ? <PinOff size={13} /> : <Pin size={13} />}
                 </button>
@@ -689,7 +689,7 @@ export function DriveTopBar({
                               <span className="td-crumb-sep">/</span>
                               <span
                                 className="td-crumb-muted td-crumb-ellipsis"
-                                title={t("speedtest.topbar_full_path", { path: fullPathString })}
+                                title={t("drive.topbar_full_path", { path: fullPathString })}
                               >
                                 …
                               </span>
@@ -731,8 +731,8 @@ export function DriveTopBar({
                 type="button"
                 className="td-action-nav-btn left"
                 {...createActionsHoldProps(-1, 140, 12)}
-                title={t('speedtest.scroll_tools_left')}
-                aria-label={t('speedtest.scroll_tools_left')}
+                title={t('drive.scroll_tools_left')}
+                aria-label={t('drive.scroll_tools_left')}
               >
                 <ChevronLeft size={13} strokeWidth={2.5} />
               </button>
@@ -744,14 +744,14 @@ export function DriveTopBar({
               className="td-topbar-actions"
             >
               {viewMode === 'grid' && (
-                <div className="td-zoom-controls" role="group" aria-label={t('speedtest.topbar_zoom_grid_aria')}>
+                <div className="td-zoom-controls" role="group" aria-label={t('drive.topbar_zoom_grid_aria')}>
                   <button
                     type="button"
                     className="td-icon-btn"
                     disabled={!canZoomOut}
                     onClick={() => onGridZoom((gridZoom - 1) as DriveGridZoom)}
-                    title={t("speedtest.topbar_zoom_out")}
-                    aria-label={t('speedtest.topbar_zoom_out_aria')}
+                    title={t("drive.topbar_zoom_out")}
+                    aria-label={t('drive.topbar_zoom_out_aria')}
                   >
                     <ZoomOut size={16} />
                   </button>
@@ -759,7 +759,7 @@ export function DriveTopBar({
                     type="button"
                     className="td-zoom-label"
                     onClick={() => onGridZoom(2 as DriveGridZoom)}
-                    title={t("speedtest.topbar_zoom_reset_hint", { label: zoomLevel.label })}
+                    title={t("drive.topbar_zoom_reset_hint", { label: zoomLevel.label })}
                   >
                     {zoomLevel.short}
                   </button>
@@ -768,20 +768,20 @@ export function DriveTopBar({
                     className="td-icon-btn"
                     disabled={!canZoomIn}
                     onClick={() => onGridZoom((gridZoom + 1) as DriveGridZoom)}
-                    title={t("speedtest.topbar_zoom_in")}
-                    aria-label={t('speedtest.topbar_zoom_in_aria')}
+                    title={t("drive.topbar_zoom_in")}
+                    aria-label={t('drive.topbar_zoom_in_aria')}
                   >
                     <ZoomIn size={16} />
                   </button>
                 </div>
               )}
 
-              <div className="td-view-toggle" role="group" aria-label={t('speedtest.topbar_view_mode_aria')}>
+              <div className="td-view-toggle" role="group" aria-label={t('drive.topbar_view_mode_aria')}>
                 <button
                   type="button"
                   className={`td-icon-btn ${viewMode === 'grid' ? 'active' : ''}`}
                   onClick={() => onViewMode('grid')}
-                  title={t('speedtest.topbar_view_grid_title')}
+                  title={t('drive.topbar_view_grid_title')}
                 >
                   <LayoutGrid size={16} />
                 </button>
@@ -789,7 +789,7 @@ export function DriveTopBar({
                   type="button"
                   className={`td-icon-btn ${viewMode === 'list' ? 'active' : ''}`}
                   onClick={() => onViewMode('list')}
-                  title={t('speedtest.topbar_view_list_title')}
+                  title={t('drive.topbar_view_list_title')}
                 >
                   <List size={16} />
                 </button>
@@ -800,8 +800,8 @@ export function DriveTopBar({
                 className={`td-icon-btn td-topbar-btn-refresh${loading || manualSpin ? ' is-refreshing' : ''}`}
                 onClick={handleRefreshClick}
                 disabled={loading}
-                title={t("speedtest.topbar_refresh_all")}
-                aria-label={t('speedtest.sidebar_btn_refresh')}
+                title={t("drive.topbar_refresh_all")}
+                aria-label={t('drive.sidebar_btn_refresh')}
               >
                 <RefreshCw size={16} className={loading || manualSpin ? 'spin' : undefined} />
               </button>
@@ -815,14 +815,14 @@ export function DriveTopBar({
                   onClick={onOpenTransferManager}
                   title={
                     transferBusy
-                      ? t('speedtest.topbar_tm_running', { count: transferBadgeCount })
+                      ? t('drive.topbar_tm_running', { count: transferBadgeCount })
                       : transferBadgeKind === 'error'
-                        ? t('speedtest.topbar_tm_failed', { count: transferBadgeCount })
+                        ? t('drive.topbar_tm_failed', { count: transferBadgeCount })
                         : transferBadgeKind === 'done'
-                          ? t('speedtest.topbar_tm_done', { count: transferBadgeCount })
-                          : t('speedtest.topbar_open_transfer_manager')
+                          ? t('drive.topbar_tm_done', { count: transferBadgeCount })
+                          : t('drive.topbar_open_transfer_manager')
                   }
-                  aria-label={t('speedtest.topbar_tm_aria')}
+                  aria-label={t('drive.topbar_tm_aria')}
                 >
                   <ListTodo size={16} />
                   {transferBadgeCount > 0 && transferBadgeKind !== 'none' && (
@@ -842,11 +842,11 @@ export function DriveTopBar({
                   className="td-btn-secondary td-topbar-btn-zip"
                   onClick={onDownloadAllClick}
                   disabled={!!actionsDisabled}
-                  title={t("speedtest.topbar_download_zip")}
-                  aria-label={t("speedtest.topbar_download_zip")}
+                  title={t("drive.topbar_download_zip")}
+                  aria-label={t("drive.topbar_download_zip")}
                 >
                   <FolderArchive size={15} />
-                  <span className="td-btn-label">{t("speedtest.topbar_download_zip_short")}</span>
+                  <span className="td-btn-label">{t("drive.topbar_download_zip_short")}</span>
                 </button>
               )}
 
@@ -856,11 +856,11 @@ export function DriveTopBar({
                   className={`td-btn-secondary td-topbar-btn-tools ${toolsActive ? 'active' : ''}`}
                   onClick={onOpenTools || onOpenTransferSettings}
                   disabled={!!actionsDisabled}
-                  title={t('speedtest.tools_title')}
-                  aria-label={t('speedtest.tools_title')}
+                  title={t('drive.tools_title')}
+                  aria-label={t('drive.tools_title')}
                 >
                   <Settings size={15} />
-                  <span className="td-btn-label">{t('speedtest.topbar_settings_btn')}</span>
+                  <span className="td-btn-label">{t('drive.topbar_settings_btn')}</span>
                 </button>
               )}
 
@@ -870,11 +870,11 @@ export function DriveTopBar({
                   className="td-btn-secondary td-topbar-btn-remote"
                   onClick={onRemoteUploadClick}
                   disabled={!!actionsDisabled}
-                  title={t("speedtest.remote_upload_url_title")}
-                  aria-label={t("speedtest.remote_upload_url_title")}
+                  title={t("drive.remote_upload_url_title")}
+                  aria-label={t("drive.remote_upload_url_title")}
                 >
                   <Globe size={15} />
-                  <span className="td-btn-label">{t("speedtest.remote_url_btn")}</span>
+                  <span className="td-btn-label">{t("drive.remote_url_btn")}</span>
                 </button>
               )}
 
@@ -885,17 +885,17 @@ export function DriveTopBar({
                 disabled={!!actionsDisabled}
                 title={
                   actionsDisabled
-                    ? t('speedtest.topbar_upload_wait_title')
-                    : t('speedtest.upload_file_to_loc')
+                    ? t('drive.topbar_upload_wait_title')
+                    : t('drive.upload_file_to_loc')
                 }
                 aria-label={
                   actionsDisabled
-                    ? t('speedtest.topbar_upload_wait_title')
-                    : t('speedtest.upload_file_to_loc')
+                    ? t('drive.topbar_upload_wait_title')
+                    : t('drive.upload_file_to_loc')
                 }
               >
                 <Upload size={16} />
-                <span className="td-btn-label">{t('speedtest.btn_upload')}</span>
+                <span className="td-btn-label">{t('drive.btn_upload')}</span>
               </button>
             </div>
 
@@ -904,8 +904,8 @@ export function DriveTopBar({
                 type="button"
                 className="td-action-nav-btn right"
                 {...createActionsHoldProps(1, 140, 12)}
-                title={t('speedtest.scroll_tools_right')}
-                aria-label={t('speedtest.scroll_tools_right')}
+                title={t('drive.scroll_tools_right')}
+                aria-label={t('drive.scroll_tools_right')}
               >
                 <ChevronRight size={13} strokeWidth={2.5} />
               </button>
@@ -915,10 +915,10 @@ export function DriveTopBar({
 
       {/* Forum topics — Semua media + per-topic filter (Always visible if topics exist) */}
       {showTopics && (
-            <div className="td-topbar-row td-topbar-row-topics" role="group" aria-label={t("speedtest.label_topic")}>
+            <div className="td-topbar-row td-topbar-row-topics" role="group" aria-label={t("drive.label_topic")}>
           <span className="td-topics-label">
             <MessagesSquare size={14} />
-            {t('speedtest.label_topic')}
+            {t('drive.label_topic')}
           </span>
           <div className="td-topics-scroll-container">
             {canScrollLeft && (
@@ -930,8 +930,8 @@ export function DriveTopBar({
                   e.preventDefault();
                   scrollTopicsBy(-18);
                 }}
-                title={t('speedtest.scroll_topics_left')}
-                aria-label={t('speedtest.scroll_topics_left')}
+                title={t('drive.scroll_topics_left')}
+                aria-label={t('drive.scroll_topics_left')}
               >
                 <ChevronLeft size={13} strokeWidth={2.5} />
               </button>
@@ -953,13 +953,13 @@ export function DriveTopBar({
                 onClick={() => onTopicFilter?.(null)}
                 onDragOver={(e) => handleDragOver(null, e)}
                 onDragLeave={(e) => handleDragLeave(null, e)}
-                onDrop={(e) => handleDrop(null, t('speedtest.all_media_pill'), e)}
-                title={t('speedtest.show_group_media')}
+                onDrop={(e) => handleDrop(null, t('drive.all_media_pill'), e)}
+                title={t('drive.show_group_media')}
               >
-                {t('speedtest.all_media_pill')}
+                {t('drive.all_media_pill')}
               </button>
               {topicsLoading && topics.length === 0 && (
-                <span className="td-topics-loading">{t("speedtest.loading_topics")}</span>
+                <span className="td-topics-loading">{t("drive.loading_topics")}</span>
               )}
               {topics.map((tp) => {
                 const isOver =
@@ -993,7 +993,7 @@ export function DriveTopBar({
                         title: tp.title,
                       });
                     }}
-                    title={tp.closed ? `${tp.title} (${t("speedtest.topic_closed_suffix")})` : tp.title}
+                    title={tp.closed ? `${tp.title} (${t("drive.topic_closed_suffix")})` : tp.title}
                   >
                     {tp.title}
                   </button>
@@ -1004,9 +1004,9 @@ export function DriveTopBar({
                   type="button"
                   className="td-topic-pill td-topic-pill-add"
                   onClick={onAddTopic}
-                  title={t('speedtest.add_new_topic')}
+                  title={t('drive.add_new_topic')}
                 >
-                  {t("speedtest.btn_add_topic")}
+                  {t("drive.btn_add_topic")}
                 </button>
               )}
             </div>
@@ -1019,8 +1019,8 @@ export function DriveTopBar({
                   e.preventDefault();
                   scrollTopicsBy(18);
                 }}
-                title={t('speedtest.scroll_topics_right')}
-                aria-label={t('speedtest.scroll_topics_right')}
+                title={t('drive.scroll_topics_right')}
+                aria-label={t('drive.scroll_topics_right')}
               >
                 <ChevronRight size={13} strokeWidth={2.5} />
               </button>
@@ -1054,9 +1054,9 @@ export function DriveTopBar({
                 onQuery('');
               }
             }}
-            placeholder={t("speedtest.search_placeholder")}
-            aria-label={t("speedtest.search_aria_label")}
-            title={t('speedtest.filter_media_tooltip')}
+            placeholder={t("drive.search_placeholder")}
+            aria-label={t("drive.search_aria_label")}
+            title={t('drive.filter_media_tooltip')}
             onFocus={handleSearchFocus}
             onBlur={handleSearchBlur}
           />
@@ -1068,8 +1068,8 @@ export function DriveTopBar({
                 onQuery('');
                 searchInputRef.current?.focus();
               }}
-              title={t('speedtest.clear_search')}
-              aria-label={t('speedtest.clear_search')}
+              title={t('drive.clear_search')}
+              aria-label={t('drive.clear_search')}
             >
               <X size={13} strokeWidth={2.5} />
             </button>
@@ -1080,55 +1080,55 @@ export function DriveTopBar({
 
       {/* Row 3: filters/sort/thumb — labeled groups so controls stay self-explanatory */}
       <div className="td-topbar-row td-topbar-row-tools">
-        <div className="td-topbar-tools" role="toolbar" aria-label={t("speedtest.topbar_tools_aria")}>
+        <div className="td-topbar-tools" role="toolbar" aria-label={t("drive.topbar_tools_aria")}>
           <div className="td-tools-left-cluster">
             {/* Perspective View Switcher */}
             {onViewPerspective && (
-              <div className="td-tool-group td-group-perspective" role="group" aria-label={t("speedtest.perspective_telegram")}>
+              <div className="td-tool-group td-group-perspective" role="group" aria-label={t("drive.perspective_telegram")}>
                 <div className="td-perspective-switcher">
                   <button
                     type="button"
                     className={`td-perspective-btn ${viewPerspective === 'telegram' ? 'active' : ''}`}
                     onClick={() => onViewPerspective('telegram')}
-                    title={t("speedtest.perspective_telegram")}
+                    title={t("drive.perspective_telegram")}
                   >
-                    {t("speedtest.perspective_telegram_short")}
+                    {t("drive.perspective_telegram_short")}
                   </button>
                   <button
                     type="button"
                     className={`td-perspective-btn ${viewPerspective === 'drive' ? 'active' : ''}`}
                     onClick={() => onViewPerspective('drive')}
-                    title={t("speedtest.perspective_drive")}
+                    title={t("drive.perspective_drive")}
                   >
-                    {t("speedtest.perspective_drive_short")}
+                    {t("drive.perspective_drive_short")}
                   </button>
                 </div>
               </div>
             )}
 
             <div className="td-tool-group td-group-filters" role="group" aria-labelledby="td-label-filter">
-              <span id="td-label-filter" className="td-tool-label" title={t("speedtest.topbar_filter_media_type")}>
-                {t("speedtest.topbar_label_filter")}
+              <span id="td-label-filter" className="td-tool-label" title={t("drive.topbar_filter_media_type")}>
+                {t("drive.topbar_label_filter")}
               </span>
               <div className="td-filter-pills">
                 {(
                   viewPerspective === 'telegram'
                     ? [
-                        ['all', t("speedtest.filter_all"), t("speedtest.filter_all_tip")],
-                        ['media', t("speedtest.tab_telegram_media"), t("speedtest.tab_telegram_media")],
-                        ['files', t("speedtest.tab_telegram_files"), t("speedtest.tab_telegram_files")],
-                        ['links', t("speedtest.tab_telegram_links"), t("speedtest.tab_telegram_links")],
-                        ['gifs', t("speedtest.tab_telegram_gifs"), t("speedtest.tab_telegram_gifs")],
-                        ['audio', t("speedtest.tab_telegram_audio"), t("speedtest.tab_telegram_audio")],
-                        ['stickers', t("speedtest.tab_telegram_stickers"), t("speedtest.tab_telegram_stickers_tip")],
+                        ['all', t("drive.filter_all"), t("drive.filter_all_tip")],
+                        ['media', t("drive.tab_telegram_media"), t("drive.tab_telegram_media")],
+                        ['files', t("drive.tab_telegram_files"), t("drive.tab_telegram_files")],
+                        ['links', t("drive.tab_telegram_links"), t("drive.tab_telegram_links")],
+                        ['gifs', t("drive.tab_telegram_gifs"), t("drive.tab_telegram_gifs")],
+                        ['audio', t("drive.tab_telegram_audio"), t("drive.tab_telegram_audio")],
+                        ['stickers', t("drive.tab_telegram_stickers"), t("drive.tab_telegram_stickers_tip")],
                       ]
                     : [
-                        ['all', t("speedtest.filter_all"), t("speedtest.filter_all_tip")],
-                        ['images', t("speedtest.tab_drive_images"), t("speedtest.tab_drive_images")],
-                        ['videos', t("speedtest.tab_drive_videos"), t("speedtest.tab_drive_videos")],
-                        ['audio', t("speedtest.tab_drive_audio"), t("speedtest.tab_drive_audio")],
-                        ['documents', t("speedtest.tab_drive_documents"), t("speedtest.tab_drive_documents")],
-                        ['archives', t("speedtest.tab_drive_archives"), t("speedtest.tab_drive_archives")],
+                        ['all', t("drive.filter_all"), t("drive.filter_all_tip")],
+                        ['images', t("drive.tab_drive_images"), t("drive.tab_drive_images")],
+                        ['videos', t("drive.tab_drive_videos"), t("drive.tab_drive_videos")],
+                        ['audio', t("drive.tab_drive_audio"), t("drive.tab_drive_audio")],
+                        ['documents', t("drive.tab_drive_documents"), t("drive.tab_drive_documents")],
+                        ['archives', t("drive.tab_drive_archives"), t("drive.tab_drive_archives")],
                       ]
                 ).map(([id, label, tip]) => (
                   <button
@@ -1137,7 +1137,7 @@ export function DriveTopBar({
                     className={`td-pill ${mediaFilter === id ? 'active' : ''}`}
                     onClick={() => onMediaFilter(id as DriveMediaFilter)}
                     title={tip}
-                    aria-label={`${t("speedtest.topbar_label_filter")}: ${tip}`}
+                    aria-label={`${t("drive.topbar_label_filter")}: ${tip}`}
                     aria-pressed={mediaFilter === id}
                   >
                     <span className="td-pill-label">{label}</span>
@@ -1153,22 +1153,22 @@ export function DriveTopBar({
           </div>
 
           <div className="td-tools-right-cluster">
-            <div className="td-tool-group td-group-sort" title={t("speedtest.topbar_sort_order")}>
-              <span className="td-tool-label" id="td-label-sort" title={t("speedtest.topbar_sort_order")}>
-                {t("speedtest.topbar_label_sort")}
+            <div className="td-tool-group td-group-sort" title={t("drive.topbar_sort_order")}>
+              <span className="td-tool-label" id="td-label-sort" title={t("drive.topbar_sort_order")}>
+                {t("drive.topbar_label_sort")}
               </span>
               <div className="td-sort-group">
                 <ArrowUpDown size={14} className="td-sort-ico" aria-hidden />
                 <MediaSelect
                   value={sortMode}
                   onChange={(value) => onSortMode(value as DriveSortMode)}
-                  ariaLabel={t("speedtest.topbar_sort_media_aria")}
+                  ariaLabel={t("drive.topbar_sort_media_aria")}
                   compact
                   className="td-sort"
                   options={DRIVE_SORT_OPTIONS.map((opt: any) => ({
                     value: opt.id,
-                    label: String(t(`speedtest.sort_${opt.id}_label`, opt.label)),
-                    description: String(t(`speedtest.sort_${opt.id}_desc`, opt.description)),
+                    label: String(t(`drive.sort_${opt.id}_label`, opt.label)),
+                    description: String(t(`drive.sort_${opt.id}_desc`, opt.description)),
                   }))}
                 />
                 {indexingAllActive ? (
@@ -1176,10 +1176,10 @@ export function DriveTopBar({
                     className={`td-sort-scope-chip is-loading ${indexingProgress?.isPaused ? 'is-paused' : ''}`}
                     title={
                       indexingProgress?.isPaused
-                        ? t('speedtest.index_progress_paused')
+                        ? t('drive.index_progress_paused')
                         : indexingProgress?.eta
-                        ? `${t('speedtest.index_progress_eta', { eta: indexingProgress.eta })} • ${indexingProgress.speed ? t('speedtest.index_progress_speed', { speed: indexingProgress.speed.toLocaleString() }) : ''} • ${t('speedtest.index_progress_safe_hint')}`
-                        : t('speedtest.index_progress_safe_hint')
+                        ? `${t('drive.index_progress_eta', { eta: indexingProgress.eta })} • ${indexingProgress.speed ? t('drive.index_progress_speed', { speed: indexingProgress.speed.toLocaleString() }) : ''} • ${t('drive.index_progress_safe_hint')}`
+                        : t('drive.index_progress_safe_hint')
                     }
                     role="status"
                     aria-live="polite"
@@ -1209,7 +1209,7 @@ export function DriveTopBar({
                       )}
                       <span className="td-sort-scope-text">
                         {indexingProgress?.total && indexingProgress.total > 0
-                          ? t('speedtest.index_all_progress', {
+                          ? t('drive.index_all_progress', {
                               processed: (indexingProgress.processed || fileCount).toLocaleString(),
                               total: indexingProgress.total.toLocaleString(),
                               percent: Math.min(
@@ -1219,7 +1219,7 @@ export function DriveTopBar({
                                 )
                               ),
                             })
-                          : t('speedtest.index_all_progress_count', {
+                          : t('drive.index_all_progress_count', {
                               processed: (indexingProgress?.processed || fileCount).toLocaleString(),
                             })}
                       </span>
@@ -1239,8 +1239,8 @@ export function DriveTopBar({
                             e.stopPropagation();
                             onTogglePauseIndex();
                           }}
-                          title={indexingProgress?.isPaused ? t('speedtest.index_btn_resume') : t('speedtest.index_btn_pause')}
-                          aria-label={indexingProgress?.isPaused ? t('speedtest.index_btn_resume') : t('speedtest.index_btn_pause')}
+                          title={indexingProgress?.isPaused ? t('drive.index_btn_resume') : t('drive.index_btn_pause')}
+                          aria-label={indexingProgress?.isPaused ? t('drive.index_btn_resume') : t('drive.index_btn_pause')}
                         >
                           {indexingProgress?.isPaused ? <Play size={10} /> : <Pause size={10} />}
                         </button>
@@ -1253,8 +1253,8 @@ export function DriveTopBar({
                             e.stopPropagation();
                             onStopIndex();
                           }}
-                          title={t('speedtest.index_all_stop')}
-                          aria-label={t('speedtest.index_all_stop')}
+                          title={t('drive.index_all_stop')}
+                          aria-label={t('drive.index_all_stop')}
                         >
                           <X size={11} />
                         </button>
@@ -1266,21 +1266,21 @@ export function DriveTopBar({
                     type="button"
                     className="td-sort-scope-chip is-partial"
                     onClick={onIndexAll}
-                    title={t('speedtest.index_scope_partial_hint')}
+                    title={t('drive.index_scope_partial_hint')}
                   >
                     <Sparkles size={11} className="td-sort-scope-icon" />
                     <span className="td-sort-scope-text">
                       {totalCount != null && totalCount > fileCount
-                        ? t('speedtest.sort_partial_badge', {
+                        ? t('drive.sort_partial_badge', {
                             loaded: fileCount.toLocaleString(),
                             total: totalCount.toLocaleString(),
                           })
-                        : t('speedtest.sort_partial_badge_single', {
+                        : t('drive.sort_partial_badge_single', {
                             count: fileCount.toLocaleString(),
                           })}
                     </span>
                     <span className="td-sort-scope-btn-label">
-                      {t('speedtest.index_all_action')}
+                      {t('drive.index_all_action')}
                     </span>
                   </button>
                 ) : fileCount > 0 && indexComplete ? (
@@ -1288,12 +1288,12 @@ export function DriveTopBar({
                     type="button"
                     className="td-sort-scope-chip is-complete cursor-pointer"
                     onClick={onIndexAll}
-                    title={t('speedtest.index_scope_complete_hint', { count: fileCount.toLocaleString() })}
+                    title={t('drive.index_scope_complete_hint', { count: fileCount.toLocaleString() })}
                   >
                     <Sparkles size={11} className="td-sort-scope-icon" />
-                    <span>{t('speedtest.sort_complete_badge', { count: fileCount.toLocaleString() })}</span>
+                    <span>{t('drive.sort_complete_badge', { count: fileCount.toLocaleString() })}</span>
                     <span className="td-sort-scope-btn-label">
-                      {t('speedtest.index_all_action')}
+                      {t('drive.index_all_action')}
                     </span>
                   </button>
                 ) : onIndexAll ? (
@@ -1301,11 +1301,11 @@ export function DriveTopBar({
                     type="button"
                     className="td-sort-scope-chip is-partial"
                     onClick={onIndexAll}
-                    title={t('speedtest.index_all_action')}
+                    title={t('drive.index_all_action')}
                   >
                     <Sparkles size={11} className="td-sort-scope-icon" />
                     <span className="td-sort-scope-btn-label">
-                      {t('speedtest.index_all_action')}
+                      {t('drive.index_all_action')}
                     </span>
                   </button>
                 ) : null}
@@ -1316,24 +1316,24 @@ export function DriveTopBar({
               className="td-tool-group td-thumb-quality td-group-thumb"
               role="group"
               aria-labelledby="td-label-thumb"
-              title={t("speedtest.topbar_thumb_quality")}
+              title={t("drive.topbar_thumb_quality")}
             >
-              <span id="td-label-thumb" className="td-tool-label" title={t("speedtest.topbar_preview_quality")}>
-                {t("speedtest.topbar_label_thumb")}
+              <span id="td-label-thumb" className="td-tool-label" title={t("drive.topbar_preview_quality")}>
+                {t("drive.topbar_label_thumb")}
               </span>
               <div className="td-thumb-quality-pills">
                 {DRIVE_THUMB_QUALITY_OPTIONS.map((opt: any) => {
-                  const label = String(t(`speedtest.thumb_${opt.id}_label`, opt.label));
-                  const short = String(t(`speedtest.thumb_${opt.id}_short`, opt.short));
-                  const description = String(t(`speedtest.thumb_${opt.id}_desc`, opt.description));
+                  const label = String(t(`drive.thumb_${opt.id}_label`, opt.label));
+                  const short = String(t(`drive.thumb_${opt.id}_short`, opt.short));
+                  const description = String(t(`drive.thumb_${opt.id}_desc`, opt.description));
                   return (
                     <button
                       key={opt.id}
                       type="button"
                       className={`td-pill td-thumb-pill ${thumbQuality === opt.id ? 'active' : ''}`}
                       onClick={() => onThumbQuality(opt.id)}
-                      title={`${t('speedtest.thumb_prefix')}: ${description}`}
-                      aria-label={`${t('speedtest.thumb_prefix')}: ${label}`}
+                      title={`${t('drive.thumb_prefix')}: ${description}`}
+                      aria-label={`${t('drive.thumb_prefix')}: ${label}`}
                       aria-pressed={thumbQuality === opt.id}
                     >
                       {short}
@@ -1354,8 +1354,8 @@ export function DriveTopBar({
           type="button"
           className={`td-topbar-toggle-btn ${isToolsCollapsed ? 'is-collapsed' : ''}`}
           onClick={handleToggleCollapse}
-          title={isToolsCollapsed ? t('speedtest.expand_toolbar') : t('speedtest.collapse_toolbar')}
-          aria-label={isToolsCollapsed ? t('speedtest.expand_toolbar') : t('speedtest.collapse_toolbar')}
+          title={isToolsCollapsed ? t('drive.expand_toolbar') : t('drive.collapse_toolbar')}
+          aria-label={isToolsCollapsed ? t('drive.expand_toolbar') : t('drive.collapse_toolbar')}
         >
           {isToolsCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
         </button>
@@ -1412,7 +1412,7 @@ export function DriveTopBar({
                 }}
               >
                 <Copy size={14} />
-                <span>{t('speedtest.copy_topic_id')}</span>
+                <span>{t('drive.copy_topic_id')}</span>
               </button>
               <button
                 type="button"
@@ -1443,7 +1443,7 @@ export function DriveTopBar({
                 }}
               >
                 <FolderTree size={14} />
-                <span>{t('speedtest.ctx_menu_copy_path_id')}</span>
+                <span>{t('drive.ctx_menu_copy_path_id')}</span>
               </button>
               {onRenameTopic && (
                 <button
@@ -1471,7 +1471,7 @@ export function DriveTopBar({
                   }}
                 >
                   <Trash2 size={14} />
-                  <span>{t('speedtest.delete_topic')}</span>
+                  <span>{t('drive.delete_topic')}</span>
                 </button>
               )}
             </div>

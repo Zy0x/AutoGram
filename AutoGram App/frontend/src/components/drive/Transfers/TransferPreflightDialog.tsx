@@ -93,11 +93,11 @@ function TelegramDuplicateThumb({
   return (
     <div className={`td-preflight-compare-media ${loading ? 'is-loading' : ''}`}>
       {thumb ? (
-        <img src={thumb} alt={t('speedtest.preflight_existing_thumb_alt')} />
+        <img src={thumb} alt={t('drive.preflight_existing_thumb_alt')} />
       ) : (
         <div className="td-preflight-thumb-empty">
           <ImageOff size={20} aria-hidden />
-          <span>{loading ? t('speedtest.preflight_existing_thumb_loading') : t('speedtest.preflight_existing_thumb_missing')}</span>
+          <span>{loading ? t('drive.preflight_existing_thumb_loading') : t('drive.preflight_existing_thumb_missing')}</span>
         </div>
       )}
     </div>
@@ -177,23 +177,23 @@ export function TransferPreflightDialog({
           <div className="td-xfer-settings-title">
             <FileSearch size={20} aria-hidden />
             <div>
-              <h2 id="transfer-preflight-title">{t('speedtest.preflight_title')}</h2>
-              <p>{t('speedtest.preflight_review_help')}</p>
+              <h2 id="transfer-preflight-title">{t('drive.preflight_title')}</h2>
+              <p>{t('drive.preflight_review_help')}</p>
             </div>
           </div>
-          <button type="button" className="td-icon-btn" onClick={onCancel} aria-label={t('speedtest.topbar_cancel')}>
+          <button type="button" className="td-icon-btn" onClick={onCancel} aria-label={t('drive.topbar_cancel')}>
             <X size={18} />
           </button>
         </header>
 
         <div className="td-preflight-overview" role="status">
-          <div><strong>{report.items.length}</strong><span>{t('speedtest.preflight_files')}</span></div>
-          <div className={duplicateCount ? 'has-duplicates' : ''}><strong>{duplicateCount}</strong><span>{t('speedtest.preflight_duplicates_found')}</span></div>
-          <div><strong>{queuedCount}</strong><span>{t('speedtest.preflight_will_queue')}</span></div>
-          <div><strong>{skippedCount}</strong><span>{t('speedtest.preflight_will_skip')}</span></div>
+          <div><strong>{report.items.length}</strong><span>{t('drive.preflight_files')}</span></div>
+          <div className={duplicateCount ? 'has-duplicates' : ''}><strong>{duplicateCount}</strong><span>{t('drive.preflight_duplicates_found')}</span></div>
+          <div><strong>{queuedCount}</strong><span>{t('drive.preflight_will_queue')}</span></div>
+          <div><strong>{skippedCount}</strong><span>{t('drive.preflight_will_skip')}</span></div>
           <div className="td-preflight-limit">
-            <span>{t('speedtest.preflight_limit', { value: formatDriveBytes(report.effectiveMaxBytes) })}</span>
-            <span>{t('speedtest.preflight_caption_limit', { count: report.captionLimit })}</span>
+            <span>{t('drive.preflight_limit', { value: formatDriveBytes(report.effectiveMaxBytes) })}</span>
+            <span>{t('drive.preflight_caption_limit', { count: report.captionLimit })}</span>
           </div>
         </div>
 
@@ -202,17 +202,17 @@ export function TransferPreflightDialog({
             <RefreshCw size={16} aria-hidden />
             <span className="td-preflight-banner-text">
               {convertCount > 0 && reencodeCount > 0
-                ? t('speedtest.preflight_transform_banner_summary', { convertCount, reencodeCount })
+                ? t('drive.preflight_transform_banner_summary', { convertCount, reencodeCount })
                 : convertCount > 0
-                ? t('speedtest.preflight_transform_banner_convert', { convertCount })
-                : t('speedtest.preflight_transform_banner_reencode', { reencodeCount })}
+                ? t('drive.preflight_transform_banner_convert', { convertCount })
+                : t('drive.preflight_transform_banner_reencode', { reencodeCount })}
             </span>
             <button
               type="button"
               className={`td-preflight-info-btn ${activePopover === 'transform' ? 'is-active' : ''}`}
               onClick={() => setActivePopover(activePopover === 'transform' ? null : 'transform')}
-              aria-label={t('speedtest.preflight_info_button')}
-              title={t('speedtest.preflight_info_button')}
+              aria-label={t('drive.preflight_info_button')}
+              title={t('drive.preflight_info_button')}
             >
               <Info size={13} aria-hidden />
             </button>
@@ -222,13 +222,13 @@ export function TransferPreflightDialog({
         {duplicateCount === 0 ? (
           <div className="td-preflight-clean-banner" role="status">
             <CheckCircle2 size={18} className="td-clean-icon" aria-hidden />
-            <span className="td-preflight-banner-text">{t('speedtest.preflight_all_clean_banner')}</span>
+            <span className="td-preflight-banner-text">{t('drive.preflight_all_clean_banner')}</span>
             <button
               type="button"
               className={`td-preflight-info-btn ${activePopover === 'clean' ? 'is-active' : ''}`}
               onClick={() => setActivePopover(activePopover === 'clean' ? null : 'clean')}
-              aria-label={t('speedtest.preflight_info_button')}
-              title={t('speedtest.preflight_info_button')}
+              aria-label={t('drive.preflight_info_button')}
+              title={t('drive.preflight_info_button')}
             >
               <Info size={13} aria-hidden />
             </button>
@@ -237,14 +237,14 @@ export function TransferPreflightDialog({
           <div className="td-preflight-duplicate-toolbar">
             <div>
               <CopyCheck size={17} aria-hidden />
-              <span>{t('speedtest.preflight_duplicate_instruction')}</span>
+              <span>{t('drive.preflight_duplicate_instruction')}</span>
             </div>
             <div>
               <button type="button" className="td-chip-btn" onClick={() => setAllDuplicates('skip')}>
-                {t('speedtest.preflight_skip_all_duplicates')}
+                {t('drive.preflight_skip_all_duplicates')}
               </button>
               <button type="button" className="td-chip-btn" onClick={() => setAllDuplicates('upload')}>
-                {t('speedtest.preflight_send_all_duplicates')}
+                {t('drive.preflight_send_all_duplicates')}
               </button>
             </div>
           </div>
@@ -253,16 +253,16 @@ export function TransferPreflightDialog({
         {report.engineMode === 'safe_rollback' && (
           <div className="td-xfer-note" role="status">
             <AlertTriangle size={16} aria-hidden />
-            <span>{t('speedtest.preflight_safe_rollback')}</span>
+            <span>{t('drive.preflight_safe_rollback')}</span>
           </div>
         )}
         {report.albumIsProvisional && (
           <div className="td-xfer-note">
             <AlertTriangle size={16} aria-hidden />
             <span className="td-preflight-banner-text">
-              {t('speedtest.preflight_album_provisional')}
+              {t('drive.preflight_album_provisional')}
               {report.plannedAlbumSizes.length > 0 && (
-                <> {t('speedtest.preflight_album_grid_plan', {
+                <> {t('drive.preflight_album_grid_plan', {
                   size: report.albumGridSize,
                   groups: report.plannedAlbumSizes.join(' + '),
                 })}</>
@@ -272,8 +272,8 @@ export function TransferPreflightDialog({
               type="button"
               className={`td-preflight-info-btn ${activePopover === 'album' ? 'is-active' : ''}`}
               onClick={() => setActivePopover(activePopover === 'album' ? null : 'album')}
-              aria-label={t('speedtest.preflight_info_button')}
-              title={t('speedtest.preflight_info_button')}
+              aria-label={t('drive.preflight_info_button')}
+              title={t('drive.preflight_info_button')}
             >
               <Info size={13} aria-hidden />
             </button>
@@ -285,9 +285,9 @@ export function TransferPreflightDialog({
             <div className="td-preflight-popover-card" onClick={(e) => e.stopPropagation()}>
               <div className="td-preflight-popover-head">
                 <strong>
-                  {activePopover === 'transform' && t('speedtest.preflight_info_title_transform')}
-                  {activePopover === 'clean' && t('speedtest.preflight_info_title_clean')}
-                  {activePopover === 'album' && t('speedtest.preflight_info_title_album')}
+                  {activePopover === 'transform' && t('drive.preflight_info_title_transform')}
+                  {activePopover === 'clean' && t('drive.preflight_info_title_clean')}
+                  {activePopover === 'album' && t('drive.preflight_info_title_album')}
                 </strong>
                 <button type="button" className="td-icon-btn" onClick={() => setActivePopover(null)}>
                   <X size={14} />
@@ -295,19 +295,19 @@ export function TransferPreflightDialog({
               </div>
               <div className="td-preflight-popover-body">
                 <p className="td-preflight-popover-loc">
-                  {activePopover === 'transform' && t('speedtest.preflight_info_loc_transform')}
-                  {activePopover === 'clean' && t('speedtest.preflight_info_loc_clean')}
-                  {activePopover === 'album' && t('speedtest.preflight_info_loc_album')}
+                  {activePopover === 'transform' && t('drive.preflight_info_loc_transform')}
+                  {activePopover === 'clean' && t('drive.preflight_info_loc_clean')}
+                  {activePopover === 'album' && t('drive.preflight_info_loc_album')}
                 </p>
                 <p className="td-preflight-popover-desc">
-                  {activePopover === 'transform' && t('speedtest.preflight_info_desc_transform')}
-                  {activePopover === 'clean' && t('speedtest.preflight_info_desc_clean')}
-                  {activePopover === 'album' && t('speedtest.preflight_info_desc_album')}
+                  {activePopover === 'transform' && t('drive.preflight_info_desc_transform')}
+                  {activePopover === 'clean' && t('drive.preflight_info_desc_clean')}
+                  {activePopover === 'album' && t('drive.preflight_info_desc_album')}
                 </p>
                 <p className="td-preflight-popover-disable">
-                  {activePopover === 'transform' && t('speedtest.preflight_info_disable_transform')}
-                  {activePopover === 'clean' && t('speedtest.preflight_info_disable_clean')}
-                  {activePopover === 'album' && t('speedtest.preflight_info_disable_album')}
+                  {activePopover === 'transform' && t('drive.preflight_info_disable_transform')}
+                  {activePopover === 'clean' && t('drive.preflight_info_disable_clean')}
+                  {activePopover === 'album' && t('drive.preflight_info_disable_album')}
                 </p>
               </div>
               {onOpenSettings && (
@@ -321,7 +321,7 @@ export function TransferPreflightDialog({
                     }}
                   >
                     <Settings size={14} aria-hidden />
-                    <span>{t('speedtest.preflight_info_open_settings')}</span>
+                    <span>{t('drive.preflight_info_open_settings')}</span>
                   </button>
                 </div>
               )}
@@ -346,21 +346,21 @@ export function TransferPreflightDialog({
                     <strong>{item.index + 1}. {item.sourceName}</strong>
                     {duplicate ? (
                       <span className={`td-preflight-match-badge ${duplicate.matchLevel === 'exact_sha256' ? 'is-exact' : ''}`}>
-                        {t(`speedtest.preflight_match_${duplicate.matchLevel}`)}
+                        {t(`drive.preflight_match_${duplicate.matchLevel}`)}
                       </span>
                     ) : (
-                      <span className="td-preflight-ready-tag">{t('speedtest.preflight_ready_badge')}</span>
+                      <span className="td-preflight-ready-tag">{t('drive.preflight_ready_badge')}</span>
                     )}
                     {item.transform === 'convert_webp_png' && (
                       <span className="td-preflight-transform-tag is-convert">
                         <RefreshCw size={11} aria-hidden />
-                        <span>{t('speedtest.preflight_transform_badge_convert_webp_png')}</span>
+                        <span>{t('drive.preflight_transform_badge_convert_webp_png')}</span>
                       </span>
                     )}
                     {item.transform === 'reencode' && (
                       <span className="td-preflight-transform-tag is-reencode">
                         <Video size={11} aria-hidden />
-                        <span>{t('speedtest.preflight_transform_badge_reencode_video')}</span>
+                        <span>{t('drive.preflight_transform_badge_reencode_video')}</span>
                       </span>
                     )}
                     {(item.sourcePath.startsWith('http://') || item.sourcePath.startsWith('https://')) && (
@@ -384,27 +384,27 @@ export function TransferPreflightDialog({
                 {duplicate ? (
                   <div className="td-preflight-compare-grid">
                     <section>
-                      <span className="td-preflight-compare-label">{t('speedtest.preflight_source_file')}</span>
+                      <span className="td-preflight-compare-label">{t('drive.preflight_source_file')}</span>
                       <div className="td-preflight-compare-media">
-                        {previewSource ? <img src={previewSource} alt={t('speedtest.preflight_source_thumb_alt')} /> : <FileSearch size={24} aria-hidden />}
+                        {previewSource ? <img src={previewSource} alt={t('drive.preflight_source_thumb_alt')} /> : <FileSearch size={24} aria-hidden />}
                       </div>
                       <strong title={item.sourceName}>{item.sourceName}</strong>
                       <span>{formatDriveBytes(item.sourceSize)}</span>
                     </section>
                     <div className="td-preflight-compare-link" aria-hidden><CopyCheck size={18} /></div>
                     <section>
-                      <span className="td-preflight-compare-label">{t('speedtest.preflight_existing_telegram')}</span>
+                      <span className="td-preflight-compare-label">{t('drive.preflight_existing_telegram')}</span>
                       <TelegramDuplicateThumb match={duplicate} creds={creds} />
                       <strong title={duplicate.existingName}>{duplicate.existingName}</strong>
                       <span>
-                        {formatDriveBytes(duplicate.existingSize)} · {t('speedtest.preflight_message_id', { id: duplicate.telegramMessageId ?? '?' })}
+                        {formatDriveBytes(duplicate.existingSize)} · {t('drive.preflight_message_id', { id: duplicate.telegramMessageId ?? '?' })}
                       </span>
                     </section>
                   </div>
                 ) : (
                   <div className="td-preflight-standard-row">
                     <div className="td-preflight-thumb">
-                      {previewSource ? <img src={previewSource} alt={t('speedtest.preflight_source_thumb_alt')} /> : <FileSearch size={20} aria-hidden />}
+                      {previewSource ? <img src={previewSource} alt={t('drive.preflight_source_thumb_alt')} /> : <FileSearch size={20} aria-hidden />}
                     </div>
                     <div className="td-preflight-clean-meta">
                       <span className="td-preflight-clean-filename" title={item.sourceName}>{item.sourceName}</span>
@@ -415,9 +415,9 @@ export function TransferPreflightDialog({
 
                 {isExpanded && !duplicate && (
                   <dl className="td-preflight-tech-dl">
-                    <div><dt>{t('speedtest.preflight_category')}</dt><dd>{t(`speedtest.preflight_category_${item.category}`)}</dd></div>
-                    <div><dt>{t('speedtest.preflight_transform')}</dt><dd>{t(`speedtest.preflight_transform_${item.transform}`)}</dd></div>
-                    <div><dt>{t('speedtest.preflight_payload')}</dt><dd>{t(`speedtest.preflight_payload_${item.payloadClass}`)}</dd></div>
+                    <div><dt>{t('drive.preflight_category')}</dt><dd>{t(`drive.preflight_category_${item.category}`)}</dd></div>
+                    <div><dt>{t('drive.preflight_transform')}</dt><dd>{t(`drive.preflight_transform_${item.transform}`)}</dd></div>
+                    <div><dt>{t('drive.preflight_payload')}</dt><dd>{t(`drive.preflight_payload_${item.payloadClass}`)}</dd></div>
                   </dl>
                 )}
 
@@ -430,14 +430,14 @@ export function TransferPreflightDialog({
                       aria-expanded={isExpanded}
                     >
                       {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                      <span>{isExpanded ? t('speedtest.preflight_hide_details') : t('speedtest.preflight_toggle_details')}</span>
+                      <span>{isExpanded ? t('drive.preflight_hide_details') : t('drive.preflight_toggle_details')}</span>
                     </button>
                   ) : (
                     <span className="td-preflight-reason">
-                      {t(`speedtest.preflight_duplicate_reason_${duplicate.matchLevel}`)}
+                      {t(`drive.preflight_duplicate_reason_${duplicate.matchLevel}`)}
                     </span>
                   )}
-                  <div role="group" aria-label={t('speedtest.preflight_item_decision')}>
+                  <div role="group" aria-label={t('drive.preflight_item_decision')}>
                     <button
                       type="button"
                       className={`td-preflight-choice is-skip ${choice === 'skip' ? 'is-selected' : ''}`}
@@ -445,7 +445,7 @@ export function TransferPreflightDialog({
                       aria-pressed={choice === 'skip'}
                     >
                       {choice === 'skip' && <Check size={15} aria-hidden />}
-                      {t('speedtest.preflight_skip_item')}
+                      {t('drive.preflight_skip_item')}
                     </button>
                     <button
                       type="button"
@@ -454,14 +454,14 @@ export function TransferPreflightDialog({
                       aria-pressed={choice === 'upload'}
                     >
                       <Send size={15} aria-hidden />
-                      {duplicate ? t('speedtest.preflight_send_anyway') : t('speedtest.preflight_include_item')}
+                      {duplicate ? t('drive.preflight_send_anyway') : t('drive.preflight_include_item')}
                     </button>
                   </div>
                 </div>
               </article>
             );
           })}
-          {hiddenCount > 0 && <p className="td-xfer-hint">{t('speedtest.preflight_more_items', { count: hiddenCount })}</p>}
+          {hiddenCount > 0 && <p className="td-xfer-hint">{t('drive.preflight_more_items', { count: hiddenCount })}</p>}
         </div>
 
         <footer className="td-preflight-foot">
@@ -471,13 +471,13 @@ export function TransferPreflightDialog({
                 type="button"
                 className="td-chip-btn"
                 onClick={onOpenSettings}
-                title={t('speedtest.preflight_drive_settings_title')}
+                title={t('drive.preflight_drive_settings_title')}
               >
                 <Settings size={13} aria-hidden style={{ marginRight: 4 }} />
-                <span>{t('speedtest.preflight_drive_settings')}</span>
+                <span>{t('drive.preflight_drive_settings')}</span>
               </button>
             )}
-            <button type="button" className="td-chip-btn" onClick={onCancel}>{t('speedtest.topbar_cancel')}</button>
+            <button type="button" className="td-chip-btn" onClick={onCancel}>{t('drive.topbar_cancel')}</button>
           </div>
           <button
             type="button"
@@ -485,7 +485,7 @@ export function TransferPreflightDialog({
             onClick={() => onConfirm(buildPreflightReviewDecision(report, choices))}
             disabled={report.hasBlockingIssues || queuedCount === 0}
           >
-            {t('speedtest.preflight_confirm_selection', { queue: queuedCount, skip: skippedCount })}
+            {t('drive.preflight_confirm_selection', { queue: queuedCount, skip: skippedCount })}
           </button>
         </footer>
       </section>

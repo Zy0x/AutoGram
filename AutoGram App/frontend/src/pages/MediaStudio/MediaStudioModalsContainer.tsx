@@ -181,7 +181,7 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
   const copyWithStatus = async (value: string, kind: 'id' | 'path') => {
     const success = await nativeWriteClipboardText(value);
     if (success) {
-      setStatusText(t(kind === 'path' ? 'speedtest.copy_path_id_success' : 'speedtest.copy_id_success', { value }));
+      setStatusText(t(kind === 'path' ? 'drive.copy_path_id_success' : 'drive.copy_id_success', { value }));
     } else {
       setStatusText(value);
     }
@@ -446,7 +446,7 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
         locationName={
           folders.find((f) => f.id === peerId)?.name ||
           chats.find((c) => c.id === peerId)?.name ||
-          (locationKind === 'saved' ? String(t('speedtest.saved_messages')) : undefined)
+          (locationKind === 'saved' ? String(t('drive.saved_messages')) : undefined)
         }
         pathId={infoFile ? buildMediaPathId({
           accountUserId,

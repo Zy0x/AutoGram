@@ -53,7 +53,7 @@ export const TOOL_GROUPS: {
   tabs: { id: DriveToolsTab; icon: any }[];
 }[] = [
   {
-    titleKey: 'speedtest.tools_group_drive',
+    titleKey: 'drive.tools_group_drive',
     tabs: [
       { id: 'dups', icon: Layers },
       { id: 'rename', icon: Type },
@@ -62,7 +62,7 @@ export const TOOL_GROUPS: {
     ],
   },
   {
-    titleKey: 'speedtest.tools_group_settings',
+    titleKey: 'drive.tools_group_settings',
     tabs: [
       { id: 'upload', icon: Upload },
       { id: 'download', icon: Download },

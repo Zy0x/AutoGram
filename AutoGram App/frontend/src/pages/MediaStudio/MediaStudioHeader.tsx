@@ -35,7 +35,7 @@ export const MediaStudioHeader: React.FC<MediaStudioHeaderProps> = ({
             {t('ui.generated.drive_studio_2291ebb')}
           </h2>
           <div className="flex items-center gap-1.5 text-xs text-slate-400">
-            <span>{t('speedtest.active_session_label')}</span>
+            <span>{t('drive.active_session_label')}</span>
             <select
               value={activeSession}
               onChange={(e) => onSelectSession(e.target.value)}
@@ -59,7 +59,7 @@ export const MediaStudioHeader: React.FC<MediaStudioHeaderProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder={t('speedtest.search_media_ph')}
+            placeholder={t('drive.search_media_ph')}
             className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-8 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:ring-1 focus:ring-indigo-500 outline-none"
           />
           {searchQuery && (
@@ -78,7 +78,7 @@ export const MediaStudioHeader: React.FC<MediaStudioHeaderProps> = ({
           onClick={onRefresh}
           disabled={isRefreshing}
           className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all disabled:opacity-50"
-          title={t('speedtest.refresh_drive')}
+          title={t('drive.refresh_drive')}
         >
           <RefreshCw size={16} className={isRefreshing ? 'animate-spin text-indigo-400' : ''} />
         </button>

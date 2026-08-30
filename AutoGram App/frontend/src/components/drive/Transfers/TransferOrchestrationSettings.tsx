@@ -15,42 +15,42 @@ export function TransferOrchestrationSettings({ mode, settings, onChange, disabl
   if (mode === 'download') {
     return (
       <div id="transfer-download-reliability" className="td-xfer-subsection td-orchestration-settings">
-        <h4 className="td-xfer-sub-title">{t('speedtest.download_reliability_title')}</h4>
-        <p className="td-xfer-hint">{t('speedtest.download_reliability_desc')}</p>
+        <h4 className="td-xfer-sub-title">{t('drive.download_reliability_title')}</h4>
+        <p className="td-xfer-hint">{t('drive.download_reliability_desc')}</p>
         <button
           type="button"
           className="td-chip-btn"
           disabled={disabled}
           onClick={() => onChange({ downloadConflictPolicy: 'ask', downloadResumePartial: true, downloadIntegrity: 'size' })}
         >
-          {t('speedtest.reset_section')}
+          {t('drive.reset_section')}
         </button>
         <MediaSelect
           value={settings.downloadConflictPolicy}
           disabled={disabled}
           onChange={(value) => onChange({ downloadConflictPolicy: value as DriveTransferSettings['downloadConflictPolicy'] })}
-          ariaLabel={t('speedtest.download_conflict_policy')}
+          ariaLabel={t('drive.download_conflict_policy')}
           options={['ask', 'rename', 'overwrite', 'skip'].map((value) => ({
             value,
-            label: String(t(`speedtest.download_conflict_${value}`)),
-            description: String(t(`speedtest.download_conflict_${value}_desc`)),
+            label: String(t(`drive.download_conflict_${value}`)),
+            description: String(t(`drive.download_conflict_${value}_desc`)),
           }))}
         />
         <div className="td-xfer-checks">
           <label className="td-xfer-check">
             <input type="checkbox" checked={settings.downloadResumePartial} disabled={disabled} onChange={(event) => onChange({ downloadResumePartial: event.target.checked })} />
-            <span><strong>{t('speedtest.download_resume_partial')}</strong><small>{t('speedtest.download_resume_partial_desc')}</small></span>
+            <span><strong>{t('drive.download_resume_partial')}</strong><small>{t('drive.download_resume_partial_desc')}</small></span>
           </label>
         </div>
         <MediaSelect
           value={settings.downloadIntegrity}
           disabled={disabled}
           onChange={(value) => onChange({ downloadIntegrity: value as DriveTransferSettings['downloadIntegrity'] })}
-          ariaLabel={t('speedtest.download_integrity')}
+          ariaLabel={t('drive.download_integrity')}
           options={['size', 'sha256'].map((value) => ({
             value,
-            label: String(t(`speedtest.download_integrity_${value}`)),
-            description: String(t(`speedtest.download_integrity_${value}_desc`)),
+            label: String(t(`drive.download_integrity_${value}`)),
+            description: String(t(`drive.download_integrity_${value}_desc`)),
           }))}
         />
       </div>
@@ -60,7 +60,7 @@ export function TransferOrchestrationSettings({ mode, settings, onChange, disabl
   return (
     <div id="transfer-orchestration" className="td-orchestration-settings">
       <div className="td-xfer-note" role="status">
-        <span>{t('speedtest.frozen_profile_notice')}</span>
+        <span>{t('drive.frozen_profile_notice')}</span>
       </div>
       <button
         type="button"
@@ -88,20 +88,20 @@ export function TransferOrchestrationSettings({ mode, settings, onChange, disabl
           spoilerItemPositions: '',
         })}
       >
-        {t('speedtest.reset_section')}
+        {t('drive.reset_section')}
       </button>
 
-      <h3>{t('speedtest.presentation_override_title')}</h3>
-      <p className="td-xfer-hint">{t('speedtest.presentation_override_desc')}</p>
+      <h3>{t('drive.presentation_override_title')}</h3>
+      <p className="td-xfer-hint">{t('drive.presentation_override_desc')}</p>
       <MediaSelect
         value={settings.presentationOverride}
         disabled={disabled}
         onChange={(value) => onChange({ presentationOverride: value as DriveTransferSettings['presentationOverride'] })}
-        ariaLabel={t('speedtest.presentation_override_title')}
+        ariaLabel={t('drive.presentation_override_title')}
         options={['automatic', 'force_document', 'force_native_media'].map((value) => ({
           value,
-          label: String(t(`speedtest.presentation_${value}`)),
-          description: String(t(`speedtest.presentation_${value}_desc`)),
+          label: String(t(`drive.presentation_${value}`)),
+          description: String(t(`drive.presentation_${value}_desc`)),
         }))}
       />
 
@@ -118,12 +118,12 @@ export function TransferOrchestrationSettings({ mode, settings, onChange, disabl
               />
               <span>
                 <strong>
-                  {t('speedtest.prevent_sticker_conversion_title')} {t('speedtest.prevent_sticker_conversion_formats')}
+                  {t('drive.prevent_sticker_conversion_title')} {t('drive.prevent_sticker_conversion_formats')}
                 </strong>
-                <small>{t('speedtest.prevent_sticker_conversion_desc')}</small>
+                <small>{t('drive.prevent_sticker_conversion_desc')}</small>
                 {!isStickerEnabled && (
                   <small style={{ color: '#f59e0b', marginTop: '4px', display: 'block' }}>
-                    ⚠️ {t('speedtest.prevent_sticker_conversion_doc_note')}
+                    ⚠️ {t('drive.prevent_sticker_conversion_doc_note')}
                   </small>
                 )}
               </span>
@@ -134,27 +134,27 @@ export function TransferOrchestrationSettings({ mode, settings, onChange, disabl
       {settings.oversizeAction === 'alternate_account' && (
         <div className="td-xfer-subsection">
           <label className="td-xfer-range-row">
-            <span>{t('speedtest.alternate_account_pool')}</span>
+            <span>{t('drive.alternate_account_pool')}</span>
             <input
               type="text"
               value={settings.alternateAccountPool}
               disabled={disabled}
               maxLength={512}
-              placeholder={String(t('speedtest.alternate_account_pool_placeholder'))}
+              placeholder={String(t('drive.alternate_account_pool_placeholder'))}
               onChange={(event) => onChange({ alternateAccountPool: event.target.value.replace(/[^a-zA-Z0-9_.\-,\s]/g, '') })}
-              aria-label={t('speedtest.alternate_account_pool')}
+              aria-label={t('drive.alternate_account_pool')}
             />
           </label>
-          <p className="td-xfer-hint">{t('speedtest.alternate_account_pool_desc')}</p>
+          <p className="td-xfer-hint">{t('drive.alternate_account_pool_desc')}</p>
           <MediaSelect
             value={settings.albumAlternateStrategy}
             disabled={disabled}
             onChange={(value) => onChange({ albumAlternateStrategy: value as DriveTransferSettings['albumAlternateStrategy'] })}
-            ariaLabel={t('speedtest.album_alternate_strategy')}
+            ariaLabel={t('drive.album_alternate_strategy')}
             options={['separate_item', 'move_whole_group', 'cancel_group'].map((value) => ({
               value,
-              label: String(t(`speedtest.album_alternate_${value}`)),
-              description: String(t(`speedtest.album_alternate_${value}_desc`)),
+              label: String(t(`drive.album_alternate_${value}`)),
+              description: String(t(`drive.album_alternate_${value}_desc`)),
             }))}
           />
           <label className="td-xfer-check">
@@ -164,17 +164,17 @@ export function TransferOrchestrationSettings({ mode, settings, onChange, disabl
               disabled={disabled}
               onChange={(event) => onChange({ alternateIdentityApproved: event.target.checked })}
             />
-            <span><strong>{t('speedtest.alternate_identity_approved')}</strong><small>{t('speedtest.alternate_identity_approved_desc')}</small></span>
+            <span><strong>{t('drive.alternate_identity_approved')}</strong><small>{t('drive.alternate_identity_approved_desc')}</small></span>
           </label>
         </div>
       )}
 
-      <h3>{t('speedtest.album_orchestration_title')}</h3>
-      <p className="td-xfer-hint">{t('speedtest.album_orchestration_desc')}</p>
+      <h3>{t('drive.album_orchestration_title')}</h3>
+      <p className="td-xfer-hint">{t('drive.album_orchestration_desc')}</p>
       {settings.groupAsAlbum && (
         <div className="td-xfer-subsection">
           <label className="td-xfer-range-row">
-            <span>{t('speedtest.album_grid_size')}</span>
+            <span>{t('drive.album_grid_size')}</span>
             <input
               type="range"
               min={2}
@@ -192,7 +192,7 @@ export function TransferOrchestrationSettings({ mode, settings, onChange, disabl
             <span className="td-xfer-range-val">{settings.albumGroupSize}</span>
           </label>
           <p className="td-xfer-hint">
-            {t('speedtest.album_grid_size_desc', { size: settings.albumGroupSize })}
+            {t('drive.album_grid_size_desc', { size: settings.albumGroupSize })}
           </p>
           <MediaSelect
             value={
@@ -204,22 +204,22 @@ export function TransferOrchestrationSettings({ mode, settings, onChange, disabl
             }
             disabled={disabled}
             onChange={(value) => onChange({ albumFailurePolicy: value as DriveTransferSettings['albumFailurePolicy'] })}
-            ariaLabel={t('speedtest.album_failure_policy')}
+            ariaLabel={t('drive.album_failure_policy')}
             options={[
               {
                 value: 'atomic_strict',
-                label: String(t('speedtest.album_failure_preset_strict_title')),
-                description: String(t('speedtest.album_failure_preset_strict_desc')),
+                label: String(t('drive.album_failure_preset_strict_title')),
+                description: String(t('drive.album_failure_preset_strict_desc')),
               },
               {
                 value: 'replan_group',
-                label: String(t('speedtest.album_failure_preset_best_effort_title')),
-                description: String(t('speedtest.album_failure_preset_best_effort_desc')),
+                label: String(t('drive.album_failure_preset_best_effort_title')),
+                description: String(t('drive.album_failure_preset_best_effort_desc')),
               },
               {
                 value: 'send_failed_separately',
-                label: String(t('speedtest.album_failure_preset_retry_title')),
-                description: String(t('speedtest.album_failure_preset_retry_desc')),
+                label: String(t('drive.album_failure_preset_retry_title')),
+                description: String(t('drive.album_failure_preset_retry_desc')),
               },
             ]}
           />
@@ -227,100 +227,100 @@ export function TransferOrchestrationSettings({ mode, settings, onChange, disabl
             {(['albumAvoidSingle', 'groupDocuments', 'groupAudio', 'groupOriginalDocuments'] as const).map((field) => (
               <label className="td-xfer-check" key={field}>
                 <input type="checkbox" checked={settings[field]} disabled={disabled} onChange={(event) => onChange({ [field]: event.target.checked })} />
-                <span><strong>{t(`speedtest.${field}`)}</strong><small>{t(`speedtest.${field}_desc`)}</small></span>
+                <span><strong>{t(`drive.${field}`)}</strong><small>{t(`drive.${field}_desc`)}</small></span>
               </label>
             ))}
           </div>
         </div>
       )}
 
-      <h3>{t('speedtest.delivery_routing_title')}</h3>
-      <p className="td-xfer-hint">{t('speedtest.delivery_routing_desc')}</p>
+      <h3>{t('drive.delivery_routing_title')}</h3>
+      <p className="td-xfer-hint">{t('drive.delivery_routing_desc')}</p>
       <label className="td-xfer-range-row">
-        <span>{t('speedtest.schedule_at')}</span>
+        <span>{t('drive.schedule_at')}</span>
         <input
           type="datetime-local"
           value={settings.scheduleAt}
           disabled={disabled}
           onChange={(event) => onChange({ scheduleAt: event.target.value })}
-          aria-label={t('speedtest.schedule_at')}
+          aria-label={t('drive.schedule_at')}
         />
       </label>
-      <p className="td-xfer-hint">{t('speedtest.schedule_at_desc')}</p>
+      <p className="td-xfer-hint">{t('drive.schedule_at_desc')}</p>
       <label className="td-xfer-range-row">
-        <span>{t('speedtest.send_as_peer')}</span>
+        <span>{t('drive.send_as_peer')}</span>
         <input
           type="text"
           value={settings.sendAs}
           disabled={disabled}
           maxLength={128}
-          placeholder={String(t('speedtest.send_as_peer_placeholder'))}
+          placeholder={String(t('drive.send_as_peer_placeholder'))}
           onChange={(event) => onChange({ sendAs: event.target.value })}
-          aria-label={t('speedtest.send_as_peer')}
+          aria-label={t('drive.send_as_peer')}
         />
       </label>
-      <p className="td-xfer-hint">{t('speedtest.send_as_peer_desc')}</p>
+      <p className="td-xfer-hint">{t('drive.send_as_peer_desc')}</p>
       <label className="td-xfer-range-row">
-        <span>{t('speedtest.spoiler_item_positions')}</span>
+        <span>{t('drive.spoiler_item_positions')}</span>
         <input
           type="text"
           inputMode="numeric"
           value={settings.spoilerItemPositions}
           disabled={disabled}
           maxLength={128}
-          placeholder={String(t('speedtest.spoiler_item_positions_placeholder'))}
+          placeholder={String(t('drive.spoiler_item_positions_placeholder'))}
           onChange={(event) => onChange({ spoilerItemPositions: event.target.value.replace(/[^0-9,\-\s]/g, '') })}
-          aria-label={t('speedtest.spoiler_item_positions')}
+          aria-label={t('drive.spoiler_item_positions')}
         />
       </label>
-      <p className="td-xfer-hint">{t('speedtest.spoiler_item_positions_desc')}</p>
+      <p className="td-xfer-hint">{t('drive.spoiler_item_positions_desc')}</p>
 
-      <h3>{t('speedtest.oversize_policy_title')}</h3>
+      <h3>{t('drive.oversize_policy_title')}</h3>
       <MediaSelect
         value={settings.oversizeAction}
         disabled={disabled}
         onChange={(value) => onChange({ oversizeAction: value as DriveTransferSettings['oversizeAction'] })}
-        ariaLabel={t('speedtest.oversize_policy_title')}
+        ariaLabel={t('drive.oversize_policy_title')}
         options={['split', 'alternate_account', 'skip'].map((value) => ({
           value,
-          label: String(t(`speedtest.oversize_${value}`)),
-          description: String(t(`speedtest.oversize_${value}_desc`)),
+          label: String(t(`drive.oversize_${value}`)),
+          description: String(t(`drive.oversize_${value}_desc`)),
         }))}
       />
 
-      <h3 id="transfer-encoder">{t('speedtest.encoder_orchestration_title')}</h3>
-      <p className="td-xfer-hint">{t('speedtest.encoder_orchestration_desc')}</p>
+      <h3 id="transfer-encoder">{t('drive.encoder_orchestration_title')}</h3>
+      <p className="td-xfer-hint">{t('drive.encoder_orchestration_desc')}</p>
       <MediaSelect
         value={settings.encoderStrategy}
         disabled={disabled}
         onChange={(value) => onChange({ encoderStrategy: value as DriveTransferSettings['encoderStrategy'] })}
-        ariaLabel={t('speedtest.encoder_strategy')}
+        ariaLabel={t('drive.encoder_strategy')}
         options={['auto_adaptive', 'hardware_preferred', 'software_preferred', 'hardware_only', 'software_only', 'specific_device', 'disable_reencode'].map((value) => ({
           value,
-          label: String(t(`speedtest.encoder_strategy_${value}`)),
-          description: String(t(`speedtest.encoder_strategy_${value}_desc`)),
+          label: String(t(`drive.encoder_strategy_${value}`)),
+          description: String(t(`drive.encoder_strategy_${value}_desc`)),
         }))}
       />
       <MediaSelect
         value={settings.encoderResourceProfile}
         disabled={disabled}
         onChange={(value) => onChange({ encoderResourceProfile: value as DriveTransferSettings['encoderResourceProfile'] })}
-        ariaLabel={t('speedtest.encoder_resource_profile')}
+        ariaLabel={t('drive.encoder_resource_profile')}
         options={['eco', 'balanced', 'performance', 'custom'].map((value) => ({
           value,
-          label: String(t(`speedtest.encoder_resource_${value}`)),
-          description: String(t(`speedtest.encoder_resource_${value}_desc`)),
+          label: String(t(`drive.encoder_resource_${value}`)),
+          description: String(t(`drive.encoder_resource_${value}_desc`)),
         }))}
       />
       <label className="td-xfer-range-row">
-        <span>{t('speedtest.encoder_parallel')}</span>
+        <span>{t('drive.encoder_parallel')}</span>
         <input type="range" min={1} max={4} value={settings.encoderMaxParallel} disabled={disabled} onChange={(event) => onChange({ encoderMaxParallel: Number(event.target.value) })} />
         <span className="td-xfer-range-val">{settings.encoderMaxParallel}</span>
       </label>
       <div className="td-xfer-checks">
         <label className="td-xfer-check">
           <input type="checkbox" checked={settings.encoderAllowSoftwareFallback} disabled={disabled || settings.encoderStrategy === 'hardware_only'} onChange={(event) => onChange({ encoderAllowSoftwareFallback: event.target.checked })} />
-          <span><strong>{t('speedtest.encoder_software_fallback')}</strong><small>{t('speedtest.encoder_software_fallback_desc')}</small></span>
+          <span><strong>{t('drive.encoder_software_fallback')}</strong><small>{t('drive.encoder_software_fallback_desc')}</small></span>
         </label>
       </div>
     </div>

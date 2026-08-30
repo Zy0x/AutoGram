@@ -37,7 +37,7 @@ export const SidebarStorageGauge: React.FC<SidebarStorageGaugeProps> = ({
         </div>
         <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
           <span>{formatDriveBytes(usedBytes)}</span>
-          <span>{t('speedtest.unlimited_cloud')}</span>
+          <span>{t('drive.unlimited_cloud')}</span>
         </div>
       </div>
     </div>

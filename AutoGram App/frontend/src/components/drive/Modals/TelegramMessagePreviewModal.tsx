@@ -325,8 +325,8 @@ export function TelegramMessagePreviewModal({
   const isSavedMessages = file.is_saved_messages || file.peer_kind === 'saved_messages' || file.peer_id === 'me';
 
   const senderName = isSavedMessages
-    ? t('speedtest.account_saved_messages', { defaultValue: 'Saved Messages' })
-    : chatName || file.peer_username || t('speedtest.tg_preview_sender_unknown');
+    ? t('drive.account_saved_messages', { defaultValue: 'Saved Messages' })
+    : chatName || file.peer_username || t('drive.tg_preview_sender_unknown');
 
   const avatarGradient = getTelegramAvatarGradient(senderName, file.peer_id);
   const avatarInitials = isSavedMessages ? '⭐' : getAvatarInitials(senderName);
@@ -337,7 +337,7 @@ export function TelegramMessagePreviewModal({
   const fileDate = file.created_at ? new Date(file.created_at) : new Date();
   const isToday = new Date().toDateString() === fileDate.toDateString();
   const dateHeader = isToday
-    ? t('speedtest.tg_preview_today', { defaultValue: 'Today' })
+    ? t('drive.tg_preview_today', { defaultValue: 'Today' })
     : fileDate.toLocaleDateString(undefined, {
         month: 'long',
         day: 'numeric',
@@ -406,7 +406,7 @@ export function TelegramMessagePreviewModal({
         onMouseUp={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label={t('speedtest.tg_preview_title')}
+        aria-label={t('drive.tg_preview_title')}
       >
         {/* Telegram Desktop Top Header Bar (No redundant duplicate actions) */}
         <div className="tg-msg-preview-header">
@@ -493,7 +493,7 @@ export function TelegramMessagePreviewModal({
                         <ImageIcon size={38} className="tg-placeholder-icon" />
                       )}
                       <span className="tg-placeholder-text">
-                        {t('speedtest.tg_preview_image_loading', { defaultValue: 'Loading preview…' })}
+                        {t('drive.tg_preview_image_loading', { defaultValue: 'Loading preview…' })}
                       </span>
                     </div>
                   )}
@@ -520,8 +520,8 @@ export function TelegramMessagePreviewModal({
                 <div className={`tg-msg-link-preview${linkUrls.length > 1 ? ' is-multiple' : ''}`}>
                   <div className="tg-msg-link-heading">
                     {linkUrls.length > 1
-                      ? t('speedtest.link_preview_multiple', { count: linkUrls.length })
-                      : t('speedtest.link_preview_single')}
+                      ? t('drive.link_preview_multiple', { count: linkUrls.length })
+                      : t('drive.link_preview_single')}
                   </div>
                   <div className="tg-msg-link-list">
                     {linkUrls.map((url, index) => {
@@ -550,7 +550,7 @@ export function TelegramMessagePreviewModal({
                             title={
                               isTelegramActionLink(url)
                                 ? t('telegram_actions.browse_drive_desc')
-                                : t('speedtest.link_preview_open')
+                                : t('drive.link_preview_open')
                             }
                           >
                             <span className="tg-msg-link-domain">{host}</span>
@@ -561,8 +561,8 @@ export function TelegramMessagePreviewModal({
                               type="button"
                               className="tg-msg-link-icon-action"
                               onClick={() => void handleCopyUrl(url)}
-                              title={t('speedtest.link_preview_copy')}
-                              aria-label={t('speedtest.link_preview_copy')}
+                              title={t('drive.link_preview_copy')}
+                              aria-label={t('drive.link_preview_copy')}
                             >
                               {copiedUrl === url ? <Check size={14} /> : <Copy size={14} />}
                             </button>
@@ -610,8 +610,8 @@ export function TelegramMessagePreviewModal({
                                   type="button"
                                   className="tg-msg-link-icon-action"
                                   onClick={() => void openUrl(url).catch(() => undefined)}
-                                  title={t('speedtest.link_preview_open')}
-                                  aria-label={t('speedtest.link_preview_open')}
+                                  title={t('drive.link_preview_open')}
+                                  aria-label={t('drive.link_preview_open')}
                                 >
                                   <ExternalLink size={14} aria-hidden />
                                 </button>
@@ -627,8 +627,8 @@ export function TelegramMessagePreviewModal({
                                       event.stopPropagation();
                                       onSendToRemoteLink(url);
                                     }}
-                                    title={t('speedtest.link_preview_send_remote')}
-                                    aria-label={t('speedtest.link_preview_send_remote')}
+                                    title={t('drive.link_preview_send_remote')}
+                                    aria-label={t('drive.link_preview_send_remote')}
                                   >
                                     <Send size={14} aria-hidden />
                                   </button>
@@ -637,8 +637,8 @@ export function TelegramMessagePreviewModal({
                                   type="button"
                                   className="tg-msg-link-icon-action"
                                   onClick={() => void openUrl(url).catch(() => undefined)}
-                                  title={t('speedtest.link_preview_open')}
-                                  aria-label={t('speedtest.link_preview_open')}
+                                  title={t('drive.link_preview_open')}
+                                  aria-label={t('drive.link_preview_open')}
                                 >
                                   <ExternalLink size={14} aria-hidden />
                                 </button>
@@ -706,7 +706,7 @@ export function TelegramMessagePreviewModal({
               {/* 4. Message Caption / Text Content */}
               {messageLoading && (
                 <div className="tg-msg-bubble-caption-loading" role="status">
-                  {t('speedtest.tg_preview_loading_message')}
+                  {t('drive.tg_preview_loading_message')}
                 </div>
               )}
               {captionText && (
@@ -738,8 +738,8 @@ export function TelegramMessagePreviewModal({
               {copiedCaption ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
               <span>
                 {copiedCaption
-                  ? t('speedtest.tg_preview_copied')
-                  : t('speedtest.tg_preview_copy_caption')}
+                  ? t('drive.tg_preview_copied')
+                  : t('drive.tg_preview_copy_caption')}
               </span>
             </button>
           )}
@@ -754,8 +754,8 @@ export function TelegramMessagePreviewModal({
               {copiedLink ? <Check size={14} color="#10b981" /> : <Share2 size={14} />}
               <span>
                 {copiedLink
-                  ? t('speedtest.tg_preview_copied')
-                  : t('speedtest.ctx_menu_copy_tg')}
+                  ? t('drive.tg_preview_copied')
+                  : t('drive.ctx_menu_copy_tg')}
               </span>
             </button>
           )}
@@ -767,7 +767,7 @@ export function TelegramMessagePreviewModal({
               onClick={handleOpenTelegram}
             >
               <Send size={14} />
-              <span>{t('speedtest.ctx_menu_open_tg')}</span>
+              <span>{t('drive.ctx_menu_open_tg')}</span>
             </button>
           )}
         </div>

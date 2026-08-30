@@ -111,7 +111,7 @@ export const ZipContextMenu: React.FC<ZipContextMenuProps> = ({
             }}
           >
             {isZipArchiveName(target.entry.name) ? <FolderOpen size={15} /> : <Eye size={15} />}
-            <span>{isZipArchiveName(target.entry.name) ? t('speedtest.zip_open_nested') : t('speedtest.zip_ctx_preview')}</span>
+            <span>{isZipArchiveName(target.entry.name) ? t('drive.zip_open_nested') : t('drive.zip_ctx_preview')}</span>
           </button>
 
           <button
@@ -123,7 +123,7 @@ export const ZipContextMenu: React.FC<ZipContextMenuProps> = ({
             }}
           >
             <Download size={15} />
-            <span>{t('speedtest.zip_ctx_extract')}</span>
+            <span>{t('drive.zip_ctx_extract')}</span>
           </button>
 
           <div className="dzb-context-divider" />
@@ -134,7 +134,7 @@ export const ZipContextMenu: React.FC<ZipContextMenuProps> = ({
             onClick={() => void handleCopyName(target.entry.name)}
           >
             <Copy size={15} />
-            <span>{t('speedtest.zip_ctx_copy_name')}</span>
+            <span>{t('drive.zip_ctx_copy_name')}</span>
           </button>
 
           <button
@@ -143,7 +143,7 @@ export const ZipContextMenu: React.FC<ZipContextMenuProps> = ({
             onClick={() => void handleCopyPath(target.entry.name)}
           >
             <FileCode size={15} />
-            <span>{t('speedtest.zip_ctx_copy_path')}</span>
+            <span>{t('drive.zip_ctx_copy_path')}</span>
           </button>
 
           <div className="dzb-context-divider" />
@@ -161,7 +161,7 @@ export const ZipContextMenu: React.FC<ZipContextMenuProps> = ({
             }}
           >
             <FolderOpen size={15} />
-            <span>{t('speedtest.zip_ctx_open_folder')}</span>
+            <span>{t('drive.zip_ctx_open_folder')}</span>
           </button>
 
           <button
@@ -173,7 +173,7 @@ export const ZipContextMenu: React.FC<ZipContextMenuProps> = ({
             }}
           >
             <Download size={15} />
-            <span>{t('speedtest.zip_extract_directory')}</span>
+            <span>{t('drive.zip_extract_directory')}</span>
           </button>
 
           <div className="dzb-context-divider" />
@@ -190,7 +190,7 @@ export const ZipContextMenu: React.FC<ZipContextMenuProps> = ({
           }}
         >
           <FolderInput size={15} />
-          <span>{t('speedtest.zip_ctx_extract_selected')} ({selectedCount})</span>
+          <span>{t('drive.zip_ctx_extract_selected')} ({selectedCount})</span>
         </button>
       )}
 
@@ -203,7 +203,7 @@ export const ZipContextMenu: React.FC<ZipContextMenuProps> = ({
         }}
       >
         <CheckSquare size={15} />
-        <span>{t('speedtest.zip_ctx_select_all')}</span>
+        <span>{t('drive.zip_ctx_select_all')}</span>
       </button>
 
       <button
@@ -215,7 +215,7 @@ export const ZipContextMenu: React.FC<ZipContextMenuProps> = ({
         }}
       >
         <RefreshCw size={15} />
-        <span>{t('speedtest.zip_ctx_invert_selection')}</span>
+        <span>{t('drive.zip_ctx_invert_selection')}</span>
       </button>
     </div>
   );

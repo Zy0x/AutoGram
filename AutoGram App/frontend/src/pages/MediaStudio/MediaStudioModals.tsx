@@ -66,7 +66,7 @@ export const MediaStudioModals: React.FC<MediaStudioModalsProps> = ({
               type="text"
               value={folderName}
               onChange={(e) => setFolderName(e.target.value)}
-              placeholder={i18n.t("speedtest.ph_folder_name")}
+              placeholder={i18n.t("drive.ph_folder_name")}
               className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 mb-4 focus:outline-none focus:border-indigo-500 font-mono"
               autoFocus
             />
@@ -128,7 +128,7 @@ export const MediaStudioModals: React.FC<MediaStudioModalsProps> = ({
                 }}
                 className="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-lg shadow-indigo-600/30 transition-all"
               >
-                {t('speedtest.ctx_menu_rename')}
+                {t('drive.ctx_menu_rename')}
               </button>
             </div>
           </div>
@@ -162,7 +162,7 @@ export const MediaStudioModals: React.FC<MediaStudioModalsProps> = ({
                 onClick={() => onConfirmDelete(deleteTargetFiles)}
                 className="px-4 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-xs font-semibold text-white shadow-lg shadow-red-600/30 transition-all"
               >
-                {t('speedtest.preview_delete_btn')}
+                {t('drive.preview_delete_btn')}
               </button>
             </div>
           </div>
@@ -214,7 +214,7 @@ export const MediaStudioModals: React.FC<MediaStudioModalsProps> = ({
                 onClick={() => onConfirmMove(moveTargetFiles, selectedFolderId)}
                 className="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-lg shadow-indigo-600/30 transition-all"
               >
-                {t('speedtest.topbar_move')}
+                {t('drive.topbar_move')}
               </button>
             </div>
           </div>

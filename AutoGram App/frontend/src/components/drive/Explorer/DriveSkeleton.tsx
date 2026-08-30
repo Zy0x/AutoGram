@@ -56,12 +56,12 @@ export const CenteredGlassmorphicProgress: React.FC<CenteredGlassmorphicProgress
   // Dynamic context message based on progress stage
   const dynamicStatus = label || (
     displayPercent < 35
-      ? String(t('speedtest.status_connecting_mtproto'))
+      ? String(t('drive.status_connecting_mtproto'))
       : displayPercent < 70
-      ? String(t('speedtest.status_reading_catalog'))
+      ? String(t('drive.status_reading_catalog'))
       : displayPercent < 90
-      ? String(t('speedtest.status_parsing_metadata'))
-      : String(t('speedtest.status_almost_done'))
+      ? String(t('drive.status_parsing_metadata'))
+      : String(t('drive.status_almost_done'))
   );
 
   return (
@@ -76,13 +76,13 @@ export const CenteredGlassmorphicProgress: React.FC<CenteredGlassmorphicProgress
       {/* Brand Header */}
       <div className="ag-brand-block">
         <div className="ag-brand-name">{t('nav.title')}</div>
-        <div className="ag-brand-sub">{t('speedtest.syncing_media_library')}</div>
+        <div className="ag-brand-sub">{t('drive.syncing_media_library')}</div>
       </div>
 
       {/* Progress Box */}
       <div className="ag-progress-box">
         <div className="ag-progress-header">
-          <span className="ag-progress-label">{t('speedtest.loading_catalog')}</span>
+          <span className="ag-progress-label">{t('drive.loading_catalog')}</span>
           <span className="ag-progress-percent">{displayPercent}%</span>
         </div>
         <div className="ag-slim-track">
@@ -98,10 +98,10 @@ export const CenteredGlassmorphicProgress: React.FC<CenteredGlassmorphicProgress
       {/* Estimate Text */}
       <div className="ag-estimate-text">
         {displayPercent >= 100
-          ? t('speedtest.done_exclamation')
+          ? t('drive.done_exclamation')
           : displayPercent > 88
-          ? t('speedtest.preparing_display')
-          : t('speedtest.secs_remaining', { count: remainingSecs, defaultValue: `~${remainingSecs} detik tersisa` })}
+          ? t('drive.preparing_display')
+          : t('drive.secs_remaining', { count: remainingSecs, defaultValue: `~${remainingSecs} detik tersisa` })}
       </div>
     </div>
   );

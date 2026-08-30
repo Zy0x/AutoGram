@@ -116,8 +116,8 @@ export function Profiles() {
         <table className="glass-table">
           <thead>
             <tr>
-              <th>{t('speedtest.col_name')}</th>
-              <th>{t('speedtest.tools_group_settings')}</th>
+              <th>{t('drive.col_name')}</th>
+              <th>{t('drive.tools_group_settings')}</th>
               <th>{t('ui.generated.created_at_5db1542')}</th>
               <th>{t('automation.col_actions')}</th>
             </tr>
@@ -151,7 +151,7 @@ export function Profiles() {
                     <td>{p.created_at}</td>
                     <td>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                        <button className="btn btn-secondary" style={{ padding: '6px 10px', color: 'var(--primary)' }} onClick={() => handleSave()} title={t('speedtest.btn_save')}>
+                        <button className="btn btn-secondary" style={{ padding: '6px 10px', color: 'var(--primary)' }} onClick={() => handleSave()} title={t('drive.btn_save')}>
                           <Save size={16} />
                         </button>
                         <button className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => setIsEditing(null)} title={t('accounts.cancel')}>
@@ -189,7 +189,7 @@ export function Profiles() {
                       <button className="btn btn-secondary" style={{ padding: '6px 10px', color: 'var(--primary)' }} onClick={() => startEdit(p)} title={t('ui.generated.edit_5301648')}>
                         <Edit3 size={16} />
                       </button>
-                      <button className="btn btn-secondary" style={{ padding: '6px 10px', color: 'var(--danger)' }} onClick={() => handleDelete(p.id)} title={t('speedtest.preview_delete_btn')}>
+                      <button className="btn btn-secondary" style={{ padding: '6px 10px', color: 'var(--danger)' }} onClick={() => handleDelete(p.id)} title={t('drive.preview_delete_btn')}>
                         <Trash2 size={16} />
                       </button>
                     </div>

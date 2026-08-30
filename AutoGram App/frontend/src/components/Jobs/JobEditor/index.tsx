@@ -660,7 +660,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                       disabled={!newJobProfileName.trim() || (!jobName.trim() && !sourceValue.trim() && !destValue.trim())}
                       title={(!jobName.trim() && !sourceValue.trim() && !destValue.trim()) ? t("jobs.fill_config_fields") : t("jobs.save_config_profile")}
                     >
-                      <Save size={16} /> {t('speedtest.btn_save')}
+                      <Save size={16} /> {t('drive.btn_save')}
                     </button>
                   </div>
                 </>
@@ -842,7 +842,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                 <>
                   <div className="input-group">
                     <label className="input-label" style={{ display: 'flex', alignItems: 'center' }}>
-                      {t('speedtest.hardware_reencode')}
+                      {t('drive.hardware_reencode')}
                       <InfoTooltip content="Pilih akselerasi GPU (NVENC/AMF/QSV) untuk kecepatan re-encode maksimal." />
                     </label>
                     <Select 
@@ -859,7 +859,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                   </div>
                   <div className="input-group">
                     <label className="input-label" style={{ display: 'flex', alignItems: 'center' }}>
-                      {t('speedtest.reencode_mode')}
+                      {t('drive.reencode_mode')}
                       <InfoTooltip content="Pilih profil untuk kecepatan proses re-encode (Handbrake-style)." />
                     </label>
                     <Select 
@@ -1143,7 +1143,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', padding: '12px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
                   
                   <div>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>{t('speedtest.mode_label')}</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>{t('drive.mode_label')}</span>
                     <div style={{ fontWeight: 500, color: 'var(--text-main)' }}>{mode}</div>
                   </div>
                   <div>
@@ -1180,7 +1180,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
       {/* NAVIGATION BOTTOM */}
       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0 24px 0', borderTop: '1px solid var(--border)', flexShrink: 0, marginTop: 'auto', background: 'var(--bg-main)', zIndex: 10 }}>
         <button className="btn btn-secondary" onClick={handleBack} disabled={currentStep === 1} style={{ opacity: currentStep === 1 ? 0.5 : 1 }}>
-          {t('speedtest.back_to_settings')}
+          {t('drive.back_to_settings')}
         </button>
         
         {currentStep < 4 ? (
@@ -1336,7 +1336,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                             transition: 'var(--transition-safe)',
                           }}
                         >
-                          {f === 'Group' ? t('speedtest.filter_forums') : f}
+                          {f === 'Group' ? t('drive.filter_forums') : f}
                         </div>
                       ))}
                     </div>

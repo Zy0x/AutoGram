@@ -156,13 +156,13 @@ export function DriveStorageInfoBadge({
   const statusLabel = useMemo(() => {
     switch (statusMode) {
       case 'syncing':
-        return t('speedtest.storage_info_status_syncing');
+        return t('drive.storage_info_status_syncing');
       case 'counting':
-        return t('speedtest.storage_info_status_counting');
+        return t('drive.storage_info_status_counting');
       case 'accurate':
-        return t('speedtest.storage_info_status_accurate');
+        return t('drive.storage_info_status_accurate');
       default:
-        return t('speedtest.storage_info_status_estimate');
+        return t('drive.storage_info_status_estimate');
     }
   }, [statusMode, t]);
 
@@ -173,8 +173,8 @@ export function DriveStorageInfoBadge({
         ? `${fileCount.toLocaleString()} / ${totalCount.toLocaleString()}`
         : effectiveTotalCount.toLocaleString();
     const countPart = isAccurate
-      ? t('speedtest.items_total_simple', { count: countFormatted, defaultValue: `${countFormatted} Items` })
-      : t('speedtest.items_total_estimate', { count: countFormatted });
+      ? t('drive.items_total_simple', { count: countFormatted, defaultValue: `${countFormatted} Items` })
+      : t('drive.items_total_estimate', { count: countFormatted });
     const spacePart = spaceLabel ? ` · ${isAccurate ? spaceLabel.replace(/\+$/, '') : spaceLabel}` : '';
     return `${countPart}${spacePart}`;
   }, [totalCount, fileCount, effectiveTotalCount, isFinal, statsAccurate, statusMode, hasMore, spaceLabel, t]);
@@ -191,8 +191,8 @@ export function DriveStorageInfoBadge({
         type="button"
         className={`td-storage-splash-pill ${isAutoSplashVisible ? 'is-expanded' : 'is-compact'} ${isPopoverOpen ? 'active' : ''}`}
         onClick={handleToggleClick}
-        title={t('speedtest.storage_info_tooltip_hint')}
-        aria-label={t('speedtest.storage_info_badge_aria')}
+        title={t('drive.storage_info_tooltip_hint')}
+        aria-label={t('drive.storage_info_badge_aria')}
         aria-expanded={isPopoverOpen}
       >
         {isAutoSplashVisible ? (
@@ -210,8 +210,8 @@ export function DriveStorageInfoBadge({
                   handleDismissSplash(e as any);
                 }
               }}
-              title={t('speedtest.storage_info_close')}
-              aria-label={t('speedtest.storage_info_close')}
+              title={t('drive.storage_info_close')}
+              aria-label={t('drive.storage_info_close')}
             >
               <X size={12} />
             </span>
@@ -227,7 +227,7 @@ export function DriveStorageInfoBadge({
           ref={popoverRef}
           className="td-storage-popover-card animate-scale-in"
           role="dialog"
-          aria-label={t('speedtest.storage_info_title')}
+          aria-label={t('drive.storage_info_title')}
           style={{
             position: 'fixed',
             top: `${popoverCoords.top}px`,
@@ -240,7 +240,7 @@ export function DriveStorageInfoBadge({
           <div className="td-storage-popover-head">
             <div className="td-popover-head-title">
               <Database size={15} className="td-head-icon" />
-              <span>{t('speedtest.storage_info_title')}</span>
+              <span>{t('drive.storage_info_title')}</span>
             </div>
             <div className={`td-popover-status-badge td-badge-${statusMode}`}>
               {statusMode === 'counting' && <Loader2 size={12} className="animate-spin" />}
@@ -253,7 +253,7 @@ export function DriveStorageInfoBadge({
           {/* Metrics Grid */}
           <div className="td-storage-metrics-grid">
             <div className="td-storage-metric-box">
-              <span className="td-metric-label">{t('speedtest.storage_info_items')}</span>
+              <span className="td-metric-label">{t('drive.storage_info_items')}</span>
               <strong className="td-metric-value">
                 {totalCount != null && totalCount > 0 && fileCount > 0 && fileCount < totalCount
                   ? `${fileCount.toLocaleString()} / ${totalCount.toLocaleString()}`
@@ -262,7 +262,7 @@ export function DriveStorageInfoBadge({
             </div>
 
             <div className="td-storage-metric-box">
-              <span className="td-metric-label">{t('speedtest.storage_info_space')}</span>
+              <span className="td-metric-label">{t('drive.storage_info_space')}</span>
               <strong className="td-metric-value">
                 {spaceLabel ? spaceLabel : '—'}
               </strong>
@@ -272,7 +272,7 @@ export function DriveStorageInfoBadge({
           {/* Breakdown if categoryCounts exists */}
           {categoryCounts && Object.keys(categoryCounts).length > 0 && (
             <div className="td-storage-breakdown-section">
-              <span className="td-breakdown-title">{t('speedtest.storage_info_breakdown')}</span>
+              <span className="td-breakdown-title">{t('drive.storage_info_breakdown')}</span>
               <div className="td-breakdown-pills">
                 {Object.entries(categoryCounts).map(([cat, count]) => {
                   if (typeof count !== 'number' || count <= 0) return null;
@@ -291,7 +291,7 @@ export function DriveStorageInfoBadge({
           <div className="td-storage-popover-footer">
             <span className="td-footer-hint">
               <ArrowUpRight size={12} />
-              {t('speedtest.storage_info_tooltip_hint')}
+              {t('drive.storage_info_tooltip_hint')}
             </span>
             <button
               type="button"
@@ -301,7 +301,7 @@ export function DriveStorageInfoBadge({
                 setIsAutoSplashVisible(false);
               }}
             >
-              {t('speedtest.storage_info_close')}
+              {t('drive.storage_info_close')}
             </button>
           </div>
         </div>,

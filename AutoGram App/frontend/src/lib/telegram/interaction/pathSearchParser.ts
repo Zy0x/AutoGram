@@ -305,7 +305,7 @@ export function describePath(
   const loc =
     resolved?.chatName ||
     (p.isSavedMessages
-      ? t('speedtest.saved_messages')
+      ? t('drive.saved_messages')
       : p.tmeUsername
         ? `@${p.tmeUsername}`
         : p.chatSegmentRaw

@@ -2,7 +2,7 @@
 import navID from './id/nav.json';
 import dashboardID from './id/dashboard.json';
 import driveToolsID from './id/drive_tools.json';
-import speedtestID from './id/speedtest.json';
+import driveID from './id/drive.json';
 import settingsID from './id/settings.json';
 import accountsID from './id/accounts.json';
 import jobsID from './id/jobs.json';
@@ -18,7 +18,7 @@ import telegramActionsID from './id/telegram_actions.json';
 import navEN from './en/nav.json';
 import dashboardEN from './en/dashboard.json';
 import driveToolsEN from './en/drive_tools.json';
-import speedtestEN from './en/speedtest.json';
+import driveEN from './en/drive.json';
 import settingsEN from './en/settings.json';
 import accountsEN from './en/accounts.json';
 import jobsEN from './en/jobs.json';
@@ -37,7 +37,8 @@ export const resources = {
       nav: navID,
       dashboard: dashboardID,
       drive_tools: driveToolsID,
-      speedtest: speedtestID,
+      drive: driveID,
+      speedtest: driveID, // backward-compatibility alias so legacy calls never fail
       settings: settingsID,
       accounts: accountsID,
       jobs: jobsID,
@@ -56,7 +57,8 @@ export const resources = {
       nav: navEN,
       dashboard: dashboardEN,
       drive_tools: driveToolsEN,
-      speedtest: speedtestEN,
+      drive: driveEN,
+      speedtest: driveEN, // backward-compatibility alias so legacy calls never fail
       settings: settingsEN,
       accounts: accountsEN,
       jobs: jobsEN,

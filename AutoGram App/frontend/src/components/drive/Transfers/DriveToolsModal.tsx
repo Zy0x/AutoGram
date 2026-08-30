@@ -677,8 +677,8 @@ export function TransferSettingsWorkspace({
     const parseInline = (str: string) => {
       if (mode === 'HTML') {
         return str
-          .replace(/<tg-spoiler>(.*?)<\/tg-spoiler>/gi, '<span class="td-tg-spoiler" title="' + t('speedtest.tg_spoiler_tooltip') + '">$1</span>')
-          .replace(/<blockquote expandable>(.*?)<\/blockquote>/gi, '<blockquote class="td-tg-quote expandable" title="' + t('speedtest.expandable_quote_tooltip') + '">$1</blockquote>')
+          .replace(/<tg-spoiler>(.*?)<\/tg-spoiler>/gi, '<span class="td-tg-spoiler" title="' + t('drive.tg_spoiler_tooltip') + '">$1</span>')
+          .replace(/<blockquote expandable>(.*?)<\/blockquote>/gi, '<blockquote class="td-tg-quote expandable" title="' + t('drive.expandable_quote_tooltip') + '">$1</blockquote>')
           .replace(/<blockquote>(.*?)<\/blockquote>/gi, '<blockquote class="td-tg-quote">$1</blockquote>')
           .replace(/<code>(.*?)<\/code>/gi, '<code class="td-tg-code">$1</code>')
           .replace(/<pre>(.*?)<\/pre>/gi, '<pre class="td-tg-pre">$1</pre>')
@@ -687,7 +687,7 @@ export function TransferSettingsWorkspace({
       if (mode === 'MarkdownV2') {
         return str
           .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-          .replace(/\|\|(.*?)\|\|/g, '<span class="td-tg-spoiler" title="' + t('speedtest.tg_spoiler_tooltip') + '">$1</span>')
+          .replace(/\|\|(.*?)\|\|/g, '<span class="td-tg-spoiler" title="' + t('drive.tg_spoiler_tooltip') + '">$1</span>')
           .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
           .replace(/_(.*?)_/g, '<em>$1</em>')
           .replace(/__(.*?)__/g, '<u>$1</u>')
@@ -951,19 +951,19 @@ export function TransferSettingsWorkspace({
 
   const activePresetName = useMemo(() => {
     const found = SYSTEM_TRANSFER_PRESETS.find((p) => p.id === activePresetId);
-    return found ? found.name : t('speedtest.preset_custom');
+    return found ? found.name : t('drive.preset_custom');
   }, [activePresetId, t]);
 
   // Sub-Menu Categories List (Displays ALL categories directly)
   const subMenuCategories: { id: SubMenuCategory; label: string; desc: string; icon: any }[] = [
-    { id: 'upload', label: t('speedtest.tools_tab_upload'), desc: t('speedtest.tools_tab_upload_desc'), icon: Upload },
-    { id: 'download', label: t('speedtest.tools_tab_download'), desc: t('speedtest.tools_tab_download_desc'), icon: Download },
-    { id: 'encoding', label: t('speedtest.tools_tab_encoding'), desc: t('speedtest.tools_tab_encoding_desc'), icon: Film },
-    { id: 'albums', label: t('speedtest.tools_tab_album'), desc: t('speedtest.tools_tab_album_desc'), icon: FolderTree },
-    { id: 'duplicates', label: t('speedtest.tools_tab_duplicate'), desc: t('speedtest.tools_tab_duplicate_desc'), icon: CopyCheck },
-    { id: 'limits_recovery', label: t('speedtest.tools_tab_oversize'), desc: t('speedtest.tools_tab_oversize_desc'), icon: HardDriveUpload },
-    { id: 'network', label: t('speedtest.tools_tab_network'), desc: t('speedtest.tools_tab_network_desc'), icon: Network },
-    { id: 'advanced', label: t('speedtest.tools_tab_advanced'), desc: t('speedtest.tools_tab_advanced_desc'), icon: SlidersHorizontal },
+    { id: 'upload', label: t('drive.tools_tab_upload'), desc: t('drive.tools_tab_upload_desc'), icon: Upload },
+    { id: 'download', label: t('drive.tools_tab_download'), desc: t('drive.tools_tab_download_desc'), icon: Download },
+    { id: 'encoding', label: t('drive.tools_tab_encoding'), desc: t('drive.tools_tab_encoding_desc'), icon: Film },
+    { id: 'albums', label: t('drive.tools_tab_album'), desc: t('drive.tools_tab_album_desc'), icon: FolderTree },
+    { id: 'duplicates', label: t('drive.tools_tab_duplicate'), desc: t('drive.tools_tab_duplicate_desc'), icon: CopyCheck },
+    { id: 'limits_recovery', label: t('drive.tools_tab_oversize'), desc: t('drive.tools_tab_oversize_desc'), icon: HardDriveUpload },
+    { id: 'network', label: t('drive.tools_tab_network'), desc: t('drive.tools_tab_network_desc'), icon: Network },
+    { id: 'advanced', label: t('drive.tools_tab_advanced'), desc: t('drive.tools_tab_advanced_desc'), icon: SlidersHorizontal },
   ];
 
   return (
@@ -978,19 +978,19 @@ export function TransferSettingsWorkspace({
               onClick={() => setActiveTab('menu')}
             >
               <ArrowLeft size={16} />
-              <span>{t('speedtest.back_to_settings')}</span>
+              <span>{t('drive.back_to_settings')}</span>
             </button>
           )}
 
           <div>
             <h3>
               {activeTab === 'menu'
-                ? t('speedtest.transfer_settings_title')
+                ? t('drive.transfer_settings_title')
                 : subMenuCategories.find((c) => c.id === activeTab)?.label || t('ui.generated.detail_pengaturan_416949e')}
             </h3>
             <p>
               {activeTab === 'menu'
-                ? t('speedtest.transfer_settings_subtitle')
+                ? t('drive.transfer_settings_subtitle')
                 : subMenuCategories.find((c) => c.id === activeTab)?.desc}
             </p>
           </div>
@@ -1000,7 +1000,7 @@ export function TransferSettingsWorkspace({
           {isDirty && (
             <span className="td-dirty-badge">
               <span className="td-dirty-dot" />
-              {t('speedtest.unsaved_changes')}
+              {t('drive.unsaved_changes')}
             </span>
           )}
 
@@ -1013,14 +1013,14 @@ export function TransferSettingsWorkspace({
                 type="text"
                 value={settingsQuery}
                 onChange={(e) => setSettingsQuery(e.target.value)}
-                placeholder={t('speedtest.search_placeholder_short')}
+                placeholder={t('drive.search_placeholder_short')}
               />
               {settingsQuery.trim() !== '' && (
                 <button
                   type="button"
                   className="td-header-search-clear"
                   onClick={() => setSettingsQuery('')}
-                  title={t('speedtest.zip_clear_search')}
+                  title={t('drive.zip_clear_search')}
                 >
                   <X size={12} />
                 </button>
@@ -1087,7 +1087,7 @@ export function TransferSettingsWorkspace({
                 <Sparkles size={16} className="td-preset-sparkle" />
                 <div className="td-preset-summary-info">
                   <span className="td-preset-label-text">
-                    {t('speedtest.active_preset_label')}: <strong>{activePresetName}</strong>
+                    {t('drive.active_preset_label')}: <strong>{activePresetName}</strong>
                   </span>
                   <span className="td-preset-details-text">
                     {t('ui.generated.gpu_d113891')} {currentEncoderMode.toUpperCase()} • {draft.uploadConcurrency} {t('ui.generated.paralel_unggah_eb8a36f')} {draft.duplicatePolicy === 'SKIP' ? t('ui.generated.lewati_duplikat_7fe07e8') : t('ui.generated.unggah_ulang_d32b3c4')}
@@ -1101,7 +1101,7 @@ export function TransferSettingsWorkspace({
                   className="td-chip-btn td-chip-primary"
                   onClick={() => setShowPresetDrawer(true)}
                 >
-                  <Sparkles size={13} /> {t('speedtest.preset_and_profiles_btn')}
+                  <Sparkles size={13} /> {t('drive.preset_and_profiles_btn')}
                 </button>
               </div>
             </section>
@@ -1150,7 +1150,7 @@ export function TransferSettingsWorkspace({
               <div className="td-summary-warning-box" style={{ marginTop: '16px' }}>
                 <AlertTriangle size={18} />
                 <div>
-                  <strong>{t('speedtest.warning_label')}</strong>
+                  <strong>{t('drive.warning_label')}</strong>
                   <p>{validation.warnings[0].message}</p>
                 </div>
               </div>
@@ -1215,7 +1215,7 @@ export function TransferSettingsWorkspace({
                     onChange={(e) => patch({ uploadConcurrency: Number(e.target.value) })}
                   />
                   <div className="td-slider-value-bar">
-                    <span className="td-slider-val">{draft.uploadConcurrency} {t('speedtest.tab_telegram_files')}</span>
+                    <span className="td-slider-val">{draft.uploadConcurrency} {t('drive.tab_telegram_files')}</span>
                     <span className="td-concurrency-badge">
                       {draft.uploadConcurrency <= 2 && t('drive_tools.concurrency_badge_stable')}
                       {draft.uploadConcurrency >= 3 && draft.uploadConcurrency <= 6 && t('drive_tools.concurrency_badge_balanced')}
@@ -1227,7 +1227,7 @@ export function TransferSettingsWorkspace({
 
               {/* SUB-SECTION 1.2: FORMAT PENGIRIMAN MEDIA */}
               <div className="td-settings-subcard" style={{ marginTop: '16px' }}>
-                <label className="td-field-label">{t('speedtest.remote_delivery_mode_label')}</label>
+                <label className="td-field-label">{t('drive.remote_delivery_mode_label')}</label>
                 <div className="td-radio-tiles-grid">
                   <label className={`td-radio-tile ${currentDeliveryFormat === 'telegram' ? 'is-selected' : ''}`}>
                     <input
@@ -1239,8 +1239,8 @@ export function TransferSettingsWorkspace({
                       onChange={() => patch(applyDeliveryFormatMode(draft, 'telegram'))}
                     />
                     <div>
-                      <strong>{t('speedtest.remote_mode_uncompressed')}</strong>
-                      <p>{t('speedtest.remote_mode_uncompressed_hint')}</p>
+                      <strong>{t('drive.remote_mode_uncompressed')}</strong>
+                      <p>{t('drive.remote_mode_uncompressed_hint')}</p>
                     </div>
                   </label>
 
@@ -1254,8 +1254,8 @@ export function TransferSettingsWorkspace({
                       onChange={() => patch(applyDeliveryFormatMode(draft, 'auto'))}
                     />
                     <div>
-                      <strong>{t('speedtest.remote_mode_auto')}</strong>
-                      <p>{t('speedtest.remote_mode_auto_hint')}</p>
+                      <strong>{t('drive.remote_mode_auto')}</strong>
+                      <p>{t('drive.remote_mode_auto_hint')}</p>
                     </div>
                   </label>
 
@@ -1269,8 +1269,8 @@ export function TransferSettingsWorkspace({
                       onChange={() => patch(applyDeliveryFormatMode(draft, 'document'))}
                     />
                     <div>
-                      <strong>{t('speedtest.remote_mode_doc')}</strong>
-                      <p>{t('speedtest.remote_mode_doc_hint')}</p>
+                      <strong>{t('drive.remote_mode_doc')}</strong>
+                      <p>{t('drive.remote_mode_doc_hint')}</p>
                     </div>
                   </label>
                 </div>
@@ -1510,7 +1510,7 @@ export function TransferSettingsWorkspace({
                               title={t('ui.generated.sisipkan_link_tautan_label_url_445690c')}
                             >
                               <Link size={15} />
-                              <span>{t('speedtest.tab_telegram_links')}</span>
+                              <span>{t('drive.tab_telegram_links')}</span>
                             </button>
                             <button
                               type="button"
@@ -1784,8 +1784,8 @@ export function TransferSettingsWorkspace({
                 <div className="td-switches-list">
                   <label className="td-switch-row">
                     <div>
-                      <strong>{t('speedtest.send_silent')}</strong>
-                      <p>{t('speedtest.send_silent_desc')}</p>
+                      <strong>{t('drive.send_silent')}</strong>
+                      <p>{t('drive.send_silent_desc')}</p>
                     </div>
                     <input
                       type="checkbox"
@@ -1797,8 +1797,8 @@ export function TransferSettingsWorkspace({
 
                   <label className="td-switch-row">
                     <div>
-                      <strong>{t('speedtest.send_spoiler')}</strong>
-                      <p>{t('speedtest.send_spoiler_desc')}</p>
+                      <strong>{t('drive.send_spoiler')}</strong>
+                      <p>{t('drive.send_spoiler_desc')}</p>
                     </div>
                     <input
                       type="checkbox"
@@ -1844,10 +1844,10 @@ export function TransferSettingsWorkspace({
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
-                    1. {t('speedtest.tab_download_title')}
+                    1. {t('drive.tab_download_title')}
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
-                    {t('speedtest.tab_download_desc')}
+                    {t('drive.tab_download_desc')}
                   </p>
                 </div>
               </div>
@@ -1865,7 +1865,7 @@ export function TransferSettingsWorkspace({
                     onChange={(e) => patch({ downloadConcurrency: Number(e.target.value) })}
                   />
                   <div className="td-slider-value-bar">
-                    <span className="td-slider-val">{draft.downloadConcurrency} {t('speedtest.tab_telegram_files')}</span>
+                    <span className="td-slider-val">{draft.downloadConcurrency} {t('drive.tab_telegram_files')}</span>
                     <span className="td-concurrency-badge">
                       {draft.downloadConcurrency <= 2 && t('drive_tools.concurrency_badge_stable')}
                       {draft.downloadConcurrency >= 3 && draft.downloadConcurrency <= 6 && t('drive_tools.concurrency_badge_balanced')}
@@ -1957,8 +1957,8 @@ export function TransferSettingsWorkspace({
                 <div className="td-card-head">
                   <Film size={18} />
                   <div>
-                    <h4>{t('speedtest.encoder_mode_title')}</h4>
-                    <p>{t('speedtest.encoder_mode_desc')}</p>
+                    <h4>{t('drive.encoder_mode_title')}</h4>
+                    <p>{t('drive.encoder_mode_desc')}</p>
                   </div>
                 </div>
 
@@ -1976,7 +1976,7 @@ export function TransferSettingsWorkspace({
                     <div>
                       <div className="td-tile-head">
                         <Zap size={16} className="td-tile-icon is-auto" />
-                        <strong>{t('speedtest.playback_auto_title')}</strong>
+                        <strong>{t('drive.playback_auto_title')}</strong>
                       </div>
                       <p>{t('ui.generated.sistem_mendeteksi_gpu_secara_otomatis_jika_gagal_afc9537')}</p>
                     </div>
@@ -2109,13 +2109,13 @@ export function TransferSettingsWorkspace({
                 <div className="td-card-head">
                   <Image size={18} style={{ color: '#38bdf8' }} />
                   <div>
-                    <h4>{t('speedtest.media_pillar_image_title')}</h4>
-                    <p>{t('speedtest.media_pillar_image_desc')}</p>
+                    <h4>{t('drive.media_pillar_image_title')}</h4>
+                    <p>{t('drive.media_pillar_image_desc')}</p>
                   </div>
                 </div>
 
                 <div className="td-field-group" style={{ marginTop: '10px' }}>
-                  <label className="td-field-label">{t('speedtest.image_delivery_strategy_label')}</label>
+                  <label className="td-field-label">{t('drive.image_delivery_strategy_label')}</label>
                   <select
                     value={draft.imageTranscodeScope === 'none' ? 'raw' : 'transcode'}
                     disabled={!!transferActive}
@@ -2140,13 +2140,13 @@ export function TransferSettingsWorkspace({
                       }
                     }}
                   >
-                    <option value="raw">{t('speedtest.image_delivery_strategy_raw')}</option>
-                    <option value="transcode">{t('speedtest.image_delivery_strategy_transcode')}</option>
+                    <option value="raw">{t('drive.image_delivery_strategy_raw')}</option>
+                    <option value="transcode">{t('drive.image_delivery_strategy_transcode')}</option>
                   </select>
                   <p className="td-field-hint" style={{ marginTop: '6px' }}>
                     {draft.imageTranscodeScope === 'none'
-                      ? t('speedtest.image_delivery_strategy_raw_desc')
-                      : t('speedtest.image_delivery_strategy_transcode_desc')}
+                      ? t('drive.image_delivery_strategy_raw_desc')
+                      : t('drive.image_delivery_strategy_transcode_desc')}
                   </p>
                 </div>
 
@@ -2155,7 +2155,7 @@ export function TransferSettingsWorkspace({
                   <div style={{ marginTop: '14px', padding: '12px', background: 'rgba(15, 23, 42, 0.45)', border: '1px solid rgba(51, 65, 85, 0.5)', borderRadius: '10px' }}>
                     <div>
                       <label className="td-field-label" style={{ fontSize: '11px', color: '#94a3b8' }}>
-                        {t('speedtest.image_transcode_scope_label')}
+                        {t('drive.image_transcode_scope_label')}
                       </label>
                       <select
                         value={draft.imageTranscodeScope || 'all_incompatible'}
@@ -2178,19 +2178,19 @@ export function TransferSettingsWorkspace({
                           });
                         }}
                       >
-                        <option value="all_incompatible">{t('speedtest.image_transcode_scope_all')}</option>
-                        <option value="common_web">{t('speedtest.image_transcode_scope_common')}</option>
-                        <option value="graphics_raw">{t('speedtest.image_transcode_scope_graphics')}</option>
-                        <option value="custom">{t('speedtest.image_transcode_scope_custom')}</option>
+                        <option value="all_incompatible">{t('drive.image_transcode_scope_all')}</option>
+                        <option value="common_web">{t('drive.image_transcode_scope_common')}</option>
+                        <option value="graphics_raw">{t('drive.image_transcode_scope_graphics')}</option>
+                        <option value="custom">{t('drive.image_transcode_scope_custom')}</option>
                       </select>
                       <p className="td-field-hint" style={{ fontSize: '11px', marginTop: '4px' }}>
                         {draft.imageTranscodeScope === 'common_web'
-                          ? t('speedtest.image_transcode_scope_common_desc')
+                          ? t('drive.image_transcode_scope_common_desc')
                           : draft.imageTranscodeScope === 'graphics_raw'
-                          ? t('speedtest.image_transcode_scope_graphics_desc')
+                          ? t('drive.image_transcode_scope_graphics_desc')
                           : draft.imageTranscodeScope === 'custom'
-                          ? t('speedtest.image_transcode_scope_custom_desc')
-                          : t('speedtest.image_transcode_scope_all_desc')}
+                          ? t('drive.image_transcode_scope_custom_desc')
+                          : t('drive.image_transcode_scope_all_desc')}
                       </p>
                     </div>
 
@@ -2198,7 +2198,7 @@ export function TransferSettingsWorkspace({
                     <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(51, 65, 85, 0.4)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                         <span style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(226, 232, 240, 0.9)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          {t('speedtest.image_transcode_formats_label')}
+                          {t('drive.image_transcode_formats_label')}
                         </span>
                         <div style={{ display: 'flex', gap: '6px' }}>
                           <button
@@ -2210,7 +2210,7 @@ export function TransferSettingsWorkspace({
                             }}
                             style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.2)', border: '1px solid rgba(56, 189, 248, 0.4)', color: '#7dd3fc', cursor: 'pointer' }}
                           >
-                            {t('speedtest.image_transcode_select_all')}
+                            {t('drive.image_transcode_select_all')}
                           </button>
                           <button
                             type="button"
@@ -2220,7 +2220,7 @@ export function TransferSettingsWorkspace({
                             }}
                             style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.35)', color: '#fca5a5', cursor: 'pointer' }}
                           >
-                            {t('speedtest.image_transcode_deselect_all')}
+                            {t('drive.image_transcode_deselect_all')}
                           </button>
                         </div>
                       </div>
@@ -2297,7 +2297,7 @@ export function TransferSettingsWorkspace({
                       </div>
 
                       <div style={{ marginTop: '8px', fontSize: '11px', color: 'rgba(148, 163, 184, 0.85)' }}>
-                        {t('speedtest.image_transcode_hint_active', {
+                        {t('drive.image_transcode_hint_active', {
                           count: (draft.imageTranscodeFormats || []).length,
                           total: 20,
                         })}
@@ -2312,25 +2312,25 @@ export function TransferSettingsWorkspace({
                 <div className="td-card-head">
                   <PlaySquare size={18} style={{ color: '#a855f7' }} />
                   <div>
-                    <h4>{t('speedtest.media_pillar_anim_title')}</h4>
-                    <p>{t('speedtest.media_pillar_anim_desc')}</p>
+                    <h4>{t('drive.media_pillar_anim_title')}</h4>
+                    <p>{t('drive.media_pillar_anim_desc')}</p>
                   </div>
                 </div>
 
                 <div className="td-field-group" style={{ marginTop: '10px' }}>
-                  <label className="td-field-label">{t('speedtest.anim_delivery_strategy_label')}</label>
+                  <label className="td-field-label">{t('drive.anim_delivery_strategy_label')}</label>
                   <select
                     value={draft.albumIncompatAnimMode || 'document'}
                     disabled={!!transferActive}
                     onChange={(e) => patch({ albumIncompatAnimMode: e.target.value as any })}
                   >
-                    <option value="document">{t('speedtest.anim_delivery_strategy_raw')}</option>
-                    <option value="transcode">{t('speedtest.anim_delivery_strategy_transcode')}</option>
+                    <option value="document">{t('drive.anim_delivery_strategy_raw')}</option>
+                    <option value="transcode">{t('drive.anim_delivery_strategy_transcode')}</option>
                   </select>
                   <p className="td-field-hint" style={{ marginTop: '6px' }}>
                     {(draft.albumIncompatAnimMode || 'document') === 'document'
-                      ? t('speedtest.anim_delivery_strategy_raw_desc')
-                      : t('speedtest.anim_delivery_strategy_transcode_desc')}
+                      ? t('drive.anim_delivery_strategy_raw_desc')
+                      : t('drive.anim_delivery_strategy_transcode_desc')}
                   </p>
                 </div>
               </div>
@@ -2340,13 +2340,13 @@ export function TransferSettingsWorkspace({
                 <div className="td-card-head">
                   <Film size={18} style={{ color: '#38bdf8' }} />
                   <div>
-                    <h4>{t('speedtest.media_pillar_video_title')}</h4>
-                    <p>{t('speedtest.media_pillar_video_desc')}</p>
+                    <h4>{t('drive.media_pillar_video_title')}</h4>
+                    <p>{t('drive.media_pillar_video_desc')}</p>
                   </div>
                 </div>
 
                 <div className="td-field-group" style={{ marginTop: '10px' }}>
-                  <label className="td-field-label">{t('speedtest.video_delivery_strategy_label')}</label>
+                  <label className="td-field-label">{t('drive.video_delivery_strategy_label')}</label>
                   <select
                     value={draft.videoTranscodeScope === 'none' ? 'raw' : 'transcode'}
                     disabled={!!transferActive || currentEncoderMode === 'disabled'}
@@ -2360,13 +2360,13 @@ export function TransferSettingsWorkspace({
                       }
                     }}
                   >
-                    <option value="transcode">{t('speedtest.video_delivery_strategy_transcode')}</option>
-                    <option value="raw">{t('speedtest.video_delivery_strategy_raw')}</option>
+                    <option value="transcode">{t('drive.video_delivery_strategy_transcode')}</option>
+                    <option value="raw">{t('drive.video_delivery_strategy_raw')}</option>
                   </select>
                   <p className="td-field-hint" style={{ marginTop: '6px' }}>
                     {draft.videoTranscodeScope === 'none'
-                      ? t('speedtest.video_delivery_strategy_raw_desc')
-                      : t('speedtest.video_delivery_strategy_transcode_desc')}
+                      ? t('drive.video_delivery_strategy_raw_desc')
+                      : t('drive.video_delivery_strategy_transcode_desc')}
                   </p>
                 </div>
 
@@ -2375,7 +2375,7 @@ export function TransferSettingsWorkspace({
                   <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(15, 23, 42, 0.45)', border: '1px solid rgba(51, 65, 85, 0.5)', borderRadius: '10px' }}>
                     <div className="td-field-group">
                       <label className="td-field-label" style={{ fontSize: '11px', color: '#94a3b8' }}>
-                        {t('speedtest.video_transcode_scope_label')}
+                        {t('drive.video_transcode_scope_label')}
                       </label>
                       <select
                         value={draft.videoTranscodeScope || 'all_non_mp4'}
@@ -2392,19 +2392,19 @@ export function TransferSettingsWorkspace({
                           patch({ videoTranscodeScope: nextScope, videoTranscodeFormats: nextFormats });
                         }}
                       >
-                        <option value="all_non_mp4">{t('speedtest.video_transcode_scope_all')}</option>
-                        <option value="common_containers">{t('speedtest.video_transcode_scope_common')}</option>
-                        <option value="legacy_broadcast">{t('speedtest.video_transcode_scope_legacy')}</option>
-                        <option value="custom">{t('speedtest.video_transcode_scope_custom')}</option>
+                        <option value="all_non_mp4">{t('drive.video_transcode_scope_all')}</option>
+                        <option value="common_containers">{t('drive.video_transcode_scope_common')}</option>
+                        <option value="legacy_broadcast">{t('drive.video_transcode_scope_legacy')}</option>
+                        <option value="custom">{t('drive.video_transcode_scope_custom')}</option>
                       </select>
                       <p className="td-field-hint" style={{ fontSize: '11px', marginTop: '4px' }}>
                         {draft.videoTranscodeScope === 'common_containers'
-                          ? t('speedtest.video_transcode_scope_common_desc')
+                          ? t('drive.video_transcode_scope_common_desc')
                           : draft.videoTranscodeScope === 'legacy_broadcast'
-                          ? t('speedtest.video_transcode_scope_legacy_desc')
+                          ? t('drive.video_transcode_scope_legacy_desc')
                           : draft.videoTranscodeScope === 'custom'
-                          ? t('speedtest.video_transcode_scope_custom_desc')
-                          : t('speedtest.video_transcode_scope_all_desc')}
+                          ? t('drive.video_transcode_scope_custom_desc')
+                          : t('drive.video_transcode_scope_all_desc')}
                       </p>
                     </div>
 
@@ -2412,7 +2412,7 @@ export function TransferSettingsWorkspace({
                     <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(51, 65, 85, 0.4)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                         <span style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(226, 232, 240, 0.9)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          {t('speedtest.video_transcode_formats_label')}
+                          {t('drive.video_transcode_formats_label')}
                         </span>
                         <div style={{ display: 'flex', gap: '6px' }}>
                           <button
@@ -2424,7 +2424,7 @@ export function TransferSettingsWorkspace({
                             }}
                             style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(59, 130, 246, 0.2)', border: '1px solid rgba(59, 130, 246, 0.4)', color: '#93c5fd', cursor: 'pointer' }}
                           >
-                            {t('speedtest.video_transcode_select_all')}
+                            {t('drive.video_transcode_select_all')}
                           </button>
                           <button
                             type="button"
@@ -2434,7 +2434,7 @@ export function TransferSettingsWorkspace({
                             }}
                             style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.35)', color: '#fca5a5', cursor: 'pointer' }}
                           >
-                            {t('speedtest.video_transcode_deselect_all')}
+                            {t('drive.video_transcode_deselect_all')}
                           </button>
                         </div>
                       </div>
@@ -2505,7 +2505,7 @@ export function TransferSettingsWorkspace({
                       </div>
 
                       <div style={{ marginTop: '8px', fontSize: '11px', color: 'rgba(148, 163, 184, 0.85)' }}>
-                        {t('speedtest.video_transcode_hint_active', {
+                        {t('drive.video_transcode_hint_active', {
                           count: (draft.videoTranscodeFormats || []).length,
                           total: 16,
                         })}
@@ -2589,18 +2589,18 @@ export function TransferSettingsWorkspace({
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
-                    1. {t('speedtest.album_orchestration_title')}
+                    1. {t('drive.album_orchestration_title')}
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
-                    {t('speedtest.album_orchestration_desc')}
+                    {t('drive.album_orchestration_desc')}
                   </p>
                 </div>
               </div>
 
               <label className="td-switch-row">
                 <div>
-                  <strong>{t('speedtest.send_as_album')}</strong>
-                  <p>{t('speedtest.send_as_album_desc')}</p>
+                  <strong>{t('drive.send_as_album')}</strong>
+                  <p>{t('drive.send_as_album_desc')}</p>
                 </div>
                 <input
                   type="checkbox"
@@ -2614,7 +2614,7 @@ export function TransferSettingsWorkspace({
               {draft.groupAsAlbum && (
                 <div className="td-conditional-box">
                   <div className="td-field-group">
-                    <label className="td-field-label">{t('speedtest.album_grid_size')}</label>
+                    <label className="td-field-label">{t('drive.album_grid_size')}</label>
                     <div className="td-slider-row-box">
                       <input
                         type="range"
@@ -2632,17 +2632,17 @@ export function TransferSettingsWorkspace({
                         }}
                       />
                       <div className="td-slider-value-bar">
-                        <span className="td-slider-val">{t('speedtest.album_grid_size_value', { size: draft.albumGroupSize || 10 })}</span>
+                        <span className="td-slider-val">{t('drive.album_grid_size_value', { size: draft.albumGroupSize || 10 })}</span>
                         <span className="td-concurrency-badge">
-                          {(draft.albumGroupSize || 10) === 10 && t('speedtest.album_grid_size_max')}
-                          {(draft.albumGroupSize || 10) >= 5 && (draft.albumGroupSize || 10) <= 9 && t('speedtest.album_grid_size_medium')}
-                          {(draft.albumGroupSize || 10) >= 2 && (draft.albumGroupSize || 10) <= 4 && t('speedtest.album_grid_size_compact')}
+                          {(draft.albumGroupSize || 10) === 10 && t('drive.album_grid_size_max')}
+                          {(draft.albumGroupSize || 10) >= 5 && (draft.albumGroupSize || 10) <= 9 && t('drive.album_grid_size_medium')}
+                          {(draft.albumGroupSize || 10) >= 2 && (draft.albumGroupSize || 10) <= 4 && t('drive.album_grid_size_compact')}
                         </span>
                       </div>
                     </div>
                   </div>
                   <p className="td-xfer-hint">
-                    {t('speedtest.album_grid_size_desc', { size: draft.albumGroupSize || 10 })}
+                    {t('drive.album_grid_size_desc', { size: draft.albumGroupSize || 10 })}
                   </p>
 
                   <div className="td-switches-list" style={{ marginTop: '16px' }}>
@@ -2717,10 +2717,10 @@ export function TransferSettingsWorkspace({
                         <div>
                           <strong style={{ fontSize: '0.85rem', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <Film size={16} />
-                            {t('speedtest.album_media_hub_sync_title')}
+                            {t('drive.album_media_hub_sync_title')}
                           </strong>
                           <p style={{ margin: '6px 0 0', fontSize: '0.79rem', color: '#94a3b8', lineHeight: 1.5 }}>
-                            {t('speedtest.album_media_hub_sync_desc')}
+                            {t('drive.album_media_hub_sync_desc')}
                           </p>
                         </div>
                         <button
@@ -2738,7 +2738,7 @@ export function TransferSettingsWorkspace({
                             cursor: 'pointer',
                           }}
                         >
-                          {t('speedtest.album_media_hub_sync_btn')}
+                          {t('drive.album_media_hub_sync_btn')}
                         </button>
                       </div>
                     </div>
@@ -2780,10 +2780,10 @@ export function TransferSettingsWorkspace({
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
-                    1. {t('speedtest.duplicate_title')}
+                    1. {t('drive.duplicate_title')}
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
-                    {t('speedtest.duplicate_desc')}
+                    {t('drive.duplicate_desc')}
                   </p>
                 </div>
               </div>
@@ -2802,9 +2802,9 @@ export function TransferSettingsWorkspace({
                   <div>
                     <div className="td-tile-head">
                       <Zap size={16} className="td-tile-icon is-auto" />
-                      <strong>{t('speedtest.dup_skip_title')}</strong>
+                      <strong>{t('drive.dup_skip_title')}</strong>
                     </div>
-                    <p>{t('speedtest.dup_skip_desc')}</p>
+                    <p>{t('drive.dup_skip_desc')}</p>
                   </div>
                 </label>
 
@@ -2820,9 +2820,9 @@ export function TransferSettingsWorkspace({
                   <div>
                     <div className="td-tile-head">
                       <Sliders size={16} className="td-tile-icon is-disable" />
-                      <strong>{t('speedtest.dup_force_title')}</strong>
+                      <strong>{t('drive.dup_force_title')}</strong>
                     </div>
-                    <p>{t('speedtest.dup_force_desc')}</p>
+                    <p>{t('drive.dup_force_desc')}</p>
                   </div>
                 </label>
               </div>
@@ -2830,7 +2830,7 @@ export function TransferSettingsWorkspace({
               {/* 2. PRIMARY PRESCAN & GUARDRAIL DROPDOWNS */}
               <div className="td-form-row-grid" style={{ marginTop: '20px' }}>
                 <div className="td-field-group">
-                  <label className="td-field-label">{t('speedtest.dup_scan_mode_label')}</label>
+                  <label className="td-field-label">{t('drive.dup_scan_mode_label')}</label>
                   <select
                     value={draft.scanMode || 'smart'}
                     disabled={!!transferActive}
@@ -2843,7 +2843,7 @@ export function TransferSettingsWorkspace({
                 </div>
 
                 <div className="td-field-group">
-                  <label className="td-field-label">{t('speedtest.dup_guardrail_label')}</label>
+                  <label className="td-field-label">{t('drive.dup_guardrail_label')}</label>
                   <select
                     value={draft.guardrailEnabled !== false ? 'enabled' : 'disabled'}
                     disabled={!!transferActive}
@@ -2859,48 +2859,48 @@ export function TransferSettingsWorkspace({
               <details style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px' }}>
                 <summary style={{ cursor: 'pointer', color: '#38bdf8', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <ShieldAlert size={16} style={{ color: '#10b981' }} />
-                  {t('speedtest.dup_advanced_toggle')}
+                  {t('drive.dup_advanced_toggle')}
                 </summary>
 
                 <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
                   {/* LEVEL 1 */}
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('speedtest.dup_level_1')}</span>
+                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('drive.dup_level_1')}</span>
                       <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{t('nav.status_active')}</span>
                     </div>
-                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('speedtest.dup_level1_title')}</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('speedtest.dup_level1_desc')}</p>
+                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('drive.dup_level1_title')}</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('drive.dup_level1_desc')}</p>
                   </div>
 
                   {/* LEVEL 2 */}
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('speedtest.dup_level_2')}</span>
+                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('drive.dup_level_2')}</span>
                       <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{t('nav.status_active')}</span>
                     </div>
-                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('speedtest.dup_level2_title')}</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('speedtest.dup_level2_desc')}</p>
+                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('drive.dup_level2_title')}</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('drive.dup_level2_desc')}</p>
                   </div>
 
                   {/* LEVEL 3 */}
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('speedtest.dup_level_3')}</span>
+                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('drive.dup_level_3')}</span>
                       <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{t('nav.status_active')}</span>
                     </div>
-                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('speedtest.dup_level3_title')}</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('speedtest.dup_level3_desc')}</p>
+                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('drive.dup_level3_title')}</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('drive.dup_level3_desc')}</p>
                   </div>
 
                   {/* LEVEL 4 */}
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('speedtest.dup_level_4')}</span>
+                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('drive.dup_level_4')}</span>
                       <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{t('nav.status_active')}</span>
                     </div>
-                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('speedtest.dup_level4_title')}</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('speedtest.dup_level4_desc')}</p>
+                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('drive.dup_level4_title')}</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('drive.dup_level4_desc')}</p>
                   </div>
                 </div>
               </details>
@@ -2939,10 +2939,10 @@ export function TransferSettingsWorkspace({
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
-                    1. {t('speedtest.oversize_title')}
+                    1. {t('drive.oversize_title')}
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
-                    {t('speedtest.oversize_desc')}
+                    {t('drive.oversize_desc')}
                   </p>
                 </div>
               </div>
@@ -2962,9 +2962,9 @@ export function TransferSettingsWorkspace({
                   <div>
                     <div className="td-tile-head">
                       <Zap size={16} className="td-tile-icon is-auto" />
-                      <strong>{t('speedtest.oversize_auto_title')}</strong>
+                      <strong>{t('drive.oversize_auto_title')}</strong>
                     </div>
-                    <p>{t('speedtest.oversize_auto_desc')}</p>
+                    <p>{t('drive.oversize_auto_desc')}</p>
                   </div>
                 </label>
 
@@ -2981,9 +2981,9 @@ export function TransferSettingsWorkspace({
                   <div>
                     <div className="td-tile-head">
                       <Sliders size={16} className="td-tile-icon is-disable" />
-                      <strong>{t('speedtest.oversize_manual_title')}</strong>
+                      <strong>{t('drive.oversize_manual_title')}</strong>
                     </div>
-                    <p>{t('speedtest.oversize_manual_desc')}</p>
+                    <p>{t('drive.oversize_manual_desc')}</p>
                   </div>
                 </label>
               </div>
@@ -2992,7 +2992,7 @@ export function TransferSettingsWorkspace({
               {draft.oversizeAction !== 'auto_adaptive' && (
                 <div style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px' }}>
                   <h5 style={{ color: '#f8fafc', fontSize: '13px', fontWeight: 600, marginBottom: '12px' }}>
-                    {t('speedtest.oversize_manual_heading')}
+                    {t('drive.oversize_manual_heading')}
                   </h5>
 
                   <div className="td-encoder-4x-grid">
@@ -3009,9 +3009,9 @@ export function TransferSettingsWorkspace({
                       <div>
                         <div className="td-tile-head">
                           <Zap size={16} className="td-tile-icon is-auto" />
-                          <strong>{t('speedtest.oversize_fit_title')}</strong>
+                          <strong>{t('drive.oversize_fit_title')}</strong>
                         </div>
-                        <p>{t('speedtest.oversize_fit_desc')}</p>
+                        <p>{t('drive.oversize_fit_desc')}</p>
                       </div>
                     </label>
 
@@ -3028,9 +3028,9 @@ export function TransferSettingsWorkspace({
                       <div>
                         <div className="td-tile-head">
                           <Sliders size={16} className="td-tile-icon is-auto" />
-                          <strong>{t('speedtest.oversize_split_title')}</strong>
+                          <strong>{t('drive.oversize_split_title')}</strong>
                         </div>
-                        <p>{t('speedtest.oversize_split_desc_new')}</p>
+                        <p>{t('drive.oversize_split_desc_new')}</p>
                       </div>
                     </label>
 
@@ -3047,9 +3047,9 @@ export function TransferSettingsWorkspace({
                       <div>
                         <div className="td-tile-head">
                           <Film size={16} className="td-tile-icon is-gpu" />
-                          <strong>{t('speedtest.oversize_pool_title')}</strong>
+                          <strong>{t('drive.oversize_pool_title')}</strong>
                         </div>
-                        <p>{t('speedtest.oversize_pool_desc')}</p>
+                        <p>{t('drive.oversize_pool_desc')}</p>
                       </div>
                     </label>
 
@@ -3066,9 +3066,9 @@ export function TransferSettingsWorkspace({
                       <div>
                         <div className="td-tile-head">
                           <Sliders size={16} className="td-tile-icon is-disable" />
-                          <strong>{t('speedtest.oversize_skip_title')}</strong>
+                          <strong>{t('drive.oversize_skip_title')}</strong>
                         </div>
-                        <p>{t('speedtest.oversize_skip_desc_new')}</p>
+                        <p>{t('drive.oversize_skip_desc_new')}</p>
                       </div>
                     </label>
                   </div>
@@ -3081,7 +3081,7 @@ export function TransferSettingsWorkspace({
                   <div className="td-field-group" style={{ marginBottom: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                       <label className="td-field-label" style={{ margin: 0 }}>
-                        {t('speedtest.oversize_pool_label')}
+                        {t('drive.oversize_pool_label')}
                       </label>
                       <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 600 }}>
                         {t('ui.generated.hanya_akun_berlangganan_telegram_premium_limit_4_be2f015')}
@@ -3258,7 +3258,7 @@ export function TransferSettingsWorkspace({
 
                   <div className="td-form-row-grid">
                     <div className="td-field-group">
-                      <label className="td-field-label">{t('speedtest.oversize_strategy_label')}</label>
+                      <label className="td-field-label">{t('drive.oversize_strategy_label')}</label>
                       <select
                         value={draft.albumAlternateStrategy || 'cancel_group'}
                         disabled={!!transferActive}
@@ -3273,8 +3273,8 @@ export function TransferSettingsWorkspace({
 
                   <label className="td-switch-row" style={{ marginTop: '16px' }}>
                     <div>
-                      <strong>{t('speedtest.oversize_approved_toggle')}</strong>
-                      <p>{t('speedtest.oversize_approved_desc')}</p>
+                      <strong>{t('drive.oversize_approved_toggle')}</strong>
+                      <p>{t('drive.oversize_approved_desc')}</p>
                     </div>
                     <input
                       type="checkbox"
@@ -3547,7 +3547,7 @@ export function TransferSettingsWorkspace({
               <div className="td-drawer-head">
                 <div className="td-drawer-head-left">
                   <Sparkles size={18} className="td-preset-sparkle" />
-                  <h4>{t('speedtest.transfer_profiles_title')}</h4>
+                  <h4>{t('drive.transfer_profiles_title')}</h4>
                 </div>
                 <button
                   type="button"
@@ -3601,7 +3601,7 @@ export function TransferSettingsWorkspace({
                           <span className="td-trigger-text">
                             {selectedProfileId
                               ? profiles.find((p) => p.id === selectedProfileId)?.name || t('ui.generated.profil_kustom_bade686')
-                              : t('speedtest.transfer_profiles_new')}
+                              : t('drive.transfer_profiles_new')}
                           </span>
                         </div>
                         <ChevronDown size={14} className={`td-trigger-chevron ${isDropdownOpen ? 'is-open' : ''}`} />
@@ -3621,7 +3621,7 @@ export function TransferSettingsWorkspace({
                               }}
                             >
                               <Plus size={14} className="td-opt-icon" />
-                              <span>{t('speedtest.transfer_profiles_new')}</span>
+                              <span>{t('drive.transfer_profiles_new')}</span>
                             </div>
 
                             <div className="td-select-divider" />
@@ -3661,7 +3661,7 @@ export function TransferSettingsWorkspace({
                         maxLength={80}
                         disabled={!!transferActive}
                         onChange={(e) => setProfileName(e.target.value)}
-                        placeholder={t('speedtest.transfer_profiles_name')}
+                        placeholder={t('drive.transfer_profiles_name')}
                         className="td-modern-profile-input"
                       />
                     </div>
@@ -3689,7 +3689,7 @@ export function TransferSettingsWorkspace({
                         }}
                         disabled={!!transferActive}
                       >
-                        <Trash2 size={14} /> {t('speedtest.transfer_profiles_delete')}
+                        <Trash2 size={14} /> {t('drive.transfer_profiles_delete')}
                       </button>
                     )}
                   </div>
@@ -3724,13 +3724,13 @@ export function TransferSettingsWorkspace({
               }}
             >
               <RotateCcw size={13} />
-              <span>{t('speedtest.label_rotate_reset')} {t('ui.generated.sub_menu_db25b1c')}</span>
+              <span>{t('drive.label_rotate_reset')} {t('ui.generated.sub_menu_db25b1c')}</span>
             </button>
           )}
 
           {onClose && (
             <button type="button" className="td-chip-btn td-chip-primary" onClick={onClose}>
-              {t('speedtest.topbar_close')}
+              {t('drive.topbar_close')}
             </button>
           )}
         </div>
@@ -3758,7 +3758,7 @@ export function TransferSettingsWorkspace({
                   fontWeight: 600,
                 }}
               >
-                {t('speedtest.topbar_cancel')}
+                {t('drive.topbar_cancel')}
               </button>
               <button
                 type="button"
@@ -3802,7 +3802,7 @@ export function TransferSettingsWorkspace({
                   fontWeight: 600,
                 }}
               >
-                {t('speedtest.topbar_cancel')}
+                {t('drive.topbar_cancel')}
               </button>
               <button
                 type="button"
@@ -3819,7 +3819,7 @@ export function TransferSettingsWorkspace({
                   boxShadow: '0 4px 14px rgba(239, 68, 68, 0.35)',
                 }}
               >
-                {t('speedtest.btn_reset_default')}
+                {t('drive.btn_reset_default')}
               </button>
             </div>
           </div>
@@ -3831,18 +3831,18 @@ export function TransferSettingsWorkspace({
         <div className="td-xfer-confirm-overlay" role="presentation">
           <div className="td-xfer-confirm-modal" role="dialog" aria-modal="true">
             <AlertTriangle size={24} className="td-confirm-icon" />
-            <h4>{t('speedtest.unsaved_profile_title')}</h4>
-            <p>{t('speedtest.unsaved_profile_desc')}</p>
+            <h4>{t('drive.unsaved_profile_title')}</h4>
+            <p>{t('drive.unsaved_profile_desc')}</p>
             <div className="td-confirm-actions">
               <button type="button" className="td-chip-btn" onClick={() => setPendingProfileLoad(null)}>
-                {t('speedtest.keep_editing')}
+                {t('drive.keep_editing')}
               </button>
               <button
                 type="button"
                 className="td-chip-btn td-chip-danger"
                 onClick={() => executeLoadProfile(pendingProfileLoad)}
               >
-                {t('speedtest.discard_changes')}
+                {t('drive.discard_changes')}
               </button>
             </div>
           </div>

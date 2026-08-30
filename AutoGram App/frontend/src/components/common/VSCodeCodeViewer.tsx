@@ -241,7 +241,7 @@ export function VSCodeCodeViewer({
               type="button"
               className={`vscode-action-btn ${formattedText ? 'is-active' : ''}`}
               onClick={handleFormatJson}
-              title={formattedText ? t('speedtest.restore_original_format') : t('speedtest.format_json_pretty')}
+              title={formattedText ? t('drive.restore_original_format') : t('drive.format_json_pretty')}
             >
               <Sparkles size={13} />
               <span>{formattedText ? t('ui.generated.format_asli_746ac2a') : t('ui.generated.pretty_json_729c7af')}</span>
@@ -252,7 +252,7 @@ export function VSCodeCodeViewer({
             type="button"
             className={`vscode-action-btn ${wordWrap ? 'is-active' : ''}`}
             onClick={() => setWordWrap(!wordWrap)}
-            title={t("speedtest.word_wrap_tooltip")}
+            title={t("drive.word_wrap_tooltip")}
           >
             <WrapText size={13} />
             <span>{t('ui.generated.wrap_c3447e7')}</span>
@@ -262,7 +262,7 @@ export function VSCodeCodeViewer({
             type="button"
             className="vscode-action-btn is-primary"
             onClick={() => void handleCopyCode()}
-            title={t('speedtest.copy_code_tooltip') || "Copy code to clipboard"}
+            title={t('drive.copy_code_tooltip') || "Copy code to clipboard"}
           >
             {copied ? <Check size={13} style={{ color: '#4ade80' }} /> : <Copy size={13} />}
             <span>{copied ? t('ui.generated.tersalin_7d2c539') : t('ui.generated.salin_kode_00fb334')}</span>

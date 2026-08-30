@@ -99,8 +99,8 @@ function DriveFileCardInner({
   let subLabel = '';
   if (file.icon_type === 'link') {
     subLabel = linkUrls.length > 1
-      ? t('speedtest.link_preview_multiple', { count: linkUrls.length })
-      : (linkHosts[0] || t('speedtest.view_links'));
+      ? t('drive.link_preview_multiple', { count: linkUrls.length })
+      : (linkHosts[0] || t('drive.view_links'));
   } else {
     subLabel = formatDriveBytes(file.size);
   }
@@ -456,17 +456,17 @@ function DriveFileCardInner({
       title={displayName}
     >
       <div className="td-file-card-inner">
-        {recentlyUploaded && <span className="td-new-upload-badge">{t('speedtest.badge_recently_uploaded')}</span>}
+        {recentlyUploaded && <span className="td-new-upload-badge">{t('drive.badge_recently_uploaded')}</span>}
         {isCut && (
-          <span className="td-clipboard-badge is-cut" title={t('speedtest.clipboard_cut_badge')}>
+          <span className="td-clipboard-badge is-cut" title={t('drive.clipboard_cut_badge')}>
             <Scissors size={10} />
-            <span>{t('speedtest.clipboard_cut_tag')}</span>
+            <span>{t('drive.clipboard_cut_tag')}</span>
           </span>
         )}
         {isCopy && (
-          <span className="td-clipboard-badge is-copy" title={t('speedtest.clipboard_copy_badge')}>
+          <span className="td-clipboard-badge is-copy" title={t('drive.clipboard_copy_badge')}>
             <Copy size={10} />
-            <span>{t('speedtest.clipboard_copy_tag')}</span>
+            <span>{t('drive.clipboard_copy_tag')}</span>
           </span>
         )}
         {(() => {
@@ -545,13 +545,13 @@ function DriveFileCardInner({
             }}
           >
             {imgError ? (
-              <div className="td-thumb-corrupted" title={t('speedtest.thumbnail_corrupted')}>
+              <div className="td-thumb-corrupted" title={t('drive.thumbnail_corrupted')}>
                 <ImageOff size={38} className="td-type-ico lg corrupted" />
-                <span>{t('speedtest.thumbnail_corrupted_short')}</span>
+                <span>{t('drive.thumbnail_corrupted_short')}</span>
               </div>
             ) : file.icon_type === 'link' ? (
               <div className="td-link-preview" aria-label={subLabel}>
-                <div className="td-link-preview-domain">{linkHosts[0] || t('speedtest.view_links')}</div>
+                <div className="td-link-preview-domain">{linkHosts[0] || t('drive.view_links')}</div>
                 <div className="td-link-preview-list">
                   {linkUrls.slice(0, 3).map((url, index) => (
                     <div className="td-link-preview-row" key={`${file.id}-${index}`} title={url}>
@@ -561,7 +561,7 @@ function DriveFileCardInner({
                   ))}
                   {linkUrls.length > 3 ? (
                     <div className="td-link-preview-more">
-                      {t('speedtest.link_preview_more', { count: linkUrls.length - 3 })}
+                      {t('drive.link_preview_more', { count: linkUrls.length - 3 })}
                     </div>
                   ) : null}
                 </div>
@@ -569,7 +569,7 @@ function DriveFileCardInner({
             ) : thumbLoading && canThumb ? (
               <div className="td-thumb-loading">
                 <Loader2 size={22} className="spin" />
-                <span>{isVideo ? t('speedtest.loading_video') : t('speedtest.loading_short')}</span>
+                <span>{isVideo ? t('drive.loading_video') : t('drive.loading_short')}</span>
               </div>
             ) : (
               <div className="td-thumb-placeholder">
@@ -587,7 +587,7 @@ function DriveFileCardInner({
             onToggleSelection?.();
           }}
           onPointerDown={(e) => e.stopPropagation()}
-          aria-label={selected ? t('speedtest.deselect') : t('speedtest.select')}
+          aria-label={selected ? t('drive.deselect') : t('drive.select')}
         >
           {selected && <Check size={10} strokeWidth={3} />}
         </button>
@@ -604,7 +604,7 @@ function DriveFileCardInner({
           }`}
         >
           {durationLabel ? (
-            <span className="td-video-duration" title={t('speedtest.duration_title', { duration: durationLabel, defaultValue: `Durasi ${durationLabel}` })}>
+            <span className="td-video-duration" title={t('drive.duration_title', { duration: durationLabel, defaultValue: `Durasi ${durationLabel}` })}>
               {durationLabel}
             </span>
           ) : null}
@@ -632,7 +632,7 @@ function DriveFileCardInner({
             <button
               type="button"
               className="td-file-act"
-              title={t('speedtest.topbar_preview')}
+              title={t('drive.topbar_preview')}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
@@ -646,7 +646,7 @@ function DriveFileCardInner({
             <button
               type="button"
               className="td-file-act ok"
-              title={t('speedtest.download_tab')}
+              title={t('drive.download_tab')}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
@@ -660,7 +660,7 @@ function DriveFileCardInner({
             <button
               type="button"
               className="td-file-act danger"
-              title={t('speedtest.btn_delete')}
+              title={t('drive.btn_delete')}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();

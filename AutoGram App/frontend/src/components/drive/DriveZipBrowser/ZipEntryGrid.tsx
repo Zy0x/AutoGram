@@ -84,11 +84,11 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
             onContextMenu={(e) => onContextMenu(e, { kind: 'dir', path: directory })}
             role="gridcell"
             tabIndex={0}
-            title={t('speedtest.zip_folder_double_click')}
+            title={t('drive.zip_folder_double_click')}
           >
             <div className="td-file-card-inner dzb-grid-card-inner directory-card">
               <div className="td-file-perspective-badges dzb-top-badges">
-                <span className="td-tag-badge dzb-tag-badge folder">{t('speedtest.zip_tag_folder')}</span>
+                <span className="td-tag-badge dzb-tag-badge folder">{t('drive.zip_tag_folder')}</span>
               </div>
 
               <div className="td-file-thumb-empty dzb-thumb-empty directory-bg">
@@ -102,7 +102,7 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
                   {label}
                 </div>
                 <div className="td-file-card-sub dzb-card-sub">
-                  <span className="td-file-card-size dzb-card-size">{t('speedtest.zip_tag_folder')}</span>
+                  <span className="td-file-card-size dzb-card-size">{t('drive.zip_tag_folder')}</span>
                 </div>
               </div>
 
@@ -114,7 +114,7 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
                     onExtractDirectory(directory);
                   }}
                   className="td-file-act dzb-action-icon-btn small"
-                  title={t('speedtest.zip_extract_directory')}
+                  title={t('drive.zip_extract_directory')}
                 >
                   <Download size={13} />
                 </button>
@@ -149,7 +149,7 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
             <div className="td-file-card-inner dzb-grid-card-inner">
               <div className="td-file-perspective-badges dzb-top-badges">
                 {entry.encrypted && (
-                  <span className="dzb-lock-pill" title={t('speedtest.zip_protected')}>
+                  <span className="dzb-lock-pill" title={t('drive.zip_protected')}>
                     <LockKeyhole size={11} />
                   </span>
                 )}
@@ -171,7 +171,7 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
                 <div className="td-file-thumb-empty dzb-thumb-loading-wrap">
                   <div className="td-thumb-loading dzb-thumb-loading">
                     <Loader2 size={24} className="spin animate-spin" />
-                    <span>{t('speedtest.zip_thumbnail_loading')}</span>
+                    <span>{t('drive.zip_thumbnail_loading')}</span>
                   </div>
                 </div>
               ) : (
@@ -187,10 +187,10 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
                         onLoadThumbnail(entry);
                       }}
                       className="dzb-orb-preview-pill"
-                      title={entry.encrypted ? t('speedtest.zip_password_for_media_title') : t('speedtest.zip_load_thumbnail')}
+                      title={entry.encrypted ? t('drive.zip_password_for_media_title') : t('drive.zip_load_thumbnail')}
                     >
                       {entry.encrypted ? <LockKeyhole size={11} /> : <Eye size={11} />}
-                      <span>{t('speedtest.zip_btn_load_preview')}</span>
+                      <span>{t('drive.zip_btn_load_preview')}</span>
                     </button>
                   )}
                 </div>
@@ -204,7 +204,7 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
                   <div className="td-file-card-sub-row dzb-card-sub-row">
                     <span className="td-file-card-size dzb-card-size">{formatDriveBytes(entry.size)}</span>
                     {ratio > 10 && (
-                      <span className="dzb-ratio-badge" title={`${t('speedtest.zip_col_compressed')}: ${formatDriveBytes(compressed)}`}>
+                      <span className="dzb-ratio-badge" title={`${t('drive.zip_col_compressed')}: ${formatDriveBytes(compressed)}`}>
                         −{ratio}%
                       </span>
                     )}
@@ -220,7 +220,7 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
                     onPreviewCode(entry);
                   }}
                   className="td-file-act dzb-action-icon-btn small"
-                  title={isZipArchiveName(entry.name) ? t('speedtest.zip_open_nested') : t('speedtest.zip_preview_content')}
+                  title={isZipArchiveName(entry.name) ? t('drive.zip_open_nested') : t('drive.zip_preview_content')}
                 >
                   {isZipArchiveName(entry.name) ? <Archive size={13} /> : <Eye size={13} />}
                 </button>
@@ -232,7 +232,7 @@ export const ZipEntryGrid: React.FC<ZipEntryGridProps> = ({
                     onExtractEntry(entry);
                   }}
                   className="td-file-act ok dzb-action-icon-btn small"
-                  title={t('speedtest.zip_extract_entry')}
+                  title={t('drive.zip_extract_entry')}
                 >
                   <Download size={13} />
                 </button>

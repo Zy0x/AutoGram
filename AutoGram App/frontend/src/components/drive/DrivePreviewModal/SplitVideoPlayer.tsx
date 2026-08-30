@@ -99,11 +99,11 @@ export function SplitVideoPlayer({
               event.stopPropagation();
               togglePlayback();
             }}
-            aria-label={t('speedtest.preview_play_hint')}
+            aria-label={t('drive.preview_play_hint')}
           >
             <Play size={24} fill="currentColor" />
           </button>
-          {loading && <span className="drive-preview-split-video-wait">{t('speedtest.label_loading')}</span>}
+          {loading && <span className="drive-preview-split-video-wait">{t('drive.label_loading')}</span>}
         </div>
       ) : (
         <video
@@ -155,7 +155,7 @@ export function SplitVideoPlayer({
                 if (video) video.currentTime = seconds;
                 onSeek(seconds, duration);
               }}
-              aria-label={t('speedtest.preview_seek_label')}
+              aria-label={t('drive.preview_seek_label')}
             />
           </div>
           <div className="drive-preview-split-video-control-row">
@@ -165,7 +165,7 @@ export function SplitVideoPlayer({
                 event.stopPropagation();
                 togglePlayback();
               }}
-              aria-label={t(isPlaying ? 'speedtest.preview_pause_hint' : 'speedtest.preview_play_hint')}
+              aria-label={t(isPlaying ? 'drive.preview_pause_hint' : 'drive.preview_play_hint')}
             >
               {isPlaying ? <Pause size={16} /> : <Play size={16} fill="currentColor" />}
             </button>

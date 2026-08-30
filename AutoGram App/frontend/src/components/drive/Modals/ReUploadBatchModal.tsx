@@ -146,12 +146,12 @@ export function ReUploadBatchModal({
             <AlertTriangle size={18} />
           </span>
           <div>
-            <h2 id={titleId} className="rub-title">{t('speedtest.reupload_confirm_title')}</h2>
+            <h2 id={titleId} className="rub-title">{t('drive.reupload_confirm_title')}</h2>
             <p className="rub-subtitle">
               {items.length} {t('ui.generated.file_dihapus_dari_tujuan_dalam_f62460f')} {thresholdDays} {t('ui.generated.hari_terakhir_pilih_file_yang_ingin_diunggah_ula_33dd55f')}
             </p>
           </div>
-          <button type="button" className="rub-close" onClick={onClose} aria-label={t('speedtest.preview_close_btn')}>
+          <button type="button" className="rub-close" onClick={onClose} aria-label={t('drive.preview_close_btn')}>
             <X size={16} />
           </button>
         </header>
@@ -211,7 +211,7 @@ export function ReUploadBatchModal({
               onClick={() => setExpanded((v) => !v)}
             >
               {expanded ? (
-                <><ChevronUp size={13} /> {t('speedtest.show_less')}</>
+                <><ChevronUp size={13} /> {t('drive.show_less')}</>
               ) : (
                 <><ChevronDown size={13} /> {t('ui.generated.tampilkan_8b412db')} {items.length - 5} {t('ui.generated.file_lainnya_f9b61e0')}</>
               )}
@@ -225,7 +225,7 @@ export function ReUploadBatchModal({
             type="button"
             className="rub-btn-skip"
             onClick={onSkipAll}
-            title={t("speedtest.batch_reupload_skip")}
+            title={t("drive.batch_reupload_skip")}
           >
             {t('ui.generated.lewati_semua_3c90ee4')}
           </button>

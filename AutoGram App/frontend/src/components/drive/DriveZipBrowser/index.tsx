@@ -111,7 +111,7 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
   );
 
   const [sources, setSources] = useState<ZipArchiveSource[]>([
-    { kind: 'telegram', label: archiveName || t('speedtest.zip_archive_explorer') },
+    { kind: 'telegram', label: archiveName || t('drive.zip_archive_explorer') },
   ]);
   const source = sources[sources.length - 1];
 
@@ -181,7 +181,7 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
       }
     } catch (caught) {
       setEntries([]);
-      setError(String((caught as Error)?.message || caught || t('speedtest.zip_list_failed')));
+      setError(String((caught as Error)?.message || caught || t('drive.zip_list_failed')));
     } finally {
       setIsLoading(false);
     }
@@ -319,7 +319,7 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
       } catch (caught) {
         const message = String((caught as Error)?.message || caught);
         if (/password|decrypt|encrypted/i.test(message)) {
-          requestPassword({ kind: 'nested', entry }, t('speedtest.zip_password_invalid'));
+          requestPassword({ kind: 'nested', entry }, t('drive.zip_password_invalid'));
         } else {
           setPreviewError(message);
           setPreviewEntry(entry);
@@ -345,11 +345,11 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
       try {
         const result = await readEntry(entry, password ?? activePassword);
         if (result.status === 'encrypted' || result.status === 'bad_password') {
-          requestPassword({ kind: 'preview', entry }, result.message || t('speedtest.zip_password_invalid'));
+          requestPassword({ kind: 'preview', entry }, result.message || t('drive.zip_password_invalid'));
           setPreviewEntry(null);
           return;
         }
-        if (result.status === 'error') throw new Error(result.message || result.error || t('speedtest.zip_entry_failed'));
+        if (result.status === 'error') throw new Error(result.message || result.error || t('drive.zip_entry_failed'));
         const fallbackKind = mediaKindFromName(entry.name);
         const normalized = { ...result, kind: result.kind === 'binary' && fallbackKind ? fallbackKind : result.kind };
         if (fallbackKind && !normalized.data_url) {
@@ -361,7 +361,7 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
       } catch (caught) {
         const message = String((caught as Error)?.message || caught);
         if (/password|decrypt|encrypted/i.test(message)) {
-          requestPassword({ kind: 'preview', entry }, t('speedtest.zip_password_invalid'));
+          requestPassword({ kind: 'preview', entry }, t('drive.zip_password_invalid'));
           setPreviewEntry(null);
         } else {
           setPreviewError(message);
@@ -376,7 +376,7 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
   const runExtraction = useCallback(
     async (target: TargetDestination, password?: string | null) => {
       if (!onEnqueueUploadPaths) {
-        setError(t('speedtest.zip_upload_queue_unavailable'));
+        setError(t('drive.zip_upload_queue_unavailable'));
         return;
       }
       const selected = [...selectedEntries];
@@ -388,11 +388,11 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
       );
       if (!expanded.length) return;
       setExtractBusy(true);
-      setExtractProgress(t('speedtest.zip_extract_progress', { current: 0, total: expanded.length }));
+      setExtractProgress(t('drive.zip_extract_progress', { current: 0, total: expanded.length }));
       try {
         const paths: string[] = [];
         for (let index = 0; index < expanded.length; index += 1) {
-          setExtractProgress(t('speedtest.zip_extract_progress', { current: index + 1, total: expanded.length }));
+          setExtractProgress(t('drive.zip_extract_progress', { current: index + 1, total: expanded.length }));
           paths.push(await materializeEntry(expanded[index], password ?? activePassword));
         }
         await onEnqueueUploadPaths(paths, {
@@ -408,7 +408,7 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
       } catch (caught) {
         const message = String((caught as Error)?.message || caught);
         if (/password|decrypt|encrypted|bad_password/i.test(message)) {
-          requestPassword({ kind: 'extract', target }, t('speedtest.zip_password_invalid'));
+          requestPassword({ kind: 'extract', target }, t('drive.zip_password_invalid'));
         } else {
           setExtractProgress(message);
         }
@@ -452,7 +452,7 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
       if (thumbnails.has(entry.name) || loadingThumbnails.has(entry.name)) return;
       const pwd = explicitPassword !== undefined ? explicitPassword : activePassword;
       if (entry.encrypted && !pwd) {
-        requestPassword({ kind: 'thumbnail', entry }, t('speedtest.zip_password_for_media_title'));
+        requestPassword({ kind: 'thumbnail', entry }, t('drive.zip_password_for_media_title'));
         return;
       }
       setLoadingThumbnails((prev) => new Set(prev).add(entry.name));
@@ -468,12 +468,12 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
         if (thumbUrl) {
           setThumbnails((prev) => new Map(prev).set(entry.name, thumbUrl));
         } else if (entry.encrypted) {
-          requestPassword({ kind: 'thumbnail', entry }, t('speedtest.zip_password_invalid'));
+          requestPassword({ kind: 'thumbnail', entry }, t('drive.zip_password_invalid'));
         }
       } catch (err: any) {
         const errMsg = String(err?.message || err);
         if (/bad_password|password|encrypted/i.test(errMsg)) {
-          requestPassword({ kind: 'thumbnail', entry }, t('speedtest.zip_password_invalid'));
+          requestPassword({ kind: 'thumbnail', entry }, t('drive.zip_password_invalid'));
         }
       } finally {
         setLoadingThumbnails((prev) => {
@@ -508,7 +508,7 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
 
       const hasEncrypted = targets.some((f) => f.encrypted) || entries.some((e) => e.encrypted);
       if (hasEncrypted && !pwd) {
-        requestPassword({ kind: 'all_thumbnails' }, t('speedtest.zip_password_for_media_title'));
+        requestPassword({ kind: 'all_thumbnails' }, t('drive.zip_password_for_media_title'));
         return;
       }
 
@@ -1035,8 +1035,8 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
               </div>
 
               <div className="dzb-loading-title-box">
-                <h4 className="dzb-loading-title">{t('speedtest.zip_reading_index')}</h4>
-                <p className="dzb-loading-sub">{t('speedtest.zip_sparse_reading_dots')}</p>
+                <h4 className="dzb-loading-title">{t('drive.zip_reading_index')}</h4>
+                <p className="dzb-loading-sub">{t('drive.zip_sparse_reading_dots')}</p>
               </div>
 
               <div className="dzb-loading-shimmer-bar">
@@ -1045,7 +1045,7 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
 
               <div className="dzb-loading-badge">
                 <Zap size={12} className="text-amber-400" />
-                <span>{t('speedtest.zip_sparse_direct_decrypt')}</span>
+                <span>{t('drive.zip_sparse_direct_decrypt')}</span>
               </div>
             </div>
           </div>
@@ -1055,13 +1055,13 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
             <span className="dzb-error-msg">{error}</span>
             <button type="button" onClick={() => void loadZipEntries()} className="dzb-btn-retry">
               <RefreshCw size={14} />
-              <span>{t('speedtest.zip_retry')}</span>
+              <span>{t('drive.zip_retry')}</span>
             </button>
           </div>
         ) : visibleTotalCount === 0 ? (
           <div className="dzb-state-center empty">
             <FileWarning size={36} className="dzb-empty-icon" />
-            <span className="dzb-state-text">{t('speedtest.zip_empty_search')}</span>
+            <span className="dzb-state-text">{t('drive.zip_empty_search')}</span>
           </div>
         ) : viewMode === 'grid' ? (
           <ZipEntryGrid

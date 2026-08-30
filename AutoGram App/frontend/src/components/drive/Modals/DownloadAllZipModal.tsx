@@ -170,10 +170,10 @@ export function DownloadAllZipModal({
         <header className="td-zip-preflight-header">
           <div className="td-zip-preflight-icon"><FileArchive size={22} /></div>
           <div className="td-zip-preflight-title-wrap">
-            <h2 id="td-zip-preflight-title">{t('speedtest.zip_preflight_title')}</h2>
-            <p>{t('speedtest.zip_preflight_location', { location: locationLabel })}</p>
+            <h2 id="td-zip-preflight-title">{t('drive.zip_preflight_title')}</h2>
+            <p>{t('drive.zip_preflight_location', { location: locationLabel })}</p>
           </div>
-          <button type="button" className="td-icon-btn td-zip-close-btn" onClick={onClose} aria-label={t('speedtest.close_aria')}>
+          <button type="button" className="td-icon-btn td-zip-close-btn" onClick={onClose} aria-label={t('drive.close_aria')}>
             <X size={17} />
           </button>
         </header>
@@ -185,7 +185,7 @@ export function DownloadAllZipModal({
               <div className="td-zip-pre-header">
                 <span className="td-zip-pre-badge">
                   <Sparkles size={14} />
-                  <strong>{t('speedtest.zip_pre_estimation_heading')}</strong>
+                  <strong>{t('drive.zip_pre_estimation_heading')}</strong>
                 </span>
                 <span className="td-zip-pre-location" title={locationLabel}>{locationLabel}</span>
               </div>
@@ -194,23 +194,23 @@ export function DownloadAllZipModal({
                 <div className="td-zip-est-box">
                   <div className="td-zip-est-label">
                     <Database size={13} />
-                    <span>{t('speedtest.zip_pre_files_est')}</span>
+                    <span>{t('drive.zip_pre_files_est')}</span>
                   </div>
                   <div className="td-zip-est-val">
                     {totalFilesEstimate.toLocaleString()}
-                    <span className="td-zip-est-unit">{t('speedtest.zip_pre_items_unit')}</span>
+                    <span className="td-zip-est-unit">{t('drive.zip_pre_items_unit')}</span>
                   </div>
                 </div>
 
                 <div className="td-zip-est-box">
                   <div className="td-zip-est-label">
                     <Clock size={13} />
-                    <span>{t('speedtest.zip_pre_time_est')}</span>
+                    <span>{t('drive.zip_pre_time_est')}</span>
                   </div>
                   <div className="td-zip-est-val">
                     {estTimeFormatted}
-                    <span className="td-zip-est-unit-safe" title={t('speedtest.zip_pre_flood_safe')}>
-                      <Zap size={10} /> {t('speedtest.zip_pre_safe_pace')}
+                    <span className="td-zip-est-unit-safe" title={t('drive.zip_pre_flood_safe')}>
+                      <Zap size={10} /> {t('drive.zip_pre_safe_pace')}
                     </span>
                   </div>
                 </div>
@@ -218,7 +218,7 @@ export function DownloadAllZipModal({
                 <div className="td-zip-est-box">
                   <div className="td-zip-est-label">
                     <HardDrive size={13} />
-                    <span>{t('speedtest.zip_pre_size_est')}</span>
+                    <span>{t('drive.zip_pre_size_est')}</span>
                   </div>
                   <div className="td-zip-est-val">
                     {estTotalSizeFormatted}
@@ -228,7 +228,7 @@ export function DownloadAllZipModal({
 
               <div className="td-zip-resilience-banner">
                 <ShieldCheck size={16} className="td-zip-resilience-icon" />
-                <p>{t('speedtest.zip_pre_resilience_badge')}</p>
+                <p>{t('drive.zip_pre_resilience_badge')}</p>
               </div>
             </div>
           )}
@@ -239,7 +239,7 @@ export function DownloadAllZipModal({
               <div className="td-zip-index-row">
                 <span className="td-zip-index-status">
                   {indexing ? <Loader2 size={16} className="spin" /> : ready ? <CheckCircle2 size={16} /> : <Archive size={16} />}
-                  <strong>{indexing ? t('speedtest.zip_indexing') : ready ? t('speedtest.zip_ready_all_scanned') : t('speedtest.zip_index_required')}</strong>
+                  <strong>{indexing ? t('drive.zip_indexing') : ready ? t('drive.zip_ready_all_scanned') : t('drive.zip_index_required')}</strong>
                 </span>
                 <span className="td-zip-index-count">
                   {expectedCount != null ? `${scannedCount.toLocaleString()} / ${expectedCount.toLocaleString()}` : scannedCount.toLocaleString()}
@@ -248,7 +248,7 @@ export function DownloadAllZipModal({
               <div className="td-zip-progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress} role="progressbar">
                 <span style={{ width: `${progress}%` }} />
               </div>
-              <p>{t('speedtest.zip_index_explain')}</p>
+              <p>{t('drive.zip_index_explain')}</p>
               {error && <div className="td-zip-error" role="alert">{error}</div>}
             </div>
           )}
@@ -257,13 +257,13 @@ export function DownloadAllZipModal({
           {ready && (
             <div className="td-zip-options" aria-disabled={!ready}>
               <div className="td-zip-options-heading">
-                <strong>{t('speedtest.zip_include_heading')}</strong>
+                <strong>{t('drive.zip_include_heading')}</strong>
                 <span>
-                  {t('speedtest.zip_selected_count', { count: selectedCount.toLocaleString() })}
+                  {t('drive.zip_selected_count', { count: selectedCount.toLocaleString() })}
                   {selectedBytes > 0 ? ` · ${formatBytes(selectedBytes)}` : ''}
                 </span>
               </div>
-              <div className="td-zip-category-grid" role="group" aria-label={t('speedtest.zip_include_heading')}>
+              <div className="td-zip-category-grid" role="group" aria-label={t('drive.zip_include_heading')}>
                 {ALL_CATEGORIES.map((id) => {
                   const itemCount = id === 'all' ? indexedFiles.length : counts[id] || 0;
                   const isChecked = id === 'all'
@@ -287,7 +287,7 @@ export function DownloadAllZipModal({
                         ) : (
                           <Square size={14} className="td-zip-cat-uncheck" />
                         )}
-                        <span>{t(`speedtest.zip_category_${id}`)}</span>
+                        <span>{t(`drive.zip_category_${id}`)}</span>
                       </span>
                       <b>{itemCount.toLocaleString()}</b>
                     </button>
@@ -299,7 +299,7 @@ export function DownloadAllZipModal({
         </div>
 
         <footer className="td-zip-preflight-actions">
-          <button type="button" className="td-btn-secondary" onClick={onClose}>{t('speedtest.zip_btn_cancel')}</button>
+          <button type="button" className="td-btn-secondary" onClick={onClose}>{t('drive.zip_btn_cancel')}</button>
           
           {!ready ? (
             <button
@@ -309,13 +309,13 @@ export function DownloadAllZipModal({
               disabled={indexing}
             >
               {indexing ? <Loader2 size={15} className="spin" /> : <RefreshCw size={15} />}
-              {indexing ? t('speedtest.zip_indexing') : t('speedtest.zip_btn_start_index')}
+              {indexing ? t('drive.zip_indexing') : t('drive.zip_btn_start_index')}
             </button>
           ) : (
             <>
               <button type="button" className="td-btn-secondary" onClick={onIndex} disabled={indexing}>
                 <RefreshCw size={15} className={indexing ? 'spin' : undefined} />
-                {t('speedtest.zip_rescan')}
+                {t('drive.zip_rescan')}
               </button>
               <button
                 type="button"
@@ -324,7 +324,7 @@ export function DownloadAllZipModal({
                 onClick={() => onCreate(Array.from(selectedCategories))}
               >
                 <FileArchive size={16} />
-                {t('speedtest.zip_create_button', { count: selectedCount.toLocaleString() })}
+                {t('drive.zip_create_button', { count: selectedCount.toLocaleString() })}
                 {selectedBytes > 0 ? ` (${formatBytes(selectedBytes)})` : ''}
               </button>
             </>

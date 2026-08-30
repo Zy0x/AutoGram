@@ -67,7 +67,7 @@ export const MediaStudioSidebar: React.FC<MediaStudioSidebarProps> = ({
           className={`p-2.5 rounded-xl transition-all ${
             activeFolderId === null ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
           }`}
-          title={t('speedtest.drive_root')}
+          title={t('drive.drive_root')}
         >
           <HardDrive className="w-5 h-5" />
         </button>
@@ -85,7 +85,7 @@ export const MediaStudioSidebar: React.FC<MediaStudioSidebarProps> = ({
             onChange={(e) => onSelectSession(e.target.value)}
             className="w-full bg-slate-950 border border-slate-800 text-xs text-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-indigo-500 font-mono truncate"
           >
-            {sessions.length === 0 && <option value="">{t('speedtest.no_active_account')}</option>}
+            {sessions.length === 0 && <option value="">{t('drive.no_active_account')}</option>}
             {sessions.map((s) => (
               <option key={s} value={s}>
                 {getSessionDisplayName(s)}
@@ -96,7 +96,7 @@ export const MediaStudioSidebar: React.FC<MediaStudioSidebarProps> = ({
         <button
           onClick={onRefreshSidebar}
           className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-all"
-          title={t('speedtest.refresh_sidebar')}
+          title={t('drive.refresh_sidebar')}
         >
           <RefreshCw className="w-4 h-4" />
         </button>
@@ -105,11 +105,11 @@ export const MediaStudioSidebar: React.FC<MediaStudioSidebarProps> = ({
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
         <div>
           <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5 px-2">
-            <span>{t('speedtest.drives_and_folders')}</span>
+            <span>{t('drive.drives_and_folders')}</span>
             <button
               onClick={onNewFolder}
               className="p-1 hover:bg-slate-800 text-slate-400 hover:text-indigo-400 rounded transition-colors"
-              title={t('speedtest.new_folder')}
+              title={t('drive.new_folder')}
             >
               <FolderPlus className="w-3.5 h-3.5" />
             </button>
@@ -158,7 +158,7 @@ export const MediaStudioSidebar: React.FC<MediaStudioSidebarProps> = ({
                 }`}
               >
                 <Hash className="w-3.5 h-3.5 text-indigo-400" />
-                <span>{t('speedtest.all_topics')}</span>
+                <span>{t('drive.all_topics')}</span>
               </button>
               {topics.map((t) => (
                 <button

@@ -36,8 +36,8 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({
     <div className="space-y-4 text-slate-100">
       <div className="flex items-center justify-between bg-slate-900/80 p-3 rounded-xl border border-slate-800">
         <div>
-          <h4 className="font-semibold text-xs text-slate-200">{t('speedtest.dup_mode_title')}</h4>
-          <p className="text-[11px] text-slate-400">{t('speedtest.dup_mode_sub')}</p>
+          <h4 className="font-semibold text-xs text-slate-200">{t('drive.dup_mode_title')}</h4>
+          <p className="text-[11px] text-slate-400">{t('drive.dup_mode_sub')}</p>
         </div>
         <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
           <button
@@ -56,7 +56,7 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({
               dupMode === 'name_size' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            {t('speedtest.dup_name_size')}
+            {t('drive.dup_name_size')}
           </button>
         </div>
       </div>
@@ -64,20 +64,20 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({
       {groups.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400 bg-slate-900/40 rounded-xl border border-slate-800/60">
           <Copy className="w-8 h-8 text-slate-600 mb-2" />
-          <p className="text-xs font-medium">{t('speedtest.dup_none')}</p>
+          <p className="text-xs font-medium">{t('drive.dup_none')}</p>
         </div>
       ) : (
         <>
           <div className="flex items-center justify-between text-xs px-1">
             <span className="text-slate-400">
-              {t('speedtest.dup_found_summary')} <strong className="text-indigo-400">{groups.length}</strong> {t('speedtest.dup_groups')} ({totalDupFiles} {t('speedtest.dup_files')}), {t('speedtest.dup_est_save')} <strong className="text-emerald-400">{formatDriveBytes(wastedBytes)}</strong>
+              {t('drive.dup_found_summary')} <strong className="text-indigo-400">{groups.length}</strong> {t('drive.dup_groups')} ({totalDupFiles} {t('drive.dup_files')}), {t('drive.dup_est_save')} <strong className="text-emerald-400">{formatDriveBytes(wastedBytes)}</strong>
             </span>
             <div className="flex items-center gap-2">
               <button type="button" onClick={onAutoSelectKeepNewest} className="text-indigo-400 hover:underline text-[11px]">
-                {t('speedtest.dup_keep_newest')}
+                {t('drive.dup_keep_newest')}
               </button>
               <button type="button" onClick={onAutoSelectKeepOldest} className="text-indigo-400 hover:underline text-[11px]">
-                {t('speedtest.dup_keep_oldest')}
+                {t('drive.dup_keep_oldest')}
               </button>
             </div>
           </div>
@@ -86,7 +86,7 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({
             {groups.map((group, gIdx) => (
               <div key={`group-${gIdx}`} className="bg-slate-900 border border-slate-800 rounded-xl p-3">
                 <div className="flex items-center justify-between mb-2 text-xs font-mono text-slate-400 border-b border-slate-800/80 pb-1.5">
-                  <span>{t('speedtest.dup_group_hdr')} #{gIdx + 1} ({group.files.length} {t('speedtest.dup_files')})</span>
+                  <span>{t('drive.dup_group_hdr')} #{gIdx + 1} ({group.files.length} {t('drive.dup_files')})</span>
                   <span>{formatDriveBytes(group.files[0]?.size || 0)}</span>
                 </div>
                 <div className="space-y-1">
@@ -117,7 +117,7 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({
           {selectedDupIds.size > 0 && (
             <div className="flex items-center justify-between bg-red-950/40 border border-red-900/60 p-3 rounded-xl">
               <span className="text-xs text-red-300 flex items-center gap-1.5">
-                <AlertTriangle size={14} /> {t('speedtest.dup_selected_count')} {selectedDupIds.size} {t('speedtest.dup_for_deletion')}
+                <AlertTriangle size={14} /> {t('drive.dup_selected_count')} {selectedDupIds.size} {t('drive.dup_for_deletion')}
               </span>
               <button
                 type="button"
@@ -125,7 +125,7 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({
                 onClick={onDeleteSelectedDups}
                 className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-xs font-semibold text-white shadow-lg shadow-red-600/30 transition-all flex items-center gap-1.5"
               >
-                <Trash2 size={13} /> {t('speedtest.dup_delete_btn')}
+                <Trash2 size={13} /> {t('drive.dup_delete_btn')}
               </button>
             </div>
           )}

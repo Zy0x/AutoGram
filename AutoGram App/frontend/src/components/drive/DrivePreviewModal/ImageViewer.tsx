@@ -62,7 +62,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
           type="button"
           onClick={onZoomOut}
           className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800"
-          title={t("speedtest.zoom_out_tooltip")}
+          title={t("drive.zoom_out_tooltip")}
         >
           <ZoomOut size={16} />
         </button>
@@ -73,7 +73,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
           type="button"
           onClick={onZoomIn}
           className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800"
-          title={t("speedtest.zoom_in_tooltip")}
+          title={t("drive.zoom_in_tooltip")}
         >
           <ZoomIn size={16} />
         </button>
@@ -84,7 +84,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
           type="button"
           onClick={onRotateCcw}
           className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800"
-          title={t("speedtest.rotate_left_tooltip")}
+          title={t("drive.rotate_left_tooltip")}
         >
           <RotateCcw size={16} />
         </button>
@@ -92,7 +92,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
           type="button"
           onClick={onRotateCw}
           className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800"
-          title={t("speedtest.rotate_right_tooltip")}
+          title={t("drive.rotate_right_tooltip")}
         >
           <RotateCw size={16} />
         </button>
@@ -103,7 +103,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
           type="button"
           onClick={onFlipH}
           className={`p-1.5 rounded-lg ${flipH ? 'text-indigo-400 bg-indigo-950/60' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
-          title={t("speedtest.flip_h_tooltip")}
+          title={t("drive.flip_h_tooltip")}
         >
           <FlipHorizontal size={16} />
         </button>
@@ -111,7 +111,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
           type="button"
           onClick={onFlipV}
           className={`p-1.5 rounded-lg ${flipV ? 'text-indigo-400 bg-indigo-950/60' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
-          title={t("speedtest.flip_v_tooltip")}
+          title={t("drive.flip_v_tooltip")}
         >
           <FlipVertical size={16} />
         </button>
@@ -121,7 +121,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
           onClick={onReset}
           className="text-[11px] font-semibold text-slate-400 hover:text-slate-100 ml-1 px-2 py-1 hover:bg-slate-800 rounded-md"
         >
-          {t('speedtest.label_rotate_reset')}
+          {t('drive.label_rotate_reset')}
         </button>
       </div>
     </div>

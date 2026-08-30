@@ -266,7 +266,7 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
             <h2 id="td-confirm-title">{title}</h2>
             <p>{lead}</p>
           </div>
-          <button type="button" className="td-confirm-close" onClick={onClose} aria-label={t('speedtest.preview_close_btn')}>
+          <button type="button" className="td-confirm-close" onClick={onClose} aria-label={t('drive.preview_close_btn')}>
             <X size={18} />
           </button>
         </header>
@@ -354,7 +354,7 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
                 {state.isTopicLoading ? (
                   <div className="td-confirm-topic-loading" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', fontSize: '13px', color: 'var(--td-text-muted, #94a3b8)' }}>
                     <span className="td-spinner-sm" />
-                    <span>{t('speedtest.loading_forum_topics')}</span>
+                    <span>{t('drive.loading_forum_topics')}</span>
                   </div>
                 ) : (
                   <MediaSelect
@@ -367,7 +367,7 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
                       ...topics.map((topic) => ({
                         value: String(topic.id),
                         label: topic.title || `Topik ${topic.id}`,
-                        description: topic.closed ? t('speedtest.topic_closed', { defaultValue: 'Topik ditutup' }) : undefined,
+                        description: topic.closed ? t('drive.topic_closed', { defaultValue: 'Topik ditutup' }) : undefined,
                         disabled: !!topic.closed,
                       })),
                     ]}

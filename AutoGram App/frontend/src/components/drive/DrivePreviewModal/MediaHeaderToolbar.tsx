@@ -69,7 +69,7 @@ export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
             disabled={!hasPrev}
             onClick={onPrev}
             className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80 disabled:opacity-40"
-            title={t('speedtest.prev_file_tooltip')}
+            title={t('drive.prev_file_tooltip')}
           >
             <ChevronLeft size={18} />
           </button>
@@ -80,7 +80,7 @@ export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
             disabled={!hasNext}
             onClick={onNext}
             className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80 disabled:opacity-40"
-            title={t("speedtest.next_file_tooltip")}
+            title={t("drive.next_file_tooltip")}
           >
             <ChevronRight size={18} />
           </button>
@@ -92,7 +92,7 @@ export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
             disabled={openingSystem}
             onClick={onOpenSystem}
             className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80"
-            title={t('speedtest.open_system_app')}
+            title={t('drive.open_system_app')}
           >
             <ExternalLink size={16} />
           </button>
@@ -103,7 +103,7 @@ export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
             type="button"
             onClick={onPrintPdf}
             className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80"
-            title={t("speedtest.print_pdf_tooltip")}
+            title={t("drive.print_pdf_tooltip")}
           >
             <Printer size={16} />
           </button>
@@ -114,7 +114,7 @@ export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
           disabled={saving}
           onClick={onDownload}
           className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80"
-          title={t("speedtest.download_file_tooltip")}
+          title={t("drive.download_file_tooltip")}
         >
           <Download size={16} />
         </button>
@@ -126,7 +126,7 @@ export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
             className={`p-1.5 rounded-lg transition-colors ${
               showInfo ? 'text-indigo-400 bg-indigo-950/60' : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
             }`}
-            title={t("speedtest.file_detail_tooltip")}
+            title={t("drive.file_detail_tooltip")}
           >
             <Info size={16} />
           </button>
@@ -137,7 +137,7 @@ export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
             type="button"
             onClick={onToggleFullscreen}
             className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80"
-            title={isFullscreen ? t('speedtest.preview_fullscreen_exit') : t('speedtest.preview_fullscreen_enter')}
+            title={isFullscreen ? t('drive.preview_fullscreen_exit') : t('drive.preview_fullscreen_enter')}
           >
             {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
           </button>
@@ -147,7 +147,7 @@ export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
           type="button"
           onClick={onClose}
           className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-red-500/20 hover:text-red-300 ml-1"
-          title={t("speedtest.close_esc_tooltip")}
+          title={t("drive.close_esc_tooltip")}
         >
           <X size={18} />
         </button>

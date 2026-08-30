@@ -177,24 +177,24 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
 
   const renderBadge = (c: DriveDestChoice) => {
     if (c.kind === 'saved') {
-      return <span className="td-dest-badge saved">{t('speedtest.dest_badge_saved')}</span>;
+      return <span className="td-dest-badge saved">{t('drive.dest_badge_saved')}</span>;
     }
     if (c.isForum) {
-      return <span className="td-dest-badge forum">{t('speedtest.dest_badge_forum')}</span>;
+      return <span className="td-dest-badge forum">{t('drive.dest_badge_forum')}</span>;
     }
     if (c.kind === 'drive') {
-      return <span className="td-dest-badge td">{t('speedtest.dest_badge_drive')}</span>;
+      return <span className="td-dest-badge td">{t('drive.dest_badge_drive')}</span>;
     }
     if (c.type === 'group' || c.type === 'supergroup') {
-      return <span className="td-dest-badge group">{t('speedtest.dest_badge_group')}</span>;
+      return <span className="td-dest-badge group">{t('drive.dest_badge_group')}</span>;
     }
     if (c.type === 'channel') {
-      return <span className="td-dest-badge channel">{t('speedtest.dest_badge_channel')}</span>;
+      return <span className="td-dest-badge channel">{t('drive.dest_badge_channel')}</span>;
     }
     if (c.type === 'bot') {
-      return <span className="td-dest-badge bot">{t('speedtest.dest_badge_bot')}</span>;
+      return <span className="td-dest-badge bot">{t('drive.dest_badge_bot')}</span>;
     }
-    return <span className="td-dest-badge user">{t('speedtest.dest_badge_user')}</span>;
+    return <span className="td-dest-badge user">{t('drive.dest_badge_user')}</span>;
   };
 
   const handleOverlayMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -233,8 +233,8 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
               type="button"
               className="td-confirm-icon move is-back-btn"
               onClick={() => setTopicSubView(null)}
-              title={t('speedtest.back_to_chats')}
-              aria-label={t('speedtest.back_to_chats')}
+              title={t('drive.back_to_chats')}
+              aria-label={t('drive.back_to_chats')}
             >
               <ArrowLeft size={18} strokeWidth={2.2} />
             </button>
@@ -246,16 +246,16 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
           <div className="td-confirm-head-text">
             <h2 id="td-dest-title">
               {topicSubView
-                ? t('speedtest.select_topic_in_chat', { chat: topicSubView.choice.label })
+                ? t('drive.select_topic_in_chat', { chat: topicSubView.choice.label })
                 : state.title}
             </h2>
             <p className="td-confirm-desc">
               {topicSubView
-                ? t('speedtest.select_topic_desc')
+                ? t('drive.select_topic_desc')
                 : (state.detail || '')}
             </p>
           </div>
-          <button type="button" className="td-confirm-close" onClick={onClose} aria-label={t('speedtest.preview_close_btn')}>
+          <button type="button" className="td-confirm-close" onClick={onClose} aria-label={t('drive.preview_close_btn')}>
             <X size={18} />
           </button>
         </header>
@@ -271,8 +271,8 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
                   className="td-dest-search-input"
                   value={topicQuery}
                   onChange={(e) => setTopicQuery(e.target.value)}
-                  placeholder={t('speedtest.ph_search_topic')}
-                  aria-label={t('speedtest.ph_search_topic')}
+                  placeholder={t('drive.ph_search_topic')}
+                  aria-label={t('drive.ph_search_topic')}
                 />
               </div>
             )}
@@ -290,14 +290,14 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
                       <Hash size={15} />
                     </span>
                     <span className="td-dest-label">
-                      {t('speedtest.forum_topic_general_all')}
+                      {t('drive.forum_topic_general_all')}
                     </span>
-                    <span className="td-dest-badge forum">{t('speedtest.dest_badge_forum')}</span>
+                    <span className="td-dest-badge forum">{t('drive.dest_badge_forum')}</span>
                   </button>
                 </li>
               )}
               {filteredTopics.length === 0 && topicQuery && (
-                <li className="td-dest-empty">{t('speedtest.no_match_found')}</li>
+                <li className="td-dest-empty">{t('drive.no_match_found')}</li>
               )}
               {filteredTopics.map((topic) => (
                 <li key={`topic-${topic.id}`}>
@@ -318,9 +318,9 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
                       <Hash size={15} />
                     </span>
                     <span className="td-dest-label">
-                      {topic.title || (topic.id === 1 ? t('speedtest.forum_topic_general_all') : `Topik ${topic.id}`)}
+                      {topic.title || (topic.id === 1 ? t('drive.forum_topic_general_all') : `Topik ${topic.id}`)}
                     </span>
-                    {topic.closed && <span className="td-dest-badge">{t('speedtest.topic_closed')}</span>}
+                    {topic.closed && <span className="td-dest-badge">{t('drive.topic_closed')}</span>}
                   </button>
                 </li>
               ))}
@@ -336,7 +336,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
                 className="td-dest-search-input"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder={t('speedtest.ph_search_chat_folder')}
+                placeholder={t('drive.ph_search_chat_folder')}
                 aria-label={t('ui.generated.cari_tujuan_7e335b8')}
                 onKeyDown={(e) => {
                   if (e.key === 'ArrowDown') {
@@ -355,7 +355,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
 
             <ul className="td-dest-list" role="listbox" aria-label={t('ui.generated.daftar_tujuan_2d87835')}>
               {filtered.length === 0 && (
-                <li className="td-dest-empty">{t('speedtest.no_match_found')}</li>
+                <li className="td-dest-empty">{t('drive.no_match_found')}</li>
               )}
               {filtered.map((c, i) => {
                 const active = i === selectedIdx;
@@ -390,7 +390,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
                       </span>
                       {isLoading ? (
                         <span className="td-dest-badge" style={{ opacity: 0.8 }}>
-                          {t('speedtest.loading_topics_for_chat')}
+                          {t('drive.loading_topics_for_chat')}
                         </span>
                       ) : (
                         renderBadge(c)

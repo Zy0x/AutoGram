@@ -31,12 +31,12 @@ export const ZipFloatingActionBar: React.FC<ZipFloatingActionBarProps> = ({
   if (selectedCount <= 0) return null;
 
   return (
-    <div className="dzb-floating-bar-wrap" role="toolbar" aria-label={t('speedtest.zip_batch_extract')}>
+    <div className="dzb-floating-bar-wrap" role="toolbar" aria-label={t('drive.zip_batch_extract')}>
       <div className="dzb-floating-bar">
         <div className="dzb-floating-info">
           <Layers size={18} className="dzb-floating-icon" />
           <span className="dzb-floating-count">
-            {t('speedtest.zip_batch_selected', {
+            {t('drive.zip_batch_selected', {
               count: selectedCount,
               size: formatDriveBytes(selectedBytes),
             })}
@@ -50,10 +50,10 @@ export const ZipFloatingActionBar: React.FC<ZipFloatingActionBarProps> = ({
               onClick={onLoadSelectedThumbnails}
               disabled={isLoadingThumbnails}
               className="dzb-floating-btn secondary"
-              title={t('speedtest.zip_load_selected_thumbnails', { count: unloadedMediaCount })}
+              title={t('drive.zip_load_selected_thumbnails', { count: unloadedMediaCount })}
             >
               {isLoadingThumbnails ? <Loader2 size={15} className="animate-spin" /> : <Eye size={15} />}
-              <span>{t('speedtest.zip_load_selected_thumbnails', { count: unloadedMediaCount })}</span>
+              <span>{t('drive.zip_load_selected_thumbnails', { count: unloadedMediaCount })}</span>
             </button>
           )}
 
@@ -61,27 +61,27 @@ export const ZipFloatingActionBar: React.FC<ZipFloatingActionBarProps> = ({
             type="button"
             onClick={onSelectAll}
             className="dzb-floating-btn secondary"
-            title={t('speedtest.zip_batch_select_all')}
+            title={t('drive.zip_batch_select_all')}
           >
             <CheckSquare size={15} />
-            <span>{isAllSelected ? t('speedtest.zip_batch_clear') : t('speedtest.zip_batch_select_all')}</span>
+            <span>{isAllSelected ? t('drive.zip_batch_clear') : t('drive.zip_batch_select_all')}</span>
           </button>
 
           <button
             type="button"
             onClick={onExtract}
             className="dzb-floating-btn primary"
-            title={t('speedtest.zip_batch_extract')}
+            title={t('drive.zip_batch_extract')}
           >
             <FolderInput size={16} />
-            <span>{t('speedtest.zip_batch_extract')}</span>
+            <span>{t('drive.zip_batch_extract')}</span>
           </button>
 
           <button
             type="button"
             onClick={onClear}
             className="dzb-floating-btn icon-only"
-            title={t('speedtest.zip_batch_clear')}
+            title={t('drive.zip_batch_clear')}
           >
             <X size={16} />
           </button>

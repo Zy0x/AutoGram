@@ -204,15 +204,15 @@ function fallbackVideoQualities(t: (key: string) => string): PlayQuality[] {
   return [
     {
       id: 'auto',
-      label: t('speedtest.quality_telegram_auto'),
-      description: t('speedtest.quality_telegram_auto_desc'),
+      label: t('drive.quality_telegram_auto'),
+      description: t('drive.quality_telegram_auto_desc'),
       native: true,
       recommended: true,
     },
     {
       id: 'original',
-      label: t('speedtest.quality_telegram_original'),
-      description: t('speedtest.quality_telegram_original_desc'),
+      label: t('drive.quality_telegram_original'),
+      description: t('drive.quality_telegram_original_desc'),
       native: true,
     },
   ];
@@ -352,7 +352,7 @@ function formatQualitySize(n?: number | null): string {
 function sanitizeQualityLabel(raw: unknown, id?: string, height?: number | null): string {
   const s = String(raw || '').trim();
   const idS = String(id || '').toLowerCase();
-  if (/^auto/i.test(idS) || /^otomatis$/i.test(s)) return i18n.t('speedtest.auto_mode_label');
+  if (/^auto/i.test(idS) || /^otomatis$/i.test(s)) return i18n.t('drive.auto_mode_label');
   if (/^original/i.test(idS) || /^asli$/i.test(s)) return 'Asli';
   // Prefer explicit height
   if (height != null && Number.isFinite(height) && height >= 144) {
@@ -603,12 +603,12 @@ function SplitPreviewMedia({
       ) : (
         <div className="drive-preview-split-document">
           {loadingPreview ? <Loader2 size={28} className="spin" /> : <FileText size={30} />}
-          <strong>{file.file_ext || file.name.split('.').pop() || t('speedtest.tab_telegram_files')}</strong>
-          <span>{active ? t('speedtest.duplicate_preview_unavailable') : t('speedtest.duplicate_preview_activate')}</span>
+          <strong>{file.file_ext || file.name.split('.').pop() || t('drive.tab_telegram_files')}</strong>
+          <span>{active ? t('drive.duplicate_preview_unavailable') : t('drive.duplicate_preview_activate')}</span>
         </div>
       )}
       {loadingPreview && (kind !== 'video' || playbackRequested) && (
-        <span className="drive-preview-split-loading">{t('speedtest.label_loading')}</span>
+        <span className="drive-preview-split-loading">{t('drive.label_loading')}</span>
       )}
     </div>
   );
@@ -774,7 +774,7 @@ export function DrivePreviewModal({
     const otherIndex = slot === 'A' ? selectedBIndex : selectedAIndex;
     const otherEmpty = slot === 'A' ? isSlotBEmpty : isSlotAEmpty;
     if (!otherEmpty && idx === otherIndex) {
-      setSplitNotice(t('speedtest.duplicate_same_slot'));
+      setSplitNotice(t('drive.duplicate_same_slot'));
       window.setTimeout(() => setSplitNotice(null), 1800);
       return false;
     }
@@ -3776,7 +3776,7 @@ export function DrivePreviewModal({
         ref={shellRef}
         role="dialog"
         aria-modal="true"
-        aria-label={t('speedtest.tooltip_preview')}
+        aria-label={t('drive.tooltip_preview')}
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
@@ -3809,12 +3809,12 @@ export function DrivePreviewModal({
                       {formatDriveBytes(isSplitCompareMode && activeSlotFile ? activeSlotFile.size : (previewByteSize || file.size))}
                       {previewWidth && previewHeight ? ` · ${previewWidth}×${previewHeight}px` : ''}
                       {durationLabel ? ` · ${durationLabel}` : ''}
-                      {isVideo ? (file.as_document ? ` · ${t('speedtest.doc_file_badge')}` : ` · ${t('speedtest.video_media_badge')}`) : kindLabel ? ` · ${kindLabel}` : ''}
+                      {isVideo ? (file.as_document ? ` · ${t('drive.doc_file_badge')}` : ` · ${t('drive.video_media_badge')}`) : kindLabel ? ` · ${kindLabel}` : ''}
                       {isVideo && activeQuality ? ` · ${activeQuality.label}` : ''}
                       {fromCache && !loading ? t('ui.generated.cache_00cdf64') : ''}
                       {previewState === 'degraded' ? t('ui.generated.degraded_e96e6b7') : ''}
                       {customSource?.indexCounter ? ` · [${customSource.indexCounter.current} / ${customSource.indexCounter.total}]` : ''}
-                      {customSource?.encrypted ? ` · 🔒 ${t('speedtest.zip_tag_encrypted')}` : ''}
+                      {customSource?.encrypted ? ` · 🔒 ${t('drive.zip_tag_encrypted')}` : ''}
                     </>
                   )}
                 </span>
@@ -3824,7 +3824,7 @@ export function DrivePreviewModal({
                 <div
                   className="drive-preview-nav"
                   role="toolbar"
-                  aria-label={t('speedtest.nav_aria')}
+                  aria-label={t('drive.nav_aria')}
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -3848,13 +3848,13 @@ export function DrivePreviewModal({
                         onPrev?.();
                       }
                     }}
-                    aria-label={t('speedtest.prev_aria')}
+                    aria-label={t('drive.prev_aria')}
                     title={
                       duplicateContext
-                        ? t('speedtest.preview_prev_group')
+                        ? t('drive.preview_prev_group')
                         : hasPrev
-                        ? t('speedtest.preview_prev_file')
-                        : t('speedtest.preview_no_prev')
+                        ? t('drive.preview_prev_file')
+                        : t('drive.preview_no_prev')
                     }
                   >
                     <ChevronLeft size={18} />
@@ -3880,13 +3880,13 @@ export function DrivePreviewModal({
                         onNext?.();
                       }
                     }}
-                    aria-label={t('speedtest.next_aria')}
+                    aria-label={t('drive.next_aria')}
                     title={
                       duplicateContext
-                        ? t('speedtest.preview_next_group')
+                        ? t('drive.preview_next_group')
                         : hasNext
-                        ? t('speedtest.preview_next_file')
-                        : t('speedtest.preview_no_next')
+                        ? t('drive.preview_next_file')
+                        : t('drive.preview_no_next')
                     }
                   >
                     <ChevronRight size={18} />
@@ -3900,8 +3900,8 @@ export function DrivePreviewModal({
                       void handleDownload();
                     }}
                     disabled={saving}
-                    title={t('speedtest.download_tooltip')}
-                    aria-label={t('speedtest.label_download')}
+                    title={t('drive.download_tooltip')}
+                    aria-label={t('drive.label_download')}
                   >
                     {saving ? <Loader2 size={16} className="spin" /> : <Download size={16} />}
                   </button>
@@ -3916,8 +3916,8 @@ export function DrivePreviewModal({
                           void handleOpenSystem();
                         }}
                         disabled={openingSystem || !creds}
-                        title={t('speedtest.open_default_tooltip')}
-                        aria-label={t('speedtest.label_open')}
+                        title={t('drive.open_default_tooltip')}
+                        aria-label={t('drive.label_open')}
                       >
                         {openingSystem ? <Loader2 size={16} className="spin" /> : <ExternalLink size={16} />}
                       </button>
@@ -3929,7 +3929,7 @@ export function DrivePreviewModal({
                           void handleOpenWith();
                         }}
                         disabled={openingSystem || !creds}
-                        title={t('speedtest.open_with_tooltip')}
+                        title={t('drive.open_with_tooltip')}
                         aria-label={t('ui.generated.buka_dengan_bd8b04b')}
                       >
                         <AppWindow size={16} />
@@ -3948,8 +3948,8 @@ export function DrivePreviewModal({
                         void toggleFullscreen();
                       }
                     }}
-                    title={isFullscreen ? t('speedtest.preview_fullscreen_exit') : t('speedtest.preview_fullscreen_enter')}
-                    aria-label={t('speedtest.fullscreen')}
+                    title={isFullscreen ? t('drive.preview_fullscreen_exit') : t('drive.preview_fullscreen_enter')}
+                    aria-label={t('drive.fullscreen')}
                   >
                     {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
                   </button>
@@ -3963,8 +3963,8 @@ export function DrivePreviewModal({
                   e.stopPropagation();
                   onClose();
                 }}
-                aria-label={t('speedtest.preview_close_btn')}
-                title={t("speedtest.close_esc_tooltip")}
+                aria-label={t('drive.preview_close_btn')}
+                title={t("drive.close_esc_tooltip")}
               >
                 <X size={18} />
               </button>
@@ -3974,21 +3974,21 @@ export function DrivePreviewModal({
           <div className="drive-open-progress" role="status" aria-live="polite">
             <div className="drive-open-progress-main">
               {openingSystem ? <Loader2 size={14} className="spin" /> : null}
-              <span>{openProgressMsg || t('speedtest.processing')}</span>
+              <span>{openProgressMsg || t('drive.processing')}</span>
             </div>
             <div className="drive-open-progress-actions">
               <button
                 type="button"
                 className="drive-open-progress-cancel"
-                title={t('speedtest.cancel_preview_tooltip')}
+                title={t('drive.cancel_preview_tooltip')}
                 onClick={dismissOpenProgress}
               >
-                {t('speedtest.cancel')}
+                {t('drive.cancel')}
               </button>
               <button
                 type="button"
                 className="drive-open-progress-cancel is-quiet"
-                title={t('speedtest.close_status_strip')}
+                title={t('drive.close_status_strip')}
                 aria-label={t('ui.generated.tutup_status_de404c7')}
                 onClick={dismissOpenProgress}
               >
@@ -4013,22 +4013,22 @@ export function DrivePreviewModal({
         >
           <div className="drive-preview-tools">
             {(isImage || isVideo) && (
-              <div className="drive-tool-group" role="group" aria-label={t('speedtest.zoom_label')}>
-                <span className="drive-tool-group-label">{t("speedtest.label_zoom")}</span>
+              <div className="drive-tool-group" role="group" aria-label={t('drive.zoom_label')}>
+                <span className="drive-tool-group-label">{t("drive.label_zoom")}</span>
                 <button
                   type="button"
                   className="drive-tool-btn"
-                  title={t("speedtest.zoom_out_detail_tooltip", { percent: Math.round(MIN_ZOOM * 100) })}
+                  title={t("drive.zoom_out_detail_tooltip", { percent: Math.round(MIN_ZOOM * 100) })}
                   disabled={isHeaderFrozen || curTransform.zoom <= MIN_ZOOM + 0.001}
                   onClick={() => zoomBy(-ZOOM_STEP)}
                 >
                   <ZoomOut size={15} />
-                  <span className="drive-tool-btn-label">{t("speedtest.label_zoom_out")}</span>
+                  <span className="drive-tool-btn-label">{t("drive.label_zoom_out")}</span>
                 </button>
                 <button
                   type="button"
                   className="drive-tool-btn drive-tool-btn-value"
-                  title={t("speedtest.tooltip_zoom_reset")}
+                  title={t("drive.tooltip_zoom_reset")}
                   disabled={isHeaderFrozen}
                   onClick={resetZoom}
                 >
@@ -4038,36 +4038,36 @@ export function DrivePreviewModal({
                 <button
                   type="button"
                   className="drive-tool-btn"
-                  title={t("speedtest.zoom_in_detail_tooltip", { percent: Math.round(MAX_ZOOM * 100) })}
+                  title={t("drive.zoom_in_detail_tooltip", { percent: Math.round(MAX_ZOOM * 100) })}
                   disabled={isHeaderFrozen || curTransform.zoom >= MAX_ZOOM - 0.001}
                   onClick={() => zoomBy(ZOOM_STEP)}
                 >
                   <ZoomIn size={15} />
-                  <span className="drive-tool-btn-label">{t("speedtest.label_zoom_in")}</span>
+                  <span className="drive-tool-btn-label">{t("drive.label_zoom_in")}</span>
                 </button>
                 {!isSplitCompareMode && (
                   <button
                     type="button"
                     className={`drive-tool-btn${isMagnifierMode ? ' is-on' : ''}`}
-                    title={t("speedtest.tooltip_magnifier")}
+                    title={t("drive.tooltip_magnifier")}
                     disabled={isHeaderFrozen}
                     onClick={() => setIsMagnifierMode((v) => !v)}
                     aria-pressed={isMagnifierMode}
                   >
                     <Search size={15} />
-                    <span className="drive-tool-btn-label">{t("speedtest.label_magnifier")}</span>
+                    <span className="drive-tool-btn-label">{t("drive.label_magnifier")}</span>
                   </button>
                 )}
               </div>
             )}
 
             {(isImage || isVideo) && (
-              <div className="drive-tool-group" role="group" aria-label={t('speedtest.label_rotate')}>
-                <span className="drive-tool-group-label">{t("speedtest.label_rotate")}</span>
+              <div className="drive-tool-group" role="group" aria-label={t('drive.label_rotate')}>
+                <span className="drive-tool-group-label">{t("drive.label_rotate")}</span>
                 <button
                   type="button"
                   className="drive-tool-btn"
-                  title={t("speedtest.tooltip_rotate_left")}
+                  title={t("drive.tooltip_rotate_left")}
                   disabled={isHeaderFrozen}
                   onClick={() => {
                     if (isSplitCompareMode) {
@@ -4078,12 +4078,12 @@ export function DrivePreviewModal({
                   }}
                 >
                   <RotateCcw size={15} />
-                  <span className="drive-tool-btn-label">{t("speedtest.label_left")}</span>
+                  <span className="drive-tool-btn-label">{t("drive.label_left")}</span>
                 </button>
                 <button
                   type="button"
                   className="drive-tool-btn"
-                  title={t("speedtest.tooltip_rotate_right")}
+                  title={t("drive.tooltip_rotate_right")}
                   disabled={isHeaderFrozen}
                   onClick={() => {
                     if (isSplitCompareMode) {
@@ -4094,12 +4094,12 @@ export function DrivePreviewModal({
                   }}
                 >
                   <RotateCw size={15} />
-                  <span className="drive-tool-btn-label">{t("speedtest.label_right")}</span>
+                  <span className="drive-tool-btn-label">{t("drive.label_right")}</span>
                 </button>
                 <button
                   type="button"
                   className="drive-tool-btn"
-                  title={t("speedtest.tooltip_flip_h")}
+                  title={t("drive.tooltip_flip_h")}
                   disabled={isHeaderFrozen}
                   onClick={() => {
                     if (isSplitCompareMode) {
@@ -4110,12 +4110,12 @@ export function DrivePreviewModal({
                   }}
                 >
                   <FlipHorizontal size={15} />
-                  <span className="drive-tool-btn-label">{t("speedtest.label_flip")}</span>
+                  <span className="drive-tool-btn-label">{t("drive.label_flip")}</span>
                 </button>
                 <button
                   type="button"
                   className="drive-tool-btn"
-                  title={t("speedtest.tooltip_flip_v")}
+                  title={t("drive.tooltip_flip_v")}
                   disabled={isHeaderFrozen}
                   onClick={() => {
                     if (isSplitCompareMode) {
@@ -4126,13 +4126,13 @@ export function DrivePreviewModal({
                   }}
                 >
                   <FlipVertical size={15} />
-                  <span className="drive-tool-btn-label">{t("speedtest.label_flip_v")}</span>
+                  <span className="drive-tool-btn-label">{t("drive.label_flip_v")}</span>
                 </button>
                 {(curTransform.rotation !== 0 || curTransform.flipH || curTransform.flipV) && (
                   <button
                     type="button"
                     className="drive-tool-btn"
-                    title={t("speedtest.tooltip_rotate_reset")}
+                    title={t("drive.tooltip_rotate_reset")}
                     disabled={isHeaderFrozen}
                     onClick={() => {
                       if (isSplitCompareMode) {
@@ -4145,7 +4145,7 @@ export function DrivePreviewModal({
                     }}
                   >
                     <RefreshCw size={15} />
-                    <span className="drive-tool-btn-label">{t("speedtest.label_rotate_reset")}</span>
+                    <span className="drive-tool-btn-label">{t("drive.label_rotate_reset")}</span>
                   </button>
                 )}
               </div>
@@ -4153,14 +4153,14 @@ export function DrivePreviewModal({
 
             {(isVideo || isAudio) && (
               <div className="drive-tool-group" role="group" aria-label={t('ui.generated.pemutaran_media_a5ffb68')}>
-                <span className="drive-tool-group-label">{isVideo ? t('speedtest.label_video') : t('speedtest.label_audio')}</span>
+                <span className="drive-tool-group-label">{isVideo ? t('drive.label_video') : t('drive.label_audio')}</span>
                 {isVideo && (
                   <div className="drive-quality-wrap">
                     <button
                       ref={qualityBtnRef}
                       type="button"
                       className="drive-tool-btn drive-tool-btn-accent"
-                      title={t("speedtest.tooltip_res")}
+                      title={t("drive.tooltip_res")}
                       onClick={() => {
                         setRateOpen(false);
                         setRateMenuPos(null);
@@ -4191,69 +4191,69 @@ export function DrivePreviewModal({
                   <button
                     type="button"
                     className="drive-tool-btn"
-                    title={t('speedtest.preview_pip_hint')}
+                    title={t('drive.preview_pip_hint')}
                     disabled={isHeaderFrozen}
                     onClick={() => void togglePip()}
                   >
                     <PictureInPicture2 size={15} />
-                    <span className="drive-tool-btn-label">{t("speedtest.label_pip")}</span>
+                    <span className="drive-tool-btn-label">{t("drive.label_pip")}</span>
                   </button>
                 )}
               </div>
             )}
 
             {(isPdf || isText || isDocOther) && isDesktop() && (
-              <div className="drive-tool-group" role="group" aria-label={t('speedtest.label_open_doc')}>
-                <span className="drive-tool-group-label">{t("speedtest.label_open")}</span>
+              <div className="drive-tool-group" role="group" aria-label={t('drive.label_open_doc')}>
+                <span className="drive-tool-group-label">{t("drive.label_open")}</span>
                 <button
                   type="button"
                   className="drive-tool-btn drive-tool-btn-accent"
-                  title={t('speedtest.open_default_app')}
+                  title={t('drive.open_default_app')}
                   disabled={isHeaderFrozen || openingSystem || !creds}
                   onClick={() => void handleOpenSystem()}
                 >
                   {openingSystem ? <Loader2 size={15} className="spin" /> : <ExternalLink size={15} />}
-                  <span className="drive-tool-btn-label">{t("speedtest.label_app")}</span>
+                  <span className="drive-tool-btn-label">{t("drive.label_app")}</span>
                 </button>
                 <button
                   type="button"
                   className="drive-tool-btn"
-                  title={t('speedtest.open_with_other')}
+                  title={t('drive.open_with_other')}
                   disabled={isHeaderFrozen || openingSystem || !creds}
                   onClick={() => void handleOpenWith()}
                 >
                   <AppWindow size={15} />
-                  <span className="drive-tool-btn-label">{t("speedtest.label_with")}</span>
+                  <span className="drive-tool-btn-label">{t("drive.label_with")}</span>
                 </button>
                 {isPdf && (
                   <button
                     type="button"
                     className="drive-tool-btn"
-                    title={t('speedtest.print_pdf_tooltip')}
+                    title={t('drive.print_pdf_tooltip')}
                     disabled={isHeaderFrozen || openingSystem || !creds}
                     onClick={() => void handlePrintPdf()}
                   >
                     <Printer size={15} />
-                    <span className="drive-tool-btn-label">{t("speedtest.label_print")}</span>
+                    <span className="drive-tool-btn-label">{t("drive.label_print")}</span>
                   </button>
                 )}
                 {isText && textBody && (
                   <button
                     type="button"
                     className="drive-tool-btn"
-                    title={t('speedtest.copy_text')}
+                    title={t('drive.copy_text')}
                     disabled={isHeaderFrozen}
                     onClick={() => void handleCopyText()}
                   >
                     <Copy size={15} />
-                    <span className="drive-tool-btn-label">{t("speedtest.label_copy")}</span>
+                    <span className="drive-tool-btn-label">{t("drive.label_copy")}</span>
                   </button>
                 )}
               </div>
             )}
 
-            <div className="drive-tool-group" role="group" aria-label={t('speedtest.cat_other')}>
-              <span className="drive-tool-group-label">{t("speedtest.label_other")}</span>
+            <div className="drive-tool-group" role="group" aria-label={t('drive.cat_other')}>
+              <span className="drive-tool-group-label">{t("drive.label_other")}</span>
               {isSplitCompareMode && (
                 <>
                   <button
@@ -4264,11 +4264,11 @@ export function DrivePreviewModal({
                       void handleDownload();
                     }}
                     disabled={isHeaderFrozen || saving}
-                    title={t('speedtest.download_tooltip')}
-                    aria-label={t('speedtest.label_download')}
+                    title={t('drive.download_tooltip')}
+                    aria-label={t('drive.label_download')}
                   >
                     {saving ? <Loader2 size={15} className="spin" /> : <Download size={15} />}
-                    <span className="drive-tool-btn-label">{t("speedtest.label_download")}</span>
+                    <span className="drive-tool-btn-label">{t("drive.label_download")}</span>
                   </button>
                   <button
                     type="button"
@@ -4278,18 +4278,18 @@ export function DrivePreviewModal({
                       void toggleFullscreen();
                     }}
                     disabled={isHeaderFrozen}
-                    title={isFullscreen ? t('speedtest.preview_fullscreen_exit') : t('speedtest.preview_fullscreen_enter')}
-                    aria-label={t('speedtest.fullscreen')}
+                    title={isFullscreen ? t('drive.preview_fullscreen_exit') : t('drive.preview_fullscreen_enter')}
+                    aria-label={t('drive.fullscreen')}
                   >
                     {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-                    <span className="drive-tool-btn-label">{t("speedtest.label_fullscreen")}</span>
+                    <span className="drive-tool-btn-label">{t("drive.label_fullscreen")}</span>
                   </button>
                 </>
               )}
               <button
                 type="button"
                 className={`drive-tool-btn${!isSplitCompareMode && loading ? ' is-loading' : ''}`}
-                title={t('speedtest.reload_preview')}
+                title={t('drive.reload_preview')}
                 disabled={isHeaderFrozen || (!isSplitCompareMode && loading)}
                 onClick={() => {
                   resetViewTools();
@@ -4317,17 +4317,17 @@ export function DrivePreviewModal({
                 }}
               >
                 <RefreshCw size={15} className={loading ? 'spin' : ''} />
-                <span className="drive-tool-btn-label">{loading ? t('speedtest.label_loading') : t('speedtest.label_load')}</span>
+                <span className="drive-tool-btn-label">{loading ? t('drive.label_loading') : t('drive.label_load')}</span>
               </button>
               <button
                 type="button"
                 className={`drive-tool-btn${showInfo ? ' is-on' : ''}`}
-                title={t('speedtest.file_detail_tooltip')}
+                title={t('drive.file_detail_tooltip')}
                 disabled={isHeaderFrozen}
                 onClick={() => setShowInfo((v) => !v)}
               >
                 <Info size={15} />
-                <span className="drive-tool-btn-label">{t("speedtest.label_info")}</span>
+                <span className="drive-tool-btn-label">{t("drive.label_info")}</span>
               </button>
             </div>
           </div>
@@ -4380,7 +4380,7 @@ export function DrivePreviewModal({
                         {opt.recommended ? (
                           <span className="drive-quality-tag">{t('ui.generated.disarankan_7ed48a4')}</span>
                         ) : opt.native ? (
-                          <span className="drive-quality-tag">{t('speedtest.perspective_telegram_short')}</span>
+                          <span className="drive-quality-tag">{t('drive.perspective_telegram_short')}</span>
                         ) : opt.transcode ? (
                           <span className="drive-quality-tag muted">{t('ui.generated.lokal_5a1f6ac')}</span>
                         ) : null}
@@ -4394,7 +4394,7 @@ export function DrivePreviewModal({
                 );
               })}
               <p className="drive-quality-note">
-                {t('speedtest.quality_telegram_source_note')}
+                {t('drive.quality_telegram_source_note')}
               </p>
             </div>,
             document.body
@@ -4435,7 +4435,7 @@ export function DrivePreviewModal({
                   <span className="drive-quality-item-body">
                     <strong>{r}{t('ui.generated.x_11f6ad8')}</strong>
                     <span className="drive-muted">
-                      {r === 1 ? t('speedtest.scan_normal') : r < 1 ? t('ui.generated.lebih_lambat_6f64282') : t('ui.generated.lebih_cepat_b1bce0d')}
+                      {r === 1 ? t('drive.scan_normal') : r < 1 ? t('ui.generated.lebih_lambat_6f64282') : t('ui.generated.lebih_cepat_b1bce0d')}
                     </span>
                   </span>
                 </button>
@@ -4485,7 +4485,7 @@ export function DrivePreviewModal({
                     const thumbA = fileA
                       ? getCachedThumb(fileA.folder_id ?? folderId, fileA.id) || fileA.thumb_data_url || fileA.thumbDataUrl || (fileA.id === file.id ? activeSrc || gridThumb || poster || '' : '')
                       : '';
-                    const nameA = fileA ? middleTruncateFilename(fileA.name, 24) : t('speedtest.preview_card_title_a');
+                    const nameA = fileA ? middleTruncateFilename(fileA.name, 24) : t('drive.preview_card_title_a');
                     const isActiveA = activeSplitSlot === 'A';
                     return (
                       <div
@@ -4539,7 +4539,7 @@ export function DrivePreviewModal({
                                   setIsSlotAEmpty(true);
                                   if (splitPlaybackSlot === 'A') setSplitPlaybackSlot(null);
                                 }}
-                                title={t('speedtest.preview_clear_slot')}
+                                title={t('drive.preview_clear_slot')}
                               >
                                 <X size={14} />
                               </button>
@@ -4552,8 +4552,8 @@ export function DrivePreviewModal({
                             <div className="drive-preview-split-empty-icon">
                               <FileText size={24} />
                             </div>
-                            <span className="text-sm font-bold text-slate-300">{t('speedtest.preview_slot_empty')}</span>
-                            <span className="text-xs text-slate-400 max-w-[200px] text-center">{t('speedtest.preview_click_to_load')}</span>
+                            <span className="text-sm font-bold text-slate-300">{t('drive.preview_slot_empty')}</span>
+                            <span className="text-xs text-slate-400 max-w-[200px] text-center">{t('drive.preview_click_to_load')}</span>
                           </div>
                         ) : (
                           <>
@@ -4619,10 +4619,10 @@ export function DrivePreviewModal({
                                     e.stopPropagation();
                                     handleKeepFile(fileA.id);
                                   }}
-                                  title={t('speedtest.preview_keep_only_active_short')}
+                                  title={t('drive.preview_keep_only_active_short')}
                                 >
                                   <Check size={14} />
-                                  <span>{t('speedtest.preview_radio_save')}</span>
+                                  <span>{t('drive.preview_radio_save')}</span>
                                 </button>
                                 <button
                                   type="button"
@@ -4631,10 +4631,10 @@ export function DrivePreviewModal({
                                     e.stopPropagation();
                                     handleToggleDelete(fileA.id);
                                   }}
-                                  title={t('speedtest.preview_mark_delete')}
+                                  title={t('drive.preview_mark_delete')}
                                 >
                                   <Trash2 size={14} />
-                                  <span>{t('speedtest.preview_delete_btn')}</span>
+                                  <span>{t('drive.preview_delete_btn')}</span>
                                 </button>
                                 <button
                                   type="button"
@@ -4643,7 +4643,7 @@ export function DrivePreviewModal({
                                     e.stopPropagation();
                                     stepSplitFile(1, 'A');
                                   }}
-                                  title={t('speedtest.duplicate_next_file')}
+                                  title={t('drive.duplicate_next_file')}
                                 >
                                   <ChevronRight size={14} />
                                 </button>
@@ -4687,7 +4687,7 @@ export function DrivePreviewModal({
                     const thumbB = fileB
                       ? getCachedThumb(fileB.folder_id ?? folderId, fileB.id) || fileB.thumb_data_url || fileB.thumbDataUrl || (fileB.id === file.id ? activeSrc || gridThumb || poster || '' : '')
                       : '';
-                    const nameB = fileB ? middleTruncateFilename(fileB.name, 24) : t('speedtest.preview_card_title_b');
+                    const nameB = fileB ? middleTruncateFilename(fileB.name, 24) : t('drive.preview_card_title_b');
                     const isActiveB = activeSplitSlot === 'B';
                     return (
                       <div
@@ -4741,7 +4741,7 @@ export function DrivePreviewModal({
                                   setIsSlotBEmpty(true);
                                   if (splitPlaybackSlot === 'B') setSplitPlaybackSlot(null);
                                 }}
-                                title={t('speedtest.preview_clear_slot')}
+                                title={t('drive.preview_clear_slot')}
                               >
                                 <X size={14} />
                               </button>
@@ -4754,8 +4754,8 @@ export function DrivePreviewModal({
                             <div className="drive-preview-split-empty-icon">
                               <FileText size={24} />
                             </div>
-                            <span className="text-sm font-bold text-slate-300">{t('speedtest.preview_slot_empty')}</span>
-                            <span className="text-xs text-slate-400 max-w-[200px] text-center">{t('speedtest.preview_click_to_load')}</span>
+                            <span className="text-sm font-bold text-slate-300">{t('drive.preview_slot_empty')}</span>
+                            <span className="text-xs text-slate-400 max-w-[200px] text-center">{t('drive.preview_click_to_load')}</span>
                           </div>
                         ) : (
                           <>
@@ -4821,10 +4821,10 @@ export function DrivePreviewModal({
                                     e.stopPropagation();
                                     handleKeepFile(fileB.id);
                                   }}
-                                  title={t('speedtest.preview_keep_only_active_short')}
+                                  title={t('drive.preview_keep_only_active_short')}
                                 >
                                   <Check size={14} />
-                                  <span>{t('speedtest.preview_radio_save')}</span>
+                                  <span>{t('drive.preview_radio_save')}</span>
                                 </button>
                                 <button
                                   type="button"
@@ -4833,10 +4833,10 @@ export function DrivePreviewModal({
                                     e.stopPropagation();
                                     handleToggleDelete(fileB.id);
                                   }}
-                                  title={t('speedtest.preview_mark_delete')}
+                                  title={t('drive.preview_mark_delete')}
                                 >
                                   <Trash2 size={14} />
-                                  <span>{t('speedtest.preview_delete_btn')}</span>
+                                  <span>{t('drive.preview_delete_btn')}</span>
                                 </button>
                                 <button
                                   type="button"
@@ -4845,7 +4845,7 @@ export function DrivePreviewModal({
                                     e.stopPropagation();
                                     stepSplitFile(1, 'B');
                                   }}
-                                  title={t('speedtest.duplicate_next_file')}
+                                  title={t('drive.duplicate_next_file')}
                                 >
                                   <ChevronRight size={14} />
                                 </button>
@@ -4983,7 +4983,7 @@ export function DrivePreviewModal({
                           }
                         }}
                       >
-                        <span>{t('speedtest.next_aria')}</span>
+                        <span>{t('drive.next_aria')}</span>
                         <ChevronRight size={13} />
                       </button>
                     </div>
@@ -5031,8 +5031,8 @@ export function DrivePreviewModal({
                     </div>
 
                     <div className="dzb-loading-title-box">
-                      <h4 className="dzb-loading-title">{t('speedtest.zip_reading_entry')}</h4>
-                      <p className="dzb-loading-sub">{t('speedtest.zip_sparse_reading_dots')}</p>
+                      <h4 className="dzb-loading-title">{t('drive.zip_reading_entry')}</h4>
+                      <p className="dzb-loading-sub">{t('drive.zip_sparse_reading_dots')}</p>
                     </div>
 
                     <div className="dzb-loading-shimmer-bar">
@@ -5041,7 +5041,7 @@ export function DrivePreviewModal({
 
                     <div className="dzb-loading-badge">
                       <Zap size={12} className="text-amber-400" />
-                      <span>{t('speedtest.zip_sparse_direct_decrypt')}</span>
+                      <span>{t('drive.zip_sparse_direct_decrypt')}</span>
                     </div>
                   </div>
                 </div>
@@ -5098,7 +5098,7 @@ export function DrivePreviewModal({
                 }}
               >
                 <RefreshCw size={14} className={floodCountdown !== null ? 'spin' : ''} />
-                {floodCountdown !== null ? t('ui.generated.coba_lagi_sekarang_8b1f257') : t('speedtest.zip_retry')}
+                {floodCountdown !== null ? t('ui.generated.coba_lagi_sekarang_8b1f257') : t('drive.zip_retry')}
               </button>
               {isDesktop() && (
                 <button
@@ -5130,7 +5130,7 @@ export function DrivePreviewModal({
                 <div className="drive-preview-media drive-preview-skeleton-img is-blank" />
               )}
               <div className="drive-preview-loading-chip">
-                <Loader2 size={14} className="spin" /> {t('speedtest.label_loading')}
+                <Loader2 size={14} className="spin" /> {t('drive.label_loading')}
               </div>
             </div>
           )}
@@ -5764,7 +5764,7 @@ export function DrivePreviewModal({
               {isSpeedingUp && (
                 <div className="drive-preview-speedup-pill">
                   <FastForward size={15} />
-                  <span>{t('speedtest.speed_up_hint')}</span>
+                  <span>{t('drive.speed_up_hint')}</span>
                 </div>
               )}
 
@@ -5830,7 +5830,7 @@ export function DrivePreviewModal({
                         }
                       }}
                       className="drive-preview-control-btn"
-                      title={videoIsPlaying ? t('speedtest.preview_pause_hint') : t('speedtest.preview_play_hint')}
+                      title={videoIsPlaying ? t('drive.preview_pause_hint') : t('drive.preview_play_hint')}
                     >
                       {videoIsPlaying ? <Pause size={18} /> : <Play size={18} className="fill-current" />}
                     </button>
@@ -5845,7 +5845,7 @@ export function DrivePreviewModal({
                           setMuted(!muted);
                         }}
                         className="drive-preview-control-btn"
-                        title={muted || videoVolume === 0 ? t('speedtest.preview_unmute_hint') : t('speedtest.preview_mute_hint')}
+                        title={muted || videoVolume === 0 ? t('drive.preview_unmute_hint') : t('drive.preview_mute_hint')}
                       >
                         {muted || videoVolume === 0 ? (
                           <VolumeX size={16} className="text-red-400" />
@@ -5889,7 +5889,7 @@ export function DrivePreviewModal({
                         ref={rateBtnRef}
                         type="button"
                         className="drive-preview-control-btn"
-                        title={t("speedtest.tooltip_speed")}
+                        title={t("drive.tooltip_speed")}
                         onClick={() => {
                           setQualityOpen(false);
                           setQualityMenuPos(null);
@@ -5930,7 +5930,7 @@ export function DrivePreviewModal({
                       type="button"
                       onClick={toggleFullscreen}
                       className="drive-preview-control-btn"
-                      title={isFullscreen ? t('speedtest.preview_fullscreen_exit') : t('speedtest.preview_fullscreen_enter')}
+                      title={isFullscreen ? t('drive.preview_fullscreen_exit') : t('drive.preview_fullscreen_enter')}
                     >
                       {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
                     </button>
@@ -6227,15 +6227,15 @@ export function DrivePreviewModal({
                     loadPreview(quality, { force: true });
                   }}
                 >
-                  <RefreshCw size={14} /> {t('speedtest.zip_retry')}
+                  <RefreshCw size={14} /> {t('drive.zip_retry')}
                 </button>
                 {isDesktop() && (
                   <button type="button" className="td-btn-primary" onClick={handleOpenSystem} disabled={openingSystem || !creds}>
-                    <ExternalLink size={14} /> {t('speedtest.label_open')}
+                    <ExternalLink size={14} /> {t('drive.label_open')}
                   </button>
                 )}
                 <button type="button" className="td-btn-primary" onClick={handleDownload} disabled={saving}>
-                  <Download size={14} /> {t('speedtest.label_download')}
+                  <Download size={14} /> {t('drive.label_download')}
                 </button>
               </div>
             </div>
@@ -6261,7 +6261,7 @@ export function DrivePreviewModal({
                   loadPreview(quality, { force: true });
                 }}
               >
-                <RefreshCw size={14} /> {t('speedtest.zip_retry')}
+                <RefreshCw size={14} /> {t('drive.zip_retry')}
               </button>
             </div>
           )}
@@ -6354,7 +6354,7 @@ export function DrivePreviewModal({
                       onClick={handleOpenSystem}
                       disabled={openingSystem || !creds}
                     >
-                      <ExternalLink size={14} /> {t('speedtest.label_open')}
+                      <ExternalLink size={14} /> {t('drive.label_open')}
                     </button>
                     <button
                       type="button"
@@ -6362,7 +6362,7 @@ export function DrivePreviewModal({
                       onClick={handleOpenWith}
                       disabled={openingSystem || !creds}
                     >
-                      <AppWindow size={14} /> {t('speedtest.ctx_menu_open_with')}
+                      <AppWindow size={14} /> {t('drive.ctx_menu_open_with')}
                     </button>
                   </>
                 )}
@@ -6375,7 +6375,7 @@ export function DrivePreviewModal({
                     loadPreview(quality, { force: true });
                   }}
                 >
-                  <RefreshCw size={14} /> {t('speedtest.zip_retry')}
+                  <RefreshCw size={14} /> {t('drive.zip_retry')}
                 </button>
                 <button type="button" className="td-btn-primary" onClick={handleDownload} disabled={saving}>
                   <Download size={14} /> {t('ui.generated.download_file_774025d')}
@@ -6388,87 +6388,87 @@ export function DrivePreviewModal({
             <div
               className="drive-preview-info"
               role="dialog"
-              aria-label={t("speedtest.detail_aria")}
+              aria-label={t("drive.detail_aria")}
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="drive-preview-info-head">
-                <strong className="drive-preview-info-title">{t("speedtest.file_detail_title")}</strong>
+                <strong className="drive-preview-info-title">{t("drive.file_detail_title")}</strong>
                 <button
                   type="button"
                   className="td-icon-btn drive-preview-info-close"
-                  title={t("speedtest.close_info")}
-                  aria-label={t("speedtest.close_info")}
+                  title={t("drive.close_info")}
+                  aria-label={t("drive.close_info")}
                   onClick={() => setShowInfo(false)}
                 >
                   <X size={14} />
                 </button>
               </div>
               <div>
-                <strong>{t('speedtest.col_name')}</strong> {displayName}
+                <strong>{t('drive.col_name')}</strong> {displayName}
               </div>
               {file.original_name && file.original_name !== displayName && (
                 <div title={file.original_name}>
-                  <strong>{t("speedtest.original_name_label")}</strong> {file.original_name}
+                  <strong>{t("drive.original_name_label")}</strong> {file.original_name}
                 </div>
               )}
               {mediaWidth && mediaHeight && (
                 <div>
-                  <strong>{t("speedtest.dimensions_label")}</strong> {mediaWidth} {t('ui.generated.text_67fba2f')} {mediaHeight} {t('ui.generated.px_07a65dd')}
+                  <strong>{t("drive.dimensions_label")}</strong> {mediaWidth} {t('ui.generated.text_67fba2f')} {mediaHeight} {t('ui.generated.px_07a65dd')}
                 </div>
               )}
               <div>
-                <strong>{t("speedtest.size_label")}</strong> {formatDriveBytes(file.size)}
+                <strong>{t("drive.size_label")}</strong> {formatDriveBytes(file.size)}
               </div>
               {customSource?.compressedSize != null && (
                 <div>
-                  <strong>{t("speedtest.zip_col_compressed")}</strong> {formatDriveBytes(customSource.compressedSize)}
+                  <strong>{t("drive.zip_col_compressed")}</strong> {formatDriveBytes(customSource.compressedSize)}
                 </div>
               )}
               {customSource?.encrypted && (
                 <div>
-                  <strong>{t("speedtest.zip_tag_encrypted")}</strong> 🔒 {t('speedtest.zip_tag_encrypted')}
+                  <strong>{t("drive.zip_tag_encrypted")}</strong> 🔒 {t('drive.zip_tag_encrypted')}
                 </div>
               )}
               {durationLabel && (
                 <div>
-                  <strong>{t("speedtest.duration_label")}</strong> {durationLabel}
+                  <strong>{t("drive.duration_label")}</strong> {durationLabel}
                 </div>
               )}
               <div>
-                <strong>{t("speedtest.type_label")}</strong> {kindLabel || file.icon_type}
+                <strong>{t("drive.type_label")}</strong> {kindLabel || file.icon_type}
               </div>
               {mime && (
                 <div>
-                  <strong>{t("speedtest.mime_label")}</strong> {mime}
+                  <strong>{t("drive.mime_label")}</strong> {mime}
                 </div>
               )}
               {file.created_at && (
                 <div>
-                  <strong>{t("speedtest.date_label")}</strong> {new Date(file.created_at).toLocaleString('id-ID', {
+                  <strong>{t("drive.date_label")}</strong> {new Date(file.created_at).toLocaleString('id-ID', {
                     dateStyle: 'medium',
                     timeStyle: 'short',
                   })}
                 </div>
               )}
               <div>
-                <strong>{t('speedtest.delivery_label')}</strong>{' '}
+                <strong>{t('drive.delivery_label')}</strong>{' '}
                 {file.as_document
-                  ? t('speedtest.deliv_doc_orig')
+                  ? t('drive.deliv_doc_orig')
                   : isVideo
-                  ? t('speedtest.deliv_video_comp')
+                  ? t('drive.deliv_video_comp')
                   : isImage
-                  ? t('speedtest.deliv_photo_comp')
-                  : t('speedtest.deliv_video_comp')}
+                  ? t('drive.deliv_photo_comp')
+                  : t('drive.deliv_video_comp')}
               </div>
               {isVideo && (
                 <div>
-                  <strong>{t("speedtest.quality_label")}</strong> {activeQuality?.label || quality}
+                  <strong>{t("drive.quality_label")}</strong> {activeQuality?.label || quality}
                 </div>
               )}
               {(isImage || isVideo) && (
                 <div>
-                  <strong>{t("speedtest.zoom_label")}</strong> {Math.round(zoom * 100)}%
+                  <strong>{t("drive.zoom_label")}</strong> {Math.round(zoom * 100)}%
                   {rotation ? ` · putar ${rotation}°` : ''}
                   {flipH ? t('ui.generated.cermin_9f43e5b') : ''}
                   {flipV ? t('ui.generated.balik_3fa8ae7') : ''}
@@ -6476,16 +6476,16 @@ export function DrivePreviewModal({
               )}
               {streamUrl && (
                 <div>
-                  <strong>{t("speedtest.mode_label")}</strong> {t('ui.generated.progressive_stream_427e9c1')}
+                  <strong>{t("drive.mode_label")}</strong> {t('ui.generated.progressive_stream_427e9c1')}
                 </div>
               )}
               {path && (
                 <div title={path}>
-                  <strong>{t("speedtest.cache_label")}</strong> {path.split(/[/\\]/).pop()}
+                  <strong>{t("drive.cache_label")}</strong> {path.split(/[/\\]/).pop()}
                 </div>
               )}
               <div>
-                <strong>{t("speedtest.id_label")}</strong> {file.id}
+                <strong>{t("drive.id_label")}</strong> {file.id}
               </div>
             </div>
           )}

@@ -79,15 +79,15 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
                   checked={isAllSelected}
                   onChange={onSelectAll}
                   className="dzb-checkbox"
-                  title={t('speedtest.zip_select_all')}
-                  aria-label={t('speedtest.zip_select_all')}
+                  title={t('drive.zip_select_all')}
+                  aria-label={t('drive.zip_select_all')}
                 />
-                <span>{t('speedtest.zip_col_name')}</span>
+                <span>{t('drive.zip_col_name')}</span>
               </div>
             </th>
-            <th className="dzb-th-type">{t('speedtest.zip_sort_type')}</th>
-            <th className="dzb-th-size">{t('speedtest.zip_col_size')}</th>
-            <th className="dzb-th-actions">{t('speedtest.zip_col_actions')}</th>
+            <th className="dzb-th-type">{t('drive.zip_sort_type')}</th>
+            <th className="dzb-th-size">{t('drive.zip_col_size')}</th>
+            <th className="dzb-th-actions">{t('drive.zip_col_actions')}</th>
           </tr>
         </thead>
         <tbody className="dzb-tbody">
@@ -114,7 +114,7 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
                   </div>
                 </td>
                 <td className="dzb-td-type">
-                  <span className="dzb-type-pill folder">{t('speedtest.zip_tag_folder')}</span>
+                  <span className="dzb-type-pill folder">{t('drive.zip_tag_folder')}</span>
                 </td>
                 <td className="dzb-td-size">—</td>
                 <td className="dzb-td-actions">
@@ -126,7 +126,7 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
                         onExtractDirectory(directory);
                       }}
                       className="dzb-action-icon-btn small"
-                      title={t('speedtest.zip_extract_directory')}
+                      title={t('drive.zip_extract_directory')}
                     >
                       <Download size={14} />
                     </button>
@@ -169,7 +169,7 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
                       <EntryIcon name={entry.name} />
                     )}
                     {entry.encrypted && (
-                      <span className="dzb-lock-icon" title={t('speedtest.zip_protected')}>
+                      <span className="dzb-lock-icon" title={t('drive.zip_protected')}>
                         <LockKeyhole size={13} />
                       </span>
                     )}
@@ -185,7 +185,7 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
                   <div className="dzb-size-cell">
                     <span>{formatDriveBytes(entry.size)}</span>
                     {ratio > 10 && (
-                      <span className="dzb-ratio-badge" title={`${t('speedtest.zip_col_compressed')}: ${formatDriveBytes(compressed)}`}>
+                      <span className="dzb-ratio-badge" title={`${t('drive.zip_col_compressed')}: ${formatDriveBytes(compressed)}`}>
                         −{ratio}%
                       </span>
                     )}
@@ -201,7 +201,7 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
                           onLoadThumbnail(entry);
                         }}
                         className="dzb-action-icon-btn small thumb-btn"
-                        title={t('speedtest.zip_load_thumbnail')}
+                        title={t('drive.zip_load_thumbnail')}
                       >
                         {isThumbLoading ? (
                           <Loader2 size={14} className="animate-spin" />
@@ -217,7 +217,7 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
                         onPreviewCode(entry);
                       }}
                       className="dzb-action-icon-btn small"
-                      title={isZipArchiveName(entry.name) ? t('speedtest.zip_open_nested') : t('speedtest.zip_preview_content')}
+                      title={isZipArchiveName(entry.name) ? t('drive.zip_open_nested') : t('drive.zip_preview_content')}
                     >
                       {isZipArchiveName(entry.name) ? <Archive size={14} /> : <Eye size={14} />}
                     </button>
@@ -228,7 +228,7 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
                         onExtractEntry(entry);
                       }}
                       className="dzb-action-icon-btn small"
-                      title={t('speedtest.zip_extract_entry')}
+                      title={t('drive.zip_extract_entry')}
                     >
                       <Download size={14} />
                     </button>

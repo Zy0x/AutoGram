@@ -212,7 +212,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 height: '26px',
                 transition: 'all 0.18s ease',
               }}
-              aria-label={t('speedtest.preview_close_btn')}
+              aria-label={t('drive.preview_close_btn')}
             >
               <X size={14} />
             </button>
@@ -364,7 +364,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 height: '30px',
                 zIndex: 10,
               }}
-              aria-label={t('speedtest.preview_close_btn')}
+              aria-label={t('drive.preview_close_btn')}
             >
               <X size={16} />
             </button>

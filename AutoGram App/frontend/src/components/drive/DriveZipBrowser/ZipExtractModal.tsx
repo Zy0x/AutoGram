@@ -58,7 +58,7 @@ export function ZipExtractModal({
 
   const submit = () => {
     if (tab === 'saved') {
-      onConfirmExtract({ kind: 'saved', chatId: 'me', folderId: null, topicId: null, label: t('speedtest.saved_messages') });
+      onConfirmExtract({ kind: 'saved', chatId: 'me', folderId: null, topicId: null, label: t('drive.saved_messages') });
       return;
     }
     if (selectedId == null) return;
@@ -79,25 +79,25 @@ export function ZipExtractModal({
   };
 
   return (
-    <div className="dzb-modal-overlay" role="dialog" aria-modal="true" aria-label={t('speedtest.zip_extract_title')}>
+    <div className="dzb-modal-overlay" role="dialog" aria-modal="true" aria-label={t('drive.zip_extract_title')}>
       <div className="dzb-modal-card dzb-extract-modal">
         <div className="dzb-modal-header">
           <div className="dzb-modal-title">
             <FolderInput size={18} />
-            <span>{t('speedtest.zip_extract_title')} · {selectedCount}</span>
+            <span>{t('drive.zip_extract_title')} · {selectedCount}</span>
           </div>
-          <button type="button" onClick={onClose} className="dzb-action-icon-btn" title={t('speedtest.zip_close')} disabled={busy}>
+          <button type="button" onClick={onClose} className="dzb-action-icon-btn" title={t('drive.zip_close')} disabled={busy}>
             <X size={18} />
           </button>
         </div>
 
         <div className="dzb-modal-body dzb-extract-body">
-          <p className="dzb-modal-description">{t('speedtest.zip_extract_dest_desc')}</p>
-          <div className="dzb-destination-tabs" role="tablist" aria-label={t('speedtest.zip_destination_type')}>
+          <p className="dzb-modal-description">{t('drive.zip_extract_dest_desc')}</p>
+          <div className="dzb-destination-tabs" role="tablist" aria-label={t('drive.zip_destination_type')}>
             {([
-              ['saved', HardDrive, 'speedtest.saved_messages'],
-              ['drive', Folder, 'speedtest.zip_dest_drive'],
-              ['chat', MessageCircle, 'speedtest.zip_dest_chat'],
+              ['saved', HardDrive, 'drive.saved_messages'],
+              ['drive', Folder, 'drive.zip_dest_drive'],
+              ['chat', MessageCircle, 'drive.zip_dest_chat'],
             ] as const).map(([id, Icon, label]) => (
               <button
                 key={id}
@@ -115,13 +115,13 @@ export function ZipExtractModal({
           {tab === 'saved' ? (
             <button type="button" className="dzb-destination-card selected" onClick={() => setSelectedId(null)}>
               <HardDrive size={20} />
-              <span><strong>{t('speedtest.saved_messages')}</strong><small>{t('speedtest.zip_saved_desc')}</small></span>
+              <span><strong>{t('drive.saved_messages')}</strong><small>{t('drive.zip_saved_desc')}</small></span>
             </button>
           ) : (
             <>
               <label className="dzb-destination-search">
                 <Search size={16} />
-                <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('speedtest.zip_destination_search')} />
+                <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('drive.zip_destination_search')} />
               </label>
               <div className="dzb-destination-list">
                 {(tab === 'drive' ? filteredFolders : filteredChats).map((item) => (
@@ -138,7 +138,7 @@ export function ZipExtractModal({
                         <PeerAvatar peerId={item.id} creds={creds} title={item.name} fallback={<ChatIcon type={(item as DriveChat).type} />} />
                       </span>
                     )}
-                    <span><strong>{item.name}</strong><small>{tab === 'drive' ? t('speedtest.zip_dest_drive') : t(`speedtest.zip_chat_type_${(item as DriveChat).type}`, { defaultValue: (item as DriveChat).type })}</small></span>
+                    <span><strong>{item.name}</strong><small>{tab === 'drive' ? t('drive.zip_dest_drive') : t(`drive.zip_chat_type_${(item as DriveChat).type}`, { defaultValue: (item as DriveChat).type })}</small></span>
                   </button>
                 ))}
               </div>
@@ -147,18 +147,18 @@ export function ZipExtractModal({
 
           {selectedChat?.is_forum && (
             <label className="dzb-topic-field">
-              <span><Hash size={15} /> {t('speedtest.zip_topic_id')}</span>
-              <input type="number" min={1} value={topicId} onChange={(event) => setTopicId(event.target.value)} placeholder={t('speedtest.zip_topic_id_placeholder')} />
-              <small>{t('speedtest.zip_topic_id_hint')}</small>
+              <span><Hash size={15} /> {t('drive.zip_topic_id')}</span>
+              <input type="number" min={1} value={topicId} onChange={(event) => setTopicId(event.target.value)} placeholder={t('drive.zip_topic_id_placeholder')} />
+              <small>{t('drive.zip_topic_id_hint')}</small>
             </label>
           )}
           {progressLabel && <p className="dzb-extract-progress" role="status">{progressLabel}</p>}
         </div>
 
         <div className="dzb-modal-footer">
-          <button type="button" onClick={onClose} className="dzb-btn-secondary" disabled={busy}>{t('speedtest.zip_btn_cancel')}</button>
+          <button type="button" onClick={onClose} className="dzb-btn-secondary" disabled={busy}>{t('drive.zip_btn_cancel')}</button>
           <button type="button" onClick={submit} className="dzb-btn-primary" disabled={busy || (tab !== 'saved' && selectedId == null)}>
-            {busy ? t('speedtest.zip_extracting') : t('speedtest.zip_start_extract')}
+            {busy ? t('drive.zip_extracting') : t('drive.zip_start_extract')}
           </button>
         </div>
       </div>

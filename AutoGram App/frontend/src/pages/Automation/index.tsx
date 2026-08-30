@@ -149,7 +149,7 @@ export function Automation() {
         </div>
         <div className="page-header-actions">
             <button type="button" className="btn btn-secondary" onClick={fetchAutomations} disabled={isLoading}>
-                <RefreshCw size={18} className={isLoading ? "spin" : ""} /> {t('speedtest.sidebar_btn_refresh')}
+                <RefreshCw size={18} className={isLoading ? "spin" : ""} /> {t('drive.sidebar_btn_refresh')}
             </button>
             <button type="button" className="btn btn-primary" onClick={() => setShowAddForm(!showAddForm)}>
                 <Plus size={18} /> {t('ui.generated.new_automation_2b7abce')}
@@ -206,7 +206,7 @@ export function Automation() {
         <table className="glass-table">
             <thead>
                 <tr>
-                    <th>{t('speedtest.col_name')}</th>
+                    <th>{t('drive.col_name')}</th>
                     <th>{t('ui.generated.source_target_221c145')}</th>
                     <th>{t('settings.proxy_type_label')}</th>
                     <th>{t('automation.col_status')}</th>
@@ -270,7 +270,7 @@ export function Automation() {
                                 >
                                     {statusVal === 'active' ? <Pause size={16} /> : <Play size={16} />}
                                 </button>
-                                <button className="btn btn-secondary" style={{ padding: '6px 10px', color: 'var(--text-muted)' }} onClick={() => deleteAutomation(job.id)} title={t('speedtest.preview_delete_btn')}>
+                                <button className="btn btn-secondary" style={{ padding: '6px 10px', color: 'var(--text-muted)' }} onClick={() => deleteAutomation(job.id)} title={t('drive.preview_delete_btn')}>
                                     <Trash2 size={16} />
                                 </button>
                             </div>

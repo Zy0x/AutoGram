@@ -71,7 +71,7 @@ export function DriveInputDialog({ state, onClose }: Props) {
   const submit = () => {
     const v = value.trim();
     if (!v) {
-      setError(String(t('speedtest.err_name_empty')));
+      setError(String(t('drive.err_name_empty')));
       return;
     }
     if (state.defaultValue != null && v === state.defaultValue.trim()) {
@@ -123,7 +123,7 @@ export function DriveInputDialog({ state, onClose }: Props) {
               <p className="td-confirm-desc">{state.description}</p>
             ) : null}
           </div>
-          <button type="button" className="td-confirm-close" onClick={onClose} aria-label={t("speedtest.close_esc")}>
+          <button type="button" className="td-confirm-close" onClick={onClose} aria-label={t("drive.close_esc")}>
             <X size={18} />
           </button>
         </header>
@@ -163,7 +163,7 @@ export function DriveInputDialog({ state, onClose }: Props) {
 
         <footer className="td-confirm-foot">
           <button type="button" className="td-confirm-btn ghost" onClick={onClose}>
-            {t("speedtest.topbar_cancel")}
+            {t("drive.topbar_cancel")}
           </button>
           <button
             type="button"
@@ -172,7 +172,7 @@ export function DriveInputDialog({ state, onClose }: Props) {
             disabled={!canSubmit}
           >
             <Icon size={15} strokeWidth={2.25} />
-            <span>{state.confirmLabel || t("speedtest.btn_save")}</span>
+            <span>{state.confirmLabel || t("drive.btn_save")}</span>
           </button>
         </footer>
       </div>

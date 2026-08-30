@@ -70,7 +70,7 @@ export const PlaybackDiagnosticsPanel: React.FC<PlaybackDiagnosticsPanelProps> =
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', color: '#38bdf8' }}>
           <Activity size={14} />
-          <span>{t('speedtest.diag_title')}</span>
+          <span>{t('drive.diag_title')}</span>
         </div>
         {onClose && (
           <button

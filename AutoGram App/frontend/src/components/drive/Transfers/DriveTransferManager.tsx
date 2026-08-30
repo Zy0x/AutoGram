@@ -199,8 +199,8 @@ export function DriveTransferManager({
         : '';
 
   const phaseLabel = isMove
-    ? t('speedtest.tm_phase_move')
-    : t(`speedtest.tm_phase_${currentPhase}`);
+    ? t('drive.tm_phase_move')
+    : t(`drive.tm_phase_${currentPhase}`);
   const activeName = activeItemName(session);
   const hasFinished = counts.done + counts.failed + counts.skipped + counts.needsVerification > 0;
   const isEmptyShell = !hasSession && forceShow;
@@ -215,12 +215,12 @@ export function DriveTransferManager({
   const pauseTitle = !session.active
     ? undefined
     : isMove
-      ? t('speedtest.tm_pause_move_unavailable')
+      ? t('drive.tm_pause_move_unavailable')
       : remainingAfterActive > 0
-        ? t('speedtest.tm_pause_safe_boundary')
+        ? t('drive.tm_pause_safe_boundary')
         : session.items.length <= 1
-          ? t('speedtest.tm_pause_single_unavailable')
-          : t('speedtest.tm_pause_queue_empty');
+          ? t('drive.tm_pause_single_unavailable')
+          : t('drive.tm_pause_queue_empty');
 
   const [showLogs, setShowLogs] = useState(false);
   const [copyMsg, setCopyMsg] = useState<string | null>(null);
@@ -250,7 +250,7 @@ export function DriveTransferManager({
         ? 'Gagal'
         : counts.needsVerification
           ? 'Perlu verifikasi'
-        : t("speedtest.tm_status_done");
+        : t("drive.tm_status_done");
     const tip = [
       `${statusLine} ${pct.toFixed(0)}%`,
       activeName,
@@ -277,8 +277,8 @@ export function DriveTransferManager({
           .filter(Boolean)
           .join(' ')}
         onClick={onToggleMinimize}
-        title={`${tip} — ${t('speedtest.click_to_open')}`}
-        aria-label={`Transfer manager: ${tip}. ${t('speedtest.click_to_open')}.`}
+        title={`${tip} — ${t('drive.click_to_open')}`}
+        aria-label={`Transfer manager: ${tip}. ${t('drive.click_to_open')}.`}
       >
         <span className="tm-fab-orb" aria-hidden>
           <ProgressRing percent={pct} size={38} stroke={2.5} />
@@ -314,7 +314,7 @@ export function DriveTransferManager({
     <div
       className={`tm-panel ${session.active ? 'active' : ''} ${isUpload ? 'up' : 'down'}`}
       role="dialog"
-      aria-label={t('speedtest.topbar_tm_aria')}
+      aria-label={t('drive.topbar_tm_aria')}
       aria-live="polite"
       onMouseDown={(e) => e.stopPropagation()}
     >
@@ -324,25 +324,25 @@ export function DriveTransferManager({
             <DirIcon size={14} />
           </span>
           <div className="tm-head-text">
-            <strong>{t("speedtest.tm_title")}</strong>
+            <strong>{t("drive.tm_title")}</strong>
             <span className="tm-head-sub">
               {isEmptyShell
-                ? t("speedtest.tm_no_transfers")
+                ? t("drive.tm_no_transfers")
                 : session.active
                   ? session.paused
-                    ? t("speedtest.tm_status_paused")
+                    ? t("drive.tm_status_paused")
                     : `${phaseLabel}${session.label ? ` → ${session.label}` : ''}`
                   : counts.failed
-                    ? t("speedtest.tm_status_error")
+                    ? t("drive.tm_status_error")
                     : counts.needsVerification
-                      ? t("speedtest.tm_status_need_verify", { count: counts.needsVerification })
+                      ? t("drive.tm_status_need_verify", { count: counts.needsVerification })
                     : counts.skipped > 0 && counts.done === 0
-                      ? t("speedtest.tm_status_skipped", { count: counts.skipped })
+                      ? t("drive.tm_status_skipped", { count: counts.skipped })
                       : counts.skipped > 0
-                        ? t("speedtest.tm_status_done_skipped", { count: counts.skipped })
+                        ? t("drive.tm_status_done_skipped", { count: counts.skipped })
                         : counts.done
                           ? t('jobs.status_completed')
-                          : t("speedtest.tm_status_ready")}
+                          : t("drive.tm_status_ready")}
             </span>
           </div>
         </div>
@@ -351,7 +351,7 @@ export function DriveTransferManager({
             type="button"
             className="tm-icon-btn"
             onClick={onToggleMinimize}
-            title={t("speedtest.tm_minimize")}
+            title={t("drive.tm_minimize")}
             aria-label={t('ui.generated.minimize_1c5b768')}
           >
             <Minimize2 size={15} />
@@ -366,8 +366,8 @@ export function DriveTransferManager({
                 onToggleMinimize();
               }
             }}
-            title={session?.active ? t('speedtest.minimize_panel') : t('speedtest.clear_transfer_history')}
-            aria-label={session?.active ? t('speedtest.show_less') : t('speedtest.clear_transfer_history')}
+            title={session?.active ? t('drive.minimize_panel') : t('drive.clear_transfer_history')}
+            aria-label={session?.active ? t('drive.show_less') : t('drive.clear_transfer_history')}
           >
             <X size={15} />
           </button>
@@ -376,7 +376,7 @@ export function DriveTransferManager({
 
       {isEmptyShell ? (
         <div className="tm-empty">
-          <p>{t("speedtest.tm_empty_title")}</p>
+          <p>{t("drive.tm_empty_title")}</p>
           <p className="tm-hint">
             {t('ui.generated.mulai_unduh_atau_unggah_progress_akan_tampil_di__51dedb7')}
           </p>
@@ -386,7 +386,7 @@ export function DriveTransferManager({
               className="tm-btn ghost"
               onClick={onDismiss || onToggleMinimize}
             >
-              <Minimize2 size={13} /> {t('speedtest.show_less')}
+              <Minimize2 size={13} /> {t('drive.show_less')}
             </button>
           </div>
         </div>
@@ -400,17 +400,17 @@ export function DriveTransferManager({
                   <span>
                     {counts.done}/{counts.total} {t('ui.generated.commit_4015b57')}
                     {counts.skipped > 0 && (
-                      <span className="tm-skip-badge" title={t("speedtest.tm_skipped_hint")}>
+                      <span className="tm-skip-badge" title={t("drive.tm_skipped_hint")}>
                         &nbsp;·&nbsp;{counts.skipped} {t('ui.generated.dilewati_4a805bc')}
                       </span>
                     )}
                     {(session as any).reuploadedCount > 0 && (
-                      <span className="tm-reupload-badge" title={t("speedtest.tm_reupload_hint")}>
+                      <span className="tm-reupload-badge" title={t("drive.tm_reupload_hint")}>
                         &nbsp;·&nbsp;<RotateCcw size={11} style={{display:'inline',verticalAlign:'middle'}} />&nbsp;{(session as any).reuploadedCount} {t('ui.generated.re_upload_74ad44c')}
                       </span>
                     )}
                     {counts.needsVerification > 0 && (
-                      <span className="tm-skip-badge" title={t("speedtest.tm_verify_hint")}>
+                      <span className="tm-skip-badge" title={t("drive.tm_verify_hint")}>
                         &nbsp;·&nbsp;{counts.needsVerification} {t('ui.generated.perlu_verifikasi_101c413')}
                       </span>
                     )}
@@ -463,13 +463,13 @@ export function DriveTransferManager({
               <div className="tm-scan-progress">
                 <Loader2 size={11} className="tm-ico spin" style={{display:'inline',verticalAlign:'middle',marginRight:4}} />
                 <span>
-                  {t(`speedtest.tm_scan_${scanPhase}`, { count: (session as any).scanScanned ?? 0 })}
+                  {t(`drive.tm_scan_${scanPhase}`, { count: (session as any).scanScanned ?? 0 })}
                 </span>
               </div>
             )}
             {(session as any).scanPhase === 'done' && (session as any).scanStats && (
               <div className="tm-scan-done">
-                {t('ui.generated.scan_8194d17')} {(session as any).scanStats.totalScanned} {t('ui.generated.pesan_1a37732')} {(session as any).scanStats.dbCachedLoaded} {t('ui.generated.cache_655107f')} {(session as any).scanStats.newFromTg} {t('speedtest.perspective_telegram_short')}
+                {t('ui.generated.scan_8194d17')} {(session as any).scanStats.totalScanned} {t('ui.generated.pesan_1a37732')} {(session as any).scanStats.dbCachedLoaded} {t('ui.generated.cache_655107f')} {(session as any).scanStats.newFromTg} {t('drive.perspective_telegram_short')}
               </div>
             )}
             {session.active && remainingAfterActive > 0 && (
@@ -509,10 +509,10 @@ export function DriveTransferManager({
                 type="button"
                 className="tm-btn ghost"
                 onClick={onToggleMinimize}
-                title={t("speedtest.tm_minimize")}
+                title={t("drive.tm_minimize")}
               >
                 <Maximize2 size={13} style={{ transform: 'scaleX(-1)' }} />
-                {t('speedtest.show_less')}
+                {t('drive.show_less')}
               </button>
             </div>
           )}
@@ -523,9 +523,9 @@ export function DriveTransferManager({
                 type="button"
                 className="tm-btn ghost"
                 onClick={onToggleMinimize}
-                title={t('speedtest.minimize_corner_tooltip')}
+                title={t('drive.minimize_corner_tooltip')}
               >
-                <Minimize2 size={13} /> {t('speedtest.show_less')}
+                <Minimize2 size={13} /> {t('drive.show_less')}
               </button>
               {downloadFolderPath && onOpenDownloadFolder && (
                 <button
@@ -534,7 +534,7 @@ export function DriveTransferManager({
                   onClick={onOpenDownloadFolder}
                   title={downloadFolderPath}
                 >
-                  <FolderOpen size={13} /> {t('speedtest.zip_open_folder')}
+                  <FolderOpen size={13} /> {t('drive.zip_open_folder')}
                 </button>
               )}
               {canRetryFailed && onRetryFailed && counts.failed > 0 && (
@@ -542,7 +542,7 @@ export function DriveTransferManager({
                   type="button"
                   className="tm-btn"
                   onClick={onRetryFailed}
-                  title={t('speedtest.retry_failed_files')}
+                  title={t('drive.retry_failed_files')}
                 >
                   <RotateCcw size={13} /> {t('ui.generated.retry_gagal_24b252c')}{counts.failed})
                 </button>
@@ -557,9 +557,9 @@ export function DriveTransferManager({
                   type="button"
                   className="tm-btn ghost"
                   onClick={onDismiss}
-                  title={t('speedtest.clear_transfer_history')}
+                  title={t('drive.clear_transfer_history')}
                 >
-                  {t('speedtest.clear_transfer_history')}
+                  {t('drive.clear_transfer_history')}
                 </button>
               )}
             </div>
@@ -575,18 +575,18 @@ export function DriveTransferManager({
                       {it.name}
                     </div>
                     {it.destination && (
-                      <span className="tm-row-dest" title={t("speedtest.tm_dest_tooltip", { dest: it.destination })}>
+                      <span className="tm-row-dest" title={t("drive.tm_dest_tooltip", { dest: it.destination })}>
                         {it.destination}
                       </span>
                     )}
                   </div>
                   <div className="tm-row-meta">
-                    {(it.status === 'done' || it.status === 'skipped') && <span>{t('speedtest.status_done')}</span>}
+                    {(it.status === 'done' || it.status === 'skipped') && <span>{t('drive.status_done')}</span>}
                     {it.status === 'skipped' && (
                       <span
                         className="tm-skip-badge-pill"
-                        title={it.note || t('speedtest.file_exists_no_reupload')}
-                        aria-label={t('speedtest.tm_skipped_aria', { reason: it.note || t('speedtest.tm_duplicate_short') })}
+                        title={it.note || t('drive.file_exists_no_reupload')}
+                        aria-label={t('drive.tm_skipped_aria', { reason: it.note || t('drive.tm_duplicate_short') })}
                       >
                         <SkipForward size={9} />
                         {t('ui.generated.dilewati_4a88a03')}
@@ -605,7 +605,7 @@ export function DriveTransferManager({
                     {it.status === 'queued' && <span>{t('ui.generated.antre_c004b83')}</span>}
                     {it.status === 'paused' && <span>{t('jobs.status_paused')}</span>}
                     {it.status === 'preparing' && (
-                      <span>{it.phase === 'reencode' ? t('speedtest.preflight_transform_reencode') : t('ui.generated.menyiapkan_36dd6d6')}</span>
+                      <span>{it.phase === 'reencode' ? t('drive.preflight_transform_reencode') : t('ui.generated.menyiapkan_36dd6d6')}</span>
                     )}
                     {(it.status === 'active' || it.status === 'preparing' || it.status === 'uploaded' || it.status === 'waiting_commit' || it.status === 'committing') && (
                       <>
@@ -658,7 +658,7 @@ export function DriveTransferManager({
             aria-expanded={showLogs}
           >
             {showLogs ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-            {t("speedtest.tm_log_debug", { count: debugLogs.length })}
+            {t("drive.tm_log_debug", { count: debugLogs.length })}
           </button>
         {showLogs && (
           <div className="tm-debug-body">
@@ -676,11 +676,11 @@ export function DriveTransferManager({
                     session.banner ||
                     '(log kosong — aktifkan Debug Mode di Settings untuk log penuh)';
                   void copyTextWithFallback(text).then((ok: any) => {
-                    setCopyMsg(ok ? t('speedtest.zip_btn_copied') : t('ui.generated.gagal_salin_pilih_teks_manual_ea572ad'));
+                    setCopyMsg(ok ? t('drive.zip_btn_copied') : t('ui.generated.gagal_salin_pilih_teks_manual_ea572ad'));
                     window.setTimeout(() => setCopyMsg(null), 2000);
                   });
                 }}
-                title={t('speedtest.copy_log_clipboard')}
+                title={t('drive.copy_log_clipboard')}
               >
                 <Copy size={12} /> {copyMsg || t('ui.generated.salin_276d054')}
               </button>

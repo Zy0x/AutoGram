@@ -121,7 +121,7 @@ export const SessionRelogModal: React.FC<SessionRelogModalProps> = ({
             padding: '4px',
             borderRadius: '50%',
           }}
-          aria-label={t('speedtest.preview_close_btn')}
+          aria-label={t('drive.preview_close_btn')}
         >
           <X size={18} />
         </button>

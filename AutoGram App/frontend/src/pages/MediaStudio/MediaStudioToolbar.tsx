@@ -40,12 +40,12 @@ export const MediaStudioToolbar: React.FC<MediaStudioToolbarProps> = ({
   const { t } = useTranslation();
 
   const filters: { id: DriveMediaFilter; label: string; icon: React.ReactNode }[] = [
-    { id: 'all', label: t('speedtest.filter_all'), icon: <File className="w-3.5 h-3.5" /> },
-    { id: 'image', label: t('speedtest.filter_images'), icon: <ImageIcon className="w-3.5 h-3.5 text-emerald-400" /> },
-    { id: 'video', label: t('speedtest.filter_videos'), icon: <Film className="w-3.5 h-3.5 text-indigo-400" /> },
-    { id: 'document', label: t('speedtest.filter_docs'), icon: <FileText className="w-3.5 h-3.5 text-amber-400" /> },
-    { id: 'link', label: t('speedtest.view_links'), icon: <LinkIcon className="w-3.5 h-3.5 text-sky-400" /> },
-    { id: 'stickers', label: t('speedtest.tab_telegram_stickers'), icon: <Sticker className="w-3.5 h-3.5 text-violet-400" /> },
+    { id: 'all', label: t('drive.filter_all'), icon: <File className="w-3.5 h-3.5" /> },
+    { id: 'image', label: t('drive.filter_images'), icon: <ImageIcon className="w-3.5 h-3.5 text-emerald-400" /> },
+    { id: 'video', label: t('drive.filter_videos'), icon: <Film className="w-3.5 h-3.5 text-indigo-400" /> },
+    { id: 'document', label: t('drive.filter_docs'), icon: <FileText className="w-3.5 h-3.5 text-amber-400" /> },
+    { id: 'link', label: t('drive.view_links'), icon: <LinkIcon className="w-3.5 h-3.5 text-sky-400" /> },
+    { id: 'stickers', label: t('drive.tab_telegram_stickers'), icon: <Sticker className="w-3.5 h-3.5 text-violet-400" /> },
   ];
 
   return (
@@ -56,7 +56,7 @@ export const MediaStudioToolbar: React.FC<MediaStudioToolbarProps> = ({
           type="text"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder={t('speedtest.search_placeholder')}
+          placeholder={t('drive.search_placeholder')}
           className="w-full pl-9 pr-4 py-1.5 bg-slate-950 border border-slate-800 text-xs text-slate-100 rounded-xl placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all font-mono"
         />
       </div>
@@ -83,12 +83,12 @@ export const MediaStudioToolbar: React.FC<MediaStudioToolbarProps> = ({
           value={sortMode}
           onChange={(e) => onSortModeChange(e.target.value as DriveSortMode)}
         >
-          <option value="newest">{t('speedtest.sort_newest_first')}</option>
-          <option value="oldest">{t('speedtest.sort_oldest_first')}</option>
-          <option value="name_asc">{t('speedtest.sort_name_asc')}</option>
-          <option value="name_desc">{t('speedtest.sort_name_desc')}</option>
-          <option value="size_desc">{t('speedtest.sort_size_desc')}</option>
-          <option value="size_asc">{t('speedtest.sort_size_asc')}</option>
+          <option value="newest">{t('drive.sort_newest_first')}</option>
+          <option value="oldest">{t('drive.sort_oldest_first')}</option>
+          <option value="name_asc">{t('drive.sort_name_asc')}</option>
+          <option value="name_desc">{t('drive.sort_name_desc')}</option>
+          <option value="size_desc">{t('drive.sort_size_desc')}</option>
+          <option value="size_asc">{t('drive.sort_size_asc')}</option>
         </select>
 
         <div className="flex items-center bg-slate-950 border border-slate-800 p-0.5 rounded-xl">
@@ -97,7 +97,7 @@ export const MediaStudioToolbar: React.FC<MediaStudioToolbarProps> = ({
             className={`p-1.5 rounded-lg transition-all ${
               viewMode === 'grid' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'
             }`}
-            title={t("speedtest.grid_view_tooltip")}
+            title={t("drive.grid_view_tooltip")}
           >
             <Grid className="w-4 h-4" />
           </button>
@@ -106,7 +106,7 @@ export const MediaStudioToolbar: React.FC<MediaStudioToolbarProps> = ({
             className={`p-1.5 rounded-lg transition-all ${
               viewMode === 'list' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'
             }`}
-            title={t("speedtest.list_view_tooltip")}
+            title={t("drive.list_view_tooltip")}
           >
             <List className="w-4 h-4" />
           </button>
@@ -117,7 +117,7 @@ export const MediaStudioToolbar: React.FC<MediaStudioToolbarProps> = ({
           className="flex items-center gap-2 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-indigo-600/20 transition-all active:scale-95"
         >
           <Upload className="w-4 h-4" />
-          <span className="hidden sm:inline">{t('speedtest.btn_upload')}</span>
+          <span className="hidden sm:inline">{t('drive.btn_upload')}</span>
         </button>
       </div>
     </header>
