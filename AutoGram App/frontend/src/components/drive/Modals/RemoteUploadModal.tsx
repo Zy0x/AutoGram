@@ -695,7 +695,7 @@ export function RemoteUploadModal({
   );
   const [remoteEngineMode, setRemoteEngineMode] = useState<RemoteEngineMode>(() => {
     const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('autogram_remote_engine_mode') : null;
-    if (stored === 'cloud_fetch' || stored === 'storage_local' || stored === 'ram_pipe') return stored as RemoteEngineMode;
+    if (stored === 'cloud_fetch' || stored === 'storage_local') return stored as RemoteEngineMode;
     return transferSettings?.remoteEngineMode || 'auto';
   });
   const [storagePolicy, setStoragePolicy] = useState<StorageLocalPolicy>('telegram');
@@ -765,7 +765,7 @@ export function RemoteUploadModal({
       setIsEditingBatchText(true);
       setDeliveryMode(resolveDefaultDeliveryMode(transferSettings));
       const storedEngine = typeof localStorage !== 'undefined' ? localStorage.getItem('autogram_remote_engine_mode') : null;
-      setRemoteEngineMode(storedEngine === 'cloud_fetch' || storedEngine === 'ram_pipe' || storedEngine === 'storage_local'
+      setRemoteEngineMode(storedEngine === 'cloud_fetch' || storedEngine === 'storage_local'
         ? storedEngine
         : (transferSettings?.remoteEngineMode || 'auto'));
       setInspection(null);
@@ -1517,7 +1517,7 @@ export function RemoteUploadModal({
   }, [resolvedMedia, selectedFormatId, inspection?.size, tab, selectedBytes]);
   const autoRemoteEngine: RemoteEngineMode = selectedRemoteSize > 0 && selectedRemoteSize <= 20 * 1024 * 1024
     ? 'cloud_fetch'
-    : 'ram_pipe';
+    : 'storage_local';
   const effectiveRemoteEngine = remoteEngineMode === 'auto' ? autoRemoteEngine : remoteEngineMode;
 
   const [gallerySearch, setGallerySearch] = useState('');
@@ -2708,9 +2708,9 @@ export function RemoteUploadModal({
                   <span>{t('drive_tools.remote_zero_quota_badge')}</span>
                 </span>
               ) : (
-                <span className="td-remote-engine-badge zero-disk">
-                  <Zap size={9} />
-                  <span>{t('drive_tools.remote_zero_disk_badge')}</span>
+                <span className="td-remote-engine-badge storage-local">
+                  <Folder size={9} />
+                  <span>{t('drive_tools.remote_engine_storage_local')}</span>
                 </span>
               )}
               <button

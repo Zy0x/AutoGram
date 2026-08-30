@@ -852,8 +852,8 @@ export type PlaybackFpsMode = 'adaptive' | 'follow_source' | 'follow_display' | 
 
 export type ScanMode = 'normal' | 'smart' | 'forensic';
 export type TopicScope = 'selected_only' | 'selected_plus_general' | 'all_topics';
-/** Remote URL transport preference. */
-export type RemoteEngineMode = 'auto' | 'cloud_fetch' | 'storage_local' | 'ram_pipe';
+/** Remote URL transport preference (Cloud Direct vs Local Spool). */
+export type RemoteEngineMode = 'auto' | 'cloud_fetch' | 'storage_local';
 
 /** Storage local sub-policy for remote transmission. */
 export type StorageLocalPolicy = 'telegram' | 'custom_disk' | 'disk_and_telegram';
@@ -1209,7 +1209,7 @@ export function loadTransferSettings(): DriveTransferSettings {
       downloadResumePartial: p.downloadResumePartial !== false,
       downloadIntegrity: p.downloadIntegrity === 'sha256' ? 'sha256' : 'size',
       hideRestrictedMedia: p.hideRestrictedMedia !== false,
-      remoteEngineMode: p.remoteEngineMode === 'cloud_fetch' || p.remoteEngineMode === 'ram_pipe' || p.remoteEngineMode === 'storage_local'
+      remoteEngineMode: p.remoteEngineMode === 'cloud_fetch' || p.remoteEngineMode === 'storage_local'
         ? p.remoteEngineMode
         : DEFAULT_TRANSFER_SETTINGS.remoteEngineMode,
     };

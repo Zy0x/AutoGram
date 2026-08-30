@@ -1541,10 +1541,10 @@ impl AsyncRead for RemoteUrlReader {
 fn remote_engine_choice(value: &str, size: Option<u64>) -> &'static str {
     match value.trim().to_ascii_lowercase().as_str() {
         "cloud_fetch" | "cloud" | "direct" => "cloud_fetch",
-        "ram_pipe" | "ram" | "stream" => "ram_pipe",
+        "storage_local" | "local" | "spool" | "disk" => "storage_local",
         _ => match size {
             Some(bytes) if bytes <= REMOTE_CLOUD_FETCH_MAX_BYTES => "cloud_fetch",
-            _ => "ram_pipe",
+            _ => "storage_local",
         },
     }
 }
@@ -1873,15 +1873,15 @@ mod remote_engine_tests {
         assert_eq!(remote_engine_choice("auto", Some(1)), "cloud_fetch");
         assert_eq!(
             remote_engine_choice("auto", Some(REMOTE_CLOUD_FETCH_MAX_BYTES + 1)),
-            "ram_pipe"
+            "storage_local"
         );
-        assert_eq!(remote_engine_choice("auto", None), "ram_pipe");
+        assert_eq!(remote_engine_choice("auto", None), "storage_local");
     }
 
     #[test]
     fn explicit_mode_is_respected() {
         assert_eq!(remote_engine_choice("cloud_fetch", Some(99)), "cloud_fetch");
-        assert_eq!(remote_engine_choice("ram_pipe", Some(1)), "ram_pipe");
+        assert_eq!(remote_engine_choice("storage_local", Some(1)), "storage_local");
     }
 
     #[test]

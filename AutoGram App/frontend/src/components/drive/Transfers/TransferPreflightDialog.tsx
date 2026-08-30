@@ -34,7 +34,6 @@ import {
   Sparkles,
   Video,
   X,
-  Zap,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -360,8 +359,6 @@ function PreflightTransferInfoBento({
     ? 'Zero Quota Cloud Direct'
     : report.remoteEngineMode === 'storage_local'
     ? t('drive_tools.remote_engine_storage_local')
-    : report.remoteEngineMode === 'ram_pipe'
-    ? 'Zero Disk RAM-Pipe'
     : 'Smart MTProto V4';
 
   return (
@@ -1194,30 +1191,16 @@ export function TransferPreflightDialog({
 
                         {/* Engine Mode Pill Badge: Modern Glowing Glass Pill */}
                         {(item.sourcePath.startsWith('http://') || item.sourcePath.startsWith('https://')) && (
-                          (report.remoteEngineMode as RemoteEngineMode | undefined) === 'cloud_fetch' ? (
-                            <span className="td-preflight-engine-tag is-cloud-fetch">
-                              <Sparkles size={10} aria-hidden />
-                              <span>{t('drive_tools.remote_zero_quota_badge')}</span>
-                            </span>
-                          ) : (report.remoteEngineMode as RemoteEngineMode | undefined) === 'storage_local' ? (
-                            <span className="td-preflight-engine-tag is-storage-local">
-                              <Folder size={10} aria-hidden />
-                              <span>{t('drive_tools.remote_engine_storage_local')}</span>
-                            </span>
-                          ) : (report.remoteEngineMode as RemoteEngineMode | undefined) === 'ram_pipe' ? (
-                            <span className="td-preflight-engine-tag is-ram-pipe">
-                              <Zap size={10} aria-hidden />
-                              <span>{t('drive_tools.remote_zero_disk_badge')}</span>
-                            </span>
-                          ) : (item.sourceSize > 0 && item.sourceSize <= 20 * 1024 * 1024) ? (
+                          ((report.remoteEngineMode as RemoteEngineMode | undefined) === 'cloud_fetch' ||
+                            (report.remoteEngineMode === undefined && item.sourceSize > 0 && item.sourceSize <= 20 * 1024 * 1024)) ? (
                             <span className="td-preflight-engine-tag is-cloud-fetch">
                               <Sparkles size={10} aria-hidden />
                               <span>{t('drive_tools.remote_zero_quota_badge')}</span>
                             </span>
                           ) : (
-                            <span className="td-preflight-engine-tag is-ram-pipe">
-                              <Zap size={10} aria-hidden />
-                              <span>{t('drive_tools.remote_zero_disk_badge')}</span>
+                            <span className="td-preflight-engine-tag is-storage-local">
+                              <Folder size={10} aria-hidden />
+                              <span>{t('drive_tools.remote_engine_storage_local')}</span>
                             </span>
                           )
                         )}
