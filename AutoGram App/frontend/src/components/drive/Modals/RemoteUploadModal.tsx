@@ -305,28 +305,11 @@ function getSingleUnifiedBadge(
   knownRes?: { width: number; height: number }
 ): string | null {
   const fmt = item.formats[0];
-  if (!fmt) return item.kind === 'image' ? 'PHOTO' : null;
+  if (!fmt) return item.kind === 'image' ? 'PHOTO' : item.kind === 'audio' ? 'AUDIO' : null;
 
   const ext = (fmt.ext || '').toLowerCase();
 
-  // Non-video media types
-  if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
-    return ext === 'rar' ? 'RAR' : ext === '7z' ? '7Z' : 'ZIP';
-  }
-  if (['pdf', 'doc', 'docx', 'txt', 'epub'].includes(ext)) {
-    return ext === 'pdf' ? 'PDF' : 'DOC';
-  }
-  if (['mp3', 'm4a', 'aac', 'flac', 'wav', 'ogg', 'opus'].includes(ext) || item.kind === 'audio') {
-    return ext === 'flac' ? 'FLAC' : ext === 'mp3' ? 'MP3' : 'AUDIO';
-  }
-  if (ext === 'gif') {
-    return 'GIF';
-  }
-  if (fmt.isImage || item.kind === 'image') {
-    return 'PHOTO';
-  }
-
-  // Extract dimensions from probe or format
+  // Extract dimensions from probe, badge, or format resolution
   let width = knownRes?.width;
   let height = knownRes?.height;
 
@@ -338,6 +321,66 @@ function getSingleUnifiedBadge(
     }
   }
 
+  // 1. Audio & Music Formats (Lossless, Hi-Res, Standard)
+  const AUDIO_EXTS = new Set([
+    'mp3', 'flac', 'wav', 'm4a', 'aac', 'ogg', 'opus', 'wma', 'alac', 'aiff', 'dsd', 'ape', 'mid', 'midi'
+  ]);
+  if (AUDIO_EXTS.has(ext) || item.kind === 'audio') {
+    return ext && ext.length <= 5 ? ext.toUpperCase() : 'AUDIO';
+  }
+
+  // 2. Compressed Archives & Disk Images
+  const ARCHIVE_EXTS = new Set([
+    'zip', 'rar', '7z', 'tar', 'gz', 'tgz', 'bz2', 'xz', 'zst', 'iso', 'img', 'dmg', 'bin', 'vhd', 'cab'
+  ]);
+  if (ARCHIVE_EXTS.has(ext)) {
+    return ext.toUpperCase();
+  }
+
+  // 3. E-Books, Comics & Digital Readers
+  const EBOOK_EXTS = new Set(['epub', 'mobi', 'azw3', 'cbr', 'cbz', 'fb2', 'djvu']);
+  if (EBOOK_EXTS.has(ext)) {
+    return ext.toUpperCase();
+  }
+
+  // 4. Documents & Office Files
+  const DOC_EXTS = new Set([
+    'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'csv', 'txt', 'rtf', 'odt', 'ods', 'odp'
+  ]);
+  if (DOC_EXTS.has(ext)) {
+    return ext.toUpperCase();
+  }
+
+  // 5. App Installers & Executables
+  const APP_EXTS = new Set(['apk', 'xapk', 'apkm', 'ipa', 'exe', 'msi', 'appimage', 'deb', 'rpm', 'pkg']);
+  if (APP_EXTS.has(ext)) {
+    return ext.toUpperCase();
+  }
+
+  // 6. Code & Structured Data Files
+  const CODE_EXTS = new Set(['json', 'xml', 'yaml', 'yml', 'sql', 'sqlite', 'db', 'js', 'ts', 'py', 'rs', 'html', 'css', 'cpp', 'c', 'java']);
+  if (CODE_EXTS.has(ext)) {
+    return ext.toUpperCase();
+  }
+
+  // 7. Image & Graphics Formats (with dynamic dimensions if known)
+  const IMAGE_EXTS = new Set([
+    'jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'svg', 'heic', 'heif', 'bmp', 'ico', 'tiff', 'tif', 'raw', 'cr2', 'nef', 'arw', 'dng', 'psd', 'ai', 'eps', 'tgs'
+  ]);
+  if (IMAGE_EXTS.has(ext) || fmt.isImage || item.kind === 'image') {
+    const imgTag = ext === 'jpeg' ? 'JPG' : (ext ? ext.toUpperCase() : 'PHOTO');
+    if (width && height && width > 0 && height > 0) {
+      const minDim = Math.min(width, height);
+      const maxDim = Math.max(width, height);
+      if (minDim >= 2160 || maxDim >= 3840) {
+        return `4K · ${imgTag}`;
+      }
+      return `${imgTag} · ${width}×${height}`;
+    }
+    return imgTag;
+  }
+
+  // 8. Video Dimension and Tier Formatter
   if (width && height && width > 0 && height > 0) {
     const minDim = Math.min(width, height);
     const maxDim = Math.max(width, height);
@@ -384,6 +427,12 @@ function getSingleUnifiedBadge(
   if (rawTier && ['HD', 'FHD', '1080P', '2K', '4K', '8K', 'UHD'].includes(rawTier.toUpperCase())) {
     return rawTier === '1080P' ? 'FHD' : rawTier;
   }
+
+  // Fallback for general valid extension
+  if (ext && ext.length >= 2 && ext.length <= 5 && /^[a-z0-9]+$/i.test(ext)) {
+    return ext.toUpperCase();
+  }
+
   return null;
 }
 
