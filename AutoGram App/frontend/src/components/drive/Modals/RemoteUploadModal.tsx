@@ -2552,6 +2552,253 @@ export function RemoteUploadModal({
     );
   };
 
+  const renderTripletAndDestinationControls = (isBatch?: boolean) => (
+    <>
+      {/* Row: Triplet Compact Row (Media Delivery Format, Transfer Engine, Storage Policy in 1 Row) */}
+      <div className="td-remote-triplet-row">
+        {/* Col 1: Media Delivery Format */}
+        <div className="td-remote-triplet-col col-delivery">
+          <div className="td-remote-triplet-header">
+            <span className="td-remote-triplet-title">
+              <Film size={11} className="text-purple-400" />
+              <span>{t('drive.remote_delivery_mode_label')}</span>
+            </span>
+            <button
+              type="button"
+              className={`td-remote-col-info-btn${activeTripletInfo === 'delivery' ? ' active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveTripletInfo((prev) => (prev === 'delivery' ? null : 'delivery'));
+              }}
+              title={t('drive_tools.remote_info_delivery_title')}
+              aria-label={t('drive_tools.remote_info_delivery_title')}
+            >
+              <Info size={10} />
+            </button>
+          </div>
+          {renderTripletInfoPopover('delivery')}
+          <div className="td-remote-mode-pills">
+            <button
+              type="button"
+              className={`td-remote-mode-pill${deliveryMode === 'uncompressed' ? ' active uncompressed' : ''}`}
+              onClick={() => setDeliveryMode('uncompressed')}
+              disabled={submitting}
+              title={t('drive.remote_mode_uncompressed_hint')}
+            >
+              <Film size={11} />
+              <span>{t('drive.remote_mode_uncompressed')}</span>
+              {deliveryMode === 'uncompressed' && <Check size={10} />}
+            </button>
+            <button
+              type="button"
+              className={`td-remote-mode-pill${deliveryMode === 'auto' ? ' active auto' : ''}`}
+              onClick={() => setDeliveryMode('auto')}
+              disabled={submitting}
+              title={t('drive.remote_mode_auto_hint')}
+            >
+              <Zap size={11} />
+              <span>{t('drive.remote_mode_auto')}</span>
+              {deliveryMode === 'auto' && <Check size={10} />}
+            </button>
+            <button
+              type="button"
+              className={`td-remote-mode-pill${deliveryMode === 'document' ? ' active doc' : ''}`}
+              onClick={() => setDeliveryMode('document')}
+              disabled={submitting}
+              title={t('drive.remote_mode_doc_hint')}
+            >
+              <FileText size={11} />
+              <span>{t('drive.remote_mode_doc')}</span>
+              {deliveryMode === 'document' && <Check size={10} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Col 2: Transfer Engine */}
+        <div className="td-remote-triplet-col col-engine">
+          <div className="td-remote-triplet-header">
+            <span className="td-remote-triplet-title">
+              <Zap size={11} className="text-sky-400" />
+              <span>{t('drive_tools.remote_engine_mode_title')}</span>
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              {effectiveRemoteEngine === 'cloud_fetch' ? (
+                <span className="td-remote-engine-badge zero-quota">
+                  <Sparkles size={9} />
+                  <span>{t('drive_tools.remote_zero_quota_badge')}</span>
+                </span>
+              ) : (
+                <span className="td-remote-engine-badge zero-disk">
+                  <Zap size={9} />
+                  <span>{t('drive_tools.remote_zero_disk_badge')}</span>
+                </span>
+              )}
+              <button
+                type="button"
+                className={`td-remote-col-info-btn${activeTripletInfo === 'engine' ? ' active' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveTripletInfo((prev) => (prev === 'engine' ? null : 'engine'));
+                }}
+                title={t('drive_tools.remote_info_engine_title')}
+                aria-label={t('drive_tools.remote_info_engine_title')}
+              >
+                <Info size={10} />
+              </button>
+            </div>
+          </div>
+          {renderTripletInfoPopover('engine')}
+          <div className="td-remote-engine-pills">
+            {(['auto', 'cloud_fetch', 'storage_local'] as RemoteEngineMode[]).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                className={`td-remote-engine-pill${remoteEngineMode === mode ? ' active' : ''}`}
+                disabled={submitting}
+                onClick={() => {
+                  setRemoteEngineMode(mode);
+                  try { localStorage.setItem('autogram_remote_engine_mode', mode); } catch { /* ok */ }
+                }}
+              >
+                {mode === 'auto' && <Zap size={10} />}
+                {mode === 'cloud_fetch' && <Sparkles size={10} />}
+                {mode === 'storage_local' && <Folder size={10} />}
+                <span>
+                  {mode === 'auto' ? t('drive_tools.remote_engine_auto') :
+                   mode === 'cloud_fetch' ? t('drive_tools.remote_engine_cloud_fetch') :
+                   t('drive_tools.remote_engine_storage_local')}
+                </span>
+                {remoteEngineMode === mode && <Check size={9} />}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Col 3: Storage Policy */}
+        <div className="td-remote-triplet-col col-policy">
+          <div className="td-remote-triplet-header">
+            <span className="td-remote-triplet-title">
+              <HardDrive size={11} className="text-emerald-400" />
+              <span>{t('drive_tools.remote_storage_policy_label')}</span>
+            </span>
+            <button
+              type="button"
+              className={`td-remote-col-info-btn${activeTripletInfo === 'policy' ? ' active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveTripletInfo((prev) => (prev === 'policy' ? null : 'policy'));
+              }}
+              title={t('drive_tools.remote_info_policy_title')}
+              aria-label={t('drive_tools.remote_info_policy_title')}
+            >
+              <Info size={10} />
+            </button>
+          </div>
+          {renderTripletInfoPopover('policy')}
+          <div className="td-remote-engine-pills">
+            {(['telegram', 'custom_disk', 'disk_and_telegram'] as StorageLocalPolicy[]).map((pol) => (
+              <button
+                key={pol}
+                type="button"
+                className={`td-remote-engine-pill${storagePolicy === pol ? ' active' : ''}`}
+                disabled={submitting}
+                onClick={() => setStoragePolicy(pol)}
+              >
+                {pol === 'telegram' && <Zap size={10} />}
+                {pol === 'custom_disk' && <Folder size={10} />}
+                {pol === 'disk_and_telegram' && <Layers size={10} />}
+                <span>
+                  {pol === 'telegram' ? t('drive_tools.remote_policy_telegram') :
+                   pol === 'custom_disk' ? t('drive_tools.remote_policy_custom_disk') :
+                   t('drive_tools.remote_policy_disk_and_telegram')}
+                </span>
+                {storagePolicy === pol && <Check size={9} />}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Optional Custom Disk Path Row */}
+      {(storagePolicy === 'custom_disk' || storagePolicy === 'disk_and_telegram') && (
+        <div className="td-remote-custom-disk-row" style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4 }}>
+          <input
+            type="text"
+            className="td-input-field"
+            placeholder={t('drive_tools.remote_custom_disk_path_label')}
+            value={customDiskPath}
+            onChange={(e) => setCustomDiskPath(e.target.value)}
+            style={{ flex: 1, height: 28, fontSize: '0.74rem' }}
+          />
+          <button
+            type="button"
+            className="td-chip-btn"
+            style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4, height: 28 }}
+            onClick={async () => {
+              try {
+                const { open } = await import('@tauri-apps/plugin-dialog');
+                const res = await open({ directory: true });
+                if (res) setCustomDiskPath(String(res));
+              } catch (e) {
+                console.error('Folder picker error:', e);
+              }
+            }}
+          >
+            <Folder size={11} />
+            <span>{t('drive_tools.remote_custom_disk_browse')}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Row: Destination Selector (Hidden when Local Disk Only) */}
+      {storagePolicy !== 'custom_disk' && (
+        <div className="td-remote-field-group td-remote-dest-row">
+          <button
+            id={isBatch ? 'td-remote-target-batch' : 'td-remote-target'}
+            type="button"
+            className="td-remote-dest-card"
+            onClick={() => setPickerOpen(true)}
+            disabled={submitting}
+            title={t('drive.btn_change_dest')}
+          >
+            <div className="td-remote-dest-main">
+              <span className="td-dest-ico" aria-hidden>
+                {selectedDest.kind === 'saved' ? (
+                  <Home size={14} />
+                ) : (
+                  <PeerAvatar
+                    peerId={selectedDest.id ?? 0}
+                    creds={creds}
+                    title={selectedDest.label}
+                    fallback={kindIcon(selectedDest)}
+                  />
+                )}
+              </span>
+              <div className="td-remote-dest-info">
+                <span className="td-remote-dest-title" title={cleanTargetDisplay.title}>
+                  {cleanTargetDisplay.title}
+                </span>
+                {cleanTargetDisplay.topicPill && (
+                  <span className="td-remote-dest-topic">
+                    <Hash size={9} style={{ display: 'inline', verticalAlign: '-1px' }} />
+                    {` ${cleanTargetDisplay.topicPill.replace(/^#\s*/, '')}`}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="td-remote-dest-actions">
+              {renderBadge(selectedDest, t)}
+              <span className="td-remote-dest-change-tag">
+                {t('drive.btn_change_dest')}
+                <ChevronRight size={11} style={{ marginLeft: 2 }} />
+              </span>
+            </div>
+          </button>
+        </div>
+      )}
+    </>
+  );
+
   if (!isOpen) return null;
 
   const node = (
@@ -2747,248 +2994,8 @@ export function RemoteUploadModal({
                     </div>
                   )}
 
-                  {/* Row 2: Triplet Compact Row (Media Delivery Format, Transfer Engine, Storage Policy in 1 Row) */}
-                  <div className="td-remote-triplet-row">
-                    {/* Col 1: Media Delivery Format */}
-                    <div className="td-remote-triplet-col col-delivery">
-                      <div className="td-remote-triplet-header">
-                        <span className="td-remote-triplet-title">
-                          <Film size={11} className="text-purple-400" />
-                          <span>{t('drive.remote_delivery_mode_label')}</span>
-                        </span>
-                        <button
-                          type="button"
-                          className={`td-remote-col-info-btn${activeTripletInfo === 'delivery' ? ' active' : ''}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveTripletInfo((prev) => (prev === 'delivery' ? null : 'delivery'));
-                          }}
-                          title={t('drive_tools.remote_info_delivery_title')}
-                          aria-label={t('drive_tools.remote_info_delivery_title')}
-                        >
-                          <Info size={10} />
-                        </button>
-                      </div>
-                      {renderTripletInfoPopover('delivery')}
-                      <div className="td-remote-mode-pills">
-                        <button
-                          type="button"
-                          className={`td-remote-mode-pill${deliveryMode === 'uncompressed' ? ' active uncompressed' : ''}`}
-                          onClick={() => setDeliveryMode('uncompressed')}
-                          disabled={submitting}
-                          title={t('drive.remote_mode_uncompressed_hint')}
-                        >
-                          <Film size={11} />
-                          <span>{t('drive.remote_mode_uncompressed')}</span>
-                          {deliveryMode === 'uncompressed' && <Check size={10} />}
-                        </button>
-                        <button
-                          type="button"
-                          className={`td-remote-mode-pill${deliveryMode === 'auto' ? ' active auto' : ''}`}
-                          onClick={() => setDeliveryMode('auto')}
-                          disabled={submitting}
-                          title={t('drive.remote_mode_auto_hint')}
-                        >
-                          <Zap size={11} />
-                          <span>{t('drive.remote_mode_auto')}</span>
-                          {deliveryMode === 'auto' && <Check size={10} />}
-                        </button>
-                        <button
-                          type="button"
-                          className={`td-remote-mode-pill${deliveryMode === 'document' ? ' active doc' : ''}`}
-                          onClick={() => setDeliveryMode('document')}
-                          disabled={submitting}
-                          title={t('drive.remote_mode_doc_hint')}
-                        >
-                          <FileText size={11} />
-                          <span>{t('drive.remote_mode_doc')}</span>
-                          {deliveryMode === 'document' && <Check size={10} />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Col 2: Transfer Engine */}
-                    <div className="td-remote-triplet-col col-engine">
-                      <div className="td-remote-triplet-header">
-                        <span className="td-remote-triplet-title">
-                          <Zap size={11} className="text-sky-400" />
-                          <span>{t('drive_tools.remote_engine_mode_title')}</span>
-                        </span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                          {effectiveRemoteEngine === 'cloud_fetch' ? (
-                            <span className="td-remote-engine-badge zero-quota">
-                              <Sparkles size={9} />
-                              <span>{t('drive_tools.remote_zero_quota_badge')}</span>
-                            </span>
-                          ) : (
-                            <span className="td-remote-engine-badge zero-disk">
-                              <Zap size={9} />
-                              <span>{t('drive_tools.remote_zero_disk_badge')}</span>
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            className={`td-remote-col-info-btn${activeTripletInfo === 'engine' ? ' active' : ''}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveTripletInfo((prev) => (prev === 'engine' ? null : 'engine'));
-                            }}
-                            title={t('drive_tools.remote_info_engine_title')}
-                            aria-label={t('drive_tools.remote_info_engine_title')}
-                          >
-                            <Info size={10} />
-                          </button>
-                        </div>
-                      </div>
-                      {renderTripletInfoPopover('engine')}
-                      <div className="td-remote-engine-pills">
-                        {(['auto', 'cloud_fetch', 'storage_local'] as RemoteEngineMode[]).map((mode) => (
-                          <button
-                            key={mode}
-                            type="button"
-                            className={`td-remote-engine-pill${remoteEngineMode === mode ? ' active' : ''}`}
-                            disabled={submitting}
-                            onClick={() => {
-                              setRemoteEngineMode(mode);
-                              try { localStorage.setItem('autogram_remote_engine_mode', mode); } catch { /* ok */ }
-                            }}
-                          >
-                            {mode === 'auto' && <Zap size={10} />}
-                            {mode === 'cloud_fetch' && <Sparkles size={10} />}
-                            {mode === 'storage_local' && <Folder size={10} />}
-                            <span>
-                              {mode === 'auto' ? t('drive_tools.remote_engine_auto') :
-                               mode === 'cloud_fetch' ? t('drive_tools.remote_engine_cloud_fetch') :
-                               t('drive_tools.remote_engine_storage_local')}
-                            </span>
-                            {remoteEngineMode === mode && <Check size={9} />}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Col 3: Storage Policy */}
-                    <div className="td-remote-triplet-col col-policy">
-                      <div className="td-remote-triplet-header">
-                        <span className="td-remote-triplet-title">
-                          <HardDrive size={11} className="text-emerald-400" />
-                          <span>{t('drive_tools.remote_storage_policy_label')}</span>
-                        </span>
-                        <button
-                          type="button"
-                          className={`td-remote-col-info-btn${activeTripletInfo === 'policy' ? ' active' : ''}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveTripletInfo((prev) => (prev === 'policy' ? null : 'policy'));
-                          }}
-                          title={t('drive_tools.remote_info_policy_title')}
-                          aria-label={t('drive_tools.remote_info_policy_title')}
-                        >
-                          <Info size={10} />
-                        </button>
-                      </div>
-                      {renderTripletInfoPopover('policy')}
-                      <div className="td-remote-engine-pills">
-                        {(['telegram', 'custom_disk', 'disk_and_telegram'] as StorageLocalPolicy[]).map((pol) => (
-                          <button
-                            key={pol}
-                            type="button"
-                            className={`td-remote-engine-pill${storagePolicy === pol ? ' active' : ''}`}
-                            disabled={submitting}
-                            onClick={() => setStoragePolicy(pol)}
-                          >
-                            {pol === 'telegram' && <Zap size={10} />}
-                            {pol === 'custom_disk' && <Folder size={10} />}
-                            {pol === 'disk_and_telegram' && <Layers size={10} />}
-                            <span>
-                              {pol === 'telegram' ? t('drive_tools.remote_policy_telegram') :
-                               pol === 'custom_disk' ? t('drive_tools.remote_policy_custom_disk') :
-                               t('drive_tools.remote_policy_disk_and_telegram')}
-                            </span>
-                            {storagePolicy === pol && <Check size={9} />}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Optional Custom Disk Path Row */}
-                  {(storagePolicy === 'custom_disk' || storagePolicy === 'disk_and_telegram') && (
-                    <div className="td-remote-custom-disk-row" style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4 }}>
-                      <input
-                        type="text"
-                        className="td-input-field"
-                        placeholder={t('drive_tools.remote_custom_disk_path_label')}
-                        value={customDiskPath}
-                        onChange={(e) => setCustomDiskPath(e.target.value)}
-                        style={{ flex: 1, height: 28, fontSize: '0.74rem' }}
-                      />
-                      <button
-                        type="button"
-                        className="td-chip-btn"
-                        style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4, height: 28 }}
-                        onClick={async () => {
-                          try {
-                            const { open } = await import('@tauri-apps/plugin-dialog');
-                            const res = await open({ directory: true });
-                            if (res) setCustomDiskPath(String(res));
-                          } catch (e) {
-                            console.error('Folder picker error:', e);
-                          }
-                        }}
-                      >
-                        <Folder size={11} />
-                        <span>{t('drive_tools.remote_custom_disk_browse')}</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Row 4: Destination Selector (Hidden when Local Disk Only) */}
-                  {storagePolicy !== 'custom_disk' && (
-                    <div className="td-remote-field-group td-remote-dest-row">
-                      <button
-                        id="td-remote-target"
-                        type="button"
-                        className="td-remote-dest-card"
-                        onClick={() => setPickerOpen(true)}
-                        disabled={submitting}
-                        title={t('drive.btn_change_dest')}
-                      >
-                        <div className="td-remote-dest-main">
-                          <span className="td-dest-ico" aria-hidden>
-                            {selectedDest.kind === 'saved' ? (
-                              <Home size={14} />
-                            ) : (
-                              <PeerAvatar
-                                peerId={selectedDest.id ?? 0}
-                                creds={creds}
-                                title={selectedDest.label}
-                                fallback={kindIcon(selectedDest)}
-                              />
-                            )}
-                          </span>
-                          <div className="td-remote-dest-info">
-                            <span className="td-remote-dest-title" title={cleanTargetDisplay.title}>
-                              {cleanTargetDisplay.title}
-                            </span>
-                            {cleanTargetDisplay.topicPill && (
-                              <span className="td-remote-dest-topic">
-                                <Hash size={9} style={{ display: 'inline', verticalAlign: '-1px' }} />
-                                {` ${cleanTargetDisplay.topicPill.replace(/^#\s*/, '')}`}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="td-remote-dest-actions">
-                          {renderBadge(selectedDest, t)}
-                          <span className="td-remote-dest-change-tag">
-                            {t('drive.btn_change_dest')}
-                            <ChevronRight size={11} style={{ marginLeft: 2 }} />
-                          </span>
-                        </div>
-                      </button>
-                    </div>
-                  )}
+                  {/* Triplet Compact Row (Media Delivery Format, Transfer Engine, Storage Policy) & Destination */}
+                  {renderTripletAndDestinationControls(false)}
                 </div>
               </div>
             </div>
@@ -3835,6 +3842,9 @@ export function RemoteUploadModal({
                     </div>
                   </div>
                 </div>
+
+                {/* Delivery Format, Transfer Engine & Storage Policy Triplet Row in Batch tab */}
+                {renderTripletAndDestinationControls(true)}
               </div>
             ) : (
               /* BATCH RESOLVED GALLERY & SPLIT PREVIEW */
