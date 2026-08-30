@@ -89,7 +89,7 @@ interface RemoteUploadModalProps {
       storagePolicy?: StorageLocalPolicy;
       customDiskPath?: string;
     }
-  ) => Promise<void>;
+  ) => Promise<boolean | void>;
 }
 
 type RemoteUploadTab = 'single' | 'batch';
@@ -1516,7 +1516,7 @@ export function RemoteUploadModal({
                 ? 'original'
                 : 'standard';
 
-          await onUpload(uploadUrls, selectedDest, {
+          const ok = await onUpload(uploadUrls, selectedDest, {
             customFilename: uploadFilenames.length === 1 ? (customFilename.trim() || uploadFilenames[0]) : undefined,
             customFilenames: uploadFilenames,
             sourceSizes: uploadSizes,
@@ -1528,7 +1528,9 @@ export function RemoteUploadModal({
             storagePolicy,
             customDiskPath: customDiskPath.trim() || undefined,
           });
-          onClose();
+          if (ok !== false) {
+            onClose();
+          }
         } catch (err: any) {
           setErrorMsg(err?.message || t('ui.generated.gagal_melakukan_remote_upload_9dd65cb'));
         } finally {
@@ -1578,7 +1580,7 @@ export function RemoteUploadModal({
               ? 'original'
               : 'standard';
 
-        await onUpload(uploadUrls, selectedDest, {
+        const ok = await onUpload(uploadUrls, selectedDest, {
           customFilename: effectiveFilename,
           customFilenames: [effectiveFilename],
           sourceSizes: uploadSizes,
@@ -1590,7 +1592,9 @@ export function RemoteUploadModal({
           storagePolicy,
           customDiskPath: customDiskPath.trim() || undefined,
         });
-        onClose();
+        if (ok !== false) {
+          onClose();
+        }
       } catch (err: any) {
         setErrorMsg(err?.message || t('ui.generated.gagal_melakukan_remote_upload_9dd65cb'));
       } finally {
@@ -1645,7 +1649,7 @@ export function RemoteUploadModal({
               ? 'original'
               : 'standard';
 
-        await onUpload(expandedBatchUrls, selectedDest, {
+        const ok = await onUpload(expandedBatchUrls, selectedDest, {
           asDocument: deliveryMode === 'document',
           qualityMode: effectiveQualityMode,
           presentationOverride: effectivePresentation,
@@ -1653,7 +1657,9 @@ export function RemoteUploadModal({
           storagePolicy,
           customDiskPath: customDiskPath.trim() || undefined,
         });
-        onClose();
+        if (ok !== false) {
+          onClose();
+        }
       } catch (err: any) {
         setErrorMsg(err?.message || t('ui.generated.gagal_melakukan_remote_upload_9dd65cb'));
       } finally {

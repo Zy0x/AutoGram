@@ -32,7 +32,7 @@ export interface MediaStudioModalsContainerProps {
   refreshFiles: () => Promise<void>;
   refreshLocations: () => Promise<void>;
   openTransferManager: (tab?: 'downloads' | 'uploads') => void;
-  runUploadPaths: (paths: string[], opts?: { targetFolderId?: number | null; targetLabel?: string; topicId?: number | null; skipTopic?: boolean }) => Promise<void>;
+  runUploadPaths: (paths: string[], opts?: { targetFolderId?: number | null; targetLabel?: string; topicId?: number | null; skipTopic?: boolean }) => Promise<boolean | void>;
   handleEnqueueSingleDownload: (opts: { messageId: number; folderId: number | null; savePath: string; name: string }) => Promise<void>;
   previewIndex: number;
   sortedPreviewList: DriveFile[];
@@ -94,7 +94,7 @@ export interface MediaStudioModalsContainerProps {
       presentationOverride?: 'document' | 'original' | 'standard' | 'compressed';
       remoteEngineMode?: RemoteEngineMode;
     }
-  ) => Promise<void>;
+  ) => Promise<boolean | void>;
   onOpenTelegramLink?: (url: string) => void;
   onBrowseTelegramDrive?: (url: string) => void;
   onJoinTelegramChat?: (url: string) => void;
@@ -201,7 +201,7 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
             void refreshLocations();
           }}
           onOpenTransferManager={openTransferManager}
-          onEnqueueUploadPaths={runUploadPaths}
+          onEnqueueUploadPaths={async (p, o) => { await runUploadPaths(p, o); }}
           onEnqueueDownloadSingle={handleEnqueueSingleDownload}
           onClose={() => {
             setPreviewFile(null);

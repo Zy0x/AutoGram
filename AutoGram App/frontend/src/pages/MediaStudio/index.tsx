@@ -6819,8 +6819,8 @@ function MediaDriveDesktop({
       sourceSizes?: number[];
       thumbnailUrls?: string[];
     }
-  ) => {
-    if (!creds || !paths.length) return;
+  ): Promise<boolean> => {
+    if (!creds || !paths.length) return false;
     
     // Normalize paths — allow both local file paths and remote URLs (http/https)
     let cleanPaths = paths
@@ -6832,7 +6832,7 @@ function MediaDriveDesktop({
       });
     if (!cleanPaths.length) {
       setError(t('ui.generated.path_file_atau_url_tidak_valid_coba_lagi_drop_da_63586d7'));
-      return;
+      return false;
     }
 
     // Dedup guard: reject identical path sets enqueued within 2s (drop race protection)
@@ -6846,7 +6846,7 @@ function MediaDriveDesktop({
     );
     if (isDuplicateTask) {
       console.warn('[AutoGram] duplicate upload task rejected (drop race guard)');
-      return;
+      return false;
     }
     const uploadPeer =
       opts && 'targetFolderId' in (opts || {}) ? (opts!.targetFolderId as number | null) : peerId;
@@ -6948,7 +6948,7 @@ function MediaDriveDesktop({
       const decision = await reviewPreflight(enrichedReport);
       if (!decision.approved) {
         setStatusText(String(t('speedtest.preflight_cancelled')));
-        return;
+        return false;
       }
       const skippedPaths = new Set(decision.skippedPaths);
       cleanPaths = cleanPaths.filter((path) => !skippedPaths.has(path));
@@ -6991,12 +6991,12 @@ function MediaDriveDesktop({
       });
       if (!cleanPaths.length) {
         setStatusText(String(t('speedtest.preflight_all_duplicates_skipped')));
-        return;
+        return false;
       }
     } catch (preflightError) {
       setError(`${t('speedtest.preflight_failed')}: ${String((preflightError as Error)?.message || preflightError)}`);
       setStatusText(String(t('speedtest.preflight_cancelled')));
-      return;
+      return false;
     }
 
     const scheduleAtSeconds = transferSettings.scheduleAt
@@ -7134,6 +7134,7 @@ function MediaDriveDesktop({
 
     // Trigger processing
     void processNextQueueTask();
+    return true;
   };
 
   const handleRemoteUpload = async (
@@ -7151,11 +7152,11 @@ function MediaDriveDesktop({
       qualityMode?: string;
       presentationOverride?: 'document' | 'original' | 'standard' | 'compressed';
     }
-  ) => {
+  ): Promise<boolean> => {
     const list = Array.isArray(urls) ? urls : [urls];
     // Route through the Transfer Manager queue (same pipeline as local file uploads)
     // so the upload appears in the Transfer Manager with live progress.
-    await runUploadPaths(list, {
+    return (await runUploadPaths(list, {
       targetFolderId: dest.id,
       targetLabel: dest.label,
       topicId: dest.topicId ?? null,
@@ -7168,7 +7169,7 @@ function MediaDriveDesktop({
       remoteEngineMode: opts?.remoteEngineMode,
       storagePolicy: opts?.storagePolicy,
       customDiskPath: opts?.customDiskPath,
-    });
+    })) ?? false;
   };
 
   const runZipFullIndex = async () => {
