@@ -300,58 +300,73 @@ function sanitizeAndNormalizeFilename(userInput: string, targetExt: string): str
   return `${name}.${targetExt.toLowerCase().replace(/^\./, '')}`;
 }
 
-function getSingleUnifiedBadge(item: ResolvedMediaItem): string {
+function getSingleUnifiedBadge(
+  item: ResolvedMediaItem,
+  knownRes?: { width: number; height: number }
+): string | null {
   const fmt = item.formats[0];
-  if (!fmt) return item.kind === 'image' ? 'PHOTO' : 'HD';
+  if (!fmt) return item.kind === 'image' ? 'PHOTO' : null;
 
-  // Try to get resolution from badge or resolution field
-  const dim = fmt.badge && fmt.badge.includes('×')
-    ? fmt.badge
-    : fmt.resolution && fmt.resolution.includes('x')
-      ? fmt.resolution.replace('x', '×')
-      : null;
-
-  // Determine quality tier
-  const rawTier = fmt.qualityTier && fmt.qualityTier !== 'original'
-    ? fmt.qualityTier.toUpperCase()
-    : fmt.label?.toUpperCase().includes('4K')
-      ? '4K'
-      : fmt.label?.toUpperCase().includes('1080')
-        ? '1080P'
-        : fmt.label?.toUpperCase().includes('720')
-          ? '720P'
-          : fmt.label?.includes('HD')
-            ? 'HD'
-            : null;
-
-  // Standard HD tiers
-  const isStandardHD = rawTier && ['HD', '720P', '1080P', '2K', '4K'].includes(rawTier);
-
-  const tierLabel =
-    rawTier === '4K' ? '4K' :
-    rawTier === '2K' ? '2K' :
-    rawTier === '1080P' ? '1080p' :
-    rawTier === '720P' ? '720p' :
-    rawTier === 'HD' ? 'HD' : null;
-
-  if (isStandardHD && tierLabel && dim) {
-    // e.g. "HD · 720×1280"
-    return `${tierLabel} · ${dim}`;
-  }
-  if (isStandardHD && tierLabel) {
-    return tierLabel;
-  }
-  // Non-standard: show resolution directly
-  if (dim) {
-    return dim;
-  }
   if (fmt.ext === 'zip' || fmt.ext === 'rar' || fmt.ext === '7z') {
     return 'ZIP';
   }
   if (fmt.isImage || item.kind === 'image') {
     return 'PHOTO';
   }
-  return 'HD';
+
+  // Extract dimensions from probe or format
+  let width = knownRes?.width;
+  let height = knownRes?.height;
+
+  if (!width || !height) {
+    const dimMatch = (fmt.badge || fmt.resolution || '').match(/(\d+)\s*[x×]\s*(\d+)/i);
+    if (dimMatch) {
+      width = parseInt(dimMatch[1], 10);
+      height = parseInt(dimMatch[2], 10);
+    }
+  }
+
+  if (width && height && width > 0 && height > 0) {
+    const minDim = Math.min(width, height);
+    const maxDim = Math.max(width, height);
+    const dimStr = `${width}×${height}`;
+
+    // Quality tier classification (HD, 1080p, 2K, 4K, UHD)
+    let tier: string | null = null;
+    if (minDim >= 2160 || maxDim >= 3840) {
+      tier = '4K';
+    } else if (minDim >= 1440 || maxDim >= 2560) {
+      tier = '2K';
+    } else if (minDim >= 1000 || maxDim >= 1900) {
+      tier = '1080p';
+    } else if (minDim >= 700 || maxDim >= 1200) {
+      tier = 'HD';
+    }
+
+    if (tier) {
+      // HD / UHD / 2K / 4K: show tier + resolution
+      return `${tier} · ${dimStr}`;
+    } else {
+      // Non-HD: show ONLY resolution dimension (no HD badge text)
+      return dimStr;
+    }
+  }
+
+  // If dimensions not yet probed, check if format has explicit tier
+  const rawTier = fmt.qualityTier && fmt.qualityTier !== 'original'
+    ? fmt.qualityTier.toUpperCase()
+    : fmt.label?.toUpperCase().includes('4K')
+      ? '4K'
+      : fmt.label?.toUpperCase().includes('1080')
+        ? '1080p'
+        : fmt.label?.toUpperCase().includes('720')
+          ? 'HD'
+          : null;
+
+  if (rawTier && ['HD', '1080P', '2K', '4K', 'UHD'].includes(rawTier.toUpperCase())) {
+    return rawTier;
+  }
+  return null;
 }
 
 const ItemDurationBadge: React.FC<{
@@ -810,6 +825,7 @@ export function RemoteUploadModal({
   }, [resolvedMedia]);
 
   const [itemDurations, setItemDurations] = useState<Record<string, number>>({});
+  const [itemResolutions, setItemResolutions] = useState<Record<string, { width: number; height: number }>>({});
 
   useEffect(() => {
     if (effectiveMediaItems.length > 0) {
@@ -834,6 +850,7 @@ export function RemoteUploadModal({
       setSelectedMediaItemIds(new Set());
       setItemSelectedFormats({});
       setItemDurations({});
+      setItemResolutions({});
       setActivePreviewItemId('');
     }
   }, [effectiveMediaItems]);
@@ -848,10 +865,15 @@ export function RemoteUploadModal({
     }
   }, [resolvedMedia?.durationSec]);
 
-  // Probe single item duration via Tauri local streaming proxy
+  // Probe single item duration & dimensions via Tauri local streaming proxy
   const probeSingleItemDuration = useCallback(async (item: ResolvedMediaItem) => {
     if (item.kind !== 'video') return;
-    if (itemDurations[item.id] || (item.durationSec && item.durationSec > 0)) return;
+    if (
+      (itemDurations[item.id] && itemResolutions[item.id]) ||
+      (item.durationSec && item.durationSec > 0 && itemResolutions[item.id])
+    ) {
+      return;
+    }
 
     const fmt = item.formats.find((f) => f.directUrl) || item.formats[0];
     const rawUrl = fmt?.directUrl;
@@ -887,7 +909,7 @@ export function RemoteUploadModal({
       let done = false;
       const tid = setTimeout(() => finish(), 4000);
 
-      const finish = (durSec?: number) => {
+      const finish = (durSec?: number, w?: number, h?: number) => {
         if (done) return;
         done = true;
         clearTimeout(tid);
@@ -906,15 +928,28 @@ export function RemoteUploadModal({
             return { ...prev, [item.id]: d };
           });
         }
+
+        if (w && h && w > 0 && h > 0) {
+          setItemResolutions((prev) => {
+            const cur = prev[item.id];
+            if (cur && cur.width === w && cur.height === h) return prev;
+            return { ...prev, [item.id]: { width: w, height: h } };
+          });
+        }
+
         resolve();
       };
 
-      video.addEventListener('loadedmetadata', () => finish(video.duration), { once: true });
+      video.addEventListener(
+        'loadedmetadata',
+        () => finish(video.duration, video.videoWidth, video.videoHeight),
+        { once: true }
+      );
       video.addEventListener('error', () => finish(), { once: true });
       video.src = playUrl;
       video.load();
     });
-  }, [itemDurations]);
+  }, [itemDurations, itemResolutions]);
 
   // Background duration loader: automatically probe video metadata across all effectiveMediaItems
   useEffect(() => {
@@ -925,7 +960,10 @@ export function RemoteUploadModal({
     // Process with concurrency pool of 2
     const runQueue = async () => {
       const itemsToProbe = effectiveMediaItems.filter(
-        (it) => it.kind === 'video' && !itemDurations[it.id] && (!it.durationSec || it.durationSec <= 0)
+        (it) =>
+          it.kind === 'video' &&
+          (!itemDurations[it.id] || !itemResolutions[it.id]) &&
+          (!it.durationSec || it.durationSec <= 0)
       );
 
       let index = 0;
@@ -948,7 +986,7 @@ export function RemoteUploadModal({
     return () => {
       isCancelled = true;
     };
-  }, [effectiveMediaItems, probeSingleItemDuration, itemDurations]);
+  }, [effectiveMediaItems, probeSingleItemDuration, itemDurations, itemResolutions]);
 
 
   const activePreviewItem = useMemo(() => {
@@ -2088,7 +2126,10 @@ export function RemoteUploadModal({
                               playsInline
                               className="td-remote-big-canvas-video td-remote-active-player-video"
                               onLoadedMetadata={(e) => {
-                                const dur = e.currentTarget.duration;
+                                const v = e.currentTarget;
+                                const dur = v.duration;
+                                const w = v.videoWidth;
+                                const h = v.videoHeight;
                                 if (dur && isFinite(dur) && dur > 0) {
                                   const d = Math.round(dur);
                                   if (activePreviewItem) {
@@ -2097,6 +2138,13 @@ export function RemoteUploadModal({
                                       return { ...prev, [activePreviewItem.id]: d };
                                     });
                                   }
+                                }
+                                if (w > 0 && h > 0 && activePreviewItem) {
+                                  setItemResolutions((prev) => {
+                                    const cur = prev[activePreviewItem.id];
+                                    if (cur && cur.width === w && cur.height === h) return prev;
+                                    return { ...prev, [activePreviewItem.id]: { width: w, height: h } };
+                                  });
                                 }
                               }}
                               onDurationChange={(e) => {
@@ -2395,7 +2443,7 @@ export function RemoteUploadModal({
                                           onLoad={() => {
                                             if (
                                               item.kind === 'video' &&
-                                              !itemDurations[item.id] &&
+                                              (!itemDurations[item.id] || !itemResolutions[item.id]) &&
                                               (!item.durationSec || item.durationSec <= 0)
                                             ) {
                                               probeSingleItemDuration(item);
@@ -2408,10 +2456,16 @@ export function RemoteUploadModal({
                                         </div>
                                       )}
 
-                                      {/* TOP-LEFT: Quality pill badge */}
-                                      <span className="td-remote-item-quality-badge">
-                                        {getSingleUnifiedBadge(item)}
-                                      </span>
+                                      {/* TOP-LEFT: Quality pill badge (HD/2K/4K with resolution, or only resolution for non-HD) */}
+                                      {(() => {
+                                        const badgeText = getSingleUnifiedBadge(item, itemResolutions[item.id]);
+                                        if (!badgeText) return null;
+                                        return (
+                                          <span className="td-remote-item-quality-badge">
+                                            {badgeText}
+                                          </span>
+                                        );
+                                      })()}
 
                                       {/* TOP-RIGHT: Selection checkbox */}
                                       <button
