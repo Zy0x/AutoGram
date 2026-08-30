@@ -3879,10 +3879,28 @@ export function RemoteUploadModal({
                         </>
                       ) : resolvedMedia.formats.length > 0 ? (
                         (() => {
-                          const mp4VideoFmts = resolvedMedia.formats.filter((f) => !f.isAudio && !f.isSubtitle && f.ext === 'mp4' && f.qualityTier !== '480p' && f.qualityTier !== '360p');
-                          const webmVideoFmts = resolvedMedia.formats.filter((f) => !f.isAudio && !f.isSubtitle && f.ext === 'webm' && f.qualityTier !== '480p' && f.qualityTier !== '360p');
-                          const sdVideoFmts = resolvedMedia.formats.filter((f) => !f.isAudio && !f.isSubtitle && (f.qualityTier === '480p' || f.qualityTier === '360p'));
-                          const audioFmts = resolvedMedia.formats.filter((f) => f.isAudio || f.qualityTier === 'audio');
+                          const QUALITY_ORDER: Record<string, number> = {
+                            '360p': 1,
+                            '480p': 2,
+                            '720p': 3,
+                            '1080p': 4,
+                            '2k': 5,
+                            '4k': 6,
+                            '8k': 7,
+                          };
+
+                          const mp4VideoFmts = resolvedMedia.formats
+                            .filter((f) => !f.isAudio && !f.isSubtitle && f.ext === 'mp4')
+                            .sort((a, b) => (QUALITY_ORDER[a.qualityTier] || 99) - (QUALITY_ORDER[b.qualityTier] || 99) || (a.filesizeBytes || 0) - (b.filesizeBytes || 0));
+
+                          const webmVideoFmts = resolvedMedia.formats
+                            .filter((f) => !f.isAudio && !f.isSubtitle && f.ext === 'webm')
+                            .sort((a, b) => (QUALITY_ORDER[a.qualityTier] || 99) - (QUALITY_ORDER[b.qualityTier] || 99) || (a.filesizeBytes || 0) - (b.filesizeBytes || 0));
+
+                          const audioFmts = resolvedMedia.formats
+                            .filter((f) => f.isAudio || f.qualityTier === 'audio')
+                            .sort((a, b) => (a.filesizeBytes || 0) - (b.filesizeBytes || 0));
+
                           const subtitleFmts = resolvedMedia.formats.filter((f) => f.isSubtitle || f.qualityTier === 'subtitle');
                           const rawStreamsList = resolvedMedia.rawStreams || [];
 
@@ -3890,12 +3908,11 @@ export function RemoteUploadModal({
 
                           const hasMp4 = mp4VideoFmts.length > 0;
                           const hasWebm = webmVideoFmts.length > 0;
-                          const hasSd = sdVideoFmts.length > 0;
                           const hasAudio = audioFmts.length > 0;
                           const hasSubtitle = subtitleFmts.length > 0;
                           const hasRawMatrix = rawStreamsList.length > 0;
 
-                          const filterCategoriesCount = [hasMp4, hasWebm, hasSd, hasAudio, hasSubtitle, hasRawMatrix].filter(Boolean).length;
+                          const filterCategoriesCount = [hasMp4, hasWebm, hasAudio, hasSubtitle, hasRawMatrix].filter(Boolean).length;
                           const hasMultipleFilters = filterCategoriesCount > 1;
 
                           const filteredRawStreams = rawStreamsList.filter((s) => {
@@ -3988,16 +4005,6 @@ export function RemoteUploadModal({
                                     >
                                       <span>{t('drive.remote_format_filter_webm')}</span>
                                       <span>({webmVideoFmts.length})</span>
-                                    </button>
-                                  )}
-                                  {hasSd && (
-                                    <button
-                                      type="button"
-                                      className={`td-remote-format-filter-chip ${streamContainerFilter === 'sd' ? 'active' : ''}`}
-                                      onClick={() => setStreamContainerFilter('sd')}
-                                    >
-                                      <span>{t('drive.remote_format_filter_sd')}</span>
-                                      <span>({sdVideoFmts.length})</span>
                                     </button>
                                   )}
                                   {hasAudio && (
@@ -4191,23 +4198,6 @@ export function RemoteUploadModal({
                                       )}
                                       <div className="td-remote-quality-grid">
                                         {webmVideoFmts.map(renderFormatChip)}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {(streamContainerFilter === 'all' || streamContainerFilter === 'sd') && hasSd && (
-                                    <div className="td-remote-formats-section">
-                                      {streamContainerFilter === 'all' && (
-                                        <div className="td-remote-formats-section-header">
-                                          <span className="td-remote-formats-section-title">
-                                            <Film size={11} style={{ color: '#38bdf8' }} />
-                                            <span>{t('drive.remote_section_sd_video')}</span>
-                                          </span>
-                                          <span className="td-remote-formats-section-count">{sdVideoFmts.length}</span>
-                                        </div>
-                                      )}
-                                      <div className="td-remote-quality-grid">
-                                        {sdVideoFmts.map(renderFormatChip)}
                                       </div>
                                     </div>
                                   )}
