@@ -1628,6 +1628,44 @@ export function RemoteUploadModal({
     }
   }, [isSplitActive, resolvedMedia?.title]);
 
+  const captureVideoCanvasThumbnail = (videoEl: HTMLVideoElement): string | null => {
+    try {
+      if (!videoEl.videoWidth || !videoEl.videoHeight) return null;
+      const canvas = document.createElement('canvas');
+      const maxDim = 320;
+      let w = videoEl.videoWidth;
+      let h = videoEl.videoHeight;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+      canvas.width = Math.max(1, w);
+      canvas.height = Math.max(1, h);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      ctx.drawImage(videoEl, 0, 0, w, h);
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imgData.data;
+      let isNonBlack = false;
+      for (let i = 0; i < data.length; i += 16) {
+        if (data[i] > 15 || data[i + 1] > 15 || data[i + 2] > 15) {
+          isNonBlack = true;
+          break;
+        }
+      }
+      if (!isNonBlack) return null;
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      return dataUrl && dataUrl.length > 50 ? dataUrl : null;
+    } catch {
+      return null;
+    }
+  };
+
   const probedItemIdsRef = useRef<Set<string>>(new Set());
   const isProbingRef = useRef<boolean>(false);
   const probeQueueRef = useRef<BatchMediaItem[]>([]);
@@ -1675,6 +1713,7 @@ export function RemoteUploadModal({
       const video = document.createElement('video');
       video.preload = 'metadata';
       video.muted = true;
+      video.crossOrigin = 'anonymous';
       video.style.cssText =
         'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;pointer-events:none;opacity:0;';
       document.body.appendChild(video);
@@ -1685,6 +1724,20 @@ export function RemoteUploadModal({
         if (done) return;
         done = true;
         clearTimeout(tid);
+
+        // Try extracting visual thumbnail if missing
+        if (!nextItem.thumbnailUrl) {
+          const thumb = captureVideoCanvasThumbnail(video);
+          if (thumb) {
+            setBatchGroups((prev) =>
+              prev.map((grp) => ({
+                ...grp,
+                items: grp.items.map((it) => (it.id === nextItem.id ? { ...it, thumbnailUrl: thumb } : it)),
+              }))
+            );
+          }
+        }
+
         video.src = '';
         try { video.load(); } catch (_) {}
         try { document.body.removeChild(video); } catch (_) {}
@@ -1700,6 +1753,11 @@ export function RemoteUploadModal({
       };
 
       tid = setTimeout(() => finish(), 3500);
+      video.onloadeddata = () => {
+        if (video.duration && isFinite(video.duration) && video.duration > 0) {
+          finish(video.duration);
+        }
+      };
       video.onloadedmetadata = () => {
         if (video.duration && isFinite(video.duration) && video.duration > 0) {
           finish(video.duration);
@@ -3020,11 +3078,27 @@ export function RemoteUploadModal({
                               preload="metadata"
                               playsInline
                               className="td-remote-big-canvas-video td-remote-active-player-video"
+                              crossOrigin="anonymous"
+                              onLoadedData={(e) => {
+                                const v = e.currentTarget;
+                                if (resolvedMedia && !resolvedMedia.thumbnailUrl) {
+                                  const thumb = captureVideoCanvasThumbnail(v);
+                                  if (thumb) {
+                                    setResolvedMedia((prev) => (prev ? { ...prev, thumbnailUrl: thumb } : prev));
+                                  }
+                                }
+                              }}
                               onLoadedMetadata={(e) => {
                                 const v = e.currentTarget;
                                 const dur = v.duration;
                                 const w = v.videoWidth;
                                 const h = v.videoHeight;
+                                if (resolvedMedia && !resolvedMedia.thumbnailUrl) {
+                                  const thumb = captureVideoCanvasThumbnail(v);
+                                  if (thumb) {
+                                    setResolvedMedia((prev) => (prev ? { ...prev, thumbnailUrl: thumb } : prev));
+                                  }
+                                }
                                 if (dur && isFinite(dur) && dur > 0) {
                                   const d = Math.round(dur);
                                   if (activePreviewItem) {
@@ -3863,12 +3937,38 @@ export function RemoteUploadModal({
                             preload="metadata"
                             playsInline
                             className="td-remote-big-canvas-video td-remote-active-player-video"
+                            crossOrigin="anonymous"
+                            onLoadedData={(e) => {
+                              const v = e.currentTarget;
+                              if (focusedBatchItem && !focusedBatchItem.thumbnailUrl) {
+                                const thumb = captureVideoCanvasThumbnail(v);
+                                if (thumb) {
+                                  setBatchGroups((prev) =>
+                                    prev.map((grp) => ({
+                                      ...grp,
+                                      items: grp.items.map((it) => (it.id === focusedBatchItem.id ? { ...it, thumbnailUrl: thumb } : it)),
+                                    }))
+                                  );
+                                }
+                              }
+                            }}
                             onLoadedMetadata={(e) => {
                               const v = e.currentTarget;
                               const dur = v.duration;
                               if (dur && isFinite(dur) && dur > 0 && focusedBatchItem) {
                                 const d = Math.round(dur);
                                 setBatchItemDurations((prev) => ({ ...prev, [focusedBatchItem.id]: d }));
+                              }
+                              if (focusedBatchItem && !focusedBatchItem.thumbnailUrl) {
+                                const thumb = captureVideoCanvasThumbnail(v);
+                                if (thumb) {
+                                  setBatchGroups((prev) =>
+                                    prev.map((grp) => ({
+                                      ...grp,
+                                      items: grp.items.map((it) => (it.id === focusedBatchItem.id ? { ...it, thumbnailUrl: thumb } : it)),
+                                    }))
+                                  );
+                                }
                               }
                             }}
                           />

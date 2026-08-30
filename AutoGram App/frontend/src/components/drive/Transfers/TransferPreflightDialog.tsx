@@ -8,8 +8,12 @@ import {
   ChevronUp,
   CopyCheck,
   FileSearch,
+  FileText,
+  Film,
+  Image as ImageIcon,
   ImageOff,
   Info,
+  Music,
   RefreshCw,
   Send,
   Settings,
@@ -30,6 +34,7 @@ import {
 import type {
   PreflightReviewDecision,
   QualityPreflightDuplicateMatch,
+  QualityPreflightItem,
   QualityPreflightReport,
   TransferDuplicateChoice,
 } from '../../../lib/transfer/qualityPreflight';
@@ -46,6 +51,137 @@ function transferPreviewSource(path: string, thumbnailUrl?: string | null): stri
     return null;
   }
   return convertFileSrc(path);
+}
+
+function PreflightSourceThumb({
+  item,
+}: {
+  item: QualityPreflightItem;
+}) {
+  const { t } = useTranslation();
+  const [capturedThumb, setCapturedThumb] = useState<string | null>(null);
+
+  const initialSource = transferPreviewSource(item.sourcePath, item.thumbnailUrl);
+  const isVideo =
+    item.category === 'video' ||
+    /\.(mp4|mov|webm|mkv|avi|m4v|3gp|flv|ts)($|\?)/i.test(item.sourceName || item.sourcePath);
+
+  useEffect(() => {
+    if (initialSource || !isVideo) return;
+    const rawPath = item.sourcePath;
+    if (!rawPath) return;
+
+    let active = true;
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.muted = true;
+    video.playsInline = true;
+    video.crossOrigin = 'anonymous';
+
+    const cleanup = () => {
+      try {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const handleSeeked = () => {
+      try {
+        if (!active) return;
+        const width = video.videoWidth || 320;
+        const height = video.videoHeight || 180;
+        if (width <= 0 || height <= 0) return;
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.min(320, width);
+        canvas.height = Math.round((canvas.width * height) / width);
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imgData.data;
+          let isNonBlack = false;
+          for (let i = 0; i < data.length; i += 16) {
+            if (data[i] > 15 || data[i + 1] > 15 || data[i + 2] > 15) {
+              isNonBlack = true;
+              break;
+            }
+          }
+          if (isNonBlack) {
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+            if (dataUrl && dataUrl.startsWith('data:image/jpeg') && dataUrl.length > 200) {
+              setCapturedThumb(dataUrl);
+            }
+          }
+        }
+      } catch {
+        /* ignore CORS restriction */
+      } finally {
+        cleanup();
+      }
+    };
+
+    const handleLoadedMetadata = () => {
+      try {
+        const dur = video.duration || 10;
+        const targetTime = Math.min(1.0, dur > 2 ? 1.0 : dur / 2);
+        video.currentTime = targetTime;
+      } catch {
+        cleanup();
+      }
+    };
+
+    video.addEventListener('loadedmetadata', handleLoadedMetadata, { once: true });
+    video.addEventListener('seeked', handleSeeked, { once: true });
+    video.addEventListener('error', cleanup, { once: true });
+
+    if (rawPath.startsWith('http://') || rawPath.startsWith('https://')) {
+      video.src = rawPath;
+    } else {
+      video.src = convertFileSrc(rawPath);
+    }
+
+    const tid = setTimeout(cleanup, 4000);
+    return () => {
+      active = false;
+      clearTimeout(tid);
+      cleanup();
+    };
+  }, [initialSource, isVideo, item.sourcePath]);
+
+  const effectiveSrc = initialSource || capturedThumb;
+
+  if (effectiveSrc) {
+    return <img src={effectiveSrc} alt={t('drive.preflight_source_thumb_alt')} />;
+  }
+
+  if (isVideo) {
+    return (
+      <div className="td-preflight-icon-thumb is-video" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+        <Film size={22} className="text-sky-400" aria-hidden />
+      </div>
+    );
+  }
+
+  if (item.category === 'photo' || /\.(jpe?g|png|webp|gif|bmp|heic|avif)($|\?)/i.test(item.sourceName)) {
+    return (
+      <div className="td-preflight-icon-thumb is-photo" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+        <ImageIcon size={22} className="text-emerald-400" aria-hidden />
+      </div>
+    );
+  }
+
+  if (item.category === 'audio' || /\.(mp3|flac|m4a|wav|ogg|opus|aac)($|\?)/i.test(item.sourceName)) {
+    return (
+      <div className="td-preflight-icon-thumb is-audio" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+        <Music size={22} className="text-purple-400" aria-hidden />
+      </div>
+    );
+  }
+
+  return <FileText size={22} className="text-slate-400" aria-hidden />;
 }
 
 function TelegramDuplicateThumb({
@@ -331,7 +467,6 @@ export function TransferPreflightDialog({
 
         <div className="td-preflight-items">
           {visibleItems.map((item) => {
-            const previewSource = transferPreviewSource(item.sourcePath, item.thumbnailUrl);
             const duplicate = item.duplicateMatch;
             const choice = choices[item.sourcePath] || 'upload';
             const isExpanded = expandedDetails[item.sourcePath] || false;
@@ -386,7 +521,7 @@ export function TransferPreflightDialog({
                     <section>
                       <span className="td-preflight-compare-label">{t('drive.preflight_source_file')}</span>
                       <div className="td-preflight-compare-media">
-                        {previewSource ? <img src={previewSource} alt={t('drive.preflight_source_thumb_alt')} /> : <FileSearch size={24} aria-hidden />}
+                        <PreflightSourceThumb item={item} />
                       </div>
                       <strong title={item.sourceName}>{item.sourceName}</strong>
                       <span>{formatDriveBytes(item.sourceSize)}</span>
@@ -404,7 +539,7 @@ export function TransferPreflightDialog({
                 ) : (
                   <div className="td-preflight-standard-row">
                     <div className="td-preflight-thumb">
-                      {previewSource ? <img src={previewSource} alt={t('drive.preflight_source_thumb_alt')} /> : <FileSearch size={20} aria-hidden />}
+                      <PreflightSourceThumb item={item} />
                     </div>
                     <div className="td-preflight-clean-meta">
                       <span className="td-preflight-clean-filename" title={item.sourceName}>{item.sourceName}</span>
