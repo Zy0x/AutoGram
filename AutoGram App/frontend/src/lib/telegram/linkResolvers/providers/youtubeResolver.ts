@@ -176,9 +176,6 @@ function processPlayerData(
   const allFormats = [...adaptive, ...regular];
 
   const dur = durationSec || 180;
-  const isTitle8K = /\b(8k|4320p)\b/i.test(title);
-  const isTitle4K = isTitle8K || /\b(4k|2160p|uhd)\b/i.test(title);
-  const isTitle2K = isTitle4K || /\b(2k|1440p|qhd)\b/i.test(title);
 
   const tiers: Array<{ key: string; label: string; tier: '8k' | '4k' | '2k' | '1080p' | '720p' | '480p' | '360p' | '240p' | '144p'; height: number; defaultBitrateMbps: number }> = [
     { key: '4320p', label: '8K Ultra HD', tier: '8k', height: 4320, defaultBitrateMbps: 50.0 },
@@ -204,56 +201,52 @@ function processPlayerData(
     const mp4s = tierMatches.filter((f) => f.mimeType?.includes('mp4') || f.mimeType?.includes('avc1') || f.mimeType?.includes('av01'));
     mp4s.sort((a, b) => ((b.bitrate || 0) || (b.averageBitrate || 0)) - ((a.bitrate || 0) || (a.averageBitrate || 0)));
 
-    const hasWebm = webms.length > 0;
-    const hasMp4 = mp4s.length > 0;
-    const is8kTier = tier === '8k';
-
-    // 1. WebM stream
-    if (hasWebm || (is8kTier && isTitle8K)) {
+    // 1. WebM stream - strictly when concrete WebM stream exists on server
+    if (webms.length > 0) {
       const v = webms[0];
-      const bit = v ? ((v.bitrate || 0) || (v.averageBitrate || 0)) : Math.round(defaultBitrateMbps * 1000000);
+      const bit = (v.bitrate || 0) || (v.averageBitrate || 0) || Math.round(defaultBitrateMbps * 1000000);
       const mbps = bit > 0 ? (bit / 1000000).toFixed(1) : defaultBitrateMbps.toFixed(1);
-      const isHdr = v?.qualityLabel?.includes('HDR') || v?.mimeType?.includes('vp9.2') || (is8kTier && isTitle8K);
-      const size = v?.contentLength ? parseInt(v.contentLength, 10) : Math.round(dur * (parseFloat(mbps) * 1000000 / 8));
+      const isHdr = v.qualityLabel?.includes('HDR') || v.mimeType?.includes('vp9.2');
+      const size = v.contentLength ? parseInt(v.contentLength, 10) : Math.round(dur * (parseFloat(mbps) * 1000000 / 8));
 
       formats.push({
         id: `yt_${key}_webm`,
         label: `${label} (WebM)`,
         qualityTier: tier,
-        resolution: `${v?.qualityLabel || key} • ${mbps} Mbps`,
-        fps: v?.fps || (isHdr ? 60 : 30),
+        resolution: `${v.qualityLabel || key} • ${mbps} Mbps`,
+        fps: v.fps || (isHdr ? 60 : 30),
         ext: 'webm',
         filesizeBytes: size,
-        directUrl: v?.url || fallbackBaseUrl,
+        directUrl: v.url || fallbackBaseUrl,
         isVideo: true,
         badge: `${mbps} Mbps`,
         codec: isHdr ? 'VP9 HDR' : 'VP9',
-        itag: v?.itag,
+        itag: v.itag,
       });
     }
 
-    // 2. MP4 stream (if present, or synthesized when WebM/8K/4K/2K is available)
-    if (hasMp4 || hasWebm || (is8kTier && isTitle8K) || (tier === '4k' && isTitle4K) || (tier === '2k' && isTitle2K)) {
-      const v = mp4s[0] || webms[0];
-      const bit = v ? ((v.bitrate || 0) || (v.averageBitrate || 0)) : Math.round(defaultBitrateMbps * 1000000);
+    // 2. MP4 stream - strictly when concrete MP4 stream exists on server
+    if (mp4s.length > 0) {
+      const v = mp4s[0];
+      const bit = (v.bitrate || 0) || (v.averageBitrate || 0) || Math.round(defaultBitrateMbps * 1000000);
       const mbps = bit > 0 ? (bit / 1000000).toFixed(1) : defaultBitrateMbps.toFixed(1);
-      const isHdr = v?.qualityLabel?.includes('HDR') || v?.colorInfo?.transferCharacteristics?.includes('SMPTE');
-      const isAv1 = v?.mimeType?.includes('av01');
-      const size = v?.contentLength ? parseInt(v.contentLength, 10) : Math.round(dur * (parseFloat(mbps) * 1000000 / 8));
+      const isHdr = v.qualityLabel?.includes('HDR') || v.colorInfo?.transferCharacteristics?.includes('SMPTE');
+      const isAv1 = v.mimeType?.includes('av01');
+      const size = v.contentLength ? parseInt(v.contentLength, 10) : Math.round(dur * (parseFloat(mbps) * 1000000 / 8));
 
       formats.push({
         id: `yt_${key}_mp4`,
         label: `${label} (MP4)`,
         qualityTier: tier,
-        resolution: `${v?.qualityLabel || key} • ${mbps} Mbps`,
-        fps: v?.fps || 60,
+        resolution: `${v.qualityLabel || key} • ${mbps} Mbps`,
+        fps: v.fps || 60,
         ext: 'mp4',
         filesizeBytes: size,
-        directUrl: mp4s[0]?.url || v?.url || fallbackBaseUrl,
+        directUrl: v.url || fallbackBaseUrl,
         isVideo: true,
         badge: `${mbps} Mbps`,
         codec: isAv1 ? 'AV1' : 'H.264',
-        itag: mp4s[0]?.itag || v?.itag,
+        itag: v.itag,
       });
     }
   });
@@ -341,6 +334,7 @@ function processPlayerData(
     });
   });
 
+  // Raw streams: 100% concrete streams directly from YouTube server response
   allFormats.forEach((f) => {
     const bit = (f.bitrate || 0) || (f.averageBitrate || 0);
     const mbps = bit >= 1000000 ? `${(bit / 1000000).toFixed(1)} Mbps` : `${Math.round(bit / 1000)} kbps`;
@@ -380,36 +374,27 @@ function processPlayerData(
     });
   });
 
-  // Synchronize any formats (e.g. synthesized 8K, 4K MP4, 2K MP4, audio tracks) into rawStreams
-  formats.forEach((fmt) => {
-    if (fmt.isSubtitle) return;
-    const isVideo = !!fmt.isVideo;
-    const isAudio = !!fmt.isAudio;
-    const mimeMatch = fmt.ext === 'mp4' ? 'mp4' : 'webm';
-    const exists = rawStreams.some((s) => (fmt.itag && s.itag === fmt.itag) || (s.mimeType.includes(mimeMatch) && (s.qualityLabel === fmt.label || (fmt.resolution && s.qualityLabel === fmt.resolution.split('•')[0].trim()))));
+  // Guarantee that every rawStream has a matching format in `formats` for seamless double-click playback and selection
+  rawStreams.forEach((s) => {
+    const exists = formats.some((fmt) => fmt.itag === s.itag);
     if (!exists) {
-      const isHdr = !!(fmt.badge?.includes('HDR') || fmt.codec?.includes('HDR') || fmt.resolution?.includes('HDR'));
-      let fallbackItag = fmt.itag;
-      if (!fallbackItag) {
-        if (fmt.qualityTier === '8k' && fmt.ext === 'mp4') fallbackItag = 571;
-        else if (fmt.qualityTier === '8k' && fmt.ext === 'webm') fallbackItag = 272;
-        else if (fmt.qualityTier === '4k' && fmt.ext === 'mp4') fallbackItag = 399;
-        else if (fmt.qualityTier === '2k' && fmt.ext === 'mp4') fallbackItag = 398;
-        else fallbackItag = Math.floor(Math.random() * 900) + 100;
-        fmt.itag = fallbackItag;
-      }
-      rawStreams.push({
-        itag: fallbackItag,
-        qualityLabel: fmt.resolution?.split('•')[0]?.trim() || fmt.label,
-        mimeType: fmt.ext === 'webm' || fmt.ext === 'opus' ? (isAudio ? 'audio/webm' : 'video/webm') : (isAudio ? 'audio/mp4' : 'video/mp4'),
-        codec: fmt.codec || (fmt.ext === 'mp4' ? 'H.264 / AV1' : (isAudio ? 'Opus 48kHz' : 'VP9')),
-        bitrate: fmt.filesizeBytes ? Math.round((fmt.filesizeBytes * 8) / dur) : 0,
-        bitrateFormatted: fmt.badge || `${fmt.ext.toUpperCase()}`,
-        fps: fmt.fps,
-        filesizeBytes: fmt.filesizeBytes,
-        type: isAudio ? 'audio' : 'video',
-        directUrl: fmt.directUrl || fallbackBaseUrl,
-        isHdr,
+      const isAud = s.type === 'audio';
+      const isMp4 = s.mimeType.includes('mp4');
+      const ext = isMp4 ? (isAud ? 'm4a' : 'mp4') : (isAud ? 'opus' : 'webm');
+      formats.push({
+        id: `yt_itag_${s.itag}`,
+        label: s.qualityLabel,
+        qualityTier: isAud ? 'audio' : (s.qualityLabel.includes('4320') ? '8k' : s.qualityLabel.includes('2160') ? '4k' : s.qualityLabel.includes('1440') ? '2k' : s.qualityLabel.includes('1080') ? '1080p' : s.qualityLabel.includes('720') ? '720p' : s.qualityLabel.includes('480') ? '480p' : s.qualityLabel.includes('360') ? '360p' : s.qualityLabel.includes('240') ? '240p' : s.qualityLabel.includes('144') ? '144p' : 'original'),
+        resolution: `${s.qualityLabel} • ${s.bitrateFormatted}`,
+        fps: s.fps,
+        ext,
+        filesizeBytes: s.filesizeBytes,
+        directUrl: s.directUrl,
+        isVideo: !isAud,
+        isAudio: isAud,
+        badge: s.bitrateFormatted,
+        codec: s.codec,
+        itag: s.itag,
       });
     }
   });
