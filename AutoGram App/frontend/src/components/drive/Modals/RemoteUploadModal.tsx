@@ -774,6 +774,23 @@ const BatchMediaCard = React.memo(function BatchMediaCard({
   );
 });
 
+function getYouTubeQualityParam(fmt?: StreamQualityFormat): string {
+  if (!fmt) return 'highres';
+  const tier = fmt.qualityTier?.toLowerCase() || '';
+  const res = (fmt.resolution || '').toLowerCase();
+  const label = (fmt.label || '').toLowerCase();
+  if (tier === '8k' || res.includes('4320') || label.includes('4320') || label.includes('8k')) return 'highres';
+  if (tier === '4k' || res.includes('2160') || label.includes('2160') || label.includes('4k')) return 'hd2160';
+  if (tier === '2k' || res.includes('1440') || label.includes('1440') || label.includes('2k')) return 'hd1440';
+  if (tier === '1080p' || res.includes('1080') || label.includes('1080')) return 'hd1080';
+  if (tier === '720p' || res.includes('720') || label.includes('720')) return 'hd720';
+  if (tier === '480p' || res.includes('480') || label.includes('480')) return 'large';
+  if (tier === '360p' || res.includes('360') || label.includes('360')) return 'medium';
+  if (tier === '240p' || res.includes('240') || label.includes('240')) return 'small';
+  if (tier === '144p' || res.includes('144') || label.includes('144')) return 'tiny';
+  return 'highres';
+}
+
 export function RemoteUploadModal({
   isOpen,
   initialUrl,
@@ -3334,17 +3351,42 @@ export function RemoteUploadModal({
                                 />
                               </div>
                             ) : isPlayingStream && vId ? (
-                              <div className="td-remote-big-canvas-inner td-remote-single-player-canvas">
-                                <iframe
-                                  key={vId}
-                                  src={`https://www.youtube.com/embed/${vId}?autoplay=1&rel=0&modestbranding=1`}
-                                  title={resolvedMedia.title}
-                                  className="td-remote-big-canvas-video td-remote-embedded-iframe"
-                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                  allowFullScreen
-                                  style={{ border: 'none', width: '100%', height: '100%', borderRadius: '8px' }}
-                                />
-                              </div>
+                              (() => {
+                                const ytQualityCode = getYouTubeQualityParam(activeFormatForCanvas);
+                                return (
+                                  <div className="td-remote-big-canvas-inner td-remote-single-player-canvas" style={{ background: '#000000', position: 'relative' }}>
+                                    <iframe
+                                      key={`${vId}_${ytQualityCode}_${activeFormatForCanvas?.id || 'default'}`}
+                                      src={`https://www.youtube-nocookie.com/embed/${vId}?autoplay=1&vq=${ytQualityCode}&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : '')}&rel=0&modestbranding=1&controls=1&playsinline=1&iv_load_policy=3&color=white`}
+                                      title={resolvedMedia.title}
+                                      className="td-remote-big-canvas-video td-remote-embedded-iframe"
+                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                      allowFullScreen
+                                      style={{ border: 'none', width: '100%', height: '100%', borderRadius: '8px', background: '#000000' }}
+                                      onLoad={(e) => {
+                                        try {
+                                          const cw = e.currentTarget.contentWindow;
+                                          if (cw) {
+                                            cw.postMessage(JSON.stringify({ event: 'command', func: 'setPlaybackQuality', args: [ytQualityCode] }), '*');
+                                            cw.postMessage(JSON.stringify({ event: 'command', func: 'setPlaybackQualityRange', args: [ytQualityCode, ytQualityCode] }), '*');
+                                          }
+                                        } catch {
+                                          /* ignore cross-origin postMessage */
+                                        }
+                                      }}
+                                    />
+                                    {activeFormatForCanvas && (
+                                      <div className="td-remote-canvas-active-quality-pill">
+                                        <span className="td-remote-pulse-dot" />
+                                        <span>{getFormatDisplayLabel(activeFormatForCanvas, resolvedMedia, t)}</span>
+                                        {activeFormatForCanvas.badge && (
+                                          <span className="td-remote-quality-subbadge">{activeFormatForCanvas.badge}</span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()
                             ) : (activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl) ? (
                               <div className="td-remote-big-canvas-inner">
                                 <img
