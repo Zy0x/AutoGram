@@ -3219,7 +3219,23 @@ export function RemoteUploadModal({
                     <div className="td-remote-stream-player-col">
                       {/* Active Player Canvas */}
                       <div className="td-remote-big-canvas-wrap">
-                        {activePlayableUrl && (targetMediaForPlayback?.isVideo || !resolvedMedia.albumImages || resolvedMedia.albumImages.length === 0) ? (
+                        {Boolean(
+                          activePlayableUrl &&
+                          !activePlayableUrl.includes('youtube.com/watch') &&
+                          !activePlayableUrl.includes('youtu.be/') &&
+                          (
+                            activePlayableUrl.startsWith('blob:') ||
+                            activePlayableUrl.startsWith('http://localhost') ||
+                            activePlayableUrl.startsWith('http://127.0.0.1') ||
+                            /\.(mp4|webm|m4v|mov|mkv|ogg|mp3|m4a|aac)(\?.*)?$/i.test(activePlayableUrl) ||
+                            activePlayableUrl.includes('googlevideo.com') ||
+                            activePlayableUrl.includes('fbcdn.net') ||
+                            activePlayableUrl.includes('cdninstagram.com') ||
+                            activePlayableUrl.includes('tiktokcdn.com') ||
+                            activePlayableUrl.includes('twimg.com')
+                          ) &&
+                          (targetMediaForPlayback?.isVideo || !resolvedMedia.albumImages || resolvedMedia.albumImages.length === 0)
+                        ) ? (
                           <div className="td-remote-big-canvas-inner td-remote-single-player-canvas">
                             <video
                               key={activePlayableUrl}
@@ -3281,14 +3297,21 @@ export function RemoteUploadModal({
                               }}
                             />
                           </div>
-                        ) : activeSlideUrl ? (
+                        ) : (activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl) ? (
                           <div className="td-remote-big-canvas-inner">
                             <img
-                              src={activeSlideUrl}
+                              src={activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl}
                               alt={resolvedMedia.title}
                               className="td-remote-big-canvas-img"
-                              loading="lazy"
+                              loading="eager"
                               referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                const ytMatch = (resolvedUrlInput || activePlayableUrl || '').match(/(?:v=|\/embed\/|\/watch\?v=|youtu\.be\/|\/v\/|\/e\/|watch\?.+&v=)([\w-]{11})/);
+                                const vId = ytMatch ? ytMatch[1] : undefined;
+                                if (vId && !e.currentTarget.src.includes('hqdefault.jpg')) {
+                                  e.currentTarget.src = `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`;
+                                }
+                              }}
                             />
                             <div className="td-remote-canvas-badge-overlay">
                               {resolvedMedia.albumImages && resolvedMedia.albumImages.length > 1 && (
