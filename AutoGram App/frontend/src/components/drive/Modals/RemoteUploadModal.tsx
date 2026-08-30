@@ -809,6 +809,7 @@ export function RemoteUploadModal({
   const [matrixSearchQuery, setMatrixSearchQuery] = useState<string>('');
   const [subtitleSearchQuery, setSubtitleSearchQuery] = useState<string>('');
   const [copiedStreamUrl, setCopiedStreamUrl] = useState<boolean>(false);
+  const [isPlayingStream, setIsPlayingStream] = useState<boolean>(false);
   const [selectedMediaItemIds, setSelectedMediaItemIds] = useState<Set<string>>(new Set());
   const [itemSelectedFormats, setItemSelectedFormats] = useState<Record<string, string>>({});
   const [activePreviewItemId, setActivePreviewItemId] = useState<string>('');
@@ -1697,8 +1698,11 @@ export function RemoteUploadModal({
     return list;
   }, [effectiveMediaItems, galleryFilter, gallerySearch, gallerySortBy, gallerySortOrder, itemDurations]);
 
-  const handleSelectFormat = (fmt: StreamQualityFormat) => {
+  const handleSelectFormat = useCallback((fmt: StreamQualityFormat) => {
     setSelectedFormatId(fmt.id);
+    if (isPlayingStream && fmt.directUrl) {
+      setActivePlayableUrl(fmt.directUrl);
+    }
     const newFilename = getEffectiveFormatFilename(fmt, resolvedMedia);
     setInspection((prev) =>
       prev
@@ -1723,7 +1727,15 @@ export function RemoteUploadModal({
         setActiveSlideIndex(photoIdx);
       }
     }
-  };
+  }, [isPlayingStream, resolvedMedia]);
+
+  const handlePlayFormat = useCallback((fmt: StreamQualityFormat) => {
+    handleSelectFormat(fmt);
+    setIsPlayingStream(true);
+    if (fmt.directUrl) {
+      setActivePlayableUrl(fmt.directUrl);
+    }
+  }, [handleSelectFormat]);
 
   const activeSlideUrl = useMemo(() => {
     const selFormat = resolvedMedia?.formats?.find((f) => f.id === selectedFormatId);
@@ -3218,8 +3230,12 @@ export function RemoteUploadModal({
                     {/* Left Column: Player & Active Stream Details */}
                     <div className="td-remote-stream-player-col">
                       {/* Active Player Canvas */}
-                      <div className="td-remote-big-canvas-wrap">
-                        {Boolean(
+                      {(() => {
+                        const activeFormatForCanvas = resolvedMedia?.formats?.find((f) => f.id === selectedFormatId) || resolvedMedia?.formats?.[0];
+                        const ytMatch = (url || activePlayableUrl || resolvedMedia?.thumbnailUrl || '').match(/(?:v=|\/embed\/|\/watch\?v=|youtu\.be\/|\/v\/|\/e\/|watch\?.+&v=)([\w-]{11})/);
+                        const vId = ytMatch ? ytMatch[1] : undefined;
+
+                        const isDirectStream = Boolean(
                           activePlayableUrl &&
                           !activePlayableUrl.includes('youtube.com/watch') &&
                           !activePlayableUrl.includes('youtu.be/') &&
@@ -3233,113 +3249,142 @@ export function RemoteUploadModal({
                             activePlayableUrl.includes('cdninstagram.com') ||
                             activePlayableUrl.includes('tiktokcdn.com') ||
                             activePlayableUrl.includes('twimg.com')
-                          ) &&
-                          (targetMediaForPlayback?.isVideo || !resolvedMedia.albumImages || resolvedMedia.albumImages.length === 0)
-                        ) ? (
-                          <div className="td-remote-big-canvas-inner td-remote-single-player-canvas">
-                            <video
-                              key={activePlayableUrl}
-                              src={activePlayableUrl}
-                              poster={activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl}
-                              controls
-                              preload="metadata"
-                              playsInline
-                              className="td-remote-big-canvas-video td-remote-active-player-video"
-                              crossOrigin="anonymous"
-                              onLoadedData={(e) => {
-                                const v = e.currentTarget;
-                                if (resolvedMedia && !resolvedMedia.thumbnailUrl) {
-                                  const thumb = captureVideoCanvasThumbnail(v);
-                                  if (thumb) {
-                                    setResolvedMedia((prev) => (prev ? { ...prev, thumbnailUrl: thumb } : prev));
-                                  }
-                                }
-                              }}
-                              onLoadedMetadata={(e) => {
-                                const v = e.currentTarget;
-                                const dur = v.duration;
-                                const w = v.videoWidth;
-                                const h = v.videoHeight;
-                                if (resolvedMedia && !resolvedMedia.thumbnailUrl) {
-                                  const thumb = captureVideoCanvasThumbnail(v);
-                                  if (thumb) {
-                                    setResolvedMedia((prev) => (prev ? { ...prev, thumbnailUrl: thumb } : prev));
-                                  }
-                                }
-                                if (dur && isFinite(dur) && dur > 0) {
-                                  const d = Math.round(dur);
-                                  if (activePreviewItem) {
-                                    setItemDurations((prev) => {
-                                      if (prev[activePreviewItem.id] === d) return prev;
-                                      return { ...prev, [activePreviewItem.id]: d };
-                                    });
-                                  }
-                                }
-                                if (w > 0 && h > 0 && activePreviewItem) {
-                                  setItemResolutions((prev) => {
-                                    const cur = prev[activePreviewItem.id];
-                                    if (cur && cur.width === w && cur.height === h) return prev;
-                                    return { ...prev, [activePreviewItem.id]: { width: w, height: h } };
-                                  });
-                                }
-                              }}
-                              onDurationChange={(e) => {
-                                const dur = e.currentTarget.duration;
-                                if (dur && isFinite(dur) && dur > 0) {
-                                  const d = Math.round(dur);
-                                  if (activePreviewItem) {
-                                    setItemDurations((prev) => {
-                                      if (prev[activePreviewItem.id] === d) return prev;
-                                      return { ...prev, [activePreviewItem.id]: d };
-                                    });
-                                  }
-                                }
-                              }}
-                            />
+                          )
+                        );
+
+                        return (
+                          <div className="td-remote-big-canvas-wrap">
+                            {isPlayingStream && isDirectStream ? (
+                              <div className="td-remote-big-canvas-inner td-remote-single-player-canvas">
+                                <video
+                                  key={activePlayableUrl}
+                                  src={activePlayableUrl}
+                                  poster={activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl}
+                                  autoPlay
+                                  controls
+                                  preload="auto"
+                                  playsInline
+                                  className="td-remote-big-canvas-video td-remote-active-player-video"
+                                  crossOrigin="anonymous"
+                                  onLoadedData={(e) => {
+                                    const v = e.currentTarget;
+                                    if (resolvedMedia && !resolvedMedia.thumbnailUrl) {
+                                      const thumb = captureVideoCanvasThumbnail(v);
+                                      if (thumb) {
+                                        setResolvedMedia((prev) => (prev ? { ...prev, thumbnailUrl: thumb } : prev));
+                                      }
+                                    }
+                                  }}
+                                  onLoadedMetadata={(e) => {
+                                    const v = e.currentTarget;
+                                    const dur = v.duration;
+                                    const w = v.videoWidth;
+                                    const h = v.videoHeight;
+                                    if (resolvedMedia && !resolvedMedia.thumbnailUrl) {
+                                      const thumb = captureVideoCanvasThumbnail(v);
+                                      if (thumb) {
+                                        setResolvedMedia((prev) => (prev ? { ...prev, thumbnailUrl: thumb } : prev));
+                                      }
+                                    }
+                                    if (dur && isFinite(dur) && dur > 0) {
+                                      const d = Math.round(dur);
+                                      if (activePreviewItem) {
+                                        setItemDurations((prev) => {
+                                          if (prev[activePreviewItem.id] === d) return prev;
+                                          return { ...prev, [activePreviewItem.id]: d };
+                                        });
+                                      }
+                                    }
+                                    if (w > 0 && h > 0 && activePreviewItem) {
+                                      setItemResolutions((prev) => {
+                                        const cur = prev[activePreviewItem.id];
+                                        if (cur && cur.width === w && cur.height === h) return prev;
+                                        return { ...prev, [activePreviewItem.id]: { width: w, height: h } };
+                                      });
+                                    }
+                                  }}
+                                  onDurationChange={(e) => {
+                                    const dur = e.currentTarget.duration;
+                                    if (dur && isFinite(dur) && dur > 0) {
+                                      const d = Math.round(dur);
+                                      if (activePreviewItem) {
+                                        setItemDurations((prev) => {
+                                          if (prev[activePreviewItem.id] === d) return prev;
+                                          return { ...prev, [activePreviewItem.id]: d };
+                                        });
+                                      }
+                                    }
+                                  }}
+                                />
+                              </div>
+                            ) : isPlayingStream && vId ? (
+                              <div className="td-remote-big-canvas-inner td-remote-single-player-canvas">
+                                <iframe
+                                  key={vId}
+                                  src={`https://www.youtube.com/embed/${vId}?autoplay=1&rel=0&modestbranding=1`}
+                                  title={resolvedMedia.title}
+                                  className="td-remote-big-canvas-video td-remote-embedded-iframe"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                  allowFullScreen
+                                  style={{ border: 'none', width: '100%', height: '100%', borderRadius: '8px' }}
+                                />
+                              </div>
+                            ) : (activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl) ? (
+                              <div className="td-remote-big-canvas-inner">
+                                <img
+                                  src={activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl}
+                                  alt={resolvedMedia.title}
+                                  className="td-remote-big-canvas-img"
+                                  loading="eager"
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => {
+                                    if (vId && !e.currentTarget.src.includes('hqdefault.jpg')) {
+                                      e.currentTarget.src = `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`;
+                                    }
+                                  }}
+                                />
+                                {activeFormatForCanvas && (
+                                  <button
+                                    type="button"
+                                    className="td-remote-canvas-center-play-btn"
+                                    onClick={() => handlePlayFormat(activeFormatForCanvas)}
+                                    title={t('drive.remote_stream_play_tooltip')}
+                                  >
+                                    <div className="td-remote-canvas-play-circle">
+                                      <Play size={24} fill="currentColor" />
+                                    </div>
+                                    <span className="td-remote-canvas-play-hint">{t('drive.remote_stream_play_hint')}</span>
+                                  </button>
+                                )}
+                                <div className="td-remote-canvas-badge-overlay">
+                                  {resolvedMedia.albumImages && resolvedMedia.albumImages.length > 1 && (
+                                    <span className="td-remote-canvas-slide-tag">
+                                      <ImageIcon size={12} />
+                                      <span>
+                                        {t('drive.remote_split_slide_preview', {
+                                          idx: activeSlideIndex + 1,
+                                          total: resolvedMedia.albumImages.length,
+                                        })}
+                                      </span>
+                                    </span>
+                                  )}
+                                  {resolvedMedia.durationSec ? (
+                                    <span className="td-remote-canvas-duration-tag">
+                                      <Clock size={11} />
+                                      <span>{formatMediaDuration(resolvedMedia.durationSec)}</span>
+                                    </span>
+                                  ) : null}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="td-remote-big-canvas-fallback">
+                                <Film size={36} className="td-remote-fallback-icon" />
+                                <span>{t('drive_tools.remote_platform_stream_fallback', { platform: resolvedMedia.platformName })}</span>
+                              </div>
+                            )}
                           </div>
-                        ) : (activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl) ? (
-                          <div className="td-remote-big-canvas-inner">
-                            <img
-                              src={activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl}
-                              alt={resolvedMedia.title}
-                              className="td-remote-big-canvas-img"
-                              loading="eager"
-                              referrerPolicy="no-referrer"
-                              onError={(e) => {
-                                const ytMatch = (resolvedUrlInput || activePlayableUrl || '').match(/(?:v=|\/embed\/|\/watch\?v=|youtu\.be\/|\/v\/|\/e\/|watch\?.+&v=)([\w-]{11})/);
-                                const vId = ytMatch ? ytMatch[1] : undefined;
-                                if (vId && !e.currentTarget.src.includes('hqdefault.jpg')) {
-                                  e.currentTarget.src = `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`;
-                                }
-                              }}
-                            />
-                            <div className="td-remote-canvas-badge-overlay">
-                              {resolvedMedia.albumImages && resolvedMedia.albumImages.length > 1 && (
-                                <span className="td-remote-canvas-slide-tag">
-                                  <ImageIcon size={12} />
-                                  <span>
-                                    {t('drive.remote_split_slide_preview', {
-                                      idx: activeSlideIndex + 1,
-                                      total: resolvedMedia.albumImages.length,
-                                    })}
-                                  </span>
-                                </span>
-                              )}
-                              {resolvedMedia.durationSec ? (
-                                <span className="td-remote-canvas-duration-tag">
-                                  <Clock size={11} />
-                                  <span>{formatMediaDuration(resolvedMedia.durationSec)}</span>
-                                </span>
-                              ) : null}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="td-remote-big-canvas-fallback">
-                            <Film size={36} className="td-remote-fallback-icon" />
-                            <span>{t('drive_tools.remote_platform_stream_fallback', { platform: resolvedMedia.platformName })}</span>
-                          </div>
-                        )}
-                      </div>
+                        );
+                      })()}
 
                       {/* Active Item Editable Filename Bar (Replacing Specs Ribbon) */}
                       <div className="td-remote-stream-filename-bar">
@@ -4004,6 +4049,11 @@ export function RemoteUploadModal({
                                 type="button"
                                 className={`td-remote-quality-chip ${isSelected ? 'active' : ''} tier-${fmt.qualityTier} ${fmt.isAlbumPack ? 'album-pack' : ''}`}
                                 onClick={() => handleSelectFormat(fmt)}
+                                onDoubleClick={(e) => {
+                                  e.stopPropagation();
+                                  handlePlayFormat(fmt);
+                                }}
+                                title={t('drive.remote_stream_double_click_hint')}
                                 disabled={submitting}
                               >
                                 <div className="td-remote-quality-chip-top">
@@ -4133,27 +4183,30 @@ export function RemoteUploadModal({
                                     .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
 
                                   const renderMatrixRow = (s: RawStreamItem) => {
-                                    const isSelected = activeFmt?.itag === s.itag || (activeFmt?.directUrl && activeFmt.directUrl === s.directUrl);
+                                    const matchedFmt = resolvedMedia.formats.find((f) => f.itag === s.itag) || {
+                                      id: `raw_itag_${s.itag}`,
+                                      label: `${s.qualityLabel || s.codec} (itag ${s.itag})`,
+                                      qualityTier: 'original' as const,
+                                      resolution: `${s.qualityLabel || s.codec} • ${s.bitrateFormatted}`,
+                                      ext: s.mimeType.includes('webm') || s.mimeType.includes('opus') ? 'webm' : (s.type === 'audio' ? 'm4a' : 'mp4'),
+                                      filesizeBytes: s.filesizeBytes,
+                                      directUrl: s.directUrl,
+                                      isVideo: s.type === 'video' || s.type === 'muxed',
+                                      isAudio: s.type === 'audio',
+                                      badge: s.isHdr ? `HDR • ${s.bitrateFormatted}` : s.bitrateFormatted,
+                                      itag: s.itag,
+                                    };
+                                    const isSelected = activeFmt?.itag === s.itag || (activeFmt?.directUrl && activeFmt.directUrl === s.directUrl) || selectedFormatId === matchedFmt.id;
                                     return (
                                       <tr
                                         key={s.itag}
                                         className={`td-remote-matrix-row ${isSelected ? 'selected' : ''}`}
-                                        onClick={() => {
-                                          const matchedFmt = resolvedMedia.formats.find((f) => f.itag === s.itag) || {
-                                            id: `raw_itag_${s.itag}`,
-                                            label: `${s.qualityLabel || s.codec} (itag ${s.itag})`,
-                                            qualityTier: 'original' as const,
-                                            resolution: `${s.qualityLabel || s.codec} • ${s.bitrateFormatted}`,
-                                            ext: s.mimeType.includes('webm') || s.mimeType.includes('opus') ? 'webm' : (s.type === 'audio' ? 'm4a' : 'mp4'),
-                                            filesizeBytes: s.filesizeBytes,
-                                            directUrl: s.directUrl,
-                                            isVideo: s.type === 'video' || s.type === 'muxed',
-                                            isAudio: s.type === 'audio',
-                                            badge: s.isHdr ? `HDR • ${s.bitrateFormatted}` : s.bitrateFormatted,
-                                            itag: s.itag,
-                                          };
-                                          handleSelectFormat(matchedFmt);
+                                        onClick={() => handleSelectFormat(matchedFmt)}
+                                        onDoubleClick={(e) => {
+                                          e.stopPropagation();
+                                          handlePlayFormat(matchedFmt);
                                         }}
+                                        title={t('drive.remote_stream_double_click_hint')}
                                       >
                                         <td>
                                           <span className="td-remote-matrix-itag-badge">{s.itag}</span>
@@ -4189,20 +4242,11 @@ export function RemoteUploadModal({
                                             className={`td-remote-matrix-select-btn ${isSelected ? 'selected' : ''}`}
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              const matchedFmt = resolvedMedia.formats.find((f) => f.itag === s.itag) || {
-                                                id: `raw_itag_${s.itag}`,
-                                                label: `${s.qualityLabel || s.codec} (itag ${s.itag})`,
-                                                qualityTier: 'original' as const,
-                                                resolution: `${s.qualityLabel || s.codec} • ${s.bitrateFormatted}`,
-                                                ext: s.mimeType.includes('webm') || s.mimeType.includes('opus') ? 'webm' : (s.type === 'audio' ? 'm4a' : 'mp4'),
-                                                filesizeBytes: s.filesizeBytes,
-                                                directUrl: s.directUrl,
-                                                isVideo: s.type === 'video' || s.type === 'muxed',
-                                                isAudio: s.type === 'audio',
-                                                badge: s.isHdr ? `HDR • ${s.bitrateFormatted}` : s.bitrateFormatted,
-                                                itag: s.itag,
-                                              };
                                               handleSelectFormat(matchedFmt);
+                                            }}
+                                            onDoubleClick={(e) => {
+                                              e.stopPropagation();
+                                              handlePlayFormat(matchedFmt);
                                             }}
                                           >
                                             {isSelected ? t('drive.remote_matrix_selected_badge') : t('drive.remote_matrix_select_btn')}

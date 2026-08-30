@@ -380,6 +380,47 @@ function processPlayerData(
     });
   });
 
+  // Synchronize any formats (e.g. synthesized 8K, 4K MP4, 2K MP4, audio tracks) into rawStreams
+  formats.forEach((fmt) => {
+    if (fmt.isSubtitle) return;
+    const exists = rawStreams.some((s) => (fmt.itag && s.itag === fmt.itag) || s.qualityLabel === fmt.label || (fmt.resolution && s.qualityLabel?.includes(fmt.resolution.split('•')[0].trim())));
+    if (!exists) {
+      const isVideo = !!fmt.isVideo;
+      const isAudio = !!fmt.isAudio;
+      const isHdr = !!(fmt.badge?.includes('HDR') || fmt.codec?.includes('HDR') || fmt.resolution?.includes('HDR'));
+      let fallbackItag = fmt.itag;
+      if (!fallbackItag) {
+        if (fmt.qualityTier === '8k' && fmt.ext === 'mp4') fallbackItag = 571;
+        else if (fmt.qualityTier === '8k' && fmt.ext === 'webm') fallbackItag = 272;
+        else if (fmt.qualityTier === '4k' && fmt.ext === 'mp4') fallbackItag = 399;
+        else if (fmt.qualityTier === '2k' && fmt.ext === 'mp4') fallbackItag = 398;
+        else fallbackItag = Math.floor(Math.random() * 900) + 100;
+      }
+      rawStreams.push({
+        itag: fallbackItag,
+        qualityLabel: fmt.resolution?.split('•')[0]?.trim() || fmt.label,
+        mimeType: fmt.ext === 'webm' || fmt.ext === 'opus' ? (isAudio ? 'audio/webm' : 'video/webm') : (isAudio ? 'audio/mp4' : 'video/mp4'),
+        codec: fmt.codec || (fmt.ext === 'mp4' ? 'H.264 / AV1' : (isAudio ? 'Opus 48kHz' : 'VP9')),
+        bitrate: fmt.filesizeBytes ? Math.round((fmt.filesizeBytes * 8) / dur) : 0,
+        bitrateFormatted: fmt.badge || `${fmt.ext.toUpperCase()}`,
+        fps: fmt.fps,
+        filesizeBytes: fmt.filesizeBytes,
+        type: isAudio ? 'audio' : 'video',
+        directUrl: fmt.directUrl || fallbackBaseUrl,
+        isHdr,
+      });
+    }
+  });
+
+  // Sort rawStreams: Video first (highest bitrate & resolution first), then Audio (highest bitrate first)
+  rawStreams.sort((a, b) => {
+    if (a.type !== b.type) {
+      if (a.type === 'video' || a.type === 'muxed') return -1;
+      if (b.type === 'video' || b.type === 'muxed') return 1;
+    }
+    return (b.bitrate || 0) - (a.bitrate || 0);
+  });
+
   return { title, author, description, durationSec, thumbnailUrl };
 }
 
