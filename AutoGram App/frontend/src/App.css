@@ -28324,7 +28324,37 @@ button.td-confirm-icon.is-back-btn:active {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 4px;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.td-remote-batch-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.td-remote-return-preview-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.td-remote-return-preview-btn:hover {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: #38bdf8;
+  color: #f0f9ff;
+  transform: translateY(-1px);
 }
 
 .td-remote-batch-hint {
@@ -28532,6 +28562,21 @@ button.td-confirm-icon.is-back-btn:active {
   color: #38bdf8;
 }
 
+.td-remote-batch-group-info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.td-remote-batch-group-title-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
 .td-remote-batch-group-title {
   font-size: 0.75rem;
   font-weight: 700;
@@ -28552,6 +28597,49 @@ button.td-confirm-icon.is-back-btn:active {
   border-radius: 6px;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+.td-remote-batch-group-url-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.td-remote-batch-group-url {
+  font-size: 0.64rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: text !important;
+  cursor: text;
+  max-width: 380px;
+}
+
+.td-remote-batch-copy-url-btn,
+.td-remote-batch-open-url-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #94a3b8;
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 1px 5px;
+  cursor: pointer;
+  transition: all 120ms ease;
+  flex-shrink: 0;
+}
+
+.td-remote-batch-copy-url-btn:hover,
+.td-remote-batch-open-url-btn:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
 }
 
 .td-remote-batch-group-head-right {

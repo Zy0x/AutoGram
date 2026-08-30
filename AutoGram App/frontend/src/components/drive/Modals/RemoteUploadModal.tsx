@@ -45,6 +45,7 @@ import {
   RotateCcw,
   RefreshCw,
   Trash2,
+  Copy,
   ArrowUp,
   ArrowDown,
   User,
@@ -644,7 +645,11 @@ export function RemoteUploadModal({
   const [batchFilterType, setBatchFilterType] = useState<'all' | 'video' | 'photo' | 'selected'>('all');
   const [batchSearchQuery, setBatchSearchQuery] = useState('');
   const [isEditingBatchText, setIsEditingBatchText] = useState(true);
+  const [copiedUrlGroupId, setCopiedUrlGroupId] = useState<string | null>(null);
+  const [batchItemDurations, setBatchItemDurations] = useState<Record<string, number>>({});
+  const [batchPlayableUrl, setBatchPlayableUrl] = useState<string>('');
   const batchInspectAbortRef = useRef<AbortController | null>(null);
+  const batchClickTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   const prevIsOpenRef = useRef(false);
   const lastAppliedInitialUrlRef = useRef('');
@@ -696,6 +701,11 @@ export function RemoteUploadModal({
       setSelectedBatchItemIds(new Set());
       setFocusedBatchItem(null);
       setBatchSearchQuery('');
+      setBatchItemDurations({});
+      setBatchPlayableUrl('');
+      setCopiedUrlGroupId(null);
+      batchClickTimersRef.current.forEach((t) => clearTimeout(t));
+      batchClickTimersRef.current.clear();
       setIsEditingBatchText(true);
       if (batchInspectAbortRef.current) {
         batchInspectAbortRef.current.abort();
@@ -1704,6 +1714,103 @@ export function RemoteUploadModal({
     }
   }, [batchUrls, t]);
 
+  // Resolve stream proxy URL for focused batch video (handling Referer headers for Streamrizz, TikTok, X, etc.)
+  useEffect(() => {
+    let isCancelled = false;
+    const rawUrl = focusedBatchItem?.directUrl;
+    if (!rawUrl || !focusedBatchItem?.isVideo) {
+      setBatchPlayableUrl('');
+      return;
+    }
+
+    const referer =
+      focusedBatchItem.headers?.Referer ||
+      (rawUrl.includes('overfetch.video') || rawUrl.includes('vidoy') || rawUrl.includes('streamrizz')
+        ? 'https://streamrizz.com/'
+        : rawUrl.includes('twimg.com') || rawUrl.includes('twitter.com') || rawUrl.includes('x.com')
+        ? 'https://x.com/'
+        : rawUrl.includes('tiktok.com') || rawUrl.includes('tiktokcdn.com')
+        ? 'https://www.tiktok.com/'
+        : undefined);
+
+    if (detectTauriRuntime() && referer) {
+      invoke<string>('get_remote_stream_proxy_url', { url: rawUrl, referer })
+        .then((proxied) => {
+          if (!isCancelled) setBatchPlayableUrl(proxied);
+        })
+        .catch(() => {
+          if (!isCancelled) setBatchPlayableUrl(rawUrl);
+        });
+    } else {
+      setBatchPlayableUrl(rawUrl);
+    }
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [focusedBatchItem]);
+
+  // Probe duration for batch video items
+  const probeBatchItemDuration = useCallback(async (item: BatchMediaItem) => {
+    if (!item.isVideo) return;
+    if (batchItemDurations[item.id] || (item.durationSec && item.durationSec > 0)) return;
+    const rawUrl = item.directUrl;
+    if (!rawUrl) return;
+
+    const referer =
+      item.headers?.Referer ||
+      (rawUrl.includes('overfetch.video') || rawUrl.includes('vidoy') || rawUrl.includes('streamrizz')
+        ? 'https://streamrizz.com/'
+        : rawUrl.includes('twimg.com') || rawUrl.includes('twitter.com') || rawUrl.includes('x.com')
+        ? 'https://x.com/'
+        : rawUrl.includes('tiktok.com') || rawUrl.includes('tiktokcdn.com')
+        ? 'https://www.tiktok.com/'
+        : undefined);
+
+    let playUrl = rawUrl;
+    if (detectTauriRuntime() && referer) {
+      try {
+        playUrl = await invoke<string>('get_remote_stream_proxy_url', { url: rawUrl, referer });
+      } catch {
+        playUrl = rawUrl;
+      }
+    }
+
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.muted = true;
+    video.style.cssText =
+      'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;pointer-events:none;opacity:0;';
+    document.body.appendChild(video);
+
+    let done = false;
+    let tid: NodeJS.Timeout;
+    const finish = (durSec?: number) => {
+      if (done) return;
+      done = true;
+      clearTimeout(tid);
+      video.src = '';
+      try { video.load(); } catch (_) {}
+      try { document.body.removeChild(video); } catch (_) {}
+      if (durSec && isFinite(durSec) && durSec > 0) {
+        const d = Math.round(durSec);
+        setBatchItemDurations((prev) => {
+          if (prev[item.id] === d) return prev;
+          return { ...prev, [item.id]: d };
+        });
+      }
+    };
+
+    tid = setTimeout(() => finish(), 4000);
+    video.onloadedmetadata = () => {
+      if (video.duration && isFinite(video.duration) && video.duration > 0) {
+        finish(video.duration);
+      }
+    };
+    video.onerror = () => finish();
+    video.src = playUrl;
+  }, [batchItemDurations]);
+
   const handleToggleBatchItem = useCallback((itemId: string) => {
     setSelectedBatchItemIds((prev) => {
       const next = new Set(prev);
@@ -1714,6 +1821,34 @@ export function RemoteUploadModal({
       }
       return next;
     });
+  }, []);
+
+  // Card single-click and double-click logic for batch media cards
+  const handleBatchCardClick = useCallback((item: BatchMediaItem) => {
+    const existingTimer = batchClickTimersRef.current.get(item.id);
+    if (existingTimer) {
+      // Double click arrived! Set focus on preview
+      clearTimeout(existingTimer);
+      batchClickTimersRef.current.delete(item.id);
+      setFocusedBatchItem(item);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      handleToggleBatchItem(item.id);
+      batchClickTimersRef.current.delete(item.id);
+    }, 220);
+
+    batchClickTimersRef.current.set(item.id, timer);
+  }, [handleToggleBatchItem]);
+
+  const handleBatchCardDoubleClick = useCallback((item: BatchMediaItem) => {
+    const existingTimer = batchClickTimersRef.current.get(item.id);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+      batchClickTimersRef.current.delete(item.id);
+    }
+    setFocusedBatchItem(item);
   }, []);
 
   const handleToggleBatchGroup = useCallback((groupId: string, selectAll: boolean) => {
@@ -3495,18 +3630,6 @@ export function RemoteUploadModal({
                       {renderSupportedLinksPopover()}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {batchGroups.length > 0 && (
-                        <button
-                          type="button"
-                          className="td-remote-quick-btn"
-                          onClick={() => setIsEditingBatchText(false)}
-                          disabled={submitting || batchInspecting}
-                          title={t('drive.remote_batch_expand_group')}
-                        >
-                          <LayoutGrid size={12} />
-                          <span>{t('drive.remote_resolved_media_title')}</span>
-                        </button>
-                      )}
                       <button
                         type="button"
                         className="td-remote-paste-action"
@@ -3538,29 +3661,48 @@ export function RemoteUploadModal({
                         ? t('drive.remote_batch_count', { count: batchUrls.length })
                         : t('drive.remote_batch_empty_hint')}
                     </span>
-                    <button
-                      type="button"
-                      className="td-btn-primary td-remote-inspect-action-btn"
-                      onClick={handleInspectBatchUrls}
-                      disabled={batchUrls.length === 0 || batchInspecting || submitting}
-                    >
-                      {batchInspecting ? (
-                        <>
-                          <Loader2 size={13} className="spin" />
-                          <span>
-                            {t('drive.remote_batch_inspecting_status', {
-                              current: batchInspectProgress.current,
-                              total: batchInspectProgress.total,
-                            })}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <Search size={13} />
-                          <span>{t('drive.remote_batch_inspect_btn')}</span>
-                        </>
+                    <div className="td-remote-batch-footer-actions">
+                      {batchGroups.length > 0 && (
+                        <button
+                          type="button"
+                          className="td-btn-secondary td-remote-return-preview-btn"
+                          onClick={() => setIsEditingBatchText(false)}
+                          disabled={submitting || batchInspecting}
+                          title={t('drive.remote_batch_view_preview_btn')}
+                        >
+                          <LayoutGrid size={13} />
+                          <span>{t('drive.remote_batch_view_preview_btn')}</span>
+                        </button>
                       )}
-                    </button>
+                      <button
+                        type="button"
+                        className="td-btn-primary td-remote-inspect-action-btn"
+                        onClick={handleInspectBatchUrls}
+                        disabled={batchUrls.length === 0 || batchInspecting || submitting}
+                      >
+                        {batchInspecting ? (
+                          <>
+                            <Loader2 size={13} className="spin" />
+                            <span>
+                              {t('drive.remote_batch_inspecting_status', {
+                                current: batchInspectProgress.current,
+                                total: batchInspectProgress.total,
+                              })}
+                            </span>
+                          </>
+                        ) : batchGroups.length > 0 ? (
+                          <>
+                            <RefreshCw size={13} />
+                            <span>{t('drive.remote_batch_reinspect_all_btn')}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Search size={13} />
+                            <span>{t('drive.remote_batch_inspect_btn')}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3574,13 +3716,21 @@ export function RemoteUploadModal({
                       focusedBatchItem.isVideo ? (
                         <div className="td-remote-big-canvas-inner td-remote-single-player-canvas">
                           <video
-                            key={focusedBatchItem.directUrl}
-                            src={focusedBatchItem.directUrl}
+                            key={batchPlayableUrl || focusedBatchItem.directUrl}
+                            src={batchPlayableUrl || focusedBatchItem.directUrl}
                             poster={focusedBatchItem.thumbnailUrl}
                             controls
                             preload="metadata"
                             playsInline
                             className="td-remote-big-canvas-video td-remote-active-player-video"
+                            onLoadedMetadata={(e) => {
+                              const v = e.currentTarget;
+                              const dur = v.duration;
+                              if (dur && isFinite(dur) && dur > 0 && focusedBatchItem) {
+                                const d = Math.round(dur);
+                                setBatchItemDurations((prev) => ({ ...prev, [focusedBatchItem.id]: d }));
+                              }
+                            }}
                           />
                         </div>
                       ) : focusedBatchItem.kind === 'photo' ? (
@@ -3630,10 +3780,10 @@ export function RemoteUploadModal({
                               ~{formatDriveBytes(focusedBatchItem.filesizeBytes)}
                             </span>
                           ) : null}
-                          {focusedBatchItem.durationSec ? (
+                          {(batchItemDurations[focusedBatchItem.id] || focusedBatchItem.durationSec) ? (
                             <span className="td-remote-item-duration-badge" style={{ fontSize: '0.65rem' }}>
                               <Clock size={10} />
-                              <span>{formatMediaDuration(focusedBatchItem.durationSec)}</span>
+                              <span>{formatMediaDuration(batchItemDurations[focusedBatchItem.id] || focusedBatchItem.durationSec)}</span>
                             </span>
                           ) : null}
                           <button
@@ -3806,14 +3956,61 @@ export function RemoteUploadModal({
                                   <Folder size={13} className="td-remote-batch-folder-ico" />
                                 )}
                               </span>
-                              <span className="td-remote-batch-group-title" title={group.title}>
-                                {group.title}
-                              </span>
-                              {group.status === 'success' && (
-                                <span className="td-remote-batch-group-badge">
-                                  {t('drive.remote_batch_item_count', { count: group.items.length })}{groupTotalBytes > 0 ? ` · ~${formatDriveBytes(groupTotalBytes)}` : ''}
-                                </span>
-                              )}
+
+                              <div className="td-remote-batch-group-info-col">
+                                <div className="td-remote-batch-group-title-row">
+                                  <span className="td-remote-batch-group-title" title={group.title}>
+                                    {group.title}
+                                  </span>
+                                  {group.status === 'success' && (
+                                    <span className="td-remote-batch-group-badge">
+                                      {t('drive.remote_batch_item_count', { count: group.items.length })}{groupTotalBytes > 0 ? ` · ~${formatDriveBytes(groupTotalBytes)}` : ''}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="td-remote-batch-group-url-row" onClick={(e) => e.stopPropagation()}>
+                                  <span className="td-remote-batch-group-url" title={group.sourceUrl}>
+                                    {group.sourceUrl}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="td-remote-batch-copy-url-btn"
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      try {
+                                        await navigator.clipboard.writeText(group.sourceUrl);
+                                        setCopiedUrlGroupId(group.id);
+                                        setTimeout(() => setCopiedUrlGroupId(null), 1800);
+                                      } catch (_) {}
+                                    }}
+                                    title={t('drive.remote_copy_link')}
+                                  >
+                                    {copiedUrlGroupId === group.id ? (
+                                      <>
+                                        <Check size={9.5} className="text-emerald-400" />
+                                        <span className="text-emerald-400">{t('drive.remote_copied')}</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Copy size={9.5} />
+                                        <span>{t('drive.remote_copy_link')}</span>
+                                      </>
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="td-remote-batch-open-url-btn"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenInBrowser(group.sourceUrl);
+                                    }}
+                                    title={t('drive.remote_open_in_browser')}
+                                  >
+                                    <ExternalLink size={9.5} />
+                                  </button>
+                                </div>
+                              </div>
                             </div>
 
                             <div className="td-remote-batch-group-head-right" onClick={(e) => e.stopPropagation()}>
@@ -3890,12 +4087,14 @@ export function RemoteUploadModal({
                                     const extMatch = item.filename.match(/\.([a-zA-Z0-9]+)$/);
                                     const extName = extMatch ? extMatch[1].toUpperCase() : '';
                                     const baseName = extMatch ? item.filename.slice(0, extMatch.index) : item.filename;
+                                    const itemDur = batchItemDurations[item.id] || item.durationSec;
 
                                     return (
                                       <div
                                         key={item.id}
                                         className={`td-remote-media-item-card card-grid-mode ${isSelected ? 'selected' : ''} ${isFocused ? 'is-active-preview' : ''}`}
-                                        onClick={() => setFocusedBatchItem(item)}
+                                        onClick={() => handleBatchCardClick(item)}
+                                        onDoubleClick={() => handleBatchCardDoubleClick(item)}
                                       >
                                         <div className="td-remote-item-thumb-wrap">
                                           {item.thumbnailUrl ? (
@@ -3905,6 +4104,11 @@ export function RemoteUploadModal({
                                               className="td-remote-item-thumb-img"
                                               loading="lazy"
                                               referrerPolicy="no-referrer"
+                                              onLoad={() => {
+                                                if (item.isVideo && !item.durationSec && !batchItemDurations[item.id]) {
+                                                  probeBatchItemDuration(item);
+                                                }
+                                              }}
                                             />
                                           ) : (
                                             <div className="td-remote-item-thumb-fallback">
@@ -3923,6 +4127,11 @@ export function RemoteUploadModal({
                                             className={`td-remote-item-checkbox ${isSelected ? 'checked' : ''}`}
                                             onClick={(e) => {
                                               e.stopPropagation();
+                                              const existingTimer = batchClickTimersRef.current.get(item.id);
+                                              if (existingTimer) {
+                                                clearTimeout(existingTimer);
+                                                batchClickTimersRef.current.delete(item.id);
+                                              }
                                               handleToggleBatchItem(item.id);
                                             }}
                                             aria-label={isSelected ? t('drive_tools.remote_gallery_deselect_all') : t('drive_tools.remote_gallery_select_all')}
@@ -3942,10 +4151,10 @@ export function RemoteUploadModal({
                                                 ~{formatDriveBytes(item.filesizeBytes)}
                                               </span>
                                             ) : <span />}
-                                            {item.durationSec ? (
+                                            {itemDur ? (
                                               <span className="td-remote-item-duration-badge">
                                                 <Clock size={10} />
-                                                <span>{formatMediaDuration(item.durationSec)}</span>
+                                                <span>{formatMediaDuration(itemDur)}</span>
                                               </span>
                                             ) : null}
                                           </div>
