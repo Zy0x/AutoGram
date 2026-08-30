@@ -307,8 +307,20 @@ function getSingleUnifiedBadge(
   const fmt = item.formats[0];
   if (!fmt) return item.kind === 'image' ? 'PHOTO' : null;
 
-  if (fmt.ext === 'zip' || fmt.ext === 'rar' || fmt.ext === '7z') {
-    return 'ZIP';
+  const ext = (fmt.ext || '').toLowerCase();
+
+  // Non-video media types
+  if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
+    return ext === 'rar' ? 'RAR' : ext === '7z' ? '7Z' : 'ZIP';
+  }
+  if (['pdf', 'doc', 'docx', 'txt', 'epub'].includes(ext)) {
+    return ext === 'pdf' ? 'PDF' : 'DOC';
+  }
+  if (['mp3', 'm4a', 'aac', 'flac', 'wav', 'ogg', 'opus'].includes(ext) || item.kind === 'audio') {
+    return ext === 'flac' ? 'FLAC' : ext === 'mp3' ? 'MP3' : 'AUDIO';
+  }
+  if (ext === 'gif') {
+    return 'GIF';
   }
   if (fmt.isImage || item.kind === 'image') {
     return 'PHOTO';
@@ -331,9 +343,11 @@ function getSingleUnifiedBadge(
     const maxDim = Math.max(width, height);
     const dimStr = `${width}×${height}`;
 
-    // Quality tier classification (HD, FHD, 2K, 4K)
+    // Quality tier classification (8K, 4K, 2K, FHD, HD)
     let tier: string | null = null;
-    if (minDim >= 2160 || maxDim >= 3840) {
+    if (minDim >= 4000 || maxDim >= 7000) {
+      tier = '8K';
+    } else if (minDim >= 2160 || maxDim >= 3840) {
       tier = '4K';
     } else if (minDim >= 1440 || maxDim >= 2560) {
       tier = '2K';
@@ -355,15 +369,19 @@ function getSingleUnifiedBadge(
   // If dimensions not yet probed, check if format has explicit tier
   const rawTier = fmt.qualityTier && fmt.qualityTier !== 'original'
     ? fmt.qualityTier.toUpperCase()
-    : fmt.label?.toUpperCase().includes('4K')
-      ? '4K'
-      : fmt.label?.toUpperCase().includes('1080')
-        ? 'FHD'
-        : fmt.label?.toUpperCase().includes('720')
-          ? 'HD'
-          : null;
+    : fmt.label?.toUpperCase().includes('8K')
+      ? '8K'
+      : fmt.label?.toUpperCase().includes('4K')
+        ? '4K'
+        : fmt.label?.toUpperCase().includes('2K')
+          ? '2K'
+          : fmt.label?.toUpperCase().includes('1080')
+            ? 'FHD'
+            : fmt.label?.toUpperCase().includes('720')
+              ? 'HD'
+              : null;
 
-  if (rawTier && ['HD', 'FHD', '1080P', '2K', '4K', 'UHD'].includes(rawTier.toUpperCase())) {
+  if (rawTier && ['HD', 'FHD', '1080P', '2K', '4K', '8K', 'UHD'].includes(rawTier.toUpperCase())) {
     return rawTier === '1080P' ? 'FHD' : rawTier;
   }
   return null;
