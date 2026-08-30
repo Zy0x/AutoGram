@@ -14943,6 +14943,15 @@ body:has(.app-layout-drive-focus),
   border-color: rgba(245, 158, 11, 0.45);
   color: #fef08a;
 }
+.td-preflight-engine-tag.is-storage-local {
+  background: rgba(148, 163, 184, 0.12);
+  color: #e2e8f0;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+}
+.td-preflight-engine-tag.is-storage-local:hover {
+  border-color: rgba(148, 163, 184, 0.5);
+  color: #ffffff;
+}
 
 .td-preflight-banner {
   display: flex;

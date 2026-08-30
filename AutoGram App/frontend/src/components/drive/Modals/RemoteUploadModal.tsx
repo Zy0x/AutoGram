@@ -765,7 +765,7 @@ export function RemoteUploadModal({
       setIsEditingBatchText(true);
       setDeliveryMode(resolveDefaultDeliveryMode(transferSettings));
       const storedEngine = typeof localStorage !== 'undefined' ? localStorage.getItem('autogram_remote_engine_mode') : null;
-      setRemoteEngineMode(storedEngine === 'cloud_fetch' || storedEngine === 'ram_pipe'
+      setRemoteEngineMode(storedEngine === 'cloud_fetch' || storedEngine === 'ram_pipe' || storedEngine === 'storage_local'
         ? storedEngine
         : (transferSettings?.remoteEngineMode || 'auto'));
       setInspection(null);
