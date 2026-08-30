@@ -26504,60 +26504,82 @@ button.td-confirm-icon.is-back-btn:active {
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  min-height: 28px;
+  padding-bottom: 2px;
 }
 
 .td-remote-gallery-header-left {
   display: flex;
   align-items: center;
-  gap: 5px;
-  flex-wrap: nowrap;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
   overflow: hidden;
 }
 
 .td-remote-gallery-title {
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   font-weight: 700;
   color: #f1f5f9;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+}
+
+.td-remote-gallery-unified-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  font-size: 0.63rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.td-pill-count {
+  color: #38bdf8;
+}
+
+.td-pill-dot {
+  color: rgba(255, 255, 255, 0.25);
+  font-weight: 400;
+}
+
+.td-pill-size {
+  color: #c084fc;
 }
 
 .td-remote-gallery-count-pill {
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: #38bdf8;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: rgba(56, 189, 248, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  white-space: nowrap;
+  display: none;
 }
 
 .td-remote-gallery-size-pill {
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: #a78bfa;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: rgba(167, 139, 250, 0.12);
-  border: 1px solid rgba(167, 139, 250, 0.25);
-  white-space: nowrap;
+  display: none;
 }
 
 .td-remote-gallery-header-right {
   display: flex;
   align-items: center;
   gap: 4px;
-  flex: 0 0 auto;
+  flex-shrink: 0;
 }
 
 .td-remote-gallery-btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 3.5px;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   color: #94a3b8;
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 600;
-  padding: 2px 7px;
+  padding: 2.5px 6.5px;
   border-radius: 5px;
   cursor: pointer;
   transition: all 120ms ease;
@@ -26565,8 +26587,9 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-remote-gallery-btn-action:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
   color: #f8fafc;
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 .td-remote-gallery-density-toggle {

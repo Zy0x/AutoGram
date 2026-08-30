@@ -24,6 +24,8 @@ import {
   FileCode,
   CheckCircle2,
   Check,
+  CheckCheck,
+  XCircle,
   LayoutGrid,
   List,
   Layers,
@@ -2364,36 +2366,50 @@ export function RemoteUploadModal({
                         <>
                           <div className="td-remote-gallery-header-row">
                             <div className="td-remote-gallery-header-left">
-                              <Layers size={14} className="text-sky-400" />
+                              <Layers size={13} className="text-sky-400 shrink-0" />
                               <span className="td-remote-gallery-title">
                                 {t('drive_tools.remote_gallery_title')}
                               </span>
-                              <span className="td-remote-gallery-count-pill">
-                                {t('drive_tools.remote_gallery_selected_count', {
+                              <span
+                                className="td-remote-gallery-unified-pill"
+                                title={t('drive_tools.remote_gallery_selected_pill_full', {
                                   selected: selectedMediaItemIds.size,
                                   total: effectiveMediaItems.length,
+                                  size: selectedBytes > 0 ? `~${formatDriveBytes(selectedBytes)}` : '0 B',
                                 })}
-                              </span>
-                              {selectedBytes > 0 && (
-                                <span className="td-remote-gallery-size-pill">
-                                  ~{formatDriveBytes(selectedBytes)}
+                              >
+                                <span className="td-pill-count">
+                                  {t('drive_tools.remote_gallery_selected_pill', {
+                                    selected: selectedMediaItemIds.size,
+                                    total: effectiveMediaItems.length,
+                                  })}
                                 </span>
-                              )}
+                                {selectedBytes > 0 && (
+                                  <>
+                                    <span className="td-pill-dot">·</span>
+                                    <span className="td-pill-size">~{formatDriveBytes(selectedBytes)}</span>
+                                  </>
+                                )}
+                              </span>
                             </div>
                             <div className="td-remote-gallery-header-right">
                               <button
                                 type="button"
                                 className="td-remote-gallery-btn-action"
                                 onClick={handleSelectAllItems}
+                                title={t('drive_tools.remote_gallery_select_all')}
                               >
-                                {t('drive_tools.remote_gallery_select_all')}
+                                <CheckCheck size={11} />
+                                <span>{t('drive_tools.remote_gallery_select_all')}</span>
                               </button>
                               <button
                                 type="button"
                                 className="td-remote-gallery-btn-action"
                                 onClick={handleDeselectAllItems}
+                                title={t('drive_tools.remote_gallery_deselect_all')}
                               >
-                                {t('drive_tools.remote_gallery_deselect_all')}
+                                <XCircle size={11} />
+                                <span>{t('drive_tools.remote_gallery_deselect_all')}</span>
                               </button>
                               <div className="td-remote-gallery-density-toggle">
                                 <button
