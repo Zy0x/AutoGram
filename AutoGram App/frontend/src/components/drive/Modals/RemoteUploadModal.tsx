@@ -4091,7 +4091,10 @@ export function RemoteUploadModal({
                       const isCollapsed = collapsedGroupIds.has(group.id);
 
                       return (
-                        <div className="td-remote-batch-group" key={group.id}>
+                        <div
+                          className={`td-remote-batch-group ${isCollapsed ? 'is-collapsed' : ''}`}
+                          key={group.id}
+                        >
                           <div className="td-remote-batch-group-head" onClick={() => handleToggleGroupCollapse(group.id)}>
                             <div className="td-remote-batch-group-head-left">
                               <span className="td-remote-batch-group-ico-wrap">
@@ -4116,8 +4119,16 @@ export function RemoteUploadModal({
                                   )}
                                 </div>
 
-                                <div className="td-remote-batch-group-url-row" onClick={(e) => e.stopPropagation()}>
-                                  <span className="td-remote-batch-group-url" title={group.sourceUrl}>
+                                <div className="td-remote-batch-group-url-row">
+                                  <span
+                                    className="td-remote-batch-group-url"
+                                    title={group.sourceUrl}
+                                    onClick={(e) => {
+                                      if (window.getSelection()?.toString().length) {
+                                        e.stopPropagation();
+                                      }
+                                    }}
+                                  >
                                     {group.sourceUrl}
                                   </span>
                                   <button
@@ -4156,12 +4167,15 @@ export function RemoteUploadModal({
                               </div>
                             </div>
 
-                            <div className="td-remote-batch-group-head-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="td-remote-batch-group-head-right">
                               {group.status === 'success' && (
                                 <button
                                   type="button"
                                   className={`td-remote-batch-group-select-btn ${allGroupSelected ? 'is-all-selected' : someGroupSelected ? 'is-partial-selected' : ''}`}
-                                  onClick={() => handleToggleBatchGroup(group.id, !allGroupSelected)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleBatchGroup(group.id, !allGroupSelected);
+                                  }}
                                 >
                                   {allGroupSelected ? (
                                     <>
@@ -4179,7 +4193,10 @@ export function RemoteUploadModal({
                               <button
                                 type="button"
                                 className="td-remote-batch-group-collapse-btn"
-                                onClick={() => handleToggleGroupCollapse(group.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleGroupCollapse(group.id);
+                                }}
                                 aria-label={isCollapsed ? t('drive.remote_batch_expand_group') : t('drive.remote_batch_collapse_group')}
                               >
                                 {isCollapsed ? <ChevronDown size={13} /> : <ChevronUp size={13} />}

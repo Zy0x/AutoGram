@@ -28677,6 +28677,14 @@ button.td-confirm-icon.is-back-btn:active {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
+.td-remote-batch-group.is-collapsed {
+  cursor: pointer;
+}
+
+.td-remote-batch-group.is-collapsed .td-remote-batch-group-head {
+  border-bottom: none;
+}
+
 .td-remote-batch-group-head {
   display: flex;
   align-items: center;
