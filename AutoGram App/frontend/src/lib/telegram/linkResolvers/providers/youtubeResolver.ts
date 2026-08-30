@@ -93,7 +93,22 @@ export const youtubeResolver: LinkResolverProvider = {
 
           const findBestFormat = (prefix: string) => {
             const matching = allFormats.filter((f) => f.qualityLabel && f.qualityLabel.includes(prefix));
-            return matching.find((f) => f.mimeType?.includes('mp4')) || matching[0];
+            if (matching.length === 0) return undefined;
+
+            // Prioritize highest bitrate, then highest content length, then highest fps (60fps/HDR/Premium)
+            matching.sort((a, b) => {
+              const bitA = (a.bitrate || 0) || (a.averageBitrate || 0);
+              const bitB = (b.bitrate || 0) || (b.averageBitrate || 0);
+              if (bitB !== bitA) return bitB - bitA;
+              const lenA = a.contentLength ? parseInt(a.contentLength, 10) : 0;
+              const lenB = b.contentLength ? parseInt(b.contentLength, 10) : 0;
+              if (lenB !== lenA) return lenB - lenA;
+              const fpsA = a.fps || 0;
+              const fpsB = b.fps || 0;
+              return fpsB - fpsA;
+            });
+
+            return matching[0];
           };
 
           const dur = durationSec || 180;
@@ -105,16 +120,17 @@ export const youtubeResolver: LinkResolverProvider = {
           if (has8K) {
             const raw = findBestFormat('4320p');
             const size = raw?.contentLength ? parseInt(raw.contentLength, 10) : Math.round(dur * (50 * 1024 * 1024 / 8));
+            const isWebm = raw?.mimeType?.includes('webm');
             formats.push({
               id: 'yt_8k',
               label: '8K Ultra HD',
               qualityTier: '8k',
               resolution: raw?.qualityLabel || '4320p (8K)',
-              ext: 'mp4',
+              ext: isWebm ? 'webm' : 'mp4',
               filesizeBytes: size,
               directUrl: raw?.url || fallbackBaseUrl,
               isVideo: true,
-              badge: raw?.qualityLabel?.includes('HDR') ? '8K HDR' : '4320p',
+              badge: raw?.qualityLabel?.includes('HDR') ? '8K HDR' : (raw?.qualityLabel?.includes('60') ? '8K 60fps' : '4320p'),
             });
           }
 
@@ -122,16 +138,17 @@ export const youtubeResolver: LinkResolverProvider = {
           if (has4K) {
             const raw = findBestFormat('2160p');
             const size = raw?.contentLength ? parseInt(raw.contentLength, 10) : Math.round(dur * (20 * 1024 * 1024 / 8));
+            const isWebm = raw?.mimeType?.includes('webm');
             formats.push({
               id: 'yt_4k',
               label: '4K Ultra HD',
               qualityTier: '4k',
               resolution: raw?.qualityLabel || '2160p (4K)',
-              ext: 'mp4',
+              ext: isWebm ? 'webm' : 'mp4',
               filesizeBytes: size,
               directUrl: raw?.url || fallbackBaseUrl,
               isVideo: true,
-              badge: raw?.qualityLabel?.includes('HDR') ? '4K HDR' : '2160p',
+              badge: raw?.qualityLabel?.includes('HDR') ? '4K HDR' : (raw?.qualityLabel?.includes('60') ? '4K 60fps' : '2160p'),
             });
           }
 
@@ -139,16 +156,17 @@ export const youtubeResolver: LinkResolverProvider = {
           if (has2K) {
             const raw = findBestFormat('1440p');
             const size = raw?.contentLength ? parseInt(raw.contentLength, 10) : Math.round(dur * (9 * 1024 * 1024 / 8));
+            const isWebm = raw?.mimeType?.includes('webm');
             formats.push({
               id: 'yt_2k',
               label: '2K Quad HD',
               qualityTier: '2k',
               resolution: raw?.qualityLabel || '1440p (2K)',
-              ext: 'mp4',
+              ext: isWebm ? 'webm' : 'mp4',
               filesizeBytes: size,
               directUrl: raw?.url || fallbackBaseUrl,
               isVideo: true,
-              badge: raw?.qualityLabel?.includes('HDR') ? '2K HDR' : '1440p',
+              badge: raw?.qualityLabel?.includes('HDR') ? '2K HDR' : (raw?.qualityLabel?.includes('60') ? '2K 60fps' : '1440p'),
             });
           }
 
@@ -156,16 +174,17 @@ export const youtubeResolver: LinkResolverProvider = {
           if (qualityLabels.some((q) => q.startsWith('1080p') || q.includes('1080')) || formats.length === 0) {
             const raw = findBestFormat('1080p');
             const size = raw?.contentLength ? parseInt(raw.contentLength, 10) : Math.round(dur * (4.2 * 1024 * 1024 / 8));
+            const isWebm = raw?.mimeType?.includes('webm');
             formats.push({
               id: 'yt_1080p',
               label: 'Full HD 1080p',
               qualityTier: '1080p',
               resolution: raw?.qualityLabel || '1080p Full HD',
-              ext: 'mp4',
+              ext: isWebm ? 'webm' : 'mp4',
               filesizeBytes: size,
               directUrl: raw?.url || fallbackBaseUrl,
               isVideo: true,
-              badge: raw?.qualityLabel?.includes('60') ? (raw.qualityLabel.includes('HDR') ? '1080p HDR' : '60fps') : '1080p',
+              badge: raw?.qualityLabel?.includes('HDR') ? '1080p HDR' : (raw?.qualityLabel?.includes('60') ? '60fps' : '1080p'),
             });
           }
 
@@ -173,34 +192,45 @@ export const youtubeResolver: LinkResolverProvider = {
           if (qualityLabels.some((q) => q.startsWith('720p') || q.includes('720'))) {
             const raw = findBestFormat('720p');
             const size = raw?.contentLength ? parseInt(raw.contentLength, 10) : Math.round(dur * (2.1 * 1024 * 1024 / 8));
+            const isWebm = raw?.mimeType?.includes('webm');
             formats.push({
               id: 'yt_720p',
               label: 'HD 720p',
               qualityTier: '720p',
               resolution: raw?.qualityLabel || '720p HD',
-              ext: 'mp4',
+              ext: isWebm ? 'webm' : 'mp4',
               filesizeBytes: size,
               directUrl: raw?.url || fallbackBaseUrl,
               isVideo: true,
-              badge: '720p',
+              badge: raw?.qualityLabel?.includes('HDR') ? '720p HDR' : (raw?.qualityLabel?.includes('60') ? '720p 60fps' : '720p'),
             });
           }
 
-          // Audio Only MP3
-          const audioFormat = adaptive.find((f) => f.audioQuality || f.mimeType?.includes('audio'));
-          const audioSize = audioFormat?.contentLength
-            ? parseInt(audioFormat.contentLength, 10)
+          // Audio Only (Highest Bitrate Audio Stream)
+          const audioFormats = adaptive.filter((f) => f.audioQuality || f.mimeType?.includes('audio'));
+          audioFormats.sort((a, b) => {
+            const bitA = (a.bitrate || 0) || (a.averageBitrate || 0);
+            const bitB = (b.bitrate || 0) || (b.averageBitrate || 0);
+            if (bitB !== bitA) return bitB - bitA;
+            const lenA = a.contentLength ? parseInt(a.contentLength, 10) : 0;
+            const lenB = b.contentLength ? parseInt(b.contentLength, 10) : 0;
+            return lenB - lenA;
+          });
+          const bestAudio = audioFormats[0];
+          const audioSize = bestAudio?.contentLength
+            ? parseInt(bestAudio.contentLength, 10)
             : Math.round(dur * (320 * 1024 / 8));
+          const audioKbps = bestAudio?.bitrate ? Math.round(bestAudio.bitrate / 1000) : 320;
           formats.push({
             id: 'yt_audio',
             label: 'Hi-Res Audio',
             qualityTier: 'audio',
-            resolution: '320 kbps',
-            ext: 'mp3',
+            resolution: `${audioKbps} kbps`,
+            ext: bestAudio?.mimeType?.includes('mp4') ? 'm4a' : 'mp3',
             filesizeBytes: audioSize,
-            directUrl: audioFormat?.url || fallbackBaseUrl,
+            directUrl: bestAudio?.url || fallbackBaseUrl,
             isAudio: true,
-            badge: '320 kbps',
+            badge: `${audioKbps} kbps`,
           });
         }
       }
