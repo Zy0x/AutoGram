@@ -807,6 +807,8 @@ export function RemoteUploadModal({
   const [selectedFormatId, setSelectedFormatId] = useState<string>('');
   const [streamContainerFilter, setStreamContainerFilter] = useState<'all' | 'mp4' | 'webm' | 'sd' | 'audio' | 'subtitle' | 'matrix'>('all');
   const [matrixSearchQuery, setMatrixSearchQuery] = useState<string>('');
+  const [subtitleSearchQuery, setSubtitleSearchQuery] = useState<string>('');
+  const [copiedStreamUrl, setCopiedStreamUrl] = useState<boolean>(false);
   const [selectedMediaItemIds, setSelectedMediaItemIds] = useState<Set<string>>(new Set());
   const [itemSelectedFormats, setItemSelectedFormats] = useState<Record<string, string>>({});
   const [activePreviewItemId, setActivePreviewItemId] = useState<string>('');
@@ -877,6 +879,7 @@ export function RemoteUploadModal({
       setSelectedFormatId('');
       setStreamContainerFilter('all');
       setMatrixSearchQuery('');
+      setSubtitleSearchQuery('');
       setSelectedMediaItemIds(new Set());
       setItemSelectedFormats({});
       setGallerySearch('');
@@ -892,6 +895,7 @@ export function RemoteUploadModal({
       setPasscode('');
       setStreamContainerFilter('all');
       setMatrixSearchQuery('');
+      setSubtitleSearchQuery('');
       setSelectedMediaItemIds(new Set());
       setItemSelectedFormats({});
       setGallerySearch('');
@@ -3902,6 +3906,15 @@ export function RemoteUploadModal({
                             .sort((a, b) => (b.filesizeBytes || 0) - (a.filesizeBytes || 0));
 
                           const subtitleFmts = resolvedMedia.formats.filter((f) => f.isSubtitle || f.qualityTier === 'subtitle');
+                          const filteredSubtitleFmts = subtitleFmts.filter((f) => {
+                            if (!subtitleSearchQuery.trim()) return true;
+                            const q = subtitleSearchQuery.toLowerCase();
+                            return (
+                              f.label.toLowerCase().includes(q) ||
+                              (f.resolution && f.resolution.toLowerCase().includes(q)) ||
+                              (f.badge && f.badge.toLowerCase().includes(q))
+                            );
+                          });
                           const rawStreamsList = resolvedMedia.rawStreams || [];
 
                           const mp4Tiers = new Set(mp4VideoFmts.map((f) => f.qualityTier));
@@ -3948,6 +3961,10 @@ export function RemoteUploadModal({
 
                           const renderFormatChip = (fmt: StreamQualityFormat) => {
                             const isSelected = selectedFormatId === fmt.id;
+                            const isHdr = fmt.badge?.includes('HDR') || fmt.codec?.includes('HDR');
+                            const is60fps = fmt.fps === 60 || fmt.resolution?.includes('60fps') || fmt.label?.includes('60fps');
+                            const displayBadge = getFormatDisplayBadge(fmt, t);
+
                             return (
                               <button
                                 key={fmt.id}
@@ -3963,9 +3980,15 @@ export function RemoteUploadModal({
                                   {isSelected && <CheckCircle2 size={13} className="td-remote-chip-active-ico" />}
                                 </div>
                                 <div className="td-remote-quality-chip-meta">
-                                  {getFormatDisplayBadge(fmt, t) && (
-                                    <span className={`td-remote-quality-chip-badge ${getBadgeModifierClass(getFormatDisplayBadge(fmt, t))}`}>
-                                      {getFormatDisplayBadge(fmt, t)}
+                                  {is60fps && (
+                                    <span className="td-badge-pill fps-60">{t('drive.remote_badge_fps_60')}</span>
+                                  )}
+                                  {isHdr && (
+                                    <span className="td-badge-pill hdr">{t('drive.remote_badge_hdr')}</span>
+                                  )}
+                                  {displayBadge && (
+                                    <span className={`td-remote-quality-chip-badge ${getBadgeModifierClass(displayBadge)}`}>
+                                      {displayBadge}
                                     </span>
                                   )}
                                   {fmt.filesizeBytes ? (
@@ -3980,6 +4003,13 @@ export function RemoteUploadModal({
 
                           return (
                             <div className="td-remote-formats-container">
+                              {resolvedMedia.isPlaylist && (
+                                <div className="td-remote-playlist-banner">
+                                  <Layers size={13} />
+                                  <span>{t('drive.remote_playlist_detected_banner')}</span>
+                                </div>
+                              )}
+
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
                                 <label className="td-input-label" style={{ marginBottom: 0 }}>
                                   {t('drive.remote_split_select_format_hint')}
@@ -4296,11 +4326,37 @@ export function RemoteUploadModal({
                                           <FileText size={11} style={{ color: '#2dd4bf' }} />
                                           <span>{t('drive.remote_section_subtitles')}</span>
                                         </span>
-                                        <span className="td-remote-formats-section-count">{subtitleFmts.length}</span>
+                                        <span className="td-remote-formats-section-count">{filteredSubtitleFmts.length}</span>
                                       </div>
-                                      <div className="td-remote-quality-grid">
-                                        {subtitleFmts.map(renderFormatChip)}
-                                      </div>
+                                      {subtitleFmts.length > 3 && (
+                                        <div className="td-remote-sub-search-box">
+                                          <Search size={12} style={{ color: '#94a3b8' }} />
+                                          <input
+                                            type="text"
+                                            value={subtitleSearchQuery}
+                                            onChange={(e) => setSubtitleSearchQuery(e.target.value)}
+                                            placeholder={t('drive.remote_sub_search_placeholder')}
+                                          />
+                                          {subtitleSearchQuery && (
+                                            <button
+                                              type="button"
+                                              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
+                                              onClick={() => setSubtitleSearchQuery('')}
+                                            >
+                                              <X size={12} />
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
+                                      {filteredSubtitleFmts.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '12px', color: '#64748b', fontSize: '0.7rem' }}>
+                                          {t('drive.remote_sub_empty_search')}
+                                        </div>
+                                      ) : (
+                                        <div className="td-remote-quality-grid">
+                                          {filteredSubtitleFmts.map(renderFormatChip)}
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                 </>
@@ -4362,11 +4418,35 @@ export function RemoteUploadModal({
                                           <FileText size={11} style={{ color: '#2dd4bf' }} />
                                           <span>{t('drive.remote_section_subtitles')}</span>
                                         </span>
-                                        <span className="td-remote-formats-section-count">{subtitleFmts.length}</span>
+                                        <span className="td-remote-formats-section-count">{filteredSubtitleFmts.length}</span>
                                       </div>
-                                      <div className="td-remote-quality-grid">
-                                        {subtitleFmts.map(renderFormatChip)}
+                                      <div className="td-remote-sub-search-box">
+                                        <Search size={12} style={{ color: '#94a3b8' }} />
+                                        <input
+                                          type="text"
+                                          value={subtitleSearchQuery}
+                                          onChange={(e) => setSubtitleSearchQuery(e.target.value)}
+                                          placeholder={t('drive.remote_sub_search_placeholder')}
+                                        />
+                                        {subtitleSearchQuery && (
+                                          <button
+                                            type="button"
+                                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
+                                            onClick={() => setSubtitleSearchQuery('')}
+                                          >
+                                            <X size={12} />
+                                          </button>
+                                        )}
                                       </div>
+                                      {filteredSubtitleFmts.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '12px', color: '#64748b', fontSize: '0.7rem' }}>
+                                          {t('drive.remote_sub_empty_search')}
+                                        </div>
+                                      ) : (
+                                        <div className="td-remote-quality-grid">
+                                          {filteredSubtitleFmts.map(renderFormatChip)}
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                 </>
@@ -4392,10 +4472,34 @@ export function RemoteUploadModal({
                                             <span>~{formatDriveBytes(activeFmt.filesizeBytes)}</span>
                                           </>
                                         ) : null}
+                                        {resolvedMedia.chapters && resolvedMedia.chapters.length > 0 ? (
+                                          <>
+                                            <span>•</span>
+                                            <span style={{ color: '#c084fc', fontWeight: 650 }}>
+                                              {t('drive.remote_chapters_count', { count: resolvedMedia.chapters.length })}
+                                            </span>
+                                          </>
+                                        ) : null}
                                       </div>
                                     </div>
                                   </div>
                                   <div className="td-remote-selected-spec-right">
+                                    {activeFmt.directUrl && (
+                                      <button
+                                        type="button"
+                                        className={`td-remote-spec-copy-btn ${copiedStreamUrl ? 'copied' : ''}`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigator.clipboard?.writeText(activeFmt.directUrl);
+                                          setCopiedStreamUrl(true);
+                                          setTimeout(() => setCopiedStreamUrl(false), 2000);
+                                        }}
+                                        title={t('drive.remote_spec_copy_url_btn')}
+                                      >
+                                        {copiedStreamUrl ? <Check size={11} /> : <Copy size={11} />}
+                                        <span>{copiedStreamUrl ? t('drive.remote_spec_url_copied') : t('drive.remote_spec_copy_url_btn')}</span>
+                                      </button>
+                                    )}
                                     <span className="td-remote-meta-badge status valid">
                                       {t('drive.remote_spec_direct_ready')}
                                     </span>

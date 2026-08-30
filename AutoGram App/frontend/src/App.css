@@ -28077,6 +28077,110 @@ button.td-confirm-icon.is-back-btn:active {
   box-shadow: 0 0 10px rgba(232, 121, 249, 0.35);
 }
 
+/* Instant Subtitle Search Box */
+.td-remote-sub-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 5px 10px;
+  margin-bottom: 8px;
+  transition: all 120ms ease;
+}
+
+.td-remote-sub-search-box:focus-within {
+  border-color: #2dd4bf;
+  box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.25);
+}
+
+.td-remote-sub-search-box input {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 500;
+  width: 100%;
+  outline: none;
+}
+
+.td-remote-sub-search-box input::placeholder {
+  color: #64748b;
+}
+
+/* Multi-Badge Pills */
+.td-badge-pill {
+  font-size: 0.58rem;
+  font-weight: 750;
+  padding: 1px 5px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.td-badge-pill.fps-60 {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.td-badge-pill.hdr {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.td-badge-pill.codec {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+/* Quick Copy Stream URL */
+.td-remote-spec-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  font-size: 0.65rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.td-remote-spec-copy-btn:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+}
+
+.td-remote-spec-copy-btn.copied {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.5);
+  color: #4ade80;
+}
+
+/* Playlist Detection Banner */
+.td-remote-playlist-banner {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(168, 85, 247, 0.12);
+  border: 1px solid rgba(168, 85, 247, 0.28);
+  color: #d8b4fe;
+  font-size: 0.68rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
 /* Raw Stream Matrix Table */
 .td-remote-matrix-wrapper {
   display: flex;

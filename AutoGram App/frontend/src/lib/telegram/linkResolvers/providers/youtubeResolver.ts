@@ -10,6 +10,29 @@ export function extractYouTubeVideoId(url: string): string | null {
   return match ? match[1] : null;
 }
 
+/**
+ * Parse chapter timestamps from YouTube video description.
+ */
+export function parseChaptersFromDescription(desc?: string): Array<{ title: string; startSec: number }> {
+  if (!desc) return [];
+  const chapters: Array<{ title: string; startSec: number }> = [];
+  const regex = /(?:^|\n)\s*(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\s+[-–—]?\s*([^\n]+)/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(desc)) !== null) {
+    const hours = match[1] ? parseInt(match[1], 10) : 0;
+    const minutes = parseInt(match[2], 10);
+    const seconds = parseInt(match[3], 10);
+    const title = match[4]?.trim();
+    if (title) {
+      chapters.push({
+        title,
+        startSec: hours * 3600 + minutes * 60 + seconds,
+      });
+    }
+  }
+  return chapters;
+}
+
 async function fetchYouTubeWatchHtml(url: string, signal?: AbortSignal): Promise<string | null> {
   if (detectTauriRuntime()) {
     try {
@@ -41,6 +64,325 @@ async function fetchYouTubeWatchHtml(url: string, signal?: AbortSignal): Promise
   return null;
 }
 
+async function fetchYouTubeInnertubePlayer(videoId: string, signal?: AbortSignal): Promise<any | null> {
+  const clients = [
+    {
+      clientName: 'ANDROID',
+      clientVersion: '19.09.37',
+      osName: 'Android',
+      osVersion: '14',
+      androidSdkVersion: 34,
+    },
+    {
+      clientName: 'WEB',
+      clientVersion: '2.20240501.01.00',
+    },
+  ];
+
+  for (const client of clients) {
+    try {
+      const payload = JSON.stringify({
+        videoId,
+        context: {
+          client: {
+            ...client,
+            hl: 'id',
+            gl: 'ID',
+          },
+        },
+      });
+
+      const resp = await fetch('https://www.youtube.com/youtubei/v1/player', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent':
+            client.clientName === 'ANDROID'
+              ? 'com.google.android.youtube/19.09.37 (Linux; U; Android 14; id_ID) gzip'
+              : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        },
+        body: payload,
+        signal: signal || AbortSignal.timeout(4500),
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data?.videoDetails || data?.streamingData) {
+          return data;
+        }
+      }
+    } catch {
+      /* continue to next client fallback */
+    }
+  }
+  return null;
+}
+
+function processPlayerData(
+  data: any,
+  videoId: string,
+  fallbackBaseUrl: string,
+  formats: StreamQualityFormat[],
+  subtitles: SubtitleTrackItem[],
+  rawStreams: RawStreamItem[],
+  chapters: Array<{ title: string; startSec: number; endSec?: number; thumbnailUrl?: string }>
+): {
+  title?: string;
+  author?: string;
+  description?: string;
+  durationSec?: number;
+  thumbnailUrl?: string;
+} {
+  let title = data?.videoDetails?.title;
+  let author = data?.videoDetails?.author;
+  let description = data?.videoDetails?.shortDescription;
+  let durationSec: number | undefined;
+  if (data?.videoDetails?.lengthSeconds) {
+    durationSec = parseInt(data.videoDetails.lengthSeconds, 10);
+  }
+
+  let thumbnailUrl: string | undefined;
+  const thumbs = data?.videoDetails?.thumbnail?.thumbnails || [];
+  if (thumbs.length > 0) {
+    thumbnailUrl = thumbs[thumbs.length - 1].url.split('?')[0];
+  } else {
+    thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+  }
+
+  // Extract chapters from markers if present
+  try {
+    const markers =
+      data?.playerOverlays?.playerOverlayRenderer?.decoratedPlayerBarRenderer?.decoratedPlayerBarRenderer?.playerBar
+        ?.multiMarkersPlayerBarRenderer?.markersMap?.[0]?.value?.chapters || [];
+    markers.forEach((m: any) => {
+      const cTitle = m?.chapterRenderer?.title?.simpleText || m?.chapterRenderer?.title?.runs?.[0]?.text;
+      const cStart = m?.chapterRenderer?.timeRangeStartMillis ? Math.round(m.chapterRenderer.timeRangeStartMillis / 1000) : 0;
+      if (cTitle) {
+        chapters.push({ title: cTitle, startSec: cStart });
+      }
+    });
+  } catch {
+    /* ignore marker extraction error */
+  }
+
+  // Also parse from description if markers empty
+  if (chapters.length === 0 && description) {
+    const descChapters = parseChaptersFromDescription(description);
+    descChapters.forEach((c) => chapters.push(c));
+  }
+
+  const adaptive = (data?.streamingData?.adaptiveFormats || []) as any[];
+  const regular = (data?.streamingData?.formats || []) as any[];
+  const allFormats = [...adaptive, ...regular];
+
+  const dur = durationSec || 180;
+
+  const tiers: Array<{ key: string; label: string; tier: '8k' | '4k' | '2k' | '1080p' | '720p' | '480p' | '360p' }> = [
+    { key: '4320p', label: '8K Ultra HD', tier: '8k' },
+    { key: '2160p', label: '4K Ultra HD', tier: '4k' },
+    { key: '1440p', label: '2K Quad HD', tier: '2k' },
+    { key: '1080p', label: 'Full HD 1080p', tier: '1080p' },
+    { key: '720p', label: 'HD 720p', tier: '720p' },
+    { key: '480p', label: 'SD 480p', tier: '480p' },
+    { key: '360p', label: 'Compact 360p', tier: '360p' },
+  ];
+
+  tiers.forEach(({ key, label, tier }) => {
+    const tierMatches = allFormats.filter((f) => f.qualityLabel && (f.qualityLabel.startsWith(key) || f.qualityLabel.includes(key)));
+
+    const mp4s = tierMatches.filter((f) => f.mimeType?.includes('mp4') || f.mimeType?.includes('avc1') || f.mimeType?.includes('av01'));
+    mp4s.sort((a, b) => ((b.bitrate || 0) || (b.averageBitrate || 0)) - ((a.bitrate || 0) || (a.averageBitrate || 0)));
+    if (mp4s[0]) {
+      const v = mp4s[0];
+      const bit = (v.bitrate || 0) || (v.averageBitrate || 0);
+      const mbps = bit > 0 ? (bit / 1000000).toFixed(1) : undefined;
+      const size = v.contentLength ? parseInt(v.contentLength, 10) : (bit > 0 ? Math.round(dur * (bit / 8)) : Math.round(dur * (4.2 * 1024 * 1024 / 8)));
+      const isHdr = v.qualityLabel?.includes('HDR') || v.colorInfo?.transferCharacteristics?.includes('SMPTE');
+      const isAv1 = v.mimeType?.includes('av01');
+      formats.push({
+        id: `yt_${key}_mp4`,
+        label: `${label} (MP4)`,
+        qualityTier: tier,
+        resolution: mbps ? `${v.qualityLabel || label} • ${mbps} Mbps` : (v.qualityLabel || label),
+        fps: v.fps,
+        ext: 'mp4',
+        filesizeBytes: size,
+        directUrl: v.url || fallbackBaseUrl,
+        isVideo: true,
+        badge: isHdr ? `HDR • ${mbps}M` : (mbps ? `${mbps} Mbps MP4` : 'MP4'),
+        codec: isAv1 ? 'AV1' : 'H.264',
+        itag: v.itag,
+      });
+    }
+
+    const webms = tierMatches.filter((f) => f.mimeType?.includes('webm') || f.mimeType?.includes('vp9'));
+    webms.sort((a, b) => ((b.bitrate || 0) || (b.averageBitrate || 0)) - ((a.bitrate || 0) || (a.averageBitrate || 0)));
+    if (webms[0]) {
+      const v = webms[0];
+      const bit = (v.bitrate || 0) || (v.averageBitrate || 0);
+      const mbps = bit > 0 ? (bit / 1000000).toFixed(1) : undefined;
+      const isHdr = v.qualityLabel?.includes('HDR') || v.mimeType?.includes('vp9.2');
+      const size = v.contentLength ? parseInt(v.contentLength, 10) : (bit > 0 ? Math.round(dur * (bit / 8)) : Math.round(dur * (4.5 * 1024 * 1024 / 8)));
+      formats.push({
+        id: `yt_${key}_webm`,
+        label: `${label} (WebM)`,
+        qualityTier: tier,
+        resolution: mbps ? `${v.qualityLabel || label} • ${mbps} Mbps` : (v.qualityLabel || label),
+        fps: v.fps,
+        ext: 'webm',
+        filesizeBytes: size,
+        directUrl: v.url || fallbackBaseUrl,
+        isVideo: true,
+        badge: isHdr ? (mbps ? `HDR • ${mbps}M` : 'HDR WebM') : (mbps ? `${mbps} Mbps WebM` : 'WebM'),
+        codec: isHdr ? 'VP9 HDR' : 'VP9',
+        itag: v.itag,
+      });
+    }
+  });
+
+  const allAudios = adaptive.filter((f) => f.audioQuality || f.mimeType?.includes('audio'));
+
+  const m4aAudios = allAudios.filter((f) => f.mimeType?.includes('mp4') || f.mimeType?.includes('aac') || f.mimeType?.includes('m4a'));
+  m4aAudios.sort((a, b) => ((b.bitrate || 0) || (b.averageBitrate || 0)) - ((a.bitrate || 0) || (a.averageBitrate || 0)));
+  const bestM4a = m4aAudios[0];
+  if (bestM4a) {
+    const m4aKbps = bestM4a?.bitrate ? Math.round(bestM4a.bitrate / 1000) : 160;
+    const m4aSize = bestM4a?.contentLength ? parseInt(bestM4a.contentLength, 10) : Math.round(dur * (160 * 1024 / 8));
+
+    formats.push({
+      id: 'yt_audio_m4a',
+      label: 'Hi-Res Audio (M4A)',
+      qualityTier: 'audio',
+      resolution: `${m4aKbps} kbps (AAC)`,
+      ext: 'm4a',
+      filesizeBytes: m4aSize,
+      directUrl: bestM4a?.url || fallbackBaseUrl,
+      isAudio: true,
+      badge: `${m4aKbps} KBPS • AAC`,
+      codec: 'AAC',
+      itag: bestM4a?.itag,
+    });
+  }
+
+  const opusAudios = allAudios.filter((f) => f.mimeType?.includes('webm') || f.mimeType?.includes('opus'));
+  opusAudios.sort((a, b) => ((b.bitrate || 0) || (b.averageBitrate || 0)) - ((a.bitrate || 0) || (a.averageBitrate || 0)));
+  const bestOpus = opusAudios[0];
+  if (bestOpus) {
+    const opusKbps = bestOpus.bitrate ? Math.round(bestOpus.bitrate / 1000) : 160;
+    const opusSize = bestOpus.contentLength ? parseInt(bestOpus.contentLength, 10) : Math.round(dur * (160 * 1024 / 8));
+    formats.push({
+      id: 'yt_audio_opus',
+      label: 'Studio Audio (Opus)',
+      qualityTier: 'audio',
+      resolution: `${opusKbps} kbps (Opus)`,
+      ext: 'opus',
+      filesizeBytes: opusSize,
+      directUrl: bestOpus.url || fallbackBaseUrl,
+      isAudio: true,
+      badge: `${opusKbps} KBPS • OPUS`,
+      codec: 'Opus',
+      itag: bestOpus?.itag,
+    });
+  }
+
+  const saverAudios = allAudios.filter(
+    (f) => f.audioQuality === 'AUDIO_QUALITY_LOW' || (f.bitrate && f.bitrate < 90000)
+  );
+  saverAudios.sort((a, b) => ((a.bitrate || 0) || (a.averageBitrate || 0)) - ((b.bitrate || 0) || (a.averageBitrate || 0)));
+  const bestSaver = saverAudios[0];
+  if (bestSaver) {
+    const saverKbps = bestSaver.bitrate ? Math.round(bestSaver.bitrate / 1000) : 64;
+    const saverSize = bestSaver.contentLength ? parseInt(bestSaver.contentLength, 10) : Math.round(dur * (64 * 1024 / 8));
+    const isWebm = bestSaver.mimeType?.includes('webm') || bestSaver.mimeType?.includes('opus');
+    const fmtName = isWebm ? 'Opus' : 'M4A';
+    const codecTag = isWebm ? 'OPUS' : 'AAC';
+    formats.push({
+      id: 'yt_audio_saver',
+      label: `Voice Audio (${fmtName})`,
+      qualityTier: 'audio',
+      resolution: `${saverKbps} kbps (${codecTag})`,
+      ext: isWebm ? 'opus' : 'm4a',
+      filesizeBytes: saverSize,
+      directUrl: bestSaver.url || fallbackBaseUrl,
+      isAudio: true,
+      badge: `${saverKbps} KBPS • ${codecTag}`,
+      codec: codecTag,
+      itag: bestSaver?.itag,
+    });
+  }
+
+  const captionTracks = (data?.captions?.playerCaptionsTracklistRenderer?.captionTracks || []) as any[];
+  captionTracks.forEach((c) => {
+    if (!c.baseUrl) return;
+    const langCode = c.languageCode || 'id';
+    const rawName = c.name?.simpleText || c.name?.runs?.[0]?.text || langCode.toUpperCase();
+    const cleanName = rawName.replace(/\s*\([^)]+\)/g, '').trim() || langCode.toUpperCase();
+    const isAuto = c.vssId?.startsWith('a.') || c.kind === 'asr';
+    const subId = `yt_sub_${langCode}_${c.vssId?.replace(/[^a-zA-Z0-9]/g, '') || 'track'}`;
+
+    subtitles.push({
+      id: subId,
+      languageCode: langCode,
+      languageName: isAuto ? `${cleanName} (Auto)` : cleanName,
+      isAutoGenerated: isAuto,
+      directUrl: `${c.baseUrl}&fmt=srv3`,
+      vssId: c.vssId,
+    });
+
+    formats.push({
+      id: subId,
+      label: `Subtitle ${cleanName}`,
+      qualityTier: 'subtitle',
+      resolution: langCode.toUpperCase(),
+      ext: 'srt',
+      directUrl: `${c.baseUrl}&fmt=srv3`,
+      isSubtitle: true,
+      badge: isAuto ? `${langCode.toUpperCase()} • AUTO` : langCode.toUpperCase(),
+    });
+  });
+
+  allFormats.forEach((f) => {
+    const bit = (f.bitrate || 0) || (f.averageBitrate || 0);
+    const mbps = bit >= 1000000 ? `${(bit / 1000000).toFixed(1)} Mbps` : `${Math.round(bit / 1000)} kbps`;
+    const mime = f.mimeType || '';
+    const isAudio = !f.qualityLabel && (mime.includes('audio') || !!f.audioQuality);
+    const isVideo = !!f.qualityLabel || mime.includes('video');
+    const isMuxed = isVideo && (regular.includes(f) || (f.audioQuality && f.qualityLabel));
+
+    let codec = 'Unknown';
+    const codecMatch = mime.match(/codecs="([^"]+)"/);
+    if (codecMatch) {
+      const rawCodec = codecMatch[1];
+      if (rawCodec.startsWith('avc1')) codec = 'H.264 / AVC';
+      else if (rawCodec.startsWith('av01')) codec = 'AV1';
+      else if (rawCodec.startsWith('vp9.2')) codec = 'VP9.2 HDR';
+      else if (rawCodec.startsWith('vp9') || rawCodec.startsWith('vp09')) codec = 'VP9';
+      else if (rawCodec.startsWith('opus')) codec = 'Opus 48kHz';
+      else if (rawCodec.startsWith('mp4a')) codec = 'AAC Audio';
+      else codec = rawCodec;
+    }
+
+    const isHdr = f.qualityLabel?.includes('HDR') || mime.includes('vp9.2') || f.colorInfo?.transferCharacteristics?.includes('SMPTE');
+    const size = f.contentLength ? parseInt(f.contentLength, 10) : (bit > 0 ? Math.round(dur * (bit / 8)) : undefined);
+
+    rawStreams.push({
+      itag: f.itag || 0,
+      qualityLabel: f.qualityLabel || (isAudio ? 'Audio Stream' : 'Video Stream'),
+      mimeType: mime.split(';')[0] || mime,
+      codec,
+      bitrate: bit,
+      bitrateFormatted: mbps,
+      fps: f.fps,
+      filesizeBytes: size,
+      type: isMuxed ? 'muxed' : (isAudio ? 'audio' : 'video'),
+      directUrl: f.url || fallbackBaseUrl,
+      isHdr,
+    });
+  });
+
+  return { title, author, description, durationSec, thumbnailUrl };
+}
+
 export const youtubeResolver: LinkResolverProvider = {
   name: 'youtubeResolver',
   platform: 'youtube',
@@ -58,6 +400,10 @@ export const youtubeResolver: LinkResolverProvider = {
     const videoId = extractYouTubeVideoId(cleanUrl);
     if (!videoId) return null;
 
+    const playlistMatch = cleanUrl.match(/[?&]list=([a-zA-Z0-9_-]+)/i);
+    const isPlaylist = !!playlistMatch;
+    const playlistId = playlistMatch ? playlistMatch[1] : undefined;
+
     const fallbackBaseUrl = `https://www.youtube.com/watch?v=${videoId}`;
     let title = `YouTube Video (${videoId})`;
     let author = 'YouTube Creator';
@@ -67,8 +413,10 @@ export const youtubeResolver: LinkResolverProvider = {
     const formats: StreamQualityFormat[] = [];
     const subtitles: SubtitleTrackItem[] = [];
     const rawStreams: RawStreamItem[] = [];
+    const chapters: Array<{ title: string; startSec: number; endSec?: number; thumbnailUrl?: string }> = [];
 
     // 1. Primary extraction via watch page ytInitialPlayerResponse JSON payload
+    let parsedSuccess = false;
     try {
       const html = await fetchYouTubeWatchHtml(cleanUrl, signal);
       if (html) {
@@ -100,229 +448,38 @@ export const youtubeResolver: LinkResolverProvider = {
 
         if (playerJsonMatch && playerJsonMatch[1]) {
           const data = JSON.parse(playerJsonMatch[1]);
-          if (data?.videoDetails?.title) title = data.videoDetails.title;
-          if (data?.videoDetails?.author) author = data.videoDetails.author;
-          if (data?.videoDetails?.shortDescription) description = data.videoDetails.shortDescription;
-          if (data?.videoDetails?.lengthSeconds) {
-            durationSec = parseInt(data.videoDetails.lengthSeconds, 10);
-          }
-
-          const thumbs = data?.videoDetails?.thumbnail?.thumbnails || [];
-          if (thumbs.length > 0) {
-            thumbnailUrl = thumbs[thumbs.length - 1].url.split('?')[0];
-          }
-
-          const adaptive = (data?.streamingData?.adaptiveFormats || []) as any[];
-          const regular = (data?.streamingData?.formats || []) as any[];
-          const allFormats = [...adaptive, ...regular];
-
-          const qualityLabels = Array.from(
-            new Set(allFormats.map((f) => f.qualityLabel).filter(Boolean))
-          ) as string[];
-
-          const dur = durationSec || 180;
-          const has8K = qualityLabels.some((q) => q.startsWith('4320p') || q.includes('8k')) || /\b(8k|4320p)\b/i.test(title);
-
-          const tiers: Array<{ key: string; label: string; tier: '8k' | '4k' | '2k' | '1080p' | '720p' | '480p' | '360p' }> = [
-            { key: '4320p', label: '8K Ultra HD', tier: '8k' },
-            { key: '2160p', label: '4K Ultra HD', tier: '4k' },
-            { key: '1440p', label: '2K Quad HD', tier: '2k' },
-            { key: '1080p', label: 'Full HD 1080p', tier: '1080p' },
-            { key: '720p', label: 'HD 720p', tier: '720p' },
-            { key: '480p', label: 'SD 480p', tier: '480p' },
-            { key: '360p', label: 'Compact 360p', tier: '360p' },
-          ];
-
-          tiers.forEach(({ key, label, tier }) => {
-            const tierMatches = allFormats.filter((f) => f.qualityLabel && (f.qualityLabel.startsWith(key) || f.qualityLabel.includes(key)));
-
-            const mp4s = tierMatches.filter((f) => f.mimeType?.includes('mp4') || f.mimeType?.includes('avc1') || f.mimeType?.includes('av01'));
-            mp4s.sort((a, b) => ((b.bitrate || 0) || (b.averageBitrate || 0)) - ((a.bitrate || 0) || (a.averageBitrate || 0)));
-            if (mp4s[0]) {
-              const v = mp4s[0];
-              const bit = (v.bitrate || 0) || (v.averageBitrate || 0);
-              const mbps = bit > 0 ? (bit / 1000000).toFixed(1) : undefined;
-              const size = v.contentLength ? parseInt(v.contentLength, 10) : (bit > 0 ? Math.round(dur * (bit / 8)) : Math.round(dur * (4.2 * 1024 * 1024 / 8)));
-              const isHdr = v.qualityLabel?.includes('HDR') || v.colorInfo?.transferCharacteristics?.includes('SMPTE');
-              formats.push({
-                id: `yt_${key}_mp4`,
-                label: `${label} (MP4)`,
-                qualityTier: tier,
-                resolution: mbps ? `${v.qualityLabel || label} • ${mbps} Mbps` : (v.qualityLabel || label),
-                ext: 'mp4',
-                filesizeBytes: size,
-                directUrl: v.url || fallbackBaseUrl,
-                isVideo: true,
-                badge: isHdr ? `HDR • ${mbps}M` : (mbps ? `${mbps} Mbps MP4` : 'MP4'),
-                itag: v.itag,
-              });
-            }
-
-            const webms = tierMatches.filter((f) => f.mimeType?.includes('webm') || f.mimeType?.includes('vp9'));
-            webms.sort((a, b) => ((b.bitrate || 0) || (b.averageBitrate || 0)) - ((a.bitrate || 0) || (a.averageBitrate || 0)));
-            if (webms[0]) {
-              const v = webms[0];
-              const bit = (v.bitrate || 0) || (v.averageBitrate || 0);
-              const mbps = bit > 0 ? (bit / 1000000).toFixed(1) : undefined;
-              const isHdr = v.qualityLabel?.includes('HDR') || v.mimeType?.includes('vp9.2');
-              const size = v.contentLength ? parseInt(v.contentLength, 10) : (bit > 0 ? Math.round(dur * (bit / 8)) : Math.round(dur * (4.5 * 1024 * 1024 / 8)));
-              formats.push({
-                id: `yt_${key}_webm`,
-                label: `${label} (WebM)`,
-                qualityTier: tier,
-                resolution: mbps ? `${v.qualityLabel || label} • ${mbps} Mbps` : (v.qualityLabel || label),
-                ext: 'webm',
-                filesizeBytes: size,
-                directUrl: v.url || fallbackBaseUrl,
-                isVideo: true,
-                badge: isHdr ? (mbps ? `HDR • ${mbps}M` : 'HDR WebM') : (mbps ? `${mbps} Mbps WebM` : 'WebM'),
-                itag: v.itag,
-              });
-            }
-          });
-
-          const allAudios = adaptive.filter((f) => f.audioQuality || f.mimeType?.includes('audio'));
-
-          const m4aAudios = allAudios.filter((f) => f.mimeType?.includes('mp4') || f.mimeType?.includes('aac') || f.mimeType?.includes('m4a'));
-          m4aAudios.sort((a, b) => ((b.bitrate || 0) || (b.averageBitrate || 0)) - ((a.bitrate || 0) || (a.averageBitrate || 0)));
-          const bestM4a = m4aAudios[0];
-          if (bestM4a) {
-            const m4aKbps = bestM4a?.bitrate ? Math.round(bestM4a.bitrate / 1000) : 160;
-            const m4aSize = bestM4a?.contentLength ? parseInt(bestM4a.contentLength, 10) : Math.round(dur * (160 * 1024 / 8));
-
-            formats.push({
-              id: 'yt_audio_m4a',
-              label: 'Hi-Res Audio (M4A)',
-              qualityTier: 'audio',
-              resolution: `${m4aKbps} kbps (AAC)`,
-              ext: 'm4a',
-              filesizeBytes: m4aSize,
-              directUrl: bestM4a?.url || fallbackBaseUrl,
-              isAudio: true,
-              badge: `${m4aKbps} KBPS • AAC`,
-              itag: bestM4a?.itag,
-            });
-          }
-
-          const opusAudios = allAudios.filter((f) => f.mimeType?.includes('webm') || f.mimeType?.includes('opus'));
-          opusAudios.sort((a, b) => ((b.bitrate || 0) || (b.averageBitrate || 0)) - ((a.bitrate || 0) || (a.averageBitrate || 0)));
-          const bestOpus = opusAudios[0];
-          if (bestOpus) {
-            const opusKbps = bestOpus.bitrate ? Math.round(bestOpus.bitrate / 1000) : 160;
-            const opusSize = bestOpus.contentLength ? parseInt(bestOpus.contentLength, 10) : Math.round(dur * (160 * 1024 / 8));
-            formats.push({
-              id: 'yt_audio_opus',
-              label: 'Studio Audio (Opus)',
-              qualityTier: 'audio',
-              resolution: `${opusKbps} kbps (Opus)`,
-              ext: 'opus',
-              filesizeBytes: opusSize,
-              directUrl: bestOpus.url || fallbackBaseUrl,
-              isAudio: true,
-              badge: `${opusKbps} KBPS • OPUS`,
-              itag: bestOpus?.itag,
-            });
-          }
-
-          const saverAudios = allAudios.filter(
-            (f) => f.audioQuality === 'AUDIO_QUALITY_LOW' || (f.bitrate && f.bitrate < 90000)
-          );
-          saverAudios.sort((a, b) => ((a.bitrate || 0) || (a.averageBitrate || 0)) - ((b.bitrate || 0) || (a.averageBitrate || 0)));
-          const bestSaver = saverAudios[0];
-          if (bestSaver) {
-            const saverKbps = bestSaver.bitrate ? Math.round(bestSaver.bitrate / 1000) : 64;
-            const saverSize = bestSaver.contentLength ? parseInt(bestSaver.contentLength, 10) : Math.round(dur * (64 * 1024 / 8));
-            const isWebm = bestSaver.mimeType?.includes('webm') || bestSaver.mimeType?.includes('opus');
-            const fmtName = isWebm ? 'Opus' : 'M4A';
-            const codecTag = isWebm ? 'OPUS' : 'AAC';
-            formats.push({
-              id: 'yt_audio_saver',
-              label: `Voice Audio (${fmtName})`,
-              qualityTier: 'audio',
-              resolution: `${saverKbps} kbps (${codecTag})`,
-              ext: isWebm ? 'opus' : 'm4a',
-              filesizeBytes: saverSize,
-              directUrl: bestSaver.url || fallbackBaseUrl,
-              isAudio: true,
-              badge: `${saverKbps} KBPS • ${codecTag}`,
-              itag: bestSaver?.itag,
-            });
-          }
-
-          const captionTracks = (data?.captions?.playerCaptionsTracklistRenderer?.captionTracks || []) as any[];
-          captionTracks.forEach((c) => {
-            if (!c.baseUrl) return;
-            const langCode = c.languageCode || 'id';
-            const rawName = c.name?.simpleText || c.name?.runs?.[0]?.text || langCode.toUpperCase();
-            const cleanName = rawName.replace(/\s*\([^)]+\)/g, '').trim() || langCode.toUpperCase();
-            const isAuto = c.vssId?.startsWith('a.') || c.kind === 'asr';
-            const subId = `yt_sub_${langCode}_${c.vssId?.replace(/[^a-zA-Z0-9]/g, '') || 'track'}`;
-
-            subtitles.push({
-              id: subId,
-              languageCode: langCode,
-              languageName: isAuto ? `${cleanName} (Auto)` : cleanName,
-              isAutoGenerated: isAuto,
-              directUrl: `${c.baseUrl}&fmt=srv3`,
-              vssId: c.vssId,
-            });
-
-            formats.push({
-              id: subId,
-              label: `Subtitle ${cleanName}`,
-              qualityTier: 'subtitle',
-              resolution: langCode.toUpperCase(),
-              ext: 'srt',
-              directUrl: `${c.baseUrl}&fmt=srv3`,
-              isSubtitle: true,
-              badge: isAuto ? `${langCode.toUpperCase()} • AUTO` : langCode.toUpperCase(),
-            });
-          });
-
-          allFormats.forEach((f) => {
-            const bit = (f.bitrate || 0) || (f.averageBitrate || 0);
-            const mbps = bit >= 1000000 ? `${(bit / 1000000).toFixed(1)} Mbps` : `${Math.round(bit / 1000)} kbps`;
-            const mime = f.mimeType || '';
-            const isAudio = !f.qualityLabel && (mime.includes('audio') || !!f.audioQuality);
-            const isVideo = !!f.qualityLabel || mime.includes('video');
-            const isMuxed = isVideo && (regular.includes(f) || (f.audioQuality && f.qualityLabel));
-
-            let codec = 'Unknown';
-            const codecMatch = mime.match(/codecs="([^"]+)"/);
-            if (codecMatch) {
-              const rawCodec = codecMatch[1];
-              if (rawCodec.startsWith('avc1')) codec = 'H.264 / AVC';
-              else if (rawCodec.startsWith('av01')) codec = 'AV1';
-              else if (rawCodec.startsWith('vp9.2')) codec = 'VP9.2 HDR';
-              else if (rawCodec.startsWith('vp9') || rawCodec.startsWith('vp09')) codec = 'VP9';
-              else if (rawCodec.startsWith('opus')) codec = 'Opus 48kHz';
-              else if (rawCodec.startsWith('mp4a')) codec = 'AAC Audio';
-              else codec = rawCodec;
-            }
-
-            const isHdr = f.qualityLabel?.includes('HDR') || mime.includes('vp9.2') || f.colorInfo?.transferCharacteristics?.includes('SMPTE');
-            const size = f.contentLength ? parseInt(f.contentLength, 10) : (bit > 0 ? Math.round(dur * (bit / 8)) : undefined);
-
-            rawStreams.push({
-              itag: f.itag || 0,
-              qualityLabel: f.qualityLabel || (isAudio ? 'Audio Stream' : 'Video Stream'),
-              mimeType: mime.split(';')[0] || mime,
-              codec,
-              bitrate: bit,
-              bitrateFormatted: mbps,
-              fps: f.fps,
-              filesizeBytes: size,
-              type: isMuxed ? 'muxed' : (isAudio ? 'audio' : 'video'),
-              directUrl: f.url || fallbackBaseUrl,
-              isHdr,
-            });
-          });
+          const res = processPlayerData(data, videoId, fallbackBaseUrl, formats, subtitles, rawStreams, chapters);
+          if (res.title) title = res.title;
+          if (res.author) author = res.author;
+          if (res.description) description = res.description;
+          if (res.durationSec) durationSec = res.durationSec;
+          if (res.thumbnailUrl) thumbnailUrl = res.thumbnailUrl;
+          if (formats.length > 0) parsedSuccess = true;
         }
       }
     } catch {
       /* ignore watch html error */
     }
 
+    // 2. Secondary Innertube multi-client API fallback (Android / Web) if watch page was empty or throttled
+    if (!parsedSuccess || formats.length === 0) {
+      try {
+        const innertubeData = await fetchYouTubeInnertubePlayer(videoId, signal);
+        if (innertubeData) {
+          const res = processPlayerData(innertubeData, videoId, fallbackBaseUrl, formats, subtitles, rawStreams, chapters);
+          if (res.title) title = res.title;
+          if (res.author) author = res.author;
+          if (res.description) description = res.description;
+          if (res.durationSec) durationSec = res.durationSec;
+          if (res.thumbnailUrl) thumbnailUrl = res.thumbnailUrl;
+          if (formats.length > 0) parsedSuccess = true;
+        }
+      } catch {
+        /* ignore innertube error */
+      }
+    }
+
+    // 3. Fallback mock tiers if all network parsing was unavailable
     if (formats.length === 0) {
       const dur = durationSec || 180;
       const is8K = /\b(8k|4320p)\b/i.test(title);
@@ -332,7 +489,7 @@ export const youtubeResolver: LinkResolverProvider = {
       if (is8K) {
         formats.push({
           id: 'yt_8k',
-          label: '8K Ultra HD',
+          label: '8K Ultra HD (MP4)',
           qualityTier: '8k',
           resolution: '4320p (8K)',
           ext: 'mp4',
@@ -345,7 +502,7 @@ export const youtubeResolver: LinkResolverProvider = {
       if (is4K) {
         formats.push({
           id: 'yt_4k',
-          label: '4K Ultra HD',
+          label: '4K Ultra HD (MP4)',
           qualityTier: '4k',
           resolution: '2160p (4K)',
           ext: 'mp4',
@@ -358,7 +515,7 @@ export const youtubeResolver: LinkResolverProvider = {
       if (is2K) {
         formats.push({
           id: 'yt_2k',
-          label: '2K Quad HD',
+          label: '2K Quad HD (MP4)',
           qualityTier: '2k',
           resolution: '1440p (2K)',
           ext: 'mp4',
@@ -370,7 +527,7 @@ export const youtubeResolver: LinkResolverProvider = {
       }
       formats.push({
         id: 'yt_1080p',
-        label: 'Full HD 1080p',
+        label: 'Full HD 1080p (MP4)',
         qualityTier: '1080p',
         resolution: '1080p Full HD',
         ext: 'mp4',
@@ -381,7 +538,7 @@ export const youtubeResolver: LinkResolverProvider = {
       });
       formats.push({
         id: 'yt_720p',
-        label: 'HD 720p',
+        label: 'HD 720p (MP4)',
         qualityTier: '720p',
         resolution: '720p HD',
         ext: 'mp4',
@@ -394,34 +551,34 @@ export const youtubeResolver: LinkResolverProvider = {
         id: 'yt_audio_m4a',
         label: 'Hi-Res Audio (M4A)',
         qualityTier: 'audio',
-        resolution: '320 kbps',
+        resolution: '160 kbps (AAC)',
         ext: 'm4a',
-        filesizeBytes: Math.round(dur * (320 * 1024 / 8)),
+        filesizeBytes: Math.round(dur * (160 * 1024 / 8)),
         directUrl: fallbackBaseUrl,
         isAudio: true,
-        badge: '320 kbps',
+        badge: '160 KBPS • AAC',
       });
       formats.push({
         id: 'yt_audio_opus',
         label: 'Studio Audio (Opus)',
         qualityTier: 'audio',
-        resolution: '160 kbps',
+        resolution: '160 kbps (Opus)',
         ext: 'opus',
         filesizeBytes: Math.round(dur * (160 * 1024 / 8)),
         directUrl: fallbackBaseUrl,
         isAudio: true,
-        badge: '160 kbps Opus',
+        badge: '160 KBPS • OPUS',
       });
       formats.push({
         id: 'yt_audio_saver',
-        label: 'Voice Audio (Saver)',
+        label: 'Voice Audio (M4A)',
         qualityTier: 'audio',
-        resolution: '64 kbps',
+        resolution: '64 kbps (AAC)',
         ext: 'm4a',
         filesizeBytes: Math.round(dur * (64 * 1024 / 8)),
         directUrl: fallbackBaseUrl,
         isAudio: true,
-        badge: '64 kbps',
+        badge: '64 KBPS • AAC',
       });
     }
 
@@ -442,6 +599,7 @@ export const youtubeResolver: LinkResolverProvider = {
       platformName: 'YouTube (Ultra-HD)',
       title,
       author,
+      artist: author,
       durationSec,
       thumbnailUrl,
       description,
@@ -449,7 +607,11 @@ export const youtubeResolver: LinkResolverProvider = {
       selectedFormatId: defaultFormatId,
       rawStreams,
       subtitles,
+      chapters,
+      isPlaylist,
+      playlistId,
       resolvedAt: Date.now(),
     };
   },
 };
+

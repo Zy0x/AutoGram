@@ -111,6 +111,10 @@ export interface ResolvedMediaInfo {
   mediaItems?: ResolvedMediaItem[];
   rawStreams?: RawStreamItem[];
   subtitles?: SubtitleTrackItem[];
+  chapters?: Array<{ title: string; startSec: number; endSec?: number; thumbnailUrl?: string }>;
+  isPlaylist?: boolean;
+  playlistId?: string;
+  artist?: string;
   isDirectFile?: boolean;
   requiresHeaders?: boolean;
   customHeaders?: Record<string, string>;
