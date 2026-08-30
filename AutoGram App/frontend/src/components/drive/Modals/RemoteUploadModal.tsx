@@ -3066,6 +3066,18 @@ export function RemoteUploadModal({
                         {url.trim() && (
                           <button
                             type="button"
+                            className="td-remote-paste-action"
+                            onClick={() => probeUrl(url.trim(), passcode.trim())}
+                            disabled={submitting || inspection?.status === 'inspecting'}
+                            title={t('drive.remote_batch_reinspect_btn')}
+                          >
+                            <RefreshCw size={11} className={inspection?.status === 'inspecting' ? 'spin' : ''} />
+                            <span>{t('drive.remote_batch_reinspect_btn')}</span>
+                          </button>
+                        )}
+                        {url.trim() && (
+                          <button
+                            type="button"
                             className="td-remote-browser-action"
                             onClick={() => handleOpenInBrowser(url.trim())}
                             disabled={submitting}
@@ -3853,9 +3865,21 @@ export function RemoteUploadModal({
                         </>
                       ) : resolvedMedia.formats.length > 0 ? (
                         <div className="td-remote-formats-container">
-                          <label className="td-input-label">
-                            {t('drive.remote_split_select_format_hint')}
-                          </label>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                            <label className="td-input-label" style={{ marginBottom: 0 }}>
+                              {t('drive.remote_split_select_format_hint')}
+                            </label>
+                            <button
+                              type="button"
+                              className="td-remote-paste-action"
+                              onClick={() => probeUrl(url.trim(), passcode.trim())}
+                              disabled={submitting || inspection?.status === 'inspecting'}
+                              title={t('drive.remote_batch_reinspect_btn')}
+                            >
+                              <RefreshCw size={10} className={inspection?.status === 'inspecting' ? 'spin' : ''} />
+                              <span>{t('drive.remote_batch_reinspect_btn')}</span>
+                            </button>
+                          </div>
                           <div className="td-remote-quality-grid">
                             {resolvedMedia.formats.map((fmt) => {
                               const isSelected = selectedFormatId === fmt.id;
