@@ -246,7 +246,34 @@ function getFormatDisplayBadge(fmt: StreamQualityFormat, t: any): string | undef
   if (fmt.badge === 'PASSWORD PROTECTED') {
     return t('drive.remote_passcode_required_badge');
   }
+  if (!fmt.badge) return undefined;
+  // Suppress duplicate badges that repeat the title/label text
+  const normBadge = fmt.badge.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normLabel = (fmt.label || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (normBadge && normLabel && (normBadge === normLabel || normLabel.includes(normBadge))) {
+    if (fmt.resolution && !normLabel.includes(fmt.resolution.toLowerCase().replace(/[^a-z0-9]/g, ''))) {
+      return fmt.resolution;
+    }
+    return undefined;
+  }
   return fmt.badge;
+}
+
+const KNOWN_MEDIA_EXTENSIONS = new Set([
+  'mp4', 'mkv', 'webm', 'avi', 'mov', 'flv', 'wmv', 'm4v', '3gp', 'ts',
+  'mp3', 'm4a', 'aac', 'flac', 'wav', 'ogg', 'opus', 'wma',
+  'jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'svg', 'heic',
+  'zip', 'rar', '7z', 'tar', 'gz',
+  'pdf', 'doc', 'docx', 'txt', 'epub',
+]);
+
+function hasKnownMediaExtension(name: string, ext?: string): boolean {
+  const clean = (name || '').trim();
+  const lastDot = clean.lastIndexOf('.');
+  if (lastDot <= 0) return false;
+  const candidateExt = clean.slice(lastDot + 1).trim().toLowerCase();
+  if (ext && candidateExt === ext.toLowerCase().replace(/^\./, '')) return true;
+  return KNOWN_MEDIA_EXTENSIONS.has(candidateExt);
 }
 
 function getEffectiveFormatFilename(
@@ -256,9 +283,13 @@ function getEffectiveFormatFilename(
 ): string {
   if (!resolved && !fmt) return '';
   if (fmt?.customFilename) return fmt.customFilename;
-  const rawTitle = sanitizeFilename(fmt?.customTitle || resolved?.title || '');
-  if (!rawTitle) return `remote_file.${fmt?.ext || fallbackExt || 'mp4'}`;
-  return rawTitle.includes('.') ? rawTitle : `${rawTitle}.${fmt?.ext || fallbackExt || 'mp4'}`;
+  const rawTitle = sanitizeFilename(fmt?.customTitle || resolved?.title || '').trim();
+  const targetExt = (fmt?.ext || fallbackExt || 'mp4').toLowerCase().replace(/^\./, '');
+  if (!rawTitle) return `remote_file.${targetExt}`;
+  if (hasKnownMediaExtension(rawTitle, targetExt)) {
+    return rawTitle;
+  }
+  return `${rawTitle}.${targetExt}`;
 }
 
 function formatMediaDuration(seconds?: number | null): string {
@@ -275,26 +306,37 @@ function formatMediaDuration(seconds?: number | null): string {
 
 /**
  * Splits a full filename into base name and extension.
+ * Only strips extension if it matches target ext or is a recognized media format extension.
+ * Prevents mangling titles containing dots (e.g. "Kenapa Lu Harus Punya Mini PC.. ft. GEEKOM").
  */
 function splitFilenameAndExt(fullFilename: string, fallbackExt: string): { base: string; ext: string } {
   const clean = (fullFilename || '').trim();
+  const cleanFallback = (fallbackExt || 'mp4').toLowerCase().replace(/^\./, '');
   const lastDot = clean.lastIndexOf('.');
+
   if (lastDot > 0) {
-    return {
-      base: clean.slice(0, lastDot),
-      ext: clean.slice(lastDot + 1).toLowerCase() || fallbackExt,
-    };
+    const candidateExt = clean.slice(lastDot + 1).trim().toLowerCase();
+    // Only treat as extension if it matches fallback or a recognized media format
+    if (/^[a-z0-9]{1,6}$/.test(candidateExt)) {
+      if (candidateExt === cleanFallback || KNOWN_MEDIA_EXTENSIONS.has(candidateExt)) {
+        return {
+          base: clean.slice(0, lastDot).trim(),
+          ext: candidateExt,
+        };
+      }
+    }
   }
+
   return {
     base: clean || 'unnamed_media',
-    ext: fallbackExt,
+    ext: cleanFallback,
   };
 }
 
 /**
  * Robust sanitizer and normalizer for filenames:
  * 1. Sanitizes invalid filesystem and cloud characters (\ / : * ? " < > |)
- * 2. Strips any trailing extensions typed by user (e.g. .mp4, .mkv, .avi, .webm, .mov, .mp4.mp4, etc.)
+ * 2. Strips only trailing media extensions typed by user (e.g. .mp4, .mp4.mp4), not dots in title text (e.g. ft., vs.)
  * 3. Enforces the true target format extension
  */
 function sanitizeAndNormalizeFilename(userInput: string, targetExt: string): string {
@@ -302,9 +344,20 @@ function sanitizeAndNormalizeFilename(userInput: string, targetExt: string): str
   // 1. Replace illegal filesystem / cloud characters
   name = name.replace(/[\\/:*?"<>|]/g, '_').trim();
 
-  // 2. Strip any trailing extension(s) typed by user (whether same or different)
-  while (/\.[a-zA-Z0-9]{1,8}$/.test(name)) {
-    name = name.replace(/\.[a-zA-Z0-9]{1,8}$/, '').trim();
+  const cleanTargetExt = (targetExt || 'mp4').toLowerCase().replace(/^\./, '');
+
+  // 2. Strip only trailing matching or known media extensions
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const lastDot = name.lastIndexOf('.');
+    if (lastDot > 0) {
+      const candidateExt = name.slice(lastDot + 1).trim().toLowerCase();
+      if (candidateExt === cleanTargetExt || KNOWN_MEDIA_EXTENSIONS.has(candidateExt)) {
+        name = name.slice(0, lastDot).trim();
+        changed = true;
+      }
+    }
   }
 
   // 3. Fallback if empty after stripping
@@ -313,7 +366,7 @@ function sanitizeAndNormalizeFilename(userInput: string, targetExt: string): str
   }
 
   // 4. Always attach the true target extension
-  return `${name}.${targetExt.toLowerCase().replace(/^\./, '')}`;
+  return `${name}.${cleanTargetExt}`;
 }
 
 interface UnifiedBadgeInfo {

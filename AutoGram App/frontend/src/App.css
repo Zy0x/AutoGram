@@ -27741,6 +27741,119 @@ button.td-confirm-icon.is-back-btn:active {
   box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
 }
 
+.td-remote-formats-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 2px 8px;
+}
+
+.td-remote-formats-container .td-input-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  letter-spacing: 0.01em;
+}
+
+.td-remote-quality-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+  width: 100%;
+  align-items: stretch;
+}
+
+.td-remote-quality-chip {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 160ms cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+  min-height: 48px;
+  box-sizing: border-box;
+}
+
+.td-remote-quality-chip:hover:not(:disabled) {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.td-remote-quality-chip.active {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(99, 102, 241, 0.18));
+  border-color: #38bdf8;
+  color: #ffffff;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.45), 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 12px rgba(56, 189, 248, 0.22);
+}
+
+.td-remote-quality-chip-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.td-remote-quality-chip-title {
+  font-size: 0.74rem;
+  font-weight: 750;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+.td-remote-chip-active-ico {
+  color: #38bdf8;
+  flex-shrink: 0;
+}
+
+.td-remote-quality-chip-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.td-remote-quality-chip-badge {
+  font-size: 0.62rem;
+  font-weight: 750;
+  color: #38bdf8;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.td-remote-quality-chip.active .td-remote-quality-chip-badge {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #7dd3fc;
+}
+
+.td-remote-quality-chip-size {
+  font-size: 0.64rem;
+  font-weight: 600;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
 .td-remote-filename-input {
   flex: 1 1 auto;
   min-width: 0;
@@ -27835,84 +27948,7 @@ button.td-confirm-icon.is-back-btn:active {
   box-sizing: border-box !important;
 }
 
-/* Format chips selector */
-.td-remote-formats-container {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 100%;
-  margin-top: 4px;
-}
 
-.td-remote-quality-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  width: 100%;
-}
-
-.td-remote-quality-chip {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 5px 10px;
-  border-radius: 7px;
-  background: rgba(10, 15, 29, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
-  cursor: pointer;
-  transition: all 130ms ease;
-  text-align: left;
-  min-width: 120px;
-}
-
-.td-remote-quality-chip:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(56, 189, 248, 0.4);
-  color: #f1f5f9;
-}
-
-.td-remote-quality-chip.active {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(99, 102, 241, 0.15));
-  border-color: #38bdf8;
-  color: #f8fafc;
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
-}
-
-.td-remote-quality-chip-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-}
-
-.td-remote-quality-chip-title {
-  font-size: 0.73rem;
-  font-weight: 700;
-  color: inherit;
-}
-
-.td-remote-chip-active-ico {
-  color: #38bdf8;
-}
-
-.td-remote-quality-chip-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.td-remote-quality-chip-badge {
-  font-size: 0.62rem;
-  font-weight: 700;
-  color: #38bdf8;
-  text-transform: uppercase;
-}
-
-.td-remote-quality-chip-size {
-  font-size: 0.62rem;
-  color: #94a3b8;
-}
 
 /* SECTION 2: FULL-WIDTH STUDIO GALLERY (Takes all remaining height) */
 .td-remote-section-2-gallery {

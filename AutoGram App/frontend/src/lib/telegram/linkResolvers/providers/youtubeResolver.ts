@@ -92,53 +92,53 @@ export const youtubeResolver: LinkResolverProvider = {
       // 8K Ultra HD
       formats.push({
         id: 'yt_8k',
-        label: '8K Ultra HD (4320p)',
+        label: '8K Ultra HD',
         qualityTier: '8k',
         resolution: '4320p (8K)',
         ext: 'mp4',
         filesizeBytes: Math.round(dur * (50 * 1024 * 1024 / 8)),
         directUrl: fallbackBaseUrl,
         isVideo: true,
-        badge: '8K ULTRA HD',
+        badge: '4320p',
       });
 
       // 4K UHD
       formats.push({
         id: 'yt_4k',
-        label: '4K Ultra HD (2160p)',
+        label: '4K Ultra HD',
         qualityTier: '4k',
         resolution: '2160p (4K)',
         ext: 'mp4',
         filesizeBytes: Math.round(dur * (20 * 1024 * 1024 / 8)),
         directUrl: fallbackBaseUrl,
         isVideo: true,
-        badge: '4K UHD',
+        badge: '2160p',
       });
 
       // 2K QHD
       formats.push({
         id: 'yt_2k',
-        label: '2K Quad HD (1440p)',
+        label: '2K Quad HD',
         qualityTier: '2k',
         resolution: '1440p (2K)',
         ext: 'mp4',
         filesizeBytes: Math.round(dur * (9 * 1024 * 1024 / 8)),
         directUrl: fallbackBaseUrl,
         isVideo: true,
-        badge: '2K QHD',
+        badge: '1440p',
       });
 
       // 1080p Full HD
       formats.push({
         id: 'yt_1080p',
-        label: 'Full HD 1080p (60fps)',
+        label: 'Full HD 1080p',
         qualityTier: '1080p',
         resolution: '1080p Full HD',
         ext: 'mp4',
         filesizeBytes: Math.round(dur * (4.2 * 1024 * 1024 / 8)),
         directUrl: fallbackBaseUrl,
         isVideo: true,
-        badge: '1080p FULL HD',
+        badge: '60fps',
       });
 
       // 720p HD
@@ -151,20 +151,20 @@ export const youtubeResolver: LinkResolverProvider = {
         filesizeBytes: Math.round(dur * (2.1 * 1024 * 1024 / 8)),
         directUrl: fallbackBaseUrl,
         isVideo: true,
-        badge: '720p HD',
+        badge: '720p',
       });
 
       // Audio Only MP3
       formats.push({
         id: 'yt_audio',
-        label: 'Hi-Res Audio (320 kbps MP3)',
+        label: 'Hi-Res Audio',
         qualityTier: 'audio',
         resolution: '320 kbps',
         ext: 'mp3',
         filesizeBytes: Math.round(dur * (320 * 1024 / 8)),
         directUrl: fallbackBaseUrl,
         isAudio: true,
-        badge: 'HI-RES AUDIO',
+        badge: '320 kbps',
       });
     }
 
