@@ -1230,7 +1230,41 @@ export function RemoteUploadModal({
     setSelectedMediaItemIds(new Set());
   }, []);
 
+  const clickTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
+  const handleCardClick = useCallback((itemId: string) => {
+    const existingTimer = clickTimersRef.current.get(itemId);
+    if (existingTimer) {
+      // 2nd click arrived within threshold! Cancel selection toggle and trigger double click stream preview
+      clearTimeout(existingTimer);
+      clickTimersRef.current.delete(itemId);
+      setActivePreviewItemId(itemId);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      handleToggleItem(itemId);
+      clickTimersRef.current.delete(itemId);
+    }, 220);
+
+    clickTimersRef.current.set(itemId, timer);
+  }, [handleToggleItem]);
+
+  const handleCardDoubleClick = useCallback((itemId: string) => {
+    const existingTimer = clickTimersRef.current.get(itemId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+      clickTimersRef.current.delete(itemId);
+    }
+    setActivePreviewItemId(itemId);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clickTimersRef.current.forEach((t) => clearTimeout(t));
+      clickTimersRef.current.clear();
+    };
+  }, []);
 
   const selectedItems = useMemo(() => {
     return effectiveMediaItems.filter((item) => selectedMediaItemIds.has(item.id));
@@ -2620,8 +2654,8 @@ export function RemoteUploadModal({
                                     <div
                                       key={item.id}
                                       className={`td-remote-list-item-row ${isSelected ? 'selected' : ''} ${isActive ? 'is-active-preview' : ''}`}
-                                      onClick={() => handleToggleItem(item.id)}
-                                      onDoubleClick={() => setActivePreviewItemId(item.id)}
+                                      onClick={() => handleCardClick(item.id)}
+                                      onDoubleClick={() => handleCardDoubleClick(item.id)}
                                     >
                                       {/* Left: Circular Checkbox */}
                                       <button
@@ -2629,6 +2663,11 @@ export function RemoteUploadModal({
                                         className={`td-remote-item-checkbox list-mode-check ${isSelected ? 'checked' : ''}`}
                                         onClick={(e) => {
                                           e.stopPropagation();
+                                          const existingTimer = clickTimersRef.current.get(item.id);
+                                          if (existingTimer) {
+                                            clearTimeout(existingTimer);
+                                            clickTimersRef.current.delete(item.id);
+                                          }
                                           handleToggleItem(item.id);
                                         }}
                                         aria-label={isSelected ? t('drive_tools.remote_gallery_deselect_all') : t('drive_tools.remote_gallery_select_all')}
@@ -2642,7 +2681,7 @@ export function RemoteUploadModal({
                                         onClick={(e) => {
                                           if (item.kind === 'video') {
                                             e.stopPropagation();
-                                            setActivePreviewItemId(item.id);
+                                            handleCardDoubleClick(item.id);
                                           }
                                         }}
                                         title={item.kind === 'video' ? t('drive_tools.remote_gallery_play_video') : undefined}
@@ -2716,7 +2755,7 @@ export function RemoteUploadModal({
                                             className="td-remote-list-play-btn"
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              setActivePreviewItemId(item.id);
+                                              handleCardDoubleClick(item.id);
                                             }}
                                             title={t('drive_tools.remote_gallery_play_video')}
                                           >
@@ -2733,8 +2772,8 @@ export function RemoteUploadModal({
                                   <div
                                     key={item.id}
                                     className={`td-remote-media-item-card card-grid-mode ${isSelected ? 'selected' : ''} ${isActive ? 'is-active-preview' : ''}`}
-                                    onClick={() => handleToggleItem(item.id)}
-                                    onDoubleClick={() => setActivePreviewItemId(item.id)}
+                                    onClick={() => handleCardClick(item.id)}
+                                    onDoubleClick={() => handleCardDoubleClick(item.id)}
                                   >
                                     <div className="td-remote-item-thumb-wrap">
                                       {item.thumbnailUrl ? (
@@ -2776,6 +2815,11 @@ export function RemoteUploadModal({
                                         className={`td-remote-item-checkbox ${isSelected ? 'checked' : ''}`}
                                         onClick={(e) => {
                                           e.stopPropagation();
+                                          const existingTimer = clickTimersRef.current.get(item.id);
+                                          if (existingTimer) {
+                                            clearTimeout(existingTimer);
+                                            clickTimersRef.current.delete(item.id);
+                                          }
                                           handleToggleItem(item.id);
                                         }}
                                         aria-label={isSelected ? t('drive_tools.remote_gallery_deselect_all') : t('drive_tools.remote_gallery_select_all')}
