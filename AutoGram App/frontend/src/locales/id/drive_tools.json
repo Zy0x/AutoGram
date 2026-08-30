@@ -570,6 +570,7 @@
   "remote_save_filename": "Simpan nama file",
   "remote_cancel_edit_filename": "Batal ubah",
   "remote_filename_placeholder": "Masukkan nama file...",
+  "remote_filename_locked_ext_tooltip": "Format file dikunci ke {{ext}}",
   "recovery_dialog_title": "Pemulihan Transfer & Spool Lokal",
   "recovery_dialog_subtitle": "Ditemukan file transfer sementara dari sesi sebelumnya yang belum selesai.",
   "recovery_btn_resume": "Lanjutkan",

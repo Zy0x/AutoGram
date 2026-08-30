@@ -570,6 +570,7 @@
   "remote_save_filename": "Save filename",
   "remote_cancel_edit_filename": "Cancel edit",
   "remote_filename_placeholder": "Enter filename...",
+  "remote_filename_locked_ext_tooltip": "File format is locked to {{ext}}",
   "recovery_dialog_title": "Transfer Recovery & Local Spool",
   "recovery_dialog_subtitle": "Incomplete temporary transfer files from a previous session were found.",
   "recovery_btn_resume": "Resume",

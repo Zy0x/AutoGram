@@ -257,6 +257,49 @@ function formatMediaDuration(seconds?: number | null): string {
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
+/**
+ * Splits a full filename into base name and extension.
+ */
+function splitFilenameAndExt(fullFilename: string, fallbackExt: string): { base: string; ext: string } {
+  const clean = (fullFilename || '').trim();
+  const lastDot = clean.lastIndexOf('.');
+  if (lastDot > 0) {
+    return {
+      base: clean.slice(0, lastDot),
+      ext: clean.slice(lastDot + 1).toLowerCase() || fallbackExt,
+    };
+  }
+  return {
+    base: clean || 'unnamed_media',
+    ext: fallbackExt,
+  };
+}
+
+/**
+ * Robust sanitizer and normalizer for filenames:
+ * 1. Sanitizes invalid filesystem and cloud characters (\ / : * ? " < > |)
+ * 2. Strips any trailing extensions typed by user (e.g. .mp4, .mkv, .avi, .webm, .mov, .mp4.mp4, etc.)
+ * 3. Enforces the true target format extension
+ */
+function sanitizeAndNormalizeFilename(userInput: string, targetExt: string): string {
+  let name = (userInput || '').trim();
+  // 1. Replace illegal filesystem / cloud characters
+  name = name.replace(/[\\/:*?"<>|]/g, '_').trim();
+
+  // 2. Strip any trailing extension(s) typed by user (whether same or different)
+  while (/\.[a-zA-Z0-9]{1,8}$/.test(name)) {
+    name = name.replace(/\.[a-zA-Z0-9]{1,8}$/, '').trim();
+  }
+
+  // 3. Fallback if empty after stripping
+  if (!name) {
+    name = 'media';
+  }
+
+  // 4. Always attach the true target extension
+  return `${name}.${targetExt.toLowerCase().replace(/^\./, '')}`;
+}
+
 function getSingleUnifiedBadge(item: ResolvedMediaItem): string {
   const fmt = item.formats[0];
   if (!fmt) return item.kind === 'image' ? 'PHOTO' : 'HD';
@@ -933,18 +976,27 @@ export function RemoteUploadModal({
     setEditingNameValue('');
   }, [activePreviewItemId, resolvedMedia?.title]);
 
+  const activeTargetExt = useMemo(() => {
+    const activeChosenFmt = activePreviewItem
+      ? activePreviewItem.formats.find(
+          (f) => f.id === (itemSelectedFormats[activePreviewItem.id] || activePreviewItem.selectedFormatId)
+        ) || activePreviewItem.formats[0]
+      : resolvedMedia?.formats.find((f) => f.id === selectedFormatId) || resolvedMedia?.formats[0];
+    return (activeChosenFmt?.ext || 'mp4').toLowerCase().replace(/^\./, '');
+  }, [activePreviewItem, itemSelectedFormats, resolvedMedia, selectedFormatId]);
+
   const activeItemOriginalName = useMemo(() => {
     if (activePreviewItem) {
       const chosenFmtId = itemSelectedFormats[activePreviewItem.id] || activePreviewItem.selectedFormatId || activePreviewItem.formats[0]?.id;
       const chosenFmt = activePreviewItem.formats.find((f) => f.id === chosenFmtId) || activePreviewItem.formats[0];
-      return getEffectiveFormatFilename(chosenFmt, resolvedMedia) || activePreviewItem.title || 'media.mp4';
+      return getEffectiveFormatFilename(chosenFmt, resolvedMedia) || activePreviewItem.title || `media.${activeTargetExt}`;
     }
     if (resolvedMedia) {
       const chosenFmt = resolvedMedia.formats.find((f) => f.id === selectedFormatId) || resolvedMedia.formats[0];
-      return getEffectiveFormatFilename(chosenFmt, resolvedMedia) || resolvedMedia.title || 'media.mp4';
+      return getEffectiveFormatFilename(chosenFmt, resolvedMedia) || resolvedMedia.title || `media.${activeTargetExt}`;
     }
     return '';
-  }, [activePreviewItem, itemSelectedFormats, resolvedMedia, selectedFormatId]);
+  }, [activePreviewItem, itemSelectedFormats, resolvedMedia, selectedFormatId, activeTargetExt]);
 
   const activeItemCurrentName = useMemo(() => {
     if (activePreviewItem) {
@@ -958,17 +1010,17 @@ export function RemoteUploadModal({
   }, [activeItemCurrentName, activeItemOriginalName]);
 
   const saveCurrentEditingName = useCallback(() => {
-    const trimmed = editingNameValue.trim();
+    const normalized = sanitizeAndNormalizeFilename(editingNameValue, activeTargetExt);
     if (activePreviewItem) {
       setItemCustomNames((prev) => ({
         ...prev,
-        [activePreviewItem.id]: trimmed || activeItemOriginalName,
+        [activePreviewItem.id]: normalized,
       }));
     } else {
-      setCustomFilename(trimmed);
+      setCustomFilename(normalized);
     }
     setIsEditingActiveName(false);
-  }, [editingNameValue, activePreviewItem, activeItemOriginalName]);
+  }, [editingNameValue, activeTargetExt, activePreviewItem]);
 
   const resetActiveName = useCallback(() => {
     if (activePreviewItem) {
@@ -2102,23 +2154,31 @@ export function RemoteUploadModal({
                       <div className="td-remote-stream-filename-bar">
                         {isEditingActiveName ? (
                           <div className="td-remote-filename-edit-form">
-                            <input
-                              type="text"
-                              value={editingNameValue}
-                              onChange={(e) => setEditingNameValue(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  saveCurrentEditingName();
-                                } else if (e.key === 'Escape') {
-                                  e.preventDefault();
-                                  setIsEditingActiveName(false);
-                                }
-                              }}
-                              className="td-remote-filename-input"
-                              placeholder={t('drive_tools.remote_filename_placeholder')}
-                              autoFocus
-                            />
+                            <div className="td-remote-filename-input-group">
+                              <input
+                                type="text"
+                                value={editingNameValue}
+                                onChange={(e) => setEditingNameValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    saveCurrentEditingName();
+                                  } else if (e.key === 'Escape') {
+                                    e.preventDefault();
+                                    setIsEditingActiveName(false);
+                                  }
+                                }}
+                                className="td-remote-filename-input"
+                                placeholder={t('drive_tools.remote_filename_placeholder')}
+                                autoFocus
+                              />
+                              <span
+                                className="td-remote-filename-locked-ext"
+                                title={t('drive_tools.remote_filename_locked_ext_tooltip', { ext: `.${activeTargetExt}` })}
+                              >
+                                .{activeTargetExt}
+                              </span>
+                            </div>
                             <button
                               type="button"
                               onClick={saveCurrentEditingName}
@@ -2145,7 +2205,8 @@ export function RemoteUploadModal({
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setEditingNameValue(activeItemCurrentName);
+                                  const { base } = splitFilenameAndExt(activeItemCurrentName, activeTargetExt);
+                                  setEditingNameValue(base);
                                   setIsEditingActiveName(true);
                                 }}
                                 className="td-remote-name-action-btn"
