@@ -89,46 +89,56 @@ export const youtubeResolver: LinkResolverProvider = {
 
     if (formats.length === 0) {
       const dur = durationSec || 180; // fallback standard 3 mins
-      // 8K Ultra HD
-      formats.push({
-        id: 'yt_8k',
-        label: '8K Ultra HD',
-        qualityTier: '8k',
-        resolution: '4320p (8K)',
-        ext: 'mp4',
-        filesizeBytes: Math.round(dur * (50 * 1024 * 1024 / 8)),
-        directUrl: fallbackBaseUrl,
-        isVideo: true,
-        badge: '4320p',
-      });
+      const is8K = /\b(8k|4320p)\b/i.test(title);
+      const is4K = is8K || /\b(4k|2160p|uhd)\b/i.test(title);
+      const is2K = is4K || /\b(2k|1440p|qhd)\b/i.test(title);
 
-      // 4K UHD
-      formats.push({
-        id: 'yt_4k',
-        label: '4K Ultra HD',
-        qualityTier: '4k',
-        resolution: '2160p (4K)',
-        ext: 'mp4',
-        filesizeBytes: Math.round(dur * (20 * 1024 * 1024 / 8)),
-        directUrl: fallbackBaseUrl,
-        isVideo: true,
-        badge: '2160p',
-      });
+      // 8K Ultra HD (only if video title/metadata indicates 8K capability)
+      if (is8K) {
+        formats.push({
+          id: 'yt_8k',
+          label: '8K Ultra HD',
+          qualityTier: '8k',
+          resolution: '4320p (8K)',
+          ext: 'mp4',
+          filesizeBytes: Math.round(dur * (50 * 1024 * 1024 / 8)),
+          directUrl: fallbackBaseUrl,
+          isVideo: true,
+          badge: '4320p',
+        });
+      }
 
-      // 2K QHD
-      formats.push({
-        id: 'yt_2k',
-        label: '2K Quad HD',
-        qualityTier: '2k',
-        resolution: '1440p (2K)',
-        ext: 'mp4',
-        filesizeBytes: Math.round(dur * (9 * 1024 * 1024 / 8)),
-        directUrl: fallbackBaseUrl,
-        isVideo: true,
-        badge: '1440p',
-      });
+      // 4K UHD (only if video title/metadata indicates 4K/UHD capability)
+      if (is4K) {
+        formats.push({
+          id: 'yt_4k',
+          label: '4K Ultra HD',
+          qualityTier: '4k',
+          resolution: '2160p (4K)',
+          ext: 'mp4',
+          filesizeBytes: Math.round(dur * (20 * 1024 * 1024 / 8)),
+          directUrl: fallbackBaseUrl,
+          isVideo: true,
+          badge: '2160p',
+        });
+      }
 
-      // 1080p Full HD
+      // 2K QHD (only if video title/metadata indicates 2K/1440p capability)
+      if (is2K) {
+        formats.push({
+          id: 'yt_2k',
+          label: '2K Quad HD',
+          qualityTier: '2k',
+          resolution: '1440p (2K)',
+          ext: 'mp4',
+          filesizeBytes: Math.round(dur * (9 * 1024 * 1024 / 8)),
+          directUrl: fallbackBaseUrl,
+          isVideo: true,
+          badge: '1440p',
+        });
+      }
+
+      // 1080p Full HD (Standard primary stream for modern YouTube videos)
       formats.push({
         id: 'yt_1080p',
         label: 'Full HD 1080p',
@@ -141,7 +151,7 @@ export const youtubeResolver: LinkResolverProvider = {
         badge: '60fps',
       });
 
-      // 720p HD
+      // 720p HD (Standard fast stream)
       formats.push({
         id: 'yt_720p',
         label: 'HD 720p',
