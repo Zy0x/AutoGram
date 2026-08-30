@@ -273,12 +273,29 @@ function PreflightTransferInfoBento({
   const [copied, setCopied] = useState(false);
 
   const isRemoteUrl = item.sourcePath.startsWith('http://') || item.sourcePath.startsWith('https://');
+  const isTelegramMigrate = item.sourcePath.startsWith('tg://') || item.sourcePath.startsWith('telegram://') || item.sourcePath.startsWith('tgmsg:');
+  const isZipStream = item.sourcePath.includes('.zip#') || item.sourcePath.startsWith('zip://');
+
+  let sourceTypeBadge = t('drive.preflight_bento_source_type_local');
   let domain = '';
+  let sourceFolder = '';
+
   if (isRemoteUrl) {
+    sourceTypeBadge = t('drive.preflight_bento_source_type_remote');
     try {
       domain = new URL(item.sourcePath).hostname;
     } catch {
       domain = 'remote';
+    }
+  } else if (isTelegramMigrate) {
+    sourceTypeBadge = t('drive.preflight_bento_source_type_telegram');
+  } else if (isZipStream) {
+    sourceTypeBadge = t('drive.preflight_bento_source_type_zip');
+  } else {
+    sourceTypeBadge = t('drive.preflight_bento_source_type_local');
+    const parts = item.sourcePath.split(/[/\\]/);
+    if (parts.length > 1) {
+      sourceFolder = parts[parts.length - 2] || parts[0];
     }
   }
 
@@ -337,11 +354,11 @@ function PreflightTransferInfoBento({
 
   return (
     <div className="td-preflight-info-bento">
-      {/* 1. Source & Domain Card */}
+      {/* 1. Source & Origin Card */}
       <div className="td-preflight-bento-card is-source">
         <div className="td-preflight-bento-head">
           <div className="td-preflight-bento-icon is-source">
-            {isRemoteUrl ? <Globe size={13} aria-hidden /> : <Folder size={13} aria-hidden />}
+            {isRemoteUrl ? <Globe size={13} aria-hidden /> : isTelegramMigrate ? <Send size={13} aria-hidden /> : <Folder size={13} aria-hidden />}
           </div>
           <span className="td-preflight-bento-label">{t('drive.preflight_bento_source_title')}</span>
           <button
@@ -354,9 +371,15 @@ function PreflightTransferInfoBento({
             <span>{copied ? t('drive.preflight_bento_copied') : (isRemoteUrl ? t('drive.preflight_bento_copy_url') : t('drive.preflight_bento_copy_path'))}</span>
           </button>
         </div>
-        <div className="td-preflight-bento-value is-path" title={item.sourcePath}>
-          {domain && <span className="td-preflight-bento-tag is-domain">{domain}</span>}
-          <span className="td-preflight-bento-text">{item.sourcePath}</span>
+        <div className="td-preflight-bento-value">
+          <div className="td-preflight-bento-tags-row">
+            <span className={`td-preflight-bento-tag ${isRemoteUrl ? 'is-remote' : isTelegramMigrate ? 'is-tg' : 'is-local'}`}>
+              {sourceTypeBadge}
+            </span>
+            {domain && <span className="td-preflight-bento-tag is-domain">{domain}</span>}
+            {sourceFolder && <span className="td-preflight-bento-tag is-folder">{sourceFolder}</span>}
+          </div>
+          <span className="td-preflight-bento-text" title={item.sourcePath}>{item.sourcePath}</span>
         </div>
       </div>
 

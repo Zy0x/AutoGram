@@ -15366,6 +15366,26 @@ body:has(.app-layout-drive-focus),
   letter-spacing: 0.02em;
   flex-shrink: 0;
 }
+.td-preflight-bento-tag.is-remote {
+  background: rgba(14, 165, 233, 0.18);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+}
+.td-preflight-bento-tag.is-local {
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  color: #34d399;
+}
+.td-preflight-bento-tag.is-tg {
+  background: rgba(99, 102, 241, 0.18);
+  border: 1px solid rgba(129, 140, 248, 0.35);
+  color: #a5b4fc;
+}
+.td-preflight-bento-tag.is-folder {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #e2e8f0;
+}
 .td-preflight-bento-tag.is-domain {
   background: rgba(56, 189, 248, 0.12);
   border: 1px solid rgba(56, 189, 248, 0.25);
