@@ -14793,6 +14793,12 @@ body:has(.app-layout-drive-focus),
   color: #6ee7b7;
   box-shadow: 0 0 8px rgba(16, 185, 129, 0.15);
 }
+.td-preflight-status-badge.is-duplicate {
+  background: rgba(245, 158, 11, 0.16);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  color: #fde68a;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.18);
+}
 .td-preflight-status-badge.is-skipped {
   background: rgba(244, 63, 94, 0.16);
   border: 1px solid rgba(244, 63, 94, 0.4);

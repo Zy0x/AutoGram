@@ -399,8 +399,7 @@ export function TransferPreflightDialog({
               onClick={() => setActiveFilter('all')}
               title={t('drive.preflight_filter_all', { count: report.items.length })}
             >
-              <strong>{report.items.length}</strong>
-              <span>{t('drive.preflight_files')}</span>
+              <span>{t('drive.preflight_filter_all', { count: report.items.length })}</span>
             </button>
             <button
               type="button"
@@ -411,8 +410,7 @@ export function TransferPreflightDialog({
               title={t('drive.preflight_filter_queue', { count: queuedCount })}
             >
               <Check size={11} aria-hidden />
-              <strong>{queuedCount}</strong>
-              <span>{t('drive.preflight_will_queue')}</span>
+              <span>{t('drive.preflight_filter_queue', { count: queuedCount })}</span>
             </button>
             {skippedCount > 0 && (
               <button
@@ -424,8 +422,7 @@ export function TransferPreflightDialog({
                 title={t('drive.preflight_filter_skip', { count: skippedCount })}
               >
                 <X size={11} aria-hidden />
-                <strong>{skippedCount}</strong>
-                <span>{t('drive.preflight_will_skip')}</span>
+                <span>{t('drive.preflight_filter_skip', { count: skippedCount })}</span>
               </button>
             )}
             {duplicateCount > 0 && (
@@ -438,8 +435,7 @@ export function TransferPreflightDialog({
                 title={t('drive.preflight_filter_duplicate', { count: duplicateCount })}
               >
                 <CopyCheck size={11} aria-hidden />
-                <strong>{duplicateCount}</strong>
-                <span>{t('drive.preflight_duplicates_found')}</span>
+                <span>{t('drive.preflight_filter_duplicate', { count: duplicateCount })}</span>
               </button>
             )}
           </div>
@@ -751,22 +747,32 @@ export function TransferPreflightDialog({
                       </div>
 
                       <div className="td-preflight-tags-row">
-                        {choice === 'skip' ? (
+                        {duplicate ? (
+                          <>
+                            <span className="td-preflight-status-badge is-duplicate">
+                              <CopyCheck size={11} aria-hidden />
+                              <span>{t('drive.preflight_badge_duplicate')}</span>
+                            </span>
+                            <span className={`td-preflight-match-badge ${duplicate.matchLevel === 'exact_sha256' ? 'is-exact' : ''}`}>
+                              <span>{t(`drive.preflight_match_${duplicate.matchLevel}`)}</span>
+                            </span>
+                            {choice === 'skip' ? (
+                              <span className="td-preflight-status-badge is-skipped">
+                                <X size={11} aria-hidden />
+                                <span>{t('drive.preflight_badge_skipped')}</span>
+                              </span>
+                            ) : (
+                              <span className="td-preflight-status-badge is-forced">
+                                <Send size={10} aria-hidden />
+                                <span>{t('drive.preflight_badge_force_upload')}</span>
+                              </span>
+                            )}
+                          </>
+                        ) : choice === 'skip' ? (
                           <span className="td-preflight-status-badge is-skipped">
                             <X size={11} aria-hidden />
                             <span>{t('drive.preflight_badge_skipped')}</span>
                           </span>
-                        ) : duplicate ? (
-                          <>
-                            <span className={`td-preflight-match-badge ${duplicate.matchLevel === 'exact_sha256' ? 'is-exact' : ''}`}>
-                              <CopyCheck size={11} aria-hidden />
-                              <span>{t(`drive.preflight_match_${duplicate.matchLevel}`)}</span>
-                            </span>
-                            <span className="td-preflight-status-badge is-forced">
-                              <Send size={10} aria-hidden />
-                              <span>{t('drive.preflight_badge_force_upload')}</span>
-                            </span>
-                          </>
                         ) : (
                           <span className="td-preflight-status-badge is-ready">
                             <CheckCircle2 size={11} aria-hidden />
