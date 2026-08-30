@@ -3563,63 +3563,70 @@ export function RemoteUploadModal({
               /* BATCH RESOLVED GALLERY & SPLIT PREVIEW */
               <div className="td-remote-stream-split-wrap is-batch-studio">
                 {/* LEFT PANEL: FOCUSED MEDIA PREVIEW */}
-                <div className="td-remote-stream-left">
-                  <div className="td-remote-player-card">
-                    <div className="td-remote-player-box">
-                      {focusedBatchItem ? (
-                        focusedBatchItem.isVideo ? (
+                <div className="td-remote-stream-player-col">
+                  <div className="td-remote-big-canvas-wrap">
+                    {focusedBatchItem ? (
+                      focusedBatchItem.isVideo ? (
+                        <div className="td-remote-big-canvas-inner td-remote-single-player-canvas">
                           <video
+                            key={focusedBatchItem.directUrl}
                             src={focusedBatchItem.directUrl}
+                            poster={focusedBatchItem.thumbnailUrl}
                             controls
-                            autoPlay
-                            muted={false}
+                            preload="metadata"
                             playsInline
-                            className="td-remote-stream-video"
-                            key={focusedBatchItem.id}
+                            className="td-remote-big-canvas-video td-remote-active-player-video"
                           />
-                        ) : focusedBatchItem.kind === 'photo' ? (
+                        </div>
+                      ) : focusedBatchItem.kind === 'photo' ? (
+                        <div className="td-remote-big-canvas-inner">
                           <img
                             src={focusedBatchItem.directUrl || focusedBatchItem.thumbnailUrl}
                             alt={focusedBatchItem.title}
-                            className="td-remote-stream-image"
-                            key={focusedBatchItem.id}
+                            className="td-remote-big-canvas-img"
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
                           />
-                        ) : (
-                          <div className="td-remote-item-thumb-fallback">
-                            <FileText size={48} />
-                          </div>
-                        )
-                      ) : (
-                        <div className="td-remote-split-empty-canvas">
-                          <Film size={40} className="td-remote-split-empty-ico" />
-                          <div className="td-remote-split-empty-title">
-                            {t('drive.remote_split_preview_title')}
-                          </div>
-                          <p className="td-remote-split-empty-text">
-                            {t('drive.remote_split_ready_desc')}
-                          </p>
                         </div>
-                      )}
-                    </div>
+                      ) : (
+                        <div className="td-remote-big-canvas-fallback">
+                          <FileText size={36} className="td-remote-fallback-icon" />
+                          <span>{focusedBatchItem.filename}</span>
+                        </div>
+                      )
+                    ) : (
+                      <div className="td-remote-big-canvas-fallback">
+                        <Film size={36} className="td-remote-fallback-icon" />
+                        <span>{t('drive.remote_split_ready_desc')}</span>
+                      </div>
+                    )}
+                  </div>
 
-                    {focusedBatchItem && (
-                      <div className="td-remote-player-meta-box">
-                        <div className="td-remote-player-meta-header">
-                          <span className="td-remote-player-title" title={focusedBatchItem.filename}>
-                            {focusedBatchItem.filename}
+                  {/* Active Item Details Bar */}
+                  {focusedBatchItem && (
+                    <div className="td-remote-stream-filename-bar">
+                      <div className="td-remote-filename-display-view">
+                        <div className="td-remote-filename-display-main" title={focusedBatchItem.filename}>
+                          <span className="td-remote-filename-display-base">
+                            {focusedBatchItem.filename.replace(/\.[a-zA-Z0-9]+$/, '')}
                           </span>
+                          <span className="td-remote-filename-display-ext">
+                            {focusedBatchItem.filename.match(/\.[a-zA-Z0-9]+$/)?.[0] || ''}
+                          </span>
+                        </div>
+                        <div className="td-remote-stream-meta-ribbon" style={{ marginTop: 2 }}>
                           {focusedBatchItem.qualityBadge && (
-                            <span className="td-remote-item-quality-badge tier-fhd">
+                            <span className="td-remote-item-quality-badge tier-fhd" style={{ fontSize: '0.62rem', padding: '1px 5px' }}>
                               {focusedBatchItem.qualityBadge}
                             </span>
                           )}
-                        </div>
-                        <div className="td-remote-player-details-row">
-                          <span className="td-remote-meta-size">
-                            {focusedBatchItem.filesizeBytes ? `~${formatDriveBytes(focusedBatchItem.filesizeBytes)}` : ''}
-                          </span>
+                          {focusedBatchItem.filesizeBytes ? (
+                            <span className="td-remote-meta-size" style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>
+                              ~{formatDriveBytes(focusedBatchItem.filesizeBytes)}
+                            </span>
+                          ) : null}
                           {focusedBatchItem.durationSec ? (
-                            <span className="td-remote-meta-duration">
+                            <span className="td-remote-item-duration-badge" style={{ fontSize: '0.65rem' }}>
                               <Clock size={10} />
                               <span>{formatMediaDuration(focusedBatchItem.durationSec)}</span>
                             </span>
@@ -3643,12 +3650,12 @@ export function RemoteUploadModal({
                           </button>
                         </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* RIGHT PANEL: GROUPED CARDS & ACTIONS */}
-                <div className="td-remote-stream-right">
+                <div className="td-remote-stream-gallery-col">
                   <div className="td-remote-gallery-header-row">
                     <div className="td-remote-gallery-title">
                       <Layers size={15} />
@@ -3698,31 +3705,31 @@ export function RemoteUploadModal({
                   </div>
 
                   {/* FILTER BAR */}
-                  <div className="td-remote-filter-bar" style={{ margin: '6px 0 10px', display: 'flex', gap: 6 }}>
+                  <div className="td-remote-gallery-filters" style={{ margin: '4px 0 8px', display: 'flex', gap: 5 }}>
                     <button
                       type="button"
-                      className={`td-remote-filter-pill ${batchFilterType === 'all' ? 'active' : ''}`}
+                      className={`td-remote-filter-chip ${batchFilterType === 'all' ? 'active' : ''}`}
                       onClick={() => setBatchFilterType('all')}
                     >
                       {t('drive.remote_batch_filter_all')} ({allBatchItems.length})
                     </button>
                     <button
                       type="button"
-                      className={`td-remote-filter-pill ${batchFilterType === 'video' ? 'active' : ''}`}
+                      className={`td-remote-filter-chip ${batchFilterType === 'video' ? 'active' : ''}`}
                       onClick={() => setBatchFilterType('video')}
                     >
                       {t('drive.remote_batch_filter_video')} ({allBatchItems.filter((i) => i.isVideo).length})
                     </button>
                     <button
                       type="button"
-                      className={`td-remote-filter-pill ${batchFilterType === 'photo' ? 'active' : ''}`}
+                      className={`td-remote-filter-chip ${batchFilterType === 'photo' ? 'active' : ''}`}
                       onClick={() => setBatchFilterType('photo')}
                     >
                       {t('drive.remote_batch_filter_photo')} ({allBatchItems.filter((i) => i.kind === 'photo').length})
                     </button>
                     <button
                       type="button"
-                      className={`td-remote-filter-pill ${batchFilterType === 'selected' ? 'active' : ''}`}
+                      className={`td-remote-filter-chip ${batchFilterType === 'selected' ? 'active' : ''}`}
                       onClick={() => setBatchFilterType('selected')}
                     >
                       {t('drive.remote_batch_filter_selected')} ({selectedBatchItems.length})
@@ -3821,7 +3828,7 @@ export function RemoteUploadModal({
                                   {t('drive_tools.no_media_found')}
                                 </div>
                               ) : (
-                                <div className="td-remote-gallery-grid">
+                                <div className="td-remote-gallery-grid-wrap view-grid">
                                   {groupFilteredItems.map((item) => {
                                     const isSelected = selectedBatchItemIds.has(item.id);
                                     const isFocused = focusedBatchItem?.id === item.id;
@@ -3832,16 +3839,17 @@ export function RemoteUploadModal({
                                     return (
                                       <div
                                         key={item.id}
-                                        className={`td-remote-item-card ${isFocused ? 'active' : ''} ${isSelected ? 'selected' : ''}`}
+                                        className={`td-remote-media-item-card card-grid-mode ${isSelected ? 'selected' : ''} ${isFocused ? 'is-active-preview' : ''}`}
                                         onClick={() => setFocusedBatchItem(item)}
                                       >
-                                        <div className="td-remote-item-thumb-wrapper">
+                                        <div className="td-remote-item-thumb-wrap">
                                           {item.thumbnailUrl ? (
                                             <img
                                               src={item.thumbnailUrl}
                                               alt={item.title}
                                               className="td-remote-item-thumb-img"
                                               loading="lazy"
+                                              referrerPolicy="no-referrer"
                                             />
                                           ) : (
                                             <div className="td-remote-item-thumb-fallback">
