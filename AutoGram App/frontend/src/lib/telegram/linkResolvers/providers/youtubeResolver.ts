@@ -91,14 +91,24 @@ export const youtubeResolver: LinkResolverProvider = {
             new Set(allFormats.map((f) => f.qualityLabel).filter(Boolean))
           ) as string[];
 
-          const findBestFormat = (prefix: string) => {
+          const findBestFormat = (prefix: string, preferMp4: boolean = true) => {
             const matching = allFormats.filter((f) => f.qualityLabel && f.qualityLabel.includes(prefix));
             if (matching.length === 0) return undefined;
 
-            // Prioritize highest bitrate, then highest content length, then highest fps (60fps/HDR/Premium)
+            // Prioritize MP4 (H.264/AVC1/AV01) for broad playback compatibility when bitrates are competitive, then highest bitrate/FPS
             matching.sort((a, b) => {
+              const isMp4A = a.mimeType?.includes('mp4') || a.mimeType?.includes('avc1') || a.mimeType?.includes('av01') ? 1 : 0;
+              const isMp4B = b.mimeType?.includes('mp4') || b.mimeType?.includes('avc1') || b.mimeType?.includes('av01') ? 1 : 0;
+
               const bitA = (a.bitrate || 0) || (a.averageBitrate || 0);
               const bitB = (b.bitrate || 0) || (b.averageBitrate || 0);
+
+              if (preferMp4 && isMp4A !== isMp4B) {
+                // If one is MP4 and one is WebM, prefer MP4 if its bitrate is within 25% of WebM
+                if (isMp4A && bitA >= bitB * 0.75) return -1;
+                if (isMp4B && bitB >= bitA * 0.75) return 1;
+              }
+
               if (bitB !== bitA) return bitB - bitA;
               const lenA = a.contentLength ? parseInt(a.contentLength, 10) : 0;
               const lenB = b.contentLength ? parseInt(b.contentLength, 10) : 0;
