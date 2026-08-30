@@ -797,6 +797,7 @@ export function RemoteUploadModal({
 
   const [resolvedMedia, setResolvedMedia] = useState<ResolvedMediaInfo | null>(null);
   const [selectedFormatId, setSelectedFormatId] = useState<string>('');
+  const [streamContainerFilter, setStreamContainerFilter] = useState<'all' | 'mp4' | 'webm' | 'audio'>('all');
   const [selectedMediaItemIds, setSelectedMediaItemIds] = useState<Set<string>>(new Set());
   const [itemSelectedFormats, setItemSelectedFormats] = useState<Record<string, string>>({});
   const [activePreviewItemId, setActivePreviewItemId] = useState<string>('');
@@ -865,6 +866,7 @@ export function RemoteUploadModal({
       setInspection(null);
       setResolvedMedia(null);
       setSelectedFormatId('');
+      setStreamContainerFilter('all');
       setSelectedMediaItemIds(new Set());
       setItemSelectedFormats({});
       setGallerySearch('');
@@ -878,6 +880,7 @@ export function RemoteUploadModal({
       lastAppliedInitialUrlRef.current = '';
       lastProbedHandoffRef.current = '';
       setPasscode('');
+      setStreamContainerFilter('all');
       setSelectedMediaItemIds(new Set());
       setItemSelectedFormats({});
       setGallerySearch('');
@@ -3865,9 +3868,15 @@ export function RemoteUploadModal({
                         </>
                       ) : resolvedMedia.formats.length > 0 ? (
                         (() => {
-                          const videoFmts = resolvedMedia.formats.filter((f) => !f.isAudio && f.qualityTier !== 'audio');
+                          const mp4VideoFmts = resolvedMedia.formats.filter((f) => !f.isAudio && f.qualityTier !== 'audio' && f.ext === 'mp4');
+                          const webmVideoFmts = resolvedMedia.formats.filter((f) => !f.isAudio && f.qualityTier !== 'audio' && f.ext === 'webm');
                           const audioFmts = resolvedMedia.formats.filter((f) => f.isAudio || f.qualityTier === 'audio');
                           const activeFmt = resolvedMedia.formats.find((f) => f.id === selectedFormatId) || resolvedMedia.formats[0];
+
+                          const hasMp4 = mp4VideoFmts.length > 0;
+                          const hasWebm = webmVideoFmts.length > 0;
+                          const hasAudio = audioFmts.length > 0;
+                          const hasMultipleFilters = (hasMp4 && hasWebm) || (hasMp4 && hasAudio) || (hasWebm && hasAudio);
 
                           const renderFormatChip = (fmt: StreamQualityFormat) => {
                             const isSelected = selectedFormatId === fmt.id;
@@ -3919,32 +3928,94 @@ export function RemoteUploadModal({
                                 </button>
                               </div>
 
-                              {videoFmts.length > 0 && (
+                              {hasMultipleFilters && (
+                                <div className="td-remote-format-filter-bar">
+                                  <button
+                                    type="button"
+                                    className={`td-remote-format-filter-chip ${streamContainerFilter === 'all' ? 'active' : ''}`}
+                                    onClick={() => setStreamContainerFilter('all')}
+                                  >
+                                    <span>{t('drive.remote_format_filter_all')}</span>
+                                    <span>({resolvedMedia.formats.length})</span>
+                                  </button>
+                                  {hasMp4 && (
+                                    <button
+                                      type="button"
+                                      className={`td-remote-format-filter-chip ${streamContainerFilter === 'mp4' ? 'active' : ''}`}
+                                      onClick={() => setStreamContainerFilter('mp4')}
+                                    >
+                                      <span>{t('drive.remote_format_filter_mp4')}</span>
+                                      <span>({mp4VideoFmts.length})</span>
+                                    </button>
+                                  )}
+                                  {hasWebm && (
+                                    <button
+                                      type="button"
+                                      className={`td-remote-format-filter-chip ${streamContainerFilter === 'webm' ? 'active' : ''}`}
+                                      onClick={() => setStreamContainerFilter('webm')}
+                                    >
+                                      <span>{t('drive.remote_format_filter_webm')}</span>
+                                      <span>({webmVideoFmts.length})</span>
+                                    </button>
+                                  )}
+                                  {hasAudio && (
+                                    <button
+                                      type="button"
+                                      className={`td-remote-format-filter-chip ${streamContainerFilter === 'audio' ? 'active' : ''}`}
+                                      onClick={() => setStreamContainerFilter('audio')}
+                                    >
+                                      <span>{t('drive.remote_format_filter_audio')}</span>
+                                      <span>({audioFmts.length})</span>
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+
+                              {(streamContainerFilter === 'all' || streamContainerFilter === 'mp4') && hasMp4 && (
                                 <div className="td-remote-formats-section">
-                                  {audioFmts.length > 0 && (
+                                  {(streamContainerFilter === 'all' && (hasWebm || hasAudio)) && (
                                     <div className="td-remote-formats-section-header">
                                       <span className="td-remote-formats-section-title">
                                         <Film size={11} style={{ color: '#38bdf8' }} />
-                                        <span>{t('drive.remote_section_video_streams')}</span>
+                                        <span>{t('drive.remote_section_mp4_video')}</span>
                                       </span>
-                                      <span className="td-remote-formats-section-count">{videoFmts.length}</span>
+                                      <span className="td-remote-formats-section-count">{mp4VideoFmts.length}</span>
                                     </div>
                                   )}
                                   <div className="td-remote-quality-grid">
-                                    {videoFmts.map(renderFormatChip)}
+                                    {mp4VideoFmts.map(renderFormatChip)}
                                   </div>
                                 </div>
                               )}
 
-                              {audioFmts.length > 0 && (
+                              {(streamContainerFilter === 'all' || streamContainerFilter === 'webm') && hasWebm && (
                                 <div className="td-remote-formats-section">
-                                  <div className="td-remote-formats-section-header">
-                                    <span className="td-remote-formats-section-title">
-                                      <Music size={11} style={{ color: '#c084fc' }} />
-                                      <span>{t('drive.remote_section_audio_tracks')}</span>
-                                    </span>
-                                    <span className="td-remote-formats-section-count">{audioFmts.length}</span>
+                                  {(streamContainerFilter === 'all' && (hasMp4 || hasAudio)) && (
+                                    <div className="td-remote-formats-section-header">
+                                      <span className="td-remote-formats-section-title">
+                                        <Film size={11} style={{ color: '#fbbf24' }} />
+                                        <span>{t('drive.remote_section_webm_video')}</span>
+                                      </span>
+                                      <span className="td-remote-formats-section-count">{webmVideoFmts.length}</span>
+                                    </div>
+                                  )}
+                                  <div className="td-remote-quality-grid">
+                                    {webmVideoFmts.map(renderFormatChip)}
                                   </div>
+                                </div>
+                              )}
+
+                              {(streamContainerFilter === 'all' || streamContainerFilter === 'audio') && hasAudio && (
+                                <div className="td-remote-formats-section">
+                                  {(streamContainerFilter === 'all' && (hasMp4 || hasWebm)) && (
+                                    <div className="td-remote-formats-section-header">
+                                      <span className="td-remote-formats-section-title">
+                                        <Music size={11} style={{ color: '#c084fc' }} />
+                                        <span>{t('drive.remote_section_audio_tracks')}</span>
+                                      </span>
+                                      <span className="td-remote-formats-section-count">{audioFmts.length}</span>
+                                    </div>
+                                  )}
                                   <div className="td-remote-quality-grid">
                                     {audioFmts.map(renderFormatChip)}
                                   </div>

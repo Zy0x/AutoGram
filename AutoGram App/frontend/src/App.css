@@ -27759,12 +27759,46 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-formats-container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
   height: 100%;
   overflow-y: auto;
   padding-right: 2px;
   box-sizing: border-box;
+}
+
+.td-remote-format-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+  flex-wrap: wrap;
+}
+
+.td-remote-format-filter-chip {
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 750;
+  color: #94a3b8;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 140ms ease;
+  user-select: none;
+}
+
+.td-remote-format-filter-chip:hover {
+  background: rgba(30, 41, 59, 0.9);
+  color: #ffffff;
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.td-remote-format-filter-chip.active {
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+  border-color: #38bdf8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.22);
 }
 
 .td-remote-formats-section {

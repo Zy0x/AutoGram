@@ -22,9 +22,11 @@ describe('youtubeResolver', () => {
     expect(result?.platform).toBe('youtube');
     expect(result?.formats.length).toBeGreaterThanOrEqual(3);
     const formatIds = result?.formats.map((f) => f.id) || [];
-    expect(formatIds).toContain('yt_1080p');
-    expect(formatIds).toContain('yt_720p');
+    expect(formatIds.some((id) => id.startsWith('yt_1080p'))).toBe(true);
+    expect(formatIds.some((id) => id.startsWith('yt_720p'))).toBe(true);
     expect(formatIds).toContain('yt_audio_m4a');
+    expect(result?.formats.some((f) => f.ext === 'mp4')).toBe(true);
+    expect(result?.formats.some((f) => f.ext === 'webm')).toBe(true);
     expect(result?.formats.some((f) => f.isAudio)).toBe(true);
   });
 });

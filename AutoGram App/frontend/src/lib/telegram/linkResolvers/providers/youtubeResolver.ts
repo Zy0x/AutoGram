@@ -122,97 +122,74 @@ export const youtubeResolver: LinkResolverProvider = {
           };
 
           const dur = durationSec || 180;
-          const has8K = qualityLabels.some((q) => q.startsWith('4320p') || q.includes('8k')) || /\b(8k|4320p)\b/i.test(title);
-          const has4K = has8K || qualityLabels.some((q) => q.startsWith('2160p') || q.includes('4k')) || /\b(4k|2160p|uhd)\b/i.test(title);
-          const has2K = has4K || qualityLabels.some((q) => q.startsWith('1440p') || q.includes('2k') || q.includes('1440')) || /\b(2k|1440p|qhd)\b/i.test(title);
+          const tiers: Array<{ key: string; label: string; tier: '8k' | '4k' | '2k' | '1080p' | '720p' }> = [
+            { key: '4320p', label: '8K Ultra HD', tier: '8k' },
+            { key: '2160p', label: '4K Ultra HD', tier: '4k' },
+            { key: '1440p', label: '2K Quad HD', tier: '2k' },
+            { key: '1080p', label: 'Full HD 1080p', tier: '1080p' },
+            { key: '720p', label: 'HD 720p', tier: '720p' },
+          ];
 
-          // 8K (4320p)
-          if (has8K) {
-            const raw = findBestFormat('4320p');
-            const size = raw?.contentLength ? parseInt(raw.contentLength, 10) : Math.round(dur * (50 * 1024 * 1024 / 8));
-            const isWebm = raw?.mimeType?.includes('webm');
-            formats.push({
-              id: 'yt_8k',
-              label: '8K Ultra HD',
-              qualityTier: '8k',
-              resolution: raw?.qualityLabel || '4320p (8K)',
-              ext: isWebm ? 'webm' : 'mp4',
-              filesizeBytes: size,
-              directUrl: raw?.url || fallbackBaseUrl,
-              isVideo: true,
-              badge: raw?.qualityLabel?.includes('HDR') ? '8K HDR' : (raw?.qualityLabel?.includes('60') ? '8K 60fps' : '4320p'),
-            });
-          }
+          tiers.forEach(({ key, label, tier }) => {
+            const tierMatches = allFormats.filter((f) => f.qualityLabel && (f.qualityLabel.startsWith(key) || f.qualityLabel.includes(key)));
+            if (tierMatches.length === 0 && tier !== '1080p') return;
 
-          // 4K (2160p)
-          if (has4K) {
-            const raw = findBestFormat('2160p');
-            const size = raw?.contentLength ? parseInt(raw.contentLength, 10) : Math.round(dur * (20 * 1024 * 1024 / 8));
-            const isWebm = raw?.mimeType?.includes('webm');
-            formats.push({
-              id: 'yt_4k',
-              label: '4K Ultra HD',
-              qualityTier: '4k',
-              resolution: raw?.qualityLabel || '2160p (4K)',
-              ext: isWebm ? 'webm' : 'mp4',
-              filesizeBytes: size,
-              directUrl: raw?.url || fallbackBaseUrl,
-              isVideo: true,
-              badge: raw?.qualityLabel?.includes('HDR') ? '4K HDR' : (raw?.qualityLabel?.includes('60') ? '4K 60fps' : '2160p'),
-            });
-          }
+            // 1. Best MP4 Format (H.264 / AVC1 / AV01)
+            const mp4s = tierMatches.filter((f) => f.mimeType?.includes('mp4') || f.mimeType?.includes('avc1') || f.mimeType?.includes('av01'));
+            mp4s.sort((a, b) => ((b.bitrate || 0) || (b.averageBitrate || 0)) - ((a.bitrate || 0) || (a.averageBitrate || 0)));
+            if (mp4s[0]) {
+              const v = mp4s[0];
+              const bit = (v.bitrate || 0) || (v.averageBitrate || 0);
+              const mbps = bit > 0 ? (bit / 1000000).toFixed(1) : undefined;
+              const size = v.contentLength ? parseInt(v.contentLength, 10) : (bit > 0 ? Math.round(dur * (bit / 8)) : Math.round(dur * (4.2 * 1024 * 1024 / 8)));
+              formats.push({
+                id: `yt_${key}_mp4`,
+                label: `${label} (MP4)`,
+                qualityTier: tier,
+                resolution: mbps ? `${v.qualityLabel || label} • ${mbps} Mbps` : (v.qualityLabel || label),
+                ext: 'mp4',
+                filesizeBytes: size,
+                directUrl: v.url || fallbackBaseUrl,
+                isVideo: true,
+                badge: mbps ? `${mbps} Mbps MP4` : 'MP4',
+              });
+            }
 
-          // 2K QHD (1440p)
-          if (has2K) {
-            const raw = findBestFormat('1440p');
-            const size = raw?.contentLength ? parseInt(raw.contentLength, 10) : Math.round(dur * (9 * 1024 * 1024 / 8));
-            const isWebm = raw?.mimeType?.includes('webm');
-            formats.push({
-              id: 'yt_2k',
-              label: '2K Quad HD',
-              qualityTier: '2k',
-              resolution: raw?.qualityLabel || '1440p (2K)',
-              ext: isWebm ? 'webm' : 'mp4',
-              filesizeBytes: size,
-              directUrl: raw?.url || fallbackBaseUrl,
-              isVideo: true,
-              badge: raw?.qualityLabel?.includes('HDR') ? '2K HDR' : (raw?.qualityLabel?.includes('60') ? '2K 60fps' : '1440p'),
-            });
-          }
+            // 2. Best WebM Format (VP9 / VP9.2 HDR)
+            const webms = tierMatches.filter((f) => f.mimeType?.includes('webm') || f.mimeType?.includes('vp9'));
+            webms.sort((a, b) => ((b.bitrate || 0) || (b.averageBitrate || 0)) - ((a.bitrate || 0) || (a.averageBitrate || 0)));
+            if (webms[0]) {
+              const v = webms[0];
+              const bit = (v.bitrate || 0) || (v.averageBitrate || 0);
+              const mbps = bit > 0 ? (bit / 1000000).toFixed(1) : undefined;
+              const isHdr = v.qualityLabel?.includes('HDR') || v.mimeType?.includes('vp9.2');
+              const size = v.contentLength ? parseInt(v.contentLength, 10) : (bit > 0 ? Math.round(dur * (bit / 8)) : Math.round(dur * (4.5 * 1024 * 1024 / 8)));
+              formats.push({
+                id: `yt_${key}_webm`,
+                label: `${label} (WebM)`,
+                qualityTier: tier,
+                resolution: mbps ? `${v.qualityLabel || label} • ${mbps} Mbps` : (v.qualityLabel || label),
+                ext: 'webm',
+                filesizeBytes: size,
+                directUrl: v.url || fallbackBaseUrl,
+                isVideo: true,
+                badge: isHdr ? (mbps ? `HDR • ${mbps}M` : 'HDR WebM') : (mbps ? `${mbps} Mbps WebM` : 'WebM'),
+              });
+            }
+          });
 
-          // Full HD (1080p)
-          if (qualityLabels.some((q) => q.startsWith('1080p') || q.includes('1080')) || formats.length === 0) {
-            const raw = findBestFormat('1080p');
-            const size = raw?.contentLength ? parseInt(raw.contentLength, 10) : Math.round(dur * (4.2 * 1024 * 1024 / 8));
-            const isWebm = raw?.mimeType?.includes('webm');
+          if (formats.length === 0) {
+            const raw = allFormats[0];
             formats.push({
-              id: 'yt_1080p',
-              label: 'Full HD 1080p',
+              id: 'yt_fallback',
+              label: 'Full HD 1080p (MP4)',
               qualityTier: '1080p',
               resolution: raw?.qualityLabel || '1080p Full HD',
-              ext: isWebm ? 'webm' : 'mp4',
-              filesizeBytes: size,
+              ext: 'mp4',
+              filesizeBytes: Math.round(dur * (4.2 * 1024 * 1024 / 8)),
               directUrl: raw?.url || fallbackBaseUrl,
               isVideo: true,
-              badge: raw?.qualityLabel?.includes('HDR') ? '1080p HDR' : (raw?.qualityLabel?.includes('60') ? '60fps' : '1080p'),
-            });
-          }
-
-          // HD 720p
-          if (qualityLabels.some((q) => q.startsWith('720p') || q.includes('720'))) {
-            const raw = findBestFormat('720p');
-            const size = raw?.contentLength ? parseInt(raw.contentLength, 10) : Math.round(dur * (2.1 * 1024 * 1024 / 8));
-            const isWebm = raw?.mimeType?.includes('webm');
-            formats.push({
-              id: 'yt_720p',
-              label: 'HD 720p',
-              qualityTier: '720p',
-              resolution: raw?.qualityLabel || '720p HD',
-              ext: isWebm ? 'webm' : 'mp4',
-              filesizeBytes: size,
-              directUrl: raw?.url || fallbackBaseUrl,
-              isVideo: true,
-              badge: raw?.qualityLabel?.includes('HDR') ? '720p HDR' : (raw?.qualityLabel?.includes('60') ? '720p 60fps' : '720p'),
+              badge: 'MP4',
             });
           }
 
