@@ -2600,19 +2600,143 @@ export function RemoteUploadModal({
                                 const chosenFmtId = itemSelectedFormats[item.id] || item.selectedFormatId || item.formats[0]?.id;
                                 const chosenFmt = item.formats.find((f) => f.id === chosenFmtId) || item.formats[0];
 
+                                const rawName = itemCustomNames[item.id] || item.title;
+                                const fallbackExt = chosenFmt?.ext ? `.${chosenFmt.ext.toLowerCase()}` : '';
+                                const lastDot = rawName.lastIndexOf('.');
+                                let baseName = rawName;
+                                let extName = fallbackExt;
+
+                                if (lastDot > 0) {
+                                  baseName = rawName.slice(0, lastDot);
+                                  extName = rawName.slice(lastDot);
+                                }
+                                const fullDisplayName = `${baseName}${extName}`;
+                                const badgeInfo = getSingleUnifiedBadgeInfo(item, itemResolutions[item.id]);
+                                const durSec = itemDurations[item.id] || item.durationSec || chosenFmt?.durationSec;
+                                const durFormatted = formatMediaDuration(durSec);
+
+                                if (galleryViewMode === 'list') {
+                                  return (
+                                    <div
+                                      key={item.id}
+                                      className={`td-remote-list-item-row ${isSelected ? 'selected' : ''} ${isActive ? 'is-active-preview' : ''}`}
+                                      onClick={() => handleToggleItem(item.id)}
+                                      onDoubleClick={() => setActivePreviewItemId(item.id)}
+                                    >
+                                      {/* Left: Circular Checkbox */}
+                                      <button
+                                        type="button"
+                                        className={`td-remote-item-checkbox list-mode-check ${isSelected ? 'checked' : ''}`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleToggleItem(item.id);
+                                        }}
+                                        aria-label={isSelected ? t('drive_tools.remote_gallery_deselect_all') : t('drive_tools.remote_gallery_select_all')}
+                                      >
+                                        {isSelected && <Check size={9.5} strokeWidth={3.8} />}
+                                      </button>
+
+                                      {/* Compact Thumbnail with hover play hint */}
+                                      <div
+                                        className="td-remote-list-thumb-wrap"
+                                        onClick={(e) => {
+                                          if (item.kind === 'video') {
+                                            e.stopPropagation();
+                                            setActivePreviewItemId(item.id);
+                                          }
+                                        }}
+                                        title={item.kind === 'video' ? t('drive_tools.remote_gallery_play_video') : undefined}
+                                      >
+                                        {item.thumbnailUrl ? (
+                                          <img
+                                            src={item.thumbnailUrl}
+                                            alt={item.title}
+                                            className="td-remote-list-thumb-img"
+                                            loading="lazy"
+                                            referrerPolicy="no-referrer"
+                                            onLoad={() => {
+                                              if (
+                                                item.kind === 'video' &&
+                                                (!itemDurations[item.id] || !itemResolutions[item.id]) &&
+                                                (!item.durationSec || item.durationSec <= 0)
+                                              ) {
+                                                probeSingleItemDuration(item);
+                                              }
+                                            }}
+                                          />
+                                        ) : (
+                                          <div className="td-remote-list-thumb-fallback">
+                                            {item.kind === 'video' ? <Film size={18} /> : <ImageIcon size={18} />}
+                                          </div>
+                                        )}
+                                        {item.kind === 'video' && (
+                                          <div className="td-remote-list-thumb-play-hint">
+                                            <Play size={11} fill="currentColor" />
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Middle: Title & Structured Meta Information */}
+                                      <div className="td-remote-list-info-col">
+                                        <div className="td-remote-list-title-row" title={fullDisplayName}>
+                                          <span className="td-remote-list-title-base">{baseName}</span>
+                                          {extName ? <span className="td-remote-list-title-ext">{extName}</span> : null}
+                                        </div>
+
+                                        <div className="td-remote-list-meta-row">
+                                          {badgeInfo && (
+                                            <span className={`td-remote-item-quality-badge in-list ${badgeInfo.tierClass}`} title={badgeInfo.text}>
+                                              {badgeInfo.text}
+                                            </span>
+                                          )}
+                                          {chosenFmt?.filesizeBytes ? (
+                                            <span className="td-remote-list-meta-size">
+                                              ~{formatDriveBytes(chosenFmt.filesizeBytes)}
+                                            </span>
+                                          ) : null}
+                                          {durFormatted ? (
+                                            <span className="td-remote-list-meta-dur">
+                                              <Clock size={9.5} />
+                                              <span>{durFormatted}</span>
+                                            </span>
+                                          ) : null}
+                                        </div>
+                                      </div>
+
+                                      {/* Right: Active playing badge or quick stream button */}
+                                      <div className="td-remote-list-actions-col">
+                                        {isActive ? (
+                                          <span className="td-remote-list-active-badge">
+                                            <Play size={9.5} fill="currentColor" />
+                                            <span>{t('drive_tools.remote_gallery_playing')}</span>
+                                          </span>
+                                        ) : item.kind === 'video' ? (
+                                          <button
+                                            type="button"
+                                            className="td-remote-list-play-btn"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setActivePreviewItemId(item.id);
+                                            }}
+                                            title={t('drive_tools.remote_gallery_play_video')}
+                                          >
+                                            <Play size={11} fill="currentColor" />
+                                          </button>
+                                        ) : null}
+                                      </div>
+                                    </div>
+                                  );
+                                }
+
+                                /* Grid mode card */
                                 return (
                                   <div
                                     key={item.id}
-                                    className={`td-remote-media-item-card ${isSelected ? 'selected' : ''} ${isActive ? 'is-active-preview' : ''} ${galleryViewMode === 'list' ? 'card-list-mode' : 'card-grid-mode'}`}
-                                    onClick={() => {
-                                      handleToggleItem(item.id);
-                                    }}
-                                    onDoubleClick={() => {
-                                      setActivePreviewItemId(item.id);
-                                    }}
+                                    className={`td-remote-media-item-card card-grid-mode ${isSelected ? 'selected' : ''} ${isActive ? 'is-active-preview' : ''}`}
+                                    onClick={() => handleToggleItem(item.id)}
+                                    onDoubleClick={() => setActivePreviewItemId(item.id)}
                                   >
                                     <div className="td-remote-item-thumb-wrap">
-                                      {/* Thumbnail or fallback */}
                                       {item.thumbnailUrl ? (
                                         <img
                                           src={item.thumbnailUrl}
@@ -2637,18 +2761,14 @@ export function RemoteUploadModal({
                                       )}
 
                                       {/* TOP-LEFT: Quality pill badge with dynamic tier styling */}
-                                      {(() => {
-                                        const badgeInfo = getSingleUnifiedBadgeInfo(item, itemResolutions[item.id]);
-                                        if (!badgeInfo) return null;
-                                        return (
-                                          <span
-                                            className={`td-remote-item-quality-badge ${badgeInfo.tierClass}`}
-                                            title={badgeInfo.text}
-                                          >
-                                            {badgeInfo.text}
-                                          </span>
-                                        );
-                                      })()}
+                                      {badgeInfo && (
+                                        <span
+                                          className={`td-remote-item-quality-badge ${badgeInfo.tierClass}`}
+                                          title={badgeInfo.text}
+                                        >
+                                          {badgeInfo.text}
+                                        </span>
+                                      )}
 
                                       {/* TOP-RIGHT: Modern Circular Selection Button */}
                                       <button
@@ -2662,50 +2782,17 @@ export function RemoteUploadModal({
                                       >
                                         {isSelected && <Check size={9.5} strokeWidth={3.8} />}
                                       </button>
-
-                                      {/* Play icon for videos in list mode */}
-                                      {item.kind === 'video' && galleryViewMode === 'list' && (
-                                        <div
-                                          className="td-remote-item-play-overlay"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setActivePreviewItemId(item.id);
-                                          }}
-                                        >
-                                          <div className="td-remote-item-play-icon-badge">
-                                            <Play size={13} fill="currentColor" />
-                                          </div>
-                                        </div>
-                                      )}
                                     </div>
 
-                                    {/* CARD BODY: gradient overlay (grid) or side (list) */}
+                                    {/* CARD BODY: bottom gradient overlay */}
                                     <div className="td-remote-item-card-body">
-                                      {/* Filename — top line, extension always preserved at the end */}
-                                      {(() => {
-                                        const rawName = itemCustomNames[item.id] || item.title;
-                                        const fallbackExt = chosenFmt?.ext ? `.${chosenFmt.ext.toLowerCase()}` : '';
-                                        const lastDot = rawName.lastIndexOf('.');
-                                        let baseName = rawName;
-                                        let extName = fallbackExt;
-
-                                        if (lastDot > 0) {
-                                          baseName = rawName.slice(0, lastDot);
-                                          extName = rawName.slice(lastDot);
-                                        }
-
-                                        const fullDisplayName = `${baseName}${extName}`;
-                                        return (
-                                          <span
-                                            className="td-remote-item-card-title"
-                                            title={fullDisplayName}
-                                          >
-                                            <span className="td-remote-title-base">{baseName}</span>
-                                            {extName ? <span className="td-remote-title-ext">{extName}</span> : null}
-                                          </span>
-                                        );
-                                      })()}
-                                      {/* Bottom row: size left + duration right */}
+                                      <span
+                                        className="td-remote-item-card-title"
+                                        title={fullDisplayName}
+                                      >
+                                        <span className="td-remote-title-base">{baseName}</span>
+                                        {extName ? <span className="td-remote-title-ext">{extName}</span> : null}
+                                      </span>
                                       <div className="td-remote-card-meta-row">
                                         {chosenFmt?.filesizeBytes ? (
                                           <span className="td-remote-meta-size">

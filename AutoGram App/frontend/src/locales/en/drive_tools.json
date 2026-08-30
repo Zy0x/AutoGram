@@ -1783,6 +1783,8 @@
   "remote_gallery_density_comfortable": "Comfortable Grid",
   "remote_gallery_view_grid": "Grid View (2:3)",
   "remote_gallery_view_list": "List View",
+  "remote_gallery_playing": "Playing",
+  "remote_gallery_play_video": "Stream video",
   "remote_gallery_sort_label": "Sort Media",
   "remote_badge_unified_dim": "{{tier}} • {{dimensions}}",
   "remote_badge_photo_dim": "HD PHOTO • {{dimensions}}",
