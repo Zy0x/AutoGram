@@ -11142,7 +11142,7 @@ function MediaDriveDesktop({
         onOpenSettings={() => {
           setTransferSettingsOpen(true);
         }}
-        hasStackedModal={transferSettingsOpen || remoteUploadOpen}
+        hasStackedModal={transferSettingsOpen}
       />
       <DownloadAllZipModal
         open={zipPreflight.open}

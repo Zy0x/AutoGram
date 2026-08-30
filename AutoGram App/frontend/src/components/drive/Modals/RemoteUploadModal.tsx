@@ -2314,9 +2314,31 @@ export function RemoteUploadModal({
           customFilename.trim() ||
           getEffectiveFormatFilename(activeFormat, activeResolved);
 
+        let liveVideoThumb: string | undefined = undefined;
+        try {
+          const activeVideoEl = document.querySelector<HTMLVideoElement>('.td-remote-big-canvas-video, .td-remote-stream-player-col video, .td-remote-media-player video');
+          if (activeVideoEl && activeVideoEl.videoWidth > 0 && activeVideoEl.videoHeight > 0) {
+            const c = document.createElement('canvas');
+            c.width = Math.min(800, activeVideoEl.videoWidth);
+            c.height = Math.round((c.width * activeVideoEl.videoHeight) / activeVideoEl.videoWidth);
+            const ctx = c.getContext('2d');
+            if (ctx) {
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = 'high';
+              ctx.drawImage(activeVideoEl, 0, 0, c.width, c.height);
+              const url = c.toDataURL('image/jpeg', 0.92);
+              if (url && url.length > 100) {
+                liveVideoThumb = url;
+              }
+            }
+          }
+        } catch {
+          /* ignore */
+        }
+
         const uploadSizes = activeFormat?.filesizeBytes ? [activeFormat.filesizeBytes] : undefined;
-        const uploadThumbs = (activeFormat?.thumbnailUrl || activeResolved?.thumbnailUrl)
-          ? [activeFormat?.thumbnailUrl || activeResolved?.thumbnailUrl!]
+        const uploadThumbs = (liveVideoThumb || activeFormat?.thumbnailUrl || activeResolved?.thumbnailUrl)
+          ? [liveVideoThumb || activeFormat?.thumbnailUrl || activeResolved?.thumbnailUrl!]
           : undefined;
 
         const effectiveQualityMode =

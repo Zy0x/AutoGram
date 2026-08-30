@@ -16,6 +16,7 @@ import {
   Info,
   Loader2,
   Music,
+  Play,
   RefreshCw,
   Send,
   Settings,
@@ -95,14 +96,16 @@ function PreflightSourceThumb({
     const handleSeeked = () => {
       try {
         if (!active) return;
-        const width = video.videoWidth || 320;
-        const height = video.videoHeight || 180;
+        const width = video.videoWidth || 640;
+        const height = video.videoHeight || 360;
         if (width <= 0 || height <= 0) return;
         const canvas = document.createElement('canvas');
-        canvas.width = Math.min(320, width);
+        canvas.width = Math.min(800, width);
         canvas.height = Math.round((canvas.width * height) / width);
         const ctx = canvas.getContext('2d');
         if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const data = imgData.data;
@@ -114,7 +117,7 @@ function PreflightSourceThumb({
             }
           }
           if (isNonBlack) {
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
             if (dataUrl && dataUrl.startsWith('data:image/jpeg') && dataUrl.length > 200) {
               setCapturedThumb(dataUrl);
             }
@@ -158,7 +161,16 @@ function PreflightSourceThumb({
   const effectiveSrc = initialSource || capturedThumb;
 
   if (effectiveSrc) {
-    return <img src={effectiveSrc} alt={t('drive.preflight_source_thumb_alt')} />;
+    return (
+      <div className="td-preflight-thumb-media">
+        <img src={effectiveSrc} alt={t('drive.preflight_source_thumb_alt')} />
+        {isVideo && (
+          <span className="td-preflight-thumb-play-badge" aria-hidden>
+            <Play size={9} fill="currentColor" />
+          </span>
+        )}
+      </div>
+    );
   }
 
   if (isVideo) {
