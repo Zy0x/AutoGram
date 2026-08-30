@@ -260,7 +260,9 @@ export function TransferPreflightDialog({
   const { t } = useTranslation();
   const [choices, setChoices] = useState<Record<string, TransferDuplicateChoice>>({});
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
-  const [activePopover, setActivePopover] = useState<'transform' | 'clean' | 'album' | null>(null);
+  const [activePopover, setActivePopover] = useState<
+    'transform' | 'clean' | 'album' | 'duplicate' | 'rollback' | 'caption' | null
+  >(null);
 
   useEffect(() => {
     if (report) setChoices(defaultDuplicateChoices(report));
@@ -355,15 +357,19 @@ export function TransferPreflightDialog({
         </div>
 
         {(convertCount > 0 || reencodeCount > 0) && (
-          <div className="td-preflight-transform-notice-banner" role="status">
-            <RefreshCw size={15} aria-hidden />
-            <span className="td-preflight-banner-text">
-              {convertCount > 0 && reencodeCount > 0
-                ? t('drive.preflight_transform_banner_summary', { convertCount, reencodeCount })
-                : convertCount > 0
-                ? t('drive.preflight_transform_banner_convert', { convertCount })
-                : t('drive.preflight_transform_banner_reencode', { reencodeCount })}
-            </span>
+          <div className="td-preflight-banner is-transform" role="status">
+            <div className="td-preflight-banner-left">
+              <div className="td-preflight-banner-icon">
+                <RefreshCw size={13} aria-hidden />
+              </div>
+              <span className="td-preflight-banner-text">
+                {convertCount > 0 && reencodeCount > 0
+                  ? t('drive.preflight_transform_banner_summary', { convertCount, reencodeCount })
+                  : convertCount > 0
+                  ? t('drive.preflight_transform_banner_convert', { convertCount })
+                  : t('drive.preflight_transform_banner_reencode', { reencodeCount })}
+              </span>
+            </div>
             <button
               type="button"
               className={`td-preflight-info-btn ${activePopover === 'transform' ? 'is-active' : ''}`}
@@ -377,52 +383,90 @@ export function TransferPreflightDialog({
         )}
 
         {duplicateCount === 0 ? (
-          <div className="td-preflight-clean-banner" role="status">
-            <CheckCircle2 size={16} className="td-clean-icon" aria-hidden />
-            <span className="td-preflight-banner-text">
-              {t('drive.preflight_all_clean_banner')}
-              {report.albumIsProvisional && report.plannedAlbumSizes.length > 0 && (
-                <span className="td-preflight-sub-hint">
-                  {' '}• {t('drive.preflight_album_grid_plan', {
-                    size: report.albumGridSize,
-                    groups: report.plannedAlbumSizes.join(' + '),
-                  })}
-                </span>
-              )}
-            </span>
-            {report.albumIsProvisional && (
+          <div className="td-preflight-banner is-clean" role="status">
+            <div className="td-preflight-banner-left">
+              <div className="td-preflight-banner-icon">
+                <CheckCircle2 size={14} className="td-clean-icon" aria-hidden />
+              </div>
+              <span className="td-preflight-banner-text">
+                {t('drive.preflight_all_clean_banner')}
+                {report.albumIsProvisional && report.plannedAlbumSizes.length > 0 && (
+                  <span className="td-preflight-sub-hint">
+                    {' '}• {t('drive.preflight_album_grid_plan', {
+                      size: report.albumGridSize,
+                      groups: report.plannedAlbumSizes.join(' + '),
+                    })}
+                  </span>
+                )}
+              </span>
+            </div>
+            <button
+              type="button"
+              className={`td-preflight-info-btn ${activePopover === (report.albumIsProvisional ? 'album' : 'clean') ? 'is-active' : ''}`}
+              onClick={() =>
+                setActivePopover(
+                  activePopover === (report.albumIsProvisional ? 'album' : 'clean')
+                    ? null
+                    : report.albumIsProvisional
+                    ? 'album'
+                    : 'clean',
+                )
+              }
+              aria-label={t('drive.preflight_info_button')}
+              title={t('drive.preflight_info_button')}
+            >
+              <Info size={12} aria-hidden />
+            </button>
+          </div>
+        ) : (
+          <div className="td-preflight-banner is-duplicate" role="status">
+            <div className="td-preflight-banner-left">
+              <div className="td-preflight-banner-icon">
+                <CopyCheck size={14} aria-hidden />
+              </div>
+              <span className="td-preflight-banner-text">
+                {t('drive.preflight_duplicate_detected_short', { count: duplicateCount })}
+              </span>
+            </div>
+            <div className="td-preflight-banner-actions">
+              <button type="button" className="td-banner-pill-btn" onClick={() => setAllDuplicates('skip')}>
+                {t('drive.preflight_skip_all_duplicates')}
+              </button>
+              <button type="button" className="td-banner-pill-btn" onClick={() => setAllDuplicates('upload')}>
+                {t('drive.preflight_send_all_duplicates')}
+              </button>
               <button
                 type="button"
-                className={`td-preflight-info-btn ${activePopover === 'album' ? 'is-active' : ''}`}
-                onClick={() => setActivePopover(activePopover === 'album' ? null : 'album')}
+                className={`td-preflight-info-btn ${activePopover === 'duplicate' ? 'is-active' : ''}`}
+                onClick={() => setActivePopover(activePopover === 'duplicate' ? null : 'duplicate')}
                 aria-label={t('drive.preflight_info_button')}
                 title={t('drive.preflight_info_button')}
               >
                 <Info size={12} aria-hidden />
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="td-preflight-duplicate-toolbar">
-            <div>
-              <CopyCheck size={16} aria-hidden />
-              <span>{t('drive.preflight_duplicate_instruction')}</span>
-            </div>
-            <div>
-              <button type="button" className="td-chip-btn" onClick={() => setAllDuplicates('skip')}>
-                {t('drive.preflight_skip_all_duplicates')}
-              </button>
-              <button type="button" className="td-chip-btn" onClick={() => setAllDuplicates('upload')}>
-                {t('drive.preflight_send_all_duplicates')}
               </button>
             </div>
           </div>
         )}
 
         {report.engineMode === 'safe_rollback' && (
-          <div className="td-xfer-note" role="status">
-            <AlertTriangle size={15} aria-hidden />
-            <span>{t('drive.preflight_safe_rollback')}</span>
+          <div className="td-preflight-banner is-warning" role="status">
+            <div className="td-preflight-banner-left">
+              <div className="td-preflight-banner-icon">
+                <AlertTriangle size={13} aria-hidden />
+              </div>
+              <span className="td-preflight-banner-text">
+                {t('drive.preflight_safe_rollback')}
+              </span>
+            </div>
+            <button
+              type="button"
+              className={`td-preflight-info-btn ${activePopover === 'rollback' ? 'is-active' : ''}`}
+              onClick={() => setActivePopover(activePopover === 'rollback' ? null : 'rollback')}
+              aria-label={t('drive.preflight_info_button')}
+              title={t('drive.preflight_info_button')}
+            >
+              <Info size={12} aria-hidden />
+            </button>
           </div>
         )}
 
@@ -430,31 +474,60 @@ export function TransferPreflightDialog({
           <div className="td-preflight-popover-overlay" onClick={() => setActivePopover(null)}>
             <div className="td-preflight-popover-card" onClick={(e) => e.stopPropagation()}>
               <div className="td-preflight-popover-head">
-                <strong>
-                  {activePopover === 'transform' && t('drive.preflight_info_title_transform')}
-                  {activePopover === 'clean' && t('drive.preflight_info_title_clean')}
-                  {activePopover === 'album' && t('drive.preflight_info_title_album')}
-                </strong>
-                <button type="button" className="td-icon-btn" onClick={() => setActivePopover(null)}>
-                  <X size={14} />
+                <div className="td-preflight-popover-title-row">
+                  <div className="td-preflight-popover-icon">
+                    <Info size={15} aria-hidden />
+                  </div>
+                  <strong>
+                    {activePopover === 'transform' && t('drive.preflight_info_title_transform')}
+                    {activePopover === 'clean' && t('drive.preflight_info_title_clean')}
+                    {activePopover === 'album' && t('drive.preflight_info_title_album')}
+                    {activePopover === 'duplicate' && t('drive.preflight_info_title_duplicate')}
+                    {activePopover === 'rollback' && t('drive.preflight_info_title_rollback')}
+                    {activePopover === 'caption' && t('drive.preflight_info_title_caption')}
+                  </strong>
+                </div>
+                <button type="button" className="td-icon-btn" onClick={() => setActivePopover(null)} aria-label="Close">
+                  <X size={15} />
                 </button>
               </div>
               <div className="td-preflight-popover-body">
-                <p className="td-preflight-popover-loc">
-                  {activePopover === 'transform' && t('drive.preflight_info_loc_transform')}
-                  {activePopover === 'clean' && t('drive.preflight_info_loc_clean')}
-                  {activePopover === 'album' && t('drive.preflight_info_loc_album')}
-                </p>
-                <p className="td-preflight-popover-desc">
-                  {activePopover === 'transform' && t('drive.preflight_info_desc_transform')}
-                  {activePopover === 'clean' && t('drive.preflight_info_desc_clean')}
-                  {activePopover === 'album' && t('drive.preflight_info_desc_album')}
-                </p>
-                <p className="td-preflight-popover-disable">
-                  {activePopover === 'transform' && t('drive.preflight_info_disable_transform')}
-                  {activePopover === 'clean' && t('drive.preflight_info_disable_clean')}
-                  {activePopover === 'album' && t('drive.preflight_info_disable_album')}
-                </p>
+                <div className="td-preflight-popover-section">
+                  <span className="td-preflight-popover-label">{t('drive.preflight_popover_section_location')}</span>
+                  <div className="td-preflight-popover-pill">
+                    <Settings size={12} aria-hidden />
+                    <span>
+                      {activePopover === 'transform' && t('drive.preflight_info_loc_transform')}
+                      {activePopover === 'clean' && t('drive.preflight_info_loc_clean')}
+                      {activePopover === 'album' && t('drive.preflight_info_loc_album')}
+                      {activePopover === 'duplicate' && t('drive.preflight_info_loc_duplicate')}
+                      {activePopover === 'rollback' && t('drive.preflight_info_loc_rollback')}
+                      {activePopover === 'caption' && t('drive.preflight_info_loc_caption')}
+                    </span>
+                  </div>
+                </div>
+                <div className="td-preflight-popover-section">
+                  <span className="td-preflight-popover-label">{t('drive.preflight_popover_section_analysis')}</span>
+                  <p className="td-preflight-popover-desc">
+                    {activePopover === 'transform' && t('drive.preflight_info_desc_transform')}
+                    {activePopover === 'clean' && t('drive.preflight_info_desc_clean')}
+                    {activePopover === 'album' && t('drive.preflight_info_desc_album')}
+                    {activePopover === 'duplicate' && t('drive.preflight_info_desc_duplicate')}
+                    {activePopover === 'rollback' && t('drive.preflight_info_desc_rollback')}
+                    {activePopover === 'caption' && t('drive.preflight_info_desc_caption')}
+                  </p>
+                </div>
+                <div className="td-preflight-popover-section">
+                  <span className="td-preflight-popover-label">{t('drive.preflight_popover_section_adjust')}</span>
+                  <p className="td-preflight-popover-disable">
+                    {activePopover === 'transform' && t('drive.preflight_info_disable_transform')}
+                    {activePopover === 'clean' && t('drive.preflight_info_disable_clean')}
+                    {activePopover === 'album' && t('drive.preflight_info_disable_album')}
+                    {activePopover === 'duplicate' && t('drive.preflight_info_disable_duplicate')}
+                    {activePopover === 'rollback' && t('drive.preflight_info_disable_rollback')}
+                    {activePopover === 'caption' && t('drive.preflight_info_disable_caption')}
+                  </p>
+                </div>
               </div>
               {onOpenSettings && (
                 <div className="td-preflight-popover-foot">
