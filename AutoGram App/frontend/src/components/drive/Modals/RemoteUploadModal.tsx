@@ -4266,10 +4266,32 @@ export function RemoteUploadModal({
                                           <span className="td-remote-matrix-itag-badge">{s.itag}</span>
                                         </td>
                                         <td>
-                                          <span style={{ fontWeight: 700, color: s.isHdr ? '#fbbf24' : '#ffffff' }}>
-                                            {s.qualityLabel}
-                                          </span>
-                                          {s.fps ? <span style={{ color: '#34d399', marginLeft: 4, fontSize: '0.62rem' }}>{`${s.fps}fps`}</span> : null}
+                                           {(() => {
+                                             const baseRes = s.type === 'audio'
+                                               ? t('drive.remote_format_filter_audio_tab')
+                                               : (s.qualityLabel || '').replace(/\s*HDR/i, '').replace(/(\d+p)60/i, '$1').replace(/\s*60fps/i, '').replace(/\s*30fps/i, '').trim();
+                                             return (
+                                               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                                 <span style={{ fontWeight: 700, color: s.isHdr ? '#fbbf24' : '#ffffff' }}>
+                                                   {baseRes || s.qualityLabel}
+                                                 </span>
+                                                 {s.fps && s.fps >= 50 ? (
+                                                   <span style={{ color: '#34d399', fontSize: '0.62rem', fontWeight: 700, background: 'rgba(52, 211, 153, 0.12)', padding: '1px 4px', borderRadius: 4 }}>
+                                                     {`${s.fps}fps`}
+                                                   </span>
+                                                 ) : s.fps && s.fps < 50 && s.type !== 'audio' ? (
+                                                   <span style={{ color: '#94a3b8', fontSize: '0.62rem' }}>
+                                                     {`${s.fps}fps`}
+                                                   </span>
+                                                 ) : null}
+                                                 {s.isHdr && (
+                                                   <span style={{ color: '#fbbf24', fontSize: '0.60rem', fontWeight: 800, background: 'rgba(251, 191, 36, 0.15)', padding: '1px 4px', borderRadius: 4 }}>
+                                                     {t('drive.remote_badge_hdr')}
+                                                   </span>
+                                                 )}
+                                               </div>
+                                             );
+                                           })()}
                                         </td>
                                         <td>
                                           <span>{s.codec}</span>
