@@ -1,3 +1,5 @@
+import { invoke } from '@tauri-apps/api/core';
+import { detectTauriRuntime } from '../../../tauri/platform';
 import type { LinkResolverProvider, ResolvedMediaInfo, StreamQualityFormat } from '../types';
 
 /**
@@ -6,6 +8,37 @@ import type { LinkResolverProvider, ResolvedMediaInfo, StreamQualityFormat } fro
 export function extractYouTubeVideoId(url: string): string | null {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/i);
   return match ? match[1] : null;
+}
+
+async function fetchYouTubeWatchHtml(url: string, signal?: AbortSignal): Promise<string | null> {
+  if (detectTauriRuntime()) {
+    try {
+      const text = await invoke<string>('fetch_remote_text_content', {
+        url,
+        userAgent:
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      });
+      if (text && text.trim()) return text;
+    } catch {
+      /* fallback to native fetch */
+    }
+  }
+
+  try {
+    const resp = await fetch(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+      signal: signal || AbortSignal.timeout(6000),
+    });
+    if (resp.ok) return await resp.text();
+  } catch {
+    /* ignore */
+  }
+
+  return null;
 }
 
 /**
@@ -35,19 +68,11 @@ export const youtubeResolver: LinkResolverProvider = {
     const fallbackBaseUrl = `https://www.youtube.com/watch?v=${videoId}`;
     const formats: StreamQualityFormat[] = [];
 
-    // 1. Primary Direct Inspection: Fetch YouTube Watch Page HTML to parse exact ytInitialPlayerResponse
+    // 1. Primary Direct Inspection: Fetch YouTube Watch Page HTML via Tauri/Native fetch to parse exact ytInitialPlayerResponse
     try {
-      const watchResp = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-          'Accept-Language': 'en-US,en;q=0.9',
-        },
-        signal: signal || AbortSignal.timeout(6000),
-      });
+      const html = await fetchYouTubeWatchHtml(`https://www.youtube.com/watch?v=${videoId}`, signal);
 
-      if (watchResp.ok) {
-        const html = await watchResp.text();
+      if (html) {
         const match = html.match(/ytInitialPlayerResponse\s*=\s*({.+?});/);
         if (match && match[1]) {
           const data = JSON.parse(match[1]);
@@ -67,15 +92,17 @@ export const youtubeResolver: LinkResolverProvider = {
           ) as string[];
 
           const findBestFormat = (prefix: string) => {
-            // Find MP4 first, then WebM
-            const matching = allFormats.filter((f) => f.qualityLabel && f.qualityLabel.startsWith(prefix));
+            const matching = allFormats.filter((f) => f.qualityLabel && f.qualityLabel.includes(prefix));
             return matching.find((f) => f.mimeType?.includes('mp4')) || matching[0];
           };
 
           const dur = durationSec || 180;
+          const has8K = qualityLabels.some((q) => q.startsWith('4320p') || q.includes('8k')) || /\b(8k|4320p)\b/i.test(title);
+          const has4K = has8K || qualityLabels.some((q) => q.startsWith('2160p') || q.includes('4k')) || /\b(4k|2160p|uhd)\b/i.test(title);
+          const has2K = has4K || qualityLabels.some((q) => q.startsWith('1440p') || q.includes('2k') || q.includes('1440')) || /\b(2k|1440p|qhd)\b/i.test(title);
 
           // 8K (4320p)
-          if (qualityLabels.some((q) => q.startsWith('4320p') || q.includes('8k'))) {
+          if (has8K) {
             const raw = findBestFormat('4320p');
             const size = raw?.contentLength ? parseInt(raw.contentLength, 10) : Math.round(dur * (50 * 1024 * 1024 / 8));
             formats.push({
@@ -87,12 +114,12 @@ export const youtubeResolver: LinkResolverProvider = {
               filesizeBytes: size,
               directUrl: raw?.url || fallbackBaseUrl,
               isVideo: true,
-              badge: '4320p',
+              badge: raw?.qualityLabel?.includes('HDR') ? '8K HDR' : '4320p',
             });
           }
 
           // 4K (2160p)
-          if (qualityLabels.some((q) => q.startsWith('2160p') || q.includes('4k'))) {
+          if (has4K) {
             const raw = findBestFormat('2160p');
             const size = raw?.contentLength ? parseInt(raw.contentLength, 10) : Math.round(dur * (20 * 1024 * 1024 / 8));
             formats.push({
@@ -104,12 +131,12 @@ export const youtubeResolver: LinkResolverProvider = {
               filesizeBytes: size,
               directUrl: raw?.url || fallbackBaseUrl,
               isVideo: true,
-              badge: '2160p',
+              badge: raw?.qualityLabel?.includes('HDR') ? '4K HDR' : '2160p',
             });
           }
 
           // 2K QHD (1440p)
-          if (qualityLabels.some((q) => q.startsWith('1440p') || q.includes('2k') || q.includes('1440'))) {
+          if (has2K) {
             const raw = findBestFormat('1440p');
             const size = raw?.contentLength ? parseInt(raw.contentLength, 10) : Math.round(dur * (9 * 1024 * 1024 / 8));
             formats.push({
@@ -121,7 +148,7 @@ export const youtubeResolver: LinkResolverProvider = {
               filesizeBytes: size,
               directUrl: raw?.url || fallbackBaseUrl,
               isVideo: true,
-              badge: '1440p',
+              badge: raw?.qualityLabel?.includes('HDR') ? '2K HDR' : '1440p',
             });
           }
 
@@ -138,7 +165,7 @@ export const youtubeResolver: LinkResolverProvider = {
               filesizeBytes: size,
               directUrl: raw?.url || fallbackBaseUrl,
               isVideo: true,
-              badge: raw?.qualityLabel?.includes('60') ? '60fps' : '1080p',
+              badge: raw?.qualityLabel?.includes('60') ? (raw.qualityLabel.includes('HDR') ? '1080p HDR' : '60fps') : '1080p',
             });
           }
 
@@ -198,6 +225,50 @@ export const youtubeResolver: LinkResolverProvider = {
       }
 
       const dur = durationSec || 180;
+      const is8K = /\b(8k|4320p)\b/i.test(title);
+      const is4K = is8K || /\b(4k|2160p|uhd)\b/i.test(title);
+      const is2K = is4K || /\b(2k|1440p|qhd)\b/i.test(title);
+
+      if (is8K) {
+        formats.push({
+          id: 'yt_8k',
+          label: '8K Ultra HD',
+          qualityTier: '8k',
+          resolution: '4320p (8K)',
+          ext: 'mp4',
+          filesizeBytes: Math.round(dur * (50 * 1024 * 1024 / 8)),
+          directUrl: fallbackBaseUrl,
+          isVideo: true,
+          badge: '4320p',
+        });
+      }
+      if (is4K) {
+        formats.push({
+          id: 'yt_4k',
+          label: '4K Ultra HD',
+          qualityTier: '4k',
+          resolution: '2160p (4K)',
+          ext: 'mp4',
+          filesizeBytes: Math.round(dur * (20 * 1024 * 1024 / 8)),
+          directUrl: fallbackBaseUrl,
+          isVideo: true,
+          badge: '2160p',
+        });
+      }
+      if (is2K) {
+        formats.push({
+          id: 'yt_2k',
+          label: '2K Quad HD',
+          qualityTier: '2k',
+          resolution: '1440p (2K)',
+          ext: 'mp4',
+          filesizeBytes: Math.round(dur * (9 * 1024 * 1024 / 8)),
+          directUrl: fallbackBaseUrl,
+          isVideo: true,
+          badge: '1440p',
+        });
+      }
+
       formats.push({
         id: 'yt_1080p',
         label: 'Full HD 1080p',
