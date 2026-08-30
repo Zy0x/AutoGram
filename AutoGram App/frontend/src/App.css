@@ -26984,10 +26984,10 @@ button.td-confirm-icon.is-back-btn:active {
 
 .td-remote-item-checkbox {
   position: absolute;
-  top: 3px;
-  right: 3px;
-  width: 20px;
-  height: 20px;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -26996,7 +26996,7 @@ button.td-confirm-icon.is-back-btn:active {
   border: 1px solid rgba(255, 255, 255, 0.35);
   color: #94a3b8;
   cursor: pointer;
-  z-index: 2;
+  z-index: 5;
 }
 
 .td-remote-item-checkbox.checked {
@@ -27013,24 +27013,28 @@ button.td-confirm-icon.is-back-btn:active {
 /* TOP-LEFT: Quality pill badge with tiered luxury colors */
 .td-remote-item-quality-badge {
   position: absolute;
-  top: 5px;
-  left: 5px;
-  font-size: 0.56rem;
+  top: 4px;
+  left: 4px;
+  font-size: 0.49rem;
   font-weight: 800;
-  letter-spacing: 0.03em;
-  padding: 2px 6px;
-  border-radius: 20px;
+  letter-spacing: 0.01em;
+  padding: 1.5px 5px;
+  border-radius: 12px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
   pointer-events: none;
   z-index: 4;
   white-space: nowrap;
   backdrop-filter: blur(4px);
-  max-width: 80%;
+  max-width: calc(100% - 28px);
   overflow: hidden;
   text-overflow: ellipsis;
   background: rgba(5, 10, 20, 0.85);
   color: #38bdf8;
   border: 1px solid rgba(56, 189, 248, 0.35);
   transition: all 160ms ease;
+  line-height: 1;
 }
 
 /* 8K: Apex Cosmic Diamond / Vivid Violet */

@@ -2541,7 +2541,10 @@ export function RemoteUploadModal({
                                         const badgeInfo = getSingleUnifiedBadgeInfo(item, itemResolutions[item.id]);
                                         if (!badgeInfo) return null;
                                         return (
-                                          <span className={`td-remote-item-quality-badge ${badgeInfo.tierClass}`}>
+                                          <span
+                                            className={`td-remote-item-quality-badge ${badgeInfo.tierClass}`}
+                                            title={badgeInfo.text}
+                                          >
                                             {badgeInfo.text}
                                           </span>
                                         );
