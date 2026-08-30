@@ -2563,7 +2563,7 @@ export function RemoteUploadModal({
                                         }}
                                         aria-label={isSelected ? t('drive_tools.remote_gallery_deselect_all') : t('drive_tools.remote_gallery_select_all')}
                                       >
-                                        {isSelected && <Check size={12} strokeWidth={3.5} />}
+                                        {isSelected && <Check size={9.5} strokeWidth={3.8} />}
                                       </button>
 
                                       {/* Play icon for videos in list mode */}
