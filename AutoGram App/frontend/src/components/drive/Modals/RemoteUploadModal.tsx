@@ -4181,77 +4181,77 @@ export function RemoteUploadModal({
                                               <th style={{ textAlign: 'right' }}>{t('drive.remote_matrix_select_btn')}</th>
                                             </tr>
                                           </thead>
-                                          <tbody>
-                                            {filteredRawStreams.length === 0 ? (
+                                          {filteredRawStreams.length === 0 ? (
+                                            <tbody>
                                               <tr>
                                                 <td colSpan={7} style={{ textAlign: 'center', padding: '16px', color: '#64748b' }}>
                                                   {t('drive.remote_matrix_empty_search')}
                                                 </td>
                                               </tr>
-                                            ) : (
-                                              <>
-                                                {rawMp4Videos.length > 0 && (
-                                                  <>
-                                                    <tr className="td-remote-matrix-group-header-row">
-                                                      <td colSpan={7}>
-                                                        <div className="td-remote-matrix-group-header">
-                                                          <Film size={12} style={{ color: '#38bdf8' }} />
-                                                          <span>{t('drive.remote_matrix_group_mp4')}</span>
-                                                          <span className="td-remote-matrix-group-badge">{rawMp4Videos.length}</span>
-                                                        </div>
-                                                      </td>
-                                                    </tr>
-                                                    {rawMp4Videos.map(renderMatrixRow)}
-                                                  </>
-                                                )}
+                                            </tbody>
+                                          ) : (
+                                            <>
+                                              {rawMp4Videos.length > 0 && (
+                                                <tbody className="td-remote-matrix-group-tbody">
+                                                  <tr className="td-remote-matrix-group-header-row">
+                                                    <td colSpan={7}>
+                                                      <div className="td-remote-matrix-group-header">
+                                                        <Film size={12} style={{ color: '#38bdf8' }} />
+                                                        <span>{t('drive.remote_matrix_group_mp4')}</span>
+                                                        <span className="td-remote-matrix-group-badge">{rawMp4Videos.length}</span>
+                                                      </div>
+                                                    </td>
+                                                  </tr>
+                                                  {rawMp4Videos.map(renderMatrixRow)}
+                                                </tbody>
+                                              )}
 
-                                                {rawWebmVideos.length > 0 && (
-                                                  <>
-                                                    <tr className="td-remote-matrix-group-header-row">
-                                                      <td colSpan={7}>
-                                                        <div className="td-remote-matrix-group-header">
-                                                          <Film size={12} style={{ color: '#fbbf24' }} />
-                                                          <span>{t('drive.remote_matrix_group_webm')}</span>
-                                                          <span className="td-remote-matrix-group-badge">{rawWebmVideos.length}</span>
-                                                        </div>
-                                                      </td>
-                                                    </tr>
-                                                    {rawWebmVideos.map(renderMatrixRow)}
-                                                  </>
-                                                )}
+                                              {rawWebmVideos.length > 0 && (
+                                                <tbody className="td-remote-matrix-group-tbody">
+                                                  <tr className="td-remote-matrix-group-header-row">
+                                                    <td colSpan={7}>
+                                                      <div className="td-remote-matrix-group-header">
+                                                        <Film size={12} style={{ color: '#fbbf24' }} />
+                                                        <span>{t('drive.remote_matrix_group_webm')}</span>
+                                                        <span className="td-remote-matrix-group-badge">{rawWebmVideos.length}</span>
+                                                      </div>
+                                                    </td>
+                                                  </tr>
+                                                  {rawWebmVideos.map(renderMatrixRow)}
+                                                </tbody>
+                                              )}
 
-                                                {rawOtherVideos.length > 0 && (
-                                                  <>
-                                                    <tr className="td-remote-matrix-group-header-row">
-                                                      <td colSpan={7}>
-                                                        <div className="td-remote-matrix-group-header">
-                                                          <Film size={12} style={{ color: '#a855f7' }} />
-                                                          <span>{t('drive.remote_matrix_group_other_video')}</span>
-                                                          <span className="td-remote-matrix-group-badge">{rawOtherVideos.length}</span>
-                                                        </div>
-                                                      </td>
-                                                    </tr>
-                                                    {rawOtherVideos.map(renderMatrixRow)}
-                                                  </>
-                                                )}
+                                              {rawOtherVideos.length > 0 && (
+                                                <tbody className="td-remote-matrix-group-tbody">
+                                                  <tr className="td-remote-matrix-group-header-row">
+                                                    <td colSpan={7}>
+                                                      <div className="td-remote-matrix-group-header">
+                                                        <Film size={12} style={{ color: '#a855f7' }} />
+                                                        <span>{t('drive.remote_matrix_group_other_video')}</span>
+                                                        <span className="td-remote-matrix-group-badge">{rawOtherVideos.length}</span>
+                                                      </div>
+                                                    </td>
+                                                  </tr>
+                                                  {rawOtherVideos.map(renderMatrixRow)}
+                                                </tbody>
+                                              )}
 
-                                                {rawAudioStreams.length > 0 && (
-                                                  <>
-                                                    <tr className="td-remote-matrix-group-header-row">
-                                                      <td colSpan={7}>
-                                                        <div className="td-remote-matrix-group-header">
-                                                          <Music size={12} style={{ color: '#c084fc' }} />
-                                                          <span>{t('drive.remote_matrix_group_audio')}</span>
-                                                          <span className="td-remote-matrix-group-badge">{rawAudioStreams.length}</span>
-                                                        </div>
-                                                      </td>
-                                                    </tr>
-                                                    {rawAudioStreams.map(renderMatrixRow)}
-                                                  </>
-                                                )}
-                                              </>
-                                            )}
-                                          </tbody>
+                                              {rawAudioStreams.length > 0 && (
+                                                <tbody className="td-remote-matrix-group-tbody">
+                                                  <tr className="td-remote-matrix-group-header-row">
+                                                    <td colSpan={7}>
+                                                      <div className="td-remote-matrix-group-header">
+                                                        <Music size={12} style={{ color: '#c084fc' }} />
+                                                        <span>{t('drive.remote_matrix_group_audio')}</span>
+                                                        <span className="td-remote-matrix-group-badge">{rawAudioStreams.length}</span>
+                                                      </div>
+                                                    </td>
+                                                  </tr>
+                                                  {rawAudioStreams.map(renderMatrixRow)}
+                                                </tbody>
+                                              )}
+                                            </>
+                                          )}
                                         </table>
                                       </div>
                                     </div>

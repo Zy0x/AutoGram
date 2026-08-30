@@ -28136,7 +28136,7 @@ button.td-confirm-icon.is-back-btn:active {
   padding: 6px 8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   white-space: nowrap;
-  z-index: 2;
+  z-index: 10;
 }
 
 .td-remote-matrix-table td {
@@ -28217,10 +28217,14 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-remote-matrix-group-header-row td {
-  padding: 8px 12px 6px 12px !important;
-  background: rgba(15, 23, 42, 0.95) !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  position: sticky;
+  top: 28px;
+  padding: 7px 12px 6px 12px !important;
+  background: #0f172a !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  z-index: 5;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .td-remote-matrix-group-header {
