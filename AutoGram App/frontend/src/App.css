@@ -28038,6 +28038,184 @@ button.td-confirm-icon.is-back-btn:active {
   box-shadow: 0 0 10px rgba(192, 132, 252, 0.4);
 }
 
+.td-remote-quality-chip-badge.badge-subtitle {
+  color: #2dd4bf;
+  background: rgba(45, 212, 191, 0.16);
+  border-color: rgba(45, 212, 191, 0.45);
+  box-shadow: 0 0 8px rgba(45, 212, 191, 0.2);
+}
+
+.td-remote-quality-chip.active .td-remote-quality-chip-badge.badge-subtitle {
+  background: rgba(45, 212, 191, 0.3);
+  border-color: #2dd4bf;
+  color: #ccfbf1;
+  box-shadow: 0 0 10px rgba(45, 212, 191, 0.4);
+}
+
+.td-remote-quality-chip-badge.badge-saver {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.td-remote-format-filter-chip.matrix-toggle {
+  color: #e879f9;
+  border-color: rgba(232, 121, 249, 0.35);
+  background: rgba(232, 121, 249, 0.08);
+}
+
+.td-remote-format-filter-chip.matrix-toggle:hover {
+  background: rgba(232, 121, 249, 0.18);
+  border-color: #e879f9;
+  color: #fdf4ff;
+}
+
+.td-remote-format-filter-chip.matrix-toggle.active {
+  background: rgba(232, 121, 249, 0.25);
+  border-color: #e879f9;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(232, 121, 249, 0.35);
+}
+
+/* Raw Stream Matrix Table */
+.td-remote-matrix-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.td-remote-matrix-search-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.td-remote-matrix-search-box input {
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 0.72rem;
+  color: #ffffff;
+  width: 100%;
+}
+
+.td-remote-matrix-search-box input::placeholder {
+  color: #64748b;
+}
+
+.td-remote-matrix-table-scroll {
+  max-height: 240px;
+  overflow-y: auto;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.td-remote-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.7rem;
+  text-align: left;
+}
+
+.td-remote-matrix-table th {
+  position: sticky;
+  top: 0;
+  background: #0f172a;
+  color: #94a3b8;
+  font-weight: 750;
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.td-remote-matrix-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: #cbd5e1;
+  white-space: nowrap;
+}
+
+.td-remote-matrix-row {
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.td-remote-matrix-row:hover {
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.td-remote-matrix-row.selected {
+  background: rgba(56, 189, 248, 0.16);
+}
+
+.td-remote-matrix-itag-badge {
+  font-size: 0.64rem;
+  font-weight: 750;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-family: monospace;
+}
+
+.td-remote-matrix-type-badge {
+  font-size: 0.6rem;
+  font-weight: 750;
+  border-radius: 4px;
+  padding: 1px 5px;
+  text-transform: uppercase;
+}
+
+.td-remote-matrix-type-badge.video {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+}
+
+.td-remote-matrix-type-badge.audio {
+  color: #c084fc;
+  background: rgba(192, 132, 252, 0.15);
+}
+
+.td-remote-matrix-type-badge.muxed {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.15);
+}
+
+.td-remote-matrix-select-btn {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.64rem;
+  font-weight: 750;
+  cursor: pointer;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  transition: all 120ms ease;
+}
+
+.td-remote-matrix-select-btn:hover {
+  background: rgba(56, 189, 248, 0.25);
+  color: #ffffff;
+}
+
+.td-remote-matrix-select-btn.selected {
+  background: #38bdf8;
+  color: #0f172a;
+  border-color: #38bdf8;
+}
+
 .td-remote-batch-quality-bar {
   display: flex;
   align-items: center;

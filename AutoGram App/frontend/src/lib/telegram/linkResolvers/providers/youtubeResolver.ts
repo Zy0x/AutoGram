@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { detectTauriRuntime } from '../../../tauri/platform';
-import type { LinkResolverProvider, ResolvedMediaInfo, StreamQualityFormat } from '../types';
+import type { LinkResolverProvider, ResolvedMediaInfo, StreamQualityFormat, RawStreamItem, SubtitleTrackItem } from '../types';
 
 /**
  * Extract YouTube Video ID from standard, short, or embedded URLs.
@@ -29,58 +29,87 @@ async function fetchYouTubeWatchHtml(url: string, signal?: AbortSignal): Promise
       headers: {
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9',
       },
       signal: signal || AbortSignal.timeout(6000),
     });
-    if (resp.ok) return await resp.text();
+    if (resp.ok) {
+      return await resp.text();
+    }
   } catch {
-    /* ignore */
+    /* ignore fetch error */
   }
-
   return null;
 }
 
-/**
- * YouTube Ultra-HD Smart Resolver (8K, 4K, 2K, 1080p60, 720p, Hi-Res Audio)
- */
 export const youtubeResolver: LinkResolverProvider = {
-  name: 'YouTubeResolver',
+  name: 'youtubeResolver',
   platform: 'youtube',
 
   canHandle(url: string): boolean {
-    const u = url.toLowerCase();
-    return u.includes('youtube.com') || u.includes('youtu.be');
+    return extractYouTubeVideoId(url) !== null;
   },
 
-  async resolve(url: string, signal?: AbortSignal): Promise<ResolvedMediaInfo | null> {
+  async resolve(
+    url: string,
+    signal?: AbortSignal,
+    _options?: any
+  ): Promise<ResolvedMediaInfo | null> {
     const cleanUrl = url.trim();
     const videoId = extractYouTubeVideoId(cleanUrl);
+    if (!videoId) return null;
 
-    if (!videoId) {
-      return null;
-    }
-
-    let title = `YouTube_Video_${videoId}`;
-    let author: string | undefined;
-    let durationSec: number | undefined;
-    const thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
     const fallbackBaseUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    let title = `YouTube Video (${videoId})`;
+    let author = 'YouTube Creator';
+    let durationSec: number | undefined;
+    let thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+    let description: string | undefined;
     const formats: StreamQualityFormat[] = [];
+    const subtitles: SubtitleTrackItem[] = [];
+    const rawStreams: RawStreamItem[] = [];
 
-    // 1. Primary Direct Inspection: Fetch YouTube Watch Page HTML via Tauri/Native fetch to parse exact ytInitialPlayerResponse
+    // 1. Primary extraction via watch page ytInitialPlayerResponse JSON payload
     try {
-      const html = await fetchYouTubeWatchHtml(`https://www.youtube.com/watch?v=${videoId}`, signal);
-
+      const html = await fetchYouTubeWatchHtml(cleanUrl, signal);
       if (html) {
-        const match = html.match(/ytInitialPlayerResponse\s*=\s*({.+?});/);
-        if (match && match[1]) {
-          const data = JSON.parse(match[1]);
-          const videoDetails = data?.videoDetails;
-          if (videoDetails?.title) title = videoDetails.title;
-          if (videoDetails?.author) author = videoDetails.author;
-          if (videoDetails?.lengthSeconds) {
-            durationSec = parseInt(videoDetails.lengthSeconds, 10);
+        const titleMatch =
+          html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/i) ||
+          html.match(/<meta\s+name="title"\s+content="([^"]+)"/i) ||
+          html.match(/<title>([^<]+)<\/title>/i);
+        if (titleMatch && titleMatch[1]) {
+          title = titleMatch[1].replace(/\s*-\s*YouTube$/i, '').trim();
+        }
+
+        const authorMatch =
+          html.match(/<meta\s+name="author"\s+content="([^"]+)"/i) ||
+          html.match(/<link\s+itemprop="name"\s+content="([^"]+)"/i);
+        if (authorMatch && authorMatch[1]) {
+          author = authorMatch[1].trim();
+        }
+
+        const descMatch =
+          html.match(/<meta\s+property="og:description"\s+content="([^"]+)"/i) ||
+          html.match(/<meta\s+name="description"\s+content="([^"]+)"/i);
+        if (descMatch && descMatch[1]) {
+          description = descMatch[1].trim();
+        }
+
+        const playerJsonMatch =
+          html.match(/ytInitialPlayerResponse\s*=\s*({.+?});(?:var\s|window\[|\n|<\/script>)/s) ||
+          html.match(/ytInitialPlayerResponse\s*=\s*({.+?});/s);
+
+        if (playerJsonMatch && playerJsonMatch[1]) {
+          const data = JSON.parse(playerJsonMatch[1]);
+          if (data?.videoDetails?.title) title = data.videoDetails.title;
+          if (data?.videoDetails?.author) author = data.videoDetails.author;
+          if (data?.videoDetails?.shortDescription) description = data.videoDetails.shortDescription;
+          if (data?.videoDetails?.lengthSeconds) {
+            durationSec = parseInt(data.videoDetails.lengthSeconds, 10);
+          }
+
+          const thumbs = data?.videoDetails?.thumbnail?.thumbnails || [];
+          if (thumbs.length > 0) {
+            thumbnailUrl = thumbs[thumbs.length - 1].url.split('?')[0];
           }
 
           const adaptive = (data?.streamingData?.adaptiveFormats || []) as any[];
@@ -91,77 +120,22 @@ export const youtubeResolver: LinkResolverProvider = {
             new Set(allFormats.map((f) => f.qualityLabel).filter(Boolean))
           ) as string[];
 
-          const findBestFormat = (prefix: string, preferMp4: boolean = true) => {
-            const matching = allFormats.filter((f) => f.qualityLabel && f.qualityLabel.includes(prefix));
-            if (matching.length === 0) return undefined;
-
-            // Prioritize MP4 (H.264/AVC1/AV01) for broad playback compatibility when bitrates are competitive, then highest bitrate/FPS
-            matching.sort((a, b) => {
-              const isMp4A = a.mimeType?.includes('mp4') || a.mimeType?.includes('avc1') || a.mimeType?.includes('av01') ? 1 : 0;
-              const isMp4B = b.mimeType?.includes('mp4') || b.mimeType?.includes('avc1') || b.mimeType?.includes('av01') ? 1 : 0;
-
-              const bitA = (a.bitrate || 0) || (a.averageBitrate || 0);
-              const bitB = (b.bitrate || 0) || (b.averageBitrate || 0);
-
-              if (preferMp4 && isMp4A !== isMp4B) {
-                // If one is MP4 and one is WebM, prefer MP4 if its bitrate is within 25% of WebM
-                if (isMp4A && bitA >= bitB * 0.75) return -1;
-                if (isMp4B && bitB >= bitA * 0.75) return 1;
-              }
-
-              if (bitB !== bitA) return bitB - bitA;
-              const lenA = a.contentLength ? parseInt(a.contentLength, 10) : 0;
-              const lenB = b.contentLength ? parseInt(b.contentLength, 10) : 0;
-              if (lenB !== lenA) return lenB - lenA;
-              const fpsA = a.fps || 0;
-              const fpsB = b.fps || 0;
-              return fpsB - fpsA;
-            });
-
-            return matching[0];
-          };
-
           const dur = durationSec || 180;
           const has8K = qualityLabels.some((q) => q.startsWith('4320p') || q.includes('8k')) || /\b(8k|4320p)\b/i.test(title);
 
-          const tiers: Array<{ key: string; label: string; tier: '8k' | '4k' | '2k' | '1080p' | '720p' }> = [
+          const tiers: Array<{ key: string; label: string; tier: '8k' | '4k' | '2k' | '1080p' | '720p' | '480p' | '360p' }> = [
             { key: '4320p', label: '8K Ultra HD', tier: '8k' },
             { key: '2160p', label: '4K Ultra HD', tier: '4k' },
             { key: '1440p', label: '2K Quad HD', tier: '2k' },
             { key: '1080p', label: 'Full HD 1080p', tier: '1080p' },
             { key: '720p', label: 'HD 720p', tier: '720p' },
+            { key: '480p', label: 'SD 480p', tier: '480p' },
+            { key: '360p', label: 'Compact 360p', tier: '360p' },
           ];
 
           tiers.forEach(({ key, label, tier }) => {
             const tierMatches = allFormats.filter((f) => f.qualityLabel && (f.qualityLabel.startsWith(key) || f.qualityLabel.includes(key)));
 
-            if (tierMatches.length === 0) {
-              if (tier === '8k' && has8K) {
-                // If title or metadata declares 8K, provide the 8K Ultra HD option with peak 8K bitrate scaling
-                const topRaw = allFormats.find((f) => f.qualityLabel?.includes('2160') || f.qualityLabel?.includes('1440')) || allFormats[0];
-                if (topRaw) {
-                  const isWebm = topRaw.mimeType?.includes('webm');
-                  const isHdr = topRaw.qualityLabel?.includes('HDR') || title.toUpperCase().includes('HDR');
-                  const bit = Math.max(topRaw.bitrate || 0, 55000000);
-                  const mbps = (bit / 1000000).toFixed(1);
-                  const size = Math.round(dur * (bit / 8));
-                  formats.push({
-                    id: `yt_${key}_${isWebm ? 'webm' : 'mp4'}`,
-                    label: isWebm ? `${label} (WebM)` : `${label} (MP4)`,
-                    qualityTier: tier,
-                    resolution: `4320p60 ${isHdr ? 'HDR ' : ''}• ${mbps} Mbps`,
-                    ext: isWebm ? 'webm' : 'mp4',
-                    filesizeBytes: size,
-                    directUrl: topRaw.url || fallbackBaseUrl,
-                    isVideo: true,
-                    badge: isHdr ? `HDR • ${mbps}M` : `${mbps} Mbps`,
-                  });
-                }
-              }
-              return;
-            }
-
-            // 1. Best MP4 Format (H.264 / AVC1 / AV01)
             const mp4s = tierMatches.filter((f) => f.mimeType?.includes('mp4') || f.mimeType?.includes('avc1') || f.mimeType?.includes('av01'));
             mp4s.sort((a, b) => ((b.bitrate || 0) || (b.averageBitrate || 0)) - ((a.bitrate || 0) || (a.averageBitrate || 0)));
             if (mp4s[0]) {
@@ -180,10 +154,10 @@ export const youtubeResolver: LinkResolverProvider = {
                 directUrl: v.url || fallbackBaseUrl,
                 isVideo: true,
                 badge: isHdr ? `HDR • ${mbps}M` : (mbps ? `${mbps} Mbps MP4` : 'MP4'),
+                itag: v.itag,
               });
             }
 
-            // 2. Best WebM Format (VP9 / VP9.2 HDR)
             const webms = tierMatches.filter((f) => f.mimeType?.includes('webm') || f.mimeType?.includes('vp9'));
             webms.sort((a, b) => ((b.bitrate || 0) || (b.averageBitrate || 0)) - ((a.bitrate || 0) || (a.averageBitrate || 0)));
             if (webms[0]) {
@@ -202,29 +176,13 @@ export const youtubeResolver: LinkResolverProvider = {
                 directUrl: v.url || fallbackBaseUrl,
                 isVideo: true,
                 badge: isHdr ? (mbps ? `HDR • ${mbps}M` : 'HDR WebM') : (mbps ? `${mbps} Mbps WebM` : 'WebM'),
+                itag: v.itag,
               });
             }
           });
 
-          if (formats.length === 0) {
-            const raw = allFormats[0];
-            formats.push({
-              id: 'yt_fallback',
-              label: 'Full HD 1080p (MP4)',
-              qualityTier: '1080p',
-              resolution: raw?.qualityLabel || '1080p Full HD',
-              ext: 'mp4',
-              filesizeBytes: Math.round(dur * (4.2 * 1024 * 1024 / 8)),
-              directUrl: raw?.url || fallbackBaseUrl,
-              isVideo: true,
-              badge: 'MP4',
-            });
-          }
-
-          // Audio Streams: Extract Distinct Quality Tiers and Formats (M4A/AAC, Opus, and Compact Saver)
           const allAudios = adaptive.filter((f) => f.audioQuality || f.mimeType?.includes('audio'));
 
-          // 1. Hi-Res M4A / AAC Stream
           const m4aAudios = allAudios.filter((f) => f.mimeType?.includes('mp4') || f.mimeType?.includes('aac') || f.mimeType?.includes('m4a'));
           m4aAudios.sort((a, b) => ((b.bitrate || 0) || (b.averageBitrate || 0)) - ((a.bitrate || 0) || (a.averageBitrate || 0)));
           const bestM4a = m4aAudios[0];
@@ -241,9 +199,9 @@ export const youtubeResolver: LinkResolverProvider = {
             directUrl: bestM4a?.url || fallbackBaseUrl,
             isAudio: true,
             badge: `${m4aKbps} kbps`,
+            itag: bestM4a?.itag,
           });
 
-          // 2. Studio Opus / WebM Stream (Audiophile 48kHz)
           const opusAudios = allAudios.filter((f) => f.mimeType?.includes('webm') || f.mimeType?.includes('opus'));
           opusAudios.sort((a, b) => ((b.bitrate || 0) || (b.averageBitrate || 0)) - ((a.bitrate || 0) || (a.averageBitrate || 0)));
           const bestOpus = opusAudios[0];
@@ -260,14 +218,14 @@ export const youtubeResolver: LinkResolverProvider = {
               directUrl: bestOpus.url || fallbackBaseUrl,
               isAudio: true,
               badge: `${opusKbps} kbps Opus`,
+              itag: bestOpus?.itag,
             });
           }
 
-          // 3. Voice & Speech Data Saver (Compact ~50-70 kbps)
           const saverAudios = allAudios.filter(
             (f) => f.audioQuality === 'AUDIO_QUALITY_LOW' || (f.bitrate && f.bitrate < 90000)
           );
-          saverAudios.sort((a, b) => ((a.bitrate || 0) || (a.averageBitrate || 0)) - ((b.bitrate || 0) || (b.averageBitrate || 0)));
+          saverAudios.sort((a, b) => ((a.bitrate || 0) || (a.averageBitrate || 0)) - ((b.bitrate || 0) || (a.averageBitrate || 0)));
           const bestSaver = saverAudios[0];
           if (bestSaver && (!bestM4a || bestSaver.bitrate !== bestM4a.bitrate)) {
             const saverKbps = bestSaver.bitrate ? Math.round(bestSaver.bitrate / 1000) : 64;
@@ -283,30 +241,85 @@ export const youtubeResolver: LinkResolverProvider = {
               directUrl: bestSaver.url || fallbackBaseUrl,
               isAudio: true,
               badge: `${saverKbps} kbps`,
+              itag: bestSaver?.itag,
             });
           }
+
+          const captionTracks = (data?.captions?.playerCaptionsTracklistRenderer?.captionTracks || []) as any[];
+          captionTracks.forEach((c) => {
+            if (!c.baseUrl) return;
+            const langCode = c.languageCode || 'id';
+            const rawName = c.name?.simpleText || c.name?.runs?.[0]?.text || langCode.toUpperCase();
+            const cleanName = rawName.replace(/\s*\([^)]+\)/g, '').trim() || langCode.toUpperCase();
+            const isAuto = c.vssId?.startsWith('a.') || c.kind === 'asr';
+            const subId = `yt_sub_${langCode}_${c.vssId?.replace(/[^a-zA-Z0-9]/g, '') || 'track'}`;
+
+            subtitles.push({
+              id: subId,
+              languageCode: langCode,
+              languageName: isAuto ? `${cleanName} (Auto)` : cleanName,
+              isAutoGenerated: isAuto,
+              directUrl: `${c.baseUrl}&fmt=srv3`,
+              vssId: c.vssId,
+            });
+
+            formats.push({
+              id: subId,
+              label: `Subtitle ${cleanName}`,
+              qualityTier: 'subtitle',
+              resolution: langCode.toUpperCase(),
+              ext: 'srt',
+              directUrl: `${c.baseUrl}&fmt=srv3`,
+              isSubtitle: true,
+              badge: isAuto ? `${langCode.toUpperCase()} • AUTO` : langCode.toUpperCase(),
+            });
+          });
+
+          allFormats.forEach((f) => {
+            const bit = (f.bitrate || 0) || (f.averageBitrate || 0);
+            const mbps = bit >= 1000000 ? `${(bit / 1000000).toFixed(1)} Mbps` : `${Math.round(bit / 1000)} kbps`;
+            const mime = f.mimeType || '';
+            const isAudio = !f.qualityLabel && (mime.includes('audio') || !!f.audioQuality);
+            const isVideo = !!f.qualityLabel || mime.includes('video');
+            const isMuxed = isVideo && (regular.includes(f) || (f.audioQuality && f.qualityLabel));
+
+            let codec = 'Unknown';
+            const codecMatch = mime.match(/codecs="([^"]+)"/);
+            if (codecMatch) {
+              const rawCodec = codecMatch[1];
+              if (rawCodec.startsWith('avc1')) codec = 'H.264 / AVC';
+              else if (rawCodec.startsWith('av01')) codec = 'AV1';
+              else if (rawCodec.startsWith('vp9.2')) codec = 'VP9.2 HDR';
+              else if (rawCodec.startsWith('vp9') || rawCodec.startsWith('vp09')) codec = 'VP9';
+              else if (rawCodec.startsWith('opus')) codec = 'Opus 48kHz';
+              else if (rawCodec.startsWith('mp4a')) codec = 'AAC Audio';
+              else codec = rawCodec;
+            }
+
+            const isHdr = f.qualityLabel?.includes('HDR') || mime.includes('vp9.2') || f.colorInfo?.transferCharacteristics?.includes('SMPTE');
+            const size = f.contentLength ? parseInt(f.contentLength, 10) : (bit > 0 ? Math.round(dur * (bit / 8)) : undefined);
+
+            rawStreams.push({
+              itag: f.itag || 0,
+              qualityLabel: f.qualityLabel || (isAudio ? 'Audio Stream' : 'Video Stream'),
+              mimeType: mime.split(';')[0] || mime,
+              codec,
+              bitrate: bit,
+              bitrateFormatted: mbps,
+              fps: f.fps,
+              filesizeBytes: size,
+              type: isMuxed ? 'muxed' : (isAudio ? 'audio' : 'video'),
+              directUrl: f.url || fallbackBaseUrl,
+              isHdr,
+            });
+          });
         }
       }
     } catch {
       /* ignore watch html error */
     }
 
-    // 2. Secondary fallback via YouTube oEmbed if watch html didn't resolve metadata
     if (formats.length === 0) {
-      try {
-        const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
-        const oembedResp = await fetch(oembedUrl, {
-          signal: signal || AbortSignal.timeout(4000),
-        });
-        if (oembedResp.ok) {
-          const info = await oembedResp.json();
-          if (info.title) title = info.title;
-          if (info.author_name) author = info.author_name;
-        }
-      } catch {
-        /* ignore oembed error */
-      }
-
       const dur = durationSec || 180;
       const is8K = /\b(8k|4320p)\b/i.test(title);
       const is4K = is8K || /\b(4k|2160p|uhd)\b/i.test(title);
@@ -351,7 +364,6 @@ export const youtubeResolver: LinkResolverProvider = {
           badge: '1440p',
         });
       }
-
       formats.push({
         id: 'yt_1080p',
         label: 'Full HD 1080p',
@@ -409,6 +421,17 @@ export const youtubeResolver: LinkResolverProvider = {
       });
     }
 
+    let defaultFormatId = formats[0]?.id || '';
+    const mp4Videos = formats.filter((f) => !f.isAudio && !f.isSubtitle && f.ext === 'mp4');
+    if (mp4Videos.length > 0) {
+      const highestMp4 = mp4Videos.find((f) => f.qualityTier === '8k') ||
+        mp4Videos.find((f) => f.qualityTier === '4k') ||
+        mp4Videos.find((f) => f.qualityTier === '2k') ||
+        mp4Videos.find((f) => f.qualityTier === '1080p') ||
+        mp4Videos[0];
+      if (highestMp4) defaultFormatId = highestMp4.id;
+    }
+
     return {
       url: cleanUrl,
       platform: 'youtube',
@@ -417,8 +440,11 @@ export const youtubeResolver: LinkResolverProvider = {
       author,
       durationSec,
       thumbnailUrl,
+      description,
       formats,
-      selectedFormatId: formats.find((f) => f.qualityTier === '1080p')?.id || formats[0].id,
+      selectedFormatId: defaultFormatId,
+      rawStreams,
+      subtitles,
       resolvedAt: Date.now(),
     };
   },
