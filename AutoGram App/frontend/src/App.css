@@ -30168,6 +30168,33 @@ button.td-confirm-icon.is-back-btn:active {
   box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
 }
 
+.td-remote-select-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  font-size: 0.74rem;
+  font-weight: 650;
+  padding: 3px 9px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.td-remote-select-action-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.td-remote-select-action-btn.active {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
 .td-remote-input-wrap {
   position: relative;
   display: flex;

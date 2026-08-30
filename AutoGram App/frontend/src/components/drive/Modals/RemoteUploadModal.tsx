@@ -1729,6 +1729,22 @@ export function RemoteUploadModal({
     }
   }, [isPlayingStream, resolvedMedia]);
 
+  const handleToggleFormat = useCallback((fmt: StreamQualityFormat) => {
+    if (selectedFormatId === fmt.id) {
+      setSelectedFormatId('');
+      setInspection((prev) =>
+        prev
+          ? {
+              ...prev,
+              size: null,
+            }
+          : prev
+      );
+    } else {
+      handleSelectFormat(fmt);
+    }
+  }, [selectedFormatId, handleSelectFormat]);
+
   const handlePlayFormat = useCallback((fmt: StreamQualityFormat) => {
     handleSelectFormat(fmt);
     setIsPlayingStream(true);
@@ -4048,12 +4064,12 @@ export function RemoteUploadModal({
                                 key={fmt.id}
                                 type="button"
                                 className={`td-remote-quality-chip ${isSelected ? 'active' : ''} tier-${fmt.qualityTier} ${fmt.isAlbumPack ? 'album-pack' : ''}`}
-                                onClick={() => handleSelectFormat(fmt)}
+                                onClick={() => handleToggleFormat(fmt)}
                                 onDoubleClick={(e) => {
                                   e.stopPropagation();
                                   handlePlayFormat(fmt);
                                 }}
-                                title={t('drive.remote_stream_double_click_hint')}
+                                title={isSelected ? t('drive.remote_unselect_card_tooltip') : t('drive.remote_stream_double_click_hint')}
                                 disabled={submitting}
                               >
                                 <div className="td-remote-quality-chip-top">
@@ -4095,20 +4111,55 @@ export function RemoteUploadModal({
                                 </div>
                               )}
 
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
                                 <label className="td-input-label" style={{ marginBottom: 0 }}>
                                   {t('drive.remote_split_select_format_hint')}
                                 </label>
-                                <button
-                                  type="button"
-                                  className="td-remote-paste-action"
-                                  onClick={() => probeUrl(url.trim(), passcode.trim())}
-                                  disabled={submitting || inspection?.status === 'inspecting'}
-                                  title={t('drive.remote_batch_reinspect_btn')}
-                                >
-                                  <RefreshCw size={10} className={inspection?.status === 'inspecting' ? 'spin' : ''} />
-                                  <span>{t('drive.remote_batch_reinspect_btn')}</span>
-                                </button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <button
+                                    type="button"
+                                    className="td-remote-select-action-btn"
+                                    onClick={() => {
+                                      const bestVideo = curatedGeneralVideos[0] || mp4VideoFmts[0] || webmVideoFmts[0] || resolvedMedia.formats[0];
+                                      if (bestVideo) {
+                                        handleSelectFormat(bestVideo);
+                                      }
+                                    }}
+                                    title={t('drive.remote_select_all_btn')}
+                                  >
+                                    <CheckSquare size={11} />
+                                    <span>{t('drive.remote_select_all_btn')}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`td-remote-select-action-btn ${!selectedFormatId ? 'active' : ''}`}
+                                    onClick={() => {
+                                      setSelectedFormatId('');
+                                      setInspection((prev) =>
+                                        prev
+                                          ? {
+                                              ...prev,
+                                              size: null,
+                                            }
+                                          : prev
+                                      );
+                                    }}
+                                    title={t('drive.remote_unselect_all_btn')}
+                                  >
+                                    <Square size={11} />
+                                    <span>{t('drive.remote_unselect_all_btn')}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="td-remote-paste-action"
+                                    onClick={() => probeUrl(url.trim(), passcode.trim())}
+                                    disabled={submitting || inspection?.status === 'inspecting'}
+                                    title={t('drive.remote_batch_reinspect_btn')}
+                                  >
+                                    <RefreshCw size={10} className={inspection?.status === 'inspecting' ? 'spin' : ''} />
+                                    <span>{t('drive.remote_batch_reinspect_btn')}</span>
+                                  </button>
+                                </div>
                               </div>
 
                               {hasMultipleFilters && (
@@ -4183,7 +4234,7 @@ export function RemoteUploadModal({
                                     .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
 
                                   const renderMatrixRow = (s: RawStreamItem) => {
-                                    const matchedFmt = resolvedMedia.formats.find((f) => f.itag === s.itag) || {
+                                    const matchedFmt = resolvedMedia.formats.find((f) => (f.itag && f.itag === s.itag) || f.id === `raw_itag_${s.itag}`) || {
                                       id: `raw_itag_${s.itag}`,
                                       label: `${s.qualityLabel || s.codec} (itag ${s.itag})`,
                                       qualityTier: 'original' as const,
@@ -4196,17 +4247,20 @@ export function RemoteUploadModal({
                                       badge: s.isHdr ? `HDR • ${s.bitrateFormatted}` : s.bitrateFormatted,
                                       itag: s.itag,
                                     };
-                                    const isSelected = activeFmt?.itag === s.itag || (activeFmt?.directUrl && activeFmt.directUrl === s.directUrl) || selectedFormatId === matchedFmt.id;
+                                    const isSelected = Boolean(
+                                      selectedFormatId &&
+                                      (selectedFormatId === matchedFmt.id || (activeFmt?.itag && activeFmt.itag === s.itag))
+                                    );
                                     return (
                                       <tr
                                         key={s.itag}
                                         className={`td-remote-matrix-row ${isSelected ? 'selected' : ''}`}
-                                        onClick={() => handleSelectFormat(matchedFmt)}
+                                        onClick={() => handleToggleFormat(matchedFmt)}
                                         onDoubleClick={(e) => {
                                           e.stopPropagation();
                                           handlePlayFormat(matchedFmt);
                                         }}
-                                        title={t('drive.remote_stream_double_click_hint')}
+                                        title={isSelected ? t('drive.remote_unselect_card_tooltip') : t('drive.remote_stream_double_click_hint')}
                                       >
                                         <td>
                                           <span className="td-remote-matrix-itag-badge">{s.itag}</span>
@@ -4242,12 +4296,13 @@ export function RemoteUploadModal({
                                             className={`td-remote-matrix-select-btn ${isSelected ? 'selected' : ''}`}
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              handleSelectFormat(matchedFmt);
+                                              handleToggleFormat(matchedFmt);
                                             }}
                                             onDoubleClick={(e) => {
                                               e.stopPropagation();
                                               handlePlayFormat(matchedFmt);
                                             }}
+                                            title={isSelected ? t('drive.remote_unselect_card_tooltip') : t('drive.remote_stream_double_click_hint')}
                                           >
                                             {isSelected ? t('drive.remote_matrix_selected_badge') : t('drive.remote_matrix_select_btn')}
                                           </button>

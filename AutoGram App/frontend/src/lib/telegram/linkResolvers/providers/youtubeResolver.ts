@@ -383,10 +383,11 @@ function processPlayerData(
   // Synchronize any formats (e.g. synthesized 8K, 4K MP4, 2K MP4, audio tracks) into rawStreams
   formats.forEach((fmt) => {
     if (fmt.isSubtitle) return;
-    const exists = rawStreams.some((s) => (fmt.itag && s.itag === fmt.itag) || s.qualityLabel === fmt.label || (fmt.resolution && s.qualityLabel?.includes(fmt.resolution.split('•')[0].trim())));
+    const isVideo = !!fmt.isVideo;
+    const isAudio = !!fmt.isAudio;
+    const mimeMatch = fmt.ext === 'mp4' ? 'mp4' : 'webm';
+    const exists = rawStreams.some((s) => (fmt.itag && s.itag === fmt.itag) || (s.mimeType.includes(mimeMatch) && (s.qualityLabel === fmt.label || (fmt.resolution && s.qualityLabel === fmt.resolution.split('•')[0].trim()))));
     if (!exists) {
-      const isVideo = !!fmt.isVideo;
-      const isAudio = !!fmt.isAudio;
       const isHdr = !!(fmt.badge?.includes('HDR') || fmt.codec?.includes('HDR') || fmt.resolution?.includes('HDR'));
       let fallbackItag = fmt.itag;
       if (!fallbackItag) {
@@ -395,6 +396,7 @@ function processPlayerData(
         else if (fmt.qualityTier === '4k' && fmt.ext === 'mp4') fallbackItag = 399;
         else if (fmt.qualityTier === '2k' && fmt.ext === 'mp4') fallbackItag = 398;
         else fallbackItag = Math.floor(Math.random() * 900) + 100;
+        fmt.itag = fallbackItag;
       }
       rawStreams.push({
         itag: fallbackItag,
@@ -623,15 +625,22 @@ export const youtubeResolver: LinkResolverProvider = {
       });
     }
 
-    let defaultFormatId = formats[0]?.id || '';
-    const mp4Videos = formats.filter((f) => !f.isAudio && !f.isSubtitle && f.ext === 'mp4');
-    if (mp4Videos.length > 0) {
-      const highestMp4 = mp4Videos.find((f) => f.qualityTier === '8k') ||
-        mp4Videos.find((f) => f.qualityTier === '4k') ||
-        mp4Videos.find((f) => f.qualityTier === '2k') ||
-        mp4Videos.find((f) => f.qualityTier === '1080p') ||
-        mp4Videos[0];
-      if (highestMp4) defaultFormatId = highestMp4.id;
+    // Strict Single Highest Quality Video Auto-Selection (Rule 3 & 5)
+    // Audio and subtitles must NEVER be pre-selected.
+    let defaultFormatId = '';
+    const videoFormats = formats.filter((f) => !f.isAudio && !f.isSubtitle && (f.isVideo || f.ext === 'mp4' || f.ext === 'webm'));
+    if (videoFormats.length > 0) {
+      const highestVideo =
+        videoFormats.find((f) => f.qualityTier === '8k' && f.ext === 'mp4') ||
+        videoFormats.find((f) => f.qualityTier === '8k') ||
+        videoFormats.find((f) => f.qualityTier === '4k' && f.ext === 'mp4') ||
+        videoFormats.find((f) => f.qualityTier === '4k') ||
+        videoFormats.find((f) => f.qualityTier === '2k' && f.ext === 'mp4') ||
+        videoFormats.find((f) => f.qualityTier === '2k') ||
+        videoFormats.find((f) => f.qualityTier === '1080p' && f.ext === 'mp4') ||
+        videoFormats.find((f) => f.qualityTier === '1080p') ||
+        videoFormats[0];
+      if (highestVideo) defaultFormatId = highestVideo.id;
     }
 
     return {
