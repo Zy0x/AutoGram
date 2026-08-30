@@ -28216,6 +28216,34 @@ button.td-confirm-icon.is-back-btn:active {
   border-color: #38bdf8;
 }
 
+.td-remote-matrix-group-header-row td {
+  padding: 8px 12px 6px 12px !important;
+  background: rgba(15, 23, 42, 0.95) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.td-remote-matrix-group-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #e2e8f0;
+}
+
+.td-remote-matrix-group-badge {
+  font-size: 0.58rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  margin-left: 2px;
+}
+
 .td-remote-batch-quality-bar {
   display: flex;
   align-items: center;
