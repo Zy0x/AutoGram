@@ -533,7 +533,7 @@
   "remote_quality_audio": "Audio High-Bitrate Saja",
   "remote_quality_original": "Kualitas Sumber Asli (Tertinggi)",
   "remote_clean_no_watermark": "Bersih Tanpa Watermark",
-  "remote_section_video_streams": "Aliran Video",
+  "remote_section_video_streams": "Stream Video",
   "remote_section_mp4_video": "Aliran MP4 Video",
   "remote_section_webm_video": "Aliran WebM Video (VP9 / HDR)",
   "remote_section_sd_video": "Aliran Hemat Kuota (SD 480p / 360p)",

@@ -4019,6 +4019,10 @@ export function RemoteUploadModal({
                             '360p': 7,
                           };
 
+                          const allVideoFmts = resolvedMedia.formats.filter(
+                            (f) => !f.isAudio && !f.isSubtitle && (f.isVideo || f.ext === 'mp4' || f.ext === 'webm')
+                          );
+
                           const mp4VideoFmts = resolvedMedia.formats
                             .filter((f) => !f.isAudio && !f.isSubtitle && f.ext === 'mp4')
                             .sort((a, b) => (QUALITY_ORDER[a.qualityTier] || 99) - (QUALITY_ORDER[b.qualityTier] || 99) || (b.filesizeBytes || 0) - (a.filesizeBytes || 0));
@@ -4043,17 +4047,56 @@ export function RemoteUploadModal({
                           });
                           const rawStreamsList = resolvedMedia.rawStreams || [];
 
-                          const mp4Tiers = new Set(mp4VideoFmts.map((f) => f.qualityTier));
-                          const superiorWebms = webmVideoFmts.filter((w) => {
-                            if (!mp4Tiers.has(w.qualityTier)) return true;
-                            const matchingMp4 = mp4VideoFmts.find((m) => m.qualityTier === w.qualityTier);
-                            const webmIsHdr = w.badge?.includes('HDR') || w.resolution?.includes('HDR');
-                            const mp4IsHdr = matchingMp4?.badge?.includes('HDR') || matchingMp4?.resolution?.includes('HDR');
-                            if (webmIsHdr && !mp4IsHdr) return true;
-                            return false;
+                          const getFormatResolutionKey = (f: StreamQualityFormat): string => {
+                            const tier = (f.qualityTier || '').toLowerCase();
+                            if (QUALITY_ORDER[tier] !== undefined) return tier;
+                            const match = (f.resolution || f.label || '').match(/\b(4320p|2160p|1440p|1080p|720p|480p|360p|240p|144p|8k|4k|2k)\b/i);
+                            if (match) {
+                              const m = match[1].toLowerCase();
+                              if (m === '4320p') return '8k';
+                              if (m === '2160p') return '4k';
+                              if (m === '1440p') return '2k';
+                              return m;
+                            }
+                            return tier || f.label;
+                          };
+
+                          // Group all video formats by their resolution tier to pick the single highest quality for General tab
+                          const resGroups = new Map<string, StreamQualityFormat[]>();
+                          allVideoFmts.forEach((f) => {
+                            const key = getFormatResolutionKey(f);
+                            const existing = resGroups.get(key) || [];
+                            existing.push(f);
+                            resGroups.set(key, existing);
                           });
 
-                          const curatedGeneralVideos = [...mp4VideoFmts, ...superiorWebms].sort(
+                          const curatedGeneralVideos: StreamQualityFormat[] = [];
+                          resGroups.forEach((groupFmts) => {
+                            groupFmts.sort((a, b) => {
+                              // 1. Bitrate / File size difference (higher first)
+                              const sizeDiff = (b.filesizeBytes || 0) - (a.filesizeBytes || 0);
+                              if (Math.abs(sizeDiff) > 1024 * 1024) return sizeDiff;
+
+                              // 2. HDR over SDR
+                              const aHdr = a.badge?.includes('HDR') || a.resolution?.includes('HDR') || a.codec?.includes('HDR') ? 1 : 0;
+                              const bHdr = b.badge?.includes('HDR') || b.resolution?.includes('HDR') || b.codec?.includes('HDR') ? 1 : 0;
+                              if (bHdr !== aHdr) return bHdr - aHdr;
+
+                              // 3. Higher FPS (60fps > 30fps)
+                              const aFps = a.fps || 30;
+                              const bFps = b.fps || 30;
+                              if (bFps !== aFps) return bFps - aFps;
+
+                              // 4. File size fallback
+                              return sizeDiff;
+                            });
+
+                            if (groupFmts[0]) {
+                              curatedGeneralVideos.push(groupFmts[0]);
+                            }
+                          });
+
+                          curatedGeneralVideos.sort(
                             (a, b) => (QUALITY_ORDER[a.qualityTier] || 99) - (QUALITY_ORDER[b.qualityTier] || 99) || (b.filesizeBytes || 0) - (a.filesizeBytes || 0)
                           );
 
@@ -4492,7 +4535,7 @@ export function RemoteUploadModal({
                                       <div className="td-remote-formats-section-header">
                                         <span className="td-remote-formats-section-title">
                                           <Film size={11} style={{ color: '#38bdf8' }} />
-                                          <span>{t('drive.remote_section_mp4_video')}</span>
+                                          <span>{t('drive.remote_section_video_streams')}</span>
                                         </span>
                                         <span className="td-remote-formats-section-count">{curatedGeneralVideos.length}</span>
                                       </div>

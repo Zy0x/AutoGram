@@ -180,7 +180,7 @@ function processPlayerData(
   const isTitle4K = isTitle8K || /\b(4k|2160p|uhd)\b/i.test(title);
   const isTitle2K = isTitle4K || /\b(2k|1440p|qhd)\b/i.test(title);
 
-  const tiers: Array<{ key: string; label: string; tier: '8k' | '4k' | '2k' | '1080p' | '720p' | '480p' | '360p'; height: number; defaultBitrateMbps: number }> = [
+  const tiers: Array<{ key: string; label: string; tier: '8k' | '4k' | '2k' | '1080p' | '720p' | '480p' | '360p' | '240p' | '144p'; height: number; defaultBitrateMbps: number }> = [
     { key: '4320p', label: '8K Ultra HD', tier: '8k', height: 4320, defaultBitrateMbps: 50.0 },
     { key: '2160p', label: '4K Ultra HD', tier: '4k', height: 2160, defaultBitrateMbps: 25.0 },
     { key: '1440p', label: '2K Quad HD', tier: '2k', height: 1440, defaultBitrateMbps: 12.0 },
@@ -188,8 +188,8 @@ function processPlayerData(
     { key: '720p', label: 'HD 720p', tier: '720p', height: 720, defaultBitrateMbps: 2.5 },
     { key: '480p', label: 'SD 480p', tier: '480p', height: 480, defaultBitrateMbps: 1.2 },
     { key: '360p', label: 'Compact 360p', tier: '360p', height: 360, defaultBitrateMbps: 0.6 },
-    { key: '240p', label: '240p', tier: '360p', height: 240, defaultBitrateMbps: 0.3 },
-    { key: '144p', label: '144p', tier: '360p', height: 144, defaultBitrateMbps: 0.15 },
+    { key: '240p', label: '240p', tier: '240p', height: 240, defaultBitrateMbps: 0.3 },
+    { key: '144p', label: '144p', tier: '144p', height: 144, defaultBitrateMbps: 0.15 },
   ];
 
   tiers.forEach(({ key, label, tier, height, defaultBitrateMbps }) => {
