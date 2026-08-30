@@ -28263,6 +28263,281 @@ button.td-confirm-icon.is-back-btn:active {
 
 
 
+/* Batch URL Studio & Grouped Multi-Card Inspector */
+.td-remote-inspect-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 10px rgba(56, 189, 248, 0.35);
+  cursor: pointer;
+  transition: all 160ms cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.td-remote-inspect-action-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.5);
+  filter: brightness(1.08);
+}
+
+.td-remote-inspect-action-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.td-remote-stream-split-wrap.is-batch-studio {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.4fr);
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  flex: 1 1 0%;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.td-remote-batch-groups-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100%;
+  flex: 1 1 0%;
+  min-height: 0;
+  padding-right: 4px;
+}
+
+.td-remote-batch-group {
+  display: flex;
+  flex-direction: column;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.td-remote-batch-group:hover {
+  border-color: rgba(56, 189, 248, 0.3);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.td-remote-batch-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(30, 41, 59, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  user-select: none;
+}
+
+.td-remote-batch-group-head-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 auto;
+  cursor: pointer;
+}
+
+.td-remote-batch-folder-ico {
+  color: #38bdf8;
+  flex-shrink: 0;
+}
+
+.td-remote-batch-err-ico {
+  color: #f43f5e;
+  flex-shrink: 0;
+}
+
+.td-remote-batch-spinner {
+  color: #38bdf8;
+  flex-shrink: 0;
+}
+
+.td-remote-batch-group-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.td-remote-batch-group-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.td-remote-batch-group-head-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.td-remote-batch-group-select-btn {
+  background: transparent;
+  border: none;
+  color: #38bdf8;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 120ms ease;
+}
+
+.td-remote-batch-group-select-btn:hover {
+  background: rgba(56, 189, 248, 0.15);
+  color: #7dd3fc;
+}
+
+.td-remote-batch-group-collapse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.td-remote-batch-group-collapse-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.td-remote-batch-group-body {
+  padding: 10px;
+}
+
+.td-remote-batch-resolving-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  color: #94a3b8;
+  font-size: 0.78rem;
+}
+
+.td-remote-batch-error-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(244, 63, 94, 0.1);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  border-radius: 8px;
+}
+
+.td-remote-batch-error-msg {
+  font-size: 0.74rem;
+  color: #fda4af;
+  font-weight: 500;
+  word-break: break-word;
+  flex: 1 1 auto;
+}
+
+.td-remote-batch-error-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.td-remote-batch-retry-btn,
+.td-remote-batch-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.td-remote-batch-retry-btn {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+}
+
+.td-remote-batch-retry-btn:hover {
+  background: rgba(56, 189, 248, 0.28);
+  color: #e0f2fe;
+}
+
+.td-remote-batch-remove-btn {
+  background: rgba(244, 63, 94, 0.15);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  color: #fb7185;
+}
+
+.td-remote-batch-remove-btn:hover {
+  background: rgba(244, 63, 94, 0.28);
+  color: #ffe4e6;
+}
+
+.td-remote-batch-no-items {
+  padding: 16px;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.74rem;
+}
+
+.td-remote-quick-select-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 140ms ease;
+  margin-left: auto;
+}
+
+.td-remote-quick-select-toggle.active {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #38bdf8;
+}
+
+.td-remote-quick-select-toggle:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+
 /* ==========================================================================
    Responsive Breakpoints Engine for Remote Upload Modal (Small/Med/Large/Wide/4K)
    ========================================================================== */
@@ -28345,13 +28620,24 @@ button.td-confirm-icon.is-back-btn:active {
     gap: 6px !important;
   }
 
-  .td-remote-stream-split-wrap {
+  .td-remote-stream-split-wrap,
+  .td-remote-stream-split-wrap.is-batch-studio {
     display: flex !important;
     flex-direction: column !important;
     gap: 8px !important;
     overflow-y: auto !important;
     height: auto !important;
     min-height: 0 !important;
+  }
+
+  .td-remote-stream-split-wrap.is-batch-studio .td-remote-stream-left {
+    flex: 0 0 auto !important;
+    max-height: 220px !important;
+  }
+
+  .td-remote-stream-split-wrap.is-batch-studio .td-remote-stream-right {
+    flex: 1 1 auto !important;
+    min-height: 240px !important;
   }
 
   .td-remote-stream-player-col {

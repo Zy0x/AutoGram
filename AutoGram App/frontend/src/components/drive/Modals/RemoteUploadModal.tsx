@@ -14,6 +14,8 @@ import {
   MessageSquare,
   Hash,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Clipboard,
   ExternalLink,
   Film,
@@ -25,6 +27,8 @@ import {
   CheckCircle2,
   Check,
   CheckCheck,
+  CheckSquare,
+  Square,
   XCircle,
   LayoutGrid,
   List,
@@ -39,6 +43,8 @@ import {
   HardDrive,
   Pencil,
   RotateCcw,
+  RefreshCw,
+  Trash2,
   ArrowUp,
   ArrowDown,
   User,
@@ -520,6 +526,19 @@ function getSingleUnifiedBadgeInfo(
   return null;
 }
 
+function inferRawTierBadge(rawTier?: string, ext?: string): string {
+  if (rawTier) {
+    const norm = rawTier.toUpperCase();
+    if (norm === '1080P' || norm === '1080') return '1080p FHD';
+    if (norm === '720P' || norm === '720') return '720p HD';
+    if (norm === '4K' || norm === 'UHD') return '4K UHD';
+    if (norm === '8K') return '8K UHD';
+    return norm;
+  }
+  if (ext) return ext.toUpperCase();
+  return 'HD';
+}
+
 const ItemDurationBadge: React.FC<{
   item: ResolvedMediaItem;
   knownDuration?: number;
@@ -537,6 +556,33 @@ const ItemDurationBadge: React.FC<{
     </span>
   );
 };
+
+export interface BatchMediaItem {
+  id: string;
+  groupId: string;
+  sourceUrl: string;
+  title: string;
+  filename: string;
+  directUrl: string;
+  thumbnailUrl?: string;
+  filesizeBytes?: number;
+  durationSec?: number;
+  qualityBadge?: string;
+  headers?: Record<string, string>;
+  isVideo: boolean;
+  kind: 'video' | 'photo' | 'document' | 'audio';
+}
+
+export interface BatchUrlResultGroup {
+  id: string;
+  sourceUrl: string;
+  status: 'pending' | 'resolving' | 'success' | 'error';
+  errorMessage?: string;
+  platformName: string;
+  title: string;
+  items: BatchMediaItem[];
+  collapsed?: boolean;
+}
 
 export function RemoteUploadModal({
   isOpen,
@@ -590,6 +636,15 @@ export function RemoteUploadModal({
   const inspectAbortRef = useRef<AbortController | null>(null);
   const inspectTimerRef = useRef<number | null>(null);
 
+  const [batchGroups, setBatchGroups] = useState<BatchUrlResultGroup[]>([]);
+  const [batchInspecting, setBatchInspecting] = useState(false);
+  const [batchInspectProgress, setBatchInspectProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
+  const [selectedBatchItemIds, setSelectedBatchItemIds] = useState<Set<string>>(new Set());
+  const [focusedBatchItem, setFocusedBatchItem] = useState<BatchMediaItem | null>(null);
+  const [batchFilterType, setBatchFilterType] = useState<'all' | 'video' | 'photo' | 'selected'>('all');
+  const [isEditingBatchText, setIsEditingBatchText] = useState(true);
+  const batchInspectAbortRef = useRef<AbortController | null>(null);
+
   const prevIsOpenRef = useRef(false);
   const lastAppliedInitialUrlRef = useRef('');
   const lastProbedHandoffRef = useRef('');
@@ -605,6 +660,13 @@ export function RemoteUploadModal({
       setPasscode(extractedPasscode || '');
       setCustomFilename('');
       setBatchUrlsText('');
+      setBatchGroups([]);
+      setBatchInspecting(false);
+      setBatchInspectProgress({ current: 0, total: 0 });
+      setSelectedBatchItemIds(new Set());
+      setFocusedBatchItem(null);
+      setBatchFilterType('all');
+      setIsEditingBatchText(true);
       setDeliveryMode(resolveDefaultDeliveryMode(transferSettings));
       const storedEngine = typeof localStorage !== 'undefined' ? localStorage.getItem('autogram_remote_engine_mode') : null;
       setRemoteEngineMode(storedEngine === 'cloud_fetch' || storedEngine === 'ram_pipe'
@@ -629,6 +691,13 @@ export function RemoteUploadModal({
       setSelectedMediaItemIds(new Set());
       setItemSelectedFormats({});
       setGallerySearch('');
+      setBatchGroups([]);
+      setSelectedBatchItemIds(new Set());
+      setFocusedBatchItem(null);
+      setIsEditingBatchText(true);
+      if (batchInspectAbortRef.current) {
+        batchInspectAbortRef.current.abort();
+      }
     }
     prevIsOpenRef.current = isOpen;
   }, [isOpen, currentDestination, initialUrl, transferSettings]);
@@ -1456,6 +1525,361 @@ export function RemoteUploadModal({
     }
   }, [isSplitActive, resolvedMedia?.title]);
 
+  const handleInspectBatchUrls = useCallback(async () => {
+    if (!batchUrls.length) {
+      setErrorMsg(t('speedtest.remote_err_no_batch_urls'));
+      return;
+    }
+    setErrorMsg('');
+    if (batchInspectAbortRef.current) {
+      batchInspectAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    batchInspectAbortRef.current = controller;
+    setBatchInspecting(true);
+    setBatchInspectProgress({ current: 0, total: batchUrls.length });
+    setIsEditingBatchText(false);
+
+    const initialGroups: BatchUrlResultGroup[] = batchUrls.map((u, idx) => ({
+      id: `batch_grp_${idx}_${u}`,
+      sourceUrl: u,
+      status: 'resolving',
+      platformName: 'Remote URL',
+      title: u,
+      items: [],
+      collapsed: false,
+    }));
+    setBatchGroups(initialGroups);
+
+    const updatedGroups: BatchUrlResultGroup[] = [...initialGroups];
+    const newSelectedIds = new Set<string>();
+    let firstValidItem: BatchMediaItem | null = null;
+    let completedCount = 0;
+
+    const concurrency = 3;
+    const queue = batchUrls.map((u, idx) => ({ url: u, index: idx }));
+
+    const worker = async () => {
+      while (queue.length > 0) {
+        if (controller.signal.aborted) return;
+        const task = queue.shift();
+        if (!task) break;
+        const { url: singleUrl, index: idx } = task;
+
+        try {
+          const res = await resolveRemoteMediaUrl(singleUrl, controller.signal);
+          if (controller.signal.aborted) return;
+
+          const items: BatchMediaItem[] = [];
+          if (res.mediaItems && res.mediaItems.length > 0) {
+            res.mediaItems.forEach((mItem, mIdx) => {
+              const bestFmt = mItem.formats[0];
+              const ext = bestFmt?.ext || (mItem.kind === 'image' ? 'jpg' : 'mp4');
+              const filename = sanitizeFilename(mItem.title.endsWith(`.${ext}`) ? mItem.title : `${mItem.title}.${ext}`);
+              const isVid = mItem.kind === 'video' || bestFmt?.isVideo || ext === 'mp4' || ext === 'mkv' || ext === 'webm';
+              const rawTier = bestFmt?.qualityTier || (bestFmt?.badge ? bestFmt.badge : 'HD');
+              const qualityBadge = inferRawTierBadge(rawTier, ext);
+              const itemObj: BatchMediaItem = {
+                id: `grp_${idx}_item_${mIdx}_${mItem.id}`,
+                groupId: updatedGroups[idx].id,
+                sourceUrl: singleUrl,
+                title: mItem.title,
+                filename,
+                directUrl: bestFmt?.directUrl || singleUrl,
+                thumbnailUrl: mItem.thumbnailUrl,
+                filesizeBytes: bestFmt?.filesizeBytes,
+                durationSec: mItem.durationSec || bestFmt?.durationSec,
+                qualityBadge,
+                headers: bestFmt?.headers,
+                isVideo: !!isVid,
+                kind: isVid ? 'video' : mItem.kind === 'image' ? 'photo' : 'document',
+              };
+              items.push(itemObj);
+              newSelectedIds.add(itemObj.id);
+              if (!firstValidItem) firstValidItem = itemObj;
+            });
+          } else if (res.formats && res.formats.length > 0) {
+            const masterFmt = res.formats[0];
+            if (masterFmt.isAlbumPack && masterFmt.allAlbumUrls && masterFmt.allAlbumUrls.length > 0) {
+              masterFmt.allAlbumUrls.forEach((imgUrl, imgIdx) => {
+                const filename = `Photo_${imgIdx + 1}_${Date.now()}.jpg`;
+                const itemObj: BatchMediaItem = {
+                  id: `grp_${idx}_photo_${imgIdx}`,
+                  groupId: updatedGroups[idx].id,
+                  sourceUrl: singleUrl,
+                  title: `${res.title || 'Photo'} #${imgIdx + 1}`,
+                  filename,
+                  directUrl: imgUrl,
+                  thumbnailUrl: imgUrl,
+                  qualityBadge: 'HD PHOTO',
+                  headers: masterFmt.headers,
+                  isVideo: false,
+                  kind: 'photo',
+                };
+                items.push(itemObj);
+                newSelectedIds.add(itemObj.id);
+                if (!firstValidItem) firstValidItem = itemObj;
+              });
+            } else {
+              const ext = masterFmt.ext || 'mp4';
+              const filename = sanitizeFilename(res.title.endsWith(`.${ext}`) ? res.title : `${res.title}.${ext}`);
+              const isVid = masterFmt.isVideo || ext === 'mp4' || ext === 'mkv' || ext === 'webm';
+              const rawTier = masterFmt.qualityTier || (masterFmt.badge ? masterFmt.badge : 'HD');
+              const qualityBadge = inferRawTierBadge(rawTier, ext);
+              const itemObj: BatchMediaItem = {
+                id: `grp_${idx}_master_0`,
+                groupId: updatedGroups[idx].id,
+                sourceUrl: singleUrl,
+                title: res.title,
+                filename,
+                directUrl: masterFmt.directUrl,
+                thumbnailUrl: res.thumbnailUrl,
+                filesizeBytes: masterFmt.filesizeBytes,
+                durationSec: res.durationSec || masterFmt.durationSec,
+                qualityBadge: qualityBadge || (isVid ? '1080p FHD' : 'HD'),
+                headers: masterFmt.headers,
+                isVideo: !!isVid,
+                kind: isVid ? 'video' : 'document',
+              };
+              items.push(itemObj);
+              newSelectedIds.add(itemObj.id);
+              if (!firstValidItem) firstValidItem = itemObj;
+            }
+          } else {
+            const parsedName = singleUrl.split('/').filter(Boolean).pop() || `File_${Date.now()}`;
+            const itemObj: BatchMediaItem = {
+              id: `grp_${idx}_direct_0`,
+              groupId: updatedGroups[idx].id,
+              sourceUrl: singleUrl,
+              title: res.title || parsedName,
+              filename: sanitizeFilename(parsedName),
+              directUrl: singleUrl,
+              thumbnailUrl: res.thumbnailUrl,
+              qualityBadge: 'DIRECT',
+              isVideo: false,
+              kind: 'document',
+            };
+            items.push(itemObj);
+            newSelectedIds.add(itemObj.id);
+            if (!firstValidItem) firstValidItem = itemObj;
+          }
+
+          updatedGroups[idx] = {
+            ...updatedGroups[idx],
+            status: 'success',
+            platformName: res.platformName || 'Remote Stream',
+            title: res.title || singleUrl,
+            items,
+          };
+        } catch (err: any) {
+          if (controller.signal.aborted) return;
+          updatedGroups[idx] = {
+            ...updatedGroups[idx],
+            status: 'error',
+            errorMessage: err?.message || t('speedtest.remote_batch_error_title'),
+            items: [],
+          };
+        } finally {
+          completedCount++;
+          setBatchInspectProgress({ current: completedCount, total: batchUrls.length });
+          setBatchGroups([...updatedGroups]);
+        }
+      }
+    };
+
+    const workers = Array.from({ length: Math.min(concurrency, batchUrls.length) }, () => worker());
+    await Promise.all(workers);
+
+    if (!controller.signal.aborted) {
+      setSelectedBatchItemIds(newSelectedIds);
+      if (firstValidItem) {
+        setFocusedBatchItem(firstValidItem);
+      }
+      setBatchInspecting(false);
+    }
+  }, [batchUrls, t]);
+
+  const handleToggleBatchItem = useCallback((itemId: string) => {
+    setSelectedBatchItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleToggleBatchGroup = useCallback((groupId: string, selectAll: boolean) => {
+    setSelectedBatchItemIds((prev) => {
+      const next = new Set(prev);
+      const targetGroup = batchGroups.find((g) => g.id === groupId);
+      if (targetGroup) {
+        targetGroup.items.forEach((it) => {
+          if (selectAll) {
+            next.add(it.id);
+          } else {
+            next.delete(it.id);
+          }
+        });
+      }
+      return next;
+    });
+  }, [batchGroups]);
+
+  const handleToggleAllBatchItems = useCallback((selectAll: boolean) => {
+    if (selectAll) {
+      const allIds = new Set<string>();
+      batchGroups.forEach((g) => {
+        g.items.forEach((it) => allIds.add(it.id));
+      });
+      setSelectedBatchItemIds(allIds);
+    } else {
+      setSelectedBatchItemIds(new Set());
+    }
+  }, [batchGroups]);
+
+  const handleToggleGroupCollapse = useCallback((groupId: string) => {
+    setBatchGroups((prev) =>
+      prev.map((g) => (g.id === groupId ? { ...g, collapsed: !g.collapsed } : g))
+    );
+  }, []);
+
+  const handleRetryBatchGroup = useCallback(async (groupId: string) => {
+    const targetGroup = batchGroups.find((g) => g.id === groupId);
+    if (!targetGroup) return;
+
+    setBatchGroups((prev) =>
+      prev.map((g) => (g.id === groupId ? { ...g, status: 'resolving', errorMessage: undefined } : g))
+    );
+
+    try {
+      const res = await resolveRemoteMediaUrl(targetGroup.sourceUrl);
+      const items: BatchMediaItem[] = [];
+      const grpIdx = batchGroups.findIndex((g) => g.id === groupId);
+
+      if (res.mediaItems && res.mediaItems.length > 0) {
+        res.mediaItems.forEach((mItem, mIdx) => {
+          const bestFmt = mItem.formats[0];
+          const ext = bestFmt?.ext || (mItem.kind === 'image' ? 'jpg' : 'mp4');
+          const filename = sanitizeFilename(mItem.title.endsWith(`.${ext}`) ? mItem.title : `${mItem.title}.${ext}`);
+          const isVid = mItem.kind === 'video' || bestFmt?.isVideo || ext === 'mp4' || ext === 'mkv' || ext === 'webm';
+          const rawTier = bestFmt?.qualityTier || (bestFmt?.badge ? bestFmt.badge : 'HD');
+          const qualityBadge = inferRawTierBadge(rawTier, ext);
+          const itemObj: BatchMediaItem = {
+            id: `grp_${grpIdx}_item_${mIdx}_${mItem.id}`,
+            groupId,
+            sourceUrl: targetGroup.sourceUrl,
+            title: mItem.title,
+            filename,
+            directUrl: bestFmt?.directUrl || targetGroup.sourceUrl,
+            thumbnailUrl: mItem.thumbnailUrl,
+            filesizeBytes: bestFmt?.filesizeBytes,
+            durationSec: mItem.durationSec || bestFmt?.durationSec,
+            qualityBadge,
+            headers: bestFmt?.headers,
+            isVideo: !!isVid,
+            kind: isVid ? 'video' : mItem.kind === 'image' ? 'photo' : 'document',
+          };
+          items.push(itemObj);
+        });
+      } else if (res.formats && res.formats.length > 0) {
+        const masterFmt = res.formats[0];
+        const ext = masterFmt.ext || 'mp4';
+        const filename = sanitizeFilename(res.title.endsWith(`.${ext}`) ? res.title : `${res.title}.${ext}`);
+        const isVid = masterFmt.isVideo || ext === 'mp4' || ext === 'mkv' || ext === 'webm';
+        const rawTier = masterFmt.qualityTier || (masterFmt.badge ? masterFmt.badge : 'HD');
+        const qualityBadge = inferRawTierBadge(rawTier, ext);
+        const itemObj: BatchMediaItem = {
+          id: `grp_${grpIdx}_master_0`,
+          groupId,
+          sourceUrl: targetGroup.sourceUrl,
+          title: res.title,
+          filename,
+          directUrl: masterFmt.directUrl,
+          thumbnailUrl: res.thumbnailUrl,
+          filesizeBytes: masterFmt.filesizeBytes,
+          durationSec: res.durationSec || masterFmt.durationSec,
+          qualityBadge: qualityBadge || (isVid ? '1080p FHD' : 'HD'),
+          headers: masterFmt.headers,
+          isVideo: !!isVid,
+          kind: isVid ? 'video' : 'document',
+        };
+        items.push(itemObj);
+      }
+
+      setBatchGroups((prev) =>
+        prev.map((g) =>
+          g.id === groupId
+            ? {
+                ...g,
+                status: 'success',
+                platformName: res.platformName || 'Remote Stream',
+                title: res.title || g.sourceUrl,
+                items,
+              }
+            : g
+        )
+      );
+
+      setSelectedBatchItemIds((prev) => {
+        const next = new Set(prev);
+        items.forEach((it) => next.add(it.id));
+        return next;
+      });
+
+      if (items.length > 0 && !focusedBatchItem) {
+        setFocusedBatchItem(items[0]);
+      }
+    } catch (err: any) {
+      setBatchGroups((prev) =>
+        prev.map((g) =>
+          g.id === groupId
+            ? { ...g, status: 'error', errorMessage: err?.message || t('speedtest.remote_batch_error_title') }
+            : g
+        )
+      );
+    }
+  }, [batchGroups, focusedBatchItem, t]);
+
+  const handleRemoveBatchGroup = useCallback((groupId: string) => {
+    const targetGroup = batchGroups.find((g) => g.id === groupId);
+    if (!targetGroup) return;
+
+    setSelectedBatchItemIds((prev) => {
+      const next = new Set(prev);
+      targetGroup.items.forEach((it) => next.delete(it.id));
+      return next;
+    });
+
+    const remainingUrls = batchUrls.filter((u) => u !== targetGroup.sourceUrl);
+    setBatchUrlsText(remainingUrls.join('\n'));
+    setBatchGroups((prev) => prev.filter((g) => g.id !== groupId));
+
+    if (focusedBatchItem && targetGroup.items.some((it) => it.id === focusedBatchItem.id)) {
+      setFocusedBatchItem(null);
+    }
+  }, [batchGroups, batchUrls, focusedBatchItem]);
+
+  const allBatchItems = useMemo(() => {
+    const list: BatchMediaItem[] = [];
+    batchGroups.forEach((g) => {
+      if (g.status === 'success') {
+        g.items.forEach((it) => list.push(it));
+      }
+    });
+    return list;
+  }, [batchGroups]);
+
+  const selectedBatchItems = useMemo(() => {
+    return allBatchItems.filter((it) => selectedBatchItemIds.has(it.id));
+  }, [allBatchItems, selectedBatchItemIds]);
+
+  const selectedBatchBytes = useMemo(() => {
+    return selectedBatchItems.reduce((acc, it) => acc + (it.filesizeBytes || 0), 0);
+  }, [selectedBatchItems]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -1542,7 +1966,7 @@ export function RemoteUploadModal({
       setSubmitting(true);
       try {
         let activeResolved = resolvedMedia;
-        if (!activeResolved && (targetUrl.includes('tiktok.com') || targetUrl.includes('douyin.com') || targetUrl.includes('youtube.com') || targetUrl.includes('youtu.be') || targetUrl.includes('instagram.com') || targetUrl.includes('terabox') || targetUrl.includes('pikpak') || targetUrl.includes('streamrizz.com') || targetUrl.includes('vidoy') || targetUrl.includes('overfetch.video') || targetUrl.includes('pinterest.com') || targetUrl.includes('pixiv.net') || targetUrl.includes('twitter.com') || targetUrl.includes('x.com') || targetUrl.includes('videe.cc') || targetUrl.includes('videy.co'))) {
+        if (!activeResolved && (targetUrl.includes('tiktok.com') || targetUrl.includes('douyin.com') || targetUrl.includes('youtube.com') || targetUrl.includes('youtu.be') || targetUrl.includes('instagram.com') || targetUrl.includes('terabox') || targetUrl.includes('pikpak') || targetUrl.includes('streamrizz.com') || targetUrl.includes('vidoy') || targetUrl.includes('overfetch.video') || targetUrl.includes('pinterest.com') || targetUrl.includes('pixiv.net') || targetUrl.includes('twitter.com') || targetUrl.includes('x.com') || targetUrl.includes('videe.cc') || targetUrl.includes('videy.co') || targetUrl.includes('vqso.de') || targetUrl.includes('slicedrive.com'))) {
           try {
             activeResolved = await resolveRemoteMediaUrl(targetUrl, undefined, { passcode });
           } catch {
@@ -1601,40 +2025,24 @@ export function RemoteUploadModal({
         setSubmitting(false);
       }
     } else {
-      if (!batchUrls.length) {
-        setErrorMsg(t('speedtest.remote_err_no_batch_urls'));
+      // BATCH TAB SUBMISSION
+      if (batchGroups.length === 0 || isEditingBatchText) {
+        // Trigger batch inspection first
+        handleInspectBatchUrls();
+        return;
+      }
+
+      if (selectedBatchItems.length === 0) {
+        setErrorMsg(t('speedtest.remote_batch_no_selected_hint'));
         return;
       }
 
       setSubmitting(true);
       try {
-        const expandedBatchUrls: string[] = [];
-        for (const singleUrl of batchUrls) {
-          const lower = singleUrl.toLowerCase();
-          if (
-            lower.includes('tiktok.com') ||
-            lower.includes('douyin.com') ||
-            lower.includes('youtube.com') ||
-            lower.includes('youtu.be') ||
-            lower.includes('pinterest.com')
-          ) {
-            try {
-              const res = await resolveRemoteMediaUrl(singleUrl);
-              if (res.albumImages && res.albumImages.length > 0) {
-                // Expand slideshow to all high-definition photos in the album pack
-                expandedBatchUrls.push(...res.albumImages);
-                continue;
-              } else if (res.formats && res.formats.length > 0) {
-                // Use highest peak quality master stream
-                expandedBatchUrls.push(res.formats[0].directUrl);
-                continue;
-              }
-            } catch {
-              // fallback to raw url
-            }
-          }
-          expandedBatchUrls.push(singleUrl);
-        }
+        const uploadUrls = selectedBatchItems.map((it) => it.directUrl);
+        const customFilenames = selectedBatchItems.map((it) => it.filename);
+        const sourceSizes = selectedBatchItems.map((it) => it.filesizeBytes || 0);
+        const thumbnailUrls = selectedBatchItems.map((it) => it.thumbnailUrl || '');
 
         const effectiveQualityMode =
           deliveryMode === 'uncompressed'
@@ -1649,7 +2057,10 @@ export function RemoteUploadModal({
               ? 'original'
               : 'standard';
 
-        const ok = await onUpload(expandedBatchUrls, selectedDest, {
+        const ok = await onUpload(uploadUrls, selectedDest, {
+          customFilenames,
+          sourceSizes,
+          thumbnailUrls,
           asDocument: deliveryMode === 'document',
           qualityMode: effectiveQualityMode,
           presentationOverride: effectivePresentation,
@@ -3058,58 +3469,438 @@ export function RemoteUploadModal({
         </>
           ) : (
             /* BATCH TAB */
-            <div className="td-remote-form-card">
-              <div className="td-remote-field-group">
-                <div className="td-remote-label-row">
-                  <div className="td-remote-label-left" ref={infoRef}>
-                    <label className="td-input-label" htmlFor="td-remote-batch-input">
-                      {t('speedtest.remote_tab_batch')}
-                    </label>
+            batchGroups.length === 0 || isEditingBatchText ? (
+              <div className="td-remote-form-card">
+                <div className="td-remote-field-group">
+                  <div className="td-remote-label-row">
+                    <div className="td-remote-label-left" ref={infoRef}>
+                      <label className="td-input-label" htmlFor="td-remote-batch-input">
+                        {t('speedtest.remote_tab_batch')}
+                      </label>
+                      <button
+                        type="button"
+                        className={`td-remote-info-trigger ${showSupportedInfo ? 'active' : ''}`}
+                        onClick={() => setShowSupportedInfo((prev) => !prev)}
+                        title={t('speedtest.remote_info_btn_aria')}
+                        aria-label={t('speedtest.remote_info_btn_aria')}
+                        aria-expanded={showSupportedInfo}
+                      >
+                        <Info size={12} />
+                      </button>
+                      {renderSupportedLinksPopover()}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {batchGroups.length > 0 && (
+                        <button
+                          type="button"
+                          className="td-remote-quick-btn"
+                          onClick={() => setIsEditingBatchText(false)}
+                          disabled={submitting || batchInspecting}
+                          title={t('speedtest.remote_batch_expand_group')}
+                        >
+                          <LayoutGrid size={12} />
+                          <span>{t('speedtest.remote_resolved_media_title')}</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="td-remote-paste-action"
+                        onClick={handlePasteClipboard}
+                        disabled={submitting || batchInspecting}
+                        title={t('speedtest.remote_paste_clipboard')}
+                      >
+                        <Clipboard size={12} />
+                        <span>{t('speedtest.remote_paste_clipboard')}</span>
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    id="td-remote-batch-input"
+                    className="td-input-field td-remote-batch-textarea"
+                    rows={6}
+                    placeholder={t('speedtest.remote_batch_placeholder')}
+                    value={batchUrlsText}
+                    onChange={(e) => {
+                      setBatchUrlsText(e.target.value);
+                      if (errorMsg) setErrorMsg('');
+                    }}
+                    disabled={submitting || batchInspecting}
+                    spellCheck={false}
+                  />
+                  <div className="td-remote-batch-footer">
+                    <span className="td-remote-batch-hint">
+                      {batchUrls.length > 0
+                        ? t('speedtest.remote_batch_count', { count: batchUrls.length })
+                        : t('speedtest.remote_batch_empty_hint')}
+                    </span>
                     <button
                       type="button"
-                      className={`td-remote-info-trigger ${showSupportedInfo ? 'active' : ''}`}
-                      onClick={() => setShowSupportedInfo((prev) => !prev)}
-                      title={t('speedtest.remote_info_btn_aria')}
-                      aria-label={t('speedtest.remote_info_btn_aria')}
-                      aria-expanded={showSupportedInfo}
+                      className="td-btn-primary td-remote-inspect-action-btn"
+                      onClick={handleInspectBatchUrls}
+                      disabled={batchUrls.length === 0 || batchInspecting || submitting}
                     >
-                      <Info size={12} />
+                      {batchInspecting ? (
+                        <>
+                          <Loader2 size={13} className="spin" />
+                          <span>
+                            {t('speedtest.remote_batch_inspecting_status', {
+                              current: batchInspectProgress.current,
+                              total: batchInspectProgress.total,
+                            })}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Search size={13} />
+                          <span>{t('speedtest.remote_batch_inspect_btn')}</span>
+                        </>
+                      )}
                     </button>
-                    {renderSupportedLinksPopover()}
                   </div>
-                  <button
-                    type="button"
-                    className="td-remote-paste-action"
-                    onClick={handlePasteClipboard}
-                    disabled={submitting}
-                    title={t('speedtest.remote_paste_clipboard')}
-                  >
-                    <Clipboard size={12} />
-                    <span>{t('speedtest.remote_paste_clipboard')}</span>
-                  </button>
-                </div>
-                <textarea
-                  id="td-remote-batch-input"
-                  className="td-input-field td-remote-batch-textarea"
-                  rows={5}
-                  placeholder={t('speedtest.remote_batch_placeholder')}
-                  value={batchUrlsText}
-                  onChange={(e) => {
-                    setBatchUrlsText(e.target.value);
-                    if (errorMsg) setErrorMsg('');
-                  }}
-                  disabled={submitting}
-                  spellCheck={false}
-                />
-                <div className="td-remote-batch-footer">
-                  <span className="td-remote-batch-hint">
-                    {batchUrls.length > 0
-                      ? t('speedtest.remote_batch_count', { count: batchUrls.length })
-                      : t('speedtest.remote_batch_empty_hint')}
-                  </span>
                 </div>
               </div>
-            </div>
+            ) : (
+              /* BATCH RESOLVED GALLERY & SPLIT PREVIEW */
+              <div className="td-remote-stream-split-wrap is-batch-studio">
+                {/* LEFT PANEL: FOCUSED MEDIA PREVIEW */}
+                <div className="td-remote-stream-left">
+                  <div className="td-remote-player-card">
+                    <div className="td-remote-player-box">
+                      {focusedBatchItem ? (
+                        focusedBatchItem.isVideo ? (
+                          <video
+                            src={focusedBatchItem.directUrl}
+                            controls
+                            autoPlay
+                            muted={false}
+                            playsInline
+                            className="td-remote-stream-video"
+                            key={focusedBatchItem.id}
+                          />
+                        ) : focusedBatchItem.kind === 'photo' ? (
+                          <img
+                            src={focusedBatchItem.directUrl || focusedBatchItem.thumbnailUrl}
+                            alt={focusedBatchItem.title}
+                            className="td-remote-stream-image"
+                            key={focusedBatchItem.id}
+                          />
+                        ) : (
+                          <div className="td-remote-item-thumb-fallback">
+                            <FileText size={48} />
+                          </div>
+                        )
+                      ) : (
+                        <div className="td-remote-split-empty-canvas">
+                          <Film size={40} className="td-remote-split-empty-ico" />
+                          <div className="td-remote-split-empty-title">
+                            {t('speedtest.remote_split_preview_title')}
+                          </div>
+                          <p className="td-remote-split-empty-text">
+                            {t('speedtest.remote_split_ready_desc')}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {focusedBatchItem && (
+                      <div className="td-remote-player-meta-box">
+                        <div className="td-remote-player-meta-header">
+                          <span className="td-remote-player-title" title={focusedBatchItem.filename}>
+                            {focusedBatchItem.filename}
+                          </span>
+                          {focusedBatchItem.qualityBadge && (
+                            <span className="td-remote-item-quality-badge tier-fhd">
+                              {focusedBatchItem.qualityBadge}
+                            </span>
+                          )}
+                        </div>
+                        <div className="td-remote-player-details-row">
+                          <span className="td-remote-meta-size">
+                            {focusedBatchItem.filesizeBytes ? `~${formatDriveBytes(focusedBatchItem.filesizeBytes)}` : ''}
+                          </span>
+                          {focusedBatchItem.durationSec ? (
+                            <span className="td-remote-meta-duration">
+                              <Clock size={10} />
+                              <span>{formatMediaDuration(focusedBatchItem.durationSec)}</span>
+                            </span>
+                          ) : null}
+                          <button
+                            type="button"
+                            className={`td-remote-quick-select-toggle ${selectedBatchItemIds.has(focusedBatchItem.id) ? 'active' : ''}`}
+                            onClick={() => handleToggleBatchItem(focusedBatchItem.id)}
+                          >
+                            {selectedBatchItemIds.has(focusedBatchItem.id) ? (
+                              <>
+                                <Check size={11} strokeWidth={3} />
+                                <span>{t('speedtest.preflight_include_item')}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Square size={11} />
+                                <span>{t('speedtest.preflight_skip_item')}</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* RIGHT PANEL: GROUPED CARDS & ACTIONS */}
+                <div className="td-remote-stream-right">
+                  <div className="td-remote-gallery-header-row">
+                    <div className="td-remote-gallery-title">
+                      <Layers size={15} />
+                      <span>
+                        {t('speedtest.remote_batch_all_groups_ready', { count: batchGroups.length })}
+                        {allBatchItems.length > 0 ? ` (${t('speedtest.remote_batch_item_count', { count: allBatchItems.length })})` : ''}
+                      </span>
+                    </div>
+
+                    <div className="td-remote-gallery-quick-actions">
+                      <button
+                        type="button"
+                        className="td-remote-quick-btn"
+                        onClick={() => setIsEditingBatchText(true)}
+                        title={t('speedtest.remote_batch_edit_urls')}
+                      >
+                        <Pencil size={12} />
+                        <span>{t('speedtest.remote_batch_edit_urls')}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="td-remote-quick-btn"
+                        onClick={handleInspectBatchUrls}
+                        disabled={batchInspecting}
+                        title={t('speedtest.remote_batch_reinspect_btn')}
+                      >
+                        <RefreshCw size={12} className={batchInspecting ? 'spin' : ''} />
+                        <span>{t('speedtest.remote_batch_reinspect_btn')}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="td-remote-quick-btn select-all"
+                        onClick={() => handleToggleAllBatchItems(true)}
+                      >
+                        <CheckSquare size={12} />
+                        <span>{t('drive_tools.remote_gallery_select_all')}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="td-remote-quick-btn deselect-all"
+                        onClick={() => handleToggleAllBatchItems(false)}
+                      >
+                        <Square size={12} />
+                        <span>{t('drive_tools.remote_gallery_deselect_all')}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* FILTER BAR */}
+                  <div className="td-remote-filter-bar" style={{ margin: '6px 0 10px', display: 'flex', gap: 6 }}>
+                    <button
+                      type="button"
+                      className={`td-remote-filter-pill ${batchFilterType === 'all' ? 'active' : ''}`}
+                      onClick={() => setBatchFilterType('all')}
+                    >
+                      {t('speedtest.remote_batch_filter_all')} ({allBatchItems.length})
+                    </button>
+                    <button
+                      type="button"
+                      className={`td-remote-filter-pill ${batchFilterType === 'video' ? 'active' : ''}`}
+                      onClick={() => setBatchFilterType('video')}
+                    >
+                      {t('speedtest.remote_batch_filter_video')} ({allBatchItems.filter((i) => i.isVideo).length})
+                    </button>
+                    <button
+                      type="button"
+                      className={`td-remote-filter-pill ${batchFilterType === 'photo' ? 'active' : ''}`}
+                      onClick={() => setBatchFilterType('photo')}
+                    >
+                      {t('speedtest.remote_batch_filter_photo')} ({allBatchItems.filter((i) => i.kind === 'photo').length})
+                    </button>
+                    <button
+                      type="button"
+                      className={`td-remote-filter-pill ${batchFilterType === 'selected' ? 'active' : ''}`}
+                      onClick={() => setBatchFilterType('selected')}
+                    >
+                      {t('speedtest.remote_batch_filter_selected')} ({selectedBatchItems.length})
+                    </button>
+                  </div>
+
+                  {/* GROUPS ACCORDION LIST */}
+                  <div className="td-remote-batch-groups-list">
+                    {batchGroups.map((group) => {
+                      const groupFilteredItems = group.items.filter((it) => {
+                        if (batchFilterType === 'video') return it.isVideo;
+                        if (batchFilterType === 'photo') return it.kind === 'photo';
+                        if (batchFilterType === 'selected') return selectedBatchItemIds.has(it.id);
+                        return true;
+                      });
+                      const allGroupSelected = group.items.length > 0 && group.items.every((it) => selectedBatchItemIds.has(it.id));
+                      const groupTotalBytes = group.items.reduce((acc, it) => acc + (it.filesizeBytes || 0), 0);
+
+                      return (
+                        <div className="td-remote-batch-group" key={group.id}>
+                          <div className="td-remote-batch-group-head">
+                            <div className="td-remote-batch-group-head-left" onClick={() => handleToggleGroupCollapse(group.id)}>
+                              {group.status === 'resolving' ? (
+                                <Loader2 size={15} className="spin td-remote-batch-spinner" />
+                              ) : group.status === 'error' ? (
+                                <XCircle size={15} className="td-remote-batch-err-ico" />
+                              ) : (
+                                <Folder size={15} className="td-remote-batch-folder-ico" />
+                              )}
+                              <span className="td-remote-batch-group-title" title={group.title}>
+                                {group.title}
+                              </span>
+                              {group.status === 'success' && (
+                                <span className="td-remote-batch-group-badge">
+                                  {t('speedtest.remote_batch_item_count', { count: group.items.length })}{groupTotalBytes > 0 ? ` · ~${formatDriveBytes(groupTotalBytes)}` : ''}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="td-remote-batch-group-head-right">
+                              {group.status === 'success' && (
+                                <button
+                                  type="button"
+                                  className="td-remote-batch-group-select-btn"
+                                  onClick={() => handleToggleBatchGroup(group.id, !allGroupSelected)}
+                                >
+                                  {allGroupSelected
+                                    ? t('speedtest.remote_batch_group_deselect_all')
+                                    : t('speedtest.remote_batch_group_select_all')}
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                className="td-remote-batch-group-collapse-btn"
+                                onClick={() => handleToggleGroupCollapse(group.id)}
+                                aria-label={group.collapsed ? t('speedtest.remote_batch_expand_group') : t('speedtest.remote_batch_collapse_group')}
+                              >
+                                {group.collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                              </button>
+                            </div>
+                          </div>
+
+                          {!group.collapsed && (
+                            <div className="td-remote-batch-group-body">
+                              {group.status === 'resolving' ? (
+                                <div className="td-remote-batch-resolving-row">
+                                  <Loader2 size={16} className="spin" />
+                                  <span>{t('speedtest.remote_inspecting')}</span>
+                                </div>
+                              ) : group.status === 'error' ? (
+                                <div className="td-remote-batch-error-card">
+                                  <div className="td-remote-batch-error-msg">
+                                    {group.errorMessage || t('speedtest.remote_batch_error_title')}
+                                  </div>
+                                  <div className="td-remote-batch-error-actions">
+                                    <button
+                                      type="button"
+                                      className="td-remote-batch-retry-btn"
+                                      onClick={() => handleRetryBatchGroup(group.id)}
+                                    >
+                                      <RotateCcw size={12} />
+                                      <span>{t('speedtest.remote_batch_retry_link')}</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="td-remote-batch-remove-btn"
+                                      onClick={() => handleRemoveBatchGroup(group.id)}
+                                    >
+                                      <Trash2 size={12} />
+                                      <span>{t('speedtest.remote_batch_remove_link')}</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : groupFilteredItems.length === 0 ? (
+                                <div className="td-remote-batch-no-items">
+                                  {t('drive_tools.no_media_found')}
+                                </div>
+                              ) : (
+                                <div className="td-remote-gallery-grid">
+                                  {groupFilteredItems.map((item) => {
+                                    const isSelected = selectedBatchItemIds.has(item.id);
+                                    const isFocused = focusedBatchItem?.id === item.id;
+                                    const extMatch = item.filename.match(/\.([a-zA-Z0-9]+)$/);
+                                    const extName = extMatch ? extMatch[1].toUpperCase() : '';
+                                    const baseName = extMatch ? item.filename.slice(0, extMatch.index) : item.filename;
+
+                                    return (
+                                      <div
+                                        key={item.id}
+                                        className={`td-remote-item-card ${isFocused ? 'active' : ''} ${isSelected ? 'selected' : ''}`}
+                                        onClick={() => setFocusedBatchItem(item)}
+                                      >
+                                        <div className="td-remote-item-thumb-wrapper">
+                                          {item.thumbnailUrl ? (
+                                            <img
+                                              src={item.thumbnailUrl}
+                                              alt={item.title}
+                                              className="td-remote-item-thumb-img"
+                                              loading="lazy"
+                                            />
+                                          ) : (
+                                            <div className="td-remote-item-thumb-fallback">
+                                              {item.isVideo ? <Film size={26} /> : <ImageIcon size={26} />}
+                                            </div>
+                                          )}
+
+                                          {item.qualityBadge && (
+                                            <span className="td-remote-item-quality-badge tier-fhd">
+                                              {item.qualityBadge}
+                                            </span>
+                                          )}
+
+                                          <button
+                                            type="button"
+                                            className={`td-remote-item-checkbox ${isSelected ? 'checked' : ''}`}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleToggleBatchItem(item.id);
+                                            }}
+                                            aria-label={isSelected ? t('drive_tools.remote_gallery_deselect_all') : t('drive_tools.remote_gallery_select_all')}
+                                          >
+                                            {isSelected && <Check size={9.5} strokeWidth={3.8} />}
+                                          </button>
+                                        </div>
+
+                                        <div className="td-remote-item-card-body">
+                                          <span className="td-remote-item-card-title" title={item.filename}>
+                                            <span className="td-remote-title-base">{baseName}</span>
+                                            {extName ? <span className="td-remote-title-ext">.{extName}</span> : null}
+                                          </span>
+                                          <div className="td-remote-card-meta-row">
+                                            {item.filesizeBytes ? (
+                                              <span className="td-remote-meta-size">
+                                                ~{formatDriveBytes(item.filesizeBytes)}
+                                              </span>
+                                            ) : <span />}
+                                            {item.durationSec ? (
+                                              <span className="td-remote-item-duration-badge">
+                                                <Clock size={10} />
+                                                <span>{formatMediaDuration(item.durationSec)}</span>
+                                              </span>
+                                            ) : null}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )
           )}
         </div>
 
@@ -3160,7 +3951,7 @@ export function RemoteUploadModal({
               type="button"
               className="td-confirm-btn ghost"
               onClick={onClose}
-              disabled={submitting}
+              disabled={submitting || batchInspecting}
             >
               {t('accounts.cancel')}
             </button>
@@ -3169,8 +3960,11 @@ export function RemoteUploadModal({
               className="td-confirm-btn primary td-remote-submit-btn"
               disabled={
                 submitting ||
+                batchInspecting ||
                 (tab === 'single'
                   ? !url.trim() || (effectiveMediaItems.length > 1 && selectedMediaItemIds.size === 0)
+                  : batchGroups.length > 0 && !isEditingBatchText
+                  ? selectedBatchItems.length === 0
                   : batchUrls.length === 0)
               }
             >
@@ -3178,6 +3972,16 @@ export function RemoteUploadModal({
                 <>
                   <Loader2 size={15} className="spin" />
                   <span>{t('speedtest.uploading_status')}</span>
+                </>
+              ) : batchInspecting ? (
+                <>
+                  <Loader2 size={15} className="spin" />
+                  <span>
+                    {t('speedtest.remote_batch_inspecting_status', {
+                      current: batchInspectProgress.current,
+                      total: batchInspectProgress.total,
+                    })}
+                  </span>
                 </>
               ) : (
                 <>
@@ -3212,11 +4016,24 @@ export function RemoteUploadModal({
                         : storagePolicy === 'disk_and_telegram'
                         ? t('drive_tools.remote_btn_save_upload_single')
                         : t('speedtest.remote_btn_start_single')
-                      : storagePolicy === 'custom_disk'
-                      ? t('drive_tools.remote_btn_save_batch', { count: batchUrls.length })
-                      : storagePolicy === 'disk_and_telegram'
-                      ? t('drive_tools.remote_btn_save_upload_batch', { count: batchUrls.length })
-                      : t('speedtest.remote_btn_start_batch', { count: batchUrls.length })}
+                      : batchGroups.length > 0 && !isEditingBatchText
+                      ? selectedBatchItems.length === 0
+                        ? t('speedtest.remote_batch_no_selected_hint')
+                        : storagePolicy === 'custom_disk'
+                        ? t('drive_tools.remote_btn_save_count', {
+                            count: selectedBatchItems.length,
+                            size: selectedBatchBytes > 0 ? ` (~${formatDriveBytes(selectedBatchBytes)})` : '',
+                          })
+                        : storagePolicy === 'disk_and_telegram'
+                        ? t('drive_tools.remote_btn_save_upload_count', {
+                            count: selectedBatchItems.length,
+                            size: selectedBatchBytes > 0 ? ` (~${formatDriveBytes(selectedBatchBytes)})` : '',
+                          })
+                        : t('speedtest.remote_batch_upload_btn', {
+                            count: selectedBatchItems.length,
+                            size: selectedBatchBytes > 0 ? `~${formatDriveBytes(selectedBatchBytes)}` : '',
+                          })
+                      : t('speedtest.remote_batch_inspect_btn')}
                   </span>
                 </>
               )}

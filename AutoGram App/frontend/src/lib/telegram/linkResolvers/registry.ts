@@ -1,6 +1,7 @@
 import type { LinkResolverProvider, ResolvedMediaInfo, StreamQualityFormat, ResolveOptions } from './types';
 import { videeResolver } from './providers/videeResolver';
 import { streamrizzResolver } from './providers/streamrizzResolver';
+import { vqsoResolver } from './providers/vqsoResolver';
 import { pikpakResolver } from './providers/pikpakResolver';
 import { youtubeResolver } from './providers/youtubeResolver';
 import { tiktokResolver } from './providers/tiktokResolver';
@@ -178,6 +179,7 @@ class LinkResolverRegistry {
   private providers: LinkResolverProvider[] = [
     videeResolver,
     streamrizzResolver,
+    vqsoResolver,
     pikpakResolver,
     tiktokResolver,
     youtubeResolver,
