@@ -344,7 +344,16 @@ function getSingleUnifiedBadgeInfo(
   // Profile / Avatar Kind
   if (item.kind === 'profile') {
     if (width && height && width > 0 && height > 0) {
-      return { text: `AVATAR · ${width}×${height}`, tierClass: 'tier-profile' };
+      const minDim = Math.min(width, height);
+      const maxDim = Math.max(width, height);
+      const dimStr = `${width}×${height}`;
+      if (minDim >= 1000 || maxDim >= 1900) {
+        return { text: `FHD AVATAR · ${dimStr}`, tierClass: 'tier-profile' };
+      }
+      if (minDim >= 700 || maxDim >= 1200) {
+        return { text: `HD AVATAR · ${dimStr}`, tierClass: 'tier-profile' };
+      }
+      return { text: `AVATAR · ${dimStr}`, tierClass: 'tier-profile' };
     }
     return { text: 'AVATAR', tierClass: 'tier-profile' };
   }
@@ -352,7 +361,22 @@ function getSingleUnifiedBadgeInfo(
   // Story / Ephemeral Post Kind
   if (item.kind === 'story') {
     if (width && height && width > 0 && height > 0) {
-      return { text: `STORY · ${width}×${height}`, tierClass: 'tier-story' };
+      const minDim = Math.min(width, height);
+      const maxDim = Math.max(width, height);
+      const dimStr = `${width}×${height}`;
+      if (minDim >= 2160 || maxDim >= 3840) {
+        return { text: `4K STORY · ${dimStr}`, tierClass: 'tier-story' };
+      }
+      if (minDim >= 1440 || maxDim >= 2560) {
+        return { text: `2K STORY · ${dimStr}`, tierClass: 'tier-story' };
+      }
+      if (minDim >= 1000 || maxDim >= 1900) {
+        return { text: `FHD STORY · ${dimStr}`, tierClass: 'tier-story' };
+      }
+      if (minDim >= 700 || maxDim >= 1200) {
+        return { text: `HD STORY · ${dimStr}`, tierClass: 'tier-story' };
+      }
+      return { text: `STORY · ${dimStr}`, tierClass: 'tier-story' };
     }
     return { text: 'STORY', tierClass: 'tier-story' };
   }
@@ -400,7 +424,7 @@ function getSingleUnifiedBadgeInfo(
     return { text: ext.toUpperCase(), tierClass: 'tier-code' };
   }
 
-  // 7. Image & Graphics Formats (with dynamic dimensions if known)
+  // 7. Image & Graphics Formats (with full resolution tier classification)
   const IMAGE_EXTS = new Set([
     'jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'svg', 'heic', 'heif', 'bmp', 'ico', 'tiff', 'tif', 'raw', 'cr2', 'nef', 'arw', 'dng', 'psd', 'ai', 'eps', 'tgs'
   ]);
@@ -409,10 +433,24 @@ function getSingleUnifiedBadgeInfo(
     if (width && height && width > 0 && height > 0) {
       const minDim = Math.min(width, height);
       const maxDim = Math.max(width, height);
-      if (minDim >= 2160 || maxDim >= 3840) {
-        return { text: `4K · ${imgTag}`, tierClass: 'tier-4k' };
+      const dimStr = `${width}×${height}`;
+
+      if (minDim >= 4000 || maxDim >= 7000) {
+        return { text: `8K UHD · ${dimStr}`, tierClass: 'tier-8k' };
       }
-      return { text: `${imgTag} · ${width}×${height}`, tierClass: 'tier-photo' };
+      if (minDim >= 2160 || maxDim >= 3840) {
+        return { text: `4K UHD · ${dimStr}`, tierClass: 'tier-4k' };
+      }
+      if (minDim >= 1440 || maxDim >= 2560) {
+        return { text: `2K QHD · ${dimStr}`, tierClass: 'tier-2k' };
+      }
+      if (minDim >= 1000 || maxDim >= 1900) {
+        return { text: `FHD · ${dimStr}`, tierClass: 'tier-fhd' };
+      }
+      if (minDim >= 700 || maxDim >= 1200) {
+        return { text: `HD · ${dimStr}`, tierClass: 'tier-hd' };
+      }
+      return { text: `${imgTag} · ${dimStr}`, tierClass: 'tier-photo' };
     }
     return { text: imgTag, tierClass: 'tier-photo' };
   }
@@ -2742,7 +2780,17 @@ export function RemoteUploadModal({
                                             className="td-remote-list-thumb-img"
                                             loading="lazy"
                                             referrerPolicy="no-referrer"
-                                            onLoad={() => {
+                                            onLoad={(e) => {
+                                              const target = e.currentTarget;
+                                              if (target.naturalWidth > 0 && target.naturalHeight > 0) {
+                                                setItemResolutions((prev) => {
+                                                  if (prev[item.id]) return prev;
+                                                  return {
+                                                    ...prev,
+                                                    [item.id]: { width: target.naturalWidth, height: target.naturalHeight }
+                                                  };
+                                                });
+                                              }
                                               if (
                                                 item.kind === 'video' &&
                                                 (!itemDurations[item.id] || !itemResolutions[item.id]) &&
@@ -2832,7 +2880,17 @@ export function RemoteUploadModal({
                                           className="td-remote-item-thumb-img"
                                           loading="lazy"
                                           referrerPolicy="no-referrer"
-                                          onLoad={() => {
+                                          onLoad={(e) => {
+                                            const target = e.currentTarget;
+                                            if (target.naturalWidth > 0 && target.naturalHeight > 0) {
+                                              setItemResolutions((prev) => {
+                                                if (prev[item.id]) return prev;
+                                                return {
+                                                  ...prev,
+                                                  [item.id]: { width: target.naturalWidth, height: target.naturalHeight }
+                                                };
+                                              });
+                                            }
                                             if (
                                               item.kind === 'video' &&
                                               (!itemDurations[item.id] || !itemResolutions[item.id]) &&
