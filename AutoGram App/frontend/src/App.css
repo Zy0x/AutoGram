@@ -14875,61 +14875,192 @@ body:has(.app-layout-drive-focus),
   .td-preflight-choice { transition: none; }
   .td-preflight-compare-media.is-loading { animation: none; }
 }
-@media (max-width: 840px) {
-  .td-preflight-overview { grid-template-columns: repeat(4, 1fr); }
-  .td-preflight-overview .td-preflight-limit { grid-column: 1 / -1; justify-content: flex-start; }
-  .td-preflight-compare-grid { grid-template-columns: 1fr; }
-  .td-preflight-compare-link { transform: rotate(90deg); }
-}
-@media (max-width: 620px) {
+/* ==========================================================================
+   Transfer Preflight Dialog Responsive Engine (Small / Med / Large / Wide / 4K)
+   ========================================================================== */
+
+/* 1. Ultra-Wide & 4K Viewport (>= 1400px) */
+@media (min-width: 1400px) {
   .td-preflight-dialog {
-    width: calc(100vw - 16px);
-    max-height: calc(100dvh - 16px);
-    border-radius: 13px;
+    width: min(1180px, 86vw) !important;
+    max-height: min(88vh, 880px) !important;
   }
-  .td-preflight-head,
-  .td-preflight-foot { padding: 12px; }
-  .td-preflight-head p { display: none; }
-  .td-preflight-overview { grid-template-columns: repeat(2, 1fr); }
-  .td-preflight-duplicate-toolbar { align-items: stretch; flex-direction: column; }
-  .td-preflight-duplicate-toolbar > div:last-child { display: grid; grid-template-columns: 1fr 1fr; }
-  .td-preflight-items { padding: 10px; }
-  .td-preflight-item-topline { align-items: flex-start; }
-  .td-preflight-item-topline > div { flex-wrap: wrap; }
-  .td-preflight-standard-row { grid-template-columns: 48px minmax(0, 1fr); }
-  .td-preflight-thumb { width: 48px; }
-  .td-preflight-compare-grid > section { grid-template-columns: 70px minmax(0, 1fr); }
-  .td-preflight-compare-label { grid-column: 2; }
-  .td-preflight-compare-media { width: 70px; height: 58px; }
-  .td-preflight-compare-grid > section > span:last-child { grid-column: 2; }
-  .td-preflight-item-actions { align-items: stretch; flex-direction: column; }
-  .td-preflight-item-actions > div { display: grid; grid-template-columns: 1fr 1fr; }
-  .td-preflight-foot { align-items: stretch; flex-direction: column-reverse; }
-  .td-preflight-foot > div { display: grid; grid-template-columns: repeat(2, 1fr); }
-  .td-preflight-foot .td-btn-primary { width: 100%; min-width: 0; }
-  .td-preflight-choice { width: 100%; }
-  .td-preflight-match-badge { order: 4; }
-  .td-preflight-item dl {
-    grid-template-columns: 1fr;
+  .td-preflight-overview {
+    grid-template-columns: repeat(4, minmax(100px, 0.6fr)) minmax(260px, 1.8fr) !important;
   }
 }
 
-@media (hover: none), (pointer: coarse) {
-  .td-preflight-dialog button,
-  .td-preflight-choice,
-  .td-preflight-info-btn,
-  .td-preflight-details-toggle,
-  .td-preflight-popover-btn {
-    min-height: 2.75rem !important;
-  }
-
-  .td-preflight-info-btn {
-    width: 2.75rem !important;
-    min-width: 2.75rem !important;
-    height: 2.75rem !important;
-    margin-block: -0.65rem;
+/* 2. Large Desktop (1040px - 1399px) */
+@media (min-width: 1040px) and (max-width: 1399px) {
+  .td-preflight-dialog {
+    width: min(1020px, 90vw) !important;
+    max-height: min(90vh, 840px) !important;
   }
 }
+
+/* 3. Medium Desktop / Tablet (740px - 1039px) */
+@media (min-width: 740px) and (max-width: 1039px) {
+  .td-preflight-dialog {
+    width: min(880px, 94vw) !important;
+    max-height: min(92vh, 780px) !important;
+  }
+  .td-preflight-overview {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+  .td-preflight-overview .td-preflight-limit {
+    grid-column: 1 / -1 !important;
+    justify-content: flex-start !important;
+    padding: 6px 12px !important;
+    font-size: 0.67rem !important;
+  }
+}
+
+/* 4. Compact Window / Small Viewport (< 740px) OR Short Window (< 580px) */
+@media (max-width: 740px), (max-height: 580px) {
+  .td-preflight-dialog {
+    width: calc(100vw - 12px) !important;
+    max-width: calc(100vw - 12px) !important;
+    height: calc(100vh - 12px) !important;
+    max-height: calc(100vh - 12px) !important;
+    max-height: calc(100dvh - 12px) !important;
+    min-height: 0 !important;
+    border-radius: 12px !important;
+  }
+
+  .td-preflight-head {
+    padding: 8px 12px !important;
+    gap: 8px !important;
+  }
+
+  .td-preflight-head h2 {
+    font-size: 0.88rem !important;
+  }
+
+  .td-preflight-head p {
+    display: none !important;
+  }
+
+  .td-preflight-overview {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 1px !important;
+    padding: 0 !important;
+  }
+
+  .td-preflight-overview > div {
+    padding: 4px 6px !important;
+    gap: 2px !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+  }
+
+  .td-preflight-overview strong {
+    font-size: 0.84rem !important;
+    line-height: 1 !important;
+  }
+
+  .td-preflight-overview span {
+    font-size: 0.60rem !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
+  }
+
+  .td-preflight-overview .td-preflight-limit {
+    grid-column: 1 / -1 !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 3px 8px !important;
+  }
+
+  .td-preflight-overview .td-preflight-limit span {
+    font-size: 0.58rem !important;
+  }
+
+  .td-preflight-clean-banner,
+  .td-preflight-transform-notice-banner,
+  .td-preflight-dialog > .td-xfer-note,
+  .td-preflight-duplicate-toolbar {
+    margin: 4px 8px 0 !important;
+    padding: 5px 8px !important;
+    font-size: 0.68rem !important;
+    gap: 6px !important;
+    border-radius: 8px !important;
+  }
+
+  .td-preflight-clean-banner .td-clean-icon {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .td-preflight-items {
+    padding: 6px 8px !important;
+    gap: 6px !important;
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+  }
+
+  .td-preflight-item {
+    padding: 8px 10px !important;
+    border-radius: 8px !important;
+  }
+
+  .td-preflight-item + .td-preflight-item {
+    margin-top: 6px !important;
+  }
+
+  .td-preflight-thumb {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .td-preflight-item-topline {
+    margin-bottom: 4px !important;
+    gap: 6px !important;
+  }
+
+  .td-preflight-item-topline strong {
+    font-size: 0.74rem !important;
+  }
+
+  .td-preflight-item-actions {
+    margin-top: 6px !important;
+    padding-top: 6px !important;
+    gap: 6px !important;
+  }
+
+  .td-preflight-choice {
+    min-height: 24px !important;
+    padding: 0 8px !important;
+    font-size: 0.66rem !important;
+  }
+
+  .td-preflight-foot {
+    padding: 8px 12px !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .td-preflight-foot > div {
+    gap: 4px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .td-preflight-foot .td-chip-btn {
+    padding: 4px 8px !important;
+    font-size: 0.68rem !important;
+    min-height: 26px !important;
+  }
+
+  .td-preflight-foot .td-btn-primary {
+    min-width: 0 !important;
+    padding: 4px 12px !important;
+    font-size: 0.72rem !important;
+    min-height: 26px !important;
+    flex: 1 1 auto !important;
+  }
+}
+
 .td-transfer-summary {
   padding: 6px 12px;
   font-size: 0.72rem;
