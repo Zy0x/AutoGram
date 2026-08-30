@@ -39,7 +39,8 @@ import {
   HardDrive,
   Pencil,
   RotateCcw,
-  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import type { DriveDestChoice, DriveDestPickerState } from './DriveDestinationPicker';
 import { DriveDestinationPicker } from './DriveDestinationPicker';
@@ -1254,7 +1255,8 @@ export function RemoteUploadModal({
 
   const [gallerySearch, setGallerySearch] = useState('');
   const [galleryFilter, setGalleryFilter] = useState<'all' | 'video' | 'image' | 'audio' | 'zip' | 'doc' | 'unsupported'>('all');
-  const [gallerySort, setGallerySort] = useState<'default' | 'name' | 'duration' | 'size'>('default');
+  const [gallerySortBy, setGallerySortBy] = useState<'default' | 'name' | 'duration' | 'size'>('default');
+  const [gallerySortOrder, setGallerySortOrder] = useState<'asc' | 'desc'>('asc');
   const [galleryViewMode, setGalleryViewMode] = useState<'grid' | 'list'>('grid');
 
   const filteredAndSortedItems = useMemo(() => {
@@ -1280,24 +1282,32 @@ export function RemoteUploadModal({
       list = list.filter((it) => it.title.toLowerCase().includes(q));
     }
 
-    if (gallerySort === 'name') {
-      list.sort((a, b) => a.title.localeCompare(b.title));
-    } else if (gallerySort === 'duration') {
+    if (gallerySortBy === 'name') {
+      list.sort((a, b) =>
+        gallerySortOrder === 'asc'
+          ? a.title.localeCompare(b.title)
+          : b.title.localeCompare(a.title)
+      );
+    } else if (gallerySortBy === 'duration') {
       list.sort((a, b) => {
         const durA = itemDurations[a.id] || a.durationSec || 0;
         const durB = itemDurations[b.id] || b.durationSec || 0;
-        return durB - durA;
+        return gallerySortOrder === 'asc' ? durA - durB : durB - durA;
       });
-    } else if (gallerySort === 'size') {
+    } else if (gallerySortBy === 'size') {
       list.sort((a, b) => {
         const szA = a.formats[0]?.filesizeBytes || 0;
         const szB = b.formats[0]?.filesizeBytes || 0;
-        return szB - szA;
+        return gallerySortOrder === 'asc' ? szA - szB : szB - szA;
       });
+    } else if (gallerySortBy === 'default') {
+      if (gallerySortOrder === 'desc') {
+        list.reverse();
+      }
     }
 
     return list;
-  }, [effectiveMediaItems, galleryFilter, gallerySearch, gallerySort, itemDurations]);
+  }, [effectiveMediaItems, galleryFilter, gallerySearch, gallerySortBy, gallerySortOrder, itemDurations]);
 
   const handleSelectFormat = (fmt: StreamQualityFormat) => {
     setSelectedFormatId(fmt.id);
@@ -2551,19 +2561,27 @@ export function RemoteUploadModal({
 
                             <div className="td-remote-gallery-toolbar-right">
                               <div className="td-remote-sort-wrap">
-                                <span className="td-remote-sort-icon-wrap">
-                                  <ArrowUpDown size={11} />
-                                </span>
+                                <button
+                                  type="button"
+                                  className="td-remote-sort-toggle-btn"
+                                  onClick={() => setGallerySortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+                                  title={gallerySortOrder === 'asc' ? t('drive_tools.remote_gallery_sort_order_asc') : t('drive_tools.remote_gallery_sort_order_desc')}
+                                >
+                                  <div className="td-remote-sort-arrows">
+                                    <ArrowUp size={8.5} strokeWidth={2.8} className={`td-remote-sort-arrow ${gallerySortOrder === 'asc' ? 'active' : ''}`} />
+                                    <ArrowDown size={8.5} strokeWidth={2.8} className={`td-remote-sort-arrow ${gallerySortOrder === 'desc' ? 'active' : ''}`} />
+                                  </div>
+                                </button>
                                 <select
                                   className="td-remote-gallery-sort-select"
-                                  value={gallerySort}
-                                  onChange={(e) => setGallerySort(e.target.value as any)}
+                                  value={gallerySortBy}
+                                  onChange={(e) => setGallerySortBy(e.target.value as any)}
                                   title={t('drive_tools.remote_gallery_sort_label')}
                                 >
                                   <option value="default">{t('drive_tools.remote_gallery_sort_default')}</option>
-                                  <option value="name">{t('drive_tools.remote_gallery_sort_name_asc')}</option>
-                                  <option value="duration">{t('drive_tools.remote_gallery_sort_duration_desc')}</option>
-                                  <option value="size">{t('drive_tools.remote_gallery_sort_size_desc')}</option>
+                                  <option value="name">{t('drive_tools.remote_gallery_sort_name')}</option>
+                                  <option value="duration">{t('drive_tools.remote_gallery_sort_duration')}</option>
+                                  <option value="size">{t('drive_tools.remote_gallery_sort_size')}</option>
                                 </select>
                               </div>
                             </div>

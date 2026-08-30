@@ -26742,29 +26742,75 @@ button.td-confirm-icon.is-back-btn:active {
   flex: 0 0 auto;
 }
 
+.td-remote-sort-wrap {
+  display: inline-flex;
+  align-items: center;
+  height: 23px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 5px;
+  overflow: hidden;
+  transition: border-color 140ms ease;
+}
+
+.td-remote-sort-wrap:hover,
+.td-remote-sort-wrap:focus-within {
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+.td-remote-sort-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 100%;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.03);
+  border: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.td-remote-sort-toggle-btn:hover {
+  background: rgba(56, 189, 248, 0.15);
+}
+
+.td-remote-sort-arrows {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5px;
+}
+
+.td-remote-sort-arrow {
+  color: rgba(148, 163, 184, 0.35);
+  transition: all 140ms ease;
+}
+
+.td-remote-sort-arrow.active {
+  color: #38bdf8;
+  filter: drop-shadow(0 0 3px rgba(56, 189, 248, 0.8));
+}
+
 .td-remote-gallery-sort-select {
   font-size: 0.65rem;
   font-weight: 600;
-  height: 22px;
-  max-width: 110px;
-  padding: 0 18px 0 6px;
-  border-radius: 5px;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #94a3b8;
+  height: 100%;
+  padding: 0 16px 0 6px;
+  background: transparent;
+  border: none;
+  color: #e2e8f0;
   outline: none;
   cursor: pointer;
   appearance: auto;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: border-color 140ms ease, color 140ms ease;
 }
 
 .td-remote-gallery-sort-select:hover,
 .td-remote-gallery-sort-select:focus {
-  border-color: rgba(56, 189, 248, 0.4);
-  color: #e2e8f0;
+  color: #ffffff;
 }
 
 /* Gallery Grid Container (Scrollable Flex Body) */
