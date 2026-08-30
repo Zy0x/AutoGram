@@ -3963,7 +3963,17 @@ export function RemoteUploadModal({
                             const isSelected = selectedFormatId === fmt.id;
                             const isHdr = fmt.badge?.includes('HDR') || fmt.codec?.includes('HDR');
                             const is60fps = fmt.fps === 60 || fmt.resolution?.includes('60fps') || fmt.label?.includes('60fps');
-                            const displayBadge = getFormatDisplayBadge(fmt, t);
+                            let displayBadge = getFormatDisplayBadge(fmt, t);
+
+                            if (isHdr && displayBadge) {
+                              displayBadge = displayBadge.replace(/^HDR\s*[•·-]?\s*/i, '').trim() || undefined;
+                            }
+                            if (is60fps && displayBadge) {
+                              displayBadge = displayBadge.replace(/60FPS\s*[•·-]?\s*/i, '').trim() || undefined;
+                            }
+                            if (displayBadge && fmt.isVideo && fmt.ext) {
+                              displayBadge = displayBadge.replace(new RegExp(`\\s+${fmt.ext}$`, 'i'), '').trim() || undefined;
+                            }
 
                             return (
                               <button
@@ -3980,17 +3990,19 @@ export function RemoteUploadModal({
                                   {isSelected && <CheckCircle2 size={13} className="td-remote-chip-active-ico" />}
                                 </div>
                                 <div className="td-remote-quality-chip-meta">
-                                  {is60fps && (
-                                    <span className="td-badge-pill fps-60">{t('drive.remote_badge_fps_60')}</span>
-                                  )}
-                                  {isHdr && (
-                                    <span className="td-badge-pill hdr">{t('drive.remote_badge_hdr')}</span>
-                                  )}
-                                  {displayBadge && (
-                                    <span className={`td-remote-quality-chip-badge ${getBadgeModifierClass(displayBadge)}`}>
-                                      {displayBadge}
-                                    </span>
-                                  )}
+                                  <div className="td-remote-quality-chip-badges">
+                                    {is60fps && (
+                                      <span className="td-badge-pill fps-60">{t('drive.remote_badge_fps_60')}</span>
+                                    )}
+                                    {isHdr && (
+                                      <span className="td-badge-pill hdr">{t('drive.remote_badge_hdr')}</span>
+                                    )}
+                                    {displayBadge && (
+                                      <span className={`td-remote-quality-chip-badge ${getBadgeModifierClass(displayBadge)}`}>
+                                        {displayBadge}
+                                      </span>
+                                    )}
+                                  </div>
                                   {fmt.filesizeBytes ? (
                                     <span className="td-remote-quality-chip-size">
                                       ~{formatDriveBytes(fmt.filesizeBytes)}

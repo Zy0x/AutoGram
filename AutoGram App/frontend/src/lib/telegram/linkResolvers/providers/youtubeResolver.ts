@@ -209,7 +209,7 @@ function processPlayerData(
         filesizeBytes: size,
         directUrl: v.url || fallbackBaseUrl,
         isVideo: true,
-        badge: isHdr ? `HDR • ${mbps}M` : (mbps ? `${mbps} Mbps MP4` : 'MP4'),
+        badge: mbps ? `${mbps} Mbps` : 'MP4',
         codec: isAv1 ? 'AV1' : 'H.264',
         itag: v.itag,
       });
@@ -233,7 +233,7 @@ function processPlayerData(
         filesizeBytes: size,
         directUrl: v.url || fallbackBaseUrl,
         isVideo: true,
-        badge: isHdr ? (mbps ? `HDR • ${mbps}M` : 'HDR WebM') : (mbps ? `${mbps} Mbps WebM` : 'WebM'),
+        badge: mbps ? `${mbps} Mbps` : 'WebM',
         codec: isHdr ? 'VP9 HDR' : 'VP9',
         itag: v.itag,
       });

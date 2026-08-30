@@ -27838,7 +27838,7 @@ button.td-confirm-icon.is-back-btn:active {
 
 .td-remote-quality-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(178px, 1fr));
   gap: 8px;
   width: 100%;
   align-items: stretch;
@@ -27858,7 +27858,7 @@ button.td-confirm-icon.is-back-btn:active {
   cursor: pointer;
   transition: all 160ms cubic-bezier(0.4, 0, 0.2, 1);
   text-align: left;
-  min-height: 52px;
+  min-height: 54px;
   min-width: 0;
   box-sizing: border-box;
 }
@@ -27907,10 +27907,19 @@ button.td-confirm-icon.is-back-btn:active {
   justify-content: space-between;
   gap: 6px;
   min-width: 0;
+  width: 100%;
+}
+
+.td-remote-quality-chip-badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .td-remote-quality-chip-badge {
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   font-weight: 750;
   color: #38bdf8;
   padding: 1px 5px;
@@ -27918,11 +27927,19 @@ button.td-confirm-icon.is-back-btn:active {
   background: rgba(56, 189, 248, 0.12);
   border: 1px solid rgba(56, 189, 248, 0.25);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 65%;
+  flex-shrink: 0;
+}
+
+.td-remote-quality-chip-size {
+  font-size: 0.64rem;
+  font-weight: 650;
+  color: #94a3b8;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
 }
 
 .td-remote-selected-spec-card {
