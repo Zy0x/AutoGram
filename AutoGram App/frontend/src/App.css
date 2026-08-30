@@ -27756,9 +27756,55 @@ button.td-confirm-icon.is-back-btn:active {
   letter-spacing: 0.01em;
 }
 
+.td-remote-formats-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding-right: 2px;
+  box-sizing: border-box;
+}
+
+.td-remote-formats-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.td-remote-formats-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px;
+}
+
+.td-remote-formats-section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.td-remote-formats-section-count {
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: #64748b;
+  padding: 1px 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 9999px;
+}
+
 .td-remote-quality-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 8px;
   width: 100%;
   align-items: stretch;
@@ -27770,7 +27816,7 @@ button.td-confirm-icon.is-back-btn:active {
   flex-direction: column;
   justify-content: space-between;
   gap: 6px;
-  padding: 7px 10px;
+  padding: 8px 10px;
   border-radius: 8px;
   background: rgba(15, 23, 42, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -27778,7 +27824,8 @@ button.td-confirm-icon.is-back-btn:active {
   cursor: pointer;
   transition: all 160ms cubic-bezier(0.4, 0, 0.2, 1);
   text-align: left;
-  min-height: 48px;
+  min-height: 52px;
+  min-width: 0;
   box-sizing: border-box;
 }
 
@@ -27806,7 +27853,7 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-remote-quality-chip-title {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 750;
   color: inherit;
   white-space: nowrap;
@@ -27839,6 +27886,74 @@ button.td-confirm-icon.is-back-btn:active {
   text-transform: uppercase;
   letter-spacing: 0.03em;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 65%;
+}
+
+.td-remote-selected-spec-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  margin-top: auto;
+  flex-wrap: wrap;
+}
+
+.td-remote-selected-spec-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.td-remote-selected-spec-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  flex-shrink: 0;
+}
+
+.td-remote-selected-spec-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.td-remote-selected-spec-title {
+  font-size: 0.76rem;
+  font-weight: 750;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.td-remote-selected-spec-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: #94a3b8;
+  flex-wrap: wrap;
+}
+
+.td-remote-selected-spec-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .td-remote-quality-chip.active .td-remote-quality-chip-badge {

@@ -218,7 +218,7 @@ export const youtubeResolver: LinkResolverProvider = {
 
           formats.push({
             id: 'yt_audio_m4a',
-            label: 'Hi-Res Audio (M4A / AAC)',
+            label: 'Hi-Res Audio (M4A)',
             qualityTier: 'audio',
             resolution: `${m4aKbps} kbps (AAC)`,
             ext: 'm4a',
@@ -237,7 +237,7 @@ export const youtubeResolver: LinkResolverProvider = {
             const opusSize = bestOpus.contentLength ? parseInt(bestOpus.contentLength, 10) : Math.round(dur * (160 * 1024 / 8));
             formats.push({
               id: 'yt_audio_opus',
-              label: 'Studio Audio (Opus 48kHz)',
+              label: 'Studio Audio (Opus)',
               qualityTier: 'audio',
               resolution: `${opusKbps} kbps (Opus)`,
               ext: 'opus',
@@ -260,14 +260,14 @@ export const youtubeResolver: LinkResolverProvider = {
             const isWebm = bestSaver.mimeType?.includes('webm');
             formats.push({
               id: 'yt_audio_saver',
-              label: 'Voice & Speech (Saver)',
+              label: 'Voice Audio (Saver)',
               qualityTier: 'audio',
               resolution: `${saverKbps} kbps`,
               ext: isWebm ? 'opus' : 'm4a',
               filesizeBytes: saverSize,
               directUrl: bestSaver.url || fallbackBaseUrl,
               isAudio: true,
-              badge: `${saverKbps} kbps Saver`,
+              badge: `${saverKbps} kbps`,
             });
           }
         }
@@ -361,7 +361,7 @@ export const youtubeResolver: LinkResolverProvider = {
       });
       formats.push({
         id: 'yt_audio_m4a',
-        label: 'Hi-Res Audio (M4A / AAC)',
+        label: 'Hi-Res Audio (M4A)',
         qualityTier: 'audio',
         resolution: '320 kbps',
         ext: 'm4a',
@@ -372,7 +372,7 @@ export const youtubeResolver: LinkResolverProvider = {
       });
       formats.push({
         id: 'yt_audio_opus',
-        label: 'Studio Audio (Opus 48kHz)',
+        label: 'Studio Audio (Opus)',
         qualityTier: 'audio',
         resolution: '160 kbps',
         ext: 'opus',
@@ -383,14 +383,14 @@ export const youtubeResolver: LinkResolverProvider = {
       });
       formats.push({
         id: 'yt_audio_saver',
-        label: 'Voice & Speech (Saver)',
+        label: 'Voice Audio (Saver)',
         qualityTier: 'audio',
         resolution: '64 kbps',
         ext: 'm4a',
         filesizeBytes: Math.round(dur * (64 * 1024 / 8)),
         directUrl: fallbackBaseUrl,
         isAudio: true,
-        badge: '64 kbps Saver',
+        badge: '64 kbps',
       });
     }
 

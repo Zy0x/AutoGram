@@ -3864,56 +3864,127 @@ export function RemoteUploadModal({
                           </div>
                         </>
                       ) : resolvedMedia.formats.length > 0 ? (
-                        <div className="td-remote-formats-container">
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                            <label className="td-input-label" style={{ marginBottom: 0 }}>
-                              {t('drive.remote_split_select_format_hint')}
-                            </label>
-                            <button
-                              type="button"
-                              className="td-remote-paste-action"
-                              onClick={() => probeUrl(url.trim(), passcode.trim())}
-                              disabled={submitting || inspection?.status === 'inspecting'}
-                              title={t('drive.remote_batch_reinspect_btn')}
-                            >
-                              <RefreshCw size={10} className={inspection?.status === 'inspecting' ? 'spin' : ''} />
-                              <span>{t('drive.remote_batch_reinspect_btn')}</span>
-                            </button>
-                          </div>
-                          <div className="td-remote-quality-grid">
-                            {resolvedMedia.formats.map((fmt) => {
-                              const isSelected = selectedFormatId === fmt.id;
-                              return (
-                                <button
-                                  key={fmt.id}
-                                  type="button"
-                                  className={`td-remote-quality-chip ${isSelected ? 'active' : ''} tier-${fmt.qualityTier} ${fmt.isAlbumPack ? 'album-pack' : ''}`}
-                                  onClick={() => handleSelectFormat(fmt)}
-                                  disabled={submitting}
-                                >
-                                  <div className="td-remote-quality-chip-top">
-                                    <span className="td-remote-quality-chip-title">
-                                      {getFormatDisplayLabel(fmt, resolvedMedia, t)}
+                        (() => {
+                          const videoFmts = resolvedMedia.formats.filter((f) => !f.isAudio && f.qualityTier !== 'audio');
+                          const audioFmts = resolvedMedia.formats.filter((f) => f.isAudio || f.qualityTier === 'audio');
+                          const activeFmt = resolvedMedia.formats.find((f) => f.id === selectedFormatId) || resolvedMedia.formats[0];
+
+                          const renderFormatChip = (fmt: StreamQualityFormat) => {
+                            const isSelected = selectedFormatId === fmt.id;
+                            return (
+                              <button
+                                key={fmt.id}
+                                type="button"
+                                className={`td-remote-quality-chip ${isSelected ? 'active' : ''} tier-${fmt.qualityTier} ${fmt.isAlbumPack ? 'album-pack' : ''}`}
+                                onClick={() => handleSelectFormat(fmt)}
+                                disabled={submitting}
+                              >
+                                <div className="td-remote-quality-chip-top">
+                                  <span className="td-remote-quality-chip-title">
+                                    {getFormatDisplayLabel(fmt, resolvedMedia, t)}
+                                  </span>
+                                  {isSelected && <CheckCircle2 size={13} className="td-remote-chip-active-ico" />}
+                                </div>
+                                <div className="td-remote-quality-chip-meta">
+                                  {getFormatDisplayBadge(fmt, t) && (
+                                    <span className={`td-remote-quality-chip-badge ${getBadgeModifierClass(getFormatDisplayBadge(fmt, t))}`}>
+                                      {getFormatDisplayBadge(fmt, t)}
                                     </span>
-                                    {isSelected && <CheckCircle2 size={13} className="td-remote-chip-active-ico" />}
-                                  </div>
-                                  <div className="td-remote-quality-chip-meta">
-                                    {getFormatDisplayBadge(fmt, t) && (
-                                      <span className={`td-remote-quality-chip-badge ${getBadgeModifierClass(getFormatDisplayBadge(fmt, t))}`}>
-                                        {getFormatDisplayBadge(fmt, t)}
-                                      </span>
-                                    )}
-                                    {fmt.filesizeBytes ? (
-                                      <span className="td-remote-quality-chip-size">
-                                        ~{formatDriveBytes(fmt.filesizeBytes)}
-                                      </span>
-                                    ) : null}
-                                  </div>
+                                  )}
+                                  {fmt.filesizeBytes ? (
+                                    <span className="td-remote-quality-chip-size">
+                                      ~{formatDriveBytes(fmt.filesizeBytes)}
+                                    </span>
+                                  ) : null}
+                                </div>
+                              </button>
+                            );
+                          };
+
+                          return (
+                            <div className="td-remote-formats-container">
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                                <label className="td-input-label" style={{ marginBottom: 0 }}>
+                                  {t('drive.remote_split_select_format_hint')}
+                                </label>
+                                <button
+                                  type="button"
+                                  className="td-remote-paste-action"
+                                  onClick={() => probeUrl(url.trim(), passcode.trim())}
+                                  disabled={submitting || inspection?.status === 'inspecting'}
+                                  title={t('drive.remote_batch_reinspect_btn')}
+                                >
+                                  <RefreshCw size={10} className={inspection?.status === 'inspecting' ? 'spin' : ''} />
+                                  <span>{t('drive.remote_batch_reinspect_btn')}</span>
                                 </button>
-                              );
-                            })}
-                          </div>
-                        </div>
+                              </div>
+
+                              {videoFmts.length > 0 && (
+                                <div className="td-remote-formats-section">
+                                  {audioFmts.length > 0 && (
+                                    <div className="td-remote-formats-section-header">
+                                      <span className="td-remote-formats-section-title">
+                                        <Film size={11} style={{ color: '#38bdf8' }} />
+                                        <span>{t('drive.remote_section_video_streams')}</span>
+                                      </span>
+                                      <span className="td-remote-formats-section-count">{videoFmts.length}</span>
+                                    </div>
+                                  )}
+                                  <div className="td-remote-quality-grid">
+                                    {videoFmts.map(renderFormatChip)}
+                                  </div>
+                                </div>
+                              )}
+
+                              {audioFmts.length > 0 && (
+                                <div className="td-remote-formats-section">
+                                  <div className="td-remote-formats-section-header">
+                                    <span className="td-remote-formats-section-title">
+                                      <Music size={11} style={{ color: '#c084fc' }} />
+                                      <span>{t('drive.remote_section_audio_tracks')}</span>
+                                    </span>
+                                    <span className="td-remote-formats-section-count">{audioFmts.length}</span>
+                                  </div>
+                                  <div className="td-remote-quality-grid">
+                                    {audioFmts.map(renderFormatChip)}
+                                  </div>
+                                </div>
+                              )}
+
+                              {activeFmt && (
+                                <div className="td-remote-selected-spec-card">
+                                  <div className="td-remote-selected-spec-left">
+                                    <div className="td-remote-selected-spec-icon-box">
+                                      {activeFmt.isAudio ? <Music size={15} /> : <Film size={15} />}
+                                    </div>
+                                    <div className="td-remote-selected-spec-details">
+                                      <span className="td-remote-selected-spec-title">
+                                        {getFormatDisplayLabel(activeFmt, resolvedMedia, t)}
+                                      </span>
+                                      <div className="td-remote-selected-spec-meta">
+                                        <span>{activeFmt.resolution || activeFmt.badge}</span>
+                                        <span>•</span>
+                                        <span>{activeFmt.ext ? `.${activeFmt.ext.toUpperCase()}` : '.MP4'}</span>
+                                        {activeFmt.filesizeBytes ? (
+                                          <>
+                                            <span>•</span>
+                                            <span>~{formatDriveBytes(activeFmt.filesizeBytes)}</span>
+                                          </>
+                                        ) : null}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="td-remote-selected-spec-right">
+                                    <span className="td-remote-meta-badge status valid">
+                                      <CheckCircle2 size={11} />
+                                      <span>{t('drive.remote_spec_direct_ready')}</span>
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()
                       ) : null}
                     </div>
                   </div>
