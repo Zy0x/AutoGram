@@ -124,13 +124,13 @@ export const youtubeResolver: LinkResolverProvider = {
           const has8K = qualityLabels.some((q) => q.startsWith('4320p') || q.includes('8k')) || /\b(8k|4320p)\b/i.test(title);
 
           const tiers: Array<{ key: string; label: string; tier: '8k' | '4k' | '2k' | '1080p' | '720p' | '480p' | '360p' }> = [
-            { key: '360p', label: 'Compact 360p', tier: '360p' },
-            { key: '480p', label: 'SD 480p', tier: '480p' },
-            { key: '720p', label: 'HD 720p', tier: '720p' },
-            { key: '1080p', label: 'Full HD 1080p', tier: '1080p' },
-            { key: '1440p', label: '2K Quad HD', tier: '2k' },
-            { key: '2160p', label: '4K Ultra HD', tier: '4k' },
             { key: '4320p', label: '8K Ultra HD', tier: '8k' },
+            { key: '2160p', label: '4K Ultra HD', tier: '4k' },
+            { key: '1440p', label: '2K Quad HD', tier: '2k' },
+            { key: '1080p', label: 'Full HD 1080p', tier: '1080p' },
+            { key: '720p', label: 'HD 720p', tier: '720p' },
+            { key: '480p', label: 'SD 480p', tier: '480p' },
+            { key: '360p', label: 'Compact 360p', tier: '360p' },
           ];
 
           tiers.forEach(({ key, label, tier }) => {
@@ -183,31 +183,6 @@ export const youtubeResolver: LinkResolverProvider = {
 
           const allAudios = adaptive.filter((f) => f.audioQuality || f.mimeType?.includes('audio'));
 
-          const saverAudios = allAudios.filter(
-            (f) => f.audioQuality === 'AUDIO_QUALITY_LOW' || (f.bitrate && f.bitrate < 90000)
-          );
-          saverAudios.sort((a, b) => ((a.bitrate || 0) || (a.averageBitrate || 0)) - ((b.bitrate || 0) || (a.averageBitrate || 0)));
-          const bestSaver = saverAudios[0];
-          if (bestSaver) {
-            const saverKbps = bestSaver.bitrate ? Math.round(bestSaver.bitrate / 1000) : 64;
-            const saverSize = bestSaver.contentLength ? parseInt(bestSaver.contentLength, 10) : Math.round(dur * (64 * 1024 / 8));
-            const isWebm = bestSaver.mimeType?.includes('webm') || bestSaver.mimeType?.includes('opus');
-            const fmtName = isWebm ? 'Opus' : 'M4A';
-            const codecTag = isWebm ? 'OPUS' : 'AAC';
-            formats.push({
-              id: 'yt_audio_saver',
-              label: `Voice Audio (${fmtName})`,
-              qualityTier: 'audio',
-              resolution: `${saverKbps} kbps (${codecTag})`,
-              ext: isWebm ? 'opus' : 'm4a',
-              filesizeBytes: saverSize,
-              directUrl: bestSaver.url || fallbackBaseUrl,
-              isAudio: true,
-              badge: `${saverKbps} KBPS • ${codecTag}`,
-              itag: bestSaver?.itag,
-            });
-          }
-
           const m4aAudios = allAudios.filter((f) => f.mimeType?.includes('mp4') || f.mimeType?.includes('aac') || f.mimeType?.includes('m4a'));
           m4aAudios.sort((a, b) => ((b.bitrate || 0) || (b.averageBitrate || 0)) - ((a.bitrate || 0) || (a.averageBitrate || 0)));
           const bestM4a = m4aAudios[0];
@@ -246,6 +221,31 @@ export const youtubeResolver: LinkResolverProvider = {
               isAudio: true,
               badge: `${opusKbps} KBPS • OPUS`,
               itag: bestOpus?.itag,
+            });
+          }
+
+          const saverAudios = allAudios.filter(
+            (f) => f.audioQuality === 'AUDIO_QUALITY_LOW' || (f.bitrate && f.bitrate < 90000)
+          );
+          saverAudios.sort((a, b) => ((a.bitrate || 0) || (a.averageBitrate || 0)) - ((b.bitrate || 0) || (a.averageBitrate || 0)));
+          const bestSaver = saverAudios[0];
+          if (bestSaver) {
+            const saverKbps = bestSaver.bitrate ? Math.round(bestSaver.bitrate / 1000) : 64;
+            const saverSize = bestSaver.contentLength ? parseInt(bestSaver.contentLength, 10) : Math.round(dur * (64 * 1024 / 8));
+            const isWebm = bestSaver.mimeType?.includes('webm') || bestSaver.mimeType?.includes('opus');
+            const fmtName = isWebm ? 'Opus' : 'M4A';
+            const codecTag = isWebm ? 'OPUS' : 'AAC';
+            formats.push({
+              id: 'yt_audio_saver',
+              label: `Voice Audio (${fmtName})`,
+              qualityTier: 'audio',
+              resolution: `${saverKbps} kbps (${codecTag})`,
+              ext: isWebm ? 'opus' : 'm4a',
+              filesizeBytes: saverSize,
+              directUrl: bestSaver.url || fallbackBaseUrl,
+              isAudio: true,
+              badge: `${saverKbps} KBPS • ${codecTag}`,
+              itag: bestSaver?.itag,
             });
           }
 

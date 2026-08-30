@@ -3880,26 +3880,26 @@ export function RemoteUploadModal({
                       ) : resolvedMedia.formats.length > 0 ? (
                         (() => {
                           const QUALITY_ORDER: Record<string, number> = {
-                            '360p': 1,
-                            '480p': 2,
-                            '720p': 3,
+                            '8k': 1,
+                            '4k': 2,
+                            '2k': 3,
                             '1080p': 4,
-                            '2k': 5,
-                            '4k': 6,
-                            '8k': 7,
+                            '720p': 5,
+                            '480p': 6,
+                            '360p': 7,
                           };
 
                           const mp4VideoFmts = resolvedMedia.formats
                             .filter((f) => !f.isAudio && !f.isSubtitle && f.ext === 'mp4')
-                            .sort((a, b) => (QUALITY_ORDER[a.qualityTier] || 99) - (QUALITY_ORDER[b.qualityTier] || 99) || (a.filesizeBytes || 0) - (b.filesizeBytes || 0));
+                            .sort((a, b) => (QUALITY_ORDER[a.qualityTier] || 99) - (QUALITY_ORDER[b.qualityTier] || 99) || (b.filesizeBytes || 0) - (a.filesizeBytes || 0));
 
                           const webmVideoFmts = resolvedMedia.formats
                             .filter((f) => !f.isAudio && !f.isSubtitle && f.ext === 'webm')
-                            .sort((a, b) => (QUALITY_ORDER[a.qualityTier] || 99) - (QUALITY_ORDER[b.qualityTier] || 99) || (a.filesizeBytes || 0) - (b.filesizeBytes || 0));
+                            .sort((a, b) => (QUALITY_ORDER[a.qualityTier] || 99) - (QUALITY_ORDER[b.qualityTier] || 99) || (b.filesizeBytes || 0) - (a.filesizeBytes || 0));
 
                           const audioFmts = resolvedMedia.formats
                             .filter((f) => f.isAudio || f.qualityTier === 'audio')
-                            .sort((a, b) => (a.filesizeBytes || 0) - (b.filesizeBytes || 0));
+                            .sort((a, b) => (b.filesizeBytes || 0) - (a.filesizeBytes || 0));
 
                           const subtitleFmts = resolvedMedia.formats.filter((f) => f.isSubtitle || f.qualityTier === 'subtitle');
                           const rawStreamsList = resolvedMedia.rawStreams || [];
@@ -3915,7 +3915,7 @@ export function RemoteUploadModal({
                           });
 
                           const curatedGeneralVideos = [...mp4VideoFmts, ...superiorWebms].sort(
-                            (a, b) => (QUALITY_ORDER[a.qualityTier] || 99) - (QUALITY_ORDER[b.qualityTier] || 99) || (a.filesizeBytes || 0) - (b.filesizeBytes || 0)
+                            (a, b) => (QUALITY_ORDER[a.qualityTier] || 99) - (QUALITY_ORDER[b.qualityTier] || 99) || (b.filesizeBytes || 0) - (a.filesizeBytes || 0)
                           );
 
                           const activeFmt = resolvedMedia.formats.find((f) => f.id === selectedFormatId) || resolvedMedia.formats[0];
@@ -4053,19 +4053,19 @@ export function RemoteUploadModal({
                                 (() => {
                                   const rawMp4Videos = filteredRawStreams
                                     .filter((s) => s.type !== 'audio' && (s.mimeType.includes('mp4') || s.codec.includes('AVC') || s.codec.includes('H.264') || s.codec.includes('AV1')))
-                                    .sort((a, b) => (a.bitrate || 0) - (b.bitrate || 0));
+                                    .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
 
                                   const rawWebmVideos = filteredRawStreams
                                     .filter((s) => s.type !== 'audio' && (s.mimeType.includes('webm') || s.codec.includes('VP9')))
-                                    .sort((a, b) => (a.bitrate || 0) - (b.bitrate || 0));
+                                    .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
 
                                   const rawOtherVideos = filteredRawStreams
                                     .filter((s) => s.type !== 'audio' && !rawMp4Videos.some((m) => m.itag === s.itag) && !rawWebmVideos.some((w) => w.itag === s.itag))
-                                    .sort((a, b) => (a.bitrate || 0) - (b.bitrate || 0));
+                                    .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
 
                                   const rawAudioStreams = filteredRawStreams
                                     .filter((s) => s.type === 'audio')
-                                    .sort((a, b) => (a.bitrate || 0) - (b.bitrate || 0));
+                                    .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
 
                                   const renderMatrixRow = (s: RawStreamItem) => {
                                     const isSelected = activeFmt?.itag === s.itag || (activeFmt?.directUrl && activeFmt.directUrl === s.directUrl);
