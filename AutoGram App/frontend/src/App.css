@@ -25671,13 +25671,13 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-upload-panel.td-remote-collection-mode {
   display: flex !important;
   flex-direction: column !important;
-  max-width: min(85vw, calc(100vw - 28px)) !important;
-  width: min(85vw, calc(100vw - 28px)) !important;
-  min-width: min(320px, calc(100vw - 28px)) !important;
-  max-height: min(85vh, 85dvh) !important;
-  height: min(85vh, 85dvh) !important;
-  min-height: min(560px, calc(100vh - 28px)) !important;
-  border-radius: 20px !important;
+  max-width: min(94vw, 1380px) !important;
+  width: min(94vw, 1380px) !important;
+  min-width: min(300px, calc(100vw - 16px)) !important;
+  max-height: min(92vh, 92dvh) !important;
+  height: min(88vh, 880px) !important;
+  min-height: min(420px, calc(100vh - 20px)) !important;
+  border-radius: 18px !important;
   background: linear-gradient(160deg, rgba(13, 20, 36, 0.96) 0%, rgba(8, 12, 24, 0.98) 100%) !important;
   backdrop-filter: blur(28px) saturate(190%) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
@@ -26159,8 +26159,8 @@ button.td-confirm-icon.is-back-btn:active {
 
 .td-remote-stream-split-wrap {
   display: grid;
-  grid-template-columns: minmax(340px, 1.15fr) minmax(320px, 1.25fr);
-  gap: 12px;
+  grid-template-columns: minmax(260px, 1fr) minmax(300px, 1.35fr);
+  gap: 10px;
   width: 100%;
   height: 100%;
   flex: 1 1 0%;
@@ -26170,10 +26170,10 @@ button.td-confirm-icon.is-back-btn:active {
   overflow: hidden;
 }
 
-@media (max-width: 1080px) {
+@media (min-width: 1400px) {
   .td-remote-stream-split-wrap {
-    grid-template-columns: 1fr;
-    gap: 10px;
+    grid-template-columns: minmax(360px, 1.15fr) minmax(420px, 1.45fr);
+    gap: 14px;
   }
 }
 
@@ -26504,8 +26504,8 @@ button.td-confirm-icon.is-back-btn:active {
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  flex-wrap: nowrap;
-  min-height: 28px;
+  flex-wrap: wrap;
+  min-height: 26px;
   padding-bottom: 2px;
 }
 
@@ -26515,7 +26515,6 @@ button.td-confirm-icon.is-back-btn:active {
   gap: 6px;
   min-width: 0;
   flex: 1 1 auto;
-  overflow: hidden;
 }
 
 .td-remote-gallery-title {
@@ -26523,9 +26522,7 @@ button.td-confirm-icon.is-back-btn:active {
   font-weight: 700;
   color: #f1f5f9;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex-shrink: 1;
+  flex-shrink: 0;
 }
 
 .td-remote-gallery-unified-pill {
@@ -26567,7 +26564,7 @@ button.td-confirm-icon.is-back-btn:active {
   display: flex;
   align-items: center;
   gap: 4px;
-  flex-shrink: 0;
+  flex: 0 0 auto;
 }
 
 .td-remote-gallery-btn-action {
@@ -28135,39 +28132,146 @@ button.td-confirm-icon.is-back-btn:active {
 
 
 
-/* Responsive Breakpoints for Remote Upload (Viewport Width & Height Adaptive) */
-@media (max-width: 900px), (max-height: 540px) {
-  .td-confirm-panel.td-remote-upload-panel.td-remote-split-active,
-  .td-remote-upload-panel.td-remote-split-active {
-    max-width: min(620px, calc(100vw - 20px)) !important;
-    width: min(620px, calc(100vw - 20px)) !important;
-  }
+/* ==========================================================================
+   Responsive Breakpoints Engine for Remote Upload Modal (Small/Med/Large/Wide/4K)
+   ========================================================================== */
 
-  .td-remote-body.td-remote-split-body {
-    padding: 0 16px 16px !important;
-  }
-
-  .td-remote-section-1 {
-    grid-template-columns: 1fr !important;
-    padding: 12px 0 8px !important;
-  }
-
-  .td-remote-section-1-preview {
-    order: -1;
-  }
-
-  .td-remote-big-canvas-inner {
-    max-height: 180px;
+/* 1. Ultra-Wide & High-DPI Desktop (>= 1400px) */
+@media (min-width: 1400px) {
+  .td-remote-gallery-grid-wrap.view-grid {
+    grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)) !important;
+    gap: 10px !important;
   }
 }
 
-/* Compact viewport height rules */
-@media (max-height: 580px) {
+/* 2. Standard Desktop (960px - 1399px) */
+@media (min-width: 960px) and (max-width: 1399px) {
+  .td-remote-gallery-grid-wrap.view-grid {
+    grid-template-columns: repeat(auto-fill, minmax(115px, 1fr)) !important;
+    gap: 8px !important;
+  }
+}
+
+/* 3. Medium Desktop / Tablet (740px - 959px) */
+@media (min-width: 740px) and (max-width: 959px) {
+  .td-remote-stream-split-wrap {
+    grid-template-columns: minmax(230px, 0.85fr) minmax(280px, 1.45fr) !important;
+    gap: 8px !important;
+  }
+  .td-remote-gallery-grid-wrap.view-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important;
+    gap: 6px !important;
+  }
+}
+
+/* 4. Compact Window / Small Viewport (< 740px) OR Short Window (< 580px) */
+@media (max-width: 740px), (max-height: 580px) {
   .td-confirm-panel.td-remote-upload-panel,
-  .td-remote-upload-panel {
-    max-height: calc(100vh - 16px) !important;
-    max-height: calc(100dvh - 16px) !important;
+  .td-remote-upload-panel,
+  .td-confirm-panel.td-remote-upload-panel.td-remote-split-active,
+  .td-remote-upload-panel.td-remote-split-active,
+  .td-confirm-panel.td-remote-upload-panel.td-remote-collection-mode,
+  .td-remote-upload-panel.td-remote-collection-mode {
+    width: calc(100vw - 12px) !important;
+    max-width: calc(100vw - 12px) !important;
+    height: calc(100vh - 12px) !important;
+    max-height: calc(100vh - 12px) !important;
+    max-height: calc(100dvh - 12px) !important;
+    min-height: 0 !important;
     border-radius: 12px !important;
+  }
+
+  .td-remote-upload-panel .td-confirm-head {
+    padding: 8px 14px 4px !important;
+  }
+
+  .td-remote-head-icon {
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    min-height: 26px !important;
+  }
+
+  .td-remote-tabs {
+    margin: 0 14px 4px !important;
+    padding: 2px !important;
+  }
+
+  .td-remote-tab {
+    padding: 3px 8px !important;
+    font-size: 0.72rem !important;
+    min-height: 24px !important;
+  }
+
+  .td-remote-body,
+  .td-remote-body.td-remote-split-body {
+    padding: 0 12px 6px !important;
+    gap: 6px !important;
+  }
+
+  .td-remote-triplet-row {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+  }
+
+  .td-remote-stream-split-wrap {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    overflow-y: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  .td-remote-stream-player-col {
+    flex: 0 0 auto !important;
+    height: auto !important;
+    width: 100% !important;
+  }
+
+  .td-remote-big-canvas-wrap {
+    height: clamp(130px, 25vh, 190px) !important;
+    flex: 0 0 auto !important;
+    min-height: 130px !important;
+    max-height: 190px !important;
+  }
+
+  .td-remote-stream-gallery-col {
+    flex: 1 1 auto !important;
+    height: auto !important;
+    min-height: 220px !important;
+    padding: 6px 8px !important;
+  }
+
+  .td-remote-stream-gallery-col .td-remote-gallery-grid-wrap {
+    height: auto !important;
+    min-height: 140px !important;
+    max-height: 340px !important;
+  }
+
+  .td-remote-gallery-grid-wrap.view-grid {
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)) !important;
+    gap: 6px !important;
+  }
+}
+
+/* 5. Ultra-Narrow (< 520px) Action Button Label Collapse */
+@media (max-width: 520px) {
+  .td-remote-gallery-btn-action span {
+    display: none !important;
+  }
+  .td-remote-gallery-btn-action {
+    padding: 3px 6px !important;
+  }
+  .td-remote-gallery-title {
+    font-size: 0.70rem !important;
+  }
+  .td-remote-gallery-unified-pill {
+    font-size: 0.60rem !important;
+    padding: 1.5px 5px !important;
+  }
+  .td-remote-gallery-search-wrap {
+    min-width: 70px !important;
   }
 }
 
