@@ -41,6 +41,7 @@ import {
   RotateCcw,
   ArrowUp,
   ArrowDown,
+  User,
 } from 'lucide-react';
 import type { DriveDestChoice, DriveDestPickerState } from './DriveDestinationPicker';
 import { DriveDestinationPicker } from './DriveDestinationPicker';
@@ -93,7 +94,7 @@ interface RemoteUploadModalProps {
 
 type RemoteUploadTab = 'single' | 'batch';
 type DeliveryMode = 'auto' | 'uncompressed' | 'document';
-type UrlKind = 'video' | 'image' | 'audio' | 'zip' | 'doc' | 'other' | 'unsupported';
+type UrlKind = 'video' | 'image' | 'profile' | 'story' | 'audio' | 'zip' | 'doc' | 'other' | 'unsupported';
 
 function sanitizeFilename(name: string): string {
   return name.replace(/[/\\?%*:|"<>]/g, '_').replace(/[\r\n\t]+/g, ' ').trim();
@@ -152,6 +153,10 @@ function fileKindIcon(kind: UrlKind) {
       return <Film size={18} />;
     case 'image':
       return <ImageIcon size={18} />;
+    case 'profile':
+      return <User size={18} />;
+    case 'story':
+      return <Sparkles size={18} />;
     case 'audio':
       return <Music size={18} />;
     case 'zip':
@@ -316,6 +321,8 @@ function getSingleUnifiedBadgeInfo(
   const fmt = item.formats[0];
   if (!fmt) {
     if (item.kind === 'image') return { text: 'PHOTO', tierClass: 'tier-photo' };
+    if (item.kind === 'profile') return { text: 'AVATAR', tierClass: 'tier-profile' };
+    if (item.kind === 'story') return { text: 'STORY', tierClass: 'tier-story' };
     if (item.kind === 'audio') return { text: 'AUDIO', tierClass: 'tier-audio' };
     return null;
   }
@@ -332,6 +339,22 @@ function getSingleUnifiedBadgeInfo(
       width = parseInt(dimMatch[1], 10);
       height = parseInt(dimMatch[2], 10);
     }
+  }
+
+  // Profile / Avatar Kind
+  if (item.kind === 'profile') {
+    if (width && height && width > 0 && height > 0) {
+      return { text: `AVATAR · ${width}×${height}`, tierClass: 'tier-profile' };
+    }
+    return { text: 'AVATAR', tierClass: 'tier-profile' };
+  }
+
+  // Story / Ephemeral Post Kind
+  if (item.kind === 'story') {
+    if (width && height && width > 0 && height > 0) {
+      return { text: `STORY · ${width}×${height}`, tierClass: 'tier-story' };
+    }
+    return { text: 'STORY', tierClass: 'tier-story' };
   }
 
   // 1. Audio & Music Formats (Lossless, Hi-Res, Standard)
@@ -1288,7 +1311,7 @@ export function RemoteUploadModal({
   const effectiveRemoteEngine = remoteEngineMode === 'auto' ? autoRemoteEngine : remoteEngineMode;
 
   const [gallerySearch, setGallerySearch] = useState('');
-  const [galleryFilter, setGalleryFilter] = useState<'all' | 'video' | 'image' | 'audio' | 'zip' | 'doc' | 'unsupported'>('all');
+  const [galleryFilter, setGalleryFilter] = useState<'all' | 'video' | 'image' | 'profile' | 'story' | 'audio' | 'zip' | 'doc' | 'unsupported'>('all');
   const [gallerySortBy, setGallerySortBy] = useState<'default' | 'name' | 'duration' | 'size'>('default');
   const [gallerySortOrder, setGallerySortOrder] = useState<'asc' | 'desc'>('asc');
   const [galleryViewMode, setGalleryViewMode] = useState<'grid' | 'list'>('grid');
@@ -1301,6 +1324,10 @@ export function RemoteUploadModal({
       list = list.filter((it) => it.kind === 'video');
     } else if (galleryFilter === 'image') {
       list = list.filter((it) => it.kind === 'image');
+    } else if (galleryFilter === 'profile') {
+      list = list.filter((it) => it.kind === 'profile');
+    } else if (galleryFilter === 'story') {
+      list = list.filter((it) => it.kind === 'story');
     } else if (galleryFilter === 'audio') {
       list = list.filter((it) => it.kind === 'audio');
     } else if (galleryFilter === 'zip') {
@@ -2543,6 +2570,28 @@ export function RemoteUploadModal({
                                   >
                                     {t('drive_tools.remote_gallery_filter_photos', {
                                       count: effectiveMediaItems.filter((i) => i.kind === 'image').length,
+                                    })}
+                                  </button>
+                                )}
+                                {effectiveMediaItems.some((i) => i.kind === 'profile') && (
+                                  <button
+                                    type="button"
+                                    className={`td-remote-filter-chip ${galleryFilter === 'profile' ? 'active' : ''}`}
+                                    onClick={() => setGalleryFilter('profile')}
+                                  >
+                                    {t('drive_tools.remote_gallery_filter_profile', {
+                                      count: effectiveMediaItems.filter((i) => i.kind === 'profile').length,
+                                    })}
+                                  </button>
+                                )}
+                                {effectiveMediaItems.some((i) => i.kind === 'story') && (
+                                  <button
+                                    type="button"
+                                    className={`td-remote-filter-chip ${galleryFilter === 'story' ? 'active' : ''}`}
+                                    onClick={() => setGalleryFilter('story')}
+                                  >
+                                    {t('drive_tools.remote_gallery_filter_stories', {
+                                      count: effectiveMediaItems.filter((i) => i.kind === 'story').length,
                                     })}
                                   </button>
                                 )}

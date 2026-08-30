@@ -27389,6 +27389,22 @@ button.td-confirm-icon.is-back-btn:active {
   border: 1px solid rgba(129, 140, 248, 0.4);
 }
 
+/* Profile / Avatar: Fuchsia Rose */
+.td-remote-item-quality-badge.tier-profile {
+  background: rgba(38, 8, 28, 0.88);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.45);
+  box-shadow: 0 0 6px rgba(244, 63, 94, 0.16);
+}
+
+/* Story / Status: Vibrant Pink Gradient Accent */
+.td-remote-item-quality-badge.tier-story {
+  background: rgba(36, 8, 36, 0.88);
+  color: #ec4899;
+  border: 1px solid rgba(236, 72, 153, 0.45);
+  box-shadow: 0 0 6px rgba(236, 72, 153, 0.16);
+}
+
 /* Unsupported / Unknown: Warning Amber */
 .td-remote-item-quality-badge.tier-unsupported {
   background: rgba(36, 20, 6, 0.88);

@@ -1761,6 +1761,8 @@
   "remote_gallery_filter_all": "All ({{count}})",
   "remote_gallery_filter_videos": "Videos ({{count}})",
   "remote_gallery_filter_photos": "Photos ({{count}})",
+  "remote_gallery_filter_profile": "Profile ({{count}})",
+  "remote_gallery_filter_stories": "Stories ({{count}})",
   "remote_gallery_filter_audio": "Audio ({{count}})",
   "remote_gallery_filter_archives": "Archives ({{count}})",
   "remote_gallery_filter_documents": "Docs ({{count}})",

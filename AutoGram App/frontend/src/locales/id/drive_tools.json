@@ -1761,6 +1761,8 @@
   "remote_gallery_filter_all": "Semua ({{count}})",
   "remote_gallery_filter_videos": "Video ({{count}})",
   "remote_gallery_filter_photos": "Foto ({{count}})",
+  "remote_gallery_filter_profile": "Profil ({{count}})",
+  "remote_gallery_filter_stories": "Cerita ({{count}})",
   "remote_gallery_filter_audio": "Audio ({{count}})",
   "remote_gallery_filter_archives": "Arsip ({{count}})",
   "remote_gallery_filter_documents": "Dokumen ({{count}})",
