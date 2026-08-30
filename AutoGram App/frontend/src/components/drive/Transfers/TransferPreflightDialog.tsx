@@ -10,19 +10,23 @@ import {
   FileSearch,
   FileText,
   Film,
+  HardDrive,
   Image as ImageIcon,
   ImageOff,
   Info,
+  Loader2,
   Music,
   RefreshCw,
   Send,
   Settings,
-  Video,
+  ShieldCheck,
+  Sliders,
   Sparkles,
-  Zap,
+  Video,
   X,
+  Zap,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { requestThumb } from '../../../lib/media/thumbBatcher';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
@@ -261,8 +265,9 @@ export function TransferPreflightDialog({
   const [choices, setChoices] = useState<Record<string, TransferDuplicateChoice>>({});
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
   const [activePopover, setActivePopover] = useState<
-    'transform' | 'clean' | 'album' | 'duplicate' | 'rollback' | 'caption' | null
+    'transform' | 'clean' | 'album' | 'duplicate' | 'rollback' | 'caption' | 'modes_summary' | null
   >(null);
+  const [isConfirming, setIsConfirming] = useState(false);
 
   useEffect(() => {
     if (report) setChoices(defaultDuplicateChoices(report));
@@ -287,6 +292,37 @@ export function TransferPreflightDialog({
     if (typeof report?.transformReencodeCount === 'number') return report.transformReencodeCount;
     return report?.items.filter((i) => i.transform === 'reencode').length || 0;
   }, [report]);
+
+  const handleConfirm = useCallback(() => {
+    if (!report || report.hasBlockingIssues || queuedCount === 0 || isConfirming) return;
+    setIsConfirming(true);
+    try {
+      onConfirm(buildPreflightReviewDecision(report, choices));
+    } catch (err) {
+      console.error('Preflight confirm error:', err);
+      setIsConfirming(false);
+    }
+  }, [report, choices, queuedCount, isConfirming, onConfirm]);
+
+  useEffect(() => {
+    if (!report) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (activePopover) {
+          setActivePopover(null);
+          e.stopPropagation();
+        } else {
+          onCancel();
+        }
+      } else if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey && !activePopover) {
+        const target = e.target as HTMLElement | null;
+        if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') return;
+        handleConfirm();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [report, activePopover, onCancel, handleConfirm]);
 
   if (!report || typeof document === 'undefined') return null;
 
@@ -472,13 +508,21 @@ export function TransferPreflightDialog({
 
         {activePopover && (
           <div className="td-preflight-popover-overlay" onClick={() => setActivePopover(null)}>
-            <div className="td-preflight-popover-card" onClick={(e) => e.stopPropagation()}>
+            <div
+              className={`td-preflight-popover-card ${activePopover === 'modes_summary' ? 'is-modes-card' : ''}`}
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="td-preflight-popover-head">
                 <div className="td-preflight-popover-title-row">
-                  <div className="td-preflight-popover-icon">
-                    <Info size={15} aria-hidden />
+                  <div className={`td-preflight-popover-icon ${activePopover === 'modes_summary' ? 'is-modes' : ''}`}>
+                    {activePopover === 'modes_summary' ? (
+                      <Sliders size={15} aria-hidden />
+                    ) : (
+                      <Info size={15} aria-hidden />
+                    )}
                   </div>
                   <strong>
+                    {activePopover === 'modes_summary' && t('drive.preflight_modes_modal_title')}
                     {activePopover === 'transform' && t('drive.preflight_info_title_transform')}
                     {activePopover === 'clean' && t('drive.preflight_info_title_clean')}
                     {activePopover === 'album' && t('drive.preflight_info_title_album')}
@@ -491,44 +535,106 @@ export function TransferPreflightDialog({
                   <X size={15} />
                 </button>
               </div>
-              <div className="td-preflight-popover-body">
-                <div className="td-preflight-popover-section">
-                  <span className="td-preflight-popover-label">{t('drive.preflight_popover_section_location')}</span>
-                  <div className="td-preflight-popover-pill">
-                    <Settings size={12} aria-hidden />
-                    <span>
-                      {activePopover === 'transform' && t('drive.preflight_info_loc_transform')}
-                      {activePopover === 'clean' && t('drive.preflight_info_loc_clean')}
-                      {activePopover === 'album' && t('drive.preflight_info_loc_album')}
-                      {activePopover === 'duplicate' && t('drive.preflight_info_loc_duplicate')}
-                      {activePopover === 'rollback' && t('drive.preflight_info_loc_rollback')}
-                      {activePopover === 'caption' && t('drive.preflight_info_loc_caption')}
-                    </span>
+
+              {activePopover === 'modes_summary' ? (
+                <div className="td-preflight-popover-body is-modes-body">
+                  <div className="td-preflight-modes-grid">
+                    {/* Card 1: Engine */}
+                    <div className="td-preflight-mode-card">
+                      <div className="td-preflight-mode-header-line">
+                        <span className="td-preflight-mode-badge is-engine">
+                          <Zap size={11} aria-hidden />
+                          <span>
+                            {report.remoteEngineMode === 'cloud_fetch'
+                              ? 'Zero Quota Cloud Direct'
+                              : report.remoteEngineMode === 'ram_pipe'
+                                ? 'Zero Disk RAM-Pipe'
+                                : 'Smart MTProto V4'}
+                          </span>
+                        </span>
+                        <span className="td-preflight-mode-title">{t('drive.preflight_modes_engine_title')}</span>
+                      </div>
+                      <p className="td-preflight-mode-desc">{t('drive.preflight_modes_engine_desc')}</p>
+                    </div>
+
+                    {/* Card 2: Delivery & Packaging */}
+                    <div className="td-preflight-mode-card">
+                      <div className="td-preflight-mode-header-line">
+                        <span className="td-preflight-mode-badge is-delivery">
+                          <Sparkles size={11} aria-hidden />
+                          <span>{t('drive.preflight_delivery_high_quality')} • Grid {report.albumGridSize || 10}</span>
+                        </span>
+                        <span className="td-preflight-mode-title">{t('drive.preflight_modes_delivery_title')}</span>
+                      </div>
+                      <p className="td-preflight-mode-desc">{t('drive.preflight_modes_delivery_desc')}</p>
+                    </div>
+
+                    {/* Card 3: Storage Policy */}
+                    <div className="td-preflight-mode-card">
+                      <div className="td-preflight-mode-header-line">
+                        <span className="td-preflight-mode-badge is-storage">
+                          <HardDrive size={11} aria-hidden />
+                          <span>{t('drive.preflight_storage_cloud_only')}</span>
+                        </span>
+                        <span className="td-preflight-mode-title">{t('drive.preflight_modes_storage_title')}</span>
+                      </div>
+                      <p className="td-preflight-mode-desc">{t('drive.preflight_modes_storage_desc')}</p>
+                    </div>
+
+                    {/* Card 4: Duplicate & Safety */}
+                    <div className="td-preflight-mode-card">
+                      <div className="td-preflight-mode-header-line">
+                        <span className="td-preflight-mode-badge is-safety">
+                          <ShieldCheck size={11} aria-hidden />
+                          <span>{t('drive.preflight_duplicate_4level')}</span>
+                        </span>
+                        <span className="td-preflight-mode-title">{t('drive.preflight_modes_duplicate_title')}</span>
+                      </div>
+                      <p className="td-preflight-mode-desc">{t('drive.preflight_modes_duplicate_desc')}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="td-preflight-popover-section">
-                  <span className="td-preflight-popover-label">{t('drive.preflight_popover_section_analysis')}</span>
-                  <p className="td-preflight-popover-desc">
-                    {activePopover === 'transform' && t('drive.preflight_info_desc_transform')}
-                    {activePopover === 'clean' && t('drive.preflight_info_desc_clean')}
-                    {activePopover === 'album' && t('drive.preflight_info_desc_album')}
-                    {activePopover === 'duplicate' && t('drive.preflight_info_desc_duplicate')}
-                    {activePopover === 'rollback' && t('drive.preflight_info_desc_rollback')}
-                    {activePopover === 'caption' && t('drive.preflight_info_desc_caption')}
-                  </p>
+              ) : (
+                <div className="td-preflight-popover-body">
+                  <div className="td-preflight-popover-section">
+                    <span className="td-preflight-popover-label">{t('drive.preflight_popover_section_location')}</span>
+                    <div className="td-preflight-popover-pill">
+                      <Settings size={12} aria-hidden />
+                      <span>
+                        {activePopover === 'transform' && t('drive.preflight_info_loc_transform')}
+                        {activePopover === 'clean' && t('drive.preflight_info_loc_clean')}
+                        {activePopover === 'album' && t('drive.preflight_info_loc_album')}
+                        {activePopover === 'duplicate' && t('drive.preflight_info_loc_duplicate')}
+                        {activePopover === 'rollback' && t('drive.preflight_info_loc_rollback')}
+                        {activePopover === 'caption' && t('drive.preflight_info_loc_caption')}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="td-preflight-popover-section">
+                    <span className="td-preflight-popover-label">{t('drive.preflight_popover_section_analysis')}</span>
+                    <p className="td-preflight-popover-desc">
+                      {activePopover === 'transform' && t('drive.preflight_info_desc_transform')}
+                      {activePopover === 'clean' && t('drive.preflight_info_desc_clean')}
+                      {activePopover === 'album' && t('drive.preflight_info_desc_album')}
+                      {activePopover === 'duplicate' && t('drive.preflight_info_desc_duplicate')}
+                      {activePopover === 'rollback' && t('drive.preflight_info_desc_rollback')}
+                      {activePopover === 'caption' && t('drive.preflight_info_desc_caption')}
+                    </p>
+                  </div>
+                  <div className="td-preflight-popover-section">
+                    <span className="td-preflight-popover-label">{t('drive.preflight_popover_section_adjust')}</span>
+                    <p className="td-preflight-popover-disable">
+                      {activePopover === 'transform' && t('drive.preflight_info_disable_transform')}
+                      {activePopover === 'clean' && t('drive.preflight_info_disable_clean')}
+                      {activePopover === 'album' && t('drive.preflight_info_disable_album')}
+                      {activePopover === 'duplicate' && t('drive.preflight_info_disable_duplicate')}
+                      {activePopover === 'rollback' && t('drive.preflight_info_disable_rollback')}
+                      {activePopover === 'caption' && t('drive.preflight_info_disable_caption')}
+                    </p>
+                  </div>
                 </div>
-                <div className="td-preflight-popover-section">
-                  <span className="td-preflight-popover-label">{t('drive.preflight_popover_section_adjust')}</span>
-                  <p className="td-preflight-popover-disable">
-                    {activePopover === 'transform' && t('drive.preflight_info_disable_transform')}
-                    {activePopover === 'clean' && t('drive.preflight_info_disable_clean')}
-                    {activePopover === 'album' && t('drive.preflight_info_disable_album')}
-                    {activePopover === 'duplicate' && t('drive.preflight_info_disable_duplicate')}
-                    {activePopover === 'rollback' && t('drive.preflight_info_disable_rollback')}
-                    {activePopover === 'caption' && t('drive.preflight_info_disable_caption')}
-                  </p>
-                </div>
-              </div>
+              )}
+
               {onOpenSettings && (
                 <div className="td-preflight-popover-foot">
                   <button
@@ -691,7 +797,7 @@ export function TransferPreflightDialog({
         </div>
 
         <footer className="td-preflight-foot">
-          <div>
+          <div className="td-preflight-foot-left">
             {onOpenSettings && (
               <button
                 type="button"
@@ -705,14 +811,31 @@ export function TransferPreflightDialog({
             )}
             <button type="button" className="td-chip-btn" onClick={onCancel}>{t('drive.topbar_cancel')}</button>
           </div>
-          <button
-            type="button"
-            className="td-btn-primary"
-            onClick={() => onConfirm(buildPreflightReviewDecision(report, choices))}
-            disabled={report.hasBlockingIssues || queuedCount === 0}
-          >
-            {t('drive.preflight_confirm_selection', { queue: queuedCount, skip: skippedCount })}
-          </button>
+          <div className="td-preflight-foot-right">
+            <button
+              type="button"
+              className={`td-preflight-modes-btn ${activePopover === 'modes_summary' ? 'is-active' : ''}`}
+              onClick={() => setActivePopover((prev) => (prev === 'modes_summary' ? null : 'modes_summary'))}
+              title={t('drive.preflight_view_modes_title')}
+              aria-expanded={activePopover === 'modes_summary'}
+            >
+              <Sliders size={13} aria-hidden />
+              <span>{t('drive.preflight_active_modes_btn')}</span>
+            </button>
+            <button
+              type="button"
+              className={`td-btn-primary td-preflight-confirm-btn ${isConfirming ? 'is-loading' : ''}`}
+              onClick={handleConfirm}
+              disabled={report.hasBlockingIssues || queuedCount === 0 || isConfirming}
+            >
+              {isConfirming ? (
+                <Loader2 size={14} className="td-spin" aria-hidden />
+              ) : (
+                <Send size={14} aria-hidden />
+              )}
+              <span>{t('drive.preflight_confirm_selection', { queue: queuedCount, skip: skippedCount })}</span>
+            </button>
+          </div>
         </footer>
       </section>
     </div>

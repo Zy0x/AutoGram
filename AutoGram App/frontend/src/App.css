@@ -15152,13 +15152,130 @@ body:has(.app-layout-drive-focus),
   line-height: 1.4;
   color: #8fa2b6;
 }
+.td-preflight-popover-card.is-modes-card {
+  width: min(580px, 94vw);
+}
+.td-preflight-popover-icon.is-modes {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(168, 85, 247, 0.2));
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #7dd3fc;
+}
+.td-preflight-popover-body.is-modes-body {
+  padding: 16px 18px;
+}
+.td-preflight-modes-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.td-preflight-mode-card {
+  background: #111c28;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+.td-preflight-mode-header-line {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.td-preflight-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.71rem;
+  font-weight: 700;
+  width: fit-content;
+}
+.td-preflight-mode-badge.is-engine {
+  background: rgba(6, 182, 212, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+.td-preflight-mode-badge.is-delivery {
+  background: rgba(168, 85, 247, 0.12);
+  color: #c084fc;
+  border: 1px solid rgba(192, 132, 252, 0.25);
+}
+.td-preflight-mode-badge.is-storage {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.25);
+}
+.td-preflight-mode-badge.is-safety {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.25);
+}
+.td-preflight-mode-title {
+  font-size: 0.67rem;
+  font-weight: 750;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.td-preflight-mode-desc {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #cbd5e1;
+  line-height: 1.35;
+}
+@media (max-width: 580px) {
+  .td-preflight-modes-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .td-preflight-foot {
   flex: 0 0 auto;
   border-top: 1px solid rgba(148, 163, 184, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: #0d1620;
 }
-.td-preflight-foot > div { display: flex; align-items: center; gap: 8px; }
+.td-preflight-foot-left,
+.td-preflight-foot-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.td-preflight-modes-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  color: #38bdf8;
+  font-size: 0.78rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+.td-preflight-modes-btn:hover,
+.td-preflight-modes-btn.is-active {
+  background: rgba(14, 165, 233, 0.18);
+  border-color: #38bdf8;
+  color: #e0f2fe;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
+  transform: translateY(-1px);
+}
+.td-preflight-modes-btn:active {
+  transform: scale(0.97);
+}
+
 .td-preflight-foot .td-btn-primary {
-  min-width: 210px;
+  min-width: 190px;
   white-space: nowrap;
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: #ffffff;
@@ -15166,10 +15283,23 @@ body:has(.app-layout-drive-focus),
   box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
   font-weight: 700;
   transition: all 160ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
 }
 .td-preflight-foot .td-btn-primary:hover:not(:disabled) {
   background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
   box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
+  transform: translateY(-1px);
+}
+.td-preflight-foot .td-btn-primary:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.td-preflight-foot .td-btn-primary.is-loading {
+  opacity: 0.85;
+  cursor: wait;
 }
 @media (prefers-reduced-motion: reduce) {
   .td-preflight-item,
