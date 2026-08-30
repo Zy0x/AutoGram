@@ -14944,13 +14944,15 @@ body:has(.app-layout-drive-focus),
   color: #fef08a;
 }
 .td-preflight-engine-tag.is-storage-local {
-  background: rgba(148, 163, 184, 0.12);
-  color: #e2e8f0;
-  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.14), rgba(99, 102, 241, 0.14));
+  color: #67e8f9;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.12);
 }
 .td-preflight-engine-tag.is-storage-local:hover {
-  border-color: rgba(148, 163, 184, 0.5);
-  color: #ffffff;
+  border-color: rgba(56, 189, 248, 0.6);
+  color: #a5f3fc;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
 }
 
 .td-preflight-banner {
@@ -27296,10 +27298,32 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-remote-mode-pill.active.auto,
-.td-remote-engine-pill.active {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(99, 102, 241, 0.25));
-  border-color: rgba(56, 189, 248, 0.6);
+.td-remote-engine-pill.mode-auto.active {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.28), rgba(99, 102, 241, 0.25));
+  border-color: rgba(56, 189, 248, 0.65);
   color: #7dd3fc;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+}
+
+.td-remote-engine-pill.mode-cloud_fetch.active {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.28), rgba(5, 150, 105, 0.22));
+  border-color: rgba(52, 211, 153, 0.65);
+  color: #6ee7b7;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+}
+
+.td-remote-engine-pill.mode-storage_local.active {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.26), rgba(99, 102, 241, 0.26));
+  border-color: rgba(56, 189, 248, 0.65);
+  color: #67e8f9;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+}
+
+.td-remote-engine-pill.active {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.28), rgba(99, 102, 241, 0.25));
+  border-color: rgba(56, 189, 248, 0.65);
+  color: #7dd3fc;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
 }
 
 .td-remote-mode-pill.active.doc {
@@ -27320,26 +27344,30 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-engine-badge {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   font-size: 0.63rem;
-  font-weight: 700;
-  padding: 1px 5px;
+  font-weight: 750;
+  padding: 2px 7px;
   border-radius: 999px;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   white-space: nowrap;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
 }
 
 .td-remote-engine-badge.zero-quota {
-  background: rgba(16, 185, 129, 0.15);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.14));
   color: #34d399;
-  border: 1px solid rgba(52, 211, 153, 0.35);
+  border: 1px solid rgba(52, 211, 153, 0.42);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
 }
 
-.td-remote-engine-badge.zero-disk {
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.35);
+.td-remote-engine-badge.storage-local {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(99, 102, 241, 0.18));
+  color: #67e8f9;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.16);
 }
 
 .td-remote-policy-row {

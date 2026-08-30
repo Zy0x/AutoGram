@@ -16,6 +16,7 @@ import {
   Film,
   Folder,
   Globe,
+  HardDrive,
   Image as ImageIcon,
   ImageOff,
   Info,
@@ -1199,7 +1200,7 @@ export function TransferPreflightDialog({
                             </span>
                           ) : (
                             <span className="td-preflight-engine-tag is-storage-local">
-                              <Folder size={10} aria-hidden />
+                              <HardDrive size={10} aria-hidden />
                               <span>{t('drive_tools.remote_engine_storage_local')}</span>
                             </span>
                           )

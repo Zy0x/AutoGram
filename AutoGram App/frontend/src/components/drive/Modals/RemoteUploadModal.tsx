@@ -2590,8 +2590,8 @@ export function RemoteUploadModal({
               </span>
             </div>
             <div className="td-remote-triplet-popover-item">
-              <span className="td-remote-triplet-popover-key" style={{ color: '#60a5fa' }}>
-                <Folder size={10} /> {t('drive_tools.remote_engine_storage_local')}
+              <span className="td-remote-triplet-popover-key" style={{ color: '#67e8f9' }}>
+                <HardDrive size={10} /> {t('drive_tools.remote_engine_storage_local')}
               </span>
               <span className="td-remote-triplet-popover-desc">
                 {t('drive_tools.remote_info_engine_storage_local')}
@@ -2709,7 +2709,7 @@ export function RemoteUploadModal({
                 </span>
               ) : (
                 <span className="td-remote-engine-badge storage-local">
-                  <Folder size={9} />
+                  <HardDrive size={9.5} />
                   <span>{t('drive_tools.remote_engine_storage_local')}</span>
                 </span>
               )}
@@ -2733,7 +2733,7 @@ export function RemoteUploadModal({
               <button
                 key={mode}
                 type="button"
-                className={`td-remote-engine-pill${remoteEngineMode === mode ? ' active' : ''}`}
+                className={`td-remote-engine-pill mode-${mode}${remoteEngineMode === mode ? ' active' : ''}`}
                 disabled={submitting}
                 onClick={() => {
                   setRemoteEngineMode(mode);
@@ -2742,7 +2742,7 @@ export function RemoteUploadModal({
               >
                 {mode === 'auto' && <Zap size={10} />}
                 {mode === 'cloud_fetch' && <Sparkles size={10} />}
-                {mode === 'storage_local' && <Folder size={10} />}
+                {mode === 'storage_local' && <HardDrive size={10} />}
                 <span>
                   {mode === 'auto' ? t('drive_tools.remote_engine_auto') :
                    mode === 'cloud_fetch' ? t('drive_tools.remote_engine_cloud_fetch') :
