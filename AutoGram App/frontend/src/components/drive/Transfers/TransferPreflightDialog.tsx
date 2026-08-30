@@ -605,34 +605,40 @@ export function TransferPreflightDialog({
               type="button"
               role="tab"
               aria-selected={activeFilter === 'all'}
+              aria-pressed={activeFilter === 'all'}
               className={`td-preflight-stat-pill is-filter ${activeFilter === 'all' ? 'is-active' : ''}`}
               onClick={() => setActiveFilter('all')}
               title={t('drive.preflight_filter_all', { count: report.items.length })}
             >
-              <span>{t('drive.preflight_filter_all', { count: report.items.length })}</span>
+              <span>{t('drive.preflight_filter_all_label')}</span>
+              <span className="td-preflight-pill-count">{report.items.length}</span>
             </button>
             <button
               type="button"
               role="tab"
               aria-selected={activeFilter === 'queue'}
+              aria-pressed={activeFilter === 'queue'}
               className={`td-preflight-stat-pill is-queue is-filter ${activeFilter === 'queue' ? 'is-active' : ''}`}
               onClick={() => setActiveFilter((prev) => (prev === 'queue' ? 'all' : 'queue'))}
               title={t('drive.preflight_filter_queue', { count: queuedCount })}
             >
               <Check size={11} aria-hidden />
-              <span>{t('drive.preflight_filter_queue', { count: queuedCount })}</span>
+              <span>{t('drive.preflight_filter_queue_label')}</span>
+              <span className="td-preflight-pill-count">{queuedCount}</span>
             </button>
             {skippedCount > 0 && (
               <button
                 type="button"
                 role="tab"
                 aria-selected={activeFilter === 'skip'}
+                aria-pressed={activeFilter === 'skip'}
                 className={`td-preflight-stat-pill is-skip is-filter ${activeFilter === 'skip' ? 'is-active' : ''}`}
                 onClick={() => setActiveFilter((prev) => (prev === 'skip' ? 'all' : 'skip'))}
                 title={t('drive.preflight_filter_skip', { count: skippedCount })}
               >
                 <X size={11} aria-hidden />
-                <span>{t('drive.preflight_filter_skip', { count: skippedCount })}</span>
+                <span>{t('drive.preflight_filter_skip_label')}</span>
+                <span className="td-preflight-pill-count">{skippedCount}</span>
               </button>
             )}
             {duplicateCount > 0 && (
@@ -640,12 +646,14 @@ export function TransferPreflightDialog({
                 type="button"
                 role="tab"
                 aria-selected={activeFilter === 'duplicate'}
+                aria-pressed={activeFilter === 'duplicate'}
                 className={`td-preflight-stat-pill is-duplicate is-filter ${activeFilter === 'duplicate' ? 'is-active' : ''}`}
                 onClick={() => setActiveFilter((prev) => (prev === 'duplicate' ? 'all' : 'duplicate'))}
                 title={t('drive.preflight_filter_duplicate', { count: duplicateCount })}
               >
                 <CopyCheck size={11} aria-hidden />
-                <span>{t('drive.preflight_filter_duplicate', { count: duplicateCount })}</span>
+                <span>{t('drive.preflight_filter_duplicate_label')}</span>
+                <span className="td-preflight-pill-count">{duplicateCount}</span>
               </button>
             )}
           </div>

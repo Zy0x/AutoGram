@@ -14509,102 +14509,156 @@ body:has(.app-layout-drive-focus),
   background: rgba(15, 23, 42, 0.6);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
+/* ── Preflight Filter Badges (Interactive Toggle Pills) ─────────────────── */
 .td-preflight-overview-stats {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   flex-wrap: wrap;
+  padding: 3px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.8) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
 }
+
 .td-preflight-stat-pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
+  gap: 6px;
+  padding: 4px 11px;
   border-radius: 7px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  border: 1px solid transparent;
   font-family: inherit;
   font-size: 0.72rem;
-  color: #94a3b8;
+  font-weight: 600;
+  color: #64748b;
   cursor: default;
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
 }
+
 .td-preflight-stat-pill.is-filter {
   cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
 }
-.td-preflight-stat-pill.is-filter:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
+
+/* "All" badge — amber/gold gradient when active (matches Telegram/Drive perspective switcher button) */
+.td-preflight-stat-pill.is-filter:not(.is-queue):not(.is-skip):not(.is-duplicate):hover {
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.15);
   transform: translateY(-1px);
 }
-.td-preflight-stat-pill.is-filter.is-active {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.35);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.12);
+.td-preflight-stat-pill.is-filter:not(.is-queue):not(.is-skip):not(.is-duplicate).is-active {
+  background: linear-gradient(135deg, #e2a532 0%, #d97706 100%);
+  border-color: rgba(226, 165, 50, 0.6);
+  color: #0f172a;
+  font-weight: 800;
+  box-shadow: 0 2px 10px rgba(226, 165, 50, 0.45);
+  transform: translateY(-1px);
 }
-.td-preflight-stat-pill strong {
-  font-size: 0.84rem;
-  font-weight: 750;
-  color: #f8fafc;
-  font-variant-numeric: tabular-nums;
+.td-preflight-stat-pill.is-filter:not(.is-queue):not(.is-skip):not(.is-duplicate).is-active span {
+  color: #0f172a;
 }
+
 .td-preflight-stat-pill span {
-  font-size: 0.7rem;
+  font-size: 0.71rem;
   font-weight: 600;
 }
+
+/* Queue/Included badge — emerald gradient when active */
 .td-preflight-stat-pill.is-queue {
-  background: rgba(16, 185, 129, 0.08);
-  border-color: rgba(16, 185, 129, 0.22);
-  color: #6ee7b7;
-}
-.td-preflight-stat-pill.is-queue strong {
-  color: #34d399;
+  color: #64748b;
 }
 .td-preflight-stat-pill.is-queue.is-filter:hover {
-  background: rgba(16, 185, 129, 0.15);
-  border-color: rgba(52, 211, 153, 0.35);
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(52, 211, 153, 0.25);
+  transform: translateY(-1px);
 }
 .td-preflight-stat-pill.is-queue.is-filter.is-active {
-  background: rgba(16, 185, 129, 0.2);
-  border-color: #34d399;
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
-  color: #a7f3d0;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-color: rgba(52, 211, 153, 0.6);
+  color: #022c22;
+  font-weight: 800;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.45);
+  transform: translateY(-1px);
 }
-.td-preflight-stat-pill.is-duplicate {
-  background: rgba(245, 158, 11, 0.08);
-  border-color: rgba(245, 158, 11, 0.25);
-  color: #fde68a;
+.td-preflight-stat-pill.is-queue.is-filter.is-active span,
+.td-preflight-stat-pill.is-queue.is-filter.is-active svg {
+  color: #022c22;
 }
-.td-preflight-stat-pill.is-duplicate strong {
-  color: #fbbf24;
-}
-.td-preflight-stat-pill.is-duplicate.is-filter:hover {
-  background: rgba(245, 158, 11, 0.16);
-  border-color: rgba(251, 191, 36, 0.4);
-}
-.td-preflight-stat-pill.is-duplicate.is-filter.is-active {
-  background: rgba(245, 158, 11, 0.2);
-  border-color: #fbbf24;
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
-  color: #fef08a;
-}
+
+/* Skip badge — rose/red gradient when active */
 .td-preflight-stat-pill.is-skip {
-  background: rgba(244, 63, 94, 0.08);
-  border-color: rgba(244, 63, 94, 0.2);
-  color: #fda4af;
-}
-.td-preflight-stat-pill.is-skip strong {
-  color: #f43f5e;
+  color: #64748b;
 }
 .td-preflight-stat-pill.is-skip.is-filter:hover {
-  background: rgba(244, 63, 94, 0.15);
-  border-color: rgba(244, 63, 94, 0.35);
+  color: #fda4af;
+  background: rgba(244, 63, 94, 0.1);
+  border-color: rgba(244, 63, 94, 0.25);
+  transform: translateY(-1px);
 }
 .td-preflight-stat-pill.is-skip.is-filter.is-active {
-  background: rgba(244, 63, 94, 0.2);
-  border-color: #f43f5e;
-  box-shadow: 0 0 12px rgba(244, 63, 94, 0.3);
-  color: #fecdd3;
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  border-color: rgba(244, 63, 94, 0.6);
+  color: #fff0f3;
+  font-weight: 800;
+  box-shadow: 0 2px 10px rgba(244, 63, 94, 0.45);
+  transform: translateY(-1px);
+}
+.td-preflight-stat-pill.is-skip.is-filter.is-active span,
+.td-preflight-stat-pill.is-skip.is-filter.is-active svg {
+  color: #fff0f3;
+}
+
+/* Duplicate badge — amber/orange gradient when active */
+.td-preflight-stat-pill.is-duplicate {
+  color: #64748b;
+}
+.td-preflight-stat-pill.is-duplicate.is-filter:hover {
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+  transform: translateY(-1px);
+}
+.td-preflight-stat-pill.is-duplicate.is-filter.is-active {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  border-color: rgba(251, 191, 36, 0.6);
+  color: #1c0d00;
+  font-weight: 800;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.45);
+  transform: translateY(-1px);
+}
+.td-preflight-stat-pill.is-duplicate.is-filter.is-active span,
+.td-preflight-stat-pill.is-duplicate.is-filter.is-active svg {
+  color: #1c0d00;
+}
+
+/* Pill numeric count badge */
+.td-preflight-pill-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  padding: 0 5px;
+  height: 16px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 0.65rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+  line-height: 1;
+  transition: background 0.2s, color 0.2s;
+}
+.td-preflight-stat-pill.is-filter.is-active .td-preflight-pill-count {
+  background: rgba(0, 0, 0, 0.22);
+  color: inherit;
 }
 .td-preflight-limit {
   display: flex;
