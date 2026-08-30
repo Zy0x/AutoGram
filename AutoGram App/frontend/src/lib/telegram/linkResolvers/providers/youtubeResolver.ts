@@ -191,17 +191,19 @@ export const youtubeResolver: LinkResolverProvider = {
           if (bestSaver) {
             const saverKbps = bestSaver.bitrate ? Math.round(bestSaver.bitrate / 1000) : 64;
             const saverSize = bestSaver.contentLength ? parseInt(bestSaver.contentLength, 10) : Math.round(dur * (64 * 1024 / 8));
-            const isWebm = bestSaver.mimeType?.includes('webm');
+            const isWebm = bestSaver.mimeType?.includes('webm') || bestSaver.mimeType?.includes('opus');
+            const fmtName = isWebm ? 'Opus' : 'M4A';
+            const codecTag = isWebm ? 'OPUS' : 'AAC';
             formats.push({
               id: 'yt_audio_saver',
-              label: 'Voice Audio (Saver)',
+              label: `Voice Audio (${fmtName})`,
               qualityTier: 'audio',
-              resolution: `${saverKbps} kbps`,
+              resolution: `${saverKbps} kbps (${codecTag})`,
               ext: isWebm ? 'opus' : 'm4a',
               filesizeBytes: saverSize,
               directUrl: bestSaver.url || fallbackBaseUrl,
               isAudio: true,
-              badge: `${saverKbps} kbps`,
+              badge: `${saverKbps} KBPS • ${codecTag}`,
               itag: bestSaver?.itag,
             });
           }
@@ -222,7 +224,7 @@ export const youtubeResolver: LinkResolverProvider = {
               filesizeBytes: m4aSize,
               directUrl: bestM4a?.url || fallbackBaseUrl,
               isAudio: true,
-              badge: `${m4aKbps} kbps`,
+              badge: `${m4aKbps} KBPS • AAC`,
               itag: bestM4a?.itag,
             });
           }
@@ -242,7 +244,7 @@ export const youtubeResolver: LinkResolverProvider = {
               filesizeBytes: opusSize,
               directUrl: bestOpus.url || fallbackBaseUrl,
               isAudio: true,
-              badge: `${opusKbps} kbps Opus`,
+              badge: `${opusKbps} KBPS • OPUS`,
               itag: bestOpus?.itag,
             });
           }

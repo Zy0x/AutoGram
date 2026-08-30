@@ -3904,16 +3904,35 @@ export function RemoteUploadModal({
                           const subtitleFmts = resolvedMedia.formats.filter((f) => f.isSubtitle || f.qualityTier === 'subtitle');
                           const rawStreamsList = resolvedMedia.rawStreams || [];
 
+                          const mp4Tiers = new Set(mp4VideoFmts.map((f) => f.qualityTier));
+                          const superiorWebms = webmVideoFmts.filter((w) => {
+                            if (!mp4Tiers.has(w.qualityTier)) return true;
+                            const matchingMp4 = mp4VideoFmts.find((m) => m.qualityTier === w.qualityTier);
+                            const webmIsHdr = w.badge?.includes('HDR') || w.resolution?.includes('HDR');
+                            const mp4IsHdr = matchingMp4?.badge?.includes('HDR') || matchingMp4?.resolution?.includes('HDR');
+                            if (webmIsHdr && !mp4IsHdr) return true;
+                            return false;
+                          });
+
+                          const curatedGeneralVideos = [...mp4VideoFmts, ...superiorWebms].sort(
+                            (a, b) => (QUALITY_ORDER[a.qualityTier] || 99) - (QUALITY_ORDER[b.qualityTier] || 99) || (a.filesizeBytes || 0) - (b.filesizeBytes || 0)
+                          );
+
                           const activeFmt = resolvedMedia.formats.find((f) => f.id === selectedFormatId) || resolvedMedia.formats[0];
 
-                          const hasMp4 = mp4VideoFmts.length > 0;
-                          const hasWebm = webmVideoFmts.length > 0;
+                          const hasVideos = mp4VideoFmts.length > 0 || webmVideoFmts.length > 0;
                           const hasAudio = audioFmts.length > 0;
                           const hasSubtitle = subtitleFmts.length > 0;
                           const hasRawMatrix = rawStreamsList.length > 0;
 
-                          const filterCategoriesCount = [hasMp4, hasWebm, hasAudio, hasSubtitle, hasRawMatrix].filter(Boolean).length;
+                          const filterCategoriesCount = [true, hasVideos, hasAudio, hasSubtitle, hasRawMatrix].filter(Boolean).length;
                           const hasMultipleFilters = filterCategoriesCount > 1;
+
+                          const isGeneralTab = streamContainerFilter === 'general' || streamContainerFilter === 'all';
+                          const isVideoTab = streamContainerFilter === 'video' || streamContainerFilter === 'mp4' || streamContainerFilter === 'webm';
+                          const isAudioTab = streamContainerFilter === 'audio';
+                          const isSubtitleTab = streamContainerFilter === 'subtitle';
+                          const isAdvanceTab = streamContainerFilter === 'advance' || streamContainerFilter === 'matrix';
 
                           const filteredRawStreams = rawStreamsList.filter((s) => {
                             if (!matrixSearchQuery.trim()) return true;
@@ -3981,46 +4000,36 @@ export function RemoteUploadModal({
                                 <div className="td-remote-format-filter-bar">
                                   <button
                                     type="button"
-                                    className={`td-remote-format-filter-chip ${streamContainerFilter === 'all' ? 'active' : ''}`}
-                                    onClick={() => setStreamContainerFilter('all')}
+                                    className={`td-remote-format-filter-chip ${isGeneralTab ? 'active' : ''}`}
+                                    onClick={() => setStreamContainerFilter('general')}
                                   >
-                                    <span>{t('drive.remote_format_filter_all')}</span>
-                                    <span>({resolvedMedia.formats.length})</span>
+                                    <span>{t('drive.remote_format_filter_general')}</span>
+                                    <span>({curatedGeneralVideos.length + audioFmts.length + subtitleFmts.length})</span>
                                   </button>
-                                  {hasMp4 && (
+                                  {hasVideos && (
                                     <button
                                       type="button"
-                                      className={`td-remote-format-filter-chip ${streamContainerFilter === 'mp4' ? 'active' : ''}`}
-                                      onClick={() => setStreamContainerFilter('mp4')}
+                                      className={`td-remote-format-filter-chip ${isVideoTab ? 'active' : ''}`}
+                                      onClick={() => setStreamContainerFilter('video')}
                                     >
-                                      <span>{t('drive.remote_format_filter_mp4')}</span>
-                                      <span>({mp4VideoFmts.length})</span>
-                                    </button>
-                                  )}
-                                  {hasWebm && (
-                                    <button
-                                      type="button"
-                                      className={`td-remote-format-filter-chip ${streamContainerFilter === 'webm' ? 'active' : ''}`}
-                                      onClick={() => setStreamContainerFilter('webm')}
-                                    >
-                                      <span>{t('drive.remote_format_filter_webm')}</span>
-                                      <span>({webmVideoFmts.length})</span>
+                                      <span>{t('drive.remote_format_filter_video_tab')}</span>
+                                      <span>({mp4VideoFmts.length + webmVideoFmts.length})</span>
                                     </button>
                                   )}
                                   {hasAudio && (
                                     <button
                                       type="button"
-                                      className={`td-remote-format-filter-chip ${streamContainerFilter === 'audio' ? 'active' : ''}`}
+                                      className={`td-remote-format-filter-chip ${isAudioTab ? 'active' : ''}`}
                                       onClick={() => setStreamContainerFilter('audio')}
                                     >
-                                      <span>{t('drive.remote_format_filter_audio')}</span>
+                                      <span>{t('drive.remote_format_filter_audio_tab')}</span>
                                       <span>({audioFmts.length})</span>
                                     </button>
                                   )}
                                   {hasSubtitle && (
                                     <button
                                       type="button"
-                                      className={`td-remote-format-filter-chip ${streamContainerFilter === 'subtitle' ? 'active' : ''}`}
+                                      className={`td-remote-format-filter-chip ${isSubtitleTab ? 'active' : ''}`}
                                       onClick={() => setStreamContainerFilter('subtitle')}
                                     >
                                       <span>{t('drive.remote_format_filter_subtitle')}</span>
@@ -4030,17 +4039,17 @@ export function RemoteUploadModal({
                                   {hasRawMatrix && (
                                     <button
                                       type="button"
-                                      className={`td-remote-format-filter-chip matrix-toggle ${streamContainerFilter === 'matrix' ? 'active' : ''}`}
-                                      onClick={() => setStreamContainerFilter('matrix')}
+                                      className={`td-remote-format-filter-chip matrix-toggle ${isAdvanceTab ? 'active' : ''}`}
+                                      onClick={() => setStreamContainerFilter('advance')}
                                     >
-                                      <span>{t('drive.remote_format_filter_matrix')}</span>
+                                      <span>{t('drive.remote_format_filter_advance')}</span>
                                       <span>({rawStreamsList.length})</span>
                                     </button>
                                   )}
                                 </div>
                               )}
 
-                              {streamContainerFilter === 'matrix' && hasRawMatrix ? (
+                              {isAdvanceTab && hasRawMatrix ? (
                                 (() => {
                                   const rawMp4Videos = filteredRawStreams
                                     .filter((s) => s.type !== 'audio' && (s.mimeType.includes('mp4') || s.codec.includes('AVC') || s.codec.includes('H.264') || s.codec.includes('AV1')))
@@ -4248,77 +4257,120 @@ export function RemoteUploadModal({
                                     </div>
                                   );
                                 })()
-                              ) : (
+                              ) : isGeneralTab ? (
                                 <>
-                                  {(streamContainerFilter === 'all' || streamContainerFilter === 'mp4') && hasMp4 && (
+                                  {curatedGeneralVideos.length > 0 && (
                                     <div className="td-remote-formats-section">
-                                      {streamContainerFilter === 'all' && (
-                                        <div className="td-remote-formats-section-header">
-                                          <span className="td-remote-formats-section-title">
-                                            <Film size={11} style={{ color: '#38bdf8' }} />
-                                            <span>{t('drive.remote_section_mp4_video')}</span>
-                                          </span>
-                                          <span className="td-remote-formats-section-count">{mp4VideoFmts.length}</span>
-                                        </div>
-                                      )}
+                                      <div className="td-remote-formats-section-header">
+                                        <span className="td-remote-formats-section-title">
+                                          <Film size={11} style={{ color: '#38bdf8' }} />
+                                          <span>{t('drive.remote_section_mp4_video')}</span>
+                                        </span>
+                                        <span className="td-remote-formats-section-count">{curatedGeneralVideos.length}</span>
+                                      </div>
                                       <div className="td-remote-quality-grid">
-                                        {mp4VideoFmts.map(renderFormatChip)}
+                                        {curatedGeneralVideos.map(renderFormatChip)}
                                       </div>
                                     </div>
                                   )}
 
-                                  {(streamContainerFilter === 'all' || streamContainerFilter === 'webm') && hasWebm && (
+                                  {hasAudio && (
                                     <div className="td-remote-formats-section">
-                                      {streamContainerFilter === 'all' && (
-                                        <div className="td-remote-formats-section-header">
-                                          <span className="td-remote-formats-section-title">
-                                            <Film size={11} style={{ color: '#fbbf24' }} />
-                                            <span>{t('drive.remote_section_webm_video')}</span>
-                                          </span>
-                                          <span className="td-remote-formats-section-count">{webmVideoFmts.length}</span>
-                                        </div>
-                                      )}
-                                      <div className="td-remote-quality-grid">
-                                        {webmVideoFmts.map(renderFormatChip)}
+                                      <div className="td-remote-formats-section-header">
+                                        <span className="td-remote-formats-section-title">
+                                          <Music size={11} style={{ color: '#c084fc' }} />
+                                          <span>{t('drive.remote_section_audio_tracks')}</span>
+                                        </span>
+                                        <span className="td-remote-formats-section-count">{audioFmts.length}</span>
                                       </div>
-                                    </div>
-                                  )}
-
-                                  {(streamContainerFilter === 'all' || streamContainerFilter === 'audio') && hasAudio && (
-                                    <div className="td-remote-formats-section">
-                                      {streamContainerFilter === 'all' && (
-                                        <div className="td-remote-formats-section-header">
-                                          <span className="td-remote-formats-section-title">
-                                            <Music size={11} style={{ color: '#c084fc' }} />
-                                            <span>{t('drive.remote_section_audio_tracks')}</span>
-                                          </span>
-                                          <span className="td-remote-formats-section-count">{audioFmts.length}</span>
-                                        </div>
-                                      )}
                                       <div className="td-remote-quality-grid">
                                         {audioFmts.map(renderFormatChip)}
                                       </div>
                                     </div>
                                   )}
 
-                                  {(streamContainerFilter === 'all' || streamContainerFilter === 'subtitle') && hasSubtitle && (
+                                  {hasSubtitle && (
                                     <div className="td-remote-formats-section">
-                                      {streamContainerFilter === 'all' && (
-                                        <div className="td-remote-formats-section-header">
-                                          <span className="td-remote-formats-section-title">
-                                            <FileText size={11} style={{ color: '#2dd4bf' }} />
-                                            <span>{t('drive.remote_section_subtitles')}</span>
-                                          </span>
-                                          <span className="td-remote-formats-section-count">{subtitleFmts.length}</span>
-                                        </div>
-                                      )}
+                                      <div className="td-remote-formats-section-header">
+                                        <span className="td-remote-formats-section-title">
+                                          <FileText size={11} style={{ color: '#2dd4bf' }} />
+                                          <span>{t('drive.remote_section_subtitles')}</span>
+                                        </span>
+                                        <span className="td-remote-formats-section-count">{subtitleFmts.length}</span>
+                                      </div>
                                       <div className="td-remote-quality-grid">
                                         {subtitleFmts.map(renderFormatChip)}
                                       </div>
                                     </div>
                                   )}
                                 </>
-                              )}
+                              ) : isVideoTab ? (
+                                <>
+                                  {mp4VideoFmts.length > 0 && (
+                                    <div className="td-remote-formats-section">
+                                      <div className="td-remote-formats-section-header">
+                                        <span className="td-remote-formats-section-title">
+                                          <Film size={11} style={{ color: '#38bdf8' }} />
+                                          <span>{t('drive.remote_section_mp4_video')}</span>
+                                        </span>
+                                        <span className="td-remote-formats-section-count">{mp4VideoFmts.length}</span>
+                                      </div>
+                                      <div className="td-remote-quality-grid">
+                                        {mp4VideoFmts.map(renderFormatChip)}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {webmVideoFmts.length > 0 && (
+                                    <div className="td-remote-formats-section">
+                                      <div className="td-remote-formats-section-header">
+                                        <span className="td-remote-formats-section-title">
+                                          <Film size={11} style={{ color: '#fbbf24' }} />
+                                          <span>{t('drive.remote_section_webm_video')}</span>
+                                        </span>
+                                        <span className="td-remote-formats-section-count">{webmVideoFmts.length}</span>
+                                      </div>
+                                      <div className="td-remote-quality-grid">
+                                        {webmVideoFmts.map(renderFormatChip)}
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
+                              ) : isAudioTab ? (
+                                <>
+                                  {audioFmts.length > 0 && (
+                                    <div className="td-remote-formats-section">
+                                      <div className="td-remote-formats-section-header">
+                                        <span className="td-remote-formats-section-title">
+                                          <Music size={11} style={{ color: '#c084fc' }} />
+                                          <span>{t('drive.remote_section_audio_tracks')}</span>
+                                        </span>
+                                        <span className="td-remote-formats-section-count">{audioFmts.length}</span>
+                                      </div>
+                                      <div className="td-remote-quality-grid">
+                                        {audioFmts.map(renderFormatChip)}
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
+                              ) : isSubtitleTab ? (
+                                <>
+                                  {subtitleFmts.length > 0 && (
+                                    <div className="td-remote-formats-section">
+                                      <div className="td-remote-formats-section-header">
+                                        <span className="td-remote-formats-section-title">
+                                          <FileText size={11} style={{ color: '#2dd4bf' }} />
+                                          <span>{t('drive.remote_section_subtitles')}</span>
+                                        </span>
+                                        <span className="td-remote-formats-section-count">{subtitleFmts.length}</span>
+                                      </div>
+                                      <div className="td-remote-quality-grid">
+                                        {subtitleFmts.map(renderFormatChip)}
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
+                              ) : null}
 
                               {activeFmt && (
                                 <div className="td-remote-selected-spec-card">
