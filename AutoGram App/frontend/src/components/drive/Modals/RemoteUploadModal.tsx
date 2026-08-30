@@ -642,6 +642,7 @@ export function RemoteUploadModal({
   const [selectedBatchItemIds, setSelectedBatchItemIds] = useState<Set<string>>(new Set());
   const [focusedBatchItem, setFocusedBatchItem] = useState<BatchMediaItem | null>(null);
   const [batchFilterType, setBatchFilterType] = useState<'all' | 'video' | 'photo' | 'selected'>('all');
+  const [batchSearchQuery, setBatchSearchQuery] = useState('');
   const [isEditingBatchText, setIsEditingBatchText] = useState(true);
   const batchInspectAbortRef = useRef<AbortController | null>(null);
 
@@ -694,6 +695,7 @@ export function RemoteUploadModal({
       setBatchGroups([]);
       setSelectedBatchItemIds(new Set());
       setFocusedBatchItem(null);
+      setBatchSearchQuery('');
       setIsEditingBatchText(true);
       if (batchInspectAbortRef.current) {
         batchInspectAbortRef.current.abort();
@@ -1661,7 +1663,10 @@ export function RemoteUploadModal({
             };
             items.push(itemObj);
             newSelectedIds.add(itemObj.id);
-            if (!firstValidItem) firstValidItem = itemObj;
+            if (!firstValidItem) {
+              firstValidItem = itemObj;
+              setFocusedBatchItem((prev) => prev || itemObj);
+            }
           }
 
           updatedGroups[idx] = {
@@ -3614,9 +3619,9 @@ export function RemoteUploadModal({
                             {focusedBatchItem.filename.match(/\.[a-zA-Z0-9]+$/)?.[0] || ''}
                           </span>
                         </div>
-                        <div className="td-remote-stream-meta-ribbon" style={{ marginTop: 2 }}>
+                        <div className="td-remote-stream-meta-ribbon">
                           {focusedBatchItem.qualityBadge && (
-                            <span className="td-remote-item-quality-badge tier-fhd" style={{ fontSize: '0.62rem', padding: '1px 5px' }}>
+                            <span className="td-remote-stream-ribbon-badge">
                               {focusedBatchItem.qualityBadge}
                             </span>
                           )}
@@ -3656,109 +3661,151 @@ export function RemoteUploadModal({
 
                 {/* RIGHT PANEL: GROUPED CARDS & ACTIONS */}
                 <div className="td-remote-stream-gallery-col">
+                  {/* Header: Total summary & Action buttons */}
                   <div className="td-remote-gallery-header-row">
                     <div className="td-remote-gallery-title">
-                      <Layers size={15} />
+                      <Layers size={13} className="text-sky-400" />
                       <span>
                         {t('drive.remote_batch_all_groups_ready', { count: batchGroups.length })}
-                        {allBatchItems.length > 0 ? ` (${t('drive.remote_batch_item_count', { count: allBatchItems.length })})` : ''}
                       </span>
+                      {allBatchItems.length > 0 && (
+                        <span className="td-remote-gallery-unified-pill">
+                          {allBatchItems.length} media · ~{formatDriveBytes(allBatchItems.reduce((acc, it) => acc + (it.filesizeBytes || 0), 0))}
+                        </span>
+                      )}
                     </div>
 
-                    <div className="td-remote-gallery-quick-actions">
+                    <div className="td-remote-gallery-actions">
                       <button
                         type="button"
-                        className="td-remote-quick-btn"
+                        className="td-remote-gallery-btn-action"
                         onClick={() => setIsEditingBatchText(true)}
                         title={t('drive.remote_batch_edit_urls')}
                       >
-                        <Pencil size={12} />
+                        <Pencil size={11} />
                         <span>{t('drive.remote_batch_edit_urls')}</span>
                       </button>
                       <button
                         type="button"
-                        className="td-remote-quick-btn"
+                        className="td-remote-gallery-btn-action"
                         onClick={handleInspectBatchUrls}
                         disabled={batchInspecting}
                         title={t('drive.remote_batch_reinspect_btn')}
                       >
-                        <RefreshCw size={12} className={batchInspecting ? 'spin' : ''} />
+                        <RefreshCw size={11} className={batchInspecting ? 'spin' : ''} />
                         <span>{t('drive.remote_batch_reinspect_btn')}</span>
                       </button>
                       <button
                         type="button"
-                        className="td-remote-quick-btn select-all"
+                        className="td-remote-gallery-btn-action select-all"
                         onClick={() => handleToggleAllBatchItems(true)}
                       >
-                        <CheckSquare size={12} />
+                        <CheckSquare size={11} />
                         <span>{t('drive_tools.remote_gallery_select_all')}</span>
                       </button>
                       <button
                         type="button"
-                        className="td-remote-quick-btn deselect-all"
+                        className="td-remote-gallery-btn-action deselect-all"
                         onClick={() => handleToggleAllBatchItems(false)}
                       >
-                        <Square size={12} />
+                        <Square size={11} />
                         <span>{t('drive_tools.remote_gallery_deselect_all')}</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* FILTER BAR */}
-                  <div className="td-remote-gallery-filters" style={{ margin: '4px 0 8px', display: 'flex', gap: 5 }}>
-                    <button
-                      type="button"
-                      className={`td-remote-filter-chip ${batchFilterType === 'all' ? 'active' : ''}`}
-                      onClick={() => setBatchFilterType('all')}
-                    >
-                      {t('drive.remote_batch_filter_all')} ({allBatchItems.length})
-                    </button>
-                    <button
-                      type="button"
-                      className={`td-remote-filter-chip ${batchFilterType === 'video' ? 'active' : ''}`}
-                      onClick={() => setBatchFilterType('video')}
-                    >
-                      {t('drive.remote_batch_filter_video')} ({allBatchItems.filter((i) => i.isVideo).length})
-                    </button>
-                    <button
-                      type="button"
-                      className={`td-remote-filter-chip ${batchFilterType === 'photo' ? 'active' : ''}`}
-                      onClick={() => setBatchFilterType('photo')}
-                    >
-                      {t('drive.remote_batch_filter_photo')} ({allBatchItems.filter((i) => i.kind === 'photo').length})
-                    </button>
-                    <button
-                      type="button"
-                      className={`td-remote-filter-chip ${batchFilterType === 'selected' ? 'active' : ''}`}
-                      onClick={() => setBatchFilterType('selected')}
-                    >
-                      {t('drive.remote_batch_filter_selected')} ({selectedBatchItems.length})
-                    </button>
+                  {/* Toolbar: Search input + Filter Chips */}
+                  <div className="td-remote-gallery-toolbar">
+                    <div className="td-remote-gallery-toolbar-left">
+                      <div className="td-remote-gallery-search-wrap">
+                        <Search size={11} className="td-remote-gallery-search-icon" />
+                        <input
+                          type="text"
+                          className="td-remote-gallery-search-input"
+                          placeholder={t('drive_tools.remote_gallery_search_placeholder', { count: allBatchItems.length })}
+                          value={batchSearchQuery}
+                          onChange={(e) => setBatchSearchQuery(e.target.value)}
+                        />
+                        {batchSearchQuery && (
+                          <button
+                            type="button"
+                            className="td-remote-gallery-search-clear"
+                            onClick={() => setBatchSearchQuery('')}
+                          >
+                            <X size={11} />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="td-remote-gallery-filters">
+                        <button
+                          type="button"
+                          className={`td-remote-filter-chip ${batchFilterType === 'all' ? 'active' : ''}`}
+                          onClick={() => setBatchFilterType('all')}
+                        >
+                          {t('drive.remote_batch_filter_all')} ({allBatchItems.length})
+                        </button>
+                        {allBatchItems.some((i) => i.isVideo) && (
+                          <button
+                            type="button"
+                            className={`td-remote-filter-chip ${batchFilterType === 'video' ? 'active' : ''}`}
+                            onClick={() => setBatchFilterType('video')}
+                          >
+                            {t('drive.remote_batch_filter_video')} ({allBatchItems.filter((i) => i.isVideo).length})
+                          </button>
+                        )}
+                        {allBatchItems.some((i) => i.kind === 'photo') && (
+                          <button
+                            type="button"
+                            className={`td-remote-filter-chip ${batchFilterType === 'photo' ? 'active' : ''}`}
+                            onClick={() => setBatchFilterType('photo')}
+                          >
+                            {t('drive.remote_batch_filter_photo')} ({allBatchItems.filter((i) => i.kind === 'photo').length})
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className={`td-remote-filter-chip ${batchFilterType === 'selected' ? 'active' : ''}`}
+                          onClick={() => setBatchFilterType('selected')}
+                        >
+                          {t('drive.remote_batch_filter_selected')} ({selectedBatchItems.length})
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   {/* GROUPS ACCORDION LIST */}
                   <div className="td-remote-batch-groups-list">
                     {batchGroups.map((group) => {
                       const groupFilteredItems = group.items.filter((it) => {
+                        if (batchSearchQuery.trim()) {
+                          const q = batchSearchQuery.trim().toLowerCase();
+                          const matchName = it.filename.toLowerCase().includes(q);
+                          const matchTitle = it.title ? it.title.toLowerCase().includes(q) : false;
+                          if (!matchName && !matchTitle) return false;
+                        }
                         if (batchFilterType === 'video') return it.isVideo;
                         if (batchFilterType === 'photo') return it.kind === 'photo';
                         if (batchFilterType === 'selected') return selectedBatchItemIds.has(it.id);
                         return true;
                       });
                       const allGroupSelected = group.items.length > 0 && group.items.every((it) => selectedBatchItemIds.has(it.id));
+                      const someGroupSelected = group.items.some((it) => selectedBatchItemIds.has(it.id));
                       const groupTotalBytes = group.items.reduce((acc, it) => acc + (it.filesizeBytes || 0), 0);
 
                       return (
                         <div className="td-remote-batch-group" key={group.id}>
-                          <div className="td-remote-batch-group-head">
-                            <div className="td-remote-batch-group-head-left" onClick={() => handleToggleGroupCollapse(group.id)}>
-                              {group.status === 'resolving' ? (
-                                <Loader2 size={15} className="spin td-remote-batch-spinner" />
-                              ) : group.status === 'error' ? (
-                                <XCircle size={15} className="td-remote-batch-err-ico" />
-                              ) : (
-                                <Folder size={15} className="td-remote-batch-folder-ico" />
-                              )}
+                          <div className="td-remote-batch-group-head" onClick={() => handleToggleGroupCollapse(group.id)}>
+                            <div className="td-remote-batch-group-head-left">
+                              <span className="td-remote-batch-group-ico-wrap">
+                                {group.status === 'resolving' ? (
+                                  <Loader2 size={13} className="spin td-remote-batch-spinner" />
+                                ) : group.status === 'error' ? (
+                                  <XCircle size={13} className="td-remote-batch-err-ico" />
+                                ) : (
+                                  <Folder size={13} className="td-remote-batch-folder-ico" />
+                                )}
+                              </span>
                               <span className="td-remote-batch-group-title" title={group.title}>
                                 {group.title}
                               </span>
@@ -3769,16 +3816,24 @@ export function RemoteUploadModal({
                               )}
                             </div>
 
-                            <div className="td-remote-batch-group-head-right">
+                            <div className="td-remote-batch-group-head-right" onClick={(e) => e.stopPropagation()}>
                               {group.status === 'success' && (
                                 <button
                                   type="button"
-                                  className="td-remote-batch-group-select-btn"
+                                  className={`td-remote-batch-group-select-btn ${allGroupSelected ? 'is-all-selected' : someGroupSelected ? 'is-partial-selected' : ''}`}
                                   onClick={() => handleToggleBatchGroup(group.id, !allGroupSelected)}
                                 >
-                                  {allGroupSelected
-                                    ? t('drive.remote_batch_group_deselect_all')
-                                    : t('drive.remote_batch_group_select_all')}
+                                  {allGroupSelected ? (
+                                    <>
+                                      <CheckSquare size={11} />
+                                      <span>{t('drive.remote_batch_group_deselect_all')}</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Square size={11} />
+                                      <span>{t('drive.remote_batch_group_select_all')}</span>
+                                    </>
+                                  )}
                                 </button>
                               )}
                               <button
@@ -3787,7 +3842,7 @@ export function RemoteUploadModal({
                                 onClick={() => handleToggleGroupCollapse(group.id)}
                                 aria-label={group.collapsed ? t('drive.remote_batch_expand_group') : t('drive.remote_batch_collapse_group')}
                               >
-                                {group.collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                                {group.collapsed ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
                               </button>
                             </div>
                           </div>

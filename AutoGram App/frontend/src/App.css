@@ -26358,17 +26358,43 @@ button.td-confirm-icon.is-back-btn:active {
   outline: none;
 }
 
+.td-remote-big-canvas-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+  padding: 24px;
+  max-width: 320px;
+  color: #64748b;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  user-select: none;
+}
+
+.td-remote-big-canvas-fallback .td-remote-fallback-icon {
+  color: rgba(56, 189, 248, 0.4);
+  filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.2));
+}
+
+.td-remote-big-canvas-fallback span {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
 /* Active Stream Editable Filename Bar */
 .td-remote-stream-filename-bar {
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 4px 8px;
-  background: rgba(10, 15, 29, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 6px 10px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 8px;
   box-sizing: border-box;
   flex: 0 0 auto;
+  margin-top: 6px;
 }
 
 .td-remote-filename-display {
@@ -26378,6 +26404,65 @@ button.td-confirm-icon.is-back-btn:active {
   gap: 8px;
   width: 100%;
   min-width: 0;
+}
+
+.td-remote-filename-display-view {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.td-remote-filename-display-main {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.td-remote-filename-display-base {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #f8fafc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.td-remote-filename-display-ext {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.14);
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 2px;
+  flex-shrink: 0;
+}
+
+.td-remote-stream-meta-ribbon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.td-remote-stream-ribbon-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 1px 5px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
 }
 
 .td-remote-filename-text {
@@ -28384,23 +28469,17 @@ button.td-confirm-icon.is-back-btn:active {
   flex-direction: column;
   flex-shrink: 0 !important;
   width: 100% !important;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
   overflow: hidden;
-  transition: border-color 160ms ease, box-shadow 160ms ease;
-  box-sizing: border-box;
-}
-
-.td-remote-batch-group-body {
-  padding: 10px;
-  width: 100%;
+  transition: all 160ms ease;
   box-sizing: border-box;
 }
 
 .td-remote-batch-group:hover {
-  border-color: rgba(56, 189, 248, 0.3);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
 .td-remote-batch-group-head {
@@ -28408,51 +28487,68 @@ button.td-confirm-icon.is-back-btn:active {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px 12px;
-  background: rgba(30, 41, 59, 0.5);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 6px 10px;
+  background: linear-gradient(90deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.85) 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   user-select: none;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.td-remote-batch-group-head:hover {
+  background: linear-gradient(90deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
 }
 
 .td-remote-batch-group-head-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   min-width: 0;
   flex: 1 1 auto;
-  cursor: pointer;
+}
+
+.td-remote-batch-group-ico-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: #38bdf8;
+  flex-shrink: 0;
 }
 
 .td-remote-batch-folder-ico {
   color: #38bdf8;
-  flex-shrink: 0;
 }
 
 .td-remote-batch-err-ico {
   color: #f43f5e;
-  flex-shrink: 0;
 }
 
 .td-remote-batch-spinner {
   color: #38bdf8;
-  flex-shrink: 0;
 }
 
 .td-remote-batch-group-title {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: #f8fafc;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.01em;
 }
 
 .td-remote-batch-group-badge {
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: #94a3b8;
-  background: rgba(255, 255, 255, 0.06);
-  padding: 2px 7px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  padding: 1.5px 6px;
   border-radius: 6px;
   white-space: nowrap;
   flex-shrink: 0;
@@ -28461,37 +28557,47 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-batch-group-head-right {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   flex-shrink: 0;
 }
 
 .td-remote-batch-group-select-btn {
-  background: transparent;
-  border: none;
-  color: #38bdf8;
-  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  font-size: 0.66rem;
   font-weight: 600;
   cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
-  transition: all 120ms ease;
+  padding: 2.5px 7px;
+  border-radius: 5px;
+  transition: all 140ms ease;
 }
 
 .td-remote-batch-group-select-btn:hover {
-  background: rgba(56, 189, 248, 0.15);
-  color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+}
+
+.td-remote-batch-group-select-btn.is-all-selected {
+  background: rgba(56, 189, 248, 0.14);
+  border-color: rgba(56, 189, 248, 0.32);
+  color: #38bdf8;
 }
 
 .td-remote-batch-group-collapse-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #cbd5e1;
+  color: #94a3b8;
   cursor: pointer;
   transition: all 120ms ease;
 }
@@ -28502,7 +28608,9 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-remote-batch-group-body {
-  padding: 10px;
+  padding: 8px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .td-remote-batch-resolving-row {
