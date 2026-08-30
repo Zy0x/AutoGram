@@ -2508,6 +2508,9 @@ export function RemoteUploadModal({
                                     key={item.id}
                                     className={`td-remote-media-item-card ${isSelected ? 'selected' : ''} ${isActive ? 'is-active-preview' : ''} ${galleryViewMode === 'list' ? 'card-list-mode' : 'card-grid-mode'}`}
                                     onClick={() => {
+                                      handleToggleItem(item.id);
+                                    }}
+                                    onDoubleClick={() => {
                                       setActivePreviewItemId(item.id);
                                     }}
                                   >
@@ -2563,9 +2566,15 @@ export function RemoteUploadModal({
                                         {isSelected ? <Check size={14} strokeWidth={3} /> : <div className="td-remote-check-unselected" />}
                                       </button>
 
-                                      {/* Play icon for videos */}
+                                      {/* Play icon for videos in list mode */}
                                       {item.kind === 'video' && galleryViewMode === 'list' && (
-                                        <div className="td-remote-item-play-overlay">
+                                        <div
+                                          className="td-remote-item-play-overlay"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActivePreviewItemId(item.id);
+                                          }}
+                                        >
                                           <div className="td-remote-item-play-icon-badge">
                                             <Play size={13} fill="currentColor" />
                                           </div>
