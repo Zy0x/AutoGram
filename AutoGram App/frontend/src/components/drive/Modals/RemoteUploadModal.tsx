@@ -331,20 +331,20 @@ function getSingleUnifiedBadge(
     const maxDim = Math.max(width, height);
     const dimStr = `${width}×${height}`;
 
-    // Quality tier classification (HD, 1080p, 2K, 4K, UHD)
+    // Quality tier classification (HD, FHD, 2K, 4K)
     let tier: string | null = null;
     if (minDim >= 2160 || maxDim >= 3840) {
       tier = '4K';
     } else if (minDim >= 1440 || maxDim >= 2560) {
       tier = '2K';
     } else if (minDim >= 1000 || maxDim >= 1900) {
-      tier = '1080p';
+      tier = 'FHD';
     } else if (minDim >= 700 || maxDim >= 1200) {
       tier = 'HD';
     }
 
     if (tier) {
-      // HD / UHD / 2K / 4K: show tier + resolution
+      // High quality: show clean tier prefix + resolution (e.g. "FHD · 1080×1920", "HD · 720×1280")
       return `${tier} · ${dimStr}`;
     } else {
       // Non-HD: show ONLY resolution dimension (no HD badge text)
@@ -358,13 +358,13 @@ function getSingleUnifiedBadge(
     : fmt.label?.toUpperCase().includes('4K')
       ? '4K'
       : fmt.label?.toUpperCase().includes('1080')
-        ? '1080p'
+        ? 'FHD'
         : fmt.label?.toUpperCase().includes('720')
           ? 'HD'
           : null;
 
-  if (rawTier && ['HD', '1080P', '2K', '4K', 'UHD'].includes(rawTier.toUpperCase())) {
-    return rawTier;
+  if (rawTier && ['HD', 'FHD', '1080P', '2K', '4K', 'UHD'].includes(rawTier.toUpperCase())) {
+    return rawTier === '1080P' ? 'FHD' : rawTier;
   }
   return null;
 }
