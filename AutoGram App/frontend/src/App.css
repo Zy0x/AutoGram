@@ -26753,28 +26753,48 @@ button.td-confirm-icon.is-back-btn:active {
   border-radius: 8px;
   overflow: hidden;
   background: rgba(15, 23, 42, 0.85);
-  border: 1.5px solid rgba(255, 255, 255, 0.08);
-  transition: all 140ms ease;
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  transition: all 160ms cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   user-select: none;
   text-align: left;
 }
 
-.td-remote-media-item-card:hover {
-  border-color: rgba(56, 189, 248, 0.45);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+/* Unselected Card: Dimmed thumbnail, neutral border for instant distinction */
+.td-remote-media-item-card:not(.selected) {
+  border-color: rgba(255, 255, 255, 0.12);
+  opacity: 0.65;
+  box-shadow: none;
 }
 
+.td-remote-media-item-card:not(.selected):hover {
+  opacity: 0.92;
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Selected Card: 100% full vibrancy, Electric Cyan 2px border, glowing aura */
 .td-remote-media-item-card.selected {
   border-color: #38bdf8 !important;
-  background: linear-gradient(180deg, rgba(56, 189, 248, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%);
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+  opacity: 1 !important;
+  box-shadow: 0 0 0 1.5px #38bdf8, 0 4px 16px rgba(56, 189, 248, 0.35) !important;
 }
 
+.td-remote-media-item-card.selected:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 1.5px #38bdf8, 0 6px 20px rgba(56, 189, 248, 0.45) !important;
+}
+
+/* Active Preview video (playing in the stream player): Distinct Purple/Violet glow */
 .td-remote-media-item-card.is-active-preview {
-  border-color: #a78bfa !important;
-  box-shadow: 0 0 12px rgba(167, 139, 250, 0.4);
+  border-color: #c084fc !important;
+  box-shadow: 0 0 0 2px #a855f7, 0 0 18px rgba(168, 85, 247, 0.5) !important;
+}
+
+.td-remote-media-item-card.is-active-preview:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 2px #a855f7, 0 0 22px rgba(168, 85, 247, 0.65) !important;
 }
 
 /* =============================================
