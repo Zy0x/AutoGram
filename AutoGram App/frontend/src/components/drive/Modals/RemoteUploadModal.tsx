@@ -3813,22 +3813,30 @@ export function RemoteUploadModal({
                 <div className="td-remote-stream-gallery-col">
                   {/* Header: Total summary & Action buttons */}
                   <div className="td-remote-gallery-header-row">
-                    <div className="td-remote-gallery-title">
-                      <Layers size={13} className="text-sky-400" />
-                      <span>
+                    <div className="td-batch-header-title-group">
+                      <div className="td-batch-header-icon-box">
+                        <Layers size={13} />
+                      </div>
+                      <span className="td-batch-header-title-text">
                         {t('drive.remote_batch_all_groups_ready', { count: batchGroups.length })}
                       </span>
                       {allBatchItems.length > 0 && (
-                        <span className="td-remote-gallery-unified-pill">
-                          {allBatchItems.length} media · ~{formatDriveBytes(allBatchItems.reduce((acc, it) => acc + (it.filesizeBytes || 0), 0))}
-                        </span>
+                        <div className="td-batch-header-stat-pill">
+                          <span className="td-batch-stat-count">
+                            {t('drive.remote_batch_item_count', { count: allBatchItems.length })}
+                          </span>
+                          <span className="td-batch-stat-sep">•</span>
+                          <span className="td-batch-stat-size">
+                            ~{formatDriveBytes(allBatchItems.reduce((acc, it) => acc + (it.filesizeBytes || 0), 0))}
+                          </span>
+                        </div>
                       )}
                     </div>
 
-                    <div className="td-remote-gallery-actions">
+                    <div className="td-batch-header-actions-group">
                       <button
                         type="button"
-                        className="td-remote-gallery-btn-action"
+                        className="td-batch-action-pill"
                         onClick={() => setIsEditingBatchText(true)}
                         title={t('drive.remote_batch_edit_urls')}
                       >
@@ -3837,7 +3845,7 @@ export function RemoteUploadModal({
                       </button>
                       <button
                         type="button"
-                        className="td-remote-gallery-btn-action"
+                        className="td-batch-action-pill"
                         onClick={handleInspectBatchUrls}
                         disabled={batchInspecting}
                         title={t('drive.remote_batch_reinspect_btn')}
@@ -3845,22 +3853,29 @@ export function RemoteUploadModal({
                         <RefreshCw size={11} className={batchInspecting ? 'spin' : ''} />
                         <span>{t('drive.remote_batch_reinspect_btn')}</span>
                       </button>
-                      <button
-                        type="button"
-                        className="td-remote-gallery-btn-action select-all"
-                        onClick={() => handleToggleAllBatchItems(true)}
-                      >
-                        <CheckSquare size={11} />
-                        <span>{t('drive_tools.remote_gallery_select_all')}</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="td-remote-gallery-btn-action deselect-all"
-                        onClick={() => handleToggleAllBatchItems(false)}
-                      >
-                        <Square size={11} />
-                        <span>{t('drive_tools.remote_gallery_deselect_all')}</span>
-                      </button>
+
+                      <div className="td-batch-actions-separator" />
+
+                      <div className="td-batch-selection-segmented">
+                        <button
+                          type="button"
+                          className="td-batch-seg-btn select-all"
+                          onClick={() => handleToggleAllBatchItems(true)}
+                          title={t('drive_tools.remote_gallery_select_all')}
+                        >
+                          <CheckSquare size={11} />
+                          <span>{t('drive_tools.remote_gallery_select_all')}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="td-batch-seg-btn deselect-all"
+                          onClick={() => handleToggleAllBatchItems(false)}
+                          title={t('drive_tools.remote_gallery_deselect_all')}
+                        >
+                          <Square size={11} />
+                          <span>{t('drive_tools.remote_gallery_deselect_all')}</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
 
