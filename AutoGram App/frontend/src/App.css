@@ -27070,14 +27070,13 @@ button.td-confirm-icon.is-back-btn:active {
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
 }
 
 .td-remote-title-ext {
   white-space: nowrap;
   flex: 0 0 auto;
-  color: #e2e8f0;
-  margin-left: 2px;
+  color: #f1f5f9;
 }
 
 .td-remote-meta-size {
