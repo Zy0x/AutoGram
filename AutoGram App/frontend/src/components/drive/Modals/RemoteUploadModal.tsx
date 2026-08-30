@@ -2553,7 +2553,7 @@ export function RemoteUploadModal({
                                         );
                                       })()}
 
-                                      {/* TOP-RIGHT: Selection checkbox */}
+                                      {/* TOP-RIGHT: Modern Circular Selection Button */}
                                       <button
                                         type="button"
                                         className={`td-remote-item-checkbox ${isSelected ? 'checked' : ''}`}
@@ -2563,7 +2563,7 @@ export function RemoteUploadModal({
                                         }}
                                         aria-label={isSelected ? t('drive_tools.remote_gallery_deselect_all') : t('drive_tools.remote_gallery_select_all')}
                                       >
-                                        {isSelected ? <Check size={14} strokeWidth={3} /> : <div className="td-remote-check-unselected" />}
+                                        {isSelected && <Check size={12} strokeWidth={3.5} />}
                                       </button>
 
                                       {/* Play icon for videos in list mode */}
