@@ -122,6 +122,8 @@ export const youtubeResolver: LinkResolverProvider = {
           };
 
           const dur = durationSec || 180;
+          const has8K = qualityLabels.some((q) => q.startsWith('4320p') || q.includes('8k')) || /\b(8k|4320p)\b/i.test(title);
+
           const tiers: Array<{ key: string; label: string; tier: '8k' | '4k' | '2k' | '1080p' | '720p' }> = [
             { key: '4320p', label: '8K Ultra HD', tier: '8k' },
             { key: '2160p', label: '4K Ultra HD', tier: '4k' },
@@ -132,7 +134,32 @@ export const youtubeResolver: LinkResolverProvider = {
 
           tiers.forEach(({ key, label, tier }) => {
             const tierMatches = allFormats.filter((f) => f.qualityLabel && (f.qualityLabel.startsWith(key) || f.qualityLabel.includes(key)));
-            if (tierMatches.length === 0 && tier !== '1080p') return;
+
+            if (tierMatches.length === 0) {
+              if (tier === '8k' && has8K) {
+                // If title or metadata declares 8K, provide the 8K Ultra HD option with peak 8K bitrate scaling
+                const topRaw = allFormats.find((f) => f.qualityLabel?.includes('2160') || f.qualityLabel?.includes('1440')) || allFormats[0];
+                if (topRaw) {
+                  const isWebm = topRaw.mimeType?.includes('webm');
+                  const isHdr = topRaw.qualityLabel?.includes('HDR') || title.toUpperCase().includes('HDR');
+                  const bit = Math.max(topRaw.bitrate || 0, 55000000);
+                  const mbps = (bit / 1000000).toFixed(1);
+                  const size = Math.round(dur * (bit / 8));
+                  formats.push({
+                    id: `yt_${key}_${isWebm ? 'webm' : 'mp4'}`,
+                    label: isWebm ? `${label} (WebM)` : `${label} (MP4)`,
+                    qualityTier: tier,
+                    resolution: `4320p60 ${isHdr ? 'HDR ' : ''}• ${mbps} Mbps`,
+                    ext: isWebm ? 'webm' : 'mp4',
+                    filesizeBytes: size,
+                    directUrl: topRaw.url || fallbackBaseUrl,
+                    isVideo: true,
+                    badge: isHdr ? `HDR • ${mbps}M` : `${mbps} Mbps`,
+                  });
+                }
+              }
+              return;
+            }
 
             // 1. Best MP4 Format (H.264 / AVC1 / AV01)
             const mp4s = tierMatches.filter((f) => f.mimeType?.includes('mp4') || f.mimeType?.includes('avc1') || f.mimeType?.includes('av01'));
@@ -142,6 +169,7 @@ export const youtubeResolver: LinkResolverProvider = {
               const bit = (v.bitrate || 0) || (v.averageBitrate || 0);
               const mbps = bit > 0 ? (bit / 1000000).toFixed(1) : undefined;
               const size = v.contentLength ? parseInt(v.contentLength, 10) : (bit > 0 ? Math.round(dur * (bit / 8)) : Math.round(dur * (4.2 * 1024 * 1024 / 8)));
+              const isHdr = v.qualityLabel?.includes('HDR') || v.colorInfo?.transferCharacteristics?.includes('SMPTE');
               formats.push({
                 id: `yt_${key}_mp4`,
                 label: `${label} (MP4)`,
@@ -151,7 +179,7 @@ export const youtubeResolver: LinkResolverProvider = {
                 filesizeBytes: size,
                 directUrl: v.url || fallbackBaseUrl,
                 isVideo: true,
-                badge: mbps ? `${mbps} Mbps MP4` : 'MP4',
+                badge: isHdr ? `HDR • ${mbps}M` : (mbps ? `${mbps} Mbps MP4` : 'MP4'),
               });
             }
 
