@@ -24,6 +24,7 @@ describe('youtubeResolver', () => {
     const formatIds = result?.formats.map((f) => f.id) || [];
     expect(formatIds).toContain('yt_1080p');
     expect(formatIds).toContain('yt_720p');
-    expect(formatIds).toContain('yt_audio');
+    expect(formatIds).toContain('yt_audio_m4a');
+    expect(result?.formats.some((f) => f.isAudio)).toBe(true);
   });
 });

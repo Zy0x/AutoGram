@@ -265,7 +265,7 @@ function getBadgeModifierClass(badgeText?: string): string {
   const b = badgeText.toUpperCase();
   if (b.includes('HDR') || b.includes('VISION') || b.includes('DOLBY') || b.includes('8K')) return 'badge-hdr';
   if (b.includes('60FPS') || b.includes('120FPS') || b.includes('60 FPS') || b.includes('60P') || b.includes('FPS')) return 'badge-fps';
-  if (b.includes('KBPS') || b.includes('AUDIO') || b.includes('HI-RES')) return 'badge-audio';
+  if (b.includes('KBPS') || b.includes('AUDIO') || b.includes('HI-RES') || b.includes('OPUS') || b.includes('SAVER') || b.includes('AAC')) return 'badge-audio';
   return '';
 }
 

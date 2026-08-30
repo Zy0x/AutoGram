@@ -206,32 +206,70 @@ export const youtubeResolver: LinkResolverProvider = {
             });
           }
 
-          // Audio Only (Highest Bitrate Audio Stream)
-          const audioFormats = adaptive.filter((f) => f.audioQuality || f.mimeType?.includes('audio'));
-          audioFormats.sort((a, b) => {
-            const bitA = (a.bitrate || 0) || (a.averageBitrate || 0);
-            const bitB = (b.bitrate || 0) || (b.averageBitrate || 0);
-            if (bitB !== bitA) return bitB - bitA;
-            const lenA = a.contentLength ? parseInt(a.contentLength, 10) : 0;
-            const lenB = b.contentLength ? parseInt(b.contentLength, 10) : 0;
-            return lenB - lenA;
-          });
-          const bestAudio = audioFormats[0];
-          const audioSize = bestAudio?.contentLength
-            ? parseInt(bestAudio.contentLength, 10)
-            : Math.round(dur * (320 * 1024 / 8));
-          const audioKbps = bestAudio?.bitrate ? Math.round(bestAudio.bitrate / 1000) : 320;
+          // Audio Streams: Extract Distinct Quality Tiers and Formats (M4A/AAC, Opus, and Compact Saver)
+          const allAudios = adaptive.filter((f) => f.audioQuality || f.mimeType?.includes('audio'));
+
+          // 1. Hi-Res M4A / AAC Stream
+          const m4aAudios = allAudios.filter((f) => f.mimeType?.includes('mp4') || f.mimeType?.includes('aac') || f.mimeType?.includes('m4a'));
+          m4aAudios.sort((a, b) => ((b.bitrate || 0) || (b.averageBitrate || 0)) - ((a.bitrate || 0) || (a.averageBitrate || 0)));
+          const bestM4a = m4aAudios[0];
+          const m4aKbps = bestM4a?.bitrate ? Math.round(bestM4a.bitrate / 1000) : 160;
+          const m4aSize = bestM4a?.contentLength ? parseInt(bestM4a.contentLength, 10) : Math.round(dur * (160 * 1024 / 8));
+
           formats.push({
-            id: 'yt_audio',
-            label: 'Hi-Res Audio',
+            id: 'yt_audio_m4a',
+            label: 'Hi-Res Audio (M4A / AAC)',
             qualityTier: 'audio',
-            resolution: `${audioKbps} kbps`,
-            ext: bestAudio?.mimeType?.includes('mp4') ? 'm4a' : 'mp3',
-            filesizeBytes: audioSize,
-            directUrl: bestAudio?.url || fallbackBaseUrl,
+            resolution: `${m4aKbps} kbps (AAC)`,
+            ext: 'm4a',
+            filesizeBytes: m4aSize,
+            directUrl: bestM4a?.url || fallbackBaseUrl,
             isAudio: true,
-            badge: `${audioKbps} kbps`,
+            badge: `${m4aKbps} kbps`,
           });
+
+          // 2. Studio Opus / WebM Stream (Audiophile 48kHz)
+          const opusAudios = allAudios.filter((f) => f.mimeType?.includes('webm') || f.mimeType?.includes('opus'));
+          opusAudios.sort((a, b) => ((b.bitrate || 0) || (b.averageBitrate || 0)) - ((a.bitrate || 0) || (a.averageBitrate || 0)));
+          const bestOpus = opusAudios[0];
+          if (bestOpus) {
+            const opusKbps = bestOpus.bitrate ? Math.round(bestOpus.bitrate / 1000) : 160;
+            const opusSize = bestOpus.contentLength ? parseInt(bestOpus.contentLength, 10) : Math.round(dur * (160 * 1024 / 8));
+            formats.push({
+              id: 'yt_audio_opus',
+              label: 'Studio Audio (Opus 48kHz)',
+              qualityTier: 'audio',
+              resolution: `${opusKbps} kbps (Opus)`,
+              ext: 'opus',
+              filesizeBytes: opusSize,
+              directUrl: bestOpus.url || fallbackBaseUrl,
+              isAudio: true,
+              badge: `${opusKbps} kbps Opus`,
+            });
+          }
+
+          // 3. Voice & Speech Data Saver (Compact ~50-70 kbps)
+          const saverAudios = allAudios.filter(
+            (f) => f.audioQuality === 'AUDIO_QUALITY_LOW' || (f.bitrate && f.bitrate < 90000)
+          );
+          saverAudios.sort((a, b) => ((a.bitrate || 0) || (a.averageBitrate || 0)) - ((b.bitrate || 0) || (b.averageBitrate || 0)));
+          const bestSaver = saverAudios[0];
+          if (bestSaver && (!bestM4a || bestSaver.bitrate !== bestM4a.bitrate)) {
+            const saverKbps = bestSaver.bitrate ? Math.round(bestSaver.bitrate / 1000) : 64;
+            const saverSize = bestSaver.contentLength ? parseInt(bestSaver.contentLength, 10) : Math.round(dur * (64 * 1024 / 8));
+            const isWebm = bestSaver.mimeType?.includes('webm');
+            formats.push({
+              id: 'yt_audio_saver',
+              label: 'Voice & Speech (Saver)',
+              qualityTier: 'audio',
+              resolution: `${saverKbps} kbps`,
+              ext: isWebm ? 'opus' : 'm4a',
+              filesizeBytes: saverSize,
+              directUrl: bestSaver.url || fallbackBaseUrl,
+              isAudio: true,
+              badge: `${saverKbps} kbps Saver`,
+            });
+          }
         }
       }
     } catch {
@@ -322,15 +360,37 @@ export const youtubeResolver: LinkResolverProvider = {
         badge: '720p',
       });
       formats.push({
-        id: 'yt_audio',
-        label: 'Hi-Res Audio',
+        id: 'yt_audio_m4a',
+        label: 'Hi-Res Audio (M4A / AAC)',
         qualityTier: 'audio',
         resolution: '320 kbps',
-        ext: 'mp3',
+        ext: 'm4a',
         filesizeBytes: Math.round(dur * (320 * 1024 / 8)),
         directUrl: fallbackBaseUrl,
         isAudio: true,
         badge: '320 kbps',
+      });
+      formats.push({
+        id: 'yt_audio_opus',
+        label: 'Studio Audio (Opus 48kHz)',
+        qualityTier: 'audio',
+        resolution: '160 kbps',
+        ext: 'opus',
+        filesizeBytes: Math.round(dur * (160 * 1024 / 8)),
+        directUrl: fallbackBaseUrl,
+        isAudio: true,
+        badge: '160 kbps Opus',
+      });
+      formats.push({
+        id: 'yt_audio_saver',
+        label: 'Voice & Speech (Saver)',
+        qualityTier: 'audio',
+        resolution: '64 kbps',
+        ext: 'm4a',
+        filesizeBytes: Math.round(dur * (64 * 1024 / 8)),
+        directUrl: fallbackBaseUrl,
+        isAudio: true,
+        badge: '64 kbps Saver',
       });
     }
 
