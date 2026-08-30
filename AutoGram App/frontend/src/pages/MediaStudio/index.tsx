@@ -36,6 +36,7 @@ function inferUploadMime(path: string): string | null {
   return extension ? known[extension] ?? 'application/octet-stream' : null;
 }
 import { DriveTransferSettings } from '../../components/drive/Transfers/DriveTransferSettings';
+import type { SubMenuCategory } from '../../components/drive/Transfers/transferSettingsSearchRegistry';
 import { TelegramMessagePreviewModal } from '../../components/drive/Modals/TelegramMessagePreviewModal';
 import {
   runQualityPreflight,
@@ -707,6 +708,7 @@ function MediaDriveDesktop({
   const [toolsOpen, setToolsOpen] = useState(false);
   const [toolsTab, setToolsTab] = useState<DriveToolsTab>('dups');
   const [transferSettingsOpen, setTransferSettingsOpen] = useState(false);
+  const [transferSettingsInitialCategory, setTransferSettingsInitialCategory] = useState<SubMenuCategory | 'menu'>('menu');
   const [navHist, setNavHist] = useState<DriveNavHistory>(() =>
     createNavHistory({ kind: initial.kind, id: initial.id })
   );
@@ -10812,7 +10814,11 @@ function MediaDriveDesktop({
             open={transferSettingsOpen}
             settings={transferSettings}
             transferActive={transfer.active}
-            onClose={() => setTransferSettingsOpen(false)}
+            initialCategory={transferSettingsInitialCategory}
+            onClose={() => {
+              setTransferSettingsOpen(false);
+              setTransferSettingsInitialCategory('menu');
+            }}
             onChange={(next: TransferSettingsState) => {
               const normalized = normalizeTransferSettings(next);
               setTransferSettings(normalized);
@@ -11137,9 +11143,18 @@ function MediaDriveDesktop({
       <TransferPreflightDialog
         report={preflightReport}
         creds={creds}
+        transferSettings={transferSettings}
+        onTransferSettingsChange={(next: TransferSettingsState) => {
+          const normalized = normalizeTransferSettings(next);
+          setTransferSettings(normalized);
+          saveTransferSettings(normalized);
+          void setSecureTransferSettings(normalized);
+          void reevaluatePreflight(normalized);
+        }}
         onConfirm={closePreflight}
         onCancel={() => closePreflight(cancelledPreflightDecision)}
-        onOpenSettings={() => {
+        onOpenSettings={(category?: SubMenuCategory) => {
+          if (category) setTransferSettingsInitialCategory(category);
           setTransferSettingsOpen(true);
         }}
         hasStackedModal={transferSettingsOpen}

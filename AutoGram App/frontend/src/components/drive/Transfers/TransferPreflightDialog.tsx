@@ -8,20 +8,25 @@ import {
   ChevronUp,
   Copy,
   CopyCheck,
+  Cpu,
+  ExternalLink,
   FileCode,
   FileSearch,
   FileText,
   Film,
   Folder,
   Globe,
-  HardDrive,
   Image as ImageIcon,
   ImageOff,
   Info,
+  Layers,
   Loader2,
+  MessageSquare,
   Music,
+  Network,
   Play,
   RefreshCw,
+  RotateCcw,
   Send,
   Settings,
   ShieldCheck,
@@ -35,7 +40,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { requestThumb } from '../../../lib/media/thumbBatcher';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
-import { formatDriveBytes } from '../../../lib/telegram/driveTypes';
+import {
+  DEFAULT_TRANSFER_SETTINGS,
+  formatDriveBytes,
+  type DriveTransferSettings,
+} from '../../../lib/telegram/driveTypes';
+import type { SubMenuCategory } from './transferSettingsSearchRegistry';
 import {
   buildPreflightReviewDecision,
   defaultDuplicateChoices,
@@ -442,15 +452,19 @@ function PreflightTransferInfoBento({
 type Props = {
   report: QualityPreflightReport | null;
   creds: DriveCredentials | null;
+  transferSettings?: DriveTransferSettings;
+  onTransferSettingsChange?: (next: DriveTransferSettings) => void;
   onConfirm: (decision: PreflightReviewDecision) => void;
   onCancel: () => void;
-  onOpenSettings?: () => void;
+  onOpenSettings?: (category?: SubMenuCategory) => void;
   hasStackedModal?: boolean;
 };
 
 export function TransferPreflightDialog({
   report,
   creds,
+  transferSettings,
+  onTransferSettingsChange,
   onConfirm,
   onCancel,
   onOpenSettings,
@@ -464,6 +478,19 @@ export function TransferPreflightDialog({
   >(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'queue' | 'skip' | 'duplicate'>('all');
   const [isConfirming, setIsConfirming] = useState(false);
+  const [isReevaluating, setIsReevaluating] = useState(false);
+
+  const handleSettingChange = useCallback(
+    (patch: Partial<DriveTransferSettings>) => {
+      const base = transferSettings ?? DEFAULT_TRANSFER_SETTINGS;
+      const next = { ...base, ...patch };
+      onTransferSettingsChange?.(next);
+      // Show a brief shimmer to signal recalculation
+      setIsReevaluating(true);
+      setTimeout(() => setIsReevaluating(false), 800);
+    },
+    [transferSettings, onTransferSettingsChange]
+  );
 
   useEffect(() => {
     if (report) setChoices(defaultDuplicateChoices(report));
@@ -775,60 +802,252 @@ export function TransferPreflightDialog({
 
               {activePopover === 'modes_summary' ? (
                 <div className="td-preflight-popover-body is-modes-body">
-                  <div className="td-preflight-modes-grid">
-                    {/* Card 1: Engine */}
-                    <div className="td-preflight-mode-card">
-                      <div className="td-preflight-mode-header-line">
-                        <span className="td-preflight-mode-badge is-engine">
-                          <Zap size={11} aria-hidden />
-                          <span>
-                            {report.remoteEngineMode === 'cloud_fetch'
-                              ? 'Zero Quota Cloud Direct'
-                              : report.remoteEngineMode === 'ram_pipe'
-                                ? 'Zero Disk RAM-Pipe'
-                                : 'Smart MTProto V4'}
-                          </span>
-                        </span>
-                        <span className="td-preflight-mode-title">{t('drive.preflight_modes_engine_title')}</span>
+                  {/* Recalculating shimmer banner */}
+                  {isReevaluating && (
+                    <div className="td-preflight-modes-recalc-banner">
+                      <Loader2 size={12} className="td-preflight-modes-recalc-spin" aria-hidden />
+                      <span>{t('drive.preflight_modes_recalculating')}</span>
+                    </div>
+                  )}
+
+                  <div className="td-preflight-modes-grid-6">
+
+                    {/* Card 1: Video Encoding & Acceleration (tab: encoding) */}
+                    <div className="td-preflight-mode-card-6">
+                      <div className="td-preflight-mode6-header">
+                        <div className="td-preflight-mode6-icon is-encoding">
+                          <Cpu size={12} aria-hidden />
+                        </div>
+                        <span className="td-preflight-mode6-title">{t('drive.preflight_modes_card_encoding_title')}</span>
+                        <button
+                          type="button"
+                          className="td-preflight-mode-deeplink"
+                          onClick={() => onOpenSettings?.('encoding')}
+                          title={t('drive.preflight_modes_configure_link')}
+                        >
+                          <ExternalLink size={11} aria-hidden />
+                        </button>
                       </div>
-                      <p className="td-preflight-mode-desc">{t('drive.preflight_modes_engine_desc')}</p>
+                      <div className="td-preflight-mode6-toggle-row">
+                        <button
+                          type="button"
+                          className={`td-preflight-mode6-pill ${(transferSettings?.encoderStrategy ?? DEFAULT_TRANSFER_SETTINGS.encoderStrategy) !== 'disable_reencode' ? 'is-active' : ''}`}
+                          onClick={() => handleSettingChange({ encoderStrategy: 'auto_adaptive' })}
+                        >
+                          {t('drive.preflight_modes_opt_gpu_auto')}
+                        </button>
+                        <button
+                          type="button"
+                          className={`td-preflight-mode6-pill ${(transferSettings?.encoderStrategy ?? DEFAULT_TRANSFER_SETTINGS.encoderStrategy) === 'disable_reencode' ? 'is-active' : ''}`}
+                          onClick={() => handleSettingChange({ encoderStrategy: 'disable_reencode' })}
+                        >
+                          {t('drive.preflight_modes_opt_no_reencode')}
+                        </button>
+                      </div>
+                      <span className="td-preflight-mode6-badge is-encoding">
+                        {(transferSettings?.encoderStrategy ?? DEFAULT_TRANSFER_SETTINGS.encoderStrategy) === 'disable_reencode'
+                          ? 'No Re-encode'
+                          : (transferSettings?.reencodeHardware ?? DEFAULT_TRANSFER_SETTINGS.reencodeHardware)}
+                        {' · '}
+                        {(transferSettings?.reencodePreset ?? DEFAULT_TRANSFER_SETTINGS.reencodePreset)}
+                      </span>
                     </div>
 
-                    {/* Card 2: Delivery & Packaging */}
-                    <div className="td-preflight-mode-card">
-                      <div className="td-preflight-mode-header-line">
-                        <span className="td-preflight-mode-badge is-delivery">
-                          <Sparkles size={11} aria-hidden />
-                          <span>{t('drive.preflight_delivery_high_quality')} • Grid {report.albumGridSize || 10}</span>
-                        </span>
-                        <span className="td-preflight-mode-title">{t('drive.preflight_modes_delivery_title')}</span>
+                    {/* Card 2: Delivery Format (tab: upload) */}
+                    <div className="td-preflight-mode-card-6">
+                      <div className="td-preflight-mode6-header">
+                        <div className="td-preflight-mode6-icon is-delivery">
+                          <Film size={12} aria-hidden />
+                        </div>
+                        <span className="td-preflight-mode6-title">{t('drive.preflight_modes_card_delivery_title')}</span>
+                        <button
+                          type="button"
+                          className="td-preflight-mode-deeplink"
+                          onClick={() => onOpenSettings?.('upload')}
+                          title={t('drive.preflight_modes_configure_link')}
+                        >
+                          <ExternalLink size={11} aria-hidden />
+                        </button>
                       </div>
-                      <p className="td-preflight-mode-desc">{t('drive.preflight_modes_delivery_desc')}</p>
+                      <div className="td-preflight-mode6-toggle-row">
+                        <button
+                          type="button"
+                          className={`td-preflight-mode6-pill ${!(transferSettings?.forceDocumentDefault ?? DEFAULT_TRANSFER_SETTINGS.forceDocumentDefault) ? 'is-active' : ''}`}
+                          onClick={() => handleSettingChange({ forceDocumentDefault: false })}
+                        >
+                          {t('drive.preflight_modes_opt_visual_stream')}
+                        </button>
+                        <button
+                          type="button"
+                          className={`td-preflight-mode6-pill ${(transferSettings?.forceDocumentDefault ?? DEFAULT_TRANSFER_SETTINGS.forceDocumentDefault) ? 'is-active' : ''}`}
+                          onClick={() => handleSettingChange({ forceDocumentDefault: true })}
+                        >
+                          {t('drive.preflight_modes_opt_raw_document')}
+                        </button>
+                      </div>
+                      <span className="td-preflight-mode6-badge is-delivery">
+                        {transferSettings?.qualityMode ?? DEFAULT_TRANSFER_SETTINGS.qualityMode}
+                      </span>
                     </div>
 
-                    {/* Card 3: Storage Policy */}
-                    <div className="td-preflight-mode-card">
-                      <div className="td-preflight-mode-header-line">
-                        <span className="td-preflight-mode-badge is-storage">
-                          <HardDrive size={11} aria-hidden />
-                          <span>{t('drive.preflight_storage_cloud_only')}</span>
-                        </span>
-                        <span className="td-preflight-mode-title">{t('drive.preflight_modes_storage_title')}</span>
+                    {/* Card 3: Album Grid Packaging (tab: albums) */}
+                    <div className="td-preflight-mode-card-6">
+                      <div className="td-preflight-mode6-header">
+                        <div className="td-preflight-mode6-icon is-album">
+                          <Layers size={12} aria-hidden />
+                        </div>
+                        <span className="td-preflight-mode6-title">{t('drive.preflight_modes_card_album_title')}</span>
+                        <button
+                          type="button"
+                          className="td-preflight-mode-deeplink"
+                          onClick={() => onOpenSettings?.('albums')}
+                          title={t('drive.preflight_modes_configure_link')}
+                        >
+                          <ExternalLink size={11} aria-hidden />
+                        </button>
                       </div>
-                      <p className="td-preflight-mode-desc">{t('drive.preflight_modes_storage_desc')}</p>
+                      <div className="td-preflight-mode6-toggle-row">
+                        <button
+                          type="button"
+                          className={`td-preflight-mode6-pill ${(transferSettings?.groupAsAlbum ?? DEFAULT_TRANSFER_SETTINGS.groupAsAlbum) ? 'is-active' : ''}`}
+                          onClick={() => handleSettingChange({ groupAsAlbum: true })}
+                        >
+                          {t('drive.preflight_modes_opt_album_grid', { size: transferSettings?.albumGroupSize ?? DEFAULT_TRANSFER_SETTINGS.albumGroupSize })}
+                        </button>
+                        <button
+                          type="button"
+                          className={`td-preflight-mode6-pill ${!(transferSettings?.groupAsAlbum ?? DEFAULT_TRANSFER_SETTINGS.groupAsAlbum) ? 'is-active' : ''}`}
+                          onClick={() => handleSettingChange({ groupAsAlbum: false })}
+                        >
+                          {t('drive.preflight_modes_opt_album_separate')}
+                        </button>
+                      </div>
+                      <span className="td-preflight-mode6-badge is-album">
+                        {(transferSettings?.groupAsAlbum ?? DEFAULT_TRANSFER_SETTINGS.groupAsAlbum)
+                          ? `Grid ${transferSettings?.albumGroupSize ?? DEFAULT_TRANSFER_SETTINGS.albumGroupSize} · ${transferSettings?.albumPacking ?? DEFAULT_TRANSFER_SETTINGS.albumPacking}`
+                          : 'Individual Files'}
+                      </span>
                     </div>
 
-                    {/* Card 4: Duplicate & Safety */}
-                    <div className="td-preflight-mode-card">
-                      <div className="td-preflight-mode-header-line">
-                        <span className="td-preflight-mode-badge is-safety">
-                          <ShieldCheck size={11} aria-hidden />
-                          <span>{t('drive.preflight_duplicate_4level')}</span>
-                        </span>
-                        <span className="td-preflight-mode-title">{t('drive.preflight_modes_duplicate_title')}</span>
+                    {/* Card 4: Duplicate Prevention (tab: duplicates) */}
+                    <div className="td-preflight-mode-card-6">
+                      <div className="td-preflight-mode6-header">
+                        <div className="td-preflight-mode6-icon is-safety">
+                          <ShieldCheck size={12} aria-hidden />
+                        </div>
+                        <span className="td-preflight-mode6-title">{t('drive.preflight_modes_card_duplicate_title')}</span>
+                        <button
+                          type="button"
+                          className="td-preflight-mode-deeplink"
+                          onClick={() => onOpenSettings?.('duplicates')}
+                          title={t('drive.preflight_modes_configure_link')}
+                        >
+                          <ExternalLink size={11} aria-hidden />
+                        </button>
                       </div>
-                      <p className="td-preflight-mode-desc">{t('drive.preflight_modes_duplicate_desc')}</p>
+                      <div className="td-preflight-mode6-toggle-row">
+                        <button
+                          type="button"
+                          className={`td-preflight-mode6-pill ${(transferSettings?.duplicatePolicy ?? DEFAULT_TRANSFER_SETTINGS.duplicatePolicy) === 'SKIP' ? 'is-active' : ''}`}
+                          onClick={() => handleSettingChange({ duplicatePolicy: 'SKIP' })}
+                        >
+                          {t('drive.preflight_modes_opt_dup_skip')}
+                        </button>
+                        <button
+                          type="button"
+                          className={`td-preflight-mode6-pill ${(transferSettings?.duplicatePolicy ?? DEFAULT_TRANSFER_SETTINGS.duplicatePolicy) === 'FORCE_UPLOAD' ? 'is-active' : ''}`}
+                          onClick={() => handleSettingChange({ duplicatePolicy: 'FORCE_UPLOAD' })}
+                        >
+                          {t('drive.preflight_modes_opt_dup_force')}
+                        </button>
+                      </div>
+                      <span className="td-preflight-mode6-badge is-safety">
+                        {t('drive.preflight_duplicate_4level')}
+                        {' · '}
+                        {transferSettings?.scanMode ?? DEFAULT_TRANSFER_SETTINGS.scanMode}
+                      </span>
                     </div>
+
+                    {/* Card 5: Network & Concurrency (tab: network) */}
+                    <div className="td-preflight-mode-card-6">
+                      <div className="td-preflight-mode6-header">
+                        <div className="td-preflight-mode6-icon is-network">
+                          <Network size={12} aria-hidden />
+                        </div>
+                        <span className="td-preflight-mode6-title">{t('drive.preflight_modes_card_network_title')}</span>
+                        <button
+                          type="button"
+                          className="td-preflight-mode-deeplink"
+                          onClick={() => onOpenSettings?.('network')}
+                          title={t('drive.preflight_modes_configure_link')}
+                        >
+                          <ExternalLink size={11} aria-hidden />
+                        </button>
+                      </div>
+                      <div className="td-preflight-mode6-info-row">
+                        <span className="td-preflight-mode6-badge is-network">
+                          {t('drive.preflight_modes_workers_badge', { count: transferSettings?.uploadConcurrency ?? DEFAULT_TRANSFER_SETTINGS.uploadConcurrency })}
+                        </span>
+                        <span className="td-preflight-mode6-badge is-network-alt">
+                          {t('drive.preflight_modes_floodwait_badge')}
+                        </span>
+                      </div>
+                      <span className="td-preflight-mode6-subtext">
+                        {`↑ ${transferSettings?.uploadConcurrency ?? DEFAULT_TRANSFER_SETTINGS.uploadConcurrency} · ↓ ${transferSettings?.downloadConcurrency ?? DEFAULT_TRANSFER_SETTINGS.downloadConcurrency} · max ${transferSettings?.maxReuploadPerHour ?? DEFAULT_TRANSFER_SETTINGS.maxReuploadPerHour}/h`}
+                      </span>
+                    </div>
+
+                    {/* Card 6: Caption & Limits (tab: limits_recovery) */}
+                    <div className="td-preflight-mode-card-6">
+                      <div className="td-preflight-mode6-header">
+                        <div className="td-preflight-mode6-icon is-caption">
+                          <MessageSquare size={12} aria-hidden />
+                        </div>
+                        <span className="td-preflight-mode6-title">{t('drive.preflight_modes_card_caption_title')}</span>
+                        <button
+                          type="button"
+                          className="td-preflight-mode-deeplink"
+                          onClick={() => onOpenSettings?.('limits_recovery')}
+                          title={t('drive.preflight_modes_configure_link')}
+                        >
+                          <ExternalLink size={11} aria-hidden />
+                        </button>
+                      </div>
+                      <div className="td-preflight-mode6-toggle-row">
+                        <button
+                          type="button"
+                          className={`td-preflight-mode6-pill ${(transferSettings?.captionOverflowPolicy ?? DEFAULT_TRANSFER_SETTINGS.captionOverflowPolicy) === 'truncate_with_warning' ? 'is-active' : ''}`}
+                          onClick={() => handleSettingChange({ captionOverflowPolicy: 'truncate_with_warning' })}
+                        >
+                          {t('drive.preflight_modes_caption_truncate_opt')}
+                        </button>
+                        <button
+                          type="button"
+                          className={`td-preflight-mode6-pill ${(transferSettings?.captionOverflowPolicy ?? DEFAULT_TRANSFER_SETTINGS.captionOverflowPolicy) === 'split' ? 'is-active' : ''}`}
+                          onClick={() => handleSettingChange({ captionOverflowPolicy: 'split' })}
+                        >
+                          {t('drive.preflight_modes_caption_split_opt')}
+                        </button>
+                      </div>
+                      <span className="td-preflight-mode6-badge is-caption">
+                        {t('drive.preflight_modes_caption_limit_badge', { count: 1024 })}
+                        {' · '}
+                        {transferSettings?.captionParseMode ?? DEFAULT_TRANSFER_SETTINGS.captionParseMode}
+                      </span>
+                    </div>
+
+                  </div>
+
+                  {/* Reset to Defaults */}
+                  <div className="td-preflight-modes-footer">
+                    <button
+                      type="button"
+                      className="td-preflight-modes-reset-btn"
+                      onClick={() => onTransferSettingsChange?.(DEFAULT_TRANSFER_SETTINGS)}
+                    >
+                      <RotateCcw size={12} aria-hidden />
+                      <span>{t('drive.preflight_modes_reset_defaults')}</span>
+                    </button>
                   </div>
                 </div>
               ) : (
@@ -1068,7 +1287,7 @@ export function TransferPreflightDialog({
               <button
                 type="button"
                 className="td-chip-btn"
-                onClick={onOpenSettings}
+                onClick={() => onOpenSettings()}
                 title={t('drive.preflight_drive_settings_title')}
               >
                 <Settings size={13} aria-hidden style={{ marginRight: 4 }} />
