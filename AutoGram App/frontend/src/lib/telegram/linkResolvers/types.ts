@@ -48,7 +48,7 @@ export interface ResolvedMediaItem {
   title: string;
   thumbnailUrl?: string;
   durationSec?: number;
-  kind?: 'video' | 'image' | 'audio' | 'doc' | 'zip' | 'other';
+  kind?: 'video' | 'image' | 'audio' | 'doc' | 'zip' | 'other' | 'unsupported';
   selectedFormatId?: string;
   formats: StreamQualityFormat[];
 }

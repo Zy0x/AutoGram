@@ -92,7 +92,7 @@ interface RemoteUploadModalProps {
 
 type RemoteUploadTab = 'single' | 'batch';
 type DeliveryMode = 'auto' | 'uncompressed' | 'document';
-type UrlKind = 'video' | 'image' | 'audio' | 'zip' | 'doc' | 'other';
+type UrlKind = 'video' | 'image' | 'audio' | 'zip' | 'doc' | 'other' | 'unsupported';
 
 function sanitizeFilename(name: string): string {
   return name.replace(/[/\\?%*:|"<>]/g, '_').replace(/[\r\n\t]+/g, ' ').trim();
@@ -115,6 +115,7 @@ function inferKindFromExt(ext: string): UrlKind {
   if (['mp3', 'm4a', 'flac', 'wav', 'ogg', 'aac', 'opus', 'wma'].includes(e)) return 'audio';
   if (['zip', 'rar', '7z', 'tar', 'gz', 'xz', 'iso', 'bz2', 'tgz'].includes(e)) return 'zip';
   if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'epub'].includes(e)) return 'doc';
+  if (!e || e.length > 8 || !/^[a-z0-9]+$/i.test(e)) return 'unsupported';
   return 'other';
 }
 
@@ -446,6 +447,12 @@ function getSingleUnifiedBadgeInfo(
   // Fallback for general valid extension
   if (ext && ext.length >= 2 && ext.length <= 5 && /^[a-z0-9]+$/i.test(ext)) {
     return { text: ext.toUpperCase(), tierClass: 'tier-sd' };
+  }
+
+  // Unsupported / Unknown format
+  if (item.kind === 'unsupported' || item.kind === 'other') {
+    const text = ext && ext.length <= 6 ? ext.toUpperCase() : 'UNKNOWN';
+    return { text, tierClass: 'tier-unsupported' };
   }
 
   return null;
@@ -1246,7 +1253,7 @@ export function RemoteUploadModal({
   const effectiveRemoteEngine = remoteEngineMode === 'auto' ? autoRemoteEngine : remoteEngineMode;
 
   const [gallerySearch, setGallerySearch] = useState('');
-  const [galleryFilter, setGalleryFilter] = useState<'all' | 'video' | 'image' | 'long'>('all');
+  const [galleryFilter, setGalleryFilter] = useState<'all' | 'video' | 'image' | 'audio' | 'zip' | 'doc' | 'unsupported'>('all');
   const [gallerySort, setGallerySort] = useState<'default' | 'name' | 'duration' | 'size'>('default');
   const [galleryViewMode, setGalleryViewMode] = useState<'grid' | 'list'>('grid');
 
@@ -1258,11 +1265,14 @@ export function RemoteUploadModal({
       list = list.filter((it) => it.kind === 'video');
     } else if (galleryFilter === 'image') {
       list = list.filter((it) => it.kind === 'image');
-    } else if (galleryFilter === 'long') {
-      list = list.filter((it) => {
-        const dur = itemDurations[it.id] || it.durationSec || 0;
-        return dur >= 600;
-      });
+    } else if (galleryFilter === 'audio') {
+      list = list.filter((it) => it.kind === 'audio');
+    } else if (galleryFilter === 'zip') {
+      list = list.filter((it) => it.kind === 'zip');
+    } else if (galleryFilter === 'doc') {
+      list = list.filter((it) => it.kind === 'doc');
+    } else if (galleryFilter === 'unsupported') {
+      list = list.filter((it) => it.kind === 'unsupported' || it.kind === 'other');
     }
 
     if (gallerySearch.trim()) {
@@ -2455,7 +2465,14 @@ export function RemoteUploadModal({
                                 )}
                               </div>
 
-                              <div className="td-remote-gallery-filters">
+                              <div
+                                className="td-remote-gallery-filters"
+                                onWheel={(e) => {
+                                  if (e.deltaY !== 0) {
+                                    e.currentTarget.scrollLeft += e.deltaY;
+                                  }
+                                }}
+                              >
                                 <button
                                   type="button"
                                   className={`td-remote-filter-chip ${galleryFilter === 'all' ? 'active' : ''}`}
@@ -2463,15 +2480,17 @@ export function RemoteUploadModal({
                                 >
                                   {t('drive_tools.remote_gallery_filter_all', { count: effectiveMediaItems.length })}
                                 </button>
-                                <button
-                                  type="button"
-                                  className={`td-remote-filter-chip ${galleryFilter === 'video' ? 'active' : ''}`}
-                                  onClick={() => setGalleryFilter('video')}
-                                >
-                                  {t('drive_tools.remote_gallery_filter_videos', {
-                                    count: effectiveMediaItems.filter((i) => i.kind === 'video').length,
-                                  })}
-                                </button>
+                                {effectiveMediaItems.some((i) => i.kind === 'video') && (
+                                  <button
+                                    type="button"
+                                    className={`td-remote-filter-chip ${galleryFilter === 'video' ? 'active' : ''}`}
+                                    onClick={() => setGalleryFilter('video')}
+                                  >
+                                    {t('drive_tools.remote_gallery_filter_videos', {
+                                      count: effectiveMediaItems.filter((i) => i.kind === 'video').length,
+                                    })}
+                                  </button>
+                                )}
                                 {effectiveMediaItems.some((i) => i.kind === 'image') && (
                                   <button
                                     type="button"
@@ -2480,6 +2499,50 @@ export function RemoteUploadModal({
                                   >
                                     {t('drive_tools.remote_gallery_filter_photos', {
                                       count: effectiveMediaItems.filter((i) => i.kind === 'image').length,
+                                    })}
+                                  </button>
+                                )}
+                                {effectiveMediaItems.some((i) => i.kind === 'audio') && (
+                                  <button
+                                    type="button"
+                                    className={`td-remote-filter-chip ${galleryFilter === 'audio' ? 'active' : ''}`}
+                                    onClick={() => setGalleryFilter('audio')}
+                                  >
+                                    {t('drive_tools.remote_gallery_filter_audio', {
+                                      count: effectiveMediaItems.filter((i) => i.kind === 'audio').length,
+                                    })}
+                                  </button>
+                                )}
+                                {effectiveMediaItems.some((i) => i.kind === 'zip') && (
+                                  <button
+                                    type="button"
+                                    className={`td-remote-filter-chip ${galleryFilter === 'zip' ? 'active' : ''}`}
+                                    onClick={() => setGalleryFilter('zip')}
+                                  >
+                                    {t('drive_tools.remote_gallery_filter_archives', {
+                                      count: effectiveMediaItems.filter((i) => i.kind === 'zip').length,
+                                    })}
+                                  </button>
+                                )}
+                                {effectiveMediaItems.some((i) => i.kind === 'doc') && (
+                                  <button
+                                    type="button"
+                                    className={`td-remote-filter-chip ${galleryFilter === 'doc' ? 'active' : ''}`}
+                                    onClick={() => setGalleryFilter('doc')}
+                                  >
+                                    {t('drive_tools.remote_gallery_filter_documents', {
+                                      count: effectiveMediaItems.filter((i) => i.kind === 'doc').length,
+                                    })}
+                                  </button>
+                                )}
+                                {effectiveMediaItems.some((i) => i.kind === 'unsupported' || i.kind === 'other') && (
+                                  <button
+                                    type="button"
+                                    className={`td-remote-filter-chip filter-unsupported ${galleryFilter === 'unsupported' ? 'active' : ''}`}
+                                    onClick={() => setGalleryFilter('unsupported')}
+                                  >
+                                    {t('drive_tools.remote_gallery_filter_unsupported', {
+                                      count: effectiveMediaItems.filter((i) => i.kind === 'unsupported' || i.kind === 'other').length,
                                     })}
                                   </button>
                                 )}

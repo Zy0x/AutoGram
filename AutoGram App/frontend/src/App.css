@@ -26679,11 +26679,25 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-gallery-filters {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 3.5px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex: 1 1 auto;
+  min-width: 0;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  padding: 1px 0;
+}
+
+.td-remote-gallery-filters::-webkit-scrollbar {
+  display: none;
 }
 
 .td-remote-filter-chip {
-  font-size: 0.65rem;
+  font-size: 0.63rem;
   font-weight: 600;
   height: 23px;
   padding: 0 6px;
@@ -26696,6 +26710,7 @@ button.td-confirm-icon.is-back-btn:active {
   cursor: pointer;
   transition: all 120ms ease;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .td-remote-filter-chip:hover {
@@ -26707,6 +26722,19 @@ button.td-confirm-icon.is-back-btn:active {
   background: rgba(56, 189, 248, 0.15);
   border-color: #38bdf8;
   color: #38bdf8;
+  font-weight: 700;
+}
+
+.td-remote-filter-chip.filter-unsupported {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.25);
+  background: rgba(36, 20, 6, 0.6);
+}
+
+.td-remote-filter-chip.filter-unsupported.active {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: #fbbf24;
+  color: #fbbf24;
   font-weight: 700;
 }
 
@@ -27197,6 +27225,13 @@ button.td-confirm-icon.is-back-btn:active {
   background: rgba(16, 16, 38, 0.88);
   color: #818cf8;
   border: 1px solid rgba(129, 140, 248, 0.4);
+}
+
+/* Unsupported / Unknown: Warning Amber */
+.td-remote-item-quality-badge.tier-unsupported {
+  background: rgba(36, 20, 6, 0.88);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.45);
 }
 
 /* Duration badge — now inside card-body bottom-right, not absolute in thumb */
