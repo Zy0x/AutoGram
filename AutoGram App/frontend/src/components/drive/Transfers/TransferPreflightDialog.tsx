@@ -267,6 +267,7 @@ export function TransferPreflightDialog({
   const [activePopover, setActivePopover] = useState<
     'transform' | 'clean' | 'album' | 'duplicate' | 'rollback' | 'caption' | 'modes_summary' | null
   >(null);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'queue' | 'skip' | 'duplicate'>('all');
   const [isConfirming, setIsConfirming] = useState(false);
 
   useEffect(() => {
@@ -324,10 +325,24 @@ export function TransferPreflightDialog({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [report, activePopover, onCancel, handleConfirm]);
 
+  const filteredItems = useMemo(() => {
+    if (!report?.items) return [];
+    if (activeFilter === 'queue') {
+      return report.items.filter((item) => (choices[item.sourcePath] || 'upload') !== 'skip');
+    }
+    if (activeFilter === 'skip') {
+      return report.items.filter((item) => (choices[item.sourcePath] || 'upload') === 'skip');
+    }
+    if (activeFilter === 'duplicate') {
+      return report.items.filter((item) => !!item.duplicateMatch);
+    }
+    return report.items;
+  }, [report, activeFilter, choices]);
+
   if (!report || typeof document === 'undefined') return null;
 
-  const visibleItems = report.items.slice(0, 100);
-  const hiddenCount = Math.max(0, report.items.length - visibleItems.length);
+  const visibleItems = filteredItems.slice(0, 100);
+  const hiddenCount = Math.max(0, filteredItems.length - visibleItems.length);
   const setChoice = (path: string, choice: TransferDuplicateChoice) => {
     setChoices((current) => ({ ...current, [path]: choice }));
   };
@@ -363,26 +378,57 @@ export function TransferPreflightDialog({
         </header>
 
         <div className="td-preflight-overview" role="status">
-          <div className="td-preflight-overview-stats">
-            <div className="td-preflight-stat-pill">
+          <div className="td-preflight-overview-stats" role="tablist" aria-label="Preflight item filter">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeFilter === 'all'}
+              className={`td-preflight-stat-pill is-filter ${activeFilter === 'all' ? 'is-active' : ''}`}
+              onClick={() => setActiveFilter('all')}
+              title={t('drive.preflight_filter_all', { count: report.items.length })}
+            >
               <strong>{report.items.length}</strong>
               <span>{t('drive.preflight_files')}</span>
-            </div>
-            {duplicateCount > 0 && (
-              <div className="td-preflight-stat-pill is-duplicate">
-                <strong>{duplicateCount}</strong>
-                <span>{t('drive.preflight_duplicates_found')}</span>
-              </div>
-            )}
-            <div className="td-preflight-stat-pill is-queue">
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeFilter === 'queue'}
+              className={`td-preflight-stat-pill is-queue is-filter ${activeFilter === 'queue' ? 'is-active' : ''}`}
+              onClick={() => setActiveFilter((prev) => (prev === 'queue' ? 'all' : 'queue'))}
+              title={t('drive.preflight_filter_queue', { count: queuedCount })}
+            >
+              <Check size={11} aria-hidden />
               <strong>{queuedCount}</strong>
               <span>{t('drive.preflight_will_queue')}</span>
-            </div>
+            </button>
             {skippedCount > 0 && (
-              <div className="td-preflight-stat-pill is-skip">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeFilter === 'skip'}
+                className={`td-preflight-stat-pill is-skip is-filter ${activeFilter === 'skip' ? 'is-active' : ''}`}
+                onClick={() => setActiveFilter((prev) => (prev === 'skip' ? 'all' : 'skip'))}
+                title={t('drive.preflight_filter_skip', { count: skippedCount })}
+              >
+                <X size={11} aria-hidden />
                 <strong>{skippedCount}</strong>
                 <span>{t('drive.preflight_will_skip')}</span>
-              </div>
+              </button>
+            )}
+            {duplicateCount > 0 && (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeFilter === 'duplicate'}
+                className={`td-preflight-stat-pill is-duplicate is-filter ${activeFilter === 'duplicate' ? 'is-active' : ''}`}
+                onClick={() => setActiveFilter((prev) => (prev === 'duplicate' ? 'all' : 'duplicate'))}
+                title={t('drive.preflight_filter_duplicate', { count: duplicateCount })}
+              >
+                <CopyCheck size={11} aria-hidden />
+                <strong>{duplicateCount}</strong>
+                <span>{t('drive.preflight_duplicates_found')}</span>
+              </button>
             )}
           </div>
           <div className="td-preflight-limit">
@@ -655,86 +701,109 @@ export function TransferPreflightDialog({
         )}
 
         <div className="td-preflight-items">
-          {visibleItems.map((item) => {
-            const duplicate = item.duplicateMatch;
-            const choice = choices[item.sourcePath] || 'upload';
-            const isExpanded = expandedDetails[item.sourcePath] || false;
-            return (
-              <article
-                className={`td-preflight-item ${duplicate ? 'is-duplicate' : 'is-clean-item'} ${choice === 'skip' ? 'is-skipped' : 'is-uploading'}`}
-                key={`${item.index}-${item.sourcePath}`}
+          {visibleItems.length === 0 ? (
+            <div className="td-preflight-empty-filter">
+              <p>{t('drive.preflight_filter_empty')}</p>
+              <button
+                type="button"
+                className="td-chip-btn"
+                onClick={() => setActiveFilter('all')}
               >
-                <div className="td-preflight-card-main">
-                  {/* Left: Thumbnail container with index number */}
-                  <div className="td-preflight-thumb-wrap">
-                    <div className="td-preflight-thumb">
-                      <PreflightSourceThumb item={item} />
+                {t('drive.preflight_filter_all', { count: report.items.length })}
+              </button>
+            </div>
+          ) : (
+            visibleItems.map((item) => {
+              const duplicate = item.duplicateMatch;
+              const choice = choices[item.sourcePath] || 'upload';
+              const isExpanded = expandedDetails[item.sourcePath] || false;
+              return (
+                <article
+                  className={`td-preflight-item ${duplicate ? 'is-duplicate' : 'is-clean-item'} ${choice === 'skip' ? 'is-skipped' : 'is-included'}`}
+                  key={`${item.index}-${item.sourcePath}`}
+                >
+                  <div className="td-preflight-card-main">
+                    {/* Left: Thumbnail container with index number */}
+                    <div className="td-preflight-thumb-wrap">
+                      <div className="td-preflight-thumb">
+                        <PreflightSourceThumb item={item} />
+                      </div>
+                      <span className="td-preflight-index-pill">{item.index + 1}</span>
                     </div>
-                    <span className="td-preflight-index-pill">{item.index + 1}</span>
-                  </div>
 
-                  {/* Center: File Title, Size, and Glow Badges */}
-                  <div className="td-preflight-card-body">
-                    <div className="td-preflight-title-row">
-                      <span className="td-preflight-card-title" title={item.sourceName}>{item.sourceName}</span>
-                      <span className="td-preflight-card-size">{formatDriveBytes(item.sourceSize)}</span>
-                    </div>
+                    {/* Center: File Title, Size, and Glow Badges */}
+                    <div className="td-preflight-card-body">
+                      <div className="td-preflight-title-row">
+                        <span className="td-preflight-card-title" title={item.sourceName}>{item.sourceName}</span>
+                        <span className="td-preflight-card-size">{formatDriveBytes(item.sourceSize)}</span>
+                      </div>
 
-                    <div className="td-preflight-tags-row">
-                      {duplicate ? (
-                        <span className={`td-preflight-match-badge ${duplicate.matchLevel === 'exact_sha256' ? 'is-exact' : ''}`}>
-                          <CopyCheck size={11} aria-hidden />
-                          <span>{t(`drive.preflight_match_${duplicate.matchLevel}`)}</span>
-                        </span>
-                      ) : (
-                        <span className="td-preflight-ready-tag">
-                          <CheckCircle2 size={11} aria-hidden />
-                          <span>{t('drive.preflight_ready_badge')}</span>
-                        </span>
-                      )}
-
-                      {/* Engine Mode Pill Badge: Modern Glowing Glass Pill */}
-                      {(item.sourcePath.startsWith('http://') || item.sourcePath.startsWith('https://')) && (
-                        ((report.remoteEngineMode as RemoteEngineMode | undefined) === 'cloud_fetch' ||
-                          (report.remoteEngineMode !== 'ram_pipe' && item.sourceSize > 0 && item.sourceSize <= 20 * 1024 * 1024)) ? (
-                          <span className="td-preflight-engine-tag is-cloud-fetch">
-                            <Sparkles size={10} aria-hidden />
-                            <span>{t('drive_tools.remote_zero_quota_badge')}</span>
+                      <div className="td-preflight-tags-row">
+                        {choice === 'skip' ? (
+                          <span className="td-preflight-status-badge is-skipped">
+                            <X size={11} aria-hidden />
+                            <span>{t('drive.preflight_badge_skipped')}</span>
                           </span>
+                        ) : duplicate ? (
+                          <>
+                            <span className={`td-preflight-match-badge ${duplicate.matchLevel === 'exact_sha256' ? 'is-exact' : ''}`}>
+                              <CopyCheck size={11} aria-hidden />
+                              <span>{t(`drive.preflight_match_${duplicate.matchLevel}`)}</span>
+                            </span>
+                            <span className="td-preflight-status-badge is-forced">
+                              <Send size={10} aria-hidden />
+                              <span>{t('drive.preflight_badge_force_upload')}</span>
+                            </span>
+                          </>
                         ) : (
-                          <span className="td-preflight-engine-tag is-ram-pipe">
-                            <Zap size={10} aria-hidden />
-                            <span>{t('drive_tools.remote_zero_disk_badge')}</span>
+                          <span className="td-preflight-status-badge is-ready">
+                            <CheckCircle2 size={11} aria-hidden />
+                            <span>{t('drive.preflight_ready_badge')}</span>
                           </span>
-                        )
-                      )}
+                        )}
 
-                      {item.transform === 'convert_webp_png' && (
-                        <span className="td-preflight-transform-tag is-convert">
-                          <RefreshCw size={10} aria-hidden />
-                          <span>{t('drive.preflight_transform_badge_convert_webp_png')}</span>
-                        </span>
-                      )}
-                      {item.transform === 'reencode' && (
-                        <span className="td-preflight-transform-tag is-reencode">
-                          <Video size={10} aria-hidden />
-                          <span>{t('drive.preflight_transform_badge_reencode_video')}</span>
-                        </span>
-                      )}
+                        {/* Engine Mode Pill Badge: Modern Glowing Glass Pill */}
+                        {(item.sourcePath.startsWith('http://') || item.sourcePath.startsWith('https://')) && (
+                          ((report.remoteEngineMode as RemoteEngineMode | undefined) === 'cloud_fetch' ||
+                            (report.remoteEngineMode !== 'ram_pipe' && item.sourceSize > 0 && item.sourceSize <= 20 * 1024 * 1024)) ? (
+                            <span className="td-preflight-engine-tag is-cloud-fetch">
+                              <Sparkles size={10} aria-hidden />
+                              <span>{t('drive_tools.remote_zero_quota_badge')}</span>
+                            </span>
+                          ) : (
+                            <span className="td-preflight-engine-tag is-ram-pipe">
+                              <Zap size={10} aria-hidden />
+                              <span>{t('drive_tools.remote_zero_disk_badge')}</span>
+                            </span>
+                          )
+                        )}
 
-                      {!duplicate && (
-                        <button
-                          type="button"
-                          className="td-preflight-details-toggle"
-                          onClick={() => toggleTechDetails(item.sourcePath)}
-                          aria-expanded={isExpanded}
-                        >
-                          <span>{isExpanded ? t('drive.preflight_hide_details') : t('drive.preflight_toggle_details')}</span>
-                          {isExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-                        </button>
-                      )}
+                        {item.transform === 'convert_webp_png' && (
+                          <span className="td-preflight-transform-tag is-convert">
+                            <RefreshCw size={10} aria-hidden />
+                            <span>{t('drive.preflight_transform_badge_convert_webp_png')}</span>
+                          </span>
+                        )}
+                        {item.transform === 'reencode' && (
+                          <span className="td-preflight-transform-tag is-reencode">
+                            <Video size={10} aria-hidden />
+                            <span>{t('drive.preflight_transform_badge_reencode_video')}</span>
+                          </span>
+                        )}
+
+                        {!duplicate && (
+                          <button
+                            type="button"
+                            className="td-preflight-details-toggle"
+                            onClick={() => toggleTechDetails(item.sourcePath)}
+                            aria-expanded={isExpanded}
+                          >
+                            <span>{isExpanded ? t('drive.preflight_hide_details') : t('drive.preflight_toggle_details')}</span>
+                            {isExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
                   {/* Right: Decision action buttons */}
                   <div className="td-preflight-card-actions">
@@ -792,7 +861,7 @@ export function TransferPreflightDialog({
                 )}
               </article>
             );
-          })}
+          }))}
           {hiddenCount > 0 && <p className="td-xfer-hint">{t('drive.preflight_more_items', { count: hiddenCount })}</p>}
         </div>
 
