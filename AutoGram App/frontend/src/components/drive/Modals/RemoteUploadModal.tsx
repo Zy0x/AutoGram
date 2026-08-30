@@ -300,12 +300,21 @@ function sanitizeAndNormalizeFilename(userInput: string, targetExt: string): str
   return `${name}.${targetExt.toLowerCase().replace(/^\./, '')}`;
 }
 
-function getSingleUnifiedBadge(
+interface UnifiedBadgeInfo {
+  text: string;
+  tierClass: string;
+}
+
+function getSingleUnifiedBadgeInfo(
   item: ResolvedMediaItem,
   knownRes?: { width: number; height: number }
-): string | null {
+): UnifiedBadgeInfo | null {
   const fmt = item.formats[0];
-  if (!fmt) return item.kind === 'image' ? 'PHOTO' : item.kind === 'audio' ? 'AUDIO' : null;
+  if (!fmt) {
+    if (item.kind === 'image') return { text: 'PHOTO', tierClass: 'tier-photo' };
+    if (item.kind === 'audio') return { text: 'AUDIO', tierClass: 'tier-audio' };
+    return null;
+  }
 
   const ext = (fmt.ext || '').toLowerCase();
 
@@ -326,7 +335,8 @@ function getSingleUnifiedBadge(
     'mp3', 'flac', 'wav', 'm4a', 'aac', 'ogg', 'opus', 'wma', 'alac', 'aiff', 'dsd', 'ape', 'mid', 'midi'
   ]);
   if (AUDIO_EXTS.has(ext) || item.kind === 'audio') {
-    return ext && ext.length <= 5 ? ext.toUpperCase() : 'AUDIO';
+    const text = ext && ext.length <= 5 ? ext.toUpperCase() : 'AUDIO';
+    return { text, tierClass: 'tier-audio' };
   }
 
   // 2. Compressed Archives & Disk Images
@@ -334,13 +344,13 @@ function getSingleUnifiedBadge(
     'zip', 'rar', '7z', 'tar', 'gz', 'tgz', 'bz2', 'xz', 'zst', 'iso', 'img', 'dmg', 'bin', 'vhd', 'cab'
   ]);
   if (ARCHIVE_EXTS.has(ext)) {
-    return ext.toUpperCase();
+    return { text: ext.toUpperCase(), tierClass: 'tier-archive' };
   }
 
   // 3. E-Books, Comics & Digital Readers
   const EBOOK_EXTS = new Set(['epub', 'mobi', 'azw3', 'cbr', 'cbz', 'fb2', 'djvu']);
   if (EBOOK_EXTS.has(ext)) {
-    return ext.toUpperCase();
+    return { text: ext.toUpperCase(), tierClass: 'tier-doc' };
   }
 
   // 4. Documents & Office Files
@@ -348,19 +358,19 @@ function getSingleUnifiedBadge(
     'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'csv', 'txt', 'rtf', 'odt', 'ods', 'odp'
   ]);
   if (DOC_EXTS.has(ext)) {
-    return ext.toUpperCase();
+    return { text: ext.toUpperCase(), tierClass: 'tier-doc' };
   }
 
   // 5. App Installers & Executables
   const APP_EXTS = new Set(['apk', 'xapk', 'apkm', 'ipa', 'exe', 'msi', 'appimage', 'deb', 'rpm', 'pkg']);
   if (APP_EXTS.has(ext)) {
-    return ext.toUpperCase();
+    return { text: ext.toUpperCase(), tierClass: 'tier-app' };
   }
 
   // 6. Code & Structured Data Files
   const CODE_EXTS = new Set(['json', 'xml', 'yaml', 'yml', 'sql', 'sqlite', 'db', 'js', 'ts', 'py', 'rs', 'html', 'css', 'cpp', 'c', 'java']);
   if (CODE_EXTS.has(ext)) {
-    return ext.toUpperCase();
+    return { text: ext.toUpperCase(), tierClass: 'tier-code' };
   }
 
   // 7. Image & Graphics Formats (with dynamic dimensions if known)
@@ -373,11 +383,11 @@ function getSingleUnifiedBadge(
       const minDim = Math.min(width, height);
       const maxDim = Math.max(width, height);
       if (minDim >= 2160 || maxDim >= 3840) {
-        return `4K · ${imgTag}`;
+        return { text: `4K · ${imgTag}`, tierClass: 'tier-4k' };
       }
-      return `${imgTag} · ${width}×${height}`;
+      return { text: `${imgTag} · ${width}×${height}`, tierClass: 'tier-photo' };
     }
-    return imgTag;
+    return { text: imgTag, tierClass: 'tier-photo' };
   }
 
   // 8. Video Dimension and Tier Formatter
@@ -386,27 +396,24 @@ function getSingleUnifiedBadge(
     const maxDim = Math.max(width, height);
     const dimStr = `${width}×${height}`;
 
-    // Quality tier classification (8K, 4K, 2K, FHD, HD)
-    let tier: string | null = null;
     if (minDim >= 4000 || maxDim >= 7000) {
-      tier = '8K';
-    } else if (minDim >= 2160 || maxDim >= 3840) {
-      tier = '4K';
-    } else if (minDim >= 1440 || maxDim >= 2560) {
-      tier = '2K';
-    } else if (minDim >= 1000 || maxDim >= 1900) {
-      tier = 'FHD';
-    } else if (minDim >= 700 || maxDim >= 1200) {
-      tier = 'HD';
+      return { text: `8K · ${dimStr}`, tierClass: 'tier-8k' };
+    }
+    if (minDim >= 2160 || maxDim >= 3840) {
+      return { text: `4K · ${dimStr}`, tierClass: 'tier-4k' };
+    }
+    if (minDim >= 1440 || maxDim >= 2560) {
+      return { text: `2K · ${dimStr}`, tierClass: 'tier-2k' };
+    }
+    if (minDim >= 1000 || maxDim >= 1900) {
+      return { text: `FHD · ${dimStr}`, tierClass: 'tier-fhd' };
+    }
+    if (minDim >= 700 || maxDim >= 1200) {
+      return { text: `HD · ${dimStr}`, tierClass: 'tier-hd' };
     }
 
-    if (tier) {
-      // High quality: show clean tier prefix + resolution (e.g. "FHD · 1080×1920", "HD · 720×1280")
-      return `${tier} · ${dimStr}`;
-    } else {
-      // Non-HD: show ONLY resolution dimension (no HD badge text)
-      return dimStr;
-    }
+    // Non-HD (e.g. 480p, 360p, 540p)
+    return { text: dimStr, tierClass: 'tier-sd' };
   }
 
   // If dimensions not yet probed, check if format has explicit tier
@@ -424,13 +431,19 @@ function getSingleUnifiedBadge(
               ? 'HD'
               : null;
 
-  if (rawTier && ['HD', 'FHD', '1080P', '2K', '4K', '8K', 'UHD'].includes(rawTier.toUpperCase())) {
-    return rawTier === '1080P' ? 'FHD' : rawTier;
+  if (rawTier) {
+    const normTier = rawTier.toUpperCase() === '1080P' ? 'FHD' : rawTier.toUpperCase();
+    const tierClass =
+      normTier === '8K' ? 'tier-8k' :
+      normTier === '4K' || normTier === 'UHD' ? 'tier-4k' :
+      normTier === '2K' ? 'tier-2k' :
+      normTier === 'FHD' ? 'tier-fhd' : 'tier-hd';
+    return { text: normTier, tierClass };
   }
 
   // Fallback for general valid extension
   if (ext && ext.length >= 2 && ext.length <= 5 && /^[a-z0-9]+$/i.test(ext)) {
-    return ext.toUpperCase();
+    return { text: ext.toUpperCase(), tierClass: 'tier-sd' };
   }
 
   return null;
@@ -2523,13 +2536,13 @@ export function RemoteUploadModal({
                                         </div>
                                       )}
 
-                                      {/* TOP-LEFT: Quality pill badge (HD/2K/4K with resolution, or only resolution for non-HD) */}
+                                      {/* TOP-LEFT: Quality pill badge with dynamic tier styling */}
                                       {(() => {
-                                        const badgeText = getSingleUnifiedBadge(item, itemResolutions[item.id]);
-                                        if (!badgeText) return null;
+                                        const badgeInfo = getSingleUnifiedBadgeInfo(item, itemResolutions[item.id]);
+                                        if (!badgeInfo) return null;
                                         return (
-                                          <span className="td-remote-item-quality-badge">
-                                            {badgeText}
+                                          <span className={`td-remote-item-quality-badge ${badgeInfo.tierClass}`}>
+                                            {badgeInfo.text}
                                           </span>
                                         );
                                       })()}

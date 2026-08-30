@@ -27010,26 +27010,116 @@ button.td-confirm-icon.is-back-btn:active {
   display: none;
 }
 
-/* TOP-LEFT: Quality pill badge (HD, 1080p, 720×1280, etc.) */
+/* TOP-LEFT: Quality pill badge with tiered luxury colors */
 .td-remote-item-quality-badge {
   position: absolute;
   top: 5px;
   left: 5px;
   font-size: 0.56rem;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
   padding: 2px 6px;
   border-radius: 20px;
-  background: rgba(5, 10, 20, 0.82);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.35);
   pointer-events: none;
   z-index: 4;
   white-space: nowrap;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(4px);
   max-width: 80%;
   overflow: hidden;
   text-overflow: ellipsis;
+  background: rgba(5, 10, 20, 0.85);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  transition: all 160ms ease;
+}
+
+/* 8K: Apex Cosmic Diamond / Vivid Violet */
+.td-remote-item-quality-badge.tier-8k {
+  background: rgba(26, 8, 38, 0.88);
+  color: #f0abfc;
+  border: 1px solid rgba(240, 171, 252, 0.55);
+  box-shadow: 0 0 10px rgba(240, 171, 252, 0.28);
+}
+
+/* 4K: Ultra Luxury Royal Gold / Amber */
+.td-remote-item-quality-badge.tier-4k {
+  background: rgba(32, 22, 5, 0.88);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.55);
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.25);
+}
+
+/* 2K: Superior Emerald Mint */
+.td-remote-item-quality-badge.tier-2k {
+  background: rgba(4, 28, 22, 0.88);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.5);
+  box-shadow: 0 0 7px rgba(52, 211, 153, 0.20);
+}
+
+/* FHD (1080p): Electric Sky Cyan */
+.td-remote-item-quality-badge.tier-fhd {
+  background: rgba(5, 20, 36, 0.88);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.16);
+}
+
+/* HD (720p): Standard Crisp Blue */
+.td-remote-item-quality-badge.tier-hd {
+  background: rgba(10, 18, 35, 0.85);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+/* Sub-HD: Clean Utility Slate */
+.td-remote-item-quality-badge.tier-sd {
+  background: rgba(15, 23, 42, 0.85);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+/* Audio: Sunset Coral / Rose */
+.td-remote-item-quality-badge.tier-audio {
+  background: rgba(34, 10, 18, 0.88);
+  color: #fb7185;
+  border: 1px solid rgba(251, 113, 133, 0.5);
+  box-shadow: 0 0 6px rgba(251, 113, 133, 0.16);
+}
+
+/* Photo / Graphics: Lavender Purple */
+.td-remote-item-quality-badge.tier-photo {
+  background: rgba(24, 12, 38, 0.88);
+  color: #c084fc;
+  border: 1px solid rgba(192, 132, 252, 0.45);
+}
+
+/* Archive: Warm Bronze Orange */
+.td-remote-item-quality-badge.tier-archive {
+  background: rgba(32, 16, 6, 0.88);
+  color: #fb923c;
+  border: 1px solid rgba(251, 146, 60, 0.45);
+}
+
+/* Document: Jade Green */
+.td-remote-item-quality-badge.tier-doc {
+  background: rgba(6, 28, 16, 0.88);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.4);
+}
+
+/* App Package: Modern Teal */
+.td-remote-item-quality-badge.tier-app {
+  background: rgba(6, 28, 28, 0.88);
+  color: #2dd4bf;
+  border: 1px solid rgba(45, 212, 191, 0.45);
+}
+
+/* Code / Data: Indigo */
+.td-remote-item-quality-badge.tier-code {
+  background: rgba(16, 16, 38, 0.88);
+  color: #818cf8;
+  border: 1px solid rgba(129, 140, 248, 0.4);
 }
 
 /* Duration badge — now inside card-body bottom-right, not absolute in thumb */
