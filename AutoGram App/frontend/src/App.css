@@ -28622,14 +28622,14 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-batch-open-url-btn {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
   color: #94a3b8;
-  font-size: 0.62rem;
-  font-weight: 600;
-  padding: 1px 5px;
+  padding: 0;
   cursor: pointer;
   transition: all 120ms ease;
   flex-shrink: 0;
@@ -28640,6 +28640,12 @@ button.td-confirm-icon.is-back-btn:active {
   background: rgba(56, 189, 248, 0.15);
   border-color: rgba(56, 189, 248, 0.35);
   color: #38bdf8;
+}
+
+.td-remote-batch-copy-url-btn.is-copied {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #34d399;
 }
 
 .td-remote-batch-group-head-right {

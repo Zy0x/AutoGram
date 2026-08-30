@@ -3975,7 +3975,7 @@ export function RemoteUploadModal({
                                   </span>
                                   <button
                                     type="button"
-                                    className="td-remote-batch-copy-url-btn"
+                                    className={`td-remote-batch-copy-url-btn ${copiedUrlGroupId === group.id ? 'is-copied' : ''}`}
                                     onClick={async (e) => {
                                       e.stopPropagation();
                                       try {
@@ -3984,18 +3984,13 @@ export function RemoteUploadModal({
                                         setTimeout(() => setCopiedUrlGroupId(null), 1800);
                                       } catch (_) {}
                                     }}
-                                    title={t('drive.remote_copy_link')}
+                                    title={copiedUrlGroupId === group.id ? t('drive.remote_copied') : t('drive.remote_copy_link')}
+                                    aria-label={copiedUrlGroupId === group.id ? t('drive.remote_copied') : t('drive.remote_copy_link')}
                                   >
                                     {copiedUrlGroupId === group.id ? (
-                                      <>
-                                        <Check size={9.5} className="text-emerald-400" />
-                                        <span className="text-emerald-400">{t('drive.remote_copied')}</span>
-                                      </>
+                                      <Check size={9.5} className="text-emerald-400" />
                                     ) : (
-                                      <>
-                                        <Copy size={9.5} />
-                                        <span>{t('drive.remote_copy_link')}</span>
-                                      </>
+                                      <Copy size={9.5} />
                                     )}
                                   </button>
                                   <button
@@ -4006,6 +4001,7 @@ export function RemoteUploadModal({
                                       handleOpenInBrowser(group.sourceUrl);
                                     }}
                                     title={t('drive.remote_open_in_browser')}
+                                    aria-label={t('drive.remote_open_in_browser')}
                                   >
                                     <ExternalLink size={9.5} />
                                   </button>
