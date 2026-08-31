@@ -4208,11 +4208,8 @@ export function RemoteUploadModal({
 
                           const hasVideos = mp4VideoFmts.length > 0 || webmVideoFmts.length > 0;
                           const hasAudio = audioFmts.length > 0;
-                          const hasSubtitle = subtitleFmts.length > 0;
                           const hasRawMatrix = rawStreamsList.length > 0;
-
-                          const filterCategoriesCount = [true, hasVideos, hasAudio, hasSubtitle, hasRawMatrix].filter(Boolean).length;
-                          const hasMultipleFilters = filterCategoriesCount > 1;
+                          const hasMultipleFilters = true;
 
                           const isGeneralTab = streamContainerFilter === 'general' || streamContainerFilter === 'all';
                           const isVideoTab = streamContainerFilter === 'video' || streamContainerFilter === 'mp4' || streamContainerFilter === 'webm';
@@ -4396,16 +4393,14 @@ export function RemoteUploadModal({
                                       <span>({audioFmts.length})</span>
                                     </button>
                                   )}
-                                  {hasSubtitle && (
-                                    <button
-                                      type="button"
-                                      className={`td-remote-format-filter-chip ${isSubtitleTab ? 'active' : ''}`}
-                                      onClick={() => setStreamContainerFilter('subtitle')}
-                                    >
-                                      <span>{t('drive.remote_format_filter_subtitle')}</span>
-                                      <span>({subtitleFmts.length})</span>
-                                    </button>
-                                  )}
+                                  <button
+                                    type="button"
+                                    className={`td-remote-format-filter-chip ${isSubtitleTab ? 'active' : ''}`}
+                                    onClick={() => setStreamContainerFilter('subtitle')}
+                                  >
+                                    <span>{t('drive.remote_format_filter_subtitle')}</span>
+                                    <span>({subtitleFmts.length})</span>
+                                  </button>
                                   {hasRawMatrix && (
                                     <button
                                       type="button"

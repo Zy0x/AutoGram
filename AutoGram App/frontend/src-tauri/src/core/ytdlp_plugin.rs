@@ -599,6 +599,10 @@ pub fn ytdlp_resolve(
         "--no-playlist",
         "--no-warnings",
         "--no-progress",
+        "--sub-langs",
+        "all",
+        "--write-subs",
+        "--write-auto-subs",
     ]);
 
     // JavaScript runtimes for YouTube n-sig challenge deciphering
