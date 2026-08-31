@@ -111,6 +111,48 @@ pub fn find_system_binary(name: &str) -> Option<PathBuf> {
             }
         }
     }
+
+    #[cfg(target_os = "windows")]
+    {
+        let common_dirs = [
+            r"C:\Program Files\nodejs",
+            r"C:\Program Files (x86)\nodejs",
+            r"C:\ProgramData\chocolatey\bin",
+            r"C:\tools",
+        ];
+        for dir in common_dirs {
+            let candidate = Path::new(dir).join(&binary_name);
+            if candidate.is_file() {
+                return Some(candidate);
+            }
+        }
+
+        if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+            let local_candidates = [
+                Path::new(&local_app_data).join(r"Programs\node").join(&binary_name),
+                Path::new(&local_app_data).join(r"Programs\deno").join(&binary_name),
+                Path::new(&local_app_data).join(r"Programs\bun").join(&binary_name),
+                Path::new(&local_app_data).join(r"Microsoft\WinGet\Links").join(&binary_name),
+            ];
+            for cand in local_candidates {
+                if cand.is_file() {
+                    return Some(cand);
+                }
+            }
+        }
+
+        if let Ok(app_data) = std::env::var("APPDATA") {
+            let nvm_cand = Path::new(&app_data).join(r"nvm").join(&binary_name);
+            if nvm_cand.is_file() {
+                return Some(nvm_cand);
+            }
+            let npm_cand = Path::new(&app_data).join(r"npm").join(&binary_name);
+            if npm_cand.is_file() {
+                return Some(npm_cand);
+            }
+        }
+    }
+
     None
 }
 
@@ -525,15 +567,23 @@ pub fn ytdlp_resolve(
         "--no-playlist",
         "--no-warnings",
         "--no-progress",
-        "--js-runtimes",
-        "node",
-        "--js-runtimes",
-        "deno",
-        "--js-runtimes",
-        "bun",
-        "--js-runtimes",
-        "quickjs",
     ]);
+
+    // JavaScript runtimes for YouTube n-sig challenge deciphering
+    if let Some(node_path) = find_system_binary("node") {
+        cmd.args(["--js-runtimes", &format!("node:{}", node_path.display())]);
+    } else {
+        cmd.args(["--js-runtimes", "node"]);
+    }
+    if let Some(deno_path) = find_system_binary("deno") {
+        cmd.args(["--js-runtimes", &format!("deno:{}", deno_path.display())]);
+    }
+    if let Some(bun_path) = find_system_binary("bun") {
+        cmd.args(["--js-runtimes", &format!("bun:{}", bun_path.display())]);
+    }
+    if let Some(quickjs_path) = find_system_binary("quickjs") {
+        cmd.args(["--js-runtimes", &format!("quickjs:{}", quickjs_path.display())]);
+    }
 
     // Cookies support
     if let Some(ref mode) = cookies_mode {
