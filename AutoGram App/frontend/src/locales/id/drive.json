@@ -192,7 +192,7 @@
   "tools_tab_duplicate_desc": "Deteksi duplikat dan keputusan konflik",
   "tools_tab_oversize_desc": "Batas berkas besar, pemisahan, dan pemulihan",
   "tools_tab_network_desc": "Proxy, koneksi, dan kebijakan jaringan transfer",
-  "tools_tab_ytdlp_desc": "Ekstraktor media yt-dlp untuk Remote URL",
+  "tools_tab_ytdlp_desc": "Ekstraktor & pengunduh media yt-dlp untuk Remote URL",
   "tools_tab_advanced_desc": "Perlindungan lanjutan dan kontrol eksekusi",
   "smart_copy_desc": "Salin masal ke Drive/Chat (berkas asli tidak disentuh). Sangat cocok untuk arsip chat -> Drive.",
   "scope_label": "Cakupan Area",

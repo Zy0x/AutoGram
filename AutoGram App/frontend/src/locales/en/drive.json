@@ -192,7 +192,7 @@
   "tools_tab_duplicate_desc": "Duplicate detection and conflict decisions",
   "tools_tab_oversize_desc": "Oversized file limits, splitting, and recovery",
   "tools_tab_network_desc": "Proxy, connection, and transfer network policy",
-  "tools_tab_ytdlp_desc": "yt-dlp media extractor for Remote URL",
+  "tools_tab_ytdlp_desc": "yt-dlp media downloader & extractor for Remote URL",
   "tools_tab_advanced_desc": "Advanced safeguards and execution controls",
   "smart_copy_desc": "Batch copy to Drive/Chat (original untouched). Perfect for chat archive -> Drive.",
   "scope_label": "Scope",
