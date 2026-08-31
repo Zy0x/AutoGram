@@ -110,12 +110,27 @@ rustup-init.exe
 *.sln
 *.sw?
 
-# Agents
-.agents/*
-!.agents/AGENTS.md
-!.agents/skills/
-!.agents/rules/
-!.agents/workflows/
+# Agents & Internal Local Brain (Protected Local Dev Tools)
+.agents/
+AGENTS.md
+.agent-notes/
+.agent-probes/
+**/.agent-notes/
+**/.agent-probes/
+mcps/
+.codex/
+.codex-plugin/
+**/.codex*
+.grok/
+.playwright-mcp/
+
+# Checkpoints, Rate Limits, and Local Profiles
+AutoGram App/worker/checkpoints/
+AutoGram App/worker/profiles/
+AutoGram App/worker/.shared_rate_state*
+**/checkpoints/
+**/profiles/
+*.shared_rate_state*
 
 # Legacy and Temp folders
 Prompt/
