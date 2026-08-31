@@ -4291,6 +4291,62 @@ export function TransferSettingsWorkspace({
                     >
                       + {t('drive_tools.plugin_cli_opt_nocheck')}
                     </button>
+                    <button
+                      type="button"
+                      className="td-chip-btn"
+                      disabled={!!transferActive}
+                      onClick={() => {
+                        const cur = (draft.ytdlpCustomArgs || '').trim();
+                        if (!cur.includes('--write-subs')) {
+                          patch({ ytdlpCustomArgs: cur ? `${cur} --write-subs` : '--write-subs' });
+                        }
+                      }}
+                      title={t('drive_tools.plugin_cli_opt_writesubs_tooltip')}
+                    >
+                      + {t('drive_tools.plugin_cli_opt_writesubs')}
+                    </button>
+                    <button
+                      type="button"
+                      className="td-chip-btn"
+                      disabled={!!transferActive}
+                      onClick={() => {
+                        const cur = (draft.ytdlpCustomArgs || '').trim();
+                        if (!cur.includes('--write-auto-subs')) {
+                          patch({ ytdlpCustomArgs: cur ? `${cur} --write-auto-subs` : '--write-auto-subs' });
+                        }
+                      }}
+                      title={t('drive_tools.plugin_cli_opt_writeautosubs_tooltip')}
+                    >
+                      + {t('drive_tools.plugin_cli_opt_writeautosubs')}
+                    </button>
+                    <button
+                      type="button"
+                      className="td-chip-btn"
+                      disabled={!!transferActive}
+                      onClick={() => {
+                        const cur = (draft.ytdlpCustomArgs || '').trim();
+                        if (!cur.includes('--embed-subs')) {
+                          patch({ ytdlpCustomArgs: cur ? `${cur} --embed-subs` : '--embed-subs' });
+                        }
+                      }}
+                      title={t('drive_tools.plugin_cli_opt_embedsubs_tooltip')}
+                    >
+                      + {t('drive_tools.plugin_cli_opt_embedsubs')}
+                    </button>
+                    <button
+                      type="button"
+                      className="td-chip-btn"
+                      disabled={!!transferActive}
+                      onClick={() => {
+                        const cur = (draft.ytdlpCustomArgs || '').trim();
+                        if (!cur.includes('--sub-langs')) {
+                          patch({ ytdlpCustomArgs: cur ? `${cur} --sub-langs "id,en.*"` : '--sub-langs "id,en.*"' });
+                        }
+                      }}
+                      title={t('drive_tools.plugin_cli_opt_sublangs_tooltip')}
+                    >
+                      + {t('drive_tools.plugin_cli_opt_sublangs')}
+                    </button>
                     {draft.ytdlpCustomArgs && (
                       <button
                         type="button"

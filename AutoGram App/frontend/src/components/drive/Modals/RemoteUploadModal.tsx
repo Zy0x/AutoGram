@@ -829,6 +829,7 @@ export function RemoteUploadModal({
   const [matrixSearchQuery, setMatrixSearchQuery] = useState<string>('');
   const [matrixHideM3u8, setMatrixHideM3u8] = useState<boolean>(false);
   const [subtitleSearchQuery, setSubtitleSearchQuery] = useState<string>('');
+  const [subtitleTypeFilter, setSubtitleTypeFilter] = useState<'all' | 'id' | 'en' | 'manual' | 'auto' | 'srt' | 'vtt' | 'ass'>('all');
   const [copiedStreamUrl, setCopiedStreamUrl] = useState<boolean>(false);
   const [isPlayingStream, setIsPlayingStream] = useState<boolean>(false);
   const [selectedMediaItemIds, setSelectedMediaItemIds] = useState<Set<string>>(new Set());
@@ -903,6 +904,7 @@ export function RemoteUploadModal({
       setStreamContainerFilter('all');
       setMatrixSearchQuery('');
       setSubtitleSearchQuery('');
+      setSubtitleTypeFilter('all');
       setSelectedMediaItemIds(new Set());
       setItemSelectedFormats({});
       setGallerySearch('');
@@ -919,6 +921,7 @@ export function RemoteUploadModal({
       setStreamContainerFilter('all');
       setMatrixSearchQuery('');
       setSubtitleSearchQuery('');
+      setSubtitleTypeFilter('all');
       setSelectedMediaItemIds(new Set());
       setItemSelectedFormats({});
       setGallerySearch('');
@@ -4101,7 +4104,35 @@ export function RemoteUploadModal({
                             .sort((a, b) => audioBitrate(b) - audioBitrate(a) || (b.filesizeBytes || 0) - (a.filesizeBytes || 0));
 
                           const subtitleFmts = resolvedMedia.formats.filter((f) => f.isSubtitle || f.qualityTier === 'subtitle');
+                          const hasIdSubs = subtitleFmts.some((f) => f.resolution?.toLowerCase() === 'id' || f.label.toLowerCase().includes('indonesi') || f.badge?.toLowerCase().includes('id'));
+                          const hasEnSubs = subtitleFmts.some((f) => f.resolution?.toLowerCase().startsWith('en') || f.label.toLowerCase().includes('english') || f.badge?.toLowerCase().includes('en'));
+                          const hasAutoSubs = subtitleFmts.some((f) => f.label.toLowerCase().includes('(auto)') || f.badge?.toLowerCase().includes('auto'));
+                          const hasManualSubs = subtitleFmts.some((f) => !f.label.toLowerCase().includes('(auto)') && !f.badge?.toLowerCase().includes('auto'));
+                          const hasSrtSubs = subtitleFmts.some((f) => f.ext?.toLowerCase() === 'srt');
+                          const hasVttSubs = subtitleFmts.some((f) => f.ext?.toLowerCase() === 'vtt');
+                          const hasAssSubs = subtitleFmts.some((f) => f.ext?.toLowerCase() === 'ass');
+
                           const filteredSubtitleFmts = subtitleFmts.filter((f) => {
+                            if (subtitleTypeFilter === 'id') {
+                              const isId = f.resolution?.toLowerCase() === 'id' || f.label.toLowerCase().includes('indonesi') || f.badge?.toLowerCase().includes('id');
+                              if (!isId) return false;
+                            } else if (subtitleTypeFilter === 'en') {
+                              const isEn = f.resolution?.toLowerCase().startsWith('en') || f.label.toLowerCase().includes('english') || f.badge?.toLowerCase().includes('en');
+                              if (!isEn) return false;
+                            } else if (subtitleTypeFilter === 'manual') {
+                              const isAuto = f.label.toLowerCase().includes('(auto)') || f.badge?.toLowerCase().includes('auto');
+                              if (isAuto) return false;
+                            } else if (subtitleTypeFilter === 'auto') {
+                              const isAuto = f.label.toLowerCase().includes('(auto)') || f.badge?.toLowerCase().includes('auto');
+                              if (!isAuto) return false;
+                            } else if (subtitleTypeFilter === 'srt') {
+                              if (f.ext?.toLowerCase() !== 'srt') return false;
+                            } else if (subtitleTypeFilter === 'vtt') {
+                              if (f.ext?.toLowerCase() !== 'vtt') return false;
+                            } else if (subtitleTypeFilter === 'ass') {
+                              if (f.ext?.toLowerCase() !== 'ass') return false;
+                            }
+
                             if (!subtitleSearchQuery.trim()) return true;
                             const q = subtitleSearchQuery.toLowerCase();
                             return (
@@ -4739,46 +4770,133 @@ export function RemoteUploadModal({
                                   )}
                                 </>
                               ) : isSubtitleTab ? (
-                                <>
-                                  {subtitleFmts.length > 0 && (
-                                    <div className="td-remote-formats-section">
-                                      <div className="td-remote-formats-section-header">
-                                        <span className="td-remote-formats-section-title">
-                                          <FileText size={11} style={{ color: '#2dd4bf' }} />
-                                          <span>{t('drive.remote_section_subtitles')}</span>
-                                        </span>
-                                        <span className="td-remote-formats-section-count">{filteredSubtitleFmts.length}</span>
-                                      </div>
-                                      <div className="td-remote-sub-search-box">
-                                        <Search size={12} style={{ color: '#94a3b8' }} />
-                                        <input
-                                          type="text"
-                                          value={subtitleSearchQuery}
-                                          onChange={(e) => setSubtitleSearchQuery(e.target.value)}
-                                          placeholder={t('drive.remote_sub_search_placeholder')}
-                                        />
-                                        {subtitleSearchQuery && (
+                                subtitleFmts.length > 0 ? (
+                                  <div className="td-remote-formats-section">
+                                    <div className="td-remote-formats-section-header">
+                                      <span className="td-remote-formats-section-title">
+                                        <FileText size={11} style={{ color: '#2dd4bf' }} />
+                                        <span>{t('drive.remote_section_subtitles')}</span>
+                                      </span>
+                                      <span className="td-remote-formats-section-count">{filteredSubtitleFmts.length}</span>
+                                    </div>
+
+                                    <div className="td-remote-sub-info-banner">
+                                      <Info size={13} style={{ color: '#2dd4bf', flexShrink: 0 }} />
+                                      <span>{t('drive.remote_sub_info_banner')}</span>
+                                    </div>
+
+                                    <div className="td-remote-sub-filter-row">
+                                      <button
+                                        type="button"
+                                        className={`td-remote-sub-pill ${subtitleTypeFilter === 'all' ? 'active' : ''}`}
+                                        onClick={() => setSubtitleTypeFilter('all')}
+                                      >
+                                        {t('drive.remote_sub_filter_all')} ({subtitleFmts.length})
+                                      </button>
+                                      {hasIdSubs && (
+                                        <button
+                                          type="button"
+                                          className={`td-remote-sub-pill ${subtitleTypeFilter === 'id' ? 'active' : ''}`}
+                                          onClick={() => setSubtitleTypeFilter('id')}
+                                        >
+                                          {t('drive.remote_sub_filter_id')}
+                                        </button>
+                                      )}
+                                      {hasEnSubs && (
+                                        <button
+                                          type="button"
+                                          className={`td-remote-sub-pill ${subtitleTypeFilter === 'en' ? 'active' : ''}`}
+                                          onClick={() => setSubtitleTypeFilter('en')}
+                                        >
+                                          {t('drive.remote_sub_filter_en')}
+                                        </button>
+                                      )}
+                                      {hasManualSubs && hasAutoSubs && (
+                                        <>
                                           <button
                                             type="button"
-                                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
-                                            onClick={() => setSubtitleSearchQuery('')}
+                                            className={`td-remote-sub-pill ${subtitleTypeFilter === 'manual' ? 'active' : ''}`}
+                                            onClick={() => setSubtitleTypeFilter('manual')}
                                           >
-                                            <X size={12} />
+                                            {t('drive.remote_sub_filter_manual')}
                                           </button>
-                                        )}
-                                      </div>
-                                      {filteredSubtitleFmts.length === 0 ? (
-                                        <div style={{ textAlign: 'center', padding: '12px', color: '#64748b', fontSize: '0.7rem' }}>
-                                          {t('drive.remote_sub_empty_search')}
-                                        </div>
-                                      ) : (
-                                        <div className="td-remote-quality-grid">
-                                          {filteredSubtitleFmts.map(renderFormatChip)}
-                                        </div>
+                                          <button
+                                            type="button"
+                                            className={`td-remote-sub-pill ${subtitleTypeFilter === 'auto' ? 'active' : ''}`}
+                                            onClick={() => setSubtitleTypeFilter('auto')}
+                                          >
+                                            {t('drive.remote_sub_filter_auto')}
+                                          </button>
+                                        </>
+                                      )}
+                                      {hasSrtSubs && (
+                                        <button
+                                          type="button"
+                                          className={`td-remote-sub-pill ${subtitleTypeFilter === 'srt' ? 'active' : ''}`}
+                                          onClick={() => setSubtitleTypeFilter('srt')}
+                                        >
+                                          {t('drive.remote_sub_filter_srt')}
+                                        </button>
+                                      )}
+                                      {hasVttSubs && (
+                                        <button
+                                          type="button"
+                                          className={`td-remote-sub-pill ${subtitleTypeFilter === 'vtt' ? 'active' : ''}`}
+                                          onClick={() => setSubtitleTypeFilter('vtt')}
+                                        >
+                                          {t('drive.remote_sub_filter_vtt')}
+                                        </button>
+                                      )}
+                                      {hasAssSubs && (
+                                        <button
+                                          type="button"
+                                          className={`td-remote-sub-pill ${subtitleTypeFilter === 'ass' ? 'active' : ''}`}
+                                          onClick={() => setSubtitleTypeFilter('ass')}
+                                        >
+                                          {t('drive.remote_sub_filter_ass')}
+                                        </button>
                                       )}
                                     </div>
-                                  )}
-                                </>
+
+                                    <div className="td-remote-sub-search-box">
+                                      <Search size={12} style={{ color: '#94a3b8' }} />
+                                      <input
+                                        type="text"
+                                        value={subtitleSearchQuery}
+                                        onChange={(e) => setSubtitleSearchQuery(e.target.value)}
+                                        placeholder={t('drive.remote_sub_search_placeholder')}
+                                      />
+                                      {subtitleSearchQuery && (
+                                        <button
+                                          type="button"
+                                          style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
+                                          onClick={() => setSubtitleSearchQuery('')}
+                                        >
+                                          <X size={12} />
+                                        </button>
+                                      )}
+                                    </div>
+                                    {filteredSubtitleFmts.length === 0 ? (
+                                      <div style={{ textAlign: 'center', padding: '16px', color: '#64748b', fontSize: '0.72rem' }}>
+                                        {t('drive.remote_sub_empty_search')}
+                                      </div>
+                                    ) : (
+                                      <div className="td-remote-quality-grid">
+                                        {filteredSubtitleFmts.map(renderFormatChip)}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="td-remote-empty-sub-card">
+                                    <FileText size={28} style={{ color: '#64748b', opacity: 0.7, marginBottom: 8 }} />
+                                    <h5 style={{ margin: '0 0 4px', fontSize: '0.85rem', color: '#f1f5f9', fontWeight: 600 }}>
+                                      {t('drive.remote_sub_empty_title')}
+                                    </h5>
+                                    <p style={{ margin: 0, fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.45, maxWidth: '420px', textAlign: 'center' }}>
+                                      {t('drive.remote_sub_empty_desc')}
+                                    </p>
+                                  </div>
+                                )
                               ) : null}
 
                               {activeFmt && (
