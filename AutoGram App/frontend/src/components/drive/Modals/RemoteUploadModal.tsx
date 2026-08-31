@@ -4583,6 +4583,7 @@ export function RemoteUploadModal({
                                       </div>
 
                                       <div className="td-remote-matrix-table-scroll">
+                                        <table className="td-remote-matrix-table">
                                           <thead>
                                             <tr>
                                               <th>{t('drive.remote_matrix_col_itag')}</th>

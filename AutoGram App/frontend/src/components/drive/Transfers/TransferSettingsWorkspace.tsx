@@ -44,7 +44,6 @@ import {
   Info,
   HelpCircle,
   BookOpen,
-  ExternalLink,
 } from 'lucide-react';
 import type {
   CaptionPosition,

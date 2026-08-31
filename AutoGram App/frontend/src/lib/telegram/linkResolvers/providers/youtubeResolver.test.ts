@@ -184,7 +184,7 @@ describe('youtubeResolver', () => {
 
     // All formats must have valid playable direct URLs
     expect(result?.formats.every((f) => typeof f.directUrl === 'string' && f.directUrl.startsWith('http'))).toBe(true);
-    expect(result?.rawStreams.length).toBe(6);
+    expect(result?.rawStreams?.length).toBe(6);
   });
 
   it('maps yt-dlp direct formats without exposing manifests as downloadable files', () => {

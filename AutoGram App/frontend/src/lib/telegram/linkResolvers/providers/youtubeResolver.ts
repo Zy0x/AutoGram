@@ -176,7 +176,6 @@ async function fetchYouTubeInnertubePlayer(videoId: string, signal?: AbortSignal
 
 async function fetchYouTubeYtDlp(url: string): Promise<any | null> {
   if (!detectTauriRuntime()) return null;
-  let ytdlpEnabled = true;
   let autoUpdate = true;
   let checkIntervalHours = 6;
   let customPath: string | undefined;
