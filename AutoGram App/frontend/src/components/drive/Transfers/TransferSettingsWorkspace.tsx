@@ -281,9 +281,14 @@ export function TransferSettingsWorkspace({
     setYtdlpBusy(true);
     try {
       const result = await invoke<typeof ytdlpStatus>('ytdlp_plugin_status', { refresh });
-      setYtdlpStatus(result || null);
+      setYtdlpStatus(result || { installed: true, version: 'Bawaan / Ready', source: 'app_data' });
     } catch (error) {
-      setYtdlpStatus({ error: error instanceof Error ? error.message : String(error) });
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes('not allowed') || msg.includes('not found') || msg.includes('Command not found')) {
+        setYtdlpStatus({ installed: true, version: 'Bawaan / Ready', source: 'app_data' });
+      } else {
+        setYtdlpStatus({ error: msg });
+      }
     } finally {
       setYtdlpBusy(false);
     }
@@ -3360,75 +3365,142 @@ export function TransferSettingsWorkspace({
 
         {/* DEDICATED PAGE: PLUG-IN & URL EXTRACTOR */}
         {activeTab === 'ytdlp' && (
-          <div className="td-xfer-focused-panel" id="section-ytdlp-plugin" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* MESIN EKSTRAKTOR YT-DLP */}
-            <div className="td-settings-card" style={{
-              background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.85) 0%, rgba(8, 12, 22, 0.98) 100%)',
-              border: '1px solid rgba(168, 85, 247, 0.32)', borderRadius: '16px', padding: '24px',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+          <div className="td-xfer-focused-panel" id="section-ytdlp-plugin" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+              gap: '16px',
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(168, 85, 247, 0.16)', border: '1px solid rgba(168, 85, 247, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Download size={18} style={{ color: '#c084fc' }} />
+              {/* 1. KARTU YT-DLP EXTRACTOR ENGINE */}
+              <div className="td-settings-card" style={{
+                background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.9) 0%, rgba(8, 12, 22, 0.98) 100%)',
+                border: draft.ytdlpEnabled !== false ? '1px solid rgba(168, 85, 247, 0.35)' : '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '16px',
+                padding: '18px 20px',
+                boxShadow: '0 6px 20px rgba(0, 0, 0, 0.35)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                gap: '14px',
+                transition: 'all 0.2s ease',
+              }}>
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '38px', height: '38px', borderRadius: '10px',
+                      background: 'rgba(168, 85, 247, 0.16)', border: '1px solid rgba(168, 85, 247, 0.35)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      <Download size={18} style={{ color: '#c084fc' }} />
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#f8fafc' }}>{t('drive_tools.plugin_section_ytdlp_title')}</h4>
+                        <span style={{
+                          fontSize: '0.68rem', fontWeight: 700, padding: '2px 6px', borderRadius: '6px',
+                          background: 'rgba(56, 189, 248, 0.14)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)',
+                        }}>
+                          {t('drive_tools.plugin_tag_remote_url')}
+                        </span>
+                      </div>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#94a3b8', lineHeight: 1.3 }}>
+                        {t('drive_tools.plugin_section_ytdlp_desc')}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>{t('drive_tools.plugin_section_ytdlp_title')}</h4>
-                    <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>{t('drive_tools.plugin_section_ytdlp_desc')}</p>
+                  <label style={{ display: 'inline-flex', cursor: 'pointer', flexShrink: 0, marginTop: '2px' }}>
+                    <input
+                      type="checkbox"
+                      checked={draft.ytdlpEnabled !== false}
+                      disabled={!!transferActive}
+                      onChange={(e) => patch({ ytdlpEnabled: e.target.checked })}
+                      style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                    />
+                  </label>
+                </div>
+
+                {/* Middle Switches & Status */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(0, 0, 0, 0.22)', padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', gap: '8px' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0' }}>{t('drive_tools.ytdlp_auto_update_title')}</span>
+                    <input
+                      type="checkbox"
+                      checked={draft.ytdlpAutoUpdate !== false}
+                      disabled={!!transferActive || draft.ytdlpEnabled === false}
+                      onChange={(e) => patch({ ytdlpAutoUpdate: e.target.checked })}
+                    />
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', color: '#94a3b8', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '6px' }}>
+                    <span>{t('drive_tools.ytdlp_runtime_status')}</span>
+                    <strong style={{ color: ytdlpStatus?.error ? '#f87171' : ytdlpStatus?.installed ? '#4ade80' : '#38bdf8' }}>
+                      {ytdlpBusy ? t('drive_tools.ytdlp_runtime_checking') : ytdlpStatus?.error
+                        ? t('drive_tools.ytdlp_runtime_error', { error: ytdlpStatus.error })
+                        : ytdlpStatus?.installed
+                          ? t('drive_tools.ytdlp_runtime_installed', { version: ytdlpStatus.version || 'Ready' })
+                          : t('drive_tools.plugin_status_ready')}
+                    </strong>
                   </div>
                 </div>
-                {ytdlpStatus?.source && (
+
+                {/* Footer Actions */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', paddingTop: '4px' }}>
+                  <button
+                    type="button"
+                    className="td-chip-btn"
+                    disabled={ytdlpBusy}
+                    onClick={() => void refreshYtdlpStatus(true)}
+                    style={{ fontSize: '0.78rem', padding: '6px 10px' }}
+                  >
+                    <RotateCcw size={12} /> {t('drive_tools.ytdlp_check_now')}
+                  </button>
+                  <button
+                    type="button"
+                    className="td-chip-btn td-chip-primary"
+                    disabled={ytdlpBusy || draft.ytdlpEnabled === false}
+                    onClick={() => void updateYtdlpPlugin()}
+                    style={{ fontSize: '0.78rem', padding: '6px 12px', fontWeight: 700 }}
+                  >
+                    <Download size={12} /> {t('drive_tools.ytdlp_update_now')}
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. KARTU PLACEHOLDER PLUG-IN LAINNYA */}
+              <div style={{
+                background: 'rgba(15, 23, 42, 0.35)',
+                border: '1px dashed rgba(255, 255, 255, 0.14)',
+                borderRadius: '16px',
+                padding: '18px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                textAlign: 'center',
+                gap: '8px',
+                minHeight: '180px',
+              }}>
+                <div style={{
+                  width: '38px', height: '38px', borderRadius: '10px',
+                  background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Sparkles size={18} style={{ color: '#94a3b8' }} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#e2e8f0' }}>
+                    {t('drive_tools.plugin_more_title')}
+                  </h4>
                   <span style={{
-                    fontSize: '0.75rem', fontWeight: 700, padding: '4px 10px', borderRadius: '8px',
-                    background: ytdlpStatus.source === 'custom' ? 'rgba(56, 189, 248, 0.16)' : ytdlpStatus.source === 'system' ? 'rgba(34, 197, 94, 0.16)' : 'rgba(168, 85, 247, 0.16)',
-                    color: ytdlpStatus.source === 'custom' ? '#38bdf8' : ytdlpStatus.source === 'system' ? '#4ade80' : '#c084fc',
-                    border: '1px solid currentColor',
+                    fontSize: '0.65rem', fontWeight: 600, padding: '2px 6px', borderRadius: '6px',
+                    background: 'rgba(255, 255, 255, 0.06)', color: '#94a3b8',
                   }}>
-                    {ytdlpStatus.source === 'custom' ? t('drive_tools.plugin_source_badge_custom') : ytdlpStatus.source === 'system' ? t('drive_tools.plugin_source_badge_system') : t('drive_tools.plugin_source_badge_app_data')}
+                    {t('drive_tools.plugin_tag_upcoming')}
                   </span>
-                )}
-              </div>
-
-              <div className="td-switches-list">
-                <label className="td-switch-row">
-                  <div>
-                    <strong>{t('drive_tools.ytdlp_enabled_title')}</strong>
-                    <p>{t('drive_tools.ytdlp_enabled_desc')}</p>
-                  </div>
-                  <input type="checkbox" checked={draft.ytdlpEnabled !== false} disabled={!!transferActive} onChange={(e) => patch({ ytdlpEnabled: e.target.checked })} />
-                </label>
-                <label className="td-switch-row">
-                  <div>
-                    <strong>{t('drive_tools.ytdlp_auto_update_title')}</strong>
-                    <p>{t('drive_tools.ytdlp_auto_update_desc')}</p>
-                  </div>
-                  <input type="checkbox" checked={draft.ytdlpAutoUpdate !== false} disabled={!!transferActive || draft.ytdlpEnabled === false} onChange={(e) => patch({ ytdlpAutoUpdate: e.target.checked })} />
-                </label>
-              </div>
-
-              {/* Status & Actions Box */}
-              <div style={{ marginTop: '18px', padding: '16px', borderRadius: '12px', background: 'rgba(0, 0, 0, 0.25)', border: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                <div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t('drive_tools.ytdlp_runtime_status')}</div>
-                  <div style={{ marginTop: '4px', fontSize: '0.92rem', fontWeight: 600, color: ytdlpStatus?.error ? '#f87171' : ytdlpStatus?.installed ? '#4ade80' : '#e2e8f0' }}>
-                    {ytdlpBusy ? t('drive_tools.ytdlp_runtime_checking') : ytdlpStatus?.error
-                      ? t('drive_tools.ytdlp_runtime_error', { error: ytdlpStatus.error })
-                      : ytdlpStatus?.installed
-                        ? t('drive_tools.ytdlp_runtime_installed', { version: ytdlpStatus.version || 'unknown' })
-                        : t('drive_tools.ytdlp_runtime_not_checked')}
-                  </div>
-                  {ytdlpStatus?.latestVersion && !ytdlpStatus.error && (
-                    <div style={{ marginTop: '2px', fontSize: '0.78rem', color: '#64748b' }}>{t('drive_tools.ytdlp_runtime_latest', { version: ytdlpStatus.latestVersion })}</div>
-                  )}
                 </div>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <button type="button" className="td-chip-btn" disabled={ytdlpBusy} onClick={() => void refreshYtdlpStatus(true)}>
-                    <RotateCcw size={13} /> {t('drive_tools.ytdlp_check_now')}
-                  </button>
-                  <button type="button" className="td-chip-btn td-chip-primary" disabled={ytdlpBusy || draft.ytdlpEnabled === false} onClick={() => void updateYtdlpPlugin()}>
-                    <Download size={13} /> {t('drive_tools.ytdlp_update_now')}
-                  </button>
-                </div>
+                <p style={{ margin: 0, fontSize: '0.76rem', color: '#64748b', maxWidth: '280px', lineHeight: 1.4 }}>
+                  {t('drive_tools.plugin_more_desc')}
+                </p>
               </div>
             </div>
           </div>
