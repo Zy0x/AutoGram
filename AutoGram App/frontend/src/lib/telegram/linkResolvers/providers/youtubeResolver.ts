@@ -192,7 +192,6 @@ async function fetchYouTubeYtDlp(url: string): Promise<any | null> {
     const raw = localStorage.getItem('autogram_drive_transfer_settings');
     if (raw) {
       const settings = JSON.parse(raw) as any;
-      ytdlpEnabled = settings.ytdlpEnabled !== false;
       autoUpdate = settings.ytdlpAutoUpdate !== false;
       checkIntervalHours = Math.max(1, Math.min(168, Number(settings.ytdlpCheckIntervalHours) || 6));
       if (settings.ytdlpCustomPath?.trim()) customPath = settings.ytdlpCustomPath.trim();
@@ -208,7 +207,6 @@ async function fetchYouTubeYtDlp(url: string): Promise<any | null> {
   } catch {
     // Keep the safe defaults when settings are unavailable.
   }
-  if (!ytdlpEnabled) return null;
 
   // Cache key combines URL + settings fingerprint so cookie/arg changes invalidate
   const cacheKey = `${url}|${cookiesMode ?? ''}|${cookiesBrowser ?? ''}|${poToken ?? ''}|${extractorArgs ?? ''}`;
