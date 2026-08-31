@@ -20,9 +20,19 @@ lerna-debug.log*
 # React/Vite builds
 dist/
 dist-ssr/
-build/
 out/
 coverage/
+AutoGram App/**/dist/
+AutoGram App/**/build/
+
+# Standalone Builder Output & Binaries (Local Only - Never Exposed)
+build/output/
+build/target/
+build/cache/
+build/**/*.apk
+build/**/*.msi
+build/**/*.exe
+icon App/
 
 # Rust / Tauri
 target/
@@ -34,7 +44,7 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
+AutoGram App/**/build/
 develop-eggs/
 dist/
 downloads/
