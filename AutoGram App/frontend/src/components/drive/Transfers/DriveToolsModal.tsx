@@ -963,7 +963,7 @@ export function TransferSettingsWorkspace({
     { id: 'duplicates', label: t('drive.tools_tab_duplicate'), desc: t('drive.tools_tab_duplicate_desc'), icon: CopyCheck },
     { id: 'limits_recovery', label: t('drive.tools_tab_oversize'), desc: t('drive.tools_tab_oversize_desc'), icon: HardDriveUpload },
     { id: 'network', label: t('drive.tools_tab_network'), desc: t('drive.tools_tab_network_desc'), icon: Network },
-    { id: 'ytdlp', label: t('drive_tools.plugin_settings_title'), desc: t('drive_tools.plugin_settings_desc'), icon: Sliders },
+    { id: 'ytdlp', label: t('drive.tools_tab_ytdlp'), desc: t('drive.tools_tab_ytdlp_desc'), icon: Sliders },
     { id: 'advanced', label: t('drive.tools_tab_advanced'), desc: t('drive.tools_tab_advanced_desc'), icon: SlidersHorizontal },
   ];
 

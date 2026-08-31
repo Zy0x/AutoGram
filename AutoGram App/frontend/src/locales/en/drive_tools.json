@@ -171,6 +171,8 @@
   "tools_tab_oversize": "Large File Handling",
   "tools_tab_limits_recovery": "Large File Handling",
   "tools_tab_network": "Proxy & Network",
+  "tools_tab_ytdlp": "Plug-in",
+  "tools_tab_ytdlp_desc": "yt-dlp media extractor for Remote URL",
   "tools_tab_advanced": "Advanced Settings",
   "ytdlp_settings_title": "Plug-in & URL Extractor",
   "ytdlp_settings_desc": "Resolve the complete YouTube format matrix with an automatically updated yt-dlp & FFmpeg runtime.",

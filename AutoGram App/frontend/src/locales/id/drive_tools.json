@@ -171,6 +171,8 @@
   "tools_tab_oversize": "Penanganan Berkas Besar",
   "tools_tab_limits_recovery": "Penanganan Berkas Besar",
   "tools_tab_network": "Proxy & Jaringan",
+  "tools_tab_ytdlp": "Plug-in",
+  "tools_tab_ytdlp_desc": "Ekstraktor media yt-dlp untuk Remote URL",
   "tools_tab_advanced": "Pengaturan Lanjutan",
   "ytdlp_settings_title": "Plug-in & Ekstraktor URL",
   "ytdlp_settings_desc": "Ambil matriks format YouTube lengkap dengan runtime yt-dlp & FFmpeg yang selalu diperbarui.",
