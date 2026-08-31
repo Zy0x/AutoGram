@@ -1104,7 +1104,7 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   ytdlpCookiesBrowser: 'chrome',
   ytdlpCookiesPath: '',
   ytdlpPoToken: '',
-  ytdlpExtractorArgs: 'youtube:player_client=android,web',
+  ytdlpExtractorArgs: '',
   ytdlpCustomArgs: '',
   ffmpegCustomPath: '',
   ytdlpAutoMuxFfmpeg: true,

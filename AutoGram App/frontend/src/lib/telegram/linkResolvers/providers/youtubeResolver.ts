@@ -161,9 +161,10 @@ async function fetchYouTubeYtDlp(url: string): Promise<any | null> {
       if (settings.ytdlpCustomPath?.trim()) customPath = settings.ytdlpCustomPath.trim();
       if (settings.ytdlpCookiesMode && settings.ytdlpCookiesMode !== 'none') cookiesMode = settings.ytdlpCookiesMode;
       if (settings.ytdlpCookiesBrowser?.trim()) cookiesBrowser = settings.ytdlpCookiesBrowser.trim();
-      if (settings.ytdlpCookiesPath?.trim()) cookiesPath = settings.ytdlpCookiesPath.trim();
       if (settings.ytdlpPoToken?.trim()) poToken = settings.ytdlpPoToken.trim();
-      if (settings.ytdlpExtractorArgs?.trim()) extractorArgs = settings.ytdlpExtractorArgs.trim();
+      if (settings.ytdlpExtractorArgs?.trim() && settings.ytdlpExtractorArgs.trim() !== 'youtube:player_client=android,web') {
+        extractorArgs = settings.ytdlpExtractorArgs.trim();
+      }
       if (settings.ytdlpCustomArgs?.trim()) customArgs = settings.ytdlpCustomArgs.trim();
       if (settings.ffmpegCustomPath?.trim()) ffmpegPath = settings.ffmpegCustomPath.trim();
     }

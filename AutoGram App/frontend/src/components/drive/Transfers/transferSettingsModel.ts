@@ -197,7 +197,8 @@ export function normalizeTransferSettings(raw?: Partial<DriveTransferSettings>):
   const ytdlpCookiesBrowser = (base.ytdlpCookiesBrowser || 'chrome').trim();
   const ytdlpCookiesPath = (base.ytdlpCookiesPath || '').trim();
   const ytdlpPoToken = (base.ytdlpPoToken || '').trim();
-  const ytdlpExtractorArgs = (base.ytdlpExtractorArgs !== undefined ? base.ytdlpExtractorArgs : 'youtube:player_client=android,web').trim();
+  const rawExtractorArgs = (base.ytdlpExtractorArgs || '').trim();
+  const ytdlpExtractorArgs = rawExtractorArgs === 'youtube:player_client=android,web' ? '' : rawExtractorArgs;
   const ytdlpCustomArgs = (base.ytdlpCustomArgs || '').trim();
   const ffmpegCustomPath = (base.ffmpegCustomPath || '').trim();
   const ytdlpAutoMuxFfmpeg = base.ytdlpAutoMuxFfmpeg !== false;
