@@ -64,6 +64,24 @@ async function fetchYouTubeWatchHtml(url: string, signal?: AbortSignal): Promise
   return null;
 }
 
+function parseCipherUrl(cipherStr?: string): string | undefined {
+  if (!cipherStr) return undefined;
+  try {
+    const params = new URLSearchParams(cipherStr);
+    const url = params.get('url');
+    if (!url) return undefined;
+    const sig = params.get('s') || params.get('sig') || params.get('signature');
+    const sp = params.get('sp') || 'sig';
+    if (sig) {
+      const glue = url.includes('?') ? '&' : '?';
+      return `${url}${glue}${sp}=${encodeURIComponent(sig)}`;
+    }
+    return url;
+  } catch {
+    return undefined;
+  }
+}
+
 async function fetchYouTubeInnertubePlayer(videoId: string, signal?: AbortSignal): Promise<any | null> {
   // Public player API key used by YouTube's own clients (not a user secret).
   const apiKey = 'AIzaSyAO_FJ2SlqU8Q4STEHLGCil_w_Y9_11qcW8';
@@ -75,6 +93,14 @@ async function fetchYouTubeInnertubePlayer(videoId: string, signal?: AbortSignal
       osVersion: '11',
       androidSdkVersion: 30,
       userAgent: 'com.google.android.youtube/21.26.364 (Linux; U; Android 11) gzip',
+    },
+    {
+      clientName: 'ANDROID',
+      clientVersion: '19.29.35',
+      osName: 'Android',
+      osVersion: '14',
+      androidSdkVersion: 34,
+      userAgent: 'com.google.android.youtube/19.29.35 (Linux; U; Android 14) gzip',
     },
   ];
 
@@ -417,11 +443,29 @@ function processPlayerData(
 
   const adaptive = (data?.streamingData?.adaptiveFormats || []) as any[];
   const regular = (data?.streamingData?.formats || []) as any[];
-  // A format without a signed URL is only a capability hint (for example a
-  // SABR-only response). It must never become a downloadable/preview card.
-  const allFormats = [...adaptive, ...regular].filter(
-    (f) => typeof f?.url === 'string' && f.url.startsWith('http')
-  );
+
+  // Extract base direct URL fallback from regular muxed streams or HLS/DASH manifest
+  const baseDirectUrl =
+    regular.find((r) => typeof r?.url === 'string' && r.url.startsWith('http'))?.url ||
+    adaptive.find((r) => typeof r?.url === 'string' && r.url.startsWith('http'))?.url ||
+    data?.streamingData?.hlsManifestUrl ||
+    '';
+
+  const allFormats = [...adaptive, ...regular]
+    .map((f) => {
+      let directUrl = typeof f?.url === 'string' && f.url.startsWith('http') ? f.url : undefined;
+      if (!directUrl && (f?.signatureCipher || f?.cipher)) {
+        directUrl = parseCipherUrl(f.signatureCipher || f.cipher);
+      }
+      if (!directUrl && baseDirectUrl) {
+        directUrl = baseDirectUrl;
+      }
+      return {
+        ...f,
+        url: directUrl,
+      };
+    })
+    .filter((f) => typeof f?.url === 'string' && f.url.startsWith('http'));
 
   const dur = durationSec || 180;
 
@@ -439,6 +483,8 @@ function processPlayerData(
 
   tiers.forEach(({ key, label, tier, height, defaultBitrateMbps }) => {
     const tierMatches = allFormats.filter((f) => {
+      const isAud = !f.qualityLabel && (f.mimeType?.includes('audio') || !!f.audioQuality);
+      if (isAud) return false;
       const ql = (f.qualityLabel || '').toLowerCase();
       return ql.startsWith(key) || ql.includes(key) || (f.height && Math.abs(f.height - height) <= 25);
     });
@@ -502,9 +548,7 @@ function processPlayerData(
     }
   });
 
-  // Audio streams - Preserve every concrete audio track. SABR capability
-  // descriptors without a signed URL are intentionally excluded: they cannot
-  // be downloaded or previewed by the client.
+  // Audio streams - Preserve every concrete audio track with deduplication
   const allAudios = allFormats.filter(
     (f) => !f.qualityLabel && (f.audioQuality || f.mimeType?.includes('audio'))
   );
@@ -513,55 +557,58 @@ function processPlayerData(
   const m4aAudios = allAudios.filter((f) => f.mimeType?.includes('mp4') || f.mimeType?.includes('aac') || f.mimeType?.includes('m4a'));
   const opusAudios = allAudios.filter((f) => f.mimeType?.includes('webm') || f.mimeType?.includes('opus'));
 
-  if (m4aAudios.length > 0) {
-    m4aAudios.forEach((bestM4a, idx) => {
-      const m4aKbps = bestM4a?.bitrate ? Math.round(bestM4a.bitrate / 1000) : 160;
-      const m4aSize = bestM4a?.contentLength ? parseInt(bestM4a.contentLength, 10) : Math.round(dur * (m4aKbps * 1024 / 8));
-      const isPrimary = idx === 0;
+  const seenM4aBitrates = new Set<number>();
+  m4aAudios.forEach((bestM4a) => {
+    const m4aKbps = bestM4a?.bitrate ? Math.round(bestM4a.bitrate / 1000) : 128;
+    if (seenM4aBitrates.has(m4aKbps)) return;
+    seenM4aBitrates.add(m4aKbps);
+    const m4aSize = bestM4a?.contentLength ? parseInt(bestM4a.contentLength, 10) : Math.round(dur * (m4aKbps * 1024 / 8));
+    const isPrimary = formats.filter((f) => f.isAudio && f.ext === 'm4a').length === 0;
 
-      formats.push({
-        id: isPrimary ? 'yt_audio_m4a' : `yt_audio_m4a_${idx}`,
-        label: isPrimary ? 'Hi-Res Audio (M4A)' : `Audio M4A (${m4aKbps}k)`,
-        qualityTier: 'audio',
-        resolution: `${m4aKbps} kbps (AAC)`,
-        ext: 'm4a',
-        filesizeBytes: m4aSize,
-        directUrl: bestM4a?.url,
-        isDownloadable: true,
-        isStreamable: true,
-        isAudio: true,
-        badge: `${m4aKbps} KBPS • AAC`,
-        codec: 'AAC',
-        itag: bestM4a?.itag,
-      });
+    formats.push({
+      id: isPrimary ? 'yt_audio_m4a' : `yt_audio_m4a_${m4aKbps}k`,
+      label: isPrimary ? 'Hi-Res Audio (M4A)' : `Audio M4A (${m4aKbps}k)`,
+      qualityTier: 'audio',
+      resolution: `${m4aKbps} kbps (AAC)`,
+      ext: 'm4a',
+      filesizeBytes: m4aSize,
+      directUrl: bestM4a.url,
+      isDownloadable: true,
+      isStreamable: true,
+      isAudio: true,
+      badge: `${m4aKbps} KBPS • AAC`,
+      codec: 'AAC',
+      itag: bestM4a.itag,
     });
-  }
+  });
 
-  if (opusAudios.length > 0) {
-    opusAudios.forEach((bestOpus, idx) => {
-      const opusKbps = bestOpus.bitrate ? Math.round(bestOpus.bitrate / 1000) : 160;
-      const opusSize = bestOpus.contentLength ? parseInt(bestOpus.contentLength, 10) : Math.round(dur * (opusKbps * 1024 / 8));
-      let lbl = `Audio Opus (${opusKbps}k)`;
-      if (idx === 0) lbl = 'Studio Audio (Opus)';
-      else if (idx === opusAudios.length - 1) lbl = 'Voice Audio (Opus)';
+  const seenOpusBitrates = new Set<number>();
+  opusAudios.forEach((bestOpus) => {
+    const opusKbps = bestOpus?.bitrate ? Math.round(bestOpus.bitrate / 1000) : 160;
+    if (seenOpusBitrates.has(opusKbps)) return;
+    seenOpusBitrates.add(opusKbps);
+    const opusSize = bestOpus?.contentLength ? parseInt(bestOpus.contentLength, 10) : Math.round(dur * (opusKbps * 1024 / 8));
+    const count = formats.filter((f) => f.isAudio && f.ext === 'opus').length;
+    let lbl = `Audio Opus (${opusKbps}k)`;
+    if (count === 0) lbl = 'Studio Audio (Opus)';
+    else if (opusKbps <= 60) lbl = `Voice Audio (Opus ${opusKbps}k)`;
 
-      formats.push({
-        id: idx === 0 ? 'yt_audio_opus' : `yt_audio_opus_${idx}`,
-        label: lbl,
-        qualityTier: 'audio',
-        resolution: `${opusKbps} kbps (Opus)`,
-        ext: 'opus',
-        filesizeBytes: opusSize,
-        directUrl: bestOpus.url,
-        isDownloadable: true,
-        isStreamable: true,
-        isAudio: true,
-        badge: `${opusKbps} KBPS • OPUS`,
-        codec: 'Opus',
-        itag: bestOpus?.itag,
-      });
+    formats.push({
+      id: count === 0 ? 'yt_audio_opus' : `yt_audio_opus_${opusKbps}k`,
+      label: lbl,
+      qualityTier: 'audio',
+      resolution: `${opusKbps} kbps (Opus)`,
+      ext: 'opus',
+      filesizeBytes: opusSize,
+      directUrl: bestOpus.url,
+      isDownloadable: true,
+      isStreamable: true,
+      isAudio: true,
+      badge: `${opusKbps} KBPS • OPUS`,
+      codec: 'Opus',
+      itag: bestOpus.itag,
     });
-  }
+  });
 
   const captionTracks = (data?.captions?.playerCaptionsTracklistRenderer?.captionTracks || []) as any[];
   captionTracks.forEach((c) => {

@@ -79,6 +79,109 @@ describe('youtubeResolver', () => {
     expect(result?.formats.some((f) => f.isAudio || f.isVideo)).toBe(true);
   });
 
+  it('populates multiple video tiers and audio streams from pure native Innertube adaptive formats', async () => {
+    const playerResponse = {
+      videoDetails: {
+        title: '4K Nature Video',
+        author: 'Nature Channel',
+        lengthSeconds: '300',
+        thumbnail: { thumbnails: [{ url: 'https://i.ytimg.com/vi/tYARyQLq8RU/hqdefault.jpg' }] },
+      },
+      streamingData: {
+        formats: [
+          {
+            itag: 18,
+            mimeType: 'video/mp4; codecs="avc1.42001E, mp4a.40.2"',
+            qualityLabel: '360p',
+            width: 640,
+            height: 360,
+            fps: 30,
+            bitrate: 600000,
+            contentLength: '12000000',
+            url: 'https://video.googlevideo.com/videoplayback?itag=18',
+          },
+        ],
+        adaptiveFormats: [
+          {
+            itag: 313,
+            mimeType: 'video/webm; codecs="vp9"',
+            qualityLabel: '2160p',
+            width: 3840,
+            height: 2160,
+            fps: 60,
+            bitrate: 25000000,
+            contentLength: '900000000',
+          },
+          {
+            itag: 137,
+            mimeType: 'video/mp4; codecs="avc1.640028"',
+            qualityLabel: '1080p',
+            width: 1920,
+            height: 1080,
+            fps: 60,
+            bitrate: 5000000,
+            contentLength: '180000000',
+          },
+          {
+            itag: 136,
+            mimeType: 'video/mp4; codecs="avc1.4d401f"',
+            qualityLabel: '720p',
+            width: 1280,
+            height: 720,
+            fps: 30,
+            bitrate: 2500000,
+            contentLength: '90000000',
+          },
+          {
+            itag: 140,
+            mimeType: 'audio/mp4; codecs="mp4a.40.2"',
+            audioQuality: 'AUDIO_QUALITY_MEDIUM',
+            audioSampleRate: '44100',
+            audioChannels: 2,
+            bitrate: 131000,
+            contentLength: '4800000',
+          },
+          {
+            itag: 251,
+            mimeType: 'audio/webm; codecs="opus"',
+            audioQuality: 'AUDIO_QUALITY_MEDIUM',
+            audioSampleRate: '48000',
+            audioChannels: 2,
+            bitrate: 150000,
+            contentLength: '5200000',
+          },
+        ],
+      },
+    };
+
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const requestUrl = String(input);
+      if (requestUrl.includes('/youtubei/v1/player')) {
+        return { ok: true, json: async () => playerResponse } as Response;
+      }
+      return { ok: true, text: async () => '<html><title>4K Nature Video - YouTube</title></html>' } as Response;
+    }));
+
+    const result = await youtubeResolver.resolve('https://www.youtube.com/watch?v=tYARyQLq8RU');
+    expect(result).toBeDefined();
+    expect(result?.title).toBe('4K Nature Video');
+    expect(result?.formats.length).toBeGreaterThanOrEqual(5);
+
+    const formatTiers = result?.formats.map((f) => f.qualityTier);
+    expect(formatTiers).toContain('4k');
+    expect(formatTiers).toContain('1080p');
+    expect(formatTiers).toContain('720p');
+    expect(formatTiers).toContain('360p');
+    expect(formatTiers).toContain('audio');
+
+    // Default selected format should be highest quality video (4k)
+    expect(result?.selectedFormatId).toBe('yt_2160p_webm');
+
+    // All formats must have valid playable direct URLs
+    expect(result?.formats.every((f) => typeof f.directUrl === 'string' && f.directUrl.startsWith('http'))).toBe(true);
+    expect(result?.rawStreams.length).toBe(6);
+  });
+
   it('maps yt-dlp direct formats without exposing manifests as downloadable files', () => {
     const formats: StreamQualityFormat[] = [];
     const rawStreams: RawStreamItem[] = [];
