@@ -1,3 +1,19 @@
+## v3.8.48 Standalone FFmpeg & FFprobe Runtime Plugin, Auto-Updater Suite & Capability Telemetry Engine
+
+### 1. Standalone FFmpeg Runtime Plugin (`plugins/ffmpeg-extractor/`)
+- **Isolasi Penuh Plugin Biner Tanpa Bloat Repositori**: Menghadirkan direktori plugin mandiri `plugins/ffmpeg-extractor/` dengan struktur terisolasi. Biner berukuran besar (`ffmpeg.exe` & `ffprobe.exe`) tidak dimasukkan ke dalam pelacakan Git repositori dan diunduh sesuai kebutuhan pengguna secara atomik.
+- **Skrip Pemutakhiran Lintas Platform (Python + PowerShell + Batch)**: Menyediakan `scripts/update_ffmpeg.py`, `scripts/update_ffmpeg.ps1`, dan `scripts/update_ffmpeg.bat` yang otomatis mendeteksi sistem operasi (Windows x86_64/ARM64, macOS, Linux) dan mengunduh rilis statis resmi FFmpeg terbaru dengan verifikasi checksum integritas.
+- **Manifes Standar Plugin (`.codex-plugin/plugin.json`)**: Mendaftarkan kapabilitas plugin mencakup ekstraksi frame keyframe, stream range proxy partial content `206`, translasi subtitle, dan perbaikan atom `moov` video corrupt.
+
+### 2. Backend Rust IPC & Capability Telemetry Engine (`ffmpeg.rs`, `ytdlp_plugin.rs`)
+- **Perluasan Deteksi Status (`ffmpeg_plugin_status`)**: Backend Rust kini secara otomatis memindai lokasi FFmpeg dari 4 prioritas: (1) Jalur kustom yang ditentukan pengguna, (2) Direktori plugin AppData pengguna (`%APPDATA%/plugins/ffmpeg-extractor/bin`), (3) Direktori lokal plugin workspace, dan (4) Variabel lingkungan `PATH` sistem operasi.
+- **Eksekusi Unduh & Pasang Otomatis In-App (`ffmpeg_update_plugin`)**: Memungkinkan pengguna memasang dan memperbarui FFmpeg langsung dari antarmuka aplikasi melalui IPC command Tauri tanpa memerlukan terminal eksternal.
+- **Telemetri Kapabilitas Hardware & Decoder Riil**: Memeriksa kapabilitas biner secara mendalam: protokol `http`/`https`, ketersediaan decoder AV1 (`libdav1d`/`libaom`), akselerator hardware GPU (NVENC/AMF/QSV), dan deteksi biner pendamping `ffprobe`.
+
+### 3. Antarmuka Pengaturan Transfer Media & Paritas Multi-Bahasa (`TransferSettingsWorkspace.tsx`)
+- **Kartu Manajemen Plugin FFmpeg Modern**: Menampilkan kartu status real-time dengan lencana sumber biner (*Plugin AppData*, *System PATH*, *Custom Path*), lencana kapabilitas aktif (⚡ *HTTP Range Proxy*, 🎬 *Decoder AV1*, 🚀 *Hardware Accel*, 📦 *FFprobe Siap*), dan tombol aksi 1-klik *Unduh / Perbarui Plugin FFmpeg*.
+- **Paritas Multi-Bahasa 100% (Indonesian & English)**: Seluruh string antarmuka baru telah diekstrak dan didaftarkan secara sinkron di `id/drive_tools.json` dan `en/drive_tools.json` dengan paritas kunci 100%.
+
 ## v3.8.47 Autonomous 5-Dimension Quality Sentinel, Consolidated Master SQLite Schema v5.2.0 & Standalone Build Hub
 
 ### 1. Autonomous 5-Dimension Quality Sentinel & Automated Test Suite

@@ -48,6 +48,8 @@ import {
   Terminal,
   Globe,
   FileText,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import type {
   CaptionPosition,
@@ -313,7 +315,20 @@ export function TransferSettingsWorkspace({
   const [pluginTestUrl, setPluginTestUrl] = useState('');
   const [pluginTestRunning, setPluginTestRunning] = useState(false);
   const [pluginTestResult, setPluginTestResult] = useState<{ success: boolean; message: string; details?: any } | null>(null);
-  const [ffmpegStatus, setFfmpegStatus] = useState<{ installed?: boolean; version?: string | null; executable?: string | null; source?: string } | null>(null);
+  const [ffmpegStatus, setFfmpegStatus] = useState<{
+    installed?: boolean;
+    version?: string | null;
+    latestVersion?: string | null;
+    updateAvailable?: boolean;
+    executable?: string | null;
+    ffprobeExecutable?: string | null;
+    source?: string;
+    supportsHttp?: boolean;
+    av1Decoder?: string | null;
+    supportsNvenc?: boolean;
+    error?: string | null;
+  } | null>(null);
+  const [ffmpegBusy, setFfmpegBusy] = useState(false);
   const [activeInfoModal, setActiveInfoModal] = useState<'runtime' | 'cookies' | 'po_token' | 'extractor_args' | 'ffmpeg' | 'custom_cli_args' | null>(null);
   const [copiedSnippet, setCopiedSnippet] = useState<string | null>(null);
 
@@ -359,6 +374,19 @@ export function TransferSettingsWorkspace({
       setFfmpegStatus(res);
     } catch {
       setFfmpegStatus({ installed: false, version: null, source: 'none' });
+    }
+  };
+
+  const handleUpdateFfmpeg = async () => {
+    setFfmpegBusy(true);
+    try {
+      const res = await invoke<any>('ffmpeg_update_plugin', { force: true });
+      setFfmpegStatus(res);
+    } catch (err) {
+      console.error('Failed to update FFmpeg plugin', err);
+      void refreshFfmpegStatus();
+    } finally {
+      setFfmpegBusy(false);
     }
   };
 
@@ -4118,11 +4146,70 @@ export function TransferSettingsWorkspace({
                 </div>
 
                 <div className="td-ytdlp-status-box">
-                  <div className="td-ytdlp-status-row">
+                  <div className="td-ytdlp-status-row" style={{ flexWrap: 'wrap', gap: '8px' }}>
                     <span style={{ color: '#94a3b8' }}>{t('drive_tools.plugin_ffmpeg_status_label')}:</span>
                     <strong style={{ color: ffmpegStatus?.installed ? '#4ade80' : '#f59e0b' }}>
                       {ffmpegStatus?.installed ? t('drive_tools.plugin_ffmpeg_status_installed', { version: ffmpegStatus.version || t('drive_tools.plugin_status_ready') }) : t('drive_tools.plugin_ffmpeg_status_not_found')}
                     </strong>
+                    {ffmpegStatus?.source && ffmpegStatus.source !== 'none' && (
+                      <span className="td-chip-btn" style={{ padding: '1px 7px', fontSize: '0.68rem', cursor: 'default', opacity: 0.85 }}>
+                        {t('drive_tools.plugin_ffmpeg_source_label')} {ffmpegStatus.source === 'app_data' ? t('drive_tools.plugin_ffmpeg_source_app_data') : ffmpegStatus.source === 'workspace_plugin' ? t('drive_tools.plugin_ffmpeg_source_workspace') : ffmpegStatus.source === 'custom' ? t('drive_tools.plugin_ffmpeg_source_custom') : t('drive_tools.plugin_ffmpeg_source_system')}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Capabilities Chips */}
+                  {ffmpegStatus?.installed && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                      {ffmpegStatus.supportsHttp && (
+                        <span className="td-chip-btn td-chip-primary" style={{ padding: '2px 8px', fontSize: '0.70rem', cursor: 'default' }}>
+                          {t('drive_tools.plugin_ffmpeg_cap_http')}
+                        </span>
+                      )}
+                      {ffmpegStatus.av1Decoder && (
+                        <span className="td-chip-btn" style={{ padding: '2px 8px', fontSize: '0.70rem', cursor: 'default', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', borderColor: 'rgba(168, 85, 247, 0.3)' }}>
+                          {t('drive_tools.plugin_ffmpeg_cap_av1', { codec: ffmpegStatus.av1Decoder })}
+                        </span>
+                      )}
+                      {ffmpegStatus.supportsNvenc && (
+                        <span className="td-chip-btn" style={{ padding: '2px 8px', fontSize: '0.70rem', cursor: 'default', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', borderColor: 'rgba(16, 185, 129, 0.3)' }}>
+                          {t('drive_tools.plugin_ffmpeg_cap_nvenc')}
+                        </span>
+                      )}
+                      {ffmpegStatus.ffprobeExecutable ? (
+                        <span className="td-chip-btn" style={{ padding: '2px 8px', fontSize: '0.70rem', cursor: 'default', background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', borderColor: 'rgba(59, 130, 246, 0.3)' }}>
+                          {t('drive_tools.plugin_ffmpeg_cap_ffprobe_ready')}
+                        </span>
+                      ) : (
+                        <span className="td-chip-btn" style={{ padding: '2px 8px', fontSize: '0.70rem', cursor: 'default', background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', borderColor: 'rgba(245, 158, 11, 0.3)' }}>
+                          {t('drive_tools.plugin_ffmpeg_cap_ffprobe_missing')}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Actions Row */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="td-chip-btn td-chip-primary"
+                      disabled={ffmpegBusy || !!transferActive}
+                      onClick={() => void handleUpdateFfmpeg()}
+                      title={t('drive_tools.plugin_ffmpeg_btn_update')}
+                    >
+                      {ffmpegBusy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                      <span>{ffmpegBusy ? t('drive_tools.plugin_ffmpeg_btn_updating') : t('drive_tools.plugin_ffmpeg_btn_update')}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="td-chip-btn"
+                      disabled={ffmpegBusy}
+                      onClick={() => void refreshFfmpegStatus()}
+                      title={t('drive_tools.plugin_ffmpeg_btn_check')}
+                    >
+                      <RefreshCw size={13} className={ffmpegBusy ? 'animate-spin' : ''} />
+                      <span>{t('drive_tools.plugin_ffmpeg_btn_check')}</span>
+                    </button>
                   </div>
                 </div>
 

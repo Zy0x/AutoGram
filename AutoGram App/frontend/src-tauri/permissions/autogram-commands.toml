@@ -10,6 +10,7 @@ allow = [
     "ytdlp_plugin_status",
     "ytdlp_update_plugin",
     "ffmpeg_plugin_status",
+    "ffmpeg_update_plugin",
     "ytdlp_resolve",
     "fetch_remote_json_metadata",
     "fetch_remote_text_content",

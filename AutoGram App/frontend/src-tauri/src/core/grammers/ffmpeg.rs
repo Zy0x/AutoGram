@@ -760,6 +760,10 @@ fn collect_ffmpeg_candidates() -> Vec<PathBuf> {
     }
 
     let sub_paths = [
+        "plugins/ffmpeg-extractor/bin",
+        "AutoGram App/plugins/ffmpeg-extractor/bin",
+        "../plugins/ffmpeg-extractor/bin",
+        "../../plugins/ffmpeg-extractor/bin",
         "worker/venv/Lib/site-packages/imageio_ffmpeg/binaries",
         "AutoGram App/worker/venv/Lib/site-packages/imageio_ffmpeg/binaries",
         "../worker/venv/Lib/site-packages/imageio_ffmpeg/binaries",
@@ -806,14 +810,18 @@ fn collect_ffmpeg_candidates() -> Vec<PathBuf> {
             }
         }
         let mut app_search_roots = Vec::new();
+        if let Ok(app_data) = std::env::var("APPDATA") {
+            app_search_roots.push(PathBuf::from(app_data).join("com.aliri.frontend").join("plugins").join("ffmpeg-extractor").join("bin"));
+        }
+        if let Ok(local_app) = std::env::var("LOCALAPPDATA") {
+            app_search_roots.push(PathBuf::from(local_app).join("com.aliri.frontend").join("plugins").join("ffmpeg-extractor").join("bin"));
+            app_search_roots.push(PathBuf::from(local_app));
+        }
         if let Ok(pf) = std::env::var("ProgramFiles") {
             app_search_roots.push(PathBuf::from(pf));
         }
         if let Ok(pfx86) = std::env::var("ProgramFiles(x86)") {
             app_search_roots.push(PathBuf::from(pfx86));
-        }
-        if let Ok(local_app) = std::env::var("LOCALAPPDATA") {
-            app_search_roots.push(PathBuf::from(local_app));
         }
 
         for root in app_search_roots {

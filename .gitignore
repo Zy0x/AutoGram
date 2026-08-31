@@ -208,13 +208,13 @@ mcps/
 *.session.json
 **/sessions/
 worker/sessions/
-AutoGram App/worker/sessions/
+# Plugins runtime binaries (downloaded on demand, zero-bloat repo)
+AutoGram App/plugins/**/bin/
+AutoGram App/plugins/**/runtime/
+AutoGram App/plugins/**/*.zip
+AutoGram App/plugins/**/*.tar*
+AutoGram App/plugins/**/*.7z
+plugins/**/bin/
+plugins/**/runtime/
 
-# Raw audit logs & evidence
-docs/**/evidence/
-docs/**/raw/
-AutoGram App/frontend/remote/
-remote/
-.agent-notes/
-AutoGram App/.agent-notes/
 

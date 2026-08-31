@@ -51,8 +51,14 @@ pub struct YtDlpPluginStatus {
 pub struct FfmpegPluginStatus {
     pub installed: bool,
     pub version: Option<String>,
+    pub latest_version: Option<String>,
+    pub update_available: bool,
     pub executable: Option<String>,
-    pub source: String, // "system" | "custom" | "none"
+    pub ffprobe_executable: Option<String>,
+    pub source: String, // "app_data" | "workspace_plugin" | "system" | "custom" | "none"
+    pub supports_http: bool,
+    pub av1_decoder: Option<String>,
+    pub supports_nvenc: bool,
     pub error: Option<String>,
 }
 
@@ -505,58 +511,207 @@ pub fn ytdlp_update_plugin(
     Ok(status_from(&dir, &state, state.version.clone(), None, None))
 }
 
+pub fn ffmpeg_plugin_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    let dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("resolve app data dir: {e}"))?
+        .join("plugins")
+        .join("ffmpeg-extractor");
+    fs::create_dir_all(dir.join("bin")).map_err(|e| format!("create ffmpeg plugin dir: {e}"))?;
+    fs::create_dir_all(dir.join("runtime")).map_err(|e| format!("create ffmpeg runtime dir: {e}"))?;
+    Ok(dir)
+}
+
+fn probe_ffmpeg_details(path: &Path) -> Option<(String, bool, Option<String>, bool)> {
+    if !path.is_file() {
+        return None;
+    }
+    let v_out = Command::new(path).arg("-hide_banner").arg("-version").output().ok()?;
+    if !v_out.status.success() {
+        return None;
+    }
+    let v_text = String::from_utf8_lossy(&v_out.stdout);
+    let version = v_text.lines().next().unwrap_or("").trim().to_string();
+    if version.is_empty() {
+        return None;
+    }
+
+    let p_out = Command::new(path).arg("-hide_banner").arg("-protocols").output().ok();
+    let supports_http = p_out.map(|o| {
+        let p_text = String::from_utf8_lossy(&o.stdout);
+        p_text.lines().any(|l| {
+            let t = l.trim();
+            t == "http" || t.starts_with("http ") || t.ends_with(" http") || t == "https"
+        })
+    }).unwrap_or(false);
+
+    let d_out = Command::new(path).arg("-hide_banner").arg("-decoders").output().ok();
+    let av1_decoder = d_out.and_then(|o| {
+        let d_text = String::from_utf8_lossy(&o.stdout);
+        if d_text.contains("libdav1d") {
+            Some("libdav1d".to_string())
+        } else if d_text.contains("libaom-av1") {
+            Some("libaom-av1".to_string())
+        } else if d_text.contains("av1") {
+            Some("av1".to_string())
+        } else {
+            None
+        }
+    });
+
+    let e_out = Command::new(path).arg("-hide_banner").arg("-encoders").output().ok();
+    let supports_nvenc = e_out.map(|o| {
+        let e_text = String::from_utf8_lossy(&o.stdout);
+        e_text.contains("nvenc") || e_text.contains("h264_nvenc") || e_text.contains("hevc_nvenc") || e_text.contains("amf") || e_text.contains("qsv")
+    }).unwrap_or(false);
+
+    Some((version, supports_http, av1_decoder, supports_nvenc))
+}
+
 #[tauri::command]
 pub fn ffmpeg_plugin_status(
+    app: AppHandle,
     custom_path: Option<String>,
 ) -> Result<FfmpegPluginStatus, String> {
+    let mut resolved_exe: Option<(PathBuf, String)> = None;
+
     // 1. Check custom path
     if let Some(ref custom) = custom_path {
         let trimmed = custom.trim();
         if !trimmed.is_empty() {
-            let p = Path::new(trimmed);
+            let p = PathBuf::from(trimmed);
             if p.is_file() {
-                if let Ok(output) = Command::new(p).arg("-version").output() {
-                    if output.status.success() {
-                        let stdout = String::from_utf8_lossy(&output.stdout);
-                        let first_line = stdout.lines().next().unwrap_or("").to_string();
-                        return Ok(FfmpegPluginStatus {
-                            installed: true,
-                            version: Some(first_line),
-                            executable: Some(p.display().to_string()),
-                            source: "custom".to_string(),
-                            error: None,
-                        });
-                    }
-                }
+                resolved_exe = Some((p, "custom".to_string()));
             }
         }
     }
 
-    // 2. Check system PATH
-    if let Some(sys_bin) = find_system_binary("ffmpeg") {
-        if let Ok(output) = Command::new(&sys_bin).arg("-version").output() {
-            if output.status.success() {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                let first_line = stdout.lines().next().unwrap_or("").to_string();
-                return Ok(FfmpegPluginStatus {
-                    installed: true,
-                    version: Some(first_line),
-                    executable: Some(sys_bin.display().to_string()),
-                    source: "system".to_string(),
-                    error: None,
-                });
+    // 2. Check AppData plugin directory
+    if resolved_exe.is_none() {
+        if let Ok(dir) = ffmpeg_plugin_dir(&app) {
+            let ff_appdata = dir.join("bin").join(if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" });
+            if ff_appdata.is_file() {
+                resolved_exe = Some((ff_appdata, "app_data".to_string()));
             }
         }
     }
 
-    // 3. Not found
+    // 3. Check Workspace plugins and relative paths
+    if resolved_exe.is_none() {
+        let rel_candidates = [
+            PathBuf::from("plugins/ffmpeg-extractor/bin").join(if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" }),
+            PathBuf::from("AutoGram App/plugins/ffmpeg-extractor/bin").join(if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" }),
+            PathBuf::from("../plugins/ffmpeg-extractor/bin").join(if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" }),
+            PathBuf::from("bin").join(if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" }),
+            PathBuf::from("../bin").join(if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" }),
+        ];
+        for cand in rel_candidates {
+            if cand.is_file() {
+                resolved_exe = Some((cand, "workspace_plugin".to_string()));
+                break;
+            }
+        }
+    }
+
+    // 4. Check system binary / PATH
+    if resolved_exe.is_none() {
+        if let Some(sys_bin) = find_system_binary("ffmpeg") {
+            resolved_exe = Some((sys_bin, "system".to_string()));
+        }
+    }
+
+    if let Some((exe_path, source)) = resolved_exe {
+        if let Some((version, supports_http, av1_decoder, supports_nvenc)) = probe_ffmpeg_details(&exe_path) {
+            let parent_dir = exe_path.parent();
+            let ffprobe_path = parent_dir
+                .map(|p| p.join(if cfg!(windows) { "ffprobe.exe" } else { "ffprobe" }))
+                .filter(|p| p.is_file())
+                .or_else(|| find_system_binary("ffprobe"));
+
+            return Ok(FfmpegPluginStatus {
+                installed: true,
+                version: Some(version),
+                latest_version: Some("latest-gpl".to_string()),
+                update_available: false,
+                executable: Some(exe_path.display().to_string()),
+                ffprobe_executable: ffprobe_path.map(|p| p.display().to_string()),
+                source,
+                supports_http,
+                av1_decoder,
+                supports_nvenc,
+                error: None,
+            });
+        }
+    }
+
     Ok(FfmpegPluginStatus {
         installed: false,
         version: None,
+        latest_version: Some("latest-gpl".to_string()),
+        update_available: true,
         executable: None,
+        ffprobe_executable: None,
         source: "none".to_string(),
+        supports_http: false,
+        av1_decoder: None,
+        supports_nvenc: false,
         error: None,
     })
+}
+
+#[tauri::command]
+pub fn ffmpeg_update_plugin(
+    app: AppHandle,
+    _force: Option<bool>,
+) -> Result<FfmpegPluginStatus, String> {
+    let dir = ffmpeg_plugin_dir(&app)?;
+    let bin_dir = dir.join("bin");
+    fs::create_dir_all(&bin_dir).map_err(|e| format!("create ffmpeg bin dir: {e}"))?;
+
+    let download_url = if cfg!(target_os = "windows") {
+        "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+    } else if cfg!(target_os = "macos") {
+        "https://evermeet.cx/ffmpeg/getrelease/zip"
+    } else {
+        "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz"
+    };
+
+    let bytes = download_bytes(download_url)
+        .map_err(|e| format!("download ffmpeg release from {download_url} failed: {e}"))?;
+
+    if download_url.ends_with(".zip") {
+        let cursor = std::io::Cursor::new(&bytes);
+        let mut zip = zip::ZipArchive::new(cursor)
+            .map_err(|e| format!("open ffmpeg zip archive: {e}"))?;
+
+        let mut extracted_count = 0;
+        for i in 0..zip.len() {
+            let mut file = zip.by_index(i).map_err(|e| format!("read zip entry {i}: {e}"))?;
+            let name = file.name().to_string();
+            let lower = name.to_lowercase();
+            if lower.ends_with("ffmpeg.exe") || lower.ends_with("ffprobe.exe") || lower.ends_with("/ffmpeg") || lower.ends_with("/ffprobe") {
+                let file_name = Path::new(&name).file_name().unwrap_or_default();
+                let dest = bin_dir.join(file_name);
+                let mut out = fs::File::create(&dest)
+                    .map_err(|e| format!("create output file {}: {e}", dest.display()))?;
+                std::io::copy(&mut file, &mut out)
+                    .map_err(|e| format!("write output file {}: {e}", dest.display()))?;
+                extracted_count += 1;
+            }
+        }
+        if extracted_count == 0 {
+            return Err("no ffmpeg or ffprobe executable found inside downloaded zip".into());
+        }
+    }
+
+    let state_file = dir.join("runtime").join("state.json");
+    let _ = fs::write(&state_file, serde_json::json!({
+        "version": "latest-gpl",
+        "updatedAt": now_secs()
+    }).to_string());
+
+    ffmpeg_plugin_status(app, None)
 }
 
 #[tauri::command]
