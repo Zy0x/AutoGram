@@ -57,13 +57,38 @@ Pesan harus difilter secara ketat sebelum ditransfer:
 - **Account Health Monitor**: Memberikan status keamanan sesi (Aman/Risiko Tinggi).
 - **Session Protection**: Sesi MTProto Telegram tidak boleh dikirim ke server *developer*. Wajib terenkripsi penuh secara lokal (AES-256).
 
-## 4. Kebutuhan Antarmuka (UI/UX)
-- Tampilan Profesional, Modern, Minimalis, *Card-based* (Gaya dasbor).
-- Mendukung fitur mode Gelap/Terang (*Dark/Light Mode*).
-- **Bahasa**: Mendukung Internasionalisasi (*i18n*) untuk bahasa Inggris (*default*) dan Indonesia.
-- **Menu Utama**: *Dashboard, Accounts, Profiles, Migration, Scheduler, History, Settings.*
+## 4. Standar Desain Antarmuka, Responsivitas & Pengalaman Pengguna (UI/UX Engineering Standard)
+
+Seluruh antarmuka AutoGram wajib dibangun dengan presisi tinggi, mengacu pada standar modern, mobile-first, touch-first, dan anti-regresi:
+
+### 4.1. Presisi Tampilan Antar-Platform & Multi-Resolusi
+- **Pendekatan Mobile-First & Touch-First**: Setiap elemen interaktif wajib memiliki target sentuh ergonomis minimal **44 × 44 px** (48 × 48 px direkomendasikan pada layar sentuh).
+- **Stabilitas Rasio Non-Reguler**: Tata letak wajib stabil, fleksibel, dan adaptif pada resolusi standar maupun non-reguler (1080×2460, 1080×2380, 720p HD hingga 4K Ultra-Wide).
+- **Anti-Distorsi & Zero Overlap**: Dilarang keras terjadi teks terpotong, badge bertumpuk, atau komponen meluap (*overflow*) di luar viewport. Mode *Portrait* dan *Landscape* wajib diuji secara terpisah.
+- **Eliminasi Ketergantungan Hover**: Seluruh fitur dan aksi tombol harus dapat dioperasikan secara penuh melalui sentuhan (*tap/click*) tanpa bergantung pada interaksi *hover-only*.
+
+### 4.2. Keterbacaan Konten & Sistem Warna Kontras Tinggi (Readability First)
+- **Desain Dark Slate Glassmorphism Modern**: Menggunakan kanvas gelap pekat berkelas (`#060911`, `#0B0F19`), permukaan kaca translucent (`SurfaceGlass`, `SurfaceDock`), dan garis batas kaca halus (*hairline border* 1px `rgba(255, 255, 255, 0.08)`).
+- **Kontras Teks Terkalibrasi**: Teks primer (`#F8FAFC`), teks sekunder (`#94A3B8`), dan teks redup (`#64748B`) wajib memiliki rasio kontras tinggi yang nyaman di mata dan tidak bertabrakan dengan latar belakang.
+- **Hierarki Tipografi Jelas**: Menggunakan skala tipografi terstruktur (Header, Title, Body, Subtitle, Metric Token, Badge Pill) dengan pembatasan lebar teks maksimal untuk mencegah wrap teks yang canggung.
+
+### 4.3. Animasi Ringan, Fungsional & Halus
+- **Durasi Mikro-Animasi Terkalibrasi**: Seluruh transisi, modal open/close, hover pendaran, dan rotasi spinner dibatasi dalam rentang **150–350 ms**.
+- **Akselerasi Perangkat Keras**: Menggunakan properti CSS hemat daya (`transform`, `opacity`) agar animasi tetap berjalan stabil 60 FPS pada perangkat berspesifikasi rendah.
+
+### 4.4. Virtualisasi Performa Tinggi & 0ms Paint
+- **Multi-Tier Virtualization**: Menggunakan `@tanstack/react-virtual` pada daftar transfer dan galeri berkas untuk merender 50.000+ item media secara instan tanpa lag memori (*DOM thrashing*).
+- **0ms Mini-Thumb Rendering**: Memanfaatkan `PhotoSize::Stripped` untuk rendering thumbnail instan sebelum citra resolusi penuh selesai diunduh.
+
+### 4.5. Lokalisasi 100% Zero Hardcoded Strings
+- **Paritas Kunci 100%**: Setiap teks, label tombol, placeholder, modal, tooltip, dan pesan error wajib diekstrak ke `src/locales/id/*.json` dan `src/locales/en/*.json`.
+- **Standar Bahasa Indonesia**: Menggunakan kosa kata baku profesional, seperti preferensi kata **murid** (bukan *siswa*).
+
+---
 
 ## 5. Dokumen Spesifikasi Terperinci Terkait
-- **[PRD: Unified Media Delivery, Transcoding & Transfer Engine](file:///f:/AutoGram/AutoGram%20App/docs/product/PRD_UNIFIED_MEDIA_ENGINE.md)**: Dokumen PRD terperinci mencakup seluruh tabel matriks format, transcoding, stiker Lottie, MTProto chunking, dan 7-Tier Lifecycle Architecture.
-- **[Master Upload Workflow (.mmd)](file:///f:/AutoGram/AutoGram%20App/docs/architecture/MASTER_UPLOAD_WORKFLOW.mmd)**: Diagram alur kerja lengkap dalam format Mermaid.
+- **[PRD: Unified Media Delivery, Transcoding & Transfer Engine](./PRD_UNIFIED_MEDIA_ENGINE.md)**: Dokumen PRD terperinci mencakup seluruh tabel matriks format, transcoding, stiker Lottie, MTProto chunking, dan 7-Tier Lifecycle Architecture.
+- **[Master Upload Workflow (.mmd)](../architecture/MASTER_UPLOAD_WORKFLOW.mmd)**: Diagram alur kerja lengkap dalam format Mermaid.
+- **[Dokumentasi Publik Pengguna](../../docs/README.md)**: Indeks panduan pengguna publik.
+- **[Manual Induk Agen (AGENTS.md)](../../../AGENTS.md)**: Standar operasional master AI Agent.
 
