@@ -525,6 +525,14 @@ pub fn ytdlp_resolve(
         "--no-playlist",
         "--no-warnings",
         "--no-progress",
+        "--js-runtimes",
+        "node",
+        "--js-runtimes",
+        "deno",
+        "--js-runtimes",
+        "bun",
+        "--js-runtimes",
+        "quickjs",
     ]);
 
     // Cookies support
@@ -563,9 +571,6 @@ pub fn ytdlp_resolve(
         if !trimmed.is_empty() {
             extractor_args_combined.push(trimmed.to_string());
         }
-    }
-    if extractor_args_combined.is_empty() {
-        extractor_args_combined.push("youtube:player_client=android,web".to_string());
     }
     for arg in extractor_args_combined {
         cmd.args(["--extractor-args", &arg]);
