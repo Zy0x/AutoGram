@@ -140,6 +140,9 @@ remote/
 icon App/
 worker/
 **/worker/
+Buka_AutoGram_LiveDev.bat
+Buka_*.bat
+*.bat.bak
 
 # Legacy and Temp folders
 Prompt/
