@@ -28076,10 +28076,17 @@ button.td-confirm-icon.is-back-btn:active {
 
 .td-remote-quality-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(178px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
   gap: 8px;
   width: 100%;
   align-items: stretch;
+}
+
+@media (max-width: 520px) {
+  .td-remote-quality-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 6px;
+  }
 }
 
 .td-remote-quality-chip {
@@ -28096,7 +28103,7 @@ button.td-confirm-icon.is-back-btn:active {
   cursor: pointer;
   transition: all 160ms cubic-bezier(0.4, 0, 0.2, 1);
   text-align: left;
-  min-height: 54px;
+  min-height: 56px;
   min-width: 0;
   box-sizing: border-box;
 }
@@ -28122,6 +28129,7 @@ button.td-confirm-icon.is-back-btn:active {
   justify-content: space-between;
   gap: 6px;
   min-width: 0;
+  width: 100%;
 }
 
 .td-remote-quality-chip-title {
@@ -28132,6 +28140,15 @@ button.td-confirm-icon.is-back-btn:active {
   overflow: hidden;
   text-overflow: ellipsis;
   letter-spacing: -0.01em;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.td-remote-quality-chip-top-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
 }
 
 .td-remote-chip-active-ico {
@@ -28142,8 +28159,8 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-quality-chip-meta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 6px;
+  justify-content: flex-start;
+  gap: 4px;
   min-width: 0;
   width: 100%;
 }
@@ -28153,7 +28170,8 @@ button.td-confirm-icon.is-back-btn:active {
   align-items: center;
   gap: 4px;
   min-width: 0;
-  flex: 1 1 auto;
+  flex-wrap: wrap;
+  width: 100%;
 }
 
 .td-remote-quality-chip-badge {
@@ -28172,12 +28190,14 @@ button.td-confirm-icon.is-back-btn:active {
 
 .td-remote-quality-chip-size {
   font-size: 0.64rem;
-  font-weight: 650;
+  font-weight: 700;
   color: #94a3b8;
   white-space: nowrap;
   flex-shrink: 0;
-  margin-left: auto;
   font-variant-numeric: tabular-nums;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 4px;
+  border-radius: 3px;
 }
 
 .td-remote-selected-spec-card {
@@ -28659,12 +28679,6 @@ button.td-confirm-icon.is-back-btn:active {
   box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
 }
 
-.td-remote-quality-chip-size {
-  font-size: 0.64rem;
-  font-weight: 600;
-  color: #94a3b8;
-  white-space: nowrap;
-}
 
 .td-remote-filename-input {
   flex: 1 1 auto;
@@ -31213,10 +31227,29 @@ button.td-confirm-icon.is-back-btn:active {
     row-gap: 10px !important;
     column-gap: 8px !important;
   }
+
+  .td-remote-quality-grid {
+    grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)) !important;
+    gap: 6px !important;
+  }
 }
 
-/* 5. Ultra-Narrow (< 520px) Action Button Label Collapse */
+/* 5. Ultra-Narrow (< 520px) Action Button Label Collapse & Chip Sizing */
 @media (max-width: 520px) {
+  .td-remote-quality-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+    gap: 5px !important;
+  }
+  .td-remote-quality-chip {
+    padding: 6px 8px !important;
+    min-height: 48px !important;
+  }
+  .td-remote-quality-chip-title {
+    font-size: 0.70rem !important;
+  }
+  .td-remote-quality-chip-size {
+    font-size: 0.60rem !important;
+  }
   .td-remote-gallery-btn-action span {
     display: none !important;
   }

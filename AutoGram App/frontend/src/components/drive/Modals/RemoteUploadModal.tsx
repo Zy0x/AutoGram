@@ -4237,7 +4237,14 @@ export function RemoteUploadModal({
                                   <span className="td-remote-quality-chip-title">
                                     {getFormatDisplayLabel(fmt, resolvedMedia, t)}
                                   </span>
-                                  {isSelected && <CheckCircle2 size={13} className="td-remote-chip-active-ico" />}
+                                  <div className="td-remote-quality-chip-top-right">
+                                    {fmt.filesizeBytes ? (
+                                      <span className="td-remote-quality-chip-size">
+                                        ~{formatDriveBytes(fmt.filesizeBytes)}
+                                      </span>
+                                    ) : null}
+                                    {isSelected && <CheckCircle2 size={13} className="td-remote-chip-active-ico" />}
+                                  </div>
                                 </div>
                                 <div className="td-remote-quality-chip-meta">
                                   <div className="td-remote-quality-chip-badges">
@@ -4258,11 +4265,6 @@ export function RemoteUploadModal({
                                       </span>
                                     )}
                                   </div>
-                                  {fmt.filesizeBytes ? (
-                                    <span className="td-remote-quality-chip-size">
-                                      ~{formatDriveBytes(fmt.filesizeBytes)}
-                                    </span>
-                                  ) : null}
                                 </div>
                               </button>
                             );
