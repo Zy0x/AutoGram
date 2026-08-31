@@ -3713,34 +3713,26 @@ export function TransferSettingsWorkspace({
 
         {/* DEDICATED FULL SUB-PAGE: YT-DLP DEEP CONFIGURATION */}
         {activeTab === 'ytdlp' && ytdlpSubPage === 'config' && (
-          <div className="td-xfer-focused-panel" id="section-ytdlp-deep-config" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="td-ytdlp-subpage-container" id="section-ytdlp-deep-config">
             {/* Sub-Page Top Header with Back Navigation */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '12px',
-              paddingBottom: '14px',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="td-ytdlp-header-banner">
+              <div className="td-ytdlp-header-left">
                 <button
                   type="button"
                   className="td-chip-btn"
                   onClick={() => setYtdlpSubPage('overview')}
-                  style={{ fontSize: '0.8rem', padding: '7px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  style={{ fontSize: '0.8rem', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '8px', minHeight: '38px' }}
                 >
-                  <ArrowLeft size={14} />
+                  <ArrowLeft size={15} />
                   <span>{t('drive_tools.plugin_back_to_plugins')}</span>
                 </button>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.02em' }}>
                       {t('drive_tools.plugin_ytdlp_config_title')}
                     </h3>
                     <span style={{
-                      fontSize: '0.7rem',
+                      fontSize: '0.72rem',
                       fontWeight: 700,
                       padding: '2px 8px',
                       borderRadius: '6px',
@@ -3751,50 +3743,46 @@ export function TransferSettingsWorkspace({
                       v{ytdlpStatus?.version || '2026.08'}
                     </span>
                   </div>
-                  <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
+                  <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.4 }}>
                     {t('drive_tools.plugin_ytdlp_config_desc')}
                   </p>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div className="td-ytdlp-header-actions">
                 <button
                   type="button"
                   className="td-chip-btn"
                   disabled={ytdlpBusy}
                   onClick={() => void refreshYtdlpStatus(true)}
-                  style={{ fontSize: '0.78rem', padding: '6px 12px' }}
+                  style={{ fontSize: '0.78rem', padding: '8px 14px', minHeight: '38px', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <RotateCcw size={13} /> {t('drive_tools.ytdlp_check_now')}
+                  <RotateCcw size={14} className={ytdlpBusy ? 'spin' : ''} />
+                  <span>{t('drive_tools.ytdlp_check_now')}</span>
                 </button>
                 <button
                   type="button"
                   className="td-chip-btn td-chip-primary"
                   disabled={ytdlpBusy}
                   onClick={() => void updateYtdlpPlugin()}
-                  style={{ fontSize: '0.78rem', padding: '6px 14px', fontWeight: 700 }}
+                  style={{ fontSize: '0.78rem', padding: '8px 16px', fontWeight: 700, minHeight: '38px', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <Download size={13} /> {t('drive_tools.ytdlp_update_now')}
+                  <Download size={14} />
+                  <span>{t('drive_tools.ytdlp_update_now')}</span>
                 </button>
               </div>
             </div>
 
             {/* Grid of In-Depth Configuration Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '18px' }}>
+            <div className="td-ytdlp-grid">
               
               {/* CARD 1: RUNTIME & BINARY MANAGEMENT */}
-              <div className="td-settings-card" style={{
-                background: 'rgba(15, 23, 42, 0.65)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '14px',
-                padding: '16px 18px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '14px',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Cpu size={18} style={{ color: '#38bdf8' }} />
+              <div className="td-ytdlp-card">
+                <div className="td-ytdlp-card-header">
+                  <div className="td-ytdlp-card-icon-pill cyan">
+                    <Cpu size={18} />
+                  </div>
                   <div>
-                    <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#f1f5f9' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#f1f5f9' }}>
                       {t('drive_tools.plugin_ytdlp_runtime_heading')}
                     </h4>
                     <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
@@ -3803,29 +3791,20 @@ export function TransferSettingsWorkspace({
                   </div>
                 </div>
 
-                <div style={{
-                  background: 'rgba(0, 0, 0, 0.28)',
-                  borderRadius: '10px',
-                  padding: '10px 12px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '6px',
-                  fontSize: '0.78rem',
-                  border: '1px solid rgba(255, 255, 255, 0.04)',
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div className="td-ytdlp-status-box">
+                  <div className="td-ytdlp-status-row">
                     <span style={{ color: '#94a3b8' }}>{t('drive_tools.ytdlp_runtime_status')}:</span>
                     <strong style={{ color: ytdlpStatus?.installed ? '#4ade80' : '#f87171' }}>
                       {ytdlpStatus?.installed ? t('drive_tools.ytdlp_runtime_installed', { version: ytdlpStatus.version || 'Ready' }) : (ytdlpStatus?.error || t('drive_tools.ytdlp_runtime_not_checked'))}
                     </strong>
                   </div>
                   {ytdlpStatus?.latestVersion && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div className="td-ytdlp-status-row">
                       <span style={{ color: '#94a3b8' }}>{t('drive_tools.ytdlp_runtime_latest', { version: '' })}</span>
                       <strong style={{ color: '#38bdf8' }}>{ytdlpStatus.latestVersion}</strong>
                     </div>
                   )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <div className="td-ytdlp-status-row">
                     <span style={{ color: '#94a3b8' }}>{t('drive_tools.plugin_ytdlp_binary_source')}:</span>
                     <span style={{ color: '#cbd5e1' }}>
                       {ytdlpStatus?.source === 'custom' ? t('drive_tools.plugin_source_badge_custom') : ytdlpStatus?.source === 'system' ? t('drive_tools.plugin_source_badge_system') : t('drive_tools.plugin_source_badge_app_data')}
@@ -3837,7 +3816,7 @@ export function TransferSettingsWorkspace({
                   <label className="td-field-label" htmlFor="ytdlp-custom-path" style={{ fontSize: '0.78rem' }}>
                     {t('drive_tools.plugin_custom_path_title')}
                   </label>
-                  <div style={{ display: 'flex', gap: '6px' }}>
+                  <div className="td-ytdlp-input-group">
                     <input
                       id="ytdlp-custom-path"
                       type="text"
@@ -3845,17 +3824,17 @@ export function TransferSettingsWorkspace({
                       value={draft.ytdlpCustomPath ?? ''}
                       disabled={!!transferActive}
                       onChange={(e) => patch({ ytdlpCustomPath: e.target.value })}
-                      style={{ flex: 1, fontSize: '0.8rem', padding: '7px 10px' }}
+                      style={{ flex: 1, fontSize: '0.8rem', padding: '8px 12px' }}
                     />
                     <button
                       type="button"
                       className="td-chip-btn td-chip-primary"
                       disabled={!!transferActive}
                       onClick={() => void handleBrowseYtdlp()}
-                      style={{ padding: '6px 12px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}
+                      style={{ padding: '8px 12px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', minHeight: '36px' }}
                       title={t('drive_tools.plugin_btn_browse')}
                     >
-                      <FolderOpen size={13} />
+                      <FolderOpen size={14} />
                       <span>{t('drive_tools.plugin_btn_browse')}</span>
                     </button>
                     {draft.ytdlpCustomPath && (
@@ -3867,10 +3846,10 @@ export function TransferSettingsWorkspace({
                           patch({ ytdlpCustomPath: '' });
                           void refreshYtdlpStatus(false);
                         }}
-                        style={{ padding: '6px 10px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        style={{ padding: '8px 10px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px', minHeight: '36px' }}
                         title={t('drive_tools.plugin_btn_reset_default')}
                       >
-                        <RotateCcw size={12} />
+                        <RotateCcw size={13} />
                       </button>
                     )}
                   </div>
@@ -3879,7 +3858,7 @@ export function TransferSettingsWorkspace({
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingTop: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', paddingTop: '4px' }}>
                   <div>
                     <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0' }}>
                       {t('drive_tools.ytdlp_auto_update_title')}
@@ -3897,7 +3876,7 @@ export function TransferSettingsWorkspace({
                   />
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                   <div>
                     <label htmlFor="ytdlp-check-interval" style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0', display: 'block' }}>
                       {t('drive_tools.ytdlp_check_interval_title')}
@@ -3915,7 +3894,7 @@ export function TransferSettingsWorkspace({
                       value={draft.ytdlpCheckIntervalHours ?? 6}
                       disabled={!!transferActive}
                       onChange={(e) => patch({ ytdlpCheckIntervalHours: Math.max(1, Math.min(168, Number(e.target.value) || 6)) })}
-                      style={{ width: '60px', padding: '4px 8px', fontSize: '0.8rem', textAlign: 'center' }}
+                      style={{ width: '64px', padding: '6px 8px', fontSize: '0.8rem', textAlign: 'center' }}
                     />
                     <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
                       {t('drive_tools.ytdlp_check_interval_hours')}
@@ -3925,19 +3904,13 @@ export function TransferSettingsWorkspace({
               </div>
 
               {/* CARD 2: YOUTUBE AUTHENTICATION & COOKIES & PO TOKEN */}
-              <div className="td-settings-card" style={{
-                background: 'rgba(15, 23, 42, 0.65)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '14px',
-                padding: '16px 18px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '14px',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <ShieldAlert size={18} style={{ color: '#fbbf24' }} />
+              <div className="td-ytdlp-card">
+                <div className="td-ytdlp-card-header">
+                  <div className="td-ytdlp-card-icon-pill amber">
+                    <ShieldAlert size={18} />
+                  </div>
                   <div>
-                    <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#f1f5f9' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#f1f5f9' }}>
                       {t('drive_tools.plugin_section_auth_title')}
                     </h4>
                     <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
@@ -3961,15 +3934,16 @@ export function TransferSettingsWorkspace({
                           disabled={!!transferActive}
                           onClick={() => patch({ ytdlpCookiesMode: mode })}
                           style={{
-                            padding: '6px 8px',
-                            borderRadius: '8px',
-                            fontSize: '0.76rem',
+                            padding: '8px 10px',
+                            borderRadius: '10px',
+                            fontSize: '0.78rem',
                             fontWeight: active ? 700 : 500,
                             border: active ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
                             background: active ? 'rgba(56, 189, 248, 0.15)' : 'rgba(0, 0, 0, 0.25)',
                             color: active ? '#38bdf8' : '#94a3b8',
                             cursor: 'pointer',
                             textAlign: 'center',
+                            minHeight: '38px',
                           }}
                         >
                           {mode === 'none' && t('drive_tools.plugin_cookies_mode_none')}
@@ -3991,7 +3965,7 @@ export function TransferSettingsWorkspace({
                       value={draft.ytdlpCookiesBrowser || 'chrome'}
                       disabled={!!transferActive}
                       onChange={(e) => patch({ ytdlpCookiesBrowser: e.target.value })}
-                      style={{ width: '100%', fontSize: '0.8rem', padding: '6px 10px' }}
+                      style={{ width: '100%', fontSize: '0.82rem', padding: '8px 12px' }}
                     >
                       <option value="chrome">Google Chrome</option>
                       <option value="firefox">Mozilla Firefox</option>
@@ -4009,7 +3983,7 @@ export function TransferSettingsWorkspace({
                     <label className="td-field-label" htmlFor="ytdlp-cookies-path" style={{ fontSize: '0.78rem' }}>
                       {t('drive_tools.plugin_cookies_file_label')}
                     </label>
-                    <div style={{ display: 'flex', gap: '6px' }}>
+                    <div className="td-ytdlp-input-group">
                       <input
                         id="ytdlp-cookies-path"
                         type="text"
@@ -4017,17 +3991,17 @@ export function TransferSettingsWorkspace({
                         value={draft.ytdlpCookiesPath ?? ''}
                         disabled={!!transferActive}
                         onChange={(e) => patch({ ytdlpCookiesPath: e.target.value })}
-                        style={{ flex: 1, fontSize: '0.8rem', padding: '6px 10px' }}
+                        style={{ flex: 1, fontSize: '0.8rem', padding: '8px 12px' }}
                       />
                       <button
                         type="button"
                         className="td-chip-btn td-chip-primary"
                         disabled={!!transferActive}
                         onClick={() => void handleBrowseCookies()}
-                        style={{ padding: '6px 12px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}
+                        style={{ padding: '8px 12px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', minHeight: '36px' }}
                         title={t('drive_tools.plugin_btn_browse')}
                       >
-                        <FolderOpen size={13} />
+                        <FolderOpen size={14} />
                         <span>{t('drive_tools.plugin_btn_browse')}</span>
                       </button>
                       {draft.ytdlpCookiesPath && (
@@ -4036,10 +4010,10 @@ export function TransferSettingsWorkspace({
                           className="td-chip-btn"
                           disabled={!!transferActive}
                           onClick={() => patch({ ytdlpCookiesPath: '' })}
-                          style={{ padding: '6px 10px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          style={{ padding: '8px 10px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px', minHeight: '36px' }}
                           title={t('drive_tools.plugin_btn_reset_default')}
                         >
-                          <RotateCcw size={12} />
+                          <RotateCcw size={13} />
                         </button>
                       )}
                     </div>
@@ -4047,20 +4021,15 @@ export function TransferSettingsWorkspace({
                 )}
 
                 {/* Cookies Guide Info Card */}
-                <div style={{
+                <div className="td-ytdlp-guide-card" style={{
                   background: 'rgba(56, 189, 248, 0.06)',
                   border: '1px solid rgba(56, 189, 248, 0.18)',
-                  borderRadius: '10px',
-                  padding: '10px 12px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '6px',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8', fontSize: '0.78rem', fontWeight: 700 }}>
-                    <BookOpen size={13} />
+                    <BookOpen size={14} />
                     <span>{t('drive_tools.plugin_guide_cookies_title')}</span>
                   </div>
-                  <p style={{ margin: 0, fontSize: '0.73rem', color: '#94a3b8', lineHeight: 1.45 }}>
+                  <p style={{ margin: 0, fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.45 }}>
                     {draft.ytdlpCookiesMode === 'browser' ? t('drive_tools.plugin_guide_cookies_browser_desc') : t('drive_tools.plugin_guide_cookies_file_desc')}
                   </p>
                 </div>
@@ -4077,23 +4046,18 @@ export function TransferSettingsWorkspace({
                     value={draft.ytdlpPoToken ?? ''}
                     disabled={!!transferActive}
                     onChange={(e) => patch({ ytdlpPoToken: e.target.value })}
-                    style={{ width: '100%', fontSize: '0.8rem', padding: '6px 10px' }}
+                    style={{ width: '100%', fontSize: '0.8rem', padding: '8px 12px' }}
                   />
-                  <div style={{
+                  <div className="td-ytdlp-guide-card" style={{
                     background: 'rgba(251, 191, 36, 0.06)',
                     border: '1px solid rgba(251, 191, 36, 0.18)',
-                    borderRadius: '10px',
-                    padding: '8px 12px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px',
                     marginTop: '2px',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fbbf24', fontSize: '0.76rem', fontWeight: 700 }}>
-                      <HelpCircle size={12} />
+                      <HelpCircle size={13} />
                       <span>{t('drive_tools.plugin_guide_po_token_title')}</span>
                     </div>
-                    <p style={{ margin: 0, fontSize: '0.72rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                    <p style={{ margin: 0, fontSize: '0.73rem', color: '#94a3b8', lineHeight: 1.4 }}>
                       {t('drive_tools.plugin_guide_po_token_desc')}
                     </p>
                   </div>
@@ -4111,16 +4075,16 @@ export function TransferSettingsWorkspace({
                     value={draft.ytdlpExtractorArgs ?? ''}
                     disabled={!!transferActive}
                     onChange={(e) => patch({ ytdlpExtractorArgs: e.target.value })}
-                    style={{ width: '100%', fontSize: '0.8rem', padding: '6px 10px' }}
+                    style={{ width: '100%', fontSize: '0.8rem', padding: '8px 12px' }}
                   />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+                  <div className="td-ytdlp-chip-presets">
                     <span style={{ fontSize: '0.70rem', color: '#94a3b8', fontWeight: 600 }}>
                       {t('drive_tools.plugin_presets_label')}
                     </span>
                     <button
                       type="button"
                       className="td-chip-btn"
-                      style={{ fontSize: '0.68rem', padding: '2px 8px' }}
+                      style={{ fontSize: '0.70rem', padding: '4px 10px', minHeight: '28px' }}
                       disabled={!!transferActive}
                       onClick={() => patch({ ytdlpExtractorArgs: 'youtube:player_client=android,web' })}
                     >
@@ -4129,7 +4093,7 @@ export function TransferSettingsWorkspace({
                     <button
                       type="button"
                       className="td-chip-btn"
-                      style={{ fontSize: '0.68rem', padding: '2px 8px' }}
+                      style={{ fontSize: '0.70rem', padding: '4px 10px', minHeight: '28px' }}
                       disabled={!!transferActive}
                       onClick={() => patch({ ytdlpExtractorArgs: 'youtube:player_client=ios,android' })}
                     >
@@ -4138,7 +4102,7 @@ export function TransferSettingsWorkspace({
                     <button
                       type="button"
                       className="td-chip-btn"
-                      style={{ fontSize: '0.68rem', padding: '2px 8px' }}
+                      style={{ fontSize: '0.70rem', padding: '4px 10px', minHeight: '28px' }}
                       disabled={!!transferActive}
                       onClick={() => patch({ ytdlpExtractorArgs: 'youtube:player_client=web' })}
                     >
@@ -4147,7 +4111,7 @@ export function TransferSettingsWorkspace({
                     <button
                       type="button"
                       className="td-chip-btn"
-                      style={{ fontSize: '0.68rem', padding: '2px 8px' }}
+                      style={{ fontSize: '0.70rem', padding: '4px 10px', minHeight: '28px' }}
                       disabled={!!transferActive}
                       onClick={() => patch({ ytdlpExtractorArgs: 'youtube:player_client=mweb' })}
                     >
@@ -4161,19 +4125,13 @@ export function TransferSettingsWorkspace({
               </div>
 
               {/* CARD 3: FFMPEG INTEGRATION & AUTO-MUX */}
-              <div className="td-settings-card" style={{
-                background: 'rgba(15, 23, 42, 0.65)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '14px',
-                padding: '16px 18px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '14px',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Film size={18} style={{ color: '#a855f7' }} />
+              <div className="td-ytdlp-card">
+                <div className="td-ytdlp-card-header">
+                  <div className="td-ytdlp-card-icon-pill purple">
+                    <Film size={18} />
+                  </div>
                   <div>
-                    <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#f1f5f9' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#f1f5f9' }}>
                       {t('drive_tools.plugin_section_ffmpeg_title')}
                     </h4>
                     <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
@@ -4182,27 +4140,20 @@ export function TransferSettingsWorkspace({
                   </div>
                 </div>
 
-                <div style={{
-                  background: 'rgba(0, 0, 0, 0.28)',
-                  borderRadius: '10px',
-                  padding: '10px 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  fontSize: '0.78rem',
-                  border: '1px solid rgba(255, 255, 255, 0.04)',
-                }}>
-                  <span style={{ color: '#94a3b8' }}>{t('drive_tools.plugin_ffmpeg_status_label')}:</span>
-                  <strong style={{ color: ffmpegStatus?.installed ? '#4ade80' : '#f59e0b' }}>
-                    {ffmpegStatus?.installed ? t('drive_tools.plugin_ffmpeg_status_installed', { version: ffmpegStatus.version || t('drive_tools.plugin_status_ready') }) : t('drive_tools.plugin_ffmpeg_status_not_found')}
-                  </strong>
+                <div className="td-ytdlp-status-box">
+                  <div className="td-ytdlp-status-row">
+                    <span style={{ color: '#94a3b8' }}>{t('drive_tools.plugin_ffmpeg_status_label')}:</span>
+                    <strong style={{ color: ffmpegStatus?.installed ? '#4ade80' : '#f59e0b' }}>
+                      {ffmpegStatus?.installed ? t('drive_tools.plugin_ffmpeg_status_installed', { version: ffmpegStatus.version || t('drive_tools.plugin_status_ready') }) : t('drive_tools.plugin_ffmpeg_status_not_found')}
+                    </strong>
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label className="td-field-label" htmlFor="ffmpeg-custom-path" style={{ fontSize: '0.78rem' }}>
                     {t('drive_tools.plugin_ffmpeg_custom_path_title')}
                   </label>
-                  <div style={{ display: 'flex', gap: '6px' }}>
+                  <div className="td-ytdlp-input-group">
                     <input
                       id="ffmpeg-custom-path"
                       type="text"
@@ -4213,17 +4164,17 @@ export function TransferSettingsWorkspace({
                         patch({ ffmpegCustomPath: e.target.value });
                         void refreshFfmpegStatus(e.target.value);
                       }}
-                      style={{ flex: 1, fontSize: '0.8rem', padding: '6px 10px' }}
+                      style={{ flex: 1, fontSize: '0.8rem', padding: '8px 12px' }}
                     />
                     <button
                       type="button"
                       className="td-chip-btn td-chip-primary"
                       disabled={!!transferActive}
                       onClick={() => void handleBrowseFfmpeg()}
-                      style={{ padding: '6px 12px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}
+                      style={{ padding: '8px 12px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', minHeight: '36px' }}
                       title={t('drive_tools.plugin_btn_browse')}
                     >
-                      <FolderOpen size={13} />
+                      <FolderOpen size={14} />
                       <span>{t('drive_tools.plugin_btn_browse')}</span>
                     </button>
                     {draft.ffmpegCustomPath && (
@@ -4235,35 +4186,30 @@ export function TransferSettingsWorkspace({
                           patch({ ffmpegCustomPath: '' });
                           void refreshFfmpegStatus('');
                         }}
-                        style={{ padding: '6px 10px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        style={{ padding: '8px 10px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px', minHeight: '36px' }}
                         title={t('drive_tools.plugin_btn_reset_default')}
                       >
-                        <RotateCcw size={12} />
+                        <RotateCcw size={13} />
                       </button>
                     )}
                   </div>
                 </div>
 
                 {/* FFmpeg Educational Guide */}
-                <div style={{
+                <div className="td-ytdlp-guide-card" style={{
                   background: 'rgba(168, 85, 247, 0.06)',
                   border: '1px solid rgba(168, 85, 247, 0.18)',
-                  borderRadius: '10px',
-                  padding: '10px 12px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '6px',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#c084fc', fontSize: '0.78rem', fontWeight: 700 }}>
-                    <Info size={13} />
+                    <Info size={14} />
                     <span>{t('drive_tools.plugin_ffmpeg_why_title')}</span>
                   </div>
-                  <p style={{ margin: 0, fontSize: '0.73rem', color: '#94a3b8', lineHeight: 1.45 }}>
+                  <p style={{ margin: 0, fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.45 }}>
                     {t('drive_tools.plugin_ffmpeg_why_desc')}
                   </p>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingTop: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', paddingTop: '4px' }}>
                   <div>
                     <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0' }}>
                       {t('drive_tools.plugin_ffmpeg_auto_mux_title')}
@@ -4283,19 +4229,13 @@ export function TransferSettingsWorkspace({
               </div>
 
               {/* CARD 4: CUSTOM CLI ARGS */}
-              <div className="td-settings-card" style={{
-                background: 'rgba(15, 23, 42, 0.65)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '14px',
-                padding: '16px 18px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '14px',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Code size={18} style={{ color: '#34d399' }} />
+              <div className="td-ytdlp-card">
+                <div className="td-ytdlp-card-header">
+                  <div className="td-ytdlp-card-icon-pill emerald">
+                    <Code size={18} />
+                  </div>
                   <div>
-                    <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#f1f5f9' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#f1f5f9' }}>
                       {t('drive_tools.plugin_custom_args_title')}
                     </h4>
                     <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
@@ -4311,16 +4251,16 @@ export function TransferSettingsWorkspace({
                     value={draft.ytdlpCustomArgs ?? ''}
                     disabled={!!transferActive}
                     onChange={(e) => patch({ ytdlpCustomArgs: e.target.value })}
-                    style={{ width: '100%', fontSize: '0.8rem', padding: '8px 10px', fontFamily: 'monospace' }}
+                    style={{ width: '100%', fontSize: '0.8rem', padding: '8px 12px', fontFamily: 'monospace' }}
                   />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+                  <div className="td-ytdlp-chip-presets">
                     <span style={{ fontSize: '0.70rem', color: '#94a3b8', fontWeight: 600 }}>
                       {t('drive_tools.plugin_presets_cli_label')}
                     </span>
                     <button
                       type="button"
                       className="td-chip-btn"
-                      style={{ fontSize: '0.68rem', padding: '2px 8px' }}
+                      style={{ fontSize: '0.70rem', padding: '4px 10px', minHeight: '28px' }}
                       disabled={!!transferActive}
                       onClick={() => {
                         const cur = (draft.ytdlpCustomArgs || '').trim();
@@ -4334,7 +4274,7 @@ export function TransferSettingsWorkspace({
                     <button
                       type="button"
                       className="td-chip-btn"
-                      style={{ fontSize: '0.68rem', padding: '2px 8px' }}
+                      style={{ fontSize: '0.70rem', padding: '4px 10px', minHeight: '28px' }}
                       disabled={!!transferActive}
                       onClick={() => {
                         const cur = (draft.ytdlpCustomArgs || '').trim();
@@ -4348,7 +4288,7 @@ export function TransferSettingsWorkspace({
                     <button
                       type="button"
                       className="td-chip-btn"
-                      style={{ fontSize: '0.68rem', padding: '2px 8px' }}
+                      style={{ fontSize: '0.70rem', padding: '4px 10px', minHeight: '28px' }}
                       disabled={!!transferActive}
                       onClick={() => {
                         const cur = (draft.ytdlpCustomArgs || '').trim();
@@ -4362,7 +4302,7 @@ export function TransferSettingsWorkspace({
                     <button
                       type="button"
                       className="td-chip-btn"
-                      style={{ fontSize: '0.68rem', padding: '2px 8px' }}
+                      style={{ fontSize: '0.70rem', padding: '4px 10px', minHeight: '28px' }}
                       disabled={!!transferActive}
                       onClick={() => {
                         const cur = (draft.ytdlpCustomArgs || '').trim();
@@ -4377,12 +4317,12 @@ export function TransferSettingsWorkspace({
                       <button
                         type="button"
                         className="td-chip-btn"
-                        style={{ fontSize: '0.68rem', padding: '2px 8px', color: '#f87171' }}
+                        style={{ fontSize: '0.70rem', padding: '4px 10px', color: '#f87171', minHeight: '28px' }}
                         disabled={!!transferActive}
                         onClick={() => patch({ ytdlpCustomArgs: '' })}
                         title={t('drive_tools.plugin_btn_reset_default')}
                       >
-                        <RotateCcw size={10} />
+                        <RotateCcw size={11} />
                       </button>
                     )}
                   </div>
@@ -4393,20 +4333,13 @@ export function TransferSettingsWorkspace({
               </div>
 
               {/* CARD 5: LIVE EXTRACTION DIAGNOSTIC TESTER */}
-              <div className="td-settings-card" style={{
-                background: 'rgba(15, 23, 42, 0.65)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '14px',
-                padding: '16px 18px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '14px',
-                gridColumn: '1 / -1',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Zap size={18} style={{ color: '#f43f5e' }} />
+              <div className="td-ytdlp-card" style={{ gridColumn: '1 / -1' }}>
+                <div className="td-ytdlp-card-header">
+                  <div className="td-ytdlp-card-icon-pill rose">
+                    <Zap size={18} />
+                  </div>
                   <div>
-                    <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#f1f5f9' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#f1f5f9' }}>
                       {t('drive_tools.plugin_section_test_title')}
                     </h4>
                     <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
@@ -4428,7 +4361,7 @@ export function TransferSettingsWorkspace({
                     className="td-chip-btn td-chip-primary"
                     disabled={pluginTestRunning}
                     onClick={() => void runPluginTest()}
-                    style={{ padding: '8px 16px', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
+                    style={{ padding: '8px 16px', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', minHeight: '38px' }}
                   >
                     {pluginTestRunning ? <RotateCcw size={14} className="spin" /> : <PlaySquare size={14} />}
                     <span>{pluginTestRunning ? t('drive_tools.plugin_test_running') : t('drive_tools.plugin_test_run_btn')}</span>
@@ -4437,17 +4370,42 @@ export function TransferSettingsWorkspace({
 
                 {pluginTestResult && (
                   <div style={{
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    fontSize: '0.78rem',
-                    background: pluginTestResult.success ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                    border: pluginTestResult.success ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    fontSize: '0.80rem',
+                    background: pluginTestResult.success ? 'rgba(34, 197, 94, 0.10)' : 'rgba(239, 68, 68, 0.10)',
+                    border: pluginTestResult.success ? '1px solid rgba(34, 197, 94, 0.28)' : '1px solid rgba(239, 68, 68, 0.28)',
                     color: pluginTestResult.success ? '#4ade80' : '#f87171',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
                   }}>
-                    <div>{pluginTestResult.message}</div>
+                    <div style={{ fontWeight: 600 }}>{pluginTestResult.message}</div>
                     {pluginTestResult.details?.title && (
-                      <div style={{ marginTop: '4px', color: '#e2e8f0', fontWeight: 600 }}>
+                      <div style={{ color: '#f8fafc', fontWeight: 700, fontSize: '0.86rem' }}>
                         {pluginTestResult.details.title}
+                      </div>
+                    )}
+                    {pluginTestResult.details && (
+                      <div className="td-ytdlp-test-metrics-grid">
+                        {pluginTestResult.details.extractor && (
+                          <div className="td-ytdlp-metric-tile">
+                            <span className="td-ytdlp-metric-label">{t('drive_tools.plugin_metric_extractor')}</span>
+                            <span className="td-ytdlp-metric-val">{pluginTestResult.details.extractor}</span>
+                          </div>
+                        )}
+                        {pluginTestResult.details.formatsCount !== undefined && (
+                          <div className="td-ytdlp-metric-tile">
+                            <span className="td-ytdlp-metric-label">{t('drive_tools.plugin_metric_videos')}</span>
+                            <span className="td-ytdlp-metric-val" style={{ color: '#38bdf8' }}>{pluginTestResult.details.formatsCount}</span>
+                          </div>
+                        )}
+                        {pluginTestResult.details.duration !== undefined && (
+                          <div className="td-ytdlp-metric-tile">
+                            <span className="td-ytdlp-metric-label">{t('drive_tools.plugin_metric_duration')}</span>
+                            <span className="td-ytdlp-metric-val">{Math.round(pluginTestResult.details.duration)}s</span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
