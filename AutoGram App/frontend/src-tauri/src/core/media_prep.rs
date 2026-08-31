@@ -359,6 +359,130 @@ pub fn resolve_pikpak_direct_url(url: &str) -> Option<String> {
     None
 }
 
+fn is_hls_stream_url(url: &str) -> bool {
+    let lower = url.to_lowercase();
+    lower.contains(".m3u8")
+        || lower.contains("manifest/hls_playlist")
+        || lower.contains("format=m3u8")
+        || lower.contains("protocol=m3u8")
+}
+
+pub fn download_hls_stream_ffmpeg(
+    url: &str,
+    app: Option<&tauri::AppHandle>,
+    item_index: usize,
+) -> Result<PathBuf, String> {
+    let ff = find_ffmpeg_binary().ok_or_else(|| "FFmpeg binary not found for HLS download".to_string())?;
+    let dest = unique_name("remote_hls", "mp4");
+
+    tg_log::info(
+        BACKEND,
+        "download_hls_stream_start",
+        format!("Downloading HLS stream via FFmpeg: url='{}' dest='{}'", &url[..url.len().min(100)], dest.display()),
+    );
+
+    let mut cmd = Command::new(&ff);
+    cmd.args([
+        "-y",
+        "-nostdin",
+        "-user_agent",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 AutoGram/3.5",
+        "-reconnect",
+        "1",
+        "-reconnect_at_eof",
+        "1",
+        "-reconnect_streamed",
+        "1",
+        "-reconnect_delay_max",
+        "5",
+        "-i",
+        url,
+        "-c",
+        "copy",
+        "-movflags",
+        "+faststart",
+    ]);
+    cmd.arg(&dest);
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+
+    emit_transfer_event(
+        app,
+        "StudioProgress",
+        serde_json::json!({
+            "item_index": item_index,
+            "percent": 10.0,
+            "transferred": 0,
+            "total": 0,
+            "phase": "download"
+        }),
+    );
+
+    let mut child = cmd.spawn().map_err(|e| format!("failed to spawn ffmpeg: {e}"))?;
+
+    loop {
+        if crate::core::job_queue::is_any_transfer_cancelled() {
+            let _ = child.kill();
+            let _ = child.wait();
+            let _ = fs::remove_file(&dest);
+            return Err("download cancelled by user".into());
+        }
+
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                if !status.success() {
+                    let _ = fs::remove_file(&dest);
+                    return Err(format!("FFmpeg failed to download HLS stream (exit code {status:?})"));
+                }
+                break;
+            }
+            Ok(None) => {
+                if let Ok(meta) = fs::metadata(&dest) {
+                    let len = meta.len();
+                    emit_transfer_event(
+                        app,
+                        "StudioProgress",
+                        serde_json::json!({
+                            "item_index": item_index,
+                            "percent": 50.0,
+                            "transferred": len,
+                            "total": 0,
+                            "phase": "download"
+                        }),
+                    );
+                }
+                std::thread::sleep(std::time::Duration::from_millis(500));
+            }
+            Err(e) => {
+                let _ = child.kill();
+                let _ = fs::remove_file(&dest);
+                return Err(format!("FFmpeg process wait error: {e}"));
+            }
+        }
+    }
+
+    let meta = fs::metadata(&dest).map_err(|e| format!("failed to get metadata of downloaded stream: {e}"))?;
+    if meta.len() < 1024 {
+        let _ = fs::remove_file(&dest);
+        return Err("downloaded stream is empty or truncated".into());
+    }
+
+    path_policy::assert_safe_transfer_path(dest.to_str().unwrap_or(""))
+        .map_err(|e| e.to_string())?;
+
+    tg_log::info(
+        BACKEND,
+        "download_hls_stream_done",
+        format!("HLS download complete: {} bytes, dest='{}'", meta.len(), dest.display()),
+    );
+
+    Ok(dest)
+}
+
 /// Download remote URL to a temp file under path policy (max up to 4GB Telegram limit).
 pub fn download_remote_url(
     url: &str,
@@ -374,6 +498,12 @@ pub fn download_remote_url(
         .or_else(|| resolve_pikpak_direct_url(url_str))
         .unwrap_or_else(|| url_str.to_string());
     let url = resolved_url.as_str();
+
+    if is_hls_stream_url(url) {
+        if let Ok(path) = download_hls_stream_ffmpeg(url, app, item_index) {
+            return Ok(path);
+        }
+    }
 
     tg_log::info(
         BACKEND,
@@ -404,6 +534,11 @@ pub fn download_remote_url(
         .header("content-type")
         .unwrap_or("application/octet-stream")
         .to_string();
+
+    if content_type.to_lowercase().contains("mpegurl") {
+        return download_hls_stream_ffmpeg(url, app, item_index);
+    }
+
     let content_length: Option<u64> = resp.header("content-length").and_then(|l| l.parse().ok());
     let ext = ext_from_url_or_ctype(url, &content_type);
     let dest = unique_name("remote", &ext);
@@ -416,6 +551,7 @@ pub fn download_remote_url(
     let mut buf = [0u8; 128 * 1024];
     let mut written: usize = 0;
     let mut last_emit_ms = 0u128;
+    let mut is_first_chunk = true;
 
     loop {
         if crate::core::job_queue::is_any_transfer_cancelled() {
@@ -428,6 +564,16 @@ pub fn download_remote_url(
         if n == 0 {
             break;
         }
+
+        if is_first_chunk {
+            is_first_chunk = false;
+            if buf[..n].starts_with(b"#EXTM3U") {
+                drop(file);
+                let _ = fs::remove_file(&dest);
+                return download_hls_stream_ffmpeg(url, app, item_index);
+            }
+        }
+
         written = written.saturating_add(n);
 
         let now_ms = SystemTime::now()
