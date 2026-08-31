@@ -19,6 +19,38 @@ import { directFileResolver } from './providers/directFileResolver';
 import { assertSafeRemoteUrl } from './urlSafety';
 
 // ---------------------------------------------------------------------------
+// In-memory resolve result cache — eliminates repeated yt-dlp subprocess
+// spawns when the user re-inspects the same URL within the TTL window.
+// TTL 30 minutes: well within YouTube's signed URL validity window (~6 h).
+// ---------------------------------------------------------------------------
+const RESOLVE_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+interface CacheEntry { result: ResolvedMediaInfo; expiresAt: number }
+const resolveResultCache = new Map<string, CacheEntry>();
+
+function getCachedResult(url: string): ResolvedMediaInfo | null {
+  const entry = resolveResultCache.get(url);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    resolveResultCache.delete(url);
+    return null;
+  }
+  return entry.result;
+}
+
+function setCachedResult(url: string, result: ResolvedMediaInfo): void {
+  // Only cache non-empty results that came from a real provider.
+  if (!result.formats || result.formats.length === 0) return;
+  resolveResultCache.set(url, { result, expiresAt: Date.now() + RESOLVE_CACHE_TTL_MS });
+}
+
+// ---------------------------------------------------------------------------
+// Platforms that always provide durationSec from their own API response.
+// These do NOT need the HTMLVideoElement fallback duration probe, which can
+// consume seconds per format when there are 50+ quality cards (yt-dlp path).
+// ---------------------------------------------------------------------------
+const PLATFORMS_WITH_BUILT_IN_DURATION = new Set(['youtube', 'tiktok', 'twitter', 'pinterest', 'pixiv']);
+
+// ---------------------------------------------------------------------------
 // Video duration probe via hidden <video preload="metadata">
 // Works in both browser and WebView2 (Tauri). Resolves with undefined on error.
 // ---------------------------------------------------------------------------
@@ -121,12 +153,22 @@ async function probeVideoDuration(url: string, timeoutMs = 10000): Promise<numbe
 /**
  * After resolution, concurrently probe duration for all video formats
  * and mediaItems that have no durationSec yet. Mutates the result in-place.
+ *
+ * Performance: platforms like YouTube/TikTok always return durationSec from
+ * their own API, so HTMLVideoElement probing is skipped entirely for them.
+ * This avoids the cost of probing 50+ yt-dlp format URLs (each up to 10 s).
  */
 async function enrichWithDurations(result: ResolvedMediaInfo): Promise<ResolvedMediaInfo> {
   const tasks: Promise<void>[] = [];
 
-  // Top-level formats
-  if (!result.durationSec) {
+  // Skip video probing for platforms that already supply durationSec from
+  // their own API (YouTube via yt-dlp, TikTok, Twitter, etc.).
+  // For these, durationSec on the top-level result is the authoritative value.
+  const hasBuiltInDuration = PLATFORMS_WITH_BUILT_IN_DURATION.has(result.platform || '');
+
+  // Top-level formats — only probe for platforms without built-in duration
+  // AND only when the top-level result itself has no durationSec yet.
+  if (!result.durationSec && !hasBuiltInDuration) {
     for (const fmt of result.formats) {
       if (isVideoFormat(fmt) && !fmt.durationSec && fmt.directUrl) {
         tasks.push(
@@ -141,11 +183,13 @@ async function enrichWithDurations(result: ResolvedMediaInfo): Promise<ResolvedM
     }
   }
 
-  // mediaItems (gallery batch)
+  // mediaItems (gallery batch) — probe only unknown-duration items
+  // but still skip per-format probing if the platform has built-in duration.
   if (result.mediaItems && result.mediaItems.length > 0) {
     for (const item of result.mediaItems) {
       if (item.kind !== 'video') continue;
       if (item.durationSec && item.durationSec > 0) continue;
+      if (hasBuiltInDuration) continue; // platform already supplies duration
 
       // Find first video format with a URL
       const fmt = item.formats.find((f) => isVideoFormat(f) && f.directUrl && !f.durationSec);
@@ -214,6 +258,15 @@ class LinkResolverRegistry {
     const cleanUrl = url.trim();
     assertSafeRemoteUrl(cleanUrl);
 
+    // 0. Cache hit — return immediately without any network or subprocess cost.
+    //    Only skip cache when signal is already aborted (fresh resolve requested).
+    if (!signal?.aborted) {
+      const cached = getCachedResult(cleanUrl);
+      if (cached) {
+        return { ...cached, resolvedAt: Date.now() };
+      }
+    }
+
     // 1. Find matching specialized provider
     for (const provider of this.providers) {
       if (provider !== directFileResolver && provider !== nativeDeepResolver && provider.canHandle(cleanUrl)) {
@@ -221,7 +274,9 @@ class LinkResolverRegistry {
           const result = await provider.resolve(cleanUrl, signal, options);
           if (result && result.formats && result.formats.length > 0) {
             const traced = this.withTrace(result, cleanUrl, provider.name, 'provider');
-            return enrichWithDurations(traced);
+            const enriched = await enrichWithDurations(traced);
+            setCachedResult(cleanUrl, enriched);
+            return enriched;
           }
         } catch (err) {
           console.warn(`[LinkResolverRegistry] Provider ${provider.name} failed:`, err);

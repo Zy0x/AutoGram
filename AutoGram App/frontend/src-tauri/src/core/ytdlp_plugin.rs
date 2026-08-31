@@ -9,10 +9,12 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::Digest;
+use std::collections::HashMap;
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::{Mutex, OnceLock};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Manager};
@@ -96,7 +98,15 @@ fn binary_path(dir: &Path) -> PathBuf {
     dir.join("bin").join(asset_name())
 }
 
-pub fn find_system_binary(name: &str) -> Option<PathBuf> {
+/// Process-lifetime cache for system binary paths.
+/// Avoids repeated PATH scans on every `ytdlp_resolve` call.
+static BINARY_CACHE: OnceLock<Mutex<HashMap<String, Option<PathBuf>>>> = OnceLock::new();
+
+fn binary_cache() -> &'static Mutex<HashMap<String, Option<PathBuf>>> {
+    BINARY_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn find_system_binary_uncached(name: &str) -> Option<PathBuf> {
     let binary_name = if cfg!(target_os = "windows") && !name.ends_with(".exe") {
         format!("{}.exe", name)
     } else {
@@ -155,6 +165,28 @@ pub fn find_system_binary(name: &str) -> Option<PathBuf> {
 
     None
 }
+
+/// Cached version of `find_system_binary_uncached`.
+/// Results are remembered for the process lifetime — safe because binaries
+/// on PATH do not move while the app is running.
+pub fn find_system_binary(name: &str) -> Option<PathBuf> {
+    let cache = binary_cache();
+    // Fast read path: check without write lock first
+    {
+        if let Ok(map) = cache.lock() {
+            if let Some(cached) = map.get(name) {
+                return cached.clone();
+            }
+        }
+    }
+    // Slow path: scan filesystem and write result
+    let result = find_system_binary_uncached(name);
+    if let Ok(mut map) = cache.lock() {
+        map.entry(name.to_string()).or_insert_with(|| result.clone());
+    }
+    result
+}
+
 
 fn read_state(dir: &Path) -> PluginState {
     fs::read_to_string(state_path(dir))
@@ -682,7 +714,7 @@ pub fn ytdlp_resolve(
             let _ = stderr_reader.join();
             return Err("yt-dlp inspection timed out".into());
         }
-        thread::sleep(Duration::from_millis(50));
+        thread::sleep(Duration::from_millis(10));
     };
 
     let stdout = stdout_reader
@@ -712,6 +744,7 @@ fn resolve_default_binary(
     let target = binary_path(&dir);
 
     if auto_update == Some(false) {
+        // Auto-update disabled: return binary immediately without any network I/O.
         if target.is_file() {
             return Ok(target);
         }
@@ -722,7 +755,31 @@ fn resolve_default_binary(
         return Ok(bin);
     }
 
-    // Auto-update enabled: check app-data or download latest
+    // Auto-update enabled:
+    // If the binary already exists locally, return it immediately and
+    // kick off the GitHub update check in a background thread so it
+    // never blocks the resolve path.
+    if target.is_file() {
+        let state = read_state(&dir);
+        let fresh = state
+            .last_checked_at
+            .map(|last| now_secs().saturating_sub(last) < interval_secs)
+            .unwrap_or(false);
+
+        if !fresh {
+            // Update check due — run it in background, don't block resolve.
+            let app_clone = app.clone();
+            thread::spawn(move || {
+                // Verify plugin dir is accessible before running update check.
+                if plugin_dir(&app_clone).is_ok() {
+                    let _ = ensure_latest(&app_clone, false, interval_secs);
+                }
+            });
+        }
+        return Ok(target);
+    }
+
+    // Binary does not exist locally — must download synchronously (first install).
     match ensure_latest(app, false, interval_secs) {
         Ok((bin, _)) => Ok(bin),
         Err(err) => {

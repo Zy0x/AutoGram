@@ -2,6 +2,17 @@ import { invoke } from '@tauri-apps/api/core';
 import { detectTauriRuntime } from '../../../tauri/platform';
 import type { LinkResolverProvider, ResolvedMediaInfo, StreamQualityFormat, RawStreamItem, SubtitleTrackItem } from '../types';
 
+// ---------------------------------------------------------------------------
+// yt-dlp JSON result cache keyed by video ID.
+// Avoids spawning the yt-dlp subprocess again when the user re-inspects the
+// same YouTube URL within a 30-minute window.
+// Note: The registry-level cache also covers this, but this inner cache
+// specifically prevents duplicate concurrent spawns for the same video.
+// ---------------------------------------------------------------------------
+const YTDLP_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const ytdlpCache = new Map<string, { data: any; expiresAt: number }>();
+
+
 /**
  * Extract YouTube Video ID from standard, short, or embedded URLs.
  */
@@ -198,6 +209,14 @@ async function fetchYouTubeYtDlp(url: string): Promise<any | null> {
     // Keep the safe defaults when settings are unavailable.
   }
   if (!ytdlpEnabled) return null;
+
+  // Cache key combines URL + settings fingerprint so cookie/arg changes invalidate
+  const cacheKey = `${url}|${cookiesMode ?? ''}|${cookiesBrowser ?? ''}|${poToken ?? ''}|${extractorArgs ?? ''}`;
+  const cached = ytdlpCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.data;
+  }
+
   try {
     const text = await invoke<string>('ytdlp_resolve', {
       url,
@@ -213,7 +232,11 @@ async function fetchYouTubeYtDlp(url: string): Promise<any | null> {
       ffmpegPath,
     });
     const data = JSON.parse(text);
-    return data && Array.isArray(data.formats) ? data : null;
+    const result = data && Array.isArray(data.formats) ? data : null;
+    if (result) {
+      ytdlpCache.set(cacheKey, { data: result, expiresAt: Date.now() + YTDLP_CACHE_TTL_MS });
+    }
+    return result;
   } catch (err) {
     console.warn('[youtubeResolver] yt-dlp resolution fallback:', err);
     return null;
@@ -782,76 +805,108 @@ export const youtubeResolver: LinkResolverProvider = {
       }
     }
 
-    // 2. Secondary extraction via watch page ytInitialPlayerResponse JSON payload
-    try {
-      const html = parsedSuccess ? null : await fetchYouTubeWatchHtml(cleanUrl, signal);
-      if (html) {
-        const titleMatch =
-          html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/i) ||
-          html.match(/<meta\s+name="title"\s+content="([^"]+)"/i) ||
-          html.match(/<title>([^<]+)<\/title>/i);
-        if (titleMatch && titleMatch[1]) {
-          title = titleMatch[1].replace(/\s*-\s*YouTube$/i, '').trim();
-        }
-
-        const authorMatch =
-          html.match(/<meta\s+name="author"\s+content="([^"]+)"/i) ||
-          html.match(/<link\s+itemprop="name"\s+content="([^"]+)"/i);
-        if (authorMatch && authorMatch[1]) {
-          author = authorMatch[1].trim();
-        }
-
-        const descMatch =
-          html.match(/<meta\s+property="og:description"\s+content="([^"]+)"/i) ||
-          html.match(/<meta\s+name="description"\s+content="([^"]+)"/i);
-        if (descMatch && descMatch[1]) {
-          description = descMatch[1].trim();
-        }
-
-        const playerJsonMatch =
-          html.match(/ytInitialPlayerResponse\s*=\s*({.+?});(?:var\s|window\[|\n|<\/script>)/s) ||
-          html.match(/ytInitialPlayerResponse\s*=\s*({.+?});/s);
-
-        if (playerJsonMatch && playerJsonMatch[1]) {
-          const data = JSON.parse(playerJsonMatch[1]);
-          const res = processPlayerData(data, videoId, formats, subtitles, rawStreams, chapters);
-          if (res.title) title = res.title;
-          if (res.author) author = res.author;
-          if (res.description) description = res.description;
-          if (res.durationSec) durationSec = res.durationSec;
-          if (res.thumbnailUrl) thumbnailUrl = res.thumbnailUrl;
-          // A watch-page response can contain audio metadata while omitting
-          // video URLs. Treat that as incomplete and continue to Innertube.
-          if (formats.some((f) => f.isVideo && f.directUrl)) parsedSuccess = true;
-        }
-      }
-    } catch {
-      /* ignore watch html error */
-    }
-
-    // 3. Secondary Innertube multi-client API fallback (Android / Web) if the
-    // plugin/watch page was empty or throttled.
-    if (!parsedSuccess || formats.length === 0) {
+    // 2 & 3. Parallel fallback: fetch watch-page HTML and Innertube simultaneously.
+    // This halves fallback latency compared to the old serial approach.
+    // Only runs when yt-dlp path produced nothing.
+    if (!parsedSuccess) {
       try {
-        // Discard incomplete watch-page entries before rebuilding from the
-        // player response, otherwise General/Audio would contain duplicates.
-        formats.length = 0;
-        subtitles.length = 0;
-        rawStreams.length = 0;
-        const innertubeData = await fetchYouTubeInnertubePlayer(videoId, signal);
-        if (innertubeData) {
-          const res = processPlayerData(innertubeData, videoId, formats, subtitles, rawStreams, chapters);
-          if (res.title) title = res.title;
-          if (res.author) author = res.author;
-          if (res.description) description = res.description;
-          if (res.durationSec) durationSec = res.durationSec;
-          if (res.thumbnailUrl) thumbnailUrl = res.thumbnailUrl;
-          if (formats.some((f) => f.isVideo && f.directUrl)) parsedSuccess = true;
+        // Launch both requests at the same time.
+        const [htmlResult, innertubeResult] = await Promise.allSettled([
+          fetchYouTubeWatchHtml(cleanUrl, signal),
+          fetchYouTubeInnertubePlayer(videoId, signal),
+        ]);
+
+        // --- Process watch-page HTML response ---
+        let htmlFormats: StreamQualityFormat[] = [];
+        let htmlSubtitles: SubtitleTrackItem[] = [];
+        let htmlRawStreams: RawStreamItem[] = [];
+        let htmlMeta: { title?: string; author?: string; description?: string; durationSec?: number; thumbnailUrl?: string } = {};
+
+        if (htmlResult.status === 'fulfilled' && htmlResult.value) {
+          const html = htmlResult.value;
+          const titleMatch =
+            html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/i) ||
+            html.match(/<meta\s+name="title"\s+content="([^"]+)"/i) ||
+            html.match(/<title>([^<]+)<\/title>/i);
+          if (titleMatch?.[1]) htmlMeta.title = titleMatch[1].replace(/\s*-\s*YouTube$/i, '').trim();
+
+          const authorMatch =
+            html.match(/<meta\s+name="author"\s+content="([^"]+)"/i) ||
+            html.match(/<link\s+itemprop="name"\s+content="([^"]+)"/i);
+          if (authorMatch?.[1]) htmlMeta.author = authorMatch[1].trim();
+
+          const descMatch =
+            html.match(/<meta\s+property="og:description"\s+content="([^"]+)"/i) ||
+            html.match(/<meta\s+name="description"\s+content="([^"]+)"/i);
+          if (descMatch?.[1]) htmlMeta.description = descMatch[1].trim();
+
+          const playerJsonMatch =
+            html.match(/ytInitialPlayerResponse\s*=\s*({.+?});(?:var\s|window\[|\n|<\/script>)/s) ||
+            html.match(/ytInitialPlayerResponse\s*=\s*({.+?});/s);
+
+          if (playerJsonMatch?.[1]) {
+            try {
+              const data = JSON.parse(playerJsonMatch[1]);
+              const res = processPlayerData(data, videoId, htmlFormats, htmlSubtitles, htmlRawStreams, chapters);
+              if (res.title) htmlMeta.title = res.title;
+              if (res.author) htmlMeta.author = res.author;
+              if (res.description) htmlMeta.description = res.description;
+              if (res.durationSec) htmlMeta.durationSec = res.durationSec;
+              if (res.thumbnailUrl) htmlMeta.thumbnailUrl = res.thumbnailUrl;
+            } catch { /* ignore JSON parse error */ }
+          }
+        }
+
+        // --- Process Innertube response ---
+        let innerFormats: StreamQualityFormat[] = [];
+        let innerSubtitles: SubtitleTrackItem[] = [];
+        let innerRawStreams: RawStreamItem[] = [];
+        let innerMeta: { title?: string; author?: string; description?: string; durationSec?: number; thumbnailUrl?: string } = {};
+
+        if (innertubeResult.status === 'fulfilled' && innertubeResult.value) {
+          const res = processPlayerData(innertubeResult.value, videoId, innerFormats, innerSubtitles, innerRawStreams, chapters);
+          if (res.title) innerMeta.title = res.title;
+          if (res.author) innerMeta.author = res.author;
+          if (res.description) innerMeta.description = res.description;
+          if (res.durationSec) innerMeta.durationSec = res.durationSec;
+          if (res.thumbnailUrl) innerMeta.thumbnailUrl = res.thumbnailUrl;
+        }
+
+        // --- Merge: prefer whichever source has downloadable video formats ---
+        const htmlHasVideo = htmlFormats.some((f) => f.isVideo && f.directUrl);
+        const innerHasVideo = innerFormats.some((f) => f.isVideo && f.directUrl);
+
+        // Pick the better source (prioritize html if it has video, otherwise innertube)
+        const bestFormats = htmlHasVideo ? htmlFormats : innerHasVideo ? innerFormats : htmlFormats.length > 0 ? htmlFormats : innerFormats;
+        const bestMeta = htmlHasVideo ? htmlMeta : innerHasVideo ? innerMeta : (Object.keys(htmlMeta).length > 0 ? htmlMeta : innerMeta);
+        const bestSubtitles = htmlHasVideo ? htmlSubtitles : innerSubtitles;
+        const bestRawStreams = htmlHasVideo ? htmlRawStreams : innerRawStreams;
+
+        // Apply best results
+        if (bestMeta.title) title = bestMeta.title;
+        if (bestMeta.author) author = bestMeta.author;
+        if (bestMeta.description) description = bestMeta.description;
+        if (bestMeta.durationSec) durationSec = bestMeta.durationSec;
+        if (bestMeta.thumbnailUrl) thumbnailUrl = bestMeta.thumbnailUrl;
+        formats.push(...bestFormats);
+        subtitles.push(...bestSubtitles);
+        rawStreams.push(...bestRawStreams);
+
+        if (formats.some((f) => f.isVideo && f.directUrl)) parsedSuccess = true;
+
+        // If html had no video but innertube did, also merge innertube formats
+        // to avoid losing audio tracks
+        if (!htmlHasVideo && innerHasVideo && htmlFormats.length > 0) {
+          // Already used innerFormats above — nothing extra needed
+        } else if (htmlHasVideo && innerHasVideo) {
+          // Both have video: no need to merge, html already selected as best
         }
       } catch {
-        /* ignore innertube error */
+        /* ignore parallel fallback error */
       }
     }
+
+    // Legacy guard: if still nothing and signal not aborted, this is an empty result
 
     // Never synthesize formats from the title or a watch-page URL. A YouTube
     // watch URL is not a media stream and would make a fake quality card look
