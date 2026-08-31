@@ -2864,6 +2864,7 @@ pub fn run() {
             fetch_native_http,
             core::ytdlp_plugin::ytdlp_plugin_status,
             core::ytdlp_plugin::ytdlp_update_plugin,
+            core::ytdlp_plugin::ffmpeg_plugin_status,
             core::ytdlp_plugin::ytdlp_resolve,
             fetch_remote_json_metadata,
             fetch_remote_text_content,

@@ -11,6 +11,7 @@ import {
   HardDriveUpload,
   Network,
   SlidersHorizontal,
+  Sliders,
 } from 'lucide-react';
 import type { DupGroup } from '../../../lib/telegram';
 
@@ -26,6 +27,7 @@ export type DriveToolsTab =
   | 'duplicates'
   | 'limits_recovery'
   | 'network'
+  | 'ytdlp'
   | 'advanced';
 
 export function smartDeleteIds(groups: DupGroup[], keepNewest: boolean): Set<number> {
@@ -71,6 +73,7 @@ export const TOOL_GROUPS: {
       { id: 'duplicates', icon: CopyCheck },
       { id: 'limits_recovery', icon: HardDriveUpload },
       { id: 'network', icon: Network },
+      { id: 'ytdlp', icon: Sliders },
       { id: 'advanced', icon: SlidersHorizontal },
     ],
   },

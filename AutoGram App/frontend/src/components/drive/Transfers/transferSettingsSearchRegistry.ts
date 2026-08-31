@@ -167,9 +167,9 @@ export function buildSearchRegistry(t: TFunction): SearchableSettingItem[] {
       tab: 'ytdlp',
       mode: 'advanced',
       sectionId: 'section-ytdlp-plugin',
-      label: String(t('drive_tools.ytdlp_settings_title')),
-      description: String(t('drive_tools.ytdlp_settings_desc')),
-      keywords: ['yt-dlp', 'ytdlp', 'youtube', 'remote url', 'resolver', 'plugin', 'format', 'stream', 'update'],
+      label: String(t('drive_tools.plugin_settings_title')),
+      description: String(t('drive_tools.plugin_settings_desc')),
+      keywords: ['plugin', 'plug-in', 'yt-dlp', 'ytdlp', 'ffmpeg', 'youtube', 'remote url', 'resolver', 'cookies', 'po token', 'proof of origin', 'format', 'stream', 'update', 'mux'],
     },
     {
       id: 'hide-restricted-media',

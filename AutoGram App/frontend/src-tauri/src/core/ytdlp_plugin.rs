@@ -1,9 +1,10 @@
-//! Updateable yt-dlp provider for Remote URL inspection.
+//! Updateable yt-dlp & FFmpeg provider for Remote URL inspection.
 //!
 //! The standalone executable lives in app-data, not in the repository. The
 //! provider checks the official yt-dlp latest-release API on a bounded cadence,
 //! verifies SHA-256, installs atomically, and keeps the last known-good binary
-//! when GitHub is temporarily unavailable.
+//! when GitHub is temporarily unavailable. Supports system binary fallback,
+//! custom paths, cookies, PO tokens, extractor args, and FFmpeg detection.
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -18,7 +19,7 @@ use tauri::{AppHandle, Manager};
 
 const REPOSITORY: &str = "yt-dlp/yt-dlp";
 const CHECK_INTERVAL_SECS: u64 = 6 * 60 * 60;
-const RESOLVE_TIMEOUT_SECS: u64 = 45;
+const RESOLVE_TIMEOUT_SECS: u64 = 60;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -38,7 +39,18 @@ pub struct YtDlpPluginStatus {
     pub latest_version: Option<String>,
     pub update_available: bool,
     pub executable: Option<String>,
+    pub source: String, // "app_data" | "system" | "custom" | "none"
     pub last_checked_at: Option<u64>,
+    pub error: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FfmpegPluginStatus {
+    pub installed: bool,
+    pub version: Option<String>,
+    pub executable: Option<String>,
+    pub source: String, // "system" | "custom" | "none"
     pub error: Option<String>,
 }
 
@@ -82,6 +94,24 @@ fn state_path(dir: &Path) -> PathBuf {
 
 fn binary_path(dir: &Path) -> PathBuf {
     dir.join("bin").join(asset_name())
+}
+
+pub fn find_system_binary(name: &str) -> Option<PathBuf> {
+    let binary_name = if cfg!(target_os = "windows") && !name.ends_with(".exe") {
+        format!("{}.exe", name)
+    } else {
+        name.to_string()
+    };
+
+    if let Some(path_var) = std::env::var_os("PATH") {
+        for path in std::env::split_paths(&path_var) {
+            let candidate = path.join(&binary_name);
+            if candidate.is_file() {
+                return Some(candidate);
+            }
+        }
+    }
+    None
 }
 
 fn read_state(dir: &Path) -> PluginState {
@@ -203,8 +233,6 @@ fn install_latest(dir: &Path, release: &Value, version: &str) -> Result<PluginSt
         fs::set_permissions(&tmp, fs::Permissions::from_mode(0o755))
             .map_err(|e| format!("set yt-dlp executable permission: {e}"))?;
     }
-    // Windows cannot rename over an existing file. Keep a rollback copy while
-    // swapping so a failed update never leaves the plugin without a binary.
     let backup = target.with_extension("old");
     let had_target = target.exists();
     if had_target {
@@ -274,24 +302,88 @@ fn ensure_latest(
     Ok((target, state))
 }
 
+fn run_version_check(bin: &Path) -> Option<String> {
+    let output = Command::new(bin).arg("--version").output().ok()?;
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if !stdout.is_empty() {
+            return Some(stdout);
+        }
+    }
+    None
+}
+
 fn status_from(
     dir: &Path,
     state: &PluginState,
     latest: Option<String>,
     error: Option<String>,
+    custom_path: Option<&str>,
 ) -> YtDlpPluginStatus {
-    let installed = binary_path(dir).is_file();
-    let update_available = match (&state.version, &latest) {
-        (Some(installed), Some(latest)) => installed != latest,
-        (None, Some(_)) if installed => true,
-        _ => false,
-    };
+    // 1. Check custom path if supplied
+    if let Some(custom) = custom_path {
+        let trimmed = custom.trim();
+        if !trimmed.is_empty() {
+            let p = Path::new(trimmed);
+            if p.is_file() {
+                let v = run_version_check(p);
+                return YtDlpPluginStatus {
+                    installed: true,
+                    version: v.or_else(|| state.version.clone()),
+                    latest_version: latest,
+                    update_available: false,
+                    executable: Some(p.display().to_string()),
+                    source: "custom".to_string(),
+                    last_checked_at: state.last_checked_at,
+                    error,
+                };
+            }
+        }
+    }
+
+    // 2. Check app data plugin binary
+    let app_bin = binary_path(dir);
+    if app_bin.is_file() {
+        let update_available = match (&state.version, &latest) {
+            (Some(installed), Some(lat)) => installed != lat,
+            (None, Some(_)) => true,
+            _ => false,
+        };
+        return YtDlpPluginStatus {
+            installed: true,
+            version: state.version.clone().or_else(|| run_version_check(&app_bin)),
+            latest_version: latest,
+            update_available,
+            executable: Some(app_bin.display().to_string()),
+            source: "app_data".to_string(),
+            last_checked_at: state.last_checked_at,
+            error,
+        };
+    }
+
+    // 3. Check system PATH binary
+    if let Some(sys_bin) = find_system_binary("yt-dlp") {
+        let v = run_version_check(&sys_bin);
+        return YtDlpPluginStatus {
+            installed: true,
+            version: v,
+            latest_version: latest,
+            update_available: false,
+            executable: Some(sys_bin.display().to_string()),
+            source: "system".to_string(),
+            last_checked_at: state.last_checked_at,
+            error,
+        };
+    }
+
+    // 4. Not installed
     YtDlpPluginStatus {
-        installed,
-        version: state.version.clone(),
-        latest_version: latest,
-        update_available,
-        executable: installed.then(|| binary_path(dir).display().to_string()),
+        installed: false,
+        version: None,
+        latest_version: latest.clone(),
+        update_available: latest.is_some(),
+        executable: None,
+        source: "none".to_string(),
         last_checked_at: state.last_checked_at,
         error,
     }
@@ -301,11 +393,12 @@ fn status_from(
 pub fn ytdlp_plugin_status(
     app: AppHandle,
     refresh: Option<bool>,
+    custom_path: Option<String>,
 ) -> Result<YtDlpPluginStatus, String> {
     let dir = plugin_dir(&app)?;
     let state = read_state(&dir);
     if !refresh.unwrap_or(false) {
-        return Ok(status_from(&dir, &state, None, None));
+        return Ok(status_from(&dir, &state, None, None, custom_path.as_deref()));
     }
     match latest_release() {
         Ok(release) => Ok(status_from(
@@ -316,8 +409,15 @@ pub fn ytdlp_plugin_status(
                 .and_then(Value::as_str)
                 .map(str::to_owned),
             None,
+            custom_path.as_deref(),
         )),
-        Err(error) => Ok(status_from(&dir, &state, None, Some(error))),
+        Err(error) => Ok(status_from(
+            &dir,
+            &state,
+            None,
+            Some(error),
+            custom_path.as_deref(),
+        )),
     }
 }
 
@@ -328,7 +428,61 @@ pub fn ytdlp_update_plugin(
 ) -> Result<YtDlpPluginStatus, String> {
     let dir = plugin_dir(&app)?;
     let (_, state) = ensure_latest(&app, force.unwrap_or(true), CHECK_INTERVAL_SECS)?;
-    Ok(status_from(&dir, &state, state.version.clone(), None))
+    Ok(status_from(&dir, &state, state.version.clone(), None, None))
+}
+
+#[tauri::command]
+pub fn ffmpeg_plugin_status(
+    custom_path: Option<String>,
+) -> Result<FfmpegPluginStatus, String> {
+    // 1. Check custom path
+    if let Some(ref custom) = custom_path {
+        let trimmed = custom.trim();
+        if !trimmed.is_empty() {
+            let p = Path::new(trimmed);
+            if p.is_file() {
+                if let Ok(output) = Command::new(p).arg("-version").output() {
+                    if output.status.success() {
+                        let stdout = String::from_utf8_lossy(&output.stdout);
+                        let first_line = stdout.lines().next().unwrap_or("").to_string();
+                        return Ok(FfmpegPluginStatus {
+                            installed: true,
+                            version: Some(first_line),
+                            executable: Some(p.display().to_string()),
+                            source: "custom".to_string(),
+                            error: None,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Check system PATH
+    if let Some(sys_bin) = find_system_binary("ffmpeg") {
+        if let Ok(output) = Command::new(&sys_bin).arg("-version").output() {
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let first_line = stdout.lines().next().unwrap_or("").to_string();
+                return Ok(FfmpegPluginStatus {
+                    installed: true,
+                    version: Some(first_line),
+                    executable: Some(sys_bin.display().to_string()),
+                    source: "system".to_string(),
+                    error: None,
+                });
+            }
+        }
+    }
+
+    // 3. Not found
+    Ok(FfmpegPluginStatus {
+        installed: false,
+        version: None,
+        executable: None,
+        source: "none".to_string(),
+        error: None,
+    })
 }
 
 #[tauri::command]
@@ -337,43 +491,113 @@ pub fn ytdlp_resolve(
     url: String,
     auto_update: Option<bool>,
     check_interval_hours: Option<u64>,
+    custom_path: Option<String>,
+    cookies_mode: Option<String>,
+    cookies_browser: Option<String>,
+    cookies_path: Option<String>,
+    po_token: Option<String>,
+    extractor_args: Option<String>,
+    custom_args: Option<String>,
+    ffmpeg_path: Option<String>,
 ) -> Result<String, String> {
     let clean = url.trim();
     if clean.is_empty() || !(clean.starts_with("http://") || clean.starts_with("https://")) {
         return Err("yt-dlp requires an absolute HTTP(S) URL".into());
     }
-    let interval_secs = check_interval_hours.unwrap_or(6).clamp(1, 168) * 60 * 60;
-    let (binary, _) = if auto_update == Some(false) {
-        let dir = plugin_dir(&app)?;
-        let target = binary_path(&dir);
-        if target.is_file() {
-            (target, read_state(&dir))
+
+    // 1. Resolve binary path
+    let binary: PathBuf = if let Some(ref custom) = custom_path {
+        let trimmed = custom.trim();
+        if !trimmed.is_empty() && Path::new(trimmed).is_file() {
+            PathBuf::from(trimmed)
         } else {
-            // A first run still needs to install the runtime; disabling
-            // auto-update only prevents checking for newer releases later.
-            ensure_latest(&app, true, interval_secs)?
+            resolve_default_binary(&app, auto_update, check_interval_hours)?
         }
     } else {
-        ensure_latest(&app, false, interval_secs)?
+        resolve_default_binary(&app, auto_update, check_interval_hours)?
     };
-    let mut child = Command::new(binary)
-        .args([
-            "--dump-single-json",
-            "--skip-download",
-            "--no-playlist",
-            "--no-warnings",
-            "--no-progress",
-            "--",
-            clean,
-        ])
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| format!("start yt-dlp: {e}"))?;
 
-    // Drain both pipes while the child runs. A full JSON dump can exceed the
-    // OS pipe buffer and would otherwise deadlock before try_wait sees exit.
+    // 2. Build command arguments
+    let mut cmd = Command::new(binary);
+    cmd.args([
+        "--dump-single-json",
+        "--skip-download",
+        "--no-playlist",
+        "--no-warnings",
+        "--no-progress",
+    ]);
+
+    // Cookies support
+    if let Some(ref mode) = cookies_mode {
+        match mode.trim().to_lowercase().as_str() {
+            "file" => {
+                if let Some(ref path) = cookies_path {
+                    let trimmed = path.trim();
+                    if !trimmed.is_empty() && Path::new(trimmed).is_file() {
+                        cmd.args(["--cookies", trimmed]);
+                    }
+                }
+            }
+            "browser" => {
+                if let Some(ref browser) = cookies_browser {
+                    let trimmed = browser.trim().to_lowercase();
+                    if !trimmed.is_empty() && trimmed != "none" {
+                        cmd.args(["--cookies-from-browser", &trimmed]);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    // Extractor args & PO Token
+    let mut extractor_args_combined = Vec::new();
+    if let Some(ref po) = po_token {
+        let trimmed = po.trim();
+        if !trimmed.is_empty() {
+            extractor_args_combined.push(format!("youtube:po_token={trimmed}"));
+        }
+    }
+    if let Some(ref args) = extractor_args {
+        let trimmed = args.trim();
+        if !trimmed.is_empty() {
+            extractor_args_combined.push(trimmed.to_string());
+        }
+    }
+    if extractor_args_combined.is_empty() {
+        extractor_args_combined.push("youtube:player_client=android,web".to_string());
+    }
+    for arg in extractor_args_combined {
+        cmd.args(["--extractor-args", &arg]);
+    }
+
+    // FFmpeg location
+    if let Some(ref ff) = ffmpeg_path {
+        let trimmed = ff.trim();
+        if !trimmed.is_empty() && (Path::new(trimmed).is_file() || Path::new(trimmed).is_dir()) {
+            cmd.args(["--ffmpeg-location", trimmed]);
+        }
+    } else if let Some(sys_ffmpeg) = find_system_binary("ffmpeg") {
+        cmd.args(["--ffmpeg-location", &sys_ffmpeg.display().to_string()]);
+    }
+
+    // Custom user arguments
+    if let Some(ref custom) = custom_args {
+        let trimmed = custom.trim();
+        if !trimmed.is_empty() {
+            for part in trimmed.split_whitespace() {
+                cmd.arg(part);
+            }
+        }
+    }
+
+    cmd.arg("--").arg(clean);
+    cmd.stdin(Stdio::null());
+    cmd.stdout(Stdio::piped());
+    cmd.stderr(Stdio::piped());
+
+    let mut child = cmd.spawn().map_err(|e| format!("start yt-dlp: {e}"))?;
+
     let mut stdout = child
         .stdout
         .take()
@@ -405,6 +629,7 @@ pub fn ytdlp_resolve(
         }
         thread::sleep(Duration::from_millis(50));
     };
+
     let stdout = stdout_reader
         .join()
         .map_err(|_| "yt-dlp stdout reader panicked".to_owned())?
@@ -413,9 +638,46 @@ pub fn ytdlp_resolve(
         .join()
         .map_err(|_| "yt-dlp stderr reader panicked".to_owned())?
         .map_err(|e| format!("read yt-dlp stderr: {e}"))?;
+
     if !status.success() {
-        let stderr = String::from_utf8_lossy(&stderr);
-        return Err(format!("yt-dlp exited with {status}: {}", stderr.trim()));
+        let stderr_str = String::from_utf8_lossy(&stderr);
+        return Err(format!("yt-dlp exited with {status}: {}", stderr_str.trim()));
     }
+
     String::from_utf8(stdout).map_err(|e| format!("decode yt-dlp JSON: {e}"))
+}
+
+fn resolve_default_binary(
+    app: &AppHandle,
+    auto_update: Option<bool>,
+    check_interval_hours: Option<u64>,
+) -> Result<PathBuf, String> {
+    let interval_secs = check_interval_hours.unwrap_or(6).clamp(1, 168) * 60 * 60;
+    let dir = plugin_dir(app)?;
+    let target = binary_path(&dir);
+
+    if auto_update == Some(false) {
+        if target.is_file() {
+            return Ok(target);
+        }
+        if let Some(sys) = find_system_binary("yt-dlp") {
+            return Ok(sys);
+        }
+        let (bin, _) = ensure_latest(app, true, interval_secs)?;
+        return Ok(bin);
+    }
+
+    // Auto-update enabled: check app-data or download latest
+    match ensure_latest(app, false, interval_secs) {
+        Ok((bin, _)) => Ok(bin),
+        Err(err) => {
+            if target.is_file() {
+                Ok(target)
+            } else if let Some(sys) = find_system_binary("yt-dlp") {
+                Ok(sys)
+            } else {
+                Err(err)
+            }
+        }
+    }
 }

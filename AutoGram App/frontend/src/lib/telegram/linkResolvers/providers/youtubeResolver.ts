@@ -142,25 +142,53 @@ async function fetchYouTubeYtDlp(url: string): Promise<any | null> {
   let ytdlpEnabled = true;
   let autoUpdate = true;
   let checkIntervalHours = 6;
+  let customPath: string | undefined;
+  let cookiesMode: string | undefined;
+  let cookiesBrowser: string | undefined;
+  let cookiesPath: string | undefined;
+  let poToken: string | undefined;
+  let extractorArgs: string | undefined;
+  let customArgs: string | undefined;
+  let ffmpegPath: string | undefined;
+
   try {
     const raw = localStorage.getItem('autogram_drive_transfer_settings');
     if (raw) {
-      const settings = JSON.parse(raw) as { ytdlpEnabled?: boolean; ytdlpAutoUpdate?: boolean; ytdlpCheckIntervalHours?: number };
+      const settings = JSON.parse(raw) as any;
       ytdlpEnabled = settings.ytdlpEnabled !== false;
       autoUpdate = settings.ytdlpAutoUpdate !== false;
       checkIntervalHours = Math.max(1, Math.min(168, Number(settings.ytdlpCheckIntervalHours) || 6));
+      if (settings.ytdlpCustomPath?.trim()) customPath = settings.ytdlpCustomPath.trim();
+      if (settings.ytdlpCookiesMode && settings.ytdlpCookiesMode !== 'none') cookiesMode = settings.ytdlpCookiesMode;
+      if (settings.ytdlpCookiesBrowser?.trim()) cookiesBrowser = settings.ytdlpCookiesBrowser.trim();
+      if (settings.ytdlpCookiesPath?.trim()) cookiesPath = settings.ytdlpCookiesPath.trim();
+      if (settings.ytdlpPoToken?.trim()) poToken = settings.ytdlpPoToken.trim();
+      if (settings.ytdlpExtractorArgs?.trim()) extractorArgs = settings.ytdlpExtractorArgs.trim();
+      if (settings.ytdlpCustomArgs?.trim()) customArgs = settings.ytdlpCustomArgs.trim();
+      if (settings.ffmpegCustomPath?.trim()) ffmpegPath = settings.ffmpegCustomPath.trim();
     }
   } catch {
     // Keep the safe defaults when settings are unavailable.
   }
   if (!ytdlpEnabled) return null;
   try {
-    const text = await invoke<string>('ytdlp_resolve', { url, autoUpdate, checkIntervalHours });
+    const text = await invoke<string>('ytdlp_resolve', {
+      url,
+      autoUpdate,
+      checkIntervalHours,
+      customPath,
+      cookiesMode,
+      cookiesBrowser,
+      cookiesPath,
+      poToken,
+      extractorArgs,
+      customArgs,
+      ffmpegPath,
+    });
     const data = JSON.parse(text);
     return data && Array.isArray(data.formats) ? data : null;
-  } catch {
-    // The native resolver remains a safe fallback when the optional plugin is
-    // not installed or its release endpoint is temporarily unavailable.
+  } catch (err) {
+    console.warn('[youtubeResolver] yt-dlp resolution fallback:', err);
     return null;
   }
 }
@@ -201,6 +229,8 @@ export function processYtDlpData(
   const thumbnailUrl = data?.thumbnail;
   const sourceFormats = Array.isArray(data?.formats) ? data.formats : [];
 
+  const tierBestMap = new Map<string, { fmt: StreamQualityFormat; bitrate: number }>();
+
   sourceFormats.forEach((f: any, index: number) => {
     const directUrl = typeof f?.url === 'string' && /^https?:\/\//i.test(f.url) ? f.url : undefined;
     if (!directUrl) return;
@@ -221,10 +251,19 @@ export function processYtDlpData(
     const formatId = String(f.format_id || stableFormatNumber(f.format_id, index));
     const itag = stableFormatNumber(formatId, index);
     const ext = String(f.ext || (isAudio ? 'm4a' : 'mp4')).toLowerCase();
-    // Browser-native containers can play directly; HLS/DASH manifests remain
-    // streamable through the native proxy but are not direct-download files.
-    const streamable = isManifest || ['mp4', 'webm', 'm4a', 'mp3', 'opus', 'ogg', 'wav'].includes(ext);
-    const downloadable = !isManifest;
+
+    // Streamable determination:
+    // - All audio formats with browser support
+    // - Muxed video (with audio) <= 1080p in mp4/webm
+    // - Manifests (m3u8)
+    // Non-streamable: standalone high-res 4K/8K or video-only without sound (downloadable only)
+    const isMuxed = isVideo && acodec !== 'none';
+    const streamable = isManifest
+      || isAudio
+      || (isMuxed && (height ? height <= 1080 : true) && ['mp4', 'webm'].includes(ext))
+      || (isVideo && !isMuxed && (height ? height <= 720 : true) && ['mp4', 'webm'].includes(ext));
+    const downloadable = true;
+
     const label = isAudio
       ? `${ext.toUpperCase()} ${Math.round((effectiveBitrate || 0) / 1000)} kbps`
       : `${f.format_note || (height ? `${height}p` : 'Video')} (${ext.toUpperCase()})`;
@@ -241,7 +280,7 @@ export function processYtDlpData(
       bitrateFormatted: bitrateText,
       fps: typeof f.fps === 'number' ? f.fps : undefined,
       filesizeBytes: size,
-      type: isVideo && acodec !== 'none' ? 'muxed' : (isAudio ? 'audio' : 'video'),
+      type: isMuxed ? 'muxed' : (isAudio ? 'audio' : 'video'),
       directUrl,
       protocol,
       container: ext,
@@ -254,27 +293,39 @@ export function processYtDlpData(
       downloadOnly: downloadable && !streamable,
     };
     rawStreams.push(stream);
-    formats.push({
-        id: `yt_ytdlp_${formatId}`,
-        label,
-        qualityTier,
-        resolution: isAudio ? `${Math.round((effectiveBitrate || 0) / 1000)} kbps` : `${height || 'unknown'}p • ${bitrateText}`,
-        fps: stream.fps,
-        ext,
-        filesizeBytes: size,
-        directUrl,
-        isDownloadable: downloadable,
-        isStreamable: streamable,
-        downloadOnly: downloadable && !streamable,
-        isVideo,
-        isAudio,
-        badge: isAudio ? bitrateText : `${height || 'Video'}p • ${bitrateText}`,
-        codec,
-        protocol,
-        container: ext,
-        itag,
-      });
+
+    const fmtItem: StreamQualityFormat = {
+      id: `yt_ytdlp_${formatId}`,
+      label,
+      qualityTier,
+      resolution: isAudio ? `${Math.round((effectiveBitrate || 0) / 1000)} kbps` : `${height || 'unknown'}p • ${bitrateText}`,
+      fps: stream.fps,
+      ext,
+      filesizeBytes: size,
+      directUrl,
+      isDownloadable: downloadable,
+      isStreamable: streamable,
+      downloadOnly: downloadable && !streamable,
+      isVideo,
+      isAudio,
+      badge: isAudio ? bitrateText : `${height || 'Video'}p • ${bitrateText}`,
+      codec,
+      protocol,
+      container: ext,
+      itag,
+    };
+
+    // Track best format per resolution tier for General Tab
+    const tierKey = isAudio ? `audio_${ext}` : `${qualityTier}_${ext}`;
+    const existing = tierBestMap.get(tierKey);
+    if (!existing || effectiveBitrate > existing.bitrate) {
+      tierBestMap.set(tierKey, { fmt: fmtItem, bitrate: effectiveBitrate });
+    }
   });
+
+  // Populate General Tab with best representative per tier
+  const generalFormats = Array.from(tierBestMap.values()).map((v) => v.fmt);
+  formats.push(...generalFormats);
 
   const subtitleMap = data?.subtitles && typeof data.subtitles === 'object' ? data.subtitles : {};
   const autoCaptionMap = data?.automatic_captions && typeof data.automatic_captions === 'object' ? data.automatic_captions : {};

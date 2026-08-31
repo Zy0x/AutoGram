@@ -192,6 +192,15 @@ export function normalizeTransferSettings(raw?: Partial<DriveTransferSettings>):
   const ytdlpEnabled = base.ytdlpEnabled !== false;
   const ytdlpAutoUpdate = base.ytdlpAutoUpdate !== false;
   const ytdlpCheckIntervalHours = Math.max(1, Math.min(168, Number(base.ytdlpCheckIntervalHours) || 6));
+  const ytdlpCustomPath = (base.ytdlpCustomPath || '').trim();
+  const ytdlpCookiesMode = (['none', 'browser', 'file'].includes(base.ytdlpCookiesMode || '') ? base.ytdlpCookiesMode : 'none') as 'none' | 'browser' | 'file';
+  const ytdlpCookiesBrowser = (base.ytdlpCookiesBrowser || 'chrome').trim();
+  const ytdlpCookiesPath = (base.ytdlpCookiesPath || '').trim();
+  const ytdlpPoToken = (base.ytdlpPoToken || '').trim();
+  const ytdlpExtractorArgs = (base.ytdlpExtractorArgs !== undefined ? base.ytdlpExtractorArgs : 'youtube:player_client=android,web').trim();
+  const ytdlpCustomArgs = (base.ytdlpCustomArgs || '').trim();
+  const ffmpegCustomPath = (base.ffmpegCustomPath || '').trim();
+  const ytdlpAutoMuxFfmpeg = base.ytdlpAutoMuxFfmpeg !== false;
 
   return {
     ...base,
@@ -215,6 +224,15 @@ export function normalizeTransferSettings(raw?: Partial<DriveTransferSettings>):
     ytdlpEnabled,
     ytdlpAutoUpdate,
     ytdlpCheckIntervalHours,
+    ytdlpCustomPath,
+    ytdlpCookiesMode,
+    ytdlpCookiesBrowser,
+    ytdlpCookiesPath,
+    ytdlpPoToken,
+    ytdlpExtractorArgs,
+    ytdlpCustomArgs,
+    ffmpegCustomPath,
+    ytdlpAutoMuxFfmpeg,
   };
 }
 

@@ -990,6 +990,24 @@ export type DriveTransferSettings = {
   ytdlpAutoUpdate?: boolean;
   /** How often the plugin checks GitHub for a newer release. */
   ytdlpCheckIntervalHours?: number;
+  /** Custom path to yt-dlp executable */
+  ytdlpCustomPath?: string;
+  /** Cookies mode for yt-dlp */
+  ytdlpCookiesMode?: 'none' | 'browser' | 'file';
+  /** Browser name to extract cookies from */
+  ytdlpCookiesBrowser?: string;
+  /** File path for cookies.txt */
+  ytdlpCookiesPath?: string;
+  /** Proof of Origin token for YouTube */
+  ytdlpPoToken?: string;
+  /** Custom extractor args for yt-dlp */
+  ytdlpExtractorArgs?: string;
+  /** Additional custom command line arguments for yt-dlp */
+  ytdlpCustomArgs?: string;
+  /** Custom path to ffmpeg executable */
+  ffmpegCustomPath?: string;
+  /** Automatically mux video and audio streams using FFmpeg */
+  ytdlpAutoMuxFfmpeg?: boolean;
 };
 
 export type DriveTransferSettingsProfile = {
@@ -1081,6 +1099,15 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   ytdlpEnabled: true,
   ytdlpAutoUpdate: true,
   ytdlpCheckIntervalHours: 6,
+  ytdlpCustomPath: '',
+  ytdlpCookiesMode: 'none',
+  ytdlpCookiesBrowser: 'chrome',
+  ytdlpCookiesPath: '',
+  ytdlpPoToken: '',
+  ytdlpExtractorArgs: 'youtube:player_client=android,web',
+  ytdlpCustomArgs: '',
+  ffmpegCustomPath: '',
+  ytdlpAutoMuxFfmpeg: true,
 };
 
 export const QUALITY_MODE_OPTIONS: {

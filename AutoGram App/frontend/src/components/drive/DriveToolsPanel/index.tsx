@@ -765,7 +765,7 @@ export function DriveToolsPanel({
             </div>
           )}
 
-          {['upload', 'download', 'encoding', 'albums', 'duplicates', 'limits_recovery', 'network', 'advanced'].includes(tab) && transferSettings && onTransferSettingsChange && (
+          {['upload', 'download', 'encoding', 'albums', 'duplicates', 'limits_recovery', 'network', 'ytdlp', 'advanced'].includes(tab) && transferSettings && onTransferSettingsChange && (
             <TransferSettingsWorkspace
               settings={transferSettings}
               onChange={onTransferSettingsChange}
