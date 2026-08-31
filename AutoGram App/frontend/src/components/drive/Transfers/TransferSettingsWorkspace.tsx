@@ -42,8 +42,8 @@ import {
   PlaySquare,
   FolderOpen,
   Info,
-  HelpCircle,
-  BookOpen,
+  Check,
+  ExternalLink,
 } from 'lucide-react';
 import type {
   CaptionPosition,
@@ -345,6 +345,24 @@ export function TransferSettingsWorkspace({
   const [pluginTestRunning, setPluginTestRunning] = useState(false);
   const [pluginTestResult, setPluginTestResult] = useState<{ success: boolean; message: string; details?: any } | null>(null);
   const [ffmpegStatus, setFfmpegStatus] = useState<{ installed?: boolean; version?: string | null; executable?: string | null; source?: string } | null>(null);
+  const [activeInfoModal, setActiveInfoModal] = useState<'runtime' | 'cookies' | 'po_token' | 'extractor_args' | 'ffmpeg' | 'custom_cli_args' | null>(null);
+  const [copiedSnippet, setCopiedSnippet] = useState<string | null>(null);
+
+  const handleCopySnippet = (text: string) => {
+    void navigator.clipboard?.writeText(text);
+    setCopiedSnippet(text);
+    setTimeout(() => setCopiedSnippet(null), 2000);
+  };
+
+  const handleOpenExternalUrl = (url: string) => {
+    if ((window as any).__TAURI_INTERNALS__) {
+      import('@tauri-apps/plugin-shell')
+        .then(({ open }) => open(url))
+        .catch(() => window.open(url, '_blank'));
+    } else {
+      window.open(url, '_blank');
+    }
+  };
 
   // Session picker state for alternate account pool
   const [availableSessions, setAvailableSessions] = useState<SessionOption[]>([]);
@@ -3777,18 +3795,29 @@ export function TransferSettingsWorkspace({
               
               {/* CARD 1: RUNTIME & BINARY MANAGEMENT */}
               <div className="td-ytdlp-card">
-                <div className="td-ytdlp-card-header">
-                  <div className="td-ytdlp-card-icon-pill cyan">
-                    <Cpu size={18} />
+                <div className="td-ytdlp-card-header" style={{ justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div className="td-ytdlp-card-icon-pill cyan">
+                      <Cpu size={18} />
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#f1f5f9' }}>
+                        {t('drive_tools.plugin_ytdlp_runtime_heading')}
+                      </h4>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                        {t('drive_tools.ytdlp_runtime_status')}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#f1f5f9' }}>
-                      {t('drive_tools.plugin_ytdlp_runtime_heading')}
-                    </h4>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                      {t('drive_tools.ytdlp_runtime_status')}
-                    </span>
-                  </div>
+                  <button
+                    type="button"
+                    className="td-ytdlp-info-btn"
+                    onClick={() => setActiveInfoModal('runtime')}
+                    title={t('drive_tools.plugin_info_btn_tooltip')}
+                    aria-label={t('drive_tools.plugin_info_btn_tooltip')}
+                  >
+                    <Info size={13} />
+                  </button>
                 </div>
 
                 <div className="td-ytdlp-status-box">
@@ -3853,9 +3882,6 @@ export function TransferSettingsWorkspace({
                       </button>
                     )}
                   </div>
-                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                    {t('drive_tools.plugin_custom_path_desc')}
-                  </span>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', paddingTop: '4px' }}>
@@ -3905,18 +3931,29 @@ export function TransferSettingsWorkspace({
 
               {/* CARD 2: YOUTUBE AUTHENTICATION & COOKIES & PO TOKEN */}
               <div className="td-ytdlp-card">
-                <div className="td-ytdlp-card-header">
-                  <div className="td-ytdlp-card-icon-pill amber">
-                    <ShieldAlert size={18} />
+                <div className="td-ytdlp-card-header" style={{ justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div className="td-ytdlp-card-icon-pill amber">
+                      <ShieldAlert size={18} />
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#f1f5f9' }}>
+                        {t('drive_tools.plugin_section_auth_title')}
+                      </h4>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                        {t('drive_tools.plugin_section_auth_desc')}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#f1f5f9' }}>
-                      {t('drive_tools.plugin_section_auth_title')}
-                    </h4>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                      {t('drive_tools.plugin_section_auth_desc')}
-                    </span>
-                  </div>
+                  <button
+                    type="button"
+                    className="td-ytdlp-info-btn"
+                    onClick={() => setActiveInfoModal('cookies')}
+                    title={t('drive_tools.plugin_info_btn_tooltip')}
+                    aria-label={t('drive_tools.plugin_info_btn_tooltip')}
+                  >
+                    <Info size={13} />
+                  </button>
                 </div>
 
                 {/* Cookies Mode Selector */}
@@ -4020,25 +4057,22 @@ export function TransferSettingsWorkspace({
                   </div>
                 )}
 
-                {/* Cookies Guide Info Card */}
-                <div className="td-ytdlp-guide-card" style={{
-                  background: 'rgba(56, 189, 248, 0.06)',
-                  border: '1px solid rgba(56, 189, 248, 0.18)',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8', fontSize: '0.78rem', fontWeight: 700 }}>
-                    <BookOpen size={14} />
-                    <span>{t('drive_tools.plugin_guide_cookies_title')}</span>
-                  </div>
-                  <p style={{ margin: 0, fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.45 }}>
-                    {draft.ytdlpCookiesMode === 'browser' ? t('drive_tools.plugin_guide_cookies_browser_desc') : t('drive_tools.plugin_guide_cookies_file_desc')}
-                  </p>
-                </div>
-
                 {/* PO Token */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label className="td-field-label" htmlFor="ytdlp-po-token" style={{ fontSize: '0.78rem' }}>
-                    {t('drive_tools.plugin_po_token_title')}
-                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <label className="td-field-label" htmlFor="ytdlp-po-token" style={{ fontSize: '0.78rem', margin: 0 }}>
+                      {t('drive_tools.plugin_po_token_title')}
+                    </label>
+                    <button
+                      type="button"
+                      className="td-ytdlp-info-btn"
+                      onClick={() => setActiveInfoModal('po_token')}
+                      title={t('drive_tools.plugin_info_btn_tooltip')}
+                      aria-label={t('drive_tools.plugin_info_btn_tooltip')}
+                    >
+                      <Info size={12} />
+                    </button>
+                  </div>
                   <input
                     id="ytdlp-po-token"
                     type="text"
@@ -4048,26 +4082,24 @@ export function TransferSettingsWorkspace({
                     onChange={(e) => patch({ ytdlpPoToken: e.target.value })}
                     style={{ width: '100%', fontSize: '0.8rem', padding: '8px 12px' }}
                   />
-                  <div className="td-ytdlp-guide-card" style={{
-                    background: 'rgba(251, 191, 36, 0.06)',
-                    border: '1px solid rgba(251, 191, 36, 0.18)',
-                    marginTop: '2px',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fbbf24', fontSize: '0.76rem', fontWeight: 700 }}>
-                      <HelpCircle size={13} />
-                      <span>{t('drive_tools.plugin_guide_po_token_title')}</span>
-                    </div>
-                    <p style={{ margin: 0, fontSize: '0.73rem', color: '#94a3b8', lineHeight: 1.4 }}>
-                      {t('drive_tools.plugin_guide_po_token_desc')}
-                    </p>
-                  </div>
                 </div>
 
                 {/* Extractor Args & Presets */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label className="td-field-label" htmlFor="ytdlp-extractor-args" style={{ fontSize: '0.78rem' }}>
-                    {t('drive_tools.plugin_extractor_args_title')}
-                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <label className="td-field-label" htmlFor="ytdlp-extractor-args" style={{ fontSize: '0.78rem', margin: 0 }}>
+                      {t('drive_tools.plugin_extractor_args_title')}
+                    </label>
+                    <button
+                      type="button"
+                      className="td-ytdlp-info-btn"
+                      onClick={() => setActiveInfoModal('extractor_args')}
+                      title={t('drive_tools.plugin_info_btn_tooltip')}
+                      aria-label={t('drive_tools.plugin_info_btn_tooltip')}
+                    >
+                      <Info size={12} />
+                    </button>
+                  </div>
                   <input
                     id="ytdlp-extractor-args"
                     type="text"
@@ -4118,26 +4150,34 @@ export function TransferSettingsWorkspace({
                       {t('drive_tools.plugin_preset_client_mweb')}
                     </button>
                   </div>
-                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                    {t('drive_tools.plugin_extractor_args_desc')}
-                  </span>
                 </div>
               </div>
 
               {/* CARD 3: FFMPEG INTEGRATION & AUTO-MUX */}
               <div className="td-ytdlp-card">
-                <div className="td-ytdlp-card-header">
-                  <div className="td-ytdlp-card-icon-pill purple">
-                    <Film size={18} />
+                <div className="td-ytdlp-card-header" style={{ justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div className="td-ytdlp-card-icon-pill purple">
+                      <Film size={18} />
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#f1f5f9' }}>
+                        {t('drive_tools.plugin_section_ffmpeg_title')}
+                      </h4>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                        {t('drive_tools.plugin_section_ffmpeg_desc')}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#f1f5f9' }}>
-                      {t('drive_tools.plugin_section_ffmpeg_title')}
-                    </h4>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                      {t('drive_tools.plugin_section_ffmpeg_desc')}
-                    </span>
-                  </div>
+                  <button
+                    type="button"
+                    className="td-ytdlp-info-btn"
+                    onClick={() => setActiveInfoModal('ffmpeg')}
+                    title={t('drive_tools.plugin_info_btn_tooltip')}
+                    aria-label={t('drive_tools.plugin_info_btn_tooltip')}
+                  >
+                    <Info size={13} />
+                  </button>
                 </div>
 
                 <div className="td-ytdlp-status-box">
@@ -4195,20 +4235,6 @@ export function TransferSettingsWorkspace({
                   </div>
                 </div>
 
-                {/* FFmpeg Educational Guide */}
-                <div className="td-ytdlp-guide-card" style={{
-                  background: 'rgba(168, 85, 247, 0.06)',
-                  border: '1px solid rgba(168, 85, 247, 0.18)',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#c084fc', fontSize: '0.78rem', fontWeight: 700 }}>
-                    <Info size={14} />
-                    <span>{t('drive_tools.plugin_ffmpeg_why_title')}</span>
-                  </div>
-                  <p style={{ margin: 0, fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.45 }}>
-                    {t('drive_tools.plugin_ffmpeg_why_desc')}
-                  </p>
-                </div>
-
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', paddingTop: '4px' }}>
                   <div>
                     <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0' }}>
@@ -4230,18 +4256,29 @@ export function TransferSettingsWorkspace({
 
               {/* CARD 4: CUSTOM CLI ARGS */}
               <div className="td-ytdlp-card">
-                <div className="td-ytdlp-card-header">
-                  <div className="td-ytdlp-card-icon-pill emerald">
-                    <Code size={18} />
+                <div className="td-ytdlp-card-header" style={{ justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div className="td-ytdlp-card-icon-pill emerald">
+                      <Code size={18} />
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#f1f5f9' }}>
+                        {t('drive_tools.plugin_custom_args_title')}
+                      </h4>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                        {t('drive_tools.plugin_custom_args_desc')}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#f1f5f9' }}>
-                      {t('drive_tools.plugin_custom_args_title')}
-                    </h4>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                      {t('drive_tools.plugin_custom_args_desc')}
-                    </span>
-                  </div>
+                  <button
+                    type="button"
+                    className="td-ytdlp-info-btn"
+                    onClick={() => setActiveInfoModal('custom_cli_args')}
+                    title={t('drive_tools.plugin_info_btn_tooltip')}
+                    aria-label={t('drive_tools.plugin_info_btn_tooltip')}
+                  >
+                    <Info size={13} />
+                  </button>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -4326,9 +4363,6 @@ export function TransferSettingsWorkspace({
                       </button>
                     )}
                   </div>
-                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                    {t('drive_tools.plugin_custom_args_desc')}
-                  </span>
                 </div>
               </div>
 
@@ -4413,6 +4447,256 @@ export function TransferSettingsWorkspace({
               </div>
 
             </div>
+
+            {/* YTDLP FEATURE INFO MODAL */}
+            {activeInfoModal && (
+              <div
+                className="td-ytdlp-modal-backdrop"
+                onClick={() => setActiveInfoModal(null)}
+                onKeyDown={(e) => { if (e.key === 'Escape') setActiveInfoModal(null); }}
+                tabIndex={0}
+                role="dialog"
+                aria-modal="true"
+              >
+                <div
+                  className="td-ytdlp-modal-content"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="td-ytdlp-modal-header">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div className={`td-ytdlp-card-icon-pill ${
+                        activeInfoModal === 'runtime' ? 'cyan' :
+                        activeInfoModal === 'cookies' || activeInfoModal === 'po_token' ? 'amber' :
+                        activeInfoModal === 'ffmpeg' ? 'purple' : 'emerald'
+                      }`} style={{ width: '32px', height: '32px' }}>
+                        <Info size={16} />
+                      </div>
+                      <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#f8fafc' }}>
+                        {activeInfoModal === 'runtime' && t('drive_tools.plugin_modal_runtime_title')}
+                        {activeInfoModal === 'cookies' && t('drive_tools.plugin_modal_cookies_title')}
+                        {activeInfoModal === 'po_token' && t('drive_tools.plugin_modal_po_token_title')}
+                        {activeInfoModal === 'extractor_args' && t('drive_tools.plugin_modal_extractor_args_title')}
+                        {activeInfoModal === 'ffmpeg' && t('drive_tools.plugin_modal_ffmpeg_title')}
+                        {activeInfoModal === 'custom_cli_args' && t('drive_tools.plugin_modal_cli_args_title')}
+                      </h4>
+                    </div>
+                    <button
+                      type="button"
+                      className="td-chip-btn"
+                      style={{ padding: '4px 8px', borderRadius: '8px' }}
+                      onClick={() => setActiveInfoModal(null)}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+
+                  <div className="td-ytdlp-modal-body">
+                    {/* SECTION 1: FUNGSI & MANFAAT */}
+                    <div className="td-ytdlp-modal-section">
+                      <span className="td-ytdlp-modal-section-title">
+                        {t('drive_tools.plugin_modal_section_function')}
+                      </span>
+                      <div className="td-ytdlp-modal-func-box">
+                        {activeInfoModal === 'runtime' && t('drive_tools.plugin_modal_runtime_func')}
+                        {activeInfoModal === 'cookies' && t('drive_tools.plugin_modal_cookies_func')}
+                        {activeInfoModal === 'po_token' && t('drive_tools.plugin_modal_po_token_func')}
+                        {activeInfoModal === 'extractor_args' && t('drive_tools.plugin_modal_extractor_func')}
+                        {activeInfoModal === 'ffmpeg' && t('drive_tools.plugin_modal_ffmpeg_func')}
+                        {activeInfoModal === 'custom_cli_args' && t('drive_tools.plugin_modal_cli_args_func')}
+                      </div>
+                    </div>
+
+                    {/* SECTION 2: PANDUAN BERTAHAP */}
+                    <div className="td-ytdlp-modal-section">
+                      <span className="td-ytdlp-modal-section-title">
+                        {t('drive_tools.plugin_modal_section_tutorial')}
+                      </span>
+                      <div className="td-ytdlp-step-list">
+                        {activeInfoModal === 'runtime' && (
+                          <>
+                            <div className="td-ytdlp-step-item">{t('drive_tools.plugin_modal_runtime_step1')}</div>
+                            <div className="td-ytdlp-step-item">{t('drive_tools.plugin_modal_runtime_step2')}</div>
+                          </>
+                        )}
+                        {activeInfoModal === 'cookies' && (
+                          <>
+                            <div className="td-ytdlp-step-item">{t('drive_tools.plugin_modal_cookies_step1')}</div>
+                            <div className="td-ytdlp-step-item">{t('drive_tools.plugin_modal_cookies_step2')}</div>
+                            <div className="td-ytdlp-step-item">{t('drive_tools.plugin_modal_cookies_step3')}</div>
+                            <div className="td-ytdlp-step-item">{t('drive_tools.plugin_modal_cookies_step4')}</div>
+                          </>
+                        )}
+                        {activeInfoModal === 'po_token' && (
+                          <>
+                            <div className="td-ytdlp-step-item">{t('drive_tools.plugin_modal_po_token_step1')}</div>
+                            <div className="td-ytdlp-step-item">{t('drive_tools.plugin_modal_po_token_step2')}</div>
+                          </>
+                        )}
+                        {activeInfoModal === 'extractor_args' && (
+                          <>
+                            <div className="td-ytdlp-step-item">{t('drive_tools.plugin_modal_extractor_step1')}</div>
+                            <div className="td-ytdlp-step-item">{t('drive_tools.plugin_modal_extractor_step2')}</div>
+                            <div className="td-ytdlp-step-item">{t('drive_tools.plugin_modal_extractor_step3')}</div>
+                          </>
+                        )}
+                        {activeInfoModal === 'ffmpeg' && (
+                          <>
+                            <div className="td-ytdlp-step-item">{t('drive_tools.plugin_modal_ffmpeg_step1')}</div>
+                            <div className="td-ytdlp-step-item">{t('drive_tools.plugin_modal_ffmpeg_step2')}</div>
+                          </>
+                        )}
+                        {activeInfoModal === 'custom_cli_args' && (
+                          <>
+                            <div className="td-ytdlp-step-item">{t('drive_tools.plugin_modal_cli_args_step1')}</div>
+                            <div className="td-ytdlp-step-item">{t('drive_tools.plugin_modal_cli_args_step2')}</div>
+                            <div className="td-ytdlp-step-item">{t('drive_tools.plugin_modal_cli_args_step3')}</div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* SECTION 3: HYPERLINKS REKOMENDASI */}
+                    {(activeInfoModal === 'runtime' || activeInfoModal === 'cookies' || activeInfoModal === 'po_token' || activeInfoModal === 'ffmpeg') && (
+                      <div className="td-ytdlp-modal-section">
+                        <span className="td-ytdlp-modal-section-title">
+                          {t('drive_tools.plugin_modal_section_links')}
+                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {activeInfoModal === 'runtime' && (
+                            <button
+                              type="button"
+                              className="td-ytdlp-link-pill"
+                              onClick={() => handleOpenExternalUrl('https://github.com/yt-dlp/yt-dlp/releases')}
+                            >
+                              <span>{t('drive_tools.plugin_modal_runtime_link_ytdlp')}</span>
+                              <ExternalLink size={13} />
+                            </button>
+                          )}
+                          {activeInfoModal === 'cookies' && (
+                            <>
+                              <button
+                                type="button"
+                                className="td-ytdlp-link-pill"
+                                onClick={() => handleOpenExternalUrl('https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc')}
+                              >
+                                <span>{t('drive_tools.plugin_modal_cookies_link_chrome')}</span>
+                                <ExternalLink size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                className="td-ytdlp-link-pill"
+                                onClick={() => handleOpenExternalUrl('https://cookie-editor.com')}
+                              >
+                                <span>{t('drive_tools.plugin_modal_cookies_link_cookie_editor')}</span>
+                                <ExternalLink size={13} />
+                              </button>
+                            </>
+                          )}
+                          {activeInfoModal === 'po_token' && (
+                            <button
+                              type="button"
+                              className="td-ytdlp-link-pill"
+                              onClick={() => handleOpenExternalUrl('https://github.com/yt-dlp/yt-dlp/wiki/Extractors#po-token-guide')}
+                            >
+                              <span>{t('drive_tools.plugin_modal_po_token_link_docs')}</span>
+                              <ExternalLink size={13} />
+                            </button>
+                          )}
+                          {activeInfoModal === 'ffmpeg' && (
+                            <button
+                              type="button"
+                              className="td-ytdlp-link-pill"
+                              onClick={() => handleOpenExternalUrl('https://www.gyan.dev/ffmpeg/builds/')}
+                            >
+                              <span>{t('drive_tools.plugin_modal_ffmpeg_link_gyan')}</span>
+                              <ExternalLink size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SECTION 4: CONTOH & SALIN CEPAT */}
+                    {(activeInfoModal === 'extractor_args' || activeInfoModal === 'custom_cli_args') && (
+                      <div className="td-ytdlp-modal-section">
+                        <span className="td-ytdlp-modal-section-title">
+                          {t('drive_tools.plugin_modal_section_snippets')}
+                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {activeInfoModal === 'extractor_args' && (
+                            <>
+                              <div className="td-ytdlp-snippet-row">
+                                <code className="td-ytdlp-snippet-code">youtube:player_client=android,web</code>
+                                <button
+                                  type="button"
+                                  className="td-chip-btn"
+                                  style={{ fontSize: '0.70rem', padding: '2px 8px' }}
+                                  onClick={() => handleCopySnippet('youtube:player_client=android,web')}
+                                >
+                                  {copiedSnippet === 'youtube:player_client=android,web' ? <Check size={12} style={{ color: '#4ade80' }} /> : <Copy size={12} />}
+                                  <span>{copiedSnippet === 'youtube:player_client=android,web' ? t('drive_tools.plugin_modal_btn_copied') : t('drive_tools.plugin_modal_btn_copy')}</span>
+                                </button>
+                              </div>
+                              <div className="td-ytdlp-snippet-row">
+                                <code className="td-ytdlp-snippet-code">youtube:player_client=ios,android</code>
+                                <button
+                                  type="button"
+                                  className="td-chip-btn"
+                                  style={{ fontSize: '0.70rem', padding: '2px 8px' }}
+                                  onClick={() => handleCopySnippet('youtube:player_client=ios,android')}
+                                >
+                                  {copiedSnippet === 'youtube:player_client=ios,android' ? <Check size={12} style={{ color: '#4ade80' }} /> : <Copy size={12} />}
+                                  <span>{copiedSnippet === 'youtube:player_client=ios,android' ? t('drive_tools.plugin_modal_btn_copied') : t('drive_tools.plugin_modal_btn_copy')}</span>
+                                </button>
+                              </div>
+                            </>
+                          )}
+                          {activeInfoModal === 'custom_cli_args' && (
+                            <>
+                              <div className="td-ytdlp-snippet-row">
+                                <code className="td-ytdlp-snippet-code">--geo-bypass --concurrent-fragments 4</code>
+                                <button
+                                  type="button"
+                                  className="td-chip-btn"
+                                  style={{ fontSize: '0.70rem', padding: '2px 8px' }}
+                                  onClick={() => handleCopySnippet('--geo-bypass --concurrent-fragments 4')}
+                                >
+                                  {copiedSnippet === '--geo-bypass --concurrent-fragments 4' ? <Check size={12} style={{ color: '#4ade80' }} /> : <Copy size={12} />}
+                                  <span>{copiedSnippet === '--geo-bypass --concurrent-fragments 4' ? t('drive_tools.plugin_modal_btn_copied') : t('drive_tools.plugin_modal_btn_copy')}</span>
+                                </button>
+                              </div>
+                              <div className="td-ytdlp-snippet-row">
+                                <code className="td-ytdlp-snippet-code">--force-ipv4 --no-check-certificates</code>
+                                <button
+                                  type="button"
+                                  className="td-chip-btn"
+                                  style={{ fontSize: '0.70rem', padding: '2px 8px' }}
+                                  onClick={() => handleCopySnippet('--force-ipv4 --no-check-certificates')}
+                                >
+                                  {copiedSnippet === '--force-ipv4 --no-check-certificates' ? <Check size={12} style={{ color: '#4ade80' }} /> : <Copy size={12} />}
+                                  <span>{copiedSnippet === '--force-ipv4 --no-check-certificates' ? t('drive_tools.plugin_modal_btn_copied') : t('drive_tools.plugin_modal_btn_copy')}</span>
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="td-ytdlp-modal-footer">
+                    <button
+                      type="button"
+                      className="td-chip-btn td-chip-primary"
+                      onClick={() => setActiveInfoModal(null)}
+                      style={{ padding: '7px 18px', fontSize: '0.80rem', fontWeight: 700 }}
+                    >
+                      {t('drive_tools.plugin_modal_btn_close')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
