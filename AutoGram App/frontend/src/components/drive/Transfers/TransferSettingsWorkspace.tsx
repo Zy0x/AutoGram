@@ -237,12 +237,6 @@ interface ToggleSwitchProps {
 }
 
 function ToggleSwitch({ checked, disabled, onChange, size = 'md', ariaLabel }: ToggleSwitchProps) {
-  const isSm = size === 'sm';
-  const width = isSm ? 34 : 40;
-  const height = isSm ? 18 : 22;
-  const knobSize = isSm ? 14 : 16;
-  const knobOffset = isSm ? 16 : 18;
-
   return (
     <button
       type="button"
@@ -250,43 +244,14 @@ function ToggleSwitch({ checked, disabled, onChange, size = 'md', ariaLabel }: T
       aria-checked={checked}
       aria-label={ariaLabel}
       disabled={disabled}
+      className={`td-toggle-switch ${size}`}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
         if (!disabled) onChange(!checked);
       }}
-      style={{
-        position: 'relative',
-        display: 'inline-flex',
-        alignItems: 'center',
-        width: `${width}px`,
-        height: `${height}px`,
-        padding: '2px',
-        borderRadius: '9999px',
-        border: checked ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.16)',
-        background: checked
-          ? 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)'
-          : 'rgba(255, 255, 255, 0.1)',
-        boxShadow: checked ? '0 0 10px rgba(56, 189, 248, 0.35)' : 'none',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.45 : 1,
-        transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-        flexShrink: 0,
-        outline: 'none',
-      }}
     >
-      <span
-        style={{
-          display: 'block',
-          width: `${knobSize}px`,
-          height: `${knobSize}px`,
-          borderRadius: '50%',
-          background: '#ffffff',
-          boxShadow: '0 2px 5px rgba(0, 0, 0, 0.35)',
-          transform: checked ? `translateX(${knobOffset}px)` : 'translateX(0px)',
-          transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease',
-        }}
-      />
+      <span className="td-toggle-switch-knob" />
     </button>
   );
 }
