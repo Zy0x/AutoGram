@@ -3571,42 +3571,20 @@ export function TransferSettingsWorkspace({
 
         {/* DEDICATED PAGE: PLUG-IN & URL EXTRACTOR (OVERVIEW) */}
         {activeTab === 'ytdlp' && ytdlpSubPage === 'overview' && (
-          <div className="td-xfer-focused-panel" id="section-ytdlp-plugin" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-              gap: '16px',
-            }}>
+          <div className="td-xfer-focused-panel td-plugin-overview-container" id="section-ytdlp-plugin">
+            <div className="td-plugin-overview-grid">
               {/* 1. KARTU YT-DLP EXTRACTOR ENGINE */}
-              <div className="td-settings-card" style={{
-                background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.9) 0%, rgba(8, 12, 22, 0.98) 100%)',
-                border: '1px solid rgba(168, 85, 247, 0.35)',
-                borderRadius: '16px',
-                padding: '18px 20px',
-                boxShadow: '0 6px 20px rgba(0, 0, 0, 0.35)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                gap: '14px',
-                transition: 'all 0.2s ease',
-              }}>
+              <div className="td-settings-card td-plugin-card">
                 {/* Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                <div className="td-plugin-card-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{
-                      width: '38px', height: '38px', borderRadius: '10px',
-                      background: 'rgba(168, 85, 247, 0.16)', border: '1px solid rgba(168, 85, 247, 0.35)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    }}>
+                    <div className="td-plugin-icon-box">
                       <Download size={18} style={{ color: '#c084fc' }} />
                     </div>
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                         <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#f8fafc' }}>{t('drive_tools.plugin_section_ytdlp_title')}</h4>
-                        <span style={{
-                          fontSize: '0.68rem', fontWeight: 700, padding: '2px 6px', borderRadius: '6px',
-                          background: 'rgba(56, 189, 248, 0.14)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)',
-                        }}>
+                        <span className="td-plugin-badge-tag">
                           {t('drive_tools.plugin_tag_remote_url')}
                         </span>
                       </div>
@@ -3615,26 +3593,14 @@ export function TransferSettingsWorkspace({
                       </p>
                     </div>
                   </div>
-                  <span style={{
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    padding: '3px 8px',
-                    borderRadius: '8px',
-                    background: 'rgba(74, 222, 128, 0.14)',
-                    color: '#4ade80',
-                    border: '1px solid rgba(74, 222, 128, 0.3)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    whiteSpace: 'nowrap',
-                  }}>
+                  <span className="td-plugin-status-badge">
                     <CheckCircle2 size={12} />
                     {t('drive_tools.plugin_status_integrated')}
                   </span>
                 </div>
 
                 {/* Middle Switches & Status */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(0, 0, 0, 0.22)', padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                <div className="td-plugin-status-box">
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                     <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0' }}>{t('drive_tools.ytdlp_auto_update_title')}</span>
                     <ToggleSwitch
@@ -3645,7 +3611,7 @@ export function TransferSettingsWorkspace({
                       ariaLabel={t('drive_tools.ytdlp_auto_update_title')}
                     />
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', color: '#94a3b8', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '6px' }}>
+                  <div className="td-plugin-status-runtime-row">
                     <span>{t('drive_tools.ytdlp_runtime_status')}</span>
                     <strong style={{ color: ytdlpStatus?.error ? '#f87171' : ytdlpStatus?.installed ? '#4ade80' : '#38bdf8' }}>
                       {ytdlpBusy ? t('drive_tools.ytdlp_runtime_checking') : ytdlpStatus?.error
@@ -3658,70 +3624,51 @@ export function TransferSettingsWorkspace({
                 </div>
 
                 {/* Footer Actions */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', paddingTop: '4px' }}>
+                <div className="td-plugin-card-footer">
                   <button
                     type="button"
-                    className="td-chip-btn"
+                    className="td-chip-btn td-plugin-config-btn"
                     onClick={() => {
                       setYtdlpSubPage('config');
                       void refreshFfmpegStatus();
                     }}
-                    style={{ fontSize: '0.78rem', padding: '6px 12px', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.35)', background: 'rgba(168, 85, 247, 0.1)' }}
                   >
-                    <SlidersHorizontal size={12} /> {t('drive_tools.plugin_config_btn')}
+                    <SlidersHorizontal size={13} />
+                    <span>{t('drive_tools.plugin_config_btn')}</span>
                   </button>
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div className="td-plugin-action-group">
                     <button
                       type="button"
                       className="td-chip-btn"
                       disabled={ytdlpBusy}
                       onClick={() => void refreshYtdlpStatus(true)}
-                      style={{ fontSize: '0.78rem', padding: '6px 10px' }}
                     >
-                      <RotateCcw size={12} /> {t('drive_tools.ytdlp_check_now')}
+                      <RotateCcw size={13} />
+                      <span>{t('drive_tools.ytdlp_check_now')}</span>
                     </button>
                     <button
                       type="button"
                       className="td-chip-btn td-chip-primary"
                       disabled={ytdlpBusy}
                       onClick={() => void updateYtdlpPlugin()}
-                      style={{ fontSize: '0.78rem', padding: '6px 12px', fontWeight: 700 }}
                     >
-                      <Download size={12} /> {t('drive_tools.ytdlp_update_now')}
+                      <Download size={13} />
+                      <span>{t('drive_tools.ytdlp_update_now')}</span>
                     </button>
                   </div>
                 </div>
               </div>
 
               {/* 2. KARTU PLACEHOLDER PLUG-IN LAINNYA */}
-              <div style={{
-                background: 'rgba(15, 23, 42, 0.35)',
-                border: '1px dashed rgba(255, 255, 255, 0.14)',
-                borderRadius: '16px',
-                padding: '18px 20px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                textAlign: 'center',
-                gap: '8px',
-                minHeight: '180px',
-              }}>
-                <div style={{
-                  width: '38px', height: '38px', borderRadius: '10px',
-                  background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
+              <div className="td-plugin-placeholder-card">
+                <div className="td-plugin-placeholder-icon">
                   <Sparkles size={18} style={{ color: '#94a3b8' }} />
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
                   <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#e2e8f0' }}>
                     {t('drive_tools.plugin_more_title')}
                   </h4>
-                  <span style={{
-                    fontSize: '0.65rem', fontWeight: 600, padding: '2px 6px', borderRadius: '6px',
-                    background: 'rgba(255, 255, 255, 0.06)', color: '#94a3b8',
-                  }}>
+                  <span className="td-plugin-placeholder-tag">
                     {t('drive_tools.plugin_tag_upcoming')}
                   </span>
                 </div>

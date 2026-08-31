@@ -39763,19 +39763,462 @@ button.td-confirm-icon.is-back-btn:active {
   color: #f8fafc;
 }
 
-@media (max-width: 768px) {
-  .td-ytdlp-grid {
-    grid-template-columns: 1fr;
+/* ══════════════════════════════════════════════════════════════════════════
+   PLUG-IN OVERVIEW & DEDICATED YT-DLP CONFIG RESPONSIVE ARCHITECTURE
+   Multi-Tier Precision: Mobile, Compact, Tablet, Desktop, Wide, Ultra-Wide (4K)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Modal Overlap Prevention: Ensure Transfer Settings Dialog always sits on top */
+.td-tools-overlay {
+  z-index: 14000 !important;
+}
+
+.tm-panel {
+  z-index: 11000 !important;
+}
+
+/* 1. Plug-in Overview Master Container & Grid */
+.td-plugin-overview-container {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+  width: 100% !important;
+  max-width: 1400px !important;
+  margin: 0 auto !important;
+}
+
+.td-plugin-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.td-plugin-card {
+  background: linear-gradient(150deg, rgba(15, 22, 36, 0.9) 0%, rgba(8, 12, 22, 0.98) 100%) !important;
+  border: 1px solid rgba(168, 85, 247, 0.35) !important;
+  border-radius: 16px !important;
+  padding: 18px 20px !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  min-height: 220px;
+}
+
+.td-plugin-card:hover {
+  border-color: rgba(168, 85, 247, 0.6) !important;
+  box-shadow: 0 10px 30px rgba(168, 85, 247, 0.15), 0 0 20px rgba(0, 0, 0, 0.5) !important;
+}
+
+.td-plugin-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.td-plugin-icon-box {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(168, 85, 247, 0.16);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.td-plugin-badge-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.14);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.td-plugin-status-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: rgba(74, 222, 128, 0.14);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.td-plugin-status-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.td-plugin-status-runtime-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 6px;
+  gap: 8px;
+}
+
+.td-plugin-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  flex-wrap: wrap;
+}
+
+.td-plugin-config-btn {
+  font-size: 0.78rem !important;
+  padding: 7px 14px !important;
+  color: #c084fc !important;
+  border: 1px solid rgba(168, 85, 247, 0.35) !important;
+  background: rgba(168, 85, 247, 0.1) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-height: 38px !important;
+  font-weight: 700 !important;
+  border-radius: 10px !important;
+}
+
+.td-plugin-config-btn:hover {
+  background: rgba(168, 85, 247, 0.22) !important;
+  border-color: rgba(168, 85, 247, 0.6) !important;
+  color: #e9d5ff !important;
+  transform: translateY(-1px);
+}
+
+.td-plugin-action-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.td-plugin-action-group .td-chip-btn {
+  font-size: 0.78rem !important;
+  padding: 7px 12px !important;
+  min-height: 38px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  border-radius: 10px !important;
+}
+
+.td-plugin-placeholder-card {
+  background: rgba(15, 23, 42, 0.35);
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  textAlign: center;
+  gap: 8px;
+  min-height: 220px;
+}
+
+.td-plugin-placeholder-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.td-plugin-placeholder-tag {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+}
+
+/* 2. yt-dlp Dedicated Sub-Page Responsive Containers */
+.td-ytdlp-subpage-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 1450px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.td-ytdlp-header-banner {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(56, 189, 248, 0.06) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  border-radius: 16px;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+.td-ytdlp-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.td-ytdlp-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* 3. Deep Configuration Grid */
+.td-ytdlp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   VIEWPORT BREAKPOINT 1: MOBILE & COMPACT WINDOWS (< 640px)
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .td-plugin-overview-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
   }
+
+  .td-plugin-card,
+  .td-plugin-placeholder-card {
+    padding: 14px 14px !important;
+    min-height: auto !important;
+  }
+
+  .td-plugin-card-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  .td-plugin-status-badge {
+    align-self: flex-start !important;
+  }
+
+  .td-plugin-card-footer {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  .td-plugin-config-btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .td-plugin-action-group {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .td-plugin-action-group .td-chip-btn {
+    justify-content: center !important;
+    width: 100% !important;
+  }
+
+  /* Deep Config Sub-Page on Mobile */
+  .td-ytdlp-subpage-container {
+    gap: 12px !important;
+  }
+
   .td-ytdlp-header-banner {
-    padding: 12px 14px;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 12px 14px !important;
   }
+
+  .td-ytdlp-header-left {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
   .td-ytdlp-header-actions {
-    width: 100%;
-    justify-content: flex-start;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
   }
+
+  .td-ytdlp-header-actions .td-chip-btn {
+    justify-content: center !important;
+    width: 100% !important;
+  }
+
+  .td-ytdlp-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
   .td-ytdlp-card {
+    padding: 14px 14px !important;
+    border-radius: 14px !important;
+  }
+
+  .td-ytdlp-input-group {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+
+  .td-ytdlp-input-group .td-modern-input-wrapper {
+    width: 100% !important;
+    flex: 1 1 100% !important;
+  }
+
+  .td-ytdlp-input-group .td-chip-btn {
+    flex: 1 !important;
+    justify-content: center !important;
+    min-height: 38px !important;
+  }
+
+  .td-ytdlp-chip-presets {
+    gap: 4px !important;
+  }
+
+  .td-ytdlp-chip-presets .td-chip-btn {
+    font-size: 0.70rem !important;
+    padding: 4px 8px !important;
+    min-height: 30px !important;
+  }
+
+  /* Advanced tab on Mobile */
+  .td-xfer-focused-panel {
+    gap: 12px !important;
+  }
+
+  .td-settings-card {
+    padding: 14px 14px !important;
+    border-radius: 14px !important;
+  }
+
+  .td-switch-row {
+    padding: 10px 10px !important;
+    gap: 10px !important;
+    font-size: 0.80rem !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   VIEWPORT BREAKPOINT 2: TABLET / MEDIUM WINDOWS (641px - 1024px)
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .td-plugin-overview-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)) !important;
+    gap: 14px !important;
+  }
+
+  .td-ytdlp-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)) !important;
+    gap: 14px !important;
+  }
+
+  .td-ytdlp-header-banner {
     padding: 14px 16px !important;
+  }
+
+  .td-ytdlp-card {
+    padding: 16px 18px !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   VIEWPORT BREAKPOINT 3: LARGE DESKTOP (1025px - 1440px)
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (min-width: 1025px) and (max-width: 1440px) {
+  .td-plugin-overview-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 18px !important;
+  }
+
+  .td-ytdlp-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 18px !important;
+  }
+
+  .td-ytdlp-card {
+    padding: 18px 20px !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   VIEWPORT BREAKPOINT 4: WIDE & ULTRA-WIDE / 4K MONITORS (> 1440px & > 1920px)
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (min-width: 1441px) {
+  .td-plugin-overview-container,
+  .td-ytdlp-subpage-container,
+  .td-xfer-focused-panel {
+    max-width: 1450px !important;
+    margin: 0 auto !important;
+  }
+
+  .td-plugin-overview-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 20px !important;
+  }
+
+  .td-ytdlp-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 20px !important;
+  }
+
+  .td-ytdlp-card {
+    padding: 20px 24px !important;
+    border-radius: 18px !important;
+  }
+}
+
+@media (min-width: 1921px) {
+  .td-plugin-overview-container,
+  .td-ytdlp-subpage-container,
+  .td-xfer-focused-panel {
+    max-width: 1600px !important;
+    margin: 0 auto !important;
+  }
+
+  .td-ytdlp-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 24px !important;
+  }
+
+  .td-ytdlp-card {
+    padding: 24px 28px !important;
+    border-radius: 20px !important;
   }
 }
 
