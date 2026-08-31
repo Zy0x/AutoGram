@@ -220,6 +220,69 @@ function domToCaptionText(container: HTMLElement, parseMode: 'MarkdownV2' | 'HTM
     .trim();
 }
 
+interface ToggleSwitchProps {
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (checked: boolean) => void;
+  size?: 'sm' | 'md' | 'lg';
+  ariaLabel?: string;
+}
+
+function ToggleSwitch({ checked, disabled, onChange, size = 'md', ariaLabel }: ToggleSwitchProps) {
+  const isSm = size === 'sm';
+  const width = isSm ? 34 : 40;
+  const height = isSm ? 18 : 22;
+  const knobSize = isSm ? 14 : 16;
+  const knobOffset = isSm ? 16 : 18;
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      disabled={disabled}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!disabled) onChange(!checked);
+      }}
+      style={{
+        position: 'relative',
+        display: 'inline-flex',
+        alignItems: 'center',
+        width: `${width}px`,
+        height: `${height}px`,
+        padding: '2px',
+        borderRadius: '9999px',
+        border: checked ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.16)',
+        background: checked
+          ? 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)'
+          : 'rgba(255, 255, 255, 0.1)',
+        boxShadow: checked ? '0 0 10px rgba(56, 189, 248, 0.35)' : 'none',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.45 : 1,
+        transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+        flexShrink: 0,
+        outline: 'none',
+      }}
+    >
+      <span
+        style={{
+          display: 'block',
+          width: `${knobSize}px`,
+          height: `${knobSize}px`,
+          borderRadius: '50%',
+          background: '#ffffff',
+          boxShadow: '0 2px 5px rgba(0, 0, 0, 0.35)',
+          transform: checked ? `translateX(${knobOffset}px)` : 'translateX(0px)',
+          transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease',
+        }}
+      />
+    </button>
+  );
+}
+
 export type WorkspaceTabState = 'menu' | SubMenuCategory;
 
 export interface TransferSettingsWorkspaceProps {
@@ -3410,28 +3473,27 @@ export function TransferSettingsWorkspace({
                       </p>
                     </div>
                   </div>
-                  <label style={{ display: 'inline-flex', cursor: 'pointer', flexShrink: 0, marginTop: '2px' }}>
-                    <input
-                      type="checkbox"
-                      checked={draft.ytdlpEnabled !== false}
-                      disabled={!!transferActive}
-                      onChange={(e) => patch({ ytdlpEnabled: e.target.checked })}
-                      style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                    />
-                  </label>
+                  <ToggleSwitch
+                    checked={draft.ytdlpEnabled !== false}
+                    disabled={!!transferActive}
+                    onChange={(val) => patch({ ytdlpEnabled: val })}
+                    size="md"
+                    ariaLabel={t('drive_tools.ytdlp_enabled_title')}
+                  />
                 </div>
 
                 {/* Middle Switches & Status */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(0, 0, 0, 0.22)', padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                     <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0' }}>{t('drive_tools.ytdlp_auto_update_title')}</span>
-                    <input
-                      type="checkbox"
+                    <ToggleSwitch
                       checked={draft.ytdlpAutoUpdate !== false}
                       disabled={!!transferActive || draft.ytdlpEnabled === false}
-                      onChange={(e) => patch({ ytdlpAutoUpdate: e.target.checked })}
+                      onChange={(val) => patch({ ytdlpAutoUpdate: val })}
+                      size="sm"
+                      ariaLabel={t('drive_tools.ytdlp_auto_update_title')}
                     />
-                  </label>
+                  </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', color: '#94a3b8', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '6px' }}>
                     <span>{t('drive_tools.ytdlp_runtime_status')}</span>
                     <strong style={{ color: ytdlpStatus?.error ? '#f87171' : ytdlpStatus?.installed ? '#4ade80' : '#38bdf8' }}>

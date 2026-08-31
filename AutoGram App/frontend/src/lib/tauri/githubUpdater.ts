@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import i18n from '../../i18n';
 
-export const CURRENT_APP_VERSION = '2.1.7';
+export const CURRENT_APP_VERSION = '2.1.8';
 export const GITHUB_REPO_URL = 'https://github.com/Zy0x/AutoGram';
 export const GITHUB_RELEASES_URL = `${GITHUB_REPO_URL}/releases/latest`;
 export const GITHUB_API_LATEST_RELEASE =
