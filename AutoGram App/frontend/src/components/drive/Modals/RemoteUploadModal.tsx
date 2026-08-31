@@ -1772,7 +1772,7 @@ export function RemoteUploadModal({
   }, [selectedFormatId, handleSelectFormat]);
 
   const handlePlayFormat = useCallback(async (fmt: StreamQualityFormat) => {
-    if (fmt.isDownloadable === false) return;
+    if (fmt.isDownloadable === false && fmt.isStreamable !== true) return;
     const requestId = ++playRequestRef.current;
     handleSelectFormat(fmt);
     if (fmt.isStreamable === false) {

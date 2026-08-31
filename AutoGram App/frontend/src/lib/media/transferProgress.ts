@@ -51,7 +51,12 @@ function computeEta(
   return remain / bytesPerSec;
 }
 
-const TERMINAL_ITEM_STATUSES = new Set<TransferItemStatus>([
+const TERMINAL_SUCCESS_STATUSES = new Set<TransferItemStatus>([
+  'done',
+  'skipped',
+]);
+
+export const TERMINAL_ITEM_STATUSES = new Set<TransferItemStatus>([
   'done',
   'skipped',
   'failed',
@@ -66,7 +71,9 @@ const TERMINAL_ITEM_STATUSES = new Set<TransferItemStatus>([
  * of resetting the total progress bar back to zero.
  */
 export function transferItemOverallPercent(item: TransferItem): number {
-  if (TERMINAL_ITEM_STATUSES.has(item.status)) return 100;
+  if (item.status === 'done' || item.status === 'skipped') return 100;
+  if (item.status === 'failed' || item.status === 'cancelled') return 0;
+  if (item.status === 'needs_verification') return 90;
   if (item.status === 'queued' || item.status === 'paused') return 0;
   if (item.status === 'uploaded' || item.status === 'waiting_commit') return 95;
   if (item.status === 'committing') return 98;
@@ -136,7 +143,8 @@ export function recomputeOverall(session: TransferSession): TransferSession {
     // Bytes are meaningful only for network transfer phases. Re-encode frame
     // counters must never be added to upload bytes.
     transferred = items.reduce((sum, item) => {
-      if (TERMINAL_ITEM_STATUSES.has(item.status)) return sum + (item.total || 0);
+      if (TERMINAL_SUCCESS_STATUSES.has(item.status)) return sum + (item.total || 0);
+      if (item.status === 'failed' || item.status === 'cancelled') return sum;
       const phase = String(item.phase || '').toLowerCase();
       return phase === 'upload' || phase === 'download'
         ? sum + Math.min(item.total || Number.MAX_SAFE_INTEGER, item.transferred || 0)
@@ -249,8 +257,16 @@ export function markTransferFinished(
 
 export function clearFinishedItems(session: TransferSession): TransferSession {
   const items = session.items.filter(
-    (i) => i.status !== 'done' && i.status !== 'failed' && i.status !== 'cancelled' && i.status !== 'skipped' && i.status !== 'needs_verification'
+    (i) => i.status !== 'done' && i.status !== 'skipped'
   );
+  if (!items.length && !session.active) {
+    return { ...EMPTY_TRANSFER_SESSION };
+  }
+  return recomputeOverall({ ...session, items });
+}
+
+export function removeTransferItem(session: TransferSession, itemId: string): TransferSession {
+  const items = session.items.filter((i) => i.id !== itemId);
   if (!items.length && !session.active) {
     return { ...EMPTY_TRANSFER_SESSION };
   }

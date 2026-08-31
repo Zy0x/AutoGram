@@ -16666,6 +16666,39 @@ body:has(.app-layout-drive-focus),
 .tm-panel.down .tm-bar-fill {
   background: linear-gradient(90deg, #7c3aed, #a78bfa 60%, #c4b5fd);
 }
+.tm-panel.has-error {
+  border-color: rgba(239, 68, 68, 0.35);
+}
+.tm-dir-badge.err {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+}
+
+.tm-summary-pct.text-err {
+  color: #f87171;
+}
+
+.tm-bar-fill.bar-failed {
+  background: linear-gradient(90deg, #ef4444, #f87171) !important;
+}
+.tm-bar-fill.bar-partial {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24) !important;
+}
+.tm-bar-fill.bar-done {
+  background: linear-gradient(90deg, #10b981, #34d399) !important;
+}
+
+.tm-stat-breakdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.tm-stat-item.err {
+  color: #f87171;
+  font-weight: 700;
+}
+
 .tm-bytes {
   margin-top: 5px;
   font-size: 0.68rem;
@@ -16675,13 +16708,25 @@ body:has(.app-layout-drive-focus),
 }
 .tm-banner {
   margin-top: 8px;
-  padding: 6px 8px;
+  padding: 6px 10px;
   border-radius: 8px;
   font-size: 0.72rem;
   font-weight: 600;
   background: rgba(251, 191, 36, 0.12);
   color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.25);
   line-height: 1.35;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tm-banner.err {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+.tm-banner-ico {
+  flex-shrink: 0;
 }
 .tm-hint {
   margin: 6px 0 0;
@@ -16694,13 +16739,13 @@ body:has(.app-layout-drive-focus),
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 6px 14px 10px;
+  padding: 8px 14px 10px;
 }
 .tm-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 6px 11px;
+  padding: 6px 12px;
   border-radius: 8px;
   border: 1px solid rgba(148, 163, 184, 0.28);
   background: rgba(148, 163, 184, 0.1);
@@ -16708,6 +16753,7 @@ body:has(.app-layout-drive-focus),
   font-size: 0.72rem;
   font-weight: 650;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 .tm-btn:hover:not(:disabled) {
   background: rgba(148, 163, 184, 0.18);
@@ -16721,10 +16767,24 @@ body:has(.app-layout-drive-focus),
   border-color: color-mix(in srgb, #38bdf8 40%, transparent);
   color: #7dd3fc;
 }
+.tm-btn.secondary {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.25);
+  color: #cbd5e1;
+}
 .tm-btn.danger {
   background: rgba(239, 68, 68, 0.12);
   border-color: rgba(239, 68, 68, 0.28);
   color: #f87171;
+}
+.tm-btn.danger-ghost {
+  background: transparent;
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+.tm-btn.danger-ghost:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.5);
 }
 .tm-btn.ghost {
   background: transparent;
@@ -16848,7 +16908,7 @@ body:has(.app-layout-drive-focus),
   font-weight: 750;
   color: var(--tm-accent, #38bdf8);
   background: var(--tm-accent-soft, rgba(56, 189, 248, 0.12));
-  padding: 1px 5px;
+  padding: 1px 6px;
   border-radius: 4px;
   white-space: nowrap;
   max-width: 45%;
@@ -16857,9 +16917,51 @@ body:has(.app-layout-drive-focus),
   flex-shrink: 0;
   border: 1px solid color-mix(in srgb, var(--tm-accent, #38bdf8) 20%, transparent);
 }
+.tm-row-dest.is-saved {
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+  border-color: rgba(14, 165, 233, 0.35);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.tm-dest-ico {
+  display: inline;
+  flex-shrink: 0;
+}
+.tm-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: 6px;
+  margin-top: 2px;
+}
+.tm-row-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--td-sub, #94a3b8);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+.tm-row-btn:hover {
+  background: rgba(148, 163, 184, 0.2);
+  color: var(--td-text, #f1f5f9);
+}
+.tm-row-btn.hover-danger:hover {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+}
 .tm-row-meta {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 4px 8px;
   margin-top: 2px;
   font-size: 0.65rem;

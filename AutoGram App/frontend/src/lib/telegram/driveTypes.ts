@@ -984,6 +984,12 @@ export type DriveTransferSettings = {
   hideRestrictedMedia?: boolean;
   /** Remote URL transport preference. Auto uses cloud fetch for known <=20 MiB direct files. */
   remoteEngineMode?: RemoteEngineMode;
+  /** Enable the bundled yt-dlp resolver for Remote URL inspections. */
+  ytdlpEnabled?: boolean;
+  /** Allow the resolver plugin to refresh itself from the latest yt-dlp release. */
+  ytdlpAutoUpdate?: boolean;
+  /** How often the plugin checks GitHub for a newer release. */
+  ytdlpCheckIntervalHours?: number;
 };
 
 export type DriveTransferSettingsProfile = {
@@ -1072,6 +1078,9 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   playbackShowDiagnostics: false,
   hideRestrictedMedia: true,
   remoteEngineMode: 'auto',
+  ytdlpEnabled: true,
+  ytdlpAutoUpdate: true,
+  ytdlpCheckIntervalHours: 6,
 };
 
 export const QUALITY_MODE_OPTIONS: {
@@ -1212,6 +1221,9 @@ export function loadTransferSettings(): DriveTransferSettings {
       remoteEngineMode: p.remoteEngineMode === 'cloud_fetch' || p.remoteEngineMode === 'storage_local'
         ? p.remoteEngineMode
         : DEFAULT_TRANSFER_SETTINGS.remoteEngineMode,
+      ytdlpEnabled: p.ytdlpEnabled !== false,
+      ytdlpAutoUpdate: p.ytdlpAutoUpdate !== false,
+      ytdlpCheckIntervalHours: Math.max(1, Math.min(168, Number(p.ytdlpCheckIntervalHours) || 6)),
     };
   } catch {
     return { ...DEFAULT_TRANSFER_SETTINGS };

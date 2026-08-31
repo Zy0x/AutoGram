@@ -263,6 +263,7 @@ import {
   clearFinishedItems,
   markTransferFinished,
   recomputeOverall,
+  removeTransferItem,
   seedTransferSession,
   setSessionPaused,
   transferBadge,
@@ -1138,7 +1139,8 @@ function MediaDriveDesktop({
       recovered.jobKey = record.transferId;
       recovered.active = false;
       recovered.startedAt = Number(record.createdAtMs) || Date.now();
-      recovered.banner = t('drive.recovered_transfer_banner', { count: unresolved.length });
+      const unresolvedItemsCount = record.items.filter((item) => item.state !== 'done' && item.state !== 'skipped').length;
+      recovered.banner = t('drive.recovered_transfer_banner', { count: unresolvedItemsCount || record.items.length });
       recovered.items = recovered.items.map((item, index) => {
         const persisted = record.items[index];
         const state = persisted?.state;
@@ -10623,6 +10625,9 @@ function MediaDriveDesktop({
               transfer.direction === 'download' &&
               (transfer.items || []).some((i) => i.status === 'failed')
             }
+            onRemoveItem={(itemId) => {
+              setTransfer((t) => removeTransferItem(t, itemId));
+            }}
             onRetryFailed={() => {
               const r = lastDownloadRetryRef.current;
               if (!r || !creds) return;

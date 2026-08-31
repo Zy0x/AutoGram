@@ -233,13 +233,17 @@ fn install_latest(dir: &Path, release: &Value, version: &str) -> Result<PluginSt
     Ok(state)
 }
 
-fn ensure_latest(app: &AppHandle, force: bool) -> Result<(PathBuf, PluginState), String> {
+fn ensure_latest(
+    app: &AppHandle,
+    force: bool,
+    check_interval_secs: u64,
+) -> Result<(PathBuf, PluginState), String> {
     let dir = plugin_dir(app)?;
     let target = binary_path(&dir);
     let mut state = read_state(&dir);
     let fresh = state
         .last_checked_at
-        .map(|last| now_secs().saturating_sub(last) < CHECK_INTERVAL_SECS)
+        .map(|last| now_secs().saturating_sub(last) < check_interval_secs)
         .unwrap_or(false);
 
     if target.is_file() && fresh && !force {
@@ -323,17 +327,35 @@ pub fn ytdlp_update_plugin(
     force: Option<bool>,
 ) -> Result<YtDlpPluginStatus, String> {
     let dir = plugin_dir(&app)?;
-    let (_, state) = ensure_latest(&app, force.unwrap_or(true))?;
+    let (_, state) = ensure_latest(&app, force.unwrap_or(true), CHECK_INTERVAL_SECS)?;
     Ok(status_from(&dir, &state, state.version.clone(), None))
 }
 
 #[tauri::command]
-pub fn ytdlp_resolve(app: AppHandle, url: String) -> Result<String, String> {
+pub fn ytdlp_resolve(
+    app: AppHandle,
+    url: String,
+    auto_update: Option<bool>,
+    check_interval_hours: Option<u64>,
+) -> Result<String, String> {
     let clean = url.trim();
     if clean.is_empty() || !(clean.starts_with("http://") || clean.starts_with("https://")) {
         return Err("yt-dlp requires an absolute HTTP(S) URL".into());
     }
-    let (binary, _) = ensure_latest(&app, false)?;
+    let interval_secs = check_interval_hours.unwrap_or(6).clamp(1, 168) * 60 * 60;
+    let (binary, _) = if auto_update == Some(false) {
+        let dir = plugin_dir(&app)?;
+        let target = binary_path(&dir);
+        if target.is_file() {
+            (target, read_state(&dir))
+        } else {
+            // A first run still needs to install the runtime; disabling
+            // auto-update only prevents checking for newer releases later.
+            ensure_latest(&app, true, interval_secs)?
+        }
+    } else {
+        ensure_latest(&app, false, interval_secs)?
+    };
     let mut child = Command::new(binary)
         .args([
             "--dump-single-json",

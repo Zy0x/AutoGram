@@ -189,6 +189,9 @@ export function normalizeTransferSettings(raw?: Partial<DriveTransferSettings>):
   const playbackZeroCopy = base.playbackZeroCopy !== false;
   const playbackShowDiagnostics = Boolean(base.playbackShowDiagnostics);
   const hideRestrictedMedia = base.hideRestrictedMedia !== false;
+  const ytdlpEnabled = base.ytdlpEnabled !== false;
+  const ytdlpAutoUpdate = base.ytdlpAutoUpdate !== false;
+  const ytdlpCheckIntervalHours = Math.max(1, Math.min(168, Number(base.ytdlpCheckIntervalHours) || 6));
 
   return {
     ...base,
@@ -209,6 +212,9 @@ export function normalizeTransferSettings(raw?: Partial<DriveTransferSettings>):
     playbackZeroCopy,
     playbackShowDiagnostics,
     hideRestrictedMedia,
+    ytdlpEnabled,
+    ytdlpAutoUpdate,
+    ytdlpCheckIntervalHours,
   };
 }
 

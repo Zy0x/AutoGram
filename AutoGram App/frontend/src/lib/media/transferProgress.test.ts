@@ -51,4 +51,22 @@ describe('transfer progress aggregation', () => {
     expect(result.overallPercent).toBe(37);
     expect(result.transferred).toBe(100);
   });
+
+  it('correctly calculates 0% overall progress when all items fail', () => {
+    const result = recomputeOverall(session([
+      item({ id: 'f1', total: 500, status: 'failed', percent: 0, transferred: 0 }),
+      item({ id: 'f2', index: 1, total: 500, status: 'failed', percent: 0, transferred: 0 }),
+    ]));
+    expect(result.overallPercent).toBe(0);
+    expect(result.transferred).toBe(0);
+  });
+
+  it('correctly calculates partial progress when some items succeed and others fail', () => {
+    const result = recomputeOverall(session([
+      item({ id: 'ok1', total: 500, status: 'done', percent: 100, transferred: 500 }),
+      item({ id: 'fail1', index: 1, total: 500, status: 'failed', percent: 0, transferred: 0 }),
+    ]));
+    expect(result.overallPercent).toBe(50);
+    expect(result.transferred).toBe(500);
+  });
 });

@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { invoke } from '@tauri-apps/api/core';
 import {
   Upload,
   Download,
@@ -264,9 +265,47 @@ export function TransferSettingsWorkspace({
   const [showPresetDrawer, setShowPresetDrawer] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showTabResetConfirm, setShowTabResetConfirm] = useState(false);
+  const [ytdlpStatus, setYtdlpStatus] = useState<{
+    installed?: boolean;
+    version?: string | null;
+    latestVersion?: string | null;
+    error?: string | null;
+  } | null>(null);
+  const [ytdlpBusy, setYtdlpBusy] = useState(false);
 
   // Session picker state for alternate account pool
   const [availableSessions, setAvailableSessions] = useState<SessionOption[]>([]);
+
+  const refreshYtdlpStatus = async (refresh = false) => {
+    setYtdlpBusy(true);
+    try {
+      const result = await invoke<typeof ytdlpStatus>('ytdlp_plugin_status', { refresh });
+      setYtdlpStatus(result || null);
+    } catch (error) {
+      setYtdlpStatus({ error: error instanceof Error ? error.message : String(error) });
+    } finally {
+      setYtdlpBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'ytdlp') void refreshYtdlpStatus(false);
+  }, [activeTab]);
+
+  const updateYtdlpPlugin = async () => {
+    setYtdlpBusy(true);
+    try {
+      await invoke('ytdlp_update_plugin', { force: true });
+      await refreshYtdlpStatus(false);
+      triggerCaptionToast(t('drive_tools.ytdlp_update_success'));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setYtdlpStatus({ error: message });
+      triggerCaptionToast(t('drive_tools.ytdlp_update_failed', { error: message }));
+    } finally {
+      setYtdlpBusy(false);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -851,6 +890,13 @@ export function TransferSettingsWorkspace({
           hideRestrictedMedia: defaults.hideRestrictedMedia,
         };
         break;
+      case 'ytdlp':
+        sectionFields = {
+          ytdlpEnabled: defaults.ytdlpEnabled,
+          ytdlpAutoUpdate: defaults.ytdlpAutoUpdate,
+          ytdlpCheckIntervalHours: defaults.ytdlpCheckIntervalHours,
+        };
+        break;
     }
 
     patch(sectionFields);
@@ -958,6 +1004,7 @@ export function TransferSettingsWorkspace({
     { id: 'duplicates', label: t('drive.tools_tab_duplicate'), desc: t('drive.tools_tab_duplicate_desc'), icon: CopyCheck },
     { id: 'limits_recovery', label: t('drive.tools_tab_oversize'), desc: t('drive.tools_tab_oversize_desc'), icon: HardDriveUpload },
     { id: 'network', label: t('drive.tools_tab_network'), desc: t('drive.tools_tab_network_desc'), icon: Network },
+    { id: 'ytdlp', label: t('drive_tools.ytdlp_settings_title'), desc: t('drive_tools.ytdlp_settings_desc'), icon: Download },
     { id: 'advanced', label: t('drive.tools_tab_advanced'), desc: t('drive.tools_tab_advanced_desc'), icon: SlidersHorizontal },
   ];
 
@@ -3295,6 +3342,86 @@ export function TransferSettingsWorkspace({
                   </label>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* DEDICATED PAGE: YT-DLP REMOTE URL PLUGIN */}
+        {activeTab === 'ytdlp' && (
+          <div className="td-xfer-focused-panel" id="section-ytdlp-plugin" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div className="td-settings-card" style={{
+              background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
+              border: '1px solid rgba(168, 85, 247, 0.28)', borderRadius: '16px', padding: '24px',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+                <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: 'rgba(168, 85, 247, 0.14)', border: '1px solid rgba(168, 85, 247, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Download size={18} style={{ color: '#c084fc' }} />
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>{t('drive_tools.ytdlp_settings_title')}</h4>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>{t('drive_tools.ytdlp_settings_desc')}</p>
+                </div>
+              </div>
+
+              <div className="td-switches-list">
+                <label className="td-switch-row">
+                  <div>
+                    <strong>{t('drive_tools.ytdlp_enabled_title')}</strong>
+                    <p>{t('drive_tools.ytdlp_enabled_desc')}</p>
+                  </div>
+                  <input type="checkbox" checked={draft.ytdlpEnabled !== false} disabled={!!transferActive} onChange={(e) => patch({ ytdlpEnabled: e.target.checked })} />
+                </label>
+                <label className="td-switch-row">
+                  <div>
+                    <strong>{t('drive_tools.ytdlp_auto_update_title')}</strong>
+                    <p>{t('drive_tools.ytdlp_auto_update_desc')}</p>
+                  </div>
+                  <input type="checkbox" checked={draft.ytdlpAutoUpdate !== false} disabled={!!transferActive || draft.ytdlpEnabled === false} onChange={(e) => patch({ ytdlpAutoUpdate: e.target.checked })} />
+                </label>
+              </div>
+
+              <div className="td-settings-subcard" style={{ marginTop: '16px' }}>
+                <label className="td-field-label" htmlFor="ytdlp-check-interval">{t('drive_tools.ytdlp_check_interval_title')}</label>
+                <p className="td-field-hint">{t('drive_tools.ytdlp_check_interval_desc')}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', maxWidth: '260px' }}>
+                  <input id="ytdlp-check-interval" type="number" min={1} max={168} step={1} value={draft.ytdlpCheckIntervalHours ?? 6} disabled={!!transferActive || draft.ytdlpAutoUpdate === false} onChange={(e) => patch({ ytdlpCheckIntervalHours: Math.max(1, Math.min(168, Number(e.target.value) || 1)) })} />
+                  <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>{t('drive_tools.ytdlp_check_interval_hours')}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="td-settings-card" style={{
+              background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
+              border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '16px', padding: '24px',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#f8fafc' }}>{t('drive_tools.ytdlp_runtime_status')}</h4>
+                  <p style={{ margin: '6px 0 0', fontSize: '0.83rem', color: '#94a3b8' }}>
+                    {ytdlpBusy ? t('drive_tools.ytdlp_runtime_checking') : ytdlpStatus?.error
+                      ? t('drive_tools.ytdlp_runtime_error', { error: ytdlpStatus.error })
+                      : ytdlpStatus?.installed
+                        ? t('drive_tools.ytdlp_runtime_installed', { version: ytdlpStatus.version || 'unknown' })
+                        : t('drive_tools.ytdlp_runtime_not_checked')}
+                  </p>
+                  {ytdlpStatus?.latestVersion && !ytdlpStatus.error && (
+                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b' }}>{t('drive_tools.ytdlp_runtime_latest', { version: ytdlpStatus.latestVersion })}</p>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button type="button" className="td-chip-btn" disabled={ytdlpBusy} onClick={() => void refreshYtdlpStatus(true)}>
+                    <RotateCcw size={13} /> {t('drive_tools.ytdlp_check_now')}
+                  </button>
+                  <button type="button" className="td-chip-btn td-chip-primary" disabled={ytdlpBusy || draft.ytdlpEnabled === false} onClick={() => void updateYtdlpPlugin()}>
+                    <Download size={13} /> {t('drive_tools.ytdlp_update_now')}
+                  </button>
+                </div>
+              </div>
+              <div style={{ marginTop: '16px', padding: '12px 14px', borderRadius: '10px', border: '1px solid rgba(56, 189, 248, 0.16)', background: 'rgba(56, 189, 248, 0.06)', color: '#bae6fd', fontSize: '0.82rem' }}>
+                {t('drive_tools.ytdlp_runtime_ready')}
+              </div>
             </div>
           </div>
         )}

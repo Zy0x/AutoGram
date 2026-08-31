@@ -139,8 +139,23 @@ async function fetchYouTubeInnertubePlayer(videoId: string, signal?: AbortSignal
 
 async function fetchYouTubeYtDlp(url: string): Promise<any | null> {
   if (!detectTauriRuntime()) return null;
+  let ytdlpEnabled = true;
+  let autoUpdate = true;
+  let checkIntervalHours = 6;
   try {
-    const text = await invoke<string>('ytdlp_resolve', { url });
+    const raw = localStorage.getItem('autogram_drive_transfer_settings');
+    if (raw) {
+      const settings = JSON.parse(raw) as { ytdlpEnabled?: boolean; ytdlpAutoUpdate?: boolean; ytdlpCheckIntervalHours?: number };
+      ytdlpEnabled = settings.ytdlpEnabled !== false;
+      autoUpdate = settings.ytdlpAutoUpdate !== false;
+      checkIntervalHours = Math.max(1, Math.min(168, Number(settings.ytdlpCheckIntervalHours) || 6));
+    }
+  } catch {
+    // Keep the safe defaults when settings are unavailable.
+  }
+  if (!ytdlpEnabled) return null;
+  try {
+    const text = await invoke<string>('ytdlp_resolve', { url, autoUpdate, checkIntervalHours });
     const data = JSON.parse(text);
     return data && Array.isArray(data.formats) ? data : null;
   } catch {
@@ -206,7 +221,9 @@ export function processYtDlpData(
     const formatId = String(f.format_id || stableFormatNumber(f.format_id, index));
     const itag = stableFormatNumber(formatId, index);
     const ext = String(f.ext || (isAudio ? 'm4a' : 'mp4')).toLowerCase();
-    const streamable = !isManifest && ['mp4', 'webm', 'm4a', 'mp3', 'opus', 'ogg', 'wav'].includes(ext);
+    // Browser-native containers can play directly; HLS/DASH manifests remain
+    // streamable through the native proxy but are not direct-download files.
+    const streamable = isManifest || ['mp4', 'webm', 'm4a', 'mp3', 'opus', 'ogg', 'wav'].includes(ext);
     const downloadable = !isManifest;
     const label = isAudio
       ? `${ext.toUpperCase()} ${Math.round((effectiveBitrate || 0) / 1000)} kbps`
@@ -237,8 +254,7 @@ export function processYtDlpData(
       downloadOnly: downloadable && !streamable,
     };
     rawStreams.push(stream);
-    if (downloadable) {
-      formats.push({
+    formats.push({
         id: `yt_ytdlp_${formatId}`,
         label,
         qualityTier,
@@ -247,9 +263,9 @@ export function processYtDlpData(
         ext,
         filesizeBytes: size,
         directUrl,
-        isDownloadable: true,
+        isDownloadable: downloadable,
         isStreamable: streamable,
-        downloadOnly: !streamable,
+        downloadOnly: downloadable && !streamable,
         isVideo,
         isAudio,
         badge: isAudio ? bitrateText : `${height || 'Video'}p • ${bitrateText}`,
@@ -258,7 +274,6 @@ export function processYtDlpData(
         container: ext,
         itag,
       });
-    }
   });
 
   const subtitleMap = data?.subtitles && typeof data.subtitles === 'object' ? data.subtitles : {};

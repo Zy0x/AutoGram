@@ -10,6 +10,7 @@ export type SubMenuCategory =
   | 'limits_recovery'
   | 'advanced'
   | 'network'
+  | 'ytdlp'
   | 'profiles'
   | 'copy'
   | 'dups'
@@ -160,6 +161,15 @@ export function buildSearchRegistry(t: TFunction): SearchableSettingItem[] {
       label: String(t('drive.tools_tab_advanced')),
       description: String(t('drive.tools_tab_advanced_desc')),
       keywords: ['advanced', 'sync', 'timeout', 'export', 'import', 'reset'],
+    },
+    {
+      id: 'ytdlp-plugin',
+      tab: 'ytdlp',
+      mode: 'advanced',
+      sectionId: 'section-ytdlp-plugin',
+      label: String(t('drive_tools.ytdlp_settings_title')),
+      description: String(t('drive_tools.ytdlp_settings_desc')),
+      keywords: ['yt-dlp', 'ytdlp', 'youtube', 'remote url', 'resolver', 'plugin', 'format', 'stream', 'update'],
     },
     {
       id: 'hide-restricted-media',
