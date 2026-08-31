@@ -273,6 +273,7 @@ export function TransferSettingsWorkspace({
     error?: string | null;
   } | null>(null);
   const [ytdlpBusy, setYtdlpBusy] = useState(false);
+  const [showPluginAdvanced, setShowPluginAdvanced] = useState(false);
 
   // Session picker state for alternate account pool
   const [availableSessions, setAvailableSessions] = useState<SessionOption[]>([]);
@@ -3443,26 +3444,78 @@ export function TransferSettingsWorkspace({
                   </div>
                 </div>
 
+                {/* Advanced Options Accordion */}
+                {showPluginAdvanced && (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    padding: '12px',
+                    borderRadius: '10px',
+                    background: 'rgba(0, 0, 0, 0.35)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                  }}>
+                    <div>
+                      <label className="td-field-label" htmlFor="ytdlp-custom-path-compact" style={{ fontSize: '0.78rem' }}>
+                        {t('drive_tools.plugin_custom_path_title')}
+                      </label>
+                      <input
+                        id="ytdlp-custom-path-compact"
+                        type="text"
+                        placeholder={t('drive_tools.plugin_custom_path_placeholder')}
+                        value={draft.ytdlpCustomPath ?? ''}
+                        disabled={!!transferActive}
+                        onChange={(e) => patch({ ytdlpCustomPath: e.target.value })}
+                        style={{ width: '100%', fontSize: '0.8rem', padding: '6px 10px', marginTop: '4px' }}
+                      />
+                    </div>
+                    <div>
+                      <label className="td-field-label" htmlFor="ytdlp-po-token-compact" style={{ fontSize: '0.78rem' }}>
+                        {t('drive_tools.plugin_po_token_title')}
+                      </label>
+                      <input
+                        id="ytdlp-po-token-compact"
+                        type="text"
+                        placeholder={t('drive_tools.plugin_po_token_placeholder')}
+                        value={draft.ytdlpPoToken || ''}
+                        disabled={!!transferActive}
+                        onChange={(e) => patch({ ytdlpPoToken: e.target.value })}
+                        style={{ width: '100%', fontSize: '0.8rem', padding: '6px 10px', marginTop: '4px' }}
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {/* Footer Actions */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', paddingTop: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', paddingTop: '4px' }}>
                   <button
                     type="button"
                     className="td-chip-btn"
-                    disabled={ytdlpBusy}
-                    onClick={() => void refreshYtdlpStatus(true)}
-                    style={{ fontSize: '0.78rem', padding: '6px 10px' }}
+                    onClick={() => setShowPluginAdvanced((prev) => !prev)}
+                    style={{ fontSize: '0.74rem', padding: '5px 8px', color: '#94a3b8' }}
                   >
-                    <RotateCcw size={12} /> {t('drive_tools.ytdlp_check_now')}
+                    <SlidersHorizontal size={11} /> {showPluginAdvanced ? t('drive_tools.plugin_advanced_hide') : t('drive_tools.plugin_advanced_toggle')}
                   </button>
-                  <button
-                    type="button"
-                    className="td-chip-btn td-chip-primary"
-                    disabled={ytdlpBusy || draft.ytdlpEnabled === false}
-                    onClick={() => void updateYtdlpPlugin()}
-                    style={{ fontSize: '0.78rem', padding: '6px 12px', fontWeight: 700 }}
-                  >
-                    <Download size={12} /> {t('drive_tools.ytdlp_update_now')}
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      className="td-chip-btn"
+                      disabled={ytdlpBusy}
+                      onClick={() => void refreshYtdlpStatus(true)}
+                      style={{ fontSize: '0.78rem', padding: '6px 10px' }}
+                    >
+                      <RotateCcw size={12} /> {t('drive_tools.ytdlp_check_now')}
+                    </button>
+                    <button
+                      type="button"
+                      className="td-chip-btn td-chip-primary"
+                      disabled={ytdlpBusy || draft.ytdlpEnabled === false}
+                      onClick={() => void updateYtdlpPlugin()}
+                      style={{ fontSize: '0.78rem', padding: '6px 12px', fontWeight: 700 }}
+                    >
+                      <Download size={12} /> {t('drive_tools.ytdlp_update_now')}
+                    </button>
+                  </div>
                 </div>
               </div>
 

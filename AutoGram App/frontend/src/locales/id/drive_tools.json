@@ -241,6 +241,8 @@
   "plugin_tag_remote_url": "Remote URL",
   "plugin_tag_upcoming": "Segera Hadir",
   "plugin_status_ready": "Siap Digunakan",
+  "plugin_advanced_toggle": "Opsi Lanjutan",
+  "plugin_advanced_hide": "Sembunyikan",
   "tools_tab_upload_desc": "Perilaku unggah dan default pengiriman",
   "tools_tab_download_desc": "Perilaku unduh, integritas, dan aturan konflik",
   "tools_tab_encoding_desc": "Performa, codec, dan pemrosesan video",

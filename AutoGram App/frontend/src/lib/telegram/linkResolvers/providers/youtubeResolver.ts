@@ -260,9 +260,8 @@ export function processYtDlpData(
     const isMuxed = isVideo && acodec !== 'none';
     const streamable = isManifest
       || isAudio
-      || (isMuxed && (height ? height <= 1080 : true) && ['mp4', 'webm'].includes(ext))
-      || (isVideo && !isMuxed && (height ? height <= 720 : true) && ['mp4', 'webm'].includes(ext));
-    const downloadable = true;
+      || ['mp4', 'webm'].includes(ext);
+    const downloadable = !isManifest;
 
     const label = isAudio
       ? `${ext.toUpperCase()} ${Math.round((effectiveBitrate || 0) / 1000)} kbps`
@@ -708,10 +707,10 @@ export const youtubeResolver: LinkResolverProvider = {
           if (res.description) description = res.description;
           if (res.durationSec) durationSec = res.durationSec;
           if (res.thumbnailUrl) thumbnailUrl = res.thumbnailUrl;
-          parsedSuccess = formats.some((f) => f.isVideo && f.directUrl && f.isDownloadable);
+          parsedSuccess = formats.length > 0 || rawStreams.length > 0;
         }
-      } catch {
-        /* optional plugin unavailable: continue with native extraction */
+      } catch (err) {
+        console.warn('[youtubeResolver] yt-dlp execution error:', err);
       }
     }
 

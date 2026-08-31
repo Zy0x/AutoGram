@@ -241,6 +241,8 @@
   "plugin_tag_remote_url": "Remote URL",
   "plugin_tag_upcoming": "Coming Soon",
   "plugin_status_ready": "Ready to Use",
+  "plugin_advanced_toggle": "Advanced Options",
+  "plugin_advanced_hide": "Hide",
   "tools_tab_upload_desc": "Upload behavior and delivery defaults",
   "tools_tab_download_desc": "Download behavior, integrity, and conflict rules",
   "tools_tab_encoding_desc": "Performance, codecs, and video processing",
