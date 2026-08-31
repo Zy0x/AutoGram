@@ -1113,9 +1113,7 @@ impl ChannelSyncWorker {
             })
             .await;
 
-        let mut next_poll = None;
-
-        loop {
+        let next_poll = loop {
             if cancel.is_cancelled() {
                 return Err("Cancelled during difference recovery".into());
             }
@@ -1134,7 +1132,7 @@ impl ChannelSyncWorker {
 
             match diff_res {
                 ChannelDifferenceResult::Empty { pts, timeout } => {
-                    next_poll = timeout.map(|t| t.max(0) as u32);
+                    let next = timeout.map(|t| t.max(0) as u32);
                     if pts > local_pts {
                         *batch_counter += 1;
                         let batch_id = *batch_counter;
@@ -1196,7 +1194,7 @@ impl ChannelSyncWorker {
                         let mut st = control.status.write().await;
                         *st = ChannelSyncStatus::LiveSynced;
                     }
-                    break;
+                    break next;
                 }
 
                 ChannelDifferenceResult::Difference {
@@ -1206,7 +1204,7 @@ impl ChannelSyncWorker {
                     other_mutations,
                     timeout,
                 } => {
-                    next_poll = timeout.map(|t| t.max(0) as u32);
+                    let next = timeout.map(|t| t.max(0) as u32);
 
                     let mut mutations = Vec::new();
                     for m in new_messages {
@@ -1272,7 +1270,7 @@ impl ChannelSyncWorker {
                     }
 
                     if is_final {
-                        break;
+                        break next;
                     }
                 }
 
@@ -1297,7 +1295,7 @@ impl ChannelSyncWorker {
                     return Ok(DifferenceRecoveryOutcome::ReconcileRequired { latest_pts });
                 }
             }
-        }
+        };
 
         Ok(DifferenceRecoveryOutcome::Synced {
             next_short_poll_secs: next_poll,

@@ -1798,7 +1798,7 @@ pub async fn fetch_channel_history_page_async(
     let mut rows = Vec::new();
     let mut count = 0;
     let mut total_count = None;
-    let mut diag = String::new();
+    let mut diag;
 
     // Strategy A: Try direct MTProto messages.GetHistory
     let input_peer: grammers_client::tl::enums::InputPeer = (&peer_ref).into();
