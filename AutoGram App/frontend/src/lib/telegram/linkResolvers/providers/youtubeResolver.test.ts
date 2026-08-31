@@ -124,12 +124,14 @@ describe('youtubeResolver', () => {
     });
     expect(rawStreams).toHaveLength(2);
     expect(rawStreams.find((stream) => stream.itag === 642)).toMatchObject({
-      isDownloadable: false,
+      isDownloadable: true,
       isStreamable: true,
     });
     expect(formats.find((format) => format.itag === 642)).toMatchObject({
-      isDownloadable: false,
+      isDownloadable: true,
       isStreamable: true,
     });
+    expect(formats[0].filesizeBytes).toBe(1000000);
+    expect(formats[1].filesizeBytes).toBeGreaterThan(0);
   });
 });

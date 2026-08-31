@@ -1755,7 +1755,7 @@ export function RemoteUploadModal({
   }, [isPlayingStream, resolvedMedia]);
 
   const handleToggleFormat = useCallback((fmt: StreamQualityFormat) => {
-    if (fmt.isDownloadable === false) return;
+    if (fmt.isDownloadable === false && !fmt.directUrl) return;
     if (selectedFormatId === fmt.id) {
       setSelectedFormatId('');
       setInspection((prev) =>
@@ -4494,7 +4494,7 @@ export function RemoteUploadModal({
                                           <button
                                             type="button"
                                             className={`td-remote-matrix-select-btn ${isSelected ? 'selected' : ''}`}
-                                            disabled={s.isDownloadable === false}
+                                            disabled={s.isDownloadable === false && !s.directUrl}
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               handleToggleFormat(matchedFmt);

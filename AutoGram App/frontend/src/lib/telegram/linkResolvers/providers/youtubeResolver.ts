@@ -208,6 +208,20 @@ function qualityTierForHeight(height?: number): StreamQualityFormat['qualityTier
   return 'original';
 }
 
+function defaultBitrateForHeight(height?: number, isAudio?: boolean): number {
+  if (isAudio) return 128_000;
+  if (!height) return 2_000_000;
+  if (height >= 4320) return 50_000_000;
+  if (height >= 2160) return 25_000_000;
+  if (height >= 1440) return 16_000_000;
+  if (height >= 1080) return 8_000_000;
+  if (height >= 720) return 4_000_000;
+  if (height >= 480) return 2_000_000;
+  if (height >= 360) return 1_000_000;
+  if (height >= 240) return 500_000;
+  return 250_000;
+}
+
 function stableFormatNumber(value: unknown, index: number): number {
   const numeric = Number(value);
   if (Number.isFinite(numeric) && numeric > 0) return numeric;
@@ -243,9 +257,9 @@ export function processYtDlpData(
     const protocol = String(f.protocol || (/[.]m3u8(?:\?|$)/i.test(directUrl) ? 'm3u8' : 'https'));
     const isManifest = /(?:m3u8|mpd)(?:\?|$)/i.test(protocol) || /[.]m3u8(?:\?|$)/i.test(directUrl);
     const height = typeof f.height === 'number' ? f.height : undefined;
-    const bitrate = Number(f.tbr || f.vbr || f.abr || 0) * 1000;
+    const rawBitrate = Number(f.tbr || f.vbr || f.abr || 0) * 1000;
     const audioBitrate = Number(f.abr || 0) * 1000;
-    const effectiveBitrate = isAudio ? audioBitrate : bitrate;
+    const effectiveBitrate = (isAudio ? audioBitrate : rawBitrate) || defaultBitrateForHeight(height, isAudio);
     const bitrateText = effectiveBitrate >= 1_000_000
       ? `${(effectiveBitrate / 1_000_000).toFixed(1)} Mbps`
       : `${Math.round(effectiveBitrate / 1000)} kbps`;
@@ -257,19 +271,22 @@ export function processYtDlpData(
     // - All audio formats with browser support
     // - Muxed video (with audio) <= 1080p in mp4/webm
     // - Manifests (m3u8)
-    // Non-streamable: standalone high-res 4K/8K or video-only without sound (downloadable only)
     const isMuxed = isVideo && acodec !== 'none';
     const streamable = isManifest
       || isAudio
       || ['mp4', 'webm'].includes(ext);
-    const downloadable = !isManifest;
+    const downloadable = true;
 
     const label = isAudio
       ? `${ext.toUpperCase()} ${Math.round((effectiveBitrate || 0) / 1000)} kbps`
       : `${f.format_note || (height ? `${height}p` : 'Video')} (${ext.toUpperCase()})`;
     const qualityTier = isAudio ? 'audio' : qualityTierForHeight(height);
     const codec = String(vcodec !== 'none' ? vcodec : acodec);
-    const size = Number(f.filesize || f.filesize_approx || 0) || undefined;
+    const rawSize = Number(f.filesize || f.filesize_approx || 0) || 0;
+    const estimatedBytes = (!rawSize && durationSec && effectiveBitrate > 0)
+      ? Math.round((effectiveBitrate * durationSec) / 8)
+      : 0;
+    const size = rawSize || (estimatedBytes > 0 ? estimatedBytes : undefined);
 
     const stream: RawStreamItem = {
       itag,
