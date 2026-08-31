@@ -44,6 +44,10 @@ import {
   Info,
   Check,
   ExternalLink,
+  Key,
+  Terminal,
+  Globe,
+  FileText,
 } from 'lucide-react';
 import type {
   CaptionPosition,
@@ -3846,21 +3850,25 @@ export function TransferSettingsWorkspace({
                     {t('drive_tools.plugin_custom_path_title')}
                   </label>
                   <div className="td-ytdlp-input-group">
-                    <input
-                      id="ytdlp-custom-path"
-                      type="text"
-                      placeholder={t('drive_tools.plugin_custom_path_placeholder')}
-                      value={draft.ytdlpCustomPath ?? ''}
-                      disabled={!!transferActive}
-                      onChange={(e) => patch({ ytdlpCustomPath: e.target.value })}
-                      style={{ flex: 1, fontSize: '0.8rem', padding: '8px 12px' }}
-                    />
+                    <div className="td-modern-input-wrapper has-prefix">
+                      <div className="td-modern-input-icon-prefix">
+                        <FolderOpen size={15} />
+                      </div>
+                      <input
+                        id="ytdlp-custom-path"
+                        type="text"
+                        className="td-modern-input"
+                        placeholder={t('drive_tools.plugin_custom_path_placeholder')}
+                        value={draft.ytdlpCustomPath ?? ''}
+                        disabled={!!transferActive}
+                        onChange={(e) => patch({ ytdlpCustomPath: e.target.value })}
+                      />
+                    </div>
                     <button
                       type="button"
                       className="td-chip-btn td-chip-primary"
                       disabled={!!transferActive}
                       onClick={() => void handleBrowseYtdlp()}
-                      style={{ padding: '8px 12px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', minHeight: '36px' }}
                       title={t('drive_tools.plugin_btn_browse')}
                     >
                       <FolderOpen size={14} />
@@ -3875,7 +3883,6 @@ export function TransferSettingsWorkspace({
                           patch({ ytdlpCustomPath: '' });
                           void refreshYtdlpStatus(false);
                         }}
-                        style={{ padding: '8px 10px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px', minHeight: '36px' }}
                         title={t('drive_tools.plugin_btn_reset_default')}
                       >
                         <RotateCcw size={13} />
@@ -3911,18 +3918,21 @@ export function TransferSettingsWorkspace({
                       {t('drive_tools.ytdlp_check_interval_desc')}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <input
-                      id="ytdlp-check-interval"
-                      type="number"
-                      min={1}
-                      max={168}
-                      value={draft.ytdlpCheckIntervalHours ?? 6}
-                      disabled={!!transferActive}
-                      onChange={(e) => patch({ ytdlpCheckIntervalHours: Math.max(1, Math.min(168, Number(e.target.value) || 6)) })}
-                      style={{ width: '64px', padding: '6px 8px', fontSize: '0.8rem', textAlign: 'center' }}
-                    />
-                    <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div className="td-modern-input-wrapper" style={{ width: '74px' }}>
+                      <input
+                        id="ytdlp-check-interval"
+                        type="number"
+                        min={1}
+                        max={168}
+                        className="td-modern-input"
+                        value={draft.ytdlpCheckIntervalHours ?? 6}
+                        disabled={!!transferActive}
+                        onChange={(e) => patch({ ytdlpCheckIntervalHours: Math.max(1, Math.min(168, Number(e.target.value) || 6)) })}
+                        style={{ textAlign: 'center', padding: '0 8px' }}
+                      />
+                    </div>
+                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>
                       {t('drive_tools.ytdlp_check_interval_hours')}
                     </span>
                   </div>
@@ -3981,6 +3991,7 @@ export function TransferSettingsWorkspace({
                             cursor: 'pointer',
                             textAlign: 'center',
                             minHeight: '38px',
+                            transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                           }}
                         >
                           {mode === 'none' && t('drive_tools.plugin_cookies_mode_none')}
@@ -3997,21 +4008,26 @@ export function TransferSettingsWorkspace({
                     <label className="td-field-label" htmlFor="ytdlp-cookies-browser" style={{ fontSize: '0.78rem' }}>
                       {t('drive_tools.plugin_cookies_browser_label')}
                     </label>
-                    <select
-                      id="ytdlp-cookies-browser"
-                      value={draft.ytdlpCookiesBrowser || 'chrome'}
-                      disabled={!!transferActive}
-                      onChange={(e) => patch({ ytdlpCookiesBrowser: e.target.value })}
-                      style={{ width: '100%', fontSize: '0.82rem', padding: '8px 12px' }}
-                    >
-                      <option value="chrome">Google Chrome</option>
-                      <option value="firefox">Mozilla Firefox</option>
-                      <option value="edge">Microsoft Edge</option>
-                      <option value="brave">Brave Browser</option>
-                      <option value="opera">Opera</option>
-                      <option value="vivaldi">Vivaldi</option>
-                      <option value="chromium">Chromium</option>
-                    </select>
+                    <div className="td-modern-input-wrapper has-prefix">
+                      <div className="td-modern-input-icon-prefix">
+                        <Globe size={15} />
+                      </div>
+                      <select
+                        id="ytdlp-cookies-browser"
+                        className="td-modern-select"
+                        value={draft.ytdlpCookiesBrowser || 'chrome'}
+                        disabled={!!transferActive}
+                        onChange={(e) => patch({ ytdlpCookiesBrowser: e.target.value })}
+                      >
+                        <option value="chrome">Google Chrome</option>
+                        <option value="firefox">Mozilla Firefox</option>
+                        <option value="edge">Microsoft Edge</option>
+                        <option value="brave">Brave Browser</option>
+                        <option value="opera">Opera</option>
+                        <option value="vivaldi">Vivaldi</option>
+                        <option value="chromium">Chromium</option>
+                      </select>
+                    </div>
                   </div>
                 )}
 
@@ -4021,21 +4037,25 @@ export function TransferSettingsWorkspace({
                       {t('drive_tools.plugin_cookies_file_label')}
                     </label>
                     <div className="td-ytdlp-input-group">
-                      <input
-                        id="ytdlp-cookies-path"
-                        type="text"
-                        placeholder={t('drive_tools.plugin_cookies_file_placeholder')}
-                        value={draft.ytdlpCookiesPath ?? ''}
-                        disabled={!!transferActive}
-                        onChange={(e) => patch({ ytdlpCookiesPath: e.target.value })}
-                        style={{ flex: 1, fontSize: '0.8rem', padding: '8px 12px' }}
-                      />
+                      <div className="td-modern-input-wrapper has-prefix">
+                        <div className="td-modern-input-icon-prefix">
+                          <FileText size={15} />
+                        </div>
+                        <input
+                          id="ytdlp-cookies-path"
+                          type="text"
+                          className="td-modern-input"
+                          placeholder={t('drive_tools.plugin_cookies_file_placeholder')}
+                          value={draft.ytdlpCookiesPath ?? ''}
+                          disabled={!!transferActive}
+                          onChange={(e) => patch({ ytdlpCookiesPath: e.target.value })}
+                        />
+                      </div>
                       <button
                         type="button"
                         className="td-chip-btn td-chip-primary"
                         disabled={!!transferActive}
                         onClick={() => void handleBrowseCookies()}
-                        style={{ padding: '8px 12px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', minHeight: '36px' }}
                         title={t('drive_tools.plugin_btn_browse')}
                       >
                         <FolderOpen size={14} />
@@ -4047,7 +4067,6 @@ export function TransferSettingsWorkspace({
                           className="td-chip-btn"
                           disabled={!!transferActive}
                           onClick={() => patch({ ytdlpCookiesPath: '' })}
-                          style={{ padding: '8px 10px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px', minHeight: '36px' }}
                           title={t('drive_tools.plugin_btn_reset_default')}
                         >
                           <RotateCcw size={13} />
@@ -4073,15 +4092,20 @@ export function TransferSettingsWorkspace({
                       <Info size={12} />
                     </button>
                   </div>
-                  <input
-                    id="ytdlp-po-token"
-                    type="text"
-                    placeholder={t('drive_tools.plugin_po_token_placeholder')}
-                    value={draft.ytdlpPoToken ?? ''}
-                    disabled={!!transferActive}
-                    onChange={(e) => patch({ ytdlpPoToken: e.target.value })}
-                    style={{ width: '100%', fontSize: '0.8rem', padding: '8px 12px' }}
-                  />
+                  <div className="td-modern-input-wrapper has-prefix">
+                    <div className="td-modern-input-icon-prefix">
+                      <Key size={15} />
+                    </div>
+                    <input
+                      id="ytdlp-po-token"
+                      type="text"
+                      className="td-modern-input td-modern-input-mono"
+                      placeholder={t('drive_tools.plugin_po_token_placeholder')}
+                      value={draft.ytdlpPoToken ?? ''}
+                      disabled={!!transferActive}
+                      onChange={(e) => patch({ ytdlpPoToken: e.target.value })}
+                    />
+                  </div>
                 </div>
 
                 {/* Extractor Args & Presets */}
@@ -4100,15 +4124,20 @@ export function TransferSettingsWorkspace({
                       <Info size={12} />
                     </button>
                   </div>
-                  <input
-                    id="ytdlp-extractor-args"
-                    type="text"
-                    placeholder="youtube:player_client=android,web"
-                    value={draft.ytdlpExtractorArgs ?? ''}
-                    disabled={!!transferActive}
-                    onChange={(e) => patch({ ytdlpExtractorArgs: e.target.value })}
-                    style={{ width: '100%', fontSize: '0.8rem', padding: '8px 12px' }}
-                  />
+                  <div className="td-modern-input-wrapper has-prefix">
+                    <div className="td-modern-input-icon-prefix">
+                      <Sliders size={15} />
+                    </div>
+                    <input
+                      id="ytdlp-extractor-args"
+                      type="text"
+                      className="td-modern-input td-modern-input-mono"
+                      placeholder="youtube:player_client=android,web"
+                      value={draft.ytdlpExtractorArgs ?? ''}
+                      disabled={!!transferActive}
+                      onChange={(e) => patch({ ytdlpExtractorArgs: e.target.value })}
+                    />
+                  </div>
                   <div className="td-ytdlp-chip-presets">
                     <span style={{ fontSize: '0.70rem', color: '#94a3b8', fontWeight: 600 }}>
                       {t('drive_tools.plugin_presets_label')}
@@ -4116,7 +4145,6 @@ export function TransferSettingsWorkspace({
                     <button
                       type="button"
                       className="td-chip-btn"
-                      style={{ fontSize: '0.70rem', padding: '4px 10px', minHeight: '28px' }}
                       disabled={!!transferActive}
                       onClick={() => patch({ ytdlpExtractorArgs: 'youtube:player_client=android,web' })}
                     >
@@ -4125,7 +4153,6 @@ export function TransferSettingsWorkspace({
                     <button
                       type="button"
                       className="td-chip-btn"
-                      style={{ fontSize: '0.70rem', padding: '4px 10px', minHeight: '28px' }}
                       disabled={!!transferActive}
                       onClick={() => patch({ ytdlpExtractorArgs: 'youtube:player_client=ios,android' })}
                     >
@@ -4134,7 +4161,6 @@ export function TransferSettingsWorkspace({
                     <button
                       type="button"
                       className="td-chip-btn"
-                      style={{ fontSize: '0.70rem', padding: '4px 10px', minHeight: '28px' }}
                       disabled={!!transferActive}
                       onClick={() => patch({ ytdlpExtractorArgs: 'youtube:player_client=web' })}
                     >
@@ -4143,7 +4169,6 @@ export function TransferSettingsWorkspace({
                     <button
                       type="button"
                       className="td-chip-btn"
-                      style={{ fontSize: '0.70rem', padding: '4px 10px', minHeight: '28px' }}
                       disabled={!!transferActive}
                       onClick={() => patch({ ytdlpExtractorArgs: 'youtube:player_client=mweb' })}
                     >
@@ -4194,24 +4219,28 @@ export function TransferSettingsWorkspace({
                     {t('drive_tools.plugin_ffmpeg_custom_path_title')}
                   </label>
                   <div className="td-ytdlp-input-group">
-                    <input
-                      id="ffmpeg-custom-path"
-                      type="text"
-                      placeholder={t('drive_tools.plugin_ffmpeg_custom_path_placeholder')}
-                      value={draft.ffmpegCustomPath ?? ''}
-                      disabled={!!transferActive}
-                      onChange={(e) => {
-                        patch({ ffmpegCustomPath: e.target.value });
-                        void refreshFfmpegStatus(e.target.value);
-                      }}
-                      style={{ flex: 1, fontSize: '0.8rem', padding: '8px 12px' }}
-                    />
+                    <div className="td-modern-input-wrapper has-prefix">
+                      <div className="td-modern-input-icon-prefix">
+                        <Film size={15} />
+                      </div>
+                      <input
+                        id="ffmpeg-custom-path"
+                        type="text"
+                        className="td-modern-input"
+                        placeholder={t('drive_tools.plugin_ffmpeg_custom_path_placeholder')}
+                        value={draft.ffmpegCustomPath ?? ''}
+                        disabled={!!transferActive}
+                        onChange={(e) => {
+                          patch({ ffmpegCustomPath: e.target.value });
+                          void refreshFfmpegStatus(e.target.value);
+                        }}
+                      />
+                    </div>
                     <button
                       type="button"
                       className="td-chip-btn td-chip-primary"
                       disabled={!!transferActive}
                       onClick={() => void handleBrowseFfmpeg()}
-                      style={{ padding: '8px 12px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', minHeight: '36px' }}
                       title={t('drive_tools.plugin_btn_browse')}
                     >
                       <FolderOpen size={14} />
@@ -4226,7 +4255,6 @@ export function TransferSettingsWorkspace({
                           patch({ ffmpegCustomPath: '' });
                           void refreshFfmpegStatus('');
                         }}
-                        style={{ padding: '8px 10px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px', minHeight: '36px' }}
                         title={t('drive_tools.plugin_btn_reset_default')}
                       >
                         <RotateCcw size={13} />
@@ -4282,14 +4310,19 @@ export function TransferSettingsWorkspace({
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <input
-                    type="text"
-                    placeholder="--geo-bypass --concurrent-fragments 4"
-                    value={draft.ytdlpCustomArgs ?? ''}
-                    disabled={!!transferActive}
-                    onChange={(e) => patch({ ytdlpCustomArgs: e.target.value })}
-                    style={{ width: '100%', fontSize: '0.8rem', padding: '8px 12px', fontFamily: 'monospace' }}
-                  />
+                  <div className="td-modern-input-wrapper has-prefix">
+                    <div className="td-modern-input-icon-prefix">
+                      <Terminal size={15} />
+                    </div>
+                    <input
+                      type="text"
+                      className="td-modern-input td-modern-input-mono"
+                      placeholder="--geo-bypass --concurrent-fragments 4"
+                      value={draft.ytdlpCustomArgs ?? ''}
+                      disabled={!!transferActive}
+                      onChange={(e) => patch({ ytdlpCustomArgs: e.target.value })}
+                    />
+                  </div>
                   <div className="td-ytdlp-chip-presets">
                     <span style={{ fontSize: '0.70rem', color: '#94a3b8', fontWeight: 600 }}>
                       {t('drive_tools.plugin_presets_cli_label')}
@@ -4297,7 +4330,6 @@ export function TransferSettingsWorkspace({
                     <button
                       type="button"
                       className="td-chip-btn"
-                      style={{ fontSize: '0.70rem', padding: '4px 10px', minHeight: '28px' }}
                       disabled={!!transferActive}
                       onClick={() => {
                         const cur = (draft.ytdlpCustomArgs || '').trim();
@@ -4311,7 +4343,6 @@ export function TransferSettingsWorkspace({
                     <button
                       type="button"
                       className="td-chip-btn"
-                      style={{ fontSize: '0.70rem', padding: '4px 10px', minHeight: '28px' }}
                       disabled={!!transferActive}
                       onClick={() => {
                         const cur = (draft.ytdlpCustomArgs || '').trim();
@@ -4325,7 +4356,6 @@ export function TransferSettingsWorkspace({
                     <button
                       type="button"
                       className="td-chip-btn"
-                      style={{ fontSize: '0.70rem', padding: '4px 10px', minHeight: '28px' }}
                       disabled={!!transferActive}
                       onClick={() => {
                         const cur = (draft.ytdlpCustomArgs || '').trim();
@@ -4339,7 +4369,6 @@ export function TransferSettingsWorkspace({
                     <button
                       type="button"
                       className="td-chip-btn"
-                      style={{ fontSize: '0.70rem', padding: '4px 10px', minHeight: '28px' }}
                       disabled={!!transferActive}
                       onClick={() => {
                         const cur = (draft.ytdlpCustomArgs || '').trim();
@@ -4354,7 +4383,7 @@ export function TransferSettingsWorkspace({
                       <button
                         type="button"
                         className="td-chip-btn"
-                        style={{ fontSize: '0.70rem', padding: '4px 10px', color: '#f87171', minHeight: '28px' }}
+                        style={{ color: '#f87171' }}
                         disabled={!!transferActive}
                         onClick={() => patch({ ytdlpCustomArgs: '' })}
                         title={t('drive_tools.plugin_btn_reset_default')}
@@ -4382,20 +4411,25 @@ export function TransferSettingsWorkspace({
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <input
-                    type="text"
-                    placeholder={t('drive_tools.plugin_test_url_placeholder')}
-                    value={pluginTestUrl}
-                    onChange={(e) => setPluginTestUrl(e.target.value)}
-                    style={{ flex: 1, minWidth: '260px', fontSize: '0.82rem', padding: '8px 12px' }}
-                  />
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%' }}>
+                  <div className="td-modern-input-wrapper has-prefix" style={{ flex: 1, minWidth: '260px' }}>
+                    <div className="td-modern-input-icon-prefix">
+                      <Globe size={15} />
+                    </div>
+                    <input
+                      type="text"
+                      className="td-modern-input"
+                      placeholder={t('drive_tools.plugin_test_url_placeholder')}
+                      value={pluginTestUrl}
+                      onChange={(e) => setPluginTestUrl(e.target.value)}
+                    />
+                  </div>
                   <button
                     type="button"
                     className="td-chip-btn td-chip-primary"
                     disabled={pluginTestRunning}
                     onClick={() => void runPluginTest()}
-                    style={{ padding: '8px 16px', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', minHeight: '38px' }}
+                    style={{ height: '42px', padding: '0 18px', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
                   >
                     {pluginTestRunning ? <RotateCcw size={14} className="spin" /> : <PlaySquare size={14} />}
                     <span>{pluginTestRunning ? t('drive_tools.plugin_test_running') : t('drive_tools.plugin_test_run_btn')}</span>
