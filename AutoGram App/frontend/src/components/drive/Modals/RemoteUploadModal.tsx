@@ -50,6 +50,7 @@ import {
   ArrowDown,
   User,
   SlidersHorizontal,
+  Filter,
 } from 'lucide-react';
 import type { DriveDestChoice, DriveDestPickerState } from './DriveDestinationPicker';
 import { DriveDestinationPicker } from './DriveDestinationPicker';
@@ -826,6 +827,7 @@ export function RemoteUploadModal({
   type StreamContainerFilter = 'all' | 'general' | 'video' | 'mp4' | 'webm' | 'sd' | 'audio' | 'subtitle' | 'advance' | 'matrix';
   const [streamContainerFilter, setStreamContainerFilter] = useState<StreamContainerFilter>('all');
   const [matrixSearchQuery, setMatrixSearchQuery] = useState<string>('');
+  const [matrixHideM3u8, setMatrixHideM3u8] = useState<boolean>(false);
   const [subtitleSearchQuery, setSubtitleSearchQuery] = useState<string>('');
   const [copiedStreamUrl, setCopiedStreamUrl] = useState<boolean>(false);
   const [isPlayingStream, setIsPlayingStream] = useState<boolean>(false);
@@ -4187,7 +4189,10 @@ export function RemoteUploadModal({
                           const isSubtitleTab = streamContainerFilter === 'subtitle';
                           const isAdvanceTab = streamContainerFilter === 'advance' || streamContainerFilter === 'matrix';
 
+                          const isStreamHls = (s: RawStreamItem) => Boolean(s.protocol?.toLowerCase().includes('m3u8') || s.directUrl?.toLowerCase().includes('.m3u8'));
+
                           const filteredRawStreams = rawStreamsList.filter((s) => {
+                            if (matrixHideM3u8 && isStreamHls(s)) return false;
                             if (!matrixSearchQuery.trim()) return true;
                             const q = matrixSearchQuery.toLowerCase();
                             return (
@@ -4473,9 +4478,31 @@ export function RemoteUploadModal({
                                           <span style={{ color: '#64748b', marginLeft: 4, fontSize: '0.62rem' }}>
                                             ({s.mimeType.split('/')[1] || s.mimeType})
                                           </span>
-                                          {s.protocol && (
-                                            <span style={{ color: '#94a3b8', marginLeft: 4, fontSize: '0.58rem' }}>
-                                              · {s.protocol.toUpperCase()}
+                                          {isStreamHls(s) ? (
+                                            <span style={{
+                                              color: '#fbbf24',
+                                              background: 'rgba(251, 191, 36, 0.15)',
+                                              border: '1px solid rgba(251, 191, 36, 0.3)',
+                                              padding: '1px 5px',
+                                              borderRadius: '4px',
+                                              fontSize: '0.58rem',
+                                              fontWeight: 700,
+                                              marginLeft: 6,
+                                            }}>
+                                              {t('drive.remote_matrix_hls_badge')}
+                                            </span>
+                                          ) : (
+                                            <span style={{
+                                              color: '#4ade80',
+                                              background: 'rgba(74, 222, 128, 0.14)',
+                                              border: '1px solid rgba(74, 222, 128, 0.3)',
+                                              padding: '1px 5px',
+                                              borderRadius: '4px',
+                                              fontSize: '0.58rem',
+                                              fontWeight: 700,
+                                              marginLeft: 6,
+                                            }}>
+                                              {t('drive.remote_matrix_direct_badge')}
                                             </span>
                                           )}
                                         </td>
@@ -4516,27 +4543,46 @@ export function RemoteUploadModal({
 
                                   return (
                                     <div className="td-remote-matrix-wrapper">
-                                      <div className="td-remote-matrix-search-box">
-                                        <Search size={13} style={{ color: '#94a3b8' }} />
-                                        <input
-                                          type="text"
-                                          value={matrixSearchQuery}
-                                          onChange={(e) => setMatrixSearchQuery(e.target.value)}
-                                          placeholder={t('drive.remote_matrix_search_placeholder')}
-                                        />
-                                        {matrixSearchQuery && (
-                                          <button
-                                            type="button"
-                                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
-                                            onClick={() => setMatrixSearchQuery('')}
-                                          >
-                                            <X size={12} />
-                                          </button>
-                                        )}
+                                      <div className="td-remote-matrix-search-box" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
+                                          <Search size={13} style={{ color: '#94a3b8', position: 'absolute', left: '10px' }} />
+                                          <input
+                                            type="text"
+                                            value={matrixSearchQuery}
+                                            onChange={(e) => setMatrixSearchQuery(e.target.value)}
+                                            placeholder={t('drive.remote_matrix_search_placeholder')}
+                                            style={{ width: '100%', paddingLeft: '30px' }}
+                                          />
+                                          {matrixSearchQuery && (
+                                            <button
+                                              type="button"
+                                              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0, position: 'absolute', right: '10px' }}
+                                              onClick={() => setMatrixSearchQuery('')}
+                                            >
+                                              <X size={12} />
+                                            </button>
+                                          )}
+                                        </div>
+                                        <button
+                                          type="button"
+                                          className={`td-chip-btn ${matrixHideM3u8 ? 'td-chip-primary' : ''}`}
+                                          onClick={() => setMatrixHideM3u8((prev) => !prev)}
+                                          style={{
+                                            fontSize: '0.74rem',
+                                            padding: '6px 10px',
+                                            whiteSpace: 'nowrap',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '5px',
+                                            borderRadius: '8px',
+                                          }}
+                                        >
+                                          <Filter size={12} />
+                                          <span>{matrixHideM3u8 ? t('drive.remote_matrix_hide_m3u8_active') : t('drive.remote_matrix_hide_m3u8_inactive')}</span>
+                                        </button>
                                       </div>
 
                                       <div className="td-remote-matrix-table-scroll">
-                                        <table className="td-remote-matrix-table">
                                           <thead>
                                             <tr>
                                               <th>{t('drive.remote_matrix_col_itag')}</th>
