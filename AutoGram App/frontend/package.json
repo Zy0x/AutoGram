@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run && node tools/locale-audit.mjs",
     "test:locale": "node tools/locale-audit.mjs",
+    "test:quality": "node tools/quality-sentinel.mjs",
+    "quality": "node tools/quality-sentinel.mjs",
     "test:watch": "vitest",
     "tauri": "tauri"
   },
