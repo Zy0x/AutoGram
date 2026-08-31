@@ -111,6 +111,7 @@ describe('youtubeResolver', () => {
             fps: 60,
             bitrate: 25000000,
             contentLength: '900000000',
+            url: 'https://video.googlevideo.com/videoplayback?itag=313',
           },
           {
             itag: 137,
@@ -121,6 +122,7 @@ describe('youtubeResolver', () => {
             fps: 60,
             bitrate: 5000000,
             contentLength: '180000000',
+            url: 'https://video.googlevideo.com/videoplayback?itag=137',
           },
           {
             itag: 136,
@@ -131,6 +133,7 @@ describe('youtubeResolver', () => {
             fps: 30,
             bitrate: 2500000,
             contentLength: '90000000',
+            url: 'https://video.googlevideo.com/videoplayback?itag=136',
           },
           {
             itag: 140,
@@ -140,6 +143,7 @@ describe('youtubeResolver', () => {
             audioChannels: 2,
             bitrate: 131000,
             contentLength: '4800000',
+            url: 'https://video.googlevideo.com/videoplayback?itag=140',
           },
           {
             itag: 251,
@@ -149,6 +153,7 @@ describe('youtubeResolver', () => {
             audioChannels: 2,
             bitrate: 150000,
             contentLength: '5200000',
+            url: 'https://video.googlevideo.com/videoplayback?itag=251',
           },
         ],
       },

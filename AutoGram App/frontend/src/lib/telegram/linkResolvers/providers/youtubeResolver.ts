@@ -358,17 +358,32 @@ export function processYtDlpData(
       itag,
     };
 
-    // Track best format per resolution tier for General Tab
+    // Collect all valid formats into formats list
+    formats.push(fmtItem);
+
+    // Track best format per resolution tier for General Tab (strictly prioritizing direct HTTPS streams over manifests)
+    const isDirectHttps = !isManifest && (protocol === 'https' || protocol === 'http');
+    const protocolScore = isDirectHttps ? 100_000_000 : 0;
+    const score = protocolScore + (effectiveBitrate || 0);
+
     const tierKey = isAudio ? `audio_${ext}` : `${qualityTier}_${ext}`;
     const existing = tierBestMap.get(tierKey);
-    if (!existing || effectiveBitrate > existing.bitrate) {
-      tierBestMap.set(tierKey, { fmt: fmtItem, bitrate: effectiveBitrate });
+    if (!existing || score > existing.score) {
+      tierBestMap.set(tierKey, { fmt: fmtItem, score, bitrate: effectiveBitrate });
     }
   });
 
-  // Populate General Tab with best representative per tier
-  const generalFormats = Array.from(tierBestMap.values()).map((v) => v.fmt);
-  formats.push(...generalFormats);
+  // Deduplicate formats by unique ID
+  const seenIds = new Set<string>();
+  const uniqueFormats: StreamQualityFormat[] = [];
+  formats.forEach((f) => {
+    if (!seenIds.has(f.id)) {
+      seenIds.add(f.id);
+      uniqueFormats.push(f);
+    }
+  });
+  formats.length = 0;
+  formats.push(...uniqueFormats);
 
   const subtitleMap = data?.subtitles && typeof data.subtitles === 'object' ? data.subtitles : {};
   const autoCaptionMap = data?.automatic_captions && typeof data.automatic_captions === 'object' ? data.automatic_captions : {};
@@ -444,21 +459,12 @@ function processPlayerData(
   const adaptive = (data?.streamingData?.adaptiveFormats || []) as any[];
   const regular = (data?.streamingData?.formats || []) as any[];
 
-  // Extract base direct URL fallback from regular muxed streams or HLS/DASH manifest
-  const baseDirectUrl =
-    regular.find((r) => typeof r?.url === 'string' && r.url.startsWith('http'))?.url ||
-    adaptive.find((r) => typeof r?.url === 'string' && r.url.startsWith('http'))?.url ||
-    data?.streamingData?.hlsManifestUrl ||
-    '';
-
+  // Only include formats with valid, direct playable URLs (never attach a 360p URL to higher resolution tiers)
   const allFormats = [...adaptive, ...regular]
     .map((f) => {
       let directUrl = typeof f?.url === 'string' && f.url.startsWith('http') ? f.url : undefined;
       if (!directUrl && (f?.signatureCipher || f?.cipher)) {
         directUrl = parseCipherUrl(f.signatureCipher || f.cipher);
-      }
-      if (!directUrl && baseDirectUrl) {
-        directUrl = baseDirectUrl;
       }
       return {
         ...f,
