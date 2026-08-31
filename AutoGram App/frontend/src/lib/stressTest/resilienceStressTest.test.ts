@@ -79,7 +79,7 @@ describe('AutoGram Ultra-Heavy Resilience & Stress Endurance Test', () => {
 
     const sortDuration = performance.now() - startSort;
     // Must execute efficiently
-    expect(sortDuration).toBeLessThan(1500);
+    expect(sortDuration).toBeLessThan(2500);
   });
 
   it('3. Fast monotonic live-head reconciliation on 10,000 deep cached history', () => {

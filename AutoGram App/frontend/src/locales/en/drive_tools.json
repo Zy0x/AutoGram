@@ -186,6 +186,7 @@
   "plugin_source_badge_app_data": "App Data Plugin",
   "plugin_source_badge_system": "System PATH",
   "plugin_source_badge_custom": "Custom Path",
+  "plugin_status_integrated": "Active & Integrated",
   "plugin_section_auth_title": "YouTube Authentication & Proof of Origin (PO Token)",
   "plugin_section_auth_desc": "Bypass YouTube SABR throttling, 403 Forbidden, and age-restricted limitations with cookies or PO token.",
   "plugin_cookies_mode_title": "Cookies Extraction Mode",

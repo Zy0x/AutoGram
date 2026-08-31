@@ -1,0 +1,104 @@
+{
+  "localeKeys": {
+    "id": 5930,
+    "en": 5930
+  },
+  "parity": {
+    "idOnly": [],
+    "enOnly": []
+  },
+  "usedKeys": 2912,
+  "missing": [],
+  "fallbackCalls": [],
+  "hardcodedCount": 13,
+  "hardcodedByFile": [
+    {
+      "file": "src/components/drive/Transfers/TransferPreflightDialog.tsx",
+      "count": 8
+    },
+    {
+      "file": "src/components/drive/Transfers/DriveTransferManager.tsx",
+      "count": 5
+    }
+  ],
+  "hardcoded": [
+    {
+      "file": "src/components/drive/Transfers/DriveTransferManager.tsx",
+      "line": 482,
+      "kind": "jsx",
+      "value": "FPS"
+    },
+    {
+      "file": "src/components/drive/Transfers/DriveTransferManager.tsx",
+      "line": 485,
+      "kind": "jsx",
+      "value": "FPS"
+    },
+    {
+      "file": "src/components/drive/Transfers/DriveTransferManager.tsx",
+      "line": 488,
+      "kind": "jsx",
+      "value": "x"
+    },
+    {
+      "file": "src/components/drive/Transfers/DriveTransferManager.tsx",
+      "line": 686,
+      "kind": "jsx",
+      "value": "FPS"
+    },
+    {
+      "file": "src/components/drive/Transfers/DriveTransferManager.tsx",
+      "line": 688,
+      "kind": "jsx",
+      "value": "x"
+    },
+    {
+      "file": "src/components/drive/Transfers/TransferPreflightDialog.tsx",
+      "line": 406,
+      "kind": "jsx-expression",
+      "value": "Saved Messages"
+    },
+    {
+      "file": "src/components/drive/Transfers/TransferPreflightDialog.tsx",
+      "line": 406,
+      "kind": "jsx-expression",
+      "value": "Saved Messages (Cloud)"
+    },
+    {
+      "file": "src/components/drive/Transfers/TransferPreflightDialog.tsx",
+      "line": 409,
+      "kind": "jsx-expression",
+      "value": "Akun Utama • AutoGram MTProto"
+    },
+    {
+      "file": "src/components/drive/Transfers/TransferPreflightDialog.tsx",
+      "line": 424,
+      "kind": "jsx-expression",
+      "value": "FILE"
+    },
+    {
+      "file": "src/components/drive/Transfers/TransferPreflightDialog.tsx",
+      "line": 607,
+      "kind": "aria-label",
+      "value": "Preflight item filter"
+    },
+    {
+      "file": "src/components/drive/Transfers/TransferPreflightDialog.tsx",
+      "line": 810,
+      "kind": "aria-label",
+      "value": "Close"
+    },
+    {
+      "file": "src/components/drive/Transfers/TransferPreflightDialog.tsx",
+      "line": 861,
+      "kind": "jsx-expression",
+      "value": "No Re-encode"
+    },
+    {
+      "file": "src/components/drive/Transfers/TransferPreflightDialog.tsx",
+      "line": 940,
+      "kind": "jsx-expression",
+      "value": "Individual Files"
+    }
+  ]
+}

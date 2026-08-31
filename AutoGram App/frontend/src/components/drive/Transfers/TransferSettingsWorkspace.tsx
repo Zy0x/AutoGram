@@ -3438,7 +3438,7 @@ export function TransferSettingsWorkspace({
               {/* 1. KARTU YT-DLP EXTRACTOR ENGINE */}
               <div className="td-settings-card" style={{
                 background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.9) 0%, rgba(8, 12, 22, 0.98) 100%)',
-                border: draft.ytdlpEnabled !== false ? '1px solid rgba(168, 85, 247, 0.35)' : '1px solid rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(168, 85, 247, 0.35)',
                 borderRadius: '16px',
                 padding: '18px 20px',
                 boxShadow: '0 6px 20px rgba(0, 0, 0, 0.35)',
@@ -3473,13 +3473,22 @@ export function TransferSettingsWorkspace({
                       </p>
                     </div>
                   </div>
-                  <ToggleSwitch
-                    checked={draft.ytdlpEnabled !== false}
-                    disabled={!!transferActive}
-                    onChange={(val) => patch({ ytdlpEnabled: val })}
-                    size="md"
-                    ariaLabel={t('drive_tools.ytdlp_enabled_title')}
-                  />
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    borderRadius: '8px',
+                    background: 'rgba(74, 222, 128, 0.14)',
+                    color: '#4ade80',
+                    border: '1px solid rgba(74, 222, 128, 0.3)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    <CheckCircle2 size={12} />
+                    {t('drive_tools.plugin_status_integrated')}
+                  </span>
                 </div>
 
                 {/* Middle Switches & Status */}
@@ -3488,7 +3497,7 @@ export function TransferSettingsWorkspace({
                     <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0' }}>{t('drive_tools.ytdlp_auto_update_title')}</span>
                     <ToggleSwitch
                       checked={draft.ytdlpAutoUpdate !== false}
-                      disabled={!!transferActive || draft.ytdlpEnabled === false}
+                      disabled={!!transferActive}
                       onChange={(val) => patch({ ytdlpAutoUpdate: val })}
                       size="sm"
                       ariaLabel={t('drive_tools.ytdlp_auto_update_title')}
@@ -3571,7 +3580,7 @@ export function TransferSettingsWorkspace({
                     <button
                       type="button"
                       className="td-chip-btn td-chip-primary"
-                      disabled={ytdlpBusy || draft.ytdlpEnabled === false}
+                      disabled={ytdlpBusy}
                       onClick={() => void updateYtdlpPlugin()}
                       style={{ fontSize: '0.78rem', padding: '6px 12px', fontWeight: 700 }}
                     >

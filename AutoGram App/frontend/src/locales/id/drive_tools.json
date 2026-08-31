@@ -186,6 +186,7 @@
   "plugin_source_badge_app_data": "App Data Plugin",
   "plugin_source_badge_system": "System PATH",
   "plugin_source_badge_custom": "Jalur Kustom",
+  "plugin_status_integrated": "Aktif & Terintegrasi",
   "plugin_section_auth_title": "Autentikasi YouTube & Proof of Origin (PO Token)",
   "plugin_section_auth_desc": "Bypass limitasi YouTube SABR, 403 Forbidden, dan video terbatas usia (age-restricted) dengan cookies atau PO token.",
   "plugin_cookies_mode_title": "Metode Pengambilan Cookies",
