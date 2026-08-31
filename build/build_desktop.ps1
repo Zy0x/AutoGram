@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 $rootDir = (Get-Item "$PSScriptRoot\..").FullName
 $frontendDir = Join-Path $rootDir "AutoGram App\frontend"
 $outputDir = Join-Path $rootDir "build\output\desktop"
@@ -25,6 +25,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "[2/3] Compiling Rust Tauri Native Engine..." -ForegroundColor Yellow
+$cargoTarget = Join-Path $rootDir "build\target\desktop"
+$env:CARGO_TARGET_DIR = $cargoTarget
 & npm run tauri build
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Failed to compile Tauri desktop binary." -ForegroundColor Red
@@ -32,8 +34,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "[3/3] Copying Production Binaries to build\output\desktop..." -ForegroundColor Yellow
-$bundleDir = Join-Path $frontendDir "src-tauri\target\release\bundle"
-$releaseDir = Join-Path $frontendDir "src-tauri\target\release"
+$bundleDir = Join-Path $cargoTarget "release\bundle"
+$releaseDir = Join-Path $cargoTarget "release"
 
 if (Test-Path $bundleDir) {
     Get-ChildItem -Path $bundleDir -Recurse -Include *.msi, *.exe | ForEach-Object {

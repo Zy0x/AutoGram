@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 $rootDir = (Get-Item "$PSScriptRoot\..").FullName
 $androidDir = Join-Path $rootDir "AutoGram App\android"
 $outputDir = Join-Path $rootDir "build\output\apk"
@@ -39,6 +39,8 @@ if (Test-Path (Join-Path $bridgeDir "generate_kotlin_bindings.bat")) {
 
 # 3. Assemble Android APK
 Write-Host "[2/3] Compiling Android Gradle & Cargo NDK..." -ForegroundColor Yellow
+$env:CARGO_TARGET_DIR = Join-Path $rootDir "build\target\android"
+$env:GRADLE_USER_HOME = Join-Path $rootDir "build\cache\gradle"
 Set-Location $androidDir
 
 if (Test-Path ".\gradlew.bat") {
