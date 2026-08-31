@@ -4897,27 +4897,37 @@ export function RemoteUploadModal({
                               {activeFmt && (
                                 <div className="td-remote-selected-spec-card">
                                   <div className="td-remote-selected-spec-left">
-                                    <div className="td-remote-selected-spec-icon-box">
-                                      {activeFmt.isSubtitle ? <FileText size={15} /> : activeFmt.isAudio ? <Music size={15} /> : <Film size={15} />}
+                                    <div className={`td-remote-selected-spec-icon-box ${activeFmt.isSubtitle ? 'is-sub' : activeFmt.isAudio ? 'is-audio' : 'is-video'}`}>
+                                      {activeFmt.isSubtitle ? <FileText size={16} /> : activeFmt.isAudio ? <Music size={16} /> : <Film size={16} />}
                                     </div>
                                     <div className="td-remote-selected-spec-details">
-                                      <span className="td-remote-selected-spec-title">
-                                        {getFormatDisplayLabel(activeFmt, resolvedMedia, t)}
-                                      </span>
+                                      <div className="td-remote-selected-spec-title-row">
+                                        <span className="td-remote-selected-spec-title">
+                                          {getFormatDisplayLabel(activeFmt, resolvedMedia, t)}
+                                        </span>
+                                        {activeFmt.fps && activeFmt.fps > 30 && (
+                                          <span className="td-remote-spec-pill fps">
+                                            {t('drive.remote_badge_fps_val', { fps: activeFmt.fps })}
+                                          </span>
+                                        )}
+                                        {(activeFmt.badge?.includes('HDR') || activeFmt.resolution?.includes('HDR')) && (
+                                          <span className="td-remote-spec-pill hdr">{t('drive.remote_badge_hdr')}</span>
+                                        )}
+                                      </div>
                                       <div className="td-remote-selected-spec-meta">
-                                        <span>{activeFmt.resolution || activeFmt.badge}</span>
-                                        <span>•</span>
-                                        <span>{activeFmt.ext ? `.${activeFmt.ext.toUpperCase()}` : '.MP4'}</span>
+                                        <span className="td-remote-spec-meta-item">{activeFmt.resolution || activeFmt.badge}</span>
+                                        <span className="td-remote-spec-dot">•</span>
+                                        <span className="td-remote-spec-meta-item ext">{activeFmt.ext ? `.${activeFmt.ext.toUpperCase()}` : '.MP4'}</span>
                                         {activeFmt.filesizeBytes ? (
                                           <>
-                                            <span>•</span>
-                                            <span>~{formatDriveBytes(activeFmt.filesizeBytes)}</span>
+                                            <span className="td-remote-spec-dot">•</span>
+                                            <span className="td-remote-spec-meta-item size">~{formatDriveBytes(activeFmt.filesizeBytes)}</span>
                                           </>
                                         ) : null}
                                         {resolvedMedia.chapters && resolvedMedia.chapters.length > 0 ? (
                                           <>
-                                            <span>•</span>
-                                            <span style={{ color: '#c084fc', fontWeight: 650 }}>
+                                            <span className="td-remote-spec-dot">•</span>
+                                            <span className="td-remote-spec-meta-item chapters">
                                               {t('drive.remote_chapters_count', { count: resolvedMedia.chapters.length })}
                                             </span>
                                           </>
@@ -4938,13 +4948,15 @@ export function RemoteUploadModal({
                                         }}
                                         title={t('drive.remote_spec_copy_url_btn')}
                                       >
-                                        {copiedStreamUrl ? <Check size={11} /> : <Copy size={11} />}
+                                        {copiedStreamUrl ? <Check size={12} className="copy-icon" /> : <Copy size={12} className="copy-icon" />}
                                         <span>{copiedStreamUrl ? t('drive.remote_spec_url_copied') : t('drive.remote_spec_copy_url_btn')}</span>
                                       </button>
                                     )}
-                                    <span className="td-remote-meta-badge status valid">
-                                      {t('drive.remote_spec_direct_ready')}
-                                    </span>
+                                    <div className="td-remote-stream-status-pill">
+                                      <span className="td-remote-status-glow-dot" />
+                                      <Zap size={11} className="td-remote-status-icon" />
+                                      <span>{t('drive.remote_spec_direct_ready')}</span>
+                                    </div>
                                   </div>
                                 </div>
                               )}

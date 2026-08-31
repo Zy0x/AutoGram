@@ -28209,65 +28209,208 @@ button.td-confirm-icon.is-back-btn:active {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: rgba(15, 23, 42, 0.75);
-  border: 1px solid rgba(56, 189, 248, 0.2);
+  gap: 16px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(24, 34, 53, 0.82) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   margin-top: auto;
   flex-wrap: wrap;
+  transition: all 180ms ease;
+}
+
+.td-remote-selected-spec-card:hover {
+  border-color: rgba(56, 189, 248, 0.38);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.09);
 }
 
 .td-remote-selected-spec-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .td-remote-selected-spec-icon-box {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(56, 189, 248, 0.12);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.16) 0%, rgba(14, 165, 233, 0.08) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.3);
   color: #38bdf8;
   flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.15);
+  transition: all 180ms ease;
+}
+
+.td-remote-selected-spec-icon-box.is-audio {
+  background: linear-gradient(135deg, rgba(192, 132, 252, 0.16) 0%, rgba(168, 85, 247, 0.08) 100%);
+  border-color: rgba(192, 132, 252, 0.35);
+  color: #c084fc;
+  box-shadow: 0 0 12px rgba(192, 132, 252, 0.15);
+}
+
+.td-remote-selected-spec-icon-box.is-sub {
+  background: linear-gradient(135deg, rgba(45, 212, 191, 0.16) 0%, rgba(20, 184, 166, 0.08) 100%);
+  border-color: rgba(45, 212, 191, 0.35);
+  color: #2dd4bf;
+  box-shadow: 0 0 12px rgba(45, 212, 191, 0.15);
 }
 
 .td-remote-selected-spec-details {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
 }
 
+.td-remote-selected-spec-title-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
 .td-remote-selected-spec-title {
-  font-size: 0.76rem;
+  font-size: 0.82rem;
   font-weight: 750;
   color: #ffffff;
+  letter-spacing: -0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.td-remote-spec-pill {
+  font-size: 0.60rem;
+  font-weight: 750;
+  padding: 1px 5px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1.3;
+}
+
+.td-remote-spec-pill.fps {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.td-remote-spec-pill.hdr {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
 }
 
 .td-remote-selected-spec-meta {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.66rem;
+  font-size: 0.69rem;
   font-weight: 600;
   color: #94a3b8;
   flex-wrap: wrap;
 }
 
+.td-remote-spec-meta-item {
+  color: #94a3b8;
+}
+
+.td-remote-spec-meta-item.ext {
+  color: #7dd3fc;
+  font-weight: 700;
+}
+
+.td-remote-spec-meta-item.size {
+  color: #e2e8f0;
+  font-weight: 650;
+}
+
+.td-remote-spec-meta-item.chapters {
+  color: #c084fc;
+  font-weight: 650;
+}
+
+.td-remote-spec-dot {
+  color: #475569;
+  font-weight: 400;
+}
+
 .td-remote-selected-spec-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.td-remote-stream-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
+  font-size: 0.69rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.14);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.td-remote-status-glow-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 6px #34d399, 0 0 10px #34d399;
+  animation: tdStatusDotPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  flex-shrink: 0;
+}
+
+@keyframes tdStatusDotPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.8);
+  }
+}
+
+.td-remote-status-icon {
+  color: #34d399;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .td-remote-selected-spec-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .td-remote-selected-spec-left {
+    width: 100%;
+  }
+
+  .td-remote-selected-spec-right {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 
 .td-remote-quality-chip.active .td-remote-quality-chip-badge {
@@ -28493,28 +28636,36 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-spec-copy-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 8px;
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.06);
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #cbd5e1;
-  font-size: 0.65rem;
+  font-size: 0.68rem;
   font-weight: 650;
   cursor: pointer;
-  transition: all 120ms ease;
+  transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
 }
 
 .td-remote-spec-copy-btn:hover {
-  background: rgba(56, 189, 248, 0.15);
-  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.14);
+  border-color: rgba(56, 189, 248, 0.4);
   color: #38bdf8;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.15);
+}
+
+.td-remote-spec-copy-btn:active {
+  transform: translateY(0);
 }
 
 .td-remote-spec-copy-btn.copied {
-  background: rgba(34, 197, 94, 0.2);
-  border-color: rgba(34, 197, 94, 0.5);
+  background: rgba(34, 197, 94, 0.18);
+  border-color: rgba(34, 197, 94, 0.45);
   color: #4ade80;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.2);
 }
 
 /* Playlist Detection Banner */

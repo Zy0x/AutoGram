@@ -595,6 +595,7 @@
   "remote_playlist_detected_banner": "Playlist detected: 1 active video selected",
   "remote_chapters_count": "{{count}} Chapters",
   "remote_badge_fps_60": "60 FPS",
+  "remote_badge_fps_val": "{{fps}} FPS",
   "remote_badge_hdr": "HDR",
   "remote_stream_play_tooltip": "Double-click any format or click here to stream live preview",
   "remote_stream_play_hint": "Play Stream",

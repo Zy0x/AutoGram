@@ -595,6 +595,7 @@
   "remote_playlist_detected_banner": "Playlist terdeteksi: 1 video aktif dipilih",
   "remote_chapters_count": "{{count}} Bab / Chapters",
   "remote_badge_fps_60": "60 FPS",
+  "remote_badge_fps_val": "{{fps}} FPS",
   "remote_badge_hdr": "HDR",
   "remote_stream_play_tooltip": "Klik ganda pada format atau klik di sini untuk memutar stream",
   "remote_stream_play_hint": "Putar Stream",
