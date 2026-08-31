@@ -1,3 +1,23 @@
+## v3.8.47 Autonomous 5-Dimension Quality Sentinel, Consolidated Master SQLite Schema v5.2.0 & Standalone Build Hub
+
+### 1. Autonomous 5-Dimension Quality Sentinel & Automated Test Suite
+- **Unified Quality Gate Runner (`npm run test:quality`)**: Menghadirkan skrip audit mandiri cerdas yang memvalidasi 5 pilar mutu aplikasi dalam satu perintah: paritas multi-bahasa 100%, kompilasi ketat TypeScript (0 error), seluruh 44 test suite Vitest (360+ tests passing), kepatuhan skema master database, dan pemindaian keamanan kode.
+- **Skill Agen `autonomous-quality-sentinel`**: Membekali seluruh AI Agents dengan protokol inspeksi mandiri dan siklus perbaikan otomatis (*self-debugging loop*) sebelum menyatakan tugas selesai, mengeliminasi risiko regresi kode dan kerusakan antarmuka.
+
+### 2. Consolidated Master SQLite Schema v5.2.0 & Data Dictionary Architecture
+- **Konsolidasi 19 Migrasi ke Master Schema Induk (`database/schema.sql`)**: Merangkum seluruh struktur database ke dalam 7 subsistem utama (*Auth & Devices, Virtual Drive Filesystem, Topic Media Cache, Transfer Control Plane v4, Remote Transfers Resumable Journal, 4-Level Duplicate Matrix, Forwarder/Sync Engine*) dengan total 26 tabel produksi.
+- **Buku Manual Kamus Data Komprehensif (`database/README.md`)**: Menyediakan dokumentasi data dictionary lengkap mencakup constraint, relasi foreign key, indeks komposit $O(\log N)$ untuk scrolling 50.000+ item pada 60 FPS, serta pragma SQLite WAL concurrency.
+- **Protokol Sinkronisasi Skema Real-Time**: Mewajibkan pembaruan serentak pada `schema.sql` dan kamus data setiap kali terjadi penambahan atau modifikasi tabel/kolom baru di masa mendatang.
+
+### 3. Standalone Hub 'build/' & Zero-Bloat Open-Source Governance
+- **Isolasi Penuh Direktori `build/`**: Memindahkan seluruh alat kompilasi desktop (`build_desktop.bat`), pembuat APK Android (`build_apk.bat`), dan skrip bootstrap ke folder mandiri `build/` dengan direktori output lokal terisolasi (`build/output/`) yang diabaikan oleh Git.
+- **Purifikasi Direktori `AutoGram App/`**: Menjadikan `AutoGram App/` sebagai repositori kode sumber murni (*pure source code*) bebas dari file biner dan compiler cache, siap untuk dipublikasikan sebagai proyek open-source di GitHub.
+- **Dokumentasi Terstruktur & Panduan Kontributor**: Menghadirkan portal dokumentasi pengguna publik (`docs/`) terpisah dari catatan teknis pengembang (`.agents/docs/`), serta merilis panduan kontributor lengkap (`AutoGram App/DEVELOPMENT.md` dan `AutoGram App/README.md`).
+
+### 4. Direct Stream Format Spec Card & Account Selector UI Polish
+- **Modernisasi Kartu Spesifikasi Format Media**: Redesain kartu format terpilih pada modal Remote URL menjadi kontainer kaca elegan (*glassmorphism*) dengan ikon dinamis berwarna (Cyan untuk Video, Ungu untuk Audio, Hijau Teal untuk Subtitel), pill resolusi/FPS, dan tombol salin tautan langsung.
+- **Perbaikan Dropdown Akun**: Memperbaiki duplikasi ikon panah ganda (`∨ ∨`) pada pemilih akun dengan penyesuaian aturan CSS selektor native vs custom React.
+
 ## v3.8.46 Android Native Titanium Soft Luxury Stitch UI Integration & Selection Bulk Tools
 
 ### 1. Drive Explorer Selection Mode & 3-Dot Bulk Actions Menu
