@@ -223,7 +223,7 @@ describe('youtubeResolver', () => {
     }, formats, subtitles, rawStreams);
 
     expect(metadata.title).toBe('Fixture 4K');
-    expect(formats).toHaveLength(2);
+    expect(formats).toHaveLength(1);
     expect(formats[0]).toMatchObject({
       id: 'yt_ytdlp_337',
       qualityTier: '4k',
@@ -235,11 +235,7 @@ describe('youtubeResolver', () => {
       isDownloadable: true,
       isStreamable: true,
     });
-    expect(formats.find((format) => format.itag === 642)).toMatchObject({
-      isDownloadable: true,
-      isStreamable: true,
-    });
+    expect(formats.find((format) => format.itag === 642)).toBeUndefined();
     expect(formats[0].filesizeBytes).toBe(1000000);
-    expect(formats[1].filesizeBytes).toBeGreaterThan(0);
   });
 });

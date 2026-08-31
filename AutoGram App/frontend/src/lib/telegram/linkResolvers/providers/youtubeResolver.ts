@@ -358,18 +358,15 @@ export function processYtDlpData(
       itag,
     };
 
-    // Collect all valid formats into formats list
-    formats.push(fmtItem);
+    // Collect all valid direct single-file binary streams into formats list (manifests stay in rawStreams only)
+    if (!isManifest) {
+      formats.push(fmtItem);
 
-    // Track best format per resolution tier for General Tab (strictly prioritizing direct HTTPS streams over manifests)
-    const isDirectHttps = !isManifest && (protocol === 'https' || protocol === 'http');
-    const protocolScore = isDirectHttps ? 100_000_000 : 0;
-    const score = protocolScore + (effectiveBitrate || 0);
-
-    const tierKey = isAudio ? `audio_${ext}` : `${qualityTier}_${ext}`;
-    const existing = tierBestMap.get(tierKey);
-    if (!existing || score > existing.score) {
-      tierBestMap.set(tierKey, { fmt: fmtItem, score, bitrate: effectiveBitrate });
+      const tierKey = isAudio ? `audio_${ext}` : `${qualityTier}_${ext}`;
+      const existing = tierBestMap.get(tierKey);
+      if (!existing || effectiveBitrate > existing.bitrate) {
+        tierBestMap.set(tierKey, { fmt: fmtItem, bitrate: effectiveBitrate });
+      }
     }
   });
 
