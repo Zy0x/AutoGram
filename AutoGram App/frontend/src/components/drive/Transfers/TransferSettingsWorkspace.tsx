@@ -336,7 +336,11 @@ export function TransferSettingsWorkspace({
     error?: string | null;
   } | null>(null);
   const [ytdlpBusy, setYtdlpBusy] = useState(false);
-  const [showPluginAdvanced, setShowPluginAdvanced] = useState(false);
+  const [ytdlpSubPage, setYtdlpSubPage] = useState<'overview' | 'config'>('overview');
+  const [pluginTestUrl, setPluginTestUrl] = useState('');
+  const [pluginTestRunning, setPluginTestRunning] = useState(false);
+  const [pluginTestResult, setPluginTestResult] = useState<{ success: boolean; message: string; details?: any } | null>(null);
+  const [ffmpegStatus, setFfmpegStatus] = useState<{ installed?: boolean; version?: string | null; executable?: string | null; source?: string } | null>(null);
 
   // Session picker state for alternate account pool
   const [availableSessions, setAvailableSessions] = useState<SessionOption[]>([]);
@@ -358,9 +362,68 @@ export function TransferSettingsWorkspace({
     }
   };
 
+  const refreshFfmpegStatus = async (customPath?: string) => {
+    try {
+      const res = await invoke<any>('ffmpeg_plugin_status', { customPath: customPath ?? draft.ffmpegCustomPath });
+      setFfmpegStatus(res);
+    } catch {
+      setFfmpegStatus({ installed: false, version: null, source: 'none' });
+    }
+  };
+
+  const runPluginTest = async () => {
+    const urlToTest = pluginTestUrl.trim() || 'https://www.youtube.com/watch?v=LXb3EKWsInQ';
+    setPluginTestRunning(true);
+    setPluginTestResult(null);
+    try {
+      const text = await invoke<string>('ytdlp_resolve', {
+        url: urlToTest,
+        autoUpdate: draft.ytdlpAutoUpdate !== false,
+        checkIntervalHours: draft.ytdlpCheckIntervalHours || 6,
+        customPath: draft.ytdlpCustomPath || undefined,
+        cookiesMode: draft.ytdlpCookiesMode || undefined,
+        cookiesBrowser: draft.ytdlpCookiesBrowser || undefined,
+        cookiesPath: draft.ytdlpCookiesPath || undefined,
+        poToken: draft.ytdlpPoToken || undefined,
+        extractorArgs: draft.ytdlpExtractorArgs || undefined,
+        customArgs: draft.ytdlpCustomArgs || undefined,
+        ffmpegPath: draft.ffmpegCustomPath || undefined,
+      });
+      const data = JSON.parse(text);
+      const formats = data?.formats || [];
+      const videoFmts = formats.filter((f: any) => f.vcodec && f.vcodec !== 'none');
+      const audioFmts = formats.filter((f: any) => (!f.vcodec || f.vcodec === 'none') && f.acodec && f.acodec !== 'none');
+      const maxRes = videoFmts.length > 0 ? (videoFmts[videoFmts.length - 1]?.resolution || videoFmts[videoFmts.length - 1]?.format_note || 'HD') : 'N/A';
+      setPluginTestResult({
+        success: true,
+        message: t('drive_tools.plugin_test_success', {
+          videos: videoFmts.length,
+          audios: audioFmts.length,
+          maxRes,
+          duration: data?.duration || 0,
+        }),
+        details: {
+          title: data?.title,
+          formatsCount: formats.length,
+          videoCount: videoFmts.length,
+          audioCount: audioFmts.length,
+          extractor: data?.extractor,
+        }
+      });
+    } catch (err: any) {
+      setPluginTestResult({
+        success: false,
+        message: t('drive_tools.plugin_test_failed', { error: err instanceof Error ? err.message : String(err) }),
+      });
+    } finally {
+      setPluginTestRunning(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'ytdlp') {
       void refreshYtdlpStatus(false);
+      void refreshFfmpegStatus();
     }
   }, [activeTab]);
 
@@ -3427,8 +3490,8 @@ export function TransferSettingsWorkspace({
           </div>
         )}
 
-        {/* DEDICATED PAGE: PLUG-IN & URL EXTRACTOR */}
-        {activeTab === 'ytdlp' && (
+        {/* DEDICATED PAGE: PLUG-IN & URL EXTRACTOR (OVERVIEW) */}
+        {activeTab === 'ytdlp' && ytdlpSubPage === 'overview' && (
           <div className="td-xfer-focused-panel" id="section-ytdlp-plugin" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{
               display: 'grid',
@@ -3515,57 +3578,18 @@ export function TransferSettingsWorkspace({
                   </div>
                 </div>
 
-                {/* Advanced Options Accordion */}
-                {showPluginAdvanced && (
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                    padding: '12px',
-                    borderRadius: '10px',
-                    background: 'rgba(0, 0, 0, 0.35)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                  }}>
-                    <div>
-                      <label className="td-field-label" htmlFor="ytdlp-custom-path-compact" style={{ fontSize: '0.78rem' }}>
-                        {t('drive_tools.plugin_custom_path_title')}
-                      </label>
-                      <input
-                        id="ytdlp-custom-path-compact"
-                        type="text"
-                        placeholder={t('drive_tools.plugin_custom_path_placeholder')}
-                        value={draft.ytdlpCustomPath ?? ''}
-                        disabled={!!transferActive}
-                        onChange={(e) => patch({ ytdlpCustomPath: e.target.value })}
-                        style={{ width: '100%', fontSize: '0.8rem', padding: '6px 10px', marginTop: '4px' }}
-                      />
-                    </div>
-                    <div>
-                      <label className="td-field-label" htmlFor="ytdlp-po-token-compact" style={{ fontSize: '0.78rem' }}>
-                        {t('drive_tools.plugin_po_token_title')}
-                      </label>
-                      <input
-                        id="ytdlp-po-token-compact"
-                        type="text"
-                        placeholder={t('drive_tools.plugin_po_token_placeholder')}
-                        value={draft.ytdlpPoToken || ''}
-                        disabled={!!transferActive}
-                        onChange={(e) => patch({ ytdlpPoToken: e.target.value })}
-                        style={{ width: '100%', fontSize: '0.8rem', padding: '6px 10px', marginTop: '4px' }}
-                      />
-                    </div>
-                  </div>
-                )}
-
                 {/* Footer Actions */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', paddingTop: '4px' }}>
                   <button
                     type="button"
                     className="td-chip-btn"
-                    onClick={() => setShowPluginAdvanced((prev) => !prev)}
-                    style={{ fontSize: '0.74rem', padding: '5px 8px', color: '#94a3b8' }}
+                    onClick={() => {
+                      setYtdlpSubPage('config');
+                      void refreshFfmpegStatus();
+                    }}
+                    style={{ fontSize: '0.78rem', padding: '6px 12px', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.35)', background: 'rgba(168, 85, 247, 0.1)' }}
                   >
-                    <SlidersHorizontal size={11} /> {showPluginAdvanced ? t('drive_tools.plugin_advanced_hide') : t('drive_tools.plugin_advanced_toggle')}
+                    <SlidersHorizontal size={12} /> {t('drive_tools.plugin_config_btn')}
                   </button>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
@@ -3626,6 +3650,505 @@ export function TransferSettingsWorkspace({
                   {t('drive_tools.plugin_more_desc')}
                 </p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* DEDICATED FULL SUB-PAGE: YT-DLP DEEP CONFIGURATION */}
+        {activeTab === 'ytdlp' && ytdlpSubPage === 'config' && (
+          <div className="td-xfer-focused-panel" id="section-ytdlp-deep-config" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Sub-Page Top Header with Back Navigation */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '12px',
+              paddingBottom: '14px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button
+                  type="button"
+                  className="td-chip-btn"
+                  onClick={() => setYtdlpSubPage('overview')}
+                  style={{ fontSize: '0.8rem', padding: '7px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <ArrowLeft size={14} />
+                  <span>{t('drive_tools.plugin_back_to_plugins')}</span>
+                </button>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc' }}>
+                      {t('drive_tools.plugin_ytdlp_config_title')}
+                    </h3>
+                    <span style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      background: 'rgba(168, 85, 247, 0.16)',
+                      color: '#c084fc',
+                      border: '1px solid rgba(168, 85, 247, 0.35)',
+                    }}>
+                      v{ytdlpStatus?.version || '2026.08'}
+                    </span>
+                  </div>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
+                    {t('drive_tools.plugin_ytdlp_config_desc')}
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="td-chip-btn"
+                  disabled={ytdlpBusy}
+                  onClick={() => void refreshYtdlpStatus(true)}
+                  style={{ fontSize: '0.78rem', padding: '6px 12px' }}
+                >
+                  <RotateCcw size={13} /> {t('drive_tools.ytdlp_check_now')}
+                </button>
+                <button
+                  type="button"
+                  className="td-chip-btn td-chip-primary"
+                  disabled={ytdlpBusy}
+                  onClick={() => void updateYtdlpPlugin()}
+                  style={{ fontSize: '0.78rem', padding: '6px 14px', fontWeight: 700 }}
+                >
+                  <Download size={13} /> {t('drive_tools.ytdlp_update_now')}
+                </button>
+              </div>
+            </div>
+
+            {/* Grid of In-Depth Configuration Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '18px' }}>
+              
+              {/* CARD 1: RUNTIME & BINARY MANAGEMENT */}
+              <div className="td-settings-card" style={{
+                background: 'rgba(15, 23, 42, 0.65)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '14px',
+                padding: '16px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Cpu size={18} style={{ color: '#38bdf8' }} />
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#f1f5f9' }}>
+                      {t('drive_tools.plugin_ytdlp_runtime_heading')}
+                    </h4>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      {t('drive_tools.ytdlp_runtime_status')}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{
+                  background: 'rgba(0, 0, 0, 0.28)',
+                  borderRadius: '10px',
+                  padding: '10px 12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                  fontSize: '0.78rem',
+                  border: '1px solid rgba(255, 255, 255, 0.04)',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#94a3b8' }}>{t('drive_tools.ytdlp_runtime_status')}:</span>
+                    <strong style={{ color: ytdlpStatus?.installed ? '#4ade80' : '#f87171' }}>
+                      {ytdlpStatus?.installed ? t('drive_tools.ytdlp_runtime_installed', { version: ytdlpStatus.version || 'Ready' }) : (ytdlpStatus?.error || t('drive_tools.ytdlp_runtime_not_checked'))}
+                    </strong>
+                  </div>
+                  {ytdlpStatus?.latestVersion && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#94a3b8' }}>{t('drive_tools.ytdlp_runtime_latest', { version: '' })}</span>
+                      <strong style={{ color: '#38bdf8' }}>{ytdlpStatus.latestVersion}</strong>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#94a3b8' }}>{t('drive_tools.plugin_ytdlp_binary_source')}:</span>
+                    <span style={{ color: '#cbd5e1' }}>
+                      {ytdlpStatus?.source === 'custom' ? t('drive_tools.plugin_source_badge_custom') : ytdlpStatus?.source === 'system' ? t('drive_tools.plugin_source_badge_system') : t('drive_tools.plugin_source_badge_app_data')}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label className="td-field-label" htmlFor="ytdlp-custom-path" style={{ fontSize: '0.78rem' }}>
+                    {t('drive_tools.plugin_custom_path_title')}
+                  </label>
+                  <input
+                    id="ytdlp-custom-path"
+                    type="text"
+                    placeholder={t('drive_tools.plugin_custom_path_placeholder')}
+                    value={draft.ytdlpCustomPath ?? ''}
+                    disabled={!!transferActive}
+                    onChange={(e) => patch({ ytdlpCustomPath: e.target.value })}
+                    style={{ width: '100%', fontSize: '0.8rem', padding: '7px 10px' }}
+                  />
+                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    {t('drive_tools.plugin_custom_path_desc')}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingTop: '4px' }}>
+                  <div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0' }}>
+                      {t('drive_tools.ytdlp_auto_update_title')}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      {t('drive_tools.ytdlp_auto_update_desc')}
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    checked={draft.ytdlpAutoUpdate !== false}
+                    disabled={!!transferActive}
+                    onChange={(val) => patch({ ytdlpAutoUpdate: val })}
+                    size="sm"
+                    ariaLabel={t('drive_tools.ytdlp_auto_update_title')}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                  <div>
+                    <label htmlFor="ytdlp-check-interval" style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0', display: 'block' }}>
+                      {t('drive_tools.ytdlp_check_interval_title')}
+                    </label>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      {t('drive_tools.ytdlp_check_interval_desc')}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <input
+                      id="ytdlp-check-interval"
+                      type="number"
+                      min={1}
+                      max={168}
+                      value={draft.ytdlpCheckIntervalHours ?? 6}
+                      disabled={!!transferActive}
+                      onChange={(e) => patch({ ytdlpCheckIntervalHours: Math.max(1, Math.min(168, Number(e.target.value) || 6)) })}
+                      style={{ width: '60px', padding: '4px 8px', fontSize: '0.8rem', textAlign: 'center' }}
+                    />
+                    <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                      {t('drive_tools.ytdlp_check_interval_hours')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* CARD 2: YOUTUBE AUTHENTICATION & COOKIES & PO TOKEN */}
+              <div className="td-settings-card" style={{
+                background: 'rgba(15, 23, 42, 0.65)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '14px',
+                padding: '16px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <ShieldAlert size={18} style={{ color: '#fbbf24' }} />
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#f1f5f9' }}>
+                      {t('drive_tools.plugin_section_auth_title')}
+                    </h4>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      {t('drive_tools.plugin_section_auth_desc')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Cookies Mode Selector */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#cbd5e1' }}>
+                    {t('drive_tools.plugin_cookies_mode_title')}
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                    {(['none', 'browser', 'file'] as const).map((mode) => {
+                      const active = (draft.ytdlpCookiesMode || 'none') === mode;
+                      return (
+                        <button
+                          key={mode}
+                          type="button"
+                          disabled={!!transferActive}
+                          onClick={() => patch({ ytdlpCookiesMode: mode })}
+                          style={{
+                            padding: '6px 8px',
+                            borderRadius: '8px',
+                            fontSize: '0.76rem',
+                            fontWeight: active ? 700 : 500,
+                            border: active ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
+                            background: active ? 'rgba(56, 189, 248, 0.15)' : 'rgba(0, 0, 0, 0.25)',
+                            color: active ? '#38bdf8' : '#94a3b8',
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                          }}
+                        >
+                          {mode === 'none' && t('drive_tools.plugin_cookies_mode_none')}
+                          {mode === 'browser' && t('drive_tools.plugin_cookies_mode_browser')}
+                          {mode === 'file' && t('drive_tools.plugin_cookies_mode_file')}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {draft.ytdlpCookiesMode === 'browser' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label className="td-field-label" htmlFor="ytdlp-cookies-browser" style={{ fontSize: '0.78rem' }}>
+                      {t('drive_tools.plugin_cookies_browser_label')}
+                    </label>
+                    <select
+                      id="ytdlp-cookies-browser"
+                      value={draft.ytdlpCookiesBrowser || 'chrome'}
+                      disabled={!!transferActive}
+                      onChange={(e) => patch({ ytdlpCookiesBrowser: e.target.value })}
+                      style={{ width: '100%', fontSize: '0.8rem', padding: '6px 10px' }}
+                    >
+                      <option value="chrome">Google Chrome</option>
+                      <option value="firefox">Mozilla Firefox</option>
+                      <option value="edge">Microsoft Edge</option>
+                      <option value="brave">Brave Browser</option>
+                      <option value="opera">Opera</option>
+                      <option value="vivaldi">Vivaldi</option>
+                      <option value="chromium">Chromium</option>
+                    </select>
+                  </div>
+                )}
+
+                {draft.ytdlpCookiesMode === 'file' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label className="td-field-label" htmlFor="ytdlp-cookies-path" style={{ fontSize: '0.78rem' }}>
+                      {t('drive_tools.plugin_cookies_file_label')}
+                    </label>
+                    <input
+                      id="ytdlp-cookies-path"
+                      type="text"
+                      placeholder={t('drive_tools.plugin_cookies_file_placeholder')}
+                      value={draft.ytdlpCookiesPath ?? ''}
+                      disabled={!!transferActive}
+                      onChange={(e) => patch({ ytdlpCookiesPath: e.target.value })}
+                      style={{ width: '100%', fontSize: '0.8rem', padding: '6px 10px' }}
+                    />
+                  </div>
+                )}
+
+                {/* PO Token */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label className="td-field-label" htmlFor="ytdlp-po-token" style={{ fontSize: '0.78rem' }}>
+                    {t('drive_tools.plugin_po_token_title')}
+                  </label>
+                  <input
+                    id="ytdlp-po-token"
+                    type="text"
+                    placeholder={t('drive_tools.plugin_po_token_placeholder')}
+                    value={draft.ytdlpPoToken ?? ''}
+                    disabled={!!transferActive}
+                    onChange={(e) => patch({ ytdlpPoToken: e.target.value })}
+                    style={{ width: '100%', fontSize: '0.8rem', padding: '6px 10px' }}
+                  />
+                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    {t('drive_tools.plugin_po_token_desc')}
+                  </span>
+                </div>
+
+                {/* Extractor Args */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label className="td-field-label" htmlFor="ytdlp-extractor-args" style={{ fontSize: '0.78rem' }}>
+                    {t('drive_tools.plugin_extractor_args_title')}
+                  </label>
+                  <input
+                    id="ytdlp-extractor-args"
+                    type="text"
+                    placeholder="youtube:player_client=android,web"
+                    value={draft.ytdlpExtractorArgs ?? ''}
+                    disabled={!!transferActive}
+                    onChange={(e) => patch({ ytdlpExtractorArgs: e.target.value })}
+                    style={{ width: '100%', fontSize: '0.8rem', padding: '6px 10px' }}
+                  />
+                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    {t('drive_tools.plugin_extractor_args_desc')}
+                  </span>
+                </div>
+              </div>
+
+              {/* CARD 3: FFMPEG INTEGRATION & AUTO-MUX */}
+              <div className="td-settings-card" style={{
+                background: 'rgba(15, 23, 42, 0.65)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '14px',
+                padding: '16px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Film size={18} style={{ color: '#a855f7' }} />
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#f1f5f9' }}>
+                      {t('drive_tools.plugin_section_ffmpeg_title')}
+                    </h4>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      {t('drive_tools.plugin_section_ffmpeg_desc')}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{
+                  background: 'rgba(0, 0, 0, 0.28)',
+                  borderRadius: '10px',
+                  padding: '10px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  fontSize: '0.78rem',
+                  border: '1px solid rgba(255, 255, 255, 0.04)',
+                }}>
+                  <span style={{ color: '#94a3b8' }}>{t('drive_tools.plugin_ffmpeg_status_label')}:</span>
+                  <strong style={{ color: ffmpegStatus?.installed ? '#4ade80' : '#f59e0b' }}>
+                    {ffmpegStatus?.installed ? t('drive_tools.plugin_ffmpeg_status_installed', { version: ffmpegStatus.version || t('drive_tools.plugin_status_ready') }) : t('drive_tools.plugin_ffmpeg_status_not_found')}
+                  </strong>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label className="td-field-label" htmlFor="ffmpeg-custom-path" style={{ fontSize: '0.78rem' }}>
+                    {t('drive_tools.plugin_ffmpeg_custom_path_title')}
+                  </label>
+                  <input
+                    id="ffmpeg-custom-path"
+                    type="text"
+                    placeholder={t('drive_tools.plugin_ffmpeg_custom_path_placeholder')}
+                    value={draft.ffmpegCustomPath ?? ''}
+                    disabled={!!transferActive}
+                    onChange={(e) => {
+                      patch({ ffmpegCustomPath: e.target.value });
+                      void refreshFfmpegStatus(e.target.value);
+                    }}
+                    style={{ width: '100%', fontSize: '0.8rem', padding: '6px 10px' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingTop: '4px' }}>
+                  <div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0' }}>
+                      {t('drive_tools.plugin_ffmpeg_auto_mux_title')}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      {t('drive_tools.plugin_ffmpeg_auto_mux_desc')}
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    checked={draft.ytdlpAutoMuxFfmpeg !== false}
+                    disabled={!!transferActive}
+                    onChange={(val) => patch({ ytdlpAutoMuxFfmpeg: val })}
+                    size="sm"
+                    ariaLabel={t('drive_tools.plugin_ffmpeg_auto_mux_title')}
+                  />
+                </div>
+              </div>
+
+              {/* CARD 4: CUSTOM CLI ARGS */}
+              <div className="td-settings-card" style={{
+                background: 'rgba(15, 23, 42, 0.65)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '14px',
+                padding: '16px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Code size={18} style={{ color: '#34d399' }} />
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#f1f5f9' }}>
+                      {t('drive_tools.plugin_custom_args_title')}
+                    </h4>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      {t('drive_tools.plugin_custom_args_desc')}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <input
+                    type="text"
+                    placeholder="--geo-bypass --concurrent-fragments 4"
+                    value={draft.ytdlpCustomArgs ?? ''}
+                    disabled={!!transferActive}
+                    onChange={(e) => patch({ ytdlpCustomArgs: e.target.value })}
+                    style={{ width: '100%', fontSize: '0.8rem', padding: '8px 10px', fontFamily: 'monospace' }}
+                  />
+                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    {t('drive_tools.plugin_custom_args_desc')}
+                  </span>
+                </div>
+              </div>
+
+              {/* CARD 5: LIVE EXTRACTION DIAGNOSTIC TESTER */}
+              <div className="td-settings-card" style={{
+                background: 'rgba(15, 23, 42, 0.65)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '14px',
+                padding: '16px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+                gridColumn: '1 / -1',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Zap size={18} style={{ color: '#f43f5e' }} />
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#f1f5f9' }}>
+                      {t('drive_tools.plugin_section_test_title')}
+                    </h4>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      {t('drive_tools.plugin_section_test_desc')}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <input
+                    type="text"
+                    placeholder={t('drive_tools.plugin_test_url_placeholder')}
+                    value={pluginTestUrl}
+                    onChange={(e) => setPluginTestUrl(e.target.value)}
+                    style={{ flex: 1, minWidth: '260px', fontSize: '0.82rem', padding: '8px 12px' }}
+                  />
+                  <button
+                    type="button"
+                    className="td-chip-btn td-chip-primary"
+                    disabled={pluginTestRunning}
+                    onClick={() => void runPluginTest()}
+                    style={{ padding: '8px 16px', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    {pluginTestRunning ? <RotateCcw size={14} className="spin" /> : <PlaySquare size={14} />}
+                    <span>{pluginTestRunning ? t('drive_tools.plugin_test_running') : t('drive_tools.plugin_test_run_btn')}</span>
+                  </button>
+                </div>
+
+                {pluginTestResult && (
+                  <div style={{
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    fontSize: '0.78rem',
+                    background: pluginTestResult.success ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                    border: pluginTestResult.success ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
+                    color: pluginTestResult.success ? '#4ade80' : '#f87171',
+                  }}>
+                    <div>{pluginTestResult.message}</div>
+                    {pluginTestResult.details?.title && (
+                      <div style={{ marginTop: '4px', color: '#e2e8f0', fontWeight: 600 }}>
+                        {pluginTestResult.details.title}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
             </div>
           </div>
         )}
