@@ -18,7 +18,7 @@ export type PlatformKind =
   | 'twitter'
   | 'direct';
 
-export type QualityTier = '8k' | '4k' | '2k' | '1080p' | '720p' | '480p' | '360p' | 'audio' | 'subtitle' | 'original';
+export type QualityTier = '8k' | '4k' | '2k' | '1080p' | '720p' | '480p' | '360p' | '240p' | '144p' | 'audio' | 'subtitle' | 'original';
 
 export interface RawStreamItem {
   itag: number;
@@ -32,6 +32,19 @@ export interface RawStreamItem {
   type: 'video' | 'audio' | 'muxed';
   directUrl: string;
   isHdr?: boolean;
+  /** Transport that produced the stream (DASH HTTPS, HLS, etc.). */
+  protocol?: string;
+  /** Container reported by the provider, when available. */
+  container?: string;
+  width?: number;
+  height?: number;
+  sampleRate?: number;
+  audioChannels?: number;
+  /** False when a provider only returned a metadata placeholder. */
+  isDownloadable?: boolean;
+  isStreamable?: boolean;
+  /** The source can be fetched by the extractor but is not browser-playable. */
+  downloadOnly?: boolean;
 }
 
 export interface SubtitleTrackItem {
@@ -67,6 +80,11 @@ export interface StreamQualityFormat {
   durationSec?: number;
   itag?: number;
   codec?: string;
+  protocol?: string;
+  container?: string;
+  isDownloadable?: boolean;
+  isStreamable?: boolean;
+  downloadOnly?: boolean;
 }
 
 export interface ResolvedMediaItem {

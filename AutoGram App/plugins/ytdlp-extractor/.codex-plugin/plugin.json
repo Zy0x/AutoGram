@@ -1,0 +1,18 @@
+{
+  "name": "ytdlp-extractor",
+  "version": "1.0.0",
+  "description": "AutoGram Remote URL extractor powered by the latest yt-dlp release. Resolves concrete YouTube download formats without inventing quality cards.",
+  "author": {
+    "name": "Local developer"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Ytdlp Extractor",
+    "shortDescription": "Resolve YouTube formats with yt-dlp.",
+    "longDescription": "AutoGram's updateable yt-dlp provider discovers concrete downloadable formats, reports streamability separately, and keeps the browser preview path independent.",
+    "developerName": "Local developer",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Inspect a remote URL with the AutoGram yt-dlp extractor."
+  }
+}

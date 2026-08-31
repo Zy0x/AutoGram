@@ -1819,5 +1819,7 @@
   "remote_section_preview_title": "Active Preview",
   "remote_btn_upload_count": "Upload {{count}} Media",
   "remote_spec_video_stream": "Video Stream",
-  "remote_spec_media_item": "Media Item"
+  "remote_spec_media_item": "Media Item",
+  "remote_format_download_only": "Download only",
+  "remote_format_preview_unavailable": "Preview unavailable for this format"
 }

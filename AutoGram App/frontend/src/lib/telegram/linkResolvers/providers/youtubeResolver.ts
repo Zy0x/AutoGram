@@ -65,17 +65,16 @@ async function fetchYouTubeWatchHtml(url: string, signal?: AbortSignal): Promise
 }
 
 async function fetchYouTubeInnertubePlayer(videoId: string, signal?: AbortSignal): Promise<any | null> {
+  // Public player API key used by YouTube's own clients (not a user secret).
+  const apiKey = 'AIzaSyAO_FJ2SlqU8Q4STEHLGCil_w_Y9_11qcW8';
   const clients = [
     {
       clientName: 'ANDROID',
-      clientVersion: '19.09.37',
+      clientVersion: '21.26.364',
       osName: 'Android',
-      osVersion: '14',
-      androidSdkVersion: 34,
-    },
-    {
-      clientName: 'WEB',
-      clientVersion: '2.20240501.01.00',
+      osVersion: '11',
+      androidSdkVersion: 30,
+      userAgent: 'com.google.android.youtube/21.26.364 (Linux; U; Android 11) gzip',
     },
   ];
 
@@ -90,25 +89,45 @@ async function fetchYouTubeInnertubePlayer(videoId: string, signal?: AbortSignal
             gl: 'ID',
           },
         },
-      });
-
-      const resp = await fetch('https://www.youtube.com/youtubei/v1/player', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent':
-            client.clientName === 'ANDROID'
-              ? 'com.google.android.youtube/19.09.37 (Linux; U; Android 14; id_ID) gzip'
-              : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        playbackContext: {
+          contentPlaybackContext: {
+            html5Preference: 'HTML5_PREF_WANTS',
+          },
         },
-        body: payload,
-        signal: signal || AbortSignal.timeout(4500),
+        contentCheckOk: true,
+        racyCheckOk: true,
       });
 
-      if (resp.ok) {
-        const data = await resp.json();
-        if (data?.videoDetails || data?.streamingData) {
-          return data;
+      const endpoint = `https://www.youtube.com/youtubei/v1/player?key=${apiKey}`;
+      const headers = {
+        'Content-Type': 'application/json',
+        'User-Agent': client.userAgent || 'Mozilla/5.0',
+        'X-YouTube-Client-Name': '3',
+        'X-YouTube-Client-Version': client.clientVersion,
+        Origin: 'https://www.youtube.com',
+      };
+
+      // Tauri CSP intentionally blocks arbitrary browser POSTs. Use the
+      // native HTTP bridge there; web builds still use fetch below.
+      if (detectTauriRuntime()) {
+        const text = await invoke<string>('fetch_native_http', {
+          url: endpoint,
+          method: 'POST',
+          headers,
+          body: payload,
+        });
+        const data = JSON.parse(text);
+        if (data?.videoDetails || data?.streamingData) return data;
+      } else {
+        const resp = await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: payload,
+          signal: signal || AbortSignal.timeout(4500),
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data?.videoDetails || data?.streamingData) return data;
         }
       }
     } catch {
@@ -118,10 +137,152 @@ async function fetchYouTubeInnertubePlayer(videoId: string, signal?: AbortSignal
   return null;
 }
 
+async function fetchYouTubeYtDlp(url: string): Promise<any | null> {
+  if (!detectTauriRuntime()) return null;
+  try {
+    const text = await invoke<string>('ytdlp_resolve', { url });
+    const data = JSON.parse(text);
+    return data && Array.isArray(data.formats) ? data : null;
+  } catch {
+    // The native resolver remains a safe fallback when the optional plugin is
+    // not installed or its release endpoint is temporarily unavailable.
+    return null;
+  }
+}
+
+function qualityTierForHeight(height?: number): StreamQualityFormat['qualityTier'] {
+  if (!height) return 'original';
+  if (height >= 4320) return '8k';
+  if (height >= 2160) return '4k';
+  if (height >= 1440) return '2k';
+  if (height >= 1080) return '1080p';
+  if (height >= 720) return '720p';
+  if (height >= 480) return '480p';
+  if (height >= 360) return '360p';
+  if (height >= 240) return '240p';
+  if (height >= 144) return '144p';
+  return 'original';
+}
+
+function stableFormatNumber(value: unknown, index: number): number {
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && numeric > 0) return numeric;
+  const raw = String(value || index);
+  let hash = 0;
+  for (let i = 0; i < raw.length; i += 1) hash = ((hash << 5) - hash + raw.charCodeAt(i)) | 0;
+  return 100000 + Math.abs(hash % 899999);
+}
+
+export function processYtDlpData(
+  data: any,
+  formats: StreamQualityFormat[],
+  subtitles: SubtitleTrackItem[],
+  rawStreams: RawStreamItem[],
+): { title?: string; author?: string; description?: string; durationSec?: number; thumbnailUrl?: string } {
+  const durationSec = typeof data?.duration === 'number' ? data.duration : undefined;
+  const title = data?.title || data?.fulltitle;
+  const author = data?.uploader || data?.channel;
+  const description = data?.description;
+  const thumbnailUrl = data?.thumbnail;
+  const sourceFormats = Array.isArray(data?.formats) ? data.formats : [];
+
+  sourceFormats.forEach((f: any, index: number) => {
+    const directUrl = typeof f?.url === 'string' && /^https?:\/\//i.test(f.url) ? f.url : undefined;
+    if (!directUrl) return;
+    const vcodec = String(f.vcodec || 'none');
+    const acodec = String(f.acodec || 'none');
+    const isVideo = vcodec !== 'none';
+    const isAudio = !isVideo && acodec !== 'none';
+    if (!isVideo && !isAudio) return;
+    const protocol = String(f.protocol || (/[.]m3u8(?:\?|$)/i.test(directUrl) ? 'm3u8' : 'https'));
+    const isManifest = /(?:m3u8|mpd)(?:\?|$)/i.test(protocol) || /[.]m3u8(?:\?|$)/i.test(directUrl);
+    const height = typeof f.height === 'number' ? f.height : undefined;
+    const bitrate = Number(f.tbr || f.vbr || f.abr || 0) * 1000;
+    const audioBitrate = Number(f.abr || 0) * 1000;
+    const effectiveBitrate = isAudio ? audioBitrate : bitrate;
+    const bitrateText = effectiveBitrate >= 1_000_000
+      ? `${(effectiveBitrate / 1_000_000).toFixed(1)} Mbps`
+      : `${Math.round(effectiveBitrate / 1000)} kbps`;
+    const formatId = String(f.format_id || stableFormatNumber(f.format_id, index));
+    const itag = stableFormatNumber(formatId, index);
+    const ext = String(f.ext || (isAudio ? 'm4a' : 'mp4')).toLowerCase();
+    const streamable = !isManifest && ['mp4', 'webm', 'm4a', 'mp3', 'opus', 'ogg', 'wav'].includes(ext);
+    const downloadable = !isManifest;
+    const label = isAudio
+      ? `${ext.toUpperCase()} ${Math.round((effectiveBitrate || 0) / 1000)} kbps`
+      : `${f.format_note || (height ? `${height}p` : 'Video')} (${ext.toUpperCase()})`;
+    const qualityTier = isAudio ? 'audio' : qualityTierForHeight(height);
+    const codec = String(vcodec !== 'none' ? vcodec : acodec);
+    const size = Number(f.filesize || f.filesize_approx || 0) || undefined;
+
+    const stream: RawStreamItem = {
+      itag,
+      qualityLabel: isAudio ? 'Audio Stream' : (f.format_note || `${height || 'Video'}p`),
+      mimeType: isAudio ? `audio/${ext}` : `video/${ext}`,
+      codec,
+      bitrate: effectiveBitrate,
+      bitrateFormatted: bitrateText,
+      fps: typeof f.fps === 'number' ? f.fps : undefined,
+      filesizeBytes: size,
+      type: isVideo && acodec !== 'none' ? 'muxed' : (isAudio ? 'audio' : 'video'),
+      directUrl,
+      protocol,
+      container: ext,
+      width: f.width,
+      height,
+      sampleRate: f.asr ? Number(f.asr) : undefined,
+      audioChannels: f.audio_channels,
+      isDownloadable: downloadable,
+      isStreamable: streamable,
+      downloadOnly: downloadable && !streamable,
+    };
+    rawStreams.push(stream);
+    if (downloadable) {
+      formats.push({
+        id: `yt_ytdlp_${formatId}`,
+        label,
+        qualityTier,
+        resolution: isAudio ? `${Math.round((effectiveBitrate || 0) / 1000)} kbps` : `${height || 'unknown'}p • ${bitrateText}`,
+        fps: stream.fps,
+        ext,
+        filesizeBytes: size,
+        directUrl,
+        isDownloadable: true,
+        isStreamable: streamable,
+        downloadOnly: !streamable,
+        isVideo,
+        isAudio,
+        badge: isAudio ? bitrateText : `${height || 'Video'}p • ${bitrateText}`,
+        codec,
+        protocol,
+        container: ext,
+        itag,
+      });
+    }
+  });
+
+  const subtitleMap = data?.subtitles && typeof data.subtitles === 'object' ? data.subtitles : {};
+  const autoCaptionMap = data?.automatic_captions && typeof data.automatic_captions === 'object' ? data.automatic_captions : {};
+  const tracks = [...Object.values(subtitleMap).flat(), ...Object.values(autoCaptionMap).flat()] as any[];
+  tracks.forEach((track: any, index) => {
+    const directUrl = track?.url;
+    if (!directUrl) return;
+    const languageCode = String(track?.language || track?.name || `track-${index}`);
+    subtitles.push({
+      id: `yt_sub_${languageCode}_${index}`,
+      languageCode,
+      languageName: languageCode.toUpperCase(),
+      isAutoGenerated: false,
+      directUrl,
+    });
+  });
+
+  return { title, author, description, durationSec, thumbnailUrl };
+}
+
 function processPlayerData(
   data: any,
   videoId: string,
-  fallbackBaseUrl: string,
   formats: StreamQualityFormat[],
   subtitles: SubtitleTrackItem[],
   rawStreams: RawStreamItem[],
@@ -173,7 +334,11 @@ function processPlayerData(
 
   const adaptive = (data?.streamingData?.adaptiveFormats || []) as any[];
   const regular = (data?.streamingData?.formats || []) as any[];
-  const allFormats = [...adaptive, ...regular];
+  // A format without a signed URL is only a capability hint (for example a
+  // SABR-only response). It must never become a downloadable/preview card.
+  const allFormats = [...adaptive, ...regular].filter(
+    (f) => typeof f?.url === 'string' && f.url.startsWith('http')
+  );
 
   const dur = durationSec || 180;
 
@@ -217,7 +382,9 @@ function processPlayerData(
         fps: v.fps || (isHdr ? 60 : 30),
         ext: 'webm',
         filesizeBytes: size,
-        directUrl: v.url || fallbackBaseUrl,
+        directUrl: v.url,
+        isDownloadable: true,
+        isStreamable: true,
         isVideo: true,
         badge: `${mbps} Mbps`,
         codec: isHdr ? 'VP9 HDR' : 'VP9',
@@ -230,7 +397,6 @@ function processPlayerData(
       const v = mp4s[0];
       const bit = (v.bitrate || 0) || (v.averageBitrate || 0) || Math.round(defaultBitrateMbps * 1000000);
       const mbps = bit > 0 ? (bit / 1000000).toFixed(1) : defaultBitrateMbps.toFixed(1);
-      const isHdr = v.qualityLabel?.includes('HDR') || v.colorInfo?.transferCharacteristics?.includes('SMPTE');
       const isAv1 = v.mimeType?.includes('av01');
       const size = v.contentLength ? parseInt(v.contentLength, 10) : Math.round(dur * (parseFloat(mbps) * 1000000 / 8));
 
@@ -242,7 +408,9 @@ function processPlayerData(
         fps: v.fps || 60,
         ext: 'mp4',
         filesizeBytes: size,
-        directUrl: v.url || fallbackBaseUrl,
+        directUrl: v.url,
+        isDownloadable: true,
+        isStreamable: true,
         isVideo: true,
         badge: `${mbps} Mbps`,
         codec: isAv1 ? 'AV1' : 'H.264',
@@ -251,8 +419,12 @@ function processPlayerData(
     }
   });
 
-  // Audio streams - Preserve ALL distinct audio tracks
-  const allAudios = adaptive.filter((f) => f.audioQuality || f.mimeType?.includes('audio'));
+  // Audio streams - Preserve every concrete audio track. SABR capability
+  // descriptors without a signed URL are intentionally excluded: they cannot
+  // be downloaded or previewed by the client.
+  const allAudios = allFormats.filter(
+    (f) => !f.qualityLabel && (f.audioQuality || f.mimeType?.includes('audio'))
+  );
   allAudios.sort((a, b) => ((b.bitrate || 0) || (b.averageBitrate || 0)) - ((a.bitrate || 0) || (a.averageBitrate || 0)));
 
   const m4aAudios = allAudios.filter((f) => f.mimeType?.includes('mp4') || f.mimeType?.includes('aac') || f.mimeType?.includes('m4a'));
@@ -271,7 +443,9 @@ function processPlayerData(
         resolution: `${m4aKbps} kbps (AAC)`,
         ext: 'm4a',
         filesizeBytes: m4aSize,
-        directUrl: bestM4a?.url || fallbackBaseUrl,
+        directUrl: bestM4a?.url,
+        isDownloadable: true,
+        isStreamable: true,
         isAudio: true,
         badge: `${m4aKbps} KBPS • AAC`,
         codec: 'AAC',
@@ -295,7 +469,9 @@ function processPlayerData(
         resolution: `${opusKbps} kbps (Opus)`,
         ext: 'opus',
         filesizeBytes: opusSize,
-        directUrl: bestOpus.url || fallbackBaseUrl,
+        directUrl: bestOpus.url,
+        isDownloadable: true,
+        isStreamable: true,
         isAudio: true,
         badge: `${opusKbps} KBPS • OPUS`,
         codec: 'Opus',
@@ -369,8 +545,16 @@ function processPlayerData(
       fps: f.fps,
       filesizeBytes: size,
       type: isMuxed ? 'muxed' : (isAudio ? 'audio' : 'video'),
-      directUrl: f.url || fallbackBaseUrl,
+      directUrl: f.url,
       isHdr,
+      protocol: f.type === 'FORMAT_STREAM_TYPE_OTF' ? 'otf' : 'https',
+      container: mime.split('/')[1]?.split(';')[0],
+      width: f.width,
+      height: f.height,
+      sampleRate: f.audioSampleRate ? Number(f.audioSampleRate) : undefined,
+      audioChannels: f.audioChannels,
+      isDownloadable: true,
+      isStreamable: true,
     });
   });
 
@@ -379,17 +563,20 @@ function processPlayerData(
     const exists = formats.some((fmt) => fmt.itag === s.itag);
     if (!exists) {
       const isAud = s.type === 'audio';
+      const qualityLabel = s.qualityLabel || (isAud ? 'Audio Stream' : 'Video Stream');
       const isMp4 = s.mimeType.includes('mp4');
       const ext = isMp4 ? (isAud ? 'm4a' : 'mp4') : (isAud ? 'opus' : 'webm');
       formats.push({
         id: `yt_itag_${s.itag}`,
-        label: s.qualityLabel,
-        qualityTier: isAud ? 'audio' : (s.qualityLabel.includes('4320') ? '8k' : s.qualityLabel.includes('2160') ? '4k' : s.qualityLabel.includes('1440') ? '2k' : s.qualityLabel.includes('1080') ? '1080p' : s.qualityLabel.includes('720') ? '720p' : s.qualityLabel.includes('480') ? '480p' : s.qualityLabel.includes('360') ? '360p' : s.qualityLabel.includes('240') ? '240p' : s.qualityLabel.includes('144') ? '144p' : 'original'),
-        resolution: `${s.qualityLabel} • ${s.bitrateFormatted}`,
+        label: qualityLabel,
+        qualityTier: isAud ? 'audio' : (qualityLabel.includes('4320') ? '8k' : qualityLabel.includes('2160') ? '4k' : qualityLabel.includes('1440') ? '2k' : qualityLabel.includes('1080') ? '1080p' : qualityLabel.includes('720') ? '720p' : qualityLabel.includes('480') ? '480p' : qualityLabel.includes('360') ? '360p' : qualityLabel.includes('240') ? '240p' : qualityLabel.includes('144') ? '144p' : 'original'),
+        resolution: `${qualityLabel} • ${s.bitrateFormatted}`,
         fps: s.fps,
         ext,
         filesizeBytes: s.filesizeBytes,
         directUrl: s.directUrl,
+        isDownloadable: s.isDownloadable,
+        isStreamable: s.isStreamable,
         isVideo: !isAud,
         isAudio: isAud,
         badge: s.bitrateFormatted,
@@ -432,7 +619,6 @@ export const youtubeResolver: LinkResolverProvider = {
     const isPlaylist = !!playlistMatch;
     const playlistId = playlistMatch ? playlistMatch[1] : undefined;
 
-    const fallbackBaseUrl = `https://www.youtube.com/watch?v=${videoId}`;
     let title = `YouTube Video (${videoId})`;
     let author = 'YouTube Creator';
     let durationSec: number | undefined;
@@ -443,10 +629,29 @@ export const youtubeResolver: LinkResolverProvider = {
     const rawStreams: RawStreamItem[] = [];
     const chapters: Array<{ title: string; startSec: number; endSec?: number; thumbnailUrl?: string }> = [];
 
-    // 1. Primary extraction via watch page ytInitialPlayerResponse JSON payload
+    // 1. Primary extraction via the updateable yt-dlp plugin. It can expose
+    // formats that YouTube's browser clients return as SABR-only metadata.
     let parsedSuccess = false;
+    if (detectTauriRuntime()) {
+      try {
+        const ytDlpData = await fetchYouTubeYtDlp(cleanUrl);
+        if (ytDlpData) {
+          const res = processYtDlpData(ytDlpData, formats, subtitles, rawStreams);
+          if (res.title) title = res.title;
+          if (res.author) author = res.author;
+          if (res.description) description = res.description;
+          if (res.durationSec) durationSec = res.durationSec;
+          if (res.thumbnailUrl) thumbnailUrl = res.thumbnailUrl;
+          parsedSuccess = formats.some((f) => f.isVideo && f.directUrl && f.isDownloadable);
+        }
+      } catch {
+        /* optional plugin unavailable: continue with native extraction */
+      }
+    }
+
+    // 2. Secondary extraction via watch page ytInitialPlayerResponse JSON payload
     try {
-      const html = await fetchYouTubeWatchHtml(cleanUrl, signal);
+      const html = parsedSuccess ? null : await fetchYouTubeWatchHtml(cleanUrl, signal);
       if (html) {
         const titleMatch =
           html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/i) ||
@@ -476,139 +681,49 @@ export const youtubeResolver: LinkResolverProvider = {
 
         if (playerJsonMatch && playerJsonMatch[1]) {
           const data = JSON.parse(playerJsonMatch[1]);
-          const res = processPlayerData(data, videoId, fallbackBaseUrl, formats, subtitles, rawStreams, chapters);
+          const res = processPlayerData(data, videoId, formats, subtitles, rawStreams, chapters);
           if (res.title) title = res.title;
           if (res.author) author = res.author;
           if (res.description) description = res.description;
           if (res.durationSec) durationSec = res.durationSec;
           if (res.thumbnailUrl) thumbnailUrl = res.thumbnailUrl;
-          if (formats.length > 0) parsedSuccess = true;
+          // A watch-page response can contain audio metadata while omitting
+          // video URLs. Treat that as incomplete and continue to Innertube.
+          if (formats.some((f) => f.isVideo && f.directUrl)) parsedSuccess = true;
         }
       }
     } catch {
       /* ignore watch html error */
     }
 
-    // 2. Secondary Innertube multi-client API fallback (Android / Web) if watch page was empty or throttled
+    // 3. Secondary Innertube multi-client API fallback (Android / Web) if the
+    // plugin/watch page was empty or throttled.
     if (!parsedSuccess || formats.length === 0) {
       try {
+        // Discard incomplete watch-page entries before rebuilding from the
+        // player response, otherwise General/Audio would contain duplicates.
+        formats.length = 0;
+        subtitles.length = 0;
+        rawStreams.length = 0;
         const innertubeData = await fetchYouTubeInnertubePlayer(videoId, signal);
         if (innertubeData) {
-          const res = processPlayerData(innertubeData, videoId, fallbackBaseUrl, formats, subtitles, rawStreams, chapters);
+          const res = processPlayerData(innertubeData, videoId, formats, subtitles, rawStreams, chapters);
           if (res.title) title = res.title;
           if (res.author) author = res.author;
           if (res.description) description = res.description;
           if (res.durationSec) durationSec = res.durationSec;
           if (res.thumbnailUrl) thumbnailUrl = res.thumbnailUrl;
-          if (formats.length > 0) parsedSuccess = true;
+          if (formats.some((f) => f.isVideo && f.directUrl)) parsedSuccess = true;
         }
       } catch {
         /* ignore innertube error */
       }
     }
 
-    // 3. Fallback mock tiers if all network parsing was unavailable
-    if (formats.length === 0) {
-      const dur = durationSec || 180;
-      const is8K = /\b(8k|4320p)\b/i.test(title);
-      const is4K = is8K || /\b(4k|2160p|uhd)\b/i.test(title);
-      const is2K = is4K || /\b(2k|1440p|qhd)\b/i.test(title);
-
-      if (is8K) {
-        formats.push({
-          id: 'yt_8k',
-          label: '8K Ultra HD (MP4)',
-          qualityTier: '8k',
-          resolution: '4320p (8K)',
-          ext: 'mp4',
-          filesizeBytes: Math.round(dur * (50 * 1024 * 1024 / 8)),
-          directUrl: fallbackBaseUrl,
-          isVideo: true,
-          badge: '4320p',
-        });
-      }
-      if (is4K) {
-        formats.push({
-          id: 'yt_4k',
-          label: '4K Ultra HD (MP4)',
-          qualityTier: '4k',
-          resolution: '2160p (4K)',
-          ext: 'mp4',
-          filesizeBytes: Math.round(dur * (20 * 1024 * 1024 / 8)),
-          directUrl: fallbackBaseUrl,
-          isVideo: true,
-          badge: '2160p',
-        });
-      }
-      if (is2K) {
-        formats.push({
-          id: 'yt_2k',
-          label: '2K Quad HD (MP4)',
-          qualityTier: '2k',
-          resolution: '1440p (2K)',
-          ext: 'mp4',
-          filesizeBytes: Math.round(dur * (9 * 1024 * 1024 / 8)),
-          directUrl: fallbackBaseUrl,
-          isVideo: true,
-          badge: '1440p',
-        });
-      }
-      formats.push({
-        id: 'yt_1080p',
-        label: 'Full HD 1080p (MP4)',
-        qualityTier: '1080p',
-        resolution: '1080p Full HD',
-        ext: 'mp4',
-        filesizeBytes: Math.round(dur * (4.2 * 1024 * 1024 / 8)),
-        directUrl: fallbackBaseUrl,
-        isVideo: true,
-        badge: '1080p',
-      });
-      formats.push({
-        id: 'yt_720p',
-        label: 'HD 720p (MP4)',
-        qualityTier: '720p',
-        resolution: '720p HD',
-        ext: 'mp4',
-        filesizeBytes: Math.round(dur * (2.1 * 1024 * 1024 / 8)),
-        directUrl: fallbackBaseUrl,
-        isVideo: true,
-        badge: '720p',
-      });
-      formats.push({
-        id: 'yt_audio_m4a',
-        label: 'Hi-Res Audio (M4A)',
-        qualityTier: 'audio',
-        resolution: '160 kbps (AAC)',
-        ext: 'm4a',
-        filesizeBytes: Math.round(dur * (160 * 1024 / 8)),
-        directUrl: fallbackBaseUrl,
-        isAudio: true,
-        badge: '160 KBPS • AAC',
-      });
-      formats.push({
-        id: 'yt_audio_opus',
-        label: 'Studio Audio (Opus)',
-        qualityTier: 'audio',
-        resolution: '160 kbps (Opus)',
-        ext: 'opus',
-        filesizeBytes: Math.round(dur * (160 * 1024 / 8)),
-        directUrl: fallbackBaseUrl,
-        isAudio: true,
-        badge: '160 KBPS • OPUS',
-      });
-      formats.push({
-        id: 'yt_audio_saver',
-        label: 'Voice Audio (M4A)',
-        qualityTier: 'audio',
-        resolution: '64 kbps (AAC)',
-        ext: 'm4a',
-        filesizeBytes: Math.round(dur * (64 * 1024 / 8)),
-        directUrl: fallbackBaseUrl,
-        isAudio: true,
-        badge: '64 KBPS • AAC',
-      });
-    }
+    // Never synthesize formats from the title or a watch-page URL. A YouTube
+    // watch URL is not a media stream and would make a fake quality card look
+    // downloadable. If the player endpoint is blocked, return no formats and
+    // let the UI explain that a fresh inspection is required.
 
     // Strict Single Highest Quality Video Auto-Selection (Rule 3 & 5)
     // Audio and subtitles must NEVER be pre-selected.
@@ -631,7 +746,7 @@ export const youtubeResolver: LinkResolverProvider = {
     return {
       url: cleanUrl,
       platform: 'youtube',
-      platformName: 'YouTube (Ultra-HD)',
+      platformName: 'YouTube',
       title,
       author,
       artist: author,
@@ -649,4 +764,3 @@ export const youtubeResolver: LinkResolverProvider = {
     };
   },
 };
-

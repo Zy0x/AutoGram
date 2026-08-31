@@ -65,6 +65,7 @@ import {
   parseRemoteShareInput,
   type ResolvedMediaInfo,
   type StreamQualityFormat,
+  type RawStreamItem,
   type ResolvedMediaItem,
 } from '../../../lib/telegram/linkResolvers';
 import { isRemoteUrlSafetyError } from '../../../lib/telegram/linkResolvers/urlSafety';
@@ -822,7 +823,8 @@ export function RemoteUploadModal({
 
   const [resolvedMedia, setResolvedMedia] = useState<ResolvedMediaInfo | null>(null);
   const [selectedFormatId, setSelectedFormatId] = useState<string>('');
-  const [streamContainerFilter, setStreamContainerFilter] = useState<'all' | 'mp4' | 'webm' | 'sd' | 'audio' | 'subtitle' | 'matrix'>('all');
+  type StreamContainerFilter = 'all' | 'general' | 'video' | 'mp4' | 'webm' | 'sd' | 'audio' | 'subtitle' | 'advance' | 'matrix';
+  const [streamContainerFilter, setStreamContainerFilter] = useState<StreamContainerFilter>('all');
   const [matrixSearchQuery, setMatrixSearchQuery] = useState<string>('');
   const [subtitleSearchQuery, setSubtitleSearchQuery] = useState<string>('');
   const [copiedStreamUrl, setCopiedStreamUrl] = useState<boolean>(false);
@@ -830,6 +832,7 @@ export function RemoteUploadModal({
   const [selectedMediaItemIds, setSelectedMediaItemIds] = useState<Set<string>>(new Set());
   const [itemSelectedFormats, setItemSelectedFormats] = useState<Record<string, string>>({});
   const [activePreviewItemId, setActivePreviewItemId] = useState<string>('');
+  const playRequestRef = useRef(0);
 
   const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0);
 
@@ -1558,6 +1561,8 @@ export function RemoteUploadModal({
         ? 'https://x.com/'
         : rawUrl.includes('tiktok.com') || rawUrl.includes('tiktokcdn.com')
         ? 'https://www.tiktok.com/'
+        : rawUrl.includes('googlevideo.com') || /\.m3u8(?:\?|$)/i.test(rawUrl)
+        ? 'https://www.youtube.com/'
         : undefined
     );
 
@@ -1717,7 +1722,10 @@ export function RemoteUploadModal({
 
   const handleSelectFormat = useCallback((fmt: StreamQualityFormat) => {
     setSelectedFormatId(fmt.id);
-    if (isPlayingStream && fmt.directUrl) {
+    if (fmt.isStreamable === false) {
+      setIsPlayingStream(false);
+      setActivePlayableUrl('');
+    } else if (isPlayingStream && fmt.directUrl) {
       setActivePlayableUrl(fmt.directUrl);
     }
     const newFilename = getEffectiveFormatFilename(fmt, resolvedMedia);
@@ -1747,6 +1755,7 @@ export function RemoteUploadModal({
   }, [isPlayingStream, resolvedMedia]);
 
   const handleToggleFormat = useCallback((fmt: StreamQualityFormat) => {
+    if (fmt.isDownloadable === false) return;
     if (selectedFormatId === fmt.id) {
       setSelectedFormatId('');
       setInspection((prev) =>
@@ -1762,11 +1771,36 @@ export function RemoteUploadModal({
     }
   }, [selectedFormatId, handleSelectFormat]);
 
-  const handlePlayFormat = useCallback((fmt: StreamQualityFormat) => {
+  const handlePlayFormat = useCallback(async (fmt: StreamQualityFormat) => {
+    if (fmt.isDownloadable === false) return;
+    const requestId = ++playRequestRef.current;
     handleSelectFormat(fmt);
+    if (fmt.isStreamable === false) {
+      setIsPlayingStream(false);
+      setActivePlayableUrl('');
+      return;
+    }
     setIsPlayingStream(true);
     if (fmt.directUrl) {
       setActivePlayableUrl(fmt.directUrl);
+      // YouTube signed URLs are range streams and commonly reject a WebView
+      // media request without the YouTube referer. Route preview traffic
+      // through the native CORS/range proxy while keeping the original signed
+      // URL for the actual transfer.
+      if (
+        detectTauriRuntime() &&
+        (fmt.directUrl.includes('googlevideo.com') || /\.m3u8(?:\?|$)/i.test(fmt.directUrl))
+      ) {
+        try {
+          const proxyUrl = await invoke<string>('get_remote_stream_proxy_url', {
+            url: fmt.directUrl,
+            referer: 'https://www.youtube.com/',
+          });
+          if (proxyUrl && requestId === playRequestRef.current) setActivePlayableUrl(proxyUrl);
+        } catch {
+          /* keep the signed URL as a fallback */
+        }
+      }
     }
   }, [handleSelectFormat]);
 
@@ -4017,6 +4051,8 @@ export function RemoteUploadModal({
                             '720p': 5,
                             '480p': 6,
                             '360p': 7,
+                            '240p': 8,
+                            '144p': 9,
                           };
 
                           const allVideoFmts = resolvedMedia.formats.filter(
@@ -4031,9 +4067,36 @@ export function RemoteUploadModal({
                             .filter((f) => !f.isAudio && !f.isSubtitle && f.ext === 'webm')
                             .sort((a, b) => (QUALITY_ORDER[a.qualityTier] || 99) - (QUALITY_ORDER[b.qualityTier] || 99) || (b.filesizeBytes || 0) - (a.filesizeBytes || 0));
 
-                          const audioFmts = resolvedMedia.formats
+                          const allAudioFmts = resolvedMedia.formats
                             .filter((f) => f.isAudio || f.qualityTier === 'audio')
                             .sort((a, b) => (b.filesizeBytes || 0) - (a.filesizeBytes || 0));
+
+                          // Audio has the same no-redundancy rule as General:
+                          // collapse equivalent bitrate tiers and keep the
+                          // highest concrete format in each tier.
+                          const audioBitrate = (f: StreamQualityFormat): number => {
+                            const raw = `${f.resolution || ''} ${f.badge || ''} ${f.label || ''}`;
+                            const mbps = raw.match(/(\d+(?:\.\d+)?)\s*mbps/i);
+                            if (mbps) return Number(mbps[1]) * 1000;
+                            const kbps = raw.match(/(\d+(?:\.\d+)?)\s*(?:kbps|k\b)/i);
+                            return kbps ? Number(kbps[1]) : 0;
+                          };
+                          const audioGroups = new Map<string, StreamQualityFormat[]>();
+                          allAudioFmts.forEach((f) => {
+                            const kbps = audioBitrate(f);
+                            const key = kbps > 0 ? `kbps-${Math.round(kbps / 16) * 16}` : `format-${f.ext}-${f.codec || f.id}`;
+                            const group = audioGroups.get(key) || [];
+                            group.push(f);
+                            audioGroups.set(key, group);
+                          });
+                          const audioFmts = Array.from(audioGroups.values())
+                            .map((group) => group.sort((a, b) => {
+                              const bitrateDiff = audioBitrate(b) - audioBitrate(a);
+                              if (bitrateDiff !== 0) return bitrateDiff;
+                              return (b.filesizeBytes || 0) - (a.filesizeBytes || 0);
+                            })[0])
+                            .filter(Boolean)
+                            .sort((a, b) => audioBitrate(b) - audioBitrate(a) || (b.filesizeBytes || 0) - (a.filesizeBytes || 0));
 
                           const subtitleFmts = resolvedMedia.formats.filter((f) => f.isSubtitle || f.qualityTier === 'subtitle');
                           const filteredSubtitleFmts = subtitleFmts.filter((f) => {
@@ -4048,8 +4111,6 @@ export function RemoteUploadModal({
                           const rawStreamsList = resolvedMedia.rawStreams || [];
 
                           const getFormatResolutionKey = (f: StreamQualityFormat): string => {
-                            const tier = (f.qualityTier || '').toLowerCase();
-                            if (QUALITY_ORDER[tier] !== undefined) return tier;
                             const match = (f.resolution || f.label || '').match(/\b(4320p|2160p|1440p|1080p|720p|480p|360p|240p|144p|8k|4k|2k)\b/i);
                             if (match) {
                               const m = match[1].toLowerCase();
@@ -4058,6 +4119,8 @@ export function RemoteUploadModal({
                               if (m === '1440p') return '2k';
                               return m;
                             }
+                            const tier = (f.qualityTier || '').toLowerCase();
+                            if (QUALITY_ORDER[tier] !== undefined) return tier;
                             return tier || f.label;
                           };
 
@@ -4073,9 +4136,17 @@ export function RemoteUploadModal({
                           const curatedGeneralVideos: StreamQualityFormat[] = [];
                           resGroups.forEach((groupFmts) => {
                             groupFmts.sort((a, b) => {
-                              // 1. Bitrate / File size difference (higher first)
-                              const sizeDiff = (b.filesizeBytes || 0) - (a.filesizeBytes || 0);
-                              if (Math.abs(sizeDiff) > 1024 * 1024) return sizeDiff;
+                              // 1. Actual bitrate (not the container name or
+                              // title) is the primary quality signal.
+                              const bitrate = (f: StreamQualityFormat): number => {
+                                const raw = `${f.resolution || ''} ${f.badge || ''} ${f.label || ''}`;
+                                const mbps = raw.match(/(\d+(?:\.\d+)?)\s*mbps/i);
+                                if (mbps) return Number(mbps[1]) * 1000;
+                                const kbps = raw.match(/(\d+(?:\.\d+)?)\s*(?:kbps|k\b)/i);
+                                return kbps ? Number(kbps[1]) : 0;
+                              };
+                              const bitrateDiff = bitrate(b) - bitrate(a);
+                              if (bitrateDiff !== 0) return bitrateDiff;
 
                               // 2. HDR over SDR
                               const aHdr = a.badge?.includes('HDR') || a.resolution?.includes('HDR') || a.codec?.includes('HDR') ? 1 : 0;
@@ -4088,7 +4159,7 @@ export function RemoteUploadModal({
                               if (bFps !== aFps) return bFps - aFps;
 
                               // 4. File size fallback
-                              return sizeDiff;
+                              return (b.filesizeBytes || 0) - (a.filesizeBytes || 0);
                             });
 
                             if (groupFmts[0]) {
@@ -4130,6 +4201,7 @@ export function RemoteUploadModal({
 
                           const renderFormatChip = (fmt: StreamQualityFormat) => {
                             const isSelected = selectedFormatId === fmt.id;
+                            const isDownloadOnly = fmt.isDownloadable !== false && fmt.isStreamable === false;
                             const isHdr = fmt.badge?.includes('HDR') || fmt.codec?.includes('HDR');
                             const is60fps = fmt.fps === 60 || fmt.resolution?.includes('60fps') || fmt.label?.includes('60fps');
                             let displayBadge = getFormatDisplayBadge(fmt, t);
@@ -4154,7 +4226,11 @@ export function RemoteUploadModal({
                                   e.stopPropagation();
                                   handlePlayFormat(fmt);
                                 }}
-                                title={isSelected ? t('drive.remote_unselect_card_tooltip') : t('drive.remote_stream_double_click_hint')}
+                                title={isDownloadOnly
+                                  ? t('drive_tools.remote_format_preview_unavailable')
+                                  : isSelected
+                                    ? t('drive.remote_unselect_card_tooltip')
+                                    : t('drive.remote_stream_double_click_hint')}
                                 disabled={submitting}
                               >
                                 <div className="td-remote-quality-chip-top">
@@ -4174,6 +4250,11 @@ export function RemoteUploadModal({
                                     {displayBadge && (
                                       <span className={`td-remote-quality-chip-badge ${getBadgeModifierClass(displayBadge)}`}>
                                         {displayBadge}
+                                      </span>
+                                    )}
+                                    {isDownloadOnly && (
+                                      <span className="td-remote-quality-chip-badge">
+                                        {t('drive_tools.remote_format_download_only')}
                                       </span>
                                     )}
                                   </div>
@@ -4255,7 +4336,7 @@ export function RemoteUploadModal({
                                     onClick={() => setStreamContainerFilter('general')}
                                   >
                                     <span>{t('drive.remote_format_filter_general')}</span>
-                                    <span>({curatedGeneralVideos.length + audioFmts.length + subtitleFmts.length})</span>
+                                    <span>({curatedGeneralVideos.length})</span>
                                   </button>
                                   {hasVideos && (
                                     <button
@@ -4331,6 +4412,9 @@ export function RemoteUploadModal({
                                       isAudio: s.type === 'audio',
                                       badge: s.isHdr ? `HDR • ${s.bitrateFormatted}` : s.bitrateFormatted,
                                       itag: s.itag,
+                                      isDownloadable: s.isDownloadable,
+                                      isStreamable: s.isStreamable,
+                                      downloadOnly: s.downloadOnly,
                                     };
                                     const isSelected = Boolean(
                                       selectedFormatId &&
@@ -4345,7 +4429,11 @@ export function RemoteUploadModal({
                                           e.stopPropagation();
                                           handlePlayFormat(matchedFmt);
                                         }}
-                                        title={isSelected ? t('drive.remote_unselect_card_tooltip') : t('drive.remote_stream_double_click_hint')}
+                                        title={s.isStreamable === false
+                                          ? t('drive_tools.remote_format_preview_unavailable')
+                                          : isSelected
+                                            ? t('drive.remote_unselect_card_tooltip')
+                                            : t('drive.remote_stream_double_click_hint')}
                                       >
                                         <td>
                                           <span className="td-remote-matrix-itag-badge">{s.itag}</span>
@@ -4383,6 +4471,11 @@ export function RemoteUploadModal({
                                           <span style={{ color: '#64748b', marginLeft: 4, fontSize: '0.62rem' }}>
                                             ({s.mimeType.split('/')[1] || s.mimeType})
                                           </span>
+                                          {s.protocol && (
+                                            <span style={{ color: '#94a3b8', marginLeft: 4, fontSize: '0.58rem' }}>
+                                              · {s.protocol.toUpperCase()}
+                                            </span>
+                                          )}
                                         </td>
                                         <td>
                                           <span style={{ color: s.isHdr ? '#fbbf24' : '#38bdf8', fontWeight: 650 }}>
@@ -4401,6 +4494,7 @@ export function RemoteUploadModal({
                                           <button
                                             type="button"
                                             className={`td-remote-matrix-select-btn ${isSelected ? 'selected' : ''}`}
+                                            disabled={s.isDownloadable === false}
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               handleToggleFormat(matchedFmt);
@@ -4545,61 +4639,6 @@ export function RemoteUploadModal({
                                     </div>
                                   )}
 
-                                  {hasAudio && (
-                                    <div className="td-remote-formats-section">
-                                      <div className="td-remote-formats-section-header">
-                                        <span className="td-remote-formats-section-title">
-                                          <Music size={11} style={{ color: '#c084fc' }} />
-                                          <span>{t('drive.remote_section_audio_tracks')}</span>
-                                        </span>
-                                        <span className="td-remote-formats-section-count">{audioFmts.length}</span>
-                                      </div>
-                                      <div className="td-remote-quality-grid">
-                                        {audioFmts.map(renderFormatChip)}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {hasSubtitle && (
-                                    <div className="td-remote-formats-section">
-                                      <div className="td-remote-formats-section-header">
-                                        <span className="td-remote-formats-section-title">
-                                          <FileText size={11} style={{ color: '#2dd4bf' }} />
-                                          <span>{t('drive.remote_section_subtitles')}</span>
-                                        </span>
-                                        <span className="td-remote-formats-section-count">{filteredSubtitleFmts.length}</span>
-                                      </div>
-                                      {subtitleFmts.length > 3 && (
-                                        <div className="td-remote-sub-search-box">
-                                          <Search size={12} style={{ color: '#94a3b8' }} />
-                                          <input
-                                            type="text"
-                                            value={subtitleSearchQuery}
-                                            onChange={(e) => setSubtitleSearchQuery(e.target.value)}
-                                            placeholder={t('drive.remote_sub_search_placeholder')}
-                                          />
-                                          {subtitleSearchQuery && (
-                                            <button
-                                              type="button"
-                                              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
-                                              onClick={() => setSubtitleSearchQuery('')}
-                                            >
-                                              <X size={12} />
-                                            </button>
-                                          )}
-                                        </div>
-                                      )}
-                                      {filteredSubtitleFmts.length === 0 ? (
-                                        <div style={{ textAlign: 'center', padding: '12px', color: '#64748b', fontSize: '0.7rem' }}>
-                                          {t('drive.remote_sub_empty_search')}
-                                        </div>
-                                      ) : (
-                                        <div className="td-remote-quality-grid">
-                                          {filteredSubtitleFmts.map(renderFormatChip)}
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
                                 </>
                               ) : isVideoTab ? (
                                 <>
