@@ -40,6 +40,11 @@ import {
   Activity,
   Image,
   PlaySquare,
+  FolderOpen,
+  Info,
+  HelpCircle,
+  BookOpen,
+  ExternalLink,
 } from 'lucide-react';
 import type {
   CaptionPosition,
@@ -368,6 +373,59 @@ export function TransferSettingsWorkspace({
       setFfmpegStatus(res);
     } catch {
       setFfmpegStatus({ installed: false, version: null, source: 'none' });
+    }
+  };
+
+  const handleBrowseYtdlp = async () => {
+    try {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const selected = await open({
+        multiple: false,
+        directory: false,
+        title: t('drive_tools.plugin_dialog_title_ytdlp'),
+        filters: [{ name: 'Executables', extensions: ['exe', 'bat', 'cmd', 'bin', '*'] }],
+      });
+      if (selected && typeof selected === 'string') {
+        patch({ ytdlpCustomPath: selected });
+        void refreshYtdlpStatus(false);
+      }
+    } catch (err) {
+      console.error('Failed to browse yt-dlp binary', err);
+    }
+  };
+
+  const handleBrowseCookies = async () => {
+    try {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const selected = await open({
+        multiple: false,
+        directory: false,
+        title: t('drive_tools.plugin_dialog_title_cookies'),
+        filters: [{ name: 'Text / Cookies', extensions: ['txt', 'cookies', '*'] }],
+      });
+      if (selected && typeof selected === 'string') {
+        patch({ ytdlpCookiesPath: selected });
+      }
+    } catch (err) {
+      console.error('Failed to browse cookies file', err);
+    }
+  };
+
+  const handleBrowseFfmpeg = async () => {
+    try {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const selected = await open({
+        multiple: false,
+        directory: false,
+        title: t('drive_tools.plugin_dialog_title_ffmpeg'),
+        filters: [{ name: 'Executables', extensions: ['exe', 'bat', 'cmd', 'bin', '*'] }],
+      });
+      if (selected && typeof selected === 'string') {
+        patch({ ffmpegCustomPath: selected });
+        void refreshFfmpegStatus(selected);
+      }
+    } catch (err) {
+      console.error('Failed to browse ffmpeg binary', err);
     }
   };
 
@@ -3780,15 +3838,43 @@ export function TransferSettingsWorkspace({
                   <label className="td-field-label" htmlFor="ytdlp-custom-path" style={{ fontSize: '0.78rem' }}>
                     {t('drive_tools.plugin_custom_path_title')}
                   </label>
-                  <input
-                    id="ytdlp-custom-path"
-                    type="text"
-                    placeholder={t('drive_tools.plugin_custom_path_placeholder')}
-                    value={draft.ytdlpCustomPath ?? ''}
-                    disabled={!!transferActive}
-                    onChange={(e) => patch({ ytdlpCustomPath: e.target.value })}
-                    style={{ width: '100%', fontSize: '0.8rem', padding: '7px 10px' }}
-                  />
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <input
+                      id="ytdlp-custom-path"
+                      type="text"
+                      placeholder={t('drive_tools.plugin_custom_path_placeholder')}
+                      value={draft.ytdlpCustomPath ?? ''}
+                      disabled={!!transferActive}
+                      onChange={(e) => patch({ ytdlpCustomPath: e.target.value })}
+                      style={{ flex: 1, fontSize: '0.8rem', padding: '7px 10px' }}
+                    />
+                    <button
+                      type="button"
+                      className="td-chip-btn td-chip-primary"
+                      disabled={!!transferActive}
+                      onClick={() => void handleBrowseYtdlp()}
+                      style={{ padding: '6px 12px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}
+                      title={t('drive_tools.plugin_btn_browse')}
+                    >
+                      <FolderOpen size={13} />
+                      <span>{t('drive_tools.plugin_btn_browse')}</span>
+                    </button>
+                    {draft.ytdlpCustomPath && (
+                      <button
+                        type="button"
+                        className="td-chip-btn"
+                        disabled={!!transferActive}
+                        onClick={() => {
+                          patch({ ytdlpCustomPath: '' });
+                          void refreshYtdlpStatus(false);
+                        }}
+                        style={{ padding: '6px 10px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        title={t('drive_tools.plugin_btn_reset_default')}
+                      >
+                        <RotateCcw size={12} />
+                      </button>
+                    )}
+                  </div>
                   <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
                     {t('drive_tools.plugin_custom_path_desc')}
                   </span>
@@ -3924,17 +4010,61 @@ export function TransferSettingsWorkspace({
                     <label className="td-field-label" htmlFor="ytdlp-cookies-path" style={{ fontSize: '0.78rem' }}>
                       {t('drive_tools.plugin_cookies_file_label')}
                     </label>
-                    <input
-                      id="ytdlp-cookies-path"
-                      type="text"
-                      placeholder={t('drive_tools.plugin_cookies_file_placeholder')}
-                      value={draft.ytdlpCookiesPath ?? ''}
-                      disabled={!!transferActive}
-                      onChange={(e) => patch({ ytdlpCookiesPath: e.target.value })}
-                      style={{ width: '100%', fontSize: '0.8rem', padding: '6px 10px' }}
-                    />
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <input
+                        id="ytdlp-cookies-path"
+                        type="text"
+                        placeholder={t('drive_tools.plugin_cookies_file_placeholder')}
+                        value={draft.ytdlpCookiesPath ?? ''}
+                        disabled={!!transferActive}
+                        onChange={(e) => patch({ ytdlpCookiesPath: e.target.value })}
+                        style={{ flex: 1, fontSize: '0.8rem', padding: '6px 10px' }}
+                      />
+                      <button
+                        type="button"
+                        className="td-chip-btn td-chip-primary"
+                        disabled={!!transferActive}
+                        onClick={() => void handleBrowseCookies()}
+                        style={{ padding: '6px 12px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}
+                        title={t('drive_tools.plugin_btn_browse')}
+                      >
+                        <FolderOpen size={13} />
+                        <span>{t('drive_tools.plugin_btn_browse')}</span>
+                      </button>
+                      {draft.ytdlpCookiesPath && (
+                        <button
+                          type="button"
+                          className="td-chip-btn"
+                          disabled={!!transferActive}
+                          onClick={() => patch({ ytdlpCookiesPath: '' })}
+                          style={{ padding: '6px 10px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          title={t('drive_tools.plugin_btn_reset_default')}
+                        >
+                          <RotateCcw size={12} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
+
+                {/* Cookies Guide Info Card */}
+                <div style={{
+                  background: 'rgba(56, 189, 248, 0.06)',
+                  border: '1px solid rgba(56, 189, 248, 0.18)',
+                  borderRadius: '10px',
+                  padding: '10px 12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8', fontSize: '0.78rem', fontWeight: 700 }}>
+                    <BookOpen size={13} />
+                    <span>{t('drive_tools.plugin_guide_cookies_title')}</span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.73rem', color: '#94a3b8', lineHeight: 1.45 }}>
+                    {draft.ytdlpCookiesMode === 'browser' ? t('drive_tools.plugin_guide_cookies_browser_desc') : t('drive_tools.plugin_guide_cookies_file_desc')}
+                  </p>
+                </div>
 
                 {/* PO Token */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -3950,12 +4080,27 @@ export function TransferSettingsWorkspace({
                     onChange={(e) => patch({ ytdlpPoToken: e.target.value })}
                     style={{ width: '100%', fontSize: '0.8rem', padding: '6px 10px' }}
                   />
-                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                    {t('drive_tools.plugin_po_token_desc')}
-                  </span>
+                  <div style={{
+                    background: 'rgba(251, 191, 36, 0.06)',
+                    border: '1px solid rgba(251, 191, 36, 0.18)',
+                    borderRadius: '10px',
+                    padding: '8px 12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    marginTop: '2px',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fbbf24', fontSize: '0.76rem', fontWeight: 700 }}>
+                      <HelpCircle size={12} />
+                      <span>{t('drive_tools.plugin_guide_po_token_title')}</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.72rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                      {t('drive_tools.plugin_guide_po_token_desc')}
+                    </p>
+                  </div>
                 </div>
 
-                {/* Extractor Args */}
+                {/* Extractor Args & Presets */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label className="td-field-label" htmlFor="ytdlp-extractor-args" style={{ fontSize: '0.78rem' }}>
                     {t('drive_tools.plugin_extractor_args_title')}
@@ -3969,6 +4114,47 @@ export function TransferSettingsWorkspace({
                     onChange={(e) => patch({ ytdlpExtractorArgs: e.target.value })}
                     style={{ width: '100%', fontSize: '0.8rem', padding: '6px 10px' }}
                   />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+                    <span style={{ fontSize: '0.70rem', color: '#94a3b8', fontWeight: 600 }}>
+                      {t('drive_tools.plugin_presets_label')}
+                    </span>
+                    <button
+                      type="button"
+                      className="td-chip-btn"
+                      style={{ fontSize: '0.68rem', padding: '2px 8px' }}
+                      disabled={!!transferActive}
+                      onClick={() => patch({ ytdlpExtractorArgs: 'youtube:player_client=android,web' })}
+                    >
+                      {t('drive_tools.plugin_preset_client_android_web')}
+                    </button>
+                    <button
+                      type="button"
+                      className="td-chip-btn"
+                      style={{ fontSize: '0.68rem', padding: '2px 8px' }}
+                      disabled={!!transferActive}
+                      onClick={() => patch({ ytdlpExtractorArgs: 'youtube:player_client=ios,android' })}
+                    >
+                      {t('drive_tools.plugin_preset_client_ios_android')}
+                    </button>
+                    <button
+                      type="button"
+                      className="td-chip-btn"
+                      style={{ fontSize: '0.68rem', padding: '2px 8px' }}
+                      disabled={!!transferActive}
+                      onClick={() => patch({ ytdlpExtractorArgs: 'youtube:player_client=web' })}
+                    >
+                      {t('drive_tools.plugin_preset_client_web')}
+                    </button>
+                    <button
+                      type="button"
+                      className="td-chip-btn"
+                      style={{ fontSize: '0.68rem', padding: '2px 8px' }}
+                      disabled={!!transferActive}
+                      onClick={() => patch({ ytdlpExtractorArgs: 'youtube:player_client=mweb' })}
+                    >
+                      {t('drive_tools.plugin_preset_client_mweb')}
+                    </button>
+                  </div>
                   <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
                     {t('drive_tools.plugin_extractor_args_desc')}
                   </span>
@@ -4017,18 +4203,65 @@ export function TransferSettingsWorkspace({
                   <label className="td-field-label" htmlFor="ffmpeg-custom-path" style={{ fontSize: '0.78rem' }}>
                     {t('drive_tools.plugin_ffmpeg_custom_path_title')}
                   </label>
-                  <input
-                    id="ffmpeg-custom-path"
-                    type="text"
-                    placeholder={t('drive_tools.plugin_ffmpeg_custom_path_placeholder')}
-                    value={draft.ffmpegCustomPath ?? ''}
-                    disabled={!!transferActive}
-                    onChange={(e) => {
-                      patch({ ffmpegCustomPath: e.target.value });
-                      void refreshFfmpegStatus(e.target.value);
-                    }}
-                    style={{ width: '100%', fontSize: '0.8rem', padding: '6px 10px' }}
-                  />
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <input
+                      id="ffmpeg-custom-path"
+                      type="text"
+                      placeholder={t('drive_tools.plugin_ffmpeg_custom_path_placeholder')}
+                      value={draft.ffmpegCustomPath ?? ''}
+                      disabled={!!transferActive}
+                      onChange={(e) => {
+                        patch({ ffmpegCustomPath: e.target.value });
+                        void refreshFfmpegStatus(e.target.value);
+                      }}
+                      style={{ flex: 1, fontSize: '0.8rem', padding: '6px 10px' }}
+                    />
+                    <button
+                      type="button"
+                      className="td-chip-btn td-chip-primary"
+                      disabled={!!transferActive}
+                      onClick={() => void handleBrowseFfmpeg()}
+                      style={{ padding: '6px 12px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}
+                      title={t('drive_tools.plugin_btn_browse')}
+                    >
+                      <FolderOpen size={13} />
+                      <span>{t('drive_tools.plugin_btn_browse')}</span>
+                    </button>
+                    {draft.ffmpegCustomPath && (
+                      <button
+                        type="button"
+                        className="td-chip-btn"
+                        disabled={!!transferActive}
+                        onClick={() => {
+                          patch({ ffmpegCustomPath: '' });
+                          void refreshFfmpegStatus('');
+                        }}
+                        style={{ padding: '6px 10px', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        title={t('drive_tools.plugin_btn_reset_default')}
+                      >
+                        <RotateCcw size={12} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* FFmpeg Educational Guide */}
+                <div style={{
+                  background: 'rgba(168, 85, 247, 0.06)',
+                  border: '1px solid rgba(168, 85, 247, 0.18)',
+                  borderRadius: '10px',
+                  padding: '10px 12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#c084fc', fontSize: '0.78rem', fontWeight: 700 }}>
+                    <Info size={13} />
+                    <span>{t('drive_tools.plugin_ffmpeg_why_title')}</span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.73rem', color: '#94a3b8', lineHeight: 1.45 }}>
+                    {t('drive_tools.plugin_ffmpeg_why_desc')}
+                  </p>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingTop: '4px' }}>
@@ -4081,6 +4314,79 @@ export function TransferSettingsWorkspace({
                     onChange={(e) => patch({ ytdlpCustomArgs: e.target.value })}
                     style={{ width: '100%', fontSize: '0.8rem', padding: '8px 10px', fontFamily: 'monospace' }}
                   />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+                    <span style={{ fontSize: '0.70rem', color: '#94a3b8', fontWeight: 600 }}>
+                      {t('drive_tools.plugin_presets_cli_label')}
+                    </span>
+                    <button
+                      type="button"
+                      className="td-chip-btn"
+                      style={{ fontSize: '0.68rem', padding: '2px 8px' }}
+                      disabled={!!transferActive}
+                      onClick={() => {
+                        const cur = (draft.ytdlpCustomArgs || '').trim();
+                        if (!cur.includes('--geo-bypass')) {
+                          patch({ ytdlpCustomArgs: cur ? `${cur} --geo-bypass` : '--geo-bypass' });
+                        }
+                      }}
+                    >
+                      + {t('drive_tools.plugin_cli_opt_geobypass')}
+                    </button>
+                    <button
+                      type="button"
+                      className="td-chip-btn"
+                      style={{ fontSize: '0.68rem', padding: '2px 8px' }}
+                      disabled={!!transferActive}
+                      onClick={() => {
+                        const cur = (draft.ytdlpCustomArgs || '').trim();
+                        if (!cur.includes('--concurrent-fragments')) {
+                          patch({ ytdlpCustomArgs: cur ? `${cur} --concurrent-fragments 4` : '--concurrent-fragments 4' });
+                        }
+                      }}
+                    >
+                      + {t('drive_tools.plugin_cli_opt_parallel')}
+                    </button>
+                    <button
+                      type="button"
+                      className="td-chip-btn"
+                      style={{ fontSize: '0.68rem', padding: '2px 8px' }}
+                      disabled={!!transferActive}
+                      onClick={() => {
+                        const cur = (draft.ytdlpCustomArgs || '').trim();
+                        if (!cur.includes('--force-ipv4')) {
+                          patch({ ytdlpCustomArgs: cur ? `${cur} --force-ipv4` : '--force-ipv4' });
+                        }
+                      }}
+                    >
+                      + {t('drive_tools.plugin_cli_opt_ipv4')}
+                    </button>
+                    <button
+                      type="button"
+                      className="td-chip-btn"
+                      style={{ fontSize: '0.68rem', padding: '2px 8px' }}
+                      disabled={!!transferActive}
+                      onClick={() => {
+                        const cur = (draft.ytdlpCustomArgs || '').trim();
+                        if (!cur.includes('--no-check-certificates')) {
+                          patch({ ytdlpCustomArgs: cur ? `${cur} --no-check-certificates` : '--no-check-certificates' });
+                        }
+                      }}
+                    >
+                      + {t('drive_tools.plugin_cli_opt_nocheck')}
+                    </button>
+                    {draft.ytdlpCustomArgs && (
+                      <button
+                        type="button"
+                        className="td-chip-btn"
+                        style={{ fontSize: '0.68rem', padding: '2px 8px', color: '#f87171' }}
+                        disabled={!!transferActive}
+                        onClick={() => patch({ ytdlpCustomArgs: '' })}
+                        title={t('drive_tools.plugin_btn_reset_default')}
+                      >
+                        <RotateCcw size={10} />
+                      </button>
+                    )}
+                  </div>
                   <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
                     {t('drive_tools.plugin_custom_args_desc')}
                   </span>
