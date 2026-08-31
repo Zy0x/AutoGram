@@ -493,7 +493,10 @@ export function TransferPreflightDialog({
   );
 
   useEffect(() => {
-    if (report) setChoices(defaultDuplicateChoices(report));
+    if (report) {
+      setChoices(defaultDuplicateChoices(report));
+      setIsConfirming(false);
+    }
   }, [report]);
 
   const duplicateCount = useMemo(
@@ -516,13 +519,14 @@ export function TransferPreflightDialog({
     return report?.items.filter((i) => i.transform === 'reencode').length || 0;
   }, [report]);
 
-  const handleConfirm = useCallback(() => {
+  const handleConfirm = useCallback(async () => {
     if (!report || report.hasBlockingIssues || queuedCount === 0 || isConfirming) return;
     setIsConfirming(true);
     try {
-      onConfirm(buildPreflightReviewDecision(report, choices));
+      await Promise.resolve(onConfirm(buildPreflightReviewDecision(report, choices)));
     } catch (err) {
       console.error('Preflight confirm error:', err);
+    } finally {
       setIsConfirming(false);
     }
   }, [report, choices, queuedCount, isConfirming, onConfirm]);
