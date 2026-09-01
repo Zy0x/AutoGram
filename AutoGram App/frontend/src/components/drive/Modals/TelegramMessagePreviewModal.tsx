@@ -35,6 +35,7 @@ import {
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
+import { isDesktop } from '../../../lib/tauri/platform';
 import { nativeWriteClipboardText } from '../../../lib/tauri/desktopClipboard';
 import {
   getCachedThumb,
@@ -169,6 +170,42 @@ export function TelegramMessagePreviewModal({
   };
 
   const [imageSrc, setImageSrc] = useState<string | null>(getInitialImage);
+  const [downloadingMedia, setDownloadingMedia] = useState(false);
+
+  const handleDirectDownloadMedia = async () => {
+    if (!imageSrc || downloadingMedia) return;
+    setDownloadingMedia(true);
+    const cleanName = `image_${file?.id || 'media'}.jpg`;
+    try {
+      if (isDesktop()) {
+        const { save } = await import('@tauri-apps/plugin-dialog');
+        const savePath = await save({
+          defaultPath: cleanName,
+          title: t('drive.save_image', { defaultValue: 'Simpan Gambar' }),
+          filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp'] }],
+        });
+        if (savePath) {
+          const resp = await fetch(imageSrc);
+          const blob = await resp.blob();
+          const arrayBuffer = await blob.arrayBuffer();
+          const uint8 = new Uint8Array(arrayBuffer);
+          const { writeFile } = await import('@tauri-apps/plugin-fs');
+          await writeFile(savePath, uint8);
+        }
+      } else {
+        const a = document.createElement('a');
+        a.href = imageSrc;
+        a.download = cleanName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    } catch (err) {
+      console.error('[TelegramMessagePreviewModal] Save media error:', err);
+    } finally {
+      setDownloadingMedia(false);
+    }
+  };
 
   useEffect(() => {
     if (!isOpen || escapeDisabled) return;
@@ -761,6 +798,19 @@ export function TelegramMessagePreviewModal({
             >
               <Eye size={14} />
               <span>{t('drive.preview_media_action')}</span>
+            </button>
+          )}
+
+          {isVisualMedia && imageSrc && (
+            <button
+              type="button"
+              className="tg-msg-action-btn"
+              onClick={handleDirectDownloadMedia}
+              disabled={downloadingMedia}
+              title={t('drive.download_file_tooltip', { defaultValue: 'Unduh Berkas' })}
+            >
+              <Download size={14} />
+              <span>{t('drive.ctx_menu_download', { defaultValue: 'Unduh' })}</span>
             </button>
           )}
 
