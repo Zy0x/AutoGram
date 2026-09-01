@@ -25,7 +25,6 @@ import {
   MessageSquare,
   Music,
   Network,
-  Play,
   RefreshCw,
   RotateCcw,
   Send,
@@ -45,6 +44,7 @@ import {
   DEFAULT_TRANSFER_SETTINGS,
   formatDriveBytes,
   type DriveTransferSettings,
+  type RemoteEngineMode,
 } from '../../../lib/telegram/driveTypes';
 import type { SubMenuCategory } from './transferSettingsSearchRegistry';
 import {
@@ -58,9 +58,21 @@ import type {
   QualityPreflightReport,
   TransferDuplicateChoice,
 } from '../../../lib/transfer/qualityPreflight';
-import type { RemoteEngineMode } from '../../../lib/telegram/driveTypes';
 
 const preflightThumbCache = new Map<string, string>();
+const preflightDurationCache = new Map<string, number>();
+
+function formatDuration(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+  const totalSec = Math.floor(seconds);
+  const hrs = Math.floor(totalSec / 3600);
+  const mins = Math.floor((totalSec % 3600) / 60);
+  const secs = totalSec % 60;
+  if (hrs > 0) {
+    return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
 
 function transferPreviewSource(path: string, thumbnailUrl?: string | null): string | null {
   if (
@@ -99,6 +111,9 @@ function PreflightSourceThumb({
   const [capturedThumb, setCapturedThumb] = useState<string | null>(() => {
     return rawPath ? preflightThumbCache.get(rawPath) || null : null;
   });
+  const [duration, setDuration] = useState<number | null>(() => {
+    return rawPath ? preflightDurationCache.get(rawPath) || null : null;
+  });
   const [imgError, setImgError] = useState(false);
 
   const isVideo =
@@ -106,11 +121,21 @@ function PreflightSourceThumb({
     /\.(mp4|mov|webm|mkv|avi|m4v|3gp|flv|ts)($|\?)/i.test(item.sourceName || rawPath);
 
   useEffect(() => {
-    if (initialSource || !isVideo || !rawPath || capturedThumb || preflightThumbCache.has(rawPath)) return;
+    if (!isVideo || !rawPath) return;
+
+    const hasCachedThumb = preflightThumbCache.has(rawPath) || !!initialSource;
+    const hasCachedDuration = preflightDurationCache.has(rawPath);
+
+    if (hasCachedThumb && hasCachedDuration) {
+      if (hasCachedDuration && duration == null) {
+        setDuration(preflightDurationCache.get(rawPath) || null);
+      }
+      return;
+    }
 
     let active = true;
     const video = document.createElement('video');
-    video.preload = 'auto';
+    video.preload = 'metadata';
     video.muted = true;
     video.playsInline = true;
     video.crossOrigin = 'anonymous';
@@ -158,12 +183,21 @@ function PreflightSourceThumb({
     const handleLoadedMetadata = () => {
       try {
         if (!active || cleanedUp) return;
-        const dur = video.duration || 10;
-        const targetTime = Math.min(1.0, dur > 2 ? 1.0 : dur / 2);
-        if (targetTime > 0 && Math.abs(video.currentTime - targetTime) > 0.05) {
-          video.currentTime = targetTime;
+        const dur = video.duration;
+        if (Number.isFinite(dur) && dur > 0) {
+          preflightDurationCache.set(rawPath, dur);
+          setDuration(dur);
+        }
+
+        if (!hasCachedThumb) {
+          const targetTime = Math.min(1.0, dur > 2 ? 1.0 : dur / 2);
+          if (targetTime > 0 && Math.abs(video.currentTime - targetTime) > 0.05) {
+            video.currentTime = targetTime;
+          } else {
+            doCapture();
+          }
         } else {
-          doCapture();
+          cleanup();
         }
       } catch {
         cleanup();
@@ -174,7 +208,7 @@ function PreflightSourceThumb({
     video.addEventListener('loadeddata', handleLoadedMetadata, { once: true });
     video.addEventListener('seeked', doCapture, { once: true });
     video.addEventListener('canplay', () => {
-      if (video.currentTime >= 0.5) doCapture();
+      if (video.currentTime >= 0.5 && !hasCachedThumb) doCapture();
     }, { once: true });
     video.addEventListener('error', cleanup, { once: true });
 
@@ -184,7 +218,7 @@ function PreflightSourceThumb({
 
     const tid = setTimeout(() => {
       if (active && !cleanedUp) {
-        doCapture();
+        if (!hasCachedThumb) doCapture();
         cleanup();
       }
     }, 2500);
@@ -194,7 +228,7 @@ function PreflightSourceThumb({
       clearTimeout(tid);
       cleanup();
     };
-  }, [initialSource, isVideo, rawPath, capturedThumb]);
+  }, [initialSource, isVideo, rawPath, capturedThumb, duration]);
 
   const effectiveSrc = (!imgError && initialSource) || capturedThumb;
 
@@ -206,9 +240,9 @@ function PreflightSourceThumb({
           alt={t('drive.preflight_source_thumb_alt')}
           onError={() => setImgError(true)}
         />
-        {isVideo && (
-          <span className="td-preflight-thumb-play-badge" aria-hidden>
-            <Play size={9} fill="currentColor" />
+        {isVideo && duration != null && duration > 0 && (
+          <span className="td-preflight-thumb-duration-badge" aria-label={`Durasi ${formatDuration(duration)}`}>
+            {formatDuration(duration)}
           </span>
         )}
       </div>
@@ -217,8 +251,13 @@ function PreflightSourceThumb({
 
   if (isVideo) {
     return (
-      <div className="td-preflight-icon-thumb is-video" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+      <div className="td-preflight-icon-thumb is-video" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', position: 'relative' }}>
         <Film size={22} className="text-sky-400" aria-hidden />
+        {duration != null && duration > 0 && (
+          <span className="td-preflight-thumb-duration-badge" aria-label={`Durasi ${formatDuration(duration)}`}>
+            {formatDuration(duration)}
+          </span>
+        )}
       </div>
     );
   }

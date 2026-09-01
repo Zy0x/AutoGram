@@ -15237,23 +15237,25 @@ body:has(.app-layout-drive-focus),
   object-fit: cover;
   image-rendering: -webkit-optimize-contrast;
 }
-.td-preflight-thumb-play-badge {
+.td-preflight-thumb-duration-badge {
   position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 20px;
-  height: 20px;
-  border-radius: 999px;
-  background: rgba(2, 6, 23, 0.7);
+  right: 2px;
+  bottom: 2px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(2, 6, 23, 0.85);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #f8fafc;
+  font-size: 0.60rem;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
   pointer-events: none;
+  z-index: 2;
 }
 .td-preflight-icon-thumb {
   display: flex;
