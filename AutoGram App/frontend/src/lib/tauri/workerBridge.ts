@@ -48,7 +48,7 @@ async function invokeScript(
   };
 }
 
-/** daemon.py one-shot via Rust native SQLite commands (Zero-Python Engine) */
+/** Legacy action adapter routed through Rust commands. Unsupported actions fail closed. */
 export async function runDaemonOnce(args: string[]): Promise<WorkerResult> {
   if (!isTauri()) {
     return {
@@ -196,7 +196,8 @@ export async function runDaemonOnce(args: string[]): Promise<WorkerResult> {
       return { code: 0, stdout: JSON.stringify(res || { status: 'success' }), stderr: '' };
     }
 
-    // Fallback to run_worker_once if unknown action
+    // Compatibility-only fallback; Rust returns an error when the legacy
+    // daemon is absent instead of manufacturing a success result.
     return await invokeScript('run_worker_once', args);
   } catch (e) {
     const msg = String((e as Error)?.message || e);

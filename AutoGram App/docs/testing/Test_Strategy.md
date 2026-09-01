@@ -8,7 +8,7 @@ Untuk mencegah regresi (*bugs*) yang merusak sesi pengguna dan mengakibatkan lar
 - *Framework*: Cargo test untuk Rust, PyTest untuk Python, Jest/Vitest untuk UI.
 
 ## 2. Integration Testing
-- **Fokus**: Komunikasi antara Rust Core dan Python Worker.
+- **Fokus**: Komunikasi React/Tauri dengan Rust Core + Grammers.
 - **Kasus Uji**: 
   - Mengirim *event* "Start Migration" dari Rust, dan memastikan Python menanggapi dengan status `Running`.
   - Mengirim instruksi "Pause" dari Rust, dan memastikan Python berhenti pada pesan berikutnya tanpa kehilangan *progress*.
@@ -19,4 +19,4 @@ Untuk mencegah regresi (*bugs*) yang merusak sesi pengguna dan mengakibatkan lar
 
 ## 4. Security & Safety Testing
 - **Dry Run Test**: Menjalankan mode *Scan Only*, memastikan sama sekali tidak ada API transmisi unggah/kirim yang terpanggil.
-- **Throttle Test**: Mensimulasikan lemparan `FloodWaitError` buatan untuk melihat apakah Python Worker melakukan `sleep` yang sesuai tanpa membuat UI React macet (*not responding*).
+- **Throttle Test**: Mensimulasikan FloodWait pada Grammers worker untuk memastikan backoff, circuit breaker, dan UI tetap responsif.

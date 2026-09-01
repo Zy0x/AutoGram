@@ -1,6 +1,7 @@
 /**
  * Jobs CRUD via Rust SQLite (no Python daemon).
- * Migration execute still may surface a clear "runner WIP" until full Grammers transfer lands.
+ * Migration execution is routed to the Rust + Grammers engine; legacy worker
+ * actions fail closed when no compatibility daemon is installed.
  */
 import { invoke } from '@tauri-apps/api/core';
 import { detectTauriRuntime } from '../tauri/platform';

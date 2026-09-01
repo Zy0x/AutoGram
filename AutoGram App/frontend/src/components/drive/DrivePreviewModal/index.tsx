@@ -1359,13 +1359,21 @@ export function DrivePreviewModal({
 
   const isJsonFile = useMemo(() => {
     const fn = (file.name || file.original_name || '').toLowerCase();
+    // Explicit code / config extensions always go to CodeScriptViewer — never JSON viewer
+    // even if the magic-byte sniffer returns category='json' (e.g. next.config.ts starts with {})
+    const isExplicitCode = /\.(ts|tsx|js|jsx|mjs|cjs|py|pyi|rs|go|kt|kts|swift|java|rb|php|pl|sh|bash|ps1|bat|cmd|lua|r|jl|cs|cpp|cxx|c|cc|h|hh|hpp|ex|exs|dart|tf|hcl|nix|vue|svelte|astro|prisma|graphql|gql|proto|yaml|yml|toml|ini|cfg|conf|env|config)$/i.test(fn);
+    if (isExplicitCode) return false;
     return fn.endsWith('.json') || fn.endsWith('.jsonc') || fn.endsWith('.json5') || fn.endsWith('.jsonl') || sniffResult?.category === 'json';
   }, [file.name, file.original_name, sniffResult?.category]);
 
   const isTabularFile = useMemo(() => {
     const fn = (file.name || file.original_name || '').toLowerCase();
+    // Guard: don't treat code files as tabular even if sniffer says 'table'
+    const isExplicitCode = /\.(ts|tsx|js|jsx|py|rs|go|kt|java|rb|php|cs|cpp|c|h)$/i.test(fn);
+    if (isExplicitCode) return false;
     return fn.endsWith('.csv') || fn.endsWith('.tsv') || sniffResult?.category === 'table';
   }, [file.name, file.original_name, sniffResult?.category]);
+
 
   const isLogFile = useMemo(() => {
     const fn = (file.name || file.original_name || '').toLowerCase();

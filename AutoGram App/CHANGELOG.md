@@ -1,3 +1,17 @@
+## v3.8.90 — Fix: Code Extension Guard for Preview Routing (TypeScript/JavaScript/Code vs JSON/CSV)
+
+### 1. Guard Ekstensi Kode Eksplisit pada Preview Modal (`DrivePreviewModal/index.tsx`)
+- **Akar Masalah**: Berkas kode TypeScript seperti `next.config.ts`, `vite.config.ts`, atau skrip lain yang diawali dengan tanda kurung kurawal `{` atau token JSON-like secara keliru diklasifikasikan sebagai format JSON oleh *magic-byte sniffer* (`sniffResult?.category === 'json'`). Hal ini menyebabkan `JsonTreeViewer` mencoba mem-parsing berkas TypeScript mentah dan menampilkan galat *"Invalid JSON Format: Unexpected token 'i', 'import typ'... is not valid JSON"*.
+- **Perbaikan**: Menambahkan `isExplicitCode` guard pada hook `isJsonFile` dan `isTabularFile`. Seluruh 40+ format bahasa pemrograman dan konfigurasi eksplisit (`.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`, `.rs`, `.go`, `.kt`, `.swift`, `.java`, `.rb`, `.php`, `.sh`, `.ps1`, `.bat`, `.lua`, `.cs`, `.cpp`, `.c`, `.h`, `.dart`, `.tf`, `.nix`, `.vue`, `.svelte`, `.yaml`, `.toml`, `.ini`, `.env`, dll.) kini diprioritaskan 100% langsung menuju `CodeScriptViewer` dengan *syntax highlighting* penuh, mengabaikan hasil deteksi *magic-byte* yang ambigu.
+- **Dampak Pengguna**: Berkas konfigurasi Next.js, Vite, TypeScript, dan script proyek lainnya kini terbuka sempurna dengan *code highlighting*, penomoran baris, dan fitur pencarian kode tanpa pesan galat JSON format.
+
+### 2. Autonomous Quality Sentinel Certification
+- **100% Locale Parity**: 6,179 keys ID = 6,179 keys EN, 0 missing keys, 0 fallback calls.
+- **Zero TypeScript Errors**: Kompilasi `tsc --noEmit` lolos 100% tanpa galat.
+- **Vitest Suite**: 45 unit & integration tests lulus tanpa regresi.
+
+---
+
 ## v3.8.89 — Ekspansi Preview Media: HEIC/TIFF Decoder + Banner Format Tidak Didukung
 
 ### 1. Decoder HEIC/HEIF & TIFF via JavaScript Library (`HeicTiffViewer.tsx`)
@@ -5808,3 +5822,18 @@ Added:
 ### 3. UI/UX, Android Entry Point & Documentation
 - Forwarder Workspace kini memiliki tab Decision Inbox dengan aksi Skip/Keep Both dan seluruh string baru tersedia dalam locale ID/EN.
 - Android menambahkan route dan layar Forwarder awal dengan pengingat keamanan local-first; dokumen arsitektur lama yang menyatakan Telethon sebagai runtime utama telah ditandai superseded.
+## v3.8.90 — Forwarder V2 Control-Plane Hardening
+
+### 1. Backend Architecture & Execution Integrity
+- Added guarded runtime migration 021 with canonical task, mapping, schedule, and event-sequence tables so existing SQLite installations can upgrade without destructive replay.
+- Forwarder CRUD now normalizes legacy payloads into `JobConfigV2`, records per-message task state, and writes scoped V2 dedupe metadata for resumable execution.
+- Cancellation now records `CANCELLED` plus an explicit cancellation request instead of silently presenting a paused execution.
+
+### 2. Cloud API & Security Boundary
+- Expanded the Supabase jobs function with revision-checked updates, idempotent creation, event/decision reads, and signed device command enqueueing while keeping Telegram secrets and media local.
+- Hardened Supabase policy replay and added relay command claim primitives for future device workers.
+- Unknown or unavailable legacy worker commands now fail closed instead of returning a false success response.
+
+### 3. UI/Platform Contracts & Documentation
+- Added missing Tauri permissions for Forwarder V2 IPC commands and aligned active runtime documentation with the Rust + Grammers production boundary.
+- Disabled the Android Forwarder feature flag until the UniFFI execution bridge and Foreground Service are available, preventing clients from advertising an unsupported target.

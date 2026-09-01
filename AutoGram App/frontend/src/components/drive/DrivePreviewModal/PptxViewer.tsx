@@ -427,7 +427,7 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
     return (
       <div className="td-pptx-loading" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', color: '#94a3b8' }}>
         <Loader2 size={36} className="spin text-orange-400" />
-        <span style={{ fontSize: '13.5px', fontWeight: 500 }}>{t('ui.generated.membaca_slide_presentasi_powerpoint_39b62ef', 'Membaca slide presentasi PowerPoint...')}</span>
+        <span style={{ fontSize: '13.5px', fontWeight: 500 }}>{t('ui.generated.membaca_slide_presentasi_powerpoint_39b62ef')}</span>
       </div>
     );
   }

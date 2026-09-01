@@ -73,6 +73,20 @@ pub fn run_job_forward_mvp(
         .transfer_mode
         .clone()
         .unwrap_or_else(|| "Clean Copy".into());
+    // The legacy Grammers helper accepts one identity only. Never pretend that
+    // a cross-account Fast Forward is safe; route it to Clean Copy where the
+    // destination account can be added explicitly by the next engine layer.
+    if !is_clean_copy_mode(&mode) {
+        if let Some(raw) = job.config_json.as_deref().and_then(|v| super::forwarder_contract::normalize_job_config_json(v).ok()) {
+            if let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) {
+                let source_account = value.pointer("/source/account_id").and_then(|v| v.as_str()).unwrap_or("");
+                let destination_account = value.pointer("/destination/account_id").and_then(|v| v.as_str()).unwrap_or("");
+                if !source_account.is_empty() && !destination_account.is_empty() && source_account != destination_account {
+                    return run_clean_copy(job_id, api_id, api_hash, max_messages);
+                }
+            }
+        }
+    }
     if is_clean_copy_mode(&mode) {
         run_clean_copy(job_id, api_id, api_hash, max_messages)
     } else {
@@ -170,6 +184,10 @@ fn run_forward(
         .clone()
         .filter(|s| !s.is_empty())
         .ok_or_else(|| "session/profile_name missing".to_string())?;
+    let canonical = job.config_json.as_deref().and_then(|raw| super::forwarder_contract::normalize_job_config_json(raw).ok()).and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok());
+    let source_account_id = canonical.as_ref().and_then(|v| v.pointer("/source/account_id")).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).unwrap_or(&session).to_string();
+    let destination_account_id = canonical.as_ref().and_then(|v| v.pointer("/destination/account_id")).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).unwrap_or(&session).to_string();
+    let destination_topic_id = canonical.as_ref().and_then(|v| v.pointer("/destination/topic_id")).and_then(|v| v.as_i64());
 
     let exec_id = jobs_db::start_execution(job_id)?;
     let _ = jobs_db::update_execution_status(exec_id, "RUNNING", Some(0), None, None);
@@ -286,6 +304,7 @@ fn run_forward(
                                 if let Ok(task_id) = jobs_db::upsert_forwarder_task(exec_id, sid, "COMMITTING", "COMPLETED") {
                                     let _ = jobs_db::complete_forwarder_task(task_id, "COMPLETED", None, None);
                                 }
+                                let _ = jobs_db::forwarder_ledger_insert(job_id, &source_account_id, &destination_account_id, &dest, destination_topic_id, sid, None, None, None, None, None, "transferred");
                             }
                             break;
                         }
@@ -684,14 +703,14 @@ fn run_clean_copy(
             let cancelled = e.to_ascii_lowercase().contains("dibatalkan");
             let _ = jobs_db::update_execution_status(
                 exec_id,
-                if cancelled { "PAUSED" } else { "FAILED" },
+                if cancelled { "CANCELLED" } else { "FAILED" },
                 None,
                 None,
                 None,
             );
             let _ = jobs_db::log_job_event(
                 job_id,
-                if cancelled { "PAUSED" } else { "FAILED" },
+                if cancelled { "CANCELLED" } else { "FAILED" },
                 &e,
                 None,
             );

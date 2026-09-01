@@ -2,7 +2,7 @@
 
 ## Runtime: desktop vs web
 
-- **Desktop (Tauri):** Media Studio, re-encode, local Python/Telethon worker enabled.
+- **Desktop (Tauri):** Media Studio, re-encode, and Rust + Grammers Forwarder runtime.
 - **Web deploy:** set `VITE_RUNTIME=web` so heavy features stay off. See `../docs/development/Web_Deploy.md`.
 
 ```bash

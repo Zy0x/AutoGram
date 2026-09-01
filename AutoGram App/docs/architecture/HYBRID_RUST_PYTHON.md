@@ -1,81 +1,46 @@
-# Hybrid Rust–Python Architecture (AutoGram)
+# Runtime Boundary: Rust + Grammers (AutoGram)
 
-## Goal
+## Production rule
 
-**Rust + Grammers is the production backend** for orchestration, local I/O, and Telegram
-MTProto. Python/Telethon is retained only as a compatibility/import adapter and is not an
-execution runtime for Forwarder V2.
+Rust + Grammers owns all Telegram authentication, capability probing, media transfer,
+Forwarder orchestration, local SQLite, rate limiting, checkpointing, and reconciliation.
+The frontend communicates only through Tauri IPC. Telegram sessions and API credentials
+remain in the encrypted local vault.
 
-**Hard rule:** never break existing Media Drive, Studio transfer, migration, or auth
-flows. New Forwarder execution is official-API-only with capability routing and retry;
-there is no undocumented or restriction-bypassing fallback.
+Telethon/Python is retained only for importing legacy `.session` files and historical
+compatibility tooling. It is not a Forwarder execution fallback. If a legacy command is
+requested but its daemon is absent, the command fails closed.
 
-## Status (honest — hybrid Phase 6)
+## Active ownership
 
-| Domain | Owner today | Notes |
-|--------|-------------|--------|
-| Worker spawn / lease / secrets | **Rust** | |
-| Stream HTTP Range serve | **Rust** | tiny_http |
-| Progressive video preview | **Rust Grammers + Rust Range** | local range proxy and sparse readers |
-| Progressive image (small full) | **Rust Grammers** | dual-path when warm idle |
-| Progressive seek / multi-DC | **Rust Grammers** | native MTProto range path |
-| Drive list / dialogs (first paint) | **Rust Grammers first** | only when Telethon warm idle |
-| Thumbs batch / forum topics | **Rust Grammers first** | dual-path when warm idle |
-| Drive warm RPC (bootstrap extras) | **Rust Grammers** | native command path |
-| Studio upload (local files) | **Rust Grammers first** | fallback studio-serve → media-studio |
-| Studio album (2–10 local) | **Rust Grammers first** | `send_album`; >10 or remote → Telethon |
-| Full download ≤200MB | **Rust Grammers** | larger → progressive |
-| Media studio reencode / album / remote | **Rust Grammers** | |
-| Migration engine | **Rust Grammers** | Forwarder V2 pipeline |
-| Auth / dialogs / simple upload | **Rust Grammers** | `tg_*` |
+| Domain | Owner | Contract |
+|---|---|---|
+| Desktop UI | React + Tauri IPC | No direct Telegram calls |
+| Telegram MTProto | Rust Grammers | Official API only |
+| Forwarder V2 | Rust | Versioned config/state/event contracts |
+| Local persistence | SQLite | WAL, foreign keys, guarded migrations |
+| Android execution | Rust UniFFI + Kotlin | Enabled only after Forwarder bridge/FGS is available |
+| Cloud control plane | Supabase | Metadata/ciphertext/status only |
+| Legacy import | Rust importer | `.session` → encrypted Grammers session |
 
-### Compatibility boundary
+## Forwarder contract
 
-Legacy daemon commands may still be imported during the deprecation window, but all new
-forwarder jobs use the versioned Rust contract and local encrypted credential vault.
-
-### Env
-
-| Variable | Meaning |
-|----------|---------|
-| `AUTOGRAM_TELEGRAM_BACKEND=grammers` | Production Rust/Grammers path |
-| `AUTOGRAM_TELEGRAM_BACKEND=telethon` | Legacy compatibility/import only |
-| `AUTOGRAM_SESSIONS_DIR` | `worker/sessions` |
-| `AUTOGRAM_DEBUG=1` | Verbose multi-layer logs |
-
-Session bridge: Telethon `Name.session` → import auth_key → `Name.grammers.json`.
-
-Settings UI: **Settings → Telegram Backend** toggles Grammers vs Telethon-only.
-
-## Layer map
-
-```text
-React UI
-   │ Tauri IPC
-   ▼
-RUST CORE (default)
-  • job_queue / studio_orch  ──► Grammers upload (primary)
-  • drive list/thumbs/topics ──► Grammers when warm idle
-  • progressive preview      ──► Grammers sequential GetFile + registry
-  • stream_server Range HTTP
-  • grammers_ops / grammers_media
-   │ spawn
-   ▼
-PYTHON TELETHON (companion)
-  • drive-serve warm (when active), multi-DC seek stream,
-    media_studio, migration, auth_manager
-```
+`JobConfigV2`, `JobStateV2`, `TaskStateV2`, `ForwardEventV2`, `MirrorMutationV2`, and
+`DeviceRelayCommandV1` are the only supported cross-surface payloads. Legacy job JSON is
+accepted only through the normalizer adapter and is rewritten to canonical snake_case.
 
 ## Safety
 
-1. Never log api_hash / session bytes / passwords.
-2. Do not open the same auth_key with Telethon and Grammers at once.
-   Dual-path **skips Grammers** when `drive-serve` warm session is ready.
-3. Dual-path: Grammers fail → Telethon automatically where wired.
-4. Prefer murid over siswa in Indonesian product copy.
+1. Never log API hashes, session bytes, tokens, raw media, or decrypted cloud config.
+2. Never bypass protected content, ACLs, paywalls, or undocumented Telegram behavior.
+3. FloodWait follows the server-provided duration and the account circuit breaker.
+4. Unknown Telegram commits are reconciled from the local mapping/history before retry.
+5. Prefer `murid` over `siswa` in Indonesian product copy.
 
 ## Verification
 
-- `cargo check` / `cargo test` for Rust modules
-- Frontend `tsc` + Vitest
-- Manual: list files (Grammers idle), open video preview (Grammers progressive or Telethon), thumbs grid, forum topics
+- Rust desktop, `autogram-core`, and Android bridge tests.
+- TypeScript/Vitest and explicit locale audit.
+- SQLite migration replay and schema/master parity checks.
+- Supabase RLS, relay signature, revision-conflict, and replay-protection tests.
+- CDP smoke test on port 9230 for UI changes.
