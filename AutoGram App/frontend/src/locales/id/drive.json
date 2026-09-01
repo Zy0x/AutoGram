@@ -1770,6 +1770,8 @@
   "preflight_bento_delivery_photo": "Galeri Foto Visual",
   "preflight_bento_delivery_audio": "Trek Media Audio",
   "preflight_bento_delivery_doc": "Dokumen Utuh (Tanpa Kompresi)",
+  "preflight_delivery_single": "Pesan Tunggal",
+  "preflight_transcode_disabled": "Bitstream Asli (Tanpa Transcode)",
   "preflight_bento_integrity_clean": "Bersih • Bebas Duplikat",
   "preflight_bento_integrity_dup": "Terdeteksi Berkas Duplikat",
   "preflight_skip_all_duplicates": "Lewati semua yang sama",

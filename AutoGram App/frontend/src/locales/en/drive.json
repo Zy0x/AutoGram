@@ -1764,6 +1764,8 @@
   "preflight_bento_delivery_photo": "Visual Photo Gallery",
   "preflight_bento_delivery_audio": "Audio Media Track",
   "preflight_bento_delivery_doc": "Raw Uncompressed Document",
+  "preflight_delivery_single": "Single Message",
+  "preflight_transcode_disabled": "Original Bitstream (No Transcode)",
   "preflight_bento_integrity_clean": "Clean • No Duplicates",
   "preflight_bento_integrity_dup": "Duplicate Match Detected",
   "preflight_files": "Files",

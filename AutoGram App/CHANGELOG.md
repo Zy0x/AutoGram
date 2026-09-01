@@ -1,3 +1,15 @@
+## v3.8.60 Real-Time Dynamic Synchronization of Format & Delivery Bento with Transfer Settings
+
+### 1. Sinkronisasi Dinamis Real-Time Kartu Format & Delivery (`TransferPreflightDialog.tsx`, `App.css`)
+- **Penghapusan Placeholder Statis**: Menghubungkan kartu *Format & Delivery* dan *Engine & Integrity* pada dialog Preflight langsung dengan `transferSettings` aktif secara real-time.
+- **Deteksi Mode Pengiriman Nyata (*Actual Delivery Mode*)**: Tampilan tidak lagi selalu default ke *Raw Uncompressed Document*, melainkan merefleksikan secara akurat pilihan mode aktif (Media Streaming, Galeri Foto, Trek Audio, atau Dokumen Utuh) berdasarkan *presentationOverride*, *qualityMode*, dan *forceDocumentDefault*.
+- **Penyajian Lencana Pengemasan & Transcode Dinamis**: Menambahkan lencana kemasan pengiriman (*Grid Album 10* vs *Pesan Tunggal*) dan status transcode (*Bitstream Asli* vs *Auto GPU Preset*) yang langsung berubah secara instan setiap kali pengaturan transfer diperbarui oleh pengguna.
+- **Integritas Concurrency & Kebijakan Duplikasi**: Kartu integritas kini mencantumkan jumlah worker unggah paralel aktif (`↑ 4 Worker`) dan kebijakan penanganan duplikasi (`Lewati` / `Paksa Kirim`).
+
+### 2. Autonomous Quality Sentinel Certification
+- **100% Locale Parity**: 6,072 kunci bahasa ID dan EN tersinkronisasi 100%.
+- **Zero TypeScript Errors & Vitest Suite Passing**: Seluruh 44 test files lolos 100%.
+
 ## v3.8.59 Cross-Origin Canvas Video Frame Extraction & Live Thumbnail Rendering
 
 ### 1. Perbaikan Ekstraksi Frame Video Lokal Tanpa Tainted Canvas (`TransferPreflightDialog.tsx`)

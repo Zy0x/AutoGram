@@ -302,10 +302,12 @@ function PreflightTransferInfoBento({
   item,
   report,
   creds,
+  transferSettings,
 }: {
   item: QualityPreflightItem;
   report: QualityPreflightReport;
   creds: DriveCredentials | null;
+  transferSettings?: DriveTransferSettings;
 }) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
@@ -372,16 +374,49 @@ function PreflightTransferInfoBento({
   };
   const mimeType = extMap[ext] || (item.category === 'video' ? 'video/mp4' : item.category === 'photo' ? 'image/jpeg' : item.category === 'audio' ? 'audio/mpeg' : 'application/octet-stream');
 
-  // Delivery Mode
-  const deliveryLabel = item.asDocument || item.payloadClass === 'document_group' || item.payloadClass === 'original_document_batch'
-    ? t('drive.preflight_bento_delivery_doc')
-    : item.category === 'video'
-    ? t('drive.preflight_bento_delivery_stream')
-    : item.category === 'photo'
-    ? t('drive.preflight_bento_delivery_photo')
-    : item.category === 'audio'
-    ? t('drive.preflight_bento_delivery_audio')
-    : t('drive.preflight_bento_delivery_doc');
+  // Real-time Delivery Mode Calculation synced with transferSettings
+  const effectivePresentation = transferSettings?.presentationOverride ?? 'automatic';
+  const isForceDoc =
+    transferSettings?.forceDocumentDefault === true ||
+    effectivePresentation === 'force_document' ||
+    item.asDocument === true ||
+    item.payloadClass === 'document_group' ||
+    item.payloadClass === 'original_document_batch';
+
+  const isForceNative = effectivePresentation === 'force_native_media';
+
+  const effectiveDeliveryMode = isForceDoc
+    ? 'document'
+    : isForceNative
+    ? (item.category === 'photo' ? 'photo' : item.category === 'audio' ? 'audio' : 'video')
+    : (item.category === 'video' ? 'video' : item.category === 'photo' ? 'photo' : item.category === 'audio' ? 'audio' : 'document');
+
+  let deliveryLabel = t('drive.preflight_bento_delivery_doc');
+  if (effectiveDeliveryMode === 'video') {
+    deliveryLabel = t('drive.preflight_bento_delivery_stream');
+  } else if (effectiveDeliveryMode === 'photo') {
+    deliveryLabel = t('drive.preflight_bento_delivery_photo');
+  } else if (effectiveDeliveryMode === 'audio') {
+    deliveryLabel = t('drive.preflight_bento_delivery_audio');
+  }
+
+  // Real-time Album & Packaging Strategy
+  const isAlbum = transferSettings?.groupAsAlbum ?? DEFAULT_TRANSFER_SETTINGS.groupAsAlbum;
+  const albumSize = transferSettings?.albumGroupSize ?? DEFAULT_TRANSFER_SETTINGS.albumGroupSize;
+  const packingStyle = transferSettings?.albumPacking ?? DEFAULT_TRANSFER_SETTINGS.albumPacking;
+  const packagingLabel = isAlbum
+    ? `Grid ${albumSize} (${packingStyle})`
+    : t('drive.preflight_delivery_single');
+
+  // Real-time Transcode & Re-encode Strategy
+  const encoderStrategy = transferSettings?.encoderStrategy ?? DEFAULT_TRANSFER_SETTINGS.encoderStrategy;
+  const isNoReencode = encoderStrategy === 'disable_reencode';
+  const hwEncoder = transferSettings?.reencodeHardware ?? DEFAULT_TRANSFER_SETTINGS.reencodeHardware;
+  const preset = transferSettings?.reencodePreset ?? DEFAULT_TRANSFER_SETTINGS.reencodePreset;
+
+  const transcodeLabel = isNoReencode
+    ? t('drive.preflight_transcode_disabled')
+    : `${hwEncoder === 'auto' ? 'Auto GPU' : hwEncoder.toUpperCase()} • ${preset}`;
 
   // Engine Mode Name
   const engineLabel = report.remoteEngineMode === 'cloud_fetch'
@@ -389,6 +424,9 @@ function PreflightTransferInfoBento({
     : report.remoteEngineMode === 'storage_local'
     ? t('drive_tools.remote_engine_storage_local')
     : 'Smart MTProto V4';
+
+  const uploadWorkers = transferSettings?.uploadConcurrency ?? DEFAULT_TRANSFER_SETTINGS.uploadConcurrency;
+  const duplicatePolicy = transferSettings?.duplicatePolicy ?? DEFAULT_TRANSFER_SETTINGS.duplicatePolicy;
 
   return (
     <div className="td-preflight-info-bento">
@@ -451,8 +489,13 @@ function PreflightTransferInfoBento({
           <div className="td-preflight-bento-tags-row">
             <span className="td-preflight-bento-tag is-ext">.{ext ? ext.toUpperCase() : 'FILE'}</span>
             <span className="td-preflight-bento-mime">{mimeType}</span>
+            <span className={`td-preflight-bento-tag ${isAlbum ? 'is-album' : 'is-single'}`}>
+              {packagingLabel}
+            </span>
           </div>
-          <span className="td-preflight-bento-subtext">{deliveryLabel}</span>
+          <span className="td-preflight-bento-subtext">
+            {deliveryLabel} • {transcodeLabel}
+          </span>
         </div>
       </div>
 
@@ -467,9 +510,12 @@ function PreflightTransferInfoBento({
         <div className="td-preflight-bento-value">
           <div className="td-preflight-bento-tags-row">
             <span className="td-preflight-bento-tag is-engine">{engineLabel}</span>
+            <span className="td-preflight-bento-tag is-workers">
+              {`↑ ${uploadWorkers} Worker`}
+            </span>
           </div>
           <span className="td-preflight-bento-subtext">
-            {item.duplicateMatch ? t('drive.preflight_bento_integrity_dup') : t('drive.preflight_bento_integrity_clean')}
+            {item.duplicateMatch ? t('drive.preflight_bento_integrity_dup') : t('drive.preflight_bento_integrity_clean')} • {duplicatePolicy === 'SKIP' ? t('drive.preflight_will_skip') : t('drive.preflight_duplicate_badge_force', { defaultValue: 'Paksa' })}
           </span>
         </div>
       </div>
@@ -1313,7 +1359,12 @@ export function TransferPreflightDialog({
 
                 {/* Expandable transfer info bento */}
                 {isExpanded && !duplicate && (
-                  <PreflightTransferInfoBento item={item} report={report} creds={creds} />
+                  <PreflightTransferInfoBento
+                    item={item}
+                    report={report}
+                    creds={creds}
+                    transferSettings={transferSettings}
+                  />
                 )}
               </article>
             );

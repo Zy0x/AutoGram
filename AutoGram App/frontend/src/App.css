@@ -15485,6 +15485,21 @@ body:has(.app-layout-drive-focus),
   border: 1px solid rgba(251, 191, 36, 0.25);
   color: #fbbf24;
 }
+.td-preflight-bento-tag.is-album {
+  background: rgba(168, 85, 247, 0.14);
+  border: 1px solid rgba(192, 132, 252, 0.3);
+  color: #d8b4fe;
+}
+.td-preflight-bento-tag.is-single {
+  background: rgba(100, 116, 139, 0.14);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  color: #94a3b8;
+}
+.td-preflight-bento-tag.is-workers {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: #7dd3fc;
+}
 .td-preflight-bento-mime {
   font-size: 0.68rem;
   color: #64748b;
