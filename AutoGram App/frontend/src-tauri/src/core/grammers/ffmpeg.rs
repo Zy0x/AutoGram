@@ -814,8 +814,8 @@ fn collect_ffmpeg_candidates() -> Vec<PathBuf> {
             app_search_roots.push(PathBuf::from(app_data).join("com.aliri.frontend").join("plugins").join("ffmpeg-extractor").join("bin"));
         }
         if let Ok(local_app) = std::env::var("LOCALAPPDATA") {
-            app_search_roots.push(PathBuf::from(local_app).join("com.aliri.frontend").join("plugins").join("ffmpeg-extractor").join("bin"));
-            app_search_roots.push(PathBuf::from(local_app));
+            app_search_roots.push(PathBuf::from(&local_app).join("com.aliri.frontend").join("plugins").join("ffmpeg-extractor").join("bin"));
+            app_search_roots.push(PathBuf::from(&local_app));
         }
         if let Ok(pf) = std::env::var("ProgramFiles") {
             app_search_roots.push(PathBuf::from(pf));
