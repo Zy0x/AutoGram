@@ -1,3 +1,13 @@
+## v3.8.49 Dedicated FFmpeg Standalone Plugin Hub Card & Multi-Tier Plugin Overview Architecture
+
+### 1. Dedicated FFmpeg Plugin Card on Plug-in Overview Hub (`TransferSettingsWorkspace.tsx`)
+- **Promosi FFmpeg ke Beranda Utama Hub Plug-in**: Menjadikan ekstensi FFmpeg & FFprobe sebagai kartu plugin resmi berkedudukan setara dengan `yt-dlp` langsung pada halaman ikhtisar (*Plug-in Overview*), sehingga pengguna tidak perlu lagi membuka sub-halaman konfigurasi hanya untuk melihat status atau memperbarui FFmpeg.
+- **Visualisasi Status Biner & Telemetri Mandiri**: Menampilkan indikator real-time status biner (*Aktif & Terintegrasi*, lencana sumber AppData/System/Custom, serta chip kapabilitas aktif: ⚡ *HTTP 206 Range Proxy*, 🎬 *AV1 Decoder*, 🚀 *GPU NVENC Hardware Accel*, 📦 *FFprobe Siap*).
+- **Aksi 1-Klik Unduh, Periksa & Konfigurasi Mandiri**: Dilengkapi tombol aksi mandiri untuk memeriksa status versi biner secara instan (*Periksa Status*) serta mengunduh/memperbarui biner rilis resmi FFmpeg terbaru (*Unduh / Perbarui Plugin FFmpeg*) langsung dari beranda Plug-in.
+
+### 2. Multi-Language Parity & Zero Hardcoded Strings (`id/drive_tools.json`, `en/drive_tools.json`)
+- **Ekstraksi Kunci Lokalisasi Lengkap**: Menambahkan seluruh deskripsi dan tag modul plugin (`plugin_tag_muxer`, `plugin_ffmpeg_overview_desc`) dengan paritas 100% antara Bahasa Indonesia dan Bahasa Inggris.
+
 ## v3.8.48 Standalone FFmpeg & FFprobe Runtime Plugin, Auto-Updater Suite & Capability Telemetry Engine
 
 ### 1. Standalone FFmpeg Runtime Plugin (`plugins/ffmpeg-extractor/`)

@@ -3652,7 +3652,126 @@ export function TransferSettingsWorkspace({
                 </div>
               </div>
 
-              {/* 2. KARTU PLACEHOLDER PLUG-IN LAINNYA */}
+              {/* 2. KARTU FFMPEG & FFPROBE RUNTIME PLUGIN */}
+              <div className="td-settings-card td-plugin-card">
+                {/* Header */}
+                <div className="td-plugin-card-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div className="td-plugin-icon-box" style={{ background: 'rgba(168, 85, 247, 0.12)', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+                      <Film size={18} style={{ color: '#c084fc' }} />
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#f8fafc' }}>
+                          {t('drive_tools.plugin_section_ffmpeg_title')}
+                        </h4>
+                        <span className="td-plugin-badge-tag" style={{ background: 'rgba(168, 85, 247, 0.16)', color: '#d8b4fe', borderColor: 'rgba(168, 85, 247, 0.35)' }}>
+                          {t('drive_tools.plugin_tag_muxer')}
+                        </span>
+                      </div>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#94a3b8', lineHeight: 1.3 }}>
+                        {t('drive_tools.plugin_ffmpeg_overview_desc')}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="td-plugin-status-badge">
+                    <CheckCircle2 size={12} />
+                    {t('drive_tools.plugin_status_integrated')}
+                  </span>
+                </div>
+
+                {/* Middle Switches & Status */}
+                <div className="td-plugin-status-box">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0' }}>
+                      {t('drive_tools.plugin_ffmpeg_auto_mux_title')}
+                    </span>
+                    <ToggleSwitch
+                      checked={draft.ytdlpAutoMuxFfmpeg !== false}
+                      disabled={!!transferActive}
+                      onChange={(val) => patch({ ytdlpAutoMuxFfmpeg: val })}
+                      size="sm"
+                      ariaLabel={t('drive_tools.plugin_ffmpeg_auto_mux_title')}
+                    />
+                  </div>
+                  <div className="td-plugin-status-runtime-row" style={{ flexWrap: 'wrap', gap: '6px' }}>
+                    <span>{t('drive_tools.plugin_ffmpeg_status_label')}:</span>
+                    <strong style={{ color: ffmpegStatus?.installed ? '#4ade80' : '#f59e0b' }}>
+                      {ffmpegBusy ? t('drive_tools.plugin_ffmpeg_btn_updating') : ffmpegStatus?.installed
+                        ? t('drive_tools.plugin_ffmpeg_status_installed', { version: ffmpegStatus.version || t('drive_tools.plugin_status_ready') })
+                        : t('drive_tools.plugin_ffmpeg_status_not_found')}
+                    </strong>
+                    {ffmpegStatus?.source && ffmpegStatus.source !== 'none' && (
+                      <span className="td-chip-btn" style={{ padding: '1px 6px', fontSize: '0.66rem', cursor: 'default', opacity: 0.85 }}>
+                        {ffmpegStatus.source === 'app_data' ? t('drive_tools.plugin_ffmpeg_source_app_data') : ffmpegStatus.source === 'workspace_plugin' ? t('drive_tools.plugin_ffmpeg_source_workspace') : ffmpegStatus.source === 'custom' ? t('drive_tools.plugin_ffmpeg_source_custom') : t('drive_tools.plugin_ffmpeg_source_system')}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Active Capabilities */}
+                  {ffmpegStatus?.installed && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
+                      {ffmpegStatus.supportsHttp && (
+                        <span className="td-chip-btn td-chip-primary" style={{ padding: '1px 6px', fontSize: '0.68rem', cursor: 'default' }}>
+                          {t('drive_tools.plugin_ffmpeg_cap_http')}
+                        </span>
+                      )}
+                      {ffmpegStatus.av1Decoder && (
+                        <span className="td-chip-btn" style={{ padding: '1px 6px', fontSize: '0.68rem', cursor: 'default', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', borderColor: 'rgba(168, 85, 247, 0.3)' }}>
+                          {t('drive_tools.plugin_ffmpeg_cap_av1', { codec: ffmpegStatus.av1Decoder })}
+                        </span>
+                      )}
+                      {ffmpegStatus.supportsNvenc && (
+                        <span className="td-chip-btn" style={{ padding: '1px 6px', fontSize: '0.68rem', cursor: 'default', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', borderColor: 'rgba(16, 185, 129, 0.3)' }}>
+                          {t('drive_tools.plugin_ffmpeg_cap_nvenc')}
+                        </span>
+                      )}
+                      {ffmpegStatus.ffprobeExecutable && (
+                        <span className="td-chip-btn" style={{ padding: '1px 6px', fontSize: '0.68rem', cursor: 'default', background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', borderColor: 'rgba(59, 130, 246, 0.3)' }}>
+                          {t('drive_tools.plugin_ffmpeg_cap_ffprobe_ready')}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer Actions */}
+                <div className="td-plugin-card-footer">
+                  <button
+                    type="button"
+                    className="td-chip-btn td-plugin-config-btn"
+                    onClick={() => {
+                      setYtdlpSubPage('config');
+                      void refreshFfmpegStatus();
+                    }}
+                  >
+                    <SlidersHorizontal size={13} />
+                    <span>{t('drive_tools.plugin_config_btn')}</span>
+                  </button>
+                  <div className="td-plugin-action-group">
+                    <button
+                      type="button"
+                      className="td-chip-btn"
+                      disabled={ffmpegBusy}
+                      onClick={() => void refreshFfmpegStatus()}
+                    >
+                      <RotateCcw size={13} className={ffmpegBusy ? 'spin' : ''} />
+                      <span>{t('drive_tools.plugin_ffmpeg_btn_check')}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="td-chip-btn td-chip-primary"
+                      disabled={ffmpegBusy || !!transferActive}
+                      onClick={() => void handleUpdateFfmpeg()}
+                    >
+                      {ffmpegBusy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                      <span>{ffmpegBusy ? t('drive_tools.plugin_ffmpeg_btn_updating') : t('drive_tools.plugin_ffmpeg_btn_update')}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. KARTU PLACEHOLDER PLUG-IN LAINNYA */}
               <div className="td-plugin-placeholder-card">
                 <div className="td-plugin-placeholder-icon">
                   <Sparkles size={18} style={{ color: '#94a3b8' }} />
