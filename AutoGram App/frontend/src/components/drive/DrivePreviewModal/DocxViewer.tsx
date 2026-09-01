@@ -84,6 +84,49 @@ export const DocxViewer: React.FC<Props> = ({ data, onOpenSystem, zoom = 1 }) =>
     };
   }, [data]);
 
+  // Clean clipboard copy handler to preserve exact paragraph structure and prevent double newlines/broken wrapping
+  useEffect(() => {
+    const handleCopy = (e: ClipboardEvent) => {
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed || !selection.rangeCount) return;
+
+      const container = containerRef.current;
+      if (!container) return;
+
+      const range = selection.getRangeAt(0);
+      const isInside = container.contains(range.commonAncestorContainer) || (range.intersectsNode && range.intersectsNode(container));
+      if (!isInside) return;
+
+      const fragment = range.cloneContents();
+      const tempDiv = document.createElement('div');
+      tempDiv.appendChild(fragment);
+
+      const blockElements = Array.from(tempDiv.querySelectorAll('p, div, tr, li, h1, h2, h3, h4, h5, h6'));
+      if (blockElements.length > 0) {
+        const lines: string[] = [];
+        blockElements.forEach((el) => {
+          if (el.parentElement && blockElements.includes(el.parentElement as any)) return;
+          const text = (el as HTMLElement).innerText?.replace(/\r/g, '').trim();
+          if (text) {
+            lines.push(text);
+          }
+        });
+
+        if (lines.length > 0) {
+          const cleanText = lines.join('\n');
+          e.preventDefault();
+          if (e.clipboardData) {
+            e.clipboardData.setData('text/plain', cleanText);
+            e.clipboardData.setData('text/html', tempDiv.innerHTML);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('copy', handleCopy);
+    return () => document.removeEventListener('copy', handleCopy);
+  }, []);
+
   return (
     <div className="autogram-docx-viewer-wrap" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: '#0b0f19', color: '#f8fafc', overflow: 'hidden' }}>
 
@@ -137,17 +180,38 @@ export const DocxViewer: React.FC<Props> = ({ data, onOpenSystem, zoom = 1 }) =>
       </div>
 
       <style>{`
+        .autogram-docx-container,
+        .autogram-docx-container * {
+          user-select: text !important;
+          -webkit-user-select: text !important;
+          -moz-user-select: text !important;
+          -ms-user-select: text !important;
+        }
         .autogram-docx-container .docx-wrapper {
           background: transparent !important;
-          padding: 16px 0 !important;
+          padding: 20px 0 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          gap: 24px !important;
         }
         .autogram-docx-container .docx-wrapper > section.docx {
           background: #ffffff !important;
           color: #000000 !important;
-          margin-bottom: 24px !important;
+          margin: 0 0 24px 0 !important;
           box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45) !important;
           border-radius: 2px !important;
           box-sizing: border-box !important;
+          cursor: text !important;
+        }
+        .autogram-docx-container p {
+          margin: 0 !important;
+          user-select: text !important;
+          -webkit-user-select: text !important;
+        }
+        .autogram-docx-container span {
+          user-select: text !important;
+          -webkit-user-select: text !important;
         }
       `}</style>
     </div>

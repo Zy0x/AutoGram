@@ -6948,7 +6948,7 @@ export function DrivePreviewModal({
             !isText &&
             !isZip &&
             !(isText && textBody != null) && (
-            <div className="drive-preview-doc" style={{ padding: isFontFile || isDocxFile || isSpreadsheetFile ? 0 : '16px', height: '100%', width: '100%', overflowY: 'auto' }}>
+            <div className="drive-preview-doc" style={{ padding: isFontFile || isDocxFile || isSpreadsheetFile ? 0 : '16px', height: '100%', width: '100%', overflowY: isDocxFile || isSpreadsheetFile ? 'hidden' : 'auto' }}>
               {isDocxFile ? (
                 <PluginErrorBoundary pluginName="DocxViewer">
                   <DocxViewer

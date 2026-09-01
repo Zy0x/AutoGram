@@ -11964,17 +11964,30 @@ body:has(.app-layout-drive-focus),
   overflow: hidden !important;
 }
 
-.drive-preview-modal,
-.drive-preview-split-col,
 .drive-preview-split-badge,
 .drive-preview-split-media-wrap,
-.drive-preview-split-meta,
 .drive-preview-header,
 .drive-preview-toolbar {
   user-select: none !important;
   -webkit-user-select: none !important;
   -moz-user-select: none !important;
   -ms-user-select: none !important;
+}
+
+.drive-preview-doc,
+.drive-preview-doc *,
+.autogram-docx-container,
+.autogram-docx-container *,
+.docx-wrapper,
+.docx-wrapper *,
+section.docx,
+section.docx *,
+.drive-preview-text,
+.drive-preview-text * {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
 }
 
 .drive-preview-split-col {
