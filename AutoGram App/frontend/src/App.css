@@ -41636,7 +41636,128 @@ select.td-modern-select {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #0d1117;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, "Cascadia Code", "Fira Code", Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-feature-settings: "liga" 1, "calt" 1;
+}
+
+.td-code-breadcrumb-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 14px;
+  background: #181818;
+  border-bottom: 1px solid #282828;
+  font-size: 0.76rem;
+  color: #858585;
+  user-select: none;
+  flex-shrink: 0;
+  gap: 12px;
+}
+
+.td-code-breadcrumb-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-code-lang-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.70rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+.td-code-file-title {
+  color: #cccccc;
+  font-weight: 500;
+}
+
+.td-code-meta-badge {
+  font-size: 0.70rem;
+  color: #6e7681;
+  padding-left: 4px;
+}
+
+.td-code-breadcrumb-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.td-code-action-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.td-code-action-pill:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.td-code-action-pill.is-active {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
+.td-code-action-pill.is-primary {
+  background: #0e639c;
+  border-color: #1177bb;
+  color: #ffffff;
+}
+
+.td-code-action-pill.is-primary:hover {
+  background: #1177bb;
+}
+
+.td-code-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 14px;
+  background: #007acc;
+  color: #ffffff;
+  font-size: 0.70rem;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.td-code-status-left,
+.td-code-status-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.td-code-status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .td-code-viewer-header {

@@ -942,6 +942,8 @@
   "file_exists_no_reupload": "Berkas sudah ada di tujuan - tidak diunggah ulang",
   "restore_original_format": "Kembalikan format asli",
   "format_json_pretty": "Rapikan Format JSON",
+  "view_tree_mode": "Tampilkan Visual Tree (Pohon Data)",
+  "view_code_mode": "Tampilkan Editor Kode VS Code",
   "active_folder_click_header": "aktif — klik header untuk semua folder",
   "active_chat_click_header": "aktif — klik header untuk semua chat",
   "source_location_choose_other": "lokasi sumber (pilih chat lain)",

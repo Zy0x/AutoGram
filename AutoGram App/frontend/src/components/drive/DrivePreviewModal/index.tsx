@@ -50,6 +50,7 @@ import {
   WrapText,
   Eye,
   FolderTree,
+  Code2,
 } from 'lucide-react';
 import { DeadCenterProgress } from '../Explorer/DriveSkeleton';
 import { convertFileSrc } from '@tauri-apps/api/core';
@@ -2822,6 +2823,7 @@ export function DrivePreviewModal({
   const [codeWordWrap, setCodeWordWrap] = useState(true);
   const [codeSearchOpen, setCodeSearchOpen] = useState(false);
   const [jsonExpandAll, setJsonExpandAll] = useState(true);
+  const [jsonViewMode, setJsonViewMode] = useState<'code' | 'tree'>('code');
   const [mdViewMode, setMdViewMode] = useState<'visual' | 'raw'>('visual');
 
   const fileExtBadge = useMemo(() => {
@@ -4632,8 +4634,8 @@ export function DrivePreviewModal({
                     {/* Text / Code / Log / Markdown / JSON Format Tools */}
                     {isText && textBody != null && (
                       <>
-                        {/* Word Wrap Toggle (Text, Code, Log) */}
-                        {!isJsonFile && !isMarkdownFile && !isSpreadsheetFile && (
+                        {/* Word Wrap Toggle (Text, Code, Log, JSON in Code View) */}
+                        {(!isMarkdownFile && !isSpreadsheetFile && (!isJsonFile || jsonViewMode === 'code')) && (
                           <button
                             type="button"
                             className={`td-icon-btn is-compact ${codeWordWrap ? 'is-active' : ''}`}
@@ -4671,17 +4673,30 @@ export function DrivePreviewModal({
                           </button>
                         )}
 
-                        {/* JSON Tree Expand / Collapse All */}
+                        {/* JSON Mode Toggle (VS Code Editor vs Visual Tree) */}
                         {isJsonFile && (
-                          <button
-                            type="button"
-                            className="td-icon-btn is-compact"
-                            title={jsonExpandAll ? t('drive.collapse_all') : t('drive.expand_all')}
-                            disabled={isHeaderFrozen}
-                            onClick={() => setJsonExpandAll((v) => !v)}
-                          >
-                            <FolderTree size={13} />
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              className={`td-icon-btn is-compact ${jsonViewMode === 'tree' ? 'is-active' : ''}`}
+                              title={jsonViewMode === 'code' ? t('drive.view_tree_mode') : t('drive.view_code_mode')}
+                              disabled={isHeaderFrozen}
+                              onClick={() => setJsonViewMode((v) => (v === 'code' ? 'tree' : 'code'))}
+                            >
+                              {jsonViewMode === 'code' ? <FolderTree size={13} /> : <Code2 size={13} />}
+                            </button>
+                            {jsonViewMode === 'tree' && (
+                              <button
+                                type="button"
+                                className="td-icon-btn is-compact"
+                                title={jsonExpandAll ? t('drive.collapse_all') : t('drive.expand_all')}
+                                disabled={isHeaderFrozen}
+                                onClick={() => setJsonExpandAll((v) => !v)}
+                              >
+                                <FolderTree size={13} />
+                              </button>
+                            )}
+                          </>
                         )}
 
                         <div className="td-header-tool-divider" />
@@ -7131,7 +7146,7 @@ export function DrivePreviewModal({
                     fileName={displayName}
                     wordWrap={codeWordWrap}
                   />
-                ) : isJsonFile ? (
+                ) : isJsonFile && jsonViewMode === 'tree' ? (
                   <JsonTreeViewer
                     jsonString={textBody}
                     fileName={displayName}
@@ -7142,11 +7157,13 @@ export function DrivePreviewModal({
                 ) : (
                   <CodeScriptViewer
                     code={textBody}
-                    language={file.file_ext || 'text'}
+                    language={file.file_ext || (isJsonFile ? 'json' : 'text')}
                     fileName={displayName}
                     wordWrap={codeWordWrap}
                     searchOpen={codeSearchOpen}
                     onToggleSearch={() => setCodeSearchOpen((v) => !v)}
+                    isJson={isJsonFile}
+                    onSwitchToTree={isJsonFile ? () => setJsonViewMode('tree') : undefined}
                   />
                 )}
               </PluginErrorBoundary>

@@ -942,6 +942,8 @@
   "file_exists_no_reupload": "File already exists at destination - skipped reupload",
   "restore_original_format": "Restore original format",
   "format_json_pretty": "Format JSON Pretty",
+  "view_tree_mode": "View Visual Tree (Data Tree)",
+  "view_code_mode": "View VS Code Editor",
   "active_folder_click_header": "active — click header for all folders",
   "active_chat_click_header": "active — click header for all chats",
   "source_location_choose_other": "source location (choose another chat)",
