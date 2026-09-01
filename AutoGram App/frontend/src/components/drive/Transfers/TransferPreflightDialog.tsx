@@ -59,17 +59,32 @@ import type {
 } from '../../../lib/transfer/qualityPreflight';
 import type { RemoteEngineMode } from '../../../lib/telegram/driveTypes';
 
+const preflightThumbCache = new Map<string, string>();
+
 function transferPreviewSource(path: string, thumbnailUrl?: string | null): string | null {
-  if (thumbnailUrl && (thumbnailUrl.startsWith('http://') || thumbnailUrl.startsWith('https://') || thumbnailUrl.startsWith('data:'))) {
+  if (
+    thumbnailUrl &&
+    (thumbnailUrl.startsWith('http://') ||
+      thumbnailUrl.startsWith('https://') ||
+      thumbnailUrl.startsWith('data:') ||
+      thumbnailUrl.startsWith('asset://') ||
+      thumbnailUrl.startsWith('blob:'))
+  ) {
     return thumbnailUrl;
   }
+  if (thumbnailUrl && /\.(jpe?g|png|webp|gif|bmp|heic|avif)($|\?)/i.test(thumbnailUrl)) {
+    return convertFileSrc(thumbnailUrl);
+  }
   if (path.startsWith('http://') || path.startsWith('https://')) {
-    if (path.match(/\.(jpe?g|png|webp|gif)($|\?)/i)) {
+    if (path.match(/\.(jpe?g|png|webp|gif|bmp|heic|avif)($|\?)/i)) {
       return path;
     }
     return null;
   }
-  return convertFileSrc(path);
+  if (path.match(/\.(jpe?g|png|webp|gif|bmp|heic|avif)($|\?)/i)) {
+    return convertFileSrc(path);
+  }
+  return null;
 }
 
 function PreflightSourceThumb({
@@ -78,26 +93,30 @@ function PreflightSourceThumb({
   item: QualityPreflightItem;
 }) {
   const { t } = useTranslation();
-  const [capturedThumb, setCapturedThumb] = useState<string | null>(null);
+  const rawPath = item.sourcePath || '';
+  const initialSource = transferPreviewSource(rawPath, item.thumbnailUrl);
+  const [capturedThumb, setCapturedThumb] = useState<string | null>(() => {
+    return rawPath ? preflightThumbCache.get(rawPath) || null : null;
+  });
+  const [imgError, setImgError] = useState(false);
 
-  const initialSource = transferPreviewSource(item.sourcePath, item.thumbnailUrl);
   const isVideo =
     item.category === 'video' ||
-    /\.(mp4|mov|webm|mkv|avi|m4v|3gp|flv|ts)($|\?)/i.test(item.sourceName || item.sourcePath);
+    /\.(mp4|mov|webm|mkv|avi|m4v|3gp|flv|ts)($|\?)/i.test(item.sourceName || rawPath);
 
   useEffect(() => {
-    if (initialSource || !isVideo) return;
-    const rawPath = item.sourcePath;
-    if (!rawPath) return;
+    if (initialSource || !isVideo || !rawPath || capturedThumb || preflightThumbCache.has(rawPath)) return;
 
     let active = true;
     const video = document.createElement('video');
-    video.preload = 'metadata';
+    video.preload = 'auto';
     video.muted = true;
     video.playsInline = true;
-    video.crossOrigin = 'anonymous';
 
+    let cleanedUp = false;
     const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
       try {
         video.pause();
         video.removeAttribute('src');
@@ -107,38 +126,28 @@ function PreflightSourceThumb({
       }
     };
 
-    const handleSeeked = () => {
+    const doCapture = () => {
       try {
-        if (!active) return;
+        if (!active || cleanedUp) return;
         const width = video.videoWidth || 640;
         const height = video.videoHeight || 360;
         if (width <= 0 || height <= 0) return;
         const canvas = document.createElement('canvas');
-        canvas.width = Math.min(800, width);
+        canvas.width = Math.min(640, width);
         canvas.height = Math.round((canvas.width * height) / width);
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const data = imgData.data;
-          let isNonBlack = false;
-          for (let i = 0; i < data.length; i += 16) {
-            if (data[i] > 15 || data[i + 1] > 15 || data[i + 2] > 15) {
-              isNonBlack = true;
-              break;
-            }
-          }
-          if (isNonBlack) {
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-            if (dataUrl && dataUrl.startsWith('data:image/jpeg') && dataUrl.length > 200) {
-              setCapturedThumb(dataUrl);
-            }
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          if (dataUrl && dataUrl.startsWith('data:image/jpeg') && dataUrl.length > 200) {
+            preflightThumbCache.set(rawPath, dataUrl);
+            setCapturedThumb(dataUrl);
           }
         }
       } catch {
-        /* ignore CORS restriction */
+        /* ignore capture errors */
       } finally {
         cleanup();
       }
@@ -146,38 +155,58 @@ function PreflightSourceThumb({
 
     const handleLoadedMetadata = () => {
       try {
+        if (!active || cleanedUp) return;
         const dur = video.duration || 10;
         const targetTime = Math.min(1.0, dur > 2 ? 1.0 : dur / 2);
-        video.currentTime = targetTime;
+        if (targetTime > 0 && Math.abs(video.currentTime - targetTime) > 0.05) {
+          video.currentTime = targetTime;
+        } else {
+          doCapture();
+        }
       } catch {
         cleanup();
       }
     };
 
     video.addEventListener('loadedmetadata', handleLoadedMetadata, { once: true });
-    video.addEventListener('seeked', handleSeeked, { once: true });
+    video.addEventListener('loadeddata', handleLoadedMetadata, { once: true });
+    video.addEventListener('seeked', doCapture, { once: true });
+    video.addEventListener('canplay', () => {
+      if (video.currentTime >= 0.5) doCapture();
+    }, { once: true });
     video.addEventListener('error', cleanup, { once: true });
 
     if (rawPath.startsWith('http://') || rawPath.startsWith('https://')) {
+      video.crossOrigin = 'anonymous';
       video.src = rawPath;
     } else {
       video.src = convertFileSrc(rawPath);
     }
 
-    const tid = setTimeout(cleanup, 4000);
+    const tid = setTimeout(() => {
+      if (active && !cleanedUp) {
+        doCapture();
+        cleanup();
+      }
+    }, 4500);
+
     return () => {
       active = false;
       clearTimeout(tid);
       cleanup();
     };
-  }, [initialSource, isVideo, item.sourcePath]);
+  }, [initialSource, isVideo, rawPath, capturedThumb]);
 
-  const effectiveSrc = initialSource || capturedThumb;
+  const effectiveSrc = (!imgError && initialSource) || capturedThumb;
 
   if (effectiveSrc) {
     return (
       <div className="td-preflight-thumb-media">
-        <img src={effectiveSrc} alt={t('drive.preflight_source_thumb_alt')} />
+        <img
+          src={effectiveSrc}
+          alt={t('drive.preflight_source_thumb_alt')}
+          onError={() => setImgError(true)}
+        />
         {isVideo && (
           <span className="td-preflight-thumb-play-badge" aria-hidden>
             <Play size={9} fill="currentColor" />
@@ -195,7 +224,7 @@ function PreflightSourceThumb({
     );
   }
 
-  if (item.category === 'photo' || /\.(jpe?g|png|webp|gif|bmp|heic|avif)($|\?)/i.test(item.sourceName)) {
+  if (item.category === 'photo' || /\.(jpe?g|png|webp|gif|bmp|heic|avif)($|\?)/i.test(item.sourceName || rawPath)) {
     return (
       <div className="td-preflight-icon-thumb is-photo" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
         <ImageIcon size={22} className="text-emerald-400" aria-hidden />
@@ -203,7 +232,7 @@ function PreflightSourceThumb({
     );
   }
 
-  if (item.category === 'audio' || /\.(mp3|flac|m4a|wav|ogg|opus|aac)($|\?)/i.test(item.sourceName)) {
+  if (item.category === 'audio' || /\.(mp3|flac|m4a|wav|ogg|opus|aac)($|\?)/i.test(item.sourceName || rawPath)) {
     return (
       <div className="td-preflight-icon-thumb is-audio" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
         <Music size={22} className="text-purple-400" aria-hidden />

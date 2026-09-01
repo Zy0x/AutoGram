@@ -116,8 +116,6 @@ export async function jobsStartExecution(jobId: number): Promise<number> {
 
 export async function jobsRunMigration(args: {
   jobId: number;
-  apiId: number;
-  apiHash: string;
   maxMessages?: number;
 }): Promise<{
   status: string;
@@ -133,16 +131,12 @@ export async function jobsRunMigration(args: {
   if (!detectTauriRuntime()) throw new Error('Jobs membutuhkan desktop app');
   return invoke('jobs_run_migration', {
     jobId: args.jobId,
-    apiId: args.apiId,
-    apiHash: args.apiHash,
-    maxMessages: args.maxMessages ?? 100,
+    maxMessages: args.maxMessages ?? 0,
   });
 }
 
 export async function jobsDryRun(args: {
   jobId: number;
-  apiId: number;
-  apiHash: string;
 }): Promise<{
   status: string;
   jobId: number;
@@ -157,8 +151,6 @@ export async function jobsDryRun(args: {
   if (!detectTauriRuntime()) throw new Error('Jobs membutuhkan desktop app');
   return invoke('jobs_dry_run', {
     jobId: args.jobId,
-    apiId: args.apiId,
-    apiHash: args.apiHash,
   });
 }
 

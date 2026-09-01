@@ -138,6 +138,10 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
         "../../../../database/migrations/015_transfer_control_plane_v4.sql"
     ))
     .map_err(|e| format!("transfer control schema: {e}"))?;
+    conn.execute_batch(include_str!(
+        "../../../../database/migrations/020_media_forwarder_v2.sql"
+    ))
+    .map_err(|e| format!("forwarder v2 schema: {e}"))?;
     Ok(())
 }
 
@@ -362,6 +366,27 @@ pub struct CreateJobRequest {
     pub job_name: Option<String>,
 }
 
+fn sync_forwarder_contract(conn: &Connection, job_id: i64, raw_config: &str) {
+    let Ok(canonical) = super::forwarder_contract::normalize_job_config_json(raw_config) else {
+        return;
+    };
+    let revision = serde_json::from_str::<serde_json::Value>(&canonical)
+        .ok()
+        .and_then(|v| v.get("revision").and_then(|v| v.as_i64()))
+        .unwrap_or(0);
+    let _ = conn.execute(
+        "INSERT INTO forwarder_job_configs(job_id, schema_version, revision, config_json, updated_at)
+         VALUES (?1, 2, ?2, ?3, datetime('now'))
+         ON CONFLICT(job_id) DO UPDATE SET revision=excluded.revision,
+         config_json=excluded.config_json, updated_at=datetime('now')",
+        params![job_id, revision, canonical],
+    );
+    let _ = conn.execute(
+        "INSERT OR IGNORE INTO job_revisions(job_id, revision, config_json) VALUES (?1, ?2, ?3)",
+        params![job_id, revision, canonical],
+    );
+}
+
 pub fn create_job(req: &CreateJobRequest) -> Result<i64, String> {
     let conn = open_db()?;
     let mode = req.mode.clone().unwrap_or_else(|| "Clean Copy".into());
@@ -380,6 +405,7 @@ pub fn create_job(req: &CreateJobRequest) -> Result<i64, String> {
     )
     .map_err(|e| format!("insert job: {e}"))?;
     let id = conn.last_insert_rowid();
+    sync_forwarder_contract(&conn, id, &config);
     tg_log::info(BACKEND, "create_job", format!("id={id}"));
     Ok(id)
 }
@@ -418,6 +444,7 @@ pub fn edit_job(req: &EditJobRequest) -> Result<(), String> {
     if n == 0 {
         return Err(format!("job {} not found", req.job_id));
     }
+    sync_forwarder_contract(&conn, req.job_id, &config);
     Ok(())
 }
 

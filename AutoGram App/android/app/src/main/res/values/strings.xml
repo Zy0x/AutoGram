@@ -4,6 +4,12 @@
     <string name="app_tagline">Telegram Cloud Suite</string>
     <string name="nav_drive">Drive</string>
     <string name="nav_transfer">Transfer</string>
+    <string name="nav_forwarder">Forwarder</string>
+    <string name="forwarder_title">Media Forwarder</string>
+    <string name="forwarder_subtitle">Kelola forward, clean copy, dan jadwal dari perangkat ini.</string>
+    <string name="forwarder_new_job">Buat job baru</string>
+    <string name="forwarder_local_execution">Execution lokal</string>
+    <string name="forwarder_security_note">Job berjalan memakai session Telegram terenkripsi di perangkat; credential tidak dikirim ke cloud.</string>
     <string name="nav_studio">Studio</string>
     <string name="nav_remote">Remote</string>
     <string name="nav_settings">Pengaturan</string>

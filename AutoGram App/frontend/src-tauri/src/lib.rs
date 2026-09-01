@@ -947,17 +947,23 @@ fn jobs_start_execution(job_id: i64) -> Result<i64, String> {
 async fn jobs_run_migration(
     app: AppHandle,
     job_id: i64,
-    api_id: i64,
-    api_hash: String,
     max_messages: Option<usize>,
 ) -> Result<core::migration_run::MigrationRunResult, String> {
     ensure_sessions_dir_env(&app);
+    let api_id = secrets::get_credential(app.clone(), "API_ID".to_string())
+        .await?
+        .ok_or_else(|| "API_ID belum tersimpan di secure credential vault".to_string())?
+        .parse::<i64>()
+        .map_err(|_| "API_ID di secure credential vault tidak valid".to_string())?;
+    let api_hash = secrets::get_credential(app.clone(), "API_HASH".to_string())
+        .await?
+        .ok_or_else(|| "API_HASH belum tersimpan di secure credential vault".to_string())?;
     tauri::async_runtime::spawn_blocking(move || {
         core::migration_run::run_job_forward_mvp(
             job_id,
             api_id,
             &api_hash,
-            max_messages.unwrap_or(100),
+            max_messages.unwrap_or(0),
         )
     })
     .await
@@ -968,10 +974,16 @@ async fn jobs_run_migration(
 async fn jobs_dry_run(
     app: AppHandle,
     job_id: i64,
-    api_id: i64,
-    api_hash: String,
 ) -> Result<core::migration_run::MigrationRunResult, String> {
     ensure_sessions_dir_env(&app);
+    let api_id = secrets::get_credential(app.clone(), "API_ID".to_string())
+        .await?
+        .ok_or_else(|| "API_ID belum tersimpan di secure credential vault".to_string())?
+        .parse::<i64>()
+        .map_err(|_| "API_ID di secure credential vault tidak valid".to_string())?;
+    let api_hash = secrets::get_credential(app.clone(), "API_HASH".to_string())
+        .await?
+        .ok_or_else(|| "API_HASH belum tersimpan di secure credential vault".to_string())?;
     tauri::async_runtime::spawn_blocking(move || {
         core::migration_run::dry_run_job(job_id, api_id, &api_hash)
     })
@@ -1304,6 +1316,16 @@ fn compute_progress_rate(
 #[tauri::command]
 fn normalize_job_config(raw: serde_json::Value) -> serde_json::Value {
     core::config_normalize::normalize_job_config(raw)
+}
+
+#[tauri::command]
+fn normalize_job_config_v2(raw: serde_json::Value) -> Result<String, String> {
+    core::forwarder_contract::normalize_job_config_json(&raw.to_string())
+}
+
+#[tauri::command]
+fn forwarder_feature_flags() -> core::forwarder_contract::ForwarderFeatureFlags {
+    core::forwarder_contract::ForwarderFeatureFlags::resolve()
 }
 
 #[tauri::command]
@@ -2899,6 +2921,8 @@ pub fn run() {
             file_quick_fingerprint,
             compute_progress_rate,
             normalize_job_config,
+            normalize_job_config_v2,
+            forwarder_feature_flags,
             network_get_config,
             network_apply_proxy,
             network_apply_vpn,

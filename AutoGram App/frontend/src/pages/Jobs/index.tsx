@@ -160,9 +160,6 @@ export function Jobs({ entryView = 'jobs' }: { entryView?: JobsEntryView }) {
     runningRef.current.add(job.id);
 
     try {
-      const { bootstrapSecureCredentials } = await import('../../lib/tauri/secureCredentials');
-      const { apiId, apiHash } = await bootstrapSecureCredentials();
-
       setJobLogs((prev) => ({ ...prev, [job.id]: [] }));
 
       const appendLog = (entry: any) => {
@@ -195,8 +192,6 @@ export function Jobs({ entryView = 'jobs' }: { entryView?: JobsEntryView }) {
           if (isDryRun) {
             const r = await jobsDryRun({
               jobId: job.id,
-              apiId: Number(apiId) || 0,
-              apiHash: String(apiHash || ''),
             });
             appendLog({
               type: 'info',
@@ -207,8 +202,6 @@ export function Jobs({ entryView = 'jobs' }: { entryView?: JobsEntryView }) {
           } else {
             const r = await jobsRunMigration({
               jobId: job.id,
-              apiId: Number(apiId) || 0,
-              apiHash: String(apiHash || ''),
               maxMessages: 0, // 0 = Full history migration loop
             });
             appendLog({
@@ -260,6 +253,8 @@ export function Jobs({ entryView = 'jobs' }: { entryView?: JobsEntryView }) {
         return;
       }
 
+      const { bootstrapSecureCredentials } = await import('../../lib/tauri/secureCredentials');
+      const { apiId, apiHash } = await bootstrapSecureCredentials();
       const action = isRetry ? 'retry-execution' : 'execute-job';
       const args = [`--action=${action}`, `--job-id=${job.id}`];
       if (isRetry && job.last_execution_id) {

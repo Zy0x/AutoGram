@@ -29,6 +29,7 @@ import com.autogram.app.theme.ObsidianPrimary
 import com.autogram.app.ui.components.AutoGramNavigationRail
 import com.autogram.app.ui.components.BottomNavBar
 import com.autogram.app.ui.drive.DriveScreen
+import com.autogram.app.ui.forwarder.ForwarderScreen
 import com.autogram.app.ui.remote.RemoteUrlScreen
 import com.autogram.app.ui.settings.SettingsScreen
 import com.autogram.app.ui.studio.StudioScreen
@@ -100,6 +101,9 @@ fun AutoGramAppRoot(sharedUrl: String? = null, onSharedUrlConsumed: () -> Unit =
                     }
                     composable(Screen.Transfer.route) {
                         TransferScreen(viewModel = transferViewModel)
+                    }
+                    composable(Screen.Forwarder.route) {
+                        ForwarderScreen()
                     }
                     composable(Screen.Studio.route) {
                         StudioScreen(viewModel = driveViewModel)

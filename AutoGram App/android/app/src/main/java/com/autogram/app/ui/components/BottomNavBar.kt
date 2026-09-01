@@ -59,6 +59,7 @@ fun BottomNavBar(navController: NavController) {
                     val screenIcon = when (screen) {
                         is Screen.Drive -> Icons.Default.Cloud
                         is Screen.Transfer -> Icons.Default.SwapHoriz
+                        is Screen.Forwarder -> Icons.Default.SwapVert
                         is Screen.Studio -> Icons.Default.Palette
                         is Screen.Remote -> Icons.Default.Sensors
                         is Screen.Settings -> Icons.Default.Settings

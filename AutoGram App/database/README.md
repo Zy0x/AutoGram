@@ -148,6 +148,16 @@ Orchestrates channel-to-channel migration, message forwarding, and automated sch
 #### `message_mapping`
 Preserves bidirectional mapping between source and destination messages (`source_chat_id` + `source_msg_id` $\leftrightarrow$ `dest_chat_id` + `dest_msg_id`) to support synchronized edits and deletions.
 
+#### Media Forwarder V2 canonical extensions
+- `forwarder_job_configs`: canonical `JobConfigV2` snapshot, schema version, and optimistic revision for every forwarder job.
+- `job_revisions`: immutable local revision history used by conflict detection and explicit merge/replace operations.
+- `mirror_cursors`: Telegram `pts` and event cursor required for resumable realtime mirror reconciliation.
+- `decision_inbox`: durable `WAITING_USER` decisions for duplicates, restrictions, and stale revisions.
+- `notification_outbox`: idempotent OS/cloud/webhook delivery queue with retry state.
+- `retention_markers`: local retention deadlines and encrypted-export references before purge.
+
+The V2 payload is snake_case and versioned (`schema_version = 2`). Legacy job JSON remains readable through an adapter during the deprecation window.
+
 ---
 
 ## 3. Index Strategy & Query Optimization
