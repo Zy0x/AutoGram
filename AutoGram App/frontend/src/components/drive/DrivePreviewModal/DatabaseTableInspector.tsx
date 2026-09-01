@@ -48,10 +48,10 @@ export const DatabaseTableInspector: React.FC<Props> = ({ rawSqlOrText, fileName
         <div className="td-db-toolbar-left">
           <Database size={16} className="text-emerald-400" />
           <span className="td-db-title font-semibold">
-            {t('drive.db_inspector_title', 'Inspektor Skema & Tabel Database')}
+            {t('drive.db_inspector_title')}
           </span>
           <span className="td-db-stats">
-            ({tables.length} {t('drive.tables_found', 'tabel ditemukan')})
+            ({tables.length} {t('drive.tables_found')})
           </span>
         </div>
 
@@ -62,7 +62,7 @@ export const DatabaseTableInspector: React.FC<Props> = ({ rawSqlOrText, fileName
             onClick={handleCopy}
           >
             {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
-            <span>{copied ? t('drive.copied', 'Tersalin') : t('drive.copy_schema', 'Salin Skema')}</span>
+            <span>{copied ? t('drive.copied') : t('drive.copy_schema')}</span>
           </button>
         </div>
       </div>

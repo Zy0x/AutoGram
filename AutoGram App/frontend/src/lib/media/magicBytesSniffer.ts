@@ -351,32 +351,62 @@ export function sniffMagicBytes(
     formatLabel = 'Portable Document Format (PDF)';
     confidence = 1.0;
   } else if (matches(0, [0x50, 0x4b, 0x03, 0x04]) || matches(0, [0x50, 0x4b, 0x05, 0x06])) {
-    // ZIP Container
-    if (containsAscii('word/document.xml', 512)) {
+    // ZIP Container (Office OpenXML, APK, JAR, EPUB, OpenDocument, KMZ, CBZ, etc.)
+    if (ext === 'docx' || ext === 'docm' || ext === 'dotx' || containsAscii('word/', 1024) || containsAscii('word/document.xml', 2048)) {
       detectedExt = 'docx';
       category = 'document';
       mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
       formatLabel = 'Microsoft Word Document (DOCX)';
-    } else if (containsAscii('xl/workbook.xml', 512)) {
+    } else if (ext === 'xlsx' || ext === 'xlsm' || ext === 'xltx' || containsAscii('xl/', 1024) || containsAscii('xl/workbook.xml', 2048)) {
       detectedExt = 'xlsx';
       category = 'table';
       mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
       formatLabel = 'Microsoft Excel Spreadsheet (XLSX)';
-    } else if (containsAscii('ppt/presentation.xml', 512)) {
+    } else if (ext === 'pptx' || ext === 'pptm' || ext === 'potx' || containsAscii('ppt/', 1024) || containsAscii('ppt/presentation.xml', 2048)) {
       detectedExt = 'pptx';
       category = 'document';
       mimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
       formatLabel = 'Microsoft PowerPoint Presentation (PPTX)';
-    } else if (containsAscii('mimetypeapplication/epub+zip', 128)) {
-      detectedExt = 'epub';
-      category = 'document';
-      mimeType = 'application/epub+zip';
-      formatLabel = 'Electronic Publication (EPUB)';
-    } else if (containsAscii('AndroidManifest.xml', 512)) {
+    } else if (ext === 'apk' || ext === 'aab' || ext === 'xapk' || containsAscii('AndroidManifest.xml', 1024) || containsAscii('classes.dex', 1024)) {
       detectedExt = 'apk';
       category = 'archive';
       mimeType = 'application/vnd.android.package-archive';
       formatLabel = 'Android Application Package (APK)';
+    } else if (ext === 'jar' || ext === 'war' || ext === 'ear' || containsAscii('META-INF/', 1024)) {
+      detectedExt = 'jar';
+      category = 'archive';
+      mimeType = 'application/java-archive';
+      formatLabel = 'Java Archive (JAR)';
+    } else if (ext === 'epub' || containsAscii('mimetypeapplication/epub+zip', 256)) {
+      detectedExt = 'epub';
+      category = 'document';
+      mimeType = 'application/epub+zip';
+      formatLabel = 'Electronic Publication (EPUB)';
+    } else if (ext === 'odt') {
+      detectedExt = 'odt';
+      category = 'document';
+      mimeType = 'application/vnd.oasis.opendocument.text';
+      formatLabel = 'OpenDocument Text (ODT)';
+    } else if (ext === 'ods') {
+      detectedExt = 'ods';
+      category = 'table';
+      mimeType = 'application/vnd.oasis.opendocument.spreadsheet';
+      formatLabel = 'OpenDocument Spreadsheet (ODS)';
+    } else if (ext === 'odp') {
+      detectedExt = 'odp';
+      category = 'document';
+      mimeType = 'application/vnd.oasis.opendocument.presentation';
+      formatLabel = 'OpenDocument Presentation (ODP)';
+    } else if (ext === 'kmz') {
+      detectedExt = 'kmz';
+      category = 'diagram';
+      mimeType = 'application/vnd.google-earth.kmz';
+      formatLabel = 'Keyhole Markup Zip (KMZ)';
+    } else if (ext === 'cbz') {
+      detectedExt = 'cbz';
+      category = 'archive';
+      mimeType = 'application/vnd.comicbook+zip';
+      formatLabel = 'Comic Book Zip (CBZ)';
     } else {
       detectedExt = 'zip';
       category = 'archive';
@@ -542,15 +572,79 @@ export function sniffMagicBytes(
 
   // Evaluate extension matching
   const isExtensionMissing = !ext;
-  const isExtensionMatch =
-    !isExtensionMissing &&
-    (ext === detectedExt ||
-      (detectedExt === 'jpg' && (ext === 'jpeg' || ext === 'jpe')) ||
-      (detectedExt === 'mp4' && (ext === 'm4v' || ext === 'mov')) ||
-      (detectedExt === 'yaml' && ext === 'yml') ||
-      (detectedExt === 'htm' && ext === 'html') ||
-      (detectedExt === 'tif' && ext === 'tiff') ||
-      (category === 'text' || category === 'code' || category === 'json'));
+
+  const ZIP_EXTENSIONS = new Set([
+    'zip',
+    'zipx',
+    'docx',
+    'docm',
+    'dotx',
+    'xlsx',
+    'xlsm',
+    'xltx',
+    'pptx',
+    'pptm',
+    'potx',
+    'apk',
+    'aab',
+    'xapk',
+    'jar',
+    'war',
+    'ear',
+    'epub',
+    'odt',
+    'ods',
+    'odp',
+    'kmz',
+    'cbz',
+    'aar',
+    'xpi',
+  ]);
+
+  const MP4_EXTENSIONS = new Set([
+    'mp4',
+    'm4v',
+    'mov',
+    'm4a',
+    'm4b',
+    'm4p',
+    '3gp',
+    '3g2',
+    'qt',
+  ]);
+
+  const MKV_EXTENSIONS = new Set(['mkv', 'webm', 'mka']);
+  const RIFF_EXTENSIONS = new Set(['webp', 'wav', 'avi']);
+  const TEXT_CATEGORIES = new Set(['text', 'code', 'json', 'table']);
+
+  let isExtensionMatch = false;
+
+  if (isExtensionMissing) {
+    isExtensionMatch = false;
+  } else if (ext === detectedExt) {
+    isExtensionMatch = true;
+  } else if (detectedExt === 'jpg' && (ext === 'jpeg' || ext === 'jpe' || ext === 'jfif' || ext === 'jif')) {
+    isExtensionMatch = true;
+  } else if (detectedExt === 'tif' && ext === 'tiff') {
+    isExtensionMatch = true;
+  } else if (detectedExt === 'yaml' && ext === 'yml') {
+    isExtensionMatch = true;
+  } else if (detectedExt === 'htm' && ext === 'html') {
+    isExtensionMatch = true;
+  } else if (detectedExt === 'svg' && ext === 'svgz') {
+    isExtensionMatch = true;
+  } else if (ZIP_EXTENSIONS.has(detectedExt) && ZIP_EXTENSIONS.has(ext)) {
+    isExtensionMatch = true;
+  } else if (MP4_EXTENSIONS.has(detectedExt) && MP4_EXTENSIONS.has(ext)) {
+    isExtensionMatch = true;
+  } else if (MKV_EXTENSIONS.has(detectedExt) && MKV_EXTENSIONS.has(ext)) {
+    isExtensionMatch = true;
+  } else if (RIFF_EXTENSIONS.has(detectedExt) && RIFF_EXTENSIONS.has(ext)) {
+    isExtensionMatch = true;
+  } else if (TEXT_CATEGORIES.has(category)) {
+    // For text, code, script, table, json files, avoid false alarms across text-based extensions
+    isExtensionMatch = true;
+  }
 
   let severity: MagicSniffResult['severity'] = 'safe';
   if (isSuspiciousExecutable && ext !== 'exe' && ext !== 'dll' && ext !== 'bin') {

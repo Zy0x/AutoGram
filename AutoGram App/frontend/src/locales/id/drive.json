@@ -2403,5 +2403,10 @@
   "copy_schema": "Salin Skema",
   "tab_preview_ai": "Insight AI",
   "tab_preview_font": "Tipografi",
-  "tab_preview_db": "Skema DB"
+  "tab_preview_db": "Skema DB",
+  "copied": "Tersalin",
+  "copy": "Salin",
+  "session_label": "Sesi",
+  "preflight_bento_main_account": "Akun Utama",
+  "preflight_duplicate_badge_force": "Paksa Unggah"
 }

@@ -2405,5 +2405,10 @@
   "copy_schema": "Copy Schema",
   "tab_preview_ai": "AI Insight",
   "tab_preview_font": "Typography",
-  "tab_preview_db": "DB Schema"
+  "tab_preview_db": "DB Schema",
+  "copied": "Copied",
+  "copy": "Copy",
+  "session_label": "Session",
+  "preflight_bento_main_account": "Main Account",
+  "preflight_duplicate_badge_force": "Force Upload"
 }

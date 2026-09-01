@@ -75,7 +75,7 @@ export const HexInspector: React.FC<Props> = ({ bytes, fileName: _fileName }) =>
       <div className="td-hex-inspector-toolbar">
         <div className="td-hex-inspector-title">
           <Binary size={16} className="text-amber-400" />
-          <span>{t('drive.hex_inspector_title', 'Inspektor Hex & Biner')}</span>
+          <span>{t('drive.hex_inspector_title')}</span>
           <span className="td-hex-byte-count">
             ({totalBytes.toLocaleString()} bytes)
           </span>
@@ -86,10 +86,10 @@ export const HexInspector: React.FC<Props> = ({ bytes, fileName: _fileName }) =>
             type="button"
             className="td-btn-secondary td-btn-sm"
             onClick={handleCopyDump}
-            title={t('drive.hex_copy_page', 'Salin hex dump halaman ini')}
+            title={t('drive.hex_copy_page')}
           >
             {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
-            <span>{copied ? t('drive.copied', 'Tersalin') : t('drive.hex_copy', 'Salin Dump')}</span>
+            <span>{copied ? t('drive.copied') : t('drive.hex_copy')}</span>
           </button>
 
           {totalPages > 1 && (

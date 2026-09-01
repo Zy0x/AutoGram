@@ -225,7 +225,7 @@ Tolong berikan ringkasan eksekutif, poin-poin penting, dan rekomendasi tindak la
         <div className="td-ai-header-left">
           <div className="td-ai-sparkle-badge">
             <Sparkles size={14} className="text-amber-300" />
-            <span>{t('drive.ai_intelligence_title', 'AI File Understanding')}</span>
+            <span>{t('drive.ai_intelligence_title')}</span>
           </div>
           <span className="td-ai-category-badge">{insight.categoryLabel}</span>
           <span className={`td-ai-complexity-badge is-${insight.complexityLevel.toLowerCase()}`}>
@@ -267,7 +267,7 @@ Tolong berikan ringkasan eksekutif, poin-poin penting, dan rekomendasi tindak la
             onClick={activeTab === 'prompt' ? handleCopyPrompt : handleCopySummary}
           >
             {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
-            <span>{copied ? t('drive.copied', 'Tersalin') : activeTab === 'prompt' ? 'Salin Prompt' : 'Salin Insight'}</span>
+            <span>{copied ? t('drive.copied') : activeTab === 'prompt' ? 'Salin Prompt' : 'Salin Insight'}</span>
           </button>
         </div>
       </div>

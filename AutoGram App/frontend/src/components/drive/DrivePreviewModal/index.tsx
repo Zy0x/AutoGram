@@ -3954,7 +3954,7 @@ export function DrivePreviewModal({
                     className={`td-preview-tab-pill ${activeInspectorTab === 'preview' ? 'is-active' : ''}`}
                     onClick={() => setActiveInspectorTab('preview')}
                   >
-                    <span>{t('drive.tab_preview_visual', 'Pratinjau')}</span>
+                    <span>{t('drive.tab_preview_visual')}</span>
                   </button>
                   <button
                     type="button"
@@ -3964,7 +3964,7 @@ export function DrivePreviewModal({
                     onClick={() => setActiveInspectorTab('ai')}
                   >
                     <Sparkles size={12} className="text-amber-300 mr-1 inline" />
-                    <span>{t('drive.tab_preview_ai', 'Insight AI')}</span>
+                    <span>{t('drive.tab_preview_ai')}</span>
                   </button>
                   {isJsonFile && (
                     <button
@@ -3974,7 +3974,7 @@ export function DrivePreviewModal({
                       className={`td-preview-tab-pill ${activeInspectorTab === 'tree' ? 'is-active' : ''}`}
                       onClick={() => setActiveInspectorTab('tree')}
                     >
-                      <span>{t('drive.tab_preview_tree', 'Pohon Data')}</span>
+                      <span>{t('drive.tab_preview_tree')}</span>
                     </button>
                   )}
                   {isFontFile && (
@@ -3985,7 +3985,7 @@ export function DrivePreviewModal({
                       className={`td-preview-tab-pill ${activeInspectorTab === 'font' ? 'is-active' : ''}`}
                       onClick={() => setActiveInspectorTab('font')}
                     >
-                      <span>{t('drive.tab_preview_font', 'Tipografi')}</span>
+                      <span>{t('drive.tab_preview_font')}</span>
                     </button>
                   )}
                   {isDbFile && (
@@ -3996,7 +3996,7 @@ export function DrivePreviewModal({
                       className={`td-preview-tab-pill ${activeInspectorTab === 'db' ? 'is-active' : ''}`}
                       onClick={() => setActiveInspectorTab('db')}
                     >
-                      <span>{t('drive.tab_preview_db', 'Skema DB')}</span>
+                      <span>{t('drive.tab_preview_db')}</span>
                     </button>
                   )}
                   {isText && (
@@ -4007,7 +4007,7 @@ export function DrivePreviewModal({
                       className={`td-preview-tab-pill ${activeInspectorTab === 'code' ? 'is-active' : ''}`}
                       onClick={() => setActiveInspectorTab('code')}
                     >
-                      <span>{t('drive.tab_preview_code', 'Kode & Teks')}</span>
+                      <span>{t('drive.tab_preview_code')}</span>
                     </button>
                   )}
                   <button
@@ -4017,7 +4017,7 @@ export function DrivePreviewModal({
                     className={`td-preview-tab-pill ${activeInspectorTab === 'metadata' ? 'is-active' : ''}`}
                     onClick={() => setActiveInspectorTab('metadata')}
                   >
-                    <span>{t('drive.tab_preview_metadata', 'Metadata & EXIF')}</span>
+                    <span>{t('drive.tab_preview_metadata')}</span>
                   </button>
                   <button
                     type="button"
@@ -4026,7 +4026,7 @@ export function DrivePreviewModal({
                     className={`td-preview-tab-pill ${activeInspectorTab === 'hex' ? 'is-active' : ''}`}
                     onClick={() => setActiveInspectorTab('hex')}
                   >
-                    <span>{t('drive.tab_preview_hex', 'Hex Dump')}</span>
+                    <span>{t('drive.tab_preview_hex')}</span>
                   </button>
                 </div>
               )}

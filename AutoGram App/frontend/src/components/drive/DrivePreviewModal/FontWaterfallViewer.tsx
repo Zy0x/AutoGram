@@ -45,7 +45,7 @@ export const FontWaterfallViewer: React.FC<Props> = ({ fontSrc, fileName }) => {
         <div className="td-font-toolbar-left">
           <Type size={16} className="text-sky-400" />
           <span className="td-font-title font-semibold">
-            {t('drive.font_viewer_title', 'Inspektor Tipografi & Font')}
+            {t('drive.font_viewer_title')}
           </span>
           <span className="td-font-filename">({fileName})</span>
         </div>
@@ -82,7 +82,7 @@ export const FontWaterfallViewer: React.FC<Props> = ({ fontSrc, fileName }) => {
           type="text"
           value={sampleText}
           onChange={(e) => setSampleText(e.target.value)}
-          placeholder={t('drive.font_input_placeholder', 'Ketik teks sampel untuk diuji...')}
+          placeholder={t('drive.font_input_placeholder')}
           className="td-font-sample-input"
         />
         <button

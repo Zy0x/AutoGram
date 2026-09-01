@@ -68,10 +68,10 @@ export const LogViewer: React.FC<Props> = ({ logContent, fileName: _fileName }) 
         <div className="td-log-toolbar-left">
           <Terminal size={16} className="text-amber-400" />
           <span className="td-log-title font-semibold">
-            {t('drive.log_viewer_title', 'Log Stream Viewer')}
+            {t('drive.log_viewer_title')}
           </span>
           <span className="td-log-stats">
-            ({filteredLines.length.toLocaleString()} / {rawLines.length.toLocaleString()} {t('drive.lines', 'baris')})
+            ({filteredLines.length.toLocaleString()} / {rawLines.length.toLocaleString()} {t('drive.lines')})
           </span>
         </div>
 
@@ -107,7 +107,7 @@ export const LogViewer: React.FC<Props> = ({ logContent, fileName: _fileName }) 
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('drive.search_log_placeholder', 'Cari dalam log...')}
+              placeholder={t('drive.search_log_placeholder')}
               className="td-log-search-input"
             />
           </div>
@@ -116,7 +116,7 @@ export const LogViewer: React.FC<Props> = ({ logContent, fileName: _fileName }) 
             type="button"
             className={`td-btn-secondary td-btn-xs ${autoScroll ? 'is-active' : ''}`}
             onClick={() => setAutoScroll((prev) => !prev)}
-            title={t('drive.auto_scroll', 'Ikuti baris terbaru (Auto-tail)')}
+            title={t('drive.auto_scroll')}
           >
             <ArrowDownToLine size={13} />
           </button>
@@ -127,7 +127,7 @@ export const LogViewer: React.FC<Props> = ({ logContent, fileName: _fileName }) 
             onClick={handleCopy}
           >
             {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
-            <span>{copied ? t('drive.copied', 'Tersalin') : t('drive.copy', 'Salin')}</span>
+            <span>{copied ? t('drive.copied') : t('drive.copy')}</span>
           </button>
         </div>
       </div>

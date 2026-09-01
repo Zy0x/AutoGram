@@ -95,10 +95,10 @@ export const TabularDataViewer: React.FC<Props> = ({ rawCsv, delimiter = ',', fi
         <div className="td-table-toolbar-left">
           <Table size={16} className="text-sky-400" />
           <span className="td-table-title font-semibold">
-            {t('drive.table_viewer_title', 'Pratinjau Tabel Data')}
+            {t('drive.table_viewer_title')}
           </span>
           <span className="td-table-stats">
-            ({rows.length.toLocaleString()} {t('drive.rows', 'baris')} × {headers.length} {t('drive.cols', 'kolom')})
+            ({rows.length.toLocaleString()} {t('drive.rows')} × {headers.length} {t('drive.cols')})
           </span>
         </div>
 
@@ -112,7 +112,7 @@ export const TabularDataViewer: React.FC<Props> = ({ rawCsv, delimiter = ',', fi
                 setSearchQuery(e.target.value);
                 setPage(0);
               }}
-              placeholder={t('drive.search_table_placeholder', 'Filter tabel...')}
+              placeholder={t('drive.search_table_placeholder')}
               className="td-table-search-input"
             />
           </div>
@@ -123,7 +123,7 @@ export const TabularDataViewer: React.FC<Props> = ({ rawCsv, delimiter = ',', fi
             onClick={handleCopy}
           >
             {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
-            <span>{copied ? t('drive.copied', 'Tersalin') : t('drive.copy_csv', 'Salin CSV')}</span>
+            <span>{copied ? t('drive.copied') : t('drive.copy_csv')}</span>
           </button>
         </div>
       </div>
@@ -165,7 +165,7 @@ export const TabularDataViewer: React.FC<Props> = ({ rawCsv, delimiter = ',', fi
       {totalPages > 1 && (
         <div className="td-table-pagination-bar">
           <div className="td-table-page-info">
-            {t('drive.showing_range', 'Menampilkan {{start}} - {{end}} dari {{total}} baris', {
+            {t('drive.showing_range', {
               start: page * pageSize + 1,
               end: Math.min(sortedRows.length, (page + 1) * pageSize),
               total: sortedRows.length,

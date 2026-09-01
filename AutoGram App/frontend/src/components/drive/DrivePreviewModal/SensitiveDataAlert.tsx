@@ -26,7 +26,7 @@ export const SensitiveDataAlert: React.FC<Props> = ({
         </div>
         <div className="td-sensitive-alert-text">
           <strong>
-            {t('drive.sensitive_detected_title', 'Terdeteksi {{count}} Kunci / Kredensial Rahasia', {
+            {t('drive.sensitive_detected_title', {
               count: scanResult.totalFound,
             })}
           </strong>
@@ -43,15 +43,15 @@ export const SensitiveDataAlert: React.FC<Props> = ({
           onClick={onToggleMask}
           title={
             isMasked
-              ? t('drive.sensitive_show_tooltip', 'Tampilkan teks asli tanpa sensor')
-              : t('drive.sensitive_mask_tooltip', 'Sensor data rahasia untuk keamanan')
+              ? t('drive.sensitive_show_tooltip')
+              : t('drive.sensitive_mask_tooltip')
           }
         >
           {isMasked ? <EyeOff size={13} /> : <Eye size={13} />}
           <span>
             {isMasked
-              ? t('drive.sensitive_masked_btn', 'Sensor Aktif (Aman)')
-              : t('drive.sensitive_unmasked_btn', 'Buka Sensor')}
+              ? t('drive.sensitive_masked_btn')
+              : t('drive.sensitive_unmasked_btn')}
           </span>
         </button>
       </div>

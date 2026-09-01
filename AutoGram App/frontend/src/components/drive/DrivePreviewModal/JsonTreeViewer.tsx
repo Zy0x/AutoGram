@@ -32,7 +32,7 @@ export const JsonTreeViewer: React.FC<Props> = ({ jsonString, fileName: _fileNam
       <div className="td-json-error-card">
         <Braces size={24} className="text-amber-400" />
         <div className="td-json-error-title">
-          {t('drive.json_parse_error', 'Format JSON Tidak Valid')}
+          {t('drive.json_parse_error')}
         </div>
         <p className="td-json-error-desc">{parsedData.error}</p>
       </div>
@@ -45,7 +45,7 @@ export const JsonTreeViewer: React.FC<Props> = ({ jsonString, fileName: _fileNam
         <div className="td-json-toolbar-left">
           <FolderTree size={16} className="text-emerald-400" />
           <span className="td-json-title font-semibold">
-            {t('drive.json_tree_title', 'Pohon Data Terstruktur')}
+            {t('drive.json_tree_title')}
           </span>
         </div>
 
@@ -56,7 +56,7 @@ export const JsonTreeViewer: React.FC<Props> = ({ jsonString, fileName: _fileNam
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('drive.search_tree_placeholder', 'Cari key / value...')}
+              placeholder={t('drive.search_tree_placeholder')}
               className="td-json-search-input"
             />
           </div>
@@ -66,7 +66,7 @@ export const JsonTreeViewer: React.FC<Props> = ({ jsonString, fileName: _fileNam
             className="td-btn-secondary td-btn-xs"
             onClick={() => setExpandAll((prev) => !prev)}
           >
-            <span>{expandAll ? t('drive.collapse_all', 'Tutup Semua') : t('drive.expand_all', 'Buka Semua')}</span>
+            <span>{expandAll ? t('drive.collapse_all') : t('drive.expand_all')}</span>
           </button>
 
           <button
@@ -75,7 +75,7 @@ export const JsonTreeViewer: React.FC<Props> = ({ jsonString, fileName: _fileNam
             onClick={handleCopy}
           >
             {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
-            <span>{copied ? t('drive.copied', 'Tersalin') : t('drive.copy_json', 'Salin JSON')}</span>
+            <span>{copied ? t('drive.copied') : t('drive.copy_json')}</span>
           </button>
         </div>
       </div>

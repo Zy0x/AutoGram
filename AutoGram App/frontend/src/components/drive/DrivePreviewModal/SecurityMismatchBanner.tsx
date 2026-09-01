@@ -43,35 +43,33 @@ export const SecurityMismatchBanner: React.FC<Props> = ({
         <div className="td-mismatch-text">
           <div className="td-mismatch-title">
             {isDanger
-              ? t('drive.security_danger_executable_title', 'Peringatan Keamanan: Berkas Executable Menyamar!')
+              ? t('drive.security_danger_executable_title')
               : isWarning
-              ? t('drive.security_mismatch_title', 'Peringatan: Ekstensi Berkas Tidak Sesuai!')
-              : t('drive.security_missing_ext_title', 'Informasi: Ekstensi Berkas Belum Terpasang')}
+              ? t('drive.security_mismatch_title')
+              : t('drive.security_missing_ext_title')}
           </div>
           <div className="td-mismatch-desc">
             {isDanger ? (
               <span>
-                {t(
-                  'drive.security_danger_executable_desc',
-                  'Berkas ini memiliki format biner executable ({{format}}), namun bernama "{{name}}". Jangan jalankan secara sembarangan!',
-                  { format: sniffResult.formatLabel, name: currentFilename }
-                )}
+                {t('drive.security_danger_executable_desc', {
+                  format: sniffResult.formatLabel,
+                  name: currentFilename,
+                })}
               </span>
             ) : isWarning ? (
               <span>
-                {t(
-                  'drive.security_mismatch_desc',
-                  'Berkas bernama "{{name}}" terdeteksi memiliki format asli {{format}} (.{{ext}}).',
-                  { name: currentFilename, format: sniffResult.formatLabel, ext: sniffResult.detectedExt }
-                )}
+                {t('drive.security_mismatch_desc', {
+                  name: currentFilename,
+                  format: sniffResult.formatLabel,
+                  ext: sniffResult.detectedExt,
+                })}
               </span>
             ) : (
               <span>
-                {t(
-                  'drive.security_missing_ext_desc',
-                  'Format asli terdeteksi sebagai {{format}} (.{{ext}}). Disarankan melengkapi ekstensi.',
-                  { format: sniffResult.formatLabel, ext: sniffResult.detectedExt }
-                )}
+                {t('drive.security_missing_ext_desc', {
+                  format: sniffResult.formatLabel,
+                  ext: sniffResult.detectedExt,
+                })}
               </span>
             )}
           </div>
@@ -85,7 +83,7 @@ export const SecurityMismatchBanner: React.FC<Props> = ({
             className="td-btn-primary td-btn-sm td-mismatch-fix-btn"
             onClick={() => onFixExtension(sniffResult.suggestedFilename)}
             disabled={isFixing}
-            title={t('drive.security_fix_ext_tooltip', 'Ubah nama berkas dan perbaiki ekstensi')}
+            title={t('drive.security_fix_ext_tooltip')}
           >
             {isFixing ? (
               <CheckCircle2 size={13} className="animate-spin" />
@@ -93,7 +91,7 @@ export const SecurityMismatchBanner: React.FC<Props> = ({
               <Wrench size={13} />
             )}
             <span>
-              {t('drive.security_fix_to_ext', 'Perbaiki Ekstensi ke .{{ext}}', {
+              {t('drive.security_fix_to_ext', {
                 ext: sniffResult.detectedExt,
               })}
             </span>

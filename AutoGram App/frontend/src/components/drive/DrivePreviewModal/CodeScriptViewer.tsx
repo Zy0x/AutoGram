@@ -69,7 +69,7 @@ export const CodeScriptViewer: React.FC<Props> = ({ code, language = 'text', fil
           <FileCode size={16} className="text-sky-400" />
           <span className="td-code-lang-badge">{language.toUpperCase()}</span>
           <span className="td-code-line-count">
-            {lines.length.toLocaleString()} {t('drive.lines', 'baris')}
+            {lines.length.toLocaleString()} {t('drive.lines')}
           </span>
         </div>
 
@@ -81,13 +81,13 @@ export const CodeScriptViewer: React.FC<Props> = ({ code, language = 'text', fil
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('drive.search_placeholder', 'Cari dalam kode...')}
+                placeholder={t('drive.search_placeholder')}
                 className="td-code-search-input"
                 autoFocus
               />
               {filteredLineIndices && (
                 <span className="td-code-search-count">
-                  {filteredLineIndices.length} {t('drive.matches', 'cocok')}
+                  {filteredLineIndices.length} {t('drive.matches')}
                 </span>
               )}
             </div>
@@ -106,7 +106,7 @@ export const CodeScriptViewer: React.FC<Props> = ({ code, language = 'text', fil
             type="button"
             className={`td-btn-secondary td-btn-xs ${wordWrap ? 'is-active' : ''}`}
             onClick={() => setWordWrap((prev) => !prev)}
-            title={t('drive.toggle_word_wrap', 'Bungkus baris panjang')}
+            title={t('drive.toggle_word_wrap')}
           >
             <WrapText size={13} />
           </button>
@@ -115,10 +115,10 @@ export const CodeScriptViewer: React.FC<Props> = ({ code, language = 'text', fil
             type="button"
             className="td-btn-secondary td-btn-xs"
             onClick={handleCopy}
-            title={t('drive.copy_code', 'Salin seluruh kode')}
+            title={t('drive.copy_code')}
           >
             {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
-            <span>{copied ? t('drive.copied', 'Tersalin') : t('drive.copy', 'Salin')}</span>
+            <span>{copied ? t('drive.copied') : t('drive.copy')}</span>
           </button>
         </div>
       </div>
