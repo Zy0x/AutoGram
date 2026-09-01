@@ -15239,23 +15239,24 @@ body:has(.app-layout-drive-focus),
 }
 .td-preflight-thumb-duration-badge {
   position: absolute;
-  right: 2px;
-  bottom: 2px;
-  padding: 1px 4px;
-  border-radius: 3px;
-  background: rgba(2, 6, 23, 0.85);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: #f8fafc;
-  font-size: 0.60rem;
+  right: 3px;
+  bottom: 3px;
+  padding: 1.5px 5px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  font-size: 0.68rem;
   font-weight: 700;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  line-height: 1.15;
+  line-height: 1.2;
   letter-spacing: 0.02em;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  box-shadow: 0 1.5px 5px rgba(0, 0, 0, 0.7);
   pointer-events: none;
-  z-index: 2;
+  z-index: 5;
 }
 .td-preflight-icon-thumb {
   display: flex;

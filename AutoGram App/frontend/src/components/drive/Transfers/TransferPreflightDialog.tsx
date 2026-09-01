@@ -184,16 +184,22 @@ function PreflightSourceThumb({
       }
     };
 
-    const onLoadedMetadata = () => {
+    const updateDuration = () => {
       if (!active || cleanedUp) return;
       const dur = video.duration;
       if (Number.isFinite(dur) && dur > 0) {
         preflightDurationCache.set(rawPath, dur);
         setDuration(dur);
       }
+    };
+
+    const onLoadedMetadata = () => {
+      if (!active || cleanedUp) return;
+      updateDuration();
 
       if (!hasCachedThumb) {
-        const targetTime = Math.min(1.0, dur > 2 ? 1.0 : dur / 2);
+        const dur = video.duration;
+        const targetTime = Number.isFinite(dur) && dur > 0 ? Math.min(1.0, dur > 2 ? 1.0 : dur / 2) : 1.0;
         try {
           video.currentTime = targetTime;
         } catch {
@@ -206,10 +212,14 @@ function PreflightSourceThumb({
 
     const onSeeked = () => {
       if (!active || cleanedUp) return;
+      updateDuration();
       requestAnimationFrame(doCapture);
     };
 
+    video.addEventListener('durationchange', updateDuration);
     video.addEventListener('loadedmetadata', onLoadedMetadata, { once: true });
+    video.addEventListener('loadeddata', updateDuration);
+    video.addEventListener('canplay', updateDuration);
     video.addEventListener('seeked', onSeeked, { once: true });
     video.addEventListener('error', cleanup, { once: true });
 

@@ -93,6 +93,24 @@ create table if not exists public.api_audit_logs (
   metadata jsonb not null default '{}',
   created_at timestamptz not null default now()
 );
+create table if not exists public.api_clients (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  name text not null,
+  key_hash text not null,
+  scopes text[] not null default '{}',
+  revoked_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create table if not exists public.encryption_metadata (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  device_id uuid references public.devices(id) on delete cascade,
+  key_id text not null,
+  algorithm text not null default 'AES-256-GCM',
+  created_at timestamptz not null default now(),
+  unique(user_id, key_id)
+);
 
 create index if not exists idx_forwarder_jobs_user_status on public.forwarder_jobs(user_id, status);
 create index if not exists idx_relay_commands_claim on public.relay_commands(device_id, status, created_at);
@@ -107,6 +125,8 @@ alter table public.relay_commands enable row level security;
 alter table public.decision_inbox enable row level security;
 alter table public.webhook_subscriptions enable row level security;
 alter table public.api_audit_logs enable row level security;
+alter table public.api_clients enable row level security;
+alter table public.encryption_metadata enable row level security;
 
 create policy devices_owner on public.devices for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy jobs_owner on public.forwarder_jobs for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
@@ -117,3 +137,5 @@ create policy relay_owner on public.relay_commands for all using (auth.uid() = u
 create policy decisions_owner on public.decision_inbox for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy webhooks_owner on public.webhook_subscriptions for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy audit_owner on public.api_audit_logs for select using (auth.uid() = user_id);
+create policy api_clients_owner on public.api_clients for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy encryption_owner on public.encryption_metadata for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

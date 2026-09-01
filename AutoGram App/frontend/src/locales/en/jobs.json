@@ -84,5 +84,11 @@
   "action_rerun": "Re-run",
   "action_retry_failed": "Retry failed {{count}}",
   "retry_failed_tooltip": "Retry only failed messages from the last execution",
-  "retry_unavailable_tooltip": "No previous execution is available to retry"
+  "retry_unavailable_tooltip": "No previous execution is available to retry",
+  "decision_inbox_tab": "Decisions",
+  "decision_inbox_title": "Decision inbox",
+  "decision_inbox_loading": "Loading pending decisions…",
+  "decision_inbox_empty": "No decisions are waiting.",
+  "decision_skip": "Skip",
+  "decision_keep_both": "Keep both"
 }

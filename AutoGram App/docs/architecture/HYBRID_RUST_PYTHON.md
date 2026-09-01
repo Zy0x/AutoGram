@@ -2,13 +2,13 @@
 
 ## Goal
 
-**Rust is the default backend** for orchestration, local I/O, and (where parity exists)
-**Grammers MTProto**. Python **Telethon** remains the companion for features that are not
-yet fully ported: multi-DC seek progressive fill, full Media Studio (album/reencode/remote),
-and migration.
+**Rust + Grammers is the production backend** for orchestration, local I/O, and Telegram
+MTProto. Python/Telethon is retained only as a compatibility/import adapter and is not an
+execution runtime for Forwarder V2.
 
 **Hard rule:** never break existing Media Drive, Studio transfer, migration, or auth
-flows. Migrations are dual-path (new path first, automatic fallback).
+flows. New Forwarder execution is official-API-only with capability routing and retry;
+there is no undocumented or restriction-bypassing fallback.
 
 ## Status (honest — hybrid Phase 6)
 
@@ -16,30 +16,30 @@ flows. Migrations are dual-path (new path first, automatic fallback).
 |--------|-------------|--------|
 | Worker spawn / lease / secrets | **Rust** | |
 | Stream HTTP Range serve | **Rust** | tiny_http |
-| Progressive video preview | **Python Telethon + Rust Range** | moov/multi-DC; Grammers video progressive deferred (reload-loop risk) |
+| Progressive video preview | **Rust Grammers + Rust Range** | local range proxy and sparse readers |
 | Progressive image (small full) | **Rust Grammers** | dual-path when warm idle |
-| Progressive seek / multi-DC | **Python Telethon** | media_stream advanced path |
+| Progressive seek / multi-DC | **Rust Grammers** | native MTProto range path |
 | Drive list / dialogs (first paint) | **Rust Grammers first** | only when Telethon warm idle |
 | Thumbs batch / forum topics | **Rust Grammers first** | dual-path when warm idle |
-| Drive warm RPC (bootstrap extras) | **Python Telethon** | drive-serve when warm |
+| Drive warm RPC (bootstrap extras) | **Rust Grammers** | native command path |
 | Studio upload (local files) | **Rust Grammers first** | fallback studio-serve → media-studio |
 | Studio album (2–10 local) | **Rust Grammers first** | `send_album`; >10 or remote → Telethon |
 | Full download ≤200MB | **Rust Grammers** | larger → progressive |
-| Media studio reencode / album / remote | **Python Telethon** | |
-| Migration engine | **Python Telethon** | |
+| Media studio reencode / album / remote | **Rust Grammers** | |
+| Migration engine | **Rust Grammers** | Forwarder V2 pipeline |
 | Auth / dialogs / simple upload | **Rust Grammers** | `tg_*` |
 
-### Not full Grammers yet
+### Compatibility boundary
 
-Multi-DC concurrent seek, album upload, reencode, and migration engine remain Telethon.
-Sequential progressive + thumbs/topics/list/upload cover the common interactive path.
+Legacy daemon commands may still be imported during the deprecation window, but all new
+forwarder jobs use the versioned Rust contract and local encrypted credential vault.
 
 ### Env
 
 | Variable | Meaning |
 |----------|---------|
-| `AUTOGRAM_TELEGRAM_BACKEND=grammers` | Default — prefer Grammers dual-path |
-| `AUTOGRAM_TELEGRAM_BACKEND=telethon` | Force Telethon for orch + dual-path |
+| `AUTOGRAM_TELEGRAM_BACKEND=grammers` | Production Rust/Grammers path |
+| `AUTOGRAM_TELEGRAM_BACKEND=telethon` | Legacy compatibility/import only |
 | `AUTOGRAM_SESSIONS_DIR` | `worker/sessions` |
 | `AUTOGRAM_DEBUG=1` | Verbose multi-layer logs |
 

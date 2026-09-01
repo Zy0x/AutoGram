@@ -10,14 +10,18 @@ Dokumen ini mencatat semua keputusan arsitektur tingkat tinggi beserta alasannya
 - Dibandingkan Electron (Chromium + Node.js), Tauri jauh lebih ringan (menggunakan Webview bawaan OS) dan hemat RAM.
 - *Memory management* Rust memastikan aplikasi tidak akan mengalami *crash* akibat *Out-of-Memory* (OOM) saat memproses antrean jutaan pesan media Telegram.
 
-## ADR-002: Pemisahan Telegram API Engine (Python Worker)
+## ADR-002: Native Telegram API Engine (Rust + Grammers)
 **Status**: Diterima
 **Konteks**: Modul MTProto Telegram di berbagai bahasa memiliki tingkat kematangan berbeda.
-**Keputusan**: Interaksi dengan Telegram API (login, ambil pesan, *forward/send*) **wajib dipisah** sebagai servis *Worker* independen menggunakan bahasa **Python (library Telethon)**.
+**Status: superseded.** Interaksi Telegram untuk Forwarder V2 (login, scan, forward/send,
+download/upload, retry, dan reconciliation) berjalan di Rust menggunakan Grammers. Legacy
+Python/Telethon hanya dipertahankan sebagai compatibility/import adapter selama deprecation
+window dan tidak menerima execution baru.
 **Alasan**:
 - Menulis ulang *MTProto client* murni menggunakan Rust sangat rumit dan lambat proses pengembangannya.
-- Telethon di Python sangat stabil dan kaya fitur (terutama *Forum Topics*).
-- Dengan memisahkannya sebagai *worker*, jika skrip Python mengalami *FloodWait* atau *Crash*, UI React dan Core Rust tidak akan membeku (*freeze*).
+- Native session lease, encrypted credential vault, dan Tauri IPC menjaga secret tetap lokal.
+- Worker crash/isolation digantikan oleh Rust queue, classified retry, FloodWait circuit breaker,
+  checkpoint, dan cooperative cancellation.
 
 ## ADR-003: Penyimpanan Status Migrasi (Local Database)
 **Status**: Diterima

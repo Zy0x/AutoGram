@@ -939,6 +939,16 @@ fn jobs_delete(job_id: i64) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn jobs_decision_inbox(job_id: Option<i64>) -> Result<Vec<core::jobs_db::DecisionInboxRow>, String> {
+    core::jobs_db::list_decision_inbox(job_id)
+}
+
+#[tauri::command]
+fn jobs_resolve_decision(decision_id: i64, decision: String) -> Result<(), String> {
+    core::jobs_db::resolve_decision(decision_id, &decision)
+}
+
+#[tauri::command]
 fn jobs_start_execution(job_id: i64) -> Result<i64, String> {
     core::jobs_db::start_execution(job_id)
 }
@@ -3017,6 +3027,8 @@ pub fn run() {
             jobs_create,
             jobs_edit,
             jobs_delete,
+            jobs_decision_inbox,
+            jobs_resolve_decision,
             jobs_start_execution,
             jobs_run_migration,
             jobs_dry_run,

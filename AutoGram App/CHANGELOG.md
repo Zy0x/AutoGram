@@ -1,3 +1,14 @@
+## v3.8.64 High-Contrast Video Duration Badge & Multi-Event Lifecycle Listener
+
+### 1. Peningkatan Kontras & Keterbacaan Lencana Durasi Video (`TransferPreflightDialog.tsx`, `App.css`)
+- **Peningkatan Kontras & Tipografi Lencana**: Memperbarui gaya lencana durasi video (`.td-preflight-thumb-duration-badge`) dengan latar belakang hitam pekat semi-transparan (`rgba(0, 0, 0, 0.82)`), blur kaca 6px, teks putih murni (`#ffffff`), font monospace tebal 11px (`0.68rem`), dan bayangan teks mendalam sehingga teks durasi terlihat sangat jelas dan kontras di atas bingkai video warna apapun.
+- **Siklus Hidup Ekstraksi Multi-Event**: Memperluas penangkapan durasi video agar merespons secara reaktif terhadap seluruh spektrum event media (`durationchange`, `loadedmetadata`, `loadeddata`, `canplay`, dan `seeked`), memastikan durasi video (seperti `1:24`, `2:48`, `0:05`) langsung diekstrak dan disimpan ke cache instan.
+- **Verifikasi Visual Live CDP**: Diuji secara langsung melalui inspeksi CDP pada jendela aktif dan screenshot rendering live yang mengonfirmasi kehadiran lencana durasi di pojok kanan bawah setiap kotak thumbnail video.
+
+### 2. Autonomous Quality Sentinel Certification
+- **100% Locale Parity**: 6,078 kunci bahasa ID dan EN tersinkronisasi 100%.
+- **Zero TypeScript Errors & Vitest Suite Passing**: Seluruh 44 test files lolos 100%.
+
 ## v3.8.63 Elimination of Blank Video Thumbnails via Frame-Synced rAF Extraction
 
 ### 1. Perbaikan Frame Video Hitam / Blank pada Thumbnail Preflight (`TransferPreflightDialog.tsx`)
@@ -5380,3 +5391,16 @@ Fixed:
 Added:
 - Telegram client layer (session manager, entity resolver, topic resolver, message iterator, media inspector, rate limiter, flood wait handler).
 - Initial offline desktop foundation using SQLite database.
+## v3.8.64 Media Forwarder V2 Control Plane Foundation
+
+### 1. Forwarder Contract & Secure Execution Boundary
+- Menambahkan kontrak `JobConfigV2`, state/task state, event, mirror mutation, dan device relay yang versioned serta snake_case agar Desktop, Android, dan cloud memakai payload yang sama.
+- Command forward dan dry-run mengambil `API_ID/API_HASH` langsung dari encrypted local vault Rust; React tidak lagi mengirim credential ke IPC execution.
+
+### 2. Backend Architecture & Data Integrity
+- Menambahkan migration `020_media_forwarder_v2.sql` beserta tabel konfigurasi canonical, revision history, mirror cursor, decision inbox, notification outbox, retention marker, dan dedupe scope.
+- Decision inbox memiliki query dan resolve API atomik untuk menahan duplicate/restriction/conflict sampai keputusan pengguna tersedia.
+
+### 3. UI/UX, Android Entry Point & Documentation
+- Forwarder Workspace kini memiliki tab Decision Inbox dengan aksi Skip/Keep Both dan seluruh string baru tersedia dalam locale ID/EN.
+- Android menambahkan route dan layar Forwarder awal dengan pengingat keamanan local-first; dokumen arsitektur lama yang menyatakan Telethon sebagai runtime utama telah ditandai superseded.

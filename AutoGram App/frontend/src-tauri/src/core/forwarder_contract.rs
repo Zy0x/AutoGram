@@ -7,6 +7,14 @@ use serde_json::{Map, Value};
 
 pub const JOB_CONFIG_SCHEMA_VERSION: u32 = 2;
 
+pub const REASON_CODES: &[&str] = &[
+    "FILTERED_MEDIA_TYPE", "FILTERED_DATE", "FILTERED_SIZE",
+    "DUPLICATE_MESSAGE_ID", "DUPLICATE_UNIQUE_ID", "DUPLICATE_SHA256",
+    "DUPLICATE_NAME_SIZE", "FORWARD_RESTRICTED", "DOWNLOAD_NOT_ALLOWED",
+    "DESTINATION_PERMISSION_DENIED", "FLOOD_WAIT", "UNKNOWN_COMMIT",
+    "USER_DECISION_REQUIRED",
+];
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum JobStateV2 {

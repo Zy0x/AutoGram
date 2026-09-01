@@ -1,5 +1,12 @@
 # Rust + Grammers Backend (Force — no Telethon runtime)
 
+## Media Forwarder V2 boundary
+
+Forwarder jobs use the versioned `JobConfigV2` contract and execute through the local Rust
+pipeline. API credentials are resolved from the encrypted vault inside Tauri commands. The
+SQLite V2 extensions provide resumability, mirror cursors, explicit user decisions, and
+retention metadata without placing Telegram sessions or raw media in cloud storage.
+
 ## Status (v2.8.7)
 
 **Interactive Media Drive, Studio upload, and Shared Core (`autogram-core`) are Grammers-only on desktop.**
@@ -43,4 +50,3 @@ Studio orchestrator no longer falls back to `studio-serve`.
 3. Document rename re-upload pipeline + ZIP-in-message write back
 4. Profiles/Automation/Statistics pure Rust SQLite UI integration
 5. Remove legacy worker packaging from release
-

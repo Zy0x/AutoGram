@@ -8,8 +8,10 @@ import {
   Zap,
   Key,
   SlidersHorizontal,
+  Inbox,
 } from 'lucide-react';
 import { Jobs } from '../Jobs';
+import { DecisionInbox } from '../../components/Forwarder/DecisionInbox';
 import { useApiCredentialsStatus } from '../../lib/tauri/secureCredentials';
 
 interface ForwarderWorkspaceProps {
@@ -29,7 +31,7 @@ export function ForwarderWorkspace({
 }: ForwarderWorkspaceProps) {
   const { t } = useTranslation();
   const { hasError: hasApiError } = useApiCredentialsStatus();
-  const [activeTab, setActiveTab] = useState<'jobs' | 'new_job' | 'history' | 'settings'>('jobs');
+  const [activeTab, setActiveTab] = useState<'jobs' | 'new_job' | 'history' | 'decisions' | 'settings'>('jobs');
 
   return (
     <div className="ag-forwarder-shell">
@@ -98,6 +100,17 @@ export function ForwarderWorkspace({
 
         <button
           type="button"
+          onClick={() => setActiveTab('decisions')}
+          className={`ag-forwarder-tab${activeTab === 'decisions' ? ' is-active' : ''}`}
+          role="tab"
+          aria-selected={activeTab === 'decisions'}
+        >
+          <Inbox size={14} />
+          <span>{t('jobs.decision_inbox_tab')}</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveTab('new_job')}
           className={`ag-forwarder-tab${activeTab === 'new_job' ? ' is-active' : ''}`}
           role="tab"
@@ -121,7 +134,7 @@ export function ForwarderWorkspace({
 
       {/* MAIN VIEWPORT */}
       <main className="ag-forwarder-main">
-        <Jobs entryView={activeTab === 'new_job' ? 'new' : activeTab} />
+        {activeTab === 'decisions' ? <DecisionInbox /> : <Jobs entryView={activeTab === 'new_job' ? 'new' : activeTab} />}
       </main>
     </div>
   );

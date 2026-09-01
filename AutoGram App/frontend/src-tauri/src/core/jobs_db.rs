@@ -448,6 +448,37 @@ pub fn edit_job(req: &EditJobRequest) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DecisionInboxRow {
+    pub id: i64,
+    pub job_id: i64,
+    pub execution_id: Option<i64>,
+    pub task_id: Option<i64>,
+    pub decision_type: String,
+    pub reason_code: String,
+    pub payload_json: String,
+    pub status: String,
+    pub created_at: String,
+}
+
+pub fn list_decision_inbox(job_id: Option<i64>) -> Result<Vec<DecisionInboxRow>, String> {
+    let conn = open_db()?;
+    let mut out = Vec::new();
+    let sql = "SELECT id, job_id, execution_id, task_id, decision_type, reason_code, payload_json, status, created_at FROM decision_inbox WHERE (?1 IS NULL OR job_id=?1) AND status='OPEN' ORDER BY created_at ASC";
+    let mut stmt = conn.prepare(sql).map_err(|e| e.to_string())?;
+    let rows = stmt.query_map(params![job_id], |r| Ok(DecisionInboxRow { id:r.get(0)?, job_id:r.get(1)?, execution_id:r.get(2)?, task_id:r.get(3)?, decision_type:r.get(4)?, reason_code:r.get(5)?, payload_json:r.get(6)?, status:r.get(7)?, created_at:r.get(8)? })).map_err(|e| e.to_string())?;
+    for row in rows { out.push(row.map_err(|e| e.to_string())?); }
+    Ok(out)
+}
+
+pub fn resolve_decision(id: i64, decision: &str) -> Result<(), String> {
+    let conn = open_db()?;
+    let changed = conn.execute("UPDATE decision_inbox SET status='RESOLVED', resolved_by=?1, resolved_at=datetime('now') WHERE id=?2 AND status='OPEN'", params![decision, id]).map_err(|e| e.to_string())?;
+    if changed == 0 { return Err(format!("decision {id} not found or already resolved")); }
+    Ok(())
+}
+
 pub fn delete_job(job_id: i64) -> Result<(), String> {
     let conn = open_db()?;
     conn.execute("DELETE FROM executions WHERE job_id = ?1", params![job_id])

@@ -4,9 +4,15 @@
     <string name="app_tagline">Telegram Cloud Suite</string>
     <string name="nav_drive">Drive</string>
     <string name="nav_transfer">Transfers</string>
+    <string name="nav_forwarder">Forwarder</string>
     <string name="nav_studio">Studio</string>
     <string name="nav_remote">Remote</string>
     <string name="nav_settings">Settings</string>
+    <string name="forwarder_title">Media Forwarder</string>
+    <string name="forwarder_subtitle">Manage forward, clean copy, and schedules from this device.</string>
+    <string name="forwarder_new_job">Create new job</string>
+    <string name="forwarder_local_execution">Local execution</string>
+    <string name="forwarder_security_note">Jobs use the encrypted Telegram session on this device; credentials never go to the cloud.</string>
 
     <string name="drive_search_placeholder">Search files or folders…</string>
     <string name="drive_title">Cloud Drives</string>

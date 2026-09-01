@@ -1,13 +1,16 @@
-# Development Roadmap
+# Development Roadmap (Forwarder V2)
+
+> Updated for the Rust + Grammers production architecture. Python/Telethon is a legacy
+> compatibility adapter only; it is not a Forwarder execution backend.
 
 ## Phase 1: Offline Desktop Foundation (Current Focus)
 **Tujuan**: Membangun *Local-first Application* yang aman dan berfungsi penuh.
 - [ ] Inisialisasi *Workspace* (Tauri + React + Rust).
-- [ ] Pembuatan Python Worker (Telethon).
+- [x] Native Rust/Grammers execution boundary and encrypted local credential vault.
 - [ ] Skema *Database* Lokal (SQLite).
 - [ ] Fitur *Login* Telegram + Enkripsi Sesi.
-- [ ] Transfer Mode Dasar (*Fast Forward* & *Clean Copy*).
-- [ ] *Duplicate Engine* Tahap 1.
+- [x] Transfer Mode Dasar (*Fast Forward* & *Clean Copy*).
+- [x] 4-level duplicate ledger foundation and resumable checkpoints.
 
 ## Phase 2: Advanced Rules & Automation
 **Tujuan**: Menjadikan aplikasi "Pintar".

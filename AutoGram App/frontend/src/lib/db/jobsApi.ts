@@ -159,6 +159,28 @@ export async function jobsCancelMigration(jobId: number): Promise<void> {
   await invoke('jobs_cancel_migration', { jobId });
 }
 
+export type DecisionInboxRow = {
+  id: number;
+  jobId: number;
+  executionId?: number | null;
+  taskId?: number | null;
+  decisionType: string;
+  reasonCode: string;
+  payloadJson: string;
+  status: string;
+  createdAt: string;
+};
+
+export async function jobsDecisionInbox(jobId?: number): Promise<DecisionInboxRow[]> {
+  if (!detectTauriRuntime()) return [];
+  return invoke<DecisionInboxRow[]>('jobs_decision_inbox', { jobId: jobId ?? null });
+}
+
+export async function jobsResolveDecision(decisionId: number, decision: string): Promise<void> {
+  if (!detectTauriRuntime()) throw new Error('Jobs membutuhkan desktop app');
+  await invoke('jobs_resolve_decision', { decisionId, decision });
+}
+
 export type NativeJobEvent = {
   id: number;
   job_id: number;

@@ -13,6 +13,11 @@ Deno.serve(async (req) => {
   );
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
+  if (req.method === "GET") {
+    const { data, error } = await supabase.from("forwarder_jobs").select("id, name, schema_version, revision, status, created_at, updated_at").order("created_at", { ascending: false });
+    if (error) return new Response(JSON.stringify({ error: "query_failed" }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify(data ?? []), { status: 200, headers: { ...cors, "Content-Type": "application/json" } });
+  }
   if (req.method !== "POST") return new Response(JSON.stringify({ error: "method_not_allowed" }), { status: 405, headers: { ...cors, "Content-Type": "application/json" } });
   const body = await req.json().catch(() => null);
   if (!body || typeof body.name !== "string" || typeof body.config_ciphertext !== "string") {

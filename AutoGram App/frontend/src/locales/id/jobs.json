@@ -84,5 +84,11 @@
   "action_rerun": "Jalankan ulang",
   "action_retry_failed": "Ulangi yang gagal {{count}}",
   "retry_failed_tooltip": "Ulangi hanya pesan yang gagal pada eksekusi terakhir",
-  "retry_unavailable_tooltip": "Belum ada eksekusi sebelumnya yang dapat diulangi"
+  "retry_unavailable_tooltip": "Belum ada eksekusi sebelumnya yang dapat diulangi",
+  "decision_inbox_tab": "Keputusan",
+  "decision_inbox_title": "Kotak keputusan",
+  "decision_inbox_loading": "Memuat keputusan yang tertunda…",
+  "decision_inbox_empty": "Tidak ada keputusan yang menunggu.",
+  "decision_skip": "Lewati",
+  "decision_keep_both": "Simpan keduanya"
 }
