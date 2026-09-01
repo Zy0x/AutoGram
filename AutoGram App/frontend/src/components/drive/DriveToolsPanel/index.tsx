@@ -235,10 +235,13 @@ export function DriveToolsPanel({
   const duplicateSource = duplicateCandidates ?? files;
 
   const groups = useMemo(
-    () => findDuplicateGroups(duplicateSource, dupMode as any),
-    [duplicateSource, dupMode]
+    () => (tab === 'dups' ? findDuplicateGroups(duplicateSource, dupMode as any) : []),
+    [duplicateSource, dupMode, tab]
   );
-  const space = useMemo(() => computeSpaceUsage(files), [files]);
+  const space = useMemo(
+    () => (tab === 'space' || tab === 'filter' ? computeSpaceUsage(files) : { fileCount: files.length, totalBytes: 0, byType: [], largest: [] }),
+    [files, tab]
+  );
   // Prefer accurate location totals for header; by_type from stats when accurate
   const displayCount =
     locationStatsAccurate && locationTotalCount != null && locationTotalCount >= 0
@@ -266,8 +269,8 @@ export function DriveToolsPanel({
     (locationTotalCount != null && space.fileCount < locationTotalCount);
   const renameScope = selectedFiles.length ? selectedFiles : files.slice(0, 50);
   const renamePreview = useMemo(
-    () => applyBulkRenamePattern(renameScope, pattern, startAt).slice(0, 12),
-    [renameScope, pattern, startAt]
+    () => (tab === 'rename' ? applyBulkRenamePattern(renameScope, pattern, startAt).slice(0, 12) : []),
+    [renameScope, pattern, startAt, tab]
   );
 
   const searchRegistry = useMemo(() => buildSearchRegistry(t), [t]);
@@ -276,9 +279,12 @@ export function DriveToolsPanel({
     [searchRegistry, toolsSearchQuery]
   );
 
-  if (!open) return null;
+  const wasteTotal = useMemo(
+    () => (tab === 'dups' ? groups.reduce((s: any, g: any) => s + g.wasteBytes, 0) : 0),
+    [groups, tab]
+  );
 
-  const wasteTotal = groups.reduce((s: any, g: any) => s + g.wasteBytes, 0);
+  if (!open) return null;
 
   const handleSearchResultClick = (item: SearchableSettingItem) => {
     setToolsSearchQuery('');
