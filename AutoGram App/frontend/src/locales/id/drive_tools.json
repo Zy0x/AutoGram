@@ -344,7 +344,7 @@
   "ytdlp_check_interval_title": "Interval pemeriksaan pembaruan",
   "ytdlp_check_interval_desc": "Jeda minimum antar pemeriksaan rilis. Binary lama digunakan kembali jika tidak ada pembaruan.",
   "ytdlp_check_interval_hours": "jam",
-  "ytdlp_runtime_status": "Status Binary yt-dlp",
+  "ytdlp_runtime_status": "Status yt-dlp",
   "ytdlp_runtime_not_checked": "Belum diperiksa pada sesi ini",
   "ytdlp_runtime_unavailable": "Runtime backend belum tersedia sampai aplikasi native dijalankan ulang dengan build terbaru.",
   "ytdlp_runtime_installed": "Terpasang: {{version}}",

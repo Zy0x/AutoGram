@@ -344,7 +344,7 @@
   "ytdlp_check_interval_title": "Update check interval",
   "ytdlp_check_interval_desc": "Minimum interval between release checks. The binary is reused when no update is available.",
   "ytdlp_check_interval_hours": "hours",
-  "ytdlp_runtime_status": "yt-dlp Binary Status",
+  "ytdlp_runtime_status": "yt-dlp Status",
   "ytdlp_runtime_not_checked": "Not checked in this session",
   "ytdlp_runtime_unavailable": "Backend runtime is unavailable until the native app is restarted with the latest build.",
   "ytdlp_runtime_installed": "Installed: {{version}}",
