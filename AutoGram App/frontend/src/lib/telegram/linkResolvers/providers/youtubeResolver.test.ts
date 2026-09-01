@@ -285,4 +285,48 @@ describe('youtubeResolver', () => {
     expect(subFormats.some((f) => f.ext === 'vtt' && f.resolution === 'ID')).toBe(true);
     expect(subFormats.some((f) => f.badge?.includes('JA • AUTO • VTT'))).toBe(true);
   });
+
+  it('filters out broken m3u8 manifests and empty 0-byte formats', () => {
+    const formats: StreamQualityFormat[] = [];
+    const subtitles: SubtitleTrackItem[] = [];
+    const rawStreams: RawStreamItem[] = [];
+
+    processYtDlpData({
+      duration: 120,
+      formats: [
+        {
+          format_id: 'hls_manifest',
+          ext: 'mp4',
+          protocol: 'm3u8_native',
+          vcodec: 'avc1',
+          acodec: 'mp4a',
+          url: 'https://manifest.googlevideo.com/api/manifest/hls_variant/playlist.m3u8',
+        },
+        {
+          format_id: '137',
+          ext: 'mp4',
+          height: 1080,
+          vcodec: 'avc1',
+          acodec: 'none',
+          tbr: 4500,
+          url: 'https://video.googlevideo.com/videoplayback?itag=137',
+        },
+        {
+          format_id: '248',
+          ext: 'webm',
+          height: 1080,
+          vcodec: 'vp9',
+          acodec: 'none',
+          tbr: 4800,
+          fps: 60,
+          url: 'https://video.googlevideo.com/videoplayback?itag=248',
+        },
+      ],
+    }, formats, subtitles, rawStreams);
+
+    // Formats should only contain direct playable video streams (137 and 248), no m3u8
+    expect(formats.some((f) => f.directUrl?.includes('playlist.m3u8'))).toBe(false);
+    expect(formats.some((f) => f.id === 'yt_ytdlp_137')).toBe(true);
+    expect(formats.some((f) => f.id === 'yt_ytdlp_248')).toBe(true);
+  });
 });

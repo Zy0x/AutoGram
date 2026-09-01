@@ -914,6 +914,13 @@ function processPlayerData(
 
   // Guarantee that every rawStream has a matching format in `formats` for seamless double-click playback and selection
   rawStreams.forEach((s) => {
+    if (
+      s.protocol?.toLowerCase().includes('m3u8') ||
+      s.directUrl?.toLowerCase().includes('.m3u8') ||
+      (s.filesizeBytes === 0 && !s.bitrate)
+    ) {
+      return;
+    }
     const exists = formats.some((fmt) => fmt.itag === s.itag);
     if (!exists) {
       const isAud = s.type === 'audio';

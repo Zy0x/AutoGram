@@ -4060,20 +4060,26 @@ export function RemoteUploadModal({
                             '144p': 9,
                           };
 
+                          const isBrokenOrM3u8 = (f: StreamQualityFormat) =>
+                            f.ext === 'm3u8' ||
+                            f.protocol?.toLowerCase().includes('m3u8') ||
+                            f.directUrl?.toLowerCase().includes('.m3u8') ||
+                            (f.filesizeBytes === 0 && !f.resolution && !f.badge);
+
                           const allVideoFmts = resolvedMedia.formats.filter(
-                            (f) => !f.isAudio && !f.isSubtitle && (f.isVideo || f.ext === 'mp4' || f.ext === 'webm')
+                            (f) => !f.isAudio && !f.isSubtitle && (f.isVideo || f.ext === 'mp4' || f.ext === 'webm') && !isBrokenOrM3u8(f)
                           );
 
                           const mp4VideoFmts = resolvedMedia.formats
-                            .filter((f) => !f.isAudio && !f.isSubtitle && f.ext === 'mp4')
+                            .filter((f) => !f.isAudio && !f.isSubtitle && f.ext === 'mp4' && !isBrokenOrM3u8(f))
                             .sort((a, b) => (QUALITY_ORDER[a.qualityTier] || 99) - (QUALITY_ORDER[b.qualityTier] || 99) || (b.filesizeBytes || 0) - (a.filesizeBytes || 0));
 
                           const webmVideoFmts = resolvedMedia.formats
-                            .filter((f) => !f.isAudio && !f.isSubtitle && f.ext === 'webm')
+                            .filter((f) => !f.isAudio && !f.isSubtitle && f.ext === 'webm' && !isBrokenOrM3u8(f))
                             .sort((a, b) => (QUALITY_ORDER[a.qualityTier] || 99) - (QUALITY_ORDER[b.qualityTier] || 99) || (b.filesizeBytes || 0) - (a.filesizeBytes || 0));
 
                           const allAudioFmts = resolvedMedia.formats
-                            .filter((f) => f.isAudio || f.qualityTier === 'audio')
+                            .filter((f) => (f.isAudio || f.qualityTier === 'audio') && !isBrokenOrM3u8(f))
                             .sort((a, b) => (b.filesizeBytes || 0) - (a.filesizeBytes || 0));
 
                           // Audio has the same no-redundancy rule as General:
@@ -4157,7 +4163,51 @@ export function RemoteUploadModal({
                             return tier || f.label;
                           };
 
+                          const getVideoBitrate = (f: StreamQualityFormat): number => {
+                            const raw = `${f.resolution || ''} ${f.badge || ''} ${f.label || ''}`;
+                            const mbps = raw.match(/(\d+(?:\.\d+)?)\s*mbps/i);
+                            if (mbps) return Number(mbps[1]) * 1000;
+                            const kbps = raw.match(/(\d+(?:\.\d+)?)\s*(?:kbps|k\b)/i);
+                            return kbps ? Number(kbps[1]) : 0;
+                          };
+
+                          const isHdrFormat = (f: StreamQualityFormat): boolean => {
+                            return Boolean(
+                              f.badge?.includes('HDR') ||
+                              f.resolution?.includes('HDR') ||
+                              f.codec?.includes('HDR') ||
+                              f.codec?.toLowerCase().includes('vp9.2')
+                            );
+                          };
+
+                          const getFormatFps = (f: StreamQualityFormat): number => {
+                            if (f.fps) return f.fps;
+                            if (f.resolution?.includes('60fps') || f.label?.includes('60fps') || f.badge?.includes('60fps')) return 60;
+                            if (f.resolution?.includes('50fps') || f.label?.includes('50fps') || f.badge?.includes('50fps')) return 50;
+                            return 30;
+                          };
+
+                          const sortTiersByQuality = (fmts: StreamQualityFormat[]): StreamQualityFormat[] => {
+                            return [...fmts].sort((a, b) => {
+                              // 1. HDR over SDR
+                              const hdrDiff = (isHdrFormat(b) ? 1 : 0) - (isHdrFormat(a) ? 1 : 0);
+                              if (hdrDiff !== 0) return hdrDiff;
+
+                              // 2. Higher FPS (60fps > 30fps)
+                              const fpsDiff = getFormatFps(b) - getFormatFps(a);
+                              if (fpsDiff !== 0) return fpsDiff;
+
+                              // 3. Higher Bitrate
+                              const brDiff = getVideoBitrate(b) - getVideoBitrate(a);
+                              if (brDiff !== 0) return brDiff;
+
+                              // 4. File size fallback
+                              return (b.filesizeBytes || 0) - (a.filesizeBytes || 0);
+                            });
+                          };
+
                           // Group all video formats by their resolution tier to pick the single highest quality for General tab
+                          // Rule: MP4 First, except if another format (e.g. WebM) has genuinely superior quality (HDR, 60fps, higher bitrate)
                           const resGroups = new Map<string, StreamQualityFormat[]>();
                           allVideoFmts.forEach((f) => {
                             const key = getFormatResolutionKey(f);
@@ -4168,35 +4218,45 @@ export function RemoteUploadModal({
 
                           const curatedGeneralVideos: StreamQualityFormat[] = [];
                           resGroups.forEach((groupFmts) => {
-                            groupFmts.sort((a, b) => {
-                              // 1. Actual bitrate (not the container name or
-                              // title) is the primary quality signal.
-                              const bitrate = (f: StreamQualityFormat): number => {
-                                const raw = `${f.resolution || ''} ${f.badge || ''} ${f.label || ''}`;
-                                const mbps = raw.match(/(\d+(?:\.\d+)?)\s*mbps/i);
-                                if (mbps) return Number(mbps[1]) * 1000;
-                                const kbps = raw.match(/(\d+(?:\.\d+)?)\s*(?:kbps|k\b)/i);
-                                return kbps ? Number(kbps[1]) : 0;
-                              };
-                              const bitrateDiff = bitrate(b) - bitrate(a);
-                              if (bitrateDiff !== 0) return bitrateDiff;
+                            const mp4List = sortTiersByQuality(groupFmts.filter((f) => f.ext === 'mp4'));
+                            const nonMp4List = sortTiersByQuality(groupFmts.filter((f) => f.ext !== 'mp4'));
 
-                              // 2. HDR over SDR
-                              const aHdr = a.badge?.includes('HDR') || a.resolution?.includes('HDR') || a.codec?.includes('HDR') ? 1 : 0;
-                              const bHdr = b.badge?.includes('HDR') || b.resolution?.includes('HDR') || b.codec?.includes('HDR') ? 1 : 0;
-                              if (bHdr !== aHdr) return bHdr - aHdr;
+                            let chosen: StreamQualityFormat | undefined;
 
-                              // 3. Higher FPS (60fps > 30fps)
-                              const aFps = a.fps || 30;
-                              const bFps = b.fps || 30;
-                              if (bFps !== aFps) return bFps - aFps;
+                            if (mp4List.length > 0 && nonMp4List.length > 0) {
+                              const bestMp4 = mp4List[0];
+                              const bestOther = nonMp4List[0];
 
-                              // 4. File size fallback
-                              return (b.filesizeBytes || 0) - (a.filesizeBytes || 0);
-                            });
+                              const otherHdr = isHdrFormat(bestOther);
+                              const mp4Hdr = isHdrFormat(bestMp4);
+                              const otherFps = getFormatFps(bestOther);
+                              const mp4Fps = getFormatFps(bestMp4);
+                              const otherBr = getVideoBitrate(bestOther);
+                              const mp4Br = getVideoBitrate(bestMp4);
+                              const otherSize = bestOther.filesizeBytes || 0;
+                              const mp4Size = bestMp4.filesizeBytes || 0;
 
-                            if (groupFmts[0]) {
-                              curatedGeneralVideos.push(groupFmts[0]);
+                              // Is bestOther genuinely superior in quality over bestMp4?
+                              const isOtherSuperior =
+                                (otherHdr && !mp4Hdr) ||
+                                (otherFps >= 50 && otherFps > mp4Fps) ||
+                                (otherBr > 0 && mp4Br > 0 && otherBr >= mp4Br * 1.15) ||
+                                (otherSize > 0 && mp4Size > 0 && otherSize >= mp4Size * 1.15);
+
+                              if (isOtherSuperior) {
+                                chosen = bestOther;
+                              } else {
+                                // Default: MP4 first when quality is comparable/equal
+                                chosen = bestMp4;
+                              }
+                            } else if (mp4List.length > 0) {
+                              chosen = mp4List[0];
+                            } else if (nonMp4List.length > 0) {
+                              chosen = nonMp4List[0];
+                            }
+
+                            if (chosen) {
+                              curatedGeneralVideos.push(chosen);
                             }
                           });
 
