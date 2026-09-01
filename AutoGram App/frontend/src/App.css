@@ -42281,4 +42281,25 @@ select.td-modern-select {
 .td-db-sql-label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; margin-bottom: 6px; }
 .td-db-raw-sql-box pre { margin: 0; font-size: 0.75rem; color: #34d399; white-space: pre-wrap; }
 
+/* 8. PPTX Slide Viewer */
+.td-pptx-viewer-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #090d16;
+}
+.td-pptx-slide-canvas {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* 9. Markdown & EPUB Viewers */
+.td-markdown-rendered-view {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.td-epub-reader-body {
+  font-family: Georgia, Cambria, 'Times New Roman', Times, serif;
+}
+
 

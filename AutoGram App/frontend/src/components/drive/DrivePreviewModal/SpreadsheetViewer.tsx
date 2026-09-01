@@ -15,6 +15,7 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [copied, setCopied] = useState(false);
+  const [selectedCell, setSelectedCell] = useState<{ row: number; col: number; coord: string; val: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -165,6 +166,50 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
         </div>
       </div>
 
+      {/* Formula & Active Cell Bar */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '4px 16px',
+          background: '#0a0f1d',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+          fontSize: '12px',
+          flexShrink: 0,
+        }}
+      >
+        <span
+          style={{
+            fontWeight: 700,
+            color: '#38bdf8',
+            minWidth: '38px',
+            background: 'rgba(56, 189, 248, 0.1)',
+            padding: '2px 6px',
+            borderRadius: '4px',
+            textAlign: 'center',
+            fontFamily: 'monospace',
+          }}
+        >
+          {selectedCell ? selectedCell.coord : 'A1'}
+        </span>
+        <span style={{ color: '#64748b', fontStyle: 'italic', fontWeight: 600 }}>fx</span>
+        <input
+          type="text"
+          readOnly
+          value={selectedCell ? selectedCell.val : filteredData[0]?.[0] ? String(filteredData[0][0]) : ''}
+          style={{
+            flex: 1,
+            background: 'transparent',
+            border: 'none',
+            color: '#e2e8f0',
+            outline: 'none',
+            fontFamily: 'monospace',
+            fontSize: '12px',
+          }}
+        />
+      </div>
+
       {/* Sheet Tabs Bar */}
       {workbook && workbook.SheetNames.length > 1 && (
         <div
@@ -183,7 +228,10 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
             <button
               key={sheet}
               type="button"
-              onClick={() => setActiveSheet(sheet)}
+              onClick={() => {
+                setActiveSheet(sheet);
+                setSelectedCell(null);
+              }}
               style={{
                 padding: '4px 12px',
                 fontSize: '12px',
@@ -237,10 +285,10 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
             }}
           >
             <thead>
-              <tr style={{ background: '#0f172a', position: 'sticky', top: 0, zIndex: 5 }}>
-                <th style={{ padding: '6px 10px', border: '1px solid rgba(255,255,255,0.08)', color: '#64748b', width: '40px', textAlign: 'center' }}>#</th>
+              <tr style={{ background: '#0f172a', position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
+                <th style={{ padding: '6px 10px', border: '1px solid rgba(255,255,255,0.08)', color: '#64748b', width: '44px', textAlign: 'center', position: 'sticky', left: 0, zIndex: 12, background: '#0f172a' }}>#</th>
                 {(filteredData[0] || []).map((_, idx) => (
-                  <th key={idx} style={{ padding: '6px 12px', border: '1px solid rgba(255,255,255,0.08)', color: '#38bdf8', fontWeight: 600 }}>
+                  <th key={idx} style={{ padding: '6px 14px', border: '1px solid rgba(255,255,255,0.08)', color: '#38bdf8', fontWeight: 600, minWidth: '80px', background: '#0f172a' }}>
                     {String.fromCharCode(65 + (idx % 26))}{idx >= 26 ? Math.floor(idx / 26) : ''}
                   </th>
                 ))}
@@ -248,15 +296,38 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
             </thead>
             <tbody>
               {filteredData.map((row, rowIdx) => (
-                <tr key={rowIdx} style={{ background: rowIdx % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.03)' }}>
-                  <td style={{ padding: '5px 10px', border: '1px solid rgba(255,255,255,0.06)', color: '#64748b', textAlign: 'center', fontWeight: 600, background: '#0d1117' }}>
+                <tr key={rowIdx} style={{ background: selectedCell?.row === rowIdx ? 'rgba(56, 189, 248, 0.08)' : rowIdx % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.03)' }}>
+                  <td style={{ padding: '5px 10px', border: '1px solid rgba(255,255,255,0.06)', color: '#64748b', textAlign: 'center', fontWeight: 600, background: '#0d1117', position: 'sticky', left: 0, zIndex: 5 }}>
                     {rowIdx + 1}
                   </td>
-                  {row.map((cell, colIdx) => (
-                    <td key={colIdx} style={{ padding: '5px 12px', border: '1px solid rgba(255,255,255,0.06)', color: '#e2e8f0', whiteSpace: 'nowrap' }}>
-                      {String(cell ?? '')}
-                    </td>
-                  ))}
+                  {row.map((cell, colIdx) => {
+                    const isSelected = selectedCell?.row === rowIdx && selectedCell?.col === colIdx;
+                    return (
+                      <td
+                        key={colIdx}
+                        onClick={() => {
+                          const colLetter = `${String.fromCharCode(65 + (colIdx % 26))}${colIdx >= 26 ? Math.floor(colIdx / 26) : ''}`;
+                          setSelectedCell({
+                            row: rowIdx,
+                            col: colIdx,
+                            coord: `${colLetter}${rowIdx + 1}`,
+                            val: String(cell ?? ''),
+                          });
+                        }}
+                        style={{
+                          padding: '5px 14px',
+                          border: isSelected ? '2px solid #38bdf8' : '1px solid rgba(255,255,255,0.06)',
+                          color: isSelected ? '#ffffff' : '#e2e8f0',
+                          background: isSelected ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
+                          whiteSpace: 'nowrap',
+                          cursor: 'cell',
+                          userSelect: 'text',
+                        }}
+                      >
+                        {String(cell ?? '')}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>

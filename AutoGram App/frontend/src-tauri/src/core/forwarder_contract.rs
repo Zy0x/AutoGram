@@ -76,7 +76,10 @@ pub struct ForwarderFeatureFlags {
 
 impl Default for ForwarderFeatureFlags {
     fn default() -> Self {
-        Self { forwarder_v2: true, mirror_v1: false, android_forwarder: true, cloud_relay: false, public_api: false }
+        // Android execution is not enabled until its Foreground Service and
+        // UniFFI job APIs are present; exposing the flag early causes clients
+        // to advertise an unavailable execution target.
+        Self { forwarder_v2: true, mirror_v1: false, android_forwarder: false, cloud_relay: false, public_api: false }
     }
 }
 

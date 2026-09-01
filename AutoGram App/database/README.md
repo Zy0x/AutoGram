@@ -171,10 +171,12 @@ All high-frequency lookup paths are backed by specialized indexes:
 
 ## 4. Migration Lifecycle & Upgrade Pipeline
 
-AutoGram executes schema migrations sequentially upon application launch:
-1. Migrations are located in `database/migrations/001_` through `020_` (Media Forwarder V2).
-2. Every migration file is written to be **100% idempotent** using `CREATE TABLE IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`, and `drive_beta_schema` version tracking.
-3. Upgrades run inside an explicit SQLite transaction (`BEGIN IMMEDIATE ... COMMIT`) to ensure atomicity.
+The active desktop runtime applies the additive Forwarder bridge migrations `020_` and `021_` and then performs guarded column backfills using `PRAGMA table_info`. Supabase API hardening is tracked separately as migration `022_`. Legacy migrations remain available for fresh database provisioning and historical compatibility; they are not replayed destructively against an existing installation.
+
+1. `020_media_forwarder_v2.sql` adds the V2 config, dedupe, revision, mirror, decision, notification, and retention tables.
+2. `021_forwarder_runtime_bridge.sql` adds task/mapping/schedule/event-sequence objects and indexes.
+3. Existing legacy columns are added only after an existence check, making application upgrades replay-safe.
+4. Before backup or recovery, run `PRAGMA integrity_check;` and retain the original WAL files until the backup is verified.
 
 ---
 

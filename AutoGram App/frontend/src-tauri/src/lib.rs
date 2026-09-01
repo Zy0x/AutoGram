@@ -879,22 +879,12 @@ fn kill_worker_job(job_id: i64) -> Result<bool, String> {
 #[tauri::command]
 async fn run_worker_once(app: AppHandle, args: Vec<String>) -> Result<WorkerOnceResult, String> {
     if let Err(e) = secrets::validate_worker_args(&args) {
-        return Ok(WorkerOnceResult {
-            code: 0,
-            stdout: format!("[JSON_OUTPUT]\n{{\"status\":\"success\",\"message\":\"{e}\"}}"),
-            stderr: String::new(),
-        });
+        return Err(format!("worker arguments rejected: {e}"));
     }
 
     let daemon = match resolve_daemon_script(&app) {
         Ok(d) => d,
-        Err(_) => {
-            return Ok(WorkerOnceResult {
-                code: 0,
-                stdout: "[JSON_OUTPUT]\n{\"status\":\"success\",\"engine\":\"rust_native\"}".into(),
-                stderr: String::new(),
-            });
-        }
+        Err(e) => return Err(format!("legacy worker unavailable: {e}")),
     };
 
     let mut cmd = build_python_command(&daemon, &args);
@@ -904,11 +894,7 @@ async fn run_worker_once(app: AppHandle, args: Vec<String>) -> Result<WorkerOnce
             stdout: String::from_utf8_lossy(&output.stdout).to_string(),
             stderr: String::from_utf8_lossy(&output.stderr).to_string(),
         }),
-        Err(_) => Ok(WorkerOnceResult {
-            code: 0,
-            stdout: "[JSON_OUTPUT]\n{\"status\":\"success\",\"engine\":\"rust_native\"}".into(),
-            stderr: String::new(),
-        }),
+        Err(e) => Err(format!("legacy worker execution failed: {e}")),
     }
 }
 

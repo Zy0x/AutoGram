@@ -86,6 +86,9 @@ import { AiFileExplainer } from './AiFileExplainer';
 import { FontWaterfallViewer } from './FontWaterfallViewer';
 import { DatabaseTableInspector } from './DatabaseTableInspector';
 import { DocxViewer } from './DocxViewer';
+import { PptxViewer } from './PptxViewer';
+import { MarkdownViewer } from './MarkdownViewer';
+import { EpubViewer } from './EpubViewer';
 import { SpreadsheetViewer } from './SpreadsheetViewer';
 import { JupyterNotebookViewer } from './JupyterNotebookViewer';
 import {
@@ -1378,6 +1381,21 @@ export function DrivePreviewModal({
     const fn = (file.name || file.original_name || '').toLowerCase();
     return fn.endsWith('.docx') || fn.endsWith('.dotx') || sniffResult?.detectedExt === 'docx';
   }, [file.name, file.original_name, sniffResult?.detectedExt]);
+
+  const isPptxFile = useMemo(() => {
+    const fn = (file.name || file.original_name || '').toLowerCase();
+    return fn.endsWith('.pptx') || fn.endsWith('.pptm') || fn.endsWith('.potx') || sniffResult?.detectedExt === 'pptx';
+  }, [file.name, file.original_name, sniffResult?.detectedExt]);
+
+  const isEpubFile = useMemo(() => {
+    const fn = (file.name || file.original_name || '').toLowerCase();
+    return fn.endsWith('.epub') || sniffResult?.detectedExt === 'epub';
+  }, [file.name, file.original_name, sniffResult?.detectedExt]);
+
+  const isMarkdownFile = useMemo(() => {
+    const fn = (file.name || file.original_name || '').toLowerCase();
+    return fn.endsWith('.md') || fn.endsWith('.markdown') || fn.endsWith('.mdx');
+  }, [file.name, file.original_name]);
 
   const isSpreadsheetFile = useMemo(() => {
     const fn = (file.name || file.original_name || '').toLowerCase();
@@ -2738,6 +2756,15 @@ export function DrivePreviewModal({
     if (isDocxFile) {
       return { background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.35)' };
     }
+    if (isPptxFile) {
+      return { background: 'rgba(249, 115, 22, 0.15)', color: '#fb923c', border: '1px solid rgba(249, 115, 22, 0.35)' };
+    }
+    if (isEpubFile) {
+      return { background: 'rgba(6, 182, 212, 0.15)', color: '#22d3ee', border: '1px solid rgba(6, 182, 212, 0.35)' };
+    }
+    if (isMarkdownFile) {
+      return { background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.35)' };
+    }
     if (isSpreadsheetFile) {
       return { background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.35)' };
     }
@@ -2763,7 +2790,7 @@ export function DrivePreviewModal({
       return { background: 'rgba(20, 184, 166, 0.15)', color: '#2dd4bf', border: '1px solid rgba(20, 184, 166, 0.35)' };
     }
     return { background: 'rgba(148, 163, 184, 0.15)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.35)' };
-  }, [isDocxFile, isSpreadsheetFile, isPdf, isImage, isVideo, isAudio, isZip, isJupyterFile, isDbFile]);
+  }, [isDocxFile, isPptxFile, isEpubFile, isMarkdownFile, isSpreadsheetFile, isPdf, isImage, isVideo, isAudio, isZip, isJupyterFile, isDbFile]);
 
   const handleCloseOrDismiss = useCallback(() => {
     if (qualityOpen) {
@@ -4331,7 +4358,7 @@ export function DrivePreviewModal({
           onWheel={(e) => e.stopPropagation()}
         >
           <div className="drive-preview-tools">
-            {(isImage || isVideo || isDocxFile) && (
+            {(isImage || isVideo || isDocxFile || isPptxFile) && (
               <div className="drive-tool-group" role="group" aria-label={t('drive.zoom_label')}>
                 <span className="drive-tool-group-label">{t("drive.label_zoom")}</span>
                 <button
@@ -4521,7 +4548,7 @@ export function DrivePreviewModal({
               </div>
             )}
 
-            {(isPdf || isText || isDocOther || isDocxFile || isSpreadsheetFile) && isDesktop() && (
+            {(isPdf || isText || isDocOther || isDocxFile || isPptxFile || isEpubFile || isSpreadsheetFile) && isDesktop() && (
               <div className="drive-tool-group" role="group" aria-label={t('drive.label_open_doc')}>
                 <span className="drive-tool-group-label">{t("drive.label_open")}</span>
                 <button
@@ -6853,6 +6880,21 @@ export function DrivePreviewModal({
                     onOpenSystem={handleOpenSystem}
                     zoom={curTransform.zoom}
                   />
+                ) : isPptxFile ? (
+                  <PptxViewer
+                    data={activeSrc || dataUrl || path || streamUrl || hexBytes || (textBody ? new TextEncoder().encode(textBody) : '')}
+                    fileName={displayName}
+                    onOpenSystem={handleOpenSystem}
+                    zoom={curTransform.zoom}
+                  />
+                ) : isEpubFile ? (
+                  <EpubViewer
+                    data={activeSrc || dataUrl || path || streamUrl || hexBytes || (textBody ? new TextEncoder().encode(textBody) : '')}
+                    fileName={displayName}
+                    onOpenSystem={handleOpenSystem}
+                  />
+                ) : isMarkdownFile ? (
+                  <MarkdownViewer content={textBody} fileName={displayName} />
                 ) : isSpreadsheetFile ? (
                   <SpreadsheetViewer
                     data={activeSrc || dataUrl || path || streamUrl || hexBytes || textBody}
@@ -6948,7 +6990,7 @@ export function DrivePreviewModal({
             !isText &&
             !isZip &&
             !(isText && textBody != null) && (
-            <div className="drive-preview-doc" style={{ padding: isFontFile || isDocxFile || isSpreadsheetFile ? 0 : '16px', height: '100%', width: '100%', overflowY: isDocxFile || isSpreadsheetFile ? 'hidden' : 'auto' }}>
+            <div className="drive-preview-doc" style={{ padding: isFontFile || isDocxFile || isPptxFile || isEpubFile || isSpreadsheetFile ? 0 : '16px', height: '100%', width: '100%', overflowY: isDocxFile || isPptxFile || isEpubFile || isSpreadsheetFile ? 'hidden' : 'auto' }}>
               {isDocxFile ? (
                 <PluginErrorBoundary pluginName="DocxViewer">
                   <DocxViewer
@@ -6956,6 +6998,23 @@ export function DrivePreviewModal({
                     fileName={displayName}
                     onOpenSystem={handleOpenSystem}
                     zoom={curTransform.zoom}
+                  />
+                </PluginErrorBoundary>
+              ) : isPptxFile ? (
+                <PluginErrorBoundary pluginName="PptxViewer">
+                  <PptxViewer
+                    data={activeSrc || dataUrl || path || streamUrl || hexBytes || (textBody ? new TextEncoder().encode(textBody) : '')}
+                    fileName={displayName}
+                    onOpenSystem={handleOpenSystem}
+                    zoom={curTransform.zoom}
+                  />
+                </PluginErrorBoundary>
+              ) : isEpubFile ? (
+                <PluginErrorBoundary pluginName="EpubViewer">
+                  <EpubViewer
+                    data={activeSrc || dataUrl || path || streamUrl || hexBytes || (textBody ? new TextEncoder().encode(textBody) : '')}
+                    fileName={displayName}
+                    onOpenSystem={handleOpenSystem}
                   />
                 </PluginErrorBoundary>
               ) : isSpreadsheetFile ? (

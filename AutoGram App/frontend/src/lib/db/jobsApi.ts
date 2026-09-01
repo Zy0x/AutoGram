@@ -4,6 +4,7 @@
  */
 import { invoke } from '@tauri-apps/api/core';
 import { detectTauriRuntime } from '../tauri/platform';
+import { normalizeJobConfigV2 } from '../forwarder/contracts';
 
 export type JobRow = {
   id: number;
@@ -61,18 +62,25 @@ export async function jobsCreate(config: {
   source?: string;
   destination?: string;
   session?: string;
+  sourceAccountId?: string;
+  destinationAccountId?: string;
   mode?: string;
   jobName?: string;
   [k: string]: unknown;
 }): Promise<number> {
   if (!detectTauriRuntime()) throw new Error('Jobs membutuhkan desktop app');
+  const payload = { ...config, sourceAccountId: config.sourceAccountId ?? config.session, destinationAccountId: config.destinationAccountId ?? config.session };
+  let canonical: unknown = payload;
+  try { canonical = await normalizeJobConfigV2(payload); } catch { /* legacy adapters remain available for non-desktop tests */ }
   const id = await invoke<number>('jobs_create', {
     request: {
       source: String(config.source || '0'),
       destination: String(config.destination || '0'),
       session: String(config.session || 'Lavender'),
       mode: String(config.mode || 'Clean Copy'),
-      configJson: JSON.stringify(config),
+      sourceAccountId: payload.sourceAccountId,
+      destinationAccountId: payload.destinationAccountId,
+      configJson: JSON.stringify(canonical),
       jobName: config.jobName ? String(config.jobName) : null,
     },
   });
@@ -85,12 +93,17 @@ export async function jobsEdit(
     source?: string;
     destination?: string;
     session?: string;
+    sourceAccountId?: string;
+    destinationAccountId?: string;
     mode?: string;
     jobName?: string;
     [k: string]: unknown;
   }
 ): Promise<void> {
   if (!detectTauriRuntime()) throw new Error('Jobs membutuhkan desktop app');
+  const payload = { ...config, sourceAccountId: config.sourceAccountId ?? config.session, destinationAccountId: config.destinationAccountId ?? config.session };
+  let canonical: unknown = payload;
+  try { canonical = await normalizeJobConfigV2(payload); } catch { /* preserve legacy edit behavior outside desktop */ }
   await invoke('jobs_edit', {
     request: {
       jobId,
@@ -98,7 +111,9 @@ export async function jobsEdit(
       destination: String(config.destination || '0'),
       session: String(config.session || 'Lavender'),
       mode: String(config.mode || 'Clean Copy'),
-      configJson: JSON.stringify(config),
+      sourceAccountId: payload.sourceAccountId,
+      destinationAccountId: payload.destinationAccountId,
+      configJson: JSON.stringify(canonical),
       jobName: config.jobName ? String(config.jobName) : null,
     },
   });

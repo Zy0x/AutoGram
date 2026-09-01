@@ -102,7 +102,6 @@ pub fn dry_run_job(job_id: i64, api_id: i64, api_hash: &str) -> Result<Migration
         .clone()
         .filter(|s| !s.trim().is_empty())
         .ok_or_else(|| "session/profile_name missing".to_string())?;
-
     let sessions = resolve_sessions_dir(None);
     std::env::set_var("AUTOGRAM_SESSIONS_DIR", sessions.display().to_string());
     let identity = TelegramIdentity {
@@ -242,6 +241,9 @@ fn run_forward(
                 }
 
                 // Level-1 dedupe: skip already ledgered source msg ids
+                for &source_id in chunk {
+                    let _ = jobs_db::upsert_forwarder_task(exec_id, source_id, "DEDUPLICATING", "QUEUED");
+                }
                 let fresh: Vec<i64> = chunk
                     .iter()
                     .copied()
@@ -252,6 +254,13 @@ fn run_forward(
                     })
                     .collect();
                 skipped += (chunk.len() - fresh.len()) as i64;
+                for &source_id in chunk {
+                    if !fresh.contains(&source_id) {
+                        if let Ok(task_id) = jobs_db::upsert_forwarder_task(exec_id, source_id, "DEDUPLICATING", "SKIPPED") {
+                            let _ = jobs_db::complete_forwarder_task(task_id, "SKIPPED", Some("DUPLICATE_MESSAGE_ID"), None);
+                        }
+                    }
+                }
                 if fresh.is_empty() {
                     continue;
                 }
@@ -274,6 +283,9 @@ fn run_forward(
                                 let _ = jobs_db::ledger_insert(
                                     job_id, sid, None, None, None, None, None,
                                 );
+                                if let Ok(task_id) = jobs_db::upsert_forwarder_task(exec_id, sid, "COMMITTING", "COMPLETED") {
+                                    let _ = jobs_db::complete_forwarder_task(task_id, "COMPLETED", None, None);
+                                }
                             }
                             break;
                         }
@@ -336,6 +348,10 @@ fn run_clean_copy(
         .clone()
         .filter(|s| !s.is_empty())
         .ok_or_else(|| "session/profile_name missing".to_string())?;
+    let canonical = job.config_json.as_deref().and_then(|raw| super::forwarder_contract::normalize_job_config_json(raw).ok()).and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok());
+    let source_account_id = canonical.as_ref().and_then(|v| v.pointer("/source/account_id")).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).unwrap_or(&session).to_string();
+    let destination_account_id = canonical.as_ref().and_then(|v| v.pointer("/destination/account_id")).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).unwrap_or(&session).to_string();
+    let destination_topic_id = canonical.as_ref().and_then(|v| v.pointer("/destination/topic_id")).and_then(|v| v.as_i64());
 
     let exec_id = jobs_db::start_execution(job_id)?;
     let _ = jobs_db::update_execution_status(exec_id, "RUNNING", Some(0), None, None);
@@ -425,6 +441,7 @@ fn run_clean_copy(
                 let source_msg_id = row.id;
                 let filename = row.name.clone();
                 let size = row.size as i64;
+                let task_id = jobs_db::upsert_forwarder_task(exec_id, source_msg_id, "QUEUED", "QUEUED").ok();
                 let tg_unique = format!(
                     "{}:{}:{}:{}",
                     row.id,
@@ -434,17 +451,11 @@ fn run_clean_copy(
                 );
 
                 // Level 1 — already processed message id
-                let pre = jobs_db::ledger_check(
-                    job_id,
-                    source_msg_id,
-                    Some(&tg_unique),
-                    None,
-                    Some(&filename),
-                    Some(size),
-                )
+                let pre = jobs_db::forwarder_ledger_check(job_id, &source_account_id, &destination_account_id, &dest, destination_topic_id, source_msg_id, Some(&tg_unique), None, Some(&filename), Some(size))
                 .unwrap_or_default();
                 if pre.by_source_msg {
                     skipped += 1;
+                    if let Some(id) = task_id { let _ = jobs_db::complete_forwarder_task(id, "SKIPPED", Some("DUPLICATE_MESSAGE_ID"), None); }
                     continue;
                 }
 
@@ -492,6 +503,7 @@ fn run_clean_copy(
                     }
                 }
                 if !dl_ok {
+                    if let Some(id) = task_id { let _ = jobs_db::complete_forwarder_task(id, "FAILED", Some("DOWNLOAD_NOT_ALLOWED"), None); }
                     let _ = jobs_db::update_execution_status(
                         exec_id,
                         "RUNNING",
@@ -507,17 +519,12 @@ fn run_clean_copy(
                     .unwrap_or_default();
 
                 // Levels 2–4 after hash known
-                let hit = jobs_db::ledger_check(
-                    job_id,
-                    source_msg_id,
-                    Some(&tg_unique),
-                    if hash.is_empty() { None } else { Some(&hash) },
-                    Some(&filename),
-                    Some(size),
-                )
+                let hit = jobs_db::forwarder_ledger_check(job_id, &source_account_id, &destination_account_id, &dest, destination_topic_id, source_msg_id, Some(&tg_unique), if hash.is_empty() { None } else { Some(&hash) }, Some(&filename), Some(size))
                 .unwrap_or_default();
                 if hit.is_duplicate() {
                     skipped += 1;
+                    let reason = if hit.by_telegram_unique { "DUPLICATE_UNIQUE_ID" } else if hit.by_sha256 { "DUPLICATE_SHA256" } else { "DUPLICATE_NAME_SIZE" };
+                    if let Some(id) = task_id { let _ = jobs_db::complete_forwarder_task(id, "SKIPPED", Some(reason), None); }
                     let _ = std::fs::remove_file(&dest_path);
                     let _ = jobs_db::ledger_insert(
                         job_id,
@@ -528,6 +535,7 @@ fn run_clean_copy(
                         Some(&filename),
                         Some(size),
                     );
+                    let _ = jobs_db::forwarder_ledger_insert(job_id, &source_account_id, &destination_account_id, &dest, destination_topic_id, source_msg_id, None, Some(&tg_unique), if hash.is_empty() { None } else { Some(&hash) }, Some(&filename), Some(size), "skipped_duplicate");
                     let _ = jobs_db::update_execution_status(
                         exec_id,
                         "RUNNING",
@@ -566,6 +574,10 @@ fn run_clean_copy(
                         Ok(step) => {
                             up_msg_id = step.message_id.filter(|m| *m > 0);
                             uploaded += 1;
+                            if let Some(id) = task_id {
+                                let ids = serde_json::to_string(&up_msg_id.iter().copied().collect::<Vec<_>>()).unwrap_or_else(|_| "[]".into());
+                                let _ = jobs_db::complete_forwarder_task(id, "COMPLETED", None, Some(&ids));
+                            }
                             break;
                         }
                         Err(e) => {
@@ -577,6 +589,7 @@ fn run_clean_copy(
                             if attempt >= 5 {
                                 tg_log::error(BACKEND, "upload_fail", &msg);
                                 failed += 1;
+                                if let Some(id) = task_id { let _ = jobs_db::complete_forwarder_task(id, "FAILED", Some("DESTINATION_PERMISSION_DENIED"), None); }
                             }
                         }
                     }
@@ -591,6 +604,7 @@ fn run_clean_copy(
                     Some(&filename),
                     Some(size),
                 );
+                let _ = jobs_db::forwarder_ledger_insert(job_id, &source_account_id, &destination_account_id, &dest, destination_topic_id, source_msg_id, up_msg_id, Some(&tg_unique), if hash.is_empty() { None } else { Some(&hash) }, Some(&filename), Some(size), if up_msg_id.is_some() { "transferred" } else { "failed" });
                 let _ = std::fs::remove_file(&dest_path);
                 let _ = jobs_db::update_execution_status(
                     exec_id,

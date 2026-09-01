@@ -102,7 +102,7 @@ export async function normalizeJobConfigV2(raw: unknown): Promise<JobConfigV2> {
 
 export async function getForwarderFeatureFlags(): Promise<ForwarderFeatureFlags> {
   if (!detectTauriRuntime()) {
-    return { forwarder_v2: true, mirror_v1: false, android_forwarder: true, cloud_relay: false, public_api: false };
+    return { forwarder_v2: true, mirror_v1: false, android_forwarder: false, cloud_relay: false, public_api: false };
   }
   return invoke<ForwarderFeatureFlags>('forwarder_feature_flags');
 }

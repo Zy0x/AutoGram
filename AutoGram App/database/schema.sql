@@ -1,6 +1,6 @@
 ﻿-- ============================================================================
 -- AUTOGRAM CONSOLIDATED MASTER SQLITE DATABASE SCHEMA
--- Version: 5.2.0 (Consolidated Migrations 001 - 019)
+-- Version: 5.2.2 (Consolidated Migrations 001 - 022)
 -- Database Engine: SQLite 3.x (WAL Journaling Mode)
 -- ============================================================================
 
@@ -493,6 +493,10 @@ CREATE TABLE IF NOT EXISTS jobs (
     target_entity_id     TEXT NOT NULL,
     transfer_mode        TEXT NOT NULL,
     config_json          TEXT,
+    revision             INTEGER NOT NULL DEFAULT 0,
+    schema_version       INTEGER NOT NULL DEFAULT 2,
+    source_account_id    TEXT NOT NULL DEFAULT '',
+    destination_account_id TEXT NOT NULL DEFAULT '',
     created_at           DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -507,6 +511,9 @@ CREATE TABLE IF NOT EXISTS executions (
     started_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
     finished_at          DATETIME,
     error_message        TEXT,
+    cancel_requested     INTEGER NOT NULL DEFAULT 0,
+    cancellation_state   TEXT NOT NULL DEFAULT 'NONE',
+    checkpoint_json      TEXT,
     FOREIGN KEY(job_id) REFERENCES jobs(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_executions_job_started ON executions(job_id, started_at DESC);
@@ -516,11 +523,15 @@ CREATE TABLE IF NOT EXISTS tasks (
     execution_id         INTEGER NOT NULL,
     source_message_id    INTEGER NOT NULL,
     target_message_id    INTEGER,
+    destination_message_ids_json TEXT NOT NULL DEFAULT '[]',
     file_unique_id       TEXT,
     file_hash            TEXT,
     file_name            TEXT,
     file_size            INTEGER,
     status               TEXT NOT NULL,
+    stage                TEXT NOT NULL DEFAULT 'QUEUED',
+    idempotency_key      TEXT,
+    reason_code          TEXT,
     error_category       TEXT,
     error_message        TEXT,
     attempts             INTEGER DEFAULT 1,
@@ -533,11 +544,17 @@ CREATE INDEX IF NOT EXISTS idx_tasks_execution_status_msg ON tasks(execution_id,
 CREATE TABLE IF NOT EXISTS message_mapping (
     id                   INTEGER PRIMARY KEY AUTOINCREMENT,
     job_id               INTEGER,
+    source_account_id    TEXT NOT NULL DEFAULT '',
     source_chat_id       TEXT NOT NULL,
     source_msg_id        INTEGER NOT NULL,
+    destination_account_id TEXT NOT NULL DEFAULT '',
     dest_chat_id         TEXT NOT NULL,
     dest_msg_id          INTEGER NOT NULL,
+    topic_id             INTEGER,
+    album_id             TEXT,
+    reply_to_source_msg_id INTEGER,
     status               TEXT DEFAULT 'COMPLETED',
+    reason_code          TEXT,
     retry_count          INTEGER DEFAULT 0,
     error_message        TEXT,
     last_updated         TIMESTAMP,
@@ -679,6 +696,46 @@ CREATE INDEX IF NOT EXISTS idx_job_revisions_job_revision ON job_revisions(job_i
 CREATE INDEX IF NOT EXISTS idx_decision_inbox_job_status ON decision_inbox(job_id, status, created_at);
 CREATE INDEX IF NOT EXISTS idx_notification_outbox_status ON notification_outbox(status, next_attempt_at);
 CREATE INDEX IF NOT EXISTS idx_retention_markers_due ON retention_markers(retention_until, purged_at);
+
+-- Forwarder runtime bridge (migration 021; legacy adapters remain supported).
+CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    execution_id INTEGER NOT NULL,
+    source_message_id INTEGER NOT NULL,
+    destination_message_ids_json TEXT NOT NULL DEFAULT '[]',
+    stage TEXT NOT NULL DEFAULT 'QUEUED',
+    status TEXT NOT NULL DEFAULT 'QUEUED',
+    attempts INTEGER NOT NULL DEFAULT 0,
+    idempotency_key TEXT,
+    reason_code TEXT,
+    error_message TEXT,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(execution_id, source_message_id),
+    FOREIGN KEY(execution_id) REFERENCES executions(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS automation_schedules (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_id INTEGER NOT NULL,
+    rrule TEXT NOT NULL,
+    timezone TEXT NOT NULL DEFAULT 'UTC',
+    misfire_policy TEXT NOT NULL DEFAULT 'one_catch_up',
+    next_run_at DATETIME,
+    revision INTEGER NOT NULL DEFAULT 0,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(job_id),
+    FOREIGN KEY(job_id) REFERENCES jobs(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS forwarder_event_sequences (
+    job_id INTEGER PRIMARY KEY,
+    next_sequence INTEGER NOT NULL DEFAULT 1,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(job_id) REFERENCES jobs(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_tasks_execution_status ON tasks(execution_id, status, source_message_id);
+CREATE INDEX IF NOT EXISTS idx_automation_schedules_next_run ON automation_schedules(enabled, next_run_at);
 
 -- ============================================================================
 -- INITIAL SCHEMA VERSION SEED

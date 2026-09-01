@@ -142,6 +142,49 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
         "../../../../database/migrations/020_media_forwarder_v2.sql"
     ))
     .map_err(|e| format!("forwarder v2 schema: {e}"))?;
+    conn.execute_batch(include_str!(
+        "../../../../database/migrations/021_forwarder_runtime_bridge.sql"
+    ))
+    .map_err(|e| format!("forwarder runtime schema: {e}"))?;
+
+    // Existing installations may have the legacy table shape.  SQLite has no
+    // `ADD COLUMN IF NOT EXISTS`, so inspect first and alter only when the
+    // column is genuinely absent.  This keeps upgrades replay-safe.
+    for (table, column, definition) in [
+        ("jobs", "revision", "INTEGER NOT NULL DEFAULT 0"),
+        ("jobs", "schema_version", "INTEGER NOT NULL DEFAULT 2"),
+        ("jobs", "source_account_id", "TEXT NOT NULL DEFAULT ''"),
+        ("jobs", "destination_account_id", "TEXT NOT NULL DEFAULT ''"),
+        ("executions", "cancel_requested", "INTEGER NOT NULL DEFAULT 0"),
+        ("executions", "cancellation_state", "TEXT NOT NULL DEFAULT 'NONE'"),
+        ("executions", "checkpoint_json", "TEXT"),
+        ("tasks", "destination_message_ids_json", "TEXT NOT NULL DEFAULT '[]'"),
+        ("tasks", "stage", "TEXT NOT NULL DEFAULT 'QUEUED'"),
+        ("tasks", "idempotency_key", "TEXT"),
+        ("tasks", "reason_code", "TEXT"),
+        ("message_mapping", "source_account_id", "TEXT NOT NULL DEFAULT ''"),
+        ("message_mapping", "destination_account_id", "TEXT NOT NULL DEFAULT ''"),
+        ("message_mapping", "topic_id", "INTEGER"),
+        ("message_mapping", "album_id", "TEXT"),
+        ("message_mapping", "reply_to_source_msg_id", "INTEGER"),
+        ("message_mapping", "reason_code", "TEXT"),
+    ] {
+        let exists: bool = conn
+            .prepare(&format!("PRAGMA table_info({table})"))
+            .and_then(|mut stmt| {
+                let mut rows = stmt.query([])?;
+                while let Some(row) = rows.next()? {
+                    let name: String = row.get(1)?;
+                    if name == column { return Ok(true); }
+                }
+                Ok(false)
+            })
+            .unwrap_or(false);
+        if !exists {
+            conn.execute_batch(&format!("ALTER TABLE {table} ADD COLUMN {column} {definition}"))
+                .map_err(|e| format!("add {table}.{column}: {e}"))?;
+        }
+    }
     Ok(())
 }
 
@@ -236,6 +279,65 @@ pub fn ledger_insert(
         ],
     )
     .map_err(|e| format!("ledger insert: {e}"))?;
+    Ok(())
+}
+
+/// Scoped V2 dedupe probe. Unlike the legacy job-local ledger this includes
+/// both account identities, destination peer and topic in every lookup.
+pub fn forwarder_ledger_check(
+    job_id: i64,
+    source_account_id: &str,
+    destination_account_id: &str,
+    destination_peer_id: &str,
+    destination_topic_id: Option<i64>,
+    source_message_id: i64,
+    telegram_unique_id: Option<&str>,
+    sha256: Option<&str>,
+    filename: Option<&str>,
+    size: Option<i64>,
+) -> Result<LedgerHit, String> {
+    let conn = open_db()?;
+    let scope = "job_id=?1 AND source_account_id=?2 AND destination_account_id=?3 AND destination_peer_id=?4 AND destination_topic_id IS ?5";
+    let mut hit = LedgerHit::default();
+    let source: i64 = conn.query_row(&format!("SELECT COUNT(1) FROM forwarder_dedupe_ledger WHERE {scope} AND source_message_id=?6"), params![job_id, source_account_id, destination_account_id, destination_peer_id, destination_topic_id, source_message_id], |r| r.get(0)).unwrap_or(0);
+    hit.by_source_msg = source > 0;
+    if let Some(uid) = telegram_unique_id.filter(|s| !s.is_empty()) {
+        let n: i64 = conn.query_row(&format!("SELECT COUNT(1) FROM forwarder_dedupe_ledger WHERE {scope} AND telegram_unique_id=?6"), params![job_id, source_account_id, destination_account_id, destination_peer_id, destination_topic_id, uid], |r| r.get(0)).unwrap_or(0);
+        hit.by_telegram_unique = n > 0;
+    }
+    if let Some(hash) = sha256.filter(|s| !s.is_empty()) {
+        let n: i64 = conn.query_row(&format!("SELECT COUNT(1) FROM forwarder_dedupe_ledger WHERE {scope} AND sha256=?6"), params![job_id, source_account_id, destination_account_id, destination_peer_id, destination_topic_id, hash], |r| r.get(0)).unwrap_or(0);
+        hit.by_sha256 = n > 0;
+    }
+    if let (Some(name), Some(bytes)) = (filename.filter(|s| !s.is_empty()), size) {
+        let n: i64 = conn.query_row(&format!("SELECT COUNT(1) FROM forwarder_dedupe_ledger WHERE {scope} AND filename=?6 AND byte_size=?7"), params![job_id, source_account_id, destination_account_id, destination_peer_id, destination_topic_id, name, bytes], |r| r.get(0)).unwrap_or(0);
+        hit.by_name_size = n > 0;
+    }
+    Ok(hit)
+}
+
+pub fn forwarder_ledger_insert(
+    job_id: i64,
+    source_account_id: &str,
+    destination_account_id: &str,
+    destination_peer_id: &str,
+    destination_topic_id: Option<i64>,
+    source_message_id: i64,
+    destination_message_id: Option<i64>,
+    telegram_unique_id: Option<&str>,
+    sha256: Option<&str>,
+    filename: Option<&str>,
+    size: Option<i64>,
+    decision: &str,
+) -> Result<(), String> {
+    let conn = open_db()?;
+    conn.execute(
+        "INSERT INTO forwarder_dedupe_ledger (job_id, source_account_id, destination_account_id, destination_peer_id, destination_topic_id, source_message_id, destination_message_id, telegram_unique_id, sha256, filename, byte_size, decision)
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)
+         ON CONFLICT(job_id, source_account_id, destination_account_id, destination_peer_id, destination_topic_id, source_message_id)
+         DO UPDATE SET destination_message_id=excluded.destination_message_id, telegram_unique_id=excluded.telegram_unique_id, sha256=excluded.sha256, filename=excluded.filename, byte_size=excluded.byte_size, decision=excluded.decision",
+        params![job_id, source_account_id, destination_account_id, destination_peer_id, destination_topic_id, source_message_id, destination_message_id, telegram_unique_id, sha256, filename, size, decision],
+    ).map_err(|e| format!("forwarder ledger insert: {e}"))?;
     Ok(())
 }
 
@@ -361,6 +463,10 @@ pub struct CreateJobRequest {
     pub source: String,
     pub destination: String,
     pub session: String,
+    #[serde(default)]
+    pub source_account_id: Option<String>,
+    #[serde(default)]
+    pub destination_account_id: Option<String>,
     pub mode: Option<String>,
     pub config_json: Option<String>,
     pub job_name: Option<String>,
@@ -390,17 +496,22 @@ fn sync_forwarder_contract(conn: &Connection, job_id: i64, raw_config: &str) {
 pub fn create_job(req: &CreateJobRequest) -> Result<i64, String> {
     let conn = open_db()?;
     let mode = req.mode.clone().unwrap_or_else(|| "Clean Copy".into());
-    let config = req.config_json.clone().unwrap_or_else(|| "{}".into());
+    let raw_config = req.config_json.clone().unwrap_or_else(|| {
+        serde_json::json!({"source": req.source, "destination": req.destination, "session": req.session, "mode": mode}).to_string()
+    });
+    let config = super::forwarder_contract::normalize_job_config_json(&raw_config).unwrap_or(raw_config);
     conn.execute(
-        "INSERT INTO jobs (name, profile_name, source_entity_id, target_entity_id, transfer_mode, config_json)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        "INSERT INTO jobs (name, profile_name, source_entity_id, target_entity_id, transfer_mode, config_json, source_account_id, destination_account_id, revision, schema_version)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 0, 2)",
         params![
             req.job_name,
             req.session,
             req.source,
             req.destination,
             mode,
-            config
+            config,
+            req.source_account_id.clone().unwrap_or_else(|| req.session.clone()),
+            req.destination_account_id.clone().unwrap_or_else(|| req.session.clone())
         ],
     )
     .map_err(|e| format!("insert job: {e}"))?;
@@ -417,6 +528,10 @@ pub struct EditJobRequest {
     pub source: String,
     pub destination: String,
     pub session: String,
+    #[serde(default)]
+    pub source_account_id: Option<String>,
+    #[serde(default)]
+    pub destination_account_id: Option<String>,
     pub mode: Option<String>,
     pub config_json: Option<String>,
     pub job_name: Option<String>,
@@ -425,11 +540,15 @@ pub struct EditJobRequest {
 pub fn edit_job(req: &EditJobRequest) -> Result<(), String> {
     let conn = open_db()?;
     let mode = req.mode.clone().unwrap_or_else(|| "Clean Copy".into());
-    let config = req.config_json.clone().unwrap_or_else(|| "{}".into());
+    let raw_config = req.config_json.clone().unwrap_or_else(|| {
+        serde_json::json!({"source": req.source, "destination": req.destination, "session": req.session, "mode": mode}).to_string()
+    });
+    let config = super::forwarder_contract::normalize_job_config_json(&raw_config).unwrap_or(raw_config);
     let n = conn
         .execute(
             "UPDATE jobs SET name=?1, profile_name=?2, source_entity_id=?3, target_entity_id=?4,
-             transfer_mode=?5, config_json=?6 WHERE id=?7",
+             transfer_mode=?5, config_json=?6, source_account_id=?7, destination_account_id=?8,
+             revision=revision+1 WHERE id=?9",
             params![
                 req.job_name,
                 req.session,
@@ -437,6 +556,8 @@ pub fn edit_job(req: &EditJobRequest) -> Result<(), String> {
                 req.destination,
                 mode,
                 config,
+                req.source_account_id.clone().unwrap_or_else(|| req.session.clone()),
+                req.destination_account_id.clone().unwrap_or_else(|| req.session.clone()),
                 req.job_id
             ],
         )
@@ -563,6 +684,34 @@ pub fn log_job_event(
 ) -> Result<(), String> {
     let conn = open_db()?;
     super::autogram_core::log_job_event(&conn, job_id, stage, message, metadata)
+}
+
+/// Persist one source-message task before any network side effect.  The
+/// idempotency key is deterministic for an execution/message pair, allowing
+/// resume and reconciliation code to distinguish a retried item from a new
+/// item without duplicating rows.
+pub fn upsert_forwarder_task(execution_id: i64, source_message_id: i64, stage: &str, status: &str) -> Result<i64, String> {
+    let conn = open_db()?;
+    let existing: Option<i64> = conn.query_row("SELECT id FROM tasks WHERE execution_id=?1 AND source_message_id=?2 ORDER BY id LIMIT 1", params![execution_id, source_message_id], |r| r.get(0)).optional().map_err(|e| e.to_string())?;
+    if let Some(id) = existing {
+        conn.execute("UPDATE tasks SET stage=?1, status=?2, updated_at=datetime('now') WHERE id=?3", params![stage, status, id]).map_err(|e| e.to_string())?;
+        return Ok(id);
+    }
+    conn.execute(
+        "INSERT INTO tasks (execution_id, source_message_id, stage, status, attempts, idempotency_key, updated_at)
+         VALUES (?1, ?2, ?3, ?4, 0, ?5, datetime('now'))",
+        params![execution_id, source_message_id, stage, status, format!("exec:{execution_id}:msg:{source_message_id}")],
+    ).map_err(|e| format!("insert forwarder task: {e}"))?;
+    conn.query_row("SELECT id FROM tasks WHERE execution_id=?1 AND source_message_id=?2", params![execution_id, source_message_id], |r| r.get(0)).map_err(|e| e.to_string())
+}
+
+pub fn complete_forwarder_task(task_id: i64, status: &str, reason_code: Option<&str>, destination_ids_json: Option<&str>) -> Result<(), String> {
+    let conn = open_db()?;
+    conn.execute(
+        "UPDATE tasks SET status=?1, reason_code=COALESCE(?2, reason_code), destination_message_ids_json=COALESCE(?3, destination_message_ids_json), updated_at=datetime('now') WHERE id=?4",
+        params![status, reason_code, destination_ids_json, task_id],
+    ).map_err(|e| format!("complete forwarder task: {e}"))?;
+    Ok(())
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1089,6 +1238,8 @@ pub fn import_jobs_json(json_str: &str) -> Result<usize, String> {
                 .and_then(|v| v.as_str())
                 .unwrap_or("Lavender")
                 .to_string(),
+            source_account_id: row.get("sourceAccountId").or_else(|| row.get("source_account_id")).and_then(|v| v.as_str()).map(|s| s.to_string()),
+            destination_account_id: row.get("destinationAccountId").or_else(|| row.get("destination_account_id")).and_then(|v| v.as_str()).map(|s| s.to_string()),
             mode: row
                 .get("transferMode")
                 .or_else(|| row.get("transfer_mode"))
@@ -1373,7 +1524,8 @@ pub fn trim_disk_cache(target_bytes: u64) -> Result<serde_json::Value, String> {
 pub fn cancel_execution(job_id: i64) -> Result<(), String> {
     let conn = open_db()?;
     conn.execute(
-        "UPDATE executions SET status='PAUSED'
+        "UPDATE executions SET status='CANCELLED', cancel_requested=1,
+         cancellation_state='REQUESTED'
          WHERE job_id=?1 AND status IN
          ('STARTING','RUNNING','SCANNING','FORWARDING','DOWNLOADING','UPLOADING','COMMITTING')",
         params![job_id],

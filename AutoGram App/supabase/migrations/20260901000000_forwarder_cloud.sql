@@ -128,14 +128,40 @@ alter table public.api_audit_logs enable row level security;
 alter table public.api_clients enable row level security;
 alter table public.encryption_metadata enable row level security;
 
-create policy devices_owner on public.devices for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy jobs_owner on public.forwarder_jobs for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy revisions_owner on public.job_revisions for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy executions_owner on public.execution_summaries for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy events_owner on public.event_streams for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy relay_owner on public.relay_commands for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy decisions_owner on public.decision_inbox for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy webhooks_owner on public.webhook_subscriptions for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy audit_owner on public.api_audit_logs for select using (auth.uid() = user_id);
-create policy api_clients_owner on public.api_clients for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy encryption_owner on public.encryption_metadata for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+-- CREATE POLICY has no portable IF NOT EXISTS form.  Guard each policy so a
+-- replayed migration is harmless on an already-provisioned project.
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='devices' and policyname='devices_owner') then
+    create policy devices_owner on public.devices for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='forwarder_jobs' and policyname='jobs_owner') then
+    create policy jobs_owner on public.forwarder_jobs for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='job_revisions' and policyname='revisions_owner') then
+    create policy revisions_owner on public.job_revisions for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='execution_summaries' and policyname='executions_owner') then
+    create policy executions_owner on public.execution_summaries for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='event_streams' and policyname='events_owner') then
+    create policy events_owner on public.event_streams for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='relay_commands' and policyname='relay_owner') then
+    create policy relay_owner on public.relay_commands for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='decision_inbox' and policyname='decisions_owner') then
+    create policy decisions_owner on public.decision_inbox for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='webhook_subscriptions' and policyname='webhooks_owner') then
+    create policy webhooks_owner on public.webhook_subscriptions for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='api_audit_logs' and policyname='audit_owner') then
+    create policy audit_owner on public.api_audit_logs for select using (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='api_clients' and policyname='api_clients_owner') then
+    create policy api_clients_owner on public.api_clients for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='encryption_metadata' and policyname='encryption_owner') then
+    create policy encryption_owner on public.encryption_metadata for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+end $$;

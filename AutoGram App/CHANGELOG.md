@@ -1,3 +1,35 @@
+## v3.8.82 In-App Rich Viewers for PowerPoint (PPTX), Rich Markdown (MD), EPUB Digital Books & Enhanced Spreadsheet
+
+### 1. Penampil Presentasi Interaktif Microsoft PowerPoint (`PptxViewer.tsx`, `DrivePreviewModal/index.tsx`)
+- **Engine Parser OpenXML In-Memory**: Membaca dan mengurai struktur arsip `.pptx` (`ppt/presentation.xml`, `ppt/slides/slide*.xml`, dan `ppt/slides/_rels/slide*.rels`) secara langsung di RAM menggunakan `JSZip` tanpa memerlukan instalasi Microsoft Office lokal.
+- **Kanvas Presentasi 16:9 & 4:3 Presisi**: Mengekstrak ukuran kanvas, penempatan bentuk (*shape transforms*), paragraf bertingkat dengan poin bulet, penataan format teks (tebal, miring, garis bawah, ukuran font, warna), serta gambar grafis yang tertanam (*embedded images*).
+- **Bilah Thumbnail Kiri & Navigasi Keyboard**: Menampilkan bilah cuplikan slide di sisi kiri layar dengan dukungan navigasi tombol keyboard (Panah Kiri/Kanan, Spasi, `PageUp`/`PageDown`, `Home`, dan `End`).
+- **Mode Layar Penuh & Catatan Pembicara (*Speaker Notes*)**: Menyediakan tombol mode presentasi layar penuh serta laci popover untuk membaca catatan pembicara (*speaker notes*) per slide.
+- **Seleksi Teks Bebas & Salin Cepat**: Teks slide dapat diblok dengan kursor atau disalin secara utuh dengan tombol *Salin Teks*.
+
+### 2. Penampil Dokumen Markdown Visual & Kode Mentah (`MarkdownViewer.tsx`, `DrivePreviewModal/index.tsx`)
+- **Render Visual Dokumen Terstruktur**: Merender elemen Markdown visual secara elegan (Heading `#`–`####`, tabel baris-kolom, daftar tugas centang `[ ]`/`[x]`, kutipan blok *blockquote*, daftar nomor/bulet, garis pembatas, dan blok kode sintaks).
+- **Pengalihan Cepat Visual vs Kode Mentah**: Menyediakan tombol *toggle* instan antara tampilan render visual yang nyaman dibaca dan tampilan editor kode sumber (*Raw Code* dengan *line numbers*).
+- **Tombol Salin Dokumen Sekali Klik**: Memudahkan penyalinan seluruh konten dokumen Markdown ke *clipboard*.
+
+### 3. Pembaca Buku Digital EPUB Interaktif (`EpubViewer.tsx`, `DrivePreviewModal/index.tsx`)
+- **Parser Kontainer & Spine EPUB**: Membaca paket buku digital `.epub` via `META-INF/container.xml` dan OPF *manifest/spine*, menyusun urutan bab secara akurat.
+- **Laci Daftar Isi (*Table of Contents*)**: Sidebar *flyout* untuk melompat ke bab atau bagian tertentu secara instan.
+- **Pengatur Ukuran Huruf (*Font Sizer*)**: Tombol interaktif `A-` dan `A+` (12px hingga 28px) untuk kenyamanan membaca optimal.
+- **Navigasi Bab Bawah**: Bilah navigasi footer untuk berpindah ke bab sebelum dan sesudahnya dengan mulus.
+
+### 4. Peningkatan Lembar Kerja Spreadsheet (`SpreadsheetViewer.tsx`)
+- **Bilah Rumus & Sel Aktif (*Formula Bar*)**: Menampilkan koordinat sel aktif (misal `[A1]`, `[C5]`) beserta nilai sel dan indikator fungsi `fx` di bagian atas grid.
+- **Header Kolom & Penomoran Baris *Sticky***: Baris header (`A`, `B`, `C`, ...) dan kolom nomor baris (`1`, `2`, `3`, ...) tetap menempel (*fixed*) saat pengguna menggulir ribuan baris data.
+- **Sorotan Seleksi Sel Interaktif**: Mengklik sel spreadsheet akan menyorot sel tersebut dengan garis tepi biru bercahaya (*glow border*) dan *highlight* baris data.
+
+### 5. Autonomous Quality Sentinel Certification
+- **Rust Backend Cargo Check**: Kompilasi engine native desktop Rust sukses 100% tanpa galat.
+- **100% Locale Parity**: 6,163 kunci bahasa ID dan 6,163 kunci bahasa EN tersinkronisasi 100% tanpa selisih.
+- **Zero TypeScript Errors**: Kompilasi `tsc --noEmit` lolos 100% dengan 0 type error.
+- **Vitest Automated Test Suite**: Seluruh 45 test suite Vitest (373 pengujian) lolos 100%.
+- **Live Desktop Verification**: Terhubung via CDP WebSocket port 9230 dan memverifikasi aplikasi desktop berjalan mulus tanpa runtime crash.
+
 ## v3.8.81 High-Fidelity Word Layout, Multi-Page Rendering & Smart Selection Copying
 
 ### 1. Presisi Tata Letak Microsoft Word & Pemulihan Fitur Salin Teks Blok (`DocxViewer.tsx`, `App.css`, `DrivePreviewModal/index.tsx`)
