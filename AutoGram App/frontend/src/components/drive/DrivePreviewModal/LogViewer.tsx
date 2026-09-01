@@ -5,11 +5,16 @@ import { useTranslation } from 'react-i18next';
 interface Props {
   logContent: string;
   fileName: string;
+  wordWrap?: boolean;
 }
 
 type LogLevel = 'all' | 'error' | 'warn' | 'info' | 'debug';
 
-export const LogViewer: React.FC<Props> = ({ logContent, fileName: _fileName }) => {
+export const LogViewer: React.FC<Props> = ({
+  logContent,
+  fileName: _fileName,
+  wordWrap = true,
+}) => {
   const { t } = useTranslation();
   const [activeFilter, setActiveFilter] = useState<LogLevel>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -132,20 +137,22 @@ export const LogViewer: React.FC<Props> = ({ logContent, fileName: _fileName }) 
         </div>
       </div>
 
-      <div className="td-log-viewer-body font-mono" ref={bodyRef}>
-        {filteredLines.map((line) => (
-          <div key={line.idx} className={`td-log-row is-${line.level}`}>
-            <span
-              className="td-log-gutter"
-              aria-hidden="true"
-              data-line={line.idx}
-              unselectable="on"
-            >
-              {line.idx}
-            </span>
-            <span className="td-log-text">{line.text || ' '}</span>
-          </div>
-        ))}
+      <div className={`td-log-viewer-body font-mono ${wordWrap ? 'is-wrapped' : 'is-scroll'}`} ref={bodyRef}>
+        <div className="td-log-lines">
+          {filteredLines.map((line) => (
+            <div key={line.idx} className={`td-log-row is-${line.level}`}>
+              <span
+                className="td-log-gutter"
+                aria-hidden="true"
+                data-line={line.idx}
+                unselectable="on"
+              >
+                {line.idx}
+              </span>
+              <span className="td-log-text">{line.text || ' '}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

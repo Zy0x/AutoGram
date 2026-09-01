@@ -20934,60 +20934,92 @@ video.drive-zip-img {
 
 .vscode-editor-body {
   display: flex;
+  flex-direction: column;
   flex: 1;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: auto;
   background: #1e1e1e;
   color: #d4d4d4;
   font-size: 0.84rem;
   line-height: 1.5;
+  padding: 12px 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.vscode-editor-body.is-wrap .vscode-code-pre {
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.vscode-editor-body.is-scroll .vscode-code-pre {
-  white-space: pre;
-  word-break: normal;
-}
-
-.vscode-line-numbers {
+.vscode-code-lines {
   display: flex;
   flex-direction: column;
-  padding: 12px 10px 12px 12px;
-  background: #1e1e1e;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.vscode-editor-body.is-scroll .vscode-code-lines {
+  width: max-content;
+  min-width: 100%;
+}
+
+.vscode-code-line-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 0 16px 0 0;
+  min-height: 22px;
+  box-sizing: border-box;
+  transition: background 100ms ease;
+}
+
+.vscode-code-line-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.vscode-editor-body.is-wrap .vscode-code-line-row {
+  width: 100%;
+  max-width: 100%;
+}
+
+.vscode-editor-body .vscode-num {
+  width: 48px;
+  min-width: 48px;
+  text-align: right;
+  padding-right: 12px;
+  margin-right: 12px;
   border-right: 1px solid #2d2d2d;
   color: #858585;
-  text-align: right;
-  user-select: none;
   font-size: 0.8rem;
   line-height: 1.5;
-  min-width: 36px;
-}
-
-.vscode-num {
+  flex-shrink: 0;
+  align-self: flex-start;
   opacity: 0.6;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  pointer-events: none !important;
 }
 
-.vscode-code-pre {
-  margin: 0;
-  padding: 12px 16px;
-  flex: 1;
+.vscode-num::selection {
+  background: transparent !important;
+}
+
+.vscode-code-line-content {
+  flex: 1 1 0%;
+  min-width: 0;
+  line-height: 1.5;
   font-family: inherit;
-  font-size: inherit;
-  line-height: inherit;
-  background: transparent;
-  color: #d4d4d4;
+  color: inherit;
+  -webkit-user-select: text;
+  user-select: text;
 }
 
-.vscode-code-line {
-  min-height: 1.5em;
-  transition: background 0.1s ease;
+.vscode-editor-body.is-wrap .vscode-code-line-content {
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
 }
 
-.vscode-code-line:hover {
-  background: rgba(255, 255, 255, 0.04);
+.vscode-editor-body.is-scroll .vscode-code-line-content {
+  white-space: pre !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+}
 }
 
 /* ─── Syntax Highlighting Tokens (VSCode Dark+ Palette) ─── */
@@ -41669,19 +41701,45 @@ select.td-modern-select {
 
 .td-code-viewer-body {
   flex: 1 1 0%;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: auto;
   padding: 12px 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .td-code-lines {
   font-size: 0.80rem;
   line-height: 1.6;
+  tab-size: 4;
+  -moz-tab-size: 4;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.td-code-viewer-body.is-scroll .td-code-lines,
+.td-code-viewer-body:not(.is-wrapped) .td-code-lines {
+  width: max-content;
+  min-width: 100%;
+}
+
+.td-code-viewer-body.is-wrapped .td-code-lines {
+  width: 100%;
+  max-width: 100%;
 }
 
 .td-code-line {
   display: flex;
+  align-items: flex-start;
   padding: 0 16px 0 0;
   min-height: 24px;
+  box-sizing: border-box;
+}
+
+.td-code-viewer-body.is-wrapped .td-code-line {
+  width: 100%;
+  max-width: 100%;
 }
 
 .td-code-line:hover {
@@ -41701,7 +41759,9 @@ select.td-modern-select {
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   color: #475569;
   font-size: 0.74rem;
+  line-height: 1.6;
   flex-shrink: 0;
+  align-self: flex-start;
   -webkit-user-select: none !important;
   -moz-user-select: none !important;
   -ms-user-select: none !important;
@@ -41717,21 +41777,30 @@ select.td-modern-select {
 
 .td-code-text {
   color: #e2e8f0;
-  white-space: pre;
-  flex: 1;
+  flex: 1 1 0%;
+  min-width: 0;
+  line-height: 1.6;
   -webkit-user-select: text;
   user-select: text;
+}
+
+.td-code-viewer-body.is-scroll .td-code-text,
+.td-code-viewer-body:not(.is-wrapped) .td-code-text {
+  white-space: pre !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+}
+
+.td-code-viewer-body.is-wrapped .td-code-text {
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
 }
 
 .td-code-text::selection,
 .td-code-text *::selection {
   background: rgba(56, 189, 248, 0.35) !important;
   color: #ffffff !important;
-}
-
-.td-code-viewer-body.is-wrapped .td-code-text {
-  white-space: pre-wrap;
-  word-break: break-all;
 }
 
 /* 7. JSON Tree Viewer */
@@ -42096,15 +42165,45 @@ select.td-modern-select {
 
 .td-log-viewer-body {
   flex: 1 1 0%;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: auto;
   padding: 10px 0;
-  font-size: 0.76rem;
-  line-height: 1.5;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.td-log-lines {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  tab-size: 4;
+  -moz-tab-size: 4;
+}
+
+.td-log-viewer-body.is-scroll .td-log-lines,
+.td-log-viewer-body:not(.is-wrapped) .td-log-lines {
+  width: max-content;
+  min-width: 100%;
+}
+
+.td-log-viewer-body.is-wrapped .td-log-lines {
+  width: 100%;
+  max-width: 100%;
 }
 
 .td-log-row {
   display: flex;
-  padding: 0 16px;
+  align-items: flex-start;
+  padding: 0 16px 0 0;
+  min-height: 22px;
+  box-sizing: border-box;
+}
+
+.td-log-viewer-body.is-wrapped .td-log-row {
+  width: 100%;
+  max-width: 100%;
 }
 
 .td-log-row:hover {
@@ -42138,7 +42237,9 @@ select.td-modern-select {
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   color: #475569;
   font-size: 0.72rem;
+  line-height: 1.6;
   flex-shrink: 0;
+  align-self: flex-start;
   -webkit-user-select: none !important;
   -moz-user-select: none !important;
   -ms-user-select: none !important;
@@ -42153,11 +42254,24 @@ select.td-modern-select {
 }
 
 .td-log-text {
-  white-space: pre-wrap;
-  word-break: break-all;
-  flex: 1;
+  flex: 1 1 0%;
+  min-width: 0;
+  line-height: 1.6;
   -webkit-user-select: text;
   user-select: text;
+}
+
+.td-log-viewer-body.is-scroll .td-log-text,
+.td-log-viewer-body:not(.is-wrapped) .td-log-text {
+  white-space: pre !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+}
+
+.td-log-viewer-body.is-wrapped .td-log-text {
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
 }
 
 .td-log-text::selection,

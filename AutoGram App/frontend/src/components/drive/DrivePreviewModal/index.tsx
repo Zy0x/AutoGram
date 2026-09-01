@@ -7126,7 +7126,11 @@ export function DrivePreviewModal({
                 ) : isTabularFile ? (
                   <TabularDataViewer rawCsv={textBody} fileName={displayName} />
                 ) : isLogFile ? (
-                  <LogViewer logContent={textBody} fileName={displayName} />
+                  <LogViewer
+                    logContent={textBody}
+                    fileName={displayName}
+                    wordWrap={codeWordWrap}
+                  />
                 ) : isJsonFile ? (
                   <JsonTreeViewer
                     jsonString={textBody}

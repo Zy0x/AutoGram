@@ -123,7 +123,7 @@ export const CodeScriptViewer: React.FC<Props> = ({
       )}
 
       {/* Code Editor Body — Full Bleed without Redundant Toolbar */}
-      <div className={`td-code-viewer-body ${wordWrap ? 'is-wrapped' : ''}`}>
+      <div className={`td-code-viewer-body ${wordWrap ? 'is-wrapped' : 'is-scroll'}`}>
         <div className="td-code-lines font-mono">
           {lines.map((line, idx) => {
             const isMatch = filteredLineIndices?.includes(idx);

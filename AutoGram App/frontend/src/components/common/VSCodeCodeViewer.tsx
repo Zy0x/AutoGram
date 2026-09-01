@@ -270,29 +270,25 @@ export function VSCodeCodeViewer({
         </div>
       </div>
 
-      <div className={`vscode-editor-body ${wordWrap ? 'is-wrap' : 'is-scroll'}`}>
-        <div className="vscode-line-numbers" aria-hidden="true">
-          {lines.map((_, i) => (
-            <span key={i + 1} className="vscode-num">
-              {i + 1}
-            </span>
-          ))}
-        </div>
-
-        <pre className="vscode-code-pre">
+      <div className={`vscode-editor-body font-mono ${wordWrap ? 'is-wrap' : 'is-scroll'}`}>
+        <div className="vscode-code-lines">
           {highlightedLines.map((lineHtml, i) => (
-            <div
-              key={i + 1}
-              className="vscode-code-line"
-              dangerouslySetInnerHTML={{ __html: lineHtml }}
-            />
+            <div key={i + 1} className="vscode-code-line-row">
+              <span className="vscode-num" aria-hidden="true" unselectable="on">
+                {i + 1}
+              </span>
+              <span
+                className="vscode-code-line-content"
+                dangerouslySetInnerHTML={{ __html: lineHtml || '&nbsp;' }}
+              />
+            </div>
           ))}
           {isTruncated && (
             <div className="vscode-code-truncated">
               {t('ui.generated.tampilan_dipotong_pada_1_000_000_karakter_untuk__a77b575')}
             </div>
           )}
-        </pre>
+        </div>
       </div>
     </div>
   );
