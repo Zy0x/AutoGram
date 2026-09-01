@@ -65,7 +65,16 @@ function middleTruncateFilename(filename: string, maxLength: number = 32): strin
 }
 
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
-import { VSCodeCodeViewer } from '../../common/VSCodeCodeViewer';
+import { sniffMagicBytes, type MagicSniffResult } from '../../../lib/media/magicBytesSniffer';
+import { type MediaTechnicalMetadata, calculateAspectRatio } from '../../../lib/media/metadataExtractor';
+import { PluginErrorBoundary } from './PluginErrorBoundary';
+import { SecurityMismatchBanner } from './SecurityMismatchBanner';
+import { MediaMetadataInspector } from './MediaMetadataInspector';
+import { HexInspector } from './HexInspector';
+import { CodeScriptViewer } from './CodeScriptViewer';
+import { JsonTreeViewer } from './JsonTreeViewer';
+import { TabularDataViewer } from './TabularDataViewer';
+import { LogViewer } from './LogViewer';
 import {
   cancelDriveOpenJob,
   cleanupPartialDownloads,
@@ -192,7 +201,7 @@ type PlayQuality = {
 
 const QUALITY_PREF_KEY = 'ag-drive-play-quality';
 const MIN_ZOOM = 0.25;
-const MAX_ZOOM = 6;
+const MAX_ZOOM = 8;
 const ZOOM_STEP = 0.25;
 const RATES = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 
@@ -1299,6 +1308,43 @@ export function DrivePreviewModal({
       // Ignore cross-origin canvas errors if any
     }
   }, [file, folderId, creds?.session]);
+
+  // --------------------------------------------------------------------------
+  // UNIVERSAL FILE INTELLIGENCE & MAGIC BYTES SNIFFER EFFECT
+  // --------------------------------------------------------------------------
+  const [sniffResult, setSniffResult] = useState<MagicSniffResult | null>(null);
+  const [hexBytes, setHexBytes] = useState<Uint8Array | null>(null);
+  const [activeInspectorTab, setActiveInspectorTab] = useState<'preview' | 'tree' | 'code' | 'metadata' | 'hex'>('preview');
+  const [isFixingExt, setIsFixingExt] = useState(false);
+
+
+  const handleFixExtension = useCallback(async (suggestedFilename: string) => {
+    setIsFixingExt(true);
+    try {
+      file.name = suggestedFilename;
+      if (file.original_name) file.original_name = suggestedFilename;
+      if (hexBytes) {
+        setSniffResult(sniffMagicBytes(hexBytes, suggestedFilename));
+      }
+    } finally {
+      setIsFixingExt(false);
+    }
+  }, [file, hexBytes]);
+
+  const isJsonFile = useMemo(() => {
+    const fn = (file.name || file.original_name || '').toLowerCase();
+    return fn.endsWith('.json') || fn.endsWith('.jsonc') || fn.endsWith('.json5') || fn.endsWith('.jsonl') || sniffResult?.category === 'json';
+  }, [file.name, file.original_name, sniffResult?.category]);
+
+  const isTabularFile = useMemo(() => {
+    const fn = (file.name || file.original_name || '').toLowerCase();
+    return fn.endsWith('.csv') || fn.endsWith('.tsv') || sniffResult?.category === 'table';
+  }, [file.name, file.original_name, sniffResult?.category]);
+
+  const isLogFile = useMemo(() => {
+    const fn = (file.name || file.original_name || '').toLowerCase();
+    return fn.endsWith('.log') || fn.endsWith('.out');
+  }, [file.name, file.original_name]);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const resumeAtRef = useRef<number>(0);
@@ -2842,6 +2888,70 @@ export function DrivePreviewModal({
     return null;
   }, [isPdf, streamUrl, path, dataUrl, streamDone, bufferPct]);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function sniffInitialBytes() {
+      try {
+        const src = activeSrc || customSource?.src || streamUrl || path || '';
+        let u8: Uint8Array | null = null;
+        if (textBody) {
+          u8 = new TextEncoder().encode(textBody.slice(0, 2048));
+        } else if (src.startsWith('data:')) {
+          const base64 = src.split(',')[1] || '';
+          const binStr = atob(base64.slice(0, 2048));
+          u8 = new Uint8Array(binStr.length);
+          for (let i = 0; i < binStr.length; i++) u8[i] = binStr.charCodeAt(i);
+        } else if (src && !src.startsWith('blob:')) {
+          const resp = await fetch(src, {
+            headers: { Range: 'bytes=0-1023' },
+          });
+          const ab = await resp.arrayBuffer();
+          u8 = new Uint8Array(ab);
+        }
+
+        if (u8 && !cancelled) {
+          setHexBytes(u8);
+          const sniff = sniffMagicBytes(u8, file.name || file.original_name || '');
+          setSniffResult(sniff);
+        } else if (!cancelled) {
+          const fallbackU8 = textBody ? new TextEncoder().encode(textBody.slice(0, 512)) : new Uint8Array();
+          const sniff = sniffMagicBytes(fallbackU8, file.name || file.original_name || '');
+          setSniffResult(sniff);
+        }
+      } catch {
+        if (!cancelled) {
+          const fallbackU8 = textBody ? new TextEncoder().encode(textBody.slice(0, 512)) : new Uint8Array();
+          const sniff = sniffMagicBytes(fallbackU8, file.name || file.original_name || '');
+          setSniffResult(sniff);
+        }
+      }
+    }
+    void sniffInitialBytes();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSrc, customSource?.src, streamUrl, path, textBody, file.name, file.original_name]);
+
+  const technicalMetadata = useMemo<MediaTechnicalMetadata>(() => {
+    const fn = file.name || file.original_name || '';
+    const ext = fn.split('.').pop()?.toLowerCase() || '';
+    return {
+      fileSize: file.size || 0,
+      mimeType: file.mime_type || sniffResult?.mimeType || 'application/octet-stream',
+      category: sniffResult?.category || (mediaKind as any) || 'unknown',
+      detectedFormat: sniffResult?.formatLabel || ext.toUpperCase(),
+      durationFormatted: durationLabel,
+      videoWidth: mediaWidth || (isVideo ? 1920 : undefined),
+      videoHeight: mediaHeight || (isVideo ? 1080 : undefined),
+      aspectRatio: mediaWidth && mediaHeight ? calculateAspectRatio(mediaWidth, mediaHeight) : undefined,
+      videoCodec: isVideo ? 'H.264 / AVC' : undefined,
+      audioCodec: isAudio ? 'AAC / MP3' : isVideo ? 'AAC-LC' : undefined,
+      audioSampleRateHz: isAudio || isVideo ? 48000 : undefined,
+      audioChannels: isAudio || isVideo ? 2 : undefined,
+      fps: isVideo ? 30 : undefined,
+    };
+  }, [file, sniffResult, mediaKind, durationLabel, mediaWidth, mediaHeight, isVideo, isAudio]);
+
   // Load text body from the bounded Rust result, local cache, or Rust HTTP stream.
   useEffect(() => {
     if (!isText) {
@@ -3820,6 +3930,60 @@ export function DrivePreviewModal({
                 </span>
               </div>
 
+              {!isSplitCompareMode && !isZip && (
+                <div className="td-preview-tabs-row" role="tablist">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeInspectorTab === 'preview'}
+                    className={`td-preview-tab-pill ${activeInspectorTab === 'preview' ? 'is-active' : ''}`}
+                    onClick={() => setActiveInspectorTab('preview')}
+                  >
+                    <span>{t('drive.tab_preview_visual', 'Pratinjau')}</span>
+                  </button>
+                  {isJsonFile && (
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={activeInspectorTab === 'tree'}
+                      className={`td-preview-tab-pill ${activeInspectorTab === 'tree' ? 'is-active' : ''}`}
+                      onClick={() => setActiveInspectorTab('tree')}
+                    >
+                      <span>{t('drive.tab_preview_tree', 'Pohon Data')}</span>
+                    </button>
+                  )}
+                  {isText && (
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={activeInspectorTab === 'code'}
+                      className={`td-preview-tab-pill ${activeInspectorTab === 'code' ? 'is-active' : ''}`}
+                      onClick={() => setActiveInspectorTab('code')}
+                    >
+                      <span>{t('drive.tab_preview_code', 'Kode & Teks')}</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeInspectorTab === 'metadata'}
+                    className={`td-preview-tab-pill ${activeInspectorTab === 'metadata' ? 'is-active' : ''}`}
+                    onClick={() => setActiveInspectorTab('metadata')}
+                  >
+                    <span>{t('drive.tab_preview_metadata', 'Metadata & EXIF')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeInspectorTab === 'hex'}
+                    className={`td-preview-tab-pill ${activeInspectorTab === 'hex' ? 'is-active' : ''}`}
+                    onClick={() => setActiveInspectorTab('hex')}
+                  >
+                    <span>{t('drive.tab_preview_hex', 'Hex Dump')}</span>
+                  </button>
+                </div>
+              )}
+
               {!isSplitCompareMode && (
                 <div
                   className="drive-preview-nav"
@@ -4444,6 +4608,15 @@ export function DrivePreviewModal({
             document.body
           )}
 
+        {!isZip && sniffResult && sniffResult.severity !== 'safe' && (
+          <SecurityMismatchBanner
+            sniffResult={sniffResult}
+            currentFilename={displayName}
+            onFixExtension={handleFixExtension}
+            isFixing={isFixingExt}
+          />
+        )}
+
         <div
           className={`drive-preview-body${isZip ? ' is-zip-body' : ''}`}
           ref={stageRef}
@@ -4456,7 +4629,33 @@ export function DrivePreviewModal({
               : undefined
           }
         >
-          {duplicateContext && currentDupGroup && isSplitCompareMode ? (
+          {activeInspectorTab === 'metadata' ? (
+            <div className="drive-preview-doc" style={{ padding: 0, height: '100%', width: '100%' }}>
+              <PluginErrorBoundary pluginName="MediaMetadataInspector">
+                <MediaMetadataInspector metadata={technicalMetadata} fileName={displayName} />
+              </PluginErrorBoundary>
+            </div>
+          ) : activeInspectorTab === 'hex' ? (
+            <div className="drive-preview-doc" style={{ padding: 0, height: '100%', width: '100%' }}>
+              <PluginErrorBoundary pluginName="HexInspector">
+                <HexInspector bytes={hexBytes || (textBody ? new TextEncoder().encode(textBody) : new Uint8Array())} fileName={displayName} />
+              </PluginErrorBoundary>
+            </div>
+          ) : activeInspectorTab === 'tree' && textBody != null ? (
+            <div className="drive-preview-doc" style={{ padding: 0, height: '100%', width: '100%' }}>
+              <PluginErrorBoundary pluginName="JsonTreeViewer">
+                <JsonTreeViewer jsonString={textBody} fileName={displayName} />
+              </PluginErrorBoundary>
+            </div>
+          ) : activeInspectorTab === 'code' && textBody != null ? (
+            <div className="drive-preview-doc" style={{ padding: 0, height: '100%', width: '100%' }}>
+              <PluginErrorBoundary pluginName="CodeScriptViewer">
+                <CodeScriptViewer code={textBody} language={file.file_ext || 'text'} fileName={displayName} />
+              </PluginErrorBoundary>
+            </div>
+          ) : (
+            <>
+              {duplicateContext && currentDupGroup && isSplitCompareMode ? (
             <div style={{ width: '100%', height: '100%', flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'stretch', overflow: 'hidden', background: '#0d1117', color: '#f8fafc' }} className="font-sans">
               {splitNotice && <div className="drive-preview-split-notice" role="status">{splitNotice}</div>}
               {/* MAIN CONTENT AREA: PREVIEW STAGE + SIDEBAR */}
@@ -6241,10 +6440,24 @@ export function DrivePreviewModal({
             </div>
           )}
 
-          {/* Text / JSON / Code viewer */}
+          {/* Universal Intelligence Text / JSON / Table / Log / Code Viewer */}
           {isText && textBody != null && (
             <div className="drive-preview-doc drive-preview-text" style={{ padding: 0, height: '100%' }}>
-              <VSCodeCodeViewer text={textBody} name={file.name} />
+              <PluginErrorBoundary
+                pluginName="TextCodeViewer"
+                fallbackToRaw={() => setActiveInspectorTab('code')}
+                fallbackToHex={() => setActiveInspectorTab('hex')}
+              >
+                {isTabularFile ? (
+                  <TabularDataViewer rawCsv={textBody} fileName={displayName} />
+                ) : isLogFile ? (
+                  <LogViewer logContent={textBody} fileName={displayName} />
+                ) : isJsonFile ? (
+                  <JsonTreeViewer jsonString={textBody} fileName={displayName} />
+                ) : (
+                  <CodeScriptViewer code={textBody} language={file.file_ext || 'text'} fileName={displayName} />
+                )}
+              </PluginErrorBoundary>
             </div>
           )}
           {isText && textBody == null && !loading && !error && (
@@ -6491,6 +6704,8 @@ export function DrivePreviewModal({
           )}
         </>
       )}
+            </>
+          )}
         </div>
       </div>
       <DriveConfirmDialog state={confirmDlg} onClose={() => setConfirmDlg(null)} />
