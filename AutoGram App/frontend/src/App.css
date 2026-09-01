@@ -11983,7 +11983,15 @@ body:has(.app-layout-drive-focus),
 section.docx,
 section.docx *,
 .drive-preview-text,
-.drive-preview-text * {
+.drive-preview-text *,
+.td-code-viewer-wrap,
+.td-code-text,
+.td-json-tree-wrap,
+.td-log-viewer-wrap,
+.td-db-inspector-wrap,
+.td-font-waterfall-wrap,
+.drive-preview-modal table td,
+.drive-preview-modal table th {
   user-select: text !important;
   -webkit-user-select: text !important;
   -moz-user-select: text !important;
