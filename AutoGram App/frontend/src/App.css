@@ -40144,6 +40144,11 @@ select.td-modern-select {
   gap: 12px;
 }
 
+.td-plugin-card-header > div:first-child {
+  min-width: 0;
+  flex: 1;
+}
+
 .td-plugin-icon-box {
   width: 38px;
   height: 38px;

@@ -597,18 +597,25 @@ pub fn ffmpeg_plugin_status(
         }
     }
 
-    // 3. Check Workspace plugins and relative paths
+    // 3. Check Workspace plugins, toolchains, and parent directories
     if resolved_exe.is_none() {
-        let rel_candidates = [
-            PathBuf::from("plugins/ffmpeg-extractor/bin").join(if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" }),
-            PathBuf::from("AutoGram App/plugins/ffmpeg-extractor/bin").join(if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" }),
-            PathBuf::from("../plugins/ffmpeg-extractor/bin").join(if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" }),
-            PathBuf::from("bin").join(if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" }),
-            PathBuf::from("../bin").join(if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" }),
-        ];
-        for cand in rel_candidates {
-            if cand.is_file() {
-                resolved_exe = Some((cand, "workspace_plugin".to_string()));
+        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        let mut dir = cwd.clone();
+        let exe_name = if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" };
+        for _ in 0..6 {
+            let candidates = [
+                dir.join("plugins").join("ffmpeg-extractor").join("bin").join(exe_name),
+                dir.join("AutoGram App").join("plugins").join("ffmpeg-extractor").join("bin").join(exe_name),
+                dir.join("bin").join(exe_name),
+                dir.join(".toolchains").join("ffmpeg-release-essentials").join("ffmpeg-9.0.1-essentials_build").join("bin").join(exe_name),
+            ];
+            for cand in candidates {
+                if cand.is_file() {
+                    resolved_exe = Some((cand, "workspace_plugin".to_string()));
+                    break;
+                }
+            }
+            if resolved_exe.is_some() || !dir.pop() {
                 break;
             }
         }

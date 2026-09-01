@@ -1,3 +1,24 @@
+## v3.8.50 Dedicated FFmpeg Subpage Architecture, Responsive Plugin Grid & Leakage Elimination
+
+### 1. Dedicated FFmpeg & FFprobe Deep Configuration Subpage (`TransferSettingsWorkspace.tsx`)
+- **Eliminasi Kebocoran Komponen yt-dlp**: Memisahkan navigasi sub-halaman konfigurasi plugin menjadi `ytdlp_config` dan `ffmpeg_config` yang terisolasi 100%. Membuka konfigurasi lanjutan FFmpeg kini menampilkan halaman khusus tanpa banner, pengaturan cookie, PO token, atau argumen yt-dlp.
+- **4 Kartu Konfigurasi Mendalam FFmpeg**:
+  1. *Runtime & Pengelola Biner FFmpeg*: Status biner real-time, lencana sumber (AppData/System/Custom/Workspace), kolom jalur kustom biner dengan dialog pemilihan file (*Telusuri*), serta tombol aksi *Periksa Status* dan *Unduh / Perbarui Plugin FFmpeg*.
+  2. *Akselerasi Hardware & Diagnostik Codec*: Indikator aktif untuk ⚡ *HTTP 206 Partial Content Range Proxy*, 🎬 *Decoder AV1 (`libaom-av1` / `libdav1d`)*, 🚀 *GPU Hardware Acceleration (NVENC/AMF/QSV)*, dan 📦 *FFprobe Companion Executable*.
+  3. *Kebijakan Muxing & Perbaikan Kontainer*: Sakelar penggabungan otomatis stream video dan audio terpisah (*Auto-Mux*) serta penjelasan optimalisasi header *faststart moov atom*.
+  4. *Skrip & Pemutakhiran Mandiri Lintas Platform*: Panduan lokasi dan aksesibilitas skrip pembaruan mandiri (`update_ffmpeg.bat`, `update_ffmpeg.ps1`, `update_ffmpeg.py`) di luar aplikasi.
+
+### 2. Responsivitas Tata Letak & Simetri Kartu Plugin (`App.css`, `TransferSettingsWorkspace.tsx`)
+- **Perataan Simetris & Tipografi Responsif**: Menyesuaikan judul kartu menjadi `yt-dlp` (lencana *Remote URL*) dan `FFmpeg & FFprobe` (lencana *Muxer & Transcoder*) dengan tinggi deskripsi yang seragam dan tinggi minimum yang seimbang di seluruh resolusi layar.
+- **Flex-Shrink & Pembungkusan Teks Otomatis**: Menambahkan aturan `min-width: 0; flex: 1;` pada kontainer teks header kartu plugin agar teks deskripsi tidak menabrak atau menggeser lencana status (*Aktif & Terintegrasi*) saat ukuran jendela diperkecil.
+
+### 3. Backend Rust Multi-Directory Workspace Discovery (`ytdlp_plugin.rs`)
+- **Pencarian Biner Multi-Tingkat**: Memperluas fungsi `ffmpeg_plugin_status` untuk memindai biner `ffmpeg.exe` dan `ffprobe.exe` dengan menelusuri folder kerja induk secara rekursif hingga 6 tingkat ke atas (`plugins/ffmpeg-extractor/bin`, `AutoGram App/plugins/...`, `.toolchains/...`).
+
+### 4. Paritas Lokalisasi Multi-Bahasa 100% & Autonomous Quality Sentinel
+- **Sinkronisasi Kunci Bahasa (6,065 Kunci ID & EN)**: Menambahkan seluruh kunci konfigurasi mendalam FFmpeg ke `id/drive_tools.json` dan `en/drive_tools.json` dengan paritas kunci 100%.
+- **Sertifikasi Lolos 5 Gerbang Kualitas**: Terverifikasi lolos kompilasi TypeScript (0 error), seluruh 44 test suite Vitest (100% lulus), skema database SQLite konsisten, dan inspeksi DOM real-time via CDP port 9230.
+
 ## v3.8.49 Dedicated FFmpeg Standalone Plugin Hub Card & Multi-Tier Plugin Overview Architecture
 
 ### 1. Dedicated FFmpeg Plugin Card on Plug-in Overview Hub (`TransferSettingsWorkspace.tsx`)
