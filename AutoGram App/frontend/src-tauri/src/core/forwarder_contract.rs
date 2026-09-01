@@ -122,7 +122,7 @@ pub struct PeerRef {
     pub topic_id: Option<i64>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MessageTypes {
     #[serde(default = "default_true")] pub text: bool,
     #[serde(default = "default_true")] pub photo: bool,
@@ -135,6 +135,13 @@ pub struct MessageTypes {
     #[serde(default = "default_true")] pub poll: bool,
     #[serde(default = "default_true")] pub link: bool,
     #[serde(default = "default_true")] pub service: bool,
+}
+
+impl Default for MessageTypes {
+    fn default() -> Self {
+        Self { text: true, photo: true, video: true, document: true, audio: true,
+            voice: true, sticker: true, gif: true, poll: true, link: true, service: true }
+    }
 }
 
 fn default_true() -> bool { true }

@@ -3504,7 +3504,7 @@ export function TransferSettingsWorkspace({
 
                 {/* Footer Actions */}
                 <div className="td-plugin-card-footer">
-                  <div className="td-plugin-action-group" style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <div className="td-plugin-action-group">
                     <button
                       type="button"
                       className="td-chip-btn"
@@ -3574,7 +3574,7 @@ export function TransferSettingsWorkspace({
 
                 {/* Footer Actions */}
                 <div className="td-plugin-card-footer">
-                  <div className="td-plugin-action-group" style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <div className="td-plugin-action-group">
                     <button
                       type="button"
                       className="td-chip-btn"

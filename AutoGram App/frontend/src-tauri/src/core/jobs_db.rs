@@ -593,6 +593,29 @@ pub fn list_decision_inbox(job_id: Option<i64>) -> Result<Vec<DecisionInboxRow>,
     Ok(out)
 }
 
+/// Insert an open user decision idempotently.  A deterministic payload key
+/// prevents retries/resume from creating duplicate inbox cards.
+pub fn insert_decision(
+    job_id: i64,
+    execution_id: Option<i64>,
+    task_id: Option<i64>,
+    decision_type: &str,
+    reason_code: &str,
+    payload_json: &str,
+) -> Result<i64, String> {
+    let conn = open_db()?;
+    let existing: Option<i64> = conn.query_row(
+        "SELECT id FROM decision_inbox WHERE job_id=?1 AND COALESCE(execution_id,0)=COALESCE(?2,0) AND COALESCE(task_id,0)=COALESCE(?3,0) AND status='OPEN' AND reason_code=?4 ORDER BY id LIMIT 1",
+        params![job_id, execution_id, task_id, reason_code], |r| r.get(0)
+    ).optional().map_err(|e| e.to_string())?;
+    if let Some(id) = existing { return Ok(id); }
+    conn.execute(
+        "INSERT INTO decision_inbox (job_id, execution_id, task_id, decision_type, reason_code, payload_json, status, created_at) VALUES (?1,?2,?3,?4,?5,?6,'OPEN',datetime('now'))",
+        params![job_id, execution_id, task_id, decision_type, reason_code, payload_json],
+    ).map_err(|e| format!("insert decision: {e}"))?;
+    Ok(conn.last_insert_rowid())
+}
+
 pub fn resolve_decision(id: i64, decision: &str) -> Result<(), String> {
     let conn = open_db()?;
     let changed = conn.execute("UPDATE decision_inbox SET status='RESOLVED', resolved_by=?1, resolved_at=datetime('now') WHERE id=?2 AND status='OPEN'", params![decision, id]).map_err(|e| e.to_string())?;

@@ -1,3 +1,36 @@
+## v3.8.91 — Redesain & Audit Responsivitas 5-Tier: Transfer & Engine Settings & Plug-in Workspace
+
+### 1. Rekayasa Responsivitas 5-Tier Modal Transfer & Engine Settings (`App.css`)
+- **Akar Masalah**: Modal `Transfer & Engine Settings` (`.td-tools-panel.is-unified`) sebelumnya dibatasi secara statis pada lebar `1180px` dan tinggi `840px`. Hal ini menyebabkan tampilan menjadi kerdil dan boros ruang pada monitor layar lebar/Ultra-Wide/4K (wasting 70%+ area layar dan memaksa *vertical scrolling*), sementara pada layar tablet dan ponsel pintar, kisi kartu *plug-in* (`.td-plugin-overview-grid`) dan tombol tindakan (`td-plugin-action-group`) terhimpit akibat *inline grid 1fr 1fr* yang kaku sehingga teks *"Download / Update FFmpeg Plugin"* terpotong menjadi 3 baris timpang.
+- **Perbaikan Arsitektur Responsif 5-Tier**:
+  1. **Tier 1 — Layar Kecil / Ponsel (< 640px & Resolusi Non-Reguler 720p s/d 1080×2460)**:
+     - Modal bertransformasi menjadi *full-screen fluid* (`100vw × 100dvh`) tanpa distorsi atau elemen terpotong.
+     - Kisi *plug-in* beralih menjadi 1 kolom (`1fr`).
+     - Tombol aksi tersusun secara fleksibel vertikal (*full-width*) dengan target sentuh aman $\ge 44 \times 44\text{px}$ (*Touch-First Mobile Mandatory*).
+  2. **Tier 2 — Layar Sedang / Tablet & Foldable (641px – 1024px)**:
+     - Modal beradaptasi dinamis pada `width: min(96vw, 1020px)` dan `height: min(92dvh, 820px)`.
+     - Menggunakan kisi responsif pintar `repeat(auto-fit, minmax(min(100%, 320px), 1fr))` sehingga kartu *plug-in* tidak pernah terhimpit di bawah batas nyaman 320px.
+  3. **Tier 3 — Layar Besar / Desktop Standar (1025px – 1440px / 1080p)**:
+     - Modal memanfaatkan area visual secara proporsional pada `width: min(94vw, 1260px)` dan `height: min(90dvh, 880px)`.
+     - Kartu penemuan *"Additional Plug-ins"* (`.td-plugin-placeholder-card`) kini membentang penuh di bawah 2 kolom kartu utama (`grid-column: 1 / -1`), menghilangkan celah kosong asimetris di sisi kanan.
+  4. **Tier 4 — Layar Wide & Resolusi QHD 1440p (1441px – 1920px / 21:9)**:
+     - Modal membesar elegan hingga `width: min(92vw, 1480px)` dan `height: min(90dvh, 960px)`.
+     - *Sidebar* navigasi dan kartu pengaturan memiliki ruang baca yang lega tanpa pembatasan ruang sempit.
+  5. **Tier 5 — Layar Ultra-Wide & Monitor 4K/5K (1921px – 3840px+ / 32:9 Super Ultrawide)**:
+     - Modal membesar anggun hingga `width: min(90vw, 1680px)` (hingga `1850px` pada layar >2560px) dan `height: min(92dvh, 1100px)`.
+     - Tipografi, *badge*, dan *padding* kartu diskalakan proporsional sehingga seluruh pengaturan terbaca instan tanpa perlu pengguliran yang melelahkan.
+
+### 2. Poles Komponen Plug-in Card & Status Badge (`TransferSettingsWorkspace.tsx` & `App.css`)
+- **Fluid Action Group**: Menghapus deklarasi kaku `gridTemplateColumns: 1fr 1fr` *inline style* dan menggantinya dengan flexbox adaptif `flex: 1 1 calc(50% - 4px)` dengan `min-width: 125px` dan `min-height: 42px`. Tombol tindakan *"Check Status"* dan *"Download / Update FFmpeg Plugin"* kini memiliki tinggi simetris dan teks terformat rapi.
+- **Monospace Runtime Status Badge**: Baris status runtime (*Installed Version*) kini dibungkus dalam *pill badge* monospace berlatar belakang kontras gelap dengan pemisahan teks otomatis (`overflow-wrap: anywhere`), mencegah benturan teks status dengan label kiri pada semua ukuran kartu.
+
+### 3. Autonomous Quality Sentinel Certification
+- **100% Locale Parity**: 6.179 kunci ID = 6.179 kunci EN (0 *missing keys*, 0 *fallback calls*).
+- **Zero TypeScript Errors**: Kompilasi `tsc --noEmit` lolos 100%.
+- **Vitest Suite**: 45/45 pengujian lulus.
+
+---
+
 ## v3.8.90 — Fix: Code Extension Guard for Preview Routing (TypeScript/JavaScript/Code vs JSON/CSV)
 
 ### 1. Guard Ekstensi Kode Eksplisit pada Preview Modal (`DrivePreviewModal/index.tsx`)

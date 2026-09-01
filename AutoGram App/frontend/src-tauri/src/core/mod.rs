@@ -8,6 +8,8 @@ pub mod channel_sync_types;
 pub mod channel_sync_worker;
 pub mod config_normalize;
 pub mod forwarder_contract;
+pub mod forwarder_engine;
+pub mod forwarder_scheduler;
 pub mod doc_preview;
 pub mod drive_engine;
 pub mod drive_rpc;
