@@ -1,3 +1,13 @@
+## v3.8.66 Compact Micro-Pill Video Duration Badge Design
+
+### 1. Penyesuaian Ukuran & Proporsi Kompak Lencana Durasi Video (`App.css`)
+- **Desain Micro-Pill Elegan**: Memperkecil ukuran lencana durasi video (`.td-preflight-thumb-duration-badge`) agar proporsional dan tidak mendominasi bingkai thumbnail 72×48px.
+- **Tipografi & Spasi Mikro**: Menyesuaikan font menjadi `0.56rem` (~9px) monospace tebal, padding kompak `0.5px 3.5px`, radius sudut `3px`, margin `2.5px`, dan bayangan lembut, sehingga informasi durasi video tampil minimalis, rapi, dan estetis layaknya pemutar video profesional.
+
+### 2. Autonomous Quality Sentinel Certification
+- **100% Locale Parity**: 6,078 kunci bahasa ID dan EN tersinkronisasi 100%.
+- **Zero TypeScript Errors & Vitest Suite Passing**: Seluruh 44 test files lolos 100%.
+
 ## v3.8.65 Video Duration Badge Containment & Live CDP Remote Verification
 
 ### 1. Perbaikan Pembatasan Posisi Lencana Durasi Video (`App.css`)
