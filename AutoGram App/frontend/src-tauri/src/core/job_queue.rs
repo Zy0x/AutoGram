@@ -362,17 +362,10 @@ pub fn clear_all_cancel_flags() {
 }
 
 pub fn is_transfer_cancelled(transfer_id: &str) -> bool {
-    if CANCEL_ALL_TRANSFERS.load(std::sync::atomic::Ordering::SeqCst) {
+    if CANCEL_ALL_TRANSFERS.load(std::sync::atomic::Ordering::Relaxed) {
         return true;
     }
-    let set = cancelled_set().read();
-    if set.contains(transfer_id) {
-        return true;
-    }
-    if let Some(rec) = get_transfer(transfer_id) {
-        return rec.state == TransferState::Cancelled;
-    }
-    false
+    cancelled_set().read().contains(transfer_id)
 }
 
 pub fn is_any_transfer_cancelled() -> bool {

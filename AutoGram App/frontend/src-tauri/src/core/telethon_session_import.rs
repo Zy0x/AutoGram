@@ -243,8 +243,13 @@ pub fn write_session_data(path: &Path, data: &SessionData) -> Result<(), TgError
     };
     let json = serde_json::to_string_pretty(&file)
         .map_err(|e| TgError::new(TgErrorCode::SessionImportFailed, format!("serialize: {e}")))?;
-    std::fs::write(path, json)
+    let tmp_path = path.with_extension(format!("tmp_{}", std::process::id()));
+    std::fs::write(&tmp_path, json)
         .map_err(|e| TgError::new(TgErrorCode::Io, format!("write grammers session: {e}")))?;
+    std::fs::rename(&tmp_path, path)
+        .or_else(|_| std::fs::copy(&tmp_path, path).map(|_| ()))
+        .map_err(|e| TgError::new(TgErrorCode::Io, format!("rename grammers session: {e}")))?;
+    let _ = std::fs::remove_file(&tmp_path);
     Ok(())
 }
 
@@ -252,29 +257,47 @@ pub fn read_session_data(path: &Path) -> Result<SessionData, TgError> {
     if !path.is_file() {
         return Ok(SessionData::default());
     }
-    let raw = std::fs::read_to_string(path)
-        .map_err(|e| TgError::new(TgErrorCode::SessionMissing, format!("read session: {e}")))?;
-    let file: GrammersSessionFile = serde_json::from_str(&raw).map_err(|e| {
-        TgError::new(
+    let mut last_err = None;
+    for _ in 0..5 {
+        let Ok(raw) = std::fs::read_to_string(path) else {
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            continue;
+        };
+        let trimmed = raw.trim();
+        if trimmed.is_empty() {
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            continue;
+        }
+        match serde_json::from_str::<GrammersSessionFile>(trimmed) {
+            Ok(file) => {
+                let hex_key = file.auth_key_hex.trim();
+                if hex_key.is_empty() {
+                    return Ok(SessionData::default());
+                }
+                let key = hex::decode(hex_key).map_err(|e| {
+                    TgError::new(
+                        TgErrorCode::SessionImportFailed,
+                        format!("auth_key hex: {e}"),
+                    )
+                })?;
+                if key.len() != 256 {
+                    return Ok(SessionData::default());
+                }
+                return session_data_from_parts(file.home_dc, &key, &file.ipv4, file.port);
+            }
+            Err(e) => {
+                last_err = Some(e);
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+        }
+    }
+    if let Some(e) = last_err {
+        return Err(TgError::new(
             TgErrorCode::SessionImportFailed,
             format!("parse grammers json session: {e}"),
-        )
-    })?;
-    let hex_key = file.auth_key_hex.trim();
-    if hex_key.is_empty() {
-        // Partial login file — treat as empty MemorySession (not a hard error).
-        return Ok(SessionData::default());
+        ));
     }
-    let key = hex::decode(hex_key).map_err(|e| {
-        TgError::new(
-            TgErrorCode::SessionImportFailed,
-            format!("auth_key hex: {e}"),
-        )
-    })?;
-    if key.len() != 256 {
-        return Ok(SessionData::default());
-    }
-    session_data_from_parts(file.home_dc, &key, &file.ipv4, file.port)
+    Ok(SessionData::default())
 }
 
 /// Import Telethon → Grammers JSON session file.

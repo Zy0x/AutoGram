@@ -313,12 +313,22 @@ struct PreparedLedgerIdentity {
 }
 
 fn duplicate_skip_enabled(rec: &TransferRecord, source_path: &str) -> bool {
+    let force_all = rec
+        .options
+        .get("force_upload")
+        .or_else(|| rec.options.get("forceUpload"))
+        .and_then(|value| value.as_bool())
+        .unwrap_or(false);
+    if force_all {
+        return false;
+    }
     let policy_skips = rec
         .options
         .get("duplicate_policy")
         .or_else(|| rec.options.get("duplicatePolicy"))
         .and_then(|value| value.as_str())
-        .is_none_or(|value| value.eq_ignore_ascii_case("SKIP"));
+        .map(|value| value.eq_ignore_ascii_case("SKIP"))
+        .unwrap_or(false);
     if !policy_skips {
         return false;
     }
@@ -1530,11 +1540,10 @@ fn run_intelligent_album(
                             "studio_orch",
                             "album_upload_network_retry",
                             format!(
-                                "Album upload attempt {}/3 failed with network error ({:?}): {}. Disconnecting socket pool and retrying in {}s...",
+                                "Album upload attempt {}/3 encountered transient error ({:?}): {}. Retrying in {}s...",
                                 album_attempts, err.code(), err.user_message(), wait_secs
                             ),
                         );
-                        grammers_ops::disconnect_cached_session(&delivery_identity.session);
                         std::thread::sleep(std::time::Duration::from_secs(wait_secs as u64));
                         continue;
                     }
@@ -1685,12 +1694,9 @@ fn run_intelligent_album(
                                         "studio_orch",
                                         "fallback_single_upload_retry",
                                         format!(
-                                            "Fallback single upload attempt {}/3 failed with network error ({:?}): {}. Retrying in {}s...",
+                                            "Fallback single upload attempt {}/3 encountered error ({:?}): {}. Retrying in {}s...",
                                             single_attempts, err.code(), err.user_message(), wait_secs
                                         ),
-                                    );
-                                    grammers_ops::disconnect_cached_session(
-                                        &delivery_identity.session,
                                     );
                                     std::thread::sleep(std::time::Duration::from_secs(
                                         wait_secs as u64,

@@ -161,9 +161,7 @@ pub fn live_clients() -> &'static Mutex<HashMap<String, CachedLiveClient>> {
 }
 
 pub fn disconnect_cached_session(session_name: &str) {
-    if let Some(entry) = live_clients().lock().remove(session_name) {
-        entry.live.client.disconnect();
-    }
+    let _ = live_clients().lock().remove(session_name);
 }
 
 pub fn purge_inactive_sessions(active_session: &str) {
