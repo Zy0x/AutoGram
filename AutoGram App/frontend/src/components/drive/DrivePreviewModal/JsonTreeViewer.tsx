@@ -1,17 +1,30 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronRight, ChevronDown, Search, Copy, Check, Braces, FolderTree } from 'lucide-react';
+import { ChevronRight, ChevronDown, Search, Braces } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface Props {
   jsonString: string;
   fileName: string;
+  expandAll?: boolean;
+  searchOpen?: boolean;
+  onToggleSearch?: () => void;
 }
 
-export const JsonTreeViewer: React.FC<Props> = ({ jsonString, fileName: _fileName }) => {
+export const JsonTreeViewer: React.FC<Props> = ({
+  jsonString,
+  fileName: _fileName,
+  expandAll: controlledExpandAll,
+  searchOpen: controlledSearchOpen,
+  onToggleSearch,
+}) => {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [expandAll, setExpandAll] = useState(true);
+  const [internalExpandAll] = useState(true);
+  const [internalSearchOpen, setInternalSearchOpen] = useState(false);
+
+  const expandAll = controlledExpandAll !== undefined ? controlledExpandAll : internalExpandAll;
+  const isSearchOpen = controlledSearchOpen !== undefined ? controlledSearchOpen : internalSearchOpen;
+  const toggleSearch = onToggleSearch || (() => setInternalSearchOpen((prev) => !prev));
 
   const parsedData = useMemo(() => {
     try {
@@ -20,12 +33,6 @@ export const JsonTreeViewer: React.FC<Props> = ({ jsonString, fileName: _fileNam
       return { data: null, error: e?.message || 'Invalid JSON syntax' };
     }
   }, [jsonString]);
-
-  const handleCopy = () => {
-    void navigator.clipboard.writeText(jsonString);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   if (parsedData.error) {
     return (
@@ -40,47 +47,55 @@ export const JsonTreeViewer: React.FC<Props> = ({ jsonString, fileName: _fileNam
   }
 
   return (
-    <div className="td-json-tree-wrap">
-      <div className="td-json-tree-toolbar">
-        <div className="td-json-toolbar-left">
-          <FolderTree size={16} className="text-emerald-400" />
-          <span className="td-json-title font-semibold">
-            {t('drive.json_tree_title')}
-          </span>
-        </div>
-
-        <div className="td-json-toolbar-right">
-          <div className="td-json-search-box">
-            <Search size={13} className="text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('drive.search_tree_placeholder')}
-              className="td-json-search-input"
-            />
-          </div>
-
+    <div className="td-json-tree-wrap" style={{ position: 'relative' }}>
+      {/* Floating Compact Search Popup */}
+      {isSearchOpen && (
+        <div
+          className="td-json-search-box is-floating"
+          style={{
+            position: 'absolute',
+            top: '8px',
+            right: '16px',
+            zIndex: 10,
+            background: 'rgba(15, 23, 42, 0.95)',
+            border: '1px solid rgba(56, 189, 248, 0.4)',
+            borderRadius: '8px',
+            padding: '4px 8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+          }}
+        >
+          <Search size={13} className="text-sky-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t('drive.search_tree_placeholder')}
+            className="td-json-search-input"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              color: '#f8fafc',
+              fontSize: '12px',
+              width: '160px',
+            }}
+            autoFocus
+          />
           <button
             type="button"
             className="td-btn-secondary td-btn-xs"
-            onClick={() => setExpandAll((prev) => !prev)}
+            onClick={toggleSearch}
+            style={{ padding: '2px 6px', fontSize: '11px', borderRadius: '4px' }}
           >
-            <span>{expandAll ? t('drive.collapse_all') : t('drive.expand_all')}</span>
-          </button>
-
-          <button
-            type="button"
-            className="td-btn-secondary td-btn-xs"
-            onClick={handleCopy}
-          >
-            {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
-            <span>{copied ? t('drive.copied') : t('drive.copy_json')}</span>
+            ✕
           </button>
         </div>
-      </div>
+      )}
 
-      <div className="td-json-tree-body font-mono">
+      <div className="td-json-tree-body font-mono" style={{ padding: '16px 20px', height: '100%', overflowY: 'auto' }}>
         <JsonNode
           data={parsedData.data}
           name="root"

@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Database, Table, Copy, Check } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { Table } from 'lucide-react';
 
 interface Props {
   rawSqlOrText: string;
@@ -8,8 +7,6 @@ interface Props {
 }
 
 export const DatabaseTableInspector: React.FC<Props> = ({ rawSqlOrText, fileName: _fileName }) => {
-  const { t } = useTranslation();
-  const [copied, setCopied] = useState(false);
 
   // Extract SQL Tables / CREATE TABLE Statements
   const tables = useMemo(() => {
@@ -36,37 +33,8 @@ export const DatabaseTableInspector: React.FC<Props> = ({ rawSqlOrText, fileName
   const [activeTableIdx, setActiveTableIdx] = useState(0);
   const activeTable = tables[activeTableIdx] || tables[0];
 
-  const handleCopy = () => {
-    void navigator.clipboard.writeText(rawSqlOrText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
     <div className="td-db-inspector-wrap">
-      <div className="td-db-toolbar">
-        <div className="td-db-toolbar-left">
-          <Database size={16} className="text-emerald-400" />
-          <span className="td-db-title font-semibold">
-            {t('drive.db_inspector_title')}
-          </span>
-          <span className="td-db-stats">
-            ({tables.length} {t('drive.tables_found')})
-          </span>
-        </div>
-
-        <div className="td-db-toolbar-right">
-          <button
-            type="button"
-            className="td-btn-secondary td-btn-xs"
-            onClick={handleCopy}
-          >
-            {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
-            <span>{copied ? t('drive.copied') : t('drive.copy_schema')}</span>
-          </button>
-        </div>
-      </div>
-
       <div className="td-db-content-layout">
         {/* Left Table Navigation */}
         <div className="td-db-tables-nav">

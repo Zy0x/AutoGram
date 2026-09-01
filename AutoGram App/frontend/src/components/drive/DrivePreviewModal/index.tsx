@@ -47,6 +47,9 @@ import {
   Database,
   Network,
   Code,
+  WrapText,
+  Eye,
+  FolderTree,
 } from 'lucide-react';
 import { DeadCenterProgress } from '../Explorer/DriveSkeleton';
 import { convertFileSrc } from '@tauri-apps/api/core';
@@ -2755,6 +2758,12 @@ export function DrivePreviewModal({
   const isText = mediaKind === 'text';
   const isZip = mediaKind === 'zip';
 
+  // Format Context Tool States
+  const [codeWordWrap, setCodeWordWrap] = useState(true);
+  const [codeSearchOpen, setCodeSearchOpen] = useState(false);
+  const [jsonExpandAll, setJsonExpandAll] = useState(true);
+  const [mdViewMode, setMdViewMode] = useState<'visual' | 'raw'>('visual');
+
   const fileExtBadge = useMemo(() => {
     const raw = (file.name || file.original_name || '').split('.').pop()?.trim();
     if (!raw || raw.length > 8 || raw.toLowerCase() === (file.name || '').toLowerCase()) return null;
@@ -4560,6 +4569,65 @@ export function DrivePreviewModal({
                       </>
                     )}
 
+                    {/* Text / Code / Log / Markdown / JSON Format Tools */}
+                    {isText && textBody != null && (
+                      <>
+                        {/* Word Wrap Toggle (Text, Code, Log) */}
+                        {!isJsonFile && !isMarkdownFile && !isSpreadsheetFile && (
+                          <button
+                            type="button"
+                            className={`td-icon-btn is-compact ${codeWordWrap ? 'is-active' : ''}`}
+                            title={t('drive.toggle_word_wrap')}
+                            disabled={isHeaderFrozen}
+                            onClick={() => setCodeWordWrap((v) => !v)}
+                          >
+                            <WrapText size={13} />
+                          </button>
+                        )}
+
+                        {/* Search In-File Toggle (Text, Code, Log, JSON) */}
+                        {!isMarkdownFile && !isSpreadsheetFile && (
+                          <button
+                            type="button"
+                            className={`td-icon-btn is-compact ${codeSearchOpen ? 'is-active' : ''}`}
+                            title={t('drive.search_placeholder')}
+                            disabled={isHeaderFrozen}
+                            onClick={() => setCodeSearchOpen((v) => !v)}
+                          >
+                            <Search size={13} />
+                          </button>
+                        )}
+
+                        {/* Markdown Visual / Raw Toggle */}
+                        {isMarkdownFile && (
+                          <button
+                            type="button"
+                            className={`td-icon-btn is-compact ${mdViewMode === 'visual' ? 'is-active' : ''}`}
+                            title={mdViewMode === 'visual' ? 'Kode Mentah' : 'Visual Render'}
+                            disabled={isHeaderFrozen}
+                            onClick={() => setMdViewMode((v) => (v === 'visual' ? 'raw' : 'visual'))}
+                          >
+                            {mdViewMode === 'visual' ? <Eye size={13} /> : <Code size={13} />}
+                          </button>
+                        )}
+
+                        {/* JSON Tree Expand / Collapse All */}
+                        {isJsonFile && (
+                          <button
+                            type="button"
+                            className="td-icon-btn is-compact"
+                            title={jsonExpandAll ? t('drive.collapse_all') : t('drive.expand_all')}
+                            disabled={isHeaderFrozen}
+                            onClick={() => setJsonExpandAll((v) => !v)}
+                          >
+                            <FolderTree size={13} />
+                          </button>
+                        )}
+
+                        <div className="td-header-tool-divider" />
+                      </>
+                    )}
+
                     {/* Copy Text Button (Text / PDF / Word) */}
                     {((isText && textBody) || isDocxFile) && (
                       <>
@@ -5056,13 +5124,26 @@ export function DrivePreviewModal({
           ) : activeInspectorTab === 'tree' && textBody != null ? (
             <div className="drive-preview-doc" style={{ padding: 0, height: '100%', width: '100%' }}>
               <PluginErrorBoundary pluginName="JsonTreeViewer">
-                <JsonTreeViewer jsonString={textBody} fileName={displayName} />
+                <JsonTreeViewer
+                  jsonString={textBody}
+                  fileName={displayName}
+                  expandAll={jsonExpandAll}
+                  searchOpen={codeSearchOpen}
+                  onToggleSearch={() => setCodeSearchOpen((v) => !v)}
+                />
               </PluginErrorBoundary>
             </div>
           ) : activeInspectorTab === 'code' && textBody != null ? (
             <div className="drive-preview-doc" style={{ padding: 0, height: '100%', width: '100%' }}>
               <PluginErrorBoundary pluginName="CodeScriptViewer">
-                <CodeScriptViewer code={textBody} language={file.file_ext || 'text'} fileName={displayName} />
+                <CodeScriptViewer
+                  code={textBody}
+                  language={file.file_ext || 'text'}
+                  fileName={displayName}
+                  wordWrap={codeWordWrap}
+                  searchOpen={codeSearchOpen}
+                  onToggleSearch={() => setCodeSearchOpen((v) => !v)}
+                />
               </PluginErrorBoundary>
             </div>
           ) : (
@@ -6881,7 +6962,7 @@ export function DrivePreviewModal({
                     onOpenSystem={handleOpenSystem}
                   />
                 ) : isMarkdownFile ? (
-                  <MarkdownViewer content={textBody} fileName={displayName} />
+                  <MarkdownViewer content={textBody} fileName={displayName} viewMode={mdViewMode} />
                 ) : isSpreadsheetFile ? (
                   <SpreadsheetViewer
                     data={activeSrc || dataUrl || path || streamUrl || hexBytes || textBody}
@@ -6895,9 +6976,22 @@ export function DrivePreviewModal({
                 ) : isLogFile ? (
                   <LogViewer logContent={textBody} fileName={displayName} />
                 ) : isJsonFile ? (
-                  <JsonTreeViewer jsonString={textBody} fileName={displayName} />
+                  <JsonTreeViewer
+                    jsonString={textBody}
+                    fileName={displayName}
+                    expandAll={jsonExpandAll}
+                    searchOpen={codeSearchOpen}
+                    onToggleSearch={() => setCodeSearchOpen((v) => !v)}
+                  />
                 ) : (
-                  <CodeScriptViewer code={textBody} language={file.file_ext || 'text'} fileName={displayName} />
+                  <CodeScriptViewer
+                    code={textBody}
+                    language={file.file_ext || 'text'}
+                    fileName={displayName}
+                    wordWrap={codeWordWrap}
+                    searchOpen={codeSearchOpen}
+                    onToggleSearch={() => setCodeSearchOpen((v) => !v)}
+                  />
                 )}
               </PluginErrorBoundary>
             </div>

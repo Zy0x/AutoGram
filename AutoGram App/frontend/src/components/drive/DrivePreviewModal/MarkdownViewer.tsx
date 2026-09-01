@@ -1,21 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { Copy, Check, Eye, Code, FileText } from 'lucide-react';
 import { CodeScriptViewer } from './CodeScriptViewer';
 
 interface Props {
   content: string;
   fileName: string;
+  viewMode?: 'visual' | 'raw';
 }
 
-export const MarkdownViewer: React.FC<Props> = ({ content, fileName }) => {
-  const [viewMode, setViewMode] = useState<'visual' | 'raw'>('visual');
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    void navigator.clipboard.writeText(content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+export const MarkdownViewer: React.FC<Props> = ({ content, fileName, viewMode: controlledViewMode }) => {
+  const [internalViewMode] = useState<'visual' | 'raw'>('visual');
+  const viewMode = controlledViewMode !== undefined ? controlledViewMode : internalViewMode;
 
   // Convert basic markdown to safe structured elements
   const renderedElements = useMemo(() => {
@@ -177,95 +171,14 @@ export const MarkdownViewer: React.FC<Props> = ({ content, fileName }) => {
 
   if (viewMode === 'raw') {
     return (
-      <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '6px 16px', background: '#0e1422', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
-          <button
-            type="button"
-            onClick={() => setViewMode('visual')}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '6px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}
-          >
-            <Eye size={13} />
-            <span>Lihat Visual Render</span>
-          </button>
-        </div>
-        <div style={{ flex: 1, minHeight: 0 }}>
-          <CodeScriptViewer code={content} language="markdown" fileName={fileName} />
-        </div>
+      <div style={{ width: '100%', height: '100%', minHeight: 0 }}>
+        <CodeScriptViewer code={content} language="markdown" fileName={fileName} />
       </div>
     );
   }
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: '#0b0f19', color: '#f8fafc', overflow: 'hidden' }}>
-      {/* Top Controls */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '8px 16px',
-          background: '#0e1422',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <FileText size={16} className="text-sky-400" />
-          <span style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>
-            {fileName}
-          </span>
-          <span style={{ fontSize: '11px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', fontWeight: 700 }}>
-            MARKDOWN
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <button
-            type="button"
-            onClick={() => setViewMode('raw')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              padding: '4px 10px',
-              borderRadius: '6px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              color: '#cbd5e1',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              fontSize: '11.5px',
-              cursor: 'pointer',
-              fontWeight: 500,
-            }}
-            title="Lihat Kode Sumber Mentah"
-          >
-            <Code size={13} />
-            <span>Kode Mentah</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleCopy}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              padding: '4px 10px',
-              borderRadius: '6px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              color: '#cbd5e1',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              fontSize: '11.5px',
-              cursor: 'pointer',
-              fontWeight: 500,
-            }}
-            title="Salin Isi Dokumen"
-          >
-            {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
-            <span>{copied ? 'Tersalin' : 'Salin'}</span>
-          </button>
-        </div>
-      </div>
-
       {/* Rendered Content Canvas */}
       <div
         style={{

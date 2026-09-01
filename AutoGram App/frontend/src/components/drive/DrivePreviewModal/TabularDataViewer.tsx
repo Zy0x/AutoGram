@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Table, Search, ArrowUpDown, ChevronLeft, ChevronRight, Copy, Check } from 'lucide-react';
+import { ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface Props {
@@ -10,12 +10,11 @@ interface Props {
 
 export const TabularDataViewer: React.FC<Props> = ({ rawCsv, delimiter = ',', fileName: _fileName }) => {
   const { t } = useTranslation();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery] = useState('');
   const [sortCol, setSortCol] = useState<number | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
   const [page, setPage] = useState(0);
   const pageSize = 50;
-  const [copied, setCopied] = useState(false);
 
   // Parse CSV rows cleanly
   const { headers, rows } = useMemo(() => {
@@ -83,51 +82,8 @@ export const TabularDataViewer: React.FC<Props> = ({ rawCsv, delimiter = ',', fi
     }
   };
 
-  const handleCopy = () => {
-    void navigator.clipboard.writeText(rawCsv);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
     <div className="td-table-viewer-wrap">
-      <div className="td-table-toolbar">
-        <div className="td-table-toolbar-left">
-          <Table size={16} className="text-sky-400" />
-          <span className="td-table-title font-semibold">
-            {t('drive.table_viewer_title')}
-          </span>
-          <span className="td-table-stats">
-            ({rows.length.toLocaleString()} {t('drive.rows')} × {headers.length} {t('drive.cols')})
-          </span>
-        </div>
-
-        <div className="td-table-toolbar-right">
-          <div className="td-table-search-box">
-            <Search size={13} className="text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setPage(0);
-              }}
-              placeholder={t('drive.search_table_placeholder')}
-              className="td-table-search-input"
-            />
-          </div>
-
-          <button
-            type="button"
-            className="td-btn-secondary td-btn-xs"
-            onClick={handleCopy}
-          >
-            {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
-            <span>{copied ? t('drive.copied') : t('drive.copy_csv')}</span>
-          </button>
-        </div>
-      </div>
-
       <div className="td-table-grid-scroll">
         <table className="td-table-grid">
           <thead>
