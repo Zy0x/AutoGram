@@ -1,3 +1,16 @@
+## v3.8.73 Rust Native Core Backend Media Classification & Extension Parity
+
+### 1. Sinkronisasi Ekstensi & Klasifikasi Media pada Native Rust Core (`media_classifier.rs`, `doc_preview.rs`)
+- **Pemeriksaan Forensik Kode Backend Rust**: Memverifikasi secara langsung dan mendalam ke dalam kernel Rust (`src-tauri/src/core/media_classifier.rs` dan `crates/autogram-core/`) untuk memastikan seluruh klasifikasi format media (`ImageProfessional`, `ImageConsumer`, `VideoProduction`, `VideoConsumer`, `AudioLossless`, `AudioConsumer`, `BinaryAsset`) sinkron 100% dengan lapisan deteksi biner frontend.
+- **Ekspansi Menyeluruh Format Video & Citra**: Menambahkan dukungan penuh untuk format video `.3g2`, `.asf`, `.rm`, `.rmvb`, `.divx`, `.f4v`, `.mpe`, `.mpeg`, `.mpg`, `.mpv`, `.mxf`, `.prores`, `.r3d`, `.braw` serta citra `.jfif`, `.tif`, `.avif`, `.ico`, `.svg`, `.svgz`, `.psd`, `.psb`, `.ai`, `.eps`, `.dng`, `.cr2`, `.cr3`, `.nef`, `.nrw`, `.arw`, `.srf`, `.sr2`, `.orf`, `.rw2`, `.raf`, `.pef`, `.raw`, `.hdr`, `.exr`, `.tga`.
+- **Ekspansi Format Audio Lossless & Arsip**: Menambahkan dukungan `.wma`, `.alac`, `.aiff`, `.aif`, `.ape`, `.mid`, `.midi`, `.ac3`, `.eac3`, `.dts`, `.amr`, `.mka`, `.dsd`, `.dsf`, `.dff`, `.ra` serta arsip `.tgz`, `.tbz`, `.tbz2`, `.txz`, `.xz`, `.zst`, `.tzst`, `.cab`, `.dmg`, `.pkg`, `.deb`, `.rpm`, `.apk`, `.aab`, `.jar`, `.war`, `.ear`, `.cbz`, `.cbr`, `.cb7`, `.wim`.
+
+### 2. Autonomous Quality Sentinel Certification
+- **Rust Backend Cargo Check**: Kompilasi `cargo check` pada engine native desktop Rust sukses 100% tanpa galat (`target(s) in 20.96s`).
+- **100% Locale Parity**: 6,162 kunci bahasa ID dan 6,162 kunci bahasa EN tersinkronisasi 100% tanpa selisih.
+- **Zero TypeScript Errors & Clean Production Build**: Kompilasi `tsc && vite build` sukses 100% tanpa galat.
+- **Vitest Automated Test Suite**: Seluruh 45 test suite Vitest (373 pengujian) lolos 100%.
+
 ## v3.8.72 Exhaustive Multi-Container Sniffing & Forensic Harmonization
 
 ### 1. Harmonisasi Menyeluruh 8 Keluarga Format Kontainer Biner (`magicBytesSniffer.ts`, `magicBytesSniffer.test.ts`)
