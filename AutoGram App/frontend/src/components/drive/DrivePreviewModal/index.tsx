@@ -3387,6 +3387,17 @@ export function DrivePreviewModal({
 
 
   const handleCopyText = async () => {
+    if (isDocxFile) {
+      const docxEl = document.querySelector('.autogram-docx-container') as HTMLElement | null;
+      if (docxEl && docxEl.innerText) {
+        try {
+          await navigator.clipboard.writeText(docxEl.innerText);
+          return;
+        } catch {
+          /* ignore */
+        }
+      }
+    }
     if (!textBody) return;
     try {
       await navigator.clipboard.writeText(textBody);
@@ -4278,7 +4289,7 @@ export function DrivePreviewModal({
           onWheel={(e) => e.stopPropagation()}
         >
           <div className="drive-preview-tools">
-            {(isImage || isVideo) && (
+            {(isImage || isVideo || isDocxFile) && (
               <div className="drive-tool-group" role="group" aria-label={t('drive.zoom_label')}>
                 <span className="drive-tool-group-label">{t("drive.label_zoom")}</span>
                 <button
@@ -4311,7 +4322,7 @@ export function DrivePreviewModal({
                   <ZoomIn size={15} />
                   <span className="drive-tool-btn-label">{t("drive.label_zoom_in")}</span>
                 </button>
-                {!isSplitCompareMode && (
+                {!isSplitCompareMode && !isDocxFile && (
                   <button
                     type="button"
                     className={`drive-tool-btn${isMagnifierMode ? ' is-on' : ''}`}
@@ -4468,7 +4479,7 @@ export function DrivePreviewModal({
               </div>
             )}
 
-            {(isPdf || isText || isDocOther) && isDesktop() && (
+            {(isPdf || isText || isDocOther || isDocxFile || isSpreadsheetFile) && isDesktop() && (
               <div className="drive-tool-group" role="group" aria-label={t('drive.label_open_doc')}>
                 <span className="drive-tool-group-label">{t("drive.label_open")}</span>
                 <button
@@ -4503,7 +4514,7 @@ export function DrivePreviewModal({
                     <span className="drive-tool-btn-label">{t("drive.label_print")}</span>
                   </button>
                 )}
-                {isText && textBody && (
+                {((isText && textBody) || isDocxFile) && (
                   <button
                     type="button"
                     className="drive-tool-btn"
@@ -6798,6 +6809,7 @@ export function DrivePreviewModal({
                     data={activeSrc || dataUrl || path || streamUrl || hexBytes || (textBody ? new TextEncoder().encode(textBody) : '')}
                     fileName={displayName}
                     onOpenSystem={handleOpenSystem}
+                    zoom={curTransform.zoom}
                   />
                 ) : isSpreadsheetFile ? (
                   <SpreadsheetViewer
@@ -6901,6 +6913,7 @@ export function DrivePreviewModal({
                     data={activeSrc || dataUrl || path || streamUrl || hexBytes || (textBody ? new TextEncoder().encode(textBody) : '')}
                     fileName={displayName}
                     onOpenSystem={handleOpenSystem}
+                    zoom={curTransform.zoom}
                   />
                 </PluginErrorBoundary>
               ) : isSpreadsheetFile ? (

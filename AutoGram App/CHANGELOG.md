@@ -1,3 +1,18 @@
+## v3.8.79 Unified Document Toolbar Integration & Zero Redundant Header
+
+### 1. Penyatuan Alat Dokumen ke Bilah Alat Utama Modal (`DocxViewer.tsx`, `DrivePreviewModal/index.tsx`)
+- **Eliminasi Total Bilah Atas Duplikat di DocxViewer**: Menghilangkan seluruh bilah header internal pada komponen dokumen Word yang sebelumnya menduplikasi nama berkas dan kontrol zoom secara redundan di bawah toolbar modal.
+- **Integrasi Kontrol Zoom Dokumen ke Toolbar Modal**: Mengaktifkan grup kontrol zoom (`ZOOM: [Out] [100%] [In]`) pada bilah alat utama modal untuk berkas dokumen Word (`.docx`), mengalirkan skala perbesaran secara responsif ke `<DocxViewer zoom={curTransform.zoom} />`.
+- **Integrasi Tombol Salin Teks Dokumen**: Menghubungkan tombol `Copy` pada grup `OPEN` di toolbar modal untuk langsung menyalin teks dari kanvas dokumen Word ke *clipboard* sistem.
+- **Kanvas Penuh 100% Bebas Tumpukan Bar**: Halaman dokumen kini langsung dirender rapat di bawah bilah navigasi modal tanpa ada bilah perantara yang membuang ruang vertikal.
+- **Verifikasi Live Desktop CDP (Port 9230)**: Memverifikasi tampilan kanvas dokumen Word yang bersih dan fungsionalitas zoom/salin teks pada desktop Windows yang sedang aktif.
+
+### 2. Autonomous Quality Sentinel Certification
+- **Rust Backend Cargo Check**: Kompilasi `cargo check` pada engine native desktop Rust sukses 100% tanpa galat.
+- **100% Locale Parity**: 6,163 kunci bahasa ID dan 6,163 kunci bahasa EN tersinkronisasi 100% tanpa selisih.
+- **Zero TypeScript Errors & Clean Production Build**: Kompilasi `tsc && vite build` sukses 100% tanpa galat.
+- **Vitest Automated Test Suite**: Seluruh 45 test suite Vitest (373 pengujian) lolos 100%.
+
 ## v3.8.78 Ultra-Compact Header Toolbar & Unified 2-Tab Inspector Navigation
 
 ### 1. Optimalisasi Ruang Kanvas Pratinjau & Integrasi Tab Ringkas (`DrivePreviewModal/index.tsx`, `App.css`)

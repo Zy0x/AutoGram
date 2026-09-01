@@ -1,19 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { renderAsync } from 'docx-preview';
-import { Loader2, FileText, ZoomIn, ZoomOut, RotateCcw, Copy, Check } from 'lucide-react';
+import { Loader2, FileText } from 'lucide-react';
 
 interface Props {
   data: ArrayBuffer | Uint8Array | Blob | string;
   fileName: string;
   onOpenSystem?: () => void;
+  zoom?: number;
 }
 
-export const DocxViewer: React.FC<Props> = ({ data, fileName, onOpenSystem }) => {
+export const DocxViewer: React.FC<Props> = ({ data, onOpenSystem, zoom = 1 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [zoom, setZoom] = useState(1);
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,94 +84,8 @@ export const DocxViewer: React.FC<Props> = ({ data, fileName, onOpenSystem }) =>
     };
   }, [data]);
 
-  const handleCopyText = () => {
-    if (!containerRef.current) return;
-    const text = containerRef.current.innerText || '';
-    if (text) {
-      navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
   return (
     <div className="autogram-docx-viewer-wrap" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: '#0b0f19', color: '#f8fafc', overflow: 'hidden' }}>
-      <div
-        className="autogram-docx-toolbar"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '8px 16px',
-          background: 'rgba(15, 23, 42, 0.92)',
-          backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          zIndex: 10,
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <FileText size={16} className="text-blue-400" />
-          <span style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>
-            {fileName}
-          </span>
-          <span
-            style={{
-              fontSize: '11px',
-              padding: '2px 8px',
-              borderRadius: '6px',
-              background: 'rgba(59, 130, 246, 0.15)',
-              color: '#60a5fa',
-              fontWeight: 600,
-            }}
-          >
-            DOCX
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button
-            type="button"
-            className="td-btn-secondary td-btn-xs"
-            onClick={() => setZoom((z) => Math.max(0.5, Math.round((z - 0.1) * 10) / 10))}
-            title="Perkecil (Zoom Out)"
-            style={{ padding: '4px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1', cursor: 'pointer' }}
-          >
-            <ZoomOut size={13} />
-          </button>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8', minWidth: '40px', textAlign: 'center' }}>
-            {Math.round(zoom * 100)}%
-          </span>
-          <button
-            type="button"
-            className="td-btn-secondary td-btn-xs"
-            onClick={() => setZoom((z) => Math.min(2.0, Math.round((z + 0.1) * 10) / 10))}
-            title="Perbesar (Zoom In)"
-            style={{ padding: '4px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1', cursor: 'pointer' }}
-          >
-            <ZoomIn size={13} />
-          </button>
-          <button
-            type="button"
-            className="td-btn-secondary td-btn-xs"
-            onClick={() => setZoom(1)}
-            title="Reset Zoom 100%"
-            style={{ padding: '4px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1', cursor: 'pointer' }}
-          >
-            <RotateCcw size={13} />
-          </button>
-          <button
-            type="button"
-            className="td-btn-secondary td-btn-xs"
-            onClick={handleCopyText}
-            title="Salin Seluruh Teks"
-            style={{ padding: '4px 10px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(59, 130, 246, 0.2)', border: '1px solid rgba(59, 130, 246, 0.4)', color: '#93c5fd', cursor: 'pointer', fontWeight: 600 }}
-          >
-            {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
-            <span>{copied ? 'Tersalin' : 'Salin Teks'}</span>
-          </button>
-        </div>
-      </div>
 
       <div
         style={{
