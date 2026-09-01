@@ -1782,6 +1782,7 @@
   "preflight_source_file": "Selected source",
   "preflight_existing_telegram": "Already in Telegram",
   "preflight_source_thumb_alt": "Selected source preview",
+  "preflight_click_to_preview": "Click to preview media",
   "preflight_existing_thumb_alt": "Existing Telegram media preview",
   "preflight_existing_thumb_loading": "Loading Telegram preview",
   "preflight_existing_thumb_missing": "Telegram preview unavailable",

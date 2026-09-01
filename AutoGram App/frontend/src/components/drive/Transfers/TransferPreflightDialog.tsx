@@ -37,12 +37,14 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { DrivePreviewModal } from '../DrivePreviewModal';
 import { requestThumb } from '../../../lib/media/thumbBatcher';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import { getSessionDisplayName } from '../../../lib/telegram';
 import {
   DEFAULT_TRANSFER_SETTINGS,
   formatDriveBytes,
+  type DriveFile,
   type DriveTransferSettings,
   type RemoteEngineMode,
 } from '../../../lib/telegram/driveTypes';
@@ -689,6 +691,64 @@ export function TransferPreflightDialog({
     return report.items;
   }, [report, activeFilter, choices]);
 
+  const [previewItem, setPreviewItem] = useState<QualityPreflightItem | null>(null);
+
+  const previewFile = useMemo<DriveFile | null>(() => {
+    if (!previewItem) return null;
+    const ext = previewItem.sourceName.split('.').pop()?.toLowerCase() || '';
+    const kind =
+      previewItem.category === 'video' || /\.(mp4|mov|webm|mkv|avi|m4v|3gp|flv|ts)($|\?)/i.test(previewItem.sourceName)
+        ? 'video'
+        : previewItem.category === 'photo' || /\.(jpe?g|png|webp|gif|bmp|heic|avif)($|\?)/i.test(previewItem.sourceName)
+        ? 'image'
+        : previewItem.category === 'audio' || /\.(mp3|flac|wav|ogg|m4a|aac|opus)($|\?)/i.test(previewItem.sourceName)
+        ? 'audio'
+        : ext === 'pdf'
+        ? 'pdf'
+        : ['txt', 'json', 'js', 'ts', 'jsx', 'tsx', 'rs', 'py', 'html', 'css', 'md', 'xml', 'yaml', 'yml', 'toml'].includes(ext)
+        ? 'text'
+        : 'other';
+
+    return {
+      id: 998000000 + previewItem.index,
+      folder_id: null,
+      name: previewItem.sourceName,
+      size: previewItem.sourceSize,
+      mime_type: null,
+      file_ext: ext,
+      icon_type: kind,
+      original_name: previewItem.sourceName,
+    };
+  }, [previewItem]);
+
+  const customPreviewSrc = useMemo(() => {
+    if (!previewItem) return null;
+    const raw = previewItem.sourcePath || '';
+    if (!raw) return null;
+    if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+    return convertFileSrc(raw);
+  }, [previewItem]);
+
+  const currentPreviewIndex = useMemo(() => {
+    if (!previewItem) return -1;
+    return filteredItems.findIndex((it) => it.sourcePath === previewItem.sourcePath);
+  }, [previewItem, filteredItems]);
+
+  const hasPrevPreview = currentPreviewIndex > 0;
+  const hasNextPreview = currentPreviewIndex >= 0 && currentPreviewIndex < filteredItems.length - 1;
+
+  const handlePrevPreview = useCallback(() => {
+    if (hasPrevPreview) {
+      setPreviewItem(filteredItems[currentPreviewIndex - 1]);
+    }
+  }, [hasPrevPreview, currentPreviewIndex, filteredItems]);
+
+  const handleNextPreview = useCallback(() => {
+    if (hasNextPreview) {
+      setPreviewItem(filteredItems[currentPreviewIndex + 1]);
+    }
+  }, [hasNextPreview, currentPreviewIndex, filteredItems]);
+
   if (!report || typeof document === 'undefined') return null;
 
   const visibleItems = filteredItems.slice(0, 100);
@@ -710,7 +770,8 @@ export function TransferPreflightDialog({
   };
 
   const node = (
-    <div className={`td-preflight-overlay ${hasStackedModal ? 'has-stacked-modal' : ''}`} role="presentation">
+    <>
+      <div className={`td-preflight-overlay ${hasStackedModal ? 'has-stacked-modal' : ''}`} role="presentation">
       <section className="td-preflight-dialog" role="dialog" aria-modal="true" aria-labelledby="transfer-preflight-title">
         <header className="td-preflight-head">
           <div className="td-preflight-head-main">
@@ -1271,7 +1332,20 @@ export function TransferPreflightDialog({
                   <div className="td-preflight-card-main">
                     {/* Left: Thumbnail container with index number */}
                     <div className="td-preflight-thumb-wrap">
-                      <div className="td-preflight-thumb">
+                      <div
+                        className="td-preflight-thumb is-clickable"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setPreviewItem(item)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setPreviewItem(item);
+                          }
+                        }}
+                        title={t('drive.preflight_click_to_preview')}
+                        aria-label={`${item.sourceName} - ${t('drive.preflight_click_to_preview')}`}
+                      >
                         <PreflightSourceThumb item={item} />
                       </div>
                       <span className="td-preflight-index-pill">{item.index + 1}</span>
@@ -1465,6 +1539,30 @@ export function TransferPreflightDialog({
         </footer>
       </section>
     </div>
+
+    {previewItem && previewFile && (
+      <DrivePreviewModal
+        file={previewFile}
+        folderId={null}
+        creds={creds || { session: '', apiId: '0', apiHash: '' }}
+        onClose={() => setPreviewItem(null)}
+        hasPrev={hasPrevPreview}
+        hasNext={hasNextPreview}
+        onPrev={hasPrevPreview ? handlePrevPreview : undefined}
+        onNext={hasNextPreview ? handleNextPreview : undefined}
+        customSource={{
+          src: customPreviewSrc,
+          kind: previewFile.icon_type as any,
+          loading: false,
+          error: null,
+          indexCounter:
+            filteredItems.length > 1 && currentPreviewIndex >= 0
+              ? { current: currentPreviewIndex + 1, total: filteredItems.length }
+              : undefined,
+        }}
+      />
+    )}
+  </>
   );
 
   return createPortal(node, document.body);

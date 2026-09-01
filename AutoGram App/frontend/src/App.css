@@ -15223,6 +15223,18 @@ body:has(.app-layout-drive-focus),
   position: relative;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
+.td-preflight-thumb.is-clickable {
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease;
+}
+.td-preflight-thumb.is-clickable:hover {
+  transform: scale(1.04);
+  border-color: rgba(56, 189, 248, 0.5);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(56, 189, 248, 0.35);
+}
+.td-preflight-thumb.is-clickable:active {
+  transform: scale(0.97);
+}
 .td-preflight-thumb-media {
   position: absolute;
   inset: 0;
