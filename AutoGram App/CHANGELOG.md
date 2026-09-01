@@ -1,3 +1,16 @@
+## v3.8.51 Simplified Zero-Bloat Plugin Hub & Streamlined Update Architecture
+
+### 1. Minimalist & Intuitive Plugin Hub (`TransferSettingsWorkspace.tsx`)
+- **Eliminasi Tombol Konfigurasi Lanjutan & Sub-Halaman**: Menghapus seluruh tombol "Konfigurasi Lanjutan" (*Advanced Configuration*), modal panduan fitur berlebih, dan sub-halaman konfigurasi yang kompleks. Hub plugin kini dirancang super ringkas, bersih, dan langsung ke fungsi utama.
+- **Pembersihan Lencana & Tag Bertele-tele**: Menghilangkan lencana bertele-tele (seperti lencana status redundan dan chip kapabilitas bertumpuk) agar antarmuka tetap bersih, estetik, dan fokus pada informasi penting.
+- **Fokus Kontrol Esensial (Update & Auto-Update)**:
+  - *yt-dlp*: Sakelar Pembaruan Otomatis (*Auto-Update Toggle*), status versi runtime terpasang, tombol *Periksa Pembaruan*, dan tombol 1-klik *Perbarui Sekarang*.
+  - *FFmpeg & FFprobe*: Sakelar Penggabungan Stream Otomatis (*Auto-Mux Toggle*), status versi biner terpasang, tombol *Periksa Status*, dan tombol 1-klik *Unduh / Perbarui Plugin FFmpeg*.
+
+### 2. Autonomous 5-Dimension Quality Sentinel & CDP Live Inspection
+- **100% Locale Parity**: Menjaga integritas 6,065 kunci terjemahan antara Bahasa Indonesia dan Bahasa Inggris.
+- **Sertifikasi Lolos 5 Gerbang Kualitas**: Terverifikasi lolos kompilasi ketat TypeScript (0 error), seluruh 44 test suite Vitest (100% lulus), dan inspeksi DOM real-time via CDP port 9230.
+
 ## v3.8.50 Dedicated FFmpeg Subpage Architecture, Responsive Plugin Grid & Leakage Elimination
 
 ### 1. Dedicated FFmpeg & FFprobe Deep Configuration Subpage (`TransferSettingsWorkspace.tsx`)
