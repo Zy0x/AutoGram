@@ -257,9 +257,13 @@ export function sniffMagicBytes(
     mimeType = 'image/webp';
     formatLabel = 'WebP Image';
     confidence = 1.0;
-  } else if (matches(0, [0x49, 0x49, 0x2a, 0x00]) || matches(0, [0x4d, 0x4d, 0x00, 0x2a])) {
-    // TIFF / RAW (DNG, CR2, NEF, ARW)
-    if (matches(8, [0x43, 0x42])) {
+  } else if (matches(0, [0x49, 0x49, 0x2a, 0x00]) || matches(0, [0x4d, 0x4d, 0x00, 0x2a]) || matches(0, [0x49, 0x49, 0x55, 0x00])) {
+    // TIFF / RAW Container (DNG, CR2, NEF, ARW, ORF, RW2, RAF, PEF, SRF, SR2)
+    const RAW_EXTS = new Set(['dng', 'cr2', 'nef', 'nrw', 'arw', 'srf', 'sr2', 'orf', 'rw2', 'raf', 'pef', 'x3f', 'kdc', 'dcr', 'tif', 'tiff']);
+    if (ext && RAW_EXTS.has(ext)) {
+      detectedExt = ext;
+      formatLabel = ext === 'tif' || ext === 'tiff' ? 'TIFF Image' : `${ext.toUpperCase()} Camera RAW`;
+    } else if (matches(8, [0x43, 0x42])) {
       detectedExt = 'cr2';
       formatLabel = 'Canon Camera RAW (CR2)';
     } else {
@@ -429,25 +433,47 @@ export function sniffMagicBytes(
     formatLabel = 'RAR Compressed Archive';
     confidence = 1.0;
   } else if (matches(0, [0x1f, 0x8b, 0x08])) {
-    // GZIP
-    detectedExt = 'gz';
-    category = 'archive';
-    mimeType = 'application/gzip';
-    formatLabel = 'Gzip Compressed Archive';
+    // GZIP / TGZ / SVGZ
+    if (ext === 'tgz' || currentFilename.endsWith('.tar.gz')) {
+      detectedExt = 'tgz';
+      category = 'archive';
+      mimeType = 'application/gzip';
+      formatLabel = 'Tar Gzip Compressed Archive (TGZ)';
+    } else if (ext === 'svgz') {
+      detectedExt = 'svgz';
+      category = 'image';
+      mimeType = 'image/svg+xml';
+      formatLabel = 'Gzip Compressed SVG (SVGZ)';
+    } else {
+      detectedExt = 'gz';
+      category = 'archive';
+      mimeType = 'application/gzip';
+      formatLabel = 'Gzip Compressed Archive';
+    }
     confidence = 1.0;
   } else if (matches(0, [0x42, 0x5a, 0x68])) {
     // BZIP2
-    detectedExt = 'bz2';
+    if (ext === 'tbz' || ext === 'tbz2' || currentFilename.endsWith('.tar.bz2')) {
+      detectedExt = ext;
+      formatLabel = 'Tar Bzip2 Compressed Archive';
+    } else {
+      detectedExt = 'bz2';
+      formatLabel = 'BZip2 Compressed Archive';
+    }
     category = 'archive';
     mimeType = 'application/x-bzip2';
-    formatLabel = 'BZip2 Compressed Archive';
     confidence = 1.0;
   } else if (matches(0, [0xfd, 0x37, 0x7a, 0x58, 0x5a, 0x00])) {
     // XZ
-    detectedExt = 'xz';
+    if (ext === 'txz' || currentFilename.endsWith('.tar.xz')) {
+      detectedExt = ext;
+      formatLabel = 'Tar XZ Compressed Archive';
+    } else {
+      detectedExt = 'xz';
+      formatLabel = 'XZ Compressed Archive';
+    }
     category = 'archive';
     mimeType = 'application/x-xz';
-    formatLabel = 'XZ Compressed Archive';
     confidence = 1.0;
   } else if (matches(0, [0x28, 0xb5, 0x2f, 0xfd])) {
     // Zstandard Frame
@@ -457,17 +483,56 @@ export function sniffMagicBytes(
     formatLabel = 'Zstandard Compressed Archive';
     confidence = 1.0;
   } else if (matches(0, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])) {
-    // Legacy Microsoft Compound Document
-    detectedExt = 'doc';
-    category = 'document';
-    mimeType = 'application/msword';
-    formatLabel = 'Legacy Microsoft Office Document';
+    // Legacy Microsoft Compound Document (CFBF / OLE2)
+    // Used by: .doc, .dot, .xls, .xlt, .xla, .ppt, .pps, .pot, .msi, .msp, .msg, .vsd, .vss, .vst, .pub, .fla
+    if (ext === 'xls' || ext === 'xlt' || ext === 'xla') {
+      detectedExt = 'xls';
+      category = 'table';
+      mimeType = 'application/vnd.ms-excel';
+      formatLabel = 'Microsoft Excel 97-2003 Spreadsheet (XLS)';
+    } else if (ext === 'ppt' || ext === 'pps' || ext === 'pot') {
+      detectedExt = 'ppt';
+      category = 'document';
+      mimeType = 'application/vnd.ms-powerpoint';
+      formatLabel = 'Microsoft PowerPoint 97-2003 Presentation (PPT)';
+    } else if (ext === 'msi' || ext === 'msp') {
+      detectedExt = 'msi';
+      category = 'archive';
+      mimeType = 'application/x-msi';
+      formatLabel = 'Windows Installer Package (MSI)';
+    } else if (ext === 'msg') {
+      detectedExt = 'msg';
+      category = 'document';
+      mimeType = 'application/vnd.ms-outlook';
+      formatLabel = 'Outlook Saved Message (MSG)';
+    } else if (ext === 'vsd' || ext === 'vss' || ext === 'vst') {
+      detectedExt = 'vsd';
+      category = 'diagram';
+      mimeType = 'application/vnd.visio';
+      formatLabel = 'Microsoft Visio Drawing (VSD)';
+    } else if (ext === 'pub') {
+      detectedExt = 'pub';
+      category = 'document';
+      mimeType = 'application/x-mspublisher';
+      formatLabel = 'Microsoft Publisher Document (PUB)';
+    } else if (ext === 'fla') {
+      detectedExt = 'fla';
+      category = 'document';
+      mimeType = 'application/x-fla';
+      formatLabel = 'Adobe Flash Project (FLA)';
+    } else {
+      detectedExt = 'doc';
+      category = 'document';
+      mimeType = 'application/msword';
+      formatLabel = 'Microsoft Word 97-2003 Document (DOC)';
+    }
     confidence = 0.95;
   }
 
   // 6. DATABASES & AI MODELS
   else if (matchesAscii(0, 'SQLite format 3\0')) {
-    detectedExt = 'sqlite';
+    const SQLITE_EXTS = new Set(['sqlite', 'sqlite3', 'db', 'db3', 'sdb', 'sl3', 'gpkg']);
+    detectedExt = ext && SQLITE_EXTS.has(ext) ? ext : 'sqlite';
     category = 'database';
     mimeType = 'application/x-sqlite3';
     formatLabel = 'SQLite 3 Database';
@@ -483,6 +548,46 @@ export function sniffMagicBytes(
     category = 'model';
     mimeType = 'application/x-gguf';
     formatLabel = 'GGUF AI Language Model';
+    confidence = 1.0;
+  } else if (matches(0, [0x67, 0x6c, 0x54, 0x46])) {
+    // glTF 3D Binary Model (GLB)
+    detectedExt = 'glb';
+    category = 'cad';
+    mimeType = 'model/gltf-binary';
+    formatLabel = 'glTF 3D Binary Model (GLB)';
+    confidence = 1.0;
+  }
+
+  // 6b. TYPOGRAPHY FONTS
+  else if (matches(0, [0x00, 0x01, 0x00, 0x00]) || matchesAscii(0, 'true') || matchesAscii(0, 'typ1')) {
+    detectedExt = ext === 'ttc' ? 'ttc' : 'ttf';
+    category = 'font';
+    mimeType = 'font/ttf';
+    formatLabel = 'TrueType Font (TTF)';
+    confidence = 1.0;
+  } else if (matchesAscii(0, 'OTTO')) {
+    detectedExt = ext === 'otc' ? 'otc' : 'otf';
+    category = 'font';
+    mimeType = 'font/otf';
+    formatLabel = 'OpenType Font (OTF)';
+    confidence = 1.0;
+  } else if (matchesAscii(0, 'wOFF')) {
+    detectedExt = 'woff';
+    category = 'font';
+    mimeType = 'font/woff';
+    formatLabel = 'Web Open Font Format (WOFF)';
+    confidence = 1.0;
+  } else if (matchesAscii(0, 'wOF2')) {
+    detectedExt = 'woff2';
+    category = 'font';
+    mimeType = 'font/woff2';
+    formatLabel = 'Web Open Font Format 2 (WOFF2)';
+    confidence = 1.0;
+  } else if (matchesAscii(0, 'ttcf')) {
+    detectedExt = ext === 'otc' ? 'otc' : 'ttc';
+    category = 'font';
+    mimeType = 'font/collection';
+    formatLabel = 'TrueType / OpenType Font Collection';
     confidence = 1.0;
   }
 
@@ -613,8 +718,53 @@ export function sniffMagicBytes(
     'qt',
   ]);
 
+  const CFBF_EXTENSIONS = new Set([
+    'doc',
+    'dot',
+    'xls',
+    'xlt',
+    'xla',
+    'ppt',
+    'pps',
+    'pot',
+    'msi',
+    'msp',
+    'msg',
+    'vsd',
+    'vss',
+    'vst',
+    'pub',
+    'fla',
+  ]);
+
+  const RAW_EXTENSIONS = new Set([
+    'dng',
+    'cr2',
+    'cr3',
+    'nef',
+    'nrw',
+    'arw',
+    'srf',
+    'sr2',
+    'orf',
+    'rw2',
+    'raf',
+    'pef',
+    'x3f',
+    'kdc',
+    'dcr',
+    'tif',
+    'tiff',
+  ]);
+
+  const SQLITE_EXTENSIONS = new Set(['sqlite', 'sqlite3', 'db', 'db3', 'sdb', 'sl3', 'gpkg']);
+  const FONT_EXTENSIONS = new Set(['ttf', 'otf', 'woff', 'woff2', 'eot', 'ttc', 'otc']);
+  const GZIP_EXTENSIONS = new Set(['gz', 'tgz', 'svgz']);
+  const BZIP_EXTENSIONS = new Set(['bz2', 'tbz', 'tbz2']);
+  const XZ_EXTENSIONS = new Set(['xz', 'txz']);
+
   const MKV_EXTENSIONS = new Set(['mkv', 'webm', 'mka']);
-  const RIFF_EXTENSIONS = new Set(['webp', 'wav', 'avi']);
+  const RIFF_EXTENSIONS = new Set(['webp', 'wav', 'avi', 'cdr', 'ani']);
   const TEXT_CATEGORIES = new Set(['text', 'code', 'json', 'table']);
 
   let isExtensionMatch = false;
@@ -634,6 +784,20 @@ export function sniffMagicBytes(
   } else if (detectedExt === 'svg' && ext === 'svgz') {
     isExtensionMatch = true;
   } else if (ZIP_EXTENSIONS.has(detectedExt) && ZIP_EXTENSIONS.has(ext)) {
+    isExtensionMatch = true;
+  } else if (CFBF_EXTENSIONS.has(detectedExt) && CFBF_EXTENSIONS.has(ext)) {
+    isExtensionMatch = true;
+  } else if (RAW_EXTENSIONS.has(detectedExt) && RAW_EXTENSIONS.has(ext)) {
+    isExtensionMatch = true;
+  } else if (SQLITE_EXTENSIONS.has(detectedExt) && SQLITE_EXTENSIONS.has(ext)) {
+    isExtensionMatch = true;
+  } else if (FONT_EXTENSIONS.has(detectedExt) && FONT_EXTENSIONS.has(ext)) {
+    isExtensionMatch = true;
+  } else if (GZIP_EXTENSIONS.has(detectedExt) && GZIP_EXTENSIONS.has(ext)) {
+    isExtensionMatch = true;
+  } else if (BZIP_EXTENSIONS.has(detectedExt) && BZIP_EXTENSIONS.has(ext)) {
+    isExtensionMatch = true;
+  } else if (XZ_EXTENSIONS.has(detectedExt) && XZ_EXTENSIONS.has(ext)) {
     isExtensionMatch = true;
   } else if (MP4_EXTENSIONS.has(detectedExt) && MP4_EXTENSIONS.has(ext)) {
     isExtensionMatch = true;
