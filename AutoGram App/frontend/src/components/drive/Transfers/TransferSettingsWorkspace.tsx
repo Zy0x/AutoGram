@@ -320,29 +320,52 @@ export function TransferSettingsWorkspace({
   // Session picker state for alternate account pool
   const [availableSessions, setAvailableSessions] = useState<SessionOption[]>([]);
 
-  const refreshYtdlpStatus = async (refresh = false) => {
+  const refreshYtdlpStatus = async (showToast = false) => {
     setYtdlpBusy(true);
     try {
-      const result = await invoke<typeof ytdlpStatus>('ytdlp_plugin_status', { refresh });
+      const result = await invoke<typeof ytdlpStatus>('ytdlp_plugin_status', { refresh: showToast });
       setYtdlpStatus(result || { installed: true, version: 'Bawaan / Ready', source: 'app_data' });
+      if (showToast) {
+        triggerCaptionToast(t('drive_tools.ytdlp_check_success', { version: result?.version || 'Ready' }));
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       if (msg.includes('not allowed') || msg.includes('not found') || msg.includes('Command not found')) {
         setYtdlpStatus({ installed: true, version: 'Bawaan / Ready', source: 'app_data' });
+        if (showToast) {
+          triggerCaptionToast(t('drive_tools.ytdlp_check_success', { version: 'Bawaan / Ready' }));
+        }
       } else {
         setYtdlpStatus({ error: msg });
+        if (showToast) {
+          triggerCaptionToast(t('drive_tools.ytdlp_runtime_error', { error: msg }));
+        }
       }
     } finally {
       setYtdlpBusy(false);
     }
   };
 
-  const refreshFfmpegStatus = async (customPath?: string) => {
+  const refreshFfmpegStatus = async (customPath?: string, showToast = false) => {
+    setFfmpegBusy(true);
     try {
       const res = await invoke<any>('ffmpeg_plugin_status', { customPath: customPath ?? draft.ffmpegCustomPath });
       setFfmpegStatus(res);
-    } catch {
+      if (showToast) {
+        if (res?.installed) {
+          const v = res.version ? (res.version.includes('version') ? res.version.split(' ')[2] : res.version) : 'Ready';
+          triggerCaptionToast(t('drive_tools.plugin_ffmpeg_check_success', { version: v }));
+        } else {
+          triggerCaptionToast(t('drive_tools.plugin_ffmpeg_status_not_found'));
+        }
+      }
+    } catch (error) {
       setFfmpegStatus({ installed: false, version: null, source: 'none' });
+      if (showToast) {
+        triggerCaptionToast(t('drive_tools.plugin_ffmpeg_status_not_found'));
+      }
+    } finally {
+      setFfmpegBusy(false);
     }
   };
 
@@ -351,9 +374,12 @@ export function TransferSettingsWorkspace({
     try {
       const res = await invoke<any>('ffmpeg_update_plugin', { force: true });
       setFfmpegStatus(res);
+      triggerCaptionToast(t('drive_tools.plugin_ffmpeg_update_success'));
     } catch (err) {
       console.error('Failed to update FFmpeg plugin', err);
-      void refreshFfmpegStatus();
+      const message = err instanceof Error ? err.message : String(err);
+      triggerCaptionToast(t('drive_tools.plugin_ffmpeg_update_failed', { error: message }));
+      void refreshFfmpegStatus(undefined, false);
     } finally {
       setFfmpegBusy(false);
     }
@@ -362,7 +388,7 @@ export function TransferSettingsWorkspace({
   useEffect(() => {
     if (activeTab === 'ytdlp') {
       void refreshYtdlpStatus(false);
-      void refreshFfmpegStatus();
+      void refreshFfmpegStatus(undefined, false);
     }
   }, [activeTab]);
 
@@ -3464,6 +3490,16 @@ export function TransferSettingsWorkspace({
                       ariaLabel={t('drive_tools.ytdlp_auto_update_title')}
                     />
                   </div>
+                  <div className="td-plugin-status-runtime-row">
+                    <span>{t('drive_tools.ytdlp_runtime_status')}:</span>
+                    <strong style={{ color: ytdlpStatus?.error ? '#f87171' : ytdlpStatus?.installed ? '#4ade80' : '#38bdf8' }}>
+                      {ytdlpBusy ? t('drive_tools.ytdlp_runtime_checking') : ytdlpStatus?.error
+                        ? t('drive_tools.ytdlp_runtime_error', { error: ytdlpStatus.error })
+                        : ytdlpStatus?.installed
+                          ? t('drive_tools.ytdlp_runtime_installed', { version: ytdlpStatus.version || 'Ready' })
+                          : t('drive_tools.plugin_status_ready')}
+                    </strong>
+                  </div>
                 </div>
 
                 {/* Footer Actions */}
@@ -3482,12 +3518,12 @@ export function TransferSettingsWorkspace({
                     <button
                       type="button"
                       className="td-chip-btn td-chip-primary"
-                      disabled={ytdlpBusy}
+                      disabled={ytdlpBusy || !!transferActive}
                       onClick={() => void updateYtdlpPlugin()}
                       style={{ justifyContent: 'center' }}
                     >
-                      <Download size={13} />
-                      <span>{t('drive_tools.ytdlp_update_now')}</span>
+                      {ytdlpBusy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                      <span>{ytdlpBusy ? t('drive_tools.ytdlp_updating') : t('drive_tools.ytdlp_update_now')}</span>
                     </button>
                   </div>
                 </div>
@@ -3543,7 +3579,7 @@ export function TransferSettingsWorkspace({
                       type="button"
                       className="td-chip-btn"
                       disabled={ffmpegBusy}
-                      onClick={() => void refreshFfmpegStatus()}
+                      onClick={() => void refreshFfmpegStatus(undefined, true)}
                       style={{ justifyContent: 'center' }}
                     >
                       <RotateCcw size={13} className={ffmpegBusy ? 'spin' : ''} />
