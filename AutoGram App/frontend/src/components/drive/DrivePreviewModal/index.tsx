@@ -2728,6 +2728,43 @@ export function DrivePreviewModal({
   const isZip = mediaKind === 'zip';
   const isDocOther = mediaKind === 'other';
 
+  const fileExtBadge = useMemo(() => {
+    const raw = (file.name || file.original_name || '').split('.').pop()?.trim();
+    if (!raw || raw.length > 8 || raw.toLowerCase() === (file.name || '').toLowerCase()) return null;
+    return raw.toUpperCase();
+  }, [file.name, file.original_name]);
+
+  const fileExtBadgeStyle = useMemo(() => {
+    if (isDocxFile) {
+      return { background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.35)' };
+    }
+    if (isSpreadsheetFile) {
+      return { background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.35)' };
+    }
+    if (isPdf) {
+      return { background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.35)' };
+    }
+    if (isImage) {
+      return { background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.35)' };
+    }
+    if (isVideo) {
+      return { background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', border: '1px solid rgba(99, 102, 241, 0.35)' };
+    }
+    if (isAudio) {
+      return { background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.35)' };
+    }
+    if (isZip) {
+      return { background: 'rgba(249, 115, 22, 0.15)', color: '#fb923c', border: '1px solid rgba(249, 115, 22, 0.35)' };
+    }
+    if (isJupyterFile) {
+      return { background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.35)' };
+    }
+    if (isDbFile) {
+      return { background: 'rgba(20, 184, 166, 0.15)', color: '#2dd4bf', border: '1px solid rgba(20, 184, 166, 0.35)' };
+    }
+    return { background: 'rgba(148, 163, 184, 0.15)', color: '#94a3b8', border: '1px solid rgba(148, 163, 184, 0.35)' };
+  }, [isDocxFile, isSpreadsheetFile, isPdf, isImage, isVideo, isAudio, isZip, isJupyterFile, isDbFile]);
+
   const handleCloseOrDismiss = useCallback(() => {
     if (qualityOpen) {
       setQualityOpen(false);
@@ -3969,19 +4006,25 @@ export function DrivePreviewModal({
             <header className="drive-preview-header font-sans">
               {/* Row A: title + close */}
               <div className="drive-preview-title">
-                <strong title={isSplitCompareMode ? (activeSlotFile ? activeSlotFile.name : `Duplicate Group #${duplicateContext ? duplicateContext.currentGroupIndex + 1 : 1}`) : displayName}>
-                  {isSplitCompareMode
-                    ? activeSlotFile
-                      ? `${activeSlotFile.name} (Slot ${activeSplitSlot})`
-                      : `Duplicate Group #${duplicateContext ? duplicateContext.currentGroupIndex + 1 : 1} (${currentDupGroup?.files.length || 0} files)`
-                    : displayName}
-                </strong>
+                <div className="drive-preview-title-row">
+                  <strong title={isSplitCompareMode ? (activeSlotFile ? activeSlotFile.name : `Duplicate Group #${duplicateContext ? duplicateContext.currentGroupIndex + 1 : 1}`) : displayName}>
+                    {isSplitCompareMode
+                      ? activeSlotFile
+                        ? `${activeSlotFile.name} (Slot ${activeSplitSlot})`
+                        : `Duplicate Group #${duplicateContext ? duplicateContext.currentGroupIndex + 1 : 1} (${currentDupGroup?.files.length || 0} files)`
+                      : displayName}
+                  </strong>
+                  {fileExtBadge && (
+                    <span className="td-header-ext-badge" style={fileExtBadgeStyle}>
+                      {fileExtBadge}
+                    </span>
+                  )}
+                </div>
                 <span className="drive-muted" title={[
                   formatDriveBytes(isSplitCompareMode && activeSlotFile ? activeSlotFile.size : (previewByteSize || file.size)),
                   previewWidth && previewHeight ? `${previewWidth}×${previewHeight}px` : '',
                   previewState === 'degraded' ? 'degraded fallback' : '',
                   durationLabel,
-                  kindLabel,
                   isVideo && activeQuality ? activeQuality.label : '',
                   fromCache && !loading ? 'cache' : '',
                   previewErrorDetail ? `err: ${previewErrorDetail}` : '',
@@ -3993,7 +4036,6 @@ export function DrivePreviewModal({
                       {formatDriveBytes(isSplitCompareMode && activeSlotFile ? activeSlotFile.size : (previewByteSize || file.size))}
                       {previewWidth && previewHeight ? ` · ${previewWidth}×${previewHeight}px` : ''}
                       {durationLabel ? ` · ${durationLabel}` : ''}
-                      {isVideo ? (file.as_document ? ` · ${t('drive.doc_file_badge')}` : ` · ${t('drive.video_media_badge')}`) : kindLabel ? ` · ${kindLabel}` : ''}
                       {isVideo && activeQuality ? ` · ${activeQuality.label}` : ''}
                       {fromCache && !loading ? t('ui.generated.cache_00cdf64') : ''}
                       {previewState === 'degraded' ? t('ui.generated.degraded_e96e6b7') : ''}

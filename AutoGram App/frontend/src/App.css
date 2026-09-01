@@ -4280,7 +4280,15 @@ body.td-dnd-external {
   max-width: 100%;
   overflow: hidden;
 }
+.drive-preview-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
 .drive-preview-title strong,
+.drive-preview-title-row strong,
 .drive-preview-title .drive-muted {
   display: block;
   min-width: 0;
@@ -4293,10 +4301,21 @@ body.td-dnd-external {
   overflow-wrap: normal;
   writing-mode: horizontal-tb;
 }
-.drive-preview-title strong {
+.drive-preview-title strong,
+.drive-preview-title-row strong {
   font-size: clamp(0.78rem, 2.2vw, 0.92rem);
   font-weight: 700;
   line-height: 1.25;
+}
+.td-header-ext-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  line-height: 1.4;
+  flex-shrink: 0;
+  text-transform: uppercase;
 }
 .drive-preview-title .drive-muted {
   font-size: clamp(0.65rem, 1.8vw, 0.74rem);

@@ -23,7 +23,7 @@ interface NotebookCell {
   }>;
 }
 
-export const JupyterNotebookViewer: React.FC<Props> = ({ rawJson, fileName }) => {
+export const JupyterNotebookViewer: React.FC<Props> = ({ rawJson, fileName: _fileName }) => {
   const [copiedCell, setCopiedCell] = useState<number | null>(null);
 
   const notebook = useMemo(() => {
@@ -58,9 +58,8 @@ export const JupyterNotebookViewer: React.FC<Props> = ({ rawJson, fileName }) =>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '20px' }}>
         <BookOpen size={18} className="text-amber-400" />
-        <span style={{ fontSize: '15px', fontWeight: 600, color: '#f8fafc' }}>{fileName}</span>
         <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', fontWeight: 600 }}>
-          Jupyter Notebook ({cells.length} cells)
+          Jupyter Notebook ({cells.length} cells: {cells.filter(c => c.cell_type === 'code').length} code, {cells.filter(c => c.cell_type === 'markdown').length} markdown)
         </span>
       </div>
 

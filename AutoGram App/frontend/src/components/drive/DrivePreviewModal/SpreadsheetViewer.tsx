@@ -8,7 +8,7 @@ interface Props {
   onOpenSystem?: () => void;
 }
 
-export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onOpenSystem }) => {
+export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenSystem: _onOpenSystem }) => {
   const [workbook, setWorkbook] = useState<XLSX.WorkBook | null>(null);
   const [activeSheet, setActiveSheet] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -107,9 +107,6 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName, onOpenSyste
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <FileSpreadsheet size={16} className="text-emerald-400" />
-          <span style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>
-            {fileName}
-          </span>
           <span
             style={{
               fontSize: '11px',
@@ -120,7 +117,7 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName, onOpenSyste
               fontWeight: 600,
             }}
           >
-            {workbook?.SheetNames.length || 1} Sheet
+            {workbook?.SheetNames.length || 1} Sheet ({sheetData.length} baris)
           </span>
         </div>
 
