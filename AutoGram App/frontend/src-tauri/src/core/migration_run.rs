@@ -368,6 +368,8 @@ fn run_clean_copy(
         .filter(|s| !s.is_empty())
         .ok_or_else(|| "session/profile_name missing".to_string())?;
     let canonical = job.config_json.as_deref().and_then(|raw| super::forwarder_contract::normalize_job_config_json(raw).ok()).and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok());
+    let forwarder_config = job.config_json.as_deref()
+        .and_then(|raw| super::forwarder_contract::normalize_job_config_v2(serde_json::from_str(raw).ok()?).ok());
     let source_account_id = canonical.as_ref().and_then(|v| v.pointer("/source/account_id")).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).unwrap_or(&session).to_string();
     let destination_account_id = canonical.as_ref().and_then(|v| v.pointer("/destination/account_id")).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).unwrap_or(&session).to_string();
     let destination_topic_id = canonical.as_ref().and_then(|v| v.pointer("/destination/topic_id")).and_then(|v| v.as_i64());
@@ -461,6 +463,24 @@ fn run_clean_copy(
                 let filename = row.name.clone();
                 let size = row.size as i64;
                 let task_id = jobs_db::upsert_forwarder_task(exec_id, source_msg_id, "QUEUED", "QUEUED").ok();
+
+                if let Some(ref cfg) = forwarder_config {
+                    match super::forwarder_engine::evaluate_item(cfg, row) {
+                        super::forwarder_engine::ItemDecision::Skip(reason) => {
+                            skipped += 1;
+                            if let Some(id) = task_id { let _ = jobs_db::complete_forwarder_task(id, "SKIPPED", Some(reason), None); }
+                            let _ = jobs_db::log_job_event(job_id, "FILTERING", &format!("source_message_id={source_msg_id} skipped: {reason}"), None);
+                            continue;
+                        }
+                        super::forwarder_engine::ItemDecision::AskUser(reason) => {
+                            let payload = serde_json::json!({"source_message_id": source_msg_id, "filename": filename, "size": size}).to_string();
+                            let _ = jobs_db::insert_decision(job_id, Some(exec_id), task_id, "RESTRICTION", reason, &payload);
+                            if let Some(id) = task_id { let _ = jobs_db::complete_forwarder_task(id, "WAITING_USER", Some(reason), None); }
+                            return Err(format!("USER_DECISION_REQUIRED:{source_msg_id}"));
+                        }
+                        super::forwarder_engine::ItemDecision::Transfer => {}
+                    }
+                }
                 let tg_unique = format!(
                     "{}:{}:{}:{}",
                     row.id,
@@ -700,6 +720,11 @@ fn run_clean_copy(
             })
         }
         Err(e) => {
+            if e.starts_with("USER_DECISION_REQUIRED:") {
+                let _ = jobs_db::update_execution_status(exec_id, "WAITING_USER", None, None, None);
+                let _ = jobs_db::log_job_event(job_id, "WAITING_USER", &e, None);
+                return Ok(MigrationRunResult { status: "waiting_user".into(), job_id, execution_id: exec_id, forwarded: 0, skipped: 0, failed: 0, message: "User decision required".into(), backend: "grammers".into(), mode: "clean_copy".into() });
+            }
             let cancelled = e.to_ascii_lowercase().contains("dibatalkan");
             let _ = jobs_db::update_execution_status(
                 exec_id,
@@ -770,14 +795,14 @@ fn finish_result(
             let cancelled = e.to_ascii_lowercase().contains("dibatalkan");
             let _ = jobs_db::update_execution_status(
                 exec_id,
-                if cancelled { "PAUSED" } else { "FAILED" },
+                if cancelled { "CANCELLED" } else { "FAILED" },
                 None,
                 None,
                 None,
             );
             let _ = jobs_db::log_job_event(
                 job_id,
-                if cancelled { "PAUSED" } else { "FAILED" },
+                if cancelled { "CANCELLED" } else { "FAILED" },
                 &e,
                 None,
             );
