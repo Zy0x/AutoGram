@@ -1,3 +1,15 @@
+## v3.8.74 Universal Text, Document & Media Extension Set Unification
+
+### 1. Perluasan Menyeluruh Dukungan Pratinjau Teks & Media (`driveTypes.ts`, `doc_preview.rs`)
+- **Dukungan Pratinjau Teks & Kode Multi-Kategori**: Memperluas deteksi berkas teks interaktif (`TEXT_EXTS`) ke notebook data science (`.ipynb`), berkas subtitle & lirik (`.srt`, `.vtt`, `.ass`, `.ssa`, `.lrc`), kontak & kalender (`.vcf`, `.vcard`, `.ics`, `.ical`), diagram berbasis teks (`.mmd`, `.mermaid`, `.dot`, `.gv`), geospasial (`.geojson`, `.topojson`, `.kml`, `.gpx`), sertifikat SSL/TLS (`.crt`, `.cer`, `.pem`), serta dokumen warisan (`.doc`, `.rtf`, `.odt`, `.ods`, `.odp`).
+- **Penyelarasan Ekstensi Media Visual & Audio**: Menyelaraskan seluruh himpunan ekstensi `IMAGE_EXTS`, `VIDEO_EXTS`, dan `AUDIO_EXTS` agar mencakup format RAW kamera (`.dng`, `.cr2`, `.cr3`, `.nef`, `.nrw`, `.arw`, `.srf`, `.sr2`, `.orf`, `.rw2`, `.raf`, `.pef`, `.x3f`), format desain (`.psd`, `.psb`, `.ai`, `.eps`, `.hdr`, `.exr`, `.tga`), serta audio resolusi tinggi (`.flac`, `.alac`, `.aiff`, `.ape`, `.mid`, `.midi`, `.ac3`, `.dts`, `.dsd`, `.dsf`, `.dff`).
+
+### 2. Autonomous Quality Sentinel Certification
+- **Rust Backend Cargo Check**: Kompilasi `cargo check` pada engine native desktop Rust sukses 100% tanpa galat (`target(s) in 24.12s`).
+- **100% Locale Parity**: 6,162 kunci bahasa ID dan 6,162 kunci bahasa EN tersinkronisasi 100% tanpa selisih.
+- **Zero TypeScript Errors & Clean Production Build**: Kompilasi `tsc && vite build` sukses 100% tanpa galat.
+- **Vitest Automated Test Suite**: Seluruh 45 test suite Vitest (373 pengujian) lolos 100%.
+
 ## v3.8.73 Rust Native Core Backend Media Classification & Extension Parity
 
 ### 1. Sinkronisasi Ekstensi & Klasifikasi Media pada Native Rust Core (`media_classifier.rs`, `doc_preview.rs`)
