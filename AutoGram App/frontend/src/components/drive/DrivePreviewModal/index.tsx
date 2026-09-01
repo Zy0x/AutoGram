@@ -93,6 +93,8 @@ import { MarkdownViewer } from './MarkdownViewer';
 import { EpubViewer } from './EpubViewer';
 import { SpreadsheetViewer } from './SpreadsheetViewer';
 import { JupyterNotebookViewer } from './JupyterNotebookViewer';
+import { UnsupportedFormatBanner } from './UnsupportedFormatBanner';
+import { HeicTiffViewer } from './HeicTiffViewer';
 import {
   cancelDriveOpenJob,
   cleanupPartialDownloads,
@@ -1408,6 +1410,56 @@ export function DrivePreviewModal({
   const isJupyterFile = useMemo(() => {
     const fn = (file.name || file.original_name || '').toLowerCase();
     return fn.endsWith('.ipynb');
+  }, [file.name, file.original_name]);
+
+  // ── New format detectors ─────────────────────────────────────────────────
+
+  /** HEIC/HEIF — iOS/macOS photo format, not natively supported by Chromium */
+  const isHeicFile = useMemo(() => {
+    const fn = (file.name || file.original_name || '').toLowerCase();
+    return fn.endsWith('.heic') || fn.endsWith('.heif');
+  }, [file.name, file.original_name]);
+
+  /** TIF/TIFF — not natively supported by Chromium, decode via utif2 */
+  const isTiffFile = useMemo(() => {
+    const fn = (file.name || file.original_name || '').toLowerCase();
+    return fn.endsWith('.tif') || fn.endsWith('.tiff');
+  }, [file.name, file.original_name]);
+
+  /** Video formats NOT playable by Chromium/WebView2 natively */
+  const isUnsupportedVideoFile = useMemo(() => {
+    const fn = (file.name || file.original_name || '').toLowerCase();
+    return /\.(avi|flv|wmv|mpg|mpeg|m2ts|mts|vob|rmvb|rm|xvid|divx)$/i.test(fn);
+  }, [file.name, file.original_name]);
+
+  /** Audio formats NOT playable by Chromium natively */
+  const isUnsupportedAudioFile = useMemo(() => {
+    const fn = (file.name || file.original_name || '').toLowerCase();
+    return /\.(wma|amr|aiff|aif|ape|mid|midi|ra|ram|dsd|dsf)$/i.test(fn);
+  }, [file.name, file.original_name]);
+
+  /** Legacy Microsoft Office binary formats (.doc, .ppt) — different from .docx/.pptx */
+  const isLegacyOfficeFile = useMemo(() => {
+    const fn = (file.name || file.original_name || '').toLowerCase();
+    return /\.(doc|ppt|xlt|dot|wps)$/i.test(fn) && !fn.endsWith('x');
+  }, [file.name, file.original_name]);
+
+  /** Unsupported archive formats (TAR, GZ, BZ2, XZ, 7Z — not ZIP) */
+  const isUnsupportedArchiveFile = useMemo(() => {
+    const fn = (file.name || file.original_name || '').toLowerCase();
+    return /\.(tar|tar\.gz|tgz|tar\.bz2|tar\.xz|bz2|xz|zst|7z|gz)$/i.test(fn);
+  }, [file.name, file.original_name]);
+
+  /** Camera RAW formats */
+  const isRawImageFile = useMemo(() => {
+    const fn = (file.name || file.original_name || '').toLowerCase();
+    return /\.(cr2|cr3|arw|nef|nrw|orf|rw2|raf|dng|pef|srw)$/i.test(fn);
+  }, [file.name, file.original_name]);
+
+  /** Adobe PSD */
+  const isPsdFile = useMemo(() => {
+    const fn = (file.name || file.original_name || '').toLowerCase();
+    return fn.endsWith('.psd') || fn.endsWith('.psb');
   }, [file.name, file.original_name]);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -6930,6 +6982,98 @@ export function DrivePreviewModal({
                   <Download size={14} /> {t('drive.label_download')}
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* ── HEIC / TIFF — decode via JS library ──────────────────────── */}
+          {(isHeicFile || isTiffFile) && (activeSrc || dataUrl || path) && (
+            <div className="drive-preview-media-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+              <HeicTiffViewer
+                src={activeSrc || dataUrl || path || ''}
+                fileName={displayName}
+                className="drive-preview-media drive-preview-image"
+                style={{ transform: needsMediaTransform ? mediaTransform : 'none', transformOrigin: 'center center' }}
+                onLoad={(w, h) => { setMediaWidth(w); setMediaHeight(h); setLoading(false); }}
+                onError={() => setError(t('drive.decode_error'))}
+              />
+            </div>
+          )}
+
+          {/* ── Unsupported Video formats (AVI, FLV, WMV, etc.) ───────────── */}
+          {isUnsupportedVideoFile && !isHeicFile && !isTiffFile && (
+            <div className="drive-preview-unsupported-wrap">
+              <UnsupportedFormatBanner
+                fileName={displayName}
+                ext={`.${(file.name || file.original_name || '').split('.').pop() || 'video'}`}
+                reason="video"
+                onDownload={handleDownload}
+                onOpenSystem={isDesktop() ? handleOpenSystem : undefined}
+              />
+            </div>
+          )}
+
+          {/* ── Unsupported Audio formats (WMA, AMR, AIFF, etc.) ─────────── */}
+          {isUnsupportedAudioFile && (
+            <div className="drive-preview-unsupported-wrap">
+              <UnsupportedFormatBanner
+                fileName={displayName}
+                ext={`.${(file.name || file.original_name || '').split('.').pop() || 'audio'}`}
+                reason="audio"
+                onDownload={handleDownload}
+                onOpenSystem={isDesktop() ? handleOpenSystem : undefined}
+              />
+            </div>
+          )}
+
+          {/* ── Legacy binary Office formats (.doc, .ppt) ────────────────── */}
+          {isLegacyOfficeFile && (
+            <div className="drive-preview-unsupported-wrap">
+              <UnsupportedFormatBanner
+                fileName={displayName}
+                ext={`.${(file.name || file.original_name || '').split('.').pop() || 'doc'}`}
+                reason="document"
+                onDownload={handleDownload}
+                onOpenSystem={isDesktop() ? handleOpenSystem : undefined}
+              />
+            </div>
+          )}
+
+          {/* ── Camera RAW image formats ──────────────────────────────────── */}
+          {isRawImageFile && (
+            <div className="drive-preview-unsupported-wrap">
+              <UnsupportedFormatBanner
+                fileName={displayName}
+                ext={`.${(file.name || file.original_name || '').split('.').pop() || 'raw'}`}
+                reason="image"
+                onDownload={handleDownload}
+                onOpenSystem={isDesktop() ? handleOpenSystem : undefined}
+              />
+            </div>
+          )}
+
+          {/* ── Adobe PSD ─────────────────────────────────────────────────── */}
+          {isPsdFile && (
+            <div className="drive-preview-unsupported-wrap">
+              <UnsupportedFormatBanner
+                fileName={displayName}
+                ext={`.${(file.name || file.original_name || '').split('.').pop() || 'psd'}`}
+                reason="image"
+                onDownload={handleDownload}
+                onOpenSystem={isDesktop() ? handleOpenSystem : undefined}
+              />
+            </div>
+          )}
+
+          {/* ── Unsupported archives (TAR, GZ, 7Z, BZ2, XZ) ─────────────── */}
+          {isUnsupportedArchiveFile && (
+            <div className="drive-preview-unsupported-wrap">
+              <UnsupportedFormatBanner
+                fileName={displayName}
+                ext={`.${(file.name || file.original_name || '').split('.').pop() || 'tar'}`}
+                reason="archive"
+                onDownload={handleDownload}
+                onOpenSystem={isDesktop() ? handleOpenSystem : undefined}
+              />
             </div>
           )}
 

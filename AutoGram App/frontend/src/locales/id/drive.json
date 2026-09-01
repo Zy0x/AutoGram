@@ -2414,5 +2414,14 @@
   "preview_media_desc": "Buka media dalam penampil layar penuh",
   "preview_link_media": "Pratinjau Media Tautan",
   "preview_media_label": "Media",
-  "ctx_menu_preview_media": "Pratinjau Media"
+  "ctx_menu_preview_media": "Pratinjau Media",
+  "unsupported_format_title": "Format {{ext}} Tidak Didukung Browser",
+  "unsupported_format_desc": "File berformat {{ext}} tidak dapat diputar atau ditampilkan langsung di browser. Unduh file untuk dibuka dengan aplikasi yang sesuai.",
+  "unsupported_recommended_app": "Aplikasi yang Disarankan",
+  "open_with_system_app": "Buka dengan Aplikasi Sistem",
+  "download_to_open": "Unduh untuk Dibuka",
+  "unsupported_open_system": "Aplikasi Bawaan Sistem",
+  "decoding_heic": "Mendekode format HEIC/HEIF...",
+  "decoding_tiff": "Mendekode format TIFF...",
+  "decode_error": "Gagal mendekode gambar"
 }

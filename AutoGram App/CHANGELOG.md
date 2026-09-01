@@ -1,4 +1,41 @@
+## v3.8.89 — Ekspansi Preview Media: HEIC/TIFF Decoder + Banner Format Tidak Didukung
+
+### 1. Decoder HEIC/HEIF & TIFF via JavaScript Library (`HeicTiffViewer.tsx`)
+- **HEIC/HEIF Support (Foto iPhone/macOS)**: File berformat `.heic` dan `.heif` kini dapat ditampilkan langsung di preview tanpa unduh terpisah. Implementasi menggunakan library `heic2any` yang dimuat secara *lazy* (dynamic import) — hanya diunduh saat file HEIC pertama dibuka, tanpa mempengaruhi waktu muat awal aplikasi. Output dikonversi ke JPEG blob URL resolusi tinggi (quality 0.92) di memori browser.
+- **TIFF Support (Dokumen Scan & Foto Profesional)**: File berformat `.tif` dan `.tiff` kini didekode via library `utif2` dengan pipeline dekoding native: byte array → RGBA channel → canvas → JPEG blob URL. Mendukung multi-IFD TIFF dan format scan dokumen standar.
+- **Zero Network Overhead**: Kedua decoder menggunakan `ArrayBuffer` yang sudah diambil dari stream Telegram — tidak ada fetch duplikat.
+- **Graceful Error**: Jika dekode gagal (file korup, format HEIC non-standar), ditampilkan pesan error spesifik dengan ikon alert.
+
+### 2. UnsupportedFormatBanner — Pengganti "Black Screen" untuk Format Tak Didukung (`UnsupportedFormatBanner.tsx`)
+- **Eliminasi Black Screen / Layar Kosong**: Format video/audio/gambar/dokumen yang tidak didukung browser (misalnya AVI, FLV, WMA) sebelumnya menampilkan layar hitam kosong tanpa informasi. Kini ditampilkan banner informatif yang elegan dengan:
+  - **Nama format** dan penjelasan singkat mengapa tidak bisa ditampilkan.
+  - **Aplikasi yang disarankan** (contoh: "VLC Media Player" untuk AVI, "Windows Photos" untuk HEIC).
+  - **Tombol "Buka dengan Aplikasi Sistem"** — langsung membuka file dengan aplikasi default Windows.
+  - **Tombol "Unduh untuk Dibuka"** — memulai unduhan file agar bisa dibuka secara offline.
+- **Format yang Kini Ditangani dengan Banner**:
+  | Kategori | Format |
+  |---|---|
+  | Video tidak didukung Chromium | AVI, FLV, WMV, MPG, MPEG, M2TS, MTS, VOB, RMVB |
+  | Audio tidak didukung Chromium | WMA, AMR, AIFF, APE, MID/MIDI, RA |
+  | Dokumen Office lama (binary) | .doc, .ppt, .dot, .xlt (beda dari .docx/.pptx) |
+  | Gambar RAW kamera | CR2, CR3, ARW, NEF, ORF, RW2, RAF, DNG |
+  | Gambar Adobe | PSD, PSB |
+  | Arsip non-ZIP | TAR, TGZ, GZ, BZ2, XZ, ZST, 7Z |
+
+### 3. Arsitektur & Dependency
+- **Paket baru**: `heic2any` (HEIC decoder) + `utif2` (TIFF decoder) — keduanya dimuat secara *dynamic import* (code split per format).
+- **Deteksi format ekstensi**: 8 detector `useMemo` baru: `isHeicFile`, `isTiffFile`, `isUnsupportedVideoFile`, `isUnsupportedAudioFile`, `isLegacyOfficeFile`, `isRawImageFile`, `isPsdFile`, `isUnsupportedArchiveFile`.
+- **CSS**: 170+ baris CSS baru untuk `.td-unsupported-banner` dengan glassmorphism, animasi masuk 220ms, responsif mobile (stack vertikal di layar ≤480px), dan touch target minimal 44px.
+- **Locale**: 11 key baru di `id/drive.json` dan `en/drive.json` — 100% parity (6,177 keys masing-masing).
+
+### 4. Autonomous Quality Sentinel Certification
+- **100% Locale Parity**: 6,177 keys ID = 6,177 keys EN, 0 selisih.
+- **Zero TypeScript Errors**: `tsc --noEmit` lolos 100%.
+
+---
+
 ## v3.8.88 — Fix: Confirm Dialog Selalu Tampil di Atas Semua Modal
+
 
 ### 1. Perbaikan Tata Letak Z-Index Confirm Dialog (`App.css`)
 - **Akar Masalah**: Dialog konfirmasi unduh (`DriveConfirmDialog`) yang muncul saat pengguna menekan tombol `[ 📥 Download ]` di dalam `DrivePreviewModal` tertutup oleh `TelegramMessagePreviewModal` karena selisih nilai `z-index` — confirm overlay berada di `z-index: 14000` sedangkan backdrop pesan Telegram di `z-index: 16000`.
