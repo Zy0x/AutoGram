@@ -2394,5 +2394,14 @@
   "showing_range": "Menampilkan {{start}} - {{end}} dari {{total}} baris",
   "log_viewer_title": "Log Stream Viewer",
   "search_log_placeholder": "Cari dalam log...",
-  "auto_scroll": "Ikuti baris terbaru (Auto-tail)"
+  "auto_scroll": "Ikuti baris terbaru (Auto-tail)",
+  "ai_intelligence_title": "AI File Understanding",
+  "font_viewer_title": "Inspektor Tipografi & Font",
+  "font_input_placeholder": "Ketik teks sampel untuk diuji...",
+  "db_inspector_title": "Inspektor Skema & Tabel Database",
+  "tables_found": "tabel ditemukan",
+  "copy_schema": "Salin Skema",
+  "tab_preview_ai": "Insight AI",
+  "tab_preview_font": "Tipografi",
+  "tab_preview_db": "Skema DB"
 }

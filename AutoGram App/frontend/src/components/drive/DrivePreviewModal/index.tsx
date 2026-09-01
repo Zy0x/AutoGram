@@ -41,6 +41,7 @@ import {
   Printer,
   Repeat,
   Search,
+  Sparkles,
 } from 'lucide-react';
 import { DeadCenterProgress } from '../Explorer/DriveSkeleton';
 import { convertFileSrc } from '@tauri-apps/api/core';
@@ -75,6 +76,9 @@ import { CodeScriptViewer } from './CodeScriptViewer';
 import { JsonTreeViewer } from './JsonTreeViewer';
 import { TabularDataViewer } from './TabularDataViewer';
 import { LogViewer } from './LogViewer';
+import { AiFileExplainer } from './AiFileExplainer';
+import { FontWaterfallViewer } from './FontWaterfallViewer';
+import { DatabaseTableInspector } from './DatabaseTableInspector';
 import {
   cancelDriveOpenJob,
   cleanupPartialDownloads,
@@ -1314,9 +1318,10 @@ export function DrivePreviewModal({
   // --------------------------------------------------------------------------
   const [sniffResult, setSniffResult] = useState<MagicSniffResult | null>(null);
   const [hexBytes, setHexBytes] = useState<Uint8Array | null>(null);
-  const [activeInspectorTab, setActiveInspectorTab] = useState<'preview' | 'tree' | 'code' | 'metadata' | 'hex'>('preview');
+  const [activeInspectorTab, setActiveInspectorTab] = useState<
+    'preview' | 'ai' | 'tree' | 'code' | 'font' | 'db' | 'metadata' | 'hex'
+  >('preview');
   const [isFixingExt, setIsFixingExt] = useState(false);
-
 
   const handleFixExtension = useCallback(async (suggestedFilename: string) => {
     setIsFixingExt(true);
@@ -1345,6 +1350,16 @@ export function DrivePreviewModal({
     const fn = (file.name || file.original_name || '').toLowerCase();
     return fn.endsWith('.log') || fn.endsWith('.out');
   }, [file.name, file.original_name]);
+
+  const isFontFile = useMemo(() => {
+    const fn = (file.name || file.original_name || '').toLowerCase();
+    return fn.endsWith('.ttf') || fn.endsWith('.otf') || fn.endsWith('.woff') || fn.endsWith('.woff2') || fn.endsWith('.eot') || sniffResult?.category === 'font';
+  }, [file.name, file.original_name, sniffResult?.category]);
+
+  const isDbFile = useMemo(() => {
+    const fn = (file.name || file.original_name || '').toLowerCase();
+    return fn.endsWith('.sql') || fn.endsWith('.sqlite') || fn.endsWith('.sqlite3') || fn.endsWith('.db') || sniffResult?.category === 'database';
+  }, [file.name, file.original_name, sniffResult?.category]);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const resumeAtRef = useRef<number>(0);
@@ -3941,6 +3956,16 @@ export function DrivePreviewModal({
                   >
                     <span>{t('drive.tab_preview_visual', 'Pratinjau')}</span>
                   </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeInspectorTab === 'ai'}
+                    className={`td-preview-tab-pill is-ai-pill ${activeInspectorTab === 'ai' ? 'is-active' : ''}`}
+                    onClick={() => setActiveInspectorTab('ai')}
+                  >
+                    <Sparkles size={12} className="text-amber-300 mr-1 inline" />
+                    <span>{t('drive.tab_preview_ai', 'Insight AI')}</span>
+                  </button>
                   {isJsonFile && (
                     <button
                       type="button"
@@ -3950,6 +3975,28 @@ export function DrivePreviewModal({
                       onClick={() => setActiveInspectorTab('tree')}
                     >
                       <span>{t('drive.tab_preview_tree', 'Pohon Data')}</span>
+                    </button>
+                  )}
+                  {isFontFile && (
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={activeInspectorTab === 'font'}
+                      className={`td-preview-tab-pill ${activeInspectorTab === 'font' ? 'is-active' : ''}`}
+                      onClick={() => setActiveInspectorTab('font')}
+                    >
+                      <span>{t('drive.tab_preview_font', 'Tipografi')}</span>
+                    </button>
+                  )}
+                  {isDbFile && (
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={activeInspectorTab === 'db'}
+                      className={`td-preview-tab-pill ${activeInspectorTab === 'db' ? 'is-active' : ''}`}
+                      onClick={() => setActiveInspectorTab('db')}
+                    >
+                      <span>{t('drive.tab_preview_db', 'Skema DB')}</span>
                     </button>
                   )}
                   {isText && (
@@ -4629,7 +4676,31 @@ export function DrivePreviewModal({
               : undefined
           }
         >
-          {activeInspectorTab === 'metadata' ? (
+          {activeInspectorTab === 'ai' ? (
+            <div className="drive-preview-doc" style={{ padding: '16px', height: '100%', width: '100%', overflowY: 'auto' }}>
+              <PluginErrorBoundary pluginName="AiFileExplainer">
+                <AiFileExplainer
+                  fileName={displayName}
+                  fileSize={previewByteSize || file.size}
+                  sniffResult={sniffResult}
+                  metadata={technicalMetadata}
+                  textContent={textBody}
+                />
+              </PluginErrorBoundary>
+            </div>
+          ) : activeInspectorTab === 'font' ? (
+            <div className="drive-preview-doc" style={{ padding: 0, height: '100%', width: '100%' }}>
+              <PluginErrorBoundary pluginName="FontWaterfallViewer">
+                <FontWaterfallViewer fontSrc={activeSrc || ''} fileName={displayName} />
+              </PluginErrorBoundary>
+            </div>
+          ) : activeInspectorTab === 'db' ? (
+            <div className="drive-preview-doc" style={{ padding: 0, height: '100%', width: '100%' }}>
+              <PluginErrorBoundary pluginName="DatabaseTableInspector">
+                <DatabaseTableInspector rawSqlOrText={textBody || ''} fileName={displayName} />
+              </PluginErrorBoundary>
+            </div>
+          ) : activeInspectorTab === 'metadata' ? (
             <div className="drive-preview-doc" style={{ padding: 0, height: '100%', width: '100%' }}>
               <PluginErrorBoundary pluginName="MediaMetadataInspector">
                 <MediaMetadataInspector metadata={technicalMetadata} fileName={displayName} />

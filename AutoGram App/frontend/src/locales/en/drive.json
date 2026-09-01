@@ -2396,5 +2396,14 @@
   "showing_range": "Showing {{start}} - {{end}} of {{total}} rows",
   "log_viewer_title": "Log Stream Viewer",
   "search_log_placeholder": "Search in log...",
-  "auto_scroll": "Follow new lines (Auto-tail)"
+  "auto_scroll": "Follow new lines (Auto-tail)",
+  "ai_intelligence_title": "AI File Understanding",
+  "font_viewer_title": "Typography & Font Inspector",
+  "font_input_placeholder": "Type sample text to test...",
+  "db_inspector_title": "Database Schema & Table Inspector",
+  "tables_found": "tables found",
+  "copy_schema": "Copy Schema",
+  "tab_preview_ai": "AI Insight",
+  "tab_preview_font": "Typography",
+  "tab_preview_db": "DB Schema"
 }
