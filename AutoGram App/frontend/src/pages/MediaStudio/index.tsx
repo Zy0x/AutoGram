@@ -888,8 +888,12 @@ function MediaDriveDesktop({
   const lastPreflightRequestRef = useRef<{
     creds: DriveCredentials;
     cleanPaths: string[];
+    customFilenames?: string[];
+    sourceSizes?: number[];
+    thumbnailUrls?: (string | null)[];
     destinationId: string;
     topicId: number | null;
+    remoteEngineMode?: RemoteEngineMode;
   } | null>(null);
   const transferQueueRef = useRef<QueueTask[]>([]);
   const activeTaskStartIndexRef = useRef<number>(0);
@@ -1003,6 +1007,9 @@ function MediaDriveDesktop({
         apiId: Number(req.creds.apiId) || 0,
         apiHash: req.creds.apiHash,
         paths: req.cleanPaths,
+        customFilenames: req.customFilenames,
+        sourceSizes: req.sourceSizes,
+        thumbnailUrls: req.thumbnailUrls ? req.thumbnailUrls.map((t) => t || '') : undefined,
         qualityMode: nextSettings.qualityMode,
         presentationOverride: nextSettings.presentationOverride,
         groupAsAlbum: nextSettings.groupAsAlbum,
@@ -1016,7 +1023,17 @@ function MediaDriveDesktop({
         topicId: req.topicId,
         preventStickerConversion: nextSettings.preventStickerConversion,
       });
-      setPreflightReport(updated);
+      const enriched: QualityPreflightReport = {
+        ...updated,
+        remoteEngineMode: req.remoteEngineMode || nextSettings.remoteEngineMode || 'auto',
+        items: updated.items.map((item, idx) => ({
+          ...item,
+          sourceName: (req.customFilenames && req.customFilenames[idx]) ? req.customFilenames[idx] : item.sourceName,
+          sourceSize: (req.sourceSizes && req.sourceSizes[idx]) ? req.sourceSizes[idx] : item.sourceSize,
+          thumbnailUrl: item.thumbnailUrl || (req.thumbnailUrls && req.thumbnailUrls[idx]) || null,
+        })),
+      };
+      setPreflightReport(enriched);
     } catch (err) {
       console.warn('Failed to re-evaluate preflight after settings change:', err);
     }
@@ -6915,8 +6932,12 @@ function MediaDriveDesktop({
       lastPreflightRequestRef.current = {
         creds,
         cleanPaths,
+        customFilenames: names,
+        sourceSizes: opts?.sourceSizes,
+        thumbnailUrls: opts?.thumbnailUrls,
         destinationId: studioChatIdFromFolder(uploadPeer),
         topicId: uploadTopicId,
+        remoteEngineMode: opts?.remoteEngineMode || transferSettings.remoteEngineMode || 'auto',
       };
       const report = await runQualityPreflight({
         session: creds.session,
