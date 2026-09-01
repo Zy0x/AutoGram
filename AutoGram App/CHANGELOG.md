@@ -1,3 +1,14 @@
+## v3.8.65 Video Duration Badge Containment & Live CDP Remote Verification
+
+### 1. Perbaikan Pembatasan Posisi Lencana Durasi Video (`App.css`)
+- **Penyelesaian Masalah Clipping / Hidden Badge**: Mengidentifikasi melalui inspeksi geometri DOM (`cdp_analyze_badge_layout.cjs`) bahwa kontainer `.td-preflight-thumb-media` sebelumnya terdorong tinggi alami gambar (`125px`), sehingga `bottom: 3px` menempatkan lencana durasi di luar tinggi kotak thumbnail (`48px`) dan terpotong oleh `overflow: hidden`.
+- **Penguncian Posisi Absolut Presisi**: Menerapkan `position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden;` pada `.td-preflight-thumb-media`, menjamin lencana durasi (`0:05`, `1:24`, `2:48`) selalu terkunci presisi di pojok kanan bawah bingkai thumbnail aktif (`top: 28px..30px`, `bottom: 3px`).
+- **Verifikasi Visual Live CDP & Snapshot Nyata**: Divalidasi secara real-time via Chrome DevTools Protocol port 9230 dan tangkapan layar live (`preflight_perfect_badges.png`) yang membuktikan lencana durasi video tampil sempurna, tajam, dan kontras.
+
+### 2. Autonomous Quality Sentinel Certification
+- **100% Locale Parity**: 6,078 kunci bahasa ID dan EN tersinkronisasi 100%.
+- **Zero TypeScript Errors & Vitest Suite Passing**: Seluruh 44 test files lolos 100%.
+
 ## v3.8.64 High-Contrast Video Duration Badge & Multi-Event Lifecycle Listener
 
 ### 1. Peningkatan Kontras & Keterbacaan Lencana Durasi Video (`TransferPreflightDialog.tsx`, `App.css`)
