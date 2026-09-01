@@ -113,6 +113,7 @@ function PreflightSourceThumb({
     video.preload = 'auto';
     video.muted = true;
     video.playsInline = true;
+    video.crossOrigin = 'anonymous';
 
     let cleanedUp = false;
     const cleanup = () => {
@@ -130,25 +131,25 @@ function PreflightSourceThumb({
     const doCapture = () => {
       try {
         if (!active || cleanedUp) return;
-        const width = video.videoWidth || 640;
-        const height = video.videoHeight || 360;
+        const width = Math.min(480, video.videoWidth || 320);
+        const height = Math.round((width * (video.videoHeight || 180)) / (video.videoWidth || 320));
         if (width <= 0 || height <= 0) return;
         const canvas = document.createElement('canvas');
-        canvas.width = Math.min(640, width);
-        canvas.height = Math.round((canvas.width * height) / width);
+        canvas.width = width;
+        canvas.height = height;
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          ctx.drawImage(video, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
           if (dataUrl && dataUrl.startsWith('data:image/jpeg') && dataUrl.length > 200) {
             preflightThumbCache.set(rawPath, dataUrl);
             setCapturedThumb(dataUrl);
           }
         }
-      } catch {
-        /* ignore capture errors */
+      } catch (err) {
+        console.warn('[Preflight] Canvas capture error:', err);
       } finally {
         cleanup();
       }
@@ -177,19 +178,16 @@ function PreflightSourceThumb({
     }, { once: true });
     video.addEventListener('error', cleanup, { once: true });
 
-    if (rawPath.startsWith('http://') || rawPath.startsWith('https://')) {
-      video.crossOrigin = 'anonymous';
-      video.src = rawPath;
-    } else {
-      video.src = convertFileSrc(rawPath);
-    }
+    video.src = rawPath.startsWith('http://') || rawPath.startsWith('https://')
+      ? rawPath
+      : convertFileSrc(rawPath);
 
     const tid = setTimeout(() => {
       if (active && !cleanedUp) {
         doCapture();
         cleanup();
       }
-    }, 4500);
+    }, 2500);
 
     return () => {
       active = false;
