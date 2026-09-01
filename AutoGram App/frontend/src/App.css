@@ -21020,7 +21020,6 @@ video.drive-zip-img {
   word-break: normal !important;
   overflow-wrap: normal !important;
 }
-}
 
 /* ─── Syntax Highlighting Tokens (VSCode Dark+ Palette) ─── */
 .vscode-tok-keyword {
@@ -41009,7 +41008,6 @@ select.td-modern-select {
   .td-tools-panel.is-unified .td-tools-sidebar {
     width: 270px !important;
   }
-}
 
   .td-ytdlp-card {
     padding: 24px 28px !important;
