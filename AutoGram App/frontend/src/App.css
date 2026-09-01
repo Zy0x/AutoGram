@@ -17609,8 +17609,8 @@ section.docx *,
   max-width: none !important;
   max-height: none !important;
   margin: 0 !important;
-  /* Above tools (12000) + preview (12500); below context menu (15000) */
-  z-index: 14000 !important;
+  /* Above ALL modals: drive-preview (20000), tg-msg-preview (16000) */
+  z-index: 21000 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;

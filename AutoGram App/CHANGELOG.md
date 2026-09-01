@@ -1,4 +1,14 @@
+## v3.8.88 — Fix: Confirm Dialog Selalu Tampil di Atas Semua Modal
+
+### 1. Perbaikan Tata Letak Z-Index Confirm Dialog (`App.css`)
+- **Akar Masalah**: Dialog konfirmasi unduh (`DriveConfirmDialog`) yang muncul saat pengguna menekan tombol `[ 📥 Download ]` di dalam `DrivePreviewModal` tertutup oleh `TelegramMessagePreviewModal` karena selisih nilai `z-index` — confirm overlay berada di `z-index: 14000` sedangkan backdrop pesan Telegram di `z-index: 16000`.
+- **Perbaikan**: Nilai `z-index` pada kelas `.td-confirm-overlay` di `App.css` dinaikkan dari `14000 !important` menjadi `21000 !important`, memastikan dialog konfirmasi selalu muncul di atas semua lapisan modal aktif (`drive-preview-overlay` di 20000, `tg-msg-preview-backdrop` di 16000).
+- **Dampak Pengguna**: Dialog unduh, hapus, ganti nama, dan seluruh aksi konfirmasi kini selalu tampil dan dapat diklik tanpa tertutup modal lain manapun.
+
+---
+
 ## v3.8.87 Direct Download Action for Telegram Message Preview Modal & Link Media
+
 
 ### 1. Tombol Unduh Langsung pada Pratinjau Pesan Telegram (`TelegramMessagePreviewModal.tsx`)
 - **Aksi Unduh Gambar Instan**: Menambahkan tombol `[ 📥 Unduh / Download ]` langsung di bilah footer pesan Telegram (`TelegramMessagePreviewModal`) saat pesan memiliki gambar atau thumbnail tautan web (seperti pada pesan `U8542241823/SM/6`).
