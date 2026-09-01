@@ -10,6 +10,25 @@ CREATE TABLE IF NOT EXISTS forwarder_job_configs (
     FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS forwarder_dedupe_ledger (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_id INTEGER NOT NULL,
+    source_account_id TEXT NOT NULL,
+    destination_account_id TEXT NOT NULL,
+    destination_peer_id TEXT NOT NULL,
+    destination_topic_id INTEGER,
+    source_message_id INTEGER NOT NULL,
+    destination_message_id INTEGER,
+    telegram_unique_id TEXT,
+    sha256 TEXT,
+    filename TEXT,
+    byte_size INTEGER,
+    decision TEXT NOT NULL DEFAULT 'transferred',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(job_id, source_account_id, destination_account_id, destination_peer_id, destination_topic_id, source_message_id),
+    FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS job_revisions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     job_id INTEGER NOT NULL,
@@ -78,6 +97,8 @@ CREATE TABLE IF NOT EXISTS retention_markers (
 
 CREATE INDEX IF NOT EXISTS idx_forwarder_job_configs_revision
     ON forwarder_job_configs(revision);
+CREATE INDEX IF NOT EXISTS idx_forwarder_dedupe_scope
+    ON forwarder_dedupe_ledger(destination_account_id, destination_peer_id, destination_topic_id, sha256);
 CREATE INDEX IF NOT EXISTS idx_job_revisions_job_revision
     ON job_revisions(job_id, revision DESC);
 CREATE INDEX IF NOT EXISTS idx_decision_inbox_job_status

@@ -127,7 +127,7 @@ function PreflightSourceThumb({
     const hasCachedDuration = preflightDurationCache.has(rawPath);
 
     if (hasCachedThumb && hasCachedDuration) {
-      if (hasCachedDuration && duration == null) {
+      if (duration == null && preflightDurationCache.has(rawPath)) {
         setDuration(preflightDurationCache.get(rawPath) || null);
       }
       return;
@@ -135,7 +135,7 @@ function PreflightSourceThumb({
 
     let active = true;
     const video = document.createElement('video');
-    video.preload = 'metadata';
+    video.preload = 'auto';
     video.muted = true;
     video.playsInline = true;
     video.crossOrigin = 'anonymous';
@@ -156,22 +156,26 @@ function PreflightSourceThumb({
     const doCapture = () => {
       try {
         if (!active || cleanedUp) return;
-        const width = Math.min(480, video.videoWidth || 320);
-        const height = Math.round((width * (video.videoHeight || 180)) / (video.videoWidth || 320));
-        if (width <= 0 || height <= 0) return;
+        const vWidth = video.videoWidth;
+        const vHeight = video.videoHeight;
+        if (!vWidth || !vHeight || vWidth <= 0 || vHeight <= 0) return;
+
+        const width = Math.min(480, vWidth);
+        const height = Math.round((width * vHeight) / vWidth);
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
-          ctx.drawImage(video, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-          if (dataUrl && dataUrl.startsWith('data:image/jpeg') && dataUrl.length > 200) {
-            preflightThumbCache.set(rawPath, dataUrl);
-            setCapturedThumb(dataUrl);
-          }
+        if (!ctx) return;
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(video, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        if (dataUrl && dataUrl.startsWith('data:image/jpeg') && dataUrl.length > 200) {
+          preflightThumbCache.set(rawPath, dataUrl);
+          setCapturedThumb(dataUrl);
         }
       } catch (err) {
         console.warn('[Preflight] Canvas capture error:', err);
@@ -180,36 +184,33 @@ function PreflightSourceThumb({
       }
     };
 
-    const handleLoadedMetadata = () => {
-      try {
-        if (!active || cleanedUp) return;
-        const dur = video.duration;
-        if (Number.isFinite(dur) && dur > 0) {
-          preflightDurationCache.set(rawPath, dur);
-          setDuration(dur);
-        }
+    const onLoadedMetadata = () => {
+      if (!active || cleanedUp) return;
+      const dur = video.duration;
+      if (Number.isFinite(dur) && dur > 0) {
+        preflightDurationCache.set(rawPath, dur);
+        setDuration(dur);
+      }
 
-        if (!hasCachedThumb) {
-          const targetTime = Math.min(1.0, dur > 2 ? 1.0 : dur / 2);
-          if (targetTime > 0 && Math.abs(video.currentTime - targetTime) > 0.05) {
-            video.currentTime = targetTime;
-          } else {
-            doCapture();
-          }
-        } else {
-          cleanup();
+      if (!hasCachedThumb) {
+        const targetTime = Math.min(1.0, dur > 2 ? 1.0 : dur / 2);
+        try {
+          video.currentTime = targetTime;
+        } catch {
+          requestAnimationFrame(doCapture);
         }
-      } catch {
+      } else {
         cleanup();
       }
     };
 
-    video.addEventListener('loadedmetadata', handleLoadedMetadata, { once: true });
-    video.addEventListener('loadeddata', handleLoadedMetadata, { once: true });
-    video.addEventListener('seeked', doCapture, { once: true });
-    video.addEventListener('canplay', () => {
-      if (video.currentTime >= 0.5 && !hasCachedThumb) doCapture();
-    }, { once: true });
+    const onSeeked = () => {
+      if (!active || cleanedUp) return;
+      requestAnimationFrame(doCapture);
+    };
+
+    video.addEventListener('loadedmetadata', onLoadedMetadata, { once: true });
+    video.addEventListener('seeked', onSeeked, { once: true });
     video.addEventListener('error', cleanup, { once: true });
 
     video.src = rawPath.startsWith('http://') || rawPath.startsWith('https://')
@@ -221,7 +222,7 @@ function PreflightSourceThumb({
         if (!hasCachedThumb) doCapture();
         cleanup();
       }
-    }, 2500);
+    }, 3000);
 
     return () => {
       active = false;

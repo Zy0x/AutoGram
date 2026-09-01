@@ -12,6 +12,40 @@ export interface ForwarderFeatureFlags {
 }
 
 export type ForwardMode = 'auto' | 'fast_forward' | 'clean_copy' | 'mirror';
+export type JobStateV2 = 'READY' | 'VALIDATING' | 'SCANNING' | 'FILTERING' | 'DEDUPLICATING' | 'DOWNLOADING' | 'PREPARING' | 'UPLOADING' | 'COMMITTING' | 'COMPLETED' | 'PAUSED' | 'WAITING_USER' | 'WAITING_COOLDOWN' | 'UNKNOWN' | 'PARTIAL_SUCCESS' | 'FAILED' | 'CANCELLED' | 'RECONCILING';
+export type TaskStateV2 = 'QUEUED' | 'DOWNLOADING' | 'PREPARING' | 'UPLOADING' | 'COMMITTING' | 'COMPLETED' | 'SKIPPED' | 'FAILED' | 'UNKNOWN' | 'WAITING_USER' | 'CANCELLED';
+
+export interface ForwardEventV2 {
+  schema_version: number;
+  sequence: number;
+  job_id: string;
+  execution_id?: string | null;
+  task_id?: string | null;
+  state: JobStateV2 | string;
+  reason_code?: string | null;
+  redacted_metadata: Record<string, unknown>;
+  occurred_at: string;
+}
+
+export interface MirrorMutationV2 {
+  schema_version: number;
+  source_peer_id: string;
+  source_message_id: number;
+  kind: string;
+  destination_message_id?: number | null;
+  payload: Record<string, unknown>;
+}
+
+export interface DeviceRelayCommandV1 {
+  schema_version: number;
+  command_id: string;
+  device_id: string;
+  job_id: string;
+  command: string;
+  nonce: string;
+  signature: string;
+  payload_ciphertext: string;
+}
 
 export interface PeerRef {
   account_id: string;

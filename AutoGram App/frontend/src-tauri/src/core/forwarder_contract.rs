@@ -7,6 +7,56 @@ use serde_json::{Map, Value};
 
 pub const JOB_CONFIG_SCHEMA_VERSION: u32 = 2;
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum JobStateV2 {
+    Ready, Validating, Scanning, Filtering, Deduplicating, Downloading,
+    Preparing, Uploading, Committing, Completed, Paused, WaitingUser,
+    WaitingCooldown, Unknown, PartialSuccess, Failed, Cancelled, Reconciling,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum TaskStateV2 {
+    Queued, Downloading, Preparing, Uploading, Committing, Completed,
+    Skipped, Failed, Unknown, WaitingUser, Cancelled,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ForwardEventV2 {
+    pub schema_version: u32,
+    pub sequence: u64,
+    pub job_id: String,
+    pub execution_id: Option<String>,
+    pub task_id: Option<String>,
+    pub state: String,
+    pub reason_code: Option<String>,
+    pub redacted_metadata: Value,
+    pub occurred_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MirrorMutationV2 {
+    pub schema_version: u32,
+    pub source_peer_id: String,
+    pub source_message_id: i64,
+    pub kind: String,
+    pub destination_message_id: Option<i64>,
+    pub payload: Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeviceRelayCommandV1 {
+    pub schema_version: u32,
+    pub command_id: String,
+    pub device_id: String,
+    pub job_id: String,
+    pub command: String,
+    pub nonce: String,
+    pub signature: String,
+    pub payload_ciphertext: String,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct ForwarderFeatureFlags {
     pub forwarder_v2: bool,
@@ -156,8 +206,17 @@ fn i64_value(obj: &Map<String, Value>, keys: &[&str]) -> Option<i64> {
 /// leak into cloud snapshots.
 pub fn normalize_job_config_v2(raw: Value) -> Result<JobConfigV2, String> {
     let obj = raw.as_object().cloned().unwrap_or_default();
-    let source_id = string(&obj, &["source_peer_id", "source", "source_entity_id"]);
-    let destination_id = string(&obj, &["destination_peer_id", "destination", "target_entity_id", "target"]);
+    let nested_peer = |key: &str| -> (String, String, Option<i64>) {
+        obj.get(key).and_then(Value::as_object).map(|p| (
+            p.get("account_id").and_then(Value::as_str).unwrap_or_default().to_string(),
+            p.get("peer_id").and_then(Value::as_str).unwrap_or_default().to_string(),
+            p.get("topic_id").and_then(Value::as_i64),
+        )).unwrap_or_default()
+    };
+    let (nested_source_account, nested_source_id, nested_source_topic) = nested_peer("source");
+    let (nested_destination_account, nested_destination_id, nested_destination_topic) = nested_peer("destination");
+    let source_id = if nested_source_id.is_empty() { string(&obj, &["source_peer_id", "source", "source_entity_id"]) } else { nested_source_id };
+    let destination_id = if nested_destination_id.is_empty() { string(&obj, &["destination_peer_id", "destination", "target_entity_id", "target"]) } else { nested_destination_id };
     if source_id.is_empty() || destination_id.is_empty() {
         return Err("source and destination are required".into());
     }
@@ -184,8 +243,8 @@ pub fn normalize_job_config_v2(raw: Value) -> Result<JobConfigV2, String> {
         schema_version: JOB_CONFIG_SCHEMA_VERSION,
         job_id: None,
         revision: i64_value(&obj, &["revision"]).unwrap_or(0).max(0) as u64,
-        source: PeerRef { account_id: string(&obj, &["source_account_id", "session"]), peer_id: source_id, topic_id: i64_value(&obj, &["source_topic_id", "topic_id"]) },
-        destination: PeerRef { account_id: string(&obj, &["destination_account_id", "destination_session", "session"]), peer_id: destination_id, topic_id: i64_value(&obj, &["destination_topic_id", "dest_topic_id", "topic_id"]) },
+        source: PeerRef { account_id: if nested_source_account.is_empty() { string(&obj, &["source_account_id", "session"]) } else { nested_source_account }, peer_id: source_id, topic_id: nested_source_topic.or_else(|| i64_value(&obj, &["source_topic_id", "topic_id"])) },
+        destination: PeerRef { account_id: if nested_destination_account.is_empty() { string(&obj, &["destination_account_id", "destination_session", "session"]) } else { nested_destination_account }, peer_id: destination_id, topic_id: nested_destination_topic.or_else(|| i64_value(&obj, &["destination_topic_id", "dest_topic_id", "topic_id"])) },
         mode,
         message_types,
         date_range: DateRange { start: obj.get("start_date").and_then(Value::as_str).map(str::to_string), end: obj.get("end_date").and_then(Value::as_str).map(str::to_string) },

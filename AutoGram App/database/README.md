@@ -172,7 +172,7 @@ All high-frequency lookup paths are backed by specialized indexes:
 ## 4. Migration Lifecycle & Upgrade Pipeline
 
 AutoGram executes schema migrations sequentially upon application launch:
-1. Migrations are located in `database/migrations/001_` through `019_`.
+1. Migrations are located in `database/migrations/001_` through `020_` (Media Forwarder V2).
 2. Every migration file is written to be **100% idempotent** using `CREATE TABLE IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`, and `drive_beta_schema` version tracking.
 3. Upgrades run inside an explicit SQLite transaction (`BEGIN IMMEDIATE ... COMMIT`) to ensure atomicity.
 
