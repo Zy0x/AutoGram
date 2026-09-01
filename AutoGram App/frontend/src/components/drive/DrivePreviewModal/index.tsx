@@ -120,6 +120,7 @@ import {
   isTextDriveFile,
   isZipDriveFile,
   isTgsDriveFile,
+  canShowDriveThumb,
   type DriveFile,
   type DriveFolder,
   type DriveChat,
@@ -1779,6 +1780,15 @@ export function DrivePreviewModal({
             return;
           }
 
+          // Fallback to thumbnail/poster for link files or visual files before reporting error
+          const fallbackImage = poster || gridThumb || (file as any).thumb_url || (file as any).thumbnail_url;
+          if (fallbackImage && (file.icon_type === 'link' || isImageDriveFile(file) || canShowDriveThumb(file))) {
+            setDataUrl(fallbackImage);
+            setError(null);
+            setLoading(false);
+            return;
+          }
+
           // Keep cached playback if we already painted a hit
           if (!hasUsable) {
             const disconnected = /while disconnected|cannot send requests|koneksi telegram terputus|not connected|drive session ended|drive session stopped|drive session not ready/i.test(
@@ -2736,8 +2746,9 @@ export function DrivePreviewModal({
     if (isPdfDriveFile(file)) return 'pdf' as const;
     if (isTextDriveFile(file)) return 'text' as const;
     if (isZipDriveFile(file)) return 'zip' as const;
+    if (file.icon_type === 'link' && (canShowDriveThumb(file) || file.has_thumb || poster || gridThumb)) return 'image' as const;
     return resolvePreviewKind(file, mime, previewKind);
-  }, [customSource?.kind, file, mime, previewKind]);
+  }, [customSource?.kind, file, mime, previewKind, poster, gridThumb]);
   const isVideo = mediaKind === 'video';
   const isImage = mediaKind === 'image';
   const isAudio = mediaKind === 'audio';
@@ -5009,7 +5020,7 @@ export function DrivePreviewModal({
             document.body
           )}
 
-        {!isZip && sniffResult && sniffResult.severity !== 'safe' && (
+        {!isZip && file.icon_type !== 'link' && sniffResult && sniffResult.severity !== 'safe' && (
           <SecurityMismatchBanner
             sniffResult={sniffResult}
             currentFilename={displayName}

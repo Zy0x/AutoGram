@@ -523,6 +523,21 @@ function DriveFileCardInner({
               }}
             />
             <div className="td-file-thumb-grad" />
+            {file.icon_type === 'link' && onPreview && (
+              <button
+                type="button"
+                className="td-link-media-preview-btn"
+                title={t('drive.preview_link_media')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPreview();
+                }}
+                aria-label={t('drive.preview_link_media')}
+              >
+                <Eye size={12} />
+                <span>{t('drive.preview_media_label')}</span>
+              </button>
+            )}
             {isVideo && (
               <span className="td-video-play" aria-hidden>
                 <Play size={16} fill="currentColor" />

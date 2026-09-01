@@ -2409,5 +2409,10 @@
   "session_label": "Sesi",
   "preflight_bento_main_account": "Akun Utama",
   "preflight_duplicate_badge_force": "Paksa Unggah",
-  "tab_preview_more": "Lainnya"
+  "tab_preview_more": "Lainnya",
+  "preview_media_action": "Pratinjau Media",
+  "preview_media_desc": "Buka media dalam penampil layar penuh",
+  "preview_link_media": "Pratinjau Media Tautan",
+  "preview_media_label": "Media",
+  "ctx_menu_preview_media": "Pratinjau Media"
 }

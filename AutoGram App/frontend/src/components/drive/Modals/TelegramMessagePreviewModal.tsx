@@ -16,6 +16,7 @@ import {
   ExternalLink,
   FolderOpen,
   UserPlus,
+  Eye,
 } from 'lucide-react';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
 import {
@@ -57,6 +58,7 @@ export interface TelegramMessagePreviewModalProps {
   onOpenTelegramLink?: (url: string) => void;
   onBrowseTelegramDrive?: (url: string) => void;
   onJoinTelegramChat?: (url: string) => void;
+  onPreviewMedia?: (file: DriveFile) => void;
   escapeDisabled?: boolean;
 }
 
@@ -127,6 +129,7 @@ export function TelegramMessagePreviewModal({
   onOpenTelegramLink,
   onBrowseTelegramDrive,
   onJoinTelegramChat,
+  onPreviewMedia,
   escapeDisabled = false,
 }: TelegramMessagePreviewModalProps) {
   const { t } = useTranslation();
@@ -476,15 +479,30 @@ export function TelegramMessagePreviewModal({
 
               {/* 1. Visual Media (Photo / Video Thumbnail) */}
               {isVisualMedia && (
-                <div className={`tg-msg-bubble-media-wrapper${isVideo ? ' is-video' : ''}`}>
+                <div
+                  className={`tg-msg-bubble-media-wrapper${isVideo ? ' is-video' : ''}${onPreviewMedia ? ' is-interactive' : ''}`}
+                  onClick={() => {
+                    if (onPreviewMedia) onPreviewMedia(file);
+                  }}
+                  style={{ cursor: onPreviewMedia ? 'pointer' : 'default' }}
+                  title={onPreviewMedia ? t('drive.preview_media_desc') : undefined}
+                >
                   {imageSrc && !imgError ? (
-                    <img
-                      src={imageSrc}
-                      alt={displayName}
-                      className={`tg-msg-bubble-img${imgLoaded ? ' is-loaded' : ''}`}
-                      onLoad={() => setImgLoaded(true)}
-                      onError={() => setImgError(true)}
-                    />
+                    <>
+                      <img
+                        src={imageSrc}
+                        alt={displayName}
+                        className={`tg-msg-bubble-img${imgLoaded ? ' is-loaded' : ''}`}
+                        onLoad={() => setImgLoaded(true)}
+                        onError={() => setImgError(true)}
+                      />
+                      {onPreviewMedia && (
+                        <div className="tg-msg-bubble-media-hover-overlay">
+                          <Eye size={18} />
+                          <span>{t('drive.preview_media_action')}</span>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="tg-msg-bubble-media-placeholder">
                       {isVideo ? (
@@ -728,6 +746,24 @@ export function TelegramMessagePreviewModal({
 
         {/* Telegram-style Quick Action Strip (Non-redundant, clean) */}
         <div className="tg-msg-preview-footer">
+          {isVisualMedia && onPreviewMedia && (
+            <button
+              type="button"
+              className="tg-msg-action-btn is-accent"
+              style={{
+                background: 'rgba(56, 189, 248, 0.15)',
+                color: '#38bdf8',
+                border: '1px solid rgba(56, 189, 248, 0.35)',
+                fontWeight: 600,
+              }}
+              onClick={() => onPreviewMedia(file)}
+              title={t('drive.preview_media_desc')}
+            >
+              <Eye size={14} />
+              <span>{t('drive.preview_media_action')}</span>
+            </button>
+          )}
+
           {captionText && (
             <button
               type="button"

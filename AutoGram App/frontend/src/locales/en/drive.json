@@ -2411,5 +2411,10 @@
   "session_label": "Session",
   "preflight_bento_main_account": "Main Account",
   "preflight_duplicate_badge_force": "Force Upload",
-  "tab_preview_more": "More"
+  "tab_preview_more": "More",
+  "preview_media_action": "Preview Media",
+  "preview_media_desc": "Open media in full-screen viewer",
+  "preview_link_media": "Preview Link Media",
+  "preview_media_label": "Media",
+  "ctx_menu_preview_media": "Preview Media"
 }

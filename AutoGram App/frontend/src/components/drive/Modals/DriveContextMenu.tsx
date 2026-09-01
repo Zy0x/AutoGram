@@ -483,7 +483,23 @@ export function DriveContextMenu({
                 onMouseEnter={() => scheduleCloseSubmenu(80)}
                 onClick={() => run(onPreview)}
               >
-                <Eye size={14} /> {t('drive.ctx_menu_preview')}
+                <Eye size={14} /> {file.icon_type === 'link' ? t('drive.ctx_menu_preview_media') : t('drive.ctx_menu_preview')}
+              </button>
+            )}
+            {file.icon_type === 'link' && (
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={() => scheduleCloseSubmenu(80)}
+                onClick={() => {
+                  if (onPreviewMessage) {
+                    run(() => onPreviewMessage(file));
+                  } else {
+                    setPreviewMsgFile(file);
+                  }
+                }}
+              >
+                <MessageSquare size={14} /> {t('drive.ctx_menu_preview_message')}
               </button>
             )}
             {onInfo && (

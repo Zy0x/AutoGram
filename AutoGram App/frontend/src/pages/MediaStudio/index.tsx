@@ -11002,11 +11002,7 @@ function MediaDriveDesktop({
                 }
               }}
               onPreview={(f) => {
-                if (f.icon_type === 'link') {
-                  setLinkPreviewFile(f);
-                } else {
-                  setPreviewFile(f);
-                }
+                setPreviewFile(f);
               }}
               onDownload={(f) => downloadOne(f)}
               onDelete={(f) => handleDeleteIds([f.id])}
@@ -11054,6 +11050,10 @@ function MediaDriveDesktop({
               onOpenTelegramLink={handleBrowseTelegramDrive}
               onBrowseTelegramDrive={handleBrowseTelegramDrive}
               onJoinTelegramChat={handleJoinTelegramChat}
+              onPreviewMedia={(f) => {
+                setLinkPreviewFile(null);
+                setPreviewFile(f);
+              }}
               escapeDisabled={remoteUploadOpen || Boolean(telegramActionContext)}
             />
           </div>
