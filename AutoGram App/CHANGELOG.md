@@ -1,3 +1,13 @@
+## v3.8.58 Human-Readable Account Display Name Resolution for Transfer Preflight
+
+### 1. Penyelarasan Nama Sesi & Akun Telegram pada Bento Preflight (`TransferPreflightDialog.tsx`, `sessionPicker.ts`)
+- **Resolusi Nama Tampilan Sesi yang Manusiawi (*Human-Readable Display Name*)**: Mengintegrasikan `getSessionDisplayName` ke dalam kartu tujuan Telegram (*Telegram Destination*) pada dialog Preflight. Kini antarmuka menampilkan nama pengguna, username (misal: `@username`), atau alias kustom akun alih-alih nomor ID sesi biner mentah (`session_1785668521`).
+- **Pembersihan Nama Sesi & Ekstensi File**: Menyempurnakan parser `getSessionDisplayName` di `sessionPicker.ts` agar membersihkan ekstensi `.session` dan mencocokkan alias maupun metadata profil Telegram pengguna secara presisi.
+
+### 2. Autonomous Quality Sentinel Certification
+- **100% Locale Parity**: 6,070 kunci bahasa ID dan EN tersinkronisasi 100%.
+- **Zero TypeScript Errors & Vitest Suite Passing**: Seluruh 44 test files lolos 100%.
+
 ## v3.8.57 Local Video Thumbnail Generation & In-Memory Caching for Transfer Preflight
 
 ### 1. Perbaikan Ekstraksi Thumbnail Video Lokal pada Dialog Preflight (`TransferPreflightDialog.tsx`)

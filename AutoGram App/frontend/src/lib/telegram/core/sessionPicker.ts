@@ -185,11 +185,14 @@ export function deleteSessionLocalData(sessionName: string, purgeCache = false):
 export function getSessionDisplayName(sessionName: string): string {
   if (!sessionName) return '';
 
+  const cleanName = sessionName.replace(/\.session$/i, '');
+
   // 1. Custom alias set by user in Accounts page
   try {
     const rawAliases = localStorage.getItem(ALIASES_KEY);
     if (rawAliases) {
       const aliases = JSON.parse(rawAliases);
+      if (aliases[cleanName]) return aliases[cleanName];
       if (aliases[sessionName]) return aliases[sessionName];
     }
   } catch {
@@ -197,21 +200,23 @@ export function getSessionDisplayName(sessionName: string): string {
   }
 
   // 2. Cached user metadata from Telegram auth
-  const meta = getSessionMetadata(sessionName);
+  const meta = getSessionMetadata(cleanName) || getSessionMetadata(sessionName);
   if (meta) {
     const namePart = meta.userFullName ? meta.userFullName.trim() : '';
     const userPart = meta.username ? (meta.username.startsWith('@') ? meta.username : `@${meta.username}`) : '';
     if (namePart && userPart) return `${namePart} (${userPart})`;
     if (namePart) return namePart;
     if (userPart) return userPart;
+    if (meta.phone) return `${meta.phone}`;
   }
 
   // 3. Fallback to clean sessionName or formatted session timestamp
-  if (sessionName.startsWith('session_')) {
-    return `Sesi #${sessionName.replace(/^session_/, '')}`;
+  if (cleanName.startsWith('session_')) {
+    const numericPart = cleanName.replace(/^session_/, '');
+    return `Sesi #${numericPart}`;
   }
 
-  return sessionName;
+  return cleanName;
 }
 
 function readActiveTargets(): string[] {

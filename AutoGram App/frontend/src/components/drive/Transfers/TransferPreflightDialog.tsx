@@ -40,6 +40,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { requestThumb } from '../../../lib/media/thumbBatcher';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
+import { getSessionDisplayName } from '../../../lib/telegram';
 import {
   DEFAULT_TRANSFER_SETTINGS,
   formatDriveBytes,
@@ -435,7 +436,7 @@ function PreflightTransferInfoBento({
             {item.duplicateMatch?.destinationId === 'me' ? 'Saved Messages' : (item.duplicateMatch?.destinationId || 'Saved Messages (Cloud)')}
           </span>
           <span className="td-preflight-bento-subtext">
-            {creds?.session ? `Sesi: ${creds.session}` : 'Akun Utama • AutoGram MTProto'}
+            {creds?.session ? `${t('drive.session_label', { defaultValue: 'Sesi' })}: ${getSessionDisplayName(creds.session)}` : t('drive.preflight_bento_main_account', { defaultValue: 'Akun Utama • AutoGram MTProto' })}
           </span>
         </div>
       </div>
