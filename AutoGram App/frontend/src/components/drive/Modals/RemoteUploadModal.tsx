@@ -4761,9 +4761,11 @@ export function RemoteUploadModal({
                                 <>
                                   {curatedGeneralVideos.length > 0 && (
                                     <div className="td-remote-formats-section">
-                                      <div className="td-remote-formats-section-header">
+                                      <div className="td-remote-formats-section-header is-general">
                                         <span className="td-remote-formats-section-title">
-                                          <Film size={11} style={{ color: '#38bdf8' }} />
+                                          <div className="td-remote-section-icon-box">
+                                            <Film size={12} />
+                                          </div>
                                           <span>{t('drive.remote_section_video_streams')}</span>
                                         </span>
                                         <span className="td-remote-formats-section-count">{curatedGeneralVideos.length}</span>
@@ -4779,9 +4781,11 @@ export function RemoteUploadModal({
                                 <>
                                   {mp4VideoFmts.length > 0 && (
                                     <div className="td-remote-formats-section">
-                                      <div className="td-remote-formats-section-header">
+                                      <div className="td-remote-formats-section-header is-mp4">
                                         <span className="td-remote-formats-section-title">
-                                          <Film size={11} style={{ color: '#38bdf8' }} />
+                                          <div className="td-remote-section-icon-box">
+                                            <Film size={12} />
+                                          </div>
                                           <span>{t('drive.remote_section_mp4_video')}</span>
                                         </span>
                                         <span className="td-remote-formats-section-count">{mp4VideoFmts.length}</span>
@@ -4794,9 +4798,11 @@ export function RemoteUploadModal({
 
                                   {webmVideoFmts.length > 0 && (
                                     <div className="td-remote-formats-section">
-                                      <div className="td-remote-formats-section-header">
+                                      <div className="td-remote-formats-section-header is-webm">
                                         <span className="td-remote-formats-section-title">
-                                          <Film size={11} style={{ color: '#fbbf24' }} />
+                                          <div className="td-remote-section-icon-box">
+                                            <Film size={12} />
+                                          </div>
                                           <span>{t('drive.remote_section_webm_video')}</span>
                                         </span>
                                         <span className="td-remote-formats-section-count">{webmVideoFmts.length}</span>
@@ -4811,9 +4817,11 @@ export function RemoteUploadModal({
                                 <>
                                   {audioFmts.length > 0 && (
                                     <div className="td-remote-formats-section">
-                                      <div className="td-remote-formats-section-header">
+                                      <div className="td-remote-formats-section-header is-audio">
                                         <span className="td-remote-formats-section-title">
-                                          <Music size={11} style={{ color: '#c084fc' }} />
+                                          <div className="td-remote-section-icon-box">
+                                            <Music size={12} />
+                                          </div>
                                           <span>{t('drive.remote_section_audio_tracks')}</span>
                                         </span>
                                         <span className="td-remote-formats-section-count">{audioFmts.length}</span>
@@ -4827,9 +4835,11 @@ export function RemoteUploadModal({
                               ) : isSubtitleTab ? (
                                 subtitleFmts.length > 0 ? (
                                   <div className="td-remote-formats-section">
-                                    <div className="td-remote-formats-section-header">
+                                    <div className="td-remote-formats-section-header is-subtitle">
                                       <span className="td-remote-formats-section-title">
-                                        <FileText size={11} style={{ color: '#2dd4bf' }} />
+                                        <div className="td-remote-section-icon-box">
+                                          <FileText size={12} />
+                                        </div>
                                         <span>{t('drive.remote_section_subtitles')}</span>
                                       </span>
                                       <span className="td-remote-formats-section-count">{filteredSubtitleFmts.length}</span>

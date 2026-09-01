@@ -28047,7 +28047,7 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-formats-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
 }
 
@@ -28055,27 +28055,105 @@ button.td-confirm-icon.is-back-btn:active {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 0 2px;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 3px solid #64748b;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.td-remote-formats-section-header.is-general {
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.12) 0%, rgba(15, 23, 42, 0.45) 100%);
+  border-color: rgba(99, 102, 241, 0.2);
+  border-left-color: #818cf8;
+}
+
+.td-remote-formats-section-header.is-mp4 {
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.12) 0%, rgba(15, 23, 42, 0.45) 100%);
+  border-color: rgba(56, 189, 248, 0.2);
+  border-left-color: #38bdf8;
+}
+
+.td-remote-formats-section-header.is-webm {
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, rgba(15, 23, 42, 0.45) 100%);
+  border-color: rgba(245, 158, 11, 0.2);
+  border-left-color: #f59e0b;
+}
+
+.td-remote-formats-section-header.is-audio {
+  background: linear-gradient(90deg, rgba(192, 132, 252, 0.12) 0%, rgba(15, 23, 42, 0.45) 100%);
+  border-color: rgba(192, 132, 252, 0.2);
+  border-left-color: #c084fc;
+}
+
+.td-remote-formats-section-header.is-subtitle {
+  background: linear-gradient(90deg, rgba(45, 212, 191, 0.12) 0%, rgba(15, 23, 42, 0.45) 100%);
+  border-color: rgba(45, 212, 191, 0.2);
+  border-left-color: #2dd4bf;
 }
 
 .td-remote-formats-section-title {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.72rem;
+  gap: 8px;
+  font-size: 0.74rem;
   font-weight: 750;
-  color: #94a3b8;
+  color: #f8fafc;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.035em;
+}
+
+.td-remote-section-icon-box {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.is-general .td-remote-section-icon-box {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: rgba(99, 102, 241, 0.35);
+  color: #a5b4fc;
+}
+
+.is-mp4 .td-remote-section-icon-box {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+}
+
+.is-webm .td-remote-section-icon-box {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+}
+
+.is-audio .td-remote-section-icon-box {
+  background: rgba(192, 132, 252, 0.18);
+  border-color: rgba(192, 132, 252, 0.35);
+  color: #c084fc;
+}
+
+.is-subtitle .td-remote-section-icon-box {
+  background: rgba(45, 212, 191, 0.18);
+  border-color: rgba(45, 212, 191, 0.35);
+  color: #2dd4bf;
 }
 
 .td-remote-formats-section-count {
-  font-size: 0.64rem;
-  font-weight: 700;
-  color: #64748b;
-  padding: 1px 6px;
-  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.66rem;
+  font-weight: 750;
+  color: #e2e8f0;
+  padding: 2px 7px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 9999px;
 }
 

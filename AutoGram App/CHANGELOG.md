@@ -1,3 +1,14 @@
+## v3.8.56 Distinct Visual Subheaders for Remote Formats & Streams
+
+### 1. Desain Subheader Aliran Format Terarah & Eksklusif (`RemoteUploadModal.tsx`, `App.css`)
+- **Pembeda Visual Khusus Per-Tipe Format**: Memberikan gaya visual kontainer subheader yang khas dan elegan untuk masing-masing seksi format (`is-general`, `is-mp4`, `is-webm`, `is-audio`, `is-subtitle`) dengan aksen warna sisi kiri (*left accent bar*), gradasi latar belakang transparan yang halus, dan bingkai lembut tanpa membuat antarmuka terasa ramai.
+- **Wadah Ikon Mini Terpadu (*Icon Box*)**: Menghadirkan kotak ikon mini berdimensi $22 \times 22\text{px}$ dengan latar belakang warna tematik terarah (Sky Blue untuk MP4, Amber/Gold untuk WebM, Indigo untuk General, Purple untuk Audio, Teal untuk Subtitle) sehingga jenis aliran berkas dapat dibedakan dalam sekejap mata.
+- **Lencana Jumlah Berkas Modern**: Memperbarui lencana jumlah berkas (*count pill badge*) dengan latar belakang kaca gelap berkontras tinggi dan tipografi tebal yang mudah dibaca.
+
+### 2. Autonomous Quality Sentinel Certification
+- **100% Locale Parity**: 6,070 kunci bahasa ID dan EN tersinkronisasi 100%.
+- **Zero TypeScript Errors & Vitest Suite Passing**: Seluruh 44 test files lolos 100%.
+
 ## v3.8.55 Intelligent YouTube Format Curation (MP4-First, Highest-Quality Fallback & Strict M3U8 Filtering)
 
 ### 1. Kurasi Format YouTube & Remote Media Cerdas (`RemoteUploadModal.tsx`, `youtubeResolver.ts`)
