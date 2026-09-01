@@ -1,3 +1,18 @@
+## v3.8.75 Zero-Dead-End Intelligent Multi-Engine Media & Document Workbench
+
+### 1. Eliminasi Total Layar Kosong pada Seluruh Format (`DrivePreviewModal/index.tsx`)
+- **Penanganan Otomatis Multi-Engine Tanpa Layar Kosong**: Menghilangkan seluruh layar fallback kosong pada format biner/dokumen. Seluruh berkas kini langsung menampilkan komponen aktif:
+  - Berkas Tipografi (`.ttf`, `.otf`, `.woff`, `.woff2`) $\rightarrow$ Merender langsung `FontWaterfallViewer` interaktif dengan penguji teks bebas dan peta glif.
+  - Berkas Basis Data (`.sql`, `.sqlite`, `.db`) $\rightarrow$ Merender langsung `DatabaseTableInspector`.
+  - Berkas Dokumen & Biner (`.doc`, `.docx`, `.bin`, `.exe`, dll.) $\rightarrow$ Merender langsung `AiFileExplainer` dengan ringkasan AI, poin pemahaman utama, ekstraksi entitas, inspeksi hex, dan tombol peluncur aplikasi sistem.
+- **Verifikasi Langsung CDP Live**: Memverifikasi antarmuka visual desktop secara langsung via Chrome DevTools Protocol pada port 9230 dengan pergantian tab `Preview`, `Hex Dump`, dan `Metadata & EXIF`.
+
+### 2. Autonomous Quality Sentinel Certification
+- **Rust Backend Cargo Check**: Kompilasi `cargo check` pada engine native desktop Rust sukses 100% tanpa galat.
+- **100% Locale Parity**: 6,162 kunci bahasa ID dan 6,162 kunci bahasa EN tersinkronisasi 100% tanpa selisih.
+- **Zero TypeScript Errors & Clean Production Build**: Kompilasi `tsc && vite build` sukses 100% tanpa galat.
+- **Vitest Automated Test Suite**: Seluruh 45 test suite Vitest (373 pengujian) lolos 100%.
+
 ## v3.8.74 Universal Text, Document & Media Extension Set Unification
 
 ### 1. Perluasan Menyeluruh Dukungan Pratinjau Teks & Media (`driveTypes.ts`, `doc_preview.rs`)

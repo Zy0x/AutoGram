@@ -106,7 +106,6 @@ import {
   isAudioDriveFile,
   isPdfDriveFile,
   isTextDriveFile,
-  isOfficeDriveFile,
   isZipDriveFile,
   isTgsDriveFile,
   type DriveFile,
@@ -6606,65 +6605,26 @@ export function DrivePreviewModal({
             !isText &&
             !isZip &&
             !(isText && textBody != null) && (
-            <div className="drive-empty">
-              {isOfficeDriveFile(file) || isDocOther ? (
-                <FileText size={40} className="td-type-ico doc" />
-              ) : isVideo ? (
-                <Film size={40} className="td-type-ico video" />
+            <div className="drive-preview-doc" style={{ padding: isFontFile ? 0 : '16px', height: '100%', width: '100%', overflowY: 'auto' }}>
+              {isFontFile ? (
+                <PluginErrorBoundary pluginName="FontWaterfallViewer">
+                  <FontWaterfallViewer fontSrc={activeSrc || ''} fileName={displayName} />
+                </PluginErrorBoundary>
+              ) : isDbFile && textBody ? (
+                <PluginErrorBoundary pluginName="DatabaseTableInspector">
+                  <DatabaseTableInspector rawSqlOrText={textBody || ''} fileName={displayName} />
+                </PluginErrorBoundary>
               ) : (
-                <ImageIcon size={40} />
+                <PluginErrorBoundary pluginName="AiFileExplainer">
+                  <AiFileExplainer
+                    fileName={displayName}
+                    fileSize={previewByteSize || file.size}
+                    sniffResult={sniffResult}
+                    metadata={technicalMetadata}
+                    textContent={textBody}
+                  />
+                </PluginErrorBoundary>
               )}
-              <p>
-                {isOfficeDriveFile(file)
-                  ? t('ui.generated.office_document_buka_dengan_aplikasi_windows_wor_4752289')
-                  : hint ||
-                    (tooLarge
-                      ? t('ui.generated.file_besar_gunakan_download_atau_buka_di_aplikas_a379897')
-                      : t('ui.generated.pratinjau_penuh_tidak_tersedia_di_app_buka_denga_c9dd2b5'))}
-              </p>
-              {(poster || gridThumb) && (
-                <img
-                  src={poster || gridThumb || ''}
-                  alt=""
-                  style={{ maxWidth: 240, borderRadius: 10, marginTop: 8 }}
-                />
-              )}
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-                {isDesktop() && (
-                  <>
-                    <button
-                      type="button"
-                      className="td-btn-primary"
-                      onClick={handleOpenSystem}
-                      disabled={openingSystem || !creds}
-                    >
-                      <ExternalLink size={14} /> {t('drive.label_open')}
-                    </button>
-                    <button
-                      type="button"
-                      className="td-btn-primary"
-                      onClick={handleOpenWith}
-                      disabled={openingSystem || !creds}
-                    >
-                      <AppWindow size={14} /> {t('drive.ctx_menu_open_with')}
-                    </button>
-                  </>
-                )}
-                <button
-                  type="button"
-                  className="td-btn-primary"
-                  onClick={() => {
-                    invalidatePreview(folderId, file.id);
-                    setError(null);
-                    loadPreview(quality, { force: true });
-                  }}
-                >
-                  <RefreshCw size={14} /> {t('drive.zip_retry')}
-                </button>
-                <button type="button" className="td-btn-primary" onClick={handleDownload} disabled={saving}>
-                  <Download size={14} /> {t('ui.generated.download_file_774025d')}
-                </button>
-              </div>
             </div>
           )}
 
