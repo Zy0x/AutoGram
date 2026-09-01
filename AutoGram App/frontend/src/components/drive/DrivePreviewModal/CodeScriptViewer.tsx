@@ -132,7 +132,14 @@ export const CodeScriptViewer: React.FC<Props> = ({
                 key={idx}
                 className={`td-code-line ${isMatch ? 'is-search-match' : ''}`}
               >
-                <span className="td-code-gutter">{idx + 1}</span>
+                <span
+                  className="td-code-gutter"
+                  aria-hidden="true"
+                  data-line={idx + 1}
+                  unselectable="on"
+                >
+                  {idx + 1}
+                </span>
                 <span className="td-code-text">{line || ' '}</span>
               </div>
             );

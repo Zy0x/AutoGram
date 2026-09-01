@@ -41674,13 +41674,14 @@ select.td-modern-select {
 }
 
 .td-code-lines {
-  font-size: 0.78rem;
-  line-height: 1.5;
+  font-size: 0.80rem;
+  line-height: 1.6;
 }
 
 .td-code-line {
   display: flex;
-  padding: 0 16px;
+  padding: 0 16px 0 0;
+  min-height: 24px;
 }
 
 .td-code-line:hover {
@@ -41692,18 +41693,40 @@ select.td-modern-select {
 }
 
 .td-code-gutter {
-  width: 48px;
+  width: 52px;
+  min-width: 52px;
   text-align: right;
-  padding-right: 16px;
+  padding-right: 14px;
+  margin-right: 14px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
   color: #475569;
-  user-select: none;
+  font-size: 0.74rem;
   flex-shrink: 0;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  pointer-events: none !important;
+}
+
+.td-code-gutter::selection,
+.td-code-gutter *::selection {
+  background: transparent !important;
+  color: #475569 !important;
 }
 
 .td-code-text {
   color: #e2e8f0;
   white-space: pre;
   flex: 1;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.td-code-text::selection,
+.td-code-text *::selection {
+  background: rgba(56, 189, 248, 0.35) !important;
+  color: #ffffff !important;
 }
 
 .td-code-viewer-body.is-wrapped .td-code-text {
@@ -42107,18 +42130,40 @@ select.td-modern-select {
 }
 
 .td-log-gutter {
-  width: 44px;
+  width: 48px;
+  min-width: 48px;
   text-align: right;
-  padding-right: 14px;
+  padding-right: 12px;
+  margin-right: 12px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
   color: #475569;
-  user-select: none;
+  font-size: 0.72rem;
   flex-shrink: 0;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  pointer-events: none !important;
+}
+
+.td-log-gutter::selection,
+.td-log-gutter *::selection {
+  background: transparent !important;
+  color: #475569 !important;
 }
 
 .td-log-text {
   white-space: pre-wrap;
   word-break: break-all;
   flex: 1;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.td-log-text::selection,
+.td-log-text *::selection {
+  background: rgba(56, 189, 248, 0.35) !important;
+  color: #ffffff !important;
 }
 
 /* 10. Plugin Error Fallback */

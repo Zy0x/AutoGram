@@ -135,7 +135,14 @@ export const LogViewer: React.FC<Props> = ({ logContent, fileName: _fileName }) 
       <div className="td-log-viewer-body font-mono" ref={bodyRef}>
         {filteredLines.map((line) => (
           <div key={line.idx} className={`td-log-row is-${line.level}`}>
-            <span className="td-log-gutter">{line.idx}</span>
+            <span
+              className="td-log-gutter"
+              aria-hidden="true"
+              data-line={line.idx}
+              unselectable="on"
+            >
+              {line.idx}
+            </span>
             <span className="td-log-text">{line.text || ' '}</span>
           </div>
         ))}
