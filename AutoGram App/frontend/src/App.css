@@ -40853,6 +40853,19 @@ select.td-modern-select {
    ========================================================================== */
 
 /* 1. Header Mode Tabs */
+.td-preview-tabs-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(15, 23, 42, 0.75);
+  padding: 2px 3px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-left: 6px;
+  height: 28px;
+  box-sizing: border-box;
+}
+
 .td-preview-tabs-row {
   display: flex;
   align-items: center;
@@ -40870,25 +40883,34 @@ select.td-modern-select {
   color: #94a3b8;
   font-size: 0.72rem;
   font-weight: 600;
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: 6px;
   cursor: pointer;
   transition: all 180ms ease;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   user-select: none;
 }
 
 .td-preview-tab-pill:hover {
   color: #f1f5f9;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .td-preview-tab-pill.is-active {
   color: #38bdf8;
-  background: rgba(56, 189, 248, 0.15);
-  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.18);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.4);
+}
+
+.td-dropdown-item {
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.td-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
 }
 
 /* 2. Security Mismatch Banner & Threat Guard */

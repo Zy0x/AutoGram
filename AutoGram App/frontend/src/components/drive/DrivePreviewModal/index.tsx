@@ -42,6 +42,12 @@ import {
   Repeat,
   Search,
   Sparkles,
+  ChevronDown,
+  Binary,
+  Type,
+  Database,
+  Network,
+  Code,
 } from 'lucide-react';
 import { DeadCenterProgress } from '../Explorer/DriveSkeleton';
 import { convertFileSrc } from '@tauri-apps/api/core';
@@ -1323,6 +1329,11 @@ export function DrivePreviewModal({
   const [activeInspectorTab, setActiveInspectorTab] = useState<
     'preview' | 'ai' | 'tree' | 'code' | 'font' | 'db' | 'metadata' | 'hex'
   >('preview');
+  const [moreTabsMenuOpen, setMoreTabsMenuOpen] = useState(false);
+  const moreTabsBtnRef = useRef<HTMLButtonElement | null>(null);
+  const moreTabsMenuRef = useRef<HTMLDivElement | null>(null);
+  const [moreTabsMenuPos, setMoreTabsMenuPos] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(null);
+
   const [isFixingExt, setIsFixingExt] = useState(false);
 
   const handleFixExtension = useCallback(async (suggestedFilename: string) => {
@@ -2658,9 +2669,24 @@ export function DrivePreviewModal({
     };
   }, [rateOpen, placeMenuNear]);
 
+  useEffect(() => {
+    if (!moreTabsMenuOpen) {
+      setMoreTabsMenuPos(null);
+      return;
+    }
+    const update = () => setMoreTabsMenuPos(placeMenuNear(moreTabsBtnRef.current, 240));
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [moreTabsMenuOpen, placeMenuNear]);
+
   // Outside click menus (include fixed popover nodes)
   useEffect(() => {
-    if (!qualityOpen && !rateOpen) return;
+    if (!qualityOpen && !rateOpen && !moreTabsMenuOpen) return;
     const onDoc = (e: MouseEvent) => {
       const t = e.target as Node;
       if (qualityOpen) {
@@ -2673,10 +2699,15 @@ export function DrivePreviewModal({
         const inMenu = rateMenuRef.current?.contains(t);
         if (!inBtn && !inMenu) setRateOpen(false);
       }
+      if (moreTabsMenuOpen) {
+        const inBtn = moreTabsBtnRef.current?.contains(t);
+        const inMenu = moreTabsMenuRef.current?.contains(t);
+        if (!inBtn && !inMenu) setMoreTabsMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', onDoc, true);
     return () => document.removeEventListener('mousedown', onDoc, true);
-  }, [qualityOpen, rateOpen]);
+  }, [qualityOpen, rateOpen, moreTabsMenuOpen]);
 
   // Prefer file metadata immediately (before RPC) so toolbar doesn't flash video tools on photos
   const mediaKind = useMemo(() => {
@@ -3962,92 +3993,6 @@ export function DrivePreviewModal({
                 </span>
               </div>
 
-              {!isSplitCompareMode && !isZip && (
-                <div className="td-preview-tabs-row" role="tablist">
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={activeInspectorTab === 'preview'}
-                    className={`td-preview-tab-pill ${activeInspectorTab === 'preview' ? 'is-active' : ''}`}
-                    onClick={() => setActiveInspectorTab('preview')}
-                  >
-                    <span>{t('drive.tab_preview_visual')}</span>
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={activeInspectorTab === 'ai'}
-                    className={`td-preview-tab-pill is-ai-pill ${activeInspectorTab === 'ai' ? 'is-active' : ''}`}
-                    onClick={() => setActiveInspectorTab('ai')}
-                  >
-                    <Sparkles size={12} className="text-amber-300 mr-1 inline" />
-                    <span>{t('drive.tab_preview_ai')}</span>
-                  </button>
-                  {isJsonFile && (
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={activeInspectorTab === 'tree'}
-                      className={`td-preview-tab-pill ${activeInspectorTab === 'tree' ? 'is-active' : ''}`}
-                      onClick={() => setActiveInspectorTab('tree')}
-                    >
-                      <span>{t('drive.tab_preview_tree')}</span>
-                    </button>
-                  )}
-                  {isFontFile && (
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={activeInspectorTab === 'font'}
-                      className={`td-preview-tab-pill ${activeInspectorTab === 'font' ? 'is-active' : ''}`}
-                      onClick={() => setActiveInspectorTab('font')}
-                    >
-                      <span>{t('drive.tab_preview_font')}</span>
-                    </button>
-                  )}
-                  {isDbFile && (
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={activeInspectorTab === 'db'}
-                      className={`td-preview-tab-pill ${activeInspectorTab === 'db' ? 'is-active' : ''}`}
-                      onClick={() => setActiveInspectorTab('db')}
-                    >
-                      <span>{t('drive.tab_preview_db')}</span>
-                    </button>
-                  )}
-                  {isText && (
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={activeInspectorTab === 'code'}
-                      className={`td-preview-tab-pill ${activeInspectorTab === 'code' ? 'is-active' : ''}`}
-                      onClick={() => setActiveInspectorTab('code')}
-                    >
-                      <span>{t('drive.tab_preview_code')}</span>
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={activeInspectorTab === 'metadata'}
-                    className={`td-preview-tab-pill ${activeInspectorTab === 'metadata' ? 'is-active' : ''}`}
-                    onClick={() => setActiveInspectorTab('metadata')}
-                  >
-                    <span>{t('drive.tab_preview_metadata')}</span>
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={activeInspectorTab === 'hex'}
-                    className={`td-preview-tab-pill ${activeInspectorTab === 'hex' ? 'is-active' : ''}`}
-                    onClick={() => setActiveInspectorTab('hex')}
-                  >
-                    <span>{t('drive.tab_preview_hex')}</span>
-                  </button>
-                </div>
-              )}
-
               {!isSplitCompareMode && (
                 <div
                   className="drive-preview-nav"
@@ -4181,6 +4126,99 @@ export function DrivePreviewModal({
                   >
                     {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
                   </button>
+
+                  {/* Compact 2-Tab Segmented Control: [ Preview ] & [ More ▾ ] */}
+                  {!isZip && (
+                    <div
+                      className="td-preview-tabs-compact"
+                      role="tablist"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '2px',
+                        background: 'rgba(15, 23, 42, 0.75)',
+                        padding: '2px 3px',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        marginLeft: '6px',
+                        height: '28px',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeInspectorTab === 'preview'}
+                        className={`td-preview-tab-pill ${activeInspectorTab === 'preview' ? 'is-active' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveInspectorTab('preview');
+                          setMoreTabsMenuOpen(false);
+                        }}
+                        style={{
+                          padding: '2px 8px',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          borderRadius: '6px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          background: activeInspectorTab === 'preview' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                          color: activeInspectorTab === 'preview' ? '#38bdf8' : '#94a3b8',
+                          boxShadow: activeInspectorTab === 'preview' ? '0 0 0 1px rgba(56, 189, 248, 0.4)' : 'none',
+                          transition: 'all 150ms ease',
+                        }}
+                      >
+                        <span>{t('drive.tab_preview_visual')}</span>
+                      </button>
+
+                      <button
+                        ref={moreTabsBtnRef}
+                        type="button"
+                        role="tab"
+                        aria-selected={activeInspectorTab !== 'preview'}
+                        className={`td-preview-tab-pill ${activeInspectorTab !== 'preview' ? 'is-active' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMoreTabsMenuOpen((prev) => !prev);
+                        }}
+                        style={{
+                          padding: '2px 8px',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          borderRadius: '6px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          background: activeInspectorTab !== 'preview' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                          color: activeInspectorTab !== 'preview' ? '#38bdf8' : '#94a3b8',
+                          boxShadow: activeInspectorTab !== 'preview' ? '0 0 0 1px rgba(56, 189, 248, 0.4)' : 'none',
+                          transition: 'all 150ms ease',
+                        }}
+                        title={t('drive.tab_preview_more')}
+                      >
+                        <span>
+                          {activeInspectorTab === 'ai'
+                            ? t('drive.tab_preview_ai')
+                            : activeInspectorTab === 'metadata'
+                            ? t('drive.tab_preview_metadata')
+                            : activeInspectorTab === 'hex'
+                            ? t('drive.tab_preview_hex')
+                            : activeInspectorTab === 'tree'
+                            ? t('drive.tab_preview_tree')
+                            : activeInspectorTab === 'font'
+                            ? t('drive.tab_preview_font')
+                            : activeInspectorTab === 'db'
+                            ? t('drive.tab_preview_db')
+                            : activeInspectorTab === 'code'
+                            ? t('drive.tab_preview_code')
+                            : t('drive.tab_preview_more')}
+                        </span>
+                        <ChevronDown size={11} style={{ opacity: 0.7 }} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -4668,6 +4706,225 @@ export function DrivePreviewModal({
                   </span>
                 </button>
               ))}
+            </div>,
+            document.body
+          )}
+        {typeof document !== 'undefined' &&
+          moreTabsMenuOpen &&
+          moreTabsMenuPos &&
+          createPortal(
+            <div
+              ref={moreTabsMenuRef}
+              className="td-dropdown-menu font-sans"
+              style={{
+                position: 'fixed',
+                top: moreTabsMenuPos.top !== undefined ? moreTabsMenuPos.top : 'auto',
+                bottom: moreTabsMenuPos.bottom !== undefined ? moreTabsMenuPos.bottom : 'auto',
+                left: moreTabsMenuPos.left,
+                width: moreTabsMenuPos.width,
+                background: 'rgba(15, 23, 42, 0.98)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: '8px',
+                padding: '5px',
+                boxShadow: '0 12px 36px rgba(0, 0, 0, 0.75)',
+                zIndex: 20_200,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '2px',
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                className={`td-dropdown-item ${activeInspectorTab === 'ai' ? 'is-active' : ''}`}
+                onClick={() => {
+                  setActiveInspectorTab('ai');
+                  setMoreTabsMenuOpen(false);
+                }}
+                style={{
+                  padding: '7px 10px',
+                  fontSize: '12px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: activeInspectorTab === 'ai' ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
+                  color: activeInspectorTab === 'ai' ? '#38bdf8' : '#e2e8f0',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  width: '100%',
+                }}
+              >
+                <Sparkles size={14} className="text-amber-400" />
+                <span>{t('drive.tab_preview_ai')}</span>
+              </button>
+
+              <button
+                type="button"
+                className={`td-dropdown-item ${activeInspectorTab === 'metadata' ? 'is-active' : ''}`}
+                onClick={() => {
+                  setActiveInspectorTab('metadata');
+                  setMoreTabsMenuOpen(false);
+                }}
+                style={{
+                  padding: '7px 10px',
+                  fontSize: '12px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: activeInspectorTab === 'metadata' ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
+                  color: activeInspectorTab === 'metadata' ? '#38bdf8' : '#e2e8f0',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  width: '100%',
+                }}
+              >
+                <Info size={14} className="text-blue-400" />
+                <span>{t('drive.tab_preview_metadata')}</span>
+              </button>
+
+              <button
+                type="button"
+                className={`td-dropdown-item ${activeInspectorTab === 'hex' ? 'is-active' : ''}`}
+                onClick={() => {
+                  setActiveInspectorTab('hex');
+                  setMoreTabsMenuOpen(false);
+                }}
+                style={{
+                  padding: '7px 10px',
+                  fontSize: '12px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: activeInspectorTab === 'hex' ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
+                  color: activeInspectorTab === 'hex' ? '#38bdf8' : '#e2e8f0',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  width: '100%',
+                }}
+              >
+                <Binary size={14} className="text-purple-400" />
+                <span>{t('drive.tab_preview_hex')}</span>
+              </button>
+
+              {isJsonFile && (
+                <button
+                  type="button"
+                  className={`td-dropdown-item ${activeInspectorTab === 'tree' ? 'is-active' : ''}`}
+                  onClick={() => {
+                    setActiveInspectorTab('tree');
+                    setMoreTabsMenuOpen(false);
+                  }}
+                  style={{
+                    padding: '7px 10px',
+                    fontSize: '12px',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: activeInspectorTab === 'tree' ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
+                    color: activeInspectorTab === 'tree' ? '#38bdf8' : '#e2e8f0',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    width: '100%',
+                  }}
+                >
+                  <Network size={14} className="text-emerald-400" />
+                  <span>{t('drive.tab_preview_tree')}</span>
+                </button>
+              )}
+
+              {isFontFile && (
+                <button
+                  type="button"
+                  className={`td-dropdown-item ${activeInspectorTab === 'font' ? 'is-active' : ''}`}
+                  onClick={() => {
+                    setActiveInspectorTab('font');
+                    setMoreTabsMenuOpen(false);
+                  }}
+                  style={{
+                    padding: '7px 10px',
+                    fontSize: '12px',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: activeInspectorTab === 'font' ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
+                    color: activeInspectorTab === 'font' ? '#38bdf8' : '#e2e8f0',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    width: '100%',
+                  }}
+                >
+                  <Type size={14} className="text-amber-400" />
+                  <span>{t('drive.tab_preview_font')}</span>
+                </button>
+              )}
+
+              {isDbFile && (
+                <button
+                  type="button"
+                  className={`td-dropdown-item ${activeInspectorTab === 'db' ? 'is-active' : ''}`}
+                  onClick={() => {
+                    setActiveInspectorTab('db');
+                    setMoreTabsMenuOpen(false);
+                  }}
+                  style={{
+                    padding: '7px 10px',
+                    fontSize: '12px',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: activeInspectorTab === 'db' ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
+                    color: activeInspectorTab === 'db' ? '#38bdf8' : '#e2e8f0',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    width: '100%',
+                  }}
+                >
+                  <Database size={14} className="text-teal-400" />
+                  <span>{t('drive.tab_preview_db')}</span>
+                </button>
+              )}
+
+              {isText && (
+                <button
+                  type="button"
+                  className={`td-dropdown-item ${activeInspectorTab === 'code' ? 'is-active' : ''}`}
+                  onClick={() => {
+                    setActiveInspectorTab('code');
+                    setMoreTabsMenuOpen(false);
+                  }}
+                  style={{
+                    padding: '7px 10px',
+                    fontSize: '12px',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: activeInspectorTab === 'code' ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
+                    color: activeInspectorTab === 'code' ? '#38bdf8' : '#e2e8f0',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    width: '100%',
+                  }}
+                >
+                  <Code size={14} className="text-indigo-400" />
+                  <span>{t('drive.tab_preview_code')}</span>
+                </button>
+              )}
             </div>,
             document.body
           )}

@@ -2408,5 +2408,6 @@
   "copy": "Salin",
   "session_label": "Sesi",
   "preflight_bento_main_account": "Akun Utama",
-  "preflight_duplicate_badge_force": "Paksa Unggah"
+  "preflight_duplicate_badge_force": "Paksa Unggah",
+  "tab_preview_more": "Lainnya"
 }

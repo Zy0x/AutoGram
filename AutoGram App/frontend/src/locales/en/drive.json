@@ -2410,5 +2410,6 @@
   "copy": "Copy",
   "session_label": "Session",
   "preflight_bento_main_account": "Main Account",
-  "preflight_duplicate_badge_force": "Force Upload"
+  "preflight_duplicate_badge_force": "Force Upload",
+  "tab_preview_more": "More"
 }

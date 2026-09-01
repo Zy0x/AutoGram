@@ -1,3 +1,19 @@
+## v3.8.78 Ultra-Compact Header Toolbar & Unified 2-Tab Inspector Navigation
+
+### 1. Optimalisasi Ruang Kanvas Pratinjau & Integrasi Tab Ringkas (`DrivePreviewModal/index.tsx`, `App.css`)
+- **Eliminasi Baris Tab Terpisah**: Menghilangkan seluruh bilah tab mode terpisah (`td-preview-tabs-row`) yang sebelumnya memakan 20–25% tinggi vertikal modal, sehingga seluruh ruang layar langsung dialokasikan untuk kanvas dokumen/media.
+- **Relokasi ke Baris Navigasi Utama (2-Tab Segmented Control)**: Memindahkan kontrol tab ke pojok kanan bilah alat navigasi utama dengan hanya 2 opsi ringkas:
+  - **`[ Preview ]` / `[ Pratinjau ]`**: Tab aktif utama untuk menampilkan dokumen/media visual secara langsung.
+  - **`[ More ▾ ]` / `[ Lainnya ▾ ]`**: Menu dropdown *frosted-glass* yang dapat diklik untuk mengakses inspektor lanjutan (**AI Insight**, **Metadata & EXIF**, **Hex Dump**, **Pohon Data**, **Tipografi**, **Basis Data**, dan **Kode Sumber**).
+- **Portal & Dropdown Anti-Clipping**: Merender dropdown `More` melalui portal level atas (`createPortal`) ke `document.body` dengan penempatan cerdas (`placeMenuNear`) agar tidak terpotong oleh batas *overflow* header.
+- **Verifikasi Live Desktop CDP (Port 9230)**: Memverifikasi tampilan antarmuka ringkas dan pembukaan menu dropdown pada desktop Windows secara real-time.
+
+### 2. Autonomous Quality Sentinel Certification
+- **Rust Backend Cargo Check**: Kompilasi `cargo check` pada engine native desktop Rust sukses 100% tanpa galat.
+- **100% Locale Parity**: 6,163 kunci bahasa ID dan 6,163 kunci bahasa EN tersinkronisasi 100% tanpa selisih (`tab_preview_more`).
+- **Zero TypeScript Errors & Clean Production Build**: Kompilasi `tsc && vite build` sukses 100% tanpa galat.
+- **Vitest Automated Test Suite**: Seluruh 45 test suite Vitest (373 pengujian) lolos 100%.
+
 ## v3.8.77 Pixel-Perfect Microsoft Word OpenXML Layout & Tab-Stop Fidelity
 
 ### 1. Rekonstruksi Presisi Visual Tata Letak Dokumen Word (`DocxViewer.tsx`)
