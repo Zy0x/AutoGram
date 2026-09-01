@@ -4188,8 +4188,8 @@ body.td-dnd-external {
   width: 100vw !important;
   height: 100vh !important;
   height: 100dvh !important;
-  /* Above tools panel (12000) so preview from Alat → Duplikat works */
-  z-index: 12500;
+  /* Topmost modal overlay — sits above tools (12000), preflight (14500) and stacked modals (15000) */
+  z-index: 20000;
   background: rgba(0, 0, 0, 0.86);
   display: flex !important;
   align-items: center !important;
@@ -4980,8 +4980,8 @@ body.td-dnd-external {
 .drive-quality-menu.is-fixed-popover {
   position: fixed !important;
   right: auto !important;
-  /* Above preview overlay (12500) and tools (12000) */
-  z-index: 12600 !important;
+  /* Above preview overlay (20000) */
+  z-index: 20100 !important;
   max-height: min(60vh, 360px);
   overflow-y: auto;
   overscroll-behavior: contain;

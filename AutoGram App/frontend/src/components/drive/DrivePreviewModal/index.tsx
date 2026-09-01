@@ -4350,7 +4350,7 @@ export function DrivePreviewModal({
                 bottom: qualityMenuPos.bottom !== undefined ? qualityMenuPos.bottom : 'auto',
                 left: qualityMenuPos.left,
                 width: qualityMenuPos.width,
-                zIndex: 10_000,
+                zIndex: 20_100,
               }}
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
@@ -4413,7 +4413,7 @@ export function DrivePreviewModal({
                 bottom: rateMenuPos.bottom !== undefined ? rateMenuPos.bottom : 'auto',
                 left: rateMenuPos.left,
                 width: rateMenuPos.width,
-                zIndex: 10_000,
+                zIndex: 20_100,
               }}
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
