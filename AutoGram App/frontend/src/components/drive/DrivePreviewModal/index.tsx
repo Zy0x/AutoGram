@@ -21,7 +21,6 @@ import {
   RotateCcw,
   FlipHorizontal,
   FlipVertical,
-  Shrink,
   Gauge,
   Volume2,
   VolumeX,
@@ -2755,7 +2754,6 @@ export function DrivePreviewModal({
   const isPdf = mediaKind === 'pdf';
   const isText = mediaKind === 'text';
   const isZip = mediaKind === 'zip';
-  const isDocOther = mediaKind === 'other';
 
   const fileExtBadge = useMemo(() => {
     const raw = (file.name || file.original_name || '').split('.').pop()?.trim();
@@ -4310,6 +4308,239 @@ export function DrivePreviewModal({
                       </button>
                     </div>
                   )}
+
+                  {/* Unified Header Context Tools — Cleanly placed next to More dropdown */}
+                  <div className="td-header-context-tools">
+                    {/* Zoom Tools (Images, Videos, Word Docx, PowerPoint PPTX) */}
+                    {(isImage || isVideo || isDocxFile || isPptxFile) && (
+                      <>
+                        <button
+                          type="button"
+                          className="td-icon-btn is-compact"
+                          title={t("drive.zoom_out_detail_tooltip", { percent: Math.round(MIN_ZOOM * 100) })}
+                          disabled={isHeaderFrozen || curTransform.zoom <= MIN_ZOOM + 0.001}
+                          onClick={() => zoomBy(-ZOOM_STEP)}
+                        >
+                          <ZoomOut size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          className="td-icon-btn is-compact td-zoom-pill"
+                          title={t("drive.tooltip_zoom_reset")}
+                          disabled={isHeaderFrozen}
+                          onClick={resetZoom}
+                        >
+                          <span>{Math.round(curTransform.zoom * 100)}%</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="td-icon-btn is-compact"
+                          title={t("drive.zoom_in_detail_tooltip", { percent: Math.round(MAX_ZOOM * 100) })}
+                          disabled={isHeaderFrozen || curTransform.zoom >= MAX_ZOOM - 0.001}
+                          onClick={() => zoomBy(ZOOM_STEP)}
+                        >
+                          <ZoomIn size={13} />
+                        </button>
+                        {!isSplitCompareMode && !isDocxFile && (
+                          <button
+                            type="button"
+                            className={`td-icon-btn is-compact ${isMagnifierMode ? 'is-active' : ''}`}
+                            title={t("drive.tooltip_magnifier")}
+                            disabled={isHeaderFrozen}
+                            onClick={() => setIsMagnifierMode((v) => !v)}
+                            aria-pressed={isMagnifierMode}
+                          >
+                            <Search size={13} />
+                          </button>
+                        )}
+                        <div className="td-header-tool-divider" />
+                      </>
+                    )}
+
+                    {/* Rotate & Flip Tools (Images) */}
+                    {isImage && (
+                      <>
+                        <button
+                          type="button"
+                          className="td-icon-btn is-compact"
+                          title={t("drive.tooltip_rotate_left")}
+                          disabled={isHeaderFrozen}
+                          onClick={() => {
+                            if (isSplitCompareMode) {
+                              updateActiveTransform((p) => ({ ...p, rotation: (p.rotation + 270) % 360 }));
+                            } else {
+                              setRotation((r) => (r + 270) % 360);
+                            }
+                          }}
+                        >
+                          <RotateCcw size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          className="td-icon-btn is-compact"
+                          title={t("drive.tooltip_rotate_right")}
+                          disabled={isHeaderFrozen}
+                          onClick={() => {
+                            if (isSplitCompareMode) {
+                              updateActiveTransform((p) => ({ ...p, rotation: (p.rotation + 90) % 360 }));
+                            } else {
+                              setRotation((r) => (r + 90) % 360);
+                            }
+                          }}
+                        >
+                          <RotateCw size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          className="td-icon-btn is-compact"
+                          title={t("drive.tooltip_flip_h")}
+                          disabled={isHeaderFrozen}
+                          onClick={() => {
+                            if (isSplitCompareMode) {
+                              updateActiveTransform((p) => ({ ...p, flipH: !p.flipH }));
+                            } else {
+                              setFlipH((v) => !v);
+                            }
+                          }}
+                        >
+                          <FlipHorizontal size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          className="td-icon-btn is-compact"
+                          title={t("drive.tooltip_flip_v")}
+                          disabled={isHeaderFrozen}
+                          onClick={() => {
+                            if (isSplitCompareMode) {
+                              updateActiveTransform((p) => ({ ...p, flipV: !p.flipV }));
+                            } else {
+                              setFlipV((v) => !v);
+                            }
+                          }}
+                        >
+                          <FlipVertical size={13} />
+                        </button>
+                        <div className="td-header-tool-divider" />
+                      </>
+                    )}
+
+                    {/* Video Quality / Resolution & PiP */}
+                    {(isVideo || isAudio) && (
+                      <>
+                        {isVideo && (
+                          <button
+                            ref={qualityBtnRef}
+                            type="button"
+                            className="td-icon-btn is-compact td-quality-pill"
+                            title={t("drive.tooltip_res")}
+                            onClick={() => {
+                              setRateOpen(false);
+                              setRateMenuPos(null);
+                              setQualityOpen((o) => {
+                                const next = !o;
+                                if (next) setQualityMenuPos(placeMenuNear(qualityBtnRef.current, 280));
+                                else setQualityMenuPos(null);
+                                return next;
+                              });
+                            }}
+                            disabled={isHeaderFrozen || switchingQuality}
+                          >
+                            {switchingQuality ? <Loader2 size={13} className="spin" /> : <Settings2 size={13} />}
+                            <span>{activeResolution?.label || activeQuality?.label || t('ui.generated.otomatis_33a0b23')}</span>
+                          </button>
+                        )}
+                        {isVideo && (
+                          <button
+                            type="button"
+                            className="td-icon-btn is-compact"
+                            title={t('drive.preview_pip_hint')}
+                            disabled={isHeaderFrozen}
+                            onClick={() => void togglePip()}
+                          >
+                            <PictureInPicture2 size={13} />
+                          </button>
+                        )}
+                        <div className="td-header-tool-divider" />
+                      </>
+                    )}
+
+                    {/* Print Button (PDF) */}
+                    {isPdf && isDesktop() && (
+                      <>
+                        <button
+                          type="button"
+                          className="td-icon-btn is-compact"
+                          title={t('drive.print_pdf_tooltip')}
+                          disabled={isHeaderFrozen || openingSystem || !creds}
+                          onClick={() => void handlePrintPdf()}
+                        >
+                          <Printer size={13} />
+                        </button>
+                        <div className="td-header-tool-divider" />
+                      </>
+                    )}
+
+                    {/* Copy Text Button (Text / PDF / Word) */}
+                    {((isText && textBody) || isDocxFile) && (
+                      <>
+                        <button
+                          type="button"
+                          className="td-icon-btn is-compact"
+                          title={t('drive.copy_text')}
+                          disabled={isHeaderFrozen}
+                          onClick={() => void handleCopyText()}
+                        >
+                          <Copy size={13} />
+                        </button>
+                        <div className="td-header-tool-divider" />
+                      </>
+                    )}
+
+                    {/* Reload Tool */}
+                    <button
+                      type="button"
+                      className={`td-icon-btn is-compact ${!isSplitCompareMode && loading ? 'is-loading' : ''}`}
+                      title={t('drive.reload_preview')}
+                      disabled={isHeaderFrozen || (!isSplitCompareMode && loading)}
+                      onClick={() => {
+                        resetViewTools();
+                        if (customSource?.onReload) {
+                          customSource.onReload();
+                          return;
+                        }
+                        if (isSplitCompareMode && activeSlotFile) {
+                          invalidatePreview(
+                            activeSlotFile.folder_id ?? folderId,
+                            activeSlotFile.id,
+                            creds.session,
+                            activeSlotFile.peer_id,
+                            activeSlotFile.topic_id
+                          );
+                          setSplitReloadToken((token) => token + 1);
+                          return;
+                        }
+                        invalidatePreview(folderId, file.id);
+                        setSrcOverride(null);
+                        setError(null);
+                        setTextBody(null);
+                        setHasVideoFrame(false);
+                        loadPreview(isVideo ? quality : 'auto', { force: true });
+                      }}
+                    >
+                      <RefreshCw size={13} className={loading ? 'spin' : ''} />
+                    </button>
+
+                    {/* Technical Info Tool */}
+                    <button
+                      type="button"
+                      className={`td-icon-btn is-compact ${showInfo ? 'is-active' : ''}`}
+                      title={t('drive.file_detail_tooltip')}
+                      disabled={isHeaderFrozen}
+                      onClick={() => setShowInfo((v) => !v)}
+                    >
+                      <Info size={13} />
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -4354,341 +4585,6 @@ export function DrivePreviewModal({
             </div>
           </div>
         )}
-
-        {/* Adaptive labeled toolbar — always rendered for full media tools */}
-        <div
-          className={`drive-preview-toolbar is-${mediaKind}${qualityOpen || rateOpen ? ' has-menu' : ''}`}
-          role="toolbar"
-          style={isHeaderFrozen ? { opacity: 0.35, pointerEvents: 'none', filter: 'grayscale(0.6)', cursor: 'not-allowed', transition: 'all 0.2s ease' } : { transition: 'all 0.2s ease' }}
-          aria-label={
-            isImage ? 'Alat preview gambar' : isVideo ? 'Alat preview video' : 'Alat preview'
-          }
-          data-media-kind={mediaKind}
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
-          onWheel={(e) => e.stopPropagation()}
-        >
-          <div className="drive-preview-tools">
-            {(isImage || isVideo || isDocxFile || isPptxFile) && (
-              <div className="drive-tool-group" role="group" aria-label={t('drive.zoom_label')}>
-                <span className="drive-tool-group-label">{t("drive.label_zoom")}</span>
-                <button
-                  type="button"
-                  className="drive-tool-btn"
-                  title={t("drive.zoom_out_detail_tooltip", { percent: Math.round(MIN_ZOOM * 100) })}
-                  disabled={isHeaderFrozen || curTransform.zoom <= MIN_ZOOM + 0.001}
-                  onClick={() => zoomBy(-ZOOM_STEP)}
-                >
-                  <ZoomOut size={15} />
-                  <span className="drive-tool-btn-label">{t("drive.label_zoom_out")}</span>
-                </button>
-                <button
-                  type="button"
-                  className="drive-tool-btn drive-tool-btn-value"
-                  title={t("drive.tooltip_zoom_reset")}
-                  disabled={isHeaderFrozen}
-                  onClick={resetZoom}
-                >
-                  <Shrink size={14} />
-                  <span className="drive-tool-btn-label strong">{Math.round(curTransform.zoom * 100)}%</span>
-                </button>
-                <button
-                  type="button"
-                  className="drive-tool-btn"
-                  title={t("drive.zoom_in_detail_tooltip", { percent: Math.round(MAX_ZOOM * 100) })}
-                  disabled={isHeaderFrozen || curTransform.zoom >= MAX_ZOOM - 0.001}
-                  onClick={() => zoomBy(ZOOM_STEP)}
-                >
-                  <ZoomIn size={15} />
-                  <span className="drive-tool-btn-label">{t("drive.label_zoom_in")}</span>
-                </button>
-                {!isSplitCompareMode && !isDocxFile && (
-                  <button
-                    type="button"
-                    className={`drive-tool-btn${isMagnifierMode ? ' is-on' : ''}`}
-                    title={t("drive.tooltip_magnifier")}
-                    disabled={isHeaderFrozen}
-                    onClick={() => setIsMagnifierMode((v) => !v)}
-                    aria-pressed={isMagnifierMode}
-                  >
-                    <Search size={15} />
-                    <span className="drive-tool-btn-label">{t("drive.label_magnifier")}</span>
-                  </button>
-                )}
-              </div>
-            )}
-
-            {(isImage || isVideo) && (
-              <div className="drive-tool-group" role="group" aria-label={t('drive.label_rotate')}>
-                <span className="drive-tool-group-label">{t("drive.label_rotate")}</span>
-                <button
-                  type="button"
-                  className="drive-tool-btn"
-                  title={t("drive.tooltip_rotate_left")}
-                  disabled={isHeaderFrozen}
-                  onClick={() => {
-                    if (isSplitCompareMode) {
-                      updateActiveTransform((p) => ({ ...p, rotation: (p.rotation + 270) % 360 }));
-                    } else {
-                      setRotation((r) => (r + 270) % 360);
-                    }
-                  }}
-                >
-                  <RotateCcw size={15} />
-                  <span className="drive-tool-btn-label">{t("drive.label_left")}</span>
-                </button>
-                <button
-                  type="button"
-                  className="drive-tool-btn"
-                  title={t("drive.tooltip_rotate_right")}
-                  disabled={isHeaderFrozen}
-                  onClick={() => {
-                    if (isSplitCompareMode) {
-                      updateActiveTransform((p) => ({ ...p, rotation: (p.rotation + 90) % 360 }));
-                    } else {
-                      setRotation((r) => (r + 90) % 360);
-                    }
-                  }}
-                >
-                  <RotateCw size={15} />
-                  <span className="drive-tool-btn-label">{t("drive.label_right")}</span>
-                </button>
-                <button
-                  type="button"
-                  className="drive-tool-btn"
-                  title={t("drive.tooltip_flip_h")}
-                  disabled={isHeaderFrozen}
-                  onClick={() => {
-                    if (isSplitCompareMode) {
-                      updateActiveTransform((p) => ({ ...p, flipH: !p.flipH }));
-                    } else {
-                      setFlipH((v) => !v);
-                    }
-                  }}
-                >
-                  <FlipHorizontal size={15} />
-                  <span className="drive-tool-btn-label">{t("drive.label_flip")}</span>
-                </button>
-                <button
-                  type="button"
-                  className="drive-tool-btn"
-                  title={t("drive.tooltip_flip_v")}
-                  disabled={isHeaderFrozen}
-                  onClick={() => {
-                    if (isSplitCompareMode) {
-                      updateActiveTransform((p) => ({ ...p, flipV: !p.flipV }));
-                    } else {
-                      setFlipV((v) => !v);
-                    }
-                  }}
-                >
-                  <FlipVertical size={15} />
-                  <span className="drive-tool-btn-label">{t("drive.label_flip_v")}</span>
-                </button>
-                {(curTransform.rotation !== 0 || curTransform.flipH || curTransform.flipV) && (
-                  <button
-                    type="button"
-                    className="drive-tool-btn"
-                    title={t("drive.tooltip_rotate_reset")}
-                    disabled={isHeaderFrozen}
-                    onClick={() => {
-                      if (isSplitCompareMode) {
-                        updateActiveTransform((p) => ({ ...p, rotation: 0, flipH: false, flipV: false }));
-                      } else {
-                        setRotation(0);
-                        setFlipH(false);
-                        setFlipV(false);
-                      }
-                    }}
-                  >
-                    <RefreshCw size={15} />
-                    <span className="drive-tool-btn-label">{t("drive.label_rotate_reset")}</span>
-                  </button>
-                )}
-              </div>
-            )}
-
-            {(isVideo || isAudio) && (
-              <div className="drive-tool-group" role="group" aria-label={t('ui.generated.pemutaran_media_a5ffb68')}>
-                <span className="drive-tool-group-label">{isVideo ? t('drive.label_video') : t('drive.label_audio')}</span>
-                {isVideo && (
-                  <div className="drive-quality-wrap">
-                    <button
-                      ref={qualityBtnRef}
-                      type="button"
-                      className="drive-tool-btn drive-tool-btn-accent"
-                      title={t("drive.tooltip_res")}
-                      onClick={() => {
-                        setRateOpen(false);
-                        setRateMenuPos(null);
-                        setQualityOpen((o) => {
-                          const next = !o;
-                          if (next) setQualityMenuPos(placeMenuNear(qualityBtnRef.current, 280));
-                          else setQualityMenuPos(null);
-                          return next;
-                        });
-                      }}
-                      disabled={isHeaderFrozen || switchingQuality}
-                      aria-expanded={qualityOpen}
-                      aria-haspopup="menu"
-                      aria-label={t('ui.generated.resolusi_video_c723455')}
-                    >
-                      {switchingQuality ? (
-                        <Loader2 size={15} className="spin" />
-                      ) : (
-                        <Settings2 size={14} />
-                      )}
-                      <span className="drive-tool-btn-label">
-                        {activeResolution?.label || activeQuality?.label || t('ui.generated.otomatis_33a0b23')}
-                      </span>
-                    </button>
-                  </div>
-                )}
-                {isVideo && (
-                  <button
-                    type="button"
-                    className="drive-tool-btn"
-                    title={t('drive.preview_pip_hint')}
-                    disabled={isHeaderFrozen}
-                    onClick={() => void togglePip()}
-                  >
-                    <PictureInPicture2 size={15} />
-                    <span className="drive-tool-btn-label">{t("drive.label_pip")}</span>
-                  </button>
-                )}
-              </div>
-            )}
-
-            {(isPdf || isText || isDocOther || isDocxFile || isPptxFile || isEpubFile || isSpreadsheetFile) && isDesktop() && (
-              <div className="drive-tool-group" role="group" aria-label={t('drive.label_open_doc')}>
-                <span className="drive-tool-group-label">{t("drive.label_open")}</span>
-                <button
-                  type="button"
-                  className="drive-tool-btn drive-tool-btn-accent"
-                  title={t('drive.open_default_app')}
-                  disabled={isHeaderFrozen || openingSystem || !creds}
-                  onClick={() => void handleOpenSystem()}
-                >
-                  {openingSystem ? <Loader2 size={15} className="spin" /> : <ExternalLink size={15} />}
-                  <span className="drive-tool-btn-label">{t("drive.label_app")}</span>
-                </button>
-                <button
-                  type="button"
-                  className="drive-tool-btn"
-                  title={t('drive.open_with_other')}
-                  disabled={isHeaderFrozen || openingSystem || !creds}
-                  onClick={() => void handleOpenWith()}
-                >
-                  <AppWindow size={15} />
-                  <span className="drive-tool-btn-label">{t("drive.label_with")}</span>
-                </button>
-                {isPdf && (
-                  <button
-                    type="button"
-                    className="drive-tool-btn"
-                    title={t('drive.print_pdf_tooltip')}
-                    disabled={isHeaderFrozen || openingSystem || !creds}
-                    onClick={() => void handlePrintPdf()}
-                  >
-                    <Printer size={15} />
-                    <span className="drive-tool-btn-label">{t("drive.label_print")}</span>
-                  </button>
-                )}
-                {((isText && textBody) || isDocxFile) && (
-                  <button
-                    type="button"
-                    className="drive-tool-btn"
-                    title={t('drive.copy_text')}
-                    disabled={isHeaderFrozen}
-                    onClick={() => void handleCopyText()}
-                  >
-                    <Copy size={15} />
-                    <span className="drive-tool-btn-label">{t("drive.label_copy")}</span>
-                  </button>
-                )}
-              </div>
-            )}
-
-            <div className="drive-tool-group" role="group" aria-label={t('drive.cat_other')}>
-              <span className="drive-tool-group-label">{t("drive.label_other")}</span>
-              {isSplitCompareMode && (
-                <>
-                  <button
-                    type="button"
-                    className="drive-tool-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void handleDownload();
-                    }}
-                    disabled={isHeaderFrozen || saving}
-                    title={t('drive.download_tooltip')}
-                    aria-label={t('drive.label_download')}
-                  >
-                    {saving ? <Loader2 size={15} className="spin" /> : <Download size={15} />}
-                    <span className="drive-tool-btn-label">{t("drive.label_download")}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="drive-tool-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void toggleFullscreen();
-                    }}
-                    disabled={isHeaderFrozen}
-                    title={isFullscreen ? t('drive.preview_fullscreen_exit') : t('drive.preview_fullscreen_enter')}
-                    aria-label={t('drive.fullscreen')}
-                  >
-                    {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-                    <span className="drive-tool-btn-label">{t("drive.label_fullscreen")}</span>
-                  </button>
-                </>
-              )}
-              <button
-                type="button"
-                className={`drive-tool-btn${!isSplitCompareMode && loading ? ' is-loading' : ''}`}
-                title={t('drive.reload_preview')}
-                disabled={isHeaderFrozen || (!isSplitCompareMode && loading)}
-                onClick={() => {
-                  resetViewTools();
-                  if (customSource?.onReload) {
-                    customSource.onReload();
-                    return;
-                  }
-                  if (isSplitCompareMode && activeSlotFile) {
-                    invalidatePreview(
-                      activeSlotFile.folder_id ?? folderId,
-                      activeSlotFile.id,
-                      creds.session,
-                      activeSlotFile.peer_id,
-                      activeSlotFile.topic_id
-                    );
-                    setSplitReloadToken((token) => token + 1);
-                    return;
-                  }
-                  invalidatePreview(folderId, file.id);
-                  setSrcOverride(null);
-                  setError(null);
-                  setTextBody(null);
-                  setHasVideoFrame(false);
-                  loadPreview(isVideo ? quality : 'auto', { force: true });
-                }}
-              >
-                <RefreshCw size={15} className={loading ? 'spin' : ''} />
-                <span className="drive-tool-btn-label">{loading ? t('drive.label_loading') : t('drive.label_load')}</span>
-              </button>
-              <button
-                type="button"
-                className={`drive-tool-btn${showInfo ? ' is-on' : ''}`}
-                title={t('drive.file_detail_tooltip')}
-                disabled={isHeaderFrozen}
-                onClick={() => setShowInfo((v) => !v)}
-              >
-                <Info size={15} />
-                <span className="drive-tool-btn-label">{t("drive.label_info")}</span>
-              </button>
-            </div>
-          </div>
-        </div>
           </>
         )}
 
