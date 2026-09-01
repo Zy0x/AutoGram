@@ -32,6 +32,10 @@ pub fn log_job_event(
         );",
         [],
     );
+    // Older installations created job_events without the monotonic sequence
+    // column. Keep the shared logger upgrade-safe when called outside the
+    // desktop jobs_db bootstrap path (for example recovery tests).
+    let _ = conn.execute("ALTER TABLE job_events ADD COLUMN sequence INTEGER NOT NULL DEFAULT 0", []);
 
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -39,8 +43,9 @@ pub fn log_job_event(
         .unwrap_or(0);
 
     conn.execute(
-        "INSERT INTO job_events (job_id, timestamp, stage, message, metadata)
-         VALUES (?1, ?2, ?3, ?4, ?5)",
+        "INSERT INTO job_events (job_id, sequence, timestamp, stage, message, metadata)
+         SELECT ?1, COALESCE(MAX(sequence), 0) + 1, ?2, ?3, ?4, ?5
+         FROM job_events WHERE job_id=?1",
         params![job_id, now, stage, message, metadata],
     )
     .map_err(|e| format!("failed to log job event: {e}"))?;

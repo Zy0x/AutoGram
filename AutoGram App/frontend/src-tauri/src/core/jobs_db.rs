@@ -168,6 +168,13 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
         ("message_mapping", "album_id", "TEXT"),
         ("message_mapping", "reply_to_source_msg_id", "INTEGER"),
         ("message_mapping", "reason_code", "TEXT"),
+        ("job_events", "sequence", "INTEGER NOT NULL DEFAULT 0"),
+        ("checkpoints", "execution_id", "INTEGER"),
+        ("checkpoints", "last_message_id", "INTEGER"),
+        ("checkpoints", "pagination_cursor", "TEXT"),
+        ("checkpoints", "album_cursor", "TEXT"),
+        ("checkpoints", "retry_cursor", "TEXT"),
+        ("checkpoints", "reconciliation_marker", "TEXT"),
     ] {
         let exists: bool = conn
             .prepare(&format!("PRAGMA table_info({table})"))

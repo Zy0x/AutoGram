@@ -7,22 +7,22 @@
 **Tujuan**: Membangun *Local-first Application* yang aman dan berfungsi penuh.
 - [ ] Inisialisasi *Workspace* (Tauri + React + Rust).
 - [x] Native Rust/Grammers execution boundary and encrypted local credential vault.
-- [ ] Skema *Database* Lokal (SQLite).
+- [x] Skema *Database* Lokal (SQLite) with additive V2 migrations and guarded legacy backfill.
 - [ ] Fitur *Login* Telegram + Enkripsi Sesi.
 - [x] Transfer Mode Dasar (*Fast Forward* & *Clean Copy*).
 - [x] 4-level duplicate ledger foundation and resumable checkpoints.
 
 ## Phase 2: Advanced Rules & Automation
 **Tujuan**: Menjadikan aplikasi "Pintar".
-- [ ] Filter Media Lengkap (Waktu, Ukuran, Tipe).
+- [x] Filter Media Lengkap (Waktu, Ukuran, Tipe) in the shared V2 rule engine.
 - [ ] *Smart Throttle* & *Anti-Spam Protection*.
 - [ ] GUI Dashboard Lengkap & *Analytics*.
-- [ ] *Scheduler* (Cron jobs).
+- [~] Local RRULE validation and one-catch-up policy; full occurrence service remains rollout work.
 - [ ] Ekspor Laporan (*CSV/Excel*).
 
 ## Phase 3: Web Dashboard & Cloud Deployment
 **Tujuan**: Perluasan ke infrastruktur *Cloud*.
-- [ ] Integrasi Supabase (*Database, Auth, Storage*).
+- [~] Supabase metadata schema, RLS, signed relay command API, and claim/ack flow are scaffolded; production deployment/load test remains.
 - [ ] Pembuatan *Web Dashboard* (Next.js/React).
 - [ ] *Edge Functions* untuk migrasi *cloud*.
 

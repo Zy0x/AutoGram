@@ -2,7 +2,7 @@
 
 ## Runtime split
 
-| Runtime | How | Heavy media (re-encode / Media Studio / Telethon worker) |
+| Runtime | How | Heavy media (re-encode / Media Studio / Rust + Grammers Forwarder) |
 |---------|-----|----------------------------------------------------------|
 | **Desktop** | Tauri app (`tauri dev` / packaged) | **Enabled** — work runs on the user's machine |
 | **Web** | Static frontend only (Netlify/Vercel/etc.) | **Disabled** — UI gates hide/block Media Studio |
@@ -31,7 +31,7 @@ Artifact: `frontend/dist/` — static files only.
 
 ## Supabase / backend
 
-Use cloud DB for **metadata** (auth, job rows, status). Do **not** run FFmpeg re-encode or Telethon upload on Supabase Free / Edge Functions.
+Use cloud DB for **metadata** (auth, encrypted job snapshots, relay status). Do **not** run FFmpeg re-encode or Telegram upload on Supabase Free / Edge Functions; those operations stay on a signed local Desktop/Android device.
 
 ## Verify
 

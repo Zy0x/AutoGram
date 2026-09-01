@@ -6055,3 +6055,20 @@ Added:
 ### 3. UI/Platform Contracts & Documentation
 - Added missing Tauri permissions for Forwarder V2 IPC commands and aligned active runtime documentation with the Rust + Grammers production boundary.
 - Disabled the Android Forwarder feature flag until the UniFFI execution bridge and Foreground Service are available, preventing clients from advertising an unsupported target.
+## v3.8.99 — Forwarder V2 Rule Engine, Scoped Cross-Account Runtime & Relay Hardening
+
+### 1. Forwarder Runtime & Rule Evaluation
+- Added deterministic `forwarder_engine` primitives for media-type, size, message/date, keyword, restriction, retry-classification, dry-run summaries, and state-transition validation.
+- Integrated filtering and `WAITING_USER` decision creation into Fast Forward and Clean Copy execution paths; cancellation now finalizes as `CANCELLED` and never masquerades as pause.
+- Clean Copy now resolves separate source and destination session leases and identities, preventing cross-account uploads from silently using the wrong Telegram account.
+
+### 2. Database Integrity & Cloud Relay
+- Consolidated event sequencing and resumable cursor columns in the master SQLite schema with guarded upgrades for legacy `job_events` and `checkpoints` tables.
+- Added idempotent local decision insertion and scheduler validation command with one-catch-up misfire semantics.
+- Hardened Supabase relay claim/ack ownership checks and device ownership validation; encrypted metadata remains the only cloud payload.
+
+### 3. Verification & Documentation
+- Updated Forwarder deployment and roadmap documentation to reflect Rust + Grammers execution and local-device media processing.
+- Verified desktop Rust suite (176 tests), shared core suite (52 tests), Android bridge suite (1 test), TypeScript compilation, Vite production build, locale parity, and all five quality gates.
+
+---

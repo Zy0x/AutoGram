@@ -155,6 +155,8 @@ Preserves bidirectional mapping between source and destination messages (`source
 - `decision_inbox`: durable `WAITING_USER` decisions for duplicates, restrictions, and stale revisions.
 - `notification_outbox`: idempotent OS/cloud/webhook delivery queue with retry state.
 - `retention_markers`: local retention deadlines and encrypted-export references before purge.
+- `job_events`: append-only, redacted event journal with per-job monotonic sequence numbers.
+- `checkpoints`: resumable message/pagination/album/retry cursors plus reconciliation markers; legacy byte checkpoints are extended in place by guarded backfill.
 
 The V2 payload is snake_case and versioned (`schema_version = 2`). Legacy job JSON remains readable through an adapter during the deprecation window.
 

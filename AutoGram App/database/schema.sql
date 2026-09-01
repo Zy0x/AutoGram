@@ -537,6 +537,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     attempts             INTEGER DEFAULT 1,
     created_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(execution_id, source_message_id),
     FOREIGN KEY(execution_id) REFERENCES executions(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_tasks_execution_status_msg ON tasks(execution_id, status, source_message_id);
@@ -559,7 +560,7 @@ CREATE TABLE IF NOT EXISTS message_mapping (
     error_message        TEXT,
     last_updated         TIMESTAMP,
     created_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(source_chat_id, source_msg_id)
+    UNIQUE(source_account_id, source_chat_id, source_msg_id, destination_account_id, dest_chat_id, topic_id)
 );
 CREATE INDEX IF NOT EXISTS idx_mapping_job_message ON message_mapping(job_id, source_msg_id);
 CREATE INDEX IF NOT EXISTS idx_mapping_job_status_updated ON message_mapping(job_id, status, last_updated);
@@ -697,23 +698,32 @@ CREATE INDEX IF NOT EXISTS idx_decision_inbox_job_status ON decision_inbox(job_i
 CREATE INDEX IF NOT EXISTS idx_notification_outbox_status ON notification_outbox(status, next_attempt_at);
 CREATE INDEX IF NOT EXISTS idx_retention_markers_due ON retention_markers(retention_until, purged_at);
 
--- Forwarder runtime bridge (migration 021; legacy adapters remain supported).
-CREATE TABLE IF NOT EXISTS tasks (
+CREATE TABLE IF NOT EXISTS job_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_id INTEGER NOT NULL,
+    sequence INTEGER NOT NULL,
+    timestamp INTEGER NOT NULL,
+    stage TEXT NOT NULL,
+    message TEXT NOT NULL,
+    metadata TEXT,
+    FOREIGN KEY(job_id) REFERENCES jobs(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_job_events_job_sequence ON job_events(job_id, sequence);
+CREATE TABLE IF NOT EXISTS checkpoints (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     execution_id INTEGER NOT NULL,
-    source_message_id INTEGER NOT NULL,
-    destination_message_ids_json TEXT NOT NULL DEFAULT '[]',
-    stage TEXT NOT NULL DEFAULT 'QUEUED',
-    status TEXT NOT NULL DEFAULT 'QUEUED',
-    attempts INTEGER NOT NULL DEFAULT 0,
-    idempotency_key TEXT,
-    reason_code TEXT,
-    error_message TEXT,
+    last_message_id INTEGER,
+    pagination_cursor TEXT,
+    album_cursor TEXT,
+    retry_cursor TEXT,
+    reconciliation_marker TEXT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(execution_id, source_message_id),
     FOREIGN KEY(execution_id) REFERENCES executions(id) ON DELETE CASCADE
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_checkpoints_execution ON checkpoints(execution_id);
+
+-- Forwarder runtime bridge (migration 021; legacy adapters remain supported).
 CREATE TABLE IF NOT EXISTS automation_schedules (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     job_id INTEGER NOT NULL,

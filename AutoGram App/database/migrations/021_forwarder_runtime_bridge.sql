@@ -61,6 +61,32 @@ CREATE TABLE IF NOT EXISTS forwarder_event_sequences (
     FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS job_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_id INTEGER NOT NULL,
+    sequence INTEGER NOT NULL,
+    timestamp INTEGER NOT NULL,
+    stage TEXT NOT NULL,
+    message TEXT NOT NULL,
+    metadata TEXT,
+    FOREIGN KEY(job_id) REFERENCES jobs(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_job_events_job_sequence ON job_events(job_id, sequence);
+
+CREATE TABLE IF NOT EXISTS checkpoints (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    execution_id INTEGER NOT NULL,
+    last_message_id INTEGER,
+    pagination_cursor TEXT,
+    album_cursor TEXT,
+    retry_cursor TEXT,
+    reconciliation_marker TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY(execution_id) REFERENCES executions(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_checkpoints_execution ON checkpoints(execution_id);
+
 CREATE INDEX IF NOT EXISTS idx_tasks_execution_status ON tasks(execution_id, status, source_message_id);
 CREATE INDEX IF NOT EXISTS idx_mapping_forwarder_scope ON message_mapping(destination_account_id, dest_chat_id, topic_id, source_msg_id);
 CREATE INDEX IF NOT EXISTS idx_automation_schedules_next_run ON automation_schedules(enabled, next_run_at);

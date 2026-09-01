@@ -116,30 +116,45 @@ pub fn dry_run_job(job_id: i64, api_id: i64, api_hash: &str) -> Result<Migration
         .clone()
         .filter(|s| !s.trim().is_empty())
         .ok_or_else(|| "session/profile_name missing".to_string())?;
+    let canonical = job.config_json.as_deref()
+        .and_then(|raw| super::forwarder_contract::normalize_job_config_v2(serde_json::from_str(raw).ok()?).ok());
+    let source_session = canonical.as_ref().map(|c| c.source.account_id.clone()).filter(|s| !s.is_empty()).unwrap_or_else(|| session.clone());
+    let destination_session = canonical.as_ref().map(|c| c.destination.account_id.clone()).filter(|s| !s.is_empty()).unwrap_or_else(|| session.clone());
     let sessions = resolve_sessions_dir(None);
     std::env::set_var("AUTOGRAM_SESSIONS_DIR", sessions.display().to_string());
-    let identity = TelegramIdentity {
-        session: session.clone(),
+    let source_identity = TelegramIdentity {
+        session: source_session.clone(),
+        api_id,
+        api_hash: api_hash.to_string(),
+    };
+    let destination_identity = TelegramIdentity {
+        session: destination_session.clone(),
         api_id,
         api_hash: api_hash.to_string(),
     };
     let owner_id = format!("migration-job-{job_id}-dry-run");
-    let _guard =
-        session_guard::SessionGuardToken::acquire(&session, &owner_id, SessionPurpose::Migration)
+    let _source_guard =
+        session_guard::SessionGuardToken::acquire(&source_session, &owner_id, SessionPurpose::Migration)
             .map_err(|e| e.user_message())?;
+    let _destination_guard = if destination_session != source_session {
+        Some(session_guard::SessionGuardToken::acquire(&destination_session, &owner_id, SessionPurpose::Migration)
+            .map_err(|e| e.user_message())?)
+    } else { None };
 
-    let source_probe = grammers_ops::list_media_blocking(&sessions, &identity, &source, 1, None)
+    let source_probe = grammers_ops::list_media_blocking(&sessions, &source_identity, &source, 100, None)
         .map_err(|e| e.user_message())?;
-    let destination_probe = grammers_ops::list_media_blocking(&sessions, &identity, &dest, 1, None)
+    let destination_probe = grammers_ops::list_media_blocking(&sessions, &destination_identity, &dest, 1, None)
         .map_err(|e| e.user_message())?;
+    let summary = canonical.as_ref().map(|c| super::forwarder_engine::dry_run_rows(c, &source_probe.files));
 
     tg_log::info(
         BACKEND,
         "dry_run_ok",
         format!(
-            "job={job_id} source_visible={} destination_visible={}",
+            "job={job_id} source_visible={} destination_visible={} transferable={}",
             source_probe.files.len(),
-            destination_probe.files.len()
+            destination_probe.files.len(),
+            summary.as_ref().map(|s| s.transferable).unwrap_or(0)
         ),
     );
     let _ = jobs_db::log_job_event(
@@ -156,7 +171,7 @@ pub fn dry_run_job(job_id: i64, api_id: i64, api_hash: &str) -> Result<Migration
         forwarded: 0,
         skipped: 0,
         failed: 0,
-        message: "Dry-run validated the Grammers session, source, and destination; no Telegram data was changed.".into(),
+        message: summary.map(|s| format!("Dry-run: {} transferable, {} filtered, {} permission risks, {} bytes sampled; no Telegram data was changed.", s.transferable, s.filtered, s.permission_risk, s.total_bytes)).unwrap_or_else(|| "Dry-run validated the Grammers session, source, and destination; no Telegram data was changed.".into()),
         backend: "grammers".into(),
         mode: "dry_run".into(),
     })
@@ -185,6 +200,8 @@ fn run_forward(
         .filter(|s| !s.is_empty())
         .ok_or_else(|| "session/profile_name missing".to_string())?;
     let canonical = job.config_json.as_deref().and_then(|raw| super::forwarder_contract::normalize_job_config_json(raw).ok()).and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok());
+    let forwarder_config = job.config_json.as_deref()
+        .and_then(|raw| super::forwarder_contract::normalize_job_config_v2(serde_json::from_str(raw).ok()?).ok());
     let source_account_id = canonical.as_ref().and_then(|v| v.pointer("/source/account_id")).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).unwrap_or(&session).to_string();
     let destination_account_id = canonical.as_ref().and_then(|v| v.pointer("/destination/account_id")).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).unwrap_or(&session).to_string();
     let destination_topic_id = canonical.as_ref().and_then(|v| v.pointer("/destination/topic_id")).and_then(|v| v.as_i64());
@@ -256,20 +273,38 @@ fn run_forward(
                 for &source_id in chunk {
                     let _ = jobs_db::upsert_forwarder_task(exec_id, source_id, "DEDUPLICATING", "QUEUED");
                 }
-                let fresh: Vec<i64> = chunk
-                    .iter()
-                    .copied()
-                    .filter(|&id| {
-                        !jobs_db::ledger_check(job_id, id, None, None, None, None)
-                            .map(|h| h.by_source_msg)
-                            .unwrap_or(false)
-                    })
-                    .collect();
-                skipped += (chunk.len() - fresh.len()) as i64;
+                let mut fresh = Vec::with_capacity(chunk.len());
+                for &id in chunk {
+                    if let Some(row) = media.files.iter().find(|row| row.id == id) {
+                        if let Some(ref cfg) = forwarder_config {
+                            match super::forwarder_engine::evaluate_item(cfg, row) {
+                                super::forwarder_engine::ItemDecision::Skip(reason) => {
+                                    skipped += 1;
+                                    if let Ok(task_id) = jobs_db::upsert_forwarder_task(exec_id, id, "FILTERING", "SKIPPED") { let _ = jobs_db::complete_forwarder_task(task_id, "SKIPPED", Some(reason), None); }
+                                    continue;
+                                }
+                                super::forwarder_engine::ItemDecision::AskUser(reason) => {
+                                    let payload = serde_json::json!({"source_message_id": id, "reason_code": reason}).to_string();
+                                    let task_id = jobs_db::upsert_forwarder_task(exec_id, id, "FILTERING", "WAITING_USER").ok();
+                                    let _ = jobs_db::insert_decision(job_id, Some(exec_id), task_id, "RESTRICTION", reason, &payload);
+                                    return Err(format!("USER_DECISION_REQUIRED:{id}"));
+                                }
+                                super::forwarder_engine::ItemDecision::Transfer => {}
+                            }
+                        }
+                    }
+                    let duplicate = jobs_db::forwarder_ledger_check(job_id, &source_account_id, &destination_account_id, &dest, destination_topic_id, id, None, None, None, None)
+                        .map(|h| h.by_source_msg).unwrap_or(false);
+                    if duplicate { skipped += 1; } else { fresh.push(id); }
+                }
                 for &source_id in chunk {
                     if !fresh.contains(&source_id) {
-                        if let Ok(task_id) = jobs_db::upsert_forwarder_task(exec_id, source_id, "DEDUPLICATING", "SKIPPED") {
-                            let _ = jobs_db::complete_forwarder_task(task_id, "SKIPPED", Some("DUPLICATE_MESSAGE_ID"), None);
+                        let duplicate = jobs_db::forwarder_ledger_check(job_id, &source_account_id, &destination_account_id, &dest, destination_topic_id, source_id, None, None, None, None)
+                            .map(|h| h.by_source_msg).unwrap_or(false);
+                        if duplicate {
+                            if let Ok(task_id) = jobs_db::upsert_forwarder_task(exec_id, source_id, "DEDUPLICATING", "SKIPPED") {
+                                let _ = jobs_db::complete_forwarder_task(task_id, "SKIPPED", Some("DUPLICATE_MESSAGE_ID"), None);
+                            }
                         }
                     }
                 }

@@ -2,8 +2,8 @@
 //! functions before touching Telegram so filtering, retry and state semantics
 //! stay deterministic across Desktop and Android.
 
-use chrono::{DateTime, Utc};
-use super::forwarder_contract::{ForwardMode, JobConfigV2, JobStateV2, MessageTypes, TaskStateV2};
+use chrono::DateTime;
+use super::forwarder_contract::{ForwardMode, JobConfigV2, JobStateV2, MessageTypes};
 use super::grammers_ops::media_list::MediaFileRow;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
