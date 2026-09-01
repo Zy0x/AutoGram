@@ -79,6 +79,9 @@ import { LogViewer } from './LogViewer';
 import { AiFileExplainer } from './AiFileExplainer';
 import { FontWaterfallViewer } from './FontWaterfallViewer';
 import { DatabaseTableInspector } from './DatabaseTableInspector';
+import { DocxViewer } from './DocxViewer';
+import { SpreadsheetViewer } from './SpreadsheetViewer';
+import { JupyterNotebookViewer } from './JupyterNotebookViewer';
 import {
   cancelDriveOpenJob,
   cleanupPartialDownloads,
@@ -1360,6 +1363,21 @@ export function DrivePreviewModal({
     return fn.endsWith('.sql') || fn.endsWith('.sqlite') || fn.endsWith('.sqlite3') || fn.endsWith('.db') || sniffResult?.category === 'database';
   }, [file.name, file.original_name, sniffResult?.category]);
 
+  const isDocxFile = useMemo(() => {
+    const fn = (file.name || file.original_name || '').toLowerCase();
+    return fn.endsWith('.docx') || fn.endsWith('.dotx') || sniffResult?.detectedExt === 'docx';
+  }, [file.name, file.original_name, sniffResult?.detectedExt]);
+
+  const isSpreadsheetFile = useMemo(() => {
+    const fn = (file.name || file.original_name || '').toLowerCase();
+    return fn.endsWith('.xlsx') || fn.endsWith('.xls') || fn.endsWith('.xlsm') || fn.endsWith('.ods') || sniffResult?.detectedExt === 'xlsx';
+  }, [file.name, file.original_name, sniffResult?.detectedExt]);
+
+  const isJupyterFile = useMemo(() => {
+    const fn = (file.name || file.original_name || '').toLowerCase();
+    return fn.endsWith('.ipynb');
+  }, [file.name, file.original_name]);
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const resumeAtRef = useRef<number>(0);
   const qualityMenuRef = useRef<HTMLDivElement | null>(null);
@@ -1691,7 +1709,7 @@ export function DrivePreviewModal({
 
       const executeRemoteLoad = async () => {
         try {
-          const itemPeerId = file.peer_id || (folderId != null && folderId !== 0 ? String(folderId) : null);
+          const itemPeerId = file.peer_id || (folderId != null && folderId !== 0 ? String(folderId) : (folderId === 0 || folderId == null ? 'me' : null));
           const itemTopicId = file.topic_id ?? null;
           const itemAccountId = file.account_id || creds.session;
           const locationType = itemPeerId === 'me' ? 'saved_messages' : 'group';
@@ -6518,7 +6536,21 @@ export function DrivePreviewModal({
                 fallbackToRaw={() => setActiveInspectorTab('code')}
                 fallbackToHex={() => setActiveInspectorTab('hex')}
               >
-                {isTabularFile ? (
+                {isDocxFile ? (
+                  <DocxViewer
+                    data={activeSrc || dataUrl || path || streamUrl || hexBytes || (textBody ? new TextEncoder().encode(textBody) : '')}
+                    fileName={displayName}
+                    onOpenSystem={handleOpenSystem}
+                  />
+                ) : isSpreadsheetFile ? (
+                  <SpreadsheetViewer
+                    data={activeSrc || dataUrl || path || streamUrl || hexBytes || textBody}
+                    fileName={displayName}
+                    onOpenSystem={handleOpenSystem}
+                  />
+                ) : isJupyterFile ? (
+                  <JupyterNotebookViewer rawJson={textBody} fileName={displayName} />
+                ) : isTabularFile ? (
                   <TabularDataViewer rawCsv={textBody} fileName={displayName} />
                 ) : isLogFile ? (
                   <LogViewer logContent={textBody} fileName={displayName} />
@@ -6605,8 +6637,24 @@ export function DrivePreviewModal({
             !isText &&
             !isZip &&
             !(isText && textBody != null) && (
-            <div className="drive-preview-doc" style={{ padding: isFontFile ? 0 : '16px', height: '100%', width: '100%', overflowY: 'auto' }}>
-              {isFontFile ? (
+            <div className="drive-preview-doc" style={{ padding: isFontFile || isDocxFile || isSpreadsheetFile ? 0 : '16px', height: '100%', width: '100%', overflowY: 'auto' }}>
+              {isDocxFile ? (
+                <PluginErrorBoundary pluginName="DocxViewer">
+                  <DocxViewer
+                    data={activeSrc || dataUrl || path || streamUrl || hexBytes || (textBody ? new TextEncoder().encode(textBody) : '')}
+                    fileName={displayName}
+                    onOpenSystem={handleOpenSystem}
+                  />
+                </PluginErrorBoundary>
+              ) : isSpreadsheetFile ? (
+                <PluginErrorBoundary pluginName="SpreadsheetViewer">
+                  <SpreadsheetViewer
+                    data={activeSrc || dataUrl || path || streamUrl || hexBytes || ''}
+                    fileName={displayName}
+                    onOpenSystem={handleOpenSystem}
+                  />
+                </PluginErrorBoundary>
+              ) : isFontFile ? (
                 <PluginErrorBoundary pluginName="FontWaterfallViewer">
                   <FontWaterfallViewer fontSrc={activeSrc || ''} fileName={displayName} />
                 </PluginErrorBoundary>

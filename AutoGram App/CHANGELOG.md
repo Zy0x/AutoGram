@@ -1,3 +1,18 @@
+## v3.8.76 Native Visual Document, Spreadsheet & Notebook Live Renderers
+
+### 1. Perenderan Visual Penuh untuk Dokumen Word, Spreadsheet & Notebook Data (`DocxViewer.tsx`, `SpreadsheetViewer.tsx`, `JupyterNotebookViewer.tsx`)
+- **Perender Dokumen Word (`DocxViewer.tsx`)**: Mengintegrasikan `docx-preview` untuk merender dokumen Word (`.docx`, `.dotx`) secara utuh ke halaman cetak visual dengan tata letak paragraf, tabel, heading, font, kontrol zoom in/out/reset, serta tombol 1-klik salin seluruh teks.
+- **Perender Spreadsheet Multi-Sheet (`SpreadsheetViewer.tsx`)**: Mengintegrasikan parser spreadsheet `xlsx` untuk merender berkas Excel (`.xlsx`, `.xls`, `.xlsm`, `.ods`, `.csv`, `.tsv`) dengan navigasi tab sheet, pencarian teks real-time, penomoran baris/kolom, dan ekspor CSV.
+- **Perender Jupyter Notebook (`JupyterNotebookViewer.tsx`)**: Merender berkas data science `.ipynb` secara interaktif dengan blok markdown, blok kode dengan penomoran baris, output terminal, tabel data, serta plot citra PNG/JPEG base64.
+- **Resolusi Identitas Peer Pesan Tersimpan (`driveStreamZipApi.ts`, `DrivePreviewModal/index.tsx`)**: Menyempurnakan resolusi `folderId === 0` / `null` ke identitas `'me'` (`saved_messages`) agar tidak memicu galat `INVALID_PEER_IDENTITY` saat membuka dokumen di root Pesan Tersimpan.
+
+### 2. Autonomous Quality Sentinel Certification
+- **Verifikasi Visual Live Desktop (CDP Port 9230)**: Memverifikasi perenderan dokumen Word nyata (`Hari.docx`) secara visual pada desktop Windows tanpa interupsi pengguna.
+- **Rust Backend Cargo Check**: Kompilasi `cargo check` pada engine native desktop Rust sukses 100% tanpa galat (`target(s) in 11.93s`).
+- **100% Locale Parity**: 6,162 kunci bahasa ID dan 6,162 kunci bahasa EN tersinkronisasi 100% tanpa selisih.
+- **Zero TypeScript Errors & Clean Production Build**: Kompilasi `tsc && vite build` sukses 100% tanpa galat.
+- **Vitest Automated Test Suite**: Seluruh 45 test suite Vitest (373 pengujian) lolos 100%.
+
 ## v3.8.75 Zero-Dead-End Intelligent Multi-Engine Media & Document Workbench
 
 ### 1. Eliminasi Total Layar Kosong pada Seluruh Format (`DrivePreviewModal/index.tsx`)

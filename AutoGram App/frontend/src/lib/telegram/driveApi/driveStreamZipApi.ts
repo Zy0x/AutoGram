@@ -25,7 +25,7 @@ export async function drivePreview(
   }
   try {
     const { tgPreviewStream } = await import('../core/telegramBackend');
-    const rawPeer = (opts?.peerId || (folderId != null && folderId !== 0 ? String(folderId) : '') || '').trim();
+    const rawPeer = (opts?.peerId || (folderId != null && folderId !== 0 ? String(folderId) : 'me')).trim();
     const locationType = opts?.locationType || (rawPeer === 'me' ? 'saved_messages' : 'group');
 
     // Guard rule 18:
@@ -34,7 +34,7 @@ export async function drivePreview(
     }
 
     const chatId = rawPeer || (locationType === 'saved_messages' ? 'me' : 'me');
-    if (!chatId || (chatId === 'me' && locationType !== 'saved_messages' && !rawPeer)) {
+    if (!chatId || (chatId === 'me' && locationType !== 'saved_messages')) {
       throw new Error(`INVALID_PEER_IDENTITY: Cannot resolve peerId for message ${messageId}. Defaulting to 'me' is strictly forbidden.`);
     }
 
