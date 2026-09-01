@@ -50,14 +50,20 @@ export const DocxViewer: React.FC<Props> = ({ data, fileName, onOpenSystem }) =>
         containerRef.current.innerHTML = '';
 
         await renderAsync(buffer, containerRef.current, undefined, {
-          className: 'autogram-docx-page',
+          className: 'docx',
           inWrapper: true,
           ignoreWidth: false,
           ignoreHeight: false,
           ignoreFonts: false,
           breakPages: true,
+          ignoreLastRenderedPageBreak: false,
           experimental: true,
           useBase64URL: true,
+          renderHeaders: true,
+          renderFooters: true,
+          renderFootnotes: true,
+          renderEndnotes: true,
+          trimXmlDeclaration: true,
         });
 
         if (!cancelled) {
@@ -218,35 +224,17 @@ export const DocxViewer: React.FC<Props> = ({ data, fileName, onOpenSystem }) =>
       </div>
 
       <style>{`
-        .autogram-docx-container {
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-          border-radius: 8px;
+        .autogram-docx-container .docx-wrapper {
+          background: transparent !important;
+          padding: 16px 0 !important;
         }
-        .autogram-docx-page {
+        .autogram-docx-container .docx-wrapper > section.docx {
           background: #ffffff !important;
-          color: #0f172a !important;
+          color: #000000 !important;
           margin-bottom: 24px !important;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
-          border-radius: 4px !important;
-          padding: 48px !important;
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45) !important;
+          border-radius: 2px !important;
           box-sizing: border-box !important;
-        }
-        .autogram-docx-page p {
-          margin-bottom: 0.8em !important;
-          line-height: 1.6 !important;
-        }
-        .autogram-docx-page table {
-          border-collapse: collapse !important;
-          width: 100% !important;
-          margin: 16px 0 !important;
-        }
-        .autogram-docx-page td, .autogram-docx-page th {
-          border: 1px solid #cbd5e1 !important;
-          padding: 8px 12px !important;
-        }
-        .autogram-docx-page th {
-          background: #f1f5f9 !important;
-          font-weight: 600 !important;
         }
       `}</style>
     </div>
