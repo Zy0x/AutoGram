@@ -3271,31 +3271,97 @@ export function DrivePreviewModal({
     if (!creds || saving) return;
     try {
       setSaving(true);
-      const defaultName = file.name.replace(/[<>:"/\\|?*]/g, '_');
-      // Dynamic import — static plugin-dialog can throw "plugins undefined" on early load
-      const { save } = await import('@tauri-apps/plugin-dialog');
-      const savePath = await save({ defaultPath: defaultName, title: 'Simpan file' });
-      if (!savePath) return;
+      let defaultName = file.name.replace(/[<>:"/\\|?*]/g, '_');
+      if (file.icon_type === 'link' || /^https?:\/\//i.test(file.name)) {
+        defaultName = `image_${file.id || Date.now()}.jpg`;
+      } else if (!/\.[a-z0-9]{2,6}$/i.test(defaultName)) {
+        if (isImage || (dataUrl && dataUrl.startsWith('data:image/'))) {
+          defaultName = `${defaultName}.jpg`;
+        }
+      }
+
+      // Check if Tauri dialog is available
+      let savePath: string | null = null;
+      try {
+        const { save } = await import('@tauri-apps/plugin-dialog');
+        savePath = await save({ defaultPath: defaultName, title: 'Simpan file' });
+      } catch (dialogErr) {
+        console.warn('[DrivePreviewModal] Dialog plugin error, using fallback:', dialogErr);
+      }
+
+      // If user cancelled the dialog on desktop
+      if (!savePath && isDesktop()) {
+        setSaving(false);
+        return;
+      }
+
+      // 1. Direct memory/cache save if dataUrl or local preview path is available
+      const activeImageSrc = dataUrl || poster || gridThumb || (file as any).thumb_url;
+      if (savePath && (file.icon_type === 'link' || !file.size || (isImage && activeImageSrc))) {
+        // First try local cache path fast copy
+        if (path) {
+          try {
+            const { copyFile } = await import('@tauri-apps/plugin-fs');
+            await copyFile(path, savePath);
+            setSaving(false);
+            return;
+          } catch (copyErr) {
+            console.warn('[DrivePreviewModal] Fast local copy failed:', copyErr);
+          }
+        }
+
+        // Try writing from active dataUrl / blob
+        if (activeImageSrc) {
+          try {
+            const resp = await fetch(activeImageSrc);
+            const blob = await resp.blob();
+            const arrayBuffer = await blob.arrayBuffer();
+            const uint8 = new Uint8Array(arrayBuffer);
+            const { writeFile } = await import('@tauri-apps/plugin-fs');
+            await writeFile(savePath, uint8);
+            setSaving(false);
+            return;
+          } catch (writeErr) {
+            console.warn('[DrivePreviewModal] Direct image byte write failed:', writeErr);
+          }
+        }
+      }
 
       // Fast Copy from local cache if file is already pre-downloaded in preview cache (path != null)
-      if (path) {
+      if (path && savePath) {
         try {
           const { copyFile } = await import('@tauri-apps/plugin-fs');
           await copyFile(path, savePath);
+          setSaving(false);
           return;
         } catch (copyErr) {
           console.warn('[DrivePreviewModal] Fast local copy failed, falling back to Grammers download:', copyErr);
         }
       }
 
-      if (onEnqueueDownloadSingle) {
+      // Web download fallback if not running on desktop or without savePath
+      if (!isDesktop() || !savePath) {
+        if (activeImageSrc) {
+          const a = document.createElement('a');
+          a.href = activeImageSrc;
+          a.download = defaultName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setSaving(false);
+          return;
+        }
+      }
+
+      // Standard Telegram document transfer download
+      if (onEnqueueDownloadSingle && savePath) {
         await onEnqueueDownloadSingle({
           messageId: file.id,
           folderId,
           savePath,
-          name: file.name,
+          name: defaultName,
         });
-      } else {
+      } else if (savePath) {
         onOpenTransferManager?.();
         const res = await tgDownloadFile({
           session: creds.session,
@@ -3306,6 +3372,17 @@ export function DrivePreviewModal({
           destPath: savePath,
         });
         if (!res?.ok) {
+          // If Telegram download fails on a link or photo message, try saving the preview image
+          if (activeImageSrc) {
+            const resp = await fetch(activeImageSrc);
+            const blob = await resp.blob();
+            const arrayBuffer = await blob.arrayBuffer();
+            const uint8 = new Uint8Array(arrayBuffer);
+            const { writeFile } = await import('@tauri-apps/plugin-fs');
+            await writeFile(savePath, uint8);
+            setSaving(false);
+            return;
+          }
           throw new Error(res?.userMessage || res?.error?.message || 'Gagal mengunduh berkas');
         }
       }
@@ -3322,9 +3399,12 @@ export function DrivePreviewModal({
       return;
     }
     if (!creds || saving) return;
+    const cleanName = /^https?:\/\//i.test(file.name) || file.icon_type === 'link'
+      ? `image_${file.id || 'media'}.jpg`
+      : file.name;
     setConfirmDlg({
       kind: 'download',
-      names: [file.name],
+      names: [cleanName],
       onConfirm: () => {
         void runDownload();
       },
@@ -4916,7 +4996,7 @@ export function DrivePreviewModal({
             document.body
           )}
 
-        {!isZip && file.icon_type !== 'link' && sniffResult && sniffResult.severity !== 'safe' && (
+        {!isZip && file.icon_type !== 'link' && !/^https?:\/\//i.test(file.name) && !/^https?:\/\//i.test(displayName) && sniffResult && sniffResult.severity !== 'safe' && (
           <SecurityMismatchBanner
             sniffResult={sniffResult}
             currentFilename={displayName}
