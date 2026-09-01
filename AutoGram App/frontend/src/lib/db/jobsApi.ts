@@ -197,6 +197,11 @@ export async function jobsResolveDecision(decisionId: number, decision: string):
   await invoke('jobs_resolve_decision', { decisionId, decision });
 }
 
+export async function jobsValidateSchedule(schedule: { rrule: string; timezone: string; misfirePolicy?: string }): Promise<void> {
+  if (!detectTauriRuntime()) throw new Error('Scheduler membutuhkan desktop app');
+  await invoke('jobs_validate_schedule', { schedule: { rrule: schedule.rrule, timezone: schedule.timezone, misfirePolicy: schedule.misfirePolicy ?? 'one_catch_up' } });
+}
+
 export type NativeJobEvent = {
   id: number;
   job_id: number;

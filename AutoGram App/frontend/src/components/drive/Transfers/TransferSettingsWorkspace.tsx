@@ -41,6 +41,8 @@ import {
   Image,
   PlaySquare,
   Loader2,
+  ShieldCheck,
+  Gauge,
 } from 'lucide-react';
 import type {
   CaptionPosition,
@@ -1382,10 +1384,25 @@ export function TransferSettingsWorkspace({
                   />
                   <div className="td-slider-value-bar">
                     <span className="td-slider-val">{draft.uploadConcurrency} {t('drive.tab_telegram_files')}</span>
-                    <span className="td-concurrency-badge">
-                      {draft.uploadConcurrency <= 2 && t('drive_tools.concurrency_badge_stable')}
-                      {draft.uploadConcurrency >= 3 && draft.uploadConcurrency <= 6 && t('drive_tools.concurrency_badge_balanced')}
-                      {draft.uploadConcurrency >= 7 && t('drive_tools.concurrency_badge_high_speed')}
+                    <span className={`td-concurrency-badge tier-${draft.uploadConcurrency <= 2 ? 'stable' : draft.uploadConcurrency <= 6 ? 'balanced' : 'high-speed'}`}>
+                      {draft.uploadConcurrency <= 2 && (
+                        <>
+                          <ShieldCheck size={11} strokeWidth={2.2} />
+                          <span>{t('drive_tools.concurrency_badge_stable')}</span>
+                        </>
+                      )}
+                      {draft.uploadConcurrency >= 3 && draft.uploadConcurrency <= 6 && (
+                        <>
+                          <Gauge size={11} strokeWidth={2.2} />
+                          <span>{t('drive_tools.concurrency_badge_balanced')}</span>
+                        </>
+                      )}
+                      {draft.uploadConcurrency >= 7 && (
+                        <>
+                          <Zap size={11} strokeWidth={2.2} />
+                          <span>{t('drive_tools.concurrency_badge_high_speed')}</span>
+                        </>
+                      )}
                     </span>
                   </div>
                 </div>
@@ -2032,10 +2049,25 @@ export function TransferSettingsWorkspace({
                   />
                   <div className="td-slider-value-bar">
                     <span className="td-slider-val">{draft.downloadConcurrency} {t('drive.tab_telegram_files')}</span>
-                    <span className="td-concurrency-badge">
-                      {draft.downloadConcurrency <= 2 && t('drive_tools.concurrency_badge_stable')}
-                      {draft.downloadConcurrency >= 3 && draft.downloadConcurrency <= 6 && t('drive_tools.concurrency_badge_balanced')}
-                      {draft.downloadConcurrency >= 7 && t('drive_tools.concurrency_badge_high_speed')}
+                    <span className={`td-concurrency-badge tier-${draft.downloadConcurrency <= 2 ? 'stable' : draft.downloadConcurrency <= 6 ? 'balanced' : 'high-speed'}`}>
+                      {draft.downloadConcurrency <= 2 && (
+                        <>
+                          <ShieldCheck size={11} strokeWidth={2.2} />
+                          <span>{t('drive_tools.concurrency_badge_stable')}</span>
+                        </>
+                      )}
+                      {draft.downloadConcurrency >= 3 && draft.downloadConcurrency <= 6 && (
+                        <>
+                          <Gauge size={11} strokeWidth={2.2} />
+                          <span>{t('drive_tools.concurrency_badge_balanced')}</span>
+                        </>
+                      )}
+                      {draft.downloadConcurrency >= 7 && (
+                        <>
+                          <Zap size={11} strokeWidth={2.2} />
+                          <span>{t('drive_tools.concurrency_badge_high_speed')}</span>
+                        </>
+                      )}
                     </span>
                   </div>
                 </div>
@@ -2799,10 +2831,25 @@ export function TransferSettingsWorkspace({
                       />
                       <div className="td-slider-value-bar">
                         <span className="td-slider-val">{t('drive.album_grid_size_value', { size: draft.albumGroupSize || 10 })}</span>
-                        <span className="td-concurrency-badge">
-                          {(draft.albumGroupSize || 10) === 10 && t('drive.album_grid_size_max')}
-                          {(draft.albumGroupSize || 10) >= 5 && (draft.albumGroupSize || 10) <= 9 && t('drive.album_grid_size_medium')}
-                          {(draft.albumGroupSize || 10) >= 2 && (draft.albumGroupSize || 10) <= 4 && t('drive.album_grid_size_compact')}
+                        <span className={`td-concurrency-badge tier-${(draft.albumGroupSize || 10) === 10 ? 'high-speed' : (draft.albumGroupSize || 10) >= 5 ? 'balanced' : 'stable'}`}>
+                          {(draft.albumGroupSize || 10) === 10 && (
+                            <>
+                              <Sparkles size={11} strokeWidth={2.2} />
+                              <span>{t('drive.album_grid_size_max')}</span>
+                            </>
+                          )}
+                          {(draft.albumGroupSize || 10) >= 5 && (draft.albumGroupSize || 10) <= 9 && (
+                            <>
+                              <Gauge size={11} strokeWidth={2.2} />
+                              <span>{t('drive.album_grid_size_medium')}</span>
+                            </>
+                          )}
+                          {(draft.albumGroupSize || 10) >= 2 && (draft.albumGroupSize || 10) <= 4 && (
+                            <>
+                              <ShieldCheck size={11} strokeWidth={2.2} />
+                              <span>{t('drive.album_grid_size_compact')}</span>
+                            </>
+                          )}
                         </span>
                       </div>
                     </div>

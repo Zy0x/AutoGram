@@ -19,9 +19,27 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const parts = url.pathname.split("/").filter(Boolean);
   const jobsIndex = parts.indexOf("jobs");
+  const devicesIndex = parts.indexOf("devices");
+  const deviceId = devicesIndex >= 0 ? parts[devicesIndex + 1] : undefined;
+  const deviceAction = deviceId ? parts[devicesIndex + 2] : undefined;
   const jobId = jobsIndex >= 0 ? parts[jobsIndex + 1] : undefined;
   const action = jobId ? parts[jobsIndex + 2] : undefined;
   const body = req.method === "GET" ? {} : await req.json().catch(() => ({}));
+
+  if (deviceId) {
+    const owned = await supabase.from("devices").select("id").eq("id", deviceId).eq("user_id", user.id).maybeSingle();
+    if (owned.error || !owned.data) return json({ error: "device_not_found" }, 404);
+    if (deviceAction === "claim" && req.method === "POST") {
+      const claimed = await supabase.rpc("claim_relay_command", { p_device_id: deviceId });
+      return claimed.error ? json({ error: "claim_failed" }, 500) : json(claimed.data ?? [], 200);
+    }
+    if (deviceAction === "ack" && req.method === "POST" && typeof body.command_id === "string") {
+      const status = typeof body.status === "string" && ["ACKED", "FAILED"].includes(body.status) ? body.status : "ACKED";
+      const acked = await supabase.from("relay_commands").update({ status, acked_at: new Date().toISOString(), last_error: typeof body.last_error === "string" ? body.last_error.slice(0, 2000) : null }).eq("id", body.command_id).eq("device_id", deviceId).eq("user_id", user.id).in("status", ["CLAIMED", "PENDING"]).select("id, status, acked_at").single();
+      return acked.error ? json({ error: "ack_conflict" }, 409) : json(acked.data);
+    }
+    return json({ error: "method_not_allowed" }, 405);
+  }
 
   if (!jobId) {
     if (req.method === "GET") {
@@ -74,6 +92,8 @@ Deno.serve(async (req) => {
   if (["validate", "run", "pause", "resume", "cancel"].includes(action ?? "")) {
     if (action === "validate") return json({ job_id: jobId, status: job.data.status, revision: job.data.revision, execution: "device_required" });
     if (typeof body.device_id !== "string" || typeof body.nonce !== "string" || typeof body.signature !== "string") return json({ error: "signed_device_command_required" }, 400);
+    const device = await supabase.from("devices").select("id").eq("id", body.device_id).eq("user_id", user.id).maybeSingle();
+    if (device.error || !device.data) return json({ error: "device_not_found" }, 404);
     const inserted = await supabase.from("relay_commands").insert({ user_id: user.id, device_id: body.device_id, job_id: jobId, command: action.toUpperCase(), nonce: body.nonce, signature: body.signature, payload_ciphertext: typeof body.payload_ciphertext === "string" ? body.payload_ciphertext : "" }).select("id, status, created_at").single();
     return inserted.error ? json({ error: "relay_enqueue_failed" }, 500) : json(inserted.data, 202);
   }

@@ -28,6 +28,7 @@ begin
    where c.id = (
      select id from public.relay_commands
       where device_id=p_device_id and status='PENDING'
+        and exists (select 1 from public.devices d where d.id=p_device_id and d.user_id=auth.uid())
       order by created_at asc
       for update skip locked limit 1
    )

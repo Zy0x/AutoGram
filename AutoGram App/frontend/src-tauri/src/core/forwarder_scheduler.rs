@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 pub struct ScheduleSpec {
     pub rrule: String,
     pub timezone: String,
-    #[serde(default)]
+    #[serde(default, alias = "misfirePolicy")]
     pub misfire_policy: String,
 }
 

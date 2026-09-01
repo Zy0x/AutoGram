@@ -150,6 +150,7 @@ allow = [
     "jobs_cancel_migration",
     "jobs_decision_inbox",
     "jobs_resolve_decision",
+    "jobs_validate_schedule",
     "profiles_list",
     "profiles_save",
     "profiles_delete",

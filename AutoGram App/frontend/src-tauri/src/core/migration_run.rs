@@ -195,16 +195,10 @@ fn run_forward(
 
     let sessions = resolve_sessions_dir(None);
     std::env::set_var("AUTOGRAM_SESSIONS_DIR", sessions.display().to_string());
-    let identity = TelegramIdentity {
-        session: session.clone(),
-        api_id,
-        api_hash: api_hash.to_string(),
-    };
-
+    let identity = TelegramIdentity { session: session.clone(), api_id, api_hash: api_hash.to_string() };
     let owner_id = format!("migration-job-{job_id}-exec-{exec_id}");
-    let _guard =
-        session_guard::SessionGuardToken::acquire(&session, &owner_id, SessionPurpose::Migration)
-            .map_err(|e| e.user_message())?;
+    let _guard = session_guard::SessionGuardToken::acquire(&session, &owner_id, SessionPurpose::Migration)
+        .map_err(|e| e.user_message())?;
 
     let mut current_offset = jobs_db::last_resumable_msg_id(job_id).ok().flatten();
     let batch_size = if max_messages > 0 {
@@ -385,16 +379,17 @@ fn run_clean_copy(
 
     let sessions = resolve_sessions_dir(None);
     std::env::set_var("AUTOGRAM_SESSIONS_DIR", sessions.display().to_string());
-    let identity = TelegramIdentity {
-        session: session.clone(),
-        api_id,
-        api_hash: api_hash.to_string(),
-    };
-
+    let source_session = if source_account_id.is_empty() { session.clone() } else { source_account_id.clone() };
+    let destination_session = if destination_account_id.is_empty() { session.clone() } else { destination_account_id.clone() };
+    let source_identity = TelegramIdentity { session: source_session.clone(), api_id, api_hash: api_hash.to_string() };
+    let destination_identity = TelegramIdentity { session: destination_session.clone(), api_id, api_hash: api_hash.to_string() };
     let owner_id = format!("migration-job-{job_id}-exec-{exec_id}");
-    let _guard =
-        session_guard::SessionGuardToken::acquire(&session, &owner_id, SessionPurpose::Migration)
-            .map_err(|e| e.user_message())?;
+    let _source_guard = session_guard::SessionGuardToken::acquire(&source_session, &owner_id, SessionPurpose::Migration)
+        .map_err(|e| e.user_message())?;
+    let _destination_guard = if destination_session != source_session {
+        Some(session_guard::SessionGuardToken::acquire(&destination_session, &owner_id, SessionPurpose::Migration)
+            .map_err(|e| e.user_message())?)
+    } else { None };
 
     let mut current_offset = jobs_db::last_resumable_msg_id(job_id).ok().flatten();
     let batch_size = if max_messages > 0 {
@@ -442,7 +437,7 @@ fn run_clean_copy(
             );
             let media = grammers_ops::list_media_blocking(
                 &sessions,
-                &identity,
+                &source_identity,
                 &source,
                 fetch_cap,
                 current_offset,
@@ -519,7 +514,7 @@ fn run_clean_copy(
 
                     match grammers_ops::download_file_blocking(
                         &sessions,
-                        &identity,
+                        &source_identity,
                         &source,
                         source_msg_id,
                         &dest_str,
@@ -602,7 +597,7 @@ fn run_clean_copy(
 
                     match grammers_ops::upload_file_blocking(
                         &sessions,
-                        &identity,
+                        &destination_identity,
                         &dest,
                         &dest_str,
                         "",

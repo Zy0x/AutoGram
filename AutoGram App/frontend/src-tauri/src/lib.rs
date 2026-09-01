@@ -935,6 +935,11 @@ fn jobs_resolve_decision(decision_id: i64, decision: String) -> Result<(), Strin
 }
 
 #[tauri::command]
+fn jobs_validate_schedule(schedule: core::forwarder_scheduler::ScheduleSpec) -> Result<(), String> {
+    core::forwarder_scheduler::validate_schedule(&schedule)
+}
+
+#[tauri::command]
 fn jobs_start_execution(job_id: i64) -> Result<i64, String> {
     core::jobs_db::start_execution(job_id)
 }
@@ -3015,6 +3020,7 @@ pub fn run() {
             jobs_delete,
             jobs_decision_inbox,
             jobs_resolve_decision,
+            jobs_validate_schedule,
             jobs_start_execution,
             jobs_run_migration,
             jobs_dry_run,
