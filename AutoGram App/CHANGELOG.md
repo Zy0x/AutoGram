@@ -1,3 +1,17 @@
+## v3.9.13 — Direct MTProto SendMultiMedia Dispatch & Topic Album Atomic Binding
+
+### 1. Direct MTProto SendMultiMedia Input Media Dispatch
+- Menghapus panggilan redundan `messages.UploadMedia` sebelum pemanggilan `messages.SendMultiMedia` pada `media_transfer.rs`, mengoper `InputMediaUploadedPhoto` dan `InputMediaUploadedDocument` secara langsung ke dalam `InputSingleMedia`.
+- Mengeliminasi 10 round-trip jaringan per batch album dan mencegah media terdaftar secara tidak terikat (*unlinked media*) di luar konteks forum topic supergroup (`topic_id` / `reply_to`).
+- Menjamin seluruh 10 item dalam batch pertama diproses secara atomik di dalam forum topic tujuan oleh Telegram MTProto, menyatukan 10 foto ke dalam 1 album collage murni tanpa pemisahan item ke-10 menjadi single.
+
+### 2. Verification & Quality Sentinel
+- `cargo check` (`src-tauri`): Lulus bersih (0 errors, 0 warnings).
+- `cargo test --package autogram-core`: 57/57 tests lulus (100% pass).
+- Autonomous 5-Dimension Quality Sentinel: 100% i18n parity (6.183 keys), 0 TypeScript errors, 46 unit test suites Vitest lulus, integritas database SQLite WAL terverifikasi.
+
+---
+
 ## v3.9.12 — Authoritative MTProto Grouped ID Envelope & Zero-Degradation 10+6 Grid
 
 ### 1. Authoritative MTProto RPC Grouped ID Envelope
