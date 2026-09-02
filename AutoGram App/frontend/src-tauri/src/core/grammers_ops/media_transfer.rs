@@ -56,13 +56,16 @@ async fn try_recover_album_from_history(
 ) -> Option<Vec<UploadStepResult>> {
     let expected_count = expected_indices.len();
     let mut best_recovered: Option<Vec<UploadStepResult>> = None;
-    for attempt in 1..=5 {
+    for attempt in 1..=8 {
         // Progressive backoff: give Telegram more time to index large albums
         let delay_ms = match attempt {
             1 => 1500,
             2 => 2000,
             3 => 3000,
-            4 => 4000,
+            4 => 3500,
+            5 => 4000,
+            6 => 4500,
+            7 => 5000,
             _ => 5000,
         };
         tokio::time::sleep(Duration::from_millis(delay_ms)).await;
@@ -1046,7 +1049,37 @@ pub fn upload_prepared_album_blocking_with_app(
                     allow_paid_stars: None,
                 };
 
-                let updates_res = client.invoke(&album_req).await;
+                let mut updates_res = client.invoke(&album_req).await;
+                if updates_res.is_err() {
+                    let err = updates_res.as_ref().unwrap_err();
+                    let mapped = map_invocation(err);
+                    if matches!(mapped.code(), TgErrorCode::Timeout | TgErrorCode::Network) {
+                        if let Some(recovered) = try_recover_album_from_history(
+                            client,
+                            peer,
+                            &chat,
+                            topic_id,
+                            &expected_indices,
+                            batch_start_ts,
+                        )
+                        .await
+                        {
+                            if recovered.len() == expected_indices.len()
+                                && recovered.iter().all(|item| item.message_id.is_some())
+                            {
+                                return Ok(recovered);
+                            }
+                        } else {
+                            tg_log::info(
+                                BACKEND,
+                                "album_send_retry",
+                                "SendMultiMedia hit transient timeout; retrying once...",
+                            );
+                            tokio::time::sleep(Duration::from_millis(2000)).await;
+                            updates_res = client.invoke(&album_req).await;
+                        }
+                    }
+                }
                 let updates = match updates_res {
                     Ok(u) => u,
                     Err(e) => {

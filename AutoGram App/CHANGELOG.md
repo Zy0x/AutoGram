@@ -1,3 +1,18 @@
+## v3.9.09 — Resilient MTProto SendMultiMedia Transient Retry & Extended Album Indexing Backoff
+
+### 1. MTProto Album Transmission & Transient Timeout Recovery
+- Menambahkan penanganan retry otomatis pada RPC `messages::SendMultiMedia` saat mengalami transient timeout/network hitch pada server Telegram sebelum masuk ke jalur rekonsiliasi riwayat chat.
+- Memperluas siklus progressive backoff pada `try_recover_album_from_history` menjadi 8 tahapan terkalibrasi (hingga ~28 detik), memberikan waktu yang cukup bagi server Telegram untuk mengindeks seluruh 10 berkas album ke dalam satu `grouped_id` sebelum mempertimbangkan fallback parsial.
+
+### 2. Batching & Album Integrity
+- Mencegah timbulnya degradasi parsial 9+1 pada batch 10 item dengan memastikan grup album yang sedang dalam proses indeks diakomodasi hingga tuntas, sehingga 16 berkas JPEG terdistribusi utuh sebagai batch 10 + batch 6.
+
+### 3. Verification & Quality Sentinel
+- `cargo check` pada Tauri desktop backend lulus 100%.
+- Autonomous 5-Dimension Quality Sentinel lulus seluruh 5 gerbang pengujian tanpa regresi.
+
+---
+
 ## v3.9.08 — Direct MTProto SendMultiMedia Dispatch & Atomic 10-Item Album Batching
 
 ### 1. MTProto Protocol & Album Batching Architecture
