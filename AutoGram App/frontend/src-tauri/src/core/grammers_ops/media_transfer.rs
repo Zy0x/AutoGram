@@ -196,6 +196,49 @@ async fn try_recover_album_from_history(
     best_recovered
 }
 
+/// Persist a best-effort history recovery before returning an error. The
+/// orchestrator can acknowledge committed messages and retry only missing
+/// source items, avoiding duplicate uploads after a partial album commit.
+fn persist_partial_album_recovery(
+    commit_id: Option<&str>,
+    recovered: &[UploadStepResult],
+    reason: &str,
+) {
+    let Some(commit_id) = commit_id else { return };
+    // Keep zero placeholders so IDs stay positionally aligned with
+    // `ordered_item_indices_json`; filtering would shift later messages onto
+    // the wrong source item during targeted retry.
+    let message_ids: Vec<i64> = recovered
+        .iter()
+        .map(|item| item.message_id.unwrap_or(0))
+        .collect();
+    if message_ids.iter().all(|message_id| *message_id <= 0) {
+        return;
+    }
+    if let Err(error) = crate::core::autogram_core::transfer::update_album_commit(
+        commit_id,
+        "REVIEW_REQUIRED",
+        &message_ids,
+        Some(reason),
+    ) {
+        tg_log::warn(
+            BACKEND,
+            "album_partial_recovery_persist_failed",
+            format!("commit={commit_id} error={error}"),
+        );
+    } else {
+        tg_log::warn(
+            BACKEND,
+            "album_partial_recovery_persisted",
+            format!(
+                "commit={commit_id} recovered={} missing={} reason={reason}",
+                message_ids.iter().filter(|message_id| **message_id > 0).count(),
+                message_ids.iter().filter(|message_id| **message_id <= 0).count()
+            ),
+        );
+    }
+}
+
 /// Resolve the message IDs returned by `messages.sendMultiMedia` without
 /// relying on nearby chat history. Telegram returns `updateMessageID`
 /// entries keyed by the exact random IDs used for this commit.
@@ -872,7 +915,16 @@ pub fn upload_prepared_album_blocking_with_app(
                         )
                         .await
                         {
-                            return Ok(recovered);
+                            if recovered.len() == expected_indices.len()
+                                && recovered.iter().all(|item| item.message_id.is_some())
+                            {
+                                return Ok(recovered);
+                            }
+                            persist_partial_album_recovery(
+                                commit_id.as_deref(),
+                                &recovered,
+                                "album RPC failed after a partial Telegram commit",
+                            );
                         }
                         return Err(mapped);
                     }
@@ -924,6 +976,11 @@ pub fn upload_prepared_album_blocking_with_app(
                             }
                             return Ok(recovered);
                         }
+                        persist_partial_album_recovery(
+                            commit_id.as_deref(),
+                            &recovered,
+                            "album response contained missing message IDs",
+                        );
                     }
                     return Err(TgError::new(
                         TgErrorCode::Internal,
@@ -985,6 +1042,11 @@ pub fn upload_prepared_album_blocking_with_app(
                                     }
                                     return Ok(recovered);
                                 }
+                                persist_partial_album_recovery(
+                                    commit_id.as_deref(),
+                                    &recovered,
+                                    "album grouped_id verification found a partial commit",
+                                );
                             }
                             return Err(verification_error);
                         }
@@ -1334,7 +1396,20 @@ fn upload_prepared_album_blocking_with_app_legacy(
                         )
                         .await
                         {
-                            return Ok(recovered);
+                            if recovered.len() == expected_indices.len()
+                                && recovered.iter().all(|item| item.message_id.is_some())
+                            {
+                                return Ok(recovered);
+                            }
+                            tg_log::warn(
+                                BACKEND,
+                                "album_partial_recovery_rejected",
+                                format!(
+                                    "recovered={} expected={} action=return_error",
+                                    recovered.iter().filter(|item| item.message_id.is_some()).count(),
+                                    expected_indices.len()
+                                ),
+                            );
                         }
                         return Err(mapped);
                     }
@@ -1382,7 +1457,20 @@ fn upload_prepared_album_blocking_with_app_legacy(
                     )
                     .await
                     {
-                        return Ok(recovered);
+                        if recovered.len() == expected_indices.len()
+                            && recovered.iter().all(|item| item.message_id.is_some())
+                        {
+                            return Ok(recovered);
+                        }
+                        tg_log::warn(
+                            BACKEND,
+                            "album_partial_recovery_rejected",
+                            format!(
+                                "recovered={} expected={} action=return_error",
+                                recovered.iter().filter(|item| item.message_id.is_some()).count(),
+                                expected_indices.len()
+                            ),
+                        );
                     }
                 }
 

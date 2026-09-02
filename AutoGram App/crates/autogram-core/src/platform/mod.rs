@@ -67,6 +67,19 @@ fn bundled_tool(name: &str) -> Option<PathBuf> {
         }
     }
     for root in roots {
+        // Development workspaces commonly keep the ffmpeg bundle under a
+        // versioned `.toolchains/ffmpeg-release-essentials` directory.  Walk
+        // only that bounded directory (never the whole workspace) so media
+        // probing remains available even when ffprobe is not on PATH.
+        let toolchain_root = root.join(".toolchains").join("ffmpeg-release-essentials");
+        if let Ok(entries) = std::fs::read_dir(&toolchain_root) {
+            for entry in entries.flatten() {
+                let candidate = entry.path().join("bin").join(&filename);
+                if candidate.is_file() {
+                    return Some(candidate);
+                }
+            }
+        }
         for sub_path in sub_paths {
             let candidate = root.join(sub_path).join(&filename);
             if candidate.is_file() {

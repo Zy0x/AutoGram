@@ -963,7 +963,11 @@ fn run_intelligent_album(
             let file_name = if !item.caption.trim().is_empty() {
                 item.caption.clone()
             } else {
-                item.path.rsplit('/').next().unwrap_or("remote_media").to_string()
+                item.path
+                    .rsplit('/')
+                    .next()
+                    .unwrap_or("remote_media")
+                    .to_string()
             };
 
             let thumbnail_url = rec
@@ -1204,6 +1208,53 @@ fn run_intelligent_album(
                 );
             }
         }
+        // Silent MP4 files are valid H.264 video, but Telegram's album RPC can
+        // reject a no-audio native-video part with MEDIA_EMPTY and classify a
+        // successful standalone send as an animation/GIF. In High Quality
+        // delivery, preserve the original bytes and send it as a single
+        // document with an extracted thumbnail instead. This is fail-closed:
+        // no transcode is required and the user's bytes remain lossless.
+        let force_single = if classification.category == MediaCategory::Mp4Video {
+            let analysis = super::autogram_core::transfer::analyze_media(std::path::Path::new(
+                &artifact.prepared_path,
+            ));
+            if !analysis.probe_available {
+                // A missing probe must never silently route an ambiguous MP4
+                // through Telegram's animation path. Fail closed to a
+                // document send; the bytes remain lossless and Telegram will
+                // not reinterpret the item as a GIF.
+                persist_transfer_log(
+                    tid,
+                    "warn",
+                    "album_media_probe_unavailable",
+                    format!(
+                        "index={} file={} action=document_single reason=ffprobe_unavailable",
+                        item.index, item.path
+                    ),
+                );
+                true
+            } else {
+                analysis.audio_codecs().is_empty()
+            }
+        } else {
+            false
+        };
+        if force_single {
+            classification.payload_class = PayloadClass::DocumentGroup;
+            classification.as_document = true;
+            classification.reason_code = "silent_video_document_fallback".into();
+            persist_transfer_log(
+                tid,
+                "warn",
+                "album_item_forced_document",
+                format!(
+                    "index={} reason=video_without_audio delivery=document_single thumbnail=ffmpeg",
+                    item.index
+                ),
+            );
+        }
+        // Persist the final delivery decision, including the silent-video
+        // document override, so preflight/runtime/ledger all share one truth.
         persist_prepared_decision(
             rec,
             item.index,
@@ -1269,26 +1320,6 @@ fn run_intelligent_album(
         let size = std::fs::metadata(&artifact.prepared_path)
             .map(|meta| meta.len())
             .unwrap_or(item.size);
-        // Telegram can reject a silent MP4 inside `messages.sendMultiMedia`
-        // with MEDIA_EMPTY even though the file is a valid native video when
-        // sent alone. Keep the file native, but force it to a single message
-        // so one edge-case asset cannot collapse an otherwise valid album.
-        let force_single = if classification.category == MediaCategory::Mp4Video {
-            let analysis = super::autogram_core::transfer::analyze_media(
-                std::path::Path::new(&artifact.prepared_path),
-            );
-            analysis.probe_available && analysis.audio_codecs().is_empty()
-        } else {
-            false
-        };
-        if force_single {
-            persist_transfer_log(
-                tid,
-                "warn",
-                "album_item_forced_single",
-                format!("index={} reason=video_without_audio", item.index),
-            );
-        }
         let item_caption = if let Some(summary) = album_summary.as_deref() {
             if size > primary_limit && !album_summary_consumed && prepared_items.is_empty() {
                 summary
@@ -1723,7 +1754,10 @@ fn run_intelligent_album(
                     tid,
                     "error",
                     "album_send_failed",
-                    format!("code={:?} error={err_msg}; fallback=single_send", error.code()),
+                    format!(
+                        "code={:?} error={err_msg}; fallback=single_send",
+                        error.code()
+                    ),
                 );
                 tg_log::warn(
                     "studio_orch",
@@ -1735,15 +1769,55 @@ fn run_intelligent_album(
                         group.items.len()
                     ),
                 );
+                let recovered_pairs =
+                    super::autogram_core::transfer::load_album_commit_recovered(&commit_id)
+                        .unwrap_or_default();
+                let recovered_indices: std::collections::HashSet<usize> =
+                    recovered_pairs.iter().map(|(index, _)| *index).collect();
+                let mut fallback_message_ids: Vec<i64> = recovered_pairs
+                    .iter()
+                    .map(|(_, message_id)| *message_id)
+                    .collect();
+                let mut fallback_complete = true;
+                for (index, message_id) in &recovered_pairs {
+                    any_ok = true;
+                    let state = ItemState::Done;
+                    let _ =
+                        job_queue::update_item(tid, *index, state.clone(), Some(*message_id), None);
+                    emit_album_item_result(app, *index, &state, Some(*message_id), None);
+                    if let Some(ledger_identity) = ledger_identities.get(index) {
+                        persist_upload_ledger_binding(
+                            rec,
+                            topic_id,
+                            &delivery_identity.session,
+                            Some(*message_id),
+                            *index,
+                            ledger_identity,
+                        );
+                    }
+                    persist_transfer_log(
+                        tid,
+                        "warn",
+                        "album_partial_recovery_ack",
+                        format!(
+                            "index={} message_id={} action=skip_reupload",
+                            index, message_id
+                        ),
+                    );
+                }
                 let _ = super::autogram_core::transfer::update_album_commit(
                     &commit_id,
                     "REVIEW_REQUIRED",
-                    &[],
+                    &fallback_message_ids,
                     Some(&format!("Fell back to individual uploads: {}", err_msg)),
                 );
 
                 // Intelligent Fallback: Upload every item in the album group individually
-                for item in group.items {
+                for item in group
+                    .items
+                    .iter()
+                    .filter(|item| !recovered_indices.contains(&item.index))
+                {
                     if let Err(error) = job_queue::wait_while_transfer_paused(tid) {
                         for artifact in artifacts.drain(..) {
                             artifact.cleanup();
@@ -1823,6 +1897,7 @@ fn run_intelligent_album(
                                 any_ok = true;
                                 ItemState::Done
                             } else {
+                                fallback_complete = false;
                                 ItemState::Failed
                             };
                             let _ = job_queue::update_item(
@@ -1840,6 +1915,9 @@ fn run_intelligent_album(
                                 result.error,
                             );
                             if matches!(state, ItemState::Done) {
+                                if let Some(message_id) = result.message_id {
+                                    fallback_message_ids.push(message_id);
+                                }
                                 if let Some(ledger_identity) = ledger_identities.get(&item.index) {
                                     persist_upload_ledger_binding(
                                         rec,
@@ -1872,12 +1950,17 @@ fn run_intelligent_album(
                             }
                         }
                         Err(error) => {
+                            fallback_complete = false;
                             let message = error.user_message();
                             persist_transfer_log(
                                 tid,
                                 "error",
                                 "fallback_single_upload_failed",
-                                format!("index={} code={:?} error={message}", item.index, error.code()),
+                                format!(
+                                    "index={} code={:?} error={message}",
+                                    item.index,
+                                    error.code()
+                                ),
                             );
                             let state = ItemState::Failed;
                             let _ = job_queue::update_item(
@@ -1900,6 +1983,20 @@ fn run_intelligent_album(
                         }
                     }
                 }
+                let _ = super::autogram_core::transfer::update_album_commit(
+                    &commit_id,
+                    if fallback_complete {
+                        "COMMITTED"
+                    } else {
+                        "REVIEW_REQUIRED"
+                    },
+                    &fallback_message_ids,
+                    if fallback_complete {
+                        None
+                    } else {
+                        Some("one or more fallback uploads failed")
+                    },
+                );
             }
         }
     }

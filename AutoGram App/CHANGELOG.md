@@ -1,3 +1,21 @@
+## v3.8.99 — Perbaikan Video Senyap, Commit Album Parsial & Resolusi FFprobe
+
+### 1. Delivery Media dan Album
+- Video MP4 tanpa track audio kini dipaksa menjadi dokumen tunggal dengan thumbnail FFmpeg pada jalur High Quality, sehingga Telegram tidak menginterpretasikannya sebagai GIF dan byte asli tetap utuh.
+- Bila probe media tidak tersedia, engine memilih jalur dokumen secara fail-closed dan menulis reason code yang terlihat di log transfer.
+
+### 2. Backend Reliability & Data Integrity
+- Pemulihan `grouped_id` parsial tidak lagi dikembalikan sebagai album sukses; pesan yang sudah benar-benar di-commit di-ACK melalui `album_commits`, sementara hanya item yang hilang dikirim ulang satuan.
+- Status commit, mapping item, fallback, retry, dan error Telegram ditulis kembali ke transfer journal untuk rekonsiliasi tanpa upload duplikat.
+- Resolver FFmpeg/FFprobe kini menemukan bundle versi apa pun di `.toolchains/ffmpeg-release-essentials` pada workstation maupun binary development.
+
+### 3. Verifikasi
+- `cargo check` (Tauri frontend/backend) lulus.
+- `cargo test` autogram-core: 54/54 lulus.
+- `npm run test:quality`: seluruh 5 quality gate lulus; `npm run build` lulus.
+
+---
+
 ## v3.8.98 — Rekayasa Ulang Album MTProto SendMultiMedia, I/O Sesi Atomik & Throughput Media Besar
 
 ### 1. Rekayasa Ulang Album Grid MTProto & Resolusi Media Channel/Topic (`media_transfer.rs`)

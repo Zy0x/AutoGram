@@ -429,6 +429,42 @@ pub fn update_album_commit(
     Ok(())
 }
 
+/// Return the source-item/message pairs recorded during an album recovery.
+/// The ordered item list is persisted separately from Telegram message IDs,
+/// so zipping the two arrays gives the exact mapping needed by the
+/// orchestrator to retry only missing items after a partial commit.
+pub fn load_album_commit_recovered(commit_id: &str) -> Result<Vec<(usize, i64)>, String> {
+    let conn = open()?;
+    let row = conn.query_row(
+        "SELECT ordered_item_indices_json, telegram_message_ids_json
+         FROM album_commits WHERE commit_id=?1",
+        params![commit_id],
+        |row| {
+            let indices: String = row.get(0)?;
+            let message_ids: Option<String> = row.get(1)?;
+            Ok((indices, message_ids))
+        },
+    );
+    let (indices_json, ids_json) = match row {
+        Ok(value) => value,
+        Err(rusqlite::Error::QueryReturnedNoRows) => return Ok(Vec::new()),
+        Err(error) => return Err(format!("load album recovery: {error}")),
+    };
+    let indices: Vec<usize> = serde_json::from_str(&indices_json)
+        .map_err(|error| format!("decode album item indices: {error}"))?;
+    let ids: Vec<i64> = ids_json
+        .as_deref()
+        .map(serde_json::from_str)
+        .transpose()
+        .map_err(|error| format!("decode album message ids: {error}"))?
+        .unwrap_or_default();
+    Ok(indices
+        .into_iter()
+        .zip(ids)
+        .filter(|(_, message_id)| *message_id > 0)
+        .collect())
+}
+
 pub fn persist_account_rate_gate(
     account_id: &str,
     wait_seconds: u32,
