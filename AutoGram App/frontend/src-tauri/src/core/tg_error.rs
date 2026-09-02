@@ -49,15 +49,14 @@ impl TgError {
             message: crate::core::tg_log::redact(&message.into()),
             flood_wait_secs: None,
             rpc_name: None,
-            // Cancelled covers sender-pool-stopped / dropped requests — safe to
-            // reconnect + retry once the live client is rebuilt.
+            // Cancellation is terminal for the current operation. Retrying a
+            // cancelled upload can re-send bytes after the user pressed Stop.
             retryable: matches!(
                 code,
                 TgErrorCode::FloodWait
                     | TgErrorCode::Network
                     | TgErrorCode::Timeout
                     | TgErrorCode::Io
-                    | TgErrorCode::Cancelled
             ),
         }
     }

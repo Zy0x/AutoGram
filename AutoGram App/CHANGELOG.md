@@ -1,3 +1,18 @@
+## v3.9.00 — Idempotency Guard Upload & Stop Responsif
+
+### 1. Transfer Reliability
+- Upload album dan upload satuan kini memakai eksekusi sekali (`with_pool_once`) agar error transport setelah Telegram menerima bytes tidak memicu replay dan pemborosan quota.
+- Retry otomatis dibatasi pada `FLOOD_WAIT` eksplisit; error ambigu dicatat sebagai kandidat rekonsiliasi dan dialihkan ke fallback terkontrol.
+
+### 2. Cancellation & State Integrity
+- Stop memutus retry loop, fallback, dan backoff sleep dalam polling 100 ms; transfer langsung berstatus `CANCELLED` tanpa melanjutkan upload berikutnya.
+- Error pembatalan tidak lagi dianggap retryable oleh `TgError`, sehingga worker tidak hidup kembali setelah pengguna menekan Stop.
+
+### 3. Verifikasi
+- `cargo check` Tauri berhasil setelah perubahan idempotency dan cancellation.
+
+---
+
 ## v3.8.99 — Perbaikan Video Senyap, Commit Album Parsial & Resolusi FFprobe
 
 ### 1. Delivery Media dan Album

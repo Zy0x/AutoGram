@@ -680,7 +680,7 @@ pub fn upload_prepared_album_blocking_with_app(
         .map(|value| value as i32);
 
     rt.block_on(async {
-        with_pool_retry(&identity.session, || {
+        with_pool_once(|| {
             let chat = chat.clone();
             let items = items.clone();
             let app_handle = app_handle.clone();
@@ -717,6 +717,14 @@ pub fn upload_prepared_album_blocking_with_app(
                 let mut medias: Vec<grammers_client::media::InputMedia> = Vec::with_capacity(items.len());
 
                 for (position, item) in items.iter().enumerate() {
+                    if let Some(tid) = transfer_id.as_deref() {
+                        if crate::core::job_queue::is_transfer_cancelled(tid) {
+                            return Err(TgError::new(
+                                TgErrorCode::Cancelled,
+                                "transfer cancelled by user",
+                            ));
+                        }
+                    }
                     let path = PathBuf::from(&item.path);
                     let size = std::fs::metadata(&path).map(|meta| meta.len()).unwrap_or(0);
                     let filename = path
@@ -756,7 +764,20 @@ pub fn upload_prepared_album_blocking_with_app(
                             .upload_stream(&mut reader, size as usize, filename.clone())
                             .await
                             .map_err(|error| {
-                                TgError::new(TgErrorCode::Io, format!("upload_stream: {error}"))
+                                if transfer_id
+                                    .as_deref()
+                                    .is_some_and(crate::core::job_queue::is_transfer_cancelled)
+                                {
+                                    TgError::new(
+                                        TgErrorCode::Cancelled,
+                                        "transfer cancelled by user",
+                                    )
+                                } else {
+                                    TgError::new(
+                                        TgErrorCode::Io,
+                                        format!("upload_stream: {error}"),
+                                    )
+                                }
                             })?
                     } else {
                         client.upload_file(&path).await.map_err(|error| {
@@ -875,6 +896,14 @@ pub fn upload_prepared_album_blocking_with_app(
                     .duration_since(UNIX_EPOCH)
                     .unwrap_or_default()
                     .as_secs() as i64;
+                if let Some(tid) = transfer_id.as_deref() {
+                    if crate::core::job_queue::is_transfer_cancelled(tid) {
+                        return Err(TgError::new(
+                            TgErrorCode::Cancelled,
+                            "transfer cancelled by user",
+                        ));
+                    }
+                }
                 let sent_res = client.send_album(peer, medias).await;
                 let sent = match sent_res {
                     Ok(s) => s,
@@ -2375,7 +2404,7 @@ pub fn upload_file_blocking_topic_with_delivery(
     let rt = runtime()?;
 
     rt.block_on(async {
-        with_pool_retry(&identity.session, || {
+        with_pool_once(|| {
             let chat = chat.clone();
             let app_handle = app_handle.clone();
             let transfer_id = transfer_id.clone();

@@ -362,6 +362,17 @@ where
     }))
 }
 
+/// Execute a non-idempotent Telegram operation exactly once. Upload calls use
+/// this boundary because a transport error after Telegram accepted the bytes
+/// is an UNKNOWN_COMMIT; reconnecting and replaying would spend quota twice.
+pub(crate) async fn with_pool_once<T, Fut, F>(mut op: F) -> Result<T, TgError>
+where
+    F: FnMut() -> Fut,
+    Fut: std::future::Future<Output = Result<T, TgError>>,
+{
+    op().await
+}
+
 /// Fetch a cached live client or connect (serialized). When `force_fresh` is
 /// true the cache is dropped first so a dead SenderPool is never reused.
 pub(crate) async fn obtain_live_client(

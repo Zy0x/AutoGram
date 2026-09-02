@@ -1623,6 +1623,15 @@ fn run_intelligent_album(
             match res {
                 Ok(ok_res) => break Ok(ok_res),
                 Err(err) => {
+                    if job_queue::is_transfer_cancelled(tid) {
+                        persist_transfer_log(
+                            tid,
+                            "warn",
+                            "transfer_cancelled_during_album",
+                            "cancel acknowledged before retry/fallback",
+                        );
+                        break Err(err);
+                    }
                     // Some Telegram album RPC failures are surfaced as a
                     // generic RPC error even though the server dropped the
                     // multipart request transiently. Retry those before
@@ -1640,10 +1649,25 @@ fn run_intelligent_album(
                     ]
                     .iter()
                     .any(|needle| rpc_text.contains(needle));
+                    // An album request is not idempotent because Telegram's
+                    // high-level `send_album` generates fresh random IDs.
+                    // Transport/IO errors therefore mean UNKNOWN_COMMIT, not
+                    // "safe to resend". Only an explicit FloodWait rejection
+                    // can be retried without spending quota twice.
                     let is_network = !permanent_album_error
-                        && (grammers_ops::is_pool_or_transport_error(&err)
-                            || err.retryable()
-                            || matches!(err.code(), crate::core::tg_error::TgErrorCode::Rpc));
+                        && matches!(err.code(), crate::core::tg_error::TgErrorCode::FloodWait);
+                    if !is_network && !permanent_album_error {
+                        persist_transfer_log(
+                            tid,
+                            "warn",
+                            "album_retry_suppressed_unknown_commit",
+                            format!(
+                                "attempt={} code={:?} action=reconcile_then_single_fallback",
+                                album_attempts,
+                                err.code()
+                            ),
+                        );
+                    }
                     if is_network && album_attempts <= 3 {
                         let wait_secs =
                             err.flood_wait_secs().unwrap_or((album_attempts * 2) as u32);
@@ -1666,7 +1690,12 @@ fn run_intelligent_album(
                                 err.user_message()
                             ),
                         );
-                        std::thread::sleep(std::time::Duration::from_secs(wait_secs as u64));
+                        if !wait_retry_with_cancel(tid, wait_secs) {
+                            break Err(crate::core::tg_error::TgError::new(
+                                crate::core::tg_error::TgErrorCode::Cancelled,
+                                "transfer cancelled by user",
+                            ));
+                        }
                         continue;
                     }
                     break Err(err);
@@ -1749,6 +1778,22 @@ fn run_intelligent_album(
                 )?;
             }
             Err(error) => {
+                if matches!(error.code(), crate::core::tg_error::TgErrorCode::Cancelled)
+                    || job_queue::is_transfer_cancelled(tid)
+                {
+                    persist_transfer_log(
+                        tid,
+                        "warn",
+                        "transfer_cancelled",
+                        format!("album stopped before fallback: {}", error.user_message()),
+                    );
+                    for artifact in artifacts.drain(..) {
+                        artifact.cleanup();
+                    }
+                    let _ = job_queue::set_transfer_state(tid, TransferState::Cancelled);
+                    let _ = super::autogram_core::transfer::update_transfer_run_state(tid, "CANCELLED");
+                    return Err("Transfer cancelled by user".into());
+                }
                 let err_msg = error.user_message();
                 persist_transfer_log(
                     tid,
@@ -1855,8 +1900,20 @@ fn run_intelligent_album(
                         match res {
                             Ok(ok_res) => break Ok(ok_res),
                             Err(err) => {
-                                let is_network = grammers_ops::is_pool_or_transport_error(&err)
-                                    || err.retryable();
+                                if job_queue::is_transfer_cancelled(tid) {
+                                    break Err(crate::core::tg_error::TgError::new(
+                                        crate::core::tg_error::TgErrorCode::Cancelled,
+                                        "transfer cancelled by user",
+                                    ));
+                                }
+                                // A single send can also have an unknown
+                                // commit after transport loss. Retry only a
+                                // server-declared FloodWait; all other errors
+                                // are reconciled/finalized without re-upload.
+                                let is_network = matches!(
+                                    err.code(),
+                                    crate::core::tg_error::TgErrorCode::FloodWait
+                                );
                                 if is_network && single_attempts <= 3 {
                                     let wait_secs = err
                                         .flood_wait_secs()
@@ -1881,9 +1938,12 @@ fn run_intelligent_album(
                                             err.user_message()
                                         ),
                                     );
-                                    std::thread::sleep(std::time::Duration::from_secs(
-                                        wait_secs as u64,
-                                    ));
+                                    if !wait_retry_with_cancel(tid, wait_secs) {
+                                        break Err(crate::core::tg_error::TgError::new(
+                                            crate::core::tg_error::TgErrorCode::Cancelled,
+                                            "transfer cancelled by user",
+                                        ));
+                                    }
                                     continue;
                                 }
                                 break Err(err);
@@ -1950,6 +2010,22 @@ fn run_intelligent_album(
                             }
                         }
                         Err(error) => {
+                            if matches!(error.code(), crate::core::tg_error::TgErrorCode::Cancelled)
+                                || job_queue::is_transfer_cancelled(tid)
+                            {
+                                for artifact in artifacts.drain(..) {
+                                    artifact.cleanup();
+                                }
+                                let _ = job_queue::set_transfer_state(tid, TransferState::Cancelled);
+                                let _ = super::autogram_core::transfer::update_transfer_run_state(tid, "CANCELLED");
+                                persist_transfer_log(
+                                    tid,
+                                    "warn",
+                                    "transfer_cancelled",
+                                    format!("fallback upload stopped: {}", error.user_message()),
+                                );
+                                return Err("Transfer cancelled by user".into());
+                            }
                             fallback_complete = false;
                             let message = error.user_message();
                             persist_transfer_log(
@@ -2035,8 +2111,16 @@ fn run_intelligent_album(
             match res {
                 Ok(ok_res) => break Ok(ok_res),
                 Err(err) => {
-                    let is_network =
-                        grammers_ops::is_pool_or_transport_error(&err) || err.retryable();
+                    if job_queue::is_transfer_cancelled(tid) {
+                        break Err(crate::core::tg_error::TgError::new(
+                            crate::core::tg_error::TgErrorCode::Cancelled,
+                            "transfer cancelled by user",
+                        ));
+                    }
+                    let is_network = matches!(
+                        err.code(),
+                        crate::core::tg_error::TgErrorCode::FloodWait
+                    );
                     if is_network && single_attempts <= 3 {
                         let wait_secs = err
                             .flood_wait_secs()
@@ -2050,7 +2134,12 @@ fn run_intelligent_album(
                             ),
                         );
                         grammers_ops::disconnect_cached_session(&delivery_identity.session);
-                        std::thread::sleep(std::time::Duration::from_secs(wait_secs as u64));
+                        if !wait_retry_with_cancel(tid, wait_secs) {
+                            break Err(crate::core::tg_error::TgError::new(
+                                crate::core::tg_error::TgErrorCode::Cancelled,
+                                "transfer cancelled by user",
+                            ));
+                        }
                         continue;
                     }
                     break Err(err);
@@ -2102,6 +2191,22 @@ fn run_intelligent_album(
                 }
             }
             Err(error) => {
+                if matches!(error.code(), crate::core::tg_error::TgErrorCode::Cancelled)
+                    || job_queue::is_transfer_cancelled(tid)
+                {
+                    for artifact in artifacts.drain(..) {
+                        artifact.cleanup();
+                    }
+                    let _ = job_queue::set_transfer_state(tid, TransferState::Cancelled);
+                    let _ = super::autogram_core::transfer::update_transfer_run_state(tid, "CANCELLED");
+                    persist_transfer_log(
+                        tid,
+                        "warn",
+                        "transfer_cancelled",
+                        format!("single upload stopped: {}", error.user_message()),
+                    );
+                    return Err("Transfer cancelled by user".into());
+                }
                 let message = error.user_message();
                 let state = ItemState::Failed;
                 let _ = job_queue::update_item(
@@ -2190,6 +2295,22 @@ fn finalize_transfer(tid: &str, items_len: usize, mode: &str) -> OrchStartResult
         items: items_len,
         message: msg,
     }
+}
+
+/// Sleep between classified retries without making Stop wait for the full
+/// FloodWait/backoff duration. Polling at 100ms keeps cancellation responsive
+/// while preserving the server-provided cooldown when the transfer continues.
+fn wait_retry_with_cancel(tid: &str, seconds: u32) -> bool {
+    let deadline = std::time::Instant::now()
+        + std::time::Duration::from_secs(seconds as u64);
+    while std::time::Instant::now() < deadline {
+        if job_queue::is_transfer_cancelled(tid) {
+            return false;
+        }
+        let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+        std::thread::sleep(remaining.min(std::time::Duration::from_millis(100)));
+    }
+    !job_queue::is_transfer_cancelled(tid)
 }
 
 fn run_orchestrated_grammers(
