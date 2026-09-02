@@ -1,13 +1,17 @@
-## v3.9.09 — Strict All-or-Nothing Album History Reconciliation & Zero Premature Fallback
+## v3.9.09 — Resilient HEIC/TIFF Binary Sniffing & Seamless Format Mismatch Recovery
 
-### 1. Album Recovery & Fail-Closed Reconciliation
-- Memperketat `try_recover_album_from_history` dengan validasi *all-or-nothing*: rekonsiliasi riwayat Telegram kini hanya dianggap berhasil jika **seluruh `expected_count` (10/10 item)** telah terindeks ke dalam satu `grouped_id` yang sama.
-- Menghapus jalur pengembalian rekonsiliasi parsial yang sebelumnya menandai item ke-10 sebagai `failed` saat terjadi *indexing lag* sementara di server Telegram, mengeliminasi false single fallback yang memicu pemisahan album (9+1).
-- Menambah batas toleransi *progressive backoff* rekonsiliasi hingga 8 putaran dengan interval adaptif (1.5s s.d 5.0s) untuk memberikan waktu yang memadai bagi Telegram DC menyelesaikan pengindeksan batch media besar.
+### 1. Drive Preview Modal & Image Decoder Intelligence
+- Mengimplementasikan `detectBrowserNativeMime` pada `HeicTiffViewer` untuk mendeteksi signature biner format standar peramban (JPEG, PNG, WebP, GIF, BMP, AVIF, ICO, SVG) secara langsung dari buffer memori sebelum memanggil decoder berat.
+- Mengatasi kegagalan pemutaran `ERR_USER Image is already browser readable: image/jpeg` saat berkas berformat asli JPEG/PNG/WebP dinamai dengan ekstensi `.heic` atau `.heif`, mengubah error decoder menjadi rendering blob instan tanpa penundaan atau CPU overhead.
+- Menambahkan fallback resilien pada pemanggilan `heic2any` dan `utif2` sehingga kesalahan format tidak memblokir pengguna dari melihat pratinjau media asli.
 
-### 2. Verification & Quality Assurance
-- `autogram-core` unit test suite: 56/56 tes berhasil (100% lulus).
-- Autonomous 5-Dimension Quality Sentinel: 100% i18n parity (6,183 keys), 0 TypeScript errors, Vitest 45/45 tes lulus, SQLite schema WAL & Foreign Keys terverifikasi aman.
+### 2. Format Routing & Real-Time Filename Synchronization
+- Menyinkronkan deteksi `isHeicFile`, `isTiffFile`, `isUnsupportedVideoFile`, dan `isUnsupportedAudioFile` dengan hasil analisis `sniffMagicBytes`, memungkinkan pratinjau media memanfaatkan kanvas interaktif penuh saat format asli didukung oleh runtime.
+- Memperbarui `handleFixExtension` dengan state reaktif `fixedFilename` untuk memperbarui judul berkas, label ekstensi (`JPG`/`PNG`), dan menghilangkan banner peringatan secara real-time saat pengguna menekan tombol *Fix Extension*.
+
+### 3. Verification & Quality Sentinel
+- Menambahkan unit test suite baru `HeicTiffViewer.test.ts` dan memperluas `magicBytesSniffer.test.ts` untuk pengujian berkas gambar JPEG yang menyamar sebagai `.heic`.
+- Autonomous 5-Dimension Quality Sentinel lulus 100%: 0 TypeScript error, 46 test suite Vitest lolos, 100% paritas bahasa i18n (6.183 keys), integritas skema SQLite WAL terverifikasi.
 
 ---
 

@@ -135,4 +135,16 @@ describe('magicBytesSniffer', () => {
     expect(result.severity).toBe('info');
     expect(result.suggestedFilename).toBe('2071942102007885896.mp4');
   });
+
+  // 9. Mismatched JPEG named with .heic extension
+  it('detects true JPEG format for a file named with .heic extension', () => {
+    const bytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]);
+    const result = sniffMagicBytes(bytes, 'genshinimpact.hd-13-08-2023-0003.heic');
+
+    expect(result.detectedExt).toBe('jpg');
+    expect(result.category).toBe('image');
+    expect(result.isExtensionMatch).toBe(false);
+    expect(result.severity).toBe('warning');
+    expect(result.suggestedFilename).toBe('genshinimpact.hd-13-08-2023-0003.jpg');
+  });
 });

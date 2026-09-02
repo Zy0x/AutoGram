@@ -1344,108 +1344,127 @@ export function DrivePreviewModal({
   const [moreTabsMenuPos, setMoreTabsMenuPos] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(null);
 
   const [isFixingExt, setIsFixingExt] = useState(false);
+  const [fixedFilename, setFixedFilename] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFixedFilename(null);
+  }, [file.id]);
 
   const handleFixExtension = useCallback(async (suggestedFilename: string) => {
     setIsFixingExt(true);
     try {
       file.name = suggestedFilename;
       if (file.original_name) file.original_name = suggestedFilename;
+      setFixedFilename(suggestedFilename);
       if (hexBytes) {
         setSniffResult(sniffMagicBytes(hexBytes, suggestedFilename));
       }
+      onRefreshDrive?.();
     } finally {
       setIsFixingExt(false);
     }
-  }, [file, hexBytes]);
+  }, [file, hexBytes, onRefreshDrive]);
 
   const isJsonFile = useMemo(() => {
-    const fn = (file.name || file.original_name || '').toLowerCase();
+    const fn = (fixedFilename || file.name || file.original_name || '').toLowerCase();
     // Explicit code / config extensions always go to CodeScriptViewer — never JSON viewer
     // even if the magic-byte sniffer returns category='json' (e.g. next.config.ts starts with {})
     const isExplicitCode = /\.(ts|tsx|js|jsx|mjs|cjs|py|pyi|rs|go|kt|kts|swift|java|rb|php|pl|sh|bash|ps1|bat|cmd|lua|r|jl|cs|cpp|cxx|c|cc|h|hh|hpp|ex|exs|dart|tf|hcl|nix|vue|svelte|astro|prisma|graphql|gql|proto|yaml|yml|toml|ini|cfg|conf|env|config)$/i.test(fn);
     if (isExplicitCode) return false;
     return fn.endsWith('.json') || fn.endsWith('.jsonc') || fn.endsWith('.json5') || fn.endsWith('.jsonl') || sniffResult?.category === 'json';
-  }, [file.name, file.original_name, sniffResult?.category]);
+  }, [file.name, file.original_name, fixedFilename, sniffResult?.category]);
 
   const isTabularFile = useMemo(() => {
-    const fn = (file.name || file.original_name || '').toLowerCase();
+    const fn = (fixedFilename || file.name || file.original_name || '').toLowerCase();
     // Guard: don't treat code files as tabular even if sniffer says 'table'
     const isExplicitCode = /\.(ts|tsx|js|jsx|py|rs|go|kt|java|rb|php|cs|cpp|c|h)$/i.test(fn);
     if (isExplicitCode) return false;
     return fn.endsWith('.csv') || fn.endsWith('.tsv') || sniffResult?.category === 'table';
-  }, [file.name, file.original_name, sniffResult?.category]);
+  }, [file.name, file.original_name, fixedFilename, sniffResult?.category]);
 
 
   const isLogFile = useMemo(() => {
-    const fn = (file.name || file.original_name || '').toLowerCase();
+    const fn = (fixedFilename || file.name || file.original_name || '').toLowerCase();
     return fn.endsWith('.log') || fn.endsWith('.out');
-  }, [file.name, file.original_name]);
+  }, [file.name, file.original_name, fixedFilename]);
 
   const isFontFile = useMemo(() => {
-    const fn = (file.name || file.original_name || '').toLowerCase();
+    const fn = (fixedFilename || file.name || file.original_name || '').toLowerCase();
     return fn.endsWith('.ttf') || fn.endsWith('.otf') || fn.endsWith('.woff') || fn.endsWith('.woff2') || fn.endsWith('.eot') || sniffResult?.category === 'font';
-  }, [file.name, file.original_name, sniffResult?.category]);
+  }, [file.name, file.original_name, fixedFilename, sniffResult?.category]);
 
   const isDbFile = useMemo(() => {
-    const fn = (file.name || file.original_name || '').toLowerCase();
+    const fn = (fixedFilename || file.name || file.original_name || '').toLowerCase();
     return fn.endsWith('.sql') || fn.endsWith('.sqlite') || fn.endsWith('.sqlite3') || fn.endsWith('.db') || sniffResult?.category === 'database';
-  }, [file.name, file.original_name, sniffResult?.category]);
+  }, [file.name, file.original_name, fixedFilename, sniffResult?.category]);
 
   const isDocxFile = useMemo(() => {
-    const fn = (file.name || file.original_name || '').toLowerCase();
+    const fn = (fixedFilename || file.name || file.original_name || '').toLowerCase();
     return fn.endsWith('.docx') || fn.endsWith('.dotx') || sniffResult?.detectedExt === 'docx';
-  }, [file.name, file.original_name, sniffResult?.detectedExt]);
+  }, [file.name, file.original_name, fixedFilename, sniffResult?.detectedExt]);
 
   const isPptxFile = useMemo(() => {
-    const fn = (file.name || file.original_name || '').toLowerCase();
+    const fn = (fixedFilename || file.name || file.original_name || '').toLowerCase();
     return fn.endsWith('.pptx') || fn.endsWith('.pptm') || fn.endsWith('.potx') || sniffResult?.detectedExt === 'pptx';
-  }, [file.name, file.original_name, sniffResult?.detectedExt]);
+  }, [file.name, file.original_name, fixedFilename, sniffResult?.detectedExt]);
 
   const isEpubFile = useMemo(() => {
-    const fn = (file.name || file.original_name || '').toLowerCase();
+    const fn = (fixedFilename || file.name || file.original_name || '').toLowerCase();
     return fn.endsWith('.epub') || sniffResult?.detectedExt === 'epub';
-  }, [file.name, file.original_name, sniffResult?.detectedExt]);
+  }, [file.name, file.original_name, fixedFilename, sniffResult?.detectedExt]);
 
   const isMarkdownFile = useMemo(() => {
-    const fn = (file.name || file.original_name || '').toLowerCase();
+    const fn = (fixedFilename || file.name || file.original_name || '').toLowerCase();
     return fn.endsWith('.md') || fn.endsWith('.markdown') || fn.endsWith('.mdx');
-  }, [file.name, file.original_name]);
+  }, [file.name, file.original_name, fixedFilename]);
 
   const isSpreadsheetFile = useMemo(() => {
-    const fn = (file.name || file.original_name || '').toLowerCase();
+    const fn = (fixedFilename || file.name || file.original_name || '').toLowerCase();
     return fn.endsWith('.xlsx') || fn.endsWith('.xls') || fn.endsWith('.xlsm') || fn.endsWith('.ods') || sniffResult?.detectedExt === 'xlsx';
-  }, [file.name, file.original_name, sniffResult?.detectedExt]);
+  }, [file.name, file.original_name, fixedFilename, sniffResult?.detectedExt]);
 
   const isJupyterFile = useMemo(() => {
-    const fn = (file.name || file.original_name || '').toLowerCase();
+    const fn = (fixedFilename || file.name || file.original_name || '').toLowerCase();
     return fn.endsWith('.ipynb');
-  }, [file.name, file.original_name]);
+  }, [file.name, file.original_name, fixedFilename]);
 
   // ── New format detectors ─────────────────────────────────────────────────
 
   /** HEIC/HEIF — iOS/macOS photo format, not natively supported by Chromium */
   const isHeicFile = useMemo(() => {
-    const fn = (file.name || file.original_name || '').toLowerCase();
-    return fn.endsWith('.heic') || fn.endsWith('.heif');
-  }, [file.name, file.original_name]);
+    const fn = (fixedFilename || file.name || file.original_name || '').toLowerCase();
+    if (sniffResult && sniffResult.category === 'image' && sniffResult.detectedExt !== 'heic' && sniffResult.detectedExt !== 'heif') {
+      return false;
+    }
+    return fn.endsWith('.heic') || fn.endsWith('.heif') || sniffResult?.detectedExt === 'heic' || sniffResult?.detectedExt === 'heif';
+  }, [file.name, file.original_name, fixedFilename, sniffResult?.category, sniffResult?.detectedExt]);
 
   /** TIF/TIFF — not natively supported by Chromium, decode via utif2 */
   const isTiffFile = useMemo(() => {
-    const fn = (file.name || file.original_name || '').toLowerCase();
-    return fn.endsWith('.tif') || fn.endsWith('.tiff');
-  }, [file.name, file.original_name]);
+    const fn = (fixedFilename || file.name || file.original_name || '').toLowerCase();
+    if (sniffResult && sniffResult.category === 'image' && sniffResult.detectedExt !== 'tif' && sniffResult.detectedExt !== 'tiff') {
+      return false;
+    }
+    return fn.endsWith('.tif') || fn.endsWith('.tiff') || sniffResult?.detectedExt === 'tif' || sniffResult?.detectedExt === 'tiff';
+  }, [file.name, file.original_name, fixedFilename, sniffResult?.category, sniffResult?.detectedExt]);
 
   /** Video formats NOT playable by Chromium/WebView2 natively */
   const isUnsupportedVideoFile = useMemo(() => {
-    const fn = (file.name || file.original_name || '').toLowerCase();
+    const fn = (fixedFilename || file.name || file.original_name || '').toLowerCase();
+    if (sniffResult && sniffResult.category === 'video' && ['mp4', 'mov', 'webm', 'm4v', 'ogv'].includes(sniffResult.detectedExt)) {
+      return false;
+    }
     return /\.(avi|flv|wmv|mpg|mpeg|m2ts|mts|vob|rmvb|rm|xvid|divx)$/i.test(fn);
-  }, [file.name, file.original_name]);
+  }, [file.name, file.original_name, fixedFilename, sniffResult?.category, sniffResult?.detectedExt]);
 
   /** Audio formats NOT playable by Chromium natively */
   const isUnsupportedAudioFile = useMemo(() => {
-    const fn = (file.name || file.original_name || '').toLowerCase();
+    const fn = (fixedFilename || file.name || file.original_name || '').toLowerCase();
+    if (sniffResult && sniffResult.category === 'audio' && ['mp3', 'wav', 'ogg', 'opus', 'flac', 'm4a', 'aac'].includes(sniffResult.detectedExt)) {
+      return false;
+    }
     return /\.(wma|amr|aiff|aif|ape|mid|midi|ra|ram|dsd|dsf)$/i.test(fn);
-  }, [file.name, file.original_name]);
+  }, [file.name, file.original_name, fixedFilename, sniffResult?.category, sniffResult?.detectedExt]);
 
   /** Legacy Microsoft Office binary formats (.doc, .ppt) — different from .docx/.pptx */
   const isLegacyOfficeFile = useMemo(() => {
@@ -1516,7 +1535,7 @@ export function DrivePreviewModal({
 
   const durationLabel = formatDriveDuration(driveFileDurationSeconds(file));
   const kindLabel = formatDriveKindLabel(file);
-  const displayName = driveFileDisplayName(file);
+  const displayName = fixedFilename || driveFileDisplayName(file);
   const gridThumb = useMemo(() => {
     const t = getCachedThumb(folderId, file.id);
     return typeof t === 'string' ? t : null;
@@ -2827,10 +2846,11 @@ export function DrivePreviewModal({
   const [mdViewMode, setMdViewMode] = useState<'visual' | 'raw'>('visual');
 
   const fileExtBadge = useMemo(() => {
-    const raw = (file.name || file.original_name || '').split('.').pop()?.trim();
-    if (!raw || raw.length > 8 || raw.toLowerCase() === (file.name || '').toLowerCase()) return null;
+    const activeName = fixedFilename || file.name || file.original_name || '';
+    const raw = activeName.split('.').pop()?.trim();
+    if (!raw || raw.length > 8 || raw.toLowerCase() === activeName.toLowerCase()) return null;
     return raw.toUpperCase();
-  }, [file.name, file.original_name]);
+  }, [file.name, file.original_name, fixedFilename]);
 
   const fileExtBadgeStyle = useMemo(() => {
     if (isDocxFile) {
