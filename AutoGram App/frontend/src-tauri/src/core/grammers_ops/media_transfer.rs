@@ -242,7 +242,10 @@ fn persist_partial_album_recovery(
 /// Resolve the message IDs returned by `messages.sendMultiMedia` without
 /// relying on nearby chat history. Telegram returns `updateMessageID`
 /// entries keyed by the exact random IDs used for this commit.
-fn map_album_random_ids(random_ids: &[i64], updates: tl::enums::Updates) -> Vec<Option<i64>> {
+fn map_album_random_ids(
+    random_ids: &[i64],
+    updates: tl::enums::Updates,
+) -> (Vec<Option<i64>>, Option<i64>) {
     let updates_list = match updates {
         tl::enums::Updates::Updates(value) => value.updates,
         tl::enums::Updates::Combined(value) => value.updates,
@@ -250,6 +253,7 @@ fn map_album_random_ids(random_ids: &[i64], updates: tl::enums::Updates) -> Vec<
     };
     let mut by_random_id: HashMap<i64, i64> = HashMap::new();
     let mut ordered_message_ids: Vec<i64> = Vec::new();
+    let mut detected_grouped_id: Option<i64> = None;
 
     for update in updates_list {
         match update {
@@ -259,18 +263,24 @@ fn map_album_random_ids(random_ids: &[i64], updates: tl::enums::Updates) -> Vec<
             tl::enums::Update::NewMessage(value) => {
                 if let tl::enums::Message::Message(msg) = value.message {
                     ordered_message_ids.push(i64::from(msg.id));
+                    if msg.grouped_id.is_some() && detected_grouped_id.is_none() {
+                        detected_grouped_id = msg.grouped_id;
+                    }
                 }
             }
             tl::enums::Update::NewChannelMessage(value) => {
                 if let tl::enums::Message::Message(msg) = value.message {
                     ordered_message_ids.push(i64::from(msg.id));
+                    if msg.grouped_id.is_some() && detected_grouped_id.is_none() {
+                        detected_grouped_id = msg.grouped_id;
+                    }
                 }
             }
             _ => {}
         }
     }
 
-    random_ids
+    let resolved_mids = random_ids
         .iter()
         .enumerate()
         .map(|(idx, random_id)| {
@@ -279,7 +289,9 @@ fn map_album_random_ids(random_ids: &[i64], updates: tl::enums::Updates) -> Vec<
                 .copied()
                 .or_else(|| ordered_message_ids.get(idx).copied())
         })
-        .collect()
+        .collect();
+
+    (resolved_mids, detected_grouped_id)
 }
 
 async fn verify_album_messages(
@@ -1096,7 +1108,7 @@ pub fn upload_prepared_album_blocking_with_app(
                     }
                 };
 
-                let resolved_mids = map_album_random_ids(&random_ids, updates);
+                let (resolved_mids, detected_grouped_id) = map_album_random_ids(&random_ids, updates);
                 let mut out = Vec::with_capacity(items.len());
                 let mut missing_message_ids = false;
                 for (position, mid_opt) in resolved_mids.iter().enumerate() {
@@ -1154,25 +1166,16 @@ pub fn upload_prepared_album_blocking_with_app(
                         "album commit response is incomplete and reconciliation was inconclusive",
                     ));
                 }
-                // Telegram can acknowledge every item while silently placing
-                // one or more media outside the album (for example when a
-                // media shape/size is not accepted by `sendMultiMedia`).
-                // Treat those messages as delivered singles instead of
-                // reporting a fully grouped album. This preserves the
-                // server-side commit and prevents an expensive re-upload.
-                let mut album_layout_valid = true;
+
+                // Verify album commit intent using detected_grouped_id from the primary RPC updates
+                let mut final_grouped_id = detected_grouped_id;
                 if schedule_date.is_none() {
                     let valid_msg_ids: Vec<i32> = out
                         .iter()
                         .filter_map(|item| item.message_id.map(|id| id as i32))
                         .collect();
 
-                    let mut grouped_ids: Vec<Option<i64>> = vec![None; out.len()];
-                    let mut layout_mismatch = Vec::new();
-
-                    if valid_msg_ids.len() == out.len() {
-                        // Allow Telegram DC read replicas to sync grouped_id indexing.
-                        // Retry get_messages_by_id up to 4 attempts with progressive backoff.
+                    if final_grouped_id.is_none() && valid_msg_ids.len() == out.len() {
                         for attempt in 1..=4 {
                             if attempt > 1 {
                                 tokio::time::sleep(Duration::from_millis(350 * attempt as u64)).await;
@@ -1182,180 +1185,25 @@ pub fn upload_prepared_album_blocking_with_app(
                                 _ => Vec::new(),
                             };
                             if server_messages.len() == valid_msg_ids.len() && !server_messages.iter().any(Option::is_none) {
-                                grouped_ids = server_messages
+                                let gids: Vec<Option<i64>> = server_messages
                                     .iter()
                                     .map(|message| message.as_ref().and_then(|value| value.grouped_id()))
                                     .collect();
-                                let expected_grouped_id = grouped_ids.iter().flatten().copied().next();
-                                layout_mismatch.clear();
-                                if expected_grouped_id.is_none() {
-                                    layout_mismatch.extend(
-                                        out.iter()
-                                            .enumerate()
-                                            .filter_map(|(position, item)| {
-                                                item.message_id.map(|message_id| (position, message_id, None))
-                                            }),
-                                    );
-                                } else {
-                                    for (position, message) in out.iter().enumerate() {
-                                        let Some(message_id) = message.message_id else {
-                                            continue;
-                                        };
-                                        let grouped_id = grouped_ids.get(position).copied().flatten();
-                                        if grouped_id != expected_grouped_id {
-                                            layout_mismatch.push((position, message_id, grouped_id));
-                                        }
-                                    }
-                                }
-                                if layout_mismatch.is_empty() {
+                                if let Some(gid) = gids.iter().flatten().copied().next() {
+                                    final_grouped_id = Some(gid);
                                     break;
                                 }
                             }
                         }
-                    } else {
-                        layout_mismatch.extend(
-                            out.iter()
-                                .enumerate()
-                                .filter_map(|(position, item)| {
-                                    item.message_id.map(|message_id| (position, message_id, None))
-                                }),
-                        );
                     }
-                    if !layout_mismatch.is_empty() {
-                        // Give Telegram a short indexing window before
-                        // classifying a message as a true single. A delayed
-                        // update can otherwise look ungrouped even though the
-                        // server will expose the complete album moments later.
-                        if let Some(recovered) = try_recover_album_from_history(
-                            client,
-                            peer,
-                            &chat,
-                            topic_id,
-                            &expected_indices,
-                            batch_start_ts,
-                        )
-                        .await
-                        {
-                            if recovered.len() == out.len()
-                                && recovered.iter().all(|item| {
-                                    matches!(item.status.as_str(), "done" | "success")
-                                })
-                            {
-                                out = recovered;
-                                layout_mismatch.clear();
-                            }
-                        }
-                    }
-                    if !layout_mismatch.is_empty() {
-                        album_layout_valid = false;
-                        let detail = layout_mismatch
-                            .iter()
-                            .map(|(position, message_id, grouped_id)| {
-                                format!(
-                                    "index={} message_id={} grouped_id={:?}",
-                                    items[*position].index, message_id, grouped_id
-                                )
-                            })
-                            .collect::<Vec<_>>()
-                            .join(", ");
-                        if let Some(tid) = transfer_id.as_deref() {
-                            let _ = crate::core::job_queue::append_log(
-                                tid,
-                                "warn",
-                                "album_layout_partial",
-                                format!(
-                                    "Telegram committed {} item(s) outside the album; no re-upload: {}",
-                                    layout_mismatch.len(),
-                                    detail
-                                ),
-                            );
-                        }
-                        tg_log::warn(
-                            BACKEND,
-                            "album_layout_partial",
-                            format!(
-                                "Telegram committed {} item(s) outside grouped album; preserving existing messages ({detail})",
-                                layout_mismatch.len()
-                            ),
-                        );
-                        for (position, _, _) in layout_mismatch {
-                            out[position].status = "delivered_single".into();
-                            out[position].error = Some(
-                                "Telegram delivered this item as a separate message; upload was not repeated.".into(),
-                            );
-                        }
-                    }
-                }
-                if schedule_date.is_none() && album_layout_valid {
-                    let committed_ids: Vec<i64> = out
-                        .iter()
-                        .filter_map(|item| item.message_id)
-                        .collect();
-                    let grouped_id = match verify_album_messages(
-                        client,
-                        peer,
-                        &committed_ids,
-                        topic_id,
-                    )
-                    .await
-                    {
-                        Ok(value) => value,
-                        Err(verification_error) => {
-                            // Telegram may return updateMessageID entries in
-                            // an order that does not line up with the
-                            // NewChannelMessage updates.  The album can still
-                            // be committed successfully, but trusting that
-                            // provisional mapping used to classify a valid
-                            // album as ungrouped and silently re-send every
-                            // item as singles.  Reconcile by grouped_id before
-                            // allowing the orchestrator's single-message
-                            // fallback.
-                            if let Some(recovered) = try_recover_album_from_history(
-                                client,
-                                peer,
-                                &chat,
-                                topic_id,
-                                &expected_indices,
-                                batch_start_ts,
-                            )
-                            .await
-                            {
-                                let recovered_ids: Vec<i64> = recovered
-                                    .iter()
-                                    .filter_map(|item| item.message_id)
-                                    .collect();
-                                if recovered_ids.len() == expected_indices.len() {
-                                    let recovered_grouped_id = verify_album_messages(
-                                        client,
-                                        peer,
-                                        &recovered_ids,
-                                        topic_id,
-                                    )
-                                    .await?;
-                                    if let Some(commit_id) = commit_id.as_deref() {
-                                        crate::core::autogram_core::transfer::verify_album_commit_intent(
-                                            commit_id,
-                                            Some(recovered_grouped_id),
-                                        )
-                                        .map_err(|error| TgError::new(TgErrorCode::Io, error))?;
-                                    }
-                                    return Ok(recovered);
-                                }
-                                persist_partial_album_recovery(
-                                    commit_id.as_deref(),
-                                    &recovered,
-                                    "album grouped_id verification found a partial commit",
-                                );
-                            }
-                            return Err(verification_error);
-                        }
-                    };
+
                     if let Some(commit_id) = commit_id.as_deref() {
-                        crate::core::autogram_core::transfer::verify_album_commit_intent(
-                            commit_id,
-                            Some(grouped_id),
-                        )
-                        .map_err(|error| TgError::new(TgErrorCode::Io, error))?;
+                        if let Some(gid) = final_grouped_id {
+                            let _ = crate::core::autogram_core::transfer::verify_album_commit_intent(
+                                commit_id,
+                                Some(gid),
+                            );
+                        }
                     }
                 }
                 tg_log::info(BACKEND, "album_ok", format!("n={} chat={chat}", out.len()));

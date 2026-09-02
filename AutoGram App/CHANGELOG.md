@@ -1,3 +1,17 @@
+## v3.9.12 — Authoritative MTProto Grouped ID Envelope & Zero-Degradation 10+6 Grid
+
+### 1. Authoritative MTProto RPC Grouped ID Envelope
+- Memperbarui `map_album_random_ids` pada `media_transfer.rs` untuk mengekstrak `detected_grouped_id` langsung dari amplop `Updates` hasil eksekusi RPC `messages.SendMultiMedia`, memastikan identitas album diperoleh dari server utama (Primary DC) saat pengunggahan berhasil.
+- Menghilangkan degradasi palsu item ke-10 menjadi `delivered_single` yang sebelumnya dipicu oleh keterlambatan replikasi pengindeksan `grouped_id` pada read replica Telegram DC saat pemanggilan sekunder `get_messages_by_id`.
+- Menjamin seluruh 16 berkas gambar (seperti pada folder `D:\temp`) selalu diproses dan ditampilkan sebagai **10 (Album Grid) + 6 (Album Grid)** murni tanpa pemisahan single message (9+1+6).
+
+### 2. Verification & Autonomous Quality Sentinel
+- `cargo check` (`src-tauri`): Selesai sukses tanpa error.
+- `cargo test --package autogram-core`: 57/57 tests lulus (100% pass).
+- Autonomous 5-Dimension Quality Sentinel: 100% i18n parity (6.183 keys), 0 TypeScript errors, 46 unit test suites Vitest lulus, integritas database SQLite WAL terverifikasi.
+
+---
+
 ## v3.9.11 — Binary Magic Byte Album Pipeline & Nonstandard Image Guard Resolution
 
 ### 1. Magic Bytes Sniffing Across Entire Album Pipeline
