@@ -1,3 +1,19 @@
+## v3.9.05 — Verifikasi Layout Album Telegram dan Anti-Reupload
+
+### 1. Album/Grid Integrity
+- Commit album sekarang memeriksa `grouped_id` setiap pesan setelah `sendMultiMedia`; pesan yang diterima Telegram di luar album ditandai sebagai single sehingga UI tidak lagi mengklaim grid penuh secara keliru.
+- Item native yang berhasil dikirim sebagai single dipertahankan pada message ID yang sudah ada, sementara hanya item yang benar-benar hilang yang masuk fallback single-send.
+
+### 2. Backend Reliability & Observability
+- Transfer journal mencatat `album_layout_partial` dan `album_item_delivered_single` dengan indeks sumber, message ID, dan grouped ID untuk investigasi tanpa mengulang upload.
+- Verifikasi grouped ID tidak lagi menerima fallback message ID sebagai bukti album, mencegah commit palsu ketika Telegram memecah sebagian paket.
+
+### 3. Verifikasi
+- `cargo test transfer::album`: 11/11 lulus.
+- `cargo check`, `npm run test:quality`, `npm run build`, dan native Tauri debug build lulus.
+
+---
+
 ## v3.9.04 — Grid Contiguous Boundary dan Urutan Sumber
 
 ### 1. Album Planner

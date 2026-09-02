@@ -1729,13 +1729,29 @@ fn run_intelligent_album(
                 let mut message_ids = Vec::new();
                 let mut all_committed = true;
                 for result in results {
-                    let state = if matches!(result.status.as_str(), "done" | "success") {
+                    let is_grouped = matches!(result.status.as_str(), "done" | "success");
+                    let is_delivered_single = result.status == "delivered_single";
+                    let state = if is_grouped || is_delivered_single {
                         any_ok = true;
                         ItemState::Done
                     } else {
                         all_committed = false;
                         ItemState::Failed
                     };
+                    if is_delivered_single {
+                        all_committed = false;
+                        persist_transfer_log(
+                            tid,
+                            "warn",
+                            "album_item_delivered_single",
+                            format!(
+                                "index={} message_id={:?} action=preserve_no_reupload reason={}",
+                                result.index,
+                                result.message_id,
+                                result.error.as_deref().unwrap_or("telegram_layout_partial")
+                            ),
+                        );
+                    }
                     if let Some(message_id) = result.message_id {
                         message_ids.push(message_id);
                     }

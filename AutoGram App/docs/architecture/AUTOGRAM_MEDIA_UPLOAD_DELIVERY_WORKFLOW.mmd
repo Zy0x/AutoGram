@@ -65,7 +65,7 @@ flowchart TD
         ORIGINAL["ORIGINAL / uncompressed\nJPEG/MP4 → NativeVisual; PNG → lossless document\nconsumer audio → AudioGroup\nunsupported → OriginalDocumentBatch\nJPEG > 10 MB → document demotion\nforce_native_media explicitly opts into PNG→photo conversion"]
         SMART["SMART / automatic\nJPEG or validated native MP4 → NativeVisual; PNG → lossless document\nconsumer audio → AudioGroup\nother/unsafe → DocumentGroup\nforce_native_media explicitly opts into PNG→photo conversion"]
         TRANSFORM["Plan/record transform\nremote download; image convert WebP/etc.;\nvideo lossless remux or H.264/AAC reencode\nwith hardware/CPU policy and validation"]
-        ALB_ELIG["albumEligible = groupAsAlbum &&\n(payload NativeVisual or AudioGroup)"]
+        ALB_ELIG["albumEligible = groupAsAlbum &&\npayload NativeVisual\n(Telegram photo/video album contract)"]
         DUP_SCAN["If duplicate policy SKIP and local:\nlookup ledger by session + destination + topic + SHA256 + filename + size"]
         DUP_FOUND{"Exact or probable ledger match?"}
         DUP_EXACT["Exact SHA256 → default choice Skip\nUI can override to Send anyway"]
@@ -207,7 +207,8 @@ flowchart TD
         ALB_HISTORY["Album history recovery\nup to 5 progressive waits; match grouped_id\nfilter by chat/topic/time and expected count"]
         SINGLE_HISTORY["Single history recovery\nmatch recent message when send response is uncertain"]
         VERIFIED["Verify grouped_id / message IDs\nmark album commit COMMITTED\nrecord upload ledger bindings"]
-        PARTIAL["Partial result → REVIEW_REQUIRED\nper-item Done/Failed; retain commit evidence"]
+        PARTIAL["Partial/layout result → REVIEW_REQUIRED\nper-item Done/Failed or delivered_single\nretain committed message IDs; no re-upload"]
+        LAYOUT["Telegram accepted item but grouped_id is missing/different\nmark delivered_single + warning\nkeep existing message; only absent items fallback"]
         ALB_FALLBACK["Only after grouped-history reconciliation fails:\nmark REVIEW_REQUIRED, then send group items individually\n(with retry and ledger binding); valid grouped commits are retained"]
         FAILED["Item Failed / transfer FAILED\nemit StudioItemDone or StudioFailed"]
         CLEANUP["Remove prepared/download/split temp artifacts\nupdate durable transfer run state"]
@@ -218,6 +219,7 @@ flowchart TD
         NET_RETRY -->|no album group| ALB_HISTORY
         ALB_HISTORY -->|full match| VERIFIED
         ALB_HISTORY -->|inconclusive| ALB_FALLBACK
+        VERIFIED -->|layout partial| LAYOUT --> PARTIAL
         SINGLE_HISTORY -->|matched| VERIFIED
         SINGLE_HISTORY -->|not matched| FAILED
         ALB_FALLBACK --> SINGLE_SEND

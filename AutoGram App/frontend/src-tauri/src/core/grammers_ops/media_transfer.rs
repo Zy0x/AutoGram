@@ -961,7 +961,7 @@ pub fn upload_prepared_album_blocking_with_app(
 
                 let mut out = Vec::with_capacity(items.len());
                 let mut missing_message_ids = false;
-                for (position, msg_opt) in sent.into_iter().enumerate() {
+                for (position, msg_opt) in sent.iter().enumerate() {
                     let item = &items[position];
                     let message_id = msg_opt.as_ref().map(|m| m.id() as i64);
                     missing_message_ids |= message_id.is_none();
@@ -1016,7 +1016,79 @@ pub fn upload_prepared_album_blocking_with_app(
                         "album commit response is incomplete and reconciliation was inconclusive",
                     ));
                 }
+                // Telegram can acknowledge every item while silently placing
+                // one or more media outside the album (for example when a
+                // media shape/size is not accepted by `sendMultiMedia`).
+                // Treat those messages as delivered singles instead of
+                // reporting a fully grouped album. This preserves the
+                // server-side commit and prevents an expensive re-upload.
+                let mut album_layout_valid = true;
                 if schedule_date.is_none() {
+                    let grouped_ids: Vec<Option<i64>> = sent
+                        .iter()
+                        .map(|message| message.as_ref().and_then(|value| value.grouped_id()))
+                        .collect();
+                    let expected_grouped_id = grouped_ids.iter().flatten().copied().next();
+                    let mut layout_mismatch = Vec::new();
+                    if expected_grouped_id.is_none() {
+                        layout_mismatch.extend(
+                            out.iter()
+                                .enumerate()
+                                .filter_map(|(position, item)| {
+                                    item.message_id.map(|message_id| (position, message_id, None))
+                                }),
+                        );
+                    }
+                    for (position, message) in out.iter().enumerate() {
+                        let Some(message_id) = message.message_id else {
+                            continue;
+                        };
+                        let grouped_id = grouped_ids.get(position).copied().flatten();
+                        if grouped_id != expected_grouped_id {
+                            layout_mismatch.push((position, message_id, grouped_id));
+                        }
+                    }
+                    if !layout_mismatch.is_empty() {
+                        album_layout_valid = false;
+                        let detail = layout_mismatch
+                            .iter()
+                            .map(|(position, message_id, grouped_id)| {
+                                format!(
+                                    "index={} message_id={} grouped_id={:?}",
+                                    items[*position].index, message_id, grouped_id
+                                )
+                            })
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        if let Some(tid) = transfer_id.as_deref() {
+                            let _ = crate::core::job_queue::append_log(
+                                tid,
+                                "warn",
+                                "album_layout_partial",
+                                format!(
+                                    "Telegram committed {} item(s) outside the album; no re-upload: {}",
+                                    layout_mismatch.len(),
+                                    detail
+                                ),
+                            );
+                        }
+                        tg_log::warn(
+                            BACKEND,
+                            "album_layout_partial",
+                            format!(
+                                "Telegram committed {} item(s) outside grouped album; preserving existing messages ({detail})",
+                                layout_mismatch.len()
+                            ),
+                        );
+                        for (position, _, _) in layout_mismatch {
+                            out[position].status = "delivered_single".into();
+                            out[position].error = Some(
+                                "Telegram delivered this item as a separate message; upload was not repeated.".into(),
+                            );
+                        }
+                    }
+                }
+                if schedule_date.is_none() && album_layout_valid {
                     let committed_ids: Vec<i64> = out
                         .iter()
                         .filter_map(|item| item.message_id)
