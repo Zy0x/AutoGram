@@ -555,6 +555,18 @@ export function getCachedThumb(
 ): string | null | undefined {
   const k = cacheKey(folderId, messageId, activeQuality, activeSession, opts?.peerId, opts?.topicId);
   if (memCache.has(k)) return memCache.get(k)!;
+  // Native `thumb_single_ready` events do not carry a forum topic. Reuse the
+  // topic-less cache entry because Telegram message IDs are unique per peer;
+  // this prevents a completed async video frame from being hidden in topic
+  // scoped cards and preflight comparisons.
+  if (opts?.topicId != null) {
+    const baseKey = cacheKey(folderId, messageId, activeQuality, activeSession, opts?.peerId, null);
+    if (memCache.has(baseKey)) {
+      const value = memCache.get(baseKey)!;
+      memCache.set(k, value);
+      return value;
+    }
+  }
   return undefined;
 }
 
@@ -1135,7 +1147,10 @@ export async function requestThumb(
     inflightByKey.delete(k);
     memCache.delete(k);
   } else {
-    const hit = memCache.get(k);
+    const hit = memCache.get(k) || (opts?.topicId != null
+      ? memCache.get(cacheKey(folderId, messageId, activeQuality, creds.session, peerId, null))
+      : undefined);
+    if (hit && !memCache.has(k)) memCache.set(k, hit);
     if (hit) return hit;
     const failAt = softFailAt.get(k);
     if (failAt != null && Date.now() - failAt < softFailMs(priorityValue(opts?.priority))) {
@@ -1158,7 +1173,10 @@ export async function requestThumb(
 
   const work = (async (): Promise<string | null> => {
     // Re-check mem (list_media prime often races card mount by one tick).
-    const again = memCache.get(k);
+    const again = memCache.get(k) || (opts?.topicId != null
+      ? memCache.get(cacheKey(folderId, messageId, activeQuality, creds.session, peerId, null))
+      : undefined);
+    if (again && !memCache.has(k)) memCache.set(k, again);
     if (again) return again;
 
     const persisted = opts?.skipPersistentCache ? null : await loadPersistentThumb(k);
