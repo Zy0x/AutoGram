@@ -163,7 +163,10 @@ export async function driveListFiles(
   const contextKey = `${mediaContext.accountId}:${mediaContext.peerId}:${mediaContext.scopeKind}:${mediaContext.topicId ?? 'none'}:${opts?.contentFilter ?? 'all'}:${opts?.perspective ?? 'telegram'}:${offsetId ?? 0}:${minId}:${localOffset}:${cursorFingerprint}`;
 
   // L1 In-Memory Fast Cache Check
-  if (!opts?.bypassCache && mediaListCache.has(contextKey)) {
+  // Never serve a topic from the short-lived list cache: Telegram deletions
+  // must be reflected immediately in a topic view. Non-topic locations retain
+  // the latency-saving L1 cache.
+  if (topicId == null && !opts?.bypassCache && mediaListCache.has(contextKey)) {
     return mediaListCache.get(contextKey);
   }
 
