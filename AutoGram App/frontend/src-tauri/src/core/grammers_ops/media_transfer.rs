@@ -1049,6 +1049,31 @@ pub fn upload_prepared_album_blocking_with_app(
                         }
                     }
                     if !layout_mismatch.is_empty() {
+                        // Give Telegram a short indexing window before
+                        // classifying a message as a true single. A delayed
+                        // update can otherwise look ungrouped even though the
+                        // server will expose the complete album moments later.
+                        if let Some(recovered) = try_recover_album_from_history(
+                            client,
+                            peer,
+                            &chat,
+                            topic_id,
+                            &expected_indices,
+                            batch_start_ts,
+                        )
+                        .await
+                        {
+                            if recovered.len() == out.len()
+                                && recovered.iter().all(|item| {
+                                    matches!(item.status.as_str(), "done" | "success")
+                                })
+                            {
+                                out = recovered;
+                                layout_mismatch.clear();
+                            }
+                        }
+                    }
+                    if !layout_mismatch.is_empty() {
                         album_layout_valid = false;
                         let detail = layout_mismatch
                             .iter()

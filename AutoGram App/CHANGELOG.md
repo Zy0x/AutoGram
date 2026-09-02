@@ -1,3 +1,13 @@
+## v3.9.06 — Rekonsiliasi Delay Indexing Album
+
+### 1. Album/Grid Reliability
+- Saat `grouped_id` belum terlihat pada respons awal, engine memberi Telegram jendela rekonsiliasi berbasis history sebelum menandai item sebagai `delivered_single`, sehingga album yang hanya terlambat terindeks tetap dapat tampil sebagai grid.
+
+### 2. Verifikasi
+- `cargo check` Tauri lulus setelah penambahan rekonsiliasi layout parsial.
+
+---
+
 ## v3.9.05 — Verifikasi Layout Album Telegram dan Anti-Reupload
 
 ### 1. Album/Grid Integrity
