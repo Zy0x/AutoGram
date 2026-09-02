@@ -826,11 +826,31 @@ fn run_intelligent_album(
     // packing presets must not silently override the user's selected size.
     let album_grid_size =
         option_usize(&rec.options, "album_group_size", "albumGroupSize", 10).clamp(2, 10);
-    let packing = if album_grid_size == 10 {
-        AlbumPackingPolicy::Maximum
-    } else {
-        AlbumPackingPolicy::Custom
-    };
+    let packing = rec
+        .options
+        .get("album_packing")
+        .or_else(|| rec.options.get("albumPacking"))
+        .and_then(|value| value.as_str())
+        .map(|value| match value.to_ascii_lowercase().as_str() {
+            "balanced" => AlbumPackingPolicy::Balanced,
+            "follow_selection" | "followselection" => AlbumPackingPolicy::FollowSelection,
+            "never" | "disabled" => AlbumPackingPolicy::Never,
+            "custom" => AlbumPackingPolicy::Custom,
+            _ => {
+                if album_grid_size == 10 {
+                    AlbumPackingPolicy::Maximum
+                } else {
+                    AlbumPackingPolicy::Custom
+                }
+            }
+        })
+        .unwrap_or_else(|| {
+            if album_grid_size == 10 {
+                AlbumPackingPolicy::Maximum
+            } else {
+                AlbumPackingPolicy::Custom
+            }
+        });
     let plan_options = AlbumPlanOptions {
         enabled: true,
         packing,
@@ -1558,9 +1578,10 @@ fn run_intelligent_album(
         "info",
         "album_plan_frozen",
         format!(
-            "groups={} singles={} packing={packing:?} group_size={album_grid_size}",
+            "groups={} singles={} packing={packing:?} group_size={album_grid_size} explanations={}",
             plan.groups.len(),
-            plan.singles.len()
+            plan.singles.len(),
+            plan.explanations.join(",")
         ),
     );
 

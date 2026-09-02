@@ -1,3 +1,20 @@
+## v3.9.03 — Album/Grid Capability Routing dan Fallback Telegram
+
+### 1. Album & Grid Delivery
+- Planner kini menghormati preset `albumPacking` (`maximum`, `balanced`, `custom`, `follow_selection`, `never`) serta ukuran album yang dipilih pengguna.
+- Hanya foto/video native yang digabung ke `messages.sendMultiMedia`; audio, dokumen, split-part, dan format non-native dikirim terpisah sesuai batas resmi Telegram.
+- Item yang dipaksa single (misalnya video tanpa audio) dan bucket non-kompatibel dicatat bersama indeks item pada transfer log, sehingga hasil grid dapat diaudit.
+
+### 2. Delivery Policy Consistency
+- Mode High Quality/Smart/Original, presentation override, spoiler, topic/reply, scheduling, send-as, dan transcode tetap menjadi bagian dari compatibility key; item dengan kebijakan berbeda tidak tercampur ke album yang salah.
+- Fallback single-send mempertahankan metadata delivery dan tidak mengulang item yang sudah berhasil di-commit.
+
+### 3. Verifikasi
+- `autogram-core` album tests: 10/10 lulus, termasuk audio non-grid dan forced-single partition.
+- `cargo check`, TypeScript, dan build frontend sebelumnya lulus; quality gate dijalankan kembali setelah perubahan final.
+
+---
+
 ## v3.9.02 — Rekonsiliasi Topic Telegram dan Pencegahan Media Phantom
 
 ### 1. Topic Media Integrity

@@ -141,11 +141,17 @@ fn partition_sizes(total: usize, target: usize, avoid_single: bool) -> Vec<usize
     sizes
 }
 
-fn groupable(class: PayloadClass, options: &AlbumPlanOptions) -> bool {
+fn groupable(class: PayloadClass, _options: &AlbumPlanOptions) -> bool {
     match class {
         PayloadClass::NativeVisual => true,
-        PayloadClass::AudioGroup => options.group_audio,
-        PayloadClass::DocumentGroup | PayloadClass::SplitPartBatch | PayloadClass::OriginalDocumentBatch => false,
+        // Telegram's official `messages.sendMultiMedia` album contract is
+        // limited to photo/video media. Documents and audio must be sent as
+        // separate messages even when the UI toggle is enabled; attempting to
+        // pack them creates partial albums or server-side rejection.
+        PayloadClass::AudioGroup
+        | PayloadClass::DocumentGroup
+        | PayloadClass::SplitPartBatch
+        | PayloadClass::OriginalDocumentBatch => false,
     }
 }
 
@@ -159,8 +165,9 @@ pub fn build_album_plan(items: Vec<PreparedAlbumItem>, options: &AlbumPlanOption
     let mut buckets: BTreeMap<AlbumCompatibilityKey, Vec<PreparedAlbumItem>> = BTreeMap::new();
     for item in items {
         if item.force_single {
+            let index = item.index;
             plan.singles.push(item);
-            plan.explanations.push("item_forced_single".into());
+            plan.explanations.push(format!("item_forced_single:{index}"));
             continue;
         }
         buckets.entry(item.key.clone()).or_default().push(item);
@@ -169,9 +176,14 @@ pub fn build_album_plan(items: Vec<PreparedAlbumItem>, options: &AlbumPlanOption
     for (key, mut bucket) in buckets {
         bucket.sort_by_key(|item| item.index);
         if !groupable(key.payload_class, options) {
+            let indices = bucket
+                .iter()
+                .map(|item| item.index.to_string())
+                .collect::<Vec<_>>()
+                .join("|");
             plan.singles.extend(bucket);
             plan.explanations
-                .push(format!("payload_not_groupable:{:?}", key.payload_class));
+                .push(format!("payload_not_groupable:{:?}:{indices}", key.payload_class));
             continue;
         }
         let sizes = partition_sizes(bucket.len(), target, options.avoid_single_remainder);
@@ -340,6 +352,14 @@ mod tests {
         let p = build_album_plan(items(3, PayloadClass::OriginalDocumentBatch), &options());
         assert_eq!(p.singles.len(), 3);
         assert!(p.groups.is_empty());
+    }
+
+    #[test]
+    fn audio_is_sent_separately_even_when_group_toggle_is_on() {
+        let p = build_album_plan(items(3, PayloadClass::AudioGroup), &options());
+        assert!(p.groups.is_empty());
+        assert_eq!(p.singles.len(), 3);
+        assert!(p.explanations.iter().any(|reason| reason.contains("AudioGroup")));
     }
     #[test]
     fn contexts_are_never_mixed() {
