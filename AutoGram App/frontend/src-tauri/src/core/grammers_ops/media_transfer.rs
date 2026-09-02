@@ -76,13 +76,13 @@ async fn try_recover_album_from_history(
             ),
         );
 
-        let mut iter = client.iter_messages(peer).limit(50);
+        let mut iter = client.iter_messages(peer).limit(100);
         let mut recent_msgs = Vec::new();
 
         while let Ok(Some(msg)) = iter.next().await {
             let msg_date = msg.date().timestamp();
-            // Accept only messages sent during or after this batch attempt (min_timestamp - 10s margin for clock skew)
-            if msg_date < min_timestamp - 10 {
+            // Accept only messages sent during or after this batch attempt (min_timestamp - 30s margin for clock skew)
+            if msg_date < min_timestamp - 30 {
                 break;
             }
             recent_msgs.push(msg);
@@ -1171,18 +1171,53 @@ pub fn upload_prepared_album_blocking_with_app(
                         .iter()
                         .filter_map(|item| item.message_id.map(|id| id as i32))
                         .collect();
-                    let server_messages = if valid_msg_ids.len() == out.len() {
-                        client.get_messages_by_id(peer, &valid_msg_ids).await.unwrap_or_default()
-                    } else {
-                        Vec::new()
-                    };
-                    let grouped_ids: Vec<Option<i64>> = server_messages
-                        .iter()
-                        .map(|message| message.as_ref().and_then(|value| value.grouped_id()))
-                        .collect();
-                    let expected_grouped_id = grouped_ids.iter().flatten().copied().next();
+
+                    let mut grouped_ids: Vec<Option<i64>> = vec![None; out.len()];
                     let mut layout_mismatch = Vec::new();
-                    if expected_grouped_id.is_none() {
+
+                    if valid_msg_ids.len() == out.len() {
+                        // Allow Telegram DC read replicas to sync grouped_id indexing.
+                        // Retry get_messages_by_id up to 4 attempts with progressive backoff.
+                        for attempt in 1..=4 {
+                            if attempt > 1 {
+                                tokio::time::sleep(Duration::from_millis(350 * attempt as u64)).await;
+                            }
+                            let server_messages = match client.get_messages_by_id(peer, &valid_msg_ids).await {
+                                Ok(msgs) if msgs.len() == valid_msg_ids.len() => msgs,
+                                _ => Vec::new(),
+                            };
+                            if server_messages.len() == valid_msg_ids.len() && !server_messages.iter().any(Option::is_none) {
+                                grouped_ids = server_messages
+                                    .iter()
+                                    .map(|message| message.as_ref().and_then(|value| value.grouped_id()))
+                                    .collect();
+                                let expected_grouped_id = grouped_ids.iter().flatten().copied().next();
+                                layout_mismatch.clear();
+                                if expected_grouped_id.is_none() {
+                                    layout_mismatch.extend(
+                                        out.iter()
+                                            .enumerate()
+                                            .filter_map(|(position, item)| {
+                                                item.message_id.map(|message_id| (position, message_id, None))
+                                            }),
+                                    );
+                                } else {
+                                    for (position, message) in out.iter().enumerate() {
+                                        let Some(message_id) = message.message_id else {
+                                            continue;
+                                        };
+                                        let grouped_id = grouped_ids.get(position).copied().flatten();
+                                        if grouped_id != expected_grouped_id {
+                                            layout_mismatch.push((position, message_id, grouped_id));
+                                        }
+                                    }
+                                }
+                                if layout_mismatch.is_empty() {
+                                    break;
+                                }
+                            }
+                        }
+                    } else {
                         layout_mismatch.extend(
                             out.iter()
                                 .enumerate()
@@ -1190,15 +1225,6 @@ pub fn upload_prepared_album_blocking_with_app(
                                     item.message_id.map(|message_id| (position, message_id, None))
                                 }),
                         );
-                    }
-                    for (position, message) in out.iter().enumerate() {
-                        let Some(message_id) = message.message_id else {
-                            continue;
-                        };
-                        let grouped_id = grouped_ids.get(position).copied().flatten();
-                        if grouped_id != expected_grouped_id {
-                            layout_mismatch.push((position, message_id, grouped_id));
-                        }
                     }
                     if !layout_mismatch.is_empty() {
                         // Give Telegram a short indexing window before

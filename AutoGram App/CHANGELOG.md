@@ -1,3 +1,21 @@
+## v3.9.10 — True 10+6 Album Grid Batching & Progressive Telegram DC Replication Verification
+
+### 1. Telegram Album Batching & Replication Resilience
+- Mengimplementasikan mekanisme verifikasi `get_messages_by_id` dengan progressive backoff loop (hingga 4 kali percobaan) pada `upload_prepared_album_blocking_with_app`, memberi waktu replikasi Telegram DC (350–1400ms) untuk menyinkronkan `grouped_id` secara utuh pada seluruh 10 item.
+- Mengeliminasi degradasi prematur item ke-10 menjadi single message (`delivered_single`), memastikan pengunggahan 16 item menghasilkan layout grid murni 10 + 6 (bukan 9 + 1 + 6).
+- Memperluas pemindaian riwayat pada `try_recover_album_from_history` menjadi 100 pesan dengan toleransi selisih waktu 30 detik untuk rekonsiliasi yang lebih andal saat pengunggahan media dalam jumlah besar.
+
+### 2. Core Album Planning & Test Suite
+- Menambahkan unit test spesifik `sixteen_items_follow_telegram_maximum_as_ten_plus_six` pada `autogram-core::transfer::album` untuk memvalidasi pemisahan batch 16 berkas menjadi 10 + 6 secara konsisten.
+- Memastikan pemeliharaan `grouped_id` server-side tanpa pemicu fallback yang tidak diperlukan.
+
+### 3. Verification & Autonomous Quality Sentinel
+- `cargo test --package autogram-core`: 12/12 test lulus (100% pass).
+- `cargo check` pada desktop engine (`src-tauri`): Selesai sukses tanpa peringatan assignment/error kompilasi.
+- Autonomous 5-Dimension Quality Sentinel: 100% i18n parity (6.183 keys), 0 TypeScript errors, seluruh unit test Vitest lulus, integritas database SQLite WAL terverifikasi.
+
+---
+
 ## v3.9.09 — Resilient HEIC/TIFF Binary Sniffing & Seamless Format Mismatch Recovery
 
 ### 1. Drive Preview Modal & Image Decoder Intelligence

@@ -278,6 +278,19 @@ mod tests {
     }
 
     #[test]
+    fn sixteen_items_follow_telegram_maximum_as_ten_plus_six() {
+        let p = build_album_plan(items(16, PayloadClass::NativeVisual), &options());
+        assert_eq!(
+            p.groups
+                .iter()
+                .map(|group| group.items.len())
+                .collect::<Vec<_>>(),
+            vec![10, 6]
+        );
+        assert!(p.singles.is_empty());
+    }
+
+    #[test]
     fn forced_single_does_not_collapse_other_album_items() {
         let mut input = items(15, PayloadClass::NativeVisual);
         input[9].force_single = true;
