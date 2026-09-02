@@ -1,3 +1,20 @@
+## v3.9.08 — Direct MTProto SendMultiMedia Dispatch & Atomic 10-Item Album Batching
+
+### 1. MTProto Protocol & Album Batching Architecture
+- Menggantikan pemanggilan generik `client.send_album` dengan implementasi langsung RPC `tl::functions::messages::SendMultiMedia`, memastikan 100% kepatuhan terhadap kontrak Telegram MTProto untuk batch hingga 10 item per album.
+- Prapendaftaran berkas via `messages::UploadMedia` kini mempertahankan atribut spoiler per-item, mime type eksak, dan thumbnail video berformat native secara deterministik.
+- Alokasi `random_ids` dari SQLite commit journal dipetakan secara 1:1 langsung ke dalam payload `InputSingleMedia`, mengeliminasi regenerasi random ID yang tidak konsisten.
+
+### 2. Message ID Resolution & Grouped-ID Verification
+- Resolusi respons RPC `Updates` dialihkan ke `map_album_random_ids` berbasis `Update::MessageId`, mengeliminasi ketergantungan pada kelengkapan inline `UpdateNewChannelMessage` yang sebelumnya memicu salah deteksi missing ID pada item ke-9 dan ke-10 (split 8+2).
+- Verifikasi layout album kini mengambil metadata server resmi secara terpadu melalui `client.get_messages_by_id`, mengonfirmasi bahwa seluruh 10 item tergabung dalam satu `grouped_id` yang sama tanpa degradasi ke single fallback.
+
+### 3. Verification & Quality Sentinel
+- `autogram-core` unit test suite: 56/56 lulus (100% pass).
+- Autonomous 5-Dimension Quality Sentinel: 100% i18n parity (6,183 keys), 0 TypeScript errors, Vitest (45 tests passed), SQLite schema WAL & Foreign Keys verified.
+
+---
+
 ## v3.9.07 — Strict Grouped-ID Commit Proof
 
 ### 1. Album/Grid Integrity
