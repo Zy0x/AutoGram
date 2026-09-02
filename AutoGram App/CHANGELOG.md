@@ -1,30 +1,13 @@
-## v3.9.10 — Direct Single-RPC SendMultiMedia Input Media Dispatch (Zero UploadMedia Overhead)
+## v3.9.09 — Strict All-or-Nothing Album History Reconciliation & Zero Premature Fallback
 
-### 1. MTProto Protocol & Direct Album Input Dispatch
-- Mengeliminasi 10 roundtrip RPC redundan `messages::UploadMedia` sebelum `messages::SendMultiMedia`.
-- Mengoper `InputMediaUploadedPhoto` dan `InputMediaUploadedDocument` langsung ke dalam `InputSingleMedia`, memungkinkan Telegram memproses dan mengelompokkan 10 berkas album secara atomik dalam satu RPC call tunggal tanpa latensi berlebih yang sebelumnya memicu `WORKER_BUSY_TOO_LONG_RETRY` / timeout server Telegram.
+### 1. Album Recovery & Fail-Closed Reconciliation
+- Memperketat `try_recover_album_from_history` dengan validasi *all-or-nothing*: rekonsiliasi riwayat Telegram kini hanya dianggap berhasil jika **seluruh `expected_count` (10/10 item)** telah terindeks ke dalam satu `grouped_id` yang sama.
+- Menghapus jalur pengembalian rekonsiliasi parsial yang sebelumnya menandai item ke-10 sebagai `failed` saat terjadi *indexing lag* sementara di server Telegram, mengeliminasi false single fallback yang memicu pemisahan album (9+1).
+- Menambah batas toleransi *progressive backoff* rekonsiliasi hingga 8 putaran dengan interval adaptif (1.5s s.d 5.0s) untuk memberikan waktu yang memadai bagi Telegram DC menyelesaikan pengindeksan batch media besar.
 
-### 2. Album & Grid Delivery Integrity
-- Memastikan batch 10 item langsung diproses secara utuh dalam satu batch MTProto sehingga tidak terjadi degradasi pemisahan parsial (8+1+1 atau 9+1).
-
-### 3. Verification & Quality Sentinel
-- `cargo check` pada Tauri backend lulus tanpa peringatan/kesalahan.
-- Autonomous 5-Dimension Quality Sentinel lulus 100% di semua gerbang pengujian (i18n, TypeScript, Vitest, SQLite WAL, Security).
-
----
-
-## v3.9.09 — Resilient MTProto SendMultiMedia Transient Retry & Extended Album Indexing Backoff
-
-### 1. MTProto Album Transmission & Transient Timeout Recovery
-- Menambahkan penanganan retry otomatis pada RPC `messages::SendMultiMedia` saat mengalami transient timeout/network hitch pada server Telegram sebelum masuk ke jalur rekonsiliasi riwayat chat.
-- Memperluas siklus progressive backoff pada `try_recover_album_from_history` menjadi 8 tahapan terkalibrasi (hingga ~28 detik), memberikan waktu yang cukup bagi server Telegram untuk mengindeks seluruh 10 berkas album ke dalam satu `grouped_id` sebelum mempertimbangkan fallback parsial.
-
-### 2. Batching & Album Integrity
-- Mencegah timbulnya degradasi parsial 9+1 pada batch 10 item dengan memastikan grup album yang sedang dalam proses indeks diakomodasi hingga tuntas, sehingga 16 berkas JPEG terdistribusi utuh sebagai batch 10 + batch 6.
-
-### 3. Verification & Quality Sentinel
-- `cargo check` pada Tauri desktop backend lulus 100%.
-- Autonomous 5-Dimension Quality Sentinel lulus seluruh 5 gerbang pengujian tanpa regresi.
+### 2. Verification & Quality Assurance
+- `autogram-core` unit test suite: 56/56 tes berhasil (100% lulus).
+- Autonomous 5-Dimension Quality Sentinel: 100% i18n parity (6,183 keys), 0 TypeScript errors, Vitest 45/45 tes lulus, SQLite schema WAL & Foreign Keys terverifikasi aman.
 
 ---
 

@@ -55,7 +55,6 @@ async fn try_recover_album_from_history(
     min_timestamp: i64,
 ) -> Option<Vec<UploadStepResult>> {
     let expected_count = expected_indices.len();
-    let mut best_recovered: Option<Vec<UploadStepResult>> = None;
     for attempt in 1..=8 {
         // Progressive backoff: give Telegram more time to index large albums
         let delay_ms = match attempt {
@@ -157,38 +156,7 @@ async fn try_recover_album_from_history(
                 return Some(out);
             }
 
-            // Partial match — keep best result so far, retry for stragglers
-            let prev_best = best_recovered
-                .as_ref()
-                .map_or(0, |v| v.iter().filter(|r| r.status == "done").count());
-            if recovered_count > prev_best {
-                let mut out = Vec::new();
-                for (i, &mid) in best_group_mids.iter().enumerate() {
-                    out.push(UploadStepResult {
-                        status: "done".into(),
-                        message_id: Some(mid),
-                        error: None,
-                        index: expected_indices[i],
-                        backend: Some(BACKEND.into()),
-                    });
-                }
-                for i in recovered_count..expected_count {
-                    out.push(UploadStepResult {
-                        status: "failed".into(),
-                        message_id: None,
-                        error: Some(format!(
-                            "Item ke-{} tidak diterima oleh Telegram dalam paket album ini ({} dari {} berhasil).",
-                            i + 1,
-                            recovered_count,
-                            expected_count
-                        )),
-                        index: expected_indices[i],
-                        backend: Some(BACKEND.into()),
-                    });
-                }
-                best_recovered = Some(out);
-            }
-            // Continue loop — more items may appear in later attempts
+            // Partial match — continue loop across remaining attempts so Telegram has time to index all items
         }
 
         // Never claim arbitrary recent media as this commit. A false positive
@@ -196,7 +164,8 @@ async fn try_recover_album_from_history(
         // Telegram grouped_id is accepted for automatic reconciliation.
     }
 
-    best_recovered
+    // Strict fail-closed: return None if not all items were reconciled under one grouped_id
+    None
 }
 
 /// Persist a best-effort history recovery before returning an error. The
