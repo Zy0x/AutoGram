@@ -325,9 +325,12 @@ async fn verify_album_messages(
 
     let expected_topic = topic_id.filter(|value| *value > 0);
     let mut grouped_id = None;
+    let mut layout_mismatch = false;
+    let mut seen_messages = 0usize;
 
     if let Some(msgs) = messages {
         for (position, message) in msgs.into_iter().flatten().enumerate() {
+            seen_messages += 1;
             if position < ids.len() && message.id() != ids[position] {
                 tg_log::warn(
                     BACKEND,
@@ -345,6 +348,7 @@ async fn verify_album_messages(
             if let Some(current_group) = message.grouped_id() {
                 match grouped_id {
                     Some(expected) if expected != current_group => {
+                        layout_mismatch = true;
                         tg_log::warn(
                             BACKEND,
                             "album_verify_gid_diff",
@@ -354,15 +358,25 @@ async fn verify_album_messages(
                     None => grouped_id = Some(current_group),
                     _ => {}
                 }
+            } else {
+                layout_mismatch = true;
             }
         }
     }
+    if seen_messages != message_ids.len() {
+        layout_mismatch = true;
+    }
 
-    // Return grouped_id if resolved, or fall back to the first message_id so verification does not reject a successful commit
+    if layout_mismatch {
+        return Err(TgError::new(
+            TgErrorCode::Internal,
+            "album verification found messages outside one grouped_id",
+        ));
+    }
+
+    // A grouped_id is mandatory evidence that Telegram rendered one album.
     if let Some(gid) = grouped_id {
         Ok(gid)
-    } else if let Some(&first_mid) = message_ids.first() {
-        Ok(first_mid)
     } else {
         Err(TgError::new(TgErrorCode::Internal, "empty album verification"))
     }

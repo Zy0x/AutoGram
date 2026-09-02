@@ -1,3 +1,13 @@
+## v3.9.07 — Strict Grouped-ID Commit Proof
+
+### 1. Album/Grid Integrity
+- Verifier album kini menolak bukti commit yang kehilangan pesan atau memiliki lebih dari satu `grouped_id`; fallback message ID tidak lagi dianggap sebagai bukti grid.
+
+### 2. Verifikasi
+- `cargo check` Tauri lulus setelah verifier dibuat fail-closed terhadap layout Telegram yang parsial.
+
+---
+
 ## v3.9.06 — Rekonsiliasi Delay Indexing Album
 
 ### 1. Album/Grid Reliability
