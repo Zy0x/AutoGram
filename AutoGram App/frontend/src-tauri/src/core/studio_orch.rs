@@ -1269,6 +1269,26 @@ fn run_intelligent_album(
         let size = std::fs::metadata(&artifact.prepared_path)
             .map(|meta| meta.len())
             .unwrap_or(item.size);
+        // Telegram can reject a silent MP4 inside `messages.sendMultiMedia`
+        // with MEDIA_EMPTY even though the file is a valid native video when
+        // sent alone. Keep the file native, but force it to a single message
+        // so one edge-case asset cannot collapse an otherwise valid album.
+        let force_single = if classification.category == MediaCategory::Mp4Video {
+            let analysis = super::autogram_core::transfer::analyze_media(
+                std::path::Path::new(&artifact.prepared_path),
+            );
+            analysis.probe_available && analysis.audio_codecs().is_empty()
+        } else {
+            false
+        };
+        if force_single {
+            persist_transfer_log(
+                tid,
+                "warn",
+                "album_item_forced_single",
+                format!("index={} reason=video_without_audio", item.index),
+            );
+        }
         let item_caption = if let Some(summary) = album_summary.as_deref() {
             if size > primary_limit && !album_summary_consumed && prepared_items.is_empty() {
                 summary
@@ -1379,6 +1399,7 @@ fn run_intelligent_album(
                 silent,
                 payload_class: classification.payload_class,
             },
+            force_single,
         });
         artifacts.push(artifact);
     }

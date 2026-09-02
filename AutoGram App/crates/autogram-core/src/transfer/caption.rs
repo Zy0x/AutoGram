@@ -247,6 +247,7 @@ mod tests {
                 silent: false,
                 payload_class: PayloadClass::DocumentGroup,
             },
+            force_single: false,
         }
     }
 

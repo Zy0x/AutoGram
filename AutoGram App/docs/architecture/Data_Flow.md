@@ -63,16 +63,16 @@ Dokumen ini memetakan urutan operasi internal untuk memastikan tidak ada pesan a
    - Jika berkas mengalami re-encode, `actual_upload_size` pasca re-encode disinkronkan ke `StudioReencodeDone`.
    - Ukuran total item dan perhitungan persentase di Transfer Manager disesuaikan dengan ukuran riil byte yang akan diunggah (mencegah overflow % > 100%).
 
-4. **Smart 3x3 Grid Album Chunking Engine (`chunk_size <= 9`)**
-   - Jika pengguna memilih *Group as Album*, `studio_orch.rs` membagi daftar item menjadi batch maksimal **9 item per album** (`chunk_size <= 9`).
-   - Penataan ini menggaransi postingan album di Telegram Web/Desktop/Mobile selalu membentuk kisi simetris sempurna 3 × 3 (9 foto) tanpa memisah foto ke-10 menjadi post tersendiri.
+4. **Telegram Album Chunking Engine (`chunk_size <= 10`)**
+   - Jika pengguna memilih *Group as Album*, `studio_orch.rs` membagi daftar item menjadi batch maksimal **10 item per album** (`chunk_size <= 10`), sesuai batas resmi `messages.sendMultiMedia`.
+   - Item yang valid untuk album dipaketkan hingga 10; video native tanpa track audio ditandai `item_forced_single` dan dikirim sebagai pesan tunggal karena Telegram dapat menolak kombinasi tersebut dengan `MEDIA_EMPTY`.
+   - Jika album ditolak, engine mencatat kode RPC dan melakukan fallback single-send terkontrol; tidak ada item yang hilang atau diam-diam berubah menjadi dokumen.
 
 5. **Explicit Topic `reply_to` Allocation & Commit Phase State Engine**
-   - Untuk grup berpola Forum Topic, header `reply_to` dialokasikan secara eksplisit di seluruh item album (item 1–9).
+   - Untuk grup berpola Forum Topic, header `reply_to` dialokasikan secara eksplisit di seluruh item album (hingga item 1–10).
    - Saat byte upload 100% selesai dan RPC Grammers `send_album` dieksekusi, backend memancarkan fase `StudioItemPhase::Committing` ("Mengirim pesan…") ke UI.
 
 6. **Automatic Single Fallback Retry & History Recovery Engine**
    - Jika RPC `send_album` mengalami error atau timeout Grammers, sistem mengaktifkan `try_recover_album_from_history` untuk mencocokkan `grouped_id` di Telegram history.
    - Item yang tidak terikat di-retry secara otomatis via *single upload fallback retry engine* di `studio_orch.rs`.
    - Item berhasil ditandai `SELESAI`, sedangkan item tercecer/gagal permanen ditandai `GAGAL` secara presisi.
-

@@ -6078,6 +6078,10 @@ Added:
 - Menambahkan log terstruktur per transfer untuk klasifikasi media, rencana grup,
   retry RPC, fallback single-send, dan commit album. Pengguna sekarang dapat melihat
   alasan album berubah menjadi single tanpa membuka console developer.
+- Video MP4 native yang tervalidasi tanpa track audio kini ditandai
+  `item_forced_single`: tetap dikirim sebagai video native, tetapi tidak dimasukkan
+  ke `messages.sendMultiMedia` yang dapat ditolak Telegram dengan `MEDIA_EMPTY`.
+  Item lain tetap dipaketkan pada batas resmi maksimal 10 media per album.
 - Retry album kini mencakup RPC transient yang sebelumnya salah dianggap permanent;
   error ACL atau media-invalid tetap fail-fast dan memakai fallback resmi.
 
@@ -6091,5 +6095,9 @@ Added:
 - Uji 15 MP4 pada peer `-1003214112048`, topic `43891`: 15/15 terkirim, lalu 15/15
   terhapus dan tidak tersisa pada histori topic. Uji 9 video kompatibel menghasilkan
   satu grouped album berisi 9 item.
+- Reproduksi terisolasi mengidentifikasi `2082246651377537276.mp4` (video H264
+  tanpa audio) sebagai pemicu `MEDIA_EMPTY`; 9 item kompatibel lainnya berhasil
+  dalam satu grouped album. Perilaku forced-single mencegah satu file tersebut
+  menggagalkan album lain dan menulis alasan ke Transfer Manager.
 
 ---

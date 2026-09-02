@@ -22,7 +22,7 @@ Studio orchestrator no longer falls back to `studio-serve`.
 | Folder CRUD / file delete / move | Rust `drive_rpc` | Native RPC execution with canonical `MediaIdentity` (`accountId`, `peerId`, `topicId`, `messageId`) |
 | Avatars batch | Rust Grammers | Direct DC batch fetch |
 | Progressive preview + Range HTTP | Rust Grammers + `stream_server` | Ephemeral Range HTTP `206 Partial Content` server with 512KB MTProto boundary alignment |
-| Studio local upload / album (3x3 grid) | Rust `studio_orch` + Grammers | Smart 3x3 Grid Chunking Engine (max ≤9 items per album), explicit `reply_to` forum topic routing, single upload fallback retry, partial album history recovery (`try_recover_album_from_history`), committing phase state |
+| Studio local upload / album (Telegram grid) | Rust `studio_orch` + Grammers | Telegram Album Chunking Engine (max ≤10 items per album), silent-video `item_forced_single` isolation, explicit `reply_to` forum topic routing, RPC diagnostics + single upload fallback, partial album history recovery (`try_recover_album_from_history`), committing phase state |
 | Studio remote URL + Hardware GPU reencode | Rust `media_prep` + `hardware_capability` | Dynamic GPU allocation (NVENC / AMF / QSV / CPU), FFmpeg encoder params (`-rc vbr`, `-quality speed`), video document attribute & 320px thumbnail injection, dynamic re-encoded size sync |
 | Thumbs Hemat / Seimbang / Jelas | Grammers `pick_thumb` + `special_media_thumb` | Dual-tier async special media background worker for videos without static thumbnails, terminal `.nothumb` & `"NOT_FOUND"` negative cache |
 | Realtime Progress Streaming | Rust `upload_stream` + Tauri Events | `ProgressAsyncReader` emitting `StudioProgress` and `StudioItemDone` real-time progress events |

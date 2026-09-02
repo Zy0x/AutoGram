@@ -72,6 +72,10 @@ pub struct PreparedAlbumItem {
     pub spoiler: bool,
     pub size: u64,
     pub key: AlbumCompatibilityKey,
+    /// Keep media native but send as a single when Telegram rejects the
+    /// payload in `messages.sendMultiMedia` (for example silent video tracks).
+    #[serde(default)]
+    pub force_single: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -154,6 +158,11 @@ pub fn build_album_plan(items: Vec<PreparedAlbumItem>, options: &AlbumPlanOption
     }
     let mut buckets: BTreeMap<AlbumCompatibilityKey, Vec<PreparedAlbumItem>> = BTreeMap::new();
     for item in items {
+        if item.force_single {
+            plan.singles.push(item);
+            plan.explanations.push("item_forced_single".into());
+            continue;
+        }
         buckets.entry(item.key.clone()).or_default().push(item);
     }
     let target = target_size(options.packing, options.custom_size);
@@ -209,6 +218,7 @@ mod tests {
                     silent: false,
                     payload_class: class,
                 },
+                force_single: false,
             })
             .collect()
     }
@@ -243,6 +253,21 @@ mod tests {
             vec![10, 5]
         );
         assert!(p.singles.is_empty());
+    }
+
+    #[test]
+    fn forced_single_does_not_collapse_other_album_items() {
+        let mut input = items(15, PayloadClass::NativeVisual);
+        input[9].force_single = true;
+        let p = build_album_plan(input, &options());
+        assert_eq!(
+            p.groups
+                .iter()
+                .map(|group| group.items.len())
+                .collect::<Vec<_>>(),
+            vec![10, 4]
+        );
+        assert_eq!(p.singles.iter().map(|item| item.index).collect::<Vec<_>>(), vec![9]);
     }
 
     #[test]
