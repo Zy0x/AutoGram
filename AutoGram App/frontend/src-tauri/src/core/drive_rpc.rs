@@ -261,7 +261,13 @@ pub fn delete_messages_blocking(
                 );
 
                 Ok(DeleteMessagesResult {
-                    status: "success".into(),
+                    status: if failed.is_empty() {
+                        "success".into()
+                    } else if deleted_ids.is_empty() {
+                        "error".into()
+                    } else {
+                        "partial".into()
+                    },
                     deleted: deleted_ids.len(),
                     deleted_ids,
                     failed,
@@ -1040,7 +1046,28 @@ pub fn move_messages_blocking(
                                 Ok(_) => {
                                     let moved = ids.len();
                                     if delete_source && moved > 0 {
-                                        let _ = client.delete_messages(source, &ids).await;
+                                        client
+                                            .delete_messages(source, &ids)
+                                            .await
+                                            .map_err(|e| {
+                                                let mapped = map_invocation(&e);
+                                                tg_log::error(
+                                                    BACKEND,
+                                                    "move_album_source_delete_failed",
+                                                    format!(
+                                                        "chat={src} ids={} error={}",
+                                                        ids.len(),
+                                                        mapped.user_message()
+                                                    ),
+                                                );
+                                                TgError::new(
+                                                    mapped.code(),
+                                                    format!(
+                                                        "destination committed, but source deletion failed: {}",
+                                                        mapped.user_message()
+                                                    ),
+                                                )
+                                            })?;
                                     }
                                     return Ok(MoveMessagesResult {
                                         status: "success".into(),
@@ -1088,7 +1115,25 @@ pub fn move_messages_blocking(
                 let _updates = client.invoke(&req).await.map_err(|e| map_invocation(&e))?;
                 let moved = ids.len();
                 if delete_source && moved > 0 {
-                    let _ = client.delete_messages(source, &ids).await;
+                    client.delete_messages(source, &ids).await.map_err(|e| {
+                        let mapped = map_invocation(&e);
+                        tg_log::error(
+                            BACKEND,
+                            "move_source_delete_failed",
+                            format!(
+                                "chat={src} ids={} error={}",
+                                ids.len(),
+                                mapped.user_message()
+                            ),
+                        );
+                        TgError::new(
+                            mapped.code(),
+                            format!(
+                                "destination committed, but source deletion failed: {}",
+                                mapped.user_message()
+                            ),
+                        )
+                    })?;
                 }
                 Ok(MoveMessagesResult {
                     status: "success".into(),

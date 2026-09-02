@@ -566,6 +566,11 @@ export async function driveDelete(
   if (!gr?.ok) {
     throw new Error(gr?.userMessage || gr?.error?.message || 'Hapus media Grammers gagal.');
   }
+  const failed = Array.isArray(gr.data?.failed) ? gr.data.failed : [];
+  if (failed.length > 0 || (gr.data?.deleted ?? 0) < 1) {
+    const detail = failed.find((item) => Number(item.id) === Number(messageId))?.error;
+    throw new Error(detail || 'Telegram tidak menghapus media. Periksa izin akun dan status pesan.');
+  }
   if (location) {
     await driveEngineSoftDeleteFiles({
       accountId: driveEngineAccountId(creds.session),

@@ -233,6 +233,19 @@ mod tests {
     }
 
     #[test]
+    fn fifteen_items_follow_telegram_maximum_as_ten_plus_five() {
+        let p = build_album_plan(items(15, PayloadClass::NativeVisual), &options());
+        assert_eq!(
+            p.groups
+                .iter()
+                .map(|group| group.items.len())
+                .collect::<Vec<_>>(),
+            vec![10, 5]
+        );
+        assert!(p.singles.is_empty());
+    }
+
+    #[test]
     fn custom_grid_seven_partitions_ten_as_seven_plus_three() {
         let options = AlbumPlanOptions {
             enabled: true,

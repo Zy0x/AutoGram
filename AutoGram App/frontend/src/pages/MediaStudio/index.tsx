@@ -5676,6 +5676,17 @@ function MediaDriveDesktop({
         {
           const rec = orchOutcome.record;
           const items = rec?.items || [];
+          const notableLog = [...(rec?.logs || [])]
+            .reverse()
+            .find((entry) => entry.level === 'error' || entry.level === 'warn');
+          if (notableLog) {
+            // Surface the authoritative Telegram/fallback reason in the same
+            // Transfer Manager banner used by the legacy progress session.
+            setTransfer((current) => ({
+              ...current,
+              banner: notableLog.message,
+            }));
+          }
           let orchSkipped = 0;
           let orchDone = 0;
           let orchFailed = 0;

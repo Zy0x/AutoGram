@@ -40,6 +40,12 @@ export type TransferRecord = {
   updatedAtMs: number;
   doneCount: number;
   failedCount: number;
+  logs?: Array<{
+    timestampMs: number;
+    level: string;
+    operation: string;
+    message: string;
+  }>;
 };
 
 export type StudioRunResult = {

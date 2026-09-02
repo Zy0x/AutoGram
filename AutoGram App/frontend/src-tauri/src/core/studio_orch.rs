@@ -543,6 +543,22 @@ fn emit_album_item_result(
     }
 }
 
+/// Persist a redacted transfer diagnostic in both the in-memory Transfer
+/// Manager record and the append-only JSONL journal.  Telegram's native logs
+/// remain useful for developers, while users get the same reason in the
+/// transfer details (especially for album/grid fallback decisions).
+fn persist_transfer_log(tid: &str, level: &str, operation: &str, message: impl AsRef<str>) {
+    let message = message.as_ref();
+    let _ = job_queue::append_log(tid, level, operation, message);
+    crate::core::transfer_journal::TransferJournal::new(tid).append(
+        operation,
+        json!({
+            "level": level,
+            "message": message,
+        }),
+    );
+}
+
 fn handle_oversize_prepared(
     app: Option<&tauri::AppHandle>,
     rec: &TransferRecord,
@@ -1196,6 +1212,20 @@ fn run_intelligent_album(
             &classification,
             runtime_limit,
         )?;
+        persist_transfer_log(
+            tid,
+            "info",
+            "album_item_classified",
+            format!(
+                "index={} category={:?} payload_class={:?} native_validated={} transformed={} reason={}",
+                item.index,
+                classification.category,
+                classification.payload_class,
+                artifact.native_visual_validated,
+                artifact.transformed,
+                classification.reason_code
+            ),
+        );
         let ledger_identity = prepared_ledger_identity(&artifact.prepared_path, &classification)?;
         if let Some(ledger_match) =
             duplicate_match_for_prepared(rec, topic_id, &item.path, &ledger_identity)?
@@ -1471,6 +1501,16 @@ fn run_intelligent_album(
             plan.singles.len()
         ),
     );
+    persist_transfer_log(
+        tid,
+        "info",
+        "album_plan_frozen",
+        format!(
+            "groups={} singles={} packing={packing:?} group_size={album_grid_size}",
+            plan.groups.len(),
+            plan.singles.len()
+        ),
+    );
 
     for group in plan.groups {
         if let Err(error) = job_queue::wait_while_transfer_paused(tid) {
@@ -1531,8 +1571,27 @@ fn run_intelligent_album(
             match res {
                 Ok(ok_res) => break Ok(ok_res),
                 Err(err) => {
-                    let is_network =
-                        grammers_ops::is_pool_or_transport_error(&err) || err.retryable();
+                    // Some Telegram album RPC failures are surfaced as a
+                    // generic RPC error even though the server dropped the
+                    // multipart request transiently. Retry those before
+                    // degrading the whole group to singles; permanent ACL /
+                    // media-shape errors still fail fast to fallback.
+                    let rpc_text = err.user_message().to_ascii_uppercase();
+                    let permanent_album_error = [
+                        "CHAT_WRITE_FORBIDDEN",
+                        "CHAT_ADMIN_REQUIRED",
+                        "MESSAGE_TOO_LONG",
+                        "MEDIA_INVALID",
+                        "MEDIA_EMPTY",
+                        "FILE_REFERENCE",
+                        "PEER_ID_INVALID",
+                    ]
+                    .iter()
+                    .any(|needle| rpc_text.contains(needle));
+                    let is_network = !permanent_album_error
+                        && (grammers_ops::is_pool_or_transport_error(&err)
+                            || err.retryable()
+                            || matches!(err.code(), crate::core::tg_error::TgErrorCode::Rpc));
                     if is_network && album_attempts <= 3 {
                         let wait_secs =
                             err.flood_wait_secs().unwrap_or((album_attempts * 2) as u32);
@@ -1542,6 +1601,17 @@ fn run_intelligent_album(
                             format!(
                                 "Album upload attempt {}/3 encountered transient error ({:?}): {}. Retrying in {}s...",
                                 album_attempts, err.code(), err.user_message(), wait_secs
+                            ),
+                        );
+                        persist_transfer_log(
+                            tid,
+                            "warn",
+                            "album_upload_network_retry",
+                            format!(
+                                "attempt={album_attempts}/3 code={:?} wait_seconds={} error={}",
+                                err.code(),
+                                wait_secs,
+                                err.user_message()
                             ),
                         );
                         std::thread::sleep(std::time::Duration::from_secs(wait_secs as u64));
@@ -1628,6 +1698,12 @@ fn run_intelligent_album(
             }
             Err(error) => {
                 let err_msg = error.user_message();
+                persist_transfer_log(
+                    tid,
+                    "error",
+                    "album_send_failed",
+                    format!("code={:?} error={err_msg}; fallback=single_send", error.code()),
+                );
                 tg_log::warn(
                     "studio_orch",
                     "album_failed_executing_intelligent_fallback",
@@ -1698,6 +1774,18 @@ fn run_intelligent_album(
                                             single_attempts, err.code(), err.user_message(), wait_secs
                                         ),
                                     );
+                                    persist_transfer_log(
+                                        tid,
+                                        "warn",
+                                        "fallback_single_upload_retry",
+                                        format!(
+                                            "index={} attempt={single_attempts}/3 code={:?} wait_seconds={} error={}",
+                                            item.index,
+                                            err.code(),
+                                            wait_secs,
+                                            err.user_message()
+                                        ),
+                                    );
                                     std::thread::sleep(std::time::Duration::from_secs(
                                         wait_secs as u64,
                                     ));
@@ -1764,6 +1852,12 @@ fn run_intelligent_album(
                         }
                         Err(error) => {
                             let message = error.user_message();
+                            persist_transfer_log(
+                                tid,
+                                "error",
+                                "fallback_single_upload_failed",
+                                format!("index={} code={:?} error={message}", item.index, error.code()),
+                            );
                             let state = ItemState::Failed;
                             let _ = job_queue::update_item(
                                 tid,
@@ -3075,6 +3169,7 @@ mod tests {
             updated_at_ms: 0,
             done_count: 0,
             failed_count: 0,
+            logs: Vec::new(),
         }
     }
 

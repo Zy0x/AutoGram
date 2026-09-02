@@ -62,6 +62,18 @@ pub struct QueueItem {
     pub item_id: String,
 }
 
+/// Redacted, user-visible diagnostics attached to a transfer.  Telegram RPC
+/// failures used to be emitted only to stderr, which made album/grid failures
+/// impossible to diagnose from the Transfer Manager after the task finished.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TransferLogEntry {
+    pub timestamp_ms: u128,
+    pub level: String,
+    pub operation: String,
+    pub message: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransferRecord {
@@ -77,6 +89,8 @@ pub struct TransferRecord {
     pub updated_at_ms: u128,
     pub done_count: usize,
     pub failed_count: usize,
+    #[serde(default)]
+    pub logs: Vec<TransferLogEntry>,
 }
 
 fn now_ms() -> u128 {
@@ -191,11 +205,44 @@ pub fn create_transfer(req: CreateTransferRequest) -> Result<TransferRecord, Str
         updated_at_ms: now_ms(),
         done_count: 0,
         failed_count: 0,
+        logs: Vec::new(),
     };
     // stash api_hash outside record for orch (not persisted in list API)
     live().write().insert(tid, rec.clone());
     persist();
     Ok(rec)
+}
+
+/// Append a redacted diagnostic to a transfer and persist it immediately.
+/// Keep this bounded so a noisy retry loop cannot grow the queue state without
+/// limit; the append-only JSONL journal remains available for long retention.
+pub fn append_log(
+    transfer_id: &str,
+    level: impl Into<String>,
+    operation: impl Into<String>,
+    message: impl Into<String>,
+) -> Result<(), String> {
+    let mut map = live().write();
+    let rec = map
+        .get_mut(transfer_id)
+        .ok_or_else(|| "transfer not found".to_string())?;
+    let raw = message.into();
+    let safe = crate::core::tg_log::redact(&raw);
+    rec.logs.push(TransferLogEntry {
+        timestamp_ms: now_ms(),
+        level: level.into(),
+        operation: operation.into(),
+        message: safe,
+    });
+    const MAX_LOGS: usize = 500;
+    if rec.logs.len() > MAX_LOGS {
+        let drain = rec.logs.len() - MAX_LOGS;
+        rec.logs.drain(0..drain);
+    }
+    rec.updated_at_ms = now_ms();
+    drop(map);
+    persist();
+    Ok(())
 }
 
 pub fn get_transfer(transfer_id: &str) -> Option<TransferRecord> {

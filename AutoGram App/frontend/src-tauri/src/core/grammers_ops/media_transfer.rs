@@ -837,6 +837,23 @@ pub fn upload_prepared_album_blocking_with_app(
                     Ok(s) => s,
                     Err(e) => {
                         let mapped = map_invocation(&e);
+                        if let Some(tid) = transfer_id.as_deref() {
+                            let _ = crate::core::job_queue::append_log(
+                                tid,
+                                "error",
+                                "album_send_rpc_error",
+                                format!("code={:?} error={}", mapped.code(), mapped.user_message()),
+                            );
+                            crate::core::transfer_journal::TransferJournal::new(tid).append(
+                                "album_send_rpc_error",
+                                serde_json::json!({
+                                    "level": "error",
+                                    "code": format!("{:?}", mapped.code()),
+                                    "message": mapped.user_message(),
+                                    "item_count": items.len(),
+                                }),
+                            );
+                        }
                         tg_log::warn(
                             BACKEND,
                             "album_send_rpc_error",
@@ -981,6 +998,19 @@ pub fn upload_prepared_album_blocking_with_app(
                     }
                 }
                 tg_log::info(BACKEND, "album_ok", format!("n={} chat={chat}", out.len()));
+                if let Some(tid) = transfer_id.as_deref() {
+                    let anchor = out
+                        .iter()
+                        .find_map(|item| item.message_id)
+                        .map(|id| id.to_string())
+                        .unwrap_or_else(|| "unknown".into());
+                    let _ = crate::core::job_queue::append_log(
+                        tid,
+                        "info",
+                        "album_committed",
+                        format!("item_count={} anchor_message_id={anchor}", out.len()),
+                    );
+                }
                 Ok(out)
             })
         })

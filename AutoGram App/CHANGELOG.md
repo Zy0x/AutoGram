@@ -6072,3 +6072,24 @@ Added:
 - Verified desktop Rust suite (176 tests), shared core suite (52 tests), Android bridge suite (1 test), TypeScript compilation, Vite production build, locale parity, and all five quality gates.
 
 ---
+## v3.8.99 — Diagnostik Album/Grid & Delete/Cut Telegram yang Dapat Diaudit
+
+### 1. Transfer Album dan Grid
+- Menambahkan log terstruktur per transfer untuk klasifikasi media, rencana grup,
+  retry RPC, fallback single-send, dan commit album. Pengguna sekarang dapat melihat
+  alasan album berubah menjadi single tanpa membuka console developer.
+- Retry album kini mencakup RPC transient yang sebelumnya salah dianggap permanent;
+  error ACL atau media-invalid tetap fail-fast dan memakai fallback resmi.
+
+### 2. Integritas Penghapusan dan Cut
+- Hasil delete Telegram kini membedakan `success`, `partial`, dan `error`; delete
+  tunggal tidak lagi dilaporkan sukses ketika Telegram mengembalikan item gagal.
+- Operasi cut/move meneruskan kegagalan penghapusan sumber dengan reason code yang
+  jelas sehingga destination commit tidak menyamarkan media sumber yang tertinggal.
+
+### 3. Verifikasi Nyata
+- Uji 15 MP4 pada peer `-1003214112048`, topic `43891`: 15/15 terkirim, lalu 15/15
+  terhapus dan tidak tersisa pada histori topic. Uji 9 video kompatibel menghasilkan
+  satu grouped album berisi 9 item.
+
+---
