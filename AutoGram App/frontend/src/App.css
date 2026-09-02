@@ -15689,6 +15689,7 @@ section.docx *,
   grid-row: 1 / 3;
   width: 82px;
   height: 62px;
+  position: relative;
   display: grid;
   place-items: center;
   overflow: hidden;
