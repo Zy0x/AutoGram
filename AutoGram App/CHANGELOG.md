@@ -6084,6 +6084,9 @@ Added:
   Item lain tetap dipaketkan pada batas resmi maksimal 10 media per album.
 - Retry album kini mencakup RPC transient yang sebelumnya salah dianggap permanent;
   error ACL atau media-invalid tetap fail-fast dan memakai fallback resmi.
+- Shared core kini mencari `ffmpeg-extractor/bin` relatif terhadap executable dan
+  root aplikasi, sehingga probing audio/video tetap aktif pada desktop build yang
+  tidak menaruh `ffprobe` di `PATH`.
 
 ### 2. Integritas Penghapusan dan Cut
 - Hasil delete Telegram kini membedakan `success`, `partial`, dan `error`; delete
