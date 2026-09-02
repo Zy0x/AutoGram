@@ -2287,6 +2287,15 @@ pub fn upload_file_blocking_topic_with_app(
                     })
                 };
 
+                if transfer_id
+                    .as_deref()
+                    .is_some_and(crate::core::job_queue::is_transfer_cancelled)
+                {
+                    return Err(TgError::new(
+                        TgErrorCode::Cancelled,
+                        "transfer cancelled by user",
+                    ));
+                }
                 let sent = match client.send_message(peer, msg).await {
                     Ok(m) => m,
                     Err(e) => {
@@ -2322,7 +2331,22 @@ pub fn upload_file_blocking_topic_with_app(
                         if let Some(secs) = mapped.flood_wait_secs() {
                             if secs <= 45 {
                                 tg_log::warn(BACKEND, "flood_wait_sleep", format!("secs={secs}"));
-                                tokio::time::sleep(Duration::from_secs(secs as u64 + 1)).await;
+                                let deadline = Instant::now()
+                                    + Duration::from_secs(secs as u64 + 1);
+                                while Instant::now() < deadline {
+                                    if transfer_id.as_deref().is_some_and(
+                                        crate::core::job_queue::is_transfer_cancelled,
+                                    ) {
+                                        return Err(TgError::new(
+                                            TgErrorCode::Cancelled,
+                                            "transfer cancelled by user",
+                                        ));
+                                    }
+                                    let remaining = deadline
+                                        .saturating_duration_since(Instant::now());
+                                    tokio::time::sleep(remaining.min(Duration::from_millis(100)))
+                                        .await;
+                                }
                                 // re-upload not needed — need new upload? Telegram may expire;
                                 // for simplicity fail with flood after wait on second path
                                 return Err(mapped);
@@ -2648,6 +2672,15 @@ pub fn upload_file_blocking_topic_with_delivery(
                     );
                 }
 
+                if transfer_id
+                    .as_deref()
+                    .is_some_and(crate::core::job_queue::is_transfer_cancelled)
+                {
+                    return Err(TgError::new(
+                        TgErrorCode::Cancelled,
+                        "transfer cancelled by user",
+                    ));
+                }
                 let sent = match client.send_message(peer, msg).await {
                     Ok(m) => Ok(m.id() as i64),
                     Err(error) => {

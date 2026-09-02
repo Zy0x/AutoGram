@@ -1,3 +1,19 @@
+## v3.9.01 — Proteksi Replay Album & Stop Tanpa Menunggu
+
+### 1. Idempotency Upload
+- Operasi album dan upload satuan tidak lagi di-replay oleh pool retry setelah error transport yang dapat berarti `UNKNOWN_COMMIT`.
+- Retry hanya dilakukan untuk `FLOOD_WAIT` eksplisit; error ambigu diarahkan ke rekonsiliasi/fallback terpisah.
+
+### 2. Cancellation
+- Stop sekarang menghentikan retry loop, fallback upload, dan backoff sleep maksimum dalam polling 100 ms.
+- Worker tidak dapat menghidupkan kembali upload setelah status dibatalkan, termasuk saat sedang menunggu FloodWait atau commit Telegram.
+
+### 3. Verifikasi
+- `cargo check` Tauri lulus.
+- Native debug binary dibangun ulang untuk pengujian manual.
+
+---
+
 ## v3.9.00 — Idempotency Guard Upload & Stop Responsif
 
 ### 1. Transfer Reliability
