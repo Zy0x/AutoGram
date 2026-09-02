@@ -129,9 +129,9 @@ flowchart TD
         ALB_WHOLE_ALT_OK["After all preparation, resolve one alternate sender\nonly if policy permits replan + approval + capacity"]
         ALB_WHOLE_ALT_FAIL["Fail whole album preflight; no album commit"]
         CAPTION["Freeze caption policy\nglobal album summary assigned once to a surviving item\nper-item captions otherwise; UTF-16 enforcement"]
-        PLAN["build_album_plan\nif disabled/Never → singles\nBTreeMap compatibility buckets; preserve item index order"]
+        PLAN["build_album_plan\nif disabled/Never → singles\ncontiguous compatibility runs; unsupported items are hard boundaries\nsource item order is preserved in the plan"]
         GROUP_RULE{"Payload groupable and bucket size ≥ 2?"}
-        GROUP["PlannedAlbumGroup\nNativeVisual always groupable\nAudioGroup only if group_audio=true\npartition target = selected grid 2..10\navoid single remainder (e.g. 11 → 9+2)"]
+        GROUP["PlannedAlbumGroup\nOnly NativeVisual photo/video is groupable\nAudio/documents/unsupported formats are singles\npartition target = selected grid 2..10\navoid single remainder (e.g. 11 → 9+2)"]
         SINGLE_FROM_PLAN["Planner single\nDocumentGroup, OriginalDocumentBatch, SplitPartBatch\nare currently not groupable; also remainder 1"]
         COMMIT_INTENT["Create album commit intent + random item IDs\nSQLite state COMMITTING; items UPLOADING"]
         ALB_PREP --> ALB_CLASS --> ALB_DUP --> ALB_SIZE

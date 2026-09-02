@@ -1,3 +1,19 @@
+## v3.9.04 — Grid Contiguous Boundary dan Urutan Sumber
+
+### 1. Album Planner
+- Album native sekarang dibentuk dari run media yang berurutan; item unsupported atau `force_single` menjadi boundary keras sehingga media sebelum dan sesudahnya tidak digabung ke album non-kontigu.
+- Kasus 14 item dengan unsupported pada posisi 4 dan 7 menghasilkan grup `1–3`, single `4`, grup `5–6`, single `7`, lalu grup berikutnya sesuai ukuran maksimal.
+
+### 2. Reliability & Observability
+- Reason planner menyertakan indeks item (`item_forced_single:<index>` dan `payload_not_groupable:<type>:<index>`), sehingga keputusan grid dapat ditelusuri tanpa upload ulang.
+- Batas album Telegram tetap maksimal 10 dan seluruh compatibility key (delivery, topic/reply, spoiler/silent, schedule, send-as, akun) dipertahankan.
+
+### 3. Verifikasi
+- `autogram-core` album tests: 11/11 lulus, termasuk hard-boundary test.
+- Dokumentasi workflow arsitektur diperbarui agar sesuai planner kontigu terbaru.
+
+---
+
 ## v3.9.03 — Album/Grid Capability Routing dan Fallback Telegram
 
 ### 1. Album & Grid Delivery

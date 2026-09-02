@@ -1,6 +1,5 @@
 use super::quality::PayloadClass;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 
 pub const TELEGRAM_ALBUM_MAX: usize = 10;
 
@@ -162,47 +161,58 @@ pub fn build_album_plan(items: Vec<PreparedAlbumItem>, options: &AlbumPlanOption
         plan.explanations.push("album_disabled".into());
         return plan;
     }
-    let mut buckets: BTreeMap<AlbumCompatibilityKey, Vec<PreparedAlbumItem>> = BTreeMap::new();
-    for item in items {
-        if item.force_single {
-            let index = item.index;
-            plan.singles.push(item);
-            plan.explanations.push(format!("item_forced_single:{index}"));
-            continue;
-        }
-        buckets.entry(item.key.clone()).or_default().push(item);
-    }
     let target = target_size(options.packing, options.custom_size);
-    for (key, mut bucket) in buckets {
-        bucket.sort_by_key(|item| item.index);
-        if !groupable(key.payload_class, options) {
-            let indices = bucket
-                .iter()
-                .map(|item| item.index.to_string())
-                .collect::<Vec<_>>()
-                .join("|");
-            plan.singles.extend(bucket);
-            plan.explanations
-                .push(format!("payload_not_groupable:{:?}:{indices}", key.payload_class));
-            continue;
-        }
-        let sizes = partition_sizes(bucket.len(), target, options.avoid_single_remainder);
+    let mut current_key: Option<AlbumCompatibilityKey> = None;
+    let mut current_bucket: Vec<PreparedAlbumItem> = Vec::new();
+    let flush_bucket = |plan: &mut AlbumPlan,
+                            key: &mut Option<AlbumCompatibilityKey>,
+                            bucket: &mut Vec<PreparedAlbumItem>| {
+        let Some(bucket_key) = key.take() else { return; };
+        if bucket.is_empty() { return; }
+        let grouped = std::mem::take(bucket);
+        let sizes = partition_sizes(grouped.len(), target, options.avoid_single_remainder);
         let mut cursor = 0usize;
         for size in sizes {
             let end = cursor + size;
-            let chunk = bucket[cursor..end].to_vec();
+            let chunk = grouped[cursor..end].to_vec();
             cursor = end;
             if chunk.len() == 1 {
                 plan.singles.extend(chunk);
             } else {
                 plan.groups.push(PlannedAlbumGroup {
                     items: chunk,
-                    as_document: key.payload_class != PayloadClass::NativeVisual,
-                    payload_class: key.payload_class,
+                    as_document: bucket_key.payload_class != PayloadClass::NativeVisual,
+                    payload_class: bucket_key.payload_class,
                 });
             }
         }
+    };
+    let mut ordered_items = items;
+    ordered_items.sort_by_key(|item| item.index);
+    for item in ordered_items {
+        if item.force_single {
+            flush_bucket(&mut plan, &mut current_key, &mut current_bucket);
+            let index = item.index;
+            plan.singles.push(item);
+            plan.explanations.push(format!("item_forced_single:{index}"));
+            continue;
+        }
+        if !groupable(item.key.payload_class, options) {
+            flush_bucket(&mut plan, &mut current_key, &mut current_bucket);
+            let index = item.index;
+            let class = item.key.payload_class;
+            plan.singles.push(item);
+            plan.explanations
+                .push(format!("payload_not_groupable:{class:?}:{index}"));
+            continue;
+        }
+        if current_key.as_ref() != Some(&item.key) {
+            flush_bucket(&mut plan, &mut current_key, &mut current_bucket);
+            current_key = Some(item.key.clone());
+        }
+        current_bucket.push(item);
     }
+    flush_bucket(&mut plan, &mut current_key, &mut current_bucket);
     plan.groups
         .sort_by_key(|g| g.items.first().map(|i| i.index).unwrap_or(usize::MAX));
     plan.singles.sort_by_key(|i| i.index);
@@ -277,9 +287,22 @@ mod tests {
                 .iter()
                 .map(|group| group.items.len())
                 .collect::<Vec<_>>(),
-            vec![10, 4]
+            vec![9, 5]
         );
         assert_eq!(p.singles.iter().map(|item| item.index).collect::<Vec<_>>(), vec![9]);
+    }
+
+    #[test]
+    fn unsupported_items_are_hard_boundaries_between_native_albums() {
+        let mut input = items(14, PayloadClass::NativeVisual);
+        input[3].key.payload_class = PayloadClass::DocumentGroup;
+        input[6].key.payload_class = PayloadClass::DocumentGroup;
+        let p = build_album_plan(input, &options());
+        assert_eq!(
+            p.groups.iter().map(|group| group.items.iter().map(|i| i.index).collect::<Vec<_>>()).collect::<Vec<_>>(),
+            vec![vec![0, 1, 2], vec![4, 5], vec![7, 8, 9, 10, 11, 12, 13]]
+        );
+        assert_eq!(p.singles.iter().map(|item| item.index).collect::<Vec<_>>(), vec![3, 6]);
     }
 
     #[test]
