@@ -245,6 +245,7 @@ export async function driveEngineListFiles(request: {
   offset?: number;
   sortMode?: string;
   contentFilter?: string;
+  telegramTopicId?: number | null;
 }): Promise<DriveEngineFilePage> {
   requireDesktop();
   return invoke<DriveEngineFilePage>('drive_engine_list_files', { request });

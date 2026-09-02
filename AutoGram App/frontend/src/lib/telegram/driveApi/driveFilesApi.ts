@@ -170,7 +170,10 @@ export async function driveListFiles(
   // Production Drive folders are logical UUID locations backed by one
   // Telegram peer. Their file membership comes from the local metadata map,
   // never from an unscoped peer scan (which would leak sibling contents).
-  if (engineLocation) {
+  // Topic views must be sourced from Telegram, not the local drive mapping:
+  // a mapping can survive an external Telegram deletion and would leak a
+  // phantom card. Root/folder views retain the fast local engine path.
+  if (engineLocation && topicId == null) {
     const localPage = await driveEngineListFiles({
       accountId: driveEngineAccountId(creds.session),
       driveId: engineLocation.driveId,
@@ -179,6 +182,7 @@ export async function driveListFiles(
       offset: Math.max(0, localOffset),
       sortMode,
       contentFilter: String(opts?.contentFilter ?? 'all'),
+      telegramTopicId: topicId,
     });
     let files: DriveFile[] = localPage.files.map((file) => {
       const mime = String(file.mime || '').toLowerCase();
@@ -236,7 +240,7 @@ export async function driveListFiles(
   }
 
   // L2 Persistent Database Instant Paint Check (when opening fresh or after restart)
-  if (!opts?.bypassCache && offsetId == null && localOffset === 0 && !opts?.searchCursor) {
+  if (topicId == null && !opts?.bypassCache && offsetId == null && localOffset === 0 && !opts?.searchCursor) {
     try {
       const indexState = await getMediaIndexState(mediaContext);
       if (indexState && (indexState.backfillComplete || indexState.newestCommittedId > 0)) {
@@ -298,7 +302,7 @@ export async function driveListFiles(
       const { tgListMedia } = await import('../core/telegramBackend');
       const chatId = folderId == null
         ? 'me'
-        : String(folderId);
+        : String(engineLocation?.storagePeerId ?? folderId);
       const apiId = Number(creds.apiId) || 0;
       const gr = await tgListMedia({
         session: creds.session,

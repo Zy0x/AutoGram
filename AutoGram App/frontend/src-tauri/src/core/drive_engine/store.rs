@@ -578,6 +578,29 @@ impl DriveStore {
         sort_mode: Option<&str>,
         content_filter: Option<&str>,
     ) -> Result<FilePage, String> {
+        self.list_files_with_topic(
+            account_id,
+            drive_id,
+            folder_id,
+            limit,
+            offset,
+            sort_mode,
+            content_filter,
+            None,
+        )
+    }
+
+    pub fn list_files_with_topic(
+        &self,
+        account_id: &str,
+        drive_id: &str,
+        folder_id: &str,
+        limit: Option<usize>,
+        offset: Option<usize>,
+        sort_mode: Option<&str>,
+        content_filter: Option<&str>,
+        telegram_topic_id: Option<i64>,
+    ) -> Result<FilePage, String> {
         let account_id = validate_identifier(account_id, "ACCOUNT")?;
         let drive_id = validate_identifier(drive_id, "DRIVE")?;
         let folder_id = validate_identifier(folder_id, "FOLDER")?;
@@ -607,14 +630,32 @@ impl DriveStore {
         let conn = self.connection()?;
         let _ = require_drive(&conn, &account_id, &drive_id)?;
         require_folder(&conn, &drive_id, &folder_id)?;
+        let topic_filter_sql = if telegram_topic_id.is_some() {
+            " AND mapping.telegram_topic_id=?3"
+        } else {
+            ""
+        };
+        let topic_totals_sql = if telegram_topic_id.is_some() {
+            " AND EXISTS (SELECT 1 FROM drive_meta.drive_beta_telegram_mapping tm WHERE tm.drive_id=file.drive_id AND tm.object_type='file' AND tm.object_id=file.file_id AND tm.deleted_at IS NULL AND tm.telegram_topic_id=?3)"
+        } else {
+            ""
+        };
+        let topic_param = telegram_topic_id.unwrap_or_default();
+        let mut total_params = vec![
+            rusqlite::types::Value::Text(drive_id.to_string()),
+            rusqlite::types::Value::Text(folder_id.to_string()),
+        ];
+        if telegram_topic_id.is_some() {
+            total_params.push(rusqlite::types::Value::Integer(topic_param));
+        }
         let (total_count, total_bytes) = conn
             .query_row(
                 &format!(
-                    "SELECT COUNT(*), COALESCE(SUM(size), 0)
-                     FROM drive_meta.drive_beta_files
-                     WHERE drive_id=?1 AND folder_id=?2 AND deleted_at IS NULL {filter_sql}"
+                    "SELECT COUNT(*), COALESCE(SUM(file.size), 0)
+                     FROM drive_meta.drive_beta_files file
+                     WHERE file.drive_id=?1 AND file.folder_id=?2 AND file.deleted_at IS NULL {filter_sql} {topic_totals_sql}"
                 ),
-                params![drive_id, folder_id],
+                rusqlite::params_from_iter(total_params.iter()),
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .map_err(|error| format!("DRIVE_ENGINE_FILE_TOTALS_FAILED: {error}"))?;
@@ -630,14 +671,25 @@ impl DriveStore {
                   AND mapping.object_id=file.file_id AND mapping.deleted_at IS NULL
                  WHERE file.drive_id=?1 AND file.folder_id=?2 AND file.deleted_at IS NULL
                    AND mapping.telegram_message_id IS NOT NULL
-                   {filter_sql}
+                   {filter_sql} {topic_filter_sql}
                  ORDER BY {order_sql}
-                 LIMIT ?3 OFFSET ?4"
+                 LIMIT ?{} OFFSET ?{}",
+                if telegram_topic_id.is_some() { 4 } else { 3 },
+                if telegram_topic_id.is_some() { 5 } else { 4 }
             ))
             .map_err(|error| format!("DRIVE_ENGINE_FILE_LIST_PREPARE_FAILED: {error}"))?;
+        let mut list_params = vec![
+            rusqlite::types::Value::Text(drive_id.to_string()),
+            rusqlite::types::Value::Text(folder_id.to_string()),
+        ];
+        if telegram_topic_id.is_some() {
+            list_params.push(rusqlite::types::Value::Integer(topic_param));
+        }
+        list_params.push(rusqlite::types::Value::Integer((limit + 1) as i64));
+        list_params.push(rusqlite::types::Value::Integer(offset as i64));
         let files = statement
             .query_map(
-                params![drive_id, folder_id, (limit + 1) as i64, offset as i64],
+                rusqlite::params_from_iter(list_params.iter()),
                 row_to_file,
             )
             .map_err(|error| format!("DRIVE_ENGINE_FILE_LIST_FAILED: {error}"))?

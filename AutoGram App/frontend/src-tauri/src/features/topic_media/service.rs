@@ -1,6 +1,6 @@
 //! Topic Media Service Orchestrator.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use tauri::AppHandle;
@@ -13,7 +13,7 @@ use super::models::{
     TopicMediaDeltaEvent, TopicMediaItem,
 };
 use super::mtproto::search::search_topic_media;
-use super::repository::{get_cached_page, upsert_topic_media_batch};
+use super::repository::{get_cached_page, mark_topic_media_deleted, upsert_topic_media_batch};
 use super::scheduler::cancellation::ScopedCancellationManager;
 use super::scheduler::flood_wait::FloodWaitGateController;
 use crate::core::telegram_ops::TelegramIdentity;
@@ -23,6 +23,22 @@ pub struct TopicMediaService {
     cancellations: ScopedCancellationManager,
     flood_gates: FloodWaitGateController,
     active_contexts: Arc<Mutex<HashMap<String, TopicMediaContext>>>,
+}
+
+/// Return cached message ids that are absent from a successful authoritative
+/// Telegram page. This is deliberately scoped to the page/filter that was
+/// requested: a partial historical page must never delete rows outside its
+/// visible window.
+fn stale_cached_message_ids(
+    cached_items: &[TopicMediaItem],
+    server_items: &[TopicMediaItem],
+) -> Vec<i64> {
+    let server_ids: HashSet<i64> = server_items.iter().map(|item| item.message_id).collect();
+    cached_items
+        .iter()
+        .map(|item| item.message_id)
+        .filter(|id| *id > 0 && !server_ids.contains(id))
+        .collect()
 }
 
 impl TopicMediaService {
@@ -74,6 +90,7 @@ impl TopicMediaService {
         let page_size = req.page_size;
         let gen_id = req.generation_id;
         let win_label = req.window_label.clone();
+        let cached_items_for_reconcile = cached_items.clone();
         let sessions_dir = crate::core::telegram_ops::sessions_dir_from_env();
 
         tokio::spawn(async move {
@@ -107,28 +124,45 @@ impl TopicMediaService {
             }
 
             if let Ok((server_items, cursor, has_more)) = search_res {
-                if !server_items.is_empty() {
-                    // Save to SQLite
-                    let _ = upsert_topic_media_batch(&server_items);
-
-                    // Emit context-bound delta event to UI
-                    let event_payload = TopicMediaDeltaEvent {
-                        schema_version: 1,
-                        window_label: win_label,
-                        account_id: service_ctx.account_id,
-                        peer_id: service_ctx.peer_id,
-                        topic_id: service_ctx.topic_id,
-                        generation_id: gen_id,
-                        inserted: server_items,
-                        updated: Vec::new(),
-                        deleted_message_ids: Vec::new(),
-                        cursor,
-                        has_more,
-                        sync_status: "ready".to_string(),
-                    };
-
-                    let _ = emit_delta_event(&app, &event_payload);
+                // A successful Telegram response is authoritative for the
+                // requested head page, including an empty page. Reconcile
+                // rows that disappeared so deleted Telegram messages cannot
+                // leak back through the local-first cache on the next open.
+                let stale_ids = stale_cached_message_ids(&cached_items_for_reconcile, &server_items);
+                if !stale_ids.is_empty() {
+                    let _ = mark_topic_media_deleted(&service_ctx, &stale_ids);
                 }
+                let cached_ids: HashSet<i64> = cached_items_for_reconcile.iter().map(|item| item.message_id).collect();
+                let inserted = server_items
+                    .iter()
+                    .filter(|item| !cached_ids.contains(&item.message_id))
+                    .cloned()
+                    .collect();
+                let updated = server_items
+                    .iter()
+                    .filter(|item| cached_ids.contains(&item.message_id))
+                    .cloned()
+                    .collect();
+                let _ = upsert_topic_media_batch(&server_items);
+
+                // Emit even when the server page is empty: the UI needs the
+                // ready/deletion event to clear stale cards immediately.
+                let event_payload = TopicMediaDeltaEvent {
+                    schema_version: 1,
+                    window_label: win_label,
+                    account_id: service_ctx.account_id,
+                    peer_id: service_ctx.peer_id,
+                    topic_id: service_ctx.topic_id,
+                    generation_id: gen_id,
+                    inserted,
+                    updated,
+                    deleted_message_ids: stale_ids,
+                    cursor,
+                    has_more,
+                    sync_status: "ready".to_string(),
+                };
+
+                let _ = emit_delta_event(&app, &event_payload);
             }
         });
 
@@ -141,5 +175,55 @@ impl TopicMediaService {
             has_more_local: has_cached,
             reconciliation_scheduled: true,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::stale_cached_message_ids;
+    use crate::features::topic_media::models::TopicMediaItem;
+
+    fn item(message_id: i64) -> TopicMediaItem {
+        TopicMediaItem {
+            account_id: "a".into(),
+            peer_id: "p".into(),
+            topic_id: Some(1),
+            message_id,
+            message_date: 0,
+            edit_date: None,
+            grouped_id: None,
+            sender_id: None,
+            caption: None,
+            media_type: "video".into(),
+            mime_type: Some("video/mp4".into()),
+            file_name: format!("{message_id}.mp4"),
+            file_size: 1,
+            document_id: None,
+            access_hash: None,
+            dc_id: None,
+            file_reference: None,
+            width: None,
+            height: None,
+            duration_ms: None,
+            has_server_thumb: false,
+            has_video_thumb: false,
+            thumb_url: None,
+            is_deleted: false,
+            created_at: 0,
+            updated_at: 0,
+        }
+    }
+
+    #[test]
+    fn only_missing_ids_in_authoritative_page_are_deleted() {
+        let cached = vec![item(1), item(2), item(3)];
+        let server = vec![item(1), item(3)];
+        assert_eq!(stale_cached_message_ids(&cached, &server), vec![2]);
+    }
+
+    #[test]
+    fn empty_authoritative_page_deletes_visible_cache_page() {
+        let cached = vec![item(10), item(11)];
+        assert_eq!(stale_cached_message_ids(&cached, &[]), vec![10, 11]);
     }
 }

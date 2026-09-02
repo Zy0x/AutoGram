@@ -85,6 +85,7 @@ pub struct ListFilesRequest {
     pub offset: Option<usize>,
     pub sort_mode: Option<String>,
     pub content_filter: Option<String>,
+    pub telegram_topic_id: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -170,7 +171,7 @@ pub fn commit_file(request: CommitFileRequest) -> Result<FileRecord, String> {
 }
 
 pub fn list_files(request: ListFilesRequest) -> Result<FilePage, String> {
-    DriveStore::open_default()?.list_files(
+    DriveStore::open_default()?.list_files_with_topic(
         &request.account_id,
         &request.drive_id,
         &request.folder_id,
@@ -178,6 +179,7 @@ pub fn list_files(request: ListFilesRequest) -> Result<FilePage, String> {
         request.offset,
         request.sort_mode.as_deref(),
         request.content_filter.as_deref(),
+        request.telegram_topic_id,
     )
 }
 

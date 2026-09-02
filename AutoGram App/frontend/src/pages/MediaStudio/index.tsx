@@ -3461,7 +3461,12 @@ function MediaDriveDesktop({
       }
     }
     const instantFiles = cachedFiles ?? persisted?.files;
-    if (instantFiles && instantFiles.length > 0) {
+    // Topic views are security-sensitive: cached cards can outlive a deleted
+    // Telegram message. Do not paint a topic from local snapshots before the
+    // authoritative Telegram head has been validated below. Root/peer views
+    // retain the local-first fast path.
+    const topicRequiresLiveValidation = tid != null;
+    if (!topicRequiresLiveValidation && instantFiles && instantFiles.length > 0) {
       setFiles(dedupeByMsgId(instantFiles));
       const cachedCount = filesTotalCountRef.current.get(cacheKey);
       if (cachedCount != null) setTotalFileCount(clampMediaTotal(cachedCount, instantFiles));
@@ -3509,7 +3514,7 @@ function MediaDriveDesktop({
         stagedInitialPageSize(perf.tier, perf.filePage)
       ));
       durableIndexFound = durableRows.length > 0;
-      if (durableIndexFound && gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey) {
+      if (!topicRequiresLiveValidation && durableIndexFound && gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey) {
           const durableCount = await getMediaRecordsCountByContext(mediaContext);
           durableUniqueCount = durableCount;
           // The normalized store is authoritative for the number of unique
@@ -3620,7 +3625,7 @@ function MediaDriveDesktop({
         if (peerId != null) void loadTopicsForPeer(peerId);
       }
       let page: DriveFile[] = dedupeByMsgId(res.files || []);
-      const preserveDurableRows = shouldPreservePersistentRows({
+      const preserveDurableRows = !topicRequiresLiveValidation && shouldPreservePersistentRows({
         persistentRowCount: durableRows.length,
         remoteRowCount: page.length,
         remoteTotalCount: res.total_count ?? null,
@@ -3718,7 +3723,7 @@ function MediaDriveDesktop({
         if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) {
           return prev;
         }
-        if (activeFilesCacheKeyRef.current === cacheKey && prev.length > page.length && page.length > 0) {
+        if (!topicRequiresLiveValidation && activeFilesCacheKeyRef.current === cacheKey && prev.length > page.length && page.length > 0) {
           const merged = reconcileDriveLiveHead(prev, page, !!res.has_more, { isExplicitRefresh: true });
           filesCacheRef.current.set(cacheKey, merged);
           return merged;
@@ -3810,7 +3815,9 @@ function MediaDriveDesktop({
 
               setFiles((prev) => {
                 if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
-                const merged = reconcileDriveLiveHead(prev, freshPage, !!syncRes.has_more, { isExplicitRefresh: true });
+                const merged = tid != null
+                  ? freshPage
+                  : reconcileDriveLiveHead(prev, freshPage, !!syncRes.has_more, { isExplicitRefresh: true });
                 filesCacheRef.current.set(cacheKey, merged);
                 return merged;
               });
@@ -4738,12 +4745,13 @@ function MediaDriveDesktop({
         const headChanged =
           previousHead.length !== liveHead.length ||
           previousHead.some((file, index) => file.id !== liveHead[index]?.id);
-        const keptExtendedPages = !!res.has_more && loadedBefore > liveHead.length;
-        const merged = reconcileDriveLiveHead(
-          liveFilesRef.current,
-          liveHead,
-          !!res.has_more
-        );
+        // Topic heads are authoritative and must replace the visible list;
+        // retaining older cached rows here would re-introduce deleted media.
+        // Non-topic locations keep the extended-page merge for pagination.
+        const keptExtendedPages = tid == null && !!res.has_more && loadedBefore > liveHead.length;
+        const merged = tid != null
+          ? liveHead
+          : reconcileDriveLiveHead(liveFilesRef.current, liveHead, !!res.has_more);
         liveFilesRef.current = merged;
         filesCacheRef.current.set(cacheKey, merged);
         setFiles(merged);
@@ -5286,8 +5294,10 @@ function MediaDriveDesktop({
         requestVisibleThumbs(creds, peerId, missing.slice(0, 48), thumbLocationOptions);
       }
 
-      const keptExtendedPages = !!res.has_more && liveFilesRef.current.length > liveHead.length;
-      const merged = reconcileDriveLiveHead(liveFilesRef.current, liveHead, !!res.has_more);
+      const keptExtendedPages = tid == null && !!res.has_more && liveFilesRef.current.length > liveHead.length;
+      const merged = tid != null
+        ? liveHead
+        : reconcileDriveLiveHead(liveFilesRef.current, liveHead, !!res.has_more);
       liveFilesRef.current = merged;
       filesCacheRef.current.set(cacheKey, merged);
       setFiles(merged);

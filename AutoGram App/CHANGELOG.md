@@ -1,3 +1,21 @@
+## v3.9.02 — Rekonsiliasi Topic Telegram dan Pencegahan Media Phantom
+
+### 1. Topic Media Integrity
+- Jalur topic pada Media Studio kini selalu mengambil daftar live melalui Grammers/Telegram; cache snapshot dan IndexedDB tidak lagi dipaint sebelum validasi server selesai.
+- Daftar topic menggantikan head lama secara atomik, termasuk saat respons server kosong, sehingga media yang sudah dihapus tidak dapat muncul kembali sebagai kartu stale.
+
+### 2. Backend & Drive Engine
+- `TopicMediaService` merekonsiliasi ID cache yang hilang dari halaman Telegram yang berhasil dan menandainya `is_deleted`, lalu mengirim delta penghapusan ke UI.
+- Drive Engine mendukung filter `telegram_topic_id` pada query file dan totals; folder mapping tidak lagi menjadi sumber kebenaran untuk tampilan topic.
+
+### 3. Verifikasi
+- `cargo check` lulus.
+- Unit test topic-media: 2/2 lulus.
+- `npm run test:quality` lulus pada seluruh 5 gate.
+- `npm run build` lulus.
+
+---
+
 ## v3.9.01 — Proteksi Replay Album & Stop Tanpa Menunggu
 
 ### 1. Idempotency Upload
