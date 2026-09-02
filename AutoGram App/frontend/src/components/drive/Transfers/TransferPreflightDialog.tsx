@@ -38,7 +38,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DrivePreviewModal } from '../DrivePreviewModal';
-import { requestThumb } from '../../../lib/media/thumbBatcher';
+import { buildThumbCacheKey, getThumbQuality, requestThumb } from '../../../lib/media/thumbBatcher';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import { getSessionDisplayName } from '../../../lib/telegram';
 import {
@@ -304,36 +304,82 @@ function TelegramDuplicateThumb({
   const { t } = useTranslation();
   const [thumb, setThumb] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [missingReason, setMissingReason] = useState<string | null>(null);
 
   useEffect(() => {
     const messageId = Number(match.telegramMessageId || 0);
     if (!creds || messageId <= 0) {
       setThumb(null);
       setLoading(false);
+      setMissingReason('invalid_locator');
       return;
     }
     const controller = new AbortController();
     const peerId = match.destinationId === 'me' ? 'me' : match.destinationId;
     const folderId = peerId === 'me' ? null : Number(peerId);
+    const topicId = match.topicId ?? null;
+
+    // Video thumbnails may be generated asynchronously by the native worker
+    // (FFmpeg/sparse-media path).  The first request intentionally resolves
+    // with null while that work is queued, so subscribe to the same event used
+    // by the drive cards and repaint the preflight card when the frame arrives.
+    const onThumbReady = (event: Event) => {
+      const detail = (event as CustomEvent).detail as
+        | { key?: string; url?: string }
+        | undefined;
+      if (!detail?.key || !detail.url) return;
+      const quality = getThumbQuality();
+      const expectedKeys = new Set([
+        buildThumbCacheKey(folderId, messageId, quality, creds.session, peerId, topicId),
+        // `thumb_single_ready` is emitted without a forum topic.  Message IDs
+        // are unique within a Telegram peer, so accepting the topic-less key
+        // is safe and lets topic preflight cards receive late video frames.
+        buildThumbCacheKey(folderId, messageId, quality, creds.session, peerId, null),
+      ]);
+      if (!expectedKeys.has(detail.key)) return;
+      setThumb(detail.url);
+      setLoading(false);
+      setMissingReason(null);
+    };
+    const onThumbResult = (event: Event) => {
+      const detail = (event as CustomEvent).detail as
+        | { peerId?: string; telegramMessageId?: number; status?: string; reason?: string | null }
+        | undefined;
+      if (!detail || String(detail.peerId || '') !== peerId || Number(detail.telegramMessageId) !== messageId) return;
+      if (detail.status === 'ready') return;
+      setThumb(null);
+      setLoading(false);
+      setMissingReason(detail.reason || 'unavailable');
+    };
+    window.addEventListener('autogram-thumb-ready', onThumbReady);
+    window.addEventListener('autogram-thumb-result', onThumbResult);
+    setThumb(null);
+    setMissingReason(null);
     setLoading(true);
     void requestThumb(creds, Number.isFinite(folderId) ? folderId : null, messageId, {
       priority: 'visible',
       peerId,
-      topicId: match.topicId,
+      topicId,
       locationType: peerId === 'me' ? 'saved_messages' : 'group',
       signal: controller.signal,
     }).then((value) => {
       if (!controller.signal.aborted) {
         setThumb(value);
         setLoading(false);
+        if (value) setMissingReason(null);
       }
     }).catch(() => {
       if (!controller.signal.aborted) {
         setThumb(null);
         setLoading(false);
+        setMissingReason('request_failed');
       }
     });
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      window.removeEventListener('autogram-thumb-ready', onThumbReady);
+      window.removeEventListener('autogram-thumb-result', onThumbResult);
+    };
   }, [creds, match.destinationId, match.telegramMessageId, match.topicId]);
 
   return (
@@ -343,7 +389,13 @@ function TelegramDuplicateThumb({
       ) : (
         <div className="td-preflight-thumb-empty">
           <ImageOff size={20} aria-hidden />
-          <span>{loading ? t('drive.preflight_existing_thumb_loading') : t('drive.preflight_existing_thumb_missing')}</span>
+          <span>
+            {loading
+              ? t('drive.preflight_existing_thumb_loading')
+              : missingReason === 'MessageNotReturned'
+                ? t('drive.preflight_existing_thumb_stale')
+                : t('drive.preflight_existing_thumb_missing')}
+          </span>
         </div>
       )}
     </div>

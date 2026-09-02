@@ -1784,6 +1784,7 @@
   "preflight_click_to_preview": "Klik untuk mempratinjau media",
   "preflight_existing_thumb_alt": "Pratinjau media yang sudah ada di Telegram",
   "preflight_existing_thumb_loading": "Memuat pratinjau Telegram",
+  "preflight_existing_thumb_stale": "Pesan Telegram sudah tidak ada atau tidak dapat diakses",
   "preflight_existing_thumb_missing": "Pratinjau Telegram tidak tersedia",
   "preflight_message_id": "pesan /{{id}}",
   "preflight_match_exact_sha256": "SHA-256 identik",

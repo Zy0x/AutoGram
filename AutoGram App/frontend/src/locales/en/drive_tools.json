@@ -1625,6 +1625,7 @@
   "preflight_source_thumb_alt": "Selected source preview",
   "preflight_existing_thumb_alt": "Existing Telegram media preview",
   "preflight_existing_thumb_loading": "Loading Telegram preview",
+  "preflight_existing_thumb_stale": "Telegram message no longer exists or is inaccessible",
   "preflight_existing_thumb_missing": "Telegram preview unavailable",
   "preflight_message_id": "message /{{id}}",
   "preflight_match_exact_sha256": "Exact SHA-256",

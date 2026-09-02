@@ -1147,6 +1147,34 @@ pub fn tg_delete_messages(
     ) {
         Ok(r) => {
             super::media_statistics::invalidate_cached_statistics(&session, &chat_id, None);
+            if !r.deleted_ids.is_empty() {
+                match super::autogram_core::transfer::invalidate_upload_ledger_messages(
+                    &session,
+                    &chat_id,
+                    &r.deleted_ids,
+                ) {
+                    Ok(removed) => tg_log::info(
+                        "grammers",
+                        "delete_messages_ledger_invalidated",
+                        format!(
+                            "op=delete_messages_ledger_invalidated chat_id={} deleted_count={} ledger_rows_removed={}",
+                            chat_id,
+                            r.deleted_ids.len(),
+                            removed
+                        ),
+                    ),
+                    Err(error) => tg_log::warn(
+                        "grammers",
+                        "delete_messages_ledger_invalidation_failed",
+                        format!(
+                            "op=delete_messages_ledger_invalidation_failed chat_id={} deleted_count={} error={}",
+                            chat_id,
+                            r.deleted_ids.len(),
+                            error
+                        ),
+                    ),
+                }
+            }
             ok_result("grammers", r)
         }
         Err(e) => err_result("grammers", e),

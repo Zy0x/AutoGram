@@ -317,6 +317,38 @@ pub fn record_upload_ledger(
     Ok(())
 }
 
+/// Remove upload-ledger bindings for Telegram messages that were confirmed
+/// deleted.  A ledger row is only a local dedupe hint; retaining it after a
+/// successful Telegram delete makes the next preflight report a non-existent
+/// message as "already in Telegram" (and its thumbnail can never resolve).
+pub fn invalidate_upload_ledger_messages(
+    account_id: &str,
+    destination_id: &str,
+    message_ids: &[i64],
+) -> Result<usize, String> {
+    let ids: Vec<i64> = message_ids.iter().copied().filter(|id| *id > 0).collect();
+    if ids.is_empty() {
+        return Ok(0);
+    }
+    let conn = open()?;
+    let tx = conn
+        .unchecked_transaction()
+        .map_err(|error| format!("begin ledger invalidation: {error}"))?;
+    let mut removed = 0usize;
+    for id in ids {
+        removed += tx
+            .execute(
+                "DELETE FROM upload_ledger
+                 WHERE account_id=?1 AND destination_id=?2 AND telegram_message_id=?3",
+                params![account_id, destination_id, id],
+            )
+            .map_err(|error| format!("invalidate ledger message {id}: {error}"))?;
+    }
+    tx.commit()
+        .map_err(|error| format!("commit ledger invalidation: {error}"))?;
+    Ok(removed)
+}
+
 pub fn create_album_commit<T: Serialize, P: Serialize>(
     commit_id: &str,
     transfer_id: &str,

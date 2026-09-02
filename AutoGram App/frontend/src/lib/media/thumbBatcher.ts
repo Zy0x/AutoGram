@@ -1007,6 +1007,25 @@ async function flushQueue() {
           reason: item.reason,
           source: item.source,
         });
+        // Keep consumers that are not virtualized drive cards (for example
+        // the transfer preflight dialog) informed about a terminal miss. The
+        // regular promise still resolves to null for backwards compatibility,
+        // while this event preserves Telegram's classified reason.
+        if (typeof window !== 'undefined') {
+          try {
+            window.dispatchEvent(new CustomEvent('autogram-thumb-result', {
+              detail: {
+                peerId: item.peerId,
+                telegramMessageId: item.telegramMessageId,
+                status: item.status,
+                reason: item.reason || null,
+                source: item.source || null,
+              },
+            }));
+          } catch {
+            /* ignore event delivery failures */
+          }
+        }
       }
     }
 
