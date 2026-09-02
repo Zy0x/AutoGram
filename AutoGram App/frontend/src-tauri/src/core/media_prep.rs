@@ -2454,6 +2454,18 @@ pub fn maybe_transcode_image_for_telegram(
         return Ok(path.to_string());
     }
 
+    if let Ok(mut f) = std::fs::File::open(p) {
+        use std::io::Read;
+        let mut header = [0u8; 3];
+        if f.read_exact(&mut header).is_ok()
+            && header[0] == 0xFF
+            && header[1] == 0xD8
+            && header[2] == 0xFF
+        {
+            return Ok(path.to_string());
+        }
+    }
+
     let scope = image_transcode_scope.unwrap_or("all_incompatible");
     let should_transcode = match scope {
         "none" => false,

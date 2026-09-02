@@ -1,3 +1,18 @@
+## v3.9.11 — Binary Magic Byte Album Pipeline & Nonstandard Image Guard Resolution
+
+### 1. Magic Bytes Sniffing Across Entire Album Pipeline
+- Memperbarui `is_nonstandard_image_source` pada `studio_orch.rs` untuk memeriksa magic bytes biner (JPEG `0xFF, 0xD8, 0xFF` dan PNG `0x89, 0x50, 0x4E, 0x47...`) sebelum membaca ekstensi nama berkas, mencegah berkas gambar valid dengan ekstensi `.heic`/`.jfif`/`.webp` dialihkan secara keliru ke `PayloadClass::DocumentGroup`.
+- Mengeliminasi pemisahan album tak disengaja di mana 1 berkas berformat dokumen memecah batch 16 media menjadi 9 (grid) + 1 (single document) + 6 (grid), kini 100% diproses sebagai 10 (grid) + 6 (grid).
+- Menyinkronkan `is_real_photo` pada `media_transfer.rs` agar memvalidasi header biner terlebih dahulu sehingga berkas foto dengan ekstensi non-standar langsung dikirim menggunakan payload native `InputMediaUploadedPhoto`.
+- Menambahkan fast-path deteksi header JPEG pada `maybe_transcode_image_for_telegram` di `media_prep.rs` untuk menghindari re-encoding yang tidak perlu pada media yang sudah berformat JPEG.
+
+### 2. Verification & Quality Sentinel
+- `cargo check` (`src-tauri`): Lulus bersih (0 errors, 0 warnings).
+- `cargo test --package autogram-core`: 12/12 test lulus.
+- Autonomous 5-Dimension Quality Sentinel: 100% i18n parity (6.183 keys), 0 TypeScript errors, 46 unit test suites Vitest lulus, integritas database SQLite WAL terverifikasi.
+
+---
+
 ## v3.9.10 — True 10+6 Album Grid Batching & Progressive Telegram DC Replication Verification
 
 ### 1. Telegram Album Batching & Replication Resilience

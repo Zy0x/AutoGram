@@ -35,8 +35,28 @@ fn option_bool(options: &serde_json::Value, snake: &str, camel: &str, default: b
 }
 
 fn is_nonstandard_image_source(path: &str) -> bool {
-    std::path::Path::new(path)
-        .extension()
+    let p = std::path::Path::new(path);
+    if let Ok(mut f) = std::fs::File::open(p) {
+        use std::io::Read;
+        let mut header = [0u8; 8];
+        let n = f.read(&mut header).unwrap_or(0);
+        if n >= 3 && header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF {
+            return false;
+        }
+        if n >= 8
+            && header[0] == 0x89
+            && header[1] == 0x50
+            && header[2] == 0x4E
+            && header[3] == 0x47
+            && header[4] == 0x0D
+            && header[5] == 0x0A
+            && header[6] == 0x1A
+            && header[7] == 0x0A
+        {
+            return false;
+        }
+    }
+    p.extension()
         .and_then(|value| value.to_str())
         .map(|value| {
             matches!(
