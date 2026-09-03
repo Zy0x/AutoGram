@@ -978,39 +978,13 @@ pub fn upload_prepared_album_blocking_with_app(
                     }
                 }
 
-                // Pre-register each media item via messages.UploadMedia so that
-                // SendMultiMedia receives valid server-side InputPhoto / InputDocument
+                // Pass uploaded media directly into SendMultiMedia for atomic single-RPC batching
                 let mut multi_media = Vec::with_capacity(items.len());
                 for (position, raw_media) in raw_medias.into_iter().enumerate() {
                     let random_id = random_ids[position];
-                    let server_input_media = match raw_media {
-                        tl::enums::InputMedia::UploadedPhoto(_)
-                        | tl::enums::InputMedia::PhotoExternal(_)
-                        | tl::enums::InputMedia::UploadedDocument(_)
-                        | tl::enums::InputMedia::DocumentExternal(_) => {
-                            let uploaded = client
-                                .invoke(&tl::functions::messages::UploadMedia {
-                                    business_connection_id: None,
-                                    peer: peer.into(),
-                                    media: raw_media,
-                                })
-                                .await
-                                .map_err(|e| map_invocation(&e))?;
-                            Media::from_raw(uploaded)
-                                .and_then(|m| m.to_raw_input_media())
-                                .ok_or_else(|| {
-                                    TgError::new(
-                                        TgErrorCode::Internal,
-                                        "failed to convert uploaded media to InputMedia",
-                                    )
-                                })?
-                        }
-                        other => other,
-                    };
-
                     multi_media.push(tl::enums::InputSingleMedia::Media(
                         tl::types::InputSingleMedia {
-                            media: server_input_media,
+                            media: raw_media,
                             random_id,
                             message: items[position].caption.clone(),
                             entities: None,
